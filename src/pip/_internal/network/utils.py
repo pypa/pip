@@ -1,10 +1,8 @@
+from typing import Dict, Iterator
+
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 
 from pip._internal.exceptions import NetworkConnectionError
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Dict, Iterator
 
 # The following comments and HTTP headers were originally added by
 # Donald Stufft in git commit 22c562429a61bb77172039e480873fb239dd8c03.
@@ -44,12 +42,12 @@ def raise_for_status(resp):
         reason = resp.reason
 
     if 400 <= resp.status_code < 500:
-        http_error_msg = '%s Client Error: %s for url: %s' % (
-            resp.status_code, reason, resp.url)
+        http_error_msg = (
+            f'{resp.status_code} Client Error: {reason} for url: {resp.url}')
 
     elif 500 <= resp.status_code < 600:
-        http_error_msg = '%s Server Error: %s for url: %s' % (
-            resp.status_code, reason, resp.url)
+        http_error_msg = (
+            f'{resp.status_code} Server Error: {reason} for url: {resp.url}')
 
     if http_error_msg:
         raise NetworkConnectionError(http_error_msg, response=resp)

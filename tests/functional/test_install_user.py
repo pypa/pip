@@ -118,8 +118,7 @@ class Tests_UserSite:
         # usersite has 0.1
         # we still test for egg-info because no-binary implies setup.py install
         egg_info_folder = (
-            script.user_site /
-            'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
+            script.user_site / f'INITools-0.1-py{pyversion}.egg-info'
         )
         initools_v3_file = (
             # file only in 0.3
@@ -146,8 +145,7 @@ class Tests_UserSite:
         # usersite has 0.1
         # we still test for egg-info because no-binary implies setup.py install
         egg_info_folder = (
-            script.user_site /
-            'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
+            script.user_site / f'INITools-0.1-py{pyversion}.egg-info'
         )
         initools_folder = script.user_site / 'initools'
         result2.did_create(egg_info_folder)
@@ -156,7 +154,7 @@ class Tests_UserSite:
         # site still has 0.2 (can't look in result1; have to check)
         egg_info_folder = (
             script.base_path / script.site_packages /
-            'INITools-0.2-py{pyversion}.egg-info'.format(**globals())
+            f'INITools-0.2-py{pyversion}.egg-info'
         )
         initools_folder = script.base_path / script.site_packages / 'initools'
         assert isdir(egg_info_folder)
@@ -178,8 +176,7 @@ class Tests_UserSite:
         # usersite has 0.3.1
         # we still test for egg-info because no-binary implies setup.py install
         egg_info_folder = (
-            script.user_site /
-            'INITools-0.3.1-py{pyversion}.egg-info'.format(**globals())
+            script.user_site / f'INITools-0.3.1-py{pyversion}.egg-info'
         )
         initools_folder = script.user_site / 'initools'
         result2.did_create(egg_info_folder)
@@ -188,7 +185,7 @@ class Tests_UserSite:
         # site still has 0.2 (can't look in result1; have to check)
         egg_info_folder = (
             script.base_path / script.site_packages /
-            'INITools-0.2-py{pyversion}.egg-info'.format(**globals())
+            f'INITools-0.2-py{pyversion}.egg-info'
         )
         initools_folder = script.base_path / script.site_packages / 'initools'
         assert isdir(egg_info_folder), result2.stdout
@@ -213,8 +210,7 @@ class Tests_UserSite:
         # usersite has 0.1
         # we still test for egg-info because no-binary implies setup.py install
         egg_info_folder = (
-            script.user_site /
-            'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
+            script.user_site / f'INITools-0.1-py{pyversion}.egg-info'
         )
         initools_v3_file = (
             # file only in 0.3
@@ -227,7 +223,7 @@ class Tests_UserSite:
         # site still has 0.2 (can't just look in result1; have to check)
         egg_info_folder = (
             script.base_path / script.site_packages /
-            'INITools-0.2-py{pyversion}.egg-info'.format(**globals())
+            f'INITools-0.2-py{pyversion}.egg-info'
         )
         initools_folder = script.base_path / script.site_packages / 'initools'
         assert isdir(egg_info_folder)

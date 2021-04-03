@@ -1,11 +1,9 @@
+from optparse import Values
+from typing import List
+
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.exceptions import CommandError
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from optparse import Values
-    from typing import List
 
 
 class HelpCommand(Command):

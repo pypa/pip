@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Tuple
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -6,22 +7,17 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Tuple
-
 
 def make_tls_cert(hostname):
     # type: (str) -> Tuple[x509.Certificate, rsa.RSAPrivateKey]
     key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=2048,
-        backend=default_backend()
+        public_exponent=65537, key_size=2048, backend=default_backend()
     )
-    subject = issuer = x509.Name([
-        x509.NameAttribute(NameOID.COMMON_NAME, hostname),
-    ])
+    subject = issuer = x509.Name(
+        [
+            x509.NameAttribute(NameOID.COMMON_NAME, hostname),
+        ]
+    )
     cert = (
         x509.CertificateBuilder()
         .subject_name(subject)

@@ -2,33 +2,31 @@ import os
 import signal
 import ssl
 import threading
+from base64 import b64encode
 from contextlib import contextmanager
 from textwrap import dedent
+from types import TracebackType
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type
+from unittest.mock import Mock
 
-from mock import Mock
-from pip._vendor.contextlib2 import nullcontext
-from werkzeug.serving import WSGIRequestHandler
+from werkzeug.serving import BaseWSGIServer, WSGIRequestHandler
 from werkzeug.serving import make_server as _make_server
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from .compat import nullcontext
 
-if MYPY_CHECK_RUNNING:
-    from types import TracebackType
-    from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type
+Environ = Dict[str, str]
+Status = str
+Headers = Iterable[Tuple[str, str]]
+ExcInfo = Tuple[Type[BaseException], BaseException, TracebackType]
+Write = Callable[[bytes], None]
+StartResponse = Callable[[Status, Headers, Optional[ExcInfo]], Write]
+Body = List[bytes]
+Responder = Callable[[Environ, StartResponse], Body]
 
-    from werkzeug.serving import BaseWSGIServer
 
-    Environ = Dict[str, str]
-    Status = str
-    Headers = Iterable[Tuple[str, str]]
-    ExcInfo = Tuple[Type[BaseException], BaseException, TracebackType]
-    Write = Callable[[bytes], None]
-    StartResponse = Callable[[Status, Headers, Optional[ExcInfo]], Write]
-    Body = List[bytes]
-    Responder = Callable[[Environ, StartResponse], Body]
+class MockServer(BaseWSGIServer):
+    mock = Mock()  # type: Mock
 
-    class MockServer(BaseWSGIServer):
-        mock = Mock()  # type: Mock
 
 # Applies on Python 2 and Windows.
 if not hasattr(signal, "pthread_sigmask"):
@@ -36,10 +34,10 @@ if not hasattr(signal, "pthread_sigmask"):
     # practice.
     blocked_signals = nullcontext
 else:
+
     @contextmanager
     def blocked_signals():
-        """Block all signals for e.g. starting a worker thread.
-        """
+        """Block all signals for e.g. starting a worker thread."""
         # valid_signals() was added in Python 3.8 (and not using it results
         # in a warning on pthread_sigmask() call)
         try:
@@ -84,12 +82,13 @@ def _mock_wsgi_adapter(mock):
     """Uses a mock to record function arguments and provide
     the actual function that should respond.
     """
+
     def adapter(environ, start_response):
         # type: (Environ, StartResponse) -> Body
         try:
             responder = mock(environ, start_response)
         except StopIteration:
-            raise RuntimeError('Ran out of mocked responses.')
+            raise RuntimeError("Ran out of mocked responses.")
         return responder(environ, start_response)
 
     return adapter
@@ -138,8 +137,7 @@ def make_mock_server(**kwargs):
 @contextmanager
 def server_running(server):
     # type: (BaseWSGIServer) -> None
-    """Context manager for running the provided server in a separate thread.
-    """
+    """Context manager for running the provided server in a separate thread."""
     thread = threading.Thread(target=server.serve_forever)
     thread.daemon = True
     with blocked_signals():
@@ -158,45 +156,50 @@ def text_html_response(text):
     # type: (str) -> Responder
     def responder(environ, start_response):
         # type: (Environ, StartResponse) -> Body
-        start_response("200 OK", [
-            ("Content-Type", "text/html; charset=UTF-8"),
-        ])
-        return [text.encode('utf-8')]
+        start_response(
+            "200 OK",
+            [
+                ("Content-Type", "text/html; charset=UTF-8"),
+            ],
+        )
+        return [text.encode("utf-8")]
 
     return responder
 
 
 def html5_page(text):
     # type: (str) -> str
-    return dedent("""
+    return (
+        dedent(
+            """
     <!DOCTYPE html>
     <html>
       <body>
         {}
       </body>
     </html>
-    """).strip().format(text)
+    """
+        )
+        .strip()
+        .format(text)
+    )
 
 
 def index_page(spec):
     # type: (Dict[str, str]) -> Responder
     def link(name, value):
-        return '<a href="{}">{}</a>'.format(
-            value, name
-        )
+        return '<a href="{}">{}</a>'.format(value, name)
 
-    links = ''.join(link(*kv) for kv in spec.items())
+    links = "".join(link(*kv) for kv in spec.items())
     return text_html_response(html5_page(links))
 
 
 def package_page(spec):
     # type: (Dict[str, str]) -> Responder
     def link(name, value):
-        return '<a href="{}">{}</a>'.format(
-            value, name
-        )
+        return '<a href="{}">{}</a>'.format(value, name)
 
-    links = ''.join(link(*kv) for kv in spec.items())
+    links = "".join(link(*kv) for kv in spec.items())
     return text_html_response(html5_page(links))
 
 
@@ -206,29 +209,44 @@ def file_response(path):
         # type: (Environ, StartResponse) -> Body
         size = os.stat(path).st_size
         start_response(
-            "200 OK", [
+            "200 OK",
+            [
                 ("Content-Type", "application/octet-stream"),
                 ("Content-Length", str(size)),
             ],
         )
 
-        with open(path, 'rb') as f:
+        with open(path, "rb") as f:
             return [f.read()]
 
     return responder
 
 
 def authorization_response(path):
+    # type: (str) -> Responder
+    correct_auth = "Basic " + b64encode(b"USERNAME:PASSWORD").decode("ascii")
+
     def responder(environ, start_response):
         # type: (Environ, StartResponse) -> Body
 
-        start_response(
-            "401 Unauthorized", [
-                ("WWW-Authenticate", "Basic"),
-            ],
-        )
+        if environ.get("HTTP_AUTHORIZATION") == correct_auth:
+            size = os.stat(path).st_size
+            start_response(
+                "200 OK",
+                [
+                    ("Content-Type", "application/octet-stream"),
+                    ("Content-Length", str(size)),
+                ],
+            )
+        else:
+            start_response(
+                "401 Unauthorized",
+                [
+                    ("WWW-Authenticate", "Basic"),
+                ],
+            )
 
-        with open(path, 'rb') as f:
+        with open(path, "rb") as f:
             return [f.read()]
 
     return responder

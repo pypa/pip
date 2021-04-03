@@ -4,11 +4,11 @@ import re
 import urllib.request
 import uuid
 from textwrap import dedent
+from unittest import mock
+from unittest.mock import Mock, patch
 
-import mock
 import pretend
 import pytest
-from mock import Mock, patch
 from pip._vendor import html5lib, requests
 
 from pip._internal.exceptions import NetworkConnectionError
@@ -608,7 +608,7 @@ def test_group_locations__file_expand_dir(data):
     files, urls = group_locations([data.find_links], expand_dir=True)
     assert files and not urls, (
         "files and not urls should have been found "
-        "at find-links url: {data.find_links}".format(**locals())
+        f"at find-links url: {data.find_links}"
     )
 
 

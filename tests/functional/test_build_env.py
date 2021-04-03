@@ -79,15 +79,15 @@ def test_build_env_allow_only_one_install(script):
     for prefix in ('normal', 'overlay'):
         build_env.install_requirements(
             finder, ['foo'], prefix,
-            'installing foo in {prefix}'.format(**locals()))
+            f'installing foo in {prefix}')
         with pytest.raises(AssertionError):
             build_env.install_requirements(
                 finder, ['bar'], prefix,
-                'installing bar in {prefix}'.format(**locals()))
+                f'installing bar in {prefix}')
         with pytest.raises(AssertionError):
             build_env.install_requirements(
                 finder, [], prefix,
-                'installing in {prefix}'.format(**locals()))
+                f'installing in {prefix}')
 
 
 def test_build_env_requirements_check(script):
@@ -201,7 +201,7 @@ def test_build_env_isolation(script):
             pass
         else:
             print(
-                'imported `pkg` from `{pkg.__file__}`'.format(**locals()),
+                f'imported `pkg` from `{pkg.__file__}`',
                 file=sys.stderr)
             print('system sites:\n  ' + '\n  '.join(sorted({
                           get_python_lib(plat_specific=0),

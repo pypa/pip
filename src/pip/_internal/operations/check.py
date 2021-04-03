@@ -3,36 +3,34 @@
 
 import logging
 from collections import namedtuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Tuple
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.pkg_resources import RequirementParseError
 
 from pip._internal.distributions import make_distribution_for_install_requirement
+from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.misc import get_installed_distributions
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if TYPE_CHECKING:
+    from pip._vendor.packaging.utils import NormalizedName
 
 logger = logging.getLogger(__name__)
 
-if MYPY_CHECK_RUNNING:
-    from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+# Shorthands
+PackageSet = Dict['NormalizedName', 'PackageDetails']
+Missing = Tuple[str, Any]
+Conflicting = Tuple[str, str, Any]
 
-    from pip._internal.req.req_install import InstallRequirement
-
-    # Shorthands
-    PackageSet = Dict[str, 'PackageDetails']
-    Missing = Tuple[str, Any]
-    Conflicting = Tuple[str, str, Any]
-
-    MissingDict = Dict[str, List[Missing]]
-    ConflictingDict = Dict[str, List[Conflicting]]
-    CheckResult = Tuple[MissingDict, ConflictingDict]
-    ConflictDetails = Tuple[PackageSet, CheckResult]
+MissingDict = Dict['NormalizedName', List[Missing]]
+ConflictingDict = Dict['NormalizedName', List[Conflicting]]
+CheckResult = Tuple[MissingDict, ConflictingDict]
+ConflictDetails = Tuple[PackageSet, CheckResult]
 
 PackageDetails = namedtuple('PackageDetails', ['version', 'requires'])
 
 
-def create_package_set_from_installed(**kwargs):
-    # type: (**Any) -> Tuple[PackageSet, bool]
+def create_package_set_from_installed(**kwargs: Any) -> Tuple["PackageSet", bool]:
     """Converts a list of distributions into a PackageSet.
     """
     # Default to using all packages installed on the system
@@ -63,7 +61,7 @@ def check_package_set(package_set, should_ignore=None):
     missing = {}
     conflicting = {}
 
-    for package_name in package_set:
+    for package_name, package_detail in package_set.items():
         # Info about dependencies of package_name
         missing_deps = set()  # type: Set[Missing]
         conflicting_deps = set()  # type: Set[Conflicting]
@@ -71,8 +69,8 @@ def check_package_set(package_set, should_ignore=None):
         if should_ignore and should_ignore(package_name):
             continue
 
-        for req in package_set[package_name].requires:
-            name = canonicalize_name(req.project_name)  # type: str
+        for req in package_detail.requires:
+            name = canonicalize_name(req.project_name)
 
             # Check if it's missing
             if name not in package_set:
@@ -118,7 +116,7 @@ def check_install_conflicts(to_install):
 
 
 def _simulate_installation_of(to_install, package_set):
-    # type: (List[InstallRequirement], PackageSet) -> Set[str]
+    # type: (List[InstallRequirement], PackageSet) -> Set[NormalizedName]
     """Computes the version of packages after installing to_install.
     """
 
@@ -140,7 +138,7 @@ def _simulate_installation_of(to_install, package_set):
 
 
 def _create_whitelist(would_be_installed, package_set):
-    # type: (Set[str], PackageSet) -> Set[str]
+    # type: (Set[NormalizedName], PackageSet) -> Set[NormalizedName]
     packages_affected = set(would_be_installed)
 
     for package_name in package_set:

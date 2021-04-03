@@ -2,20 +2,13 @@
 A module that implements tooling to enable easy warnings about deprecations.
 """
 
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 import logging
 import warnings
+from typing import Any, Optional, TextIO, Type, Union
 
 from pip._vendor.packaging.version import parse
 
 from pip import __version__ as current_version
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Any, Optional
-
 
 DEPRECATION_MSG_PREFIX = "DEPRECATION: "
 
@@ -28,21 +21,25 @@ _original_showwarning = None  # type: Any
 
 
 # Warnings <-> Logging Integration
-def _showwarning(message, category, filename, lineno, file=None, line=None):
+def _showwarning(
+    message,  # type: Union[Warning, str]
+    category,  # type: Type[Warning]
+    filename,  # type: str
+    lineno,  # type: int
+    file=None,  # type: Optional[TextIO]
+    line=None,  # type: Optional[str]
+):
+    # type: (...) -> None
     if file is not None:
         if _original_showwarning is not None:
-            _original_showwarning(
-                message, category, filename, lineno, file, line,
-            )
+            _original_showwarning(message, category, filename, lineno, file, line)
     elif issubclass(category, PipDeprecationWarning):
         # We use a specially named logger which will handle all of the
         # deprecation messages for pip.
         logger = logging.getLogger("pip._internal.deprecations")
         logger.warning(message)
     else:
-        _original_showwarning(
-            message, category, filename, lineno, file, line,
-        )
+        _original_showwarning(message, category, filename, lineno, file, line)
 
 
 def install_warning_logger():
@@ -86,10 +83,13 @@ def deprecated(reason, replacement, gone_in, issue=None):
         (reason, DEPRECATION_MSG_PREFIX + "{}"),
         (gone_in, "pip {} will remove support for this functionality."),
         (replacement, "A possible replacement is {}."),
-        (issue, (
-            "You can find discussion regarding this at "
-            "https://github.com/pypa/pip/issues/{}."
-        )),
+        (
+            issue,
+            (
+                "You can find discussion regarding this at "
+                "https://github.com/pypa/pip/issues/{}."
+            ),
+        ),
     ]
     message = " ".join(
         template.format(val) for val, template in sentences if val is not None

@@ -1,0 +1,1 @@
+Add a warning, discouraging the usage of pip as root, outside a virtual environment.

@@ -1,0 +1,2 @@
+Ignore ``.dist-info`` directories if the stem is not a valid Python distribution
+name, so they don't show up in e.g. ``pip freeze``.

@@ -1,0 +1,1 @@
+Fix incorrect reporting on ``Requires-Python`` conflicts.

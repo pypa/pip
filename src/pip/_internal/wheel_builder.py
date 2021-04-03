@@ -5,37 +5,33 @@ import logging
 import os.path
 import re
 import shutil
+from typing import Any, Callable, Iterable, List, Optional, Tuple
 
 from pip._vendor.packaging.utils import canonicalize_name, canonicalize_version
 from pip._vendor.packaging.version import InvalidVersion, Version
 
+from pip._internal.cache import WheelCache
 from pip._internal.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip._internal.metadata import get_wheel_distribution
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.operations.build.wheel import build_wheel_pep517
 from pip._internal.operations.build.wheel_legacy import build_wheel_legacy
+from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import ensure_dir, hash_file, is_wheel_installed
 from pip._internal.utils.setuptools_build import make_setuptools_clean_args
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs import vcs
-
-if MYPY_CHECK_RUNNING:
-    from typing import Any, Callable, Iterable, List, Optional, Tuple
-
-    from pip._internal.cache import WheelCache
-    from pip._internal.req.req_install import InstallRequirement
-
-    BinaryAllowedPredicate = Callable[[InstallRequirement], bool]
-    BuildResult = Tuple[List[InstallRequirement], List[InstallRequirement]]
 
 logger = logging.getLogger(__name__)
 
 _egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.!+-]+)', re.IGNORECASE)
+
+BinaryAllowedPredicate = Callable[[InstallRequirement], bool]
+BuildResult = Tuple[List[InstallRequirement], List[InstallRequirement]]
 
 
 def _contains_egg_info(s):
@@ -171,7 +167,7 @@ def _always_true(_):
 
 def _verify_one(req, wheel_path):
     # type: (InstallRequirement, str) -> None
-    canonical_name = canonicalize_name(req.name)
+    canonical_name = canonicalize_name(req.name or "")
     w = Wheel(os.path.basename(wheel_path))
     if canonicalize_name(w.name) != canonical_name:
         raise InvalidWheelFilename(
@@ -179,10 +175,11 @@ def _verify_one(req, wheel_path):
             "got {!r}".format(canonical_name, w.name),
         )
     dist = get_wheel_distribution(wheel_path, canonical_name)
-    if canonicalize_version(dist.version) != canonicalize_version(w.version):
+    dist_verstr = str(dist.version)
+    if canonicalize_version(dist_verstr) != canonicalize_version(w.version):
         raise InvalidWheelFilename(
             "Wheel has unexpected file name: expected {!r}, "
-            "got {!r}".format(str(dist.version), w.version),
+            "got {!r}".format(dist_verstr, w.version),
         )
     metadata_version_value = dist.metadata_version
     if metadata_version_value is None:
@@ -190,13 +187,13 @@ def _verify_one(req, wheel_path):
     try:
         metadata_version = Version(metadata_version_value)
     except InvalidVersion:
-        msg = "Invalid Metadata-Version: {}".format(metadata_version_value)
+        msg = f"Invalid Metadata-Version: {metadata_version_value}"
         raise UnsupportedWheel(msg)
     if (metadata_version >= Version("1.2")
             and not isinstance(dist.version, Version)):
         raise UnsupportedWheel(
             "Metadata 1.2 mandates PEP 440 version, "
-            "but {!r} is not".format(str(dist.version))
+            "but {!r} is not".format(dist_verstr)
         )
 
 
@@ -246,6 +243,7 @@ def _build_one_inside_env(
         assert req.name
         if req.use_pep517:
             assert req.metadata_directory
+            assert req.pep517_backend
             wheel_path = build_wheel_pep517(
                 name=req.name,
                 backend=req.pep517_backend,

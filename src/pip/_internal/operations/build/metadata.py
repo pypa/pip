@@ -3,14 +3,11 @@
 
 import os
 
+from pip._vendor.pep517.wrappers import Pep517HookCaller
+
+from pip._internal.build_env import BuildEnvironment
 from pip._internal.utils.subprocess import runner_with_spinner_message
 from pip._internal.utils.temp_dir import TempDirectory
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from pip._vendor.pep517.wrappers import Pep517HookCaller
-
-    from pip._internal.build_env import BuildEnvironment
 
 
 def generate_metadata(build_env, backend):

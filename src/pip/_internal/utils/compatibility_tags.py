@@ -2,6 +2,7 @@
 """
 
 import re
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from pip._vendor.packaging.tags import (
     Tag,
@@ -13,20 +14,17 @@ from pip._vendor.packaging.tags import (
     mac_platforms,
 )
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import List, Optional, Tuple
-
+if TYPE_CHECKING:
     from pip._vendor.packaging.tags import PythonVersion
 
-_osx_arch_pat = re.compile(r'(.+)_(\d+)_(\d+)_(.+)')
+
+_osx_arch_pat = re.compile(r"(.+)_(\d+)_(\d+)_(.+)")
 
 
 def version_info_to_nodot(version_info):
     # type: (Tuple[int, ...]) -> str
     # Only use up to the first two numbers.
-    return ''.join(map(str, version_info[:2]))
+    return "".join(map(str, version_info[:2]))
 
 
 def _mac_platforms(arch):
@@ -41,7 +39,7 @@ def _mac_platforms(arch):
             # actual prefix provided by the user in case they provided
             # something like "macosxcustom_". It may be good to remove
             # this as undocumented or deprecate it in the future.
-            '{}_{}'.format(name, arch[len('macosx_'):])
+            "{}_{}".format(name, arch[len("macosx_") :])
             for arch in mac_platforms(mac_version, actual_arch)
         ]
     else:
@@ -53,31 +51,31 @@ def _mac_platforms(arch):
 def _custom_manylinux_platforms(arch):
     # type: (str) -> List[str]
     arches = [arch]
-    arch_prefix, arch_sep, arch_suffix = arch.partition('_')
-    if arch_prefix == 'manylinux2014':
+    arch_prefix, arch_sep, arch_suffix = arch.partition("_")
+    if arch_prefix == "manylinux2014":
         # manylinux1/manylinux2010 wheels run on most manylinux2014 systems
         # with the exception of wheels depending on ncurses. PEP 599 states
         # manylinux1/manylinux2010 wheels should be considered
         # manylinux2014 wheels:
         # https://www.python.org/dev/peps/pep-0599/#backwards-compatibility-with-manylinux2010-wheels
-        if arch_suffix in {'i686', 'x86_64'}:
-            arches.append('manylinux2010' + arch_sep + arch_suffix)
-            arches.append('manylinux1' + arch_sep + arch_suffix)
-    elif arch_prefix == 'manylinux2010':
+        if arch_suffix in {"i686", "x86_64"}:
+            arches.append("manylinux2010" + arch_sep + arch_suffix)
+            arches.append("manylinux1" + arch_sep + arch_suffix)
+    elif arch_prefix == "manylinux2010":
         # manylinux1 wheels run on most manylinux2010 systems with the
         # exception of wheels depending on ncurses. PEP 571 states
         # manylinux1 wheels should be considered manylinux2010 wheels:
         # https://www.python.org/dev/peps/pep-0571/#backwards-compatibility-with-manylinux1-wheels
-        arches.append('manylinux1' + arch_sep + arch_suffix)
+        arches.append("manylinux1" + arch_sep + arch_suffix)
     return arches
 
 
 def _get_custom_platforms(arch):
     # type: (str) -> List[str]
-    arch_prefix, arch_sep, arch_suffix = arch.partition('_')
-    if arch.startswith('macosx'):
+    arch_prefix, arch_sep, arch_suffix = arch.partition("_")
+    if arch.startswith("macosx"):
         arches = _mac_platforms(arch)
-    elif arch_prefix in ['manylinux2014', 'manylinux2010']:
+    elif arch_prefix in ["manylinux2014", "manylinux2010"]:
         arches = _custom_manylinux_platforms(arch)
     else:
         arches = [arch]
@@ -123,7 +121,7 @@ def get_supported(
     version=None,  # type: Optional[str]
     platforms=None,  # type: Optional[List[str]]
     impl=None,  # type: Optional[str]
-    abis=None  # type: Optional[List[str]]
+    abis=None,  # type: Optional[List[str]]
 ):
     # type: (...) -> List[Tag]
     """Return a list of supported tags for each version specified in

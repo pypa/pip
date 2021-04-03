@@ -1,9 +1,6 @@
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from typing import List, Optional
 
-if MYPY_CHECK_RUNNING:
-    from typing import List, Optional
-
-    from .base import BaseDistribution, BaseEnvironment
+from .base import BaseDistribution, BaseEnvironment
 
 
 def get_default_environment():

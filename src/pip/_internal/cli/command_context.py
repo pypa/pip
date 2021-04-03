@@ -1,13 +1,7 @@
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
+from typing import ContextManager, Iterator, TypeVar
 
-from pip._vendor.contextlib2 import ExitStack
-
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import ContextManager, Iterator, TypeVar
-
-    _T = TypeVar('_T', covariant=True)
+_T = TypeVar("_T", covariant=True)
 
 
 class CommandContextMixIn:

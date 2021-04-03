@@ -23,9 +23,7 @@ from tests.lib import (
     need_svn,
     path_to_url,
     pyversion,
-    pyversion_tuple,
     requirements_file,
-    windows_workaround_7667,
 )
 from tests.lib.filesystem import make_socket_file
 from tests.lib.local_repos import local_checkout
@@ -165,7 +163,6 @@ def test_pep518_with_namespace_package(script, data, common_wheels):
     )
 
 
-@pytest.mark.timeout(60)
 @pytest.mark.parametrize('command', ('install', 'wheel'))
 @pytest.mark.parametrize('package', ('pep518_forkbomb',
                                      'pep518_twin_forkbombs_first',
@@ -193,16 +190,10 @@ def test_pip_second_command_line_interface_works(
     """
     # Re-install pip so we get the launchers.
     script.pip_install_local('-f', common_wheels, pip_src)
-    # On old versions of Python, urllib3/requests will raise a warning about
-    # the lack of an SSLContext.
-    kwargs = {'expect_stderr': deprecated_python}
-    if pyversion_tuple < (2, 7, 9):
-        kwargs['expect_stderr'] = True
-
-    args = ['pip{pyversion}'.format(**globals())]
+    args = [f'pip{pyversion}']
     args.extend(['install', 'INITools==0.2'])
     args.extend(['-f', data.packages])
-    result = script.run(*args, **kwargs)
+    result = script.run(*args)
     dist_info_folder = (
         script.site_packages /
         'INITools-0.2.dist-info'
@@ -581,7 +572,29 @@ def test_install_from_local_directory_with_symlinks_to_directories(
     result.did_create(dist_info_folder)
 
 
-@pytest.mark.skipif("sys.platform == 'win32' or sys.version_info < (3,)")
+def test_install_from_local_directory_with_in_tree_build(
+    script, data, with_wheel
+):
+    """
+    Test installing from a local directory with --use-feature=in-tree-build.
+    """
+    to_install = data.packages.joinpath("FSPkg")
+    args = ["install", "--use-feature=in-tree-build", to_install]
+
+    in_tree_build_dir = to_install / "build"
+    assert not in_tree_build_dir.exists()
+    result = script.pip(*args)
+    fspkg_folder = script.site_packages / 'fspkg'
+    dist_info_folder = (
+        script.site_packages /
+        'FSPkg-0.1.dev0.dist-info'
+    )
+    result.did_create(fspkg_folder)
+    result.did_create(dist_info_folder)
+    assert in_tree_build_dir.exists()
+
+
+@pytest.mark.skipif("sys.platform == 'win32'")
 def test_install_from_local_directory_with_socket_file(
     script, data, tmpdir, with_wheel
 ):
@@ -627,9 +640,9 @@ def test_editable_install__local_dir_no_setup_py(
 
     msg = result.stderr
     if deprecated_python:
-        assert 'File "setup.py" not found. ' in msg
+        assert 'File "setup.py" or "setup.cfg" not found. ' in msg
     else:
-        assert msg.startswith('ERROR: File "setup.py" not found. ')
+        assert msg.startswith('ERROR: File "setup.py" or "setup.cfg" not found. ')
     assert 'pyproject.toml' not in msg
 
 
@@ -649,9 +662,9 @@ def test_editable_install__local_dir_no_setup_py_with_pyproject(
 
     msg = result.stderr
     if deprecated_python:
-        assert 'File "setup.py" not found. ' in msg
+        assert 'File "setup.py" or "setup.cfg" not found. ' in msg
     else:
-        assert msg.startswith('ERROR: File "setup.py" not found. ')
+        assert msg.startswith('ERROR: File "setup.py" or "setup.cfg" not found. ')
     assert 'A "pyproject.toml" file was found' in msg
 
 
@@ -727,11 +740,10 @@ def test_install_using_install_option_and_editable(script, tmpdir):
     """
     folder = 'script_folder'
     script.scratch_path.joinpath(folder).mkdir()
-    url = 'git+git://github.com/pypa/pip-test-package'
+    url = local_checkout('git+git://github.com/pypa/pip-test-package', tmpdir)
     result = script.pip(
-        'install', '-e', '{url}#egg=pip-test-package'
-        .format(url=local_checkout(url, tmpdir)),
-        '--install-option=--script-dir={folder}'.format(**locals()),
+        'install', '-e', f'{url}#egg=pip-test-package',
+        f'--install-option=--script-dir={folder}',
         expect_stderr=True)
     script_file = (
         script.venv / 'src' / 'pip-test-package' /
@@ -743,7 +755,6 @@ def test_install_using_install_option_and_editable(script, tmpdir):
 @pytest.mark.xfail
 @pytest.mark.network
 @need_mercurial
-@windows_workaround_7667
 def test_install_global_option_using_editable(script, tmpdir):
     """
     Test using global distutils options, but in an editable installation
@@ -799,10 +810,7 @@ def test_install_folder_using_slash_in_the_end(script, with_wheel):
     pkg_path = script.scratch_path / 'mock'
     pkg_path.joinpath("setup.py").write_text(mock100_setup_py)
     result = script.pip('install', 'mock' + os.path.sep)
-    dist_info_folder = (
-        script.site_packages /
-        'mock-100.1.dist-info'
-    )
+    dist_info_folder = script.site_packages / 'mock-100.1.dist-info'
     result.did_create(dist_info_folder)
 
 
@@ -815,10 +823,7 @@ def test_install_folder_using_relative_path(script, with_wheel):
     pkg_path = script.scratch_path / 'initools' / 'mock'
     pkg_path.joinpath("setup.py").write_text(mock100_setup_py)
     result = script.pip('install', Path('initools') / 'mock')
-    dist_info_folder = (
-        script.site_packages /
-        'mock-100.1.dist-info'.format(**globals())
-    )
+    dist_info_folder = script.site_packages / 'mock-100.1.dist-info'
     result.did_create(dist_info_folder)
 
 
@@ -1028,15 +1033,13 @@ def test_install_package_with_prefix(script, data):
     result.did_create(install_path)
 
 
-def test_install_editable_with_prefix(script):
+def _test_install_editable_with_prefix(script, files):
     # make a dummy project
     pkga_path = script.scratch_path / 'pkga'
     pkga_path.mkdir()
-    pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
-        from setuptools import setup
-        setup(name='pkga',
-              version='0.1')
-    """))
+
+    for fn, contents in files.items():
+        pkga_path.joinpath(fn).write_text(textwrap.dedent(contents))
 
     if hasattr(sys, "pypy_version_info"):
         site_packages = os.path.join(
@@ -1057,6 +1060,50 @@ def test_install_editable_with_prefix(script):
     # assert pkga is installed at correct location
     install_path = script.scratch / site_packages / 'pkga.egg-link'
     result.did_create(install_path)
+
+
+@pytest.mark.network
+def test_install_editable_with_target(script):
+    pkg_path = script.scratch_path / 'pkg'
+    pkg_path.mkdir()
+    pkg_path.joinpath("setup.py").write_text(textwrap.dedent("""
+        from setuptools import setup
+        setup(
+            name='pkg',
+            install_requires=['watching_testrunner']
+        )
+    """))
+
+    target = script.scratch_path / 'target'
+    target.mkdir()
+    result = script.pip(
+        'install', '--editable', pkg_path, '--target', target
+    )
+
+    result.did_create(script.scratch / 'target' / 'pkg.egg-link')
+    result.did_create(script.scratch / 'target' / 'watching_testrunner.py')
+
+
+def test_install_editable_with_prefix_setup_py(script):
+    setup_py = """
+from setuptools import setup
+setup(name='pkga', version='0.1')
+"""
+    _test_install_editable_with_prefix(script, {"setup.py": setup_py})
+
+
+def test_install_editable_with_prefix_setup_cfg(script):
+    setup_cfg = """[metadata]
+name = pkga
+version = 0.1
+"""
+    pyproject_toml = """[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+"""
+    _test_install_editable_with_prefix(
+        script, {"setup.cfg": setup_cfg, "pyproject.toml": pyproject_toml}
+    )
 
 
 def test_install_package_conflict_prefix_and_user(script, data):
@@ -1294,11 +1341,11 @@ def test_install_subprocess_output_handling(script, data):
 def test_install_log(script, data, tmpdir):
     # test that verbose logs go to "--log" file
     f = tmpdir.joinpath("log.txt")
-    args = ['--log={f}'.format(**locals()),
+    args = [f'--log={f}',
             'install', data.src.joinpath('chattymodule')]
     result = script.pip(*args)
     assert 0 == result.stdout.count("HELLO FROM CHATTYMODULE")
-    with open(f, 'r') as fp:
+    with open(f) as fp:
         # one from egg_info, one from install
         assert 2 == fp.read().count("HELLO FROM CHATTYMODULE")
 
@@ -1321,7 +1368,8 @@ def test_cleanup_after_failed_wheel(script, with_wheel):
     # One of the effects of not cleaning up is broken scripts:
     script_py = script.bin_path / "script.py"
     assert script_py.exists(), script_py
-    shebang = open(script_py, 'r').readline().strip()
+    with open(script_py) as f:
+        shebang = f.readline().strip()
     assert shebang != '#!python', shebang
     # OK, assert that we *said* we were cleaning up:
     # /!\ if in need to change this, also change test_pep517_no_legacy_cleanup
@@ -1392,7 +1440,6 @@ def test_install_no_binary_disables_building_wheels(script, data, with_wheel):
 
 
 @pytest.mark.network
-@windows_workaround_7667
 def test_install_no_binary_builds_pep_517_wheel(script, data, with_wheel):
     to_install = data.packages.joinpath('pep517_setup_and_pyproject')
     res = script.pip(
@@ -1407,7 +1454,6 @@ def test_install_no_binary_builds_pep_517_wheel(script, data, with_wheel):
 
 
 @pytest.mark.network
-@windows_workaround_7667
 def test_install_no_binary_uses_local_backend(
         script, data, with_wheel, tmpdir):
     to_install = data.packages.joinpath('pep517_wrapper_buildsys')
@@ -1448,7 +1494,7 @@ def test_install_editable_with_wrong_egg_name(script, resolver_variant):
     """))
     result = script.pip(
         'install', '--editable',
-        'file://{pkga_path}#egg=pkgb'.format(**locals()),
+        f'file://{pkga_path}#egg=pkgb',
         expect_error=(resolver_variant == "2020-resolver"),
     )
     assert ("Generating metadata for package pkgb produced metadata "
@@ -1534,7 +1580,7 @@ def test_install_incompatible_python_requires_editable(script):
     """))
     result = script.pip(
         'install',
-        '--editable={pkga_path}'.format(**locals()),
+        f'--editable={pkga_path}',
         expect_error=True)
     assert _get_expected_error_text() in result.stderr, str(result)
 
@@ -1651,7 +1697,7 @@ def test_installed_files_recorded_in_deterministic_order(script, data):
     to_install = data.packages.joinpath("FSPkg")
     result = script.pip('install', to_install)
     fspkg_folder = script.site_packages / 'fspkg'
-    egg_info = 'FSPkg-0.1.dev0-py{pyversion}.egg-info'.format(**globals())
+    egg_info = f'FSPkg-0.1.dev0-py{pyversion}.egg-info'
     installed_files_path = (
         script.site_packages / egg_info / 'installed-files.txt'
     )
@@ -1714,10 +1760,10 @@ def test_target_install_ignores_distutils_config_install_prefix(script):
                             'pydistutils.cfg' if sys.platform == 'win32'
                             else '.pydistutils.cfg')
     distutils_config.write_text(textwrap.dedent(
-        '''
+        f'''
         [install]
         prefix={prefix}
-        '''.format(**locals())))
+        '''))
     target = script.scratch_path / 'target'
     result = script.pip_install_local('simplewheel', '-t', target)
 
@@ -1850,7 +1896,9 @@ def test_install_sends_client_cert(install_args, script, cert_factory, data):
 
     assert server.mock.call_count == 2
     for call_args in server.mock.call_args_list:
-        environ, _ = call_args.args
+        # Legacy: replace call_args[0] with call_args.args
+        # when pip drops support for python3.7
+        environ, _ = call_args[0]
         assert "SSL_CLIENT_CERT" in environ
         assert environ["SSL_CLIENT_CERT"]
 

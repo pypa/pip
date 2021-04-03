@@ -1,16 +1,14 @@
 """Exceptions used throughout package"""
 
+import configparser
 from itertools import chain, groupby, repeat
+from typing import TYPE_CHECKING, Dict, List, Optional
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._vendor.pkg_resources import Distribution
+from pip._vendor.requests.models import Request, Response
 
-if MYPY_CHECK_RUNNING:
-    import configparser
+if TYPE_CHECKING:
     from hashlib import _Hash
-    from typing import Dict, List, Optional
-
-    from pip._vendor.pkg_resources import Distribution
-    from pip._vendor.requests.models import Request, Response
 
     from pip._internal.req.req_install import InstallRequirement
 
@@ -59,6 +57,21 @@ class NoneMetadataError(PipError):
                 self.metadata_name, self.dist,
             )
         )
+
+
+class UserInstallationInvalid(InstallationError):
+    """A --user install is requested on an environment without user site."""
+
+    def __str__(self):
+        # type: () -> str
+        return "User base directory is not specified"
+
+
+class InvalidSchemeCombination(InstallationError):
+    def __str__(self):
+        # type: () -> str
+        before = ", ".join(str(a) for a in self.args[:-1])
+        return f"Cannot set {before} and {self.args[-1]} together"
 
 
 class DistributionNotFound(InstallationError):
