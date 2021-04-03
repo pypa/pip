@@ -303,6 +303,27 @@ def test_version_control__get_url_rev_and_auth__no_revision(url):
     assert 'an empty revision (after @)' in str(excinfo.value)
 
 
+@pytest.mark.parametrize("vcs_cls", [Bazaar, Git, Mercurial, Subversion])
+@pytest.mark.parametrize(
+    "exc_cls, msg_re",
+    [
+        (FileNotFoundError, r"Cannot find command '{name}'"),
+        (PermissionError, r"No permission to execute '{name}'"),
+    ],
+    ids=["FileNotFoundError", "PermissionError"],
+)
+def test_version_control__run_command__fails(vcs_cls, exc_cls, msg_re):
+    """
+    Test that ``VersionControl.run_command()`` raises ``BadCommand``
+    when the command is not found or when the user have no permission
+    to execute it. The error message must contains the command name.
+    """
+    with patch("pip._internal.vcs.versioncontrol.call_subprocess") as call:
+        call.side_effect = exc_cls
+        with pytest.raises(BadCommand, match=msg_re.format(name=vcs_cls.name)):
+            vcs_cls.run_command([])
+
+
 @pytest.mark.parametrize('url, expected', [
     # Test http.
     ('bzr+http://bzr.myproject.org/MyProject/trunk/#egg=MyProject',
