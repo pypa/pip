@@ -125,7 +125,7 @@ does not come with it included.
 
    pip install keyring
    echo your-password | keyring set pypi.company.com your-username
-   pip install your-package --extra-index-url https://pypi.company.com/
+   pip install your-package --index-url https://pypi.company.com/
 
 .. _keyring: https://pypi.org/project/keyring/
 

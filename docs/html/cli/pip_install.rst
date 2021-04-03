@@ -1127,20 +1127,6 @@ Examples
 
          py -m pip install --index-url http://my.package.repo/simple/ SomePackage
 
-   Search an additional index during install, in addition to `PyPI`_
-
-   .. tab:: Unix/macOS
-
-      .. code-block:: shell
-
-         python -m pip install --extra-index-url http://my.package.repo/simple SomePackage
-
-   .. tab:: Windows
-
-      .. code-block:: shell
-
-         py -m pip install --extra-index-url http://my.package.repo/simple SomePackage
-
    Install from a local flat directory containing archives (and don't scan indexes):
 
    .. tab:: Unix/macOS
@@ -1158,6 +1144,29 @@ Examples
          py -m pip install --no-index --find-links=file:///local/dir/ SomePackage
          py -m pip install --no-index --find-links=/local/dir/ SomePackage
          py -m pip install --no-index --find-links=relative/dir/ SomePackage
+
+   Search an additional index during install, in addition to `PyPI`_
+
+   .. warning::
+
+       Using this option to search for packages which are not in the main
+       repository (such as private packages) is unsafe, per a security
+       vulnerability called
+       `dependency confusion <https://azure.microsoft.com/en-us/resources/3-ways-to-mitigate-risk-using-private-package-feeds/>`_:
+       an attacker can claim the package on the public repository in a way that
+       will ensure it gets chosen over the private package.
+
+   .. tab:: Unix/macOS
+
+      .. code-block:: shell
+
+         python -m pip install --extra-index-url http://my.package.repo/simple SomePackage
+
+   .. tab:: Windows
+
+      .. code-block:: shell
+
+         py -m pip install --extra-index-url http://my.package.repo/simple SomePackage
 
 
 #. Find pre-release and development versions, in addition to stable versions.  By default, pip only finds stable versions.
