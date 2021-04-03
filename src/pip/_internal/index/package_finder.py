@@ -556,7 +556,6 @@ class CandidateEvaluator:
         best_candidate = max(candidates, key=self._sort_key)
         return best_candidate
 
-
     def compute_best_candidate(
         self,
         candidates,      # type: List[InstallationCandidate]
