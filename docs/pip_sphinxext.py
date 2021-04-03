@@ -58,11 +58,7 @@ class PipNewsInclude(rst.Directive):
             self.lineno - self.state_machine.input_offset - 1,
         )
         path = (
-            pathlib.Path(source)
-            .resolve()
-            .parent
-            .joinpath(self.arguments[0])
-            .resolve()
+            pathlib.Path(source).resolve().parent.joinpath(self.arguments[0]).resolve()
         )
         include_lines = statemachine.string2lines(
             path.read_text(encoding="utf-8"),
@@ -303,5 +299,5 @@ def setup(app: Sphinx) -> None:
     app.add_directive(
         "pip-requirements-file-options-ref-list", PipReqFileOptionsReference
     )
-    app.add_directive('pip-news-include', PipNewsInclude)
+    app.add_directive("pip-news-include", PipNewsInclude)
     app.add_directive("pip-cli", PipCLIDirective)
