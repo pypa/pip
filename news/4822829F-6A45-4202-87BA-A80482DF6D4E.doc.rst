@@ -1,2 +1,2 @@
-Update "setuptools extras" ink to match upstream.
+Update "setuptools extras" link to match upstream.
 
