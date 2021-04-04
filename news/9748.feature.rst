@@ -1,1 +1,1 @@
-Improve performance when picking the best file from indexes during `pip install`.
+Improve performance when picking the best file from indexes during ``pip install``.
