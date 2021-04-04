@@ -7,7 +7,7 @@ class FakeError(Exception):
 
 if sys.argv[1] == 'install':
     if hasattr(sys.stdout, 'buffer'):
-        sys.stdout.buffer.write('\nThis package prints out UTF-8 stuff like:\n'.encode('utf-8'))
+        sys.stdout.buffer.write(b'\nThis package prints out UTF-8 stuff like:\n')
         sys.stdout.buffer.write('* return type of ‘main’ is not ‘int’\n'.encode('utf-8'))
         sys.stdout.buffer.write('* Björk Guðmundsdóttir [ˈpjœr̥k ˈkvʏðmʏntsˌtoʊhtɪr]'.encode('utf-8'))
     else:

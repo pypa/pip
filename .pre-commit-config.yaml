@@ -88,9 +88,9 @@ repos:
   - id: check-manifest
     stages: [manual]
 
-- repo: https://github.com/asottile/pyupgrade
-  rev: v2.11.0
+- repo: https://github.com/hexagonrecursion/pyupgrade
+  rev: no_default_encoding_v2.11.0
   hooks:
   - id: pyupgrade
     args: [--py36-plus]
-    exclude: tests/data/packages/BrokenEmitsUTF8/setup.py
+    exclude: tests/data/packages/SetupPyLatin1/setup.py  # non-utf-8 (not supported)
