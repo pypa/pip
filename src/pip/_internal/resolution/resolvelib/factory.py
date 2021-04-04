@@ -7,6 +7,7 @@ from typing import (
     Iterable,
     Iterator,
     List,
+    Mapping,
     Optional,
     Sequence,
     Set,
@@ -104,6 +105,9 @@ class Factory:
         self._installed_candidate_cache = (
             {}
         )  # type: Dict[str, AlreadyInstalledCandidate]
+        self._extras_candidate_cache = (
+            {}
+        )  # type: Dict[Tuple[int, FrozenSet[str]], ExtrasCandidate]
 
         if not ignore_installed:
             self._installed_dists = {
@@ -118,6 +122,16 @@ class Factory:
         # type: () -> bool
         return self._force_reinstall
 
+    def _make_extras_candidate(self, base, extras):
+        # type: (BaseCandidate, FrozenSet[str]) -> ExtrasCandidate
+        cache_key = (id(base), extras)
+        try:
+            candidate = self._extras_candidate_cache[cache_key]
+        except KeyError:
+            candidate = ExtrasCandidate(base, extras)
+            self._extras_candidate_cache[cache_key] = candidate
+        return candidate
+
     def _make_candidate_from_dist(
         self,
         dist,  # type: Distribution
@@ -130,9 +144,9 @@ class Factory:
         except KeyError:
             base = AlreadyInstalledCandidate(dist, template, factory=self)
             self._installed_candidate_cache[dist.key] = base
-        if extras:
-            return ExtrasCandidate(base, extras)
-        return base
+        if not extras:
+            return base
+        return self._make_extras_candidate(base, extras)
 
     def _make_candidate_from_link(
         self,
@@ -182,18 +196,18 @@ class Factory:
                     return None
             base = self._link_candidate_cache[link]
 
-        if extras:
-            return ExtrasCandidate(base, extras)
-        return base
+        if not extras:
+            return base
+        return self._make_extras_candidate(base, extras)
 
     def _iter_found_candidates(
         self,
-        ireqs,  # type: Sequence[InstallRequirement]
-        specifier,  # type: SpecifierSet
-        hashes,  # type: Hashes
-        prefers_installed,  # type: bool
-    ):
-        # type: (...) -> Iterable[Candidate]
+        ireqs: Sequence[InstallRequirement],
+        specifier: SpecifierSet,
+        hashes: Hashes,
+        prefers_installed: bool,
+        incompatible_ids: Set[int],
+    ) -> Iterable[Candidate]:
         if not ireqs:
             return ()
 
@@ -257,20 +271,27 @@ class Factory:
             iter_index_candidate_infos,
             installed_candidate,
             prefers_installed,
+            incompatible_ids,
         )
 
     def find_candidates(
         self,
-        requirements,  # type: Sequence[Requirement]
-        constraint,  # type: Constraint
-        prefers_installed,  # type: bool
-    ):
-        # type: (...) -> Iterable[Candidate]
+        identifier: str,
+        requirements: Mapping[str, Iterator[Requirement]],
+        incompatibilities: Mapping[str, Iterator[Candidate]],
+        constraint: Constraint,
+        prefers_installed: bool,
+    ) -> Iterable[Candidate]:
+
+        # Since we cache all the candidates, incompatibility identification
+        # can be made quicker by comparing only the id() values.
+        incompat_ids = {id(c) for c in incompatibilities.get(identifier, ())}
+
         explicit_candidates = set()  # type: Set[Candidate]
         ireqs = []  # type: List[InstallRequirement]
-        for req in requirements:
+        for req in requirements[identifier]:
             cand, ireq = req.get_candidate_lookup()
-            if cand is not None:
+            if cand is not None and id(cand) not in incompat_ids:
                 explicit_candidates.add(cand)
             if ireq is not None:
                 ireqs.append(ireq)
@@ -283,13 +304,14 @@ class Factory:
                 constraint.specifier,
                 constraint.hashes,
                 prefers_installed,
+                incompat_ids,
             )
 
         return (
             c
             for c in explicit_candidates
             if constraint.is_satisfied_by(c)
-            and all(req.is_satisfied_by(c) for req in requirements)
+            and all(req.is_satisfied_by(c) for req in requirements[identifier])
         )
 
     def make_requirement_from_install_req(self, ireq, requested_extras):

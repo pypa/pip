@@ -149,11 +149,6 @@ class PipProvider(_ProviderBase):
         requirements: Mapping[str, Iterator[Requirement]],
         incompatibilities: Mapping[str, Iterator[Candidate]],
     ) -> Iterable[Candidate]:
-        try:
-            current_requirements = requirements[identifier]
-        except KeyError:
-            return []
-
         def _eligible_for_upgrade(name):
             # type: (str) -> bool
             """Are upgrades allowed for this project?
@@ -173,9 +168,11 @@ class PipProvider(_ProviderBase):
             return False
 
         return self._factory.find_candidates(
-            list(current_requirements),
+            identifier=identifier,
+            requirements=requirements,
             constraint=self._constraints.get(identifier, Constraint.empty()),
             prefers_installed=(not _eligible_for_upgrade(identifier)),
+            incompatibilities=incompatibilities,
         )
 
     def is_satisfied_by(self, requirement, candidate):
