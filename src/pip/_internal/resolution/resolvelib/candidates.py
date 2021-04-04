@@ -33,6 +33,18 @@ BaseCandidate = Union[
 ]
 
 
+def as_base_candidate(candidate: Candidate) -> Optional[BaseCandidate]:
+    """The runtime version of BaseCandidate."""
+    base_candidate_classes = (
+        AlreadyInstalledCandidate,
+        EditableCandidate,
+        LinkCandidate,
+    )
+    if isinstance(candidate, base_candidate_classes):
+        return candidate
+    return None
+
+
 def make_install_req_from_link(link, template):
     # type: (Link, InstallRequirement) -> InstallRequirement
     assert not template.editable, "template is editable"

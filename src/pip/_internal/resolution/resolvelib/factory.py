@@ -16,6 +16,8 @@ from typing import (
     cast,
 )
 
+from pip._vendor.packaging.requirements import InvalidRequirement
+from pip._vendor.packaging.requirements import Requirement as PackagingRequirement
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.pkg_resources import Distribution
@@ -54,6 +56,7 @@ from .candidates import (
     ExtrasCandidate,
     LinkCandidate,
     RequiresPythonCandidate,
+    as_base_candidate,
 )
 from .found_candidates import FoundCandidates, IndexCandidateInfo
 from .requirements import (
@@ -336,6 +339,28 @@ class Factory:
                 return ()
 
             explicit_candidates.add(candidate)
+
+        # If the current identifier contains extras, also add explicit
+        # candidates from entries from extra-less identifier.
+        try:
+            identifier_req = PackagingRequirement(identifier)
+        except InvalidRequirement:
+            base_identifier = None
+            extras: FrozenSet[str] = frozenset()
+        else:
+            base_identifier = identifier_req.name
+            extras = frozenset(identifier_req.extras)
+        if base_identifier and base_identifier in requirements:
+            for req in requirements[base_identifier]:
+                lookup_cand, _ = req.get_candidate_lookup()
+                if lookup_cand is None:  # Not explicit.
+                    continue
+                # We've stripped extras from the identifier, and should always
+                # get a BaseCandidate here, unless there's a bug elsewhere.
+                base_cand = as_base_candidate(lookup_cand)
+                assert base_cand is not None
+                candidate = self._make_extras_candidate(base_cand, extras)
+                explicit_candidates.add(candidate)
 
         # If none of the requirements want an explicit candidate, we can ask
         # the finder for candidates.
