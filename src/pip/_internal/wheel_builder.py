@@ -244,11 +244,14 @@ def _build_one_inside_env(
         if req.use_pep517:
             assert req.metadata_directory
             assert req.pep517_backend
+            if build_options:
+                logger.warning(
+                    'Ignoring --build-option when building %s using PEP 517', req.name
+                )
             wheel_path = build_wheel_pep517(
                 name=req.name,
                 backend=req.pep517_backend,
                 metadata_directory=req.metadata_directory,
-                build_options=build_options,
                 tempd=temp_dir.path,
             )
         else:
