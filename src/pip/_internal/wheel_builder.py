@@ -244,6 +244,10 @@ def _build_one_inside_env(
         if req.use_pep517:
             assert req.metadata_directory
             assert req.pep517_backend
+            if global_options:
+                logger.warning(
+                    'Ignoring --global-option when building %s using PEP 517', req.name
+                )
             if build_options:
                 logger.warning(
                     'Ignoring --build-option when building %s using PEP 517', req.name
