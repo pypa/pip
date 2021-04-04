@@ -2,7 +2,7 @@
 name that have meaning.
 """
 import re
-from typing import Dict, List
+from typing import Dict, Iterable, List
 
 from pip._vendor.packaging.tags import Tag
 
@@ -82,7 +82,9 @@ class Wheel:
         :raises ValueError: If none of the wheel's file tags match one of
             the supported tags.
         """
-        return min(tag_to_priority[tag] for tag in self.file_tags if tag in tag_to_priority)
+        return min(
+            tag_to_priority[tag] for tag in self.file_tags if tag in tag_to_priority
+        )
 
     def supported(self, tags):
         # type: (Iterable[Tag]) -> bool
