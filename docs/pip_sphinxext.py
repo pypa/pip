@@ -5,7 +5,7 @@ import pathlib
 import re
 import sys
 from textwrap import dedent
-from typing import Iterable, List, Optional
+from typing import Iterable, Iterator, List, Optional
 
 from docutils import nodes, statemachine
 from docutils.parsers import rst
@@ -20,7 +20,9 @@ from pip._internal.req.req_file import SUPPORTED_OPTIONS
 class PipNewsInclude(rst.Directive):
     required_arguments = 1
 
-    def _is_version_section_title_underline(self, prev, curr):
+    def _is_version_section_title_underline(
+        self, prev: Optional[str], curr: str
+    ) -> bool:
         """Find a ==== line that marks the version section title."""
         if prev is None:
             return False
@@ -30,7 +32,7 @@ class PipNewsInclude(rst.Directive):
             return False
         return True
 
-    def _iter_lines_with_refs(self, lines):
+    def _iter_lines_with_refs(self, lines: Iterable[str]) -> Iterator[str]:
         """Transform the input lines to add a ref before each section title.
 
         This is done by looking one line ahead and locate a title's underline,
@@ -44,6 +46,7 @@ class PipNewsInclude(rst.Directive):
         for line in lines:
             # Transform the previous line to include an explicit ref.
             if self._is_version_section_title_underline(prev, line):
+                assert prev is not None
                 vref = prev.split(None, 1)[0].replace(".", "-")
                 yield f".. _`v{vref}`:"
                 yield ""  # Empty line between ref and the title.
@@ -53,7 +56,7 @@ class PipNewsInclude(rst.Directive):
         if prev is not None:
             yield prev
 
-    def run(self):
+    def run(self) -> List[nodes.Node]:
         source = self.state_machine.input_lines.source(
             self.lineno - self.state_machine.input_offset - 1,
         )
