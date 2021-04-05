@@ -42,3 +42,8 @@ def test_version_warning_is_not_shown_if_python_version_is_not_2(script):
 
 def test_flag_does_nothing_if_python_version_is_not_2(script):
     script.pip("list", "--no-python-version-warning")
+
+
+def test_pip_works_with_warnings_as_errors(script):
+    script.environ['PYTHONWARNINGS'] = 'error'
+    script.pip("--version")
