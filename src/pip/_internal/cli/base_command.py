@@ -165,7 +165,7 @@ class Command(CommandContextMixIn):
                     "use the TMPDIR/TEMP/TMP environment variable, "
                     "possibly combined with --no-clean"
                 ),
-                gone_in="21.1",
+                gone_in="21.3",
                 issue=8333,
             )
 
