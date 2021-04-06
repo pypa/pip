@@ -1,0 +1,1 @@
+Fix pip to work with warnings converted to errors.
