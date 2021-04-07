@@ -201,6 +201,10 @@ class TestYankedWarning:
         """
         Test unyanked candidate preferred over yanked.
         """
+        # Ignore spurious DEBUG level messages
+        # TODO: Probably better to work out why they are occurring, but IMO the
+        #       tests are at fault here for being to dependent on exact output.
+        caplog.set_level(logging.WARNING)
         candidates = [
             make_mock_candidate('1.0'),
             make_mock_candidate('2.0', yanked_reason='bad metadata #2'),
@@ -217,6 +221,10 @@ class TestYankedWarning:
         """
         Test all candidates yanked.
         """
+        # Ignore spurious DEBUG level messages
+        # TODO: Probably better to work out why they are occurring, but IMO the
+        #       tests are at fault here for being to dependent on exact output.
+        caplog.set_level(logging.WARNING)
         candidates = [
             make_mock_candidate('1.0', yanked_reason='bad metadata #1'),
             # Put the best candidate in the middle, to test sorting.
@@ -253,6 +261,10 @@ class TestYankedWarning:
         """
         Test the log message with various reason strings.
         """
+        # Ignore spurious DEBUG level messages
+        # TODO: Probably better to work out why they are occurring, but IMO the
+        #       tests are at fault here for being to dependent on exact output.
+        caplog.set_level(logging.WARNING)
         candidates = [
             make_mock_candidate('1.0', yanked_reason=yanked_reason),
         ]
