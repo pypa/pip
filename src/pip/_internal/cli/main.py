@@ -44,6 +44,12 @@ logger = logging.getLogger(__name__)
 
 def main(args=None):
     # type: (Optional[List[str]]) -> int
+
+    # windows multiprocessing support
+    from multiprocessing import freeze_support
+
+    freeze_support()
+
     if args is None:
         args = sys.argv[1:]
 
