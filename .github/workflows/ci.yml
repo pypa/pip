@@ -92,6 +92,10 @@ jobs:
           - 3.7
           - 3.8
           - 3.9
+        include:
+          # Test PyPy only on Ubuntu, macOS has limited workers
+          - { os: Ubuntu, python: pypy-3.6 }
+          - { os: Ubuntu, python: pypy-3.7 }
 
     steps:
       - uses: actions/checkout@v2
