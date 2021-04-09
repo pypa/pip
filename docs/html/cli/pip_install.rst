@@ -136,18 +136,7 @@ step. This has two main practical benefits:
    would like to support failure rollbacks eventually, in the mean time, this is
    an improvement.
 
-Although the new install order is not intended to replace (and does not replace)
-the use of build dependencies, using either ``setup_requires`` (discouraged) and
-``build.requires``. The latter was proposed in `PEP_518`_ and will be the
-prefered way to specify build dependencies in the future.
-
-Using these methods may help certain projects install from sdist (that might
-previously fail) that fit the following profile:
-
-1. They have build dependencies that are also declared as install dependencies
-   using ``install_requires``.
-2. ``python setup.py egg_info`` works without their build dependencies being
-   installed.
+Build dependencies can be treated separately, see: :ref:`build_dependencies`
 
 
 .. _`Requirements File Format`:
@@ -849,7 +838,7 @@ the project path.  This is one advantage over just using ``setup.py develop``,
 which creates the "egg-info" directly relative the current working directory.
 
 
-.. _`build-dependencies`:
+.. _build_dependencies:
 
 Build dependencies
 ------------------
