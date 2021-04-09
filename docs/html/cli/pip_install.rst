@@ -85,7 +85,7 @@ Installation Order
 .. note::
 
    This section is only about installation order of runtime dependencies, and
-   does not apply to build dependencies (those are specified using PEP 518).
+   does not apply to build dependencies (those are specified using `PEP_518`_).
 
 As of v6.1.0, pip installs dependencies before their dependents, i.e. in
 "topological order."  This is the only commitment pip currently makes related
@@ -137,16 +137,17 @@ step. This has two main practical benefits:
    an improvement.
 
 Although the new install order is not intended to replace (and does not replace)
-the use of ``setup_requires`` to declare build dependencies, it may help certain
-projects install from sdist (that might previously fail) that fit the following
-profile:
+the use of build dependencies, using either ``setup_requires`` (discouraged) and
+``build.requires``. The latter was proposed in `PEP_518`_ and will be the
+prefered way to specify build dependencies in the future.
+
+Using these methods may help certain projects install from sdist (that might
+previously fail) that fit the following profile:
 
 1. They have build dependencies that are also declared as install dependencies
    using ``install_requires``.
 2. ``python setup.py egg_info`` works without their build dependencies being
    installed.
-3. For whatever reason, they don't or won't declare their build dependencies using
-   ``setup_requires``.
 
 
 .. _`Requirements File Format`:
@@ -734,14 +735,6 @@ Hash-checking mode also works with :ref:`pip download` and :ref:`pip wheel`. A
 
 .. warning::
 
-   Beware of the ``setup_requires`` keyword arg in :file:`setup.py`. The
-   (rare) packages that use it will cause those dependencies to be downloaded
-   by setuptools directly, skipping pip's hash-checking. If you need to use
-   such a package, see :ref:`Controlling
-   setup_requires<controlling-setup-requires>`.
-
-.. warning::
-
    Be careful not to nullify all your security work when you install your
    actual project by using setuptools directly: for example, by calling
    ``python setup.py install``, ``python setup.py develop``, or
@@ -856,39 +849,47 @@ the project path.  This is one advantage over just using ``setup.py develop``,
 which creates the "egg-info" directly relative the current working directory.
 
 
+.. _`build-dependencies`:
+
+Build dependencies
+------------------
+
+The encouraged way of specifying build dependencies is `PEP_518`_, which gives
+us one unique choice of configuration file for a Python project: ``pyproject.toml``.
+This file replaces the older standard ``setup.cfg``. A list of projects using
+this are available on `Awesome pyproject.toml <https://github.com/carlosperate/awesome-pyproject>`__
+
+.. code-block:: toml
+
+  # The implicit default pyproject.toml
+
+  [build-system]
+  # Minimum requirements for the build system to execute.
+  requires = ["setuptools", "wheel"]  # PEP 508 specifications.
+
+
+
 .. _`controlling-setup-requires`:
 
-Controlling setup_requires
---------------------------
+Controlling setup_requires (deprecated)
+---------------------------------------
+
+.. warning::
+  As of
+  `setuptools>=0.42 <https://setuptools.readthedocs.io/en/latest/history.html#v42-0-0>`__,
+  using ``setup_requires`` will prefer pip (and not easy_install or setuptools)
+  to satisfy build requirements. Using older versions bypasses pip and is a
+  security risk.
+
+.. warning::
+  As of
+  `setuptools>=0.52 <https://setuptools.readthedocs.io/en/latest/history.html#v52-0-0>`__,
+  using ``setup_requires`` will require pip already available on the target system.
 
 Setuptools offers the ``setup_requires`` `setup() keyword
 <https://setuptools.readthedocs.io/en/latest/setuptools.html#new-and-changed-setup-keywords>`_
 for specifying dependencies that need to be present in order for the
-``setup.py`` script to run.  Internally, Setuptools uses ``easy_install``
-to fulfill these dependencies.
-
-pip has no way to control how these dependencies are located.  None of the
-package index options have an effect.
-
-The solution is to configure a "system" or "personal" `Distutils configuration
-file
-<https://docs.python.org/3/install/index.html#distutils-configuration-files>`_ to
-manage the fulfillment.
-
-For example, to have the dependency located at an alternate index, add this:
-
-::
-
-  [easy_install]
-  index_url = https://my.index-mirror.com
-
-To have the dependency located from a local directory and not crawl PyPI, add this:
-
-::
-
-  [easy_install]
-  allow_hosts = ''
-  find_links = file:///path/to/local/archives/
+``setup.py`` script to run.
 
 
 Build System Interface
@@ -1225,3 +1226,6 @@ Examples
 
 .. [1] This is true with the exception that pip v7.0 and v7.0.1 required quotes
        around specifiers containing environment markers in requirement files.
+
+
+.. _PEP_518: https://github.com/django-money/django-money/issues/595

@@ -1,0 +1,1 @@
+Updates documentation to address concerns of mentioning setup_requires without the new encouraged alternatives in pyproject.toml
