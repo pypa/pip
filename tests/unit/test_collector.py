@@ -1,5 +1,6 @@
 import logging
 import os.path
+import pathlib
 import re
 import urllib.request
 import uuid
@@ -585,6 +586,35 @@ def test_get_html_page_directory_append_index(tmpdir):
         assert actual.content == fake_response.content
         assert actual.encoding is None
         assert actual.url == expected_url
+
+
+@pytest.mark.skipif("sys.platform != 'win32'")
+def test_get_html_page_windows_shared_directory_append_index(tmpdir):
+    """`_get_html_page()` should append "index.html" to a shared directory URL.
+    """
+    dirpath = r"\\mypypiserver.org\simple\repo"
+    dir_url = pathlib.Path(dirpath).as_uri()
+    expected_url = "{}/index.html".format(dir_url.rstrip("/"))
+
+    session = mock.Mock(PipSession)
+    fake_response = make_fake_html_response(expected_url)
+    mock_isdir = mock.patch("pip._internal.index.collector.os.path.isdir")
+    mock_func = mock.patch("pip._internal.index.collector._get_html_response")
+    with mock_isdir as mock_isdir:
+        mock_isdir.return_value = True
+        with mock_func as mock_func:
+            mock_func.return_value = fake_response
+            actual = _get_html_page(Link(dir_url), session=session)
+            assert mock_func.mock_calls == [
+                mock.call(expected_url, session=session),
+            ], f'actual calls: {mock_func.mock_calls}'
+
+            assert actual.content == fake_response.content
+            assert actual.encoding is None
+            assert actual.url == expected_url
+        assert mock_isdir.mock_calls == [
+            mock.call(dirpath),
+        ]
 
 
 def test_remove_duplicate_links():
