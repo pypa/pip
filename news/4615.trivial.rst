@@ -1,0 +1,2 @@
+Fixed the URL parsing problem on Windows, for hosting pip repos on
+shared drives folders in Windows.
