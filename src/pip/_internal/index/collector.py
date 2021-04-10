@@ -411,7 +411,8 @@ def _get_html_page(link, session=None):
     # Tack index.html onto file:// URLs that point to directories
     parseresult = urllib.parse.urlparse(url)
     if (parseresult.scheme == 'file'
-            and os.path.isdir(urllib.request.url2pathname('//' + parseresult.netloc + parseresult.path))):
+            and os.path.isdir(urllib.request.url2pathname(
+            '//' + parseresult.netloc + parseresult.path))):
         # add trailing slash if not present so urljoin doesn't trim
         # final segment
         if not url.endswith('/'):
