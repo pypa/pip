@@ -1368,7 +1368,7 @@ When pip finds that an assumption is incorrect, it has to try another approach
 (backtrack), which means discarding some of the work that has already been done,
 and going back to choose another path.
 
-For example; The user requests ``pip install tea``. ```tea`` has dependencies of
+For example; The user requests ``pip install tea``. ``tea`` has dependencies of
 ``cup``, ``hot-water``, ``spoon`` amongst others.
 
 pip starts by installing a version of ``cup``. If it finds out it isn’t
