@@ -824,6 +824,15 @@ install_options = partial(
     "directory path, be sure to use absolute path.",
 )  # type: Callable[..., Option]
 
+build_options = partial(
+    Option,
+    "--build-option",
+    dest="build_options",
+    metavar="options",
+    action="append",
+    help="Extra arguments to be supplied to 'setup.py bdist_wheel'.",
+)  # type: Callable[..., Option]
+
 global_options = partial(
     Option,
     "--global-option",
@@ -831,7 +840,7 @@ global_options = partial(
     action="append",
     metavar="options",
     help="Extra global options to be supplied to the setup.py "
-    "call before the install command.",
+    "call before the install or bdist_wheel command.",
 )  # type: Callable[..., Option]
 
 no_clean = partial(

@@ -1,5 +1,6 @@
 import compileall
 import shutil
+import subprocess
 import sys
 import textwrap
 import venv as _venv
@@ -55,11 +56,16 @@ class VirtualEnvironment:
         else:
             # Create a new virtual environment.
             if self._venv_type == "virtualenv":
-                _virtualenv.create_environment(
-                    self.location,
-                    no_pip=True,
-                    no_wheel=True,
-                    no_setuptools=True,
+                subprocess.check_call(
+                    [
+                        sys.executable,
+                        "-m",
+                        "virtualenv",
+                        "--no-pip",
+                        "--no-wheel",
+                        "--no-setuptools",
+                        str(self.location),
+                    ]
                 )
                 self._fix_virtualenv_site_module()
             elif self._venv_type == "venv":
