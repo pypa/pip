@@ -12,13 +12,7 @@ from typing import (
 
 from .reporters import BaseReporter
 from .resolvers import RequirementInformation
-from .structs import (
-    KT,
-    RT,
-    CT,
-    IterableView,
-    Matches,
-)
+from .structs import KT, RT, CT, Matches
 
 class Preference(Protocol):
     def __lt__(self, __other: Any) -> bool: ...
@@ -27,9 +21,10 @@ class AbstractProvider(Generic[RT, CT, KT]):
     def identify(self, requirement_or_candidate: Union[RT, CT]) -> KT: ...
     def get_preference(
         self,
-        resolution: Optional[CT],
-        candidates: IterableView[CT],
-        information: Collection[RequirementInformation[RT, CT]],
+        identifier: KT,
+        resolutions: Mapping[KT, CT],
+        candidates: Mapping[KT, Iterator[CT]],
+        information: Mapping[KT, Iterator[RequirementInformation[RT, CT]]],
     ) -> Preference: ...
     def find_matches(
         self,

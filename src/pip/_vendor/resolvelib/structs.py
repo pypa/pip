@@ -1,4 +1,5 @@
 import itertools
+
 from .compat import collections_abc
 
 
@@ -120,18 +121,6 @@ class _FactoryIterableView(object):
     def __iter__(self):
         return self._factory()
 
-    def for_preference(self):
-        """Provide an candidate iterable for `get_preference()`"""
-        return self._factory()
-
-    def excluding(self, candidates):
-        """Create a new instance excluding specified candidates."""
-
-        def factory():
-            return (c for c in self._factory() if c not in candidates)
-
-        return type(self)(factory)
-
 
 class _SequenceIterableView(object):
     """Wrap an iterable returned by find_matches().
@@ -153,17 +142,6 @@ class _SequenceIterableView(object):
 
     def __iter__(self):
         return iter(self._sequence)
-
-    def __len__(self):
-        return len(self._sequence)
-
-    def for_preference(self):
-        """Provide an candidate iterable for `get_preference()`"""
-        return self._sequence
-
-    def excluding(self, candidates):
-        """Create a new instance excluding specified candidates."""
-        return type(self)([c for c in self._sequence if c not in candidates])
 
 
 def build_iter_view(matches):
