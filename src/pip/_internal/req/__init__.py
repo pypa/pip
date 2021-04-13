@@ -153,7 +153,6 @@ def _single_install(
     """
     Install a single requirement, returns InstallationResult
     (to be called per requirement, either in parallel or serially).
-    Notice the two lists are of the same length
     """
 
     if requirement.should_reinstall:
