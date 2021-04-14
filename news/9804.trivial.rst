@@ -1,0 +1,2 @@
+Replaced internal CA and TLS certificates helpers with
+`trustme <https://trustme.rtfd.io>`__.
