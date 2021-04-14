@@ -5,7 +5,7 @@ import pathlib
 import re
 import sys
 from textwrap import dedent
-from typing import Iterable, Iterator, List, Optional
+from typing import Dict, Iterable, Iterator, List, Optional, Union
 
 from docutils import nodes, statemachine
 from docutils.parsers import rst
@@ -293,7 +293,7 @@ class PipCLIDirective(rst.Directive):
         return [node]
 
 
-def setup(app: Sphinx) -> None:
+def setup(app: Sphinx) -> Dict[str, Union[bool, str]]:
     app.add_directive("pip-command-usage", PipCommandUsage)
     app.add_directive("pip-command-description", PipCommandDescription)
     app.add_directive("pip-command-options", PipCommandOptions)
@@ -304,3 +304,7 @@ def setup(app: Sphinx) -> None:
     )
     app.add_directive("pip-news-include", PipNewsInclude)
     app.add_directive("pip-cli", PipCLIDirective)
+    return {
+        "parallel_read_safe": True,
+        "parallel_write_safe": True,
+    }
