@@ -1,6 +1,4 @@
 sphinx == 3.2.1
-# FIXME: Remove towncrier constraint after upgrading sphinxcontrib-towncrier.
-towncrier < 19.9.0
 furo
 myst_parser
 sphinx-copybutton
