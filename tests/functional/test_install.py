@@ -27,12 +27,7 @@ from tests.lib import (
 from tests.lib.filesystem import make_socket_file
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
-from tests.lib.server import (
-    file_response,
-    make_mock_server,
-    package_page,
-    server_running,
-)
+from tests.lib.server import file_response, package_page, server_running
 
 
 @pytest.mark.parametrize('command', ('install', 'wheel'))
@@ -1870,10 +1865,11 @@ def test_install_yanked_file_and_print_warning(script, data):
 ])
 def test_install_sends_client_cert(
     install_args, script, data,
+    tls_server_with_mock,
     client_tls_certificate_chain_pem_path,
-    server_ssl_ctx, tls_ca_certificate_pem_path,
+    tls_ca_certificate_pem_path,
 ):
-    server = make_mock_server(ssl_context=server_ssl_ctx)
+    server = tls_server_with_mock
     server.mock.side_effect = [
         package_page({
             "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",

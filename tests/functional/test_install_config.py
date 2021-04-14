@@ -7,7 +7,6 @@ import pytest
 from tests.lib.server import (
     authorization_response,
     file_response,
-    make_mock_server,
     package_page,
     server_running,
 )
@@ -219,13 +218,14 @@ def test_install_no_binary_via_config_disables_cached_wheels(
 
 def test_prompt_for_authentication(
     script, data,
+    tls_server_with_mock,
     client_tls_certificate_chain_pem_path,
-    server_ssl_ctx, tls_ca_certificate_pem_path,
+    tls_ca_certificate_pem_path,
 ):
     """Test behaviour while installing from a index url
     requiring authentication
     """
-    server = make_mock_server(ssl_context=server_ssl_ctx)
+    server = tls_server_with_mock
     server.mock.side_effect = [
         package_page({
             "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",
@@ -251,13 +251,14 @@ def test_prompt_for_authentication(
 
 def test_do_not_prompt_for_authentication(
     script, data,
+    tls_server_with_mock,
     client_tls_certificate_chain_pem_path,
-    server_ssl_ctx, tls_ca_certificate_pem_path,
+    tls_ca_certificate_pem_path,
 ):
     """Test behaviour if --no-input option is given while installing
     from a index url requiring authentication
     """
-    server = make_mock_server(ssl_context=server_ssl_ctx)
+    server = tls_server_with_mock
 
     server.mock.side_effect = [
         package_page({
@@ -284,15 +285,16 @@ def test_do_not_prompt_for_authentication(
 @pytest.mark.parametrize("auth_needed", (True, False))
 def test_prompt_for_keyring_if_needed(
     script, data, auth_needed,
+    tls_server_with_mock,
     client_tls_certificate_chain_pem_path,
-    server_ssl_ctx, tls_ca_certificate_pem_path,
+    tls_ca_certificate_pem_path,
 ):
     """Test behaviour while installing from a index url
     requiring authentication and keyring is possible.
     """
     response = authorization_response if auth_needed else file_response
 
-    server = make_mock_server(ssl_context=server_ssl_ctx)
+    server = tls_server_with_mock
     server.mock.side_effect = [
         package_page({
             "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",

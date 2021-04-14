@@ -660,6 +660,12 @@ def client_ssl_ctx(
     return ssl_ctx
 
 
+@pytest.fixture
+def tls_server_with_mock(server_ssl_ctx):
+    """Provide a server with TLS pre-configured and a mock property."""
+    return make_mock_server(ssl_context=server_ssl_ctx)
+
+
 class MockServer:
     def __init__(self, server):
         # type: (_MockServer) -> None
