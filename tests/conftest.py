@@ -4,20 +4,22 @@ import io
 import os
 import re
 import shutil
+import ssl
 import subprocess
 import sys
 import time
 from contextlib import ExitStack, contextmanager
+from hashlib import sha256
 from typing import Dict, Iterable
 from unittest.mock import patch
 
 import pytest
+import trustme
 from setuptools.wheel import Wheel
 
 from pip._internal.cli.main import main as pip_entry_point
 from pip._internal.utils.temp_dir import global_tempdir_manager
 from tests.lib import DATA_DIR, SRC_DIR, PipTestEnvironment, TestData
-from tests.lib.certs import make_tls_cert, serialize_cert, serialize_key
 from tests.lib.path import Path
 from tests.lib.server import MockServer as _MockServer
 from tests.lib.server import Responder, make_mock_server, server_running
@@ -487,21 +489,175 @@ def deprecated_python():
     return sys.version_info[:2] in []
 
 
-@pytest.fixture(scope="session")
-def cert_factory(tmpdir_factory):
-    def factory():
-        # type: () -> str
-        """Returns path to cert/key file."""
-        output_path = Path(str(tmpdir_factory.mktemp("certs"))) / "cert.pem"
-        # Must be Text on PY2.
-        cert, key = make_tls_cert("localhost")
-        with open(str(output_path), "wb") as f:
-            f.write(serialize_cert(cert))
-            f.write(serialize_key(key))
+@pytest.fixture
+def tls_certificate_authority() -> trustme.CA:
+    """Provide a server certificate authority via fixture."""
+    return trustme.CA(
+        organization_name="PyPA",
+        organization_unit_name="Server TLS Certificates",
+    )
 
-        return str(output_path)
 
-    return factory
+@pytest.fixture
+def client_tls_certificate_authority() -> trustme.CA:
+    """Provide a client certificate authority via fixture."""
+    return trustme.CA(
+        organization_name="PyPA",
+        organization_unit_name="Client TLS Certificates",
+    )
+
+
+@pytest.fixture
+def tls_ca_certificate_pem_path(
+    tmp_path: Path,
+    tls_certificate_authority: trustme.CA,
+) -> None:
+    """Provide a certificate authority certificate file via fixture."""
+    cert_dir = tmp_path / "trustme" / "ca"
+    cert_dir.mkdir(parents=True)
+    with tls_certificate_authority.cert_pem.tempfile(
+        str(cert_dir),
+    ) as ca_cert_pem:
+        yield ca_cert_pem
+
+
+@pytest.fixture
+def tls_certificate(tls_certificate_authority: trustme.CA) -> trustme.LeafCert:
+    """Provide a leaf certificate via fixture."""
+    return tls_certificate_authority.issue_cert(
+        "localhost",
+        "127.0.0.1",
+        "::1",
+    )
+
+
+@pytest.fixture
+def client_tls_certificate(
+    client_tls_certificate_authority: trustme.CA,
+) -> trustme.LeafCert:
+    """Provide a client leaf certificate via fixture."""
+    tls_client_identity = "pytest.tests.host"
+    return client_tls_certificate_authority.issue_cert(tls_client_identity)
+
+
+@pytest.fixture
+def client_tls_certificate_private_key_pem_path(
+    tmp_path: Path,
+    client_tls_certificate: trustme.LeafCert,
+):
+    """Provide a certificate private key PEM file path via fixture."""
+    cert_dir = tmp_path / "trustme" / "client_cert_pk"
+    cert_dir.mkdir(parents=True)
+    with client_tls_certificate.private_key_pem.tempfile(
+        str(cert_dir),
+    ) as cert_key_pem:
+        yield cert_key_pem
+
+
+@pytest.fixture
+def client_tls_certificate_chain_pem_path(
+    tmp_path: Path,
+    client_tls_certificate: trustme.LeafCert,
+):
+    """Provide a client certificate chain PEM file path via fixture."""
+    cert_dir = tmp_path / "trustme" / "client_cert_chain"
+    cert_dir.mkdir(parents=True)
+    with client_tls_certificate.private_key_and_cert_chain_pem.tempfile(
+        str(cert_dir),
+    ) as cert_pem:
+        yield cert_pem
+
+
+@pytest.fixture
+def tls_certificate_private_key_pem_path(
+    tmp_path: Path,
+    tls_certificate: trustme.LeafCert,
+):
+    """Provide a certificate private key PEM file path via fixture."""
+    cert_dir = tmp_path / "trustme" / "server_cert_pk"
+    cert_dir.mkdir(parents=True)
+    with tls_certificate.private_key_pem.tempfile(
+        str(cert_dir),
+    ) as cert_key_pem:
+        yield cert_key_pem
+
+
+@pytest.fixture
+def tls_certificate_chain_pem_path(
+    tmp_path: Path,
+    tls_certificate: trustme.LeafCert,
+):
+    """Provide a certificate chain PEM file path via fixture."""
+    cert_dir = tmp_path / "trustme" / "server_cert_chain"
+    cert_dir.mkdir(parents=True)
+    with tls_certificate.private_key_and_cert_chain_pem.tempfile(
+        str(cert_dir),
+    ) as cert_pem:
+        yield cert_pem
+
+
+@pytest.fixture
+def tls_certificate_pem_bytes(tls_certificate: trustme.LeafCert) -> bytes:
+    """Provide a server PEM certificate as bytes via fixture."""
+    return tls_certificate.cert_chain_pems[0].bytes()
+
+
+@pytest.fixture
+def tls_certificate_fingerprint_sha256(
+    tls_certificate_pem_bytes: bytes,
+) -> str:
+    """Provide a server certificate SHA256 fingerprint via fixture."""
+    tls_cert_der = ssl.PEM_cert_to_DER_cert(tls_certificate_pem_bytes.decode())
+    return sha256(tls_cert_der).digest()
+
+
+@pytest.fixture
+def server_ssl_ctx(
+    client_ssl_ctx: ssl.SSLContext,
+    client_tls_certificate_authority: trustme.CA,
+    tls_certificate_authority: trustme.CA,
+    tls_certificate: trustme.LeafCert,
+) -> ssl.SSLContext:
+    """Provide SSLContext for servers to trust clients via fixture."""
+    ssl_ctx = ssl.create_default_context(purpose=ssl.Purpose.CLIENT_AUTH)
+
+    # NOTE: Make the server context use this TLS certificate issued by
+    # NOTE: the "server CA".
+    tls_certificate.configure_cert(ssl_ctx)
+
+    # NOTE: Make this server context trust any certificates issued by
+    # NOTE: the "client CA".
+    client_tls_certificate_authority.configure_trust(ssl_ctx)
+
+    # NOTE: Make this server context require the client to always send
+    # NOTE: its certificate. It will then be checked against that client
+    # NOTE: CA that we configured trust for above.
+    ssl_ctx.verify_mode = ssl.CERT_REQUIRED
+
+    return ssl_ctx
+
+
+@pytest.fixture
+def client_ssl_ctx(
+    client_tls_certificate: trustme.LeafCert,
+    tls_certificate_authority: trustme.CA,
+) -> ssl.SSLContext:
+    """Provide SSLContext for clients to trust servers via fixture.
+
+    It is also pre-configured to send a client TLS certificate.
+    """
+    ssl_ctx = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH)
+
+    # NOTE: Make this client context trust any certificates issued by
+    # NOTE: the "server CA".
+    tls_certificate_authority.configure_trust(ssl_ctx)
+
+    # NOTE: Make the client context send this TLS certificate issued by
+    # NOTE: the "server CA" whenever it initiates a new connection to
+    # NOTE: servers.
+    client_tls_certificate.configure_cert(ssl_ctx)
+
+    return ssl_ctx
 
 
 class MockServer:

@@ -1,5 +1,4 @@
 import os
-import ssl
 import tempfile
 import textwrap
 
@@ -218,17 +217,15 @@ def test_install_no_binary_via_config_disables_cached_wheels(
     assert "Running setup.py install for upper" in str(res), str(res)
 
 
-def test_prompt_for_authentication(script, data, cert_factory):
+def test_prompt_for_authentication(
+    script, data,
+    client_tls_certificate_chain_pem_path,
+    server_ssl_ctx, tls_ca_certificate_pem_path,
+):
     """Test behaviour while installing from a index url
     requiring authentication
     """
-    cert_path = cert_factory()
-    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-    ctx.load_cert_chain(cert_path, cert_path)
-    ctx.load_verify_locations(cafile=cert_path)
-    ctx.verify_mode = ssl.CERT_REQUIRED
-
-    server = make_mock_server(ssl_context=ctx)
+    server = make_mock_server(ssl_context=server_ssl_ctx)
     server.mock.side_effect = [
         package_page({
             "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",
@@ -239,25 +236,28 @@ def test_prompt_for_authentication(script, data, cert_factory):
     url = f"https://{server.host}:{server.port}/simple"
 
     with server_running(server):
-        result = script.pip('install', "--index-url", url,
-                            "--cert", cert_path, "--client-cert", cert_path,
-                            'simple', expect_error=True)
+        result = script.pip(
+            "install", "--index-url", url,
+            # Our CA created by trustme:
+            "--cert", tls_ca_certificate_pem_path,
+            # Our client TLS certificate created by the trustme-managed CA:
+            "--client-cert", client_tls_certificate_chain_pem_path,
+            "simple", expect_error=True,
+        )
 
     assert f'User for {server.host}:{server.port}' in \
            result.stdout, str(result)
 
 
-def test_do_not_prompt_for_authentication(script, data, cert_factory):
+def test_do_not_prompt_for_authentication(
+    script, data,
+    client_tls_certificate_chain_pem_path,
+    server_ssl_ctx, tls_ca_certificate_pem_path,
+):
     """Test behaviour if --no-input option is given while installing
     from a index url requiring authentication
     """
-    cert_path = cert_factory()
-    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-    ctx.load_cert_chain(cert_path, cert_path)
-    ctx.load_verify_locations(cafile=cert_path)
-    ctx.verify_mode = ssl.CERT_REQUIRED
-
-    server = make_mock_server(ssl_context=ctx)
+    server = make_mock_server(ssl_context=server_ssl_ctx)
 
     server.mock.side_effect = [
         package_page({
@@ -269,27 +269,30 @@ def test_do_not_prompt_for_authentication(script, data, cert_factory):
     url = f"https://{server.host}:{server.port}/simple"
 
     with server_running(server):
-        result = script.pip('install', "--index-url", url,
-                            "--cert", cert_path, "--client-cert", cert_path,
-                            '--no-input', 'simple', expect_error=True)
+        result = script.pip(
+            "install", "--index-url", url,
+            # Our CA created by trustme:
+            "--cert", tls_ca_certificate_pem_path,
+            # Our client TLS certificate created by the trustme-managed CA:
+            "--client-cert", client_tls_certificate_chain_pem_path,
+            "--no-input", "simple", expect_error=True,
+        )
 
     assert "ERROR: HTTP error 401" in result.stderr
 
 
 @pytest.mark.parametrize("auth_needed", (True, False))
-def test_prompt_for_keyring_if_needed(script, data, cert_factory, auth_needed):
+def test_prompt_for_keyring_if_needed(
+    script, data, auth_needed,
+    client_tls_certificate_chain_pem_path,
+    server_ssl_ctx, tls_ca_certificate_pem_path,
+):
     """Test behaviour while installing from a index url
     requiring authentication and keyring is possible.
     """
-    cert_path = cert_factory()
-    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-    ctx.load_cert_chain(cert_path, cert_path)
-    ctx.load_verify_locations(cafile=cert_path)
-    ctx.verify_mode = ssl.CERT_REQUIRED
-
     response = authorization_response if auth_needed else file_response
 
-    server = make_mock_server(ssl_context=ctx)
+    server = make_mock_server(ssl_context=server_ssl_ctx)
     server.mock.side_effect = [
         package_page({
             "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",
@@ -315,9 +318,14 @@ def test_prompt_for_keyring_if_needed(script, data, cert_factory, auth_needed):
     keyring_path.write_text(keyring_content)
 
     with server_running(server):
-        result = script.pip('install', "--index-url", url,
-                            "--cert", cert_path, "--client-cert", cert_path,
-                            'simple')
+        result = script.pip(
+            "install", "--index-url", url,
+            # Our CA created by trustme:
+            "--cert", tls_ca_certificate_pem_path,
+            # Our client TLS certificate created by the trustme-managed CA:
+            "--client-cert", client_tls_certificate_chain_pem_path,
+            "simple",
+        )
 
     if auth_needed:
         assert "get_credential was called" in result.stderr

@@ -3,7 +3,6 @@ import glob
 import os
 import re
 import shutil
-import ssl
 import sys
 import textwrap
 from os.path import curdir, join, pardir
@@ -1869,14 +1868,12 @@ def test_install_yanked_file_and_print_warning(script, data):
     (),
     ("--trusted-host", "localhost"),
 ])
-def test_install_sends_client_cert(install_args, script, cert_factory, data):
-    cert_path = cert_factory()
-    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-    ctx.load_cert_chain(cert_path, cert_path)
-    ctx.load_verify_locations(cafile=cert_path)
-    ctx.verify_mode = ssl.CERT_REQUIRED
-
-    server = make_mock_server(ssl_context=ctx)
+def test_install_sends_client_cert(
+    install_args, script, data,
+    client_tls_certificate_chain_pem_path,
+    server_ssl_ctx, tls_ca_certificate_pem_path,
+):
+    server = make_mock_server(ssl_context=server_ssl_ctx)
     server.mock.side_effect = [
         package_page({
             "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",
@@ -1886,7 +1883,13 @@ def test_install_sends_client_cert(install_args, script, cert_factory, data):
 
     url = f"https://{server.host}:{server.port}/simple"
 
-    args = ["install", "-vvv", "--cert", cert_path, "--client-cert", cert_path]
+    args = [
+        "install", "-vvv",
+        # Our CA created by trustme:
+        "--cert", tls_ca_certificate_pem_path,
+        # Our client TLS certificate created by the trustme-managed CA:
+        "--client-cert", client_tls_certificate_chain_pem_path,
+    ]
     args.extend(["--index-url", url])
     args.extend(install_args)
     args.append("simple")
