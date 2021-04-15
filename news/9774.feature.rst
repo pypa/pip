@@ -1,0 +1,3 @@
+Warn instead of erroring out when doing a PEP 517 build in presence of
+``--build-option``. Warn when doing a PEP 517 build in presence of
+``--global-option``.

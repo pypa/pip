@@ -1,3 +1,4 @@
+import itertools
 import logging
 import os.path
 import pathlib
@@ -24,10 +25,9 @@ from pip._internal.index.collector import (
     _make_html_page,
     _NotHTML,
     _NotHTTP,
-    _remove_duplicate_links,
-    group_locations,
     parse_links,
 )
+from pip._internal.index.sources import _FlatDirectorySource, _IndexDirectorySource
 from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
 from pip._internal.network.session import PipSession
@@ -616,47 +616,80 @@ def test_get_html_page_windows_shared_directory_append_index(tmpdir):
             mock.call(dirpath),
         ]
 
-
-def test_remove_duplicate_links():
-    links = [
-        # We choose Links that will test that ordering is preserved.
-        Link('https://example.com/2'),
-        Link('https://example.com/1'),
-        Link('https://example.com/2'),
-    ]
-    actual = _remove_duplicate_links(links)
-    assert actual == [
-        Link('https://example.com/2'),
-        Link('https://example.com/1'),
-    ]
-
-
-def test_group_locations__file_expand_dir(data):
+        
+def test_collect_sources__file_expand_dir(data):
     """
-    Test that a file:// dir gets listdir run with expand_dir
+    Test that a file:// dir from --find-links becomes _FlatDirectorySource
     """
-    files, urls = group_locations([data.find_links], expand_dir=True)
-    assert files and not urls, (
-        "files and not urls should have been found "
+    collector = LinkCollector.create(
+        session=pretend.stub(is_secure_origin=None),  # Shouldn't be used.
+        options=pretend.stub(
+            index_url="ignored-by-no-index",
+            extra_index_urls=[],
+            no_index=True,
+            find_links=[data.find_links],
+        ),
+    )
+    sources = collector.collect_sources(
+        project_name=None,  # Shouldn't be used.
+        candidates_from_page=None,  # Shouldn't be used.
+    )
+    assert (
+        not sources.index_urls
+        and len(sources.find_links) == 1
+        and isinstance(sources.find_links[0], _FlatDirectorySource)
+    ), (
+        "Directory source should have been found "
         f"at find-links url: {data.find_links}"
     )
 
 
-def test_group_locations__file_not_find_link(data):
+def test_collect_sources__file_not_find_link(data):
     """
-    Test that a file:// url dir that's not a find-link, doesn't get a listdir
+    Test that a file:// dir from --index-url doesn't become _FlatDirectorySource
     run
     """
-    files, urls = group_locations([data.index_url("empty_with_pkg")])
-    assert urls and not files, "urls, but not files should have been found"
+    collector = LinkCollector.create(
+        session=pretend.stub(is_secure_origin=None),  # Shouldn't be used.
+        options=pretend.stub(
+            index_url=data.index_url("empty_with_pkg"),
+            extra_index_urls=[],
+            no_index=False,
+            find_links=[],
+        ),
+    )
+    sources = collector.collect_sources(
+        project_name="",
+        candidates_from_page=None,  # Shouldn't be used.
+    )
+    assert (
+        not sources.find_links
+        and len(sources.index_urls) == 1
+        and isinstance(sources.index_urls[0], _IndexDirectorySource)
+    ), "Directory specified as index should be treated as a page"
 
 
-def test_group_locations__non_existing_path():
+def test_collect_sources__non_existing_path():
     """
     Test that a non-existing path is ignored.
     """
-    files, urls = group_locations([os.path.join('this', 'doesnt', 'exist')])
-    assert not urls and not files, "nothing should have been found"
+    collector = LinkCollector.create(
+        session=pretend.stub(is_secure_origin=None),  # Shouldn't be used.
+        options=pretend.stub(
+            index_url="ignored-by-no-index",
+            extra_index_urls=[],
+            no_index=True,
+            find_links=[os.path.join("this", "doesnt", "exist")],
+        ),
+    )
+    sources = collector.collect_sources(
+        project_name=None,  # Shouldn't be used.
+        candidates_from_page=None,  # Shouldn't be used.
+    )
+    assert (
+        not sources.index_urls
+        and sources.find_links == [None]
+    ), "Nothing should have been found"
 
 
 def check_links_include(links, names):
@@ -694,7 +727,7 @@ class TestLinkCollector:
             url, session=link_collector.session,
         )
 
-    def test_collect_links(self, caplog, data):
+    def test_collect_sources(self, caplog, data):
         caplog.set_level(logging.DEBUG)
 
         link_collector = make_test_link_collector(
@@ -703,20 +736,33 @@ class TestLinkCollector:
             # is skipped.
             index_urls=[PyPI.simple_url, PyPI.simple_url],
         )
-        actual = link_collector.collect_links('twine')
+        collected_sources = link_collector.collect_sources(
+            "twine",
+            candidates_from_page=lambda link: [link],
+        )
 
-        # Spot-check the CollectedLinks return value.
-        assert len(actual.files) > 20
-        check_links_include(actual.files, names=['simple-1.0.tar.gz'])
+        files_it = itertools.chain.from_iterable(
+            source.file_links()
+            for sources in collected_sources
+            for source in sources
+            if source is not None
+        )
+        pages_it = itertools.chain.from_iterable(
+            source.page_candidates()
+            for sources in collected_sources
+            for source in sources
+            if source is not None
+        )
+        files = list(files_it)
+        pages = list(pages_it)
 
-        assert len(actual.find_links) == 1
-        check_links_include(actual.find_links, names=['packages'])
-        # Check that find-links URLs are marked as cacheable.
-        assert actual.find_links[0].cache_link_parsing
+        # Spot-check the returned sources.
+        assert len(files) > 20
+        check_links_include(files, names=["simple-1.0.tar.gz"])
 
-        assert actual.project_urls == [Link('https://pypi.org/simple/twine/')]
+        assert pages == [Link('https://pypi.org/simple/twine/')]
         # Check that index URLs are marked as *un*cacheable.
-        assert not actual.project_urls[0].cache_link_parsing
+        assert not pages[0].cache_link_parsing
 
         expected_message = dedent("""\
         1 location(s) to search for versions of twine:

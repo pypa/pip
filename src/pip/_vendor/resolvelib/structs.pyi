@@ -17,7 +17,7 @@ _T = TypeVar("_T")
 Matches = Union[Iterable[CT], Callable[[], Iterator[CT]]]
 
 class IterableView(Container[CT], Iterable[CT], metaclass=ABCMeta):
-    def excluding(self: _T, candidates: Container[CT]) -> _T: ...
+    pass
 
 class DirectedGraph(Generic[KT]):
     def __iter__(self) -> Iterator[KT]: ...

@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import List, Optional
+from typing import Optional
 
 from pip._vendor.pep517.wrappers import Pep517HookCaller
 
@@ -13,7 +13,6 @@ def build_wheel_pep517(
     name,  # type: str
     backend,  # type: Pep517HookCaller
     metadata_directory,  # type: str
-    build_options,  # type: List[str]
     tempd,  # type: str
 ):
     # type: (...) -> Optional[str]
@@ -22,11 +21,6 @@ def build_wheel_pep517(
     Returns path to wheel if successfully built. Otherwise, returns None.
     """
     assert metadata_directory is not None
-    if build_options:
-        # PEP 517 does not support --build-options
-        logger.error('Cannot build wheel for %s using PEP 517 when '
-                     '--build-option is present', name)
-        return None
     try:
         logger.debug('Destination directory: %s', tempd)
 

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Dict, Iterable, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Dict, Iterable, Iterator, Mapping, Sequence, Union
 
 from pip._vendor.resolvelib.providers import AbstractProvider
 
@@ -66,11 +66,11 @@ class PipProvider(_ProviderBase):
 
     def get_preference(
         self,
-        resolution,  # type: Optional[Candidate]
-        candidates,  # type: Iterable[Candidate]
-        information,  # type: Iterable[PreferenceInformation]
-    ):
-        # type: (...) -> Preference
+        identifier: str,
+        resolutions: Mapping[str, Candidate],
+        candidates: Mapping[str, Iterator[Candidate]],
+        information: Mapping[str, Iterator["PreferenceInformation"]],
+    ) -> "Preference":
         """Produce a sort key for given requirement based on preference.
 
         The lower the return value is, the more preferred this group of
@@ -118,9 +118,8 @@ class PipProvider(_ProviderBase):
             # A "bare" requirement without any version requirements.
             return 3
 
-        restrictive = _get_restrictive_rating(req for req, _ in information)
-        key = next(iter(candidates)).name if candidates else ""
-        order = self._user_requested.get(key, float("inf"))
+        rating = _get_restrictive_rating(r for r, _ in information[identifier])
+        order = self._user_requested.get(identifier, float("inf"))
 
         # HACK: Setuptools have a very long and solid backward compatibility
         # track record, and extremely few projects would request a narrow,
@@ -130,16 +129,16 @@ class PipProvider(_ProviderBase):
         # delaying Setuptools helps reduce branches the resolver has to check.
         # This serves as a temporary fix for issues like "apache-airlfow[all]"
         # while we work on "proper" branch pruning techniques.
-        delay_this = key == "setuptools"
+        delay_this = identifier == "setuptools"
 
-        return (delay_this, restrictive, order, key)
+        return (delay_this, rating, order, identifier)
 
-    def find_matches(self, requirements):
-        # type: (Sequence[Requirement]) -> Iterable[Candidate]
-        if not requirements:
-            return []
-        name = requirements[0].project_name
-
+    def find_matches(
+        self,
+        identifier: str,
+        requirements: Mapping[str, Iterator[Requirement]],
+        incompatibilities: Mapping[str, Iterator[Candidate]],
+    ) -> Iterable[Candidate]:
         def _eligible_for_upgrade(name):
             # type: (str) -> bool
             """Are upgrades allowed for this project?
@@ -159,9 +158,11 @@ class PipProvider(_ProviderBase):
             return False
 
         return self._factory.find_candidates(
-            requirements,
-            constraint=self._constraints.get(name, Constraint.empty()),
-            prefers_installed=(not _eligible_for_upgrade(name)),
+            identifier=identifier,
+            requirements=requirements,
+            constraint=self._constraints.get(identifier, Constraint.empty()),
+            prefers_installed=(not _eligible_for_upgrade(identifier)),
+            incompatibilities=incompatibilities,
         )
 
     def is_satisfied_by(self, requirement, candidate):

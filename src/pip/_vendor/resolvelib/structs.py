@@ -1,3 +1,5 @@
+import itertools
+
 from .compat import collections_abc
 
 
@@ -67,6 +69,31 @@ class DirectedGraph(object):
         return iter(self._backwards[key])
 
 
+class IteratorMapping(collections_abc.Mapping):
+    def __init__(self, mapping, accessor, appends=None):
+        self._mapping = mapping
+        self._accessor = accessor
+        self._appends = appends or {}
+
+    def __contains__(self, key):
+        return key in self._mapping or key in self._appends
+
+    def __getitem__(self, k):
+        try:
+            v = self._mapping[k]
+        except KeyError:
+            return iter(self._appends[k])
+        return itertools.chain(self._accessor(v), self._appends.get(k, ()))
+
+    def __iter__(self):
+        more = (k for k in self._appends if k not in self._mapping)
+        return itertools.chain(self._mapping, more)
+
+    def __len__(self):
+        more = len(k for k in self._appends if k not in self._mapping)
+        return len(self._mapping) + more
+
+
 class _FactoryIterableView(object):
     """Wrap an iterator factory returned by `find_matches()`.
 
@@ -94,18 +121,6 @@ class _FactoryIterableView(object):
     def __iter__(self):
         return self._factory()
 
-    def for_preference(self):
-        """Provide an candidate iterable for `get_preference()`"""
-        return self._factory()
-
-    def excluding(self, candidates):
-        """Create a new instance excluding specified candidates."""
-
-        def factory():
-            return (c for c in self._factory() if c not in candidates)
-
-        return type(self)(factory)
-
 
 class _SequenceIterableView(object):
     """Wrap an iterable returned by find_matches().
@@ -127,17 +142,6 @@ class _SequenceIterableView(object):
 
     def __iter__(self):
         return iter(self._sequence)
-
-    def __len__(self):
-        return len(self._sequence)
-
-    def for_preference(self):
-        """Provide an candidate iterable for `get_preference()`"""
-        return self._sequence
-
-    def excluding(self, candidates):
-        """Create a new instance excluding specified candidates."""
-        return type(self)([c for c in self._sequence if c not in candidates])
 
 
 def build_iter_view(matches):
