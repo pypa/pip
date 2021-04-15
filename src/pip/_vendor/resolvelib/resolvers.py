@@ -173,12 +173,18 @@ class Resolution(object):
             raise RequirementsConflicted(criterion)
         return identifier, criterion
 
-    def _get_criterion_item_preference(self, item):
-        name, criterion = item
+    def _get_preference(self, name):
         return self._p.get_preference(
-            resolution=self.state.mapping.get(name),
-            candidates=criterion.candidates.for_preference(),
-            information=criterion.information,
+            identifier=name,
+            resolutions=self.state.mapping,
+            candidates=IteratorMapping(
+                self.state.criteria,
+                operator.attrgetter("candidates"),
+            ),
+            information=IteratorMapping(
+                self.state.criteria,
+                operator.attrgetter("information"),
+            ),
         )
 
     def _is_current_pin_satisfying(self, name, criterion):
@@ -198,7 +204,9 @@ class Resolution(object):
             criteria[name] = crit
         return criteria
 
-    def _attempt_to_pin_criterion(self, name, criterion):
+    def _attempt_to_pin_criterion(self, name):
+        criterion = self.state.criteria[name]
+
         causes = []
         for candidate in criterion.candidates:
             try:
@@ -343,23 +351,20 @@ class Resolution(object):
         for round_index in range(max_rounds):
             self._r.starting_round(index=round_index)
 
-            unsatisfied_criterion_items = [
-                item
-                for item in self.state.criteria.items()
-                if not self._is_current_pin_satisfying(*item)
+            unsatisfied_names = [
+                key
+                for key, criterion in self.state.criteria.items()
+                if not self._is_current_pin_satisfying(key, criterion)
             ]
 
             # All criteria are accounted for. Nothing more to pin, we are done!
-            if not unsatisfied_criterion_items:
+            if not unsatisfied_names:
                 self._r.ending(state=self.state)
                 return self.state
 
             # Choose the most preferred unpinned criterion to try.
-            name, criterion = min(
-                unsatisfied_criterion_items,
-                key=self._get_criterion_item_preference,
-            )
-            failure_causes = self._attempt_to_pin_criterion(name, criterion)
+            name = min(unsatisfied_names, key=self._get_preference)
+            failure_causes = self._attempt_to_pin_criterion(name)
 
             if failure_causes:
                 # Backtrack if pinning fails. The backtrack process puts us in
