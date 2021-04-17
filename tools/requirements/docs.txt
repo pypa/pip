@@ -1,11 +1,10 @@
 sphinx == 3.2.1
-# FIXME: Remove towncrier constraint after upgrading sphinxcontrib-towncrier.
-towncrier < 19.9.0
+towncrier
 furo
 myst_parser
 sphinx-copybutton
 sphinx-inline-tabs
-sphinxcontrib-towncrier
+sphinxcontrib-towncrier >= 0.2.0a0
 
 # `docs.pipext` uses pip's internals to generate documentation. So, we install
 # the current directory to make it work.
