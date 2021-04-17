@@ -1,4 +1,4 @@
-{{ top_line -}}
+{{ top_line }}
 
 {%- for section in sections %}
 {% set underline = "-" %}
