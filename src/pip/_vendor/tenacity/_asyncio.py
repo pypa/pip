@@ -26,24 +26,20 @@ from pip._vendor.tenacity import RetryCallState
 
 
 class AsyncRetrying(BaseRetrying):
-
-    def __init__(self,
-                 sleep=sleep,
-                 **kwargs):
+    def __init__(self, sleep=sleep, **kwargs):
         super(AsyncRetrying, self).__init__(**kwargs)
         self.sleep = sleep
 
     async def __call__(self, fn, *args, **kwargs):
         self.begin(fn)
 
-        retry_state = RetryCallState(
-            retry_object=self, fn=fn, args=args, kwargs=kwargs)
+        retry_state = RetryCallState(retry_object=self, fn=fn, args=args, kwargs=kwargs)
         while True:
             do = self.iter(retry_state=retry_state)
             if isinstance(do, DoAttempt):
                 try:
                     result = await fn(*args, **kwargs)
-                except BaseException:
+                except BaseException:  # noqa: B902
                     retry_state.set_exception(sys.exc_info())
                 else:
                     retry_state.set_result(result)

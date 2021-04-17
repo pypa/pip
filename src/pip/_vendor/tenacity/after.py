@@ -23,13 +23,18 @@ def after_nothing(retry_state):
 
 def after_log(logger, log_level, sec_format="%0.3f"):
     """After call strategy that logs to some logger the finished attempt."""
-    log_tpl = ("Finished call to '%s' after " + str(sec_format) + "(s), "
-               "this was the %s time calling it.")
+    log_tpl = (
+        "Finished call to '%s' after " + str(sec_format) + "(s), "
+        "this was the %s time calling it."
+    )
 
     def log_it(retry_state):
-        logger.log(log_level, log_tpl,
-                   _utils.get_callback_name(retry_state.fn),
-                   retry_state.seconds_since_start,
-                   _utils.to_ordinal(retry_state.attempt_number))
+        logger.log(
+            log_level,
+            log_tpl,
+            _utils.get_callback_name(retry_state.fn),
+            retry_state.seconds_since_start,
+            _utils.to_ordinal(retry_state.attempt_number),
+        )
 
     return log_it
