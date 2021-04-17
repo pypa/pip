@@ -110,6 +110,9 @@ parser.add_argument(
 
 
 def main(args):
+    log.warning('pep517.build is deprecated. '
+                'Consider switching to https://pypi.org/project/build/')
+
     # determine which dists to build
     dists = list(filter(None, (
         'sdist' if args.source or not args.binary else None,

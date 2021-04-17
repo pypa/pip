@@ -167,6 +167,9 @@ def check(source_dir):
 
 
 def main(argv=None):
+    log.warning('pep517.check is deprecated. '
+                'Consider switching to https://pypi.org/project/build/')
+
     ap = argparse.ArgumentParser()
     ap.add_argument(
         'source_dir',
