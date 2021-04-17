@@ -12,7 +12,7 @@ pyparsing==2.4.7
 requests==2.25.1
     certifi==2020.12.05
     chardet==4.0.0
-    idna==2.10
+    idna==3.1
     urllib3==1.26.4
 resolvelib==0.7.0
 setuptools==44.0.0
