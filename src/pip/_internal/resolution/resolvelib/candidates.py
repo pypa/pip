@@ -9,7 +9,7 @@ from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.pkg_resources import Distribution
 
 from pip._internal.exceptions import HashError, MetadataInconsistent
-from pip._internal.models.link import Link
+from pip._internal.models.link import Link, links_equivalent
 from pip._internal.models.wheel import Wheel
 from pip._internal.req.constructors import (
     install_req_from_editable,
@@ -156,7 +156,7 @@ class _InstallRequirementBackedCandidate(Candidate):
     def __eq__(self, other):
         # type: (Any) -> bool
         if isinstance(other, self.__class__):
-            return self._link == other._link
+            return links_equivalent(self._link, other._link)
         return False
 
     @property

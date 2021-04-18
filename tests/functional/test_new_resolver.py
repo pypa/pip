@@ -10,7 +10,9 @@ from tests.lib import (
     create_basic_sdist_for_package,
     create_basic_wheel_for_package,
     create_test_package_with_setup,
+    path_to_url,
 )
+from tests.lib.path import Path
 from tests.lib.wheel import make_wheel
 
 
@@ -43,6 +45,24 @@ def assert_editable(script, *args):
     egg_links = {f"{arg}.egg-link" for arg in args}
     assert egg_links <= set(os.listdir(script.site_packages_path)), \
         f"{args!r} not all found in {script.site_packages_path!r}"
+
+
+@pytest.fixture()
+def make_fake_wheel(script):
+
+    def _make_fake_wheel(name, version, wheel_tag):
+        wheel_house = script.scratch_path.joinpath("wheelhouse")
+        wheel_house.mkdir()
+        wheel_builder = make_wheel(
+            name=name,
+            version=version,
+            wheel_metadata_updates={"Tag": []},
+        )
+        wheel_path = wheel_house.joinpath(f"{name}-{version}-{wheel_tag}.whl")
+        wheel_builder.save_to(wheel_path)
+        return wheel_path
+
+    return _make_fake_wheel
 
 
 def test_new_resolver_can_install(script):
@@ -641,8 +661,8 @@ def test_new_resolver_constraint_no_specifier(script):
             "Unnamed requirements are not allowed as constraints",
         ),
         (
-            "req @ https://example.com/dist.zip",
-            "Links are not allowed as constraints",
+            "-e git+https://example.com/dist.git#egg=req",
+            "Editable requirements are not allowed as constraints",
         ),
         (
             "pkg[extra]",
@@ -1278,3 +1298,493 @@ def test_new_resolver_no_fetch_no_satisfying(script):
         "myuberpkg",
     )
     assert "Processing " not in result.stdout, str(result)
+
+
+def test_new_resolver_does_not_install_unneeded_packages_with_url_constraint(script):
+    archive_path = create_basic_wheel_for_package(
+        script,
+        "installed",
+        "0.1.0",
+    )
+    not_installed_path = create_basic_wheel_for_package(
+        script,
+        "not_installed",
+        "0.1.0",
+    )
+
+    constraints_file = script.scratch_path / "constraints.txt"
+    constraints_file.write_text("not_installed @ " + path_to_url(not_installed_path))
+
+    (script.scratch_path / "index").mkdir()
+    archive_path.rename(script.scratch_path / "index" / archive_path.name)
+
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path / "index",
+        "-c", constraints_file,
+        "installed"
+    )
+
+    assert_installed(script, installed="0.1.0")
+    assert_not_installed(script, "not_installed")
+
+
+def test_new_resolver_installs_packages_with_url_constraint(script):
+    installed_path = create_basic_wheel_for_package(
+        script,
+        "installed",
+        "0.1.0",
+    )
+
+    constraints_file = script.scratch_path / "constraints.txt"
+    constraints_file.write_text("installed @ " + path_to_url(installed_path))
+
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "-c", constraints_file,
+        "installed"
+    )
+
+    assert_installed(script, installed="0.1.0")
+
+
+def test_new_resolver_reinstall_link_requirement_with_constraint(script):
+    installed_path = create_basic_wheel_for_package(
+        script,
+        "installed",
+        "0.1.0",
+    )
+
+    cr_file = script.scratch_path / "constraints.txt"
+    cr_file.write_text("installed @ " + path_to_url(installed_path))
+
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "-r", cr_file,
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "-c", cr_file,
+        "-r", cr_file,
+    )
+    # TODO: strengthen assertion to "second invocation does no work"
+    # I don't think this is true yet, but it should be in the future.
+
+    assert_installed(script, installed="0.1.0")
+
+
+def test_new_resolver_prefers_url_constraint(script):
+    installed_path = create_basic_wheel_for_package(
+        script,
+        "test_pkg",
+        "0.1.0",
+    )
+    not_installed_path = create_basic_wheel_for_package(
+        script,
+        "test_pkg",
+        "0.2.0",
+    )
+
+    constraints_file = script.scratch_path / "constraints.txt"
+    constraints_file.write_text("test_pkg @ " + path_to_url(installed_path))
+
+    (script.scratch_path / "index").mkdir()
+    not_installed_path.rename(script.scratch_path / "index" / not_installed_path.name)
+
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path / "index",
+        "-c", constraints_file,
+        "test_pkg"
+    )
+
+    assert_installed(script, test_pkg="0.1.0")
+
+
+def test_new_resolver_prefers_url_constraint_on_update(script):
+    installed_path = create_basic_wheel_for_package(
+        script,
+        "test_pkg",
+        "0.1.0",
+    )
+    not_installed_path = create_basic_wheel_for_package(
+        script,
+        "test_pkg",
+        "0.2.0",
+    )
+
+    constraints_file = script.scratch_path / "constraints.txt"
+    constraints_file.write_text("test_pkg @ " + path_to_url(installed_path))
+
+    (script.scratch_path / "index").mkdir()
+    not_installed_path.rename(script.scratch_path / "index" / not_installed_path.name)
+
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path / "index",
+        "test_pkg"
+    )
+
+    assert_installed(script, test_pkg="0.2.0")
+
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path / "index",
+        "-c", constraints_file,
+        "test_pkg"
+    )
+
+    assert_installed(script, test_pkg="0.1.0")
+
+
+@pytest.mark.parametrize("version_option", ["--constraint", "--requirement"])
+def test_new_resolver_fails_with_url_constraint_and_incompatible_version(
+    script, version_option,
+):
+    not_installed_path = create_basic_wheel_for_package(
+        script,
+        "test_pkg",
+        "0.1.0",
+    )
+    not_installed_path = create_basic_wheel_for_package(
+        script,
+        "test_pkg",
+        "0.2.0",
+    )
+
+    url_constraint = script.scratch_path / "constraints.txt"
+    url_constraint.write_text("test_pkg @ " + path_to_url(not_installed_path))
+
+    version_req = script.scratch_path / "requirements.txt"
+    version_req.write_text("test_pkg<0.2.0")
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "--constraint", url_constraint,
+        version_option, version_req,
+        "test_pkg",
+        expect_error=True,
+    )
+
+    assert "Cannot install test_pkg" in result.stderr, str(result)
+    assert (
+        "because these package versions have conflicting dependencies."
+    ) in result.stderr, str(result)
+
+    assert_not_installed(script, "test_pkg")
+
+    # Assert that pip works properly in the absence of the constraints file.
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        version_option, version_req,
+        "test_pkg"
+    )
+
+
+def test_new_resolver_ignores_unneeded_conflicting_constraints(script):
+    version_1 = create_basic_wheel_for_package(
+        script,
+        "test_pkg",
+        "0.1.0",
+    )
+    version_2 = create_basic_wheel_for_package(
+        script,
+        "test_pkg",
+        "0.2.0",
+    )
+    create_basic_wheel_for_package(
+        script,
+        "installed",
+        "0.1.0",
+    )
+
+    constraints = [
+        "test_pkg @ " + path_to_url(version_1),
+        "test_pkg @ " + path_to_url(version_2),
+    ]
+
+    constraints_file = script.scratch_path / "constraints.txt"
+    constraints_file.write_text("\n".join(constraints))
+
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "-c", constraints_file,
+        "installed"
+    )
+
+    assert_not_installed(script, "test_pkg")
+    assert_installed(script, installed="0.1.0")
+
+
+def test_new_resolver_fails_on_needed_conflicting_constraints(script):
+    version_1 = create_basic_wheel_for_package(
+        script,
+        "test_pkg",
+        "0.1.0",
+    )
+    version_2 = create_basic_wheel_for_package(
+        script,
+        "test_pkg",
+        "0.2.0",
+    )
+
+    constraints = [
+        "test_pkg @ " + path_to_url(version_1),
+        "test_pkg @ " + path_to_url(version_2),
+    ]
+
+    constraints_file = script.scratch_path / "constraints.txt"
+    constraints_file.write_text("\n".join(constraints))
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "-c", constraints_file,
+        "test_pkg",
+        expect_error=True,
+    )
+
+    assert (
+        "Cannot install test_pkg because these package versions have conflicting "
+        "dependencies."
+    ) in result.stderr, str(result)
+
+    assert_not_installed(script, "test_pkg")
+
+    # Assert that pip works properly in the absence of the constraints file.
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "test_pkg",
+    )
+
+
+def test_new_resolver_fails_on_conflicting_constraint_and_requirement(script):
+    version_1 = create_basic_wheel_for_package(
+        script,
+        "test_pkg",
+        "0.1.0",
+    )
+    version_2 = create_basic_wheel_for_package(
+        script,
+        "test_pkg",
+        "0.2.0",
+    )
+
+    constraints_file = script.scratch_path / "constraints.txt"
+    constraints_file.write_text("test_pkg @ " + path_to_url(version_1))
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "-c", constraints_file,
+        "test_pkg @ " + path_to_url(version_2),
+        expect_error=True,
+    )
+
+    assert "Cannot install test-pkg 0.2.0" in result.stderr, str(result)
+    assert (
+        "because these package versions have conflicting dependencies."
+    ) in result.stderr, str(result)
+
+    assert_not_installed(script, "test_pkg")
+
+    # Assert that pip works properly in the absence of the constraints file.
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "test_pkg @ " + path_to_url(version_2),
+    )
+
+
+@pytest.mark.parametrize("editable", [False, True])
+def test_new_resolver_succeeds_on_matching_constraint_and_requirement(script, editable):
+    if editable:
+        source_dir = create_test_package_with_setup(
+            script,
+            name="test_pkg",
+            version="0.1.0"
+        )
+    else:
+        source_dir = create_basic_wheel_for_package(
+            script,
+            "test_pkg",
+            "0.1.0",
+        )
+
+    req_line = "test_pkg @ " + path_to_url(source_dir)
+
+    constraints_file = script.scratch_path / "constraints.txt"
+    constraints_file.write_text(req_line)
+
+    if editable:
+        last_args = ("-e", source_dir)
+    else:
+        last_args = (req_line,)
+
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "-c", constraints_file,
+        *last_args,
+    )
+
+    assert_installed(script, test_pkg="0.1.0")
+    if editable:
+        assert_editable(script, "test-pkg")
+
+
+def test_new_resolver_applies_url_constraint_to_dep(script):
+    version_1 = create_basic_wheel_for_package(
+        script,
+        "dep",
+        "0.1.0",
+    )
+    version_2 = create_basic_wheel_for_package(
+        script,
+        "dep",
+        "0.2.0",
+    )
+
+    base = create_basic_wheel_for_package(script, "base", "0.1.0", depends=["dep"])
+
+    (script.scratch_path / "index").mkdir()
+    base.rename(script.scratch_path / "index" / base.name)
+    version_2.rename(script.scratch_path / "index" / version_2.name)
+
+    constraints_file = script.scratch_path / "constraints.txt"
+    constraints_file.write_text("dep @ " + path_to_url(version_1))
+
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "-c", constraints_file,
+        "--find-links", script.scratch_path / "index",
+        "base",
+    )
+
+    assert_installed(script, dep="0.1.0")
+
+
+def test_new_resolver_handles_compatible_wheel_tags_in_constraint_url(
+    script, make_fake_wheel
+):
+    initial_path = make_fake_wheel("base", "0.1.0", "fakepy1-fakeabi-fakeplat")
+
+    constrained = script.scratch_path / "constrained"
+    constrained.mkdir()
+
+    final_path = constrained / initial_path.name
+
+    initial_path.rename(final_path)
+
+    constraints_file = script.scratch_path / "constraints.txt"
+    constraints_file.write_text("base @ " + path_to_url(final_path))
+
+    result = script.pip(
+        "install",
+        "--implementation", "fakepy",
+        '--only-binary=:all:',
+        "--python-version", "1",
+        "--abi", "fakeabi",
+        "--platform", "fakeplat",
+        "--target", script.scratch_path / "target",
+        "--no-cache-dir", "--no-index",
+        "-c", constraints_file,
+        "base",
+    )
+
+    dist_info = Path("scratch", "target", "base-0.1.0.dist-info")
+    result.did_create(dist_info)
+
+
+def test_new_resolver_handles_incompatible_wheel_tags_in_constraint_url(
+    script, make_fake_wheel
+):
+    initial_path = make_fake_wheel("base", "0.1.0", "fakepy1-fakeabi-fakeplat")
+
+    constrained = script.scratch_path / "constrained"
+    constrained.mkdir()
+
+    final_path = constrained / initial_path.name
+
+    initial_path.rename(final_path)
+
+    constraints_file = script.scratch_path / "constraints.txt"
+    constraints_file.write_text("base @ " + path_to_url(final_path))
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "-c", constraints_file,
+        "base",
+        expect_error=True,
+    )
+
+    assert (
+        "Cannot install base because these package versions have conflicting "
+        "dependencies."
+    ) in result.stderr, str(result)
+
+    assert_not_installed(script, "base")
+
+
+def test_new_resolver_avoids_incompatible_wheel_tags_in_constraint_url(
+    script, make_fake_wheel
+):
+    initial_path = make_fake_wheel("dep", "0.1.0", "fakepy1-fakeabi-fakeplat")
+
+    constrained = script.scratch_path / "constrained"
+    constrained.mkdir()
+
+    final_path = constrained / initial_path.name
+
+    initial_path.rename(final_path)
+
+    constraints_file = script.scratch_path / "constraints.txt"
+    constraints_file.write_text("dep @ " + path_to_url(final_path))
+
+    index = script.scratch_path / "index"
+    index.mkdir()
+
+    index_dep = create_basic_wheel_for_package(script, "dep", "0.2.0")
+
+    base = create_basic_wheel_for_package(
+        script, "base", "0.1.0"
+    )
+    base_2 = create_basic_wheel_for_package(
+        script, "base", "0.2.0", depends=["dep"]
+    )
+
+    index_dep.rename(index / index_dep.name)
+    base.rename(index / base.name)
+    base_2.rename(index / base_2.name)
+
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "-c", constraints_file,
+        "--find-links", script.scratch_path / "index",
+        "base",
+    )
+
+    assert_installed(script, base="0.1.0")
+    assert_not_installed(script, "dep")
