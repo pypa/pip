@@ -1,3 +1,4 @@
+import contextlib
 import functools
 import logging
 from typing import (
@@ -125,6 +126,15 @@ class Factory:
     def force_reinstall(self):
         # type: () -> bool
         return self._force_reinstall
+
+    def _fail_if_link_is_unsupported_wheel(self, link: Link) -> None:
+        if not link.is_wheel:
+            return
+        wheel = Wheel(link.filename)
+        if wheel.supported(self._finder.target_python.get_tags()):
+            return
+        msg = f"{link.filename} is not a supported wheel on this platform."
+        raise UnsupportedWheel(msg)
 
     def _make_extras_candidate(self, base, extras):
         # type: (BaseCandidate, FrozenSet[str]) -> ExtrasCandidate
@@ -278,6 +288,51 @@ class Factory:
             incompatible_ids,
         )
 
+    def _iter_explicit_candidates_from_base(
+        self,
+        base_requirements: Iterable[Requirement],
+        extras: FrozenSet[str],
+    ) -> Iterator[Candidate]:
+        """Produce explicit candidates from the base given an extra-ed package.
+
+        :param base_requirements: Requirements known to the resolver. The
+            requirements are guaranteed to not have extras.
+        :param extras: The extras to inject into the explicit requirements'
+            candidates.
+        """
+        for req in base_requirements:
+            lookup_cand, _ = req.get_candidate_lookup()
+            if lookup_cand is None:  # Not explicit.
+                continue
+            # We've stripped extras from the identifier, and should always
+            # get a BaseCandidate here, unless there's a bug elsewhere.
+            base_cand = as_base_candidate(lookup_cand)
+            assert base_cand is not None, "no extras here"
+            yield self._make_extras_candidate(base_cand, extras)
+
+    def _iter_candidates_from_constraints(
+        self,
+        identifier: str,
+        constraint: Constraint,
+        template: InstallRequirement,
+    ) -> Iterator[Candidate]:
+        """Produce explicit candidates from constraints.
+
+        This creates "fake" InstallRequirement objects that are basically clones
+        of what "should" be the template, but with original_link set to link.
+        """
+        for link in constraint.links:
+            self._fail_if_link_is_unsupported_wheel(link)
+            candidate = self._make_candidate_from_link(
+                link,
+                extras=frozenset(),
+                template=install_req_from_link_and_ireq(link, template),
+                name=canonicalize_name(identifier),
+                version=None,
+            )
+            if candidate:
+                yield candidate
+
     def find_candidates(
         self,
         identifier: str,
@@ -291,76 +346,44 @@ class Factory:
         # can be made quicker by comparing only the id() values.
         incompat_ids = {id(c) for c in incompatibilities.get(identifier, ())}
 
+        # Collect basic lookup information from the requirements.
         explicit_candidates = set()  # type: Set[Candidate]
         ireqs = []  # type: List[InstallRequirement]
         for req in requirements[identifier]:
             cand, ireq = req.get_candidate_lookup()
-            if cand is not None and id(cand) not in incompat_ids:
+            if cand is not None and id(cand):
                 explicit_candidates.add(cand)
             if ireq is not None:
                 ireqs.append(ireq)
 
-        for link in constraint.links:
-            if not ireqs:
-                # If we hit this condition, then we cannot construct a candidate.
-                # However, if we hit this condition, then none of the requirements
-                # provided an ireq, so they must have provided an explicit candidate.
-                # In that case, either the candidate matches, in which case this loop
-                # doesn't need to do anything, or it doesn't, in which case there's
-                # nothing this loop can do to recover.
-                break
-            if link.is_wheel:
-                wheel = Wheel(link.filename)
-                # Check whether the provided wheel is compatible with the target
-                # platform.
-                if not wheel.supported(self._finder.target_python.get_tags()):
-                    # We are constrained to install a wheel that is incompatible with
-                    # the target architecture, so there are no valid candidates.
-                    # Return early, with no candidates.
-                    return ()
-            # Create a "fake" InstallRequirement that's basically a clone of
-            # what "should" be the template, but with original_link set to link.
-            # Using the given requirement is necessary for preserving hash
-            # requirements, but without the original_link, direct_url.json
-            # won't be created.
-            ireq = install_req_from_link_and_ireq(link, ireqs[0])
-            candidate = self._make_candidate_from_link(
-                link,
-                extras=frozenset(),
-                template=ireq,
-                name=canonicalize_name(ireq.name) if ireq.name else None,
-                version=None,
+        # If the current identifier contains extras, add explicit candidates
+        # from entries from extra-less identifier.
+        with contextlib.suppress(InvalidRequirement):
+            parsed_requirement = PackagingRequirement(identifier)
+            explicit_candidates.update(
+                self._iter_explicit_candidates_from_base(
+                    requirements.get(parsed_requirement.name, ()),
+                    frozenset(parsed_requirement.extras),
+                ),
             )
-            if candidate is None:
-                # _make_candidate_from_link returns None if the wheel fails to build.
-                # We are constrained to install this wheel, so there are no valid
-                # candidates.
-                # Return early, with no candidates.
+
+        # Add explicit candidates from constraints. We only do this if there are
+        # kown ireqs, which represent requirements not already explicit. If
+        # there are no ireqs, we're constraining already-explicit requirements,
+        # which is handled later when we return the explicit candidates.
+        if ireqs:
+            try:
+                explicit_candidates.update(
+                    self._iter_candidates_from_constraints(
+                        identifier,
+                        constraint,
+                        template=ireqs[0],
+                    ),
+                )
+            except UnsupportedWheel:
+                # If we're constrained to install a wheel incompatible with the
+                # target architecture, no candidates will ever be valid.
                 return ()
-
-            explicit_candidates.add(candidate)
-
-        # If the current identifier contains extras, also add explicit
-        # candidates from entries from extra-less identifier.
-        try:
-            identifier_req = PackagingRequirement(identifier)
-        except InvalidRequirement:
-            base_identifier = None
-            extras: FrozenSet[str] = frozenset()
-        else:
-            base_identifier = identifier_req.name
-            extras = frozenset(identifier_req.extras)
-        if base_identifier and base_identifier in requirements:
-            for req in requirements[base_identifier]:
-                lookup_cand, _ = req.get_candidate_lookup()
-                if lookup_cand is None:  # Not explicit.
-                    continue
-                # We've stripped extras from the identifier, and should always
-                # get a BaseCandidate here, unless there's a bug elsewhere.
-                base_cand = as_base_candidate(lookup_cand)
-                assert base_cand is not None
-                candidate = self._make_extras_candidate(base_cand, extras)
-                explicit_candidates.add(candidate)
 
         # If none of the requirements want an explicit candidate, we can ask
         # the finder for candidates.
@@ -376,7 +399,8 @@ class Factory:
         return (
             c
             for c in explicit_candidates
-            if constraint.is_satisfied_by(c)
+            if id(c) not in incompat_ids
+            and constraint.is_satisfied_by(c)
             and all(req.is_satisfied_by(c) for req in requirements[identifier])
         )
 
@@ -391,13 +415,7 @@ class Factory:
             return None
         if not ireq.link:
             return SpecifierRequirement(ireq)
-        if ireq.link.is_wheel:
-            wheel = Wheel(ireq.link.filename)
-            if not wheel.supported(self._finder.target_python.get_tags()):
-                msg = "{} is not a supported wheel on this platform.".format(
-                    wheel.filename,
-                )
-                raise UnsupportedWheel(msg)
+        self._fail_if_link_is_unsupported_wheel(ireq.link)
         cand = self._make_candidate_from_link(
             ireq.link,
             extras=frozenset(ireq.extras),
