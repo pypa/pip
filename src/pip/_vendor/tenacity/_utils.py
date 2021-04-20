@@ -40,12 +40,15 @@ if six.PY2:
 
         Also, see https://github.com/benjaminp/six/issues/250.
         """
+
         def filter_hasattr(obj, attrs):
             return tuple(a for a in attrs if hasattr(obj, a))
+
         return six.wraps(
             fn,
             assigned=filter_hasattr(fn, WRAPPER_ASSIGNMENTS),
-            updated=filter_hasattr(fn, WRAPPER_UPDATES))
+            updated=filter_hasattr(fn, WRAPPER_UPDATES),
+        )
 
     def capture(fut, tb):
         # TODO(harlowja): delete this in future, since its
@@ -55,6 +58,8 @@ if six.PY2:
     def getargspec(func):
         # This was deprecated in Python 3.
         return inspect.getargspec(func)
+
+
 else:
     from functools import wraps  # noqa
 
@@ -80,13 +85,13 @@ def find_ordinal(pos_num):
     if pos_num == 0:
         return "th"
     elif pos_num == 1:
-        return 'st'
+        return "st"
     elif pos_num == 2:
-        return 'nd'
+        return "nd"
     elif pos_num == 3:
-        return 'rd'
+        return "rd"
     elif pos_num >= 4 and pos_num <= 20:
-        return 'th'
+        return "th"
     else:
         return find_ordinal(pos_num % 10)
 

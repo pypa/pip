@@ -1,1 +1,1 @@
-Switch from retrying to tenacity
+Upgrade tenacity to 7.0.0
