@@ -409,7 +409,6 @@ def test_freeze_git_remote(script, tmpdir):
         expect_stderr=True,
     )
     origin_remote = pkg_version
-    other_remote = pkg_version + '-other'
     # check frozen remote after clone
     result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent(
@@ -417,18 +416,29 @@ def test_freeze_git_remote(script, tmpdir):
             ...-e git+{remote}@...#egg=version_pkg
             ...
         """
-    ).format(remote=origin_remote).strip()
+    ).format(remote=path_to_url(origin_remote)).strip()
     _check_output(result.stdout, expected)
     # check frozen remote when there is no remote named origin
-    script.run('git', 'remote', 'remove', 'origin', cwd=repo_dir)
-    script.run('git', 'remote', 'add', 'other', other_remote, cwd=repo_dir)
+    script.run('git', 'remote', 'rename', 'origin', 'other', cwd=repo_dir)
     result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent(
         """
             ...-e git+{remote}@...#egg=version_pkg
             ...
         """
-    ).format(remote=other_remote).strip()
+    ).format(remote=path_to_url(origin_remote)).strip()
+    _check_output(result.stdout, expected)
+    # When the remote is a local path, it must exist. Otherwise it is assumed to
+    # be an ssh:// remote. This is a side effect and not intentional behaviour.
+    other_remote = pkg_version + '-other'
+    script.run('git', 'remote', 'set-url', 'other', other_remote, cwd=repo_dir)
+    result = script.pip('freeze', expect_stderr=True)
+    expected = textwrap.dedent(
+        """
+            ...-e git+ssh://{remote}@...#egg=version_pkg
+            ...
+        """
+    ).format(remote=other_remote.replace(":", "/")).strip()
     _check_output(result.stdout, expected)
     # when there are more than one origin, priority is given to the
     # remote named origin
@@ -439,7 +449,7 @@ def test_freeze_git_remote(script, tmpdir):
             ...-e git+{remote}@...#egg=version_pkg
             ...
         """
-    ).format(remote=origin_remote).strip()
+    ).format(remote=path_to_url(origin_remote)).strip()
     _check_output(result.stdout, expected)
 
 

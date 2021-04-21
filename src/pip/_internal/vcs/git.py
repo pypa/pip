@@ -1,5 +1,6 @@
 import logging
 import os.path
+import pathlib
 import re
 import urllib.parse
 import urllib.request
@@ -322,7 +323,36 @@ class Git(VersionControl):
                 found_remote = remote
                 break
         url = found_remote.split(' ')[1]
-        return url.strip()
+        return cls._git_remote_to_pip_url(url.strip())
+
+    @staticmethod
+    def _git_remote_to_pip_url(url):
+        # type: (str) -> str
+        """
+        Convert a remote url from what git uses to what pip accepts.
+
+        There are 3 legal forms **url** may take:
+
+            1. A fully qualified url: ssh://git@example.com/foo/bar.git
+            2. A local project.git folder: /path/to/bare/repository.git
+            3. SCP shorthand for form 1: git@example.com:foo/bar.git
+
+        Form 1 is output as-is. Form 2 must be converted to URI and form 3 must
+        be converted to form 1.
+
+        See the corresponding test test_git_remote_url_to_pip() for examples of
+        sample inputs/outputs.
+        """
+        if re.match(r"\w+://", url):
+            # This is already valid. Pass it though as-is.
+            return url
+        if os.path.exists(url):
+            # A local bare remote (git clone --mirror).
+            # Needs a file:// prefix.
+            return pathlib.PurePath(url).as_uri()
+        # SCP shorthand. e.g. git@example.com:foo/bar.git
+        # Should add an ssh:// prefix and replace the ':' with a '/'.
+        return "ssh://" + url.replace(":", "/")
 
     @classmethod
     def has_commit(cls, location, rev):
@@ -439,6 +469,13 @@ class Git(VersionControl):
         except InstallationError:
             return None
         return os.path.normpath(r.rstrip('\r\n'))
+
+    @staticmethod
+    def should_add_vcs_url_prefix(repo_url):
+        # type: (str) -> bool
+        """In either https or ssh form, requirements must be prefixed with git+.
+        """
+        return True
 
 
 vcs.register(Git)
