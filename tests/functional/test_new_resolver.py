@@ -12,6 +12,7 @@ from tests.lib import (
     create_test_package_with_setup,
     path_to_url,
 )
+from tests.lib.direct_url import get_created_direct_url
 from tests.lib.path import Path
 from tests.lib.wheel import make_wheel
 
@@ -1788,3 +1789,41 @@ def test_new_resolver_avoids_incompatible_wheel_tags_in_constraint_url(
 
     assert_installed(script, base="0.1.0")
     assert_not_installed(script, "dep")
+
+
+def test_new_resolver_direct_url_with_extras(tmp_path, script):
+    pkg1 = create_basic_wheel_for_package(script, name="pkg1", version="1")
+    pkg2 = create_basic_wheel_for_package(
+        script,
+        name="pkg2",
+        version="1",
+        extras={"ext": ["pkg1"]},
+    )
+    pkg3 = create_basic_wheel_for_package(
+        script,
+        name="pkg3",
+        version="1",
+        depends=["pkg2[ext]"],
+    )
+
+    # Make pkg1 and pkg3 visible via --find-links, but not pkg2.
+    find_links = tmp_path.joinpath("find_links")
+    find_links.mkdir()
+    with open(pkg1, "rb") as f:
+        find_links.joinpath(pkg1.name).write_bytes(f.read())
+    with open(pkg3, "rb") as f:
+        find_links.joinpath(pkg3.name).write_bytes(f.read())
+
+    # Install with pkg2 only available with direct URL. The extra-ed direct
+    # URL pkg2 should be able to provide pkg2[ext] required by pkg3.
+    result = script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", str(find_links),
+        pkg2, "pkg3",
+    )
+
+    assert_installed(script, pkg1="1", pkg2="1", pkg3="1")
+    assert not get_created_direct_url(result, "pkg1")
+    assert get_created_direct_url(result, "pkg2")
+    assert not get_created_direct_url(result, "pkg3")

@@ -1,0 +1,4 @@
+New resolver: When a requirement is requested both via a direct URL
+(``req @ URL``) and via version specifier with extras (``req[extra]``), the
+resolver will now be able to use the URL to correctly resolve the requirement
+with extras.
