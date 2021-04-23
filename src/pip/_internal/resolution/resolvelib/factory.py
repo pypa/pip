@@ -341,17 +341,12 @@ class Factory:
         constraint: Constraint,
         prefers_installed: bool,
     ) -> Iterable[Candidate]:
-
-        # Since we cache all the candidates, incompatibility identification
-        # can be made quicker by comparing only the id() values.
-        incompat_ids = {id(c) for c in incompatibilities.get(identifier, ())}
-
         # Collect basic lookup information from the requirements.
         explicit_candidates = set()  # type: Set[Candidate]
         ireqs = []  # type: List[InstallRequirement]
         for req in requirements[identifier]:
             cand, ireq = req.get_candidate_lookup()
-            if cand is not None and id(cand):
+            if cand is not None:
                 explicit_candidates.add(cand)
             if ireq is not None:
                 ireqs.append(ireq)
@@ -384,6 +379,10 @@ class Factory:
                 # If we're constrained to install a wheel incompatible with the
                 # target architecture, no candidates will ever be valid.
                 return ()
+
+        # Since we cache all the candidates, incompatibility identification
+        # can be made quicker by comparing only the id() values.
+        incompat_ids = {id(c) for c in incompatibilities.get(identifier, ())}
 
         # If none of the requirements want an explicit candidate, we can ask
         # the finder for candidates.
