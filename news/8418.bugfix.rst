@@ -1,1 +1,0 @@
-Fix ``pip freeze`` permission denied error in order to display an understandable error message and offer solutions.

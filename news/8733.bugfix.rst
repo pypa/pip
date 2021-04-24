@@ -1,1 +1,0 @@
-Correctly uninstall script files (from setuptools' ``scripts`` argument), when installed with ``--user``.

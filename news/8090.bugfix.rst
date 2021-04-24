@@ -1,3 +1,0 @@
-Only query the keyring for URLs that actually trigger error 401.
-This prevents an unnecessary keyring unlock prompt on every pip install
-invocation (even with default index URL which is not password protected).

@@ -1,3 +1,91 @@
+.. note
+
+    You should *NOT* be adding new change log entries to this file, this
+    file is managed by towncrier. You *may* edit previous change logs to
+    fix problems like typo corrections or such.
+
+    To add a new change log entry, please see
+        https://pip.pypa.io/en/latest/development/contributing/#news-entries
+
+.. towncrier release notes start
+
+21.1 (2021-04-24)
+=================
+
+Process
+-------
+
+- Start installation scheme migration from ``distutils`` to ``sysconfig``. A
+  warning is implemented to detect differences between the two implementations to
+  encourage user reports, so we can avoid breakages before they happen.
+
+Features
+--------
+
+- Add the ability for the new resolver to process URL constraints. (`#8253 <https://github.com/pypa/pip/issues/8253>`_)
+- Add a feature ``--use-feature=in-tree-build`` to build local projects in-place
+  when installing. This is expected to become the default behavior in pip 21.3;
+  see `Installing from local packages <https://pip.pypa.io/en/stable/user_guide/#installing-from-local-packages>`_
+  for more information. (`#9091 <https://github.com/pypa/pip/issues/9091>`_)
+- Bring back the "(from versions: ...)" message, that was shown on resolution failures. (`#9139 <https://github.com/pypa/pip/issues/9139>`_)
+- Add support for editable installs for project with only setup.cfg files. (`#9547 <https://github.com/pypa/pip/issues/9547>`_)
+- Improve performance when picking the best file from indexes during ``pip install``. (`#9748 <https://github.com/pypa/pip/issues/9748>`_)
+- Warn instead of erroring out when doing a PEP 517 build in presence of
+  ``--build-option``. Warn when doing a PEP 517 build in presence of
+  ``--global-option``. (`#9774 <https://github.com/pypa/pip/issues/9774>`_)
+
+Bug Fixes
+---------
+
+- Fixed ``--target`` to work with ``--editable`` installs. (`#4390 <https://github.com/pypa/pip/issues/4390>`_)
+- Add a warning, discouraging the usage of pip as root, outside a virtual environment. (`#6409 <https://github.com/pypa/pip/issues/6409>`_)
+- Ignore ``.dist-info`` directories if the stem is not a valid Python distribution
+  name, so they don't show up in e.g. ``pip freeze``. (`#7269 <https://github.com/pypa/pip/issues/7269>`_)
+- Only query the keyring for URLs that actually trigger error 401.
+  This prevents an unnecessary keyring unlock prompt on every pip install
+  invocation (even with default index URL which is not password protected). (`#8090 <https://github.com/pypa/pip/issues/8090>`_)
+- Prevent packages already-installed alongside with pip to be injected into an
+  isolated build environment during build-time dependency population. (`#8214 <https://github.com/pypa/pip/issues/8214>`_)
+- Fix ``pip freeze`` permission denied error in order to display an understandable error message and offer solutions. (`#8418 <https://github.com/pypa/pip/issues/8418>`_)
+- Correctly uninstall script files (from setuptools' ``scripts`` argument), when installed with ``--user``. (`#8733 <https://github.com/pypa/pip/issues/8733>`_)
+- New resolver: When a requirement is requested both via a direct URL
+  (``req @ URL``) and via version specifier with extras (``req[extra]``), the
+  resolver will now be able to use the URL to correctly resolve the requirement
+  with extras. (`#8785 <https://github.com/pypa/pip/issues/8785>`_)
+- New resolver: Show relevant entries from user-supplied constraint files in the
+  error message to improve debuggability. (`#9300 <https://github.com/pypa/pip/issues/9300>`_)
+- Avoid parsing version to make the version check more robust against lousily
+  debundled downstream distributions. (`#9348 <https://github.com/pypa/pip/issues/9348>`_)
+- ``--user`` is no longer suggested incorrectly when pip fails with a permission
+  error in a virtual environment. (`#9409 <https://github.com/pypa/pip/issues/9409>`_)
+- Fix incorrect reporting on ``Requires-Python`` conflicts. (`#9541 <https://github.com/pypa/pip/issues/9541>`_)
+- Make wheel compatibility tag preferences more important than the build tag (`#9565 <https://github.com/pypa/pip/issues/9565>`_)
+- Fix pip to work with warnings converted to errors. (`#9779 <https://github.com/pypa/pip/issues/9779>`_)
+- **SECURITY**: Stop splitting on unicode separators in git references,
+  which could be maliciously used to install a different revision on the
+  repository. (`#9827 <https://github.com/pypa/pip/issues/9827>`_)
+
+Vendored Libraries
+------------------
+
+- Update urllib3 to 1.26.4 to fix CVE-2021-28363
+- Remove contextlib2.
+- Upgrade idna to 3.1
+- Upgrade pep517 to 0.10.0
+- Upgrade vendored resolvelib to 0.7.0.
+- Upgrade tenacity to 7.0.0
+
+Improved Documentation
+----------------------
+
+- Update "setuptools extras" link to match upstream. (`#4822829F-6A45-4202-87BA-A80482DF6D4E <https://github.com/pypa/pip/issues/4822829F-6A45-4202-87BA-A80482DF6D4E>`_)
+- Improve SSL Certificate Verification docs and ``--cert`` help text. (`#6720 <https://github.com/pypa/pip/issues/6720>`_)
+- Add a section in the documentation to suggest solutions to the ``pip freeze`` permission denied issue. (`#8418 <https://github.com/pypa/pip/issues/8418>`_)
+- Add warning about ``--extra-index-url`` and dependency confusion (`#9647 <https://github.com/pypa/pip/issues/9647>`_)
+- Describe ``--upgrade-strategy`` and direct requirements explicitly; add a brief
+  example. (`#9692 <https://github.com/pypa/pip/issues/9692>`_)
+
+
 21.0.1 (2021-01-30)
 ===================
 
@@ -60,17 +148,6 @@ Improved Documentation
 - Render the unreleased pip version change notes on the news page in docs. (`#9172 <https://github.com/pypa/pip/issues/9172>`_)
 - Fix broken email link in docs feedback banners. (`#9343 <https://github.com/pypa/pip/issues/9343>`_)
 
-
-.. note
-
-    You should *NOT* be adding new change log entries to this file, this
-    file is managed by towncrier. You *may* edit previous change logs to
-    fix problems like typo corrections or such.
-
-    To add a new change log entry, please see
-        https://pip.pypa.io/en/latest/development/contributing/#news-entries
-
-.. towncrier release notes start
 
 20.3.4 (2021-01-23)
 ===================
