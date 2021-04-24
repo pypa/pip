@@ -1,11 +1,15 @@
 import hashlib
-from typing import TYPE_CHECKING, BinaryIO, Dict, Iterator, List, NoReturn
+from typing import TYPE_CHECKING, BinaryIO, Dict, Iterator, List
 
 from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError
 from pip._internal.utils.misc import read_chunks
 
 if TYPE_CHECKING:
     from hashlib import _Hash
+
+    # NoReturn introduced in 3.6.2; imported only for type checking to maintain
+    # pip compatibility with older patch versions of Python 3.6
+    from typing import NoReturn
 
 
 # The recommended hash algo of the moment. Change this whenever the state of
