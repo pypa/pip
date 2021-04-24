@@ -8,7 +8,7 @@ import itertools
 import logging
 import re
 from collections import namedtuple
-from typing import FrozenSet, Iterable, List, Optional, Set, Tuple, Union
+from typing import Callable, FrozenSet, Iterable, List, Optional, Set, Tuple, Union
 
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.tags import Tag
@@ -920,8 +920,8 @@ class PackageFinder:
     def _find_all_candidates_static(
         package_finder_tuple,   # type: PackageFinderTuple
         link_evaluator_tuple,   # type: LinkEvaluatorTuple
-        project_name,           # type: str,
-        candidates_from_page
+        project_name,           # type: str
+        candidates_from_page    # type: Callable[..., List[InstallationCandidate]]
     ):
         # type: (...) -> Tuple[List[InstallationCandidate], Set[Link]]
         """Find all available InstallationCandidate for project_name
@@ -941,14 +941,6 @@ class PackageFinder:
             process_project_url=package_finder_tuple.process_project_url
         )
 
-        link_evaluator = LinkEvaluator(
-            project_name=link_evaluator_tuple.project_name,
-            canonical_name=link_evaluator_tuple.canonical_name,
-            formats=link_evaluator_tuple.formats,
-            target_python=link_evaluator_tuple.target_python,
-            allow_yanked=link_evaluator_tuple.allow_yanked,
-            ignore_requires_python=link_evaluator_tuple.ignore_requires_python
-        )
         collected_sources = package_finder_tuple.link_collector.collect_sources(
             project_name=project_name,
             candidates_from_page=candidates_from_page,
@@ -1054,7 +1046,7 @@ class PackageFinder:
         package_finder_tuple,   # type: PackageFinderTuple
         link_evaluator_tuple,   # type: LinkEvaluatorTuple
         project_name,           # type: str
-        candidates_from_page,
+        candidates_from_page,   # type: Callable[..., List[InstallationCandidate]]
         specifier=None,         # type: Optional[specifiers.BaseSpecifier]
         hashes=None             # type: Optional[Hashes]
     ):
@@ -1095,7 +1087,6 @@ class PackageFinder:
 
         package_finder_tuple = self.get_state_as_tuple(immutable=True)
         link_evaluator_tuple = link_evaluator.get_state_as_tuple()
-
 
         candidates_from_page = functools.partial(
             package_finder_tuple.process_project_url,
