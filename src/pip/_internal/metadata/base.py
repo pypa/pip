@@ -1,17 +1,32 @@
 import logging
 import re
-from typing import Container, Iterator, List, Optional, Union
+from typing import (
+    TYPE_CHECKING,
+    Collection,
+    Container,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Union,
+)
 
+from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.version import LegacyVersion, Version
 
 from pip._internal.utils.misc import stdlib_pkgs  # TODO: Move definition here.
+
+if TYPE_CHECKING:
+    from typing import Protocol
+else:
+    Protocol = object
 
 DistributionVersion = Union[LegacyVersion, Version]
 
 logger = logging.getLogger(__name__)
 
 
-class BaseDistribution:
+class BaseDistribution(Protocol):
     @property
     def location(self) -> Optional[str]:
         """Where the distribution is loaded from.
@@ -49,6 +64,10 @@ class BaseDistribution:
 
     @property
     def in_usersite(self) -> bool:
+        raise NotImplementedError()
+
+    def iter_dependencies(self, extras=()):
+        # type: (Collection[str]) -> Iterable[Requirement]
         raise NotImplementedError()
 
 
