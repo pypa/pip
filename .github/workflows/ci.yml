@@ -33,7 +33,7 @@ jobs:
               - "tools/requirements/tests.txt"
               - "src/**"
               - "tests/**"
-        if: github.event_name != 'schedule'
+        if: github.event_name == 'pull_request'
 
   pre-commit:
     name: pre-commit
@@ -69,7 +69,7 @@ jobs:
     needs: [determine-changes]
     if: >-
       needs.determine-changes.outputs.vendoring == 'true' ||
-      github.event_name == 'schedule'
+      github.event_name != 'pull_request'
 
     steps:
       - uses: actions/checkout@v2
@@ -86,7 +86,7 @@ jobs:
     needs: [pre-commit, packaging, determine-changes]
     if: >-
       needs.determine-changes.outputs.tests == 'true' ||
-      github.event_name == 'schedule'
+      github.event_name != 'pull_request'
 
     strategy:
       fail-fast: true
@@ -126,7 +126,7 @@ jobs:
     needs: [pre-commit, packaging, determine-changes]
     if: >-
       needs.determine-changes.outputs.tests == 'true' ||
-      github.event_name == 'schedule'
+      github.event_name != 'pull_request'
 
     strategy:
       fail-fast: true
