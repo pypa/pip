@@ -1,3 +1,15 @@
+.. note
+
+    You should *NOT* be adding new change log entries to this file, this
+    file is managed by towncrier. You *may* edit previous change logs to
+    fix problems like typo corrections or such.
+
+    To add a new change log entry, please see
+        https://pip.pypa.io/en/latest/development/contributing/#news-entries
+
+.. towncrier release notes start
+
+
 21.0.1 (2021-01-30)
 ===================
 
@@ -60,17 +72,6 @@ Improved Documentation
 - Render the unreleased pip version change notes on the news page in docs. (`#9172 <https://github.com/pypa/pip/issues/9172>`_)
 - Fix broken email link in docs feedback banners. (`#9343 <https://github.com/pypa/pip/issues/9343>`_)
 
-
-.. note
-
-    You should *NOT* be adding new change log entries to this file, this
-    file is managed by towncrier. You *may* edit previous change logs to
-    fix problems like typo corrections or such.
-
-    To add a new change log entry, please see
-        https://pip.pypa.io/en/latest/development/contributing/#news-entries
-
-.. towncrier release notes start
 
 20.3.4 (2021-01-23)
 ===================
