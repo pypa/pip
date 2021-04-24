@@ -1,0 +1,1 @@
+Fix compatibility between distutils and sysconfig when the returned location is a symbolic link.

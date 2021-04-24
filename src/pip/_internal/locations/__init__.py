@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import pathlib
 import sys
@@ -45,6 +46,9 @@ def _default_base(*, user: bool) -> str:
 def _warn_if_mismatch(old: pathlib.Path, new: pathlib.Path, *, key: str) -> bool:
     if old == new:
         return False
+    with contextlib.suppress(OSError):
+        if old.samefile(new):
+            return False
     issue_url = "https://github.com/pypa/pip/issues/9617"
     message = (
         "Value for %s does not match. Please report this to <%s>"
