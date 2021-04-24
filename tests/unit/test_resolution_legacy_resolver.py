@@ -179,7 +179,7 @@ class TestYankedWarning:
     Test _populate_link() emits warning if one or more candidates are yanked.
     """
     def _make_test_resolver(self, monkeypatch, mock_candidates):
-        def _find_candidates(package_finder, link_evaluator, project_name):
+        def _find_candidates(package_finder, link_evaluator, project_name, candidates_from_page):
             return (mock_candidates, [])
 
         finder = make_test_finder()
