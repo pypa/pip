@@ -1,1 +1,0 @@
-Add a section in the documentation to suggest solutions to the ``pip freeze`` permission denied issue.
