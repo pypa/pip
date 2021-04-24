@@ -128,6 +128,7 @@ def get_scheme(
     paths = sysconfig.get_paths(scheme=scheme_name, vars=variables)
 
     # Pip historically uses a special header path in virtual environments.
+    # Logic here is very arbitrary, we're doing it for compatibility, don't ask.
     if running_under_virtualenv():
         if user:
             base = variables.get("userbase", sys.prefix)
@@ -135,6 +136,8 @@ def get_scheme(
             base = variables.get("base", sys.prefix)
         python_xy = f"python{get_major_minor_version()}"
         paths["include"] = os.path.join(base, "include", "site", python_xy)
+    elif not dist_name:
+        dist_name = "UNKNOWN"
 
     scheme = Scheme(
         platlib=paths["platlib"],
