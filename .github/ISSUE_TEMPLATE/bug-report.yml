@@ -1,6 +1,5 @@
 name: Bug report
 description: Something is not working correctly.
-title: ""
 labels: "S: needs triage, type: bug"
 
 body:
