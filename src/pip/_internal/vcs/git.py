@@ -131,9 +131,15 @@ class Git(VersionControl):
             on_returncode='ignore',
         )
         refs = {}
-        for line in output.strip().splitlines():
+        # NOTE: We do not use splitlines here since that would split on other
+        #       unicode separators, which can be maliciously used to install a
+        #       different revision.
+        for line in output.strip().split("\n"):
+            line = line.rstrip("\r")
+            if not line:
+                continue
             try:
-                ref_sha, ref_name = line.split()
+                ref_sha, ref_name = line.split(" ", maxsplit=2)
             except ValueError:
                 # Include the offending line to simplify troubleshooting if
                 # this error ever occurs.
