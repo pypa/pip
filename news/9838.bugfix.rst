@@ -1,0 +1,1 @@
+Fix compatibility between distutils and sysconfig when the project name is unknown outside of a virtual environment.
