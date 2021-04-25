@@ -1,0 +1,1 @@
+This change fixes a bug on Python <=3.6.1 with a Typing feature added in 3.6.2
