@@ -127,8 +127,11 @@ def get_scheme(
 
     paths = sysconfig.get_paths(scheme=scheme_name, vars=variables)
 
-    # Pip historically uses a special header path in virtual environments.
     # Logic here is very arbitrary, we're doing it for compatibility, don't ask.
+    # 1. Pip historically uses a special header path in virtual environments.
+    # 2. If the distribution name is not known, distutils uses 'UNKNOWN'. We
+    #    only do the same when not running in a virtual environment because
+    #    pip's historical header path logic (see point 1) did not do this.
     if running_under_virtualenv():
         if user:
             base = variables.get("userbase", sys.prefix)
