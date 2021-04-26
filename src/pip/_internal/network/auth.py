@@ -210,7 +210,7 @@ class MultiDomainBasicAuth(AuthBase):
             # Send the basic auth with this request
             req = HTTPBasicAuth(username, password)(req)
 
-        # Attach a hook to handle 401 responses
+        # Attach a hook to handle 401, 403 responses
         req.register_hook("response", self.handle_401)
 
         return req
@@ -236,9 +236,9 @@ class MultiDomainBasicAuth(AuthBase):
 
     def handle_401(self, resp, **kwargs):
         # type: (Response, **Any) -> Response
-        # We only care about 401 responses, anything else we want to just
+        # We only care about 401 and 403 responses, anything else we want to just
         #   pass through the actual response
-        if resp.status_code != 401:
+        if resp.status_code not in [401, 403]:
             return resp
 
         # We are not able to prompt the user so simply return the response
