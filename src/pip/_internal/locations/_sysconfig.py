@@ -25,11 +25,17 @@ logger = logging.getLogger(__name__)
 _AVAILABLE_SCHEMES = set(sysconfig.get_scheme_names())
 
 
+def _is_osx_framework() -> bool:
+    return sysconfig.get_config_var("PYTHONFRAMEWORK")
+
+
 def _infer_prefix() -> str:
     """Try to find a prefix scheme for the current platform.
 
     This tries:
 
+    * A special ``osx_framework_library`` for Python distributed by Apple's
+      Command Line Tools, when not running in a virtual environment.
     * Implementation + OS, used by PyPy on Windows (``pypy_nt``).
     * Implementation without OS, used by PyPy on POSIX (``pypy``).
     * OS + "prefix", used by CPython on POSIX (``posix_prefix``).
@@ -37,6 +43,9 @@ def _infer_prefix() -> str:
 
     If none of the above works, fall back to ``posix_prefix``.
     """
+    os_framework_global = _is_osx_framework() and not running_under_virtualenv()
+    if os_framework_global and "osx_framework_library" in _AVAILABLE_SCHEMES:
+        return "osx_framework_library"
     implementation_suffixed = f"{sys.implementation.name}_{os.name}"
     if implementation_suffixed in _AVAILABLE_SCHEMES:
         return implementation_suffixed
@@ -52,7 +61,7 @@ def _infer_prefix() -> str:
 
 def _infer_user() -> str:
     """Try to find a user scheme for the current platform."""
-    if sysconfig.get_config_var("PYTHONFRAMEWORK"):  # Mac framework build.
+    if _is_osx_framework() and not running_under_virtualenv():
         suffixed = "osx_framework_user"
     else:
         suffixed = f"{os.name}_user"
