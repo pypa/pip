@@ -187,9 +187,17 @@ class BuildEnvironment:
         prefix.setup = True
         if not requirements:
             return
-        with _create_standalone_pip() as standalone_pip:
+        with contextlib.ExitStack() as ctx:
+            # TODO: Remove this block when dropping 3.6 support. Python 3.6
+            # lacks importlib.resources and pep517 has issues loading files in
+            # a zip, so we fallback to the "old" method by adding the current
+            # pip directory to the child process's sys.path.
+            if sys.version_info < (3, 7):
+                pip_runnable = os.path.dirname(pip_location)
+            else:
+                pip_runnable = ctx.enter_context(_create_standalone_pip())
             self._install_requirements(
-                standalone_pip,
+                pip_runnable,
                 finder,
                 requirements,
                 prefix,
@@ -198,14 +206,14 @@ class BuildEnvironment:
 
     @staticmethod
     def _install_requirements(
-        standalone_pip: str,
+        pip_runnable: str,
         finder: "PackageFinder",
         requirements: Iterable[str],
         prefix: _Prefix,
         message: str,
     ) -> None:
         args = [
-            sys.executable, standalone_pip, 'install',
+            sys.executable, pip_runnable, 'install',
             '--ignore-installed', '--no-user', '--prefix', prefix.path,
             '--no-warn-script-location',
         ]  # type: List[str]
