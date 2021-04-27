@@ -9,7 +9,7 @@ from pip._internal.exceptions import InvalidSchemeCombination, UserInstallationI
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
-from .base import get_major_minor_version
+from .base import get_major_minor_version, is_osx_framework
 
 logger = logging.getLogger(__name__)
 
@@ -23,10 +23,6 @@ logger = logging.getLogger(__name__)
 # a POSIX scheme.
 
 _AVAILABLE_SCHEMES = set(sysconfig.get_scheme_names())
-
-
-def _is_osx_framework() -> bool:
-    return sysconfig.get_config_var("PYTHONFRAMEWORK")
 
 
 def _infer_prefix() -> str:
@@ -43,7 +39,7 @@ def _infer_prefix() -> str:
 
     If none of the above works, fall back to ``posix_prefix``.
     """
-    os_framework_global = _is_osx_framework() and not running_under_virtualenv()
+    os_framework_global = is_osx_framework() and not running_under_virtualenv()
     if os_framework_global and "osx_framework_library" in _AVAILABLE_SCHEMES:
         return "osx_framework_library"
     implementation_suffixed = f"{sys.implementation.name}_{os.name}"
@@ -61,7 +57,7 @@ def _infer_prefix() -> str:
 
 def _infer_user() -> str:
     """Try to find a user scheme for the current platform."""
-    if _is_osx_framework() and not running_under_virtualenv():
+    if is_osx_framework() and not running_under_virtualenv():
         suffixed = "osx_framework_user"
     else:
         suffixed = f"{os.name}_user"
