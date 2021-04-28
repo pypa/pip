@@ -121,10 +121,7 @@ def get_bin_prefix():
     # type: () -> str
     if WINDOWS:
         bin_py = os.path.join(sys.prefix, "Scripts")
-        # buildout uses 'bin' on Windows too?
-        if not os.path.exists(bin_py):
-            bin_py = os.path.join(sys.prefix, "bin")
-        return bin_py
+
     # Forcing to use /usr/local/bin for standard macOS framework installs
     # Also log to ~/Library/Logs/ for use with the Console.app log viewer
     if sys.platform[:6] == "darwin" and sys.prefix[:16] == "/System/Library/":
