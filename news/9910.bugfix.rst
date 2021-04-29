@@ -1,1 +1,1 @@
-Allow ZIP to archive files with timestamps earlier than 1980.
+Fix for ValueError('ZIP does not support timestamps before 1980') on GitHub package install.
