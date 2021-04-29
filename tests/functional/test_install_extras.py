@@ -143,6 +143,12 @@ def test_install_special_extra(script):
     ) in result.stderr, str(result)
 
 
+def test_install_requirements_no_r_flag(script):
+    '''Beginners sometimes forget the -r and this leads to confusion'''
+    result = script.pip('install', 'requirements.txt', expect_error=True)
+    assert 'literally named "requirements.txt"' in result.stderr
+
+
 @pytest.mark.parametrize(
     "extra_to_install, simple_version", [
         ['', '3.0'],
