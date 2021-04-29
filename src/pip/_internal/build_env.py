@@ -58,10 +58,7 @@ def _create_standalone_pip() -> Iterator[str]:
 
     with TempDirectory(kind="standalone-pip") as tmp_dir:
         pip_zip = os.path.join(tmp_dir.path, "__env_pip__.zip")
-        kwargs = {}
-        if sys.version_info >= (3, 8):
-            kwargs["strict_timestamps"] = False
-        with zipfile.ZipFile(pip_zip, "w", **kwargs) as zf:
+        with zipfile.ZipFile(pip_zip, "w", strict_timestamps=False) as zf:
             for child in source.rglob("*"):
                 zf.write(child, child.relative_to(source.parent).as_posix())
         yield os.path.join(pip_zip, "pip")
