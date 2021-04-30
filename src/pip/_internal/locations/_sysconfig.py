@@ -8,6 +8,7 @@ import typing
 from pip._internal.exceptions import InvalidSchemeCombination, UserInstallationInvalid
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.virtualenv import running_under_virtualenv
+from pip._internal.utils.compat import WINDOWS
 
 from .base import get_major_minor_version
 
@@ -45,8 +46,10 @@ def _infer_prefix():
         return sys.implementation.name
     suffixed = f"{os.name}_prefix"
     if suffixed in _AVAILABLE_SCHEMES:
+        if WINDOWS:
+            pass
         return suffixed
-    if os.name in _AVAILABLE_SCHEMES:  # On Windows, prefx is just called "nt".
+    if os.name in _AVAILABLE_SCHEMES:  # On Windows, prefix is just called "nt".
         return os.name
     return "posix_prefix"
 
@@ -67,6 +70,8 @@ def _infer_home():
     """Try to find a home for the current platform."""
     suffixed = f"{os.name}_home"
     if suffixed in _AVAILABLE_SCHEMES:
+        if WINDOWS:
+            pass
         return suffixed
     return "posix_home"
 
