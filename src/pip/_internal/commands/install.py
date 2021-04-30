@@ -386,9 +386,9 @@ class InstallCommand(RequirementCommand):
                 conflicts = self._determine_conflicts(to_install)
 
             # Don't warn about script install locations if
-            # --target has been specified
+            # --target or --prefix has been specified
             warn_script_location = options.warn_script_location
-            if options.target_dir:
+            if options.target_dir or options.prefix_path:
                 warn_script_location = False
 
             installed = install_given_reqs(
