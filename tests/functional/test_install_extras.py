@@ -146,7 +146,7 @@ def test_install_special_extra(script):
 def test_install_requirements_no_r_flag(script):
     '''Beginners sometimes forget the -r and this leads to confusion'''
     result = script.pip('install', 'requirements.txt', expect_error=True)
-    assert 'literally named "requirements.txt"' in result.stderr
+    assert 'literally named "requirements.txt"' in result.stdout
 
 
 @pytest.mark.parametrize(

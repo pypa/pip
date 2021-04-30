@@ -541,7 +541,7 @@ class Factory:
             ", ".join(versions) or "none",
         )
         if str(req) == "requirements.txt":
-            logger.critical(
+            logger.info(
                 "HINT: You are attempting to install a package literally "
                 'named "requirements.txt" (which cannot exist). Consider '
                 "using the '-r' flag to install the packages listed in "
