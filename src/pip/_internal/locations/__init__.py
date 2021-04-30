@@ -51,7 +51,7 @@ def _warn_if_mismatch(old: pathlib.Path, new: pathlib.Path, *, key: str) -> bool
         "\ndistutils: %s"
         "\nsysconfig: %s"
     )
-    logger.warning(message, key, issue_url, old, new)
+    logger.debug(message, key, issue_url, old, new)
     return True
 
 
@@ -65,7 +65,7 @@ def _log_context(
     message = (
         "Additional context:" "\nuser = %r" "\nhome = %r" "\nroot = %r" "\nprefix = %r"
     )
-    logger.warning(message, user, home, root, prefix)
+    logger.debug(message, user, home, root, prefix)
 
 
 def get_scheme(
