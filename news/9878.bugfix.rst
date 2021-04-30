@@ -1,2 +1,0 @@
-Fix Python 3.6 compatibility when a PEP 517 build requirement itself needs to be
-built in an isolated environment.

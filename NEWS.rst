@@ -9,6 +9,26 @@
 
 .. towncrier release notes start
 
+21.1.1 (2021-04-30)
+===================
+
+Deprecations and Removals
+-------------------------
+
+- Temporarily set the new "Value for ... does not match" location warnings level
+  to *DEBUG*, to hide them from casual users. This prepares pip 21.1 for CPython
+  inclusion, while pip maintainers digest the first intake of location mismatch
+  issues for the ``distutils``-``sysconfig`` trasition. (`#9912 <https://github.com/pypa/pip/issues/9912>`_)
+
+Bug Fixes
+---------
+
+- This change fixes a bug on Python <=3.6.1 with a Typing feature added in 3.6.2 (`#9831 <https://github.com/pypa/pip/issues/9831>`_)
+- Fix compatibility between distutils and sysconfig when the project name is unknown outside of a virtual environment. (`#9838 <https://github.com/pypa/pip/issues/9838>`_)
+- Fix Python 3.6 compatibility when a PEP 517 build requirement itself needs to be
+  built in an isolated environment. (`#9878 <https://github.com/pypa/pip/issues/9878>`_)
+
+
 21.1 (2021-04-24)
 =================
 
