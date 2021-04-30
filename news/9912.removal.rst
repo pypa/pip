@@ -1,0 +1,4 @@
+Temporarily set the new "Value for ... does not match" location warnings level
+to *DEBUG*, to hide them from casual users. This prepares pip 21.1 for CPython
+inclusion, while pip maintainers digest the first intake of location mismatch
+issues for the ``distutils``-``sysconfig`` trasition.
