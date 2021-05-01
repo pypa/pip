@@ -428,18 +428,19 @@ def test_freeze_git_remote(script, tmpdir):
         """
     ).format(remote=path_to_url(origin_remote)).strip()
     _check_output(result.stdout, expected)
-    # When the remote is a local path, it must exist. Otherwise it is assumed to
-    # be an ssh:// remote. This is a side effect and not intentional behaviour.
+    # When the remote is a local path, it must exist.
+    # If it doesn't, it gets flagged as invalid.
     other_remote = pkg_version + '-other'
     script.run('git', 'remote', 'set-url', 'other', other_remote, cwd=repo_dir)
     result = script.pip('freeze', expect_stderr=True)
-    expected = textwrap.dedent(
+    expected = os.path.normcase(textwrap.dedent(
+        f"""
+            ...# Editable Git...(version-pkg...)...
+            # '{other_remote}'
+            -e {repo_dir}...
         """
-            ...-e git+ssh://{remote}@...#egg=version_pkg
-            ...
-        """
-    ).format(remote=other_remote.replace(":", "/")).strip()
-    _check_output(result.stdout, expected)
+    ).strip())
+    _check_output(os.path.normcase(result.stdout), expected)
     # when there are more than one origin, priority is given to the
     # remote named origin
     script.run('git', 'remote', 'add', 'origin', origin_remote, cwd=repo_dir)

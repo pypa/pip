@@ -15,6 +15,7 @@ from pip._internal.utils.subprocess import make_command
 from pip._internal.vcs.versioncontrol import (
     AuthInfo,
     RemoteNotFoundError,
+    RemoteNotValidError,
     RevOptions,
     VersionControl,
     find_path_to_setup_from_repo_root,
@@ -29,6 +30,18 @@ logger = logging.getLogger(__name__)
 
 
 HASH_REGEX = re.compile('^[a-fA-F0-9]{40}$')
+
+# SCP (Secure copy protocol) shorthand. e.g. 'git@example.com:foo/bar.git'
+SCP_REGEX = re.compile(r"""^
+    # Optional user, e.g. 'git@'
+    (\w+@)?
+    # Server, e.g. 'github.com'.
+    ([^/:]+):
+    # The server-side path. e.g. 'user/project.git'. Must start with an
+    # alphanumeric character so as not to be confusable with a Windows paths
+    # like 'C:/foo/bar' or 'C:\foo\bar'.
+    (\w[^:]*)
+$""", re.VERBOSE)
 
 
 def looks_like_hash(sha):
@@ -350,9 +363,12 @@ class Git(VersionControl):
             # A local bare remote (git clone --mirror).
             # Needs a file:// prefix.
             return pathlib.PurePath(url).as_uri()
-        # SCP shorthand. e.g. git@example.com:foo/bar.git
-        # Should add an ssh:// prefix and replace the ':' with a '/'.
-        return "ssh://" + url.replace(":", "/")
+        scp_match = SCP_REGEX.match(url)
+        if scp_match:
+            # Add an ssh:// prefix and replace the ':' with a '/'.
+            return scp_match.expand(r"ssh://\1\2/\3")
+        # Otherwise, bail out.
+        raise RemoteNotValidError(url)
 
     @classmethod
     def has_commit(cls, location, rev):

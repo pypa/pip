@@ -10,7 +10,7 @@ from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import hide_url, hide_value
 from pip._internal.vcs import make_vcs_requirement_url
 from pip._internal.vcs.bazaar import Bazaar
-from pip._internal.vcs.git import Git, looks_like_hash
+from pip._internal.vcs.git import Git, RemoteNotValidError, looks_like_hash
 from pip._internal.vcs.mercurial import Mercurial
 from pip._internal.vcs.subversion import Subversion
 from pip._internal.vcs.versioncontrol import RevOptions, VersionControl
@@ -142,6 +142,24 @@ def test_should_add_vcs_url_prefix(vcs_cls, remote_url, expected):
  ])
 def test_git_remote_url_to_pip(url, target):
     assert Git._git_remote_to_pip_url(url) == target
+
+
+@pytest.mark.parametrize("url, platform", [
+    # Windows paths with the ':' drive prefix look dangerously close to SCP.
+    ("c:/piffle/wiffle/waffle/poffle.git", "nt"),
+    (r"c:\faffle\waffle\woffle\piffle.git", "nt"),
+    # Unix paths less so but test them anyway.
+    ("/muffle/fuffle/pufffle/fluffle.git", "posix"),
+])
+def test_paths_are_not_mistaken_for_scp_shorthand(url, platform):
+    # File paths should not be mistaken for SCP shorthand. If they do then
+    # 'c:/piffle/wiffle' would end up as 'ssh://c/piffle/wiffle'.
+    from pip._internal.vcs.git import SCP_REGEX
+    assert not SCP_REGEX.match(url)
+
+    if platform == os.name:
+        with pytest.raises(RemoteNotValidError):
+            Git._git_remote_to_pip_url(url)
 
 
 def test_git_remote_local_path(tmpdir):
