@@ -18,7 +18,7 @@ Deprecations and Removals
 - Temporarily set the new "Value for ... does not match" location warnings level
   to *DEBUG*, to hide them from casual users. This prepares pip 21.1 for CPython
   inclusion, while pip maintainers digest the first intake of location mismatch
-  issues for the ``distutils``-``sysconfig`` trasition. (`#9912 <https://github.com/pypa/pip/issues/9912>`_)
+  issues for the ``distutils``-``sysconfig`` transition. (`#9912 <https://github.com/pypa/pip/issues/9912>`_)
 
 Bug Fixes
 ---------
