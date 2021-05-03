@@ -17,3 +17,6 @@ about: Suggest an idea for this project
 
 **Additional context**
 <!-- Add any other context, links, etc. about the feature here. -->
+
+## For community
+⬇️  **Please click the 👍 reaction instead of leaving a `+1` or 👍  comment**
