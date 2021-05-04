@@ -509,12 +509,31 @@ class InstallRequirement:
             self.unpacked_source_directory, backend, backend_path=backend_path,
         )
 
+    def _check_setup_py_or_cfg_exists(self) -> bool:
+        """Check if the requirement actually has a setuptools build file.
+
+        If setup.py does not exist, we also check setup.cfg in the same
+        directory and allow the directory if that exists.
+        """
+        if os.path.exists(self.setup_py_path):
+            return True
+        stem, ext = os.path.splitext(self.setup_py_path)
+        if ext == ".py" and os.path.exists(f"{stem}.cfg"):
+            return True
+        return False
+
     def _generate_metadata(self):
         # type: () -> str
         """Invokes metadata generator functions, with the required arguments.
         """
         if not self.use_pep517:
             assert self.unpacked_source_directory
+
+            if not self._check_setup_py_or_cfg_exists():
+                raise InstallationError(
+                    f'File "setup.py" or "setup.cfg" not found for legacy '
+                    f'project {self}.'
+                )
 
             return generate_metadata_legacy(
                 build_env=self.build_env,
