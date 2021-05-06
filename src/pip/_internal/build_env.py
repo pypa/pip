@@ -50,9 +50,9 @@ def _create_standalone_pip() -> Iterator[str]:
     """
     source = pathlib.Path(pip_location).resolve().parent
 
-    # Return the current instance if it is already a zip file. This can happen
-    # if a PEP 517 requirement is an sdist itself.
-    if not source.is_dir() and source.parent.name == "__env_pip__.zip":
+    # Return the current instance if `source` is not a directory. We can't build
+    # a zip from this, and it likely means the instance is already standalone.
+    if not source.is_dir():
         yield str(source)
         return
 
