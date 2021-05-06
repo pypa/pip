@@ -1,5 +1,6 @@
 import sys
 from typing import List, Optional, Sequence
+from pip._vendor import pkg_resources
 
 # Shim to wrap setup.py invocation with setuptools
 #
@@ -7,15 +8,18 @@ from typing import List, Optional, Sequence
 # setuptools / distutils don't take the path to the setup.py to be "-c" when
 # invoking via the shim.  This avoids e.g. the following manifest_maker
 # warning: "warning: manifest_maker: standard file '-c' not found".
+setuptools_dir = pkg_resources.get_distribution("setuptools").module_path
+
 _SETUPTOOLS_SHIM = (
-    "import io, os, sys, setuptools, tokenize; sys.argv[0] = {0!r}; __file__={0!r};"
+    "import sys; sys.path[0:0] = [%r];"
+    "import io, os, setuptools, tokenize; sys.argv[0] = {0!r}; __file__={0!r};"
     "f = getattr(tokenize, 'open', open)(__file__) "
     "if os.path.exists(__file__) "
     "else io.StringIO('from setuptools import setup; setup()');"
     "code = f.read().replace('\\r\\n', '\\n');"
     "f.close();"
     "exec(compile(code, __file__, 'exec'))"
-)
+) % setuptools_dir
 
 
 def make_setuptools_shim_args(

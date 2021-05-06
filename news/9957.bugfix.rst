@@ -1,0 +1,1 @@
+`SETUPTOOLS_SHIM`` should include ``setuptools`` in ``sys.path``
