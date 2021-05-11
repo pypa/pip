@@ -1,0 +1,1 @@
+Feature request github issue template has a section seeking willingness to contribute from the requester.
