@@ -17,3 +17,8 @@ about: Suggest an idea for this project
 
 **Additional context**
 <!-- Add any other context, links, etc. about the feature here. -->
+
+**Are you willing to submit a PR?**
+<!--- We accept contributions! -->
+<!--- You can check out this section to get started: https://pip.pypa.io/en/stable/development/ -->
+  - [ ] Yes, I am interested in submitting a PR for this feature request.
