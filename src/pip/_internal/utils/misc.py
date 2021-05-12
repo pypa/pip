@@ -629,12 +629,13 @@ def redact_netloc(netloc):
 
     For example:
         - "user:pass@example.com" returns "user:****@example.com"
+        - "user:@example.com" returns "****@example.com"
         - "accesstoken@example.com" returns "****@example.com"
     """
     netloc, (user, password) = split_auth_from_netloc(netloc)
     if user is None:
         return netloc
-    if password is None:
+    if not password:
         user = "****"
         password = ""
     else:
