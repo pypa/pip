@@ -29,7 +29,7 @@ class SourceDistribution(AbstractDistribution):
         self.req.load_pyproject_toml()
 
         # Set up the build isolation, if this requirement should be isolated
-        should_isolate = self.req.use_pep517 and build_isolation
+        should_isolate = self.req.use_pep517 and build_isolation and not self.req.editable
         if should_isolate:
             self._setup_isolation(finder)
 
