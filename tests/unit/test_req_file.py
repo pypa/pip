@@ -598,6 +598,8 @@ class TestParseRequirements:
         with open(tmpdir.joinpath('req1.txt'), 'w') as fp:
             fp.write(template.format(*map(make_var, env_vars)))
 
+        # Construct the session outside the monkey-patch, since it access the
+        # env
         session = PipSession()
         with patch('pip._internal.req.req_file.os.getenv') as getenv:
             getenv.side_effect = lambda n: env_vars[n]
@@ -624,6 +626,8 @@ class TestParseRequirements:
         with open(tmpdir.joinpath('req1.txt'), 'w') as fp:
             fp.write(req_url)
 
+        # Construct the session outside the monkey-patch, since it access the
+        # env
         session = PipSession()
         with patch('pip._internal.req.req_file.os.getenv') as getenv:
             getenv.return_value = ''
