@@ -240,18 +240,29 @@ class Factory:
             hashes &= ireq.hashes(trust_internet=False)
             extras |= frozenset(ireq.extras)
 
-        # Get the installed version, if it matches, unless the user
-        # specified `--force-reinstall`, when we want the version from
-        # the index instead.
-        installed_candidate = None
-        if not self._force_reinstall and name in self._installed_dists:
-            installed_dist = self._installed_dists[name]
-            if specifier.contains(installed_dist.version, prereleases=True):
-                installed_candidate = self._make_candidate_from_dist(
-                    dist=installed_dist,
-                    extras=extras,
-                    template=template,
-                )
+        def _get_installed_candidate() -> Optional[Candidate]:
+            """Get the candidate for the currently-installed version."""
+            # If --force-reinstall is set, we want the version from the index
+            # instead, so we "pretend" there is nothing installed.
+            if self._force_reinstall:
+                return None
+            try:
+                installed_dist = self._installed_dists[name]
+            except KeyError:
+                return None
+            # Don't use the installed distribution if its version does not fit
+            # the current dependency graph.
+            if not specifier.contains(installed_dist.version, prereleases=True):
+                return None
+            candidate = self._make_candidate_from_dist(
+                dist=installed_dist,
+                extras=extras,
+                template=template,
+            )
+            # The candidate is a known incompatiblity. Don't use it.
+            if id(candidate) in incompatible_ids:
+                return None
+            return candidate
 
         def iter_index_candidate_infos():
             # type: () -> Iterator[IndexCandidateInfo]
@@ -283,7 +294,7 @@ class Factory:
 
         return FoundCandidates(
             iter_index_candidate_infos,
-            installed_candidate,
+            _get_installed_candidate(),
             prefers_installed,
             incompatible_ids,
         )
