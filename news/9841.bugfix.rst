@@ -1,0 +1,3 @@
+New resolver: Correctly exclude an already installed package if its version is
+known to be incompatible to stop the dependency resolution process with a clear
+error message.
