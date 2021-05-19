@@ -123,7 +123,7 @@ class LazyZipOverHTTP:
 
     def tell(self):
         # type: () -> int
-        """Return the current possition."""
+        """Return the current position."""
         return self._file.tell()
 
     def truncate(self, size=None):

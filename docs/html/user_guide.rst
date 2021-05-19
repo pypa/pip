@@ -833,7 +833,7 @@ those specified on the command-line or via a requirements file) while
 requirements).
 
 As an example, say ``SomePackage`` has a dependency, ``SomeDependency``, and
-both of them are already installed but are not the latest avaialable versions:
+both of them are already installed but are not the latest available versions:
 
 - ``pip install SomePackage``: will not upgrade the existing ``SomePackage`` or
   ``SomeDependency``.
