@@ -200,6 +200,15 @@ Upgrading pip
 
       py -m pip install -U pip
 
+.. note::
+   If you're on Windows & in case ``pip`` fails to upgrade with the ``py -m pip install --upgrade pip``
+   command. Try running the following lines of commands:
+
+   .. code-block :: shell
+
+      py -m pip uninstall pip
+      py -m ensurepip
+      py -m pip install -U pip
 
 .. _compatibility-requirements:
 
