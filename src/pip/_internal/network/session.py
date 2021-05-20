@@ -169,7 +169,7 @@ def user_agent():
         # If for any reason `rustc --version` fails, silently ignore it
         try:
             rustc_output = subprocess.check_output(
-                ["rustc", "--version"], stderr=subprocess.STDOUT
+                ["rustc", "--version"], stderr=subprocess.STDOUT, timeout=.5
             )
         except Exception:
             pass
