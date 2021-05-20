@@ -9,7 +9,7 @@ VIRTUAL_ENV = os.environ['VIRTUAL_ENV']
 TOX_PIP_DIR = os.path.join(VIRTUAL_ENV, 'pip')
 
 
-def pip(args):
+def pip(args: List[str]) -> None:
     # type: (List[str]) -> None
     # First things first, get a recent (stable) version of pip.
     if not os.path.exists(TOX_PIP_DIR):
