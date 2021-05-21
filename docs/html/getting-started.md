@@ -4,7 +4,7 @@ To get started with using pip, you should [install Python] on your system.
 
 [install Python]: https://realpython.com/installing-python/
 
-## Checking if you have a working pip
+## Ensure you have a working pip
 
 As a first step, you should check that you have a working Python with pip
 installed. This can be done by running the following commands and making
