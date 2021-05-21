@@ -1,6 +1,6 @@
 # Installation
 
-pip is already installed if you are:
+Usually, pip is automatically installed if you are:
 
 - working in a
   {ref}`virtual environment <pypug:Creating and using Virtual Environments>`
@@ -13,45 +13,28 @@ pip is already installed if you are:
 If your Python environment does not have pip installed, there are 2 mechanisms
 to install pip supported directly by pip's maintainers:
 
-- [Using ensurepip](#using-ensurepip)
-- [Using get-pip.py](#using-get-pip-py)
+- [`ensurepip`](#using-ensurepip)
+- [`get-pip.py`](#using-get-pip-py)
 
-### Using {mod}`ensurepip`
+### `ensurepip`
 
 Python comes with an {mod}`ensurepip` module, which can install pip in a
 Python environment.
-
-To install pip using `ensurepip`, run:
 
 ```{pip-cli}
 $ python -m ensurepip --upgrade
 ```
 
-```{note}
-It is strongly recommended to upgrade to the current version of pip using
-`--upgrade` when calling ensurepip. It is possible to skip this flag, which
-also means that the process would not access the internet.
-```
-
 More details about how {mod}`ensurepip` works and how it can be used, is
 available in the standard library documentation.
 
-### Using get-pip.py
+### `get-pip.py`
 
-`get-pip.py` is a Python script for installing pip in an environment. It uses
-a bundled copy of pip to install pip.
+This is a Python script that uses some bootstrapping logic to install
+pip.
 
-To use `get-pip.py`, you'll want to:
-
-- Download the `get-pip.py` script, from <https://bootstrap.pypa.io/get-pip.py>.
-
-  On most Linux/MacOS machines, this can be done using the command:
-
-  ```
-  $ curl -sSL https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-  ```
-
-- Open the terminal/command prompt on your OS, in the folder containing the
+- Download the script, from <https://bootstrap.pypa.io/get-pip.py>.
+- Open a terminal/command prompt, `cd` to the folder containing the
   `get-pip.py` file and run:
 
   ```{pip-cli}
@@ -73,9 +56,9 @@ pip to change its behaviour. This has been a frequent source of user confusion,
 since it causes a mismatch between documented behaviour in this documentation
 and how pip works after those modifications.
 
-If you face issues when using Python installed using these mechanisms, it is
-recommended to request for support from the relevant provider (eg: linux distro
-community, cloud provider's support channels, etc).
+If you face issues when using Python and pip installed using these mechanisms,
+it is recommended to request for support from the relevant provider (eg: Linux
+distro community, cloud provider support channels, etc).
 
 ## Compatibility
 
@@ -90,6 +73,6 @@ supported on a best effort approach.
 
 pip's maintainers do not provide support for users on older versions of Python,
 and these users should request for support from the relevant provider
-(eg: linux distro community, cloud provider's support channels, etc).
+(eg: Linux distro community, cloud provider support channels, etc).
 
 [^python]: The `ensurepip` module was added to the Python standard library in Python 3.4.
