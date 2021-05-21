@@ -10,7 +10,7 @@ install packages from the [Python Package Index][pypi] and other indexes.
 ```{toctree}
 :hidden:
 
-quickstart
+getting-started
 installing
 user_guide
 cli/index
@@ -29,7 +29,7 @@ GitHub <https://github.com/pypa/pip>
 
 If you want to learn about how to use pip, check out the following resources:
 
-- [Quickstart](quickstart)
+- [Getting Started](getting-started)
 - [Python Packaging User Guide](https://packaging.python.org)
 
 If you find bugs, need help, or want to talk to the developers, use our mailing
