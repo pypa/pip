@@ -1,0 +1,1 @@
+This change provides a note to users to fix/upgrade ``pip`` on Windows 10.
