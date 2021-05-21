@@ -11,7 +11,7 @@ install packages from the [Python Package Index][pypi] and other indexes.
 :hidden:
 
 getting-started
-installing
+installation
 user_guide
 cli/index
 ```
