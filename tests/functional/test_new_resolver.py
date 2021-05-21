@@ -1827,3 +1827,33 @@ def test_new_resolver_direct_url_with_extras(tmp_path, script):
     assert not get_created_direct_url(result, "pkg1")
     assert get_created_direct_url(result, "pkg2")
     assert not get_created_direct_url(result, "pkg3")
+
+
+def test_new_resolver_modifies_installed_incompatible(script):
+    create_basic_wheel_for_package(script, name="a", version="1")
+    create_basic_wheel_for_package(script, name="a", version="2")
+    create_basic_wheel_for_package(script, name="a", version="3")
+    create_basic_wheel_for_package(script, name="b", version="1", depends=["a==1"])
+    create_basic_wheel_for_package(script, name="b", version="2", depends=["a==2"])
+    create_basic_wheel_for_package(script, name="c", version="1", depends=["a!=1"])
+    create_basic_wheel_for_package(script, name="c", version="2", depends=["a!=1"])
+    create_basic_wheel_for_package(script, name="d", version="1", depends=["b", "c"])
+
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "b==1",
+    )
+
+    # d-1 depends on b and c. b-1 is already installed and therefore first
+    # pinned, but later found to be incompatible since the "a==1" dependency
+    # makes all c versions impossible to satisfy. The resolver should be able to
+    # discard b-1 and backtrack, so b-2 is selected instead.
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "d==1",
+    )
+    assert_installed(script, d="1", c="2", b="2", a="2")
