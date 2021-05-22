@@ -18,8 +18,8 @@ to install pip supported directly by pip's maintainers:
 
 ### `ensurepip`
 
-Python comes with an {mod}`ensurepip` module, which can install pip in a
-Python environment.
+Python comes with an {mod}`ensurepip` module[^python], which can install pip in
+a Python environment.
 
 ```{pip-cli}
 $ python -m ensurepip --upgrade
