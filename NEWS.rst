@@ -9,6 +9,21 @@
 
 .. towncrier release notes start
 
+21.1.2 (2021-05-23)
+===================
+
+Bug Fixes
+---------
+
+- New resolver: Correctly exclude an already installed package if its version is
+  known to be incompatible to stop the dependency resolution process with a clear
+  error message. (`#9841 <https://github.com/pypa/pip/issues/9841>`_)
+- Allow ZIP to archive files with timestamps earlier than 1980. (`#9910 <https://github.com/pypa/pip/issues/9910>`_)
+- Emit clearer error message when a project root does not contain either
+  ``pyproject.toml``, ``setup.py`` or ``setup.cfg``. (`#9944 <https://github.com/pypa/pip/issues/9944>`_)
+- Fix detection of existing standalone pip instance for PEP 517 builds. (`#9953 <https://github.com/pypa/pip/issues/9953>`_)
+
+
 21.1.1 (2021-04-30)
 ===================
 
