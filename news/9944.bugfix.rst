@@ -1,2 +1,0 @@
-Emit clearer error message when a project root does not contain either
-``pyproject.toml``, ``setup.py`` or ``setup.cfg``.
