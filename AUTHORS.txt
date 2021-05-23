@@ -61,6 +61,7 @@ AraHaan
 Arindam Choudhury
 Armin Ronacher
 Artem
+Arun Babu Neelicattu
 Ashley Manton
 Ashwin Ramaswami
 atse
@@ -182,6 +183,7 @@ Desetude
 Devesh Kumar Singh
 Diego Caraballo
 DiegoCaraballo
+Dimitri Merejkowsky
 Dmitry Gladkov
 Domen Kožar
 Dominic Davis-Foster
@@ -408,6 +410,7 @@ Nathaniel J. Smith
 Nehal J Wani
 Neil Botelho
 Nguyễn Gia Phong
+Nicholas Serra
 Nick Coghlan
 Nick Stenning
 Nick Timkovich

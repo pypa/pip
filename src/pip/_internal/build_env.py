@@ -50,15 +50,18 @@ def _create_standalone_pip() -> Iterator[str]:
     """
     source = pathlib.Path(pip_location).resolve().parent
 
-    # Return the current instance if it is already a zip file. This can happen
-    # if a PEP 517 requirement is an sdist itself.
-    if not source.is_dir() and source.parent.name == "__env_pip__.zip":
+    # Return the current instance if `source` is not a directory. We can't build
+    # a zip from this, and it likely means the instance is already standalone.
+    if not source.is_dir():
         yield str(source)
         return
 
     with TempDirectory(kind="standalone-pip") as tmp_dir:
         pip_zip = os.path.join(tmp_dir.path, "__env_pip__.zip")
-        with zipfile.ZipFile(pip_zip, "w") as zf:
+        kwargs = {}
+        if sys.version_info >= (3, 8):
+            kwargs["strict_timestamps"] = False
+        with zipfile.ZipFile(pip_zip, "w", **kwargs) as zf:
             for child in source.rglob("*"):
                 zf.write(child, child.relative_to(source.parent).as_posix())
         yield os.path.join(pip_zip, "pip")
