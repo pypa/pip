@@ -1,1 +1,0 @@
-Fix detection of existing standalone pip instance for PEP 517 builds.
