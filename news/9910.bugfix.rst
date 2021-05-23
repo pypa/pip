@@ -1,1 +1,0 @@
-Allow ZIP to archive files with timestamps earlier than 1980.
