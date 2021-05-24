@@ -10,7 +10,6 @@ TOX_PIP_DIR = os.path.join(VIRTUAL_ENV, 'pip')
 
 
 def pip(args: List[str]) -> None:
-    # type: (List[str]) -> None
     # First things first, get a recent (stable) version of pip.
     if not os.path.exists(TOX_PIP_DIR):
         subprocess.check_call([sys.executable, '-m', 'pip',
