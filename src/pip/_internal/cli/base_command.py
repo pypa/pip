@@ -85,7 +85,7 @@ class Command(CommandContextMixIn):
         # are present.
         assert not hasattr(options, "no_index")
 
-    def run(self, options: Values, args: List(Any)) -> int:
+    def run(self, options: Values, args: List[Any]) -> int:
         raise NotImplementedError
 
     def parse_args(self, args: List[str]) -> Tuple[Any, Any]:
