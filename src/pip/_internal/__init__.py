@@ -3,8 +3,7 @@ from typing import List, Optional
 import pip._internal.utils.inject_securetransport  # noqa
 
 
-def main(args=None):
-    # type: (Optional[List[str]]) -> int
+def main(args: (Optional[List[str]]) = None) -> int:
     """This is preserved for old console scripts that may still be referencing
     it.
 
