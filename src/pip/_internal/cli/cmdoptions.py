@@ -31,7 +31,10 @@ from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.misc import strtobool
 
 
-def raise_option_error(parser: OptionParser, option: Option, msg: str):
+def raise_option_error(
+    parser: OptionParser, 
+    option: Option, 
+    msg: str):
     """
     Raise an option parsing error using parser.error().
 
@@ -45,7 +48,10 @@ def raise_option_error(parser: OptionParser, option: Option, msg: str):
     parser.error(msg)
 
 
-def make_option_group(group: Dict[str, Any], parser: ConfigOptionParser) -> OptionGroup:
+def make_option_group(
+    group: Dict[str, Any], 
+    parser: ConfigOptionParser
+) -> OptionGroup:
     """
     Return an OptionGroup object
     group  -- assumed to be dict with 'name' and 'options' keys
@@ -57,7 +63,9 @@ def make_option_group(group: Dict[str, Any], parser: ConfigOptionParser) -> Opti
     return option_group
 
 
-def check_install_build_global(options: Values, check_options: Optional[Values] = None):
+def check_install_build_global(
+    options: Values, 
+    check_options: Optional[Values] = None):
     """Disable wheels if per-setup.py call options are set.
 
     :param options: The OptionParser options to update.
@@ -427,7 +435,11 @@ def editable() -> Option:
     )
 
 
-def _handle_src(option: Option, opt_str: str, value: str, parser: OptionParser):
+def _handle_src(
+    option: Option, 
+    opt_str: str, 
+    value: str, 
+    parser: OptionParser):
     value = os.path.abspath(value)
     setattr(parser.values, option.dest, value)
 
@@ -455,7 +467,11 @@ def _get_format_control(values: Values, option: Option) -> Any:
     return getattr(values, option.dest)
 
 
-def _handle_no_binary(option: Option, opt_str: str, value: str, parser: OptionParser):
+def _handle_no_binary(
+    option: Option, 
+    opt_str: str, 
+    value: str, 
+    parser: OptionParser):
     existing = _get_format_control(parser.values, option)
     FormatControl.handle_mutual_excludes(
         value,
@@ -464,7 +480,11 @@ def _handle_no_binary(option: Option, opt_str: str, value: str, parser: OptionPa
     )
 
 
-def _handle_only_binary(option: Option, opt_str: str, value: str, parser: OptionParser):
+def _handle_only_binary(
+    option: Option, 
+    opt_str: str, 
+    value: str, 
+    parser: OptionParser):
     existing = _get_format_control(parser.values, option)
     FormatControl.handle_mutual_excludes(
         value,
@@ -554,7 +574,12 @@ def _convert_python_version(value: str) -> Tuple[Tuple[int, ...], Optional[str]]
     return (version_info, None)
 
 
-def _handle_python_version(option: Option, opt_str: str, value: str, parser: OptionParser):
+def _handle_python_version(
+    option: Option, 
+    opt_str: str, 
+    value: str, 
+    parser: OptionParser
+):
     """
     Handle a provided --python-version value.
     """
@@ -663,7 +688,12 @@ cache_dir = partial(
 )  # type: Callable[..., Option]
 
 
-def _handle_no_cache_dir(option: Option, opt: str, value: str, parser: OptionParser):
+def _handle_no_cache_dir(
+    option: Option, 
+    opt: str, 
+    value: str, 
+    parser: OptionParser
+):
     """
     Process a value provided for the --no-cache-dir option.
 
@@ -741,7 +771,12 @@ no_build_isolation = partial(
 )  # type: Callable[..., Option]
 
 
-def _handle_no_use_pep517(option: Option, opt: str, value: str, parser: OptionParser):
+def _handle_no_use_pep517(
+    option: Option, 
+    opt: str, 
+    value: str, 
+    parser: OptionParser
+):
     """
     Process a value provided for the --no-use-pep517 option.
 
@@ -844,7 +879,12 @@ disable_pip_version_check = partial(
 )  # type: Callable[..., Option]
 
 
-def _handle_merge_hash(option: Option, opt_str: str, value: str, parser: OptionParser):
+def _handle_merge_hash(
+    option: Option, 
+    opt_str: str, 
+    value: str, 
+    parser: OptionParser
+):
     """Given a value spelled "algo:digest", append the digest to a list
     pointed to in a dict by the algo name."""
     if not parser.values.hashes:
