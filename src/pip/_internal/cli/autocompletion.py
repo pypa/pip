@@ -106,9 +106,11 @@ def autocomplete():
     sys.exit(1)
 
 
-def get_path_completion_type(cwords: List[str], 
-                             cword: int, 
-                             opts: Iterable[Any]) -> Optional[str]:
+def get_path_completion_type(
+    cwords: List[str], 
+    cword: int, 
+    opts: Iterable[Any]
+) -> Optional[str]:
     """Get the type of path completion (``file``, ``dir``, ``path`` or None)
 
     :param cwords: same as the environmental variable ``COMP_WORDS``
@@ -130,8 +132,7 @@ def get_path_completion_type(cwords: List[str],
     return None
 
 
-def auto_complete_paths(current: str, 
-                        completion_type: str) -> Iterable[str]:
+def auto_complete_paths(current: str, completion_type: str) -> Iterable[str]:
     """If ``completion_type`` is ``file`` or ``path``, list all regular files
     and directories starting with ``current``; otherwise only list directories
     starting with ``current``.
