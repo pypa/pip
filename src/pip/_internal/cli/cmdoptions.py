@@ -554,7 +554,8 @@ def _convert_python_version(value: str) -> Tuple[Tuple[int, ...], Optional[str]]
     return (version_info, None)
 
 
-def _handle_python_version(option: Option, opt_str: str, value: str, parser: OptionParser
+def _handle_python_version(
+    option: Option, opt_str: str, value: str, parser: OptionParser
 ):
     """
     Handle a provided --python-version value.
