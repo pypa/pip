@@ -43,7 +43,7 @@ class Command(CommandContextMixIn):
     usage = None  # type: str
     ignore_require_venv = False  # type: bool
 
-    def __init__(self, name: str, summary: str, isolated: bool = False) -> None:
+    def __init__(self, name: str, summary: str, isolated: bool = False):
         super().__init__()
 
         self.name = name
@@ -76,7 +76,7 @@ class Command(CommandContextMixIn):
     def add_options(self):
         pass
 
-    def handle_pip_version_check(self, options: Values) -> None:
+    def handle_pip_version_check(self, options: Values):
         """
         This is a no-op so that commands by default do not do the pip version
         check.
