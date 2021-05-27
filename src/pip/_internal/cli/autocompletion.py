@@ -107,9 +107,7 @@ def autocomplete():
 
 
 def get_path_completion_type(
-    cwords: List[str], 
-    cword: int, 
-    opts: Iterable[Any]
+    cwords: List[str], cword: int, opts: Iterable[Any]
 ) -> Optional[str]:
     """Get the type of path completion (``file``, ``dir``, ``path`` or None)
 
