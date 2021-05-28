@@ -9,8 +9,6 @@ import traceback
 from optparse import Values
 from typing import Any, List, Optional, Tuple
 
-from pip._vendor.six import PY2
-
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.command_context import CommandContextMixIn
 from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
@@ -165,13 +163,6 @@ class Command(CommandContextMixIn):
             )
 
         if "2020-resolver" in options.features_enabled:
-            logger.warning(
-                "--use-feature=2020-resolver no longer has any effect, "
-                "since it is now the default dependency resolver in pip. "
-                "This will become an error in pip 21.0."
-            )
-
-        if '2020-resolver' in options.features_enabled and not PY2:
             logger.warning(
                 "--use-feature=2020-resolver no longer has any effect, "
                 "since it is now the default dependency resolver in pip. "
