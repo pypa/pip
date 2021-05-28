@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
     """A prettier/less verbose help formatter for optparse."""
 
-    def __init__(self, *args: *Any, **kwargs: **Any) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         # help position must be aligned with __init__.parseopts.description
         kwargs["max_help_position"] = 30
         kwargs["indent_increment"] = 1
@@ -130,8 +130,7 @@ class UpdatingDefaultsHelpFormatter(PrettyHelpFormatter):
 
 
 class CustomOptionParser(optparse.OptionParser):
-    def insert_option_group(self, idx: int, *args: *Any, **kwargs: **Any) -> optparse.OptionGroup:
-        # type: (int, Any, Any) -> optparse.OptionGroup
+    def insert_option_group(self, idx: int, *args: Any, **kwargs: Any) -> optparse.OptionGroup:
         """Insert an OptionGroup at a given position."""
         group = self.add_option_group(*args, **kwargs)
 
