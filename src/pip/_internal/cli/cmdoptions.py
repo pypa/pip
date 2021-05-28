@@ -31,7 +31,7 @@ from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.misc import strtobool
 
 
-def raise_option_error(parser: OptionParser, option: Option, msg: str):
+def raise_option_error(parser: OptionParser, option: Option, msg: str) -> None:
     """
     Raise an option parsing error using parser.error().
 
@@ -57,7 +57,7 @@ def make_option_group(group: Dict[str, Any], parser: ConfigOptionParser) -> Opti
     return option_group
 
 
-def check_install_build_global(options: Values, check_options: Optional[Values] = None):
+def check_install_build_global(options: Values, check_options: Optional[Values] = None) -> None:
     """Disable wheels if per-setup.py call options are set.
 
     :param options: The OptionParser options to update.
@@ -81,7 +81,7 @@ def check_install_build_global(options: Values, check_options: Optional[Values] 
         )
 
 
-def check_dist_restriction(options: Values, check_target: bool = False):
+def check_dist_restriction(options: Values, check_target: bool = False) -> None:
     """Function for determining if custom platform options are allowed.
 
     :param options: The OptionParser options.
@@ -427,7 +427,7 @@ def editable() -> Option:
     )
 
 
-def _handle_src(option: Option, opt_str: str, value: str, parser: OptionParser):
+def _handle_src(option: Option, opt_str: str, value: str, parser: OptionParser) -> None:
     value = os.path.abspath(value)
     setattr(parser.values, option.dest, value)
 
@@ -455,7 +455,7 @@ def _get_format_control(values: Values, option: Option) -> Any:
     return getattr(values, option.dest)
 
 
-def _handle_no_binary(option: Option, opt_str: str, value: str, parser: OptionParser):
+def _handle_no_binary(option: Option, opt_str: str, value: str, parser: OptionParser) -> None:
     existing = _get_format_control(parser.values, option)
     FormatControl.handle_mutual_excludes(
         value,
@@ -464,7 +464,7 @@ def _handle_no_binary(option: Option, opt_str: str, value: str, parser: OptionPa
     )
 
 
-def _handle_only_binary(option: Option, opt_str: str, value: str, parser: OptionParser):
+def _handle_only_binary(option: Option, opt_str: str, value: str, parser: OptionParser) -> None:
     existing = _get_format_control(parser.values, option)
     FormatControl.handle_mutual_excludes(
         value,
@@ -556,7 +556,7 @@ def _convert_python_version(value: str) -> Tuple[Tuple[int, ...], Optional[str]]
 
 def _handle_python_version(
     option: Option, opt_str: str, value: str, parser: OptionParser
-):
+) -> None:
     """
     Handle a provided --python-version value.
     """
@@ -626,7 +626,7 @@ abis = partial(
 )  # type: Callable[..., Option]
 
 
-def add_target_python_options(cmd_opts: OptionGroup):
+def add_target_python_options(cmd_opts: OptionGroup) -> None:
     cmd_opts.add_option(platforms())
     cmd_opts.add_option(python_version())
     cmd_opts.add_option(implementation())
@@ -665,7 +665,9 @@ cache_dir = partial(
 )  # type: Callable[..., Option]
 
 
-def _handle_no_cache_dir(option: Option, opt: str, value: str, parser: OptionParser):
+def _handle_no_cache_dir(
+    option: Option, opt: str, value: str, parser: OptionParser
+) -> None:
     """
     Process a value provided for the --no-cache-dir option.
 
@@ -743,7 +745,9 @@ no_build_isolation = partial(
 )  # type: Callable[..., Option]
 
 
-def _handle_no_use_pep517(option: Option, opt: str, value: str, parser: OptionParser):
+def _handle_no_use_pep517(
+    option: Option, opt: str, value: str, parser: OptionParser
+) -> None:
     """
     Process a value provided for the --no-use-pep517 option.
 
@@ -846,7 +850,9 @@ disable_pip_version_check = partial(
 )  # type: Callable[..., Option]
 
 
-def _handle_merge_hash(option: Option, opt_str: str, value: str, parser: OptionParser):
+def _handle_merge_hash(
+    option: Option, opt_str: str, value: str, parser: OptionParser
+) -> None:
     """Given a value spelled "algo:digest", append the digest to a list
     pointed to in a dict by the algo name."""
     if not parser.values.hashes:
@@ -905,7 +911,7 @@ list_path = partial(
 )  # type: Callable[..., Option]
 
 
-def check_list_path_option(options: Values):
+def check_list_path_option(options: Values) -> None:
     if options.path and (options.user or options.local):
         raise CommandError("Cannot combine '--path' with '--user' or '--local'")
 
