@@ -13,6 +13,7 @@ install packages from the [Python Package Index][pypi] and other indexes.
 getting-started
 installation
 user_guide
+topics/index
 cli/index
 ```
 
