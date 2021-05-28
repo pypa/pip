@@ -73,10 +73,10 @@ class Command(CommandContextMixIn):
 
         self.add_options()
 
-    def add_options(self):
+    def add_options(self) -> None:
         pass
 
-    def handle_pip_version_check(self, options: Values):
+    def handle_pip_version_check(self, options: Values) -> None:
         """
         This is a no-op so that commands by default do not do the pip version
         check.
