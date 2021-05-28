@@ -354,14 +354,18 @@ def parse_req_from_line(name, line_source):
                 msg += f'\nHint: {add_msg}'
             raise InstallationError(msg)
         else:
-            # Deprecate extras after specifiers: "name>=1.0[extras]"
-            # This currently works by accident because _strip_extras() parses
-            # any extras in the end of the string and those are saved in
-            # RequirementParts
             for spec in req.specifier:
                 spec_str = str(spec)
+                # Deprecate extras after specifiers: "name>=1.0[extras]"
+                # This currently works by accident because _strip_extras() parses
+                # any extras in the end of the string and those are saved in
+                # RequirementParts
                 if spec_str.endswith(']'):
                     msg = f"Extras after version '{spec_str}'."
+                    raise InstallationError(msg)
+                if spec_str == "!=*":
+                    msg = ("Bad specifier \"!=*\", "
+                           "can not use \"!=\" with \"*\" generic wildcard.")
                     raise InstallationError(msg)
         return req
 
