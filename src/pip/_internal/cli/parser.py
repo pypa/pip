@@ -155,10 +155,10 @@ class ConfigOptionParser(CustomOptionParser):
 
     def __init__(
         self,
-        *args: *Any,
+        *args: Any,
         name: str,
         isolated: bool = False,
-        **kwargs: **Any,
+        **kwargs: Any,
     ) -> None:
         self.name = name
         self.config = Configuration(isolated)
