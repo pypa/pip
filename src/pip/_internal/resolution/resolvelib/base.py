@@ -67,29 +67,11 @@ class Constraint:
         # prerelease candidates if the user does not expect them.
         return self.specifier.contains(candidate.version, prereleases=True)
 
-    def is_satisfied_by(self, candidate):
-        # type: (Candidate) -> bool
-        # We can safely always allow prereleases here since PackageFinder
-        # already implements the prerelease logic, and would have filtered out
-        # prerelease candidates if the user does not expect them.
-        return self.specifier.contains(candidate.version, prereleases=True)
-
 
 class Requirement:
     @property
     def project_name(self):
         # type: () -> NormalizedName
-        """The "project name" of a requirement.
-
-        This is different from ``name`` if this requirement contains extras,
-        in which case ``name`` would contain the ``[...]`` part, while this
-        refers to the name of the project.
-        """
-        raise NotImplementedError("Subclass should override")
-
-    @property
-    def project_name(self):
-        # type: () -> str
         """The "project name" of a requirement.
 
         This is different from ``name`` if this requirement contains extras,
@@ -132,17 +114,6 @@ class Candidate:
     @property
     def project_name(self):
         # type: () -> NormalizedName
-        """The "project name" of the candidate.
-
-        This is different from ``name`` if this candidate contains extras,
-        in which case ``name`` would contain the ``[...]`` part, while this
-        refers to the name of the project.
-        """
-        raise NotImplementedError("Override in subclass")
-
-    @property
-    def project_name(self):
-        # type: () -> str
         """The "project name" of the candidate.
 
         This is different from ``name`` if this candidate contains extras,
