@@ -43,7 +43,7 @@ class Command(CommandContextMixIn):
     usage = None  # type: str
     ignore_require_venv = False  # type: bool
 
-    def __init__(self, name: str, summary: str, isolated: bool = False):
+    def __init__(self, name: str, summary: str, isolated: bool = False) -> None:
         super().__init__()
 
         self.name = name
