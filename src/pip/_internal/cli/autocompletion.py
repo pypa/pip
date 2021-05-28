@@ -12,7 +12,7 @@ from pip._internal.commands import commands_dict, create_command
 from pip._internal.utils.misc import get_installed_distributions
 
 
-def autocomplete():
+def autocomplete() -> None:
     """Entry Point for completion of main and subcommand options."""
     # Don't complete if user hasn't sourced bash_completion file.
     if "PIP_AUTO_COMPLETE" not in os.environ:
