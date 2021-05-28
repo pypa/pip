@@ -57,7 +57,9 @@ def make_option_group(group: Dict[str, Any], parser: ConfigOptionParser) -> Opti
     return option_group
 
 
-def check_install_build_global(options: Values, check_options: Optional[Values] = None) -> None:
+def check_install_build_global(
+    options: Values, check_options: Optional[Values] = None
+) -> None:
     """Disable wheels if per-setup.py call options are set.
 
     :param options: The OptionParser options to update.
@@ -455,7 +457,9 @@ def _get_format_control(values: Values, option: Option) -> Any:
     return getattr(values, option.dest)
 
 
-def _handle_no_binary(option: Option, opt_str: str, value: str, parser: OptionParser) -> None:
+def _handle_no_binary(
+    option: Option, opt_str: str, value: str, parser: OptionParser
+) -> None:
     existing = _get_format_control(parser.values, option)
     FormatControl.handle_mutual_excludes(
         value,
@@ -464,7 +468,9 @@ def _handle_no_binary(option: Option, opt_str: str, value: str, parser: OptionPa
     )
 
 
-def _handle_only_binary(option: Option, opt_str: str, value: str, parser: OptionParser) -> None:
+def _handle_only_binary(
+    option: Option, opt_str: str, value: str, parser: OptionParser
+) -> None:
     existing = _get_format_control(parser.values, option)
     FormatControl.handle_mutual_excludes(
         value,
