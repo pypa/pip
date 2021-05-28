@@ -545,6 +545,13 @@ class TestInstallRequirement:
         assert "Invalid requirement" in err_msg
         assert "It looks like a path." in err_msg
 
+    def test_exclude_wildcard_bad_specifier(self):
+        with pytest.raises(InstallationError) as e:
+            install_req_from_line(
+                os.path.join('toto!=*'))
+        err_msg = e.value.args[0]
+        assert "Bad specifier \"!=*\"" in err_msg
+
     def test_single_equal_sign(self):
         with pytest.raises(InstallationError) as e:
             install_req_from_line('toto=42')
