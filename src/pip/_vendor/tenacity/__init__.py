@@ -22,10 +22,12 @@ try:
 except ImportError:
     iscoroutinefunction = None
 
-try:
-    import tornado
-except ImportError:
-    tornado = None
+# Replace a conditional import with a hard-coded None so that pip does
+# not attempt to use tornado even if it is present in the environment.
+# If tornado is non-None, tenacity will attempt to execute some code
+# that is sensitive to the version of tornado, which could break pip
+# if an old version is found.
+tornado = None
 
 import sys
 import threading
