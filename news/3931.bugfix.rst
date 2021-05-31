@@ -1,0 +1,1 @@
+fix basic auth credentials in --extra-index-urls when using different creds for same domain
