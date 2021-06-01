@@ -1,1 +1,1 @@
-fix basic auth credentials in --extra-index-urls when using different creds for same domain
+Fix incorrect credentials caching when using multiple package indexes sharing same domain but different credentials
