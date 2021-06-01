@@ -175,9 +175,11 @@ class MultiDomainBasicAuth(AuthBase):
 
         # still grab if different creds for same domain
         username_candidate, password_candidate = self._get_new_credentials(original_url)
-        if username_candidate is not None and password_candidate is not None:
+        if username_candidate is not None:
             username = username_candidate
-            password = password_candidate
+            # Accept password only if username has been setted
+            if password_candidate is not None:
+                password = password_candidate
 
         if username is not None or password is not None:
             # Convert the username and password if they're None, so that

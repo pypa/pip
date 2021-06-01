@@ -47,12 +47,12 @@ def test_get_credentials_parses_correctly(input_url, url, username, password):
     )
 
 
-def test_get_credentials_uses_cached_credentials():
+def test_get_credentials_not_to_uses_cached_credentials():
     auth = MultiDomainBasicAuth()
     auth.passwords['example.com'] = ('user', 'pass')
 
     got = auth._get_url_and_credentials("http://foo:bar@example.com/path")
-    expected = ('http://example.com/path', 'user', 'pass')
+    expected = ('http://example.com/path', 'foo', 'bar')
     assert got == expected
 
 
