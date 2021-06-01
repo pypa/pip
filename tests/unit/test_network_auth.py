@@ -56,6 +56,24 @@ def test_get_credentials_not_to_uses_cached_credentials():
     assert got == expected
 
 
+def test_get_credentials_not_to_uses_cached_credentials_only_username():
+    auth = MultiDomainBasicAuth()
+    auth.passwords['example.com'] = ('user', 'pass')
+
+    got = auth._get_url_and_credentials("http://foo@example.com/path")
+    expected = ('http://example.com/path', 'foo', '')
+    assert got == expected
+
+
+def test_get_credentials_uses_cached_credentials():
+    auth = MultiDomainBasicAuth()
+    auth.passwords['example.com'] = ('user', 'pass')
+
+    got = auth._get_url_and_credentials("http://example.com/path")
+    expected = ('http://example.com/path', 'user', 'pass')
+    assert got == expected
+
+
 def test_get_index_url_credentials():
     auth = MultiDomainBasicAuth(index_urls=[
         "http://foo:bar@example.com/path"
