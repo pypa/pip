@@ -95,6 +95,13 @@ class ListCommand(IndexGroupCommand):
         )
 
         self.cmd_opts.add_option(
+            '--required-by',
+            action='store',
+            dest='required_by',
+            help="List packages that are dependencies the given package.",
+        )
+
+        self.cmd_opts.add_option(
             '--exclude-editable',
             action='store_false',
             dest='include_editable',
@@ -161,6 +168,9 @@ class ListCommand(IndexGroupCommand):
         if options.not_required:
             packages = self.get_not_required(packages, options)
 
+        if options.required_by:
+            packages = self.get_required_by(packages, options)
+
         if options.outdated:
             packages = self.get_outdated(packages, options)
         elif options.uptodate:
@@ -193,6 +203,18 @@ class ListCommand(IndexGroupCommand):
         # to keep the return type consistent with get_outdated and
         # get_uptodate
         return list({pkg for pkg in packages if pkg.key not in dep_keys})
+
+    def get_required_by(self, packages, options):
+        # type: (List[Distribution], Values) -> List[Distribution]
+        dep_keys = set()  # type: Set[Distribution]
+        for dist in packages:
+            if dist.project_name == options.required_by:
+                dep_keys = set(requirement.key for requirement in dist.requires())
+
+        # Create a set to remove duplicate packages, and cast it to a list
+        # to keep the return type consistent with get_outdated and
+        # get_uptodate
+        return list({pkg for pkg in packages if pkg.key in dep_keys})
 
     def iter_packages_latest_infos(self, packages, options):
         # type: (List[Distribution], Values) -> Iterator[Distribution]

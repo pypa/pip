@@ -403,6 +403,20 @@ def test_outdated_not_required_flag(script, data):
     assert [] == json.loads(result.stdout)
 
 
+def test_required_by_flag(script, data):
+    """
+    test the behavior of --required-by flag in the list command
+    """
+    script.pip(
+        'install', '-f', data.find_links, '--no-index', 'require_simple==1.0'
+    )
+    result = script.pip(
+        'list', '-f', data.find_links, '--no-index',
+        '--required-by', 'require-simple', '--format=json',
+    )
+    assert [{'name': 'simple', 'version': '3.0'}] == json.loads(result.stdout)
+
+
 def test_outdated_pre(script, data):
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
 

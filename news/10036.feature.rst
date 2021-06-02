@@ -1,0 +1,2 @@
+Add ``required-by`` option to the ``list`` command, in order to restrict the listed
+packages to some package requirements (useful for eg. with ``--outdated``)
