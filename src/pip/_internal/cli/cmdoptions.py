@@ -262,7 +262,7 @@ proxy = partial(
     dest="proxy",
     type="str",
     default="",
-    help="Specify a proxy in the form [user:passwd@]proxy.server:port.",
+    help="Specify a proxy in the form scheme://[user:passwd@]proxy.server:port.",
 )  # type: Callable[..., Option]
 
 retries = partial(
