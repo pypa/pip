@@ -350,7 +350,7 @@ Features
 - When installing a git URL that refers to a commit that is not available locally
   after git clone, attempt to fetch it from the remote. (`#8815 <https://github.com/pypa/pip/issues/8815>`_)
 - Include http subdirectory in ``pip cache info`` and ``pip cache purge`` commands. (`#8892 <https://github.com/pypa/pip/issues/8892>`_)
-- Cache package listings on index packages so they are guarenteed to stay stable
+- Cache package listings on index packages so they are guaranteed to stay stable
   during a pip command session. This also improves performance when a index page
   is accessed multiple times during the command session. (`#8905 <https://github.com/pypa/pip/issues/8905>`_)
 - New resolver: Tweak resolution logic to improve user experience when
@@ -422,7 +422,7 @@ Features
   and considered good enough. (`#8023 <https://github.com/pypa/pip/issues/8023>`_)
 - Improve error message friendliness when an environment has packages with
   corrupted metadata. (`#8676 <https://github.com/pypa/pip/issues/8676>`_)
-- Cache package listings on index packages so they are guarenteed to stay stable
+- Cache package listings on index packages so they are guaranteed to stay stable
   during a pip command session. This also improves performance when a index page
   is accessed multiple times during the command session. (`#8905 <https://github.com/pypa/pip/issues/8905>`_)
 - New resolver: Tweak resolution logic to improve user experience when

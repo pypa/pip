@@ -128,7 +128,7 @@ def get_prog():
 
 
 # Retry every half second for up to 3 seconds
-# Tenacity raises RetryError by default, explictly raise the original exception
+# Tenacity raises RetryError by default, explicitly raise the original exception
 @retry(reraise=True, stop=stop_after_delay(3), wait=wait_fixed(0.5))
 def rmtree(dir, ignore_errors=False):
     # type: (AnyStr, bool) -> None
