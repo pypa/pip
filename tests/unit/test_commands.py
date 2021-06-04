@@ -11,7 +11,7 @@ from pip._internal.commands import commands_dict, create_command
 
 # These are the expected names of the commands whose classes inherit from
 # IndexGroupCommand.
-EXPECTED_INDEX_GROUP_COMMANDS = ['download', 'install', 'list', 'wheel']
+EXPECTED_INDEX_GROUP_COMMANDS = ['download', 'install', 'list', 'upgrade-all', 'wheel']
 
 
 def check_commands(pred, expected):
@@ -49,7 +49,8 @@ def test_session_commands():
     def is_session_command(command):
         return isinstance(command, SessionCommandMixin)
 
-    expected = ['download', 'install', 'list', 'search', 'uninstall', 'wheel']
+    expected = ['download', 'install', 'list', 'search', 'uninstall', 'upgrade-all',
+                'wheel']
     check_commands(is_session_command, expected)
 
 
@@ -110,5 +111,5 @@ def test_requirement_commands():
     """
     def is_requirement_command(command):
         return isinstance(command, RequirementCommand)
-
-    check_commands(is_requirement_command, ['download', 'install', 'wheel'])
+    check_commands(is_requirement_command, ['download', 'install', 'upgrade-all',
+                                            'wheel'])
