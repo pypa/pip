@@ -100,6 +100,12 @@ class RemoteNotFoundError(Exception):
     pass
 
 
+class RemoteNotValidError(Exception):
+    def __init__(self, url: str):
+        super().__init__(url)
+        self.url = url
+
+
 class RevOptions:
 
     """
