@@ -17,7 +17,7 @@ distribute any code you contribute to pip and it must be available under the
 MIT License.
 
 Provide tests that cover your changes and run the tests locally first. pip
-:ref:`supports <compatibility-requirements>` multiple Python versions and
+supports multiple Python versions and
 operating systems. Any pull request must consider and work on all these
 platforms.
 
