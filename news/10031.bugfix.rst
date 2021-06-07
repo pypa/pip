@@ -1,0 +1,1 @@
+Require ``setup.cfg``-only projects to be built via PEP 517, by requiring an explicit dependency on setuptools declared in pyproject.toml.
