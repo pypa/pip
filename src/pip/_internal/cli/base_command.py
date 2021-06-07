@@ -43,8 +43,7 @@ class Command(CommandContextMixIn):
     usage = None  # type: str
     ignore_require_venv = False  # type: bool
 
-    def __init__(self, name, summary, isolated=False):
-        # type: (str, str, bool) -> None
+    def __init__(self, name: str, summary: str, isolated: bool = False) -> None:
         super().__init__()
 
         self.name = name
@@ -74,12 +73,10 @@ class Command(CommandContextMixIn):
 
         self.add_options()
 
-    def add_options(self):
-        # type: () -> None
+    def add_options(self) -> None:
         pass
 
-    def handle_pip_version_check(self, options):
-        # type: (Values) -> None
+    def handle_pip_version_check(self, options: Values) -> None:
         """
         This is a no-op so that commands by default do not do the pip version
         check.
@@ -88,25 +85,21 @@ class Command(CommandContextMixIn):
         # are present.
         assert not hasattr(options, "no_index")
 
-    def run(self, options, args):
-        # type: (Values, List[Any]) -> int
+    def run(self, options: Values, args: List[Any]) -> int:
         raise NotImplementedError
 
-    def parse_args(self, args):
-        # type: (List[str]) -> Tuple[Any, Any]
+    def parse_args(self, args: List[str]) -> Tuple[Any, Any]:
         # factored out for testability
         return self.parser.parse_args(args)
 
-    def main(self, args):
-        # type: (List[str]) -> int
+    def main(self, args: List[str]) -> int:
         try:
             with self.main_context():
                 return self._main(args)
         finally:
             logging.shutdown()
 
-    def _main(self, args):
-        # type: (List[str]) -> int
+    def _main(self, args: List[str]) -> int:
         # We must initialize this before the tempdir manager, otherwise the
         # configuration would not be accessible by the time we clean up the
         # tempdir manager.
