@@ -378,7 +378,7 @@ def find_links():
         metavar="url",
         help="If a URL or path to an html file, then parse for links to "
         "archives such as sdist (.tar.gz) or wheel (.whl) files. "
-        "If a local path or file:// URL that's a directory,  "
+        "If a local path or file:// URL that's a directory, "
         "then look for archives in the directory listing. "
         "Links to VCS project URLs are not supported.",
     )
