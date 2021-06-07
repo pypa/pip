@@ -201,7 +201,7 @@ class HTTPConnection(_HTTPConnection, object):
         self._prepare_conn(conn)
 
     def putrequest(self, method, url, *args, **kwargs):
-        """"""
+        """ """
         # Empty docstring because the indentation of CPython's implementation
         # is broken but we don't want this method in our documentation.
         match = _CONTAINS_CONTROL_CHAR_RE.search(method)
@@ -214,7 +214,7 @@ class HTTPConnection(_HTTPConnection, object):
         return _HTTPConnection.putrequest(self, method, url, *args, **kwargs)
 
     def putheader(self, header, *values):
-        """"""
+        """ """
         if not any(isinstance(v, str) and v == SKIP_HEADER for v in values):
             _HTTPConnection.putheader(self, header, *values)
         elif six.ensure_str(header.lower()) not in SKIPPABLE_HEADERS:
