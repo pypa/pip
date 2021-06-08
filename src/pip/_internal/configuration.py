@@ -347,12 +347,12 @@ class Configuration:
                 name = key[4:].lower()
                 if name not in ENV_NAMES_IGNORED:
                     yield name, val
-        else:
-            for key, val in os.environ.items():
-                if key.startswith("PIP_"):
-                    name = key[4:].lower()
-                    if name not in ENV_NAMES_IGNORED:
-                        yield name, val
+            return
+        for key, val in os.environ.items():
+            if key.startswith("PIP_"):
+                name = key[4:].lower()
+                if name not in ENV_NAMES_IGNORED:
+                    yield name, val
 
     # XXX: This is patched in the tests.
     def iter_config_files(self):
