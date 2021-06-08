@@ -442,7 +442,7 @@ class InstallCommand(RequirementCommand):
                 error, show_traceback, options.use_user_site,
             )
             if (WINDOWS and error.errno == errno.ENOENT and error.filename and
-                    len(str(error)) >= 270):
+                    len(error.filename) >= 260):
                 logger.warning(
                     'The following error can potentially be caused '
                     'because Long Paths is disabled on your system. '
