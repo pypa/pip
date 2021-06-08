@@ -441,7 +441,7 @@ class InstallCommand(RequirementCommand):
             message = create_os_error_message(
                 error, show_traceback, options.use_user_site,
             )
-            if WINDOWS and len(message) >= 280:
+            if WINDOWS and len(error) >= 280:
                 logger.warning(
                     'The following error can potentially be caused '
                     'because Long Paths is disabled on your system. '
