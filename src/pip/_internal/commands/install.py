@@ -743,7 +743,7 @@ def create_os_error_message(error, show_traceback, using_user_site):
     if (WINDOWS and error.errno == errno.ENOENT and error.filename and
             len(error.filename) > 260):
         parts.append(
-            "The following error can potentially be caused "
+            "This error can potentially be caused "
             "because Long Paths is disabled on your system. "
             "Please set LongPathsEnabled to 1 in the "
             "registry and try again. For further instructions "
