@@ -26,6 +26,7 @@ from pip._internal.operations.check import ConflictDetails, check_install_confli
 from pip._internal.req import install_given_reqs
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.req.req_tracker import get_requirement_tracker
+from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.distutils_args import parse_distutils_args
 from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.misc import (
@@ -440,6 +441,13 @@ class InstallCommand(RequirementCommand):
             message = create_os_error_message(
                 error, show_traceback, options.use_user_site,
             )
+            if WINDOWS and len(message) >= 280:
+                logger.warning(
+                    'The following error can potentially be caused '
+                    'because Long Paths is disabled on your system. '
+                    'Please set LongPathsEnabled to 1 in the '
+                    'registry and try again.'
+                )
             logger.error(message, exc_info=show_traceback)  # noqa
 
             return ERROR
