@@ -441,13 +441,18 @@ class InstallCommand(RequirementCommand):
             message = create_os_error_message(
                 error, show_traceback, options.use_user_site,
             )
-            if WINDOWS and len(error) >= 270:
-                logger.warning(
-                    'The following error can potentially be caused '
-                    'because Long Paths is disabled on your system. '
-                    'Please set LongPathsEnabled to 1 in the '
-                    'registry and try again.'
-                )
+            if WINDOWS and len(str(error)) >= 270:
+                if error.errno == errno.ENOENT:
+                    logger.warning(
+                        'The following error can potentially be caused '
+                        'because Long Paths is disabled on your system. '
+                        'Please set LongPathsEnabled to 1 in the '
+                        'registry and try again. For further instructions '
+                        'please refer to the documentation: https://docs.'
+                        'microsoft.com/en-us/windows/win32/fileio/maximum'
+                        '-file-path-limitation?tabs=cmd#enable-long-paths'
+                        '-in-windows-10-version-1607-and-later'
+                    )
             logger.error(message, exc_info=show_traceback)  # noqa
 
             return ERROR
