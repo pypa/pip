@@ -441,16 +441,6 @@ class InstallCommand(RequirementCommand):
             message = create_os_error_message(
                 error, show_traceback, options.use_user_site,
             )
-            if (WINDOWS and error.errno == errno.ENOENT and error.filename and
-                    len(error.filename) > 260):
-                logger.warning(
-                    'The following error can potentially be caused '
-                    'because Long Paths is disabled on your system. '
-                    'Please set LongPathsEnabled to 1 in the '
-                    'registry and try again. For further instructions '
-                    'please refer to the documentation: '
-                    'https://pip.pypa.io/warnings/enable-long-paths'
-                )
             logger.error(message, exc_info=show_traceback)  # noqa
 
             return ERROR
@@ -747,5 +737,18 @@ def create_os_error_message(error, show_traceback, using_user_site):
         else:
             parts.append(permissions_part)
         parts.append(".\n")
+
+    # Suggest the user to enable Long Paths if path length is
+    # more than 260
+    if (WINDOWS and error.errno == errno.ENOENT and error.filename and
+            len(error.filename) > 260):
+        parts.append(
+            "The following error can potentially be caused "
+            "because Long Paths is disabled on your system. "
+            "Please set LongPathsEnabled to 1 in the "
+            "registry and try again. For further instructions "
+            "please refer to the documentation: "
+            "https://pip.pypa.io/warnings/enable-long-paths"
+        )
 
     return "".join(parts).strip() + "\n"
