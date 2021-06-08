@@ -8,17 +8,7 @@ import re
 import shlex
 import urllib.parse
 from optparse import Values
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    Iterator,
-    List,
-    NoReturn,
-    Optional,
-    Tuple,
-)
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterator, List, Optional, Tuple
 
 from pip._internal.cli import cmdoptions
 from pip._internal.exceptions import InstallationError, RequirementsFileParseError
@@ -29,6 +19,10 @@ from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.urls import get_url_scheme, url_to_path
 
 if TYPE_CHECKING:
+    # NoReturn introduced in 3.6.2; imported only for type checking to maintain
+    # pip compatibility with older patch versions of Python 3.6
+    from typing import NoReturn
+
     from pip._internal.index.package_finder import PackageFinder
 
 __all__ = ['parse_requirements']

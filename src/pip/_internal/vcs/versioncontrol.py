@@ -100,6 +100,12 @@ class RemoteNotFoundError(Exception):
     pass
 
 
+class RemoteNotValidError(Exception):
+    def __init__(self, url: str):
+        super().__init__(url)
+        self.url = url
+
+
 class RevOptions:
 
     """
@@ -376,16 +382,6 @@ class VersionControl:
         drive, tail = os.path.splitdrive(repo)
         return repo.startswith(os.path.sep) or bool(drive)
 
-    def export(self, location, url):
-        # type: (str, HiddenText) -> None
-        """
-        Export the repository at the url to the destination location
-        i.e. only download the files, without vcs informations
-
-        :param url: the repository URL starting with a vcs prefix.
-        """
-        raise NotImplementedError
-
     @classmethod
     def get_netloc_and_auth(cls, netloc, scheme):
         # type: (str, str) -> Tuple[str, Tuple[Optional[str], Optional[str]]]
@@ -448,8 +444,8 @@ class VersionControl:
     def get_url_rev_options(self, url):
         # type: (HiddenText) -> Tuple[HiddenText, RevOptions]
         """
-        Return the URL and RevOptions object to use in obtain() and in
-        some cases export(), as a tuple (url, rev_options).
+        Return the URL and RevOptions object to use in obtain(),
+        as a tuple (url, rev_options).
         """
         secret_url, rev, user_pass = self.get_url_rev_and_auth(url.secret)
         username, secret_password = user_pass
@@ -684,6 +680,18 @@ class VersionControl:
             raise BadCommand(
                 f'Cannot find command {cls.name!r} - do you have '
                 f'{cls.name!r} installed and in your PATH?')
+        except PermissionError:
+            # errno.EACCES = Permission denied
+            # This error occurs, for instance, when the command is installed
+            # only for another user. So, the current user don't have
+            # permission to call the other user command.
+            raise BadCommand(
+                f"No permission to execute {cls.name!r} - install it "
+                f"locally, globally (ask admin), or check your PATH. "
+                f"See possible solutions at "
+                f"https://pip.pypa.io/en/latest/reference/pip_freeze/"
+                f"#fixing-permission-denied."
+            )
 
     @classmethod
     def is_repository_directory(cls, path):

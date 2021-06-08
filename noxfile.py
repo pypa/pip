@@ -12,7 +12,7 @@ import nox
 
 # fmt: off
 sys.path.append(".")
-from tools.automation import release  # isort:skip  # noqa
+from tools import release  # isort:skip  # noqa
 sys.path.pop()
 # fmt: on
 
@@ -174,7 +174,6 @@ def lint(session):
         args = session.posargs + ["--all-files"]
     else:
         args = ["--all-files", "--show-diff-on-failure"]
-    args.append("--hook-stage=manual")
 
     session.run("pre-commit", "run", *args)
 

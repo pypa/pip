@@ -19,6 +19,8 @@ import logging
 import mimetypes
 import os
 import platform
+import shutil
+import subprocess
 import sys
 import urllib.parse
 import warnings
@@ -163,6 +165,21 @@ def user_agent():
     if setuptools_dist is not None:
         data["setuptools_version"] = str(setuptools_dist.version)
 
+    if shutil.which("rustc") is not None:
+        # If for any reason `rustc --version` fails, silently ignore it
+        try:
+            rustc_output = subprocess.check_output(
+                ["rustc", "--version"], stderr=subprocess.STDOUT, timeout=.5
+            )
+        except Exception:
+            pass
+        else:
+            if rustc_output.startswith(b"rustc "):
+                # The format of `rustc --version` is:
+                # `b'rustc 1.52.1 (9bc8c42bb 2021-05-09)\n'`
+                # We extract just the middle (1.52.1) part
+                data["rustc_version"] = rustc_output.split(b" ")[1].decode()
+
     # Use None rather than False so as not to give the impression that
     # pip knows it is not being run under CI.  Rather, it is a null or
     # inconclusive result.  Also, we include some value rather than no
@@ -295,7 +312,7 @@ class PipSession(requests.Session):
             # Add a small amount of back off between failed requests in
             # order to prevent hammering the service.
             backoff_factor=0.25,
-        )
+        )  # type: ignore
 
         # Our Insecure HTTPAdapter disables HTTPS validation. It does not
         # support caching so we'll use it for all http:// URLs.

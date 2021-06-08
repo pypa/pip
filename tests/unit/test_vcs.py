@@ -1,4 +1,5 @@
 import os
+import pathlib
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -9,7 +10,7 @@ from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import hide_url, hide_value
 from pip._internal.vcs import make_vcs_requirement_url
 from pip._internal.vcs.bazaar import Bazaar
-from pip._internal.vcs.git import Git, looks_like_hash
+from pip._internal.vcs.git import Git, RemoteNotValidError, looks_like_hash
 from pip._internal.vcs.mercurial import Mercurial
 from pip._internal.vcs.subversion import Subversion
 from pip._internal.vcs.versioncontrol import RevOptions, VersionControl
@@ -108,10 +109,14 @@ def test_looks_like_hash(sha, expected):
 
 
 @pytest.mark.parametrize('vcs_cls, remote_url, expected', [
-    # Git is one of the subclasses using the base class implementation.
-    (Git, 'git://example.com/MyProject', False),
+    # Mercurial is one of the subclasses using the base class implementation.
+    # `hg://` isn't a real prefix but it tests the default behaviour.
+    (Mercurial, 'hg://user@example.com/MyProject', False),
+    (Mercurial, 'http://example.com/MyProject', True),
+    # The Git subclasses should return true in all cases.
+    (Git, 'git://example.com/MyProject', True),
     (Git, 'http://example.com/MyProject', True),
-    # Subversion is the only subclass overriding the base class implementation.
+    # Subversion also overrides the base class implementation.
     (Subversion, 'svn://example.com/MyProject', True),
 ])
 def test_should_add_vcs_url_prefix(vcs_cls, remote_url, expected):
@@ -119,26 +124,83 @@ def test_should_add_vcs_url_prefix(vcs_cls, remote_url, expected):
     assert actual == expected
 
 
+@pytest.mark.parametrize("url, target", [
+    # A fully qualified remote url. No changes needed.
+    ("ssh://bob@server/foo/bar.git", "ssh://bob@server/foo/bar.git"),
+    ("git://bob@server/foo/bar.git", "git://bob@server/foo/bar.git"),
+    # User is optional and does not need a default.
+    ("ssh://server/foo/bar.git", "ssh://server/foo/bar.git"),
+    # The common scp shorthand for ssh remotes. Pip won't recognise these as
+    # git remotes until they have a 'ssh://' prefix and the ':' in the middle
+    # is gone.
+    ("git@example.com:foo/bar.git", "ssh://git@example.com/foo/bar.git"),
+    ("example.com:foo.git", "ssh://example.com/foo.git"),
+    # Http(s) remote names are already complete and should remain unchanged.
+    ("https://example.com/foo", "https://example.com/foo"),
+    ("http://example.com/foo/bar.git", "http://example.com/foo/bar.git"),
+    ("https://bob@example.com/foo", "https://bob@example.com/foo"),
+ ])
+def test_git_remote_url_to_pip(url, target):
+    assert Git._git_remote_to_pip_url(url) == target
+
+
+@pytest.mark.parametrize("url, platform", [
+    # Windows paths with the ':' drive prefix look dangerously close to SCP.
+    ("c:/piffle/wiffle/waffle/poffle.git", "nt"),
+    (r"c:\faffle\waffle\woffle\piffle.git", "nt"),
+    # Unix paths less so but test them anyway.
+    ("/muffle/fuffle/pufffle/fluffle.git", "posix"),
+])
+def test_paths_are_not_mistaken_for_scp_shorthand(url, platform):
+    # File paths should not be mistaken for SCP shorthand. If they do then
+    # 'c:/piffle/wiffle' would end up as 'ssh://c/piffle/wiffle'.
+    from pip._internal.vcs.git import SCP_REGEX
+    assert not SCP_REGEX.match(url)
+
+    if platform == os.name:
+        with pytest.raises(RemoteNotValidError):
+            Git._git_remote_to_pip_url(url)
+
+
+def test_git_remote_local_path(tmpdir):
+    path = pathlib.Path(tmpdir, "project.git")
+    path.mkdir()
+    # Path must exist to be recognised as a local git remote.
+    assert Git._git_remote_to_pip_url(str(path)) == path.as_uri()
+
+
 @patch('pip._internal.vcs.git.Git.get_remote_url')
 @patch('pip._internal.vcs.git.Git.get_revision')
 @patch('pip._internal.vcs.git.Git.get_subdirectory')
+@pytest.mark.parametrize(
+    "git_url, target_url_prefix",
+    [
+        (
+            "https://github.com/pypa/pip-test-package",
+            "git+https://github.com/pypa/pip-test-package",
+        ),
+        (
+            "git@github.com:pypa/pip-test-package",
+            "git+ssh://git@github.com/pypa/pip-test-package",
+        ),
+    ],
+    ids=["https", "ssh"],
+)
 @pytest.mark.network
 def test_git_get_src_requirements(
-    mock_get_subdirectory, mock_get_revision, mock_get_remote_url
+    mock_get_subdirectory, mock_get_revision, mock_get_remote_url,
+        git_url, target_url_prefix,
 ):
-    git_url = 'https://github.com/pypa/pip-test-package'
     sha = '5547fa909e83df8bd743d3978d6667497983a4b7'
 
-    mock_get_remote_url.return_value = git_url
+    mock_get_remote_url.return_value = Git._git_remote_to_pip_url(git_url)
     mock_get_revision.return_value = sha
     mock_get_subdirectory.return_value = None
 
     ret = Git.get_src_requirement('.', 'pip-test-package')
 
-    assert ret == (
-        'git+https://github.com/pypa/pip-test-package'
-        '@5547fa909e83df8bd743d3978d6667497983a4b7#egg=pip_test_package'
-    )
+    target = f"{target_url_prefix}@{sha}#egg=pip_test_package"
+    assert ret == target
 
 
 @patch('pip._internal.vcs.git.Git.get_revision_sha')
@@ -301,6 +363,27 @@ def test_version_control__get_url_rev_and_auth__no_revision(url):
         VersionControl.get_url_rev_and_auth(url)
 
     assert 'an empty revision (after @)' in str(excinfo.value)
+
+
+@pytest.mark.parametrize("vcs_cls", [Bazaar, Git, Mercurial, Subversion])
+@pytest.mark.parametrize(
+    "exc_cls, msg_re",
+    [
+        (FileNotFoundError, r"Cannot find command '{name}'"),
+        (PermissionError, r"No permission to execute '{name}'"),
+    ],
+    ids=["FileNotFoundError", "PermissionError"],
+)
+def test_version_control__run_command__fails(vcs_cls, exc_cls, msg_re):
+    """
+    Test that ``VersionControl.run_command()`` raises ``BadCommand``
+    when the command is not found or when the user have no permission
+    to execute it. The error message must contains the command name.
+    """
+    with patch("pip._internal.vcs.versioncontrol.call_subprocess") as call:
+        call.side_effect = exc_cls
+        with pytest.raises(BadCommand, match=msg_re.format(name=vcs_cls.name)):
+            vcs_cls.run_command([])
 
 
 @pytest.mark.parametrize('url, expected', [
@@ -546,14 +629,6 @@ class TestSubversionArgs(TestCase):
         self.assert_call_args([
             'svn', 'checkout', '-q', '--non-interactive', '--username',
             'username', '--password', hide_value('password'),
-            hide_url('http://svn.example.com/'), '/tmp/test',
-        ])
-
-    def test_export(self):
-        self.svn.export(self.dest, hide_url(self.url))
-        self.assert_call_args([
-            'svn', 'export', '--non-interactive', '--username', 'username',
-            '--password', hide_value('password'),
             hide_url('http://svn.example.com/'), '/tmp/test',
         ])
 

@@ -1,9 +1,19 @@
-from typing import Any, Dict, Iterable, Optional, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Dict, Iterable, Iterator, Mapping, Sequence, Union
 
 from pip._vendor.resolvelib.providers import AbstractProvider
 
 from .base import Candidate, Constraint, Requirement
 from .factory import Factory
+
+if TYPE_CHECKING:
+    from pip._vendor.resolvelib.providers import Preference
+    from pip._vendor.resolvelib.resolvers import RequirementInformation
+
+    PreferenceInformation = RequirementInformation[Requirement, Candidate]
+
+    _ProviderBase = AbstractProvider[Requirement, Candidate, str]
+else:
+    _ProviderBase = AbstractProvider
 
 # Notes on the relationship between the provider, the factory, and the
 # candidate and requirement classes.
@@ -24,7 +34,7 @@ from .factory import Factory
 # services to those objects (access to pip's finder and preparer).
 
 
-class PipProvider(AbstractProvider):
+class PipProvider(_ProviderBase):
     """Pip's provider implementation for resolvelib.
 
     :params constraints: A mapping of constraints specified by the user. Keys
@@ -50,17 +60,17 @@ class PipProvider(AbstractProvider):
         self._upgrade_strategy = upgrade_strategy
         self._user_requested = user_requested
 
-    def identify(self, dependency):
+    def identify(self, requirement_or_candidate):
         # type: (Union[Requirement, Candidate]) -> str
-        return dependency.name
+        return requirement_or_candidate.name
 
     def get_preference(
         self,
-        resolution,  # type: Optional[Candidate]
-        candidates,  # type: Sequence[Candidate]
-        information,  # type: Sequence[Tuple[Requirement, Candidate]]
-    ):
-        # type: (...) -> Any
+        identifier: str,
+        resolutions: Mapping[str, Candidate],
+        candidates: Mapping[str, Iterator[Candidate]],
+        information: Mapping[str, Iterator["PreferenceInformation"]],
+    ) -> "Preference":
         """Produce a sort key for given requirement based on preference.
 
         The lower the return value is, the more preferred this group of
@@ -108,9 +118,8 @@ class PipProvider(AbstractProvider):
             # A "bare" requirement without any version requirements.
             return 3
 
-        restrictive = _get_restrictive_rating(req for req, _ in information)
-        key = next(iter(candidates)).name if candidates else ""
-        order = self._user_requested.get(key, float("inf"))
+        rating = _get_restrictive_rating(r for r, _ in information[identifier])
+        order = self._user_requested.get(identifier, float("inf"))
 
         # HACK: Setuptools have a very long and solid backward compatibility
         # track record, and extremely few projects would request a narrow,
@@ -120,16 +129,16 @@ class PipProvider(AbstractProvider):
         # delaying Setuptools helps reduce branches the resolver has to check.
         # This serves as a temporary fix for issues like "apache-airlfow[all]"
         # while we work on "proper" branch pruning techniques.
-        delay_this = key == "setuptools"
+        delay_this = identifier == "setuptools"
 
-        return (delay_this, restrictive, order, key)
+        return (delay_this, rating, order, identifier)
 
-    def find_matches(self, requirements):
-        # type: (Sequence[Requirement]) -> Iterable[Candidate]
-        if not requirements:
-            return []
-        name = requirements[0].project_name
-
+    def find_matches(
+        self,
+        identifier: str,
+        requirements: Mapping[str, Iterator[Requirement]],
+        incompatibilities: Mapping[str, Iterator[Candidate]],
+    ) -> Iterable[Candidate]:
         def _eligible_for_upgrade(name):
             # type: (str) -> bool
             """Are upgrades allowed for this project?
@@ -149,9 +158,11 @@ class PipProvider(AbstractProvider):
             return False
 
         return self._factory.find_candidates(
-            requirements,
-            constraint=self._constraints.get(name, Constraint.empty()),
-            prefers_installed=(not _eligible_for_upgrade(name)),
+            identifier=identifier,
+            requirements=requirements,
+            constraint=self._constraints.get(identifier, Constraint.empty()),
+            prefers_installed=(not _eligible_for_upgrade(identifier)),
+            incompatibilities=incompatibilities,
         )
 
     def is_satisfied_by(self, requirement, candidate):

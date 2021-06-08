@@ -42,12 +42,12 @@ def raise_for_status(resp):
         reason = resp.reason
 
     if 400 <= resp.status_code < 500:
-        http_error_msg = '%s Client Error: %s for url: %s' % (
-            resp.status_code, reason, resp.url)
+        http_error_msg = (
+            f'{resp.status_code} Client Error: {reason} for url: {resp.url}')
 
     elif 500 <= resp.status_code < 600:
-        http_error_msg = '%s Server Error: %s for url: %s' % (
-            resp.status_code, reason, resp.url)
+        http_error_msg = (
+            f'{resp.status_code} Server Error: {reason} for url: {resp.url}')
 
     if http_error_msg:
         raise NetworkConnectionError(http_error_msg, response=resp)

@@ -48,3 +48,6 @@ tests/data/common_wheels/
 
 # Mac
 .DS_Store
+
+# Profiling related artifacts
+*.prof

@@ -1,28 +1,27 @@
 """
-The main purpose of this module is to expose LinkCollector.collect_links().
+The main purpose of this module is to expose LinkCollector.collect_sources().
 """
 
 import cgi
+import collections
 import functools
 import html
 import itertools
 import logging
-import mimetypes
 import os
 import re
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
-from collections import OrderedDict
 from optparse import Values
 from typing import (
     Callable,
     Iterable,
     List,
     MutableMapping,
+    NamedTuple,
     Optional,
     Sequence,
-    Tuple,
     Union,
 )
 
@@ -37,8 +36,9 @@ from pip._internal.network.session import PipSession
 from pip._internal.network.utils import raise_for_status
 from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import pairwise, redact_auth_from_url
-from pip._internal.utils.urls import path_to_url, url_to_path
-from pip._internal.vcs import is_url, vcs
+from pip._internal.vcs import vcs
+
+from .sources import CandidatesFromPage, LinkSource, build_source
 
 logger = logging.getLogger(__name__)
 
@@ -449,107 +449,9 @@ def _get_html_page(link, session=None):
     return None
 
 
-def _remove_duplicate_links(links):
-    # type: (Iterable[Link]) -> List[Link]
-    """
-    Return a list of links, with duplicates removed and ordering preserved.
-    """
-    # We preserve the ordering when removing duplicates because we can.
-    return list(OrderedDict.fromkeys(links))
-
-
-def group_locations(locations, expand_dir=False):
-    # type: (Sequence[str], bool) -> Tuple[List[str], List[str]]
-    """
-    Divide a list of locations into two groups: "files" (archives) and "urls."
-
-    :return: A pair of lists (files, urls).
-    """
-    files = []
-    urls = []
-
-    # puts the url for the given file path into the appropriate list
-    def sort_path(path):
-        # type: (str) -> None
-        url = path_to_url(path)
-        if mimetypes.guess_type(url, strict=False)[0] == 'text/html':
-            urls.append(url)
-        else:
-            files.append(url)
-
-    for url in locations:
-
-        is_local_path = os.path.exists(url)
-        is_file_url = url.startswith('file:')
-
-        if is_local_path or is_file_url:
-            if is_local_path:
-                path = url
-            else:
-                path = url_to_path(url)
-            if os.path.isdir(path):
-                if expand_dir:
-                    path = os.path.realpath(path)
-                    for item in os.listdir(path):
-                        sort_path(os.path.join(path, item))
-                elif is_file_url:
-                    urls.append(url)
-                else:
-                    logger.warning(
-                        "Path '%s' is ignored: it is a directory.", path,
-                    )
-            elif os.path.isfile(path):
-                sort_path(path)
-            else:
-                logger.warning(
-                    "Url '%s' is ignored: it is neither a file "
-                    "nor a directory.", url,
-                )
-        elif is_url(url):
-            # Only add url with clear scheme
-            urls.append(url)
-        else:
-            logger.warning(
-                "Url '%s' is ignored. It is either a non-existing "
-                "path or lacks a specific scheme.", url,
-            )
-
-    return files, urls
-
-
-class CollectedLinks:
-
-    """
-    Encapsulates the return value of a call to LinkCollector.collect_links().
-
-    The return value includes both URLs to project pages containing package
-    links, as well as individual package Link objects collected from other
-    sources.
-
-    This info is stored separately as:
-
-    (1) links from the configured file locations,
-    (2) links from the configured find_links, and
-    (3) urls to HTML project pages, as described by the PEP 503 simple
-        repository API.
-    """
-
-    def __init__(
-        self,
-        files,         # type: List[Link]
-        find_links,    # type: List[Link]
-        project_urls,  # type: List[Link]
-    ):
-        # type: (...) -> None
-        """
-        :param files: Links from file locations.
-        :param find_links: Links from find_links.
-        :param project_urls: URLs to HTML project pages, as described by
-            the PEP 503 simple repository API.
-        """
-        self.files = files
-        self.find_links = find_links
-        self.project_urls = project_urls
+class CollectedSources(NamedTuple):
+    find_links: Sequence[Optional[LinkSource]]
+    index_urls: Sequence[Optional[LinkSource]]
 
 
 class LinkCollector:
@@ -558,7 +460,7 @@ class LinkCollector:
     Responsible for collecting Link objects from all configured locations,
     making network requests as needed.
 
-    The class's main method is its collect_links() method.
+    The class's main method is its collect_sources() method.
     """
 
     def __init__(
@@ -609,51 +511,46 @@ class LinkCollector:
         """
         return _get_html_page(location, session=self.session)
 
-    def collect_links(self, project_name):
-        # type: (str) -> CollectedLinks
-        """Find all available links for the given project name.
-
-        :return: All the Link objects (unfiltered), as a CollectedLinks object.
-        """
-        search_scope = self.search_scope
-        index_locations = search_scope.get_index_urls_locations(project_name)
-        index_file_loc, index_url_loc = group_locations(index_locations)
-        fl_file_loc, fl_url_loc = group_locations(
-            self.find_links, expand_dir=True,
-        )
-
-        file_links = [
-            Link(url) for url in itertools.chain(index_file_loc, fl_file_loc)
-        ]
-
-        # We trust every directly linked archive in find_links
-        find_link_links = [Link(url, '-f') for url in self.find_links]
-
-        # We trust every url that the user has given us whether it was given
-        # via --index-url or --find-links.
-        # We want to filter out anything that does not have a secure origin.
-        url_locations = [
-            link for link in itertools.chain(
-                # Mark PyPI indices as "cache_link_parsing == False" -- this
-                # will avoid caching the result of parsing the page for links.
-                (Link(url, cache_link_parsing=False) for url in index_url_loc),
-                (Link(url) for url in fl_url_loc),
+    def collect_sources(
+        self,
+        project_name: str,
+        candidates_from_page: CandidatesFromPage,
+    ) -> CollectedSources:
+        # The OrderedDict calls deduplicate sources by URL.
+        index_url_sources = collections.OrderedDict(
+            build_source(
+                loc,
+                candidates_from_page=candidates_from_page,
+                page_validator=self.session.is_secure_origin,
+                expand_dir=False,
+                cache_link_parsing=False,
             )
-            if self.session.is_secure_origin(link)
-        ]
+            for loc in self.search_scope.get_index_urls_locations(project_name)
+        ).values()
+        find_links_sources = collections.OrderedDict(
+            build_source(
+                loc,
+                candidates_from_page=candidates_from_page,
+                page_validator=self.session.is_secure_origin,
+                expand_dir=True,
+                cache_link_parsing=True,
+            )
+            for loc in self.find_links
+        ).values()
 
-        url_locations = _remove_duplicate_links(url_locations)
-        lines = [
-            '{} location(s) to search for versions of {}:'.format(
-                len(url_locations), project_name,
-            ),
-        ]
-        for link in url_locations:
-            lines.append(f'* {link}')
-        logger.debug('\n'.join(lines))
+        if logger.isEnabledFor(logging.DEBUG):
+            lines = [
+                f"* {s.link}"
+                for s in itertools.chain(find_links_sources, index_url_sources)
+                if s is not None and s.link is not None
+            ]
+            lines = [
+                f"{len(lines)} location(s) to search "
+                f"for versions of {project_name}:"
+            ] + lines
+            logger.debug("\n".join(lines))
 
-        return CollectedLinks(
-            files=file_links,
-            find_links=find_link_links,
-            project_urls=url_locations,
+        return CollectedSources(
+            find_links=list(find_links_sources),
+            index_urls=list(index_url_sources),
         )

@@ -63,72 +63,17 @@ For more information and examples, see the :ref:`pip install` reference.
 Basic Authentication Credentials
 ================================
 
-pip supports basic authentication credentials. Basically, in the URL there is
-a username and password separated by ``:``.
-
-``https://[username[:password]@]pypi.company.com/simple``
-
-Certain special characters are not valid in the authentication part of URLs.
-If the user or password part of your login credentials contain any of the
-special characters
-`here <https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters>`_
-then they must be percent-encoded. For example, for a
-user with username "user" and password "he//o" accessing a repository at
-pypi.company.com, the index URL with credentials would look like:
-
-``https://user:he%2F%2Fo@pypi.company.com``
-
-Support for percent-encoded authentication in index URLs was added in pip 10.0.0
-(in `#3236 <https://github.com/pypa/pip/issues/3236>`_). Users that must use authentication
-for their Python repository on systems with older pip versions should make the latest
-get-pip.py available in their environment to bootstrap pip to a recent-enough version.
-
-For indexes that only require single-part authentication tokens, provide the token
-as the "username" and do not provide a password, for example -
-
-``https://0123456789abcdef@pypi.company.com``
-
+This is now covered in {doc}`topics/authentication`.
 
 netrc Support
 -------------
 
-If no credentials are part of the URL, pip will attempt to get authentication credentials
-for the URL’s hostname from the user’s .netrc file. This behaviour comes from the underlying
-use of `requests`_ which in turn delegates it to the `Python standard library`_.
-
-The .netrc file contains login and initialization information used by the auto-login process.
-It resides in the user's home directory. The .netrc file format is simple. You specify lines
-with a machine name and follow that with lines for the login and password that are
-associated with that machine. Machine name is the hostname in your URL.
-
-An example .netrc for the host example.com with a user named 'daniel', using the password
-'qwerty' would look like:
-
-.. code-block:: shell
-
-   machine example.com
-   login daniel
-   password qwerty
-
-As mentioned in the `standard library docs <https://docs.python.org/3/library/netrc.html>`_,
-only ASCII characters are allowed. Whitespace and non-printable characters are not allowed in passwords.
-
+This is now covered in {doc}`topics/authentication`.
 
 Keyring Support
 ---------------
 
-pip also supports credentials stored in your keyring using the `keyring`_
-library. Note that ``keyring`` will need to be installed separately, as pip
-does not come with it included.
-
-.. code-block:: shell
-
-   pip install keyring
-   echo your-password | keyring set pypi.company.com your-username
-   pip install your-package --extra-index-url https://pypi.company.com/
-
-.. _keyring: https://pypi.org/project/keyring/
-
+This is now covered in {doc}`topics/authentication`.
 
 Using a Proxy Server
 ====================
@@ -254,9 +199,11 @@ Constraints Files
 
 Constraints files are requirements files that only control which version of a
 requirement is installed, not whether it is installed or not. Their syntax and
-contents is nearly identical to :ref:`Requirements Files`. There is one key
-difference: Including a package in a constraints file does not trigger
-installation of the package.
+contents is a subset of :ref:`Requirements Files`, with several kinds of syntax
+not allowed: constraints must have a name, they cannot be editable, and they
+cannot specify extras. In terms of semantics, there is one key difference:
+Including a package in a constraints file does not trigger installation of the
+package.
 
 Use a constraints file like so:
 
@@ -825,6 +772,21 @@ strategies supported:
 The default strategy is ``only-if-needed``. This was changed in pip 10.0 due to
 the breaking nature of ``eager`` when upgrading conflicting dependencies.
 
+It is important to note that ``--upgrade`` affects *direct requirements* (e.g.
+those specified on the command-line or via a requirements file) while
+``--upgrade-strategy`` affects *indirect requirements* (dependencies of direct
+requirements).
+
+As an example, say ``SomePackage`` has a dependency, ``SomeDependency``, and
+both of them are already installed but are not the latest available versions:
+
+- ``pip install SomePackage``: will not upgrade the existing ``SomePackage`` or
+  ``SomeDependency``.
+- ``pip install --upgrade SomePackage``: will upgrade ``SomePackage``, but not
+  ``SomeDependency`` (unless a minimum requirement is not met).
+- ``pip install --upgrade SomePackage --upgrade-strategy=eager``: upgrades both
+  ``SomePackage`` and ``SomeDependency``.
+
 As an historic note, an earlier "fix" for getting the ``only-if-needed``
 behaviour was:
 
@@ -1353,7 +1315,7 @@ When pip finds that an assumption is incorrect, it has to try another approach
 (backtrack), which means discarding some of the work that has already been done,
 and going back to choose another path.
 
-For example; The user requests ``pip install tea``. ```tea`` has dependencies of
+For example; The user requests ``pip install tea``. ``tea`` has dependencies of
 ``cup``, ``hot-water``, ``spoon`` amongst others.
 
 pip starts by installing a version of ``cup``. If it finds out it isn’t
@@ -1887,6 +1849,4 @@ announcements on the `low-traffic packaging announcements list`_ and
 .. _low-traffic packaging announcements list: https://mail.python.org/mailman3/lists/pypi-announce.python.org/
 .. _our survey on upgrades that create conflicts: https://docs.google.com/forms/d/e/1FAIpQLSeBkbhuIlSofXqCyhi3kGkLmtrpPOEBwr6iJA6SzHdxWKfqdA/viewform
 .. _the official Python blog: https://blog.python.org/
-.. _requests: https://requests.readthedocs.io/en/master/user/authentication/#netrc-authentication
-.. _Python standard library: https://docs.python.org/3/library/netrc.html
 .. _Python Windows launcher: https://docs.python.org/3/using/windows.html#launcher

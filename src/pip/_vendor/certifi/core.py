@@ -8,7 +8,21 @@ This module returns the installation location of cacert.pem or its contents.
 """
 import os
 
+
+class _PipPatchedCertificate(Exception):
+    pass
+
+
 try:
+    # Return a certificate file on disk for a standalone pip zipapp running in
+    # an isolated build environment to use. Passing --cert to the standalone
+    # pip does not work since requests calls where() unconditionally on import.
+    _PIP_STANDALONE_CERT = os.environ.get("_PIP_STANDALONE_CERT")
+    if _PIP_STANDALONE_CERT:
+        def where():
+            return _PIP_STANDALONE_CERT
+        raise _PipPatchedCertificate()
+
     from importlib.resources import path as get_path, read_text
 
     _CACERT_CTX = None
@@ -38,6 +52,8 @@ try:
 
         return _CACERT_PATH
 
+except _PipPatchedCertificate:
+    pass
 
 except ImportError:
     # This fallback will work for Python versions prior to 3.7 that lack the

@@ -163,7 +163,6 @@ def test_pep518_with_namespace_package(script, data, common_wheels):
     )
 
 
-@pytest.mark.timeout(60)
 @pytest.mark.parametrize('command', ('install', 'wheel'))
 @pytest.mark.parametrize('package', ('pep518_forkbomb',
                                      'pep518_twin_forkbombs_first',

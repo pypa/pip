@@ -35,10 +35,7 @@ from typing import (
 )
 
 from pip._vendor.pkg_resources import Distribution
-
-# NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
-#       why we ignore the type on this import.
-from pip._vendor.retrying import retry  # type: ignore
+from pip._vendor.tenacity import retry, stop_after_delay, wait_fixed
 
 from pip import __version__
 from pip._internal.exceptions import CommandError
@@ -131,7 +128,8 @@ def get_prog():
 
 
 # Retry every half second for up to 3 seconds
-@retry(stop_max_delay=3000, wait_fixed=500)
+# Tenacity raises RetryError by default, explicitly raise the original exception
+@retry(reraise=True, stop=stop_after_delay(3), wait=wait_fixed(0.5))
 def rmtree(dir, ignore_errors=False):
     # type: (AnyStr, bool) -> None
     shutil.rmtree(dir, ignore_errors=ignore_errors, onerror=rmtree_errorhandler)
@@ -193,7 +191,7 @@ def _check_no_input(message):
     """Raise an error if no input is allowed."""
     if os.environ.get("PIP_NO_INPUT"):
         raise Exception(
-            "No input was expected ($PIP_NO_INPUT set); question: {}".format(message)
+            f"No input was expected ($PIP_NO_INPUT set); question: {message}"
         )
 
 
@@ -241,7 +239,7 @@ def strtobool(val):
     elif val in ("n", "no", "f", "false", "off", "0"):
         return 0
     else:
-        raise ValueError("invalid truth value %r" % (val,))
+        raise ValueError(f"invalid truth value {val!r}")
 
 
 def format_size(bytes):
@@ -271,18 +269,14 @@ def tabulate(rows):
     return table, sizes
 
 
-def is_installable_dir(path):
-    # type: (str) -> bool
-    """Is path is a directory containing setup.py or pyproject.toml?"""
+def is_installable_dir(path: str) -> bool:
+    """Is path is a directory containing pyproject.toml, setup.cfg or setup.py?"""
     if not os.path.isdir(path):
         return False
-    setup_py = os.path.join(path, "setup.py")
-    if os.path.isfile(setup_py):
-        return True
-    pyproject_toml = os.path.join(path, "pyproject.toml")
-    if os.path.isfile(pyproject_toml):
-        return True
-    return False
+    return any(
+        os.path.isfile(os.path.join(path, signifier))
+        for signifier in ("pyproject.toml", "setup.cfg", "setup.py")
+    )
 
 
 def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):

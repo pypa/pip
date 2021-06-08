@@ -176,7 +176,7 @@ def get_requirement_info(dist):
 
     location = os.path.normcase(os.path.abspath(dist.location))
 
-    from pip._internal.vcs import RemoteNotFoundError, vcs
+    from pip._internal.vcs import RemoteNotFoundError, RemoteNotValidError, vcs
     vcs_backend = vcs.get_backend_for_dir(location)
 
     if vcs_backend is None:
@@ -198,6 +198,14 @@ def get_requirement_info(dist):
             '# Editable {} install with no remote ({})'.format(
                 type(vcs_backend).__name__, req,
             )
+        ]
+        return (location, True, comments)
+    except RemoteNotValidError as ex:
+        req = dist.as_requirement()
+        comments = [
+            f"# Editable {type(vcs_backend).__name__} install ({req}) with "
+            f"either a deleted local remote or invalid URI:",
+            f"# '{ex.url}'",
         ]
         return (location, True, comments)
 

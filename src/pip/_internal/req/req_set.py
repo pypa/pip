@@ -28,7 +28,7 @@ class RequirementSet:
         # type: () -> str
         requirements = sorted(
             (req for req in self.requirements.values() if not req.comes_from),
-            key=lambda req: canonicalize_name(req.name),
+            key=lambda req: canonicalize_name(req.name or ""),
         )
         return ' '.join(str(req.req) for req in requirements)
 
@@ -36,7 +36,7 @@ class RequirementSet:
         # type: () -> str
         requirements = sorted(
             self.requirements.values(),
-            key=lambda req: canonicalize_name(req.name),
+            key=lambda req: canonicalize_name(req.name or ""),
         )
 
         format_string = '<{classname} object; {count} requirement(s): {reqs}>'
@@ -122,6 +122,8 @@ class RequirementSet:
             existing_req and
             not existing_req.constraint and
             existing_req.extras == install_req.extras and
+            existing_req.req and
+            install_req.req and
             existing_req.req.specifier != install_req.req.specifier
         )
         if has_conflicting_requirement:

@@ -349,7 +349,7 @@ class InstallRequirement:
 
         # When parallel builds are enabled, add a UUID to the build directory
         # name so multiple builds do not interfere with each other.
-        dir_name = canonicalize_name(self.name)
+        dir_name = canonicalize_name(self.name)  # type: str
         if parallel_builds:
             dir_name = f"{dir_name}_{uuid.uuid4().hex}"
 
@@ -515,6 +515,11 @@ class InstallRequirement:
         """
         if not self.use_pep517:
             assert self.unpacked_source_directory
+
+            if not os.path.exists(self.setup_py_path):
+                raise InstallationError(
+                    f'File "setup.py" not found for legacy project {self}.'
+                )
 
             return generate_metadata_legacy(
                 build_env=self.build_env,
@@ -848,8 +853,8 @@ def check_invalid_constraint_type(req):
     problem = ""
     if not req.name:
         problem = "Unnamed requirements are not allowed as constraints"
-    elif req.link:
-        problem = "Links are not allowed as constraints"
+    elif req.editable:
+        problem = "Editable requirements are not allowed as constraints"
     elif req.extras:
         problem = "Constraints cannot have extras"
 

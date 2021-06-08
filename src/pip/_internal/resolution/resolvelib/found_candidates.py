@@ -100,13 +100,15 @@ class FoundCandidates(collections_abc.Sequence):
 
     def __init__(
         self,
-        get_infos,  # type: Callable[[], Iterator[IndexCandidateInfo]]
-        installed,  # type: Optional[Candidate]
-        prefers_installed,  # type: bool
+        get_infos: Callable[[], Iterator[IndexCandidateInfo]],
+        installed: Optional[Candidate],
+        prefers_installed: bool,
+        incompatible_ids: Set[int],
     ):
         self._get_infos = get_infos
         self._installed = installed
         self._prefers_installed = prefers_installed
+        self._incompatible_ids = incompatible_ids
 
     def __getitem__(self, index):
         # type: (int) -> Candidate
@@ -119,10 +121,12 @@ class FoundCandidates(collections_abc.Sequence):
         # type: () -> Iterator[Candidate]
         infos = self._get_infos()
         if not self._installed:
-            return _iter_built(infos)
-        if self._prefers_installed:
-            return _iter_built_with_prepended(self._installed, infos)
-        return _iter_built_with_inserted(self._installed, infos)
+            iterator = _iter_built(infos)
+        elif self._prefers_installed:
+            iterator = _iter_built_with_prepended(self._installed, infos)
+        else:
+            iterator = _iter_built_with_inserted(self._installed, infos)
+        return (c for c in iterator if id(c) not in self._incompatible_ids)
 
     def __len__(self):
         # type: () -> int

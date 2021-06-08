@@ -74,8 +74,27 @@ def uninstallation_paths(dist):
     the .pyc and .pyo in the same directory.
 
     UninstallPathSet.add() takes care of the __pycache__ .py[co].
+
+    If RECORD is not found, raises UninstallationError,
+    with possible information from the INSTALLER file.
+
+    https://packaging.python.org/specifications/recording-installed-packages/
     """
-    r = csv.reader(dist.get_metadata_lines('RECORD'))
+    try:
+        r = csv.reader(dist.get_metadata_lines('RECORD'))
+    except FileNotFoundError as missing_record_exception:
+        msg = 'Cannot uninstall {dist}, RECORD file not found.'.format(dist=dist)
+        try:
+            installer = next(dist.get_metadata_lines('INSTALLER'))
+            if not installer or installer == 'pip':
+                raise ValueError()
+        except (OSError, StopIteration, ValueError):
+            dep = '{}=={}'.format(dist.project_name, dist.version)
+            msg += (" You might be able to recover from this via: "
+                    "'pip install --force-reinstall --no-deps {}'.".format(dep))
+        else:
+            msg += ' Hint: The package was installed by {}.'.format(installer)
+        raise UninstallationError(msg) from missing_record_exception
     for row in r:
         path = os.path.join(dist.location, row[0])
         yield path

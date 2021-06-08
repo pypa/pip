@@ -9,9 +9,7 @@ from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
 from typing import Any, BinaryIO, Iterator, List, Union, cast
 
-# NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
-#       why we ignore the type on this import.
-from pip._vendor.retrying import retry  # type: ignore
+from pip._vendor.tenacity import retry, stop_after_delay, wait_fixed
 
 from pip._internal.utils.compat import get_path_uid
 from pip._internal.utils.misc import format_size
@@ -100,7 +98,8 @@ def adjacent_tmp_file(path, **kwargs):
             os.fsync(result.fileno())
 
 
-_replace_retry = retry(stop_max_delay=1000, wait_fixed=250)
+# Tenacity raises RetryError by default, explicitly raise the original exception
+_replace_retry = retry(reraise=True, stop=stop_after_delay(1), wait=wait_fixed(0.25))
 
 replace = _replace_retry(os.replace)
 

@@ -1,0 +1,194 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags:
+      # Tags for all potential release numbers till 2030.
+      - "2[0-9].[0-3]" # 20.0 -> 29.3
+      - "2[0-9].[0-3].[0-9]+" # 20.0.0 -> 29.3.[0-9]+
+  pull_request:
+  schedule:
+    - cron: 0 0 * * MON # Run every Monday at 00:00 UTC
+
+jobs:
+  determine-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      tests: ${{ steps.filter.outputs.tests }}
+      vendoring: ${{ steps.filter.outputs.vendoring }}
+    steps:
+      # For pull requests it's not necessary to checkout the code
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            vendoring:
+              # Anything that's touching "vendored code"
+              - "src/pip/_vendor/**"
+              - "pyproject.toml"
+            tests:
+              # Anything that's touching testable stuff
+              - ".github/workflows/ci.yml"
+              - "tools/requirements/tests.txt"
+              - "src/**"
+              - "tests/**"
+        if: github.event_name == 'pull_request'
+
+  pre-commit:
+    name: pre-commit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - uses: pre-commit/action@v2.0.0
+        with:
+          extra_args: --all-files --hook-stage=manual
+
+  packaging:
+    name: packaging
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - name: Set up git credentials
+        run: |
+          git config --global user.email "pypa-dev@googlegroups.com"
+          git config --global user.name "pip"
+
+      - run: pip install nox
+      - run: nox -s prepare-release -- 99.9
+      - run: nox -s build-release -- 99.9
+
+  vendoring:
+    name: vendoring
+    runs-on: ubuntu-latest
+
+    needs: [determine-changes]
+    if: >-
+      needs.determine-changes.outputs.vendoring == 'true' ||
+      github.event_name != 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+
+      - run: pip install vendoring
+      - run: vendoring sync . --verbose
+      - run: git diff --exit-code
+
+  tests-unix:
+    name: tests / ${{ matrix.python }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}-latest
+
+    needs: [pre-commit, packaging, determine-changes]
+    if: >-
+      needs.determine-changes.outputs.tests == 'true' ||
+      github.event_name != 'pull_request'
+
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [Ubuntu, MacOS]
+        python:
+          - 3.6
+          - 3.7
+          - 3.8
+          - 3.9
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+
+      - run: pip install tox 'virtualenv<20'
+
+      # Main check
+      - name: Run unit tests
+        run: >-
+          tox -e py --
+          -m unit
+          --verbose --numprocesses auto --showlocals
+      - name: Run integration tests
+        run: >-
+          tox -e py --
+          -m integration
+          --verbose --numprocesses auto --showlocals
+          --durations=5
+
+  tests-windows:
+    name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group }}
+    runs-on: ${{ matrix.os }}-latest
+
+    needs: [pre-commit, packaging, determine-changes]
+    if: >-
+      needs.determine-changes.outputs.tests == 'true' ||
+      github.event_name != 'pull_request'
+
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [Windows]
+        python:
+          - 3.6
+          # Commented out, since Windows tests are expensively slow.
+          # - 3.7
+          # - 3.8
+          - 3.9
+        group: [1, 2]
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+
+      # We use a RAMDisk on Windows, since filesystem IO is a big slowdown
+      # for our tests.
+      - name: Create a RAMDisk
+        run: ./tools/ci/New-RAMDisk.ps1 -Drive R -Size 1GB
+
+      - name: Setup RAMDisk permissions
+        run: |
+          mkdir R:\Temp
+          $acl = Get-Acl "R:\Temp"
+          $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+              "Everyone", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow"
+          )
+          $acl.AddAccessRule($rule)
+          Set-Acl "R:\Temp" $acl
+
+      - run: pip install tox 'virtualenv<20'
+        env:
+          TEMP: "R:\\Temp"
+
+      # Main check
+      - name: Run unit tests
+        if: matrix.group == 1
+        run: >-
+          tox -e py --
+          -m unit
+          --verbose --numprocesses auto --showlocals
+        env:
+          TEMP: "R:\\Temp"
+
+      - name: Run integration tests (group 1)
+        if: matrix.group == 1
+        run: >-
+          tox -e py --
+          -m integration -k "not test_install"
+          --verbose --numprocesses auto --showlocals
+        env:
+          TEMP: "R:\\Temp"
+
+      - name: Run integration tests (group 2)
+        if: matrix.group == 2
+        run: >-
+          tox -e py --
+          -m integration -k "test_install"
+          --verbose --numprocesses auto --showlocals
+        env:
+          TEMP: "R:\\Temp"

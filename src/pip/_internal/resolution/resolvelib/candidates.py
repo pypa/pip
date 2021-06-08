@@ -1,15 +1,15 @@
 import logging
 import sys
-from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, Optional, Tuple, Union, cast
 
 from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
-from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.packaging.version import Version, _BaseVersion
+from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
+from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.pkg_resources import Distribution
 
 from pip._internal.exceptions import HashError, MetadataInconsistent
-from pip._internal.models.link import Link
+from pip._internal.models.link import Link, links_equivalent
 from pip._internal.models.wheel import Wheel
 from pip._internal.req.constructors import (
     install_req_from_editable,
@@ -19,7 +19,7 @@ from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.misc import dist_is_editable, normalize_version_info
 from pip._internal.utils.packaging import get_requires_python
 
-from .base import Candidate, Requirement, format_name
+from .base import Candidate, CandidateVersion, Requirement, format_name
 
 if TYPE_CHECKING:
     from .factory import Factory
@@ -31,6 +31,18 @@ BaseCandidate = Union[
     "EditableCandidate",
     "LinkCandidate",
 ]
+
+
+def as_base_candidate(candidate: Candidate) -> Optional[BaseCandidate]:
+    """The runtime version of BaseCandidate."""
+    base_candidate_classes = (
+        AlreadyInstalledCandidate,
+        EditableCandidate,
+        LinkCandidate,
+    )
+    if isinstance(candidate, base_candidate_classes):
+        return candidate
+    return None
 
 
 def make_install_req_from_link(link, template):
@@ -126,8 +138,8 @@ class _InstallRequirementBackedCandidate(Candidate):
         source_link,  # type: Link
         ireq,  # type: InstallRequirement
         factory,  # type: Factory
-        name=None,  # type: Optional[str]
-        version=None,  # type: Optional[_BaseVersion]
+        name=None,  # type: Optional[NormalizedName]
+        version=None,  # type: Optional[CandidateVersion]
     ):
         # type: (...) -> None
         self._link = link
@@ -156,7 +168,7 @@ class _InstallRequirementBackedCandidate(Candidate):
     def __eq__(self, other):
         # type: (Any) -> bool
         if isinstance(other, self.__class__):
-            return self._link == other._link
+            return links_equivalent(self._link, other._link)
         return False
 
     @property
@@ -166,7 +178,7 @@ class _InstallRequirementBackedCandidate(Candidate):
 
     @property
     def project_name(self):
-        # type: () -> str
+        # type: () -> NormalizedName
         """The normalised name of the project the candidate refers to"""
         if self._name is None:
             self._name = canonicalize_name(self.dist.project_name)
@@ -179,7 +191,7 @@ class _InstallRequirementBackedCandidate(Candidate):
 
     @property
     def version(self):
-        # type: () -> _BaseVersion
+        # type: () -> CandidateVersion
         if self._version is None:
             self._version = parse_version(self.dist.version)
         return self._version
@@ -262,8 +274,8 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
         link,  # type: Link
         template,  # type: InstallRequirement
         factory,  # type: Factory
-        name=None,  # type: Optional[str]
-        version=None,  # type: Optional[_BaseVersion]
+        name=None,  # type: Optional[NormalizedName]
+        version=None,  # type: Optional[CandidateVersion]
     ):
         # type: (...) -> None
         source_link = link
@@ -315,8 +327,8 @@ class EditableCandidate(_InstallRequirementBackedCandidate):
         link,  # type: Link
         template,  # type: InstallRequirement
         factory,  # type: Factory
-        name=None,  # type: Optional[str]
-        version=None,  # type: Optional[_BaseVersion]
+        name=None,  # type: Optional[NormalizedName]
+        version=None,  # type: Optional[CandidateVersion]
     ):
         # type: (...) -> None
         super().__init__(
@@ -378,7 +390,7 @@ class AlreadyInstalledCandidate(Candidate):
 
     @property
     def project_name(self):
-        # type: () -> str
+        # type: () -> NormalizedName
         return canonicalize_name(self.dist.project_name)
 
     @property
@@ -388,7 +400,7 @@ class AlreadyInstalledCandidate(Candidate):
 
     @property
     def version(self):
-        # type: () -> _BaseVersion
+        # type: () -> CandidateVersion
         return parse_version(self.dist.version)
 
     @property
@@ -471,7 +483,7 @@ class ExtrasCandidate(Candidate):
 
     @property
     def project_name(self):
-        # type: () -> str
+        # type: () -> NormalizedName
         return self.base.project_name
 
     @property
@@ -482,7 +494,7 @@ class ExtrasCandidate(Candidate):
 
     @property
     def version(self):
-        # type: () -> _BaseVersion
+        # type: () -> CandidateVersion
         return self.base.version
 
     def format_for_error(self):
@@ -565,9 +577,9 @@ class RequiresPythonCandidate(Candidate):
 
     @property
     def project_name(self):
-        # type: () -> str
+        # type: () -> NormalizedName
         # Avoid conflicting with the PyPI package "Python".
-        return "<Python from Requires-Python>"
+        return cast(NormalizedName, "<Python from Requires-Python>")
 
     @property
     def name(self):
@@ -576,7 +588,7 @@ class RequiresPythonCandidate(Candidate):
 
     @property
     def version(self):
-        # type: () -> _BaseVersion
+        # type: () -> CandidateVersion
         return self._version
 
     def format_for_error(self):

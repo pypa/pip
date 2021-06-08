@@ -127,7 +127,11 @@ def get_scheme(
 
     paths = sysconfig.get_paths(scheme=scheme_name, vars=variables)
 
-    # Pip historically uses a special header path in virtual environments.
+    # Logic here is very arbitrary, we're doing it for compatibility, don't ask.
+    # 1. Pip historically uses a special header path in virtual environments.
+    # 2. If the distribution name is not known, distutils uses 'UNKNOWN'. We
+    #    only do the same when not running in a virtual environment because
+    #    pip's historical header path logic (see point 1) did not do this.
     if running_under_virtualenv():
         if user:
             base = variables.get("userbase", sys.prefix)
@@ -135,13 +139,8 @@ def get_scheme(
             base = variables.get("base", sys.prefix)
         python_xy = f"python{get_major_minor_version()}"
         paths["include"] = os.path.join(base, "include", "site", python_xy)
-
-    # Special user scripts path on Windows for compatibility to distutils.
-    # See ``distutils.commands.install.INSTALL_SCHEMES["nt_user"]["scripts"]``.
-    if scheme_name == "nt_user":
-        base = variables.get("userbase", sys.prefix)
-        python_xy = f"Python{sys.version_info.major}{sys.version_info.minor}"
-        paths["scripts"] = os.path.join(base, python_xy, "Scripts")
+    elif not dist_name:
+        dist_name = "UNKNOWN"
 
     scheme = Scheme(
         platlib=paths["platlib"],
