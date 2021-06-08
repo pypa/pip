@@ -343,10 +343,13 @@ class Configuration:
             out_stream.close()
             rgx = re.compile(r'\"(.*?)\" = \"(.*?)\"')
             found = rgx.findall(data)
+            names = set()   # do not touch names from lower tables
             for key, val in found:
                 name = key[4:].lower()
-                if name not in ENV_NAMES_IGNORED:
-                    yield name, val
+                if name not in names:
+                    names.add(name)
+                    if name not in ENV_NAMES_IGNORED:
+                        yield name, val
             return
         for key, val in os.environ.items():
             if key.startswith("PIP_"):
