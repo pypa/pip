@@ -114,6 +114,23 @@ def transform_hits(hits):
     return list(packages.values())
 
 
+def print_dist_installation_info(name, latest):
+    # type: (str, str) -> None
+    env = get_default_environment()
+    dist = env.get_distribution(name)
+    if dist is not None:
+        with indent_log():
+            if dist.version == latest:
+                write_output('INSTALLED: %s (latest)', dist.version)
+            else:
+                write_output('INSTALLED: %s', dist.version)
+                if parse_version(latest).pre:
+                    write_output('LATEST:    %s (pre-release; install'
+                                 ' with "pip install --pre")', latest)
+                else:
+                    write_output('LATEST:    %s', latest)
+
+
 def print_results(hits, name_column_width=None, terminal_width=None):
     # type: (List[TransformedHit], Optional[int], Optional[int]) -> None
     if not hits:
@@ -124,7 +141,6 @@ def print_results(hits, name_column_width=None, terminal_width=None):
             for hit in hits
         ]) + 4
 
-    env = get_default_environment()
     for hit in hits:
         name = hit['name']
         summary = hit['summary'] or ''
@@ -141,18 +157,7 @@ def print_results(hits, name_column_width=None, terminal_width=None):
         line = f'{name_latest:{name_column_width}} - {summary}'
         try:
             write_output(line)
-            dist = env.get_distribution(name)
-            if dist is not None:
-                with indent_log():
-                    if dist.version == latest:
-                        write_output('INSTALLED: %s (latest)', dist.version)
-                    else:
-                        write_output('INSTALLED: %s', dist.version)
-                        if parse_version(latest).pre:
-                            write_output('LATEST:    %s (pre-release; install'
-                                         ' with "pip install --pre")', latest)
-                        else:
-                            write_output('LATEST:    %s', latest)
+            print_dist_installation_info(name, latest)
         except UnicodeEncodeError:
             pass
 
