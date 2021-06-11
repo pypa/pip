@@ -25,6 +25,7 @@ from pip._internal.operations.check import ConflictDetails, check_install_confli
 from pip._internal.req import install_given_reqs
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.req.req_tracker import get_requirement_tracker
+from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.distutils_args import parse_distutils_args
 from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.logging import getLogger
@@ -736,5 +737,17 @@ def create_os_error_message(error, show_traceback, using_user_site):
         else:
             parts.append(permissions_part)
         parts.append(".\n")
+
+    # Suggest the user to enable Long Paths if path length is
+    # more than 260
+    if (WINDOWS and error.errno == errno.ENOENT and error.filename and
+            len(error.filename) > 260):
+        parts.append(
+            "HINT: This error might have occurred since "
+            "this system does not have Windows Long Path "
+            "support enabled. You can find information on "
+            "how to enable this at "
+            "https://pip.pypa.io/warnings/enable-long-paths\n"
+        )
 
     return "".join(parts).strip() + "\n"
