@@ -4,9 +4,10 @@ import logging
 import logging.handlers
 import os
 import sys
-from logging import Filter, getLogger
+from logging import Filter
 from typing import IO, Any, Callable, Iterator, Optional, TextIO, Type, cast
 
+from pip._internal.utils._log import VERBOSE, getLogger
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from pip._internal.utils.misc import ensure_dir
@@ -27,11 +28,6 @@ except Exception:
 
 _log_state = threading.local()
 subprocess_logger = getLogger("pip.subprocessor")
-
-
-# custom log level for `--verbose` output
-# between DEBUG and INFO
-VERBOSE = 15
 
 
 class BrokenStdoutLoggingError(Exception):
@@ -276,7 +272,6 @@ def setup_logging(verbosity, no_color, user_log_file):
     Returns the requested logging level, as its integer value.
     """
 
-    logging.addLevelName(VERBOSE, "VERBOSE")
     # Determine the level to be logging at.
     if verbosity >= 2:
         level_number = logging.DEBUG

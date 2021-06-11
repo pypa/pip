@@ -4,7 +4,6 @@ Contains interface (MultiDomainBasicAuth) and associated glue code for
 providing credentials in the context of network requests.
 """
 
-import logging
 import urllib.parse
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -12,6 +11,7 @@ from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
 from pip._vendor.requests.models import Request, Response
 from pip._vendor.requests.utils import get_netrc_auth
 
+from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import (
     ask,
     ask_input,
@@ -21,7 +21,7 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.vcs.versioncontrol import AuthInfo
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 Credentials = Tuple[str, str, str]
 

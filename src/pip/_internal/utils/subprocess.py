@@ -2,7 +2,6 @@ import logging
 import os
 import shlex
 import subprocess
-from functools import partial
 from typing import Any, Callable, Iterable, List, Mapping, Optional, Union
 
 from pip._internal.cli.spinners import SpinnerInterface, open_spinner
@@ -145,9 +144,9 @@ def call_subprocess(
         log_subprocess = subprocess_logger.info
         used_level = logging.INFO
     else:
-        # Then log the subprocess output using DEBUG.  This also ensures
+        # Then log the subprocess output using VERBOSE.  This also ensures
         # it will be logged to the log file (aka user_log), if enabled.
-        log_subprocess = partial(subprocess_logger.log, VERBOSE)
+        log_subprocess = subprocess_logger.verbose
         used_level = VERBOSE
 
     # Whether the subprocess will be visible in the console.
