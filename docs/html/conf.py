@@ -52,6 +52,10 @@ with open(file_with_version) as f:
 print("pip version:", version)
 print("pip release:", release)
 
+# -- Options for myst-parser ----------------------------------------------------------
+
+myst_enable_extensions = ["deflist"]
+
 # -- Options for smartquotes ----------------------------------------------------------
 
 # Disable the conversion of dashes so that long options like "--find-links" won't
