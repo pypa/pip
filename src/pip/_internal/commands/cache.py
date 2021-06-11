@@ -1,4 +1,3 @@
-import logging
 import os
 import textwrap
 from optparse import Values
@@ -8,8 +7,9 @@ import pip._internal.utils.filesystem as filesystem
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.exceptions import CommandError, PipError
+from pip._internal.utils.logging import getLogger
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
 class CacheCommand(Command):
@@ -184,8 +184,8 @@ class CacheCommand(Command):
 
         for filename in files:
             os.unlink(filename)
-            logger.debug('Removed %s', filename)
-        logger.info('Files removed: %s', len(files))
+            logger.verbose("Removed %s", filename)
+        logger.info("Files removed: %s", len(files))
 
     def purge_cache(self, options, args):
         # type: (Values, List[Any]) -> None

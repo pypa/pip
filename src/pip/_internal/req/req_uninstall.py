@@ -1,6 +1,5 @@
 import csv
 import functools
-import logging
 import os
 import sys
 import sysconfig
@@ -13,7 +12,7 @@ from pip._vendor.pkg_resources import Distribution
 from pip._internal.exceptions import UninstallationError
 from pip._internal.locations import get_bin_prefix, get_bin_user
 from pip._internal.utils.compat import WINDOWS
-from pip._internal.utils.logging import indent_log
+from pip._internal.utils.logging import getLogger, indent_log
 from pip._internal.utils.misc import (
     ask,
     dist_in_usersite,
@@ -26,7 +25,7 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
 def _script_names(dist, script_name, is_gui):
@@ -403,7 +402,7 @@ class UninstallPathSet:
 
                 for path in sorted(compact(for_rename)):
                     moved.stash(path)
-                    logger.debug('Removing file or directory %s', path)
+                    logger.verbose('Removing file or directory %s', path)
 
                 for pth in self.pth.values():
                     pth.remove()
@@ -618,7 +617,7 @@ class UninstallPthEntries:
 
     def remove(self):
         # type: () -> None
-        logger.debug('Removing pth entries from %s:', self.file)
+        logger.verbose('Removing pth entries from %s:', self.file)
 
         # If the file doesn't exist, log a warning and return
         if not os.path.isfile(self.file):
@@ -639,7 +638,7 @@ class UninstallPthEntries:
             lines[-1] = lines[-1] + endline.encode("utf-8")
         for entry in self.entries:
             try:
-                logger.debug('Removing entry: %s', entry)
+                logger.verbose('Removing entry: %s', entry)
                 lines.remove((entry + endline).encode("utf-8"))
             except ValueError:
                 pass

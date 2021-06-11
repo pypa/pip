@@ -1,5 +1,4 @@
 import errno
-import logging
 import operator
 import os
 import shutil
@@ -28,6 +27,7 @@ from pip._internal.req.req_install import InstallRequirement
 from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.utils.distutils_args import parse_distutils_args
 from pip._internal.utils.filesystem import test_writable_dir
+from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import (
     ensure_dir,
     get_pip_version,
@@ -45,7 +45,7 @@ from pip._internal.wheel_builder import (
     should_build_for_install_command,
 )
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
 def get_check_binary_allowed(format_control):
@@ -238,7 +238,7 @@ class InstallCommand(RequirementCommand):
 
         install_options = options.install_options or []
 
-        logger.debug("Using %s", get_pip_version())
+        logger.verbose("Using %s", get_pip_version())
         options.use_user_site = decide_user_install(
             options.use_user_site,
             prefix_path=options.prefix_path,

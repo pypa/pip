@@ -6,7 +6,7 @@ from typing import Any, Callable, Iterable, List, Mapping, Optional, Union
 
 from pip._internal.cli.spinners import SpinnerInterface, open_spinner
 from pip._internal.exceptions import InstallationSubprocessError
-from pip._internal.utils.logging import subprocess_logger
+from pip._internal.utils.logging import VERBOSE, subprocess_logger
 from pip._internal.utils.misc import HiddenText
 
 CommandArgs = List[Union[str, HiddenText]]
@@ -144,10 +144,10 @@ def call_subprocess(
         log_subprocess = subprocess_logger.info
         used_level = logging.INFO
     else:
-        # Then log the subprocess output using DEBUG.  This also ensures
+        # Then log the subprocess output using VERBOSE.  This also ensures
         # it will be logged to the log file (aka user_log), if enabled.
-        log_subprocess = subprocess_logger.debug
-        used_level = logging.DEBUG
+        log_subprocess = subprocess_logger.verbose
+        used_level = VERBOSE
 
     # Whether the subprocess will be visible in the console.
     showing_subprocess = subprocess_logger.getEffectiveLevel() <= used_level
