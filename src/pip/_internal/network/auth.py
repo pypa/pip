@@ -170,13 +170,12 @@ class MultiDomainBasicAuth(AuthBase):
         """
         url, netloc, _ = split_auth_netloc_from_url(original_url)
 
-        # Use any stored credentials that we have for this netloc
-        username, password = self.passwords.get(netloc, (None, None))
+        # Try to get credentials from original url
+        username, password = self._get_new_credentials(original_url)
 
+        # If credentials not found, use any stored credentials for this netloc
         if username is None and password is None:
-            # No stored credentials. Acquire new credentials without prompting
-            # the user. (e.g. from netrc, keyring, or the URL itself)
-            username, password = self._get_new_credentials(original_url)
+            username, password = self.passwords.get(netloc, (None, None))
 
         if username is not None or password is not None:
             # Convert the username and password if they're None, so that
