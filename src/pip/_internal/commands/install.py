@@ -744,7 +744,7 @@ def create_os_error_message(error, show_traceback, using_user_site):
             len(error.filename) > 260):
         parts.append(
             "A potential cause to this error is "
-            "Long Paths beign disabled on your system. "
+            "Long Paths being disabled on your system. "
             "Please set LongPathsEnabled to 1 in the "
             "registry and try again. For further instructions "
             "please refer to the documentation: "
