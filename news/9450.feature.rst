@@ -1,2 +1,3 @@
-Require ``-vv`` for full debug-level output, ``-v`` now enables an intermediate level of verbosity,
-e.g. showing subprocess output of ``setup.py install`` but not all dependency resolution debug output.
+Add an additional level of verbosity. ``--verbose`` (and the shorthand ``-v``) now
+contains significantly less output, and users that need complete full debug-level output
+should pass it twice (``--verbose --verbose`` or ``-vv``).
