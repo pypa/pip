@@ -18,7 +18,7 @@ https://0123456789abcdef@pypi.company.com/simple
 
 ### Percent-encoding special characters
 
-```{versionaddded} 10.0
+```{versionadded} 10.0
 ```
 
 Certain special characters are not valid in the credential part of a URL.
