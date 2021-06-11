@@ -60,6 +60,8 @@ If you face issues when using Python and pip installed using these mechanisms,
 it is recommended to request for support from the relevant provider (eg: Linux
 distro community, cloud provider support channels, etc).
 
+(compatibility-requirements)=
+
 ## Compatibility
 
 The current version of pip works on:
