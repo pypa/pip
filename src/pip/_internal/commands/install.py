@@ -743,12 +743,11 @@ def create_os_error_message(error, show_traceback, using_user_site):
     if (WINDOWS and error.errno == errno.ENOENT and error.filename and
             len(error.filename) > 260):
         parts.append(
-            "A potential cause to this error is "
-            "Long Paths being disabled on your system. "
-            "Please set LongPathsEnabled to 1 in the "
-            "registry and try again. For further instructions "
-            "please refer to the documentation: "
-            "https://pip.pypa.io/warnings/enable-long-paths"
+            "HINT: This error might have occurred since "
+            "this system does not have Windows Long Path "
+            "support enabled. You can find information on "
+            "how to enable this at "
+            "https://pip.pypa.io/warnings/enable-long-paths\n"
         )
 
     return "".join(parts).strip() + "\n"
