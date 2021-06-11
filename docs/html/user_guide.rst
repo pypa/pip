@@ -63,17 +63,17 @@ For more information and examples, see the :ref:`pip install` reference.
 Basic Authentication Credentials
 ================================
 
-This is now covered in {doc}`topics/authentication`.
+This is now covered in :doc:`topics/authentication`.
 
 netrc Support
 -------------
 
-This is now covered in {doc}`topics/authentication`.
+This is now covered in :doc:`topics/authentication`.
 
 Keyring Support
 ---------------
 
-This is now covered in {doc}`topics/authentication`.
+This is now covered in :doc:`topics/authentication`.
 
 Using a Proxy Server
 ====================
