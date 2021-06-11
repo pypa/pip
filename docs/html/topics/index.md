@@ -11,4 +11,5 @@ This section of the documentation is currently being fleshed out. See
 :maxdepth: 1
 
 authentication
+caching
 ```
