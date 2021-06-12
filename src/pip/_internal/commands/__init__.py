@@ -63,6 +63,10 @@ commands_dict = OrderedDict([
         'pip._internal.commands.cache', 'CacheCommand',
         "Inspect and manage pip's wheel cache.",
     )),
+    ('index', CommandInfo(
+        'pip._internal.commands.index', 'IndexCommand',
+        "Inspect information available from package indexes.",
+    )),
     ('wheel', CommandInfo(
         'pip._internal.commands.wheel', 'WheelCommand',
         'Build wheels from your requirements.',

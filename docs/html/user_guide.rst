@@ -63,17 +63,17 @@ For more information and examples, see the :ref:`pip install` reference.
 Basic Authentication Credentials
 ================================
 
-This is now covered in {doc}`topics/authentication`.
+This is now covered in :doc:`topics/authentication`.
 
 netrc Support
 -------------
 
-This is now covered in {doc}`topics/authentication`.
+This is now covered in :doc:`topics/authentication`.
 
 Keyring Support
 ---------------
 
-This is now covered in {doc}`topics/authentication`.
+This is now covered in :doc:`topics/authentication`.
 
 Using a Proxy Server
 ====================
@@ -437,242 +437,26 @@ For more information and examples, see the :ref:`pip search` reference.
 Configuration
 =============
 
+This is now covered in :doc:`topics/configuration`.
+
 .. _config-file:
 
 Config file
 -----------
 
-pip allows you to set all command line option defaults in a standard ini
-style config file.
-
-The names and locations of the configuration files vary slightly across
-platforms. You may have per-user, per-virtualenv or global (shared amongst
-all users) configuration:
-
-**Per-user**:
-
-* On Unix the default configuration file is: :file:`$HOME/.config/pip/pip.conf`
-  which respects the ``XDG_CONFIG_HOME`` environment variable.
-* On macOS the configuration file is
-  :file:`$HOME/Library/Application Support/pip/pip.conf`
-  if directory ``$HOME/Library/Application Support/pip`` exists
-  else :file:`$HOME/.config/pip/pip.conf`.
-* On Windows the configuration file is :file:`%APPDATA%\\pip\\pip.ini`.
-
-There is also a legacy per-user configuration file which is also respected.
-To find its location:
-
-* On Unix and macOS the configuration file is: :file:`$HOME/.pip/pip.conf`
-* On Windows the configuration file is: :file:`%HOME%\\pip\\pip.ini`
-
-You can set a custom path location for this config file using the environment
-variable ``PIP_CONFIG_FILE``.
-
-**Inside a virtualenv**:
-
-* On Unix and macOS the file is :file:`$VIRTUAL_ENV/pip.conf`
-* On Windows the file is: :file:`%VIRTUAL_ENV%\\pip.ini`
-
-**Global**:
-
-* On Unix the file may be located in :file:`/etc/pip.conf`. Alternatively
-  it may be in a "pip" subdirectory of any of the paths set in the
-  environment variable ``XDG_CONFIG_DIRS`` (if it exists), for example
-  :file:`/etc/xdg/pip/pip.conf`.
-* On macOS the file is: :file:`/Library/Application Support/pip/pip.conf`
-* On Windows XP the file is:
-  :file:`C:\\Documents and Settings\\All Users\\Application Data\\pip\\pip.ini`
-* On Windows 7 and later the file is hidden, but writeable at
-  :file:`C:\\ProgramData\\pip\\pip.ini`
-* Global configuration is not supported on Windows Vista.
-
-The global configuration file is shared by all Python installations.
-
-If multiple configuration files are found by pip then they are combined in
-the following order:
-
-1. The global file is read
-2. The per-user file is read
-3. The virtualenv-specific file is read
-
-Each file read overrides any values read from previous files, so if the
-global timeout is specified in both the global file and the per-user file
-then the latter value will be used.
-
-The names of the settings are derived from the long command line option, e.g.
-if you want to use a different package index (``--index-url``) and set the
-HTTP timeout (``--default-timeout``) to 60 seconds your config file would
-look like this:
-
-.. code-block:: ini
-
-    [global]
-    timeout = 60
-    index-url = https://download.zope.org/ppix
-
-Each subcommand can be configured optionally in its own section so that every
-global setting with the same name will be overridden; e.g. decreasing the
-``timeout`` to ``10`` seconds when running the ``freeze``
-(:ref:`pip freeze`) command and using
-``60`` seconds for all other commands is possible with:
-
-.. code-block:: ini
-
-    [global]
-    timeout = 60
-
-    [freeze]
-    timeout = 10
-
-
-Boolean options like ``--ignore-installed`` or ``--no-dependencies`` can be
-set like this:
-
-.. code-block:: ini
-
-    [install]
-    ignore-installed = true
-    no-dependencies = yes
-
-To enable the boolean options ``--no-compile``, ``--no-warn-script-location``
-and ``--no-cache-dir``, falsy values have to be used:
-
-.. code-block:: ini
-
-    [global]
-    no-cache-dir = false
-
-    [install]
-    no-compile = no
-    no-warn-script-location = false
-
-For options which can be repeated like ``--verbose`` and ``--quiet``,
-a non-negative integer can be used to represent the level to be specified:
-
-.. code-block:: ini
-
-    [global]
-    quiet = 0
-    verbose = 2
-
-It is possible to append values to a section within a configuration file such as the pip.ini file.
-This is applicable to appending options like ``--find-links`` or ``--trusted-host``,
-which can be written on multiple lines:
-
-.. code-block:: ini
-
-    [global]
-    find-links =
-        http://download.example.com
-
-    [install]
-    find-links =
-        http://mirror1.example.com
-        http://mirror2.example.com
-
-    trusted-host =
-        mirror1.example.com
-        mirror2.example.com
-
-This enables users to add additional values in the order of entry for such command line arguments.
-
+This is now covered in :doc:`topics/configuration`.
 
 Environment Variables
 ---------------------
 
-pip's command line options can be set with environment variables using the
-format ``PIP_<UPPER_LONG_NAME>`` . Dashes (``-``) have to be replaced with
-underscores (``_``).
-
-For example, to set the default timeout:
-
-.. tab:: Unix/macOS
-
-   .. code-block:: shell
-
-      export PIP_DEFAULT_TIMEOUT=60
-
-.. tab:: Windows
-
-   .. code-block:: shell
-
-      set PIP_DEFAULT_TIMEOUT=60
-
-This is the same as passing the option to pip directly:
-
-.. tab:: Unix/macOS
-
-   .. code-block:: shell
-
-      python -m pip --default-timeout=60 [...]
-
-.. tab:: Windows
-
-   .. code-block:: shell
-
-      py -m pip --default-timeout=60 [...]
-
-For command line options which can be repeated, use a space to separate
-multiple values. For example:
-
-.. tab:: Unix/macOS
-
-   .. code-block:: shell
-
-      export PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
-
-.. tab:: Windows
-
-   .. code-block:: shell
-
-      set PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
-
-is the same as calling:
-
-.. tab:: Unix/macOS
-
-   .. code-block:: shell
-
-      python -m pip install --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
-
-.. tab:: Windows
-
-   .. code-block:: shell
-
-      py -m pip install --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
-
-Options that do not take a value, but can be repeated (such as ``--verbose``)
-can be specified using the number of repetitions, so::
-
-    export PIP_VERBOSE=3
-
-is the same as calling::
-
-    pip install -vvv
-
-.. note::
-
-   Environment variables set to be empty string will not be treated as false.
-   Please use ``no``, ``false`` or ``0`` instead.
-
+This is now covered in :doc:`topics/configuration`.
 
 .. _config-precedence:
 
 Config Precedence
 -----------------
 
-Command line options have precedence over environment variables, which have
-precedence over the config file.
-
-Within the config file, command specific sections have precedence over the
-global section.
-
-Examples:
-
-- ``--host=foo`` overrides ``PIP_HOST=foo``
-- ``PIP_HOST=foo`` overrides a config file with ``[global] host = foo``
-- A command specific section in the config file ``[<command>] host = bar``
-  overrides the option with same name in the ``[global]`` config file section
+This is now covered in :doc:`topics/configuration`.
 
 
 Command Completion

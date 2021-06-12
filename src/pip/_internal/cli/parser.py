@@ -18,20 +18,19 @@ logger = logging.getLogger(__name__)
 class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
     """A prettier/less verbose help formatter for optparse."""
 
-    def __init__(self, *args, **kwargs):
-        # type: (*Any, **Any) -> None
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         # help position must be aligned with __init__.parseopts.description
         kwargs["max_help_position"] = 30
         kwargs["indent_increment"] = 1
         kwargs["width"] = shutil.get_terminal_size()[0] - 2
         super().__init__(*args, **kwargs)
 
-    def format_option_strings(self, option):
-        # type: (optparse.Option) -> str
+    def format_option_strings(self, option: optparse.Option) -> str:
         return self._format_option_strings(option)
 
-    def _format_option_strings(self, option, mvarfmt=" <{}>", optsep=", "):
-        # type: (optparse.Option, str, str) -> str
+    def _format_option_strings(
+        self, option: optparse.Option, mvarfmt: str = " <{}>", optsep: str = ", "
+    ) -> str:
         """
         Return a comma-separated list of option strings and metavars.
 
@@ -55,14 +54,12 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
 
         return "".join(opts)
 
-    def format_heading(self, heading):
-        # type: (str) -> str
+    def format_heading(self, heading: str) -> str:
         if heading == "Options":
             return ""
         return heading + ":\n"
 
-    def format_usage(self, usage):
-        # type: (str) -> str
+    def format_usage(self, usage: str) -> str:
         """
         Ensure there is only one newline between usage and the first heading
         if there is no description.
@@ -70,8 +67,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         msg = "\nUsage: {}\n".format(self.indent_lines(textwrap.dedent(usage), "  "))
         return msg
 
-    def format_description(self, description):
-        # type: (str) -> str
+    def format_description(self, description: str) -> str:
         # leave full control over description to us
         if description:
             if hasattr(self.parser, "main"):
@@ -89,16 +85,14 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         else:
             return ""
 
-    def format_epilog(self, epilog):
-        # type: (str) -> str
+    def format_epilog(self, epilog: str) -> str:
         # leave full control over epilog to us
         if epilog:
             return epilog
         else:
             return ""
 
-    def indent_lines(self, text, indent):
-        # type: (str, str) -> str
+    def indent_lines(self, text: str, indent: str) -> str:
         new_lines = [indent + line for line in text.split("\n")]
         return "\n".join(new_lines)
 
@@ -112,8 +106,7 @@ class UpdatingDefaultsHelpFormatter(PrettyHelpFormatter):
     Also redact auth from url type options
     """
 
-    def expand_default(self, option):
-        # type: (optparse.Option) -> str
+    def expand_default(self, option: optparse.Option) -> str:
         default_values = None
         if self.parser is not None:
             assert isinstance(self.parser, ConfigOptionParser)
@@ -137,8 +130,9 @@ class UpdatingDefaultsHelpFormatter(PrettyHelpFormatter):
 
 
 class CustomOptionParser(optparse.OptionParser):
-    def insert_option_group(self, idx, *args, **kwargs):
-        # type: (int, Any, Any) -> optparse.OptionGroup
+    def insert_option_group(
+        self, idx: int, *args: Any, **kwargs: Any
+    ) -> optparse.OptionGroup:
         """Insert an OptionGroup at a given position."""
         group = self.add_option_group(*args, **kwargs)
 
@@ -148,8 +142,7 @@ class CustomOptionParser(optparse.OptionParser):
         return group
 
     @property
-    def option_list_all(self):
-        # type: () -> List[optparse.Option]
+    def option_list_all(self) -> List[optparse.Option]:
         """Get a list of all options, including those in option groups."""
         res = self.option_list[:]
         for i in self.option_groups:
@@ -164,28 +157,25 @@ class ConfigOptionParser(CustomOptionParser):
 
     def __init__(
         self,
-        *args,  # type: Any
-        name,  # type: str
-        isolated=False,  # type: bool
-        **kwargs,  # type: Any
-    ):
-        # type: (...) -> None
+        *args: Any,
+        name: str,
+        isolated: bool = False,
+        **kwargs: Any,
+    ) -> None:
         self.name = name
         self.config = Configuration(isolated)
 
         assert self.name
         super().__init__(*args, **kwargs)
 
-    def check_default(self, option, key, val):
-        # type: (optparse.Option, str, Any) -> Any
+    def check_default(self, option: optparse.Option, key: str, val: Any) -> Any:
         try:
             return option.check_value(key, val)
         except optparse.OptionValueError as exc:
             print(f"An error occurred during configuration: {exc}")
             sys.exit(3)
 
-    def _get_ordered_configuration_items(self):
-        # type: () -> Iterator[Tuple[str, Any]]
+    def _get_ordered_configuration_items(self) -> Iterator[Tuple[str, Any]]:
         # Configuration gives keys in an unordered manner. Order them.
         override_order = ["global", self.name, ":env:"]
 
@@ -211,8 +201,7 @@ class ConfigOptionParser(CustomOptionParser):
             for key, val in section_items[section]:
                 yield key, val
 
-    def _update_defaults(self, defaults):
-        # type: (Dict[str, Any]) -> Dict[str, Any]
+    def _update_defaults(self, defaults: Dict[str, Any]) -> Dict[str, Any]:
         """Updates the given defaults with values from the config files and
         the environ. Does a little special handling for certain types of
         options (lists)."""
@@ -276,8 +265,7 @@ class ConfigOptionParser(CustomOptionParser):
         self.values = None
         return defaults
 
-    def get_default_values(self):
-        # type: () -> optparse.Values
+    def get_default_values(self) -> optparse.Values:
         """Overriding to make updating the defaults after instantiation of
         the option parser possible, _update_defaults() does the dirty work."""
         if not self.process_default_values:
@@ -299,7 +287,6 @@ class ConfigOptionParser(CustomOptionParser):
                 defaults[option.dest] = option.check_value(opt_str, default)
         return optparse.Values(defaults)
 
-    def error(self, msg):
-        # type: (str) -> None
+    def error(self, msg: str) -> None:
         self.print_usage(sys.stderr)
         self.exit(UNKNOWN_ERROR, f"{msg}\n")

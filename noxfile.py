@@ -33,8 +33,7 @@ AUTHORS_FILE = "AUTHORS.txt"
 VERSION_FILE = "src/pip/__init__.py"
 
 
-def run_with_protected_pip(session, *arguments):
-    # type: (nox.Session, *str) -> None
+def run_with_protected_pip(session: nox.Session, *arguments: str) -> None:
     """Do a session.run("pip", *arguments), using a "protected" pip.
 
     This invokes a wrapper script, that forwards calls to original virtualenv
@@ -48,8 +47,7 @@ def run_with_protected_pip(session, *arguments):
     session.run(*command, env=env, silent=True)
 
 
-def should_update_common_wheels():
-    # type: () -> bool
+def should_update_common_wheels() -> bool:
     # If the cache hasn't been created, create it.
     if not os.path.exists(LOCATIONS["common-wheels"]):
         return True
@@ -73,8 +71,7 @@ def should_update_common_wheels():
 #   `tox -e ...` until this note is removed.
 # -----------------------------------------------------------------------------
 @nox.session(python=["3.6", "3.7", "3.8", "3.9", "pypy3"])
-def test(session):
-    # type: (nox.Session) -> None
+def test(session: nox.Session) -> None:
     # Get the common wheels.
     if should_update_common_wheels():
         # fmt: off
@@ -122,8 +119,7 @@ def test(session):
 
 
 @nox.session
-def docs(session):
-    # type: (nox.Session) -> None
+def docs(session: nox.Session) -> None:
     session.install("-e", ".")
     session.install("-r", REQUIREMENTS["docs"])
 
@@ -150,8 +146,7 @@ def docs(session):
 
 
 @nox.session(name="docs-live")
-def docs_live(session):
-    # type: (nox.Session) -> None
+def docs_live(session: nox.Session) -> None:
     session.install("-e", ".")
     session.install("-r", REQUIREMENTS["docs"], "sphinx-autobuild")
 
@@ -166,8 +161,7 @@ def docs_live(session):
 
 
 @nox.session
-def lint(session):
-    # type: (nox.Session) -> None
+def lint(session: nox.Session) -> None:
     session.install("pre-commit")
 
     if session.posargs:
@@ -179,8 +173,7 @@ def lint(session):
 
 
 @nox.session
-def vendoring(session):
-    # type: (nox.Session) -> None
+def vendoring(session: nox.Session) -> None:
     session.install("vendoring>=0.3.0")
 
     if "--upgrade" not in session.posargs:
@@ -238,8 +231,7 @@ def vendoring(session):
 # Release Commands
 # -----------------------------------------------------------------------------
 @nox.session(name="prepare-release")
-def prepare_release(session):
-    # type: (nox.Session) -> None
+def prepare_release(session: nox.Session) -> None:
     version = release.get_version_from_arguments(session)
     if not version:
         session.error("Usage: nox -s prepare-release -- <version>")
@@ -272,8 +264,7 @@ def prepare_release(session):
 
 
 @nox.session(name="build-release")
-def build_release(session):
-    # type: (nox.Session) -> None
+def build_release(session: nox.Session) -> None:
     version = release.get_version_from_arguments(session)
     if not version:
         session.error("Usage: nox -s build-release -- YY.N[.P]")
@@ -304,8 +295,7 @@ def build_release(session):
             shutil.copy(dist, final)
 
 
-def build_dists(session):
-    # type: (nox.Session) -> List[str]
+def build_dists(session: nox.Session) -> List[str]:
     """Return dists with valid metadata."""
     session.log(
         "# Check if there's any Git-untracked files before building the wheel",
@@ -333,8 +323,7 @@ def build_dists(session):
 
 
 @nox.session(name="upload-release")
-def upload_release(session):
-    # type: (nox.Session) -> None
+def upload_release(session: nox.Session) -> None:
     version = release.get_version_from_arguments(session)
     if not version:
         session.error("Usage: nox -s upload-release -- YY.N[.P]")
