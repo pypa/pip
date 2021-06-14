@@ -119,7 +119,6 @@ class BlueEmojiBar(IncrementalBar):
 
 class DownloadProgressMixin:
     def __init__(self, *args: List[Any], **kwargs: Dict[Any, Any]) -> None:
-        # type: (List[Any], Dict[Any, Any]) -> None
         # https://github.com/python/mypy/issues/5887
         super().__init__(*args, **kwargs)  # type: ignore
         self.message = (" " * (get_indentation() + 2)) + self.message  # type: str
