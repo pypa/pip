@@ -79,7 +79,10 @@ class SessionCommandMixin(CommandContextMixIn):
         return self._session
 
     def _build_session(
-        self, options: Values, retries: Optional[int]=None, timeout: Optional[int]=None
+        self, 
+        options: Values, 
+        retries: Optional[int] = None, 
+        timeout: Optional[int] = None
     ) -> PipSession:
         assert not options.cache_dir or os.path.isabs(options.cache_dir)
         session = PipSession(
@@ -189,7 +192,9 @@ def with_cleanup(func: Any) -> Any:
         for t in KEEPABLE_TEMPDIR_TYPES:
             registry.set_delete(t, False)
 
-    def wrapper(self: RequirementCommand, options: Values, args: List[Any]) -> Optional[int]:
+    def wrapper(
+        self: RequirementCommand, options: Values, args: List[Any]
+    ) -> Optional[int]:
         assert self.tempdir_registry is not None
         if options.no_clean:
             configure_tempdir_registry(self.tempdir_registry)
@@ -229,7 +234,7 @@ class RequirementCommand(IndexGroupCommand):
         session: PipSession,
         finder: PackageFinder,
         use_user_site: bool,
-        download_dir: str=None,
+        download_dir: str = None,
     ) -> RequirementParser: 
         """
         Create a RequirementPreparer instance for the given parameters.
@@ -276,14 +281,14 @@ class RequirementCommand(IndexGroupCommand):
         preparer: RequirementPreparer,
         finder: PackageFinder,
         options: Values,
-        wheel_cache: Optional[WheelCache]=None,
-        use_user_site: bool=False,
-        ignore_installed: bool=True,
-        ignore_requires_python: bool=False,
-        force_reinstall: bool=False,
-        upgrade_strategy: str="to-satisfy-only",
-        use_pep517: Optional[bool]=None,
-        py_version_info: Optional[Tuple[int, ...]]=None,
+        wheel_cache: Optional[WheelCache] = None,
+        use_user_site: bool = False,
+        ignore_installed: bool = True,
+        ignore_requires_python: bool = False,
+        force_reinstall: bool = False,
+        upgrade_strategy: str = "to-satisfy-only",
+        use_pep517: Optional[bool] = None,
+        py_version_info: Optional[Tuple[int, ...]] = None,
     ) -> BaseResolver:
         """
         Create a Resolver instance for the given parameters.
@@ -423,8 +428,8 @@ class RequirementCommand(IndexGroupCommand):
         self,
         options: Values,
         session: PipSession,
-        target_python: Optional[TargetPython]=None,
-        ignore_requires_python: Optional[bool]=None,
+        target_python: Optional[TargetPython] = None,
+        ignore_requires_python: Optional[bool] = None,
     ) -> PackageFinder:
         """
         Create a package finder appropriate to this requirement command.
