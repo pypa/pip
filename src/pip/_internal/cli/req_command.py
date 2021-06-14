@@ -235,7 +235,7 @@ class RequirementCommand(IndexGroupCommand):
         finder: PackageFinder,
         use_user_site: bool,
         download_dir: str = None,
-    ) -> RequirementParser: 
+    ) -> RequirementPreparer: 
         """
         Create a RequirementPreparer instance for the given parameters.
         """
