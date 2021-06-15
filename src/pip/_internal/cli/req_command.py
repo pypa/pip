@@ -79,8 +79,8 @@ class SessionCommandMixin(CommandContextMixIn):
         return self._session
 
     def _build_session(
-        self, 
-        options: Values, 
+        self,
+        options: Values,
         retries: Optional[int] = None,
         timeout: Optional[int] = None,
     ) -> PipSession:
