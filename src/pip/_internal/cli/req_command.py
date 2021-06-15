@@ -81,7 +81,7 @@ class SessionCommandMixin(CommandContextMixIn):
     def _build_session(
         self, 
         options: Values, 
-        retries: Optional[int] = None, 
+        retries: Optional[int] = None,
         timeout: Optional[int] = None,
     ) -> PipSession:
         assert not options.cache_dir or os.path.isabs(options.cache_dir)
