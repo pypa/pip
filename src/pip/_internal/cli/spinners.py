@@ -14,25 +14,22 @@ logger = logging.getLogger(__name__)
 
 
 class SpinnerInterface:
-    def spin(self):
-        # type: () -> None
+    def spin(self) -> None:
         raise NotImplementedError()
 
-    def finish(self, final_status):
-        # type: (str) -> None
+    def finish(self, final_status: str) -> None:
         raise NotImplementedError()
 
 
 class InteractiveSpinner(SpinnerInterface):
     def __init__(
         self,
-        message,
-        file=None,
-        spin_chars="-\\|/",
+        message: str,
+        file: IO[str] = None,
+        spin_chars: str = "-\\|/",
         # Empirically, 8 updates/second looks nice
-        min_update_interval_seconds=0.125,
+        min_update_interval_seconds: float = 0.125,
     ):
-        # type: (str, IO[str], str, float) -> None
         self._message = message
         if file is None:
             file = sys.stdout
@@ -45,8 +42,7 @@ class InteractiveSpinner(SpinnerInterface):
         self._file.write(" " * get_indentation() + self._message + " ... ")
         self._width = 0
 
-    def _write(self, status):
-        # type: (str) -> None
+    def _write(self, status: str) -> None:
         assert not self._finished
         # Erase what we wrote before by backspacing to the beginning, writing
         # spaces to overwrite the old text, and then backspacing again
@@ -58,16 +54,14 @@ class InteractiveSpinner(SpinnerInterface):
         self._file.flush()
         self._rate_limiter.reset()
 
-    def spin(self):
-        # type: () -> None
+    def spin(self) -> None:
         if self._finished:
             return
         if not self._rate_limiter.ready():
             return
         self._write(next(self._spin_cycle))
 
-    def finish(self, final_status):
-        # type: (str) -> None
+    def finish(self, final_status: str) -> None:
         if self._finished:
             return
         self._write(final_status)
@@ -81,29 +75,25 @@ class InteractiveSpinner(SpinnerInterface):
 # act as a keep-alive for systems like Travis-CI that take lack-of-output as
 # an indication that a task has frozen.
 class NonInteractiveSpinner(SpinnerInterface):
-    def __init__(self, message, min_update_interval_seconds=60):
-        # type: (str, float) -> None
+    def __init__(self, message: str, min_update_interval_seconds: float = 60) -> None:
         self._message = message
         self._finished = False
         self._rate_limiter = RateLimiter(min_update_interval_seconds)
         self._update("started")
 
-    def _update(self, status):
-        # type: (str) -> None
+    def _update(self, status: str) -> None:
         assert not self._finished
         self._rate_limiter.reset()
         logger.info("%s: %s", self._message, status)
 
-    def spin(self):
-        # type: () -> None
+    def spin(self) -> None:
         if self._finished:
             return
         if not self._rate_limiter.ready():
             return
         self._update("still running...")
 
-    def finish(self, final_status):
-        # type: (str) -> None
+    def finish(self, final_status: str) -> None:
         if self._finished:
             return
         self._update(f"finished with status '{final_status}'")
@@ -111,25 +101,21 @@ class NonInteractiveSpinner(SpinnerInterface):
 
 
 class RateLimiter:
-    def __init__(self, min_update_interval_seconds):
-        # type: (float) -> None
+    def __init__(self, min_update_interval_seconds: float) -> None:
         self._min_update_interval_seconds = min_update_interval_seconds
         self._last_update = 0  # type: float
 
-    def ready(self):
-        # type: () -> bool
+    def ready(self) -> bool:
         now = time.time()
         delta = now - self._last_update
         return delta >= self._min_update_interval_seconds
 
-    def reset(self):
-        # type: () -> None
+    def reset(self) -> None:
         self._last_update = time.time()
 
 
 @contextlib.contextmanager
-def open_spinner(message):
-    # type: (str) -> Iterator[SpinnerInterface]
+def open_spinner(message: str) -> Iterator[SpinnerInterface]:
     # Interactive spinner goes directly to sys.stdout rather than being routed
     # through the logging system, but it acts like it has level INFO,
     # i.e. it's only displayed if we're at level INFO or better.
@@ -153,8 +139,7 @@ def open_spinner(message):
 
 
 @contextlib.contextmanager
-def hidden_cursor(file):
-    # type: (IO[str]) -> Iterator[None]
+def hidden_cursor(file: IO[str]) -> Iterator[None]:
     # The Windows terminal does not support the hide/show cursor ANSI codes,
     # even via colorama. So don't even try.
     if WINDOWS:
