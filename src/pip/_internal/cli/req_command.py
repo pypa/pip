@@ -82,7 +82,7 @@ class SessionCommandMixin(CommandContextMixIn):
         self, 
         options: Values, 
         retries: Optional[int] = None, 
-        timeout: Optional[int] = None
+        timeout: Optional[int] = None,
     ) -> PipSession:
         assert not options.cache_dir or os.path.isabs(options.cache_dir)
         session = PipSession(
@@ -235,7 +235,7 @@ class RequirementCommand(IndexGroupCommand):
         finder: PackageFinder,
         use_user_site: bool,
         download_dir: str = None,
-    ) -> RequirementPreparer: 
+    ) -> RequirementPreparer:
         """
         Create a RequirementPreparer instance for the given parameters.
         """
