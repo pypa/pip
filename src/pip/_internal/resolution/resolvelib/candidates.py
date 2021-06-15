@@ -32,6 +32,9 @@ BaseCandidate = Union[
     "LinkCandidate",
 ]
 
+# Avoid conflicting with the PyPI package "Python".
+REQUIRES_PYTHON_IDENTIFIER = cast(NormalizedName, "<Python from Requires-Python>")
+
 
 def as_base_candidate(candidate: Candidate) -> Optional[BaseCandidate]:
     """The runtime version of BaseCandidate."""
@@ -578,13 +581,12 @@ class RequiresPythonCandidate(Candidate):
     @property
     def project_name(self):
         # type: () -> NormalizedName
-        # Avoid conflicting with the PyPI package "Python".
-        return cast(NormalizedName, "<Python from Requires-Python>")
+        return REQUIRES_PYTHON_IDENTIFIER
 
     @property
     def name(self):
         # type: () -> str
-        return self.project_name
+        return REQUIRES_PYTHON_IDENTIFIER
 
     @property
     def version(self):
