@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Dict, Iterable, Iterator, Mapping, Sequence, U
 from pip._vendor.resolvelib.providers import AbstractProvider
 
 from .base import Candidate, Constraint, Requirement
+from .candidates import REQUIRES_PYTHON_IDENTIFIER
 from .factory import Factory
 
 if TYPE_CHECKING:
@@ -121,6 +122,10 @@ class PipProvider(_ProviderBase):
         rating = _get_restrictive_rating(r for r, _ in information[identifier])
         order = self._user_requested.get(identifier, float("inf"))
 
+        # Requires-Python has only one candidate and the check is basically
+        # free, so we always do it first to avoid needless work if it fails.
+        requires_python = identifier == REQUIRES_PYTHON_IDENTIFIER
+
         # HACK: Setuptools have a very long and solid backward compatibility
         # track record, and extremely few projects would request a narrow,
         # non-recent version range of it since that would break a lot things.
@@ -131,7 +136,7 @@ class PipProvider(_ProviderBase):
         # while we work on "proper" branch pruning techniques.
         delay_this = identifier == "setuptools"
 
-        return (delay_this, rating, order, identifier)
+        return (not requires_python, delay_this, rating, order, identifier)
 
     def find_matches(
         self,
