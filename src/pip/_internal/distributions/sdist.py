@@ -37,7 +37,7 @@ class SourceDistribution(AbstractDistribution):
 
     def _setup_isolation(self, finder: PackageFinder) -> None:
         def _raise_conflicts(
-            conflicting_with: str, conflicting_reqs: Set[str, str]
+            conflicting_with: str, conflicting_reqs: Set[str]
         ) -> None:
             format_string = (
                 "Some build dependencies for {requirement} "
