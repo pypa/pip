@@ -75,7 +75,7 @@ class InteractiveSpinner(SpinnerInterface):
 # act as a keep-alive for systems like Travis-CI that take lack-of-output as
 # an indication that a task has frozen.
 class NonInteractiveSpinner(SpinnerInterface):
-    def __init__(self, message: str, min_update_interval_seconds: float = 60) -> None:
+    def __init__(self, message: str, min_update_interval_seconds: float = 60.0) -> None:
         self._message = message
         self._finished = False
         self._rate_limiter = RateLimiter(min_update_interval_seconds)
