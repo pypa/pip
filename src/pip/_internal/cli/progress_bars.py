@@ -1,7 +1,7 @@
 import itertools
 import sys
 from signal import SIGINT, default_int_handler, signal
-from typing import Any, Dict, List
+from typing import Any
 
 from pip._vendor.progress.bar import Bar, FillingCirclesBar, IncrementalBar
 from pip._vendor.progress.spinner import Spinner
