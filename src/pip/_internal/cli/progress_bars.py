@@ -66,7 +66,7 @@ class InterruptibleMixin:
        download has already completed, for example.
     """
 
-    def __init__(self, *args: List[Any], **kwargs: Dict[Any, Any]) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """
         Save the original SIGINT handler for later.
         """
