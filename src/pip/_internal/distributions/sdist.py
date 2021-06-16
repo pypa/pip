@@ -36,7 +36,7 @@ class SourceDistribution(AbstractDistribution):
         self.req.prepare_metadata()
 
     def _setup_isolation(self, finder: PackageFinder) -> None:
-        def _raise_conflicts(conflicting_with: str, conflicting_reqs: Set[str]) -> None:
+        def _raise_conflicts(conflicting_with: str, conflicting_reqs: Set[Tuple[str, str]]) -> None:
             format_string = (
                 "Some build dependencies for {requirement} "
                 "conflict with {conflicting_with}: {description}."
