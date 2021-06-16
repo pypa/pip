@@ -32,5 +32,7 @@ class AbstractDistribution(metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def prepare_distribution_metadata(self, finder: PackageFinder, build_isolation: bool) -> None:
+    def prepare_distribution_metadata(
+        self, finder: PackageFinder, build_isolation: bool
+    ) -> None:
         raise NotImplementedError()
