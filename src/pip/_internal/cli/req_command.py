@@ -234,7 +234,7 @@ class RequirementCommand(IndexGroupCommand):
         session: PipSession,
         finder: PackageFinder,
         use_user_site: bool,
-        download_dir: str = None,
+        download_dir: Optional[str] = None,
     ) -> RequirementPreparer:
         """
         Create a RequirementPreparer instance for the given parameters.
