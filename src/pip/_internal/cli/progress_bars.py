@@ -118,7 +118,7 @@ class BlueEmojiBar(IncrementalBar):
 
 
 class DownloadProgressMixin:
-    def __init__(self, *args: List[Any], **kwargs: Dict[Any, Any]) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         # https://github.com/python/mypy/issues/5887
         super().__init__(*args, **kwargs)  # type: ignore
         self.message = (" " * (get_indentation() + 2)) + self.message  # type: str
@@ -150,7 +150,7 @@ class DownloadProgressMixin:
 
 
 class WindowsMixin:
-    def __init__(self, *args: List[Any], **kwargs: Dict[Any, Any]) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         # The Windows terminal does not support the hide/show cursor ANSI codes
         # even with colorama. So we'll ensure that hide_cursor is False on
         # Windows.
