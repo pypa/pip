@@ -248,8 +248,8 @@ def _looks_like_path(name):
 def _get_url_from_path(path, name):
     # type: (str, str) -> Optional[str]
     """
-    First, it checks whether a provided path is an installable directory
-    (e.g. it has a setup.py). If it is, returns the path.
+    First, it checks whether a provided path is an installable directory. If it
+    is, returns the path.
 
     If false, check if the path is an archive file (such as a .whl).
     The function checks if the path is a file. If false, if the path has
