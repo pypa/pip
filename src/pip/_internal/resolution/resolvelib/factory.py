@@ -133,7 +133,8 @@ class Factory:
         wheel = Wheel(link.filename)
         if wheel.supported(self._finder.target_python.get_tags()):
             return
-        msg = (f"{link.filename} is not a supported wheel on the platform "
+        msg = (f"{link.filename} (tags {wheel.file_tags}) is not a supported "
+                "wheel on the platform "
                f"{self._finder.target_python.get_tags()}.")
         raise UnsupportedWheel(msg)
 
