@@ -1843,3 +1843,32 @@ def test_new_resolver_modifies_installed_incompatible(script):
         "d==1",
     )
     assert_installed(script, d="1", c="2", b="2", a="2")
+
+
+def test_new_resolver_transitively_depends_on_unnamed_local(script):
+    create_basic_wheel_for_package(script, name="certbot-docs", version="1")
+    certbot = create_test_package_with_setup(
+        script,
+        name="certbot",
+        version="99.99.0.dev0",
+        extras_require={"docs": ["certbot-docs"]}
+    )
+    certbot_apache = create_test_package_with_setup(
+        script,
+        name="certbot-apache",
+        version="99.99.0.dev0",
+        install_requires=["certbot>=99.99.0.dev0"],
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        f"{certbot}[docs]", certbot_apache,
+    )
+    assert_installed(
+        script,
+        certbot="99.99.0.dev0",
+        certbot_apache="99.99.0.dev0",
+        certbot_docs="1",
+    )
