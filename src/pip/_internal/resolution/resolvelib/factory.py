@@ -469,16 +469,15 @@ class Factory:
                 else:
                     collected.constraints[name] = Constraint.from_ireq(ireq)
             else:
-                if ireq.user_supplied and ireq.name:
-                    canonical_name = canonicalize_name(ireq.name)
-                    if canonical_name not in collected.user_requested:
-                        collected.user_requested[canonical_name] = i
                 req = self._make_requirement_from_install_req(
                     ireq,
                     requested_extras=(),
                 )
-                if req is not None:
-                    collected.requirements.append(req)
+                if req is None:
+                    continue
+                if ireq.user_supplied and req.name not in collected.user_requested:
+                    collected.user_requested[req.name] = i
+                collected.requirements.append(req)
         return collected
 
     def make_requirement_from_candidate(
