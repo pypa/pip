@@ -39,7 +39,7 @@ from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import display_path, hide_url, rmtree
+from pip._internal.utils.misc import display_path, hide_url, is_installable_dir, rmtree
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
@@ -376,7 +376,7 @@ class RequirementPreparer:
         # installation.
         # FIXME: this won't upgrade when there's an existing
         # package unpacked in `req.source_dir`
-        if os.path.exists(os.path.join(req.source_dir, 'setup.py')):
+        if is_installable_dir(req.source_dir):
             raise PreviousBuildDirError(
                 "pip can't proceed with requirements '{}' due to a"
                 "pre-existing build directory ({}). This is likely "
