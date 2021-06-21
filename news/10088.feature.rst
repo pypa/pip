@@ -1,0 +1,1 @@
+Add get_musl_major_minor() from PEP 656.
