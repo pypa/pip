@@ -2,17 +2,6 @@
 # 2.0, and the BSD License. See the LICENSE file in the root of this repository
 # for complete details.
 
-from __future__ import absolute_import
-
-import distutils.util
-
-try:
-    from importlib.machinery import EXTENSION_SUFFIXES
-except ImportError:  # pragma: no cover
-    import imp
-
-    EXTENSION_SUFFIXES = [x[0] for x in imp.get_suffixes()]
-    del imp
 import collections
 import logging
 import os
@@ -22,37 +11,36 @@ import struct
 import sys
 import sysconfig
 import warnings
+from importlib.machinery import EXTENSION_SUFFIXES
+from typing import (
+    IO,
+    Dict,
+    FrozenSet,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
 
-from ._typing import TYPE_CHECKING, cast
-
-if TYPE_CHECKING:  # pragma: no cover
-    from typing import (
-        IO,
-        Dict,
-        FrozenSet,
-        Iterable,
-        Iterator,
-        List,
-        Optional,
-        Sequence,
-        Tuple,
-        Union,
-    )
-
-    PythonVersion = Sequence[int]
-    MacVersion = Tuple[int, int]
-    GlibcVersion = Tuple[int, int]
-
+from . import _musllinux
 
 logger = logging.getLogger(__name__)
 
-INTERPRETER_SHORT_NAMES = {
+PythonVersion = Sequence[int]
+MacVersion = Tuple[int, int]
+GlibcVersion = Tuple[int, int]
+
+INTERPRETER_SHORT_NAMES: Dict[str, str] = {
     "python": "py",  # Generic.
     "cpython": "cp",
     "pypy": "pp",
     "ironpython": "ip",
     "jython": "jy",
-}  # type: Dict[str, str]
+}
 
 
 _32_BIT_INTERPRETER = sys.maxsize <= 2 ** 32
@@ -72,11 +60,11 @@ _LEGACY_MANYLINUX_MAP = {
 # For now, guess what the highest minor version might be, assume it will
 # be 50 for testing. Once this actually happens, update the dictionary
 # with the actual value.
-_LAST_GLIBC_MINOR = collections.defaultdict(lambda: 50)  # type: Dict[int, int]
-glibcVersion = collections.namedtuple("Version", ["major", "minor"])
+_LAST_GLIBC_MINOR: Dict[int, int] = collections.defaultdict(lambda: 50)
+glibcVersion = collections.namedtuple("glibcVersion", ["major", "minor"])
 
 
-class Tag(object):
+class Tag:
     """
     A representation of the tag triple for a wheel.
 
@@ -86,8 +74,7 @@ class Tag(object):
 
     __slots__ = ["_interpreter", "_abi", "_platform", "_hash"]
 
-    def __init__(self, interpreter, abi, platform):
-        # type: (str, str, str) -> None
+    def __init__(self, interpreter: str, abi: str, platform: str) -> None:
         self._interpreter = interpreter.lower()
         self._abi = abi.lower()
         self._platform = platform.lower()
@@ -99,46 +86,39 @@ class Tag(object):
         self._hash = hash((self._interpreter, self._abi, self._platform))
 
     @property
-    def interpreter(self):
-        # type: () -> str
+    def interpreter(self) -> str:
         return self._interpreter
 
     @property
-    def abi(self):
-        # type: () -> str
+    def abi(self) -> str:
         return self._abi
 
     @property
-    def platform(self):
-        # type: () -> str
+    def platform(self) -> str:
         return self._platform
 
-    def __eq__(self, other):
-        # type: (object) -> bool
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Tag):
             return NotImplemented
 
         return (
-            (self.platform == other.platform)
-            and (self.abi == other.abi)
-            and (self.interpreter == other.interpreter)
+            (self._hash == other._hash)  # Short-circuit ASAP for perf reasons.
+            and (self._platform == other._platform)
+            and (self._abi == other._abi)
+            and (self._interpreter == other._interpreter)
         )
 
-    def __hash__(self):
-        # type: () -> int
+    def __hash__(self) -> int:
         return self._hash
 
-    def __str__(self):
-        # type: () -> str
-        return "{}-{}-{}".format(self._interpreter, self._abi, self._platform)
+    def __str__(self) -> str:
+        return f"{self._interpreter}-{self._abi}-{self._platform}"
 
-    def __repr__(self):
-        # type: () -> str
+    def __repr__(self) -> str:
         return "<{self} @ {self_id}>".format(self=self, self_id=id(self))
 
 
-def parse_tag(tag):
-    # type: (str) -> FrozenSet[Tag]
+def parse_tag(tag: str) -> FrozenSet[Tag]:
     """
     Parses the provided tag (e.g. `py3-none-any`) into a frozenset of Tag instances.
 
@@ -154,24 +134,7 @@ def parse_tag(tag):
     return frozenset(tags)
 
 
-def _warn_keyword_parameter(func_name, kwargs):
-    # type: (str, Dict[str, bool]) -> bool
-    """
-    Backwards-compatibility with Python 2.7 to allow treating 'warn' as keyword-only.
-    """
-    if not kwargs:
-        return False
-    elif len(kwargs) > 1 or "warn" not in kwargs:
-        kwargs.pop("warn", None)
-        arg = next(iter(kwargs.keys()))
-        raise TypeError(
-            "{}() got an unexpected keyword argument {!r}".format(func_name, arg)
-        )
-    return kwargs["warn"]
-
-
-def _get_config_var(name, warn=False):
-    # type: (str, bool) -> Union[int, str, None]
+def _get_config_var(name: str, warn: bool = False) -> Union[int, str, None]:
     value = sysconfig.get_config_var(name)
     if value is None and warn:
         logger.debug(
@@ -180,13 +143,11 @@ def _get_config_var(name, warn=False):
     return value
 
 
-def _normalize_string(string):
-    # type: (str) -> str
+def _normalize_string(string: str) -> str:
     return string.replace(".", "_").replace("-", "_")
 
 
-def _abi3_applies(python_version):
-    # type: (PythonVersion) -> bool
+def _abi3_applies(python_version: PythonVersion) -> bool:
     """
     Determine if the Python version supports abi3.
 
@@ -195,8 +156,7 @@ def _abi3_applies(python_version):
     return len(python_version) > 1 and tuple(python_version) >= (3, 2)
 
 
-def _cpython_abis(py_version, warn=False):
-    # type: (PythonVersion, bool) -> List[str]
+def _cpython_abis(py_version: PythonVersion, warn: bool = False) -> List[str]:
     py_version = tuple(py_version)  # To allow for version comparison.
     abis = []
     version = _version_nodot(py_version[:2])
@@ -222,7 +182,7 @@ def _cpython_abis(py_version, warn=False):
     elif debug:
         # Debug builds can also load "normal" extension modules.
         # We can also assume no UCS-4 or pymalloc requirement.
-        abis.append("cp{version}".format(version=version))
+        abis.append(f"cp{version}")
     abis.insert(
         0,
         "cp{version}{debug}{pymalloc}{ucs4}".format(
@@ -233,12 +193,12 @@ def _cpython_abis(py_version, warn=False):
 
 
 def cpython_tags(
-    python_version=None,  # type: Optional[PythonVersion]
-    abis=None,  # type: Optional[Iterable[str]]
-    platforms=None,  # type: Optional[Iterable[str]]
-    **kwargs  # type: bool
-):
-    # type: (...) -> Iterator[Tag]
+    python_version: Optional[PythonVersion] = None,
+    abis: Optional[Iterable[str]] = None,
+    platforms: Optional[Iterable[str]] = None,
+    *,
+    warn: bool = False,
+) -> Iterator[Tag]:
     """
     Yields the tags for a CPython interpreter.
 
@@ -254,7 +214,6 @@ def cpython_tags(
     If 'abi3' or 'none' are specified in 'abis' then they will be yielded at
     their normal position and not at the beginning.
     """
-    warn = _warn_keyword_parameter("cpython_tags", kwargs)
     if not python_version:
         python_version = sys.version_info[:2]
 
@@ -278,10 +237,8 @@ def cpython_tags(
         for platform_ in platforms:
             yield Tag(interpreter, abi, platform_)
     if _abi3_applies(python_version):
-        for tag in (Tag(interpreter, "abi3", platform_) for platform_ in platforms):
-            yield tag
-    for tag in (Tag(interpreter, "none", platform_) for platform_ in platforms):
-        yield tag
+        yield from (Tag(interpreter, "abi3", platform_) for platform_ in platforms)
+    yield from (Tag(interpreter, "none", platform_) for platform_ in platforms)
 
     if _abi3_applies(python_version):
         for minor_version in range(python_version[1] - 1, 1, -1):
@@ -292,20 +249,19 @@ def cpython_tags(
                 yield Tag(interpreter, "abi3", platform_)
 
 
-def _generic_abi():
-    # type: () -> Iterator[str]
+def _generic_abi() -> Iterator[str]:
     abi = sysconfig.get_config_var("SOABI")
     if abi:
         yield _normalize_string(abi)
 
 
 def generic_tags(
-    interpreter=None,  # type: Optional[str]
-    abis=None,  # type: Optional[Iterable[str]]
-    platforms=None,  # type: Optional[Iterable[str]]
-    **kwargs  # type: bool
-):
-    # type: (...) -> Iterator[Tag]
+    interpreter: Optional[str] = None,
+    abis: Optional[Iterable[str]] = None,
+    platforms: Optional[Iterable[str]] = None,
+    *,
+    warn: bool = False,
+) -> Iterator[Tag]:
     """
     Yields the tags for a generic interpreter.
 
@@ -314,7 +270,6 @@ def generic_tags(
 
     The "none" ABI will be added if it was not explicitly provided.
     """
-    warn = _warn_keyword_parameter("generic_tags", kwargs)
     if not interpreter:
         interp_name = interpreter_name()
         interp_version = interpreter_version(warn=warn)
@@ -330,8 +285,7 @@ def generic_tags(
             yield Tag(interpreter, abi, platform_)
 
 
-def _py_interpreter_range(py_version):
-    # type: (PythonVersion) -> Iterator[str]
+def _py_interpreter_range(py_version: PythonVersion) -> Iterator[str]:
     """
     Yields Python versions in descending order.
 
@@ -347,11 +301,10 @@ def _py_interpreter_range(py_version):
 
 
 def compatible_tags(
-    python_version=None,  # type: Optional[PythonVersion]
-    interpreter=None,  # type: Optional[str]
-    platforms=None,  # type: Optional[Iterable[str]]
-):
-    # type: (...) -> Iterator[Tag]
+    python_version: Optional[PythonVersion] = None,
+    interpreter: Optional[str] = None,
+    platforms: Optional[Iterable[str]] = None,
+) -> Iterator[Tag]:
     """
     Yields the sequence of tags that are compatible with a specific version of Python.
 
@@ -372,8 +325,7 @@ def compatible_tags(
         yield Tag(version, "none", "any")
 
 
-def _mac_arch(arch, is_32bit=_32_BIT_INTERPRETER):
-    # type: (str, bool) -> str
+def _mac_arch(arch: str, is_32bit: bool = _32_BIT_INTERPRETER) -> str:
     if not is_32bit:
         return arch
 
@@ -383,8 +335,7 @@ def _mac_arch(arch, is_32bit=_32_BIT_INTERPRETER):
     return "i386"
 
 
-def _mac_binary_formats(version, cpu_arch):
-    # type: (MacVersion, str) -> List[str]
+def _mac_binary_formats(version: MacVersion, cpu_arch: str) -> List[str]:
     formats = [cpu_arch]
     if cpu_arch == "x86_64":
         if version < (10, 4):
@@ -416,8 +367,9 @@ def _mac_binary_formats(version, cpu_arch):
     return formats
 
 
-def mac_platforms(version=None, arch=None):
-    # type: (Optional[MacVersion], Optional[str]) -> Iterator[str]
+def mac_platforms(
+    version: Optional[MacVersion] = None, arch: Optional[str] = None
+) -> Iterator[str]:
     """
     Yields the platform tags for a macOS system.
 
@@ -426,7 +378,7 @@ def mac_platforms(version=None, arch=None):
     generate platform tags for. Both parameters default to the appropriate value
     for the current system.
     """
-    version_str, _, cpu_arch = platform.mac_ver()  # type: ignore
+    version_str, _, cpu_arch = platform.mac_ver()
     if version is None:
         version = cast("MacVersion", tuple(map(int, version_str.split(".")[:2])))
     else:
@@ -488,8 +440,7 @@ def mac_platforms(version=None, arch=None):
 
 
 # From PEP 513, PEP 600
-def _is_manylinux_compatible(name, arch, glibc_version):
-    # type: (str, str, GlibcVersion) -> bool
+def _is_manylinux_compatible(name: str, arch: str, glibc_version: GlibcVersion) -> bool:
     sys_glibc = _get_glibc_version()
     if sys_glibc < glibc_version:
         return False
@@ -518,14 +469,12 @@ def _is_manylinux_compatible(name, arch, glibc_version):
     return True
 
 
-def _glibc_version_string():
-    # type: () -> Optional[str]
+def _glibc_version_string() -> Optional[str]:
     # Returns glibc version string, or None if not using glibc.
     return _glibc_version_string_confstr() or _glibc_version_string_ctypes()
 
 
-def _glibc_version_string_confstr():
-    # type: () -> Optional[str]
+def _glibc_version_string_confstr() -> Optional[str]:
     """
     Primary implementation of glibc_version_string using os.confstr.
     """
@@ -535,9 +484,7 @@ def _glibc_version_string_confstr():
     # https://github.com/python/cpython/blob/fcf1d003bf4f0100c9d0921ff3d70e1127ca1b71/Lib/platform.py#L175-L183
     try:
         # os.confstr("CS_GNU_LIBC_VERSION") returns a string like "glibc 2.17".
-        version_string = os.confstr(  # type: ignore[attr-defined] # noqa: F821
-            "CS_GNU_LIBC_VERSION"
-        )
+        version_string = os.confstr("CS_GNU_LIBC_VERSION")
         assert version_string is not None
         _, version = version_string.split()  # type: Tuple[str, str]
     except (AssertionError, AttributeError, OSError, ValueError):
@@ -546,8 +493,7 @@ def _glibc_version_string_confstr():
     return version
 
 
-def _glibc_version_string_ctypes():
-    # type: () -> Optional[str]
+def _glibc_version_string_ctypes() -> Optional[str]:
     """
     Fallback implementation of glibc_version_string using ctypes.
     """
@@ -570,8 +516,7 @@ def _glibc_version_string_ctypes():
     # hard code here. In any case, failure to call dlopen() means we
     # can proceed, so we bail on our attempt.
     try:
-        # Note: typeshed is wrong here so we are ignoring this line.
-        process_namespace = ctypes.CDLL(None)  # type: ignore
+        process_namespace = ctypes.CDLL(None)
     except OSError:
         return None
 
@@ -584,7 +529,7 @@ def _glibc_version_string_ctypes():
 
     # Call gnu_get_libc_version, which returns a string like "2.5"
     gnu_get_libc_version.restype = ctypes.c_char_p
-    version_str = gnu_get_libc_version()  # type: str
+    version_str: str = gnu_get_libc_version()
     # py2 / py3 compatibility:
     if not isinstance(version_str, str):
         version_str = version_str.decode("ascii")
@@ -592,8 +537,7 @@ def _glibc_version_string_ctypes():
     return version_str
 
 
-def _parse_glibc_version(version_str):
-    # type: (str) -> Tuple[int, int]
+def _parse_glibc_version(version_str: str) -> Tuple[int, int]:
     # Parse glibc version.
     #
     # We use a regexp instead of str.split because we want to discard any
@@ -611,11 +555,10 @@ def _parse_glibc_version(version_str):
     return (int(m.group("major")), int(m.group("minor")))
 
 
-_glibc_version = []  #  type: List[Tuple[int, int]]
+_glibc_version: List[Tuple[int, int]] = []
 
 
-def _get_glibc_version():
-    # type: () -> Tuple[int, int]
+def _get_glibc_version() -> Tuple[int, int]:
     if _glibc_version:
         return _glibc_version[0]
     version_str = _glibc_version_string()
@@ -630,7 +573,7 @@ def _get_glibc_version():
 # identify the architecture of the running executable in some cases, so we
 # determine it dynamically by reading the information from the running
 # process. This only applies on Linux, which uses the ELF format.
-class _ELFFileHeader(object):
+class _ELFFileHeader:
     # https://en.wikipedia.org/wiki/Executable_and_Linkable_Format#File_header
     class _InvalidELFFileHeader(ValueError):
         """
@@ -650,10 +593,8 @@ class _ELFFileHeader(object):
     EF_ARM_ABI_VER5 = 0x05000000
     EF_ARM_ABI_FLOAT_HARD = 0x00000400
 
-    def __init__(self, file):
-        # type: (IO[bytes]) -> None
-        def unpack(fmt):
-            # type: (str) -> int
+    def __init__(self, file: IO[bytes]) -> None:
+        def unpack(fmt: str) -> int:
             try:
                 (result,) = struct.unpack(
                     fmt, file.read(struct.calcsize(fmt))
@@ -694,18 +635,16 @@ class _ELFFileHeader(object):
         self.e_shstrndx = unpack(format_h)
 
 
-def _get_elf_header():
-    # type: () -> Optional[_ELFFileHeader]
+def _get_elf_header() -> Optional[_ELFFileHeader]:
     try:
         with open(sys.executable, "rb") as f:
             elf_header = _ELFFileHeader(f)
-    except (IOError, OSError, TypeError, _ELFFileHeader._InvalidELFFileHeader):
+    except (OSError, TypeError, _ELFFileHeader._InvalidELFFileHeader):
         return None
     return elf_header
 
 
-def _is_linux_armhf():
-    # type: () -> bool
+def _is_linux_armhf() -> bool:
     # hard-float ABI can be detected from the ELF header of the running
     # process
     # https://static.docs.arm.com/ihi0044/g/aaelf32.pdf
@@ -724,8 +663,7 @@ def _is_linux_armhf():
     return result
 
 
-def _is_linux_i686():
-    # type: () -> bool
+def _is_linux_i686() -> bool:
     elf_header = _get_elf_header()
     if elf_header is None:
         return False
@@ -735,8 +673,7 @@ def _is_linux_i686():
     return result
 
 
-def _have_compatible_manylinux_abi(arch):
-    # type: (str) -> bool
+def _have_compatible_manylinux_abi(arch: str) -> bool:
     if arch == "armv7l":
         return _is_linux_armhf()
     if arch == "i686":
@@ -744,8 +681,7 @@ def _have_compatible_manylinux_abi(arch):
     return arch in {"x86_64", "aarch64", "ppc64", "ppc64le", "s390x"}
 
 
-def _manylinux_tags(linux, arch):
-    # type: (str, str) -> Iterator[str]
+def _manylinux_tags(linux: str, arch: str) -> Iterator[str]:
     # Oldest glibc to be supported regardless of architecture is (2, 17).
     too_old_glibc2 = glibcVersion(2, 16)
     if arch in {"x86_64", "i686"}:
@@ -779,9 +715,8 @@ def _manylinux_tags(linux, arch):
                     yield linux.replace("linux", legacy_tag)
 
 
-def _linux_platforms(is_32bit=_32_BIT_INTERPRETER):
-    # type: (bool) -> Iterator[str]
-    linux = _normalize_string(distutils.util.get_platform())
+def _linux_platforms(is_32bit: bool = _32_BIT_INTERPRETER) -> Iterator[str]:
+    linux = _normalize_string(sysconfig.get_platform())
     if is_32bit:
         if linux == "linux_x86_64":
             linux = "linux_i686"
@@ -789,18 +724,16 @@ def _linux_platforms(is_32bit=_32_BIT_INTERPRETER):
             linux = "linux_armv7l"
     _, arch = linux.split("_", 1)
     if _have_compatible_manylinux_abi(arch):
-        for tag in _manylinux_tags(linux, arch):
-            yield tag
+        yield from _manylinux_tags(linux, arch)
+    yield from _musllinux.platform_tags(arch)
     yield linux
 
 
-def _generic_platforms():
-    # type: () -> Iterator[str]
-    yield _normalize_string(distutils.util.get_platform())
+def _generic_platforms() -> Iterator[str]:
+    yield _normalize_string(sysconfig.get_platform())
 
 
-def _platform_tags():
-    # type: () -> Iterator[str]
+def _platform_tags() -> Iterator[str]:
     """
     Provides the platform tags for this installation.
     """
@@ -812,25 +745,18 @@ def _platform_tags():
         return _generic_platforms()
 
 
-def interpreter_name():
-    # type: () -> str
+def interpreter_name() -> str:
     """
     Returns the name of the running interpreter.
     """
-    try:
-        name = sys.implementation.name  # type: ignore
-    except AttributeError:  # pragma: no cover
-        # Python 2.7 compatibility.
-        name = platform.python_implementation().lower()
+    name = sys.implementation.name
     return INTERPRETER_SHORT_NAMES.get(name) or name
 
 
-def interpreter_version(**kwargs):
-    # type: (bool) -> str
+def interpreter_version(*, warn: bool = False) -> str:
     """
     Returns the version of the running interpreter.
     """
-    warn = _warn_keyword_parameter("interpreter_version", kwargs)
     version = _get_config_var("py_version_nodot", warn=warn)
     if version:
         version = str(version)
@@ -839,28 +765,22 @@ def interpreter_version(**kwargs):
     return version
 
 
-def _version_nodot(version):
-    # type: (PythonVersion) -> str
+def _version_nodot(version: PythonVersion) -> str:
     return "".join(map(str, version))
 
 
-def sys_tags(**kwargs):
-    # type: (bool) -> Iterator[Tag]
+def sys_tags(*, warn: bool = False) -> Iterator[Tag]:
     """
     Returns the sequence of tag triples for the running interpreter.
 
     The order of the sequence corresponds to priority order for the
     interpreter, from most to least important.
     """
-    warn = _warn_keyword_parameter("sys_tags", kwargs)
 
     interp_name = interpreter_name()
     if interp_name == "cp":
-        for tag in cpython_tags(warn=warn):
-            yield tag
+        yield from cpython_tags(warn=warn)
     else:
-        for tag in generic_tags():
-            yield tag
+        yield from generic_tags()
 
-    for tag in compatible_tags():
-        yield tag
+    yield from compatible_tags()
