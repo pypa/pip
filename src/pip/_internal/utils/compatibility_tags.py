@@ -100,6 +100,31 @@ def _expand_allowed_platforms(platforms):
     return result
 
 
+# https://www.python.org/dev/peps/pep-0656/
+def get_musl_major_minor(so: str):
+    """Detect musl runtime version.
+
+    Returns a two-tuple ``(major, minor)`` that indicates musl
+    library's version, or ``None`` if the given libc .so does not
+    output expected information.
+
+    The libc library should output something like this to stderr::
+
+        musl libc (x86_64)
+        Version 1.2.2
+        Dynamic Program Loader
+    """
+    proc = subprocess.run([so], stderr=subprocess.PIPE, text=True)
+    lines = (line.strip() for line in proc.stderr.splitlines())
+    lines = [line for line in lines if line]
+    if len(lines) < 2 or lines[0][:4] != "musl":
+        return None
+    match = re.match(r"Version (\d+)\.(\d+)", lines[1])
+    if match:
+        return (int(match.group(1)), int(match.group(2)))
+    return None
+
+
 def _get_python_version(version):
     # type: (str) -> PythonVersion
     if len(version) > 1:
