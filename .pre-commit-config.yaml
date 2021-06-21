@@ -60,7 +60,7 @@ repos:
   hooks:
   - id: mypy
     exclude: tests
-    args: ["--pretty", "--strict"]
+    args: ["--pretty", "--no-implicit-optional"]
     additional_dependencies: ['nox==2020.12.31']
 
 - repo: https://github.com/pre-commit/pygrep-hooks
