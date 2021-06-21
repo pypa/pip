@@ -10,7 +10,7 @@ from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs.versioncontrol import (
     RevOptions,
     VersionControl,
-    find_path_to_setup_from_repo_root,
+    find_path_to_project_root_from_repo_root,
     vcs,
 )
 
@@ -120,8 +120,8 @@ class Mercurial(VersionControl):
     def get_subdirectory(cls, location):
         # type: (str) -> Optional[str]
         """
-        Return the path to setup.py, relative to the repo root.
-        Return None if setup.py is in the repo root.
+        Return the path to Python project root, relative to the repo root.
+        Return None if the project root is in the repo root.
         """
         # find the repo root
         repo_root = cls.run_command(
@@ -129,7 +129,7 @@ class Mercurial(VersionControl):
         ).strip()
         if not os.path.isabs(repo_root):
             repo_root = os.path.abspath(os.path.join(location, repo_root))
-        return find_path_to_setup_from_repo_root(location, repo_root)
+        return find_path_to_project_root_from_repo_root(location, repo_root)
 
     @classmethod
     def get_repository_root(cls, location):

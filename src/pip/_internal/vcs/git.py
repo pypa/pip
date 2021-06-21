@@ -18,7 +18,7 @@ from pip._internal.vcs.versioncontrol import (
     RemoteNotValidError,
     RevOptions,
     VersionControl,
-    find_path_to_setup_from_repo_root,
+    find_path_to_project_root_from_repo_root,
     vcs,
 )
 
@@ -410,8 +410,8 @@ class Git(VersionControl):
     def get_subdirectory(cls, location):
         # type: (str) -> Optional[str]
         """
-        Return the path to setup.py, relative to the repo root.
-        Return None if setup.py is in the repo root.
+        Return the path to Python project root, relative to the repo root.
+        Return None if the project root is in the repo root.
         """
         # find the repo root
         git_dir = cls.run_command(
@@ -423,7 +423,7 @@ class Git(VersionControl):
         if not os.path.isabs(git_dir):
             git_dir = os.path.join(location, git_dir)
         repo_root = os.path.abspath(os.path.join(git_dir, '..'))
-        return find_path_to_setup_from_repo_root(location, repo_root)
+        return find_path_to_project_root_from_repo_root(location, repo_root)
 
     @classmethod
     def get_url_rev_and_auth(cls, url):
