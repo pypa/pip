@@ -19,7 +19,7 @@ from pip._internal.exceptions import (
     BestVersionAlreadyInstalled,
     DistributionNotFound,
     InvalidWheelFilename,
-    UnsupportedWheel,
+    WheelSupportedByPipButNotByPlatform,
 )
 from pip._internal.index.collector import LinkCollector, parse_links
 from pip._internal.models.candidate import InstallationCandidate
@@ -524,10 +524,7 @@ class CandidateEvaluator:
                     valid_tags, self._wheel_tag_preferences
                 ))
             except ValueError:
-                raise UnsupportedWheel(
-                    "{} is not a supported wheel for this platform. It "
-                    "can't be sorted.".format(wheel.filename)
-                )
+                raise WheelSupportedByPipButNotByPlatform(wheel, valid_tags)
             if self._prefer_binary:
                 binary_preference = 1
             if wheel.build_tag is not None:

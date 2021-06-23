@@ -25,6 +25,7 @@ from pip._internal.exceptions import (
     NetworkConnectionError,
     PreviousBuildDirError,
     UninstallationError,
+    WheelSupportedByPipButNotByPlatform,
 )
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filesystem import check_path_owner
@@ -201,6 +202,10 @@ class Command(CommandContextMixIn):
                 traceback.print_exc(file=sys.stderr)
 
             return ERROR
+        except WheelSupportedByPipButNotByPlatform as e:
+            logger.debug("Compatible tags for this platform:"
+                         f"{e.supported_tags}")
+            raise
         except KeyboardInterrupt:
             logger.critical("Operation cancelled by user")
             logger.debug("Exception information:", exc_info=True)

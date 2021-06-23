@@ -133,12 +133,9 @@ class Factory:
         wheel = Wheel(link.filename)
         if wheel.supported(self._finder.target_python.get_tags()):
             return
-        msg = (f"{link.filename} (tags {wheel.file_tags}) is not a supported "
-                "wheel on the platform "
-               f"{self._finder.target_python.get_tags()}.")
-        logger.debug(msg)
-        raise UnsupportedWheel(f"{link.filename} (tags {wheel.file_tags}) is "
-                                "not a supported wheel on this platform.")
+        raise WheelSupportedByPipButNotByPlatform(
+            wheel, self._finder.target_python.get_tags()
+        )
 
     def _make_extras_candidate(self, base, extras):
         # type: (BaseCandidate, FrozenSet[str]) -> ExtrasCandidate

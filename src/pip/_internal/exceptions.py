@@ -129,6 +129,25 @@ class UnsupportedWheel(InstallationError):
     """Unsupported wheel."""
 
 
+class WheelSupportedByPipButNotByPlatform(UnsupportedWheel):
+    """Wheel is incompatible with the host that pip is running on.
+
+    This is raised when a wheel is compatible and fully recognized by this
+    version of pip, and pip's examination of the wheel determines that the
+    wheel cannot be used on the host pip is running on.
+    """
+    def __init__(self, wheel, supported_tags):
+        # type: (Wheel, List[Tag]) -> None
+        super().__init__()
+        self.wheel = wheel
+        self.supported_tags = supported_tags
+
+    def __str__(self):
+        return (
+            f"{self.wheel.filename} (tags {self.wheel.file_tags}) is "
+            f"not a supported wheel on this platform."
+        )
+
 class MetadataInconsistent(InstallationError):
     """Built metadata contains inconsistent information.
 
