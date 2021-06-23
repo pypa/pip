@@ -1,0 +1,2 @@
+New resolver: The order of dependencies resolution has been tweaked to traverse
+the dependency graph in a more breadth-first approach.
