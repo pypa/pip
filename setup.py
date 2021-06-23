@@ -4,8 +4,7 @@ import sys
 from setuptools import find_packages, setup
 
 
-def read(rel_path):
-    # type: (str) -> str
+def read(rel_path: str) -> str:
     here = os.path.abspath(os.path.dirname(__file__))
     # intentionally *not* adding an encoding option to open, See:
     #   https://github.com/pypa/virtualenv/issues/201#issuecomment-3145690
@@ -13,8 +12,7 @@ def read(rel_path):
         return fp.read()
 
 
-def get_version(rel_path):
-    # type: (str) -> str
+def get_version(rel_path: str) -> str:
     for line in read(rel_path).splitlines():
         if line.startswith("__version__"):
             # __version__ = "0.9"
