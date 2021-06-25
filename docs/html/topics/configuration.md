@@ -82,7 +82,7 @@ Site
 
 Additionally, the environment variable `PIP_CONFIG_FILE` can be used to specify
 a configuration file that's loaded first, and whose values are overridden by
-the values set in the aforementioned files. Setting this to {ref}`os.devnull`
+the values set in the aforementioned files. Setting this to {any}`os.devnull`
 disables the loading of _all_ configuration files.
 
 ### Loading order
