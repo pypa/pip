@@ -134,11 +134,11 @@ class Resolution(object):
         )
         self._states.append(state)
 
-    def _merge_into_criterion(self, requirement, parent):
+    def _add_to_criteria(self, criteria, requirement, parent):
         self._r.adding_requirement(requirement=requirement, parent=parent)
 
         identifier = self._p.identify(requirement_or_candidate=requirement)
-        criterion = self.state.criteria.get(identifier)
+        criterion = criteria.get(identifier)
         if criterion:
             incompatibilities = list(criterion.incompatibilities)
         else:
@@ -147,12 +147,12 @@ class Resolution(object):
         matches = self._p.find_matches(
             identifier=identifier,
             requirements=IteratorMapping(
-                self.state.criteria,
+                criteria,
                 operator.methodcaller("iter_requirement"),
                 {identifier: [requirement]},
             ),
             incompatibilities=IteratorMapping(
-                self.state.criteria,
+                criteria,
                 operator.attrgetter("incompatibilities"),
                 {identifier: incompatibilities},
             ),
@@ -171,7 +171,7 @@ class Resolution(object):
         )
         if not criterion.candidates:
             raise RequirementsConflicted(criterion)
-        return identifier, criterion
+        criteria[identifier] = criterion
 
     def _get_preference(self, name):
         return self._p.get_preference(
@@ -197,11 +197,10 @@ class Resolution(object):
             for r in criterion.iter_requirement()
         )
 
-    def _get_criteria_to_update(self, candidate):
-        criteria = {}
-        for r in self._p.get_dependencies(candidate=candidate):
-            name, crit = self._merge_into_criterion(r, parent=candidate)
-            criteria[name] = crit
+    def _get_updated_criteria(self, candidate):
+        criteria = self.state.criteria.copy()
+        for requirement in self._p.get_dependencies(candidate=candidate):
+            self._add_to_criteria(criteria, requirement, parent=candidate)
         return criteria
 
     def _attempt_to_pin_criterion(self, name):
@@ -210,7 +209,7 @@ class Resolution(object):
         causes = []
         for candidate in criterion.candidates:
             try:
-                criteria = self._get_criteria_to_update(candidate)
+                criteria = self._get_updated_criteria(candidate)
             except RequirementsConflicted as e:
                 causes.append(e.criterion)
                 continue
@@ -226,12 +225,13 @@ class Resolution(object):
             if not satisfied:
                 raise InconsistentCandidate(candidate, criterion)
 
+            self._r.pinning(candidate=candidate)
+            self.state.criteria.update(criteria)
+
             # Put newly-pinned candidate at the end. This is essential because
             # backtracking looks at this mapping to get the last pin.
-            self._r.pinning(candidate=candidate)
             self.state.mapping.pop(name, None)
             self.state.mapping[name] = candidate
-            self.state.criteria.update(criteria)
 
             return []
 
@@ -338,10 +338,9 @@ class Resolution(object):
         self._states = [State(mapping=collections.OrderedDict(), criteria={})]
         for r in requirements:
             try:
-                name, crit = self._merge_into_criterion(r, parent=None)
+                self._add_to_criteria(self.state.criteria, r, parent=None)
             except RequirementsConflicted as e:
                 raise ResolutionImpossible(e.criterion.information)
-            self.state.criteria[name] = crit
 
         # The root state is saved as a sentinel so the first ever pin can have
         # something to backtrack to if it fails. The root state is basically
