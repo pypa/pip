@@ -680,9 +680,9 @@ of having the wheel cache disabled is thus extra build time for sdists, and
 this can be solved by making sure pre-built wheels are available from the index
 server.
 
-Hash-checking mode also works with :ref:`pip download` and :ref:`pip wheel`. A
-:ref:`comparison of hash-checking mode with other repeatability strategies
-<Repeatability>` is available in the User Guide.
+Hash-checking mode also works with :ref:`pip download` and :ref:`pip wheel`.
+See :doc:`../topics/repeatable-installs` for a comparison of hash-checking mode
+with other repeatability strategies.
 
 .. warning::
 
