@@ -9,6 +9,16 @@
 
 .. towncrier release notes start
 
+21.1.3 (2021-06-26)
+===================
+
+Bug Fixes
+---------
+
+- Remove unused optional ``tornado`` import in vendored ``tenacity`` to prevent old versions of Tornado from breaking pip. (`#10020 <https://github.com/pypa/pip/issues/10020>`_)
+- Require ``setup.cfg``-only projects to be built via PEP 517, by requiring an explicit dependency on setuptools declared in pyproject.toml. (`#10031 <https://github.com/pypa/pip/issues/10031>`_)
+
+
 21.1.2 (2021-05-23)
 ===================
 
