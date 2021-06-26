@@ -476,6 +476,51 @@ def test_uninstall_wheel(script, data):
     assert_all_changes(result, result2, [])
 
 
+@pytest.mark.parametrize('installer', [FileNotFoundError, IsADirectoryError,
+                                       '', os.linesep, b'\xc0\xff\xee', 'pip',
+                                       'MegaCorp Cloud Install-O-Matic'])
+def test_uninstall_without_record_fails(script, data, installer):
+    """
+    Test uninstalling a package installed without RECORD
+    """
+    package = data.packages.joinpath("simple.dist-0.1-py2.py3-none-any.whl")
+    result = script.pip('install', package, '--no-index')
+    dist_info_folder = script.site_packages / 'simple.dist-0.1.dist-info'
+    result.did_create(dist_info_folder)
+
+    # Remove RECORD
+    record_path = dist_info_folder / 'RECORD'
+    (script.base_path / record_path).unlink()
+    ignore_changes = [record_path]
+
+    # Populate, remove or otherwise break INSTALLER
+    installer_path = dist_info_folder / 'INSTALLER'
+    ignore_changes += [installer_path]
+    installer_path = script.base_path / installer_path
+    if installer in (FileNotFoundError, IsADirectoryError):
+        installer_path.unlink()
+        if installer is IsADirectoryError:
+            installer_path.mkdir()
+    else:
+        if isinstance(installer, bytes):
+            installer_path.write_bytes(installer)
+        else:
+            installer_path.write_text(installer + os.linesep)
+
+    result2 = script.pip('uninstall', 'simple.dist', '-y', expect_error=True)
+    expected_error_message = ('ERROR: Cannot uninstall simple.dist 0.1, '
+                              'RECORD file not found.')
+    if not isinstance(installer, str) or not installer.strip() or installer == 'pip':
+        expected_error_message += (" You might be able to recover from this via: "
+                                   "'pip install --force-reinstall --no-deps "
+                                   "simple.dist==0.1'.")
+    elif installer:
+        expected_error_message += (' Hint: The package was installed by '
+                                   '{}.'.format(installer))
+    assert result2.stderr.rstrip() == expected_error_message
+    assert_all_changes(result.files_after, result2, ignore_changes)
+
+
 @pytest.mark.skipif("sys.platform == 'win32'")
 def test_uninstall_with_symlink(script, data, tmpdir):
     """

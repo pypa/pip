@@ -17,6 +17,7 @@ pip
 pip_install
 pip_uninstall
 pip_list
+pip_show
 pip_freeze
 pip_check
 ```
@@ -34,7 +35,6 @@ pip_hash
 :maxdepth: 1
 :caption: Package Index information
 
-pip_show
 pip_search
 ```
 

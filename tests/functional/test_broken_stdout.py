@@ -65,7 +65,7 @@ def test_broken_stdout_pipe__verbose(deprecated_python):
     Test a broken pipe to stdout with verbose logging enabled.
     """
     stderr, returncode = setup_broken_stdout_test(
-        ['pip', '-v', 'list'], deprecated_python=deprecated_python,
+        ['pip', '-vv', 'list'], deprecated_python=deprecated_python,
     )
 
     # Check that a traceback occurs and that it occurs at most once.

@@ -69,7 +69,7 @@ class Wheel:
     def find_most_preferred_tag(self, tags, tag_to_priority):
         # type: (List[Tag], Dict[Tag, int]) -> int
         """Return the priority of the most preferred tag that one of the wheel's file
-        tag combinations acheives in the given list of supported tags using the given
+        tag combinations achieves in the given list of supported tags using the given
         tag_to_priority mapping, where lower priorities are more-preferred.
 
         This is used in place of support_index_min in some cases in order to avoid

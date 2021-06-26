@@ -1,8 +1,11 @@
+import collections
+import math
 from typing import TYPE_CHECKING, Dict, Iterable, Iterator, Mapping, Sequence, Union
 
 from pip._vendor.resolvelib.providers import AbstractProvider
 
 from .base import Candidate, Constraint, Requirement
+from .candidates import REQUIRES_PYTHON_IDENTIFIER
 from .factory import Factory
 
 if TYPE_CHECKING:
@@ -59,6 +62,7 @@ class PipProvider(_ProviderBase):
         self._ignore_dependencies = ignore_dependencies
         self._upgrade_strategy = upgrade_strategy
         self._user_requested = user_requested
+        self._known_depths: Dict[str, float] = collections.defaultdict(lambda: math.inf)
 
     def identify(self, requirement_or_candidate):
         # type: (Union[Requirement, Candidate]) -> str
@@ -78,48 +82,47 @@ class PipProvider(_ProviderBase):
 
         Currently pip considers the followings in order:
 
-        * Prefer if any of the known requirements points to an explicit URL.
-        * If equal, prefer if any requirements contain ``===`` and ``==``.
-        * If equal, prefer if requirements include version constraints, e.g.
-          ``>=`` and ``<``.
-        * If equal, prefer user-specified (non-transitive) requirements, and
-          order user-specified requirements by the order they are specified.
+        * Prefer if any of the known requirements is "direct", e.g. points to an
+          explicit URL.
+        * If equal, prefer if any requirement is "pinned", i.e. contains
+          operator ``===`` or ``==``.
+        * If equal, calculate an approximate "depth" and resolve requirements
+          closer to the user-specified requirements first.
+        * Order user-specified requirements by the order they are specified.
+        * If equal, prefers "non-free" requirements, i.e. contains at least one
+          operator, such as ``>=`` or ``<``.
         * If equal, order alphabetically for consistency (helps debuggability).
         """
+        lookups = (r.get_candidate_lookup() for r, _ in information[identifier])
+        candidate, ireqs = zip(*lookups)
+        operators = [
+            specifier.operator
+            for specifier_set in (ireq.specifier for ireq in ireqs if ireq)
+            for specifier in specifier_set
+        ]
 
-        def _get_restrictive_rating(requirements):
-            # type: (Iterable[Requirement]) -> int
-            """Rate how restrictive a set of requirements are.
+        direct = candidate is not None
+        pinned = any(op[:2] == "==" for op in operators)
+        unfree = bool(operators)
 
-            ``Requirement.get_candidate_lookup()`` returns a 2-tuple for
-            lookup. The first element is ``Optional[Candidate]`` and the
-            second ``Optional[InstallRequirement]``.
+        try:
+            requested_order: Union[int, float] = self._user_requested[identifier]
+        except KeyError:
+            requested_order = math.inf
+            parent_depths = (
+                self._known_depths[parent.name] if parent is not None else 0.0
+                for _, parent in information[identifier]
+            )
+            inferred_depth = min(d for d in parent_depths) + 1.0
+            self._known_depths[identifier] = inferred_depth
+        else:
+            inferred_depth = 1.0
 
-            * If the requirement is an explicit one, the explicitly-required
-              candidate is returned as the first element.
-            * If the requirement is based on a PEP 508 specifier, the backing
-              ``InstallRequirement`` is returned as the second element.
+        requested_order = self._user_requested.get(identifier, math.inf)
 
-            We use the first element to check whether there is an explicit
-            requirement, and the second for equality operator.
-            """
-            lookups = (r.get_candidate_lookup() for r in requirements)
-            cands, ireqs = zip(*lookups)
-            if any(cand is not None for cand in cands):
-                return 0
-            spec_sets = (ireq.specifier for ireq in ireqs if ireq)
-            operators = [
-                specifier.operator for spec_set in spec_sets for specifier in spec_set
-            ]
-            if any(op in ("==", "===") for op in operators):
-                return 1
-            if operators:
-                return 2
-            # A "bare" requirement without any version requirements.
-            return 3
-
-        rating = _get_restrictive_rating(r for r, _ in information[identifier])
-        order = self._user_requested.get(identifier, float("inf"))
+        # Requires-Python has only one candidate and the check is basically
+        # free, so we always do it first to avoid needless work if it fails.
+        requires_python = identifier == REQUIRES_PYTHON_IDENTIFIER
 
         # HACK: Setuptools have a very long and solid backward compatibility
         # track record, and extremely few projects would request a narrow,
@@ -131,7 +134,16 @@ class PipProvider(_ProviderBase):
         # while we work on "proper" branch pruning techniques.
         delay_this = identifier == "setuptools"
 
-        return (delay_this, rating, order, identifier)
+        return (
+            not requires_python,
+            delay_this,
+            not direct,
+            not pinned,
+            inferred_depth,
+            requested_order,
+            not unfree,
+            identifier,
+        )
 
     def find_matches(
         self,

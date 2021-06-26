@@ -102,7 +102,7 @@ def test_new_resolver_hash_intersect(script, requirements_template, message):
         "--no-deps",
         "--no-index",
         "--find-links", find_links.index_html,
-        "--verbose",
+        "-vv",
         "--requirement", requirements_txt,
     )
 
@@ -134,7 +134,7 @@ def test_new_resolver_hash_intersect_from_constraint(script):
         "--no-deps",
         "--no-index",
         "--find-links", find_links.index_html,
-        "--verbose",
+        "-vv",
         "--constraint", constraints_txt,
         "--requirement", requirements_txt,
     )

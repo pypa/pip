@@ -150,7 +150,7 @@ class Link(KeyBasedCompareMixin):
     def url_without_fragment(self):
         # type: () -> str
         scheme, netloc, path, query, fragment = self._parsed_url
-        return urllib.parse.urlunsplit((scheme, netloc, path, query, None))
+        return urllib.parse.urlunsplit((scheme, netloc, path, query, ''))
 
     _egg_fragment_re = re.compile(r'[#&]egg=([^&]*)')
 

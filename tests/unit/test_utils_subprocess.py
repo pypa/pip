@@ -7,6 +7,7 @@ import pytest
 
 from pip._internal.cli.spinners import SpinnerInterface
 from pip._internal.exceptions import InstallationSubprocessError
+from pip._internal.utils.logging import VERBOSE
 from pip._internal.utils.misc import hide_value
 from pip._internal.utils.subprocess import (
     call_subprocess,
@@ -127,7 +128,11 @@ def test_make_subprocess_output_error__non_ascii_line():
 )
 def test_call_subprocess_stdout_only(capfd, monkeypatch, stdout_only, expected):
     log = []
-    monkeypatch.setattr(subprocess_logger, "debug", lambda *args: log.append(args[0]))
+    monkeypatch.setattr(
+        subprocess_logger,
+        "log",
+        lambda level, *args: log.append(args[0]),
+    )
     out = call_subprocess(
         [
             sys.executable,
@@ -233,9 +238,9 @@ class TestCallSubprocess:
         result = call_subprocess(args, spinner=spinner)
 
         expected = (['Hello', 'world'], [
-            ('pip.subprocessor', DEBUG, 'Running command '),
-            ('pip.subprocessor', DEBUG, 'Hello'),
-            ('pip.subprocessor', DEBUG, 'world'),
+            ('pip.subprocessor', VERBOSE, 'Running command '),
+            ('pip.subprocessor', VERBOSE, 'Hello'),
+            ('pip.subprocessor', VERBOSE, 'world'),
         ])
         # The spinner shouldn't spin in this case since the subprocess
         # output is already being logged to the console.

@@ -128,7 +128,7 @@ def get_prog():
 
 
 # Retry every half second for up to 3 seconds
-# Tenacity raises RetryError by default, explictly raise the original exception
+# Tenacity raises RetryError by default, explicitly raise the original exception
 @retry(reraise=True, stop=stop_after_delay(3), wait=wait_fixed(0.5))
 def rmtree(dir, ignore_errors=False):
     # type: (AnyStr, bool) -> None
@@ -270,13 +270,20 @@ def tabulate(rows):
 
 
 def is_installable_dir(path: str) -> bool:
-    """Is path is a directory containing pyproject.toml, setup.cfg or setup.py?"""
+    """Is path is a directory containing pyproject.toml or setup.py?
+
+    If pyproject.toml exists, this is a PEP 517 project. Otherwise we look for
+    a legacy setuptools layout by identifying setup.py. We don't check for the
+    setup.cfg because using it without setup.py is only available for PEP 517
+    projects, which are already covered by the pyproject.toml check.
+    """
     if not os.path.isdir(path):
         return False
-    return any(
-        os.path.isfile(os.path.join(path, signifier))
-        for signifier in ("pyproject.toml", "setup.cfg", "setup.py")
-    )
+    if os.path.isfile(os.path.join(path, "pyproject.toml")):
+        return True
+    if os.path.isfile(os.path.join(path, "setup.py")):
+        return True
+    return False
 
 
 def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):

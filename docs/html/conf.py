@@ -30,7 +30,7 @@ extensions = [
 
 # General information about the project.
 project = "pip"
-copyright = "2008-2020, PyPA"
+copyright = "The pip developers"
 
 # Find the version and release information.
 # We have a single source of truth for our version number: pip's __init__.py file.
@@ -51,6 +51,10 @@ with open(file_with_version) as f:
 
 print("pip version:", version)
 print("pip release:", release)
+
+# -- Options for myst-parser ----------------------------------------------------------
+
+myst_enable_extensions = ["deflist"]
 
 # -- Options for smartquotes ----------------------------------------------------------
 
