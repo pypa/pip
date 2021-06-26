@@ -27,7 +27,7 @@ class CheckCommand(Command):
             dest='requirements_format',
             action='store_true',
             default=False,
-            help='Output result with requirements format',
+            help='Generate output suitable for a requirements file.',
         )
 
     def run(self, options, args):
