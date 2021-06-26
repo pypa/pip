@@ -45,5 +45,5 @@ lists or chat rooms:
 [pypi]: https://pypi.org/
 [issue-tracker]: https://github.com/pypa/pip/issues/
 [packaging-discourse]: https://discuss.python.org/c/packaging/14
-[irc-pypa]: https://webchat.freenode.net/#pypa
-[irc-pypa-dev]: https://webchat.freenode.net/#pypa-dev
+[irc-pypa]: https://kiwiirc.com/nextclient/#ircs://irc.libera.chat:+6697/pypa
+[irc-pypa-dev]: https://kiwiirc.com/nextclient/#ircs://irc.libera.chat:+6697/pypa-dev
