@@ -19,6 +19,17 @@ class CheckCommand(Command):
     usage = """
       %prog [options]"""
 
+    def add_options(self):
+        # type: () -> None
+
+        self.cmd_opts.add_option(
+            '--requirements-format',
+            dest='requirements_format',
+            action='store_true',
+            default=False,
+            help='Output result with requirements format',
+        )
+
     def run(self, options, args):
         # type: (Values, List[Any]) -> int
 
@@ -28,18 +39,20 @@ class CheckCommand(Command):
         for project_name in missing:
             version = package_set[project_name].version
             for dependency in missing[project_name]:
-                write_output(
-                    "%s %s requires %s, which is not installed.",
-                    project_name, version, dependency[0],
-                )
+                msg = "%s %s requires %s, which is not installed." % (
+                    project_name, version, dependency[0])
+                if options.requirements_format:
+                    msg = '%s  # %s' % (dependency[0], msg)
+                write_output(msg)
 
         for project_name in conflicting:
             version = package_set[project_name].version
             for dep_name, dep_version, req in conflicting[project_name]:
-                write_output(
-                    "%s %s has requirement %s, but you have %s %s.",
-                    project_name, version, req, dep_name, dep_version,
-                )
+                msg = "%s %s has requirement %s, but you have %s %s." % (
+                    project_name, version, req, dep_name, dep_version)
+                if options.requirements_format:
+                    msg = '%s  # %s' % (req, msg)
+                write_output(msg)
 
         if missing or conflicting or parsing_probs:
             return ERROR
