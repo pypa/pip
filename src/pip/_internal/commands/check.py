@@ -23,7 +23,7 @@ class CheckCommand(Command):
         # type: () -> None
 
         self.cmd_opts.add_option(
-            '--requirements-format',
+            '--reqs-fmt', '--requirements-format',
             dest='requirements_format',
             action='store_true',
             default=False,
