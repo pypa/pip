@@ -1,0 +1,2 @@
+Add new option ``--requirements-format``, or ``--reqs-fmt`` for ``pip check`` to generate output
+suitable for a requirements file.
