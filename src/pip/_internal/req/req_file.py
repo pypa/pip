@@ -16,7 +16,7 @@ from pip._internal.models.search_scope import SearchScope
 from pip._internal.network.session import PipSession
 from pip._internal.network.utils import raise_for_status
 from pip._internal.utils.encoding import auto_decode
-from pip._internal.utils.urls import get_url_scheme, url_to_path
+from pip._internal.utils.urls import get_url_scheme
 
 if TYPE_CHECKING:
     # NoReturn introduced in 3.6.2; imported only for type checking to maintain
@@ -532,20 +532,16 @@ def get_file_content(url, session):
     """
     scheme = get_url_scheme(url)
 
-    if scheme in ['http', 'https']:
-        # FIXME: catch some errors
+    # Pip has special support for file:// URLs (LocalFSAdapter).
+    if scheme in ['http', 'https', 'file']:
         resp = session.get(url)
         raise_for_status(resp)
         return resp.url, resp.text
 
-    elif scheme == 'file':
-        url = url_to_path(url)
-
+    # Assume this is a bare path.
     try:
         with open(url, 'rb') as f:
             content = auto_decode(f.read())
     except OSError as exc:
-        raise InstallationError(
-            f'Could not open requirements file: {exc}'
-        )
+        raise InstallationError(f'Could not open requirements file: {exc}')
     return url, content
