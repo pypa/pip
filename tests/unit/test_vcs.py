@@ -4,7 +4,6 @@ from unittest import TestCase
 from unittest.mock import patch
 
 import pytest
-from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import hide_url, hide_value
@@ -483,7 +482,7 @@ def test_subversion__get_url_rev_options():
 
 def test_get_git_version():
     git_version = Git().get_git_version()
-    assert git_version >= parse_version('1.0.0')
+    assert git_version >= (1, 0, 0)
 
 
 @pytest.mark.parametrize('use_interactive,is_atty,expected', [
