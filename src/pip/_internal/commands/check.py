@@ -29,6 +29,7 @@ class CheckCommand(Command):
             default=False,
             help='Generate output suitable for a requirements file (PEP508).',
         )
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
         # type: (Values, List[Any]) -> int
