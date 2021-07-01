@@ -23,11 +23,11 @@ class CheckCommand(Command):
         # type: () -> None
 
         self.cmd_opts.add_option(
-            '--reqs-fmt', '--requirements-format',
-            dest='requirements_format',
+            '--use-pep508',
+            dest='use_pep508',
             action='store_true',
             default=False,
-            help='Generate output suitable for a requirements file.',
+            help='Generate output suitable for a requirements file (PEP508).',
         )
 
     def run(self, options, args):
@@ -41,7 +41,7 @@ class CheckCommand(Command):
             for dependency in missing[project_name]:
                 msg = "%s %s requires %s, which is not installed." % (
                     project_name, version, dependency[0])
-                if options.requirements_format:
+                if options.use_pep508:
                     msg = '%s  # %s' % (dependency[0], msg)
                 write_output(msg)
 
@@ -50,7 +50,7 @@ class CheckCommand(Command):
             for dep_name, dep_version, req in conflicting[project_name]:
                 msg = "%s %s has requirement %s, but you have %s %s." % (
                     project_name, version, req, dep_name, dep_version)
-                if options.requirements_format:
+                if options.use_pep508:
                     msg = '%s  # %s' % (req, msg)
                 write_output(msg)
 
