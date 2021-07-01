@@ -110,4 +110,5 @@ if DEBUNDLED:
     vendored("toml")
     vendored("toml.encoder")
     vendored("toml.decoder")
+    vendored("tomli")
     vendored("urllib3")
