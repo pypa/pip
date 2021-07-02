@@ -49,7 +49,7 @@ packages.
 
 This can look like:
 
-```
+```console
 $ pip install tea
 Collecting tea
   Downloading tea-1.9.8-py2.py3-none-any.whl (346 kB)
