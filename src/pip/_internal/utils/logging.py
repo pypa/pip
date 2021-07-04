@@ -375,6 +375,7 @@ def setup_logging(verbosity, no_color, user_log_file):
                     "level": "DEBUG",
                     "class": handler_classes["file"],
                     "filename": additional_log_file,
+                    "encoding": "utf-8",
                     "delay": True,
                     "formatter": "indent_with_timestamp",
                 },
