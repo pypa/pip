@@ -143,7 +143,7 @@ class _InstallRequirementBackedCandidate(Candidate):
         link: Link,
         source_link: Link,
         ireq: InstallRequirement,
-        factory: Factory,
+        factory: "Factory",
         name: Optional[NormalizedName] = None,
         version: Optional[CandidateVersion] = None,
     ) -> None:
@@ -263,7 +263,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
         self,
         link: Link,
         template: InstallRequirement,
-        factory: Factory,
+        factory: "Factory",
         name: Optional[NormalizedName] = None,
         version: Optional[CandidateVersion] = None,
     ) -> None:
@@ -314,7 +314,7 @@ class EditableCandidate(_InstallRequirementBackedCandidate):
         self,
         link: Link,
         template: InstallRequirement,
-        factory: Factory,
+        factory: "Factory",
         name: Optional[NormalizedName] = None,
         version: Optional[CandidateVersion] = None,
     ) -> None:
@@ -339,7 +339,7 @@ class AlreadyInstalledCandidate(Candidate):
         self,
         dist: Distribution,
         template: InstallRequirement,
-        factory: Factory,
+        factory: "Factory",
     ) -> None:
         self.dist = dist
         self._ireq = make_install_req_from_dist(dist, template)
