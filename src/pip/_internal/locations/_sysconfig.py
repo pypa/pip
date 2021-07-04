@@ -25,8 +25,7 @@ logger = logging.getLogger(__name__)
 _AVAILABLE_SCHEMES = set(sysconfig.get_scheme_names())
 
 
-def _infer_prefix():
-    # type: () -> str
+def _infer_prefix() -> str:
     """Try to find a prefix scheme for the current platform.
 
     This tries:
@@ -51,8 +50,7 @@ def _infer_prefix():
     return "posix_prefix"
 
 
-def _infer_user():
-    # type: () -> str
+def _infer_user() -> str:
     """Try to find a user scheme for the current platform."""
     suffixed = f"{os.name}_user"
     if suffixed in _AVAILABLE_SCHEMES:
@@ -62,8 +60,7 @@ def _infer_user():
     return "posix_user"
 
 
-def _infer_home():
-    # type: () -> str
+def _infer_home() -> str:
     """Try to find a home for the current platform."""
     suffixed = f"{os.name}_home"
     if suffixed in _AVAILABLE_SCHEMES:
@@ -85,14 +82,13 @@ if sysconfig.get_config_var("userbase") is not None:
 
 
 def get_scheme(
-    dist_name,  # type: str
-    user=False,  # type: bool
-    home=None,  # type: typing.Optional[str]
-    root=None,  # type: typing.Optional[str]
-    isolated=False,  # type: bool
-    prefix=None,  # type: typing.Optional[str]
-):
-    # type: (...) -> Scheme
+    dist_name: str,
+    user: bool = False,
+    home: typing.Optional[str] = None,
+    root: typing.Optional[str] = None,
+    isolated: bool = False,
+    prefix: typing.Optional[str] = None,
+) -> Scheme:
     """
     Get the "scheme" corresponding to the input parameters.
 
@@ -156,25 +152,21 @@ def get_scheme(
     return scheme
 
 
-def get_bin_prefix():
-    # type: () -> str
+def get_bin_prefix() -> str:
     # Forcing to use /usr/local/bin for standard macOS framework installs.
     if sys.platform[:6] == "darwin" and sys.prefix[:16] == "/System/Library/":
         return "/usr/local/bin"
     return sysconfig.get_paths()["scripts"]
 
 
-def get_purelib():
-    # type: () -> str
+def get_purelib() -> str:
     return sysconfig.get_paths()["purelib"]
 
 
-def get_platlib():
-    # type: () -> str
+def get_platlib() -> str:
     return sysconfig.get_paths()["platlib"]
 
 
-def get_prefixed_libs(prefix):
-    # type: (str) -> typing.Tuple[str, str]
+def get_prefixed_libs(prefix: str) -> typing.Tuple[str, str]:
     paths = sysconfig.get_paths(vars={"base": prefix, "platbase": prefix})
     return (paths["purelib"], paths["platlib"])
