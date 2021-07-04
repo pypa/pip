@@ -13,8 +13,7 @@ logger = logging.getLogger(__name__)
 
 class BaseDistribution:
     @property
-    def location(self):
-        # type: () -> Optional[str]
+    def location(self) -> Optional[str]:
         """Where the distribution is loaded from.
 
         A string value is not necessarily a filesystem path, since distributions
@@ -24,39 +23,32 @@ class BaseDistribution:
         raise NotImplementedError()
 
     @property
-    def metadata_version(self):
-        # type: () -> Optional[str]
+    def metadata_version(self) -> Optional[str]:
         """Value of "Metadata-Version:" in the distribution, if available."""
         raise NotImplementedError()
 
     @property
-    def canonical_name(self):
-        # type: () -> str
+    def canonical_name(self) -> str:
         raise NotImplementedError()
 
     @property
-    def version(self):
-        # type: () -> DistributionVersion
+    def version(self) -> DistributionVersion:
         raise NotImplementedError()
 
     @property
-    def installer(self):
-        # type: () -> str
+    def installer(self) -> str:
         raise NotImplementedError()
 
     @property
-    def editable(self):
-        # type: () -> bool
+    def editable(self) -> bool:
         raise NotImplementedError()
 
     @property
-    def local(self):
-        # type: () -> bool
+    def local(self) -> bool:
         raise NotImplementedError()
 
     @property
-    def in_usersite(self):
-        # type: () -> bool
+    def in_usersite(self) -> bool:
         raise NotImplementedError()
 
 
@@ -64,22 +56,18 @@ class BaseEnvironment:
     """An environment containing distributions to introspect."""
 
     @classmethod
-    def default(cls):
-        # type: () -> BaseEnvironment
+    def default(cls) -> "BaseEnvironment":
         raise NotImplementedError()
 
     @classmethod
-    def from_paths(cls, paths):
-        # type: (Optional[List[str]]) -> BaseEnvironment
+    def from_paths(cls, paths: Optional[List[str]]) -> "BaseEnvironment":
         raise NotImplementedError()
 
-    def get_distribution(self, name):
-        # type: (str) -> Optional[BaseDistribution]
+    def get_distribution(self, name: str) -> Optional["BaseDistribution"]:
         """Given a requirement name, return the installed distributions."""
         raise NotImplementedError()
 
-    def _iter_distributions(self):
-        # type: () -> Iterator[BaseDistribution]
+    def _iter_distributions(self) -> Iterator["BaseDistribution"]:
         """Iterate through installed distributions.
 
         This function should be implemented by subclass, but never called
@@ -88,8 +76,7 @@ class BaseEnvironment:
         """
         raise NotImplementedError()
 
-    def iter_distributions(self):
-        # type: () -> Iterator[BaseDistribution]
+    def iter_distributions(self) -> Iterator["BaseDistribution"]:
         """Iterate through installed distributions."""
         for dist in self._iter_distributions():
             # Make sure the distribution actually comes from a valid Python
@@ -112,13 +99,12 @@ class BaseEnvironment:
 
     def iter_installed_distributions(
         self,
-        local_only=True,  # type: bool
-        skip=stdlib_pkgs,  # type: Container[str]
-        include_editables=True,  # type: bool
-        editables_only=False,  # type: bool
-        user_only=False,  # type: bool
-    ):
-        # type: (...) -> Iterator[BaseDistribution]
+        local_only: bool = True,
+        skip: Container[str] = stdlib_pkgs,
+        include_editables: bool = True,
+        editables_only: bool = False,
+        user_only: bool = False,
+    ) -> Iterator[BaseDistribution]:
         """Return a list of installed distributions.
 
         :param local_only: If True (default), only return installations
