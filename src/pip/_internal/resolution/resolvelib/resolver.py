@@ -247,7 +247,7 @@ class Resolver(BaseResolver):
 
 
 def get_topological_weights(
-    graph: DirectedGraph[Optional[str]], expected_node_count: int
+    graph: "DirectedGraph[Optional[str]]", expected_node_count: int
 ) -> Dict[Optional[str], int]:
     """Assign weights to each node based on how "deep" they are.
 

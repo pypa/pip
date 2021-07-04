@@ -554,7 +554,7 @@ class Factory:
 
     def get_installation_error(
         self,
-        e: ResolutionImpossible[Requirement, Candidate],
+        e: "ResolutionImpossible[Requirement, Candidate]",
         constraints: Dict[str, Constraint],
     ) -> InstallationError:
 
