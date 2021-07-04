@@ -511,7 +511,7 @@ class Factory:
         return None
 
     def _report_requires_python_error(
-        self, causes: Sequence[ConflictCause]
+        self, causes: Sequence["ConflictCause"]
     ) -> UnsupportedPythonVersion:
         assert causes, "Requires-Python error reported with no cause"
 
