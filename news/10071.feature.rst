@@ -1,0 +1,1 @@
+Change the encoding of log file from default text encoding to UTF-8.
