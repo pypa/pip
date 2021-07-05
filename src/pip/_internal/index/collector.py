@@ -266,7 +266,7 @@ def _create_link_from_element(
 
 
 class CacheablePageContent:
-    def __init__(self, page: HTMLPage) -> None: # OK
+    def __init__(self, page: "HTMLPage") -> None:
         assert page.cache_link_parsing
         self.page = page
 
@@ -279,8 +279,8 @@ class CacheablePageContent:
 
 
 def with_cached_html_pages(
-    fn: Callable[[HTMLPage], Iterable[Link]], # OK
-) -> Callable[[HTMLPage], List[Link]]: # OK
+    fn: Callable[["HTMLPage"], Iterable[Link]],
+) -> Callable[["HTMLPage"], List[Link]]:
     """
     Given a function that parses an Iterable[Link] from an HTMLPage, cache the
     function's result (keyed by CacheablePageContent), unless the HTMLPage
@@ -292,7 +292,7 @@ def with_cached_html_pages(
         return list(fn(cacheable_page.page))
 
     @functools.wraps(fn)
-    def wrapper_wrapper(page: HTMLPage) -> List[Link]:
+    def wrapper_wrapper(page: "HTMLPage") -> List[Link]:
         if page.cache_link_parsing:
             return wrapper(CacheablePageContent(page))
         return list(fn(page))
@@ -301,7 +301,7 @@ def with_cached_html_pages(
 
 
 @with_cached_html_pages
-def parse_links(page: HTMLPage) -> Iterable[Link]: # OK
+def parse_links(page: "HTMLPage") -> Iterable[Link]:
     """
     Parse an HTML document, and yield its anchor elements as Link objects.
     """
@@ -371,7 +371,7 @@ def _make_html_page(response: Response, cache_link_parsing: bool = True) -> HTML
 
 def _get_html_page(
     link: Link, session: Optional[PipSession] = None
-) -> Optional[HTMLPage]: # OK
+) -> Optional["HTMLPage"]:
     if session is None:
         raise TypeError(
             "_get_html_page() missing 1 required keyword argument: 'session'"
@@ -454,7 +454,7 @@ class LinkCollector:
         cls, session: PipSession,
         options: Values,
         suppress_no_index: bool = False
-    ) -> LinkCollector: # OK
+    ) -> "LinkCollector":
         """
         :param session: The Session to use to make requests.
         :param suppress_no_index: Whether to ignore the --no-index option
