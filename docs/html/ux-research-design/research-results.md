@@ -15,9 +15,9 @@ Some key outcomes from the 2020 work are:
 - A pip UX research panel ([Sign up here!](https://mail.python.org/mailman3/lists/pip-ux-studies.python.org/))
 - New and expanded GitHub issues
 - UX improvements in 2020
-    - UX work supporting the dependency resolver
-    - Improved error messaging
-    - Supporting Documentation
+  - UX work supporting the dependency resolver
+  - Improved error messaging
+  - Supporting Documentation
 - UX Training for the Pypa + pip maintainers
 
 This work was made possible through the [pip donor funded roadmap](https://wiki.python.org/psf/Pip2020DonorFundedRoadmap).
@@ -188,119 +188,153 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
 
 Below is a compiled list of all research outputs and recommendations made by the pip UX team based on the research conducted in 2020.
 
-We are currently looking for volunteers to take recommendations made by the UX team and move them into pip's issue tracker.  This will ensure that the research conducted in 2020 is leveraged by the pip development team.
-
+We are currently looking for volunteers to take recommendations made by the UX team and move them into pip's issue tracker. This will ensure that the research conducted in 2020 is leveraged by the pip development team.
 
 <table>
-  <tr>
-   <td>Title
-   </td>
-   <td>Category
-   </td>
-   <td>Description
-   </td>
-  </tr>
-  <tr>
-   <td><a href="https://docs.google.com/document/d/1GUkcEIdu-3Bkk43AwPJ0ExtPxdU4nUYieTlWfcfp4O8/edit?usp=sharing">About our users</a>
-   </td>
-   <td>Who uses pip
-   </td>
-   <td>High-level summary of who uses pip. Includes recommendations for supporting languages other than English, supporting users with disabilities, and improving pip's output
-   </td>
-  </tr>
-  <tr>
-   <td><a href="https://docs.google.com/document/d/1730saWFkRUhKC_c0m92gfm3NLySDDtydBY9sDs9BMhk/edit?usp=sharing">Pip personas</a>
-   </td>
-   <td>Who uses pip
-   </td>
-   <td>Defines and explores three Python user personas
-   </td>
-  </tr>
-  <tr>
-   <td><a href="https://docs.google.com/document/d/1EsDNsuahXOrsfYpTmWXsIb-iQPYIEZUejRqZlCo1r9c/edit?usp=sharing">Mental models of pip</a>
-   </td>
-   <td>Who uses pip
-   </td>
-   <td>Explores users' general knowledge of package management, what pip is, and what pip does during an install process.
-   </td>
-  </tr>
-  <tr>
-   <td><a href="https://docs.google.com/document/d/1gltjYEIzswjSipFI7MfRH6OT8LdVIIGFKzZZLIVBbhI/edit?usp=sharing">Behaviours and attitudes towards code security and integrity</a>
-   </td>
-   <td>Who uses pip
-   </td>
-   <td>Explores pip users behaviour and attitudes towards security and makes recommendations on how to improve pips security experience
-   </td>
-  </tr>
-  <tr>
-   <td><a href="https://docs.google.com/document/d/1dnkj7SG9fThsjjdCoQrf94U4eHeC6lE_cvS33ULufx4/edit?usp=sharing">Usage of pip in automated and interactive environments</a>
-   </td>
-   <td>Who uses pip
-   </td>
-   <td>Assessment of use of pip in automated environments (i.e. continuous integration, continuous deployment) vs manual input from the command line
-   </td>
-  </tr>
-  <tr>
-   <td><a href="https://hackmd.io/@LE2CG9ODQ0CZOIcMC47VyQ/SyVrUekoD">Improving pip's documentation</a>
-   </td>
-   <td>Documentation
-   </td>
-   <td>Summarises how pip users get pip help, and make recommendations on how to improve pip's documentation
-   </td>
-  </tr>
-  <tr>
-   <td><a href="https://www.notion.so/simplysecure/Design-brief-for-pip-logo-8186d239892f442ca0cc763a88997ec2">Pip's identity: In search of a logo</a>
-   </td>
-   <td>Pip community
-   </td>
-   <td>Summarises community ideas for a new pip logo as input for a design brief
-   </td>
-  </tr>
-  <tr>
-   <td><a href="https://hackmd.io/@LE2CG9ODQ0CZOIcMC47VyQ/HJD8DTepw">Prioritizing features (buy a feature)</a>
-   </td>
-   <td>How pip works
-   </td>
-   <td>Summarises which features are most important to pip's users
-   </td>
-  </tr>
-  <tr>
-   <td><a href="https://hackmd.io/okbYASpyQJ-XDIdDAZFQYQ">Pip Search</a>
-   </td>
-   <td>How pip works
-   </td>
-   <td>Summarises current use of pip search and makes recommendations on how to move forward with pip search, given that PyPI XMLRPC search has been disabled
-   </td>
-  </tr>
-  <tr>
-   <td><a href="https://hackmd.io/2naLnfq-SKCaUTZxZmYDNA">Pip Force reinstall</a>
-   </td>
-   <td>How pip works
-   </td>
-   <td>Looks at at current use of `pip --force-reinstall` and whether the current behavior matches users expectations
-   </td>
-  </tr>
-  <tr>
-   <td><a href="https://hackmd.io/2F74AQYbRzeHl3zTgoWUvQ">Dependency conflict resolution when upgrading packages</a>
-   </td>
-   <td>2020 dependency resolver
-   </td>
-   <td>Recommends whether pip should take into account packages that are already installed when a user asks pip to upgrade a package
-   </td>
-  </tr>
-  <tr>
-   <td><a href="https://hackmd.io/MIRY9jpRSNyuzMXoWmSqIg?both">Providing an override to install packages with conflicting dependencies</a>
-   </td>
-   <td>2020 dependency resolver
-   </td>
-   <td>Recommends weather or not to provide an override for users to install packages with conflicts (the new pip resolver blocks this behaviour by default)
-   </td>
-  </tr>
+  <thead>
+    <tr>
+      <th>Title</th>
+      <th>Category</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+        <a href="/2020-research-outputs/about-our-users">About our users</a>
+      </td>
+      <td>
+        Who uses pip
+      </td>
+      <td>
+        High-level summary of who uses pip. Includes recommendations for supporting languages other than English, supporting users with disabilities, and improving pip's output
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="/2020-research-outputs/personas">Pip personas</a>
+      </td>
+      <td>
+        Who uses pip
+      </td>
+      <td>
+        Defines and explores three Python user personas
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="/2020-research-outputs/mental-models">Mental models of pip</a>
+      </td>
+      <td>
+        Who uses pip
+      </td>
+      <td>
+        Explores users' general knowledge of package management, what pip is, and what pip does during an install process.
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="/2020-research-outputs/users-and-security">Behaviours and attitudes towards code security and integrity</a>
+      </td>
+      <td>
+        Who uses pip
+      </td>
+      <td>
+        Explores pip users behaviour and attitudes towards security and makes recommendations on how to improve pips security experience
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="/2020-research-outputs/ci-cd">Usage of pip in automated and interactive environments</a>
+      </td>
+      <td>
+        Who uses pip
+      </td>
+      <td>
+        Assessment of use of pip in automated environments (i.e. continuous integration, continuous deployment) vs manual input from the command line
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="/2020-research-outputs/improving-pips-documentation">Improving pip's documentation</a>
+      </td>
+      <td>
+        Documentation
+      </td>
+      <td>
+        Summarises how pip users get pip help, and make recommendations on how to improve pip's documentation
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="/2020-research-outputs/pip-logo">Pip's identity: In search of a logo</a>
+      </td>
+      <td>
+        Pip community
+      </td>
+      <td>
+        Summarises community ideas for a new pip logo as input for a design brief
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="/2020-research-outputs/prioritizing-features">Prioritizing features (buy a feature)</a>
+      </td>
+      <td>
+        How pip works
+      </td>
+      <td>
+        Summarises which features are most important to pip's users
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="/2020-research-outputs/pip-search">Pip Search</a>
+      </td>
+      <td>
+        How pip works
+      </td>
+      <td>
+        Summarises current use of pip search and makes recommendations on how to move forward with pip search, given that PyPI XMLRPC search has been disabled
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="/2020-research-outputs/pip-force-reinstall">Pip Force reinstall</a>
+      </td>
+      <td>
+        How pip works
+      </td>
+      <td>
+        Looks at at current use of `pip --force-reinstall` and whether the current behavior matches users expectations
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="/2020-research-outputs/pip-upgrade-conflict">Dependency conflict resolution when upgrading packages</a>
+      </td>
+      <td>
+        2020 dependency resolver
+      </td>
+      <td>
+        Recommends whether pip should take into account packages that are already installed when a user asks pip to upgrade a package
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="/2020-research-outputs/override-conflicting-dependencies">Providing an override to install packages with conflicting dependencies</a>
+      </td>
+      <td>
+        2020 dependency resolver
+      </td>
+      <td>
+        Recommends weather or not to provide an override for users to install packages with conflicts (the new pip resolver blocks this behaviour by default)
+      </td>
+    </tr>
+  </tbody>
 </table>
 
-
-
-### **Read More**
+## Read More
 
 - [Pip team midyear report (blog, July 2020)](https://pyfound.blogspot.com/2020/07/pip-team-midyear-report.html)
 - [Creating rapid CLI prototypes with cli-output (blog, Oct 2020)](https://www.ei8fdb.org/thoughts/2020/10/prototyping-command-line-interfaces-with-cli-output/)
@@ -310,8 +344,8 @@ We are currently looking for volunteers to take recommendations made by the UX t
 - [How do you deal with conflicting dependencies caused by pip installs? (blog, April 2020)](https://www.ei8fdb.org/thoughts/2020/04/how-do-you-deal-with-conflicting-dependencies-caused-by-pip-installs/)
 - [pip UX studies: response data (blog, March 2020)](https://www.ei8fdb.org/thoughts/2020/03/pip-ux-studies-response-data/)
 - Other PyPA UX work:
-    - [PyPI User Research (blog, July 2018)](https://whoisnicoleharris.com/2018/07/22/pypi-user-research.html)
-    - [Warehouse - The Future of PyPI](https://whoisnicoleharris.com/warehouse/)<span style="text-decoration:underline;"> (overview)</span>
-    - [Accessibility on Warehouse (PyPI) (blog, May 2018)](https://whoisnicoleharris.com/2018/05/17/warehouse-accessibility.html)
-    - [User Testing Warehouse (blog, Mar 2018)](https://whoisnicoleharris.com/2018/03/13/user-testing-warehouse.html)
-    - [Designing Warehouse - An Overview (blog, Dec 2015)](https://whoisnicoleharris.com/2015/12/31/designing-warehouse-an-overview.html)
+  - [PyPI User Research (blog, July 2018)](https://whoisnicoleharris.com/2018/07/22/pypi-user-research.html)
+  - [Warehouse - The Future of PyPI](https://whoisnicoleharris.com/warehouse/)<span style="text-decoration:underline;"> (overview)</span>
+  - [Accessibility on Warehouse (PyPI) (blog, May 2018)](https://whoisnicoleharris.com/2018/05/17/warehouse-accessibility.html)
+  - [User Testing Warehouse (blog, Mar 2018)](https://whoisnicoleharris.com/2018/03/13/user-testing-warehouse.html)
+  - [Designing Warehouse - An Overview (blog, Dec 2015)](https://whoisnicoleharris.com/2015/12/31/designing-warehouse-an-overview.html)
