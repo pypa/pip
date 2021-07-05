@@ -748,7 +748,9 @@ class PackageFinder:
 
         return candidates
 
-    def process_project_url(self, project_url: Link, link_evaluator: LinkEvaluator) -> List[InstallationCandidate]:
+    def process_project_url(
+        self, project_url: Link, link_evaluator: LinkEvaluator
+    ) -> List[InstallationCandidate]:
         logger.debug(
             'Fetching project page and analyzing links: %s', project_url,
         )
@@ -853,7 +855,9 @@ class PackageFinder:
         )
         return candidate_evaluator.compute_best_candidate(candidates)
 
-    def find_requirement(self, req: InstallRequirement, upgrade: bool) -> Optional[InstallationCandidate]:
+    def find_requirement(
+        self, req: InstallRequirement, upgrade: bool
+    ) -> Optional[InstallationCandidate]:
         """Try to find a Link matching req
 
         Expects req, an InstallRequirement and upgrade, a boolean
