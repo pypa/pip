@@ -409,7 +409,7 @@ class CandidateEvaluator:
     def __init__(
         self,
         project_name: str,
-        supported_tags: List["tag"],
+        supported_tags: List[Tag],
         specifier: specifiers.BaseSpecifier,
         prefer_binary: bool = False,
         allow_all_prereleases: bool = False,
