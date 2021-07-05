@@ -266,7 +266,7 @@ def _create_link_from_element(
 
 
 class CacheablePageContent:
-    def __init__(self, page: HTMLPage) -> None:
+    def __init__(self, page: HTMLPage) -> None: # OK
         assert page.cache_link_parsing
         self.page = page
 
@@ -279,8 +279,8 @@ class CacheablePageContent:
 
 
 def with_cached_html_pages(
-    fn: Callable[[HTMLPage], Iterable[Link]],
-) -> Callable[[HTMLPage], List[Link]]:
+    fn: Callable[[HTMLPage], Iterable[Link]], # OK
+) -> Callable[[HTMLPage], List[Link]]: # OK
     """
     Given a function that parses an Iterable[Link] from an HTMLPage, cache the
     function's result (keyed by CacheablePageContent), unless the HTMLPage
@@ -301,7 +301,7 @@ def with_cached_html_pages(
 
 
 @with_cached_html_pages
-def parse_links(page: HTMLPage) -> Iterable[Link]:
+def parse_links(page: HTMLPage) -> Iterable[Link]: # OK
     """
     Parse an HTML document, and yield its anchor elements as Link objects.
     """
@@ -369,7 +369,9 @@ def _make_html_page(response: Response, cache_link_parsing: bool = True) -> HTML
         cache_link_parsing=cache_link_parsing)
 
 
-def _get_html_page(link: Link, session: Optional[PipSession] = None) -> Optional[HTMLPage]:
+def _get_html_page(
+    link: Link, session: Optional[PipSession] = None
+) -> Optional[HTMLPage]: # OK
     if session is None:
         raise TypeError(
             "_get_html_page() missing 1 required keyword argument: 'session'"
@@ -448,7 +450,11 @@ class LinkCollector:
         self.session = session
 
     @classmethod
-    def create(cls, session: PipSession, options: Values, suppress_no_index: bool = False) -> LinkCollector:
+    def create(
+        cls, session: PipSession,
+        options: Values,
+        suppress_no_index: bool = False
+    ) -> LinkCollector: # OK
         """
         :param session: The Session to use to make requests.
         :param suppress_no_index: Whether to ignore the --no-index option
