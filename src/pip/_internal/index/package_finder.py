@@ -866,7 +866,7 @@ class PackageFinder:
         if req.satisfied_by is not None:
             installed_version = parse_version(req.satisfied_by.version)
 
-        def _format_versions(cand_iter: -> Iterable[InstallationCandidate]) -> str:
+        def _format_versions(cand_iter: Iterable[InstallationCandidate]) -> str:
             # This repeated parse_version and str() conversion is needed to
             # handle different vendoring sources from pip and pkg_resources.
             # If we stop using the pkg_resources provided specifier and start
