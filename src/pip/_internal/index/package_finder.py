@@ -379,7 +379,7 @@ class CandidateEvaluator:
         allow_all_prereleases: bool = False,
         specifier: Optional[specifiers.BaseSpecifier] = None,
         hashes: Optional[Hashes] = None,
-    ) -> CandidateEvaluator:
+    ) -> "CandidateEvaluator":
         """Create a CandidateEvaluator object.
 
         :param target_python: The target Python interpreter to use when
@@ -614,7 +614,7 @@ class PackageFinder:
         link_collector: LinkCollector,
         selection_prefs: SelectionPreferences,
         target_python: Optional[TargetPython] = None,
-    ) -> PackageFinder:
+    ) -> "PackageFinder":
         """Create a PackageFinder.
 
         :param selection_prefs: The candidate selection preferences, as a
@@ -715,7 +715,9 @@ class PackageFinder:
             logger.debug('Skipping link: %s: %s', reason, link)
             self._logged_links.add(link)
 
-    def get_install_candidate(self, link_evaluator: LinkEvaluator, link: Link) -> Optional[InstallationCandidate]:
+    def get_install_candidate(
+        self, link_evaluator: LinkEvaluator, link: Link
+    ) -> Optional[InstallationCandidate]:
         """
         If the link is a candidate for install, convert it to an
         InstallationCandidate and return it. Otherwise, return None.
@@ -732,7 +734,9 @@ class PackageFinder:
             version=result,
         )
 
-    def evaluate_links(self, link_evaluator: LinkEvaluator, links: Iterable[Link]) -> List[InstallationCandidate]:
+    def evaluate_links(
+        self, link_evaluator: LinkEvaluator, links: Iterable[Link]
+    ) -> List[InstallationCandidate]:
         """
         Convert links that are candidates to InstallationCandidate objects.
         """
