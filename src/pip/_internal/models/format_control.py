@@ -12,8 +12,10 @@ class FormatControl:
     __slots__ = ["no_binary", "only_binary"]
 
     def __init__(
-        self, no_binary: Optional[Set[str]] = None, only_binary: Optional[Set[str]] = None
-                                  ) -> None:
+        self,
+        no_binary: Optional[Set[str]] = None,
+        only_binary: Optional[Set[str]] = None
+    ) -> None:
         if no_binary is None:
             no_binary = set()
         if only_binary is None:
