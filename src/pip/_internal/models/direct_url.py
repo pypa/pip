@@ -47,7 +47,7 @@ def _get_required(
     return value
 
 
-def _exactly_one_of(infos: Iterable[Optional[InfoType]]) -> InfoType:
+def _exactly_one_of(infos: Iterable[Optional["InfoType"]]) -> "InfoType":
     infos = [info for info in infos if info is not None]
     if not infos:
         raise DirectUrlValidationError(
@@ -213,7 +213,7 @@ class DirectUrl:
         return res
 
     @classmethod
-    def from_json(cls, s: str) -> DirectUrl:
+    def from_json(cls, s: str) -> "DirectUrl":
         return cls.from_dict(json.loads(s))
 
     def to_json(self) -> str:
