@@ -216,11 +216,12 @@ def unpack_url(
     # be removed.
     if link.is_existing_dir():
         deprecated(
-            "A future pip version will change local packages to be built "
-            "in-place without first copying to a temporary directory. "
-            "We recommend you use --use-feature=in-tree-build to test "
-            "your packages with this new behavior before it becomes the "
-            "default.\n",
+            "pip currently copies the source tree into a temporary directory "
+            "before building it. In the future, pip will build packages in-place "
+            "within the original source tree (\"in-tree build\"). Before the "
+            "default behavior changes, we recommend testing your packages by "
+            "adding the --use-feature=in-tree-build argument. Regarding the "
+            "current out-of-tree default build behavior,\n",
             replacement=None,
             gone_in="21.3",
             issue=7555
