@@ -182,7 +182,7 @@ def parse_req_from_editable(editable_req):
 
     if name is not None:
         try:
-            req = Requirement(name)
+            req = Requirement(name)  # type: Optional[Requirement]
         except InvalidRequirement:
             raise InstallationError(f"Invalid requirement: '{name}'")
     else:
@@ -248,8 +248,8 @@ def _looks_like_path(name):
 def _get_url_from_path(path, name):
     # type: (str, str) -> Optional[str]
     """
-    First, it checks whether a provided path is an installable directory
-    (e.g. it has a setup.py). If it is, returns the path.
+    First, it checks whether a provided path is an installable directory. If it
+    is, returns the path.
 
     If false, check if the path is an archive file (such as a .whl).
     The function checks if the path is a file. If false, if the path has
@@ -335,7 +335,7 @@ def parse_req_from_line(name, line_source):
             return text
         return f'{text} (from {line_source})'
 
-    if req_as_string is not None:
+    def _parse_req_string(req_as_string: str) -> Requirement:
         try:
             req = Requirement(req_as_string)
         except InvalidRequirement:
@@ -363,6 +363,10 @@ def parse_req_from_line(name, line_source):
                 if spec_str.endswith(']'):
                     msg = f"Extras after version '{spec_str}'."
                     raise InstallationError(msg)
+        return req
+
+    if req_as_string is not None:
+        req = _parse_req_string(req_as_string)  # type: Optional[Requirement]
     else:
         req = None
 
@@ -464,3 +468,19 @@ def install_req_from_parsed_requirement(
             user_supplied=user_supplied,
         )
     return req
+
+
+def install_req_from_link_and_ireq(link, ireq):
+    # type: (Link, InstallRequirement) -> InstallRequirement
+    return InstallRequirement(
+        req=ireq.req,
+        comes_from=ireq.comes_from,
+        editable=ireq.editable,
+        link=link,
+        markers=ireq.markers,
+        use_pep517=ireq.use_pep517,
+        isolated=ireq.isolated,
+        install_options=ireq.install_options,
+        global_options=ireq.global_options,
+        hash_options=ireq.hash_options,
+    )

@@ -4,6 +4,7 @@
 # mypy: strict-optional=False
 
 import functools
+import itertools
 import logging
 import re
 from typing import FrozenSet, Iterable, List, Optional, Set, Tuple, Union
@@ -44,7 +45,7 @@ logger = logging.getLogger(__name__)
 
 BuildTag = Union[Tuple[()], Tuple[int, str]]
 CandidateSortingKey = (
-    Tuple[int, int, int, _BaseVersion, BuildTag, Optional[int]]
+    Tuple[int, int, int, _BaseVersion, Optional[int], BuildTag]
 )
 
 
@@ -434,6 +435,12 @@ class CandidateEvaluator:
         self._project_name = project_name
         self._specifier = specifier
         self._supported_tags = supported_tags
+        # Since the index of the tag in the _supported_tags list is used
+        # as a priority, precompute a map from tag to index/priority to be
+        # used in wheel.find_most_preferred_tag.
+        self._wheel_tag_preferences = {
+            tag: idx for idx, tag in enumerate(supported_tags)
+        }
 
     def get_applicable_candidates(
         self,
@@ -512,14 +519,17 @@ class CandidateEvaluator:
         if link.is_wheel:
             # can raise InvalidWheelFilename
             wheel = Wheel(link.filename)
-            if not wheel.supported(valid_tags):
+            try:
+                pri = -(wheel.find_most_preferred_tag(
+                    valid_tags, self._wheel_tag_preferences
+                ))
+            except ValueError:
                 raise UnsupportedWheel(
                     "{} is not a supported wheel for this platform. It "
                     "can't be sorted.".format(wheel.filename)
                 )
             if self._prefer_binary:
                 binary_preference = 1
-            pri = -(wheel.support_index_min(valid_tags))
             if wheel.build_tag is not None:
                 match = re.match(r'^(\d+)(.*)$', wheel.build_tag)
                 build_tag_groups = match.groups()
@@ -530,7 +540,7 @@ class CandidateEvaluator:
         yank_value = -1 * int(link.is_yanked)  # -1 for yanked.
         return (
             has_allowed_hash, yank_value, binary_preference, candidate.version,
-            build_tag, pri,
+            pri, build_tag,
         )
 
     def sort_best_candidate(
@@ -795,38 +805,41 @@ class PackageFinder:
         See LinkEvaluator.evaluate_link() for details on which files
         are accepted.
         """
-        collected_links = self._link_collector.collect_links(project_name)
-
         link_evaluator = self.make_link_evaluator(project_name)
 
-        find_links_versions = self.evaluate_links(
-            link_evaluator,
-            links=collected_links.find_links,
+        collected_sources = self._link_collector.collect_sources(
+            project_name=project_name,
+            candidates_from_page=functools.partial(
+                self.process_project_url,
+                link_evaluator=link_evaluator,
+            ),
         )
 
-        page_versions = []
-        for project_url in collected_links.project_urls:
-            package_links = self.process_project_url(
-                project_url, link_evaluator=link_evaluator,
-            )
-            page_versions.extend(package_links)
-
-        file_versions = self.evaluate_links(
-            link_evaluator,
-            links=collected_links.files,
+        page_candidates_it = itertools.chain.from_iterable(
+            source.page_candidates()
+            for sources in collected_sources
+            for source in sources
+            if source is not None
         )
-        if file_versions:
-            file_versions.sort(reverse=True)
-            logger.debug(
-                'Local files found: %s',
-                ', '.join([
-                    url_to_path(candidate.link.url)
-                    for candidate in file_versions
-                ])
-            )
+        page_candidates = list(page_candidates_it)
+
+        file_links_it = itertools.chain.from_iterable(
+            source.file_links()
+            for sources in collected_sources
+            for source in sources
+            if source is not None
+        )
+        file_candidates = self.evaluate_links(
+            link_evaluator,
+            sorted(file_links_it, reverse=True),
+        )
+
+        if logger.isEnabledFor(logging.DEBUG) and file_candidates:
+            paths = [url_to_path(c.link.url) for c in file_candidates]
+            logger.debug("Local files found: %s", ", ".join(paths))
 
         # This is an intentional priority ordering
-        return file_versions + find_links_versions + page_versions
+        return file_candidates + page_candidates
 
     def make_candidate_evaluator(
         self,

@@ -253,6 +253,7 @@ class Retry(object):
                 "Using 'method_whitelist' with Retry is deprecated and "
                 "will be removed in v2.0. Use 'allowed_methods' instead",
                 DeprecationWarning,
+                stacklevel=2,
             )
             allowed_methods = method_whitelist
         if allowed_methods is _Default:
@@ -320,7 +321,7 @@ class Retry(object):
 
     @classmethod
     def from_int(cls, retries, redirect=True, default=None):
-        """ Backwards-compatibility for the old retries format."""
+        """Backwards-compatibility for the old retries format."""
         if retries is None:
             retries = default if default is not None else cls.DEFAULT
 
@@ -373,7 +374,7 @@ class Retry(object):
         return seconds
 
     def get_retry_after(self, response):
-        """ Get the value of Retry-After in seconds. """
+        """Get the value of Retry-After in seconds."""
 
         retry_after = response.getheader("Retry-After")
 
@@ -467,7 +468,7 @@ class Retry(object):
         )
 
     def is_exhausted(self):
-        """ Are we out of retries? """
+        """Are we out of retries?"""
         retry_counts = (
             self.total,
             self.connect,

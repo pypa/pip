@@ -6,12 +6,11 @@ from typing import List, Optional
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import HiddenText, display_path
 from pip._internal.utils.subprocess import make_command
-from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs.versioncontrol import (
     RevOptions,
     VersionControl,
-    find_path_to_setup_from_repo_root,
+    find_path_to_project_root_from_repo_root,
     vcs,
 )
 
@@ -30,16 +29,6 @@ class Mercurial(VersionControl):
     def get_base_rev_args(rev):
         # type: (str) -> List[str]
         return [rev]
-
-    def export(self, location, url):
-        # type: (str, HiddenText) -> None
-        """Export the Hg repository at the url to the destination location"""
-        with TempDirectory(kind="export") as temp_dir:
-            self.unpack(temp_dir.path, url=url)
-
-            self.run_command(
-                ['archive', location], show_stdout=False, cwd=temp_dir.path
-            )
 
     def fetch_new(self, dest, url, rev_options):
         # type: (str, HiddenText, RevOptions) -> None
@@ -131,8 +120,8 @@ class Mercurial(VersionControl):
     def get_subdirectory(cls, location):
         # type: (str) -> Optional[str]
         """
-        Return the path to setup.py, relative to the repo root.
-        Return None if setup.py is in the repo root.
+        Return the path to Python project root, relative to the repo root.
+        Return None if the project root is in the repo root.
         """
         # find the repo root
         repo_root = cls.run_command(
@@ -140,7 +129,7 @@ class Mercurial(VersionControl):
         ).strip()
         if not os.path.isabs(repo_root):
             repo_root = os.path.abspath(os.path.join(location, repo_root))
-        return find_path_to_setup_from_repo_root(location, repo_root)
+        return find_path_to_project_root_from_repo_root(location, repo_root)
 
     @classmethod
     def get_repository_root(cls, location):

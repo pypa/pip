@@ -157,7 +157,7 @@ class Path(str):
 
     # TODO: Remove after removing inheritance from str.
     def join(self, *parts):
-        raise RuntimeError('Path.join is invalid, use joinpath instead.')
+        raise RuntimeError("Path.join is invalid, use joinpath instead.")
 
     def read_bytes(self):
         # type: () -> bytes
@@ -187,5 +187,6 @@ class Path(str):
 
     def stat(self):
         return os.stat(self)
+
 
 curdir = Path(os.path.curdir)

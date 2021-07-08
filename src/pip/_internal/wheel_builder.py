@@ -167,7 +167,7 @@ def _always_true(_):
 
 def _verify_one(req, wheel_path):
     # type: (InstallRequirement, str) -> None
-    canonical_name = canonicalize_name(req.name)
+    canonical_name = canonicalize_name(req.name or "")
     w = Wheel(os.path.basename(wheel_path))
     if canonicalize_name(w.name) != canonical_name:
         raise InvalidWheelFilename(
@@ -175,10 +175,11 @@ def _verify_one(req, wheel_path):
             "got {!r}".format(canonical_name, w.name),
         )
     dist = get_wheel_distribution(wheel_path, canonical_name)
-    if canonicalize_version(dist.version) != canonicalize_version(w.version):
+    dist_verstr = str(dist.version)
+    if canonicalize_version(dist_verstr) != canonicalize_version(w.version):
         raise InvalidWheelFilename(
             "Wheel has unexpected file name: expected {!r}, "
-            "got {!r}".format(str(dist.version), w.version),
+            "got {!r}".format(dist_verstr, w.version),
         )
     metadata_version_value = dist.metadata_version
     if metadata_version_value is None:
@@ -186,13 +187,13 @@ def _verify_one(req, wheel_path):
     try:
         metadata_version = Version(metadata_version_value)
     except InvalidVersion:
-        msg = "Invalid Metadata-Version: {}".format(metadata_version_value)
+        msg = f"Invalid Metadata-Version: {metadata_version_value}"
         raise UnsupportedWheel(msg)
     if (metadata_version >= Version("1.2")
             and not isinstance(dist.version, Version)):
         raise UnsupportedWheel(
             "Metadata 1.2 mandates PEP 440 version, "
-            "but {!r} is not".format(str(dist.version))
+            "but {!r} is not".format(dist_verstr)
         )
 
 
@@ -242,11 +243,19 @@ def _build_one_inside_env(
         assert req.name
         if req.use_pep517:
             assert req.metadata_directory
+            assert req.pep517_backend
+            if global_options:
+                logger.warning(
+                    'Ignoring --global-option when building %s using PEP 517', req.name
+                )
+            if build_options:
+                logger.warning(
+                    'Ignoring --build-option when building %s using PEP 517', req.name
+                )
             wheel_path = build_wheel_pep517(
                 name=req.name,
                 backend=req.pep517_backend,
                 metadata_directory=req.metadata_directory,
-                build_options=build_options,
                 tempd=temp_dir.path,
             )
         else:

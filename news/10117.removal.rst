@@ -1,0 +1,2 @@
+Git version parsing is now done with regular expression to prepare for the
+pending upstream removal of non-PEP-440 version parsing logic.

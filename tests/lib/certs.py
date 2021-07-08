@@ -11,13 +11,13 @@ from cryptography.x509.oid import NameOID
 def make_tls_cert(hostname):
     # type: (str) -> Tuple[x509.Certificate, rsa.RSAPrivateKey]
     key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=2048,
-        backend=default_backend()
+        public_exponent=65537, key_size=2048, backend=default_backend()
     )
-    subject = issuer = x509.Name([
-        x509.NameAttribute(NameOID.COMMON_NAME, hostname),
-    ])
+    subject = issuer = x509.Name(
+        [
+            x509.NameAttribute(NameOID.COMMON_NAME, hostname),
+        ]
+    )
     cert = (
         x509.CertificateBuilder()
         .subject_name(subject)

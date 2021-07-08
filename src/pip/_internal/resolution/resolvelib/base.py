@@ -1,14 +1,15 @@
-from typing import FrozenSet, Iterable, Optional, Tuple
+from typing import FrozenSet, Iterable, Optional, Tuple, Union
 
 from pip._vendor.packaging.specifiers import SpecifierSet
-from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.packaging.version import _BaseVersion
+from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
+from pip._vendor.packaging.version import LegacyVersion, Version
 
-from pip._internal.models.link import Link
+from pip._internal.models.link import Link, links_equivalent
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.hashes import Hashes
 
 CandidateLookup = Tuple[Optional["Candidate"], Optional[InstallRequirement]]
+CandidateVersion = Union[LegacyVersion, Version]
 
 
 def format_name(project, extras):
@@ -20,24 +21,26 @@ def format_name(project, extras):
 
 
 class Constraint:
-    def __init__(self, specifier, hashes):
-        # type: (SpecifierSet, Hashes) -> None
+    def __init__(self, specifier, hashes, links):
+        # type: (SpecifierSet, Hashes, FrozenSet[Link]) -> None
         self.specifier = specifier
         self.hashes = hashes
+        self.links = links
 
     @classmethod
     def empty(cls):
         # type: () -> Constraint
-        return Constraint(SpecifierSet(), Hashes())
+        return Constraint(SpecifierSet(), Hashes(), frozenset())
 
     @classmethod
     def from_ireq(cls, ireq):
         # type: (InstallRequirement) -> Constraint
-        return Constraint(ireq.specifier, ireq.hashes(trust_internet=False))
+        links = frozenset([ireq.link]) if ireq.link else frozenset()
+        return Constraint(ireq.specifier, ireq.hashes(trust_internet=False), links)
 
     def __nonzero__(self):
         # type: () -> bool
-        return bool(self.specifier) or bool(self.hashes)
+        return bool(self.specifier) or bool(self.hashes) or bool(self.links)
 
     def __bool__(self):
         # type: () -> bool
@@ -49,10 +52,16 @@ class Constraint:
             return NotImplemented
         specifier = self.specifier & other.specifier
         hashes = self.hashes & other.hashes(trust_internet=False)
-        return Constraint(specifier, hashes)
+        links = self.links
+        if other.link:
+            links = links.union([other.link])
+        return Constraint(specifier, hashes, links)
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
+        # Reject if there are any mismatched URL constraints on this package.
+        if self.links and not all(_match_link(link, candidate) for link in self.links):
+            return False
         # We can safely always allow prereleases here since PackageFinder
         # already implements the prerelease logic, and would have filtered out
         # prerelease candidates if the user does not expect them.
@@ -62,7 +71,7 @@ class Constraint:
 class Requirement:
     @property
     def project_name(self):
-        # type: () -> str
+        # type: () -> NormalizedName
         """The "project name" of a requirement.
 
         This is different from ``name`` if this requirement contains extras,
@@ -94,10 +103,17 @@ class Requirement:
         raise NotImplementedError("Subclass should override")
 
 
+def _match_link(link, candidate):
+    # type: (Link, Candidate) -> bool
+    if candidate.source_link:
+        return links_equivalent(link, candidate.source_link)
+    return False
+
+
 class Candidate:
     @property
     def project_name(self):
-        # type: () -> str
+        # type: () -> NormalizedName
         """The "project name" of the candidate.
 
         This is different from ``name`` if this candidate contains extras,
@@ -118,7 +134,7 @@ class Candidate:
 
     @property
     def version(self):
-        # type: () -> _BaseVersion
+        # type: () -> CandidateVersion
         raise NotImplementedError("Override in subclass")
 
     @property

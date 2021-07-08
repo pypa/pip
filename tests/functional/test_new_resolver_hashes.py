@@ -1,7 +1,9 @@
 import collections
 import hashlib
+import json
 
 import pytest
+from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.utils.urls import path_to_url
 from tests.lib import create_basic_sdist_for_package, create_basic_wheel_for_package
@@ -9,6 +11,30 @@ from tests.lib import create_basic_sdist_for_package, create_basic_wheel_for_pac
 _FindLinks = collections.namedtuple(
     "_FindLinks", "index_html sdist_hash wheel_hash",
 )
+
+
+def assert_installed(script, **kwargs):
+    ret = script.pip('list', '--format=json')
+    installed = set(
+        (canonicalize_name(val['name']), val['version'])
+        for val in json.loads(ret.stdout)
+    )
+    expected = set((canonicalize_name(k), v) for k, v in kwargs.items())
+    assert expected <= installed, \
+        "{!r} not all in {!r}".format(expected, installed)
+
+
+def assert_not_installed(script, *args):
+    ret = script.pip("list", "--format=json")
+    installed = set(
+        canonicalize_name(val["name"])
+        for val in json.loads(ret.stdout)
+    )
+    # None of the given names should be listed as installed, i.e. their
+    # intersection should be empty.
+    expected = set(canonicalize_name(k) for k in args)
+    assert not (expected & installed), \
+        "{!r} contained in {!r}".format(expected, installed)
 
 
 def _create_find_links(script):
@@ -76,7 +102,7 @@ def test_new_resolver_hash_intersect(script, requirements_template, message):
         "--no-deps",
         "--no-index",
         "--find-links", find_links.index_html,
-        "--verbose",
+        "-vv",
         "--requirement", requirements_txt,
     )
 
@@ -108,7 +134,7 @@ def test_new_resolver_hash_intersect_from_constraint(script):
         "--no-deps",
         "--no-index",
         "--find-links", find_links.index_html,
-        "--verbose",
+        "-vv",
         "--constraint", constraints_txt,
         "--requirement", requirements_txt,
     )
@@ -204,3 +230,81 @@ def test_new_resolver_hash_intersect_empty_from_constraint(script):
         "from some requirements."
     )
     assert message in result.stderr, str(result)
+
+
+@pytest.mark.parametrize("constrain_by_hash", [False, True])
+def test_new_resolver_hash_requirement_and_url_constraint_can_succeed(
+    script, constrain_by_hash,
+):
+    wheel_path = create_basic_wheel_for_package(script, "base", "0.1.0")
+
+    wheel_hash = hashlib.sha256(wheel_path.read_bytes()).hexdigest()
+
+    requirements_txt = script.scratch_path / "requirements.txt"
+    requirements_txt.write_text(
+        """
+        base==0.1.0 --hash=sha256:{wheel_hash}
+        """.format(
+            wheel_hash=wheel_hash,
+        ),
+    )
+
+    constraints_txt = script.scratch_path / "constraints.txt"
+    constraint_text = "base @ {wheel_url}\n".format(wheel_url=path_to_url(wheel_path))
+    if constrain_by_hash:
+        constraint_text += "base==0.1.0 --hash=sha256:{wheel_hash}\n".format(
+            wheel_hash=wheel_hash,
+        )
+    constraints_txt.write_text(constraint_text)
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--constraint", constraints_txt,
+        "--requirement", requirements_txt,
+    )
+
+    assert_installed(script, base="0.1.0")
+
+
+@pytest.mark.parametrize("constrain_by_hash", [False, True])
+def test_new_resolver_hash_requirement_and_url_constraint_can_fail(
+    script, constrain_by_hash,
+):
+    wheel_path = create_basic_wheel_for_package(script, "base", "0.1.0")
+    other_path = create_basic_wheel_for_package(script, "other", "0.1.0")
+
+    other_hash = hashlib.sha256(other_path.read_bytes()).hexdigest()
+
+    requirements_txt = script.scratch_path / "requirements.txt"
+    requirements_txt.write_text(
+        """
+        base==0.1.0 --hash=sha256:{other_hash}
+        """.format(
+            other_hash=other_hash,
+        ),
+    )
+
+    constraints_txt = script.scratch_path / "constraints.txt"
+    constraint_text = "base @ {wheel_url}\n".format(wheel_url=path_to_url(wheel_path))
+    if constrain_by_hash:
+        constraint_text += "base==0.1.0 --hash=sha256:{other_hash}\n".format(
+            other_hash=other_hash,
+        )
+    constraints_txt.write_text(constraint_text)
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--constraint", constraints_txt,
+        "--requirement", requirements_txt,
+        expect_error=True,
+    )
+
+    assert (
+        "THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS FILE."
+    ) in result.stderr, str(result)
+
+    assert_not_installed(script, "base", "other")

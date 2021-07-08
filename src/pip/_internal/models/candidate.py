@@ -1,4 +1,3 @@
-from pip._vendor.packaging.version import _BaseVersion
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.models.link import Link
@@ -14,7 +13,7 @@ class InstallationCandidate(KeyBasedCompareMixin):
     def __init__(self, name, version, link):
         # type: (str, str, Link) -> None
         self.name = name
-        self.version = parse_version(version)  # type: _BaseVersion
+        self.version = parse_version(version)
         self.link = link
 
         super().__init__(

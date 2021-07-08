@@ -1,23 +1,21 @@
 import logging
 import os.path
+import pathlib
 import re
 import urllib.parse
 import urllib.request
 from typing import List, Optional, Tuple
 
-from pip._vendor.packaging.version import _BaseVersion
-from pip._vendor.packaging.version import parse as parse_version
-
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import HiddenText, display_path, hide_url
 from pip._internal.utils.subprocess import make_command
-from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.vcs.versioncontrol import (
     AuthInfo,
     RemoteNotFoundError,
+    RemoteNotValidError,
     RevOptions,
     VersionControl,
-    find_path_to_setup_from_repo_root,
+    find_path_to_project_root_from_repo_root,
     vcs,
 )
 
@@ -28,7 +26,27 @@ urlunsplit = urllib.parse.urlunsplit
 logger = logging.getLogger(__name__)
 
 
+GIT_VERSION_REGEX = re.compile(
+    r"^git version "  # Prefix.
+    r"(\d+)"  # Major.
+    r"\.(\d+)"  # Dot, minor.
+    r"(?:\.(\d+))?"  # Optional dot, patch.
+    r".*$"  # Suffix, including any pre- and post-release segments we don't care about.
+)
+
 HASH_REGEX = re.compile('^[a-fA-F0-9]{40}$')
+
+# SCP (Secure copy protocol) shorthand. e.g. 'git@example.com:foo/bar.git'
+SCP_REGEX = re.compile(r"""^
+    # Optional user, e.g. 'git@'
+    (\w+@)?
+    # Server, e.g. 'github.com'.
+    ([^/:]+):
+    # The server-side path. e.g. 'user/project.git'. Must start with an
+    # alphanumeric character so as not to be confusable with a Windows paths
+    # like 'C:/foo/bar' or 'C:\foo\bar'.
+    (\w[^:]*)
+$""", re.VERBOSE)
 
 
 def looks_like_hash(sha):
@@ -70,21 +88,14 @@ class Git(VersionControl):
         )
         return not is_tag_or_branch
 
-    def get_git_version(self):
-        # type: () -> _BaseVersion
-        VERSION_PFX = 'git version '
+    def get_git_version(self) -> Tuple[int, ...]:
         version = self.run_command(
             ['version'], show_stdout=False, stdout_only=True
         )
-        if version.startswith(VERSION_PFX):
-            version = version[len(VERSION_PFX):].split()[0]
-        else:
-            version = ''
-        # get first 3 positions of the git version because
-        # on windows it is x.y.z.windows.t, and this parses as
-        # LegacyVersion which always smaller than a Version.
-        version = '.'.join(version.split('.')[:3])
-        return parse_version(version)
+        match = GIT_VERSION_REGEX.match(version)
+        if not match:
+            return ()
+        return tuple(int(c) for c in match.groups())
 
     @classmethod
     def get_current_branch(cls, location):
@@ -112,19 +123,6 @@ class Git(VersionControl):
 
         return None
 
-    def export(self, location, url):
-        # type: (str, HiddenText) -> None
-        """Export the Git repository at the url to the destination location"""
-        if not location.endswith('/'):
-            location = location + '/'
-
-        with TempDirectory(kind="export") as temp_dir:
-            self.unpack(temp_dir.path, url=url)
-            self.run_command(
-                ['checkout-index', '-a', '-f', '--prefix', location],
-                show_stdout=False, cwd=temp_dir.path
-            )
-
     @classmethod
     def get_revision_sha(cls, dest, rev):
         # type: (str, str) -> Tuple[Optional[str], bool]
@@ -145,9 +143,15 @@ class Git(VersionControl):
             on_returncode='ignore',
         )
         refs = {}
-        for line in output.strip().splitlines():
+        # NOTE: We do not use splitlines here since that would split on other
+        #       unicode separators, which can be maliciously used to install a
+        #       different revision.
+        for line in output.strip().split("\n"):
+            line = line.rstrip("\r")
+            if not line:
+                continue
             try:
-                ref_sha, ref_name = line.split()
+                ref_sha, ref_name = line.split(" ", maxsplit=2)
             except ValueError:
                 # Include the offending line to simplify troubleshooting if
                 # this error ever occurs.
@@ -295,7 +299,7 @@ class Git(VersionControl):
     def update(self, dest, url, rev_options):
         # type: (str, HiddenText, RevOptions) -> None
         # First fetch changes from the default remote
-        if self.get_git_version() >= parse_version('1.9.0'):
+        if self.get_git_version() >= (1, 9):
             # fetch tags in addition to everything else
             self.run_command(['fetch', '-q', '--tags'], cwd=dest)
         else:
@@ -336,7 +340,39 @@ class Git(VersionControl):
                 found_remote = remote
                 break
         url = found_remote.split(' ')[1]
-        return url.strip()
+        return cls._git_remote_to_pip_url(url.strip())
+
+    @staticmethod
+    def _git_remote_to_pip_url(url):
+        # type: (str) -> str
+        """
+        Convert a remote url from what git uses to what pip accepts.
+
+        There are 3 legal forms **url** may take:
+
+            1. A fully qualified url: ssh://git@example.com/foo/bar.git
+            2. A local project.git folder: /path/to/bare/repository.git
+            3. SCP shorthand for form 1: git@example.com:foo/bar.git
+
+        Form 1 is output as-is. Form 2 must be converted to URI and form 3 must
+        be converted to form 1.
+
+        See the corresponding test test_git_remote_url_to_pip() for examples of
+        sample inputs/outputs.
+        """
+        if re.match(r"\w+://", url):
+            # This is already valid. Pass it though as-is.
+            return url
+        if os.path.exists(url):
+            # A local bare remote (git clone --mirror).
+            # Needs a file:// prefix.
+            return pathlib.PurePath(url).as_uri()
+        scp_match = SCP_REGEX.match(url)
+        if scp_match:
+            # Add an ssh:// prefix and replace the ':' with a '/'.
+            return scp_match.expand(r"ssh://\1\2/\3")
+        # Otherwise, bail out.
+        raise RemoteNotValidError(url)
 
     @classmethod
     def has_commit(cls, location, rev):
@@ -372,8 +408,8 @@ class Git(VersionControl):
     def get_subdirectory(cls, location):
         # type: (str) -> Optional[str]
         """
-        Return the path to setup.py, relative to the repo root.
-        Return None if setup.py is in the repo root.
+        Return the path to Python project root, relative to the repo root.
+        Return None if the project root is in the repo root.
         """
         # find the repo root
         git_dir = cls.run_command(
@@ -385,7 +421,7 @@ class Git(VersionControl):
         if not os.path.isabs(git_dir):
             git_dir = os.path.join(location, git_dir)
         repo_root = os.path.abspath(os.path.join(git_dir, '..'))
-        return find_path_to_setup_from_repo_root(location, repo_root)
+        return find_path_to_project_root_from_repo_root(location, repo_root)
 
     @classmethod
     def get_url_rev_and_auth(cls, url):
@@ -453,6 +489,13 @@ class Git(VersionControl):
         except InstallationError:
             return None
         return os.path.normpath(r.rstrip('\r\n'))
+
+    @staticmethod
+    def should_add_vcs_url_prefix(repo_url):
+        # type: (str) -> bool
+        """In either https or ssh form, requirements must be prefixed with git+.
+        """
+        return True
 
 
 vcs.register(Git)

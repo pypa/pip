@@ -1,5 +1,4 @@
 import errno
-import logging
 import operator
 import os
 import shutil
@@ -26,8 +25,10 @@ from pip._internal.operations.check import ConflictDetails, check_install_confli
 from pip._internal.req import install_given_reqs
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.req.req_tracker import get_requirement_tracker
+from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.distutils_args import parse_distutils_args
 from pip._internal.utils.filesystem import test_writable_dir
+from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import (
     ensure_dir,
     get_pip_version,
@@ -35,21 +36,24 @@ from pip._internal.utils.misc import (
     write_output,
 )
 from pip._internal.utils.temp_dir import TempDirectory
-from pip._internal.utils.virtualenv import virtualenv_no_global
+from pip._internal.utils.virtualenv import (
+    running_under_virtualenv,
+    virtualenv_no_global,
+)
 from pip._internal.wheel_builder import (
     BinaryAllowedPredicate,
     build,
     should_build_for_install_command,
 )
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
 def get_check_binary_allowed(format_control):
     # type: (FormatControl) -> BinaryAllowedPredicate
     def check_binary_allowed(req):
         # type: (InstallRequirement) -> bool
-        canonical_name = canonicalize_name(req.name)
+        canonical_name = canonicalize_name(req.name or "")
         allowed_formats = format_control.get_allowed_formats(canonical_name)
         return "binary" in allowed_formats
 
@@ -235,7 +239,7 @@ class InstallCommand(RequirementCommand):
 
         install_options = options.install_options or []
 
-        logger.debug("Using %s", get_pip_version())
+        logger.verbose("Using %s", get_pip_version())
         options.use_user_site = decide_user_install(
             options.use_user_site,
             prefix_path=options.prefix_path,
@@ -725,7 +729,7 @@ def create_os_error_message(error, show_traceback, using_user_site):
         user_option_part = "Consider using the `--user` option"
         permissions_part = "Check the permissions"
 
-        if not using_user_site:
+        if not running_under_virtualenv() and not using_user_site:
             parts.extend([
                 user_option_part, " or ",
                 permissions_part.lower(),
@@ -733,5 +737,17 @@ def create_os_error_message(error, show_traceback, using_user_site):
         else:
             parts.append(permissions_part)
         parts.append(".\n")
+
+    # Suggest the user to enable Long Paths if path length is
+    # more than 260
+    if (WINDOWS and error.errno == errno.ENOENT and error.filename and
+            len(error.filename) > 260):
+        parts.append(
+            "HINT: This error might have occurred since "
+            "this system does not have Windows Long Path "
+            "support enabled. You can find information on "
+            "how to enable this at "
+            "https://pip.pypa.io/warnings/enable-long-paths\n"
+        )
 
     return "".join(parts).strip() + "\n"

@@ -1,13 +1,14 @@
 import threading
 from contextlib import contextmanager
 import os
-from os.path import dirname, abspath, join as pjoin
+from os.path import abspath, join as pjoin
 import shutil
 from subprocess import check_call, check_output, STDOUT
 import sys
 from tempfile import mkdtemp
 
 from . import compat
+from .in_process import _in_proc_script_path
 
 __all__ = [
     'BackendUnavailable',
@@ -18,16 +19,6 @@ __all__ = [
     'quiet_subprocess_runner',
     'Pep517HookCaller',
 ]
-
-try:
-    import importlib.resources as resources
-
-    def _in_proc_script_path():
-        return resources.path(__package__, '_in_process.py')
-except ImportError:
-    @contextmanager
-    def _in_proc_script_path():
-        yield pjoin(dirname(abspath(__file__)), '_in_process.py')
 
 
 @contextmanager

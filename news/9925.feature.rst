@@ -1,0 +1,3 @@
+New resolver: A distribution's ``Requires-Python`` metadata is now checked
+before its Python dependencies. This makes the resolver fail quicker when
+there's an interpreter version conflict.

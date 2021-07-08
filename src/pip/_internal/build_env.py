@@ -1,15 +1,19 @@
 """Build Environment used for isolation during sdist building
 """
 
+import contextlib
 import logging
 import os
+import pathlib
 import sys
 import textwrap
+import zipfile
 from collections import OrderedDict
 from sysconfig import get_paths
 from types import TracebackType
-from typing import TYPE_CHECKING, Iterable, List, Optional, Set, Tuple, Type
+from typing import TYPE_CHECKING, Iterable, Iterator, List, Optional, Set, Tuple, Type
 
+from pip._vendor.certifi import where
 from pip._vendor.pkg_resources import Requirement, VersionConflict, WorkingSet
 
 from pip import __file__ as pip_location
@@ -35,6 +39,32 @@ class _Prefix:
             vars={'base': path, 'platbase': path}
         )['scripts']
         self.lib_dirs = get_prefixed_libs(path)
+
+
+@contextlib.contextmanager
+def _create_standalone_pip() -> Iterator[str]:
+    """Create a "standalone pip" zip file.
+
+    The zip file's content is identical to the currently-running pip.
+    It will be used to install requirements into the build environment.
+    """
+    source = pathlib.Path(pip_location).resolve().parent
+
+    # Return the current instance if `source` is not a directory. We can't build
+    # a zip from this, and it likely means the instance is already standalone.
+    if not source.is_dir():
+        yield str(source)
+        return
+
+    with TempDirectory(kind="standalone-pip") as tmp_dir:
+        pip_zip = os.path.join(tmp_dir.path, "__env_pip__.zip")
+        kwargs = {}
+        if sys.version_info >= (3, 8):
+            kwargs["strict_timestamps"] = False
+        with zipfile.ZipFile(pip_zip, "w", **kwargs) as zf:
+            for child in source.rglob("*"):
+                zf.write(child, child.relative_to(source.parent).as_posix())
+        yield os.path.join(pip_zip, "pip")
 
 
 class BuildEnvironment:
@@ -160,8 +190,33 @@ class BuildEnvironment:
         prefix.setup = True
         if not requirements:
             return
+        with contextlib.ExitStack() as ctx:
+            # TODO: Remove this block when dropping 3.6 support. Python 3.6
+            # lacks importlib.resources and pep517 has issues loading files in
+            # a zip, so we fallback to the "old" method by adding the current
+            # pip directory to the child process's sys.path.
+            if sys.version_info < (3, 7):
+                pip_runnable = os.path.dirname(pip_location)
+            else:
+                pip_runnable = ctx.enter_context(_create_standalone_pip())
+            self._install_requirements(
+                pip_runnable,
+                finder,
+                requirements,
+                prefix,
+                message,
+            )
+
+    @staticmethod
+    def _install_requirements(
+        pip_runnable: str,
+        finder: "PackageFinder",
+        requirements: Iterable[str],
+        prefix: _Prefix,
+        message: str,
+    ) -> None:
         args = [
-            sys.executable, os.path.dirname(pip_location), 'install',
+            sys.executable, pip_runnable, 'install',
             '--ignore-installed', '--no-user', '--prefix', prefix.path,
             '--no-warn-script-location',
         ]  # type: List[str]
@@ -190,8 +245,9 @@ class BuildEnvironment:
             args.append('--prefer-binary')
         args.append('--')
         args.extend(requirements)
+        extra_environ = {"_PIP_STANDALONE_CERT": where()}
         with open_spinner(message) as spinner:
-            call_subprocess(args, spinner=spinner)
+            call_subprocess(args, spinner=spinner, extra_environ=extra_environ)
 
 
 class NoOpBuildEnvironment(BuildEnvironment):

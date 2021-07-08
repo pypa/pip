@@ -1,6 +1,5 @@
 import csv
 import functools
-import logging
 import os
 import sys
 import sysconfig
@@ -13,7 +12,7 @@ from pip._vendor.pkg_resources import Distribution
 from pip._internal.exceptions import UninstallationError
 from pip._internal.locations import get_bin_prefix, get_bin_user
 from pip._internal.utils.compat import WINDOWS
-from pip._internal.utils.logging import indent_log
+from pip._internal.utils.logging import getLogger, indent_log
 from pip._internal.utils.misc import (
     ask,
     dist_in_usersite,
@@ -26,7 +25,7 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
 def _script_names(dist, script_name, is_gui):
@@ -74,8 +73,27 @@ def uninstallation_paths(dist):
     the .pyc and .pyo in the same directory.
 
     UninstallPathSet.add() takes care of the __pycache__ .py[co].
+
+    If RECORD is not found, raises UninstallationError,
+    with possible information from the INSTALLER file.
+
+    https://packaging.python.org/specifications/recording-installed-packages/
     """
-    r = csv.reader(dist.get_metadata_lines('RECORD'))
+    try:
+        r = csv.reader(dist.get_metadata_lines('RECORD'))
+    except FileNotFoundError as missing_record_exception:
+        msg = 'Cannot uninstall {dist}, RECORD file not found.'.format(dist=dist)
+        try:
+            installer = next(dist.get_metadata_lines('INSTALLER'))
+            if not installer or installer == 'pip':
+                raise ValueError()
+        except (OSError, StopIteration, ValueError):
+            dep = '{}=={}'.format(dist.project_name, dist.version)
+            msg += (" You might be able to recover from this via: "
+                    "'pip install --force-reinstall --no-deps {}'.".format(dep))
+        else:
+            msg += ' Hint: The package was installed by {}.'.format(installer)
+        raise UninstallationError(msg) from missing_record_exception
     for row in r:
         path = os.path.join(dist.location, row[0])
         yield path
@@ -384,7 +402,7 @@ class UninstallPathSet:
 
                 for path in sorted(compact(for_rename)):
                     moved.stash(path)
-                    logger.debug('Removing file or directory %s', path)
+                    logger.verbose('Removing file or directory %s', path)
 
                 for pth in self.pth.values():
                     pth.remove()
@@ -420,7 +438,7 @@ class UninstallPathSet:
         if verbose:
             _display('Will actually move:', compress_for_rename(self.paths))
 
-        return ask('Proceed (y/n)? ', ('y', 'n')) == 'y'
+        return ask('Proceed (Y/n)? ', ('y', 'n', '')) != 'n'
 
     def rollback(self):
         # type: () -> None
@@ -599,7 +617,7 @@ class UninstallPthEntries:
 
     def remove(self):
         # type: () -> None
-        logger.debug('Removing pth entries from %s:', self.file)
+        logger.verbose('Removing pth entries from %s:', self.file)
 
         # If the file doesn't exist, log a warning and return
         if not os.path.isfile(self.file):
@@ -620,7 +638,7 @@ class UninstallPthEntries:
             lines[-1] = lines[-1] + endline.encode("utf-8")
         for entry in self.entries:
             try:
-                logger.debug('Removing entry: %s', entry)
+                logger.verbose('Removing entry: %s', entry)
                 lines.remove((entry + endline).encode("utf-8"))
             except ValueError:
                 pass

@@ -1,1 +1,0 @@
-Improve SSL Certificate Verification docs and ``--cert`` help text.
