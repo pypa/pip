@@ -92,9 +92,8 @@ These multiple `Downloading cup-{version}` lines show that pip is backtracking
 choices it is making during dependency resolution.
 ````
 
-If pip starts backtracking choices during dependency resolution, it does not
-know how many choices it will backtrack, and how much computation would be
-needed.
+If pip starts backtracking during dependency resolution, it does not know how
+many choices it will reconsider, and how much computation would be needed.
 
 For the user, this means it can take a long time to complete when pip starts
 backtracking. In the case where a package has a lot of versions, arriving at a
