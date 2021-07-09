@@ -34,7 +34,7 @@ class Link(KeyBasedCompareMixin):
     def __init__(
         self,
         url: str,
-        comes_from: Optional[Union[HTMLPage]] = None,
+        comes_from: Optional[Union[str, HTMLPage]] = None,
         requires_python: Optional[str] = None,
         yanked_reason: Optional[str] = None,
         cache_link_parsing: bool = True,
