@@ -285,7 +285,7 @@ class Git(VersionControl):
             sha = self.get_revision(dest)
             rev_options = rev_options.make_new(sha)
 
-        logger.info('Commit SHA: %s' rev_options.rev)
+        logger.info('Commit SHA: %s', rev_options.rev)
 
         #: repo may contain submodules
         self.update_submodules(dest)
