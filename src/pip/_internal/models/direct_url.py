@@ -23,7 +23,7 @@ class DirectUrlValidationError(Exception):
 
 
 def _get(
-    d: Dict[str, str], expected_type: Type[T], key: str, default: Optional[T] = None
+    d: Dict[str, Any], expected_type: Type[T], key: str, default: Optional[T] = None
 ) -> Optional[T]:
     """Get value from dictionary and verify expected type."""
     if key not in d:
