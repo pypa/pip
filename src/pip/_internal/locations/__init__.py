@@ -1,5 +1,6 @@
 import functools
 import logging
+import os
 import pathlib
 import sys
 import sysconfig
@@ -34,6 +35,11 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 
+if os.environ.get("_PIP_LOCATIONS_NO_WARN_ON_MISMATCH"):
+    _MISMATCH_LEVEL = logging.DEBUG
+else:
+    _MISMATCH_LEVEL = logging.WARNING
+
 
 def _default_base(*, user: bool) -> str:
     if user:
@@ -48,13 +54,13 @@ def _default_base(*, user: bool) -> str:
 def _warn_if_mismatch(old: pathlib.Path, new: pathlib.Path, *, key: str) -> bool:
     if old == new:
         return False
-    issue_url = "https://github.com/pypa/pip/issues/9617"
+    issue_url = "https://github.com/pypa/pip/issues/10151"
     message = (
         "Value for %s does not match. Please report this to <%s>"
         "\ndistutils: %s"
         "\nsysconfig: %s"
     )
-    logger.debug(message, key, issue_url, old, new)
+    logger.log(_MISMATCH_LEVEL, message, key, issue_url, old, new)
     return True
 
 
@@ -69,7 +75,7 @@ def _log_context(
     message = (
         "Additional context:" "\nuser = %r" "\nhome = %r" "\nroot = %r" "\nprefix = %r"
     )
-    logger.debug(message, user, home, root, prefix)
+    logger.log(_MISMATCH_LEVEL, message, user, home, root, prefix)
 
 
 def get_scheme(
