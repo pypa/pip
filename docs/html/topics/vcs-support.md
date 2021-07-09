@@ -85,7 +85,7 @@ You can also give specific revisions to an SVN URL, like so:
 ```
 
 Note that you need to use [Editable VCS installs](#editable-vcs-installs) for
-using specific revisions.
+using specific revisions from Subversion.
 
 ### Bazaar
 
@@ -126,9 +126,8 @@ the {ref}`--editable <install_--editable>` option) or not.
 
 Note that if a satisfactory version of the package is already installed, the
 VCS source will not overwrite it without an `--upgrade` flag. Further, pip
-looks at the package version (specified in the `setup.py` file) of the target
-commit to determine what action to take on the VCS requirement (not the commit
-itself).
+looks at the package version, at the target revision to determine what action to
+take on the VCS requirement (not the commit itself).
 
 The {ref}`pip freeze` subcommand will record the VCS requirement specifier
 (referencing a specific commit) only if the install is done with the editable
