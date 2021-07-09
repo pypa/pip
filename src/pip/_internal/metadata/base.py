@@ -14,6 +14,7 @@ from typing import (
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.version import LegacyVersion, Version
 
+from pip._internal.models.direct_url import DirectUrl
 from pip._internal.utils.misc import stdlib_pkgs  # TODO: Move definition here.
 
 if TYPE_CHECKING:
@@ -48,6 +49,10 @@ class BaseDistribution(Protocol):
 
     @property
     def version(self) -> DistributionVersion:
+        raise NotImplementedError()
+
+    @property
+    def direct_url(self) -> Optional[DirectUrl]:
         raise NotImplementedError()
 
     @property
