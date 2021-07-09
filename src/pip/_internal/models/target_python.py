@@ -30,7 +30,7 @@ class TargetPython:
         py_version_info: Optional[Tuple[int, ...]] = None,
         abis: Optional[List[str]] = None,
         implementation: Optional[str] = None,
-    ) > None:
+    ) -> None:
         """
         :param platforms: A list of strings or None. If None, searches for
             packages that are supported by the current system. Otherwise, will
