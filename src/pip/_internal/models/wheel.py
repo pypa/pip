@@ -63,7 +63,9 @@ class Wheel:
         """
         return min(tags.index(tag) for tag in self.file_tags if tag in tags)
 
-    def find_most_preferred_tag(self, tags: List[Tag], tag_to_priority: Dict[Tag, int]) -> int:
+    def find_most_preferred_tag(
+        self, tags: List[Tag], tag_to_priority: Dict[Tag, int]
+    ) -> int:
         """Return the priority of the most preferred tag that one of the wheel's file
         tag combinations achieves in the given list of supported tags using the given
         tag_to_priority mapping, where lower priorities are more-preferred.
