@@ -1,3 +1,4 @@
+import email.message
 import logging
 import re
 from typing import (
@@ -53,11 +54,6 @@ class BaseDistribution(Protocol):
         raise NotImplementedError()
 
     @property
-    def metadata_version(self) -> Optional[str]:
-        """Value of "Metadata-Version:" in the distribution, if available."""
-        raise NotImplementedError()
-
-    @property
     def canonical_name(self) -> str:
         raise NotImplementedError()
 
@@ -89,11 +85,26 @@ class BaseDistribution(Protocol):
         """Read a file in the .dist-info (or .egg-info) directory."""
         raise NotImplementedError()
 
-    def iter_dependencies(self, extras: Collection[str]) -> Iterable[Requirement]:
-        raise NotImplementedError()
-
     def iter_entry_points(self) -> Iterable[BaseEntryPoint]:
         raise NotImplementedError()
+
+    @property
+    def metadata(self) -> email.message.Message:
+        """Metadata of distribution parsed from e.g. METADATA or PKG-INFO."""
+        raise NotImplementedError()
+
+    @property
+    def metadata_version(self) -> Optional[str]:
+        """Value of "Metadata-Version:" in the distribution, if available."""
+        return self.metadata.get("Metadata-Version")
+
+    def iter_dependencies(self, extras: Collection[str]) -> Iterable[Requirement]:
+        for value in self.metadata.get_all("Requires-Dist"):
+            requirement = Requirement(value)
+            marker = requirement.marker
+            if marker and any(marker.evaluate({"extra": extra}) for extra in extras):
+                continue
+            yield requirement
 
 
 class BaseEnvironment:
