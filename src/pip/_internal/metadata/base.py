@@ -27,6 +27,20 @@ DistributionVersion = Union[LegacyVersion, Version]
 logger = logging.getLogger(__name__)
 
 
+class BaseEntryPoint(Protocol):
+    @property
+    def name(self) -> str:
+        raise NotImplementedError()
+
+    @property
+    def value(self) -> str:
+        raise NotImplementedError()
+
+    @property
+    def group(self) -> str:
+        raise NotImplementedError()
+
+
 class BaseDistribution(Protocol):
     @property
     def location(self) -> Optional[str]:
@@ -71,8 +85,14 @@ class BaseDistribution(Protocol):
     def in_usersite(self) -> bool:
         raise NotImplementedError()
 
-    def iter_dependencies(self, extras=()):
-        # type: (Collection[str]) -> Iterable[Requirement]
+    def read_text(self, name: str) -> str:
+        """Read a file in the .dist-info (or .egg-info) directory."""
+        raise NotImplementedError()
+
+    def iter_dependencies(self, extras: Collection[str]) -> Iterable[Requirement]:
+        raise NotImplementedError()
+
+    def iter_entry_points(self) -> Iterable[BaseEntryPoint]:
         raise NotImplementedError()
 
 

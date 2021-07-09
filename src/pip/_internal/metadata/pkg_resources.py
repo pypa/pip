@@ -1,6 +1,6 @@
 import logging
 import zipfile
-from typing import Collection, Iterable, Iterator, List, Optional
+from typing import Collection, Iterable, Iterator, List, NamedTuple, Optional
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.requirements import Requirement
@@ -13,9 +13,15 @@ from pip._internal.utils.direct_url_helpers import dist_get_direct_url
 from pip._internal.utils.packaging import get_installer
 from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
 
-from .base import BaseDistribution, BaseEnvironment, DistributionVersion
+from .base import BaseDistribution, BaseEntryPoint, BaseEnvironment, DistributionVersion
 
 logger = logging.getLogger(__name__)
+
+
+class EntryPoint(NamedTuple):
+    name: str
+    value: str
+    group: str
 
 
 class Distribution(BaseDistribution):
@@ -67,8 +73,7 @@ class Distribution(BaseDistribution):
     def in_usersite(self) -> bool:
         return misc.dist_in_usersite(self._dist)
 
-    def iter_dependencies(self, extras=()):
-        # type: (Collection[str]) -> Iterable[Requirement]
+    def iter_dependencies(self, extras: Collection[str]) -> Iterable[Requirement]:
         # pkg_resources raises on invalid extras, so we sanitize.
         requested_extras = set(extras)
         valid_extras = requested_extras & set(self._dist.extras)
@@ -78,7 +83,16 @@ class Distribution(BaseDistribution):
                 invalid_extra,
                 self.canonical_name,
             )
-        return self._dist.requires(valid_extras)
+        return self._dist.requires(extras)
+
+    def read_text(self, name: str) -> str:
+        return self._dist.get_metadata(name)
+
+    def iter_entry_points(self) -> Iterable[BaseEntryPoint]:
+        for group, entries in self._dist.get_entry_map().items():
+            for name, entry_point in entries.items():
+                name, _, value = str(entry_point).partition("=")
+                yield EntryPoint(name=name.strip(), value=value.strip(), group=group)
 
 
 class Environment(BaseEnvironment):
