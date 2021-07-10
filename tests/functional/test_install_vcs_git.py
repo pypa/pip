@@ -273,12 +273,13 @@ def test_git_install_then_install_ref(script):
 
 @pytest.mark.network
 @pytest.mark.parametrize('rev, expected_sha', [
-    # Cloning the default branch
+    # Clone the default branch
     ("", "5547fa909e83df8bd743d3978d6667497983a4b7"),
-    # Cloning a specific tag
+    # Clone a specific tag
     ("@0.1.1", "7d654e66c8fa7149c165ddeffa5b56bc06619458"),
-    # Cloning a specific commit
-    ("@65cf0a5bdd906ecf48a0ac241c17d656d2071d56", "65cf0a5bdd906ecf48a0ac241c17d656d2071d56")
+    # Clone a specific commit
+    ("@65cf0a5bdd906ecf48a0ac241c17d656d2071d56",
+     "65cf0a5bdd906ecf48a0ac241c17d656d2071d56")
 ])
 def test_install_git_logs_commit_sha(script, rev, expected_sha, tmpdir):
     """
