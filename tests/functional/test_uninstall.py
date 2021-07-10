@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import sys
@@ -46,8 +45,7 @@ def test_basic_uninstall_distutils(script):
     """))
     result = script.run('python', pkg_path / 'setup.py', 'install')
     result = script.pip('list', '--format=json')
-    assert {"name": "distutils-install", "version": "0.1"} \
-        in json.loads(result.stdout)
+    script.assert_installed(distutils_install="0.1")
     result = script.pip('uninstall', 'distutils_install', '-y',
                         expect_stderr=True, expect_error=True)
     assert (
@@ -217,16 +215,13 @@ def test_uninstall_entry_point_colon_in_name(script, console_scripts):
     )
     if sys.platform == 'win32':
         script_name += '.exe'
-    result = script.pip('install', pkg_path)
+    script.pip('install', pkg_path)
     assert script_name.exists()
-    result = script.pip('list', '--format=json')
-    assert {"name": "ep-install", "version": "0.1"} \
-        in json.loads(result.stdout)
+    script.assert_installed(ep_install="0.1")
+
     script.pip('uninstall', 'ep_install', '-y')
     assert not script_name.exists()
-    result2 = script.pip('list', '--format=json')
-    assert {"name": "ep-install", "version": "0.1"} \
-        not in json.loads(result2.stdout)
+    script.assert_not_installed("ep-install")
 
 
 def test_uninstall_gui_scripts(script):
@@ -550,9 +545,7 @@ def test_uninstall_setuptools_develop_install(script, data):
                expect_stderr=True, cwd=pkg_path)
     script.run('python', 'setup.py', 'install',
                expect_stderr=True, cwd=pkg_path)
-    list_result = script.pip('list', '--format=json')
-    assert {"name": os.path.normcase("FSPkg"), "version": "0.1.dev0"} \
-        in json.loads(list_result.stdout), str(list_result)
+    script.assert_installed(FSPkg="0.1.dev0")
     # Uninstall both develop and install
     uninstall = script.pip('uninstall', 'FSPkg', '-y')
     assert any(filename.endswith('.egg')
@@ -561,8 +554,7 @@ def test_uninstall_setuptools_develop_install(script, data):
     assert join(
         script.site_packages, 'FSPkg.egg-link'
     ) in uninstall2.files_deleted, list(uninstall2.files_deleted.keys())
-    list_result2 = script.pip('list', '--format=json')
-    assert "FSPkg" not in {p["name"] for p in json.loads(list_result2.stdout)}
+    script.assert_not_installed("FSPkg")
 
 
 def test_uninstall_editable_and_pip_install(script, data):
@@ -578,9 +570,7 @@ def test_uninstall_editable_and_pip_install(script, data):
     # ensure both are installed with --ignore-installed:
     script.pip('install', '--ignore-installed', '.',
                expect_stderr=True, cwd=pkg_path)
-    list_result = script.pip('list', '--format=json')
-    assert {"name": "FSPkg", "version": "0.1.dev0"} \
-        in json.loads(list_result.stdout)
+    script.assert_installed(FSPkg="0.1.dev0")
     # Uninstall both develop and install
     uninstall = script.pip('uninstall', 'FSPkg', '-y')
     assert not any(filename.endswith('.egg-link')
@@ -589,8 +579,7 @@ def test_uninstall_editable_and_pip_install(script, data):
     assert join(
         script.site_packages, 'FSPkg.egg-link'
     ) in uninstall2.files_deleted, list(uninstall2.files_deleted.keys())
-    list_result2 = script.pip('list', '--format=json')
-    assert "FSPkg" not in {p["name"] for p in json.loads(list_result2.stdout)}
+    script.assert_not_installed("FSPkg")
 
 
 def test_uninstall_editable_and_pip_install_easy_install_remove(script, data):
@@ -616,9 +605,7 @@ def test_uninstall_editable_and_pip_install_easy_install_remove(script, data):
     os.rename(easy_install_pth, pip_test_fspkg_pth)
 
     # Confirm that FSPkg is installed
-    list_result = script.pip('list', '--format=json')
-    assert {"name": "FSPkg", "version": "0.1.dev0"} \
-        in json.loads(list_result.stdout)
+    script.assert_installed(FSPkg="0.1.dev0")
 
     # Remove pip-test-fspkg.pth
     os.remove(pip_test_fspkg_pth)
@@ -632,9 +619,7 @@ def test_uninstall_editable_and_pip_install_easy_install_remove(script, data):
     ) in uninstall.files_deleted, list(uninstall.files_deleted.keys())
 
     # Confirm that FSPkg is uninstalled
-    list_result = script.pip('list', '--format=json')
-    assert {"name": "FSPkg", "version": "0.1.dev0"} \
-        not in json.loads(list_result.stdout)
+    script.assert_not_installed("FSPkg")
 
     # Rename pip-test.pth back to easy-install.pth
     os.rename(pip_test_pth, easy_install_pth)
