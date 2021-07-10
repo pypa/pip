@@ -285,12 +285,12 @@ def test_install_git_logs_commit_sha(script, rev, expected_sha, tmpdir):
     """
     Test installing from a git repository logs a commit SHA.
     """
-    url_path = 'pypa/pip-test-package.git'
+    url_path = "pypa/pip-test-package.git"
     base_local_url = _github_checkout(url_path, tmpdir)
-
-    local_url = f'{base_local_url}{rev}#egg=pip-test-package'
-    result = script.pip('install', local_url)
-    assert f"Commit SHA: {expected_sha}" in result.stdout
+    local_url = f"{base_local_url}{rev}#egg=pip-test-package"
+    result = script.pip("install", local_url)
+    # `[4:]` removes a 'git+' prefix
+    assert f"Resolved {base_local_url[4:]} to commit {expected_sha}" in result.stdout
 
 
 @pytest.mark.network
