@@ -110,8 +110,8 @@ def get_scheme(
             and home is not None
             and k in ("platlib", "purelib")
             and old_v.parent == new_v.parent
-            and old_v.name == "python"
-            and new_v.name == "pypy"
+            and old_v.name.startswith("python")
+            and new_v.name.startswith("pypy")
         )
         if skip_pypy_special_case:
             continue
