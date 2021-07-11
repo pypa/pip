@@ -40,7 +40,7 @@ The user requests `pip install tea`. The package `tea` declares a dependency on
 pip starts by picking the most recent version of `tea` and get the list of
 dependencies of that version of `tea`. It will then repeat the process for
 those packages, picking the most recent version of `spoon` and then `cup`. Now,
-pip notices that the version of `cup` is has chosen is not compatible with the
+pip notices that the version of `cup` it has chosen is not compatible with the
 version of `spoon` it has chosen. Thus, pip will "go back" (backtrack) and try
 to use another version of `cup`. If it is successful, it will continue onto the
 next package (like `sugar`). Otherwise, it will continue to backtrack on `cup`
