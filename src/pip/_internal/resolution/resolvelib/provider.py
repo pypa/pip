@@ -50,13 +50,12 @@ class PipProvider(_ProviderBase):
 
     def __init__(
         self,
-        factory,  # type: Factory
-        constraints,  # type: Dict[str, Constraint]
-        ignore_dependencies,  # type: bool
-        upgrade_strategy,  # type: str
-        user_requested,  # type: Dict[str, int]
-    ):
-        # type: (...) -> None
+        factory: Factory,
+        constraints: Dict[str, Constraint],
+        ignore_dependencies: bool,
+        upgrade_strategy: str,
+        user_requested: Dict[str, int],
+    ) -> None:
         self._factory = factory
         self._constraints = constraints
         self._ignore_dependencies = ignore_dependencies
@@ -64,8 +63,7 @@ class PipProvider(_ProviderBase):
         self._user_requested = user_requested
         self._known_depths: Dict[str, float] = collections.defaultdict(lambda: math.inf)
 
-    def identify(self, requirement_or_candidate):
-        # type: (Union[Requirement, Candidate]) -> str
+    def identify(self, requirement_or_candidate: Union[Requirement, Candidate]) -> str:
         return requirement_or_candidate.name
 
     def get_preference(
@@ -151,8 +149,7 @@ class PipProvider(_ProviderBase):
         requirements: Mapping[str, Iterator[Requirement]],
         incompatibilities: Mapping[str, Iterator[Candidate]],
     ) -> Iterable[Candidate]:
-        def _eligible_for_upgrade(name):
-            # type: (str) -> bool
+        def _eligible_for_upgrade(name: str) -> bool:
             """Are upgrades allowed for this project?
 
             This checks the upgrade strategy, and whether the project was one
@@ -177,11 +174,9 @@ class PipProvider(_ProviderBase):
             incompatibilities=incompatibilities,
         )
 
-    def is_satisfied_by(self, requirement, candidate):
-        # type: (Requirement, Candidate) -> bool
+    def is_satisfied_by(self, requirement: Requirement, candidate: Candidate) -> bool:
         return requirement.is_satisfied_by(candidate)
 
-    def get_dependencies(self, candidate):
-        # type: (Candidate) -> Sequence[Requirement]
+    def get_dependencies(self, candidate: Candidate) -> Sequence[Requirement]:
         with_requires = not self._ignore_dependencies
         return [r for r in candidate.iter_dependencies(with_requires) if r is not None]

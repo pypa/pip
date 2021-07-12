@@ -7,10 +7,12 @@ InstallRequirementProvider = Callable[[str, InstallRequirement], InstallRequirem
 
 
 class BaseResolver:
-    def resolve(self, root_reqs, check_supported_wheels):
-        # type: (List[InstallRequirement], bool) -> RequirementSet
+    def resolve(
+        self, root_reqs: List[InstallRequirement], check_supported_wheels: bool
+    ) -> RequirementSet:
         raise NotImplementedError()
 
-    def get_installation_order(self, req_set):
-        # type: (RequirementSet) -> List[InstallRequirement]
+    def get_installation_order(
+        self, req_set: RequirementSet
+    ) -> List[InstallRequirement]:
         raise NotImplementedError()
