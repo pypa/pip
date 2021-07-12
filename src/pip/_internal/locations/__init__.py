@@ -1,3 +1,4 @@
+import functools
 import logging
 import pathlib
 import sys
@@ -43,6 +44,7 @@ def _default_base(*, user: bool) -> str:
     return base
 
 
+@functools.lru_cache(maxsize=None)
 def _warn_if_mismatch(old: pathlib.Path, new: pathlib.Path, *, key: str) -> bool:
     if old == new:
         return False
@@ -56,6 +58,7 @@ def _warn_if_mismatch(old: pathlib.Path, new: pathlib.Path, *, key: str) -> bool
     return True
 
 
+@functools.lru_cache(maxsize=None)
 def _log_context(
     *,
     user: bool = False,
