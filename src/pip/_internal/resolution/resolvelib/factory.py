@@ -9,6 +9,7 @@ from typing import (
     Iterator,
     List,
     Mapping,
+    NamedTuple,
     Optional,
     Sequence,
     Set,
@@ -38,7 +39,10 @@ from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.constructors import install_req_from_link_and_ireq
-from pip._internal.req.req_install import InstallRequirement
+from pip._internal.req.req_install import (
+    InstallRequirement,
+    check_invalid_constraint_type,
+)
 from pip._internal.resolution.base import InstallRequirementProvider
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
@@ -79,6 +83,12 @@ logger = logging.getLogger(__name__)
 
 C = TypeVar("C")
 Cache = Dict[Link, C]
+
+
+class CollectedRootRequirements(NamedTuple):
+    requirements: List[Requirement]
+    constraints: Dict[str, Constraint]
+    user_requested: Dict[str, int]
 
 
 class Factory:
@@ -408,7 +418,7 @@ class Factory:
             and all(req.is_satisfied_by(c) for req in requirements[identifier])
         )
 
-    def make_requirement_from_install_req(
+    def _make_requirement_from_install_req(
         self, ireq: InstallRequirement, requested_extras: Iterable[str]
     ) -> Optional[Requirement]:
         if not ireq.match_markers(requested_extras):
@@ -440,6 +450,36 @@ class Factory:
             return UnsatisfiableRequirement(canonicalize_name(ireq.name))
         return self.make_requirement_from_candidate(cand)
 
+    def collect_root_requirements(
+        self, root_ireqs: List[InstallRequirement]
+    ) -> CollectedRootRequirements:
+        collected = CollectedRootRequirements([], {}, {})
+        for i, ireq in enumerate(root_ireqs):
+            if ireq.constraint:
+                # Ensure we only accept valid constraints
+                problem = check_invalid_constraint_type(ireq)
+                if problem:
+                    raise InstallationError(problem)
+                if not ireq.match_markers():
+                    continue
+                assert ireq.name, "Constraint must be named"
+                name = canonicalize_name(ireq.name)
+                if name in collected.constraints:
+                    collected.constraints[name] &= ireq
+                else:
+                    collected.constraints[name] = Constraint.from_ireq(ireq)
+            else:
+                req = self._make_requirement_from_install_req(
+                    ireq,
+                    requested_extras=(),
+                )
+                if req is None:
+                    continue
+                if ireq.user_supplied and req.name not in collected.user_requested:
+                    collected.user_requested[req.name] = i
+                collected.requirements.append(req)
+        return collected
+
     def make_requirement_from_candidate(
         self, candidate: Candidate
     ) -> ExplicitRequirement:
@@ -452,7 +492,7 @@ class Factory:
         requested_extras: Iterable[str] = (),
     ) -> Optional[Requirement]:
         ireq = self._make_install_req_from_spec(specifier, comes_from)
-        return self.make_requirement_from_install_req(ireq, requested_extras)
+        return self._make_requirement_from_install_req(ireq, requested_extras)
 
     def make_requires_python_requirement(
         self, specifier: Optional[SpecifierSet]
