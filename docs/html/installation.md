@@ -13,8 +13,8 @@ Usually, pip is automatically installed if you are:
 If your Python environment does not have pip installed, there are 2 mechanisms
 to install pip supported directly by pip's maintainers:
 
-- [`ensurepip`](#using-ensurepip)
-- [`get-pip.py`](#using-get-pip-py)
+- [`ensurepip`](#ensurepip)
+- [`get-pip.py`](#get-pip-py)
 
 ### `ensurepip`
 

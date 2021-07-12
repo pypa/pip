@@ -1,3 +1,4 @@
+import functools
 import logging
 import pathlib
 import sys
@@ -11,6 +12,7 @@ from .base import (
     USER_CACHE_DIR,
     get_major_minor_version,
     get_src_prefix,
+    is_osx_framework,
     site_packages,
     user_site,
 )
@@ -42,6 +44,7 @@ def _default_base(*, user: bool) -> str:
     return base
 
 
+@functools.lru_cache(maxsize=None)
 def _warn_if_mismatch(old: pathlib.Path, new: pathlib.Path, *, key: str) -> bool:
     if old == new:
         return False
@@ -55,6 +58,7 @@ def _warn_if_mismatch(old: pathlib.Path, new: pathlib.Path, *, key: str) -> bool
     return True
 
 
+@functools.lru_cache(maxsize=None)
 def _log_context(
     *,
     user: bool = False,
@@ -69,14 +73,13 @@ def _log_context(
 
 
 def get_scheme(
-    dist_name,  # type: str
-    user=False,  # type: bool
-    home=None,  # type: Optional[str]
-    root=None,  # type: Optional[str]
-    isolated=False,  # type: bool
-    prefix=None,  # type: Optional[str]
-):
-    # type: (...) -> Scheme
+    dist_name: str,
+    user: bool = False,
+    home: Optional[str] = None,
+    root: Optional[str] = None,
+    isolated: bool = False,
+    prefix: Optional[str] = None,
+) -> Scheme:
     old = _distutils.get_scheme(
         dist_name,
         user=user,
@@ -116,6 +119,19 @@ def get_scheme(
         if skip_pypy_special_case:
             continue
 
+        # sysconfig's ``osx_framework_user`` does not include ``pythonX.Y`` in
+        # the ``include`` value, but distutils's ``headers`` does. We'll let
+        # CPython decide whether this is a bug or feature. See bpo-43948.
+        skip_osx_framework_user_special_case = (
+            user
+            and is_osx_framework()
+            and k == "headers"
+            and old_v.parent == new_v
+            and old_v.name.startswith("python")
+        )
+        if skip_osx_framework_user_special_case:
+            continue
+
         warned.append(_warn_if_mismatch(old_v, new_v, key=f"scheme.{k}"))
 
     if any(warned):
@@ -124,8 +140,7 @@ def get_scheme(
     return old
 
 
-def get_bin_prefix():
-    # type: () -> str
+def get_bin_prefix() -> str:
     old = _distutils.get_bin_prefix()
     new = _sysconfig.get_bin_prefix()
     if _warn_if_mismatch(pathlib.Path(old), pathlib.Path(new), key="bin_prefix"):
@@ -133,13 +148,11 @@ def get_bin_prefix():
     return old
 
 
-def get_bin_user():
-    # type: () -> str
+def get_bin_user() -> str:
     return _sysconfig.get_scheme("", user=True).scripts
 
 
-def get_purelib():
-    # type: () -> str
+def get_purelib() -> str:
     """Return the default pure-Python lib location."""
     old = _distutils.get_purelib()
     new = _sysconfig.get_purelib()
@@ -148,8 +161,7 @@ def get_purelib():
     return old
 
 
-def get_platlib():
-    # type: () -> str
+def get_platlib() -> str:
     """Return the default platform-shared lib location."""
     old = _distutils.get_platlib()
     new = _sysconfig.get_platlib()
@@ -158,8 +170,7 @@ def get_platlib():
     return old
 
 
-def get_prefixed_libs(prefix):
-    # type: (str) -> List[str]
+def get_prefixed_libs(prefix: str) -> List[str]:
     """Return the lib locations under ``prefix``."""
     old_pure, old_plat = _distutils.get_prefixed_libs(prefix)
     new_pure, new_plat = _sysconfig.get_prefixed_libs(prefix)

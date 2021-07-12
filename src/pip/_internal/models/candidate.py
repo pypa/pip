@@ -10,8 +10,7 @@ class InstallationCandidate(KeyBasedCompareMixin):
 
     __slots__ = ["name", "version", "link"]
 
-    def __init__(self, name, version, link):
-        # type: (str, str, Link) -> None
+    def __init__(self, name: str, version: str, link: Link) -> None:
         self.name = name
         self.version = parse_version(version)
         self.link = link
@@ -21,14 +20,12 @@ class InstallationCandidate(KeyBasedCompareMixin):
             defining_class=InstallationCandidate
         )
 
-    def __repr__(self):
-        # type: () -> str
+    def __repr__(self) -> str:
         return "<InstallationCandidate({!r}, {!r}, {!r})>".format(
             self.name, self.version, self.link,
         )
 
-    def __str__(self):
-        # type: () -> str
+    def __str__(self) -> str:
         return '{!r} candidate (version {} at {})'.format(
             self.name, self.version, self.link,
         )

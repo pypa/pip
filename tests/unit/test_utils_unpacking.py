@@ -168,6 +168,25 @@ class TestUnpackArchives:
         untar_file(test_tar, self.tempdir)
 
 
+def test_unpack_tar_unicode(tmpdir):
+    test_tar = tmpdir / "test.tar"
+    # tarfile tries to decode incoming
+    with tarfile.open(
+        test_tar, "w", format=tarfile.PAX_FORMAT, encoding="utf-8"
+    ) as f:
+        metadata = tarfile.TarInfo("dir/åäö_日本語.py")
+        f.addfile(metadata, "hello world")
+
+    output_dir = tmpdir / "output"
+    output_dir.mkdir()
+
+    untar_file(test_tar, str(output_dir))
+
+    output_dir_name = str(output_dir)
+    contents = os.listdir(output_dir_name)
+    assert u"åäö_日本語.py" in contents
+
+
 @pytest.mark.parametrize('args, expected', [
     # Test the second containing the first.
     (('parent/sub', 'parent/'), False),

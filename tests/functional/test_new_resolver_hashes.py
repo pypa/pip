@@ -1,9 +1,7 @@
 import collections
 import hashlib
-import json
 
 import pytest
-from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.utils.urls import path_to_url
 from tests.lib import create_basic_sdist_for_package, create_basic_wheel_for_package
@@ -11,30 +9,6 @@ from tests.lib import create_basic_sdist_for_package, create_basic_wheel_for_pac
 _FindLinks = collections.namedtuple(
     "_FindLinks", "index_html sdist_hash wheel_hash",
 )
-
-
-def assert_installed(script, **kwargs):
-    ret = script.pip('list', '--format=json')
-    installed = set(
-        (canonicalize_name(val['name']), val['version'])
-        for val in json.loads(ret.stdout)
-    )
-    expected = set((canonicalize_name(k), v) for k, v in kwargs.items())
-    assert expected <= installed, \
-        "{!r} not all in {!r}".format(expected, installed)
-
-
-def assert_not_installed(script, *args):
-    ret = script.pip("list", "--format=json")
-    installed = set(
-        canonicalize_name(val["name"])
-        for val in json.loads(ret.stdout)
-    )
-    # None of the given names should be listed as installed, i.e. their
-    # intersection should be empty.
-    expected = set(canonicalize_name(k) for k in args)
-    assert not (expected & installed), \
-        "{!r} contained in {!r}".format(expected, installed)
 
 
 def _create_find_links(script):
@@ -265,7 +239,7 @@ def test_new_resolver_hash_requirement_and_url_constraint_can_succeed(
         "--requirement", requirements_txt,
     )
 
-    assert_installed(script, base="0.1.0")
+    script.assert_installed(base="0.1.0")
 
 
 @pytest.mark.parametrize("constrain_by_hash", [False, True])
@@ -307,4 +281,4 @@ def test_new_resolver_hash_requirement_and_url_constraint_can_fail(
         "THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS FILE."
     ) in result.stderr, str(result)
 
-    assert_not_installed(script, "base", "other")
+    script.assert_not_installed("base", "other")

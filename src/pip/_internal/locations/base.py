@@ -11,11 +11,10 @@ from pip._internal.utils.virtualenv import running_under_virtualenv
 USER_CACHE_DIR = appdirs.user_cache_dir("pip")
 
 # FIXME doesn't account for venv linked to global site-packages
-site_packages = sysconfig.get_path("purelib")  # type: typing.Optional[str]
+site_packages: typing.Optional[str] = sysconfig.get_path("purelib")
 
 
-def get_major_minor_version():
-    # type: () -> str
+def get_major_minor_version() -> str:
     """
     Return the major-minor version of the current Python as a string, e.g.
     "3.7" or "3.10".
@@ -23,8 +22,7 @@ def get_major_minor_version():
     return "{}.{}".format(*sys.version_info)
 
 
-def get_src_prefix():
-    # type: () -> str
+def get_src_prefix() -> str:
     if running_under_virtualenv():
         src_prefix = os.path.join(sys.prefix, "src")
     else:
@@ -43,6 +41,10 @@ def get_src_prefix():
 try:
     # Use getusersitepackages if this is present, as it ensures that the
     # value is initialised properly.
-    user_site = site.getusersitepackages()  # type: typing.Optional[str]
+    user_site: typing.Optional[str] = site.getusersitepackages()
 except AttributeError:
     user_site = site.USER_SITE
+
+
+def is_osx_framework() -> bool:
+    return bool(sysconfig.get_config_var("PYTHONFRAMEWORK"))

@@ -19,8 +19,7 @@ class Wheel:
         re.VERBOSE
     )
 
-    def __init__(self, filename):
-        # type: (str) -> None
+    def __init__(self, filename: str) -> None:
         """
         :raises InvalidWheelFilename: when the filename is invalid for a wheel
         """
@@ -45,13 +44,11 @@ class Wheel:
             for y in self.abis for z in self.plats
         }
 
-    def get_formatted_file_tags(self):
-        # type: () -> List[str]
+    def get_formatted_file_tags(self) -> List[str]:
         """Return the wheel's tags as a sorted list of strings."""
         return sorted(str(tag) for tag in self.file_tags)
 
-    def support_index_min(self, tags):
-        # type: (List[Tag]) -> int
+    def support_index_min(self, tags: List[Tag]) -> int:
         """Return the lowest index that one of the wheel's file_tag combinations
         achieves in the given list of supported tags.
 
@@ -66,8 +63,9 @@ class Wheel:
         """
         return min(tags.index(tag) for tag in self.file_tags if tag in tags)
 
-    def find_most_preferred_tag(self, tags, tag_to_priority):
-        # type: (List[Tag], Dict[Tag, int]) -> int
+    def find_most_preferred_tag(
+        self, tags: List[Tag], tag_to_priority: Dict[Tag, int]
+    ) -> int:
         """Return the priority of the most preferred tag that one of the wheel's file
         tag combinations achieves in the given list of supported tags using the given
         tag_to_priority mapping, where lower priorities are more-preferred.
@@ -86,8 +84,7 @@ class Wheel:
             tag_to_priority[tag] for tag in self.file_tags if tag in tag_to_priority
         )
 
-    def supported(self, tags):
-        # type: (Iterable[Tag]) -> bool
+    def supported(self, tags: Iterable[Tag]) -> bool:
         """Return whether the wheel is compatible with one of the given tags.
 
         :param tags: the PEP 425 tags to check the wheel against.
