@@ -47,7 +47,7 @@ $ pip install git+https://github.com/pypa/sampleproject.git@main
 Successfully installed sampleproject
 ```
 
-See {ref}`VCS Support` for more information about this syntax.
+See {doc}`topics/vcs-support` for more information about this syntax.
 
 ### Install a package from a distribution file
 

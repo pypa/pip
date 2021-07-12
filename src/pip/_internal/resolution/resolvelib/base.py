@@ -12,8 +12,7 @@ CandidateLookup = Tuple[Optional["Candidate"], Optional[InstallRequirement]]
 CandidateVersion = Union[LegacyVersion, Version]
 
 
-def format_name(project, extras):
-    # type: (str, FrozenSet[str]) -> str
+def format_name(project: str, extras: FrozenSet[str]) -> str:
     if not extras:
         return project
     canonical_extras = sorted(canonicalize_name(e) for e in extras)
@@ -21,33 +20,29 @@ def format_name(project, extras):
 
 
 class Constraint:
-    def __init__(self, specifier, hashes, links):
-        # type: (SpecifierSet, Hashes, FrozenSet[Link]) -> None
+    def __init__(
+        self, specifier: SpecifierSet, hashes: Hashes, links: FrozenSet[Link]
+    ) -> None:
         self.specifier = specifier
         self.hashes = hashes
         self.links = links
 
     @classmethod
-    def empty(cls):
-        # type: () -> Constraint
+    def empty(cls) -> "Constraint":
         return Constraint(SpecifierSet(), Hashes(), frozenset())
 
     @classmethod
-    def from_ireq(cls, ireq):
-        # type: (InstallRequirement) -> Constraint
+    def from_ireq(cls, ireq: InstallRequirement) -> "Constraint":
         links = frozenset([ireq.link]) if ireq.link else frozenset()
         return Constraint(ireq.specifier, ireq.hashes(trust_internet=False), links)
 
-    def __nonzero__(self):
-        # type: () -> bool
+    def __nonzero__(self) -> bool:
         return bool(self.specifier) or bool(self.hashes) or bool(self.links)
 
-    def __bool__(self):
-        # type: () -> bool
+    def __bool__(self) -> bool:
         return self.__nonzero__()
 
-    def __and__(self, other):
-        # type: (InstallRequirement) -> Constraint
+    def __and__(self, other: InstallRequirement) -> "Constraint":
         if not isinstance(other, InstallRequirement):
             return NotImplemented
         specifier = self.specifier & other.specifier
@@ -57,8 +52,7 @@ class Constraint:
             links = links.union([other.link])
         return Constraint(specifier, hashes, links)
 
-    def is_satisfied_by(self, candidate):
-        # type: (Candidate) -> bool
+    def is_satisfied_by(self, candidate: "Candidate") -> bool:
         # Reject if there are any mismatched URL constraints on this package.
         if self.links and not all(_match_link(link, candidate) for link in self.links):
             return False
@@ -70,8 +64,7 @@ class Constraint:
 
 class Requirement:
     @property
-    def project_name(self):
-        # type: () -> NormalizedName
+    def project_name(self) -> NormalizedName:
         """The "project name" of a requirement.
 
         This is different from ``name`` if this requirement contains extras,
@@ -81,8 +74,7 @@ class Requirement:
         raise NotImplementedError("Subclass should override")
 
     @property
-    def name(self):
-        # type: () -> str
+    def name(self) -> str:
         """The name identifying this requirement in the resolver.
 
         This is different from ``project_name`` if this requirement contains
@@ -90,21 +82,17 @@ class Requirement:
         """
         raise NotImplementedError("Subclass should override")
 
-    def is_satisfied_by(self, candidate):
-        # type: (Candidate) -> bool
+    def is_satisfied_by(self, candidate: "Candidate") -> bool:
         return False
 
-    def get_candidate_lookup(self):
-        # type: () -> CandidateLookup
+    def get_candidate_lookup(self) -> CandidateLookup:
         raise NotImplementedError("Subclass should override")
 
-    def format_for_error(self):
-        # type: () -> str
+    def format_for_error(self) -> str:
         raise NotImplementedError("Subclass should override")
 
 
-def _match_link(link, candidate):
-    # type: (Link, Candidate) -> bool
+def _match_link(link: Link, candidate: "Candidate") -> bool:
     if candidate.source_link:
         return links_equivalent(link, candidate.source_link)
     return False
@@ -112,8 +100,7 @@ def _match_link(link, candidate):
 
 class Candidate:
     @property
-    def project_name(self):
-        # type: () -> NormalizedName
+    def project_name(self) -> NormalizedName:
         """The "project name" of the candidate.
 
         This is different from ``name`` if this candidate contains extras,
@@ -123,8 +110,7 @@ class Candidate:
         raise NotImplementedError("Override in subclass")
 
     @property
-    def name(self):
-        # type: () -> str
+    def name(self) -> str:
         """The name identifying this candidate in the resolver.
 
         This is different from ``project_name`` if this candidate contains
@@ -133,33 +119,26 @@ class Candidate:
         raise NotImplementedError("Override in subclass")
 
     @property
-    def version(self):
-        # type: () -> CandidateVersion
+    def version(self) -> CandidateVersion:
         raise NotImplementedError("Override in subclass")
 
     @property
-    def is_installed(self):
-        # type: () -> bool
+    def is_installed(self) -> bool:
         raise NotImplementedError("Override in subclass")
 
     @property
-    def is_editable(self):
-        # type: () -> bool
+    def is_editable(self) -> bool:
         raise NotImplementedError("Override in subclass")
 
     @property
-    def source_link(self):
-        # type: () -> Optional[Link]
+    def source_link(self) -> Optional[Link]:
         raise NotImplementedError("Override in subclass")
 
-    def iter_dependencies(self, with_requires):
-        # type: (bool) -> Iterable[Optional[Requirement]]
+    def iter_dependencies(self, with_requires: bool) -> Iterable[Optional[Requirement]]:
         raise NotImplementedError("Override in subclass")
 
-    def get_install_requirement(self):
-        # type: () -> Optional[InstallRequirement]
+    def get_install_requirement(self) -> Optional[InstallRequirement]:
         raise NotImplementedError("Override in subclass")
 
-    def format_for_error(self):
-        # type: () -> str
+    def format_for_error(self) -> str:
         raise NotImplementedError("Subclass should override")

@@ -1,10 +1,8 @@
-import json
 import os
 import sys
 import textwrap
 
 import pytest
-from pip._vendor.packaging.utils import canonicalize_name
 
 from tests.lib import (
     create_basic_sdist_for_package,
@@ -17,26 +15,14 @@ from tests.lib.path import Path
 from tests.lib.wheel import make_wheel
 
 
+# TODO: Remove me.
 def assert_installed(script, **kwargs):
-    ret = script.pip('list', '--format=json')
-    installed = {
-        (canonicalize_name(val['name']), val['version'])
-        for val in json.loads(ret.stdout)
-    }
-    expected = {(canonicalize_name(k), v) for k, v in kwargs.items()}
-    assert expected <= installed, f"{expected!r} not all in {installed!r}"
+    script.assert_installed(**kwargs)
 
 
+# TODO: Remove me.
 def assert_not_installed(script, *args):
-    ret = script.pip("list", "--format=json")
-    installed = {
-        canonicalize_name(val["name"])
-        for val in json.loads(ret.stdout)
-    }
-    # None of the given names should be listed as installed, i.e. their
-    # intersection should be empty.
-    expected = {canonicalize_name(k) for k in args}
-    assert not (expected & installed), f"{expected!r} contained in {installed!r}"
+    script.assert_not_installed(*args)
 
 
 def assert_editable(script, *args):
@@ -1857,3 +1843,32 @@ def test_new_resolver_modifies_installed_incompatible(script):
         "d==1",
     )
     assert_installed(script, d="1", c="2", b="2", a="2")
+
+
+def test_new_resolver_transitively_depends_on_unnamed_local(script):
+    create_basic_wheel_for_package(script, name="certbot-docs", version="1")
+    certbot = create_test_package_with_setup(
+        script,
+        name="certbot",
+        version="99.99.0.dev0",
+        extras_require={"docs": ["certbot-docs"]}
+    )
+    certbot_apache = create_test_package_with_setup(
+        script,
+        name="certbot-apache",
+        version="99.99.0.dev0",
+        install_requires=["certbot>=99.99.0.dev0"],
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        f"{certbot}[docs]", certbot_apache,
+    )
+    assert_installed(
+        script,
+        certbot="99.99.0.dev0",
+        certbot_apache="99.99.0.dev0",
+        certbot_docs="1",
+    )

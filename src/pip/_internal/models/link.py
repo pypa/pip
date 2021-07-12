@@ -33,13 +33,12 @@ class Link(KeyBasedCompareMixin):
 
     def __init__(
         self,
-        url,                   # type: str
-        comes_from=None,       # type: Optional[Union[str, HTMLPage]]
-        requires_python=None,  # type: Optional[str]
-        yanked_reason=None,    # type: Optional[str]
-        cache_link_parsing=True,  # type: bool
-    ):
-        # type: (...) -> None
+        url: str,
+        comes_from: Optional[Union[str, "HTMLPage"]] = None,
+        requires_python: Optional[str] = None,
+        yanked_reason: Optional[str] = None,
+        cache_link_parsing: bool = True,
+    ) -> None:
         """
         :param url: url of the resource pointed to (href of the link)
         :param comes_from: instance of HTMLPage where the link was found,
@@ -78,8 +77,7 @@ class Link(KeyBasedCompareMixin):
 
         self.cache_link_parsing = cache_link_parsing
 
-    def __str__(self):
-        # type: () -> str
+    def __str__(self) -> str:
         if self.requires_python:
             rp = f' (requires-python:{self.requires_python})'
         else:
@@ -90,18 +88,15 @@ class Link(KeyBasedCompareMixin):
         else:
             return redact_auth_from_url(str(self._url))
 
-    def __repr__(self):
-        # type: () -> str
+    def __repr__(self) -> str:
         return f'<Link {self}>'
 
     @property
-    def url(self):
-        # type: () -> str
+    def url(self) -> str:
         return self._url
 
     @property
-    def filename(self):
-        # type: () -> str
+    def filename(self) -> str:
         path = self.path.rstrip('/')
         name = posixpath.basename(path)
         if not name:
@@ -115,48 +110,40 @@ class Link(KeyBasedCompareMixin):
         return name
 
     @property
-    def file_path(self):
-        # type: () -> str
+    def file_path(self) -> str:
         return url_to_path(self.url)
 
     @property
-    def scheme(self):
-        # type: () -> str
+    def scheme(self) -> str:
         return self._parsed_url.scheme
 
     @property
-    def netloc(self):
-        # type: () -> str
+    def netloc(self) -> str:
         """
         This can contain auth information.
         """
         return self._parsed_url.netloc
 
     @property
-    def path(self):
-        # type: () -> str
+    def path(self) -> str:
         return urllib.parse.unquote(self._parsed_url.path)
 
-    def splitext(self):
-        # type: () -> Tuple[str, str]
+    def splitext(self) -> Tuple[str, str]:
         return splitext(posixpath.basename(self.path.rstrip('/')))
 
     @property
-    def ext(self):
-        # type: () -> str
+    def ext(self) -> str:
         return self.splitext()[1]
 
     @property
-    def url_without_fragment(self):
-        # type: () -> str
+    def url_without_fragment(self) -> str:
         scheme, netloc, path, query, fragment = self._parsed_url
         return urllib.parse.urlunsplit((scheme, netloc, path, query, ''))
 
     _egg_fragment_re = re.compile(r'[#&]egg=([^&]*)')
 
     @property
-    def egg_fragment(self):
-        # type: () -> Optional[str]
+    def egg_fragment(self) -> Optional[str]:
         match = self._egg_fragment_re.search(self._url)
         if not match:
             return None
@@ -165,8 +152,7 @@ class Link(KeyBasedCompareMixin):
     _subdirectory_fragment_re = re.compile(r'[#&]subdirectory=([^&]*)')
 
     @property
-    def subdirectory_fragment(self):
-        # type: () -> Optional[str]
+    def subdirectory_fragment(self) -> Optional[str]:
         match = self._subdirectory_fragment_re.search(self._url)
         if not match:
             return None
@@ -177,59 +163,49 @@ class Link(KeyBasedCompareMixin):
     )
 
     @property
-    def hash(self):
-        # type: () -> Optional[str]
+    def hash(self) -> Optional[str]:
         match = self._hash_re.search(self._url)
         if match:
             return match.group(2)
         return None
 
     @property
-    def hash_name(self):
-        # type: () -> Optional[str]
+    def hash_name(self) -> Optional[str]:
         match = self._hash_re.search(self._url)
         if match:
             return match.group(1)
         return None
 
     @property
-    def show_url(self):
-        # type: () -> str
+    def show_url(self) -> str:
         return posixpath.basename(self._url.split('#', 1)[0].split('?', 1)[0])
 
     @property
-    def is_file(self):
-        # type: () -> bool
+    def is_file(self) -> bool:
         return self.scheme == 'file'
 
-    def is_existing_dir(self):
-        # type: () -> bool
+    def is_existing_dir(self) -> bool:
         return self.is_file and os.path.isdir(self.file_path)
 
     @property
-    def is_wheel(self):
-        # type: () -> bool
+    def is_wheel(self) -> bool:
         return self.ext == WHEEL_EXTENSION
 
     @property
-    def is_vcs(self):
-        # type: () -> bool
+    def is_vcs(self) -> bool:
         from pip._internal.vcs import vcs
 
         return self.scheme in vcs.all_schemes
 
     @property
-    def is_yanked(self):
-        # type: () -> bool
+    def is_yanked(self) -> bool:
         return self.yanked_reason is not None
 
     @property
-    def has_hash(self):
-        # type: () -> bool
+    def has_hash(self) -> bool:
         return self.hash_name is not None
 
-    def is_hash_allowed(self, hashes):
-        # type: (Optional[Hashes]) -> bool
+    def is_hash_allowed(self, hashes: Optional[Hashes]) -> bool:
         """
         Return True if the link has a hash and it is allowed.
         """
@@ -243,6 +219,5 @@ class Link(KeyBasedCompareMixin):
 
 
 # TODO: Relax this comparison logic to ignore, for example, fragments.
-def links_equivalent(link1, link2):
-    # type: (Link, Link) -> bool
+def links_equivalent(link1: Link, link2: Link) -> bool:
     return link1 == link2

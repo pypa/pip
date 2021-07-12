@@ -19,14 +19,13 @@ from .base import Candidate
 IndexCandidateInfo = Tuple[_BaseVersion, Callable[[], Optional[Candidate]]]
 
 
-def _iter_built(infos):
-    # type: (Iterator[IndexCandidateInfo]) -> Iterator[Candidate]
+def _iter_built(infos: Iterator[IndexCandidateInfo]) -> Iterator[Candidate]:
     """Iterator for ``FoundCandidates``.
 
     This iterator is used when the package is not already installed. Candidates
     from index come later in their normal ordering.
     """
-    versions_found = set()  # type: Set[_BaseVersion]
+    versions_found: Set[_BaseVersion] = set()
     for version, func in infos:
         if version in versions_found:
             continue
@@ -37,8 +36,9 @@ def _iter_built(infos):
         versions_found.add(version)
 
 
-def _iter_built_with_prepended(installed, infos):
-    # type: (Candidate, Iterator[IndexCandidateInfo]) -> Iterator[Candidate]
+def _iter_built_with_prepended(
+    installed: Candidate, infos: Iterator[IndexCandidateInfo]
+) -> Iterator[Candidate]:
     """Iterator for ``FoundCandidates``.
 
     This iterator is used when the resolver prefers the already-installed
@@ -47,7 +47,7 @@ def _iter_built_with_prepended(installed, infos):
     normal ordering, except skipped when the version is already installed.
     """
     yield installed
-    versions_found = {installed.version}  # type: Set[_BaseVersion]
+    versions_found: Set[_BaseVersion] = {installed.version}
     for version, func in infos:
         if version in versions_found:
             continue
@@ -58,8 +58,9 @@ def _iter_built_with_prepended(installed, infos):
         versions_found.add(version)
 
 
-def _iter_built_with_inserted(installed, infos):
-    # type: (Candidate, Iterator[IndexCandidateInfo]) -> Iterator[Candidate]
+def _iter_built_with_inserted(
+    installed: Candidate, infos: Iterator[IndexCandidateInfo]
+) -> Iterator[Candidate]:
     """Iterator for ``FoundCandidates``.
 
     This iterator is used when the resolver prefers to upgrade an
@@ -70,7 +71,7 @@ def _iter_built_with_inserted(installed, infos):
     the installed candidate exactly once before we start yielding older or
     equivalent candidates, or after all other candidates if they are all newer.
     """
-    versions_found = set()  # type: Set[_BaseVersion]
+    versions_found: Set[_BaseVersion] = set()
     for version, func in infos:
         if version in versions_found:
             continue
@@ -110,15 +111,13 @@ class FoundCandidates(collections_abc.Sequence):
         self._prefers_installed = prefers_installed
         self._incompatible_ids = incompatible_ids
 
-    def __getitem__(self, index):
-        # type: (int) -> Candidate
+    def __getitem__(self, index: int) -> Candidate:
         # Implemented to satisfy the ABC check. This is not needed by the
         # resolver, and should not be used by the provider either (for
         # performance reasons).
         raise NotImplementedError("don't do this")
 
-    def __iter__(self):
-        # type: () -> Iterator[Candidate]
+    def __iter__(self) -> Iterator[Candidate]:
         infos = self._get_infos()
         if not self._installed:
             iterator = _iter_built(infos)
@@ -128,16 +127,14 @@ class FoundCandidates(collections_abc.Sequence):
             iterator = _iter_built_with_inserted(self._installed, infos)
         return (c for c in iterator if id(c) not in self._incompatible_ids)
 
-    def __len__(self):
-        # type: () -> int
+    def __len__(self) -> int:
         # Implemented to satisfy the ABC check. This is not needed by the
         # resolver, and should not be used by the provider either (for
         # performance reasons).
         raise NotImplementedError("don't do this")
 
     @functools.lru_cache(maxsize=1)
-    def __bool__(self):
-        # type: () -> bool
+    def __bool__(self) -> bool:
         if self._prefers_installed and self._installed:
             return True
         return any(self)

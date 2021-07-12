@@ -1,0 +1,1 @@
+Suppress "not on PATH" warning when ``--prefix`` is given.

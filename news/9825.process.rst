@@ -1,0 +1,2 @@
+``pip list`` now normalized the distribution names. This is done as a part of
+the refactoring to prepare for the migration to ``importlib.metadata``.

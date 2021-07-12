@@ -107,7 +107,5 @@ if DEBUNDLED:
     vendored("requests.packages.urllib3.util.url")
     vendored("resolvelib")
     vendored("tenacity")
-    vendored("toml")
-    vendored("toml.encoder")
-    vendored("toml.decoder")
+    vendored("tomli")
     vendored("urllib3")
