@@ -18,12 +18,12 @@ class Scheme:
 
     def __init__(
         self,
-        platlib,  # type: str
-        purelib,  # type: str
-        headers,  # type: str
-        scripts,  # type: str
-        data,  # type: str
-    ):
+        platlib: str,
+        purelib: str,
+        headers: str,
+        scripts: str,
+        data: str,
+    ) -> None:
         self.platlib = platlib
         self.purelib = purelib
         self.headers = headers
