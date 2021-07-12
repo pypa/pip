@@ -13,10 +13,10 @@ class InstalledDistribution(AbstractDistribution):
     been computed.
     """
 
-    def get_pkg_resources_distribution(self):
-        # type: () -> Optional[Distribution]
+    def get_pkg_resources_distribution(self) -> Optional[Distribution]:
         return self.req.satisfied_by
 
-    def prepare_distribution_metadata(self, finder, build_isolation):
-        # type: (PackageFinder, bool) -> None
+    def prepare_distribution_metadata(
+        self, finder: PackageFinder, build_isolation: bool
+    ) -> None:
         pass

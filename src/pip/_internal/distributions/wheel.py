@@ -13,8 +13,7 @@ class WheelDistribution(AbstractDistribution):
     This does not need any preparation as wheels can be directly unpacked.
     """
 
-    def get_pkg_resources_distribution(self):
-        # type: () -> Distribution
+    def get_pkg_resources_distribution(self) -> Distribution:
         """Loads the metadata from the wheel file into memory and returns a
         Distribution that uses it, not relying on the wheel file or
         requirement.
@@ -29,6 +28,7 @@ class WheelDistribution(AbstractDistribution):
                 z, self.req.name, self.req.local_file_path
             )
 
-    def prepare_distribution_metadata(self, finder, build_isolation):
-        # type: (PackageFinder, bool) -> None
+    def prepare_distribution_metadata(
+        self, finder: PackageFinder, build_isolation: bool
+    ) -> None:
         pass
