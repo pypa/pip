@@ -30,6 +30,7 @@ from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.models.wheel import Wheel
 from pip._internal.req import InstallRequirement
+from pip._internal.utils._log import getLogger
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
@@ -41,7 +42,7 @@ from pip._internal.utils.urls import url_to_path
 __all__ = ['FormatControl', 'BestCandidateResult', 'PackageFinder']
 
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 BuildTag = Union[Tuple[()], Tuple[int, str]]
 CandidateSortingKey = (
@@ -77,7 +78,7 @@ def _check_link_requires_python(
         if not is_compatible:
             version = '.'.join(map(str, version_info))
             if not ignore_requires_python:
-                logger.debug(
+                logger.verbose(
                     'Link requires a different Python (%s not in: %r): %s',
                     version, link.requires_python, link,
                 )
