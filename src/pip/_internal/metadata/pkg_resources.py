@@ -1,7 +1,9 @@
+import logging
 import zipfile
-from typing import Iterator, List, Optional
+from typing import Collection, Iterable, Iterator, List, Optional
 
 from pip._vendor import pkg_resources
+from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
 
@@ -10,6 +12,8 @@ from pip._internal.utils.packaging import get_installer
 from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
 
 from .base import BaseDistribution, BaseEnvironment, DistributionVersion
+
+logger = logging.getLogger(__name__)
 
 
 class Distribution(BaseDistribution):
@@ -56,6 +60,19 @@ class Distribution(BaseDistribution):
     @property
     def in_usersite(self) -> bool:
         return misc.dist_in_usersite(self._dist)
+
+    def iter_dependencies(self, extras=()):
+        # type: (Collection[str]) -> Iterable[Requirement]
+        # pkg_resources raises on invalid extras, so we sanitize.
+        requested_extras = set(extras)
+        valid_extras = requested_extras & set(self._dist.extras)
+        for invalid_extra in requested_extras ^ valid_extras:
+            logger.warning(
+                "Invalid extra %r for package %r discarded",
+                invalid_extra,
+                self.canonical_name,
+            )
+        return self._dist.requires(valid_extras)
 
 
 class Environment(BaseEnvironment):
