@@ -11,6 +11,7 @@ from .base import (
     USER_CACHE_DIR,
     get_major_minor_version,
     get_src_prefix,
+    is_osx_framework,
     site_packages,
     user_site,
 )
@@ -113,6 +114,19 @@ def get_scheme(
             and new_v.name.startswith("pypy")
         )
         if skip_pypy_special_case:
+            continue
+
+        # sysconfig's ``osx_framework_user`` does not include ``pythonX.Y`` in
+        # the ``include`` value, but distutils's ``headers`` does. We'll let
+        # CPython decide whether this is a bug or feature. See bpo-43948.
+        skip_osx_framework_user_special_case = (
+            user
+            and is_osx_framework()
+            and k == "headers"
+            and old_v.parent == new_v
+            and old_v.name.startswith("python")
+        )
+        if skip_osx_framework_user_special_case:
             continue
 
         warned.append(_warn_if_mismatch(old_v, new_v, key=f"scheme.{k}"))

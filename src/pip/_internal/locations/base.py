@@ -44,3 +44,7 @@ try:
     user_site: typing.Optional[str] = site.getusersitepackages()
 except AttributeError:
     user_site = site.USER_SITE
+
+
+def is_osx_framework() -> bool:
+    return bool(sysconfig.get_config_var("PYTHONFRAMEWORK"))
