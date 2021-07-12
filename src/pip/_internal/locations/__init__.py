@@ -69,14 +69,13 @@ def _log_context(
 
 
 def get_scheme(
-    dist_name,  # type: str
-    user=False,  # type: bool
-    home=None,  # type: Optional[str]
-    root=None,  # type: Optional[str]
-    isolated=False,  # type: bool
-    prefix=None,  # type: Optional[str]
-):
-    # type: (...) -> Scheme
+    dist_name: str,
+    user: bool = False,
+    home: Optional[str] = None,
+    root: Optional[str] = None,
+    isolated: bool = False,
+    prefix: Optional[str] = None,
+) -> Scheme:
     old = _distutils.get_scheme(
         dist_name,
         user=user,
@@ -124,8 +123,7 @@ def get_scheme(
     return old
 
 
-def get_bin_prefix():
-    # type: () -> str
+def get_bin_prefix() -> str:
     old = _distutils.get_bin_prefix()
     new = _sysconfig.get_bin_prefix()
     if _warn_if_mismatch(pathlib.Path(old), pathlib.Path(new), key="bin_prefix"):
@@ -133,13 +131,11 @@ def get_bin_prefix():
     return old
 
 
-def get_bin_user():
-    # type: () -> str
+def get_bin_user() -> str:
     return _sysconfig.get_scheme("", user=True).scripts
 
 
-def get_purelib():
-    # type: () -> str
+def get_purelib() -> str:
     """Return the default pure-Python lib location."""
     old = _distutils.get_purelib()
     new = _sysconfig.get_purelib()
@@ -148,8 +144,7 @@ def get_purelib():
     return old
 
 
-def get_platlib():
-    # type: () -> str
+def get_platlib() -> str:
     """Return the default platform-shared lib location."""
     old = _distutils.get_platlib()
     new = _sysconfig.get_platlib()
@@ -158,8 +153,7 @@ def get_platlib():
     return old
 
 
-def get_prefixed_libs(prefix):
-    # type: (str) -> List[str]
+def get_prefixed_libs(prefix: str) -> List[str]:
     """Return the lib locations under ``prefix``."""
     old_pure, old_plat = _distutils.get_prefixed_libs(prefix)
     new_pure, new_plat = _sysconfig.get_prefixed_libs(prefix)
