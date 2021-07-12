@@ -551,6 +551,13 @@ class Factory:
             req_disp,
             ", ".join(versions) or "none",
         )
+        if str(req) == "requirements.txt":
+            logger.info(
+                "HINT: You are attempting to install a package literally "
+                'named "requirements.txt" (which cannot exist). Consider '
+                "using the '-r' flag to install the packages listed in "
+                "requirements.txt"
+            )
 
         return DistributionNotFound(f"No matching distribution found for {req}")
 
