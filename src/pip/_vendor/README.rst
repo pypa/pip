@@ -16,7 +16,7 @@ Vendoring Policy
   pure Python.
 * Any modifications made to libraries **MUST** be noted in
   ``pip/_vendor/README.rst`` and their corresponding patches **MUST** be
-  included ``tools/automation/vendoring/patches``.
+  included ``tools/vendoring/patches``.
 * Vendored libraries should have corresponding ``vendored()`` entries in
   ``pip/_vendor/__init__.py``.
 
@@ -118,7 +118,7 @@ Automatic Vendoring
 
 Vendoring is automated via the `vendoring <https://pypi.org/project/vendoring/>`_ tool from the content of
 ``pip/_vendor/vendor.txt`` and the different patches in
-``tools/automation/vendoring/patches``.
+``tools/vendoring/patches``.
 Launch it via ``vendoring sync . -v`` (requires ``vendoring>=0.2.2``).
 
 

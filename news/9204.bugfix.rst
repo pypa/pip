@@ -1,0 +1,2 @@
+New resolver: Detect an unnamed requirement is user-specified (by building its
+metadata for the project name) so it can be correctly ordered in the resolver.

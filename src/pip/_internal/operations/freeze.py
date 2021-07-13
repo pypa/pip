@@ -35,7 +35,6 @@ RequirementInfo = Tuple[Optional[Union[str, Requirement]], bool, List[str]]
 
 def freeze(
     requirement=None,  # type: Optional[List[str]]
-    find_links=None,  # type: Optional[List[str]]
     local_only=False,  # type: bool
     user_only=False,  # type: bool
     paths=None,  # type: Optional[List[str]]
@@ -44,10 +43,6 @@ def freeze(
     skip=()  # type: Container[str]
 ):
     # type: (...) -> Iterator[str]
-    find_links = find_links or []
-
-    for link in find_links:
-        yield f'-f {link}'
     installations = {}  # type: Dict[str, FrozenRequirement]
 
     for dist in get_installed_distributions(

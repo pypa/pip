@@ -14,9 +14,9 @@ requests==2.25.1
     chardet==4.0.0
     idna==3.1
     urllib3==1.26.5
-resolvelib==0.7.0
+resolvelib==0.7.1
 setuptools==44.0.0
 six==1.16.0
 tenacity==7.0.0
-toml==0.10.2
+tomli==1.0.3
 webencodings==0.5.1

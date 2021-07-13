@@ -10,13 +10,9 @@ from pip._vendor.resolvelib import Resolver as RLResolver
 from pip._vendor.resolvelib.structs import DirectedGraph
 
 from pip._internal.cache import WheelCache
-from pip._internal.exceptions import InstallationError
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.operations.prepare import RequirementPreparer
-from pip._internal.req.req_install import (
-    InstallRequirement,
-    check_invalid_constraint_type,
-)
+from pip._internal.req.req_install import InstallRequirement
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver, InstallRequirementProvider
 from pip._internal.resolution.resolvelib.provider import PipProvider
@@ -28,7 +24,7 @@ from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import dist_is_editable
 
-from .base import Candidate, Constraint, Requirement
+from .base import Candidate, Requirement
 from .factory import Factory
 
 if TYPE_CHECKING:
@@ -45,17 +41,17 @@ class Resolver(BaseResolver):
 
     def __init__(
         self,
-        preparer,  # type: RequirementPreparer
-        finder,  # type: PackageFinder
-        wheel_cache,  # type: Optional[WheelCache]
-        make_install_req,  # type: InstallRequirementProvider
-        use_user_site,  # type: bool
-        ignore_dependencies,  # type: bool
-        ignore_installed,  # type: bool
-        ignore_requires_python,  # type: bool
-        force_reinstall,  # type: bool
-        upgrade_strategy,  # type: str
-        py_version_info=None,  # type: Optional[Tuple[int, ...]]
+        preparer: RequirementPreparer,
+        finder: PackageFinder,
+        wheel_cache: Optional[WheelCache],
+        make_install_req: InstallRequirementProvider,
+        use_user_site: bool,
+        ignore_dependencies: bool,
+        ignore_installed: bool,
+        ignore_requires_python: bool,
+        force_reinstall: bool,
+        upgrade_strategy: str,
+        py_version_info: Optional[Tuple[int, ...]] = None,
     ):
         super().__init__()
         assert upgrade_strategy in self._allowed_strategies
@@ -73,65 +69,38 @@ class Resolver(BaseResolver):
         )
         self.ignore_dependencies = ignore_dependencies
         self.upgrade_strategy = upgrade_strategy
-        self._result = None  # type: Optional[Result]
+        self._result: Optional[Result] = None
 
-    def resolve(self, root_reqs, check_supported_wheels):
-        # type: (List[InstallRequirement], bool) -> RequirementSet
-
-        constraints = {}  # type: Dict[str, Constraint]
-        user_requested = {}  # type: Dict[str, int]
-        requirements = []
-        for i, req in enumerate(root_reqs):
-            if req.constraint:
-                # Ensure we only accept valid constraints
-                problem = check_invalid_constraint_type(req)
-                if problem:
-                    raise InstallationError(problem)
-                if not req.match_markers():
-                    continue
-                assert req.name, "Constraint must be named"
-                name = canonicalize_name(req.name)
-                if name in constraints:
-                    constraints[name] &= req
-                else:
-                    constraints[name] = Constraint.from_ireq(req)
-            else:
-                if req.user_supplied and req.name:
-                    canonical_name = canonicalize_name(req.name)
-                    if canonical_name not in user_requested:
-                        user_requested[canonical_name] = i
-                r = self.factory.make_requirement_from_install_req(
-                    req, requested_extras=()
-                )
-                if r is not None:
-                    requirements.append(r)
-
+    def resolve(
+        self, root_reqs: List[InstallRequirement], check_supported_wheels: bool
+    ) -> RequirementSet:
+        collected = self.factory.collect_root_requirements(root_reqs)
         provider = PipProvider(
             factory=self.factory,
-            constraints=constraints,
+            constraints=collected.constraints,
             ignore_dependencies=self.ignore_dependencies,
             upgrade_strategy=self.upgrade_strategy,
-            user_requested=user_requested,
+            user_requested=collected.user_requested,
         )
         if "PIP_RESOLVER_DEBUG" in os.environ:
-            reporter = PipDebuggingReporter()  # type: BaseReporter
+            reporter: BaseReporter = PipDebuggingReporter()
         else:
             reporter = PipReporter()
-        resolver = RLResolver(
+        resolver: RLResolver[Requirement, Candidate, str] = RLResolver(
             provider,
             reporter,
-        )  # type: RLResolver[Requirement, Candidate, str]
+        )
 
         try:
             try_to_avoid_resolution_too_deep = 2000000
             result = self._result = resolver.resolve(
-                requirements, max_rounds=try_to_avoid_resolution_too_deep
+                collected.requirements, max_rounds=try_to_avoid_resolution_too_deep
             )
 
         except ResolutionImpossible as e:
             error = self.factory.get_installation_error(
                 cast("ResolutionImpossible[Requirement, Candidate]", e),
-                constraints,
+                collected.constraints,
             )
             raise error from e
 
@@ -215,8 +184,9 @@ class Resolver(BaseResolver):
         self.factory.preparer.prepare_linked_requirements_more(reqs)
         return req_set
 
-    def get_installation_order(self, req_set):
-        # type: (RequirementSet) -> List[InstallRequirement]
+    def get_installation_order(
+        self, req_set: RequirementSet
+    ) -> List[InstallRequirement]:
         """Get order for installation of requirements in RequirementSet.
 
         The returned list contains a requirement before another that depends on
@@ -244,8 +214,9 @@ class Resolver(BaseResolver):
         return [ireq for _, ireq in sorted_items]
 
 
-def get_topological_weights(graph, expected_node_count):
-    # type: (DirectedGraph[Optional[str]], int) -> Dict[Optional[str], int]
+def get_topological_weights(
+    graph: "DirectedGraph[Optional[str]]", expected_node_count: int
+) -> Dict[Optional[str], int]:
     """Assign weights to each node based on how "deep" they are.
 
     This implementation may change at any point in the future without prior
@@ -262,11 +233,10 @@ def get_topological_weights(graph, expected_node_count):
 
     When assigning weight, the longer path (i.e. larger length) is preferred.
     """
-    path = set()  # type: Set[Optional[str]]
-    weights = {}  # type: Dict[Optional[str], int]
+    path: Set[Optional[str]] = set()
+    weights: Dict[Optional[str], int] = {}
 
-    def visit(node):
-        # type: (Optional[str]) -> None
+    def visit(node: Optional[str]) -> None:
         if node in path:
             # We hit a cycle, so we'll break it here.
             return
@@ -291,10 +261,9 @@ def get_topological_weights(graph, expected_node_count):
 
 
 def _req_set_item_sorter(
-    item,  # type: Tuple[str, InstallRequirement]
-    weights,  # type: Dict[Optional[str], int]
-):
-    # type: (...) -> Tuple[int, str]
+    item: Tuple[str, InstallRequirement],
+    weights: Dict[Optional[str], int],
+) -> Tuple[int, str]:
     """Key function used to sort install requirements for installation.
 
     Based on the "weight" mapping calculated in ``get_installation_order()``.

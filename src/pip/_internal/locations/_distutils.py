@@ -3,6 +3,7 @@
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
 
+import logging
 import os
 import sys
 from distutils.cmd import Command as DistutilsCommand
@@ -17,23 +18,37 @@ from pip._internal.utils.virtualenv import running_under_virtualenv
 
 from .base import get_major_minor_version
 
+logger = logging.getLogger(__name__)
+
 
 def _distutils_scheme(
-    dist_name, user=False, home=None, root=None, isolated=False, prefix=None
-):
-    # type:(str, bool, str, str, bool, str) -> Dict[str, str]
+    dist_name: str,
+    user: bool = False,
+    home: str = None,
+    root: str = None,
+    isolated: bool = False,
+    prefix: str = None,
+) -> Dict[str, str]:
     """
     Return a distutils install scheme
     """
     from distutils.dist import Distribution
 
-    dist_args = {"name": dist_name}  # type: Dict[str, Union[str, List[str]]]
+    dist_args: Dict[str, Union[str, List[str]]] = {"name": dist_name}
     if isolated:
         dist_args["script_args"] = ["--no-user-cfg"]
 
     d = Distribution(dist_args)
-    d.parse_config_files()
-    obj = None  # type: Optional[DistutilsCommand]
+    try:
+        d.parse_config_files()
+    except UnicodeDecodeError:
+        # Typeshed does not include find_config_files() for some reason.
+        paths = d.find_config_files()  # type: ignore
+        logger.warning(
+            "Ignore distutils configs in %s due to encoding errors.",
+            ", ".join(os.path.basename(p) for p in paths),
+        )
+    obj: Optional[DistutilsCommand] = None
     obj = d.get_command_obj("install", create=True)
     assert obj is not None
     i = cast(distutils_install_command, obj)
@@ -82,14 +97,13 @@ def _distutils_scheme(
 
 
 def get_scheme(
-    dist_name,  # type: str
-    user=False,  # type: bool
-    home=None,  # type: Optional[str]
-    root=None,  # type: Optional[str]
-    isolated=False,  # type: bool
-    prefix=None,  # type: Optional[str]
-):
-    # type: (...) -> Scheme
+    dist_name: str,
+    user: bool = False,
+    home: Optional[str] = None,
+    root: Optional[str] = None,
+    isolated: bool = False,
+    prefix: Optional[str] = None,
+) -> Scheme:
     """
     Get the "scheme" corresponding to the input parameters. The distutils
     documentation provides the context for the available schemes:
@@ -117,8 +131,7 @@ def get_scheme(
     )
 
 
-def get_bin_prefix():
-    # type: () -> str
+def get_bin_prefix() -> str:
     if WINDOWS:
         bin_py = os.path.join(sys.prefix, "Scripts")
         # buildout uses 'bin' on Windows too?
@@ -132,18 +145,15 @@ def get_bin_prefix():
     return os.path.join(sys.prefix, "bin")
 
 
-def get_purelib():
-    # type: () -> str
+def get_purelib() -> str:
     return get_python_lib(plat_specific=False)
 
 
-def get_platlib():
-    # type: () -> str
+def get_platlib() -> str:
     return get_python_lib(plat_specific=True)
 
 
-def get_prefixed_libs(prefix):
-    # type: (str) -> Tuple[str, str]
+def get_prefixed_libs(prefix: str) -> Tuple[str, str]:
     return (
         get_python_lib(plat_specific=False, prefix=prefix),
         get_python_lib(plat_specific=True, prefix=prefix),

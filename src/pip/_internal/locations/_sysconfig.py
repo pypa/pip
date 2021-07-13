@@ -9,7 +9,7 @@ from pip._internal.exceptions import InvalidSchemeCombination, UserInstallationI
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
-from .base import get_major_minor_version
+from .base import get_major_minor_version, is_osx_framework
 
 logger = logging.getLogger(__name__)
 
@@ -24,13 +24,16 @@ logger = logging.getLogger(__name__)
 
 _AVAILABLE_SCHEMES = set(sysconfig.get_scheme_names())
 
+_HAS_PREFERRED_SCHEME_API = sys.version_info >= (3, 10)
 
-def _infer_prefix():
-    # type: () -> str
+
+def _infer_prefix() -> str:
     """Try to find a prefix scheme for the current platform.
 
     This tries:
 
+    * A special ``osx_framework_library`` for Python distributed by Apple's
+      Command Line Tools, when not running in a virtual environment.
     * Implementation + OS, used by PyPy on Windows (``pypy_nt``).
     * Implementation without OS, used by PyPy on POSIX (``pypy``).
     * OS + "prefix", used by CPython on POSIX (``posix_prefix``).
@@ -38,6 +41,11 @@ def _infer_prefix():
 
     If none of the above works, fall back to ``posix_prefix``.
     """
+    if _HAS_PREFERRED_SCHEME_API:
+        return sysconfig.get_preferred_scheme("prefix")  # type: ignore
+    os_framework_global = is_osx_framework() and not running_under_virtualenv()
+    if os_framework_global and "osx_framework_library" in _AVAILABLE_SCHEMES:
+        return "osx_framework_library"
     implementation_suffixed = f"{sys.implementation.name}_{os.name}"
     if implementation_suffixed in _AVAILABLE_SCHEMES:
         return implementation_suffixed
@@ -51,10 +59,14 @@ def _infer_prefix():
     return "posix_prefix"
 
 
-def _infer_user():
-    # type: () -> str
+def _infer_user() -> str:
     """Try to find a user scheme for the current platform."""
-    suffixed = f"{os.name}_user"
+    if _HAS_PREFERRED_SCHEME_API:
+        return sysconfig.get_preferred_scheme("user")  # type: ignore
+    if is_osx_framework() and not running_under_virtualenv():
+        suffixed = "osx_framework_user"
+    else:
+        suffixed = f"{os.name}_user"
     if suffixed in _AVAILABLE_SCHEMES:
         return suffixed
     if "posix_user" not in _AVAILABLE_SCHEMES:  # User scheme unavailable.
@@ -62,9 +74,10 @@ def _infer_user():
     return "posix_user"
 
 
-def _infer_home():
-    # type: () -> str
+def _infer_home() -> str:
     """Try to find a home for the current platform."""
+    if _HAS_PREFERRED_SCHEME_API:
+        return sysconfig.get_preferred_scheme("home")  # type: ignore
     suffixed = f"{os.name}_home"
     if suffixed in _AVAILABLE_SCHEMES:
         return suffixed
@@ -85,14 +98,13 @@ if sysconfig.get_config_var("userbase") is not None:
 
 
 def get_scheme(
-    dist_name,  # type: str
-    user=False,  # type: bool
-    home=None,  # type: typing.Optional[str]
-    root=None,  # type: typing.Optional[str]
-    isolated=False,  # type: bool
-    prefix=None,  # type: typing.Optional[str]
-):
-    # type: (...) -> Scheme
+    dist_name: str,
+    user: bool = False,
+    home: typing.Optional[str] = None,
+    root: typing.Optional[str] = None,
+    isolated: bool = False,
+    prefix: typing.Optional[str] = None,
+) -> Scheme:
     """
     Get the "scheme" corresponding to the input parameters.
 
@@ -156,25 +168,21 @@ def get_scheme(
     return scheme
 
 
-def get_bin_prefix():
-    # type: () -> str
+def get_bin_prefix() -> str:
     # Forcing to use /usr/local/bin for standard macOS framework installs.
     if sys.platform[:6] == "darwin" and sys.prefix[:16] == "/System/Library/":
         return "/usr/local/bin"
     return sysconfig.get_paths()["scripts"]
 
 
-def get_purelib():
-    # type: () -> str
+def get_purelib() -> str:
     return sysconfig.get_paths()["purelib"]
 
 
-def get_platlib():
-    # type: () -> str
+def get_platlib() -> str:
     return sysconfig.get_paths()["platlib"]
 
 
-def get_prefixed_libs(prefix):
-    # type: (str) -> typing.Tuple[str, str]
+def get_prefixed_libs(prefix: str) -> typing.Tuple[str, str]:
     paths = sysconfig.get_paths(vars={"base": prefix, "platbase": prefix})
     return (paths["purelib"], paths["platlib"])

@@ -1,1 +1,0 @@
-Remove unused optional ``tornado`` import in vendored ``tenacity`` to prevent old versions of Tornado from breaking pip.
