@@ -36,7 +36,7 @@ def test_show_with_files_not_found(script, data):
     assert any(line.startswith('Location: ') for line in lines)
     assert 'Requires: ' in lines
     assert 'Files:' in lines
-    assert 'Cannot locate installed-files.txt' in lines
+    assert 'Cannot locate RECORD or installed-files.txt' in lines
 
 
 def test_show_with_files_from_wheel(script, data):
@@ -48,7 +48,7 @@ def test_show_with_files_from_wheel(script, data):
     result = script.pip('show', '-f', 'simple.dist')
     lines = result.stdout.splitlines()
     assert 'Name: simple.dist' in lines
-    assert 'Cannot locate installed-files.txt' not in lines[6], lines[6]
+    assert 'Cannot locate RECORD or installed-files.txt' not in lines[6], lines[6]
     assert re.search(r"Files:\n(  .+\n)+", result.stdout)
 
 
@@ -60,7 +60,7 @@ def test_show_with_all_files(script):
     script.pip('install', 'initools==0.2')
     result = script.pip('show', '--files', 'initools')
     lines = result.stdout.splitlines()
-    assert 'Cannot locate installed-files.txt' not in lines[6], lines[6]
+    assert 'Cannot locate RECORD or installed-files.txt' not in lines[6], lines[6]
     assert re.search(r"Files:\n(  .+\n)+", result.stdout)
 
 
