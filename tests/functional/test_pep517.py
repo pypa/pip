@@ -1,5 +1,8 @@
 import pytest
-from pip._vendor import toml
+
+# The vendored `tomli` package is not used here because it doesn't
+# have write capability
+import toml
 
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.req import InstallRequirement

@@ -6,9 +6,6 @@ import urllib.parse
 import urllib.request
 from typing import List, Optional, Tuple
 
-from pip._vendor.packaging.version import _BaseVersion
-from pip._vendor.packaging.version import parse as parse_version
-
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import HiddenText, display_path, hide_url
 from pip._internal.utils.subprocess import make_command
@@ -28,6 +25,14 @@ urlunsplit = urllib.parse.urlunsplit
 
 logger = logging.getLogger(__name__)
 
+
+GIT_VERSION_REGEX = re.compile(
+    r"^git version "  # Prefix.
+    r"(\d+)"  # Major.
+    r"\.(\d+)"  # Dot, minor.
+    r"(?:\.(\d+))?"  # Optional dot, patch.
+    r".*$"  # Suffix, including any pre- and post-release segments we don't care about.
+)
 
 HASH_REGEX = re.compile('^[a-fA-F0-9]{40}$')
 
@@ -83,21 +88,14 @@ class Git(VersionControl):
         )
         return not is_tag_or_branch
 
-    def get_git_version(self):
-        # type: () -> _BaseVersion
-        VERSION_PFX = 'git version '
+    def get_git_version(self) -> Tuple[int, ...]:
         version = self.run_command(
             ['version'], show_stdout=False, stdout_only=True
         )
-        if version.startswith(VERSION_PFX):
-            version = version[len(VERSION_PFX):].split()[0]
-        else:
-            version = ''
-        # get first 3 positions of the git version because
-        # on windows it is x.y.z.windows.t, and this parses as
-        # LegacyVersion which always smaller than a Version.
-        version = '.'.join(version.split('.')[:3])
-        return parse_version(version)
+        match = GIT_VERSION_REGEX.match(version)
+        if not match:
+            return ()
+        return tuple(int(c) for c in match.groups())
 
     @classmethod
     def get_current_branch(cls, location):
@@ -301,7 +299,7 @@ class Git(VersionControl):
     def update(self, dest, url, rev_options):
         # type: (str, HiddenText, RevOptions) -> None
         # First fetch changes from the default remote
-        if self.get_git_version() >= parse_version('1.9.0'):
+        if self.get_git_version() >= (1, 9):
             # fetch tags in addition to everything else
             self.run_command(['fetch', '-q', '--tags'], cwd=dest)
         else:

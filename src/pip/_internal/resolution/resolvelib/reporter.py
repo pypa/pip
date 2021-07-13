@@ -10,9 +10,8 @@ logger = getLogger(__name__)
 
 
 class PipReporter(BaseReporter):
-    def __init__(self):
-        # type: () -> None
-        self.backtracks_by_package = defaultdict(int)  # type: DefaultDict[str, int]
+    def __init__(self) -> None:
+        self.backtracks_by_package: DefaultDict[str, int] = defaultdict(int)
 
         self._messages_at_backtrack = {
             1: (
@@ -34,8 +33,7 @@ class PipReporter(BaseReporter):
             ),
         }
 
-    def backtracking(self, candidate):
-        # type: (Candidate) -> None
+    def backtracking(self, candidate: Candidate) -> None:
         self.backtracks_by_package[candidate.name] += 1
 
         count = self.backtracks_by_package[candidate.name]
@@ -49,30 +47,23 @@ class PipReporter(BaseReporter):
 class PipDebuggingReporter(BaseReporter):
     """A reporter that does an info log for every event it sees."""
 
-    def starting(self):
-        # type: () -> None
+    def starting(self) -> None:
         logger.info("Reporter.starting()")
 
-    def starting_round(self, index):
-        # type: (int) -> None
+    def starting_round(self, index: int) -> None:
         logger.info("Reporter.starting_round(%r)", index)
 
-    def ending_round(self, index, state):
-        # type: (int, Any) -> None
+    def ending_round(self, index: int, state: Any) -> None:
         logger.info("Reporter.ending_round(%r, state)", index)
 
-    def ending(self, state):
-        # type: (Any) -> None
+    def ending(self, state: Any) -> None:
         logger.info("Reporter.ending(%r)", state)
 
-    def adding_requirement(self, requirement, parent):
-        # type: (Requirement, Candidate) -> None
+    def adding_requirement(self, requirement: Requirement, parent: Candidate) -> None:
         logger.info("Reporter.adding_requirement(%r, %r)", requirement, parent)
 
-    def backtracking(self, candidate):
-        # type: (Candidate) -> None
+    def backtracking(self, candidate: Candidate) -> None:
         logger.info("Reporter.backtracking(%r)", candidate)
 
-    def pinning(self, candidate):
-        # type: (Candidate) -> None
+    def pinning(self, candidate: Candidate) -> None:
         logger.info("Reporter.pinning(%r)", candidate)

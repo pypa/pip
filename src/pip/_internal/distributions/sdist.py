@@ -19,12 +19,12 @@ class SourceDistribution(AbstractDistribution):
     generated, either using PEP 517 or using the legacy `setup.py egg_info`.
     """
 
-    def get_pkg_resources_distribution(self):
-        # type: () -> Distribution
+    def get_pkg_resources_distribution(self) -> Distribution:
         return self.req.get_dist()
 
-    def prepare_distribution_metadata(self, finder, build_isolation):
-        # type: (PackageFinder, bool) -> None
+    def prepare_distribution_metadata(
+        self, finder: PackageFinder, build_isolation: bool
+    ) -> None:
         # Load pyproject.toml, to determine whether PEP 517 is to be used
         self.req.load_pyproject_toml()
 
@@ -35,10 +35,10 @@ class SourceDistribution(AbstractDistribution):
 
         self.req.prepare_metadata()
 
-    def _setup_isolation(self, finder):
-        # type: (PackageFinder) -> None
-        def _raise_conflicts(conflicting_with, conflicting_reqs):
-            # type: (str, Set[Tuple[str, str]]) -> None
+    def _setup_isolation(self, finder: PackageFinder) -> None:
+        def _raise_conflicts(
+            conflicting_with: str, conflicting_reqs: Set[Tuple[str, str]]
+        ) -> None:
             format_string = (
                 "Some build dependencies for {requirement} "
                 "conflict with {conflicting_with}: {description}."

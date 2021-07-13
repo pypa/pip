@@ -14,4 +14,5 @@ authentication
 caching
 configuration
 repeatable-installs
+vcs-support
 ```

@@ -22,8 +22,9 @@ class DirectUrlValidationError(Exception):
     pass
 
 
-def _get(d, expected_type, key, default=None):
-    # type: (Dict[str, Any], Type[T], str, Optional[T]) -> Optional[T]
+def _get(
+    d: Dict[str, Any], expected_type: Type[T], key: str, default: Optional[T] = None
+) -> Optional[T]:
     """Get value from dictionary and verify expected type."""
     if key not in d:
         return default
@@ -37,16 +38,16 @@ def _get(d, expected_type, key, default=None):
     return value
 
 
-def _get_required(d, expected_type, key, default=None):
-    # type: (Dict[str, Any], Type[T], str, Optional[T]) -> T
+def _get_required(
+    d: Dict[str, Any], expected_type: Type[T], key: str, default: Optional[T] = None
+) -> T:
     value = _get(d, expected_type, key, default)
     if value is None:
         raise DirectUrlValidationError(f"{key} must have a value")
     return value
 
 
-def _exactly_one_of(infos):
-    # type: (Iterable[Optional[InfoType]]) -> InfoType
+def _exactly_one_of(infos: Iterable[Optional["InfoType"]]) -> "InfoType":
     infos = [info for info in infos if info is not None]
     if not infos:
         raise DirectUrlValidationError(
@@ -60,8 +61,7 @@ def _exactly_one_of(infos):
     return infos[0]
 
 
-def _filter_none(**kwargs):
-    # type: (Any) -> Dict[str, Any]
+def _filter_none(**kwargs: Any) -> Dict[str, Any]:
     """Make dict excluding None values."""
     return {k: v for k, v in kwargs.items() if v is not None}
 
@@ -71,12 +71,12 @@ class VcsInfo:
 
     def __init__(
         self,
-        vcs,  # type: str
-        commit_id,  # type: str
-        requested_revision=None,  # type: Optional[str]
-        resolved_revision=None,  # type: Optional[str]
-        resolved_revision_type=None,  # type: Optional[str]
-    ):
+        vcs: str,
+        commit_id: str,
+        requested_revision: Optional[str] = None,
+        resolved_revision: Optional[str] = None,
+        resolved_revision_type: Optional[str] = None,
+    ) -> None:
         self.vcs = vcs
         self.requested_revision = requested_revision
         self.commit_id = commit_id
@@ -84,8 +84,7 @@ class VcsInfo:
         self.resolved_revision_type = resolved_revision_type
 
     @classmethod
-    def _from_dict(cls, d):
-        # type: (Optional[Dict[str, Any]]) -> Optional[VcsInfo]
+    def _from_dict(cls, d: Optional[Dict[str, Any]]) -> Optional["VcsInfo"]:
         if d is None:
             return None
         return cls(
@@ -96,8 +95,7 @@ class VcsInfo:
             resolved_revision_type=_get(d, str, "resolved_revision_type"),
         )
 
-    def _to_dict(self):
-        # type: () -> Dict[str, Any]
+    def _to_dict(self) -> Dict[str, Any]:
         return _filter_none(
             vcs=self.vcs,
             requested_revision=self.requested_revision,
@@ -112,19 +110,17 @@ class ArchiveInfo:
 
     def __init__(
         self,
-        hash=None,  # type: Optional[str]
-    ):
+        hash: Optional[str] = None,
+    ) -> None:
         self.hash = hash
 
     @classmethod
-    def _from_dict(cls, d):
-        # type: (Optional[Dict[str, Any]]) -> Optional[ArchiveInfo]
+    def _from_dict(cls, d: Optional[Dict[str, Any]]) -> Optional["ArchiveInfo"]:
         if d is None:
             return None
         return cls(hash=_get(d, str, "hash"))
 
-    def _to_dict(self):
-        # type: () -> Dict[str, Any]
+    def _to_dict(self) -> Dict[str, Any]:
         return _filter_none(hash=self.hash)
 
 
@@ -133,21 +129,19 @@ class DirInfo:
 
     def __init__(
         self,
-        editable=False,  # type: bool
-    ):
+        editable: bool = False,
+    ) -> None:
         self.editable = editable
 
     @classmethod
-    def _from_dict(cls, d):
-        # type: (Optional[Dict[str, Any]]) -> Optional[DirInfo]
+    def _from_dict(cls, d: Optional[Dict[str, Any]]) -> Optional["DirInfo"]:
         if d is None:
             return None
         return cls(
             editable=_get_required(d, bool, "editable", default=False)
         )
 
-    def _to_dict(self):
-        # type: () -> Dict[str, Any]
+    def _to_dict(self) -> Dict[str, Any]:
         return _filter_none(editable=self.editable or None)
 
 
@@ -158,16 +152,15 @@ class DirectUrl:
 
     def __init__(
         self,
-        url,  # type: str
-        info,  # type: InfoType
-        subdirectory=None,  # type: Optional[str]
-    ):
+        url: str,
+        info: InfoType,
+        subdirectory: Optional[str] = None,
+    ) -> None:
         self.url = url
         self.info = info
         self.subdirectory = subdirectory
 
-    def _remove_auth_from_netloc(self, netloc):
-        # type: (str) -> str
+    def _remove_auth_from_netloc(self, netloc: str) -> str:
         if "@" not in netloc:
             return netloc
         user_pass, netloc_no_user_pass = netloc.split("@", 1)
@@ -182,8 +175,7 @@ class DirectUrl:
         return netloc_no_user_pass
 
     @property
-    def redacted_url(self):
-        # type: () -> str
+    def redacted_url(self) -> str:
         """url with user:password part removed unless it is formed with
         environment variables as specified in PEP 610, or it is ``git``
         in the case of a git URL.
@@ -195,13 +187,11 @@ class DirectUrl:
         )
         return surl
 
-    def validate(self):
-        # type: () -> None
+    def validate(self) -> None:
         self.from_dict(self.to_dict())
 
     @classmethod
-    def from_dict(cls, d):
-        # type: (Dict[str, Any]) -> DirectUrl
+    def from_dict(cls, d: Dict[str, Any]) -> "DirectUrl":
         return DirectUrl(
             url=_get_required(d, str, "url"),
             subdirectory=_get(d, str, "subdirectory"),
@@ -214,8 +204,7 @@ class DirectUrl:
             ),
         )
 
-    def to_dict(self):
-        # type: () -> Dict[str, Any]
+    def to_dict(self) -> Dict[str, Any]:
         res = _filter_none(
             url=self.redacted_url,
             subdirectory=self.subdirectory,
@@ -224,10 +213,8 @@ class DirectUrl:
         return res
 
     @classmethod
-    def from_json(cls, s):
-        # type: (str) -> DirectUrl
+    def from_json(cls, s: str) -> "DirectUrl":
         return cls.from_dict(json.loads(s))
 
-    def to_json(self):
-        # type: () -> str
+    def to_json(self) -> str:
         return json.dumps(self.to_dict(), sort_keys=True)

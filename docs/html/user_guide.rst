@@ -1449,7 +1449,7 @@ Setups to test with special attention
 
 *    Continuous integration/continuous deployment setups
 
-*    Installing from any kind of version control systems (i.e., Git, Subversion, Mercurial, or CVS), per :ref:`VCS Support`
+*    Installing from any kind of version control systems (i.e., Git, Subversion, Mercurial, or CVS), per :doc:`topics/vcs-support`
 
 *    Installing from source code held in local directories
 

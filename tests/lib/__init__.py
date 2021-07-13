@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import shutil
@@ -14,6 +15,7 @@ from typing import List, Optional
 from zipfile import ZipFile
 
 import pytest
+from pip._vendor.packaging.utils import canonicalize_name
 from scripttest import FoundDir, TestFileEnvironment
 
 from pip._internal.index.collector import LinkCollector
@@ -667,6 +669,27 @@ class PipTestEnvironment(TestFileEnvironment):
     def easy_install(self, *args, **kwargs):
         args = ("-m", "easy_install") + args
         return self.run("python", *args, **kwargs)
+
+    def assert_installed(self, **kwargs):
+        ret = self.pip("list", "--format=json")
+        installed = set(
+            (canonicalize_name(val["name"]), val["version"])
+            for val in json.loads(ret.stdout)
+        )
+        expected = set((canonicalize_name(k), v) for k, v in kwargs.items())
+        assert expected <= installed, "{!r} not all in {!r}".format(expected, installed)
+
+    def assert_not_installed(self, *args):
+        ret = self.pip("list", "--format=json")
+        installed = set(
+            canonicalize_name(val["name"]) for val in json.loads(ret.stdout)
+        )
+        # None of the given names should be listed as installed, i.e. their
+        # intersection should be empty.
+        expected = set(canonicalize_name(k) for k in args)
+        assert not (expected & installed), "{!r} contained in {!r}".format(
+            expected, installed
+        )
 
 
 # FIXME ScriptTest does something similar, but only within a single

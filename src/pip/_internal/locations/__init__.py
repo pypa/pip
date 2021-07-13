@@ -1,4 +1,6 @@
+import functools
 import logging
+import os
 import pathlib
 import sys
 import sysconfig
@@ -11,6 +13,7 @@ from .base import (
     USER_CACHE_DIR,
     get_major_minor_version,
     get_src_prefix,
+    is_osx_framework,
     site_packages,
     user_site,
 )
@@ -32,6 +35,11 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 
+if os.environ.get("_PIP_LOCATIONS_NO_WARN_ON_MISMATCH"):
+    _MISMATCH_LEVEL = logging.DEBUG
+else:
+    _MISMATCH_LEVEL = logging.WARNING
+
 
 def _default_base(*, user: bool) -> str:
     if user:
@@ -42,19 +50,21 @@ def _default_base(*, user: bool) -> str:
     return base
 
 
+@functools.lru_cache(maxsize=None)
 def _warn_if_mismatch(old: pathlib.Path, new: pathlib.Path, *, key: str) -> bool:
     if old == new:
         return False
-    issue_url = "https://github.com/pypa/pip/issues/9617"
+    issue_url = "https://github.com/pypa/pip/issues/10151"
     message = (
         "Value for %s does not match. Please report this to <%s>"
         "\ndistutils: %s"
         "\nsysconfig: %s"
     )
-    logger.debug(message, key, issue_url, old, new)
+    logger.log(_MISMATCH_LEVEL, message, key, issue_url, old, new)
     return True
 
 
+@functools.lru_cache(maxsize=None)
 def _log_context(
     *,
     user: bool = False,
@@ -65,18 +75,17 @@ def _log_context(
     message = (
         "Additional context:" "\nuser = %r" "\nhome = %r" "\nroot = %r" "\nprefix = %r"
     )
-    logger.debug(message, user, home, root, prefix)
+    logger.log(_MISMATCH_LEVEL, message, user, home, root, prefix)
 
 
 def get_scheme(
-    dist_name,  # type: str
-    user=False,  # type: bool
-    home=None,  # type: Optional[str]
-    root=None,  # type: Optional[str]
-    isolated=False,  # type: bool
-    prefix=None,  # type: Optional[str]
-):
-    # type: (...) -> Scheme
+    dist_name: str,
+    user: bool = False,
+    home: Optional[str] = None,
+    root: Optional[str] = None,
+    isolated: bool = False,
+    prefix: Optional[str] = None,
+) -> Scheme:
     old = _distutils.get_scheme(
         dist_name,
         user=user,
@@ -110,10 +119,23 @@ def get_scheme(
             and home is not None
             and k in ("platlib", "purelib")
             and old_v.parent == new_v.parent
-            and old_v.name == "python"
-            and new_v.name == "pypy"
+            and old_v.name.startswith("python")
+            and new_v.name.startswith("pypy")
         )
         if skip_pypy_special_case:
+            continue
+
+        # sysconfig's ``osx_framework_user`` does not include ``pythonX.Y`` in
+        # the ``include`` value, but distutils's ``headers`` does. We'll let
+        # CPython decide whether this is a bug or feature. See bpo-43948.
+        skip_osx_framework_user_special_case = (
+            user
+            and is_osx_framework()
+            and k == "headers"
+            and old_v.parent == new_v
+            and old_v.name.startswith("python")
+        )
+        if skip_osx_framework_user_special_case:
             continue
 
         warned.append(_warn_if_mismatch(old_v, new_v, key=f"scheme.{k}"))
@@ -124,8 +146,7 @@ def get_scheme(
     return old
 
 
-def get_bin_prefix():
-    # type: () -> str
+def get_bin_prefix() -> str:
     old = _distutils.get_bin_prefix()
     new = _sysconfig.get_bin_prefix()
     if _warn_if_mismatch(pathlib.Path(old), pathlib.Path(new), key="bin_prefix"):
@@ -133,13 +154,11 @@ def get_bin_prefix():
     return old
 
 
-def get_bin_user():
-    # type: () -> str
+def get_bin_user() -> str:
     return _sysconfig.get_scheme("", user=True).scripts
 
 
-def get_purelib():
-    # type: () -> str
+def get_purelib() -> str:
     """Return the default pure-Python lib location."""
     old = _distutils.get_purelib()
     new = _sysconfig.get_purelib()
@@ -148,8 +167,7 @@ def get_purelib():
     return old
 
 
-def get_platlib():
-    # type: () -> str
+def get_platlib() -> str:
     """Return the default platform-shared lib location."""
     old = _distutils.get_platlib()
     new = _sysconfig.get_platlib()
@@ -158,8 +176,7 @@ def get_platlib():
     return old
 
 
-def get_prefixed_libs(prefix):
-    # type: (str) -> List[str]
+def get_prefixed_libs(prefix: str) -> List[str]:
     """Return the lib locations under ``prefix``."""
     old_pure, old_plat = _distutils.get_prefixed_libs(prefix)
     new_pure, new_plat = _sysconfig.get_prefixed_libs(prefix)

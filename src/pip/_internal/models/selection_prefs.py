@@ -18,11 +18,11 @@ class SelectionPreferences:
     # people when reading the code.
     def __init__(
         self,
-        allow_yanked,  # type: bool
-        allow_all_prereleases=False,  # type: bool
-        format_control=None,          # type: Optional[FormatControl]
-        prefer_binary=False,          # type: bool
-        ignore_requires_python=None,  # type: Optional[bool]
+        allow_yanked: bool,
+        allow_all_prereleases: bool = False,
+        format_control: Optional[FormatControl] = None,
+        prefer_binary: bool = False,
+        ignore_requires_python: Optional[bool] = None,
     ):
         # type: (...) -> None
         """Create a SelectionPreferences object.

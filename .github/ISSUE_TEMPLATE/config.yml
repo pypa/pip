@@ -6,6 +6,6 @@ contact_links:
   about: |
     Please ask typical Q&A here: general ideas for Python packaging,
     questions about structuring projects and so on
-- name: '💬 IRC: #pypa @ Freenode'
-  url: https://webchat.freenode.net/#pypa
+- name: '💬 IRC: #pypa'
+  url: https://kiwiirc.com/nextclient/#ircs://irc.libera.chat:+6697/pypa
   about: Chat with devs

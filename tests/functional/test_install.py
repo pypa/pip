@@ -960,7 +960,8 @@ def test_install_nonlocal_compatible_wheel_path(
     assert result.returncode == ERROR
 
 
-def test_install_with_target_and_scripts_no_warning(script, with_wheel):
+@pytest.mark.parametrize('opt', ('--target', '--prefix'))
+def test_install_with_target_or_prefix_and_scripts_no_warning(opt, script, with_wheel):
     """
     Test that installing with --target does not trigger the "script not
     in PATH" warning (issue #5201)
@@ -981,7 +982,7 @@ def test_install_with_target_and_scripts_no_warning(script, with_wheel):
     pkga_path.joinpath("pkga.py").write_text(textwrap.dedent("""
         def main(): pass
     """))
-    result = script.pip('install', '--target', target_dir, pkga_path)
+    result = script.pip('install', opt, target_dir, pkga_path)
     # This assertion isn't actually needed, if we get the script warning
     # the script.pip() call will fail with "stderr not expected". But we
     # leave the assertion to make the intention of the code clearer.
@@ -1666,6 +1667,9 @@ def test_install_from_test_pypi_with_ext_url_dep_is_blocked(script, index):
     assert error_cause in res.stderr, str(res)
 
 
+@pytest.mark.xfail(
+    reason="No longer possible to trigger the warning with either --prefix or --target"
+)
 def test_installing_scripts_outside_path_prints_warning(script):
     result = script.pip_install_local(
         "--prefix", script.scratch_path, "script_wheel1"
