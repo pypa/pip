@@ -95,8 +95,15 @@ class BaseDistribution(Protocol):
 
     @property
     def metadata_version(self) -> Optional[str]:
-        """Value of "Metadata-Version:" in the distribution, if available."""
+        """Value of "Metadata-Version:" in distribution metadata, if available."""
         return self.metadata.get("Metadata-Version")
+
+    @property
+    def raw_name(self) -> str:
+        """Value of "Name:" in distribution metadata."""
+        # The metadata should NEVER be missing the Name: key, but if it somehow
+        # does not, fall back to the known canonical name.
+        return self.metadata.get("Name", self.canonical_name)
 
     def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
         raise NotImplementedError()

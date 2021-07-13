@@ -1,0 +1,3 @@
+``pip list`` and ``pip show`` no longer normalize underscore (``_``) in
+distribution names to dash (``-``). This is done as a part of the refactoring to
+prepare for the migration to ``importlib.metadata``.

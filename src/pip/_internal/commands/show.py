@@ -90,8 +90,8 @@ def search_packages_info(query: List[str]) -> Iterator[_PackageInfo]:
 
     def _get_requiring_packages(current_dist: BaseDistribution) -> List[str]:
         return [
-            dist.canonical_name
-            for dist in env.iter_distributions()
+            dist.metadata["Name"] or "UNKNOWN"
+            for dist in installed.values()
             if current_dist.canonical_name in {
                 canonicalize_name(d.name) for d in dist.iter_dependencies()
             }
@@ -132,7 +132,7 @@ def search_packages_info(query: List[str]) -> Iterator[_PackageInfo]:
         metadata = dist.metadata
 
         yield _PackageInfo(
-            name=dist.canonical_name,
+            name=dist.raw_name,
             version=str(dist.version),
             location=dist.location or "",
             requires=[req.name for req in dist.iter_dependencies()],
