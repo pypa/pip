@@ -1,5 +1,5 @@
-import logging
 import email.message
+import logging
 import zipfile
 from typing import Collection, Iterable, Iterator, List, NamedTuple, Optional
 
