@@ -7,7 +7,6 @@ from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.operations.freeze import freeze
 from pip._internal.utils.compat import stdlib_pkgs
-from pip._internal.utils.deprecation import deprecated
 
 DEV_PKGS = {'pip', 'setuptools', 'distribute', 'wheel'}
 
@@ -34,14 +33,6 @@ class FreezeCommand(Command):
             help="Use the order in the given requirements file and its "
                  "comments when generating output. This option can be "
                  "used multiple times.")
-        self.cmd_opts.add_option(
-            '-f', '--find-links',
-            dest='find_links',
-            action='append',
-            default=[],
-            metavar='URL',
-            help='URL for finding packages, which will be added to the '
-                 'output.')
         self.cmd_opts.add_option(
             '-l', '--local',
             dest='local',
@@ -82,17 +73,8 @@ class FreezeCommand(Command):
 
         cmdoptions.check_list_path_option(options)
 
-        if options.find_links:
-            deprecated(
-                "--find-links option in pip freeze is deprecated.",
-                replacement=None,
-                gone_in="21.2",
-                issue=9069,
-            )
-
         for line in freeze(
             requirement=options.requirements,
-            find_links=options.find_links,
             local_only=options.local,
             user_only=options.user,
             paths=options.path,
