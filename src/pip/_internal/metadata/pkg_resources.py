@@ -8,9 +8,7 @@ from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
 
-from pip._internal.models.direct_url import DirectUrl
 from pip._internal.utils import misc  # TODO: Move definition here.
-from pip._internal.utils.direct_url_helpers import dist_get_direct_url
 from pip._internal.utils.packaging import get_installer, get_metadata
 from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
 
@@ -46,10 +44,6 @@ class Distribution(BaseDistribution):
     @property
     def version(self) -> DistributionVersion:
         return parse_version(self._dist.version)
-
-    @property
-    def direct_url(self) -> Optional[DirectUrl]:
-        return dist_get_direct_url(self._dist)
 
     @property
     def installer(self) -> str:
