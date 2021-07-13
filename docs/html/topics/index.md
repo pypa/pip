@@ -13,5 +13,6 @@ This section of the documentation is currently being fleshed out. See
 authentication
 caching
 configuration
+repeatable-installs
 vcs-support
 ```
