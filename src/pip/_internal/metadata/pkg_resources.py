@@ -68,6 +68,8 @@ class Distribution(BaseDistribution):
         return misc.dist_in_usersite(self._dist)
 
     def read_text(self, name: str) -> str:
+        if not self._dist.has_metadata(name):
+            raise FileNotFoundError(name)
         return self._dist.get_metadata(name)
 
     def iter_entry_points(self) -> Iterable[BaseEntryPoint]:

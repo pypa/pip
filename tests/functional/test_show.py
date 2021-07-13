@@ -115,7 +115,7 @@ def test_search_any_case():
     """
     result = list(search_packages_info(['PIP']))
     assert len(result) == 1
-    assert result[0]['name'] == 'pip'
+    assert result[0].name == 'pip'
 
 
 def test_more_than_one_package():
