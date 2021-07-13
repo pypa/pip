@@ -152,7 +152,7 @@ class ListCommand(IndexGroupCommand):
 
         skip = set(stdlib_pkgs)
         if options.excludes:
-            skip.update(options.excludes)
+            skip.update(canonicalize_name(n) for n in options.excludes)
 
         packages: "_ProcessedDists" = [
             cast("_DistWithLatestInfo", d)
