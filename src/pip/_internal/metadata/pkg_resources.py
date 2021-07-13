@@ -80,10 +80,9 @@ class Distribution(BaseDistribution):
     def metadata(self) -> email.message.Message:
         return get_metadata(self._dist)
 
-    def iter_dependencies(self, extras: Collection[str]) -> Iterable[Requirement]:
-        """pkg_resources caches this for performance so we take advantage of it."""
+    def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
         if extras:  # pkg_resources raises on invalid extras, so we sanitize.
-            extras = set(extras).intersection(self._dist.extras)
+            extras = frozenset(extras).intersection(self._dist.extras)
         return self._dist.requires(extras)
 
 

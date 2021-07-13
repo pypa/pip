@@ -98,13 +98,8 @@ class BaseDistribution(Protocol):
         """Value of "Metadata-Version:" in the distribution, if available."""
         return self.metadata.get("Metadata-Version")
 
-    def iter_dependencies(self, extras: Collection[str]) -> Iterable[Requirement]:
-        for value in self.metadata.get_all("Requires-Dist"):
-            requirement = Requirement(value)
-            marker = requirement.marker
-            if marker and any(marker.evaluate({"extra": extra}) for extra in extras):
-                continue
-            yield requirement
+    def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
+        raise NotImplementedError()
 
 
 class BaseEnvironment:
