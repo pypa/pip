@@ -7,30 +7,32 @@ from typing import (
     Iterable,
     Iterator,
     List,
+    NamedTuple,
     Optional,
     Set,
-    Tuple,
     Union,
 )
 
+from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.pkg_resources import Distribution, Requirement, RequirementParseError
+from pip._vendor.packaging.version import Version
 
 from pip._internal.exceptions import BadCommand, InstallationError
+from pip._internal.metadata import BaseDistribution, get_environment
 from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
 )
 from pip._internal.req.req_file import COMMENT_RE
-from pip._internal.utils.direct_url_helpers import (
-    direct_url_as_pep440_direct_reference,
-    dist_get_direct_url,
-)
-from pip._internal.utils.misc import dist_is_editable, get_installed_distributions
+from pip._internal.utils.direct_url_helpers import direct_url_as_pep440_direct_reference
 
 logger = logging.getLogger(__name__)
 
-RequirementInfo = Tuple[Optional[Union[str, Requirement]], bool, List[str]]
+
+class _EditableInfo(NamedTuple):
+    requirement: Optional[str]
+    editable: bool
+    comments: List[str]
 
 
 def freeze(
@@ -45,24 +47,13 @@ def freeze(
     # type: (...) -> Iterator[str]
     installations = {}  # type: Dict[str, FrozenRequirement]
 
-    for dist in get_installed_distributions(
-            local_only=local_only,
-            skip=(),
-            user_only=user_only,
-            paths=paths
-    ):
-        try:
-            req = FrozenRequirement.from_dist(dist)
-        except RequirementParseError as exc:
-            # We include dist rather than dist.project_name because the
-            # dist string includes more information, like the version and
-            # location. We also include the exception message to aid
-            # troubleshooting.
-            logger.warning(
-                'Could not generate requirement for distribution %r: %s',
-                dist, exc
-            )
-            continue
+    dists = get_environment(paths).iter_installed_distributions(
+        local_only=local_only,
+        skip=(),
+        user_only=user_only,
+    )
+    for dist in dists:
+        req = FrozenRequirement.from_dist(dist)
         if exclude_editable and req.editable:
             continue
         installations[req.canonical_name] = req
@@ -160,49 +151,68 @@ def freeze(
             yield str(installation).rstrip()
 
 
-def get_requirement_info(dist):
-    # type: (Distribution) -> RequirementInfo
+def _format_as_name_version(dist: BaseDistribution) -> str:
+    if isinstance(dist.version, Version):
+        return f"{dist.raw_name}=={dist.version}"
+    return f"{dist.raw_name}==={dist.version}"
+
+
+def _get_editable_info(dist: BaseDistribution) -> _EditableInfo:
     """
     Compute and return values (req, editable, comments) for use in
     FrozenRequirement.from_dist().
     """
-    if not dist_is_editable(dist):
-        return (None, False, [])
+    if not dist.editable:
+        return _EditableInfo(requirement=None, editable=False, comments=[])
+    if dist.location is None:
+        display = _format_as_name_version(dist)
+        logger.warning("Editable requirement not found on disk: %s", display)
+        return _EditableInfo(
+            requirement=None,
+            editable=True,
+            comments=[f"# Editable install not found ({display})"],
+        )
 
     location = os.path.normcase(os.path.abspath(dist.location))
 
     from pip._internal.vcs import RemoteNotFoundError, RemoteNotValidError, vcs
+
     vcs_backend = vcs.get_backend_for_dir(location)
 
     if vcs_backend is None:
-        req = dist.as_requirement()
+        display = _format_as_name_version(dist)
         logger.debug(
-            'No VCS found for editable requirement "%s" in: %r', req,
+            'No VCS found for editable requirement "%s" in: %r', display,
             location,
         )
-        comments = [
-            f'# Editable install with no version control ({req})'
-        ]
-        return (location, True, comments)
+        return _EditableInfo(
+            requirement=location,
+            editable=True,
+            comments=[f'# Editable install with no version control ({display})'],
+        )
+
+    vcs_name = type(vcs_backend).__name__
 
     try:
-        req = vcs_backend.get_src_requirement(location, dist.project_name)
+        req = vcs_backend.get_src_requirement(location, dist.raw_name)
     except RemoteNotFoundError:
-        req = dist.as_requirement()
-        comments = [
-            '# Editable {} install with no remote ({})'.format(
-                type(vcs_backend).__name__, req,
-            )
-        ]
-        return (location, True, comments)
+        display = _format_as_name_version(dist)
+        return _EditableInfo(
+            requirement=location,
+            editable=True,
+            comments=[f'# Editable {vcs_name} install with no remote ({display})'],
+        )
     except RemoteNotValidError as ex:
-        req = dist.as_requirement()
-        comments = [
-            f"# Editable {type(vcs_backend).__name__} install ({req}) with "
-            f"either a deleted local remote or invalid URI:",
-            f"# '{ex.url}'",
-        ]
-        return (location, True, comments)
+        display = _format_as_name_version(dist)
+        return _EditableInfo(
+            requirement=location,
+            editable=True,
+            comments=[
+                f"# Editable {vcs_name} install ({display}) with either a deleted "
+                f"local remote or invalid URI:",
+                f"# '{ex.url}'",
+            ],
+        )
 
     except BadCommand:
         logger.warning(
@@ -211,7 +221,7 @@ def get_requirement_info(dist):
             location,
             vcs_backend.name,
         )
-        return (None, True, [])
+        return _EditableInfo(requirement=None, editable=True, comments=[])
 
     except InstallationError as exc:
         logger.warning(
@@ -219,14 +229,15 @@ def get_requirement_info(dist):
             "falling back to uneditable format", exc
         )
     else:
-        return (req, True, [])
+        return _EditableInfo(requirement=req, editable=True, comments=[])
 
-    logger.warning(
-        'Could not determine repository location of %s', location
+    logger.warning('Could not determine repository location of %s', location)
+
+    return _EditableInfo(
+        requirement=None,
+        editable=False,
+        comments=['## !! Could not determine repository location'],
     )
-    comments = ['## !! Could not determine repository location']
-
-    return (None, False, comments)
 
 
 class FrozenRequirement:
@@ -239,25 +250,24 @@ class FrozenRequirement:
         self.comments = comments
 
     @classmethod
-    def from_dist(cls, dist):
-        # type: (Distribution) -> FrozenRequirement
+    def from_dist(cls, dist: BaseDistribution) -> "FrozenRequirement":
         # TODO `get_requirement_info` is taking care of editable requirements.
         # TODO This should be refactored when we will add detection of
         #      editable that provide .dist-info metadata.
-        req, editable, comments = get_requirement_info(dist)
+        req, editable, comments = _get_editable_info(dist)
         if req is None and not editable:
             # if PEP 610 metadata is present, attempt to use it
-            direct_url = dist_get_direct_url(dist)
+            direct_url = dist.direct_url
             if direct_url:
                 req = direct_url_as_pep440_direct_reference(
-                    direct_url, dist.project_name
+                    direct_url, dist.raw_name
                 )
                 comments = []
         if req is None:
             # name==version requirement
-            req = dist.as_requirement()
+            req = _format_as_name_version(dist)
 
-        return cls(dist.project_name, req, editable, comments=comments)
+        return cls(dist.raw_name, req, editable, comments=comments)
 
     def __str__(self):
         # type: () -> str

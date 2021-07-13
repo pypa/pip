@@ -6,7 +6,6 @@ from doctest import ELLIPSIS, OutputChecker
 
 import pytest
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.pkg_resources import safe_name
 
 from tests.lib import (
     _create_test_package,
@@ -88,9 +87,9 @@ def test_exclude_and_normalization(script, tmpdir):
         name="Normalizable_Name", version="1.0").save_to_dir(tmpdir)
     script.pip("install", "--no-index", req_path)
     result = script.pip("freeze")
-    assert "Normalizable-Name" in result.stdout
+    assert "Normalizable_Name" in result.stdout
     result = script.pip("freeze", "--exclude", "normalizablE-namE")
-    assert "Normalizable-Name" not in result.stdout
+    assert "Normalizable_Name" not in result.stdout
 
 
 def test_freeze_multiple_exclude_with_all(script, with_wheel):
@@ -136,7 +135,7 @@ def test_freeze_with_invalid_names(script):
     # Check all valid names are in the output.
     output_lines = {line.strip() for line in result.stdout.splitlines()}
     for name in valid_pkgnames:
-        assert f"{safe_name(name)}==1.0" in output_lines
+        assert f"{name}==1.0" in output_lines
 
     # Check all invalid names are excluded from the output.
     canonical_invalid_names = {canonicalize_name(n) for n in invalid_pkgnames}
