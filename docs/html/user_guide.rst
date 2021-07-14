@@ -122,7 +122,7 @@ installed by pip in any particular order.
 In practice, there are 4 common uses of Requirements files:
 
 1. Requirements files are used to hold the result from :ref:`pip freeze` for the
-   purpose of achieving :ref:`repeatable installations <Repeatability>`.  In
+   purpose of achieving :doc:`topics/repeatable-installs`.  In
    this case, your requirement file contains a pinned version of everything that
    was installed when ``pip freeze`` was run.
 
@@ -762,86 +762,7 @@ is the latest version:
 Ensuring Repeatability
 ======================
 
-pip can achieve various levels of repeatability:
-
-Pinned Version Numbers
-----------------------
-
-Pinning the versions of your dependencies in the requirements file
-protects you from bugs or incompatibilities in newly released versions::
-
-    SomePackage == 1.2.3
-    DependencyOfSomePackage == 4.5.6
-
-Using :ref:`pip freeze` to generate the requirements file will ensure that not
-only the top-level dependencies are included but their sub-dependencies as
-well, and so on. Perform the installation using :ref:`--no-deps
-<install_--no-deps>` for an extra dose of insurance against installing
-anything not explicitly listed.
-
-This strategy is easy to implement and works across OSes and architectures.
-However, it trusts PyPI and the certificate authority chain. It
-also relies on indices and find-links locations not allowing
-packages to change without a version increase. (PyPI does protect
-against this.)
-
-Hash-checking Mode
-------------------
-
-Beyond pinning version numbers, you can add hashes against which to verify
-downloaded packages::
-
-    FooProject == 1.2 --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824
-
-This protects against a compromise of PyPI or the HTTPS
-certificate chain. It also guards against a package changing
-without its version number changing (on indexes that allow this).
-This approach is a good fit for automated server deployments.
-
-Hash-checking mode is a labor-saving alternative to running a private index
-server containing approved packages: it removes the need to upload packages,
-maintain ACLs, and keep an audit trail (which a VCS gives you on the
-requirements file for free). It can also substitute for a vendor library,
-providing easier upgrades and less VCS noise. It does not, of course,
-provide the availability benefits of a private index or a vendor library.
-
-For more, see
-:ref:`pip install\'s discussion of hash-checking mode <hash-checking mode>`.
-
-.. _`Installation Bundle`:
-
-Installation Bundles
---------------------
-
-Using :ref:`pip wheel`, you can bundle up all of a project's dependencies, with
-any compilation done, into a single archive. This allows installation when
-index servers are unavailable and avoids time-consuming recompilation. Create
-an archive like this::
-
-    $ tempdir=$(mktemp -d /tmp/wheelhouse-XXXXX)
-    $ python -m pip wheel -r requirements.txt --wheel-dir=$tempdir
-    $ cwd=`pwd`
-    $ (cd "$tempdir"; tar -cjvf "$cwd/bundled.tar.bz2" *)
-
-You can then install from the archive like this::
-
-    $ tempdir=$(mktemp -d /tmp/wheelhouse-XXXXX)
-    $ (cd $tempdir; tar -xvf /path/to/bundled.tar.bz2)
-    $ python -m pip install --force-reinstall --ignore-installed --upgrade --no-index --no-deps $tempdir/*
-
-Note that compiled packages are typically OS- and architecture-specific, so
-these archives are not necessarily portable across machines.
-
-Hash-checking mode can be used along with this method to ensure that future
-archives are built with identical packages.
-
-.. warning::
-
-    Finally, beware of the ``setup_requires`` keyword arg in :file:`setup.py`.
-    The (rare) packages that use it will cause those dependencies to be
-    downloaded by setuptools directly, skipping pip's protections. If you need
-    to use such a package, see :ref:`Controlling
-    setup_requires<controlling-setup-requires>`.
+This is now covered in :doc:`../topics/repeatable-installs`.
 
 .. _`Fixing conflicting dependencies`:
 

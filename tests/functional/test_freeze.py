@@ -270,19 +270,6 @@ def test_freeze_git_clone(script, tmpdir):
     ).strip()
     _check_output(result.stdout, expected)
 
-    result = script.pip(
-        'freeze', '-f', f'{repo_dir}#egg=pip_test_package',
-        expect_stderr=True,
-    )
-    expected = textwrap.dedent(
-        """
-            -f {repo}#egg=pip_test_package...
-            -e git+...#egg=version_pkg
-            ...
-        """.format(repo=repo_dir),
-    ).strip()
-    _check_output(result.stdout, expected)
-
     # Check that slashes in branch or tag names are translated.
     # See also issue #1083: https://github.com/pypa/pip/issues/1083
     script.run(
@@ -335,19 +322,6 @@ def test_freeze_git_clone_srcdir(script, tmpdir):
     ).strip()
     _check_output(result.stdout, expected)
 
-    result = script.pip(
-        'freeze', '-f', f'{repo_dir}#egg=pip_test_package',
-        expect_stderr=True,
-    )
-    expected = textwrap.dedent(
-        """
-            -f {repo}#egg=pip_test_package...
-            -e git+...#egg=version_pkg&subdirectory=subdir
-            ...
-        """.format(repo=repo_dir),
-    ).strip()
-    _check_output(result.stdout, expected)
-
 
 @need_mercurial
 def test_freeze_mercurial_clone_srcdir(script, tmpdir):
@@ -373,19 +347,6 @@ def test_freeze_mercurial_clone_srcdir(script, tmpdir):
             ...-e hg+...#egg=version_pkg&subdirectory=subdir
             ...
         """
-    ).strip()
-    _check_output(result.stdout, expected)
-
-    result = script.pip(
-        'freeze', '-f', f'{repo_dir}#egg=pip_test_package',
-        expect_stderr=True,
-    )
-    expected = textwrap.dedent(
-        """
-            -f {repo}#egg=pip_test_package...
-            -e hg+...#egg=version_pkg&subdirectory=subdir
-            ...
-        """.format(repo=repo_dir),
     ).strip()
     _check_output(result.stdout, expected)
 
@@ -482,19 +443,6 @@ def test_freeze_mercurial_clone(script, tmpdir):
     ).strip()
     _check_output(result.stdout, expected)
 
-    result = script.pip(
-        'freeze', '-f', f'{repo_dir}#egg=pip_test_package',
-        expect_stderr=True,
-    )
-    expected = textwrap.dedent(
-        """
-            -f {repo}#egg=pip_test_package...
-            ...-e hg+...#egg=version_pkg
-            ...
-        """.format(repo=repo_dir),
-    ).strip()
-    _check_output(result.stdout, expected)
-
 
 @need_bzr
 def test_freeze_bazaar_clone(script, tmpdir):
@@ -519,17 +467,6 @@ def test_freeze_bazaar_clone(script, tmpdir):
     expected = textwrap.dedent("""\
         ...-e bzr+file://...@1#egg=version_pkg
         ...""")
-    _check_output(result.stdout, expected)
-
-    result = script.pip(
-        'freeze', '-f',
-        f'{checkout_path}/#egg=django-wikiapp',
-        expect_stderr=True,
-    )
-    expected = textwrap.dedent("""\
-        -f {repo}/#egg=django-wikiapp
-        ...-e bzr+file://...@...#egg=version_pkg
-        ...""".format(repo=checkout_path))
     _check_output(result.stdout, expected)
 
 
