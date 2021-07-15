@@ -56,7 +56,7 @@ def deprecated(
     reason: str,
     replacement: Optional[str],
     gone_in: Optional[str],
-    issue: Optional[int] = None
+    issue: Optional[int] = None,
 ) -> None:
     """Helper to deprecate existing functionality.
 
