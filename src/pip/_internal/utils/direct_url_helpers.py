@@ -18,8 +18,7 @@ from pip._internal.vcs import vcs
 logger = logging.getLogger(__name__)
 
 
-def direct_url_as_pep440_direct_reference(direct_url, name):
-    # type: (DirectUrl, str) -> str
+def direct_url_as_pep440_direct_reference(direct_url: DirectUrl, name: str) -> str:
     """Convert a DirectUrl to a pip requirement string."""
     direct_url.validate()  # if invalid, this is a pip bug
     requirement = name + " @ "
@@ -42,8 +41,9 @@ def direct_url_as_pep440_direct_reference(direct_url, name):
     return requirement
 
 
-def direct_url_from_link(link, source_dir=None, link_is_in_wheel_cache=False):
-    # type: (Link, Optional[str], bool) -> DirectUrl
+def direct_url_from_link(
+    link: Link, source_dir: Optional[str] = None, link_is_in_wheel_cache: bool = False
+) -> DirectUrl:
     if link.is_vcs:
         vcs_backend = vcs.get_backend_for_scheme(link.scheme)
         assert vcs_backend
@@ -92,8 +92,7 @@ def direct_url_from_link(link, source_dir=None, link_is_in_wheel_cache=False):
         )
 
 
-def dist_get_direct_url(dist):
-    # type: (Distribution) -> Optional[DirectUrl]
+def dist_get_direct_url(dist: Distribution) -> Optional[DirectUrl]:
     """Obtain a DirectUrl from a pkg_resource.Distribution.
 
     Returns None if the distribution has no `direct_url.json` metadata,
