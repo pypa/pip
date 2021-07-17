@@ -40,8 +40,8 @@ logger = logging.getLogger(__name__)
 
 
 class Command(CommandContextMixIn):
-    usage = None  # type: str
-    ignore_require_venv = False  # type: bool
+    usage: str
+    ignore_require_venv: bool = False
 
     def __init__(self, name: str, summary: str, isolated: bool = False) -> None:
         super().__init__()
@@ -58,7 +58,7 @@ class Command(CommandContextMixIn):
             isolated=isolated,
         )
 
-        self.tempdir_registry = None  # type: Optional[TempDirRegistry]
+        self.tempdir_registry: Optional[TempDirRegistry] = None
 
         # Commands should add options to this option group
         optgroup_name = f"{self.name.capitalize()} Options"

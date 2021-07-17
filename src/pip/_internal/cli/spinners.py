@@ -103,7 +103,7 @@ class NonInteractiveSpinner(SpinnerInterface):
 class RateLimiter:
     def __init__(self, min_update_interval_seconds: float) -> None:
         self._min_update_interval_seconds = min_update_interval_seconds
-        self._last_update = 0  # type: float
+        self._last_update: float = 0
 
     def ready(self) -> bool:
         now = time.time()
@@ -122,7 +122,7 @@ def open_spinner(message: str) -> Iterator[SpinnerInterface]:
     # Non-interactive spinner goes through the logging system, so it is always
     # in sync with logging configuration.
     if sys.stdout.isatty() and logger.getEffectiveLevel() <= logging.INFO:
-        spinner = InteractiveSpinner(message)  # type: SpinnerInterface
+        spinner: SpinnerInterface = InteractiveSpinner(message)
     else:
         spinner = NonInteractiveSpinner(message)
     try:
