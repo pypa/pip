@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 
 class Command(CommandContextMixIn):
-    usage: str
+    usage: str = ""
     ignore_require_venv: bool = False
 
     def __init__(self, name: str, summary: str, isolated: bool = False) -> None:
