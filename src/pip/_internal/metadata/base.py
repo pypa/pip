@@ -66,8 +66,7 @@ class BaseDistribution(Protocol):
     def in_usersite(self) -> bool:
         raise NotImplementedError()
 
-    def iter_dependencies(self, extras=()):
-        # type: (Collection[str]) -> Iterable[Requirement]
+    def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
         raise NotImplementedError()
 
 

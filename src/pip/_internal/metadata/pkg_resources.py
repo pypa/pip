@@ -61,8 +61,7 @@ class Distribution(BaseDistribution):
     def in_usersite(self) -> bool:
         return misc.dist_in_usersite(self._dist)
 
-    def iter_dependencies(self, extras=()):
-        # type: (Collection[str]) -> Iterable[Requirement]
+    def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
         # pkg_resources raises on invalid extras, so we sanitize.
         requested_extras = set(extras)
         valid_extras = requested_extras & set(self._dist.extras)
