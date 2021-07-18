@@ -76,6 +76,18 @@ def test_basic_uninstall_with_scripts(script):
     )
 
 
+@pytest.mark.parametrize("name",
+                         ["GTrolls.tar.gz",
+                          "https://guyto.com/archives/"])
+def test_uninstall_invalid_parameter(script, caplog, name):
+    result = script.pip("uninstall", name, "-y", expect_error=True)
+    expected_message = (
+        f"Invalid requirement: '{name}' ignored -"
+        f" the uninstall command expects named requirements."
+    )
+    assert expected_message in result.stderr
+
+
 @pytest.mark.network
 def test_uninstall_easy_install_after_import(script):
     """
