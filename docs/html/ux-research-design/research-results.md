@@ -1,6 +1,6 @@
 # UX Research Results
 
-## 2020 Research Synthesis
+## <a name="2020-research"></a>2020 Research Synthesis
 
 Over the course of 2020, the pip team worked on improving pip's user experience, developing a better understanding of pip's UX challenges and opportunities, with a particular focus on pip's new dependency resolver. The [Simply Secure](https://simplysecure.org/) team focused on 4 key areas:
 
@@ -30,7 +30,7 @@ We [recruited participants](https://www.ei8fdb.org/thoughts/2020/03/pip-ux-study
 
 At the end of the 2020 research, we asked users to opt-in to a [long-term panel](https://mail.python.org/mailman3/lists/pip-ux-studies.python.org/), where they can be contacted for future UX studies. Should the pip team wish to continue to build this panel, we recommend translating the sign-up form into multiple languages and better leveraging local communities and outreach groups (e.g. PyLadies) to increase the diversity of the participants.
 
-#### Conducting user interviews
+#### User Interviews
 
 In total, we **interviewed 48 pip users**, recruited from the user panel, and through social media channels.
 
@@ -201,7 +201,7 @@ We are currently looking for volunteers to take recommendations made by the UX t
   <tbody>
     <tr>
       <td>
-        <a href="/2020-research-outputs/about-our-users">About our users</a>
+        <a href="2020-research-outputs/about-our-users">About our users</a>
       </td>
       <td>
         Who uses pip
@@ -212,7 +212,7 @@ We are currently looking for volunteers to take recommendations made by the UX t
     </tr>
     <tr>
       <td>
-        <a href="/2020-research-outputs/personas">Pip personas</a>
+        <a href="2020-research-outputs/personas">Pip personas</a>
       </td>
       <td>
         Who uses pip
@@ -223,7 +223,7 @@ We are currently looking for volunteers to take recommendations made by the UX t
     </tr>
     <tr>
       <td>
-        <a href="/2020-research-outputs/mental-models">Mental models of pip</a>
+        <a href="2020-research-outputs/mental-models">Mental models of pip</a>
       </td>
       <td>
         Who uses pip
@@ -234,7 +234,7 @@ We are currently looking for volunteers to take recommendations made by the UX t
     </tr>
     <tr>
       <td>
-        <a href="/2020-research-outputs/users-and-security">Behaviours and attitudes towards code security and integrity</a>
+        <a href="2020-research-outputs/users-and-security">Behaviours and attitudes towards code security and integrity</a>
       </td>
       <td>
         Who uses pip
@@ -245,7 +245,7 @@ We are currently looking for volunteers to take recommendations made by the UX t
     </tr>
     <tr>
       <td>
-        <a href="/2020-research-outputs/ci-cd">Usage of pip in automated and interactive environments</a>
+        <a href="2020-research-outputs/ci-cd">Usage of pip in automated and interactive environments</a>
       </td>
       <td>
         Who uses pip
@@ -256,7 +256,7 @@ We are currently looking for volunteers to take recommendations made by the UX t
     </tr>
     <tr>
       <td>
-        <a href="/2020-research-outputs/improving-pips-documentation">Improving pip's documentation</a>
+        <a href="2020-research-outputs/improving-pips-documentation">Improving pip's documentation</a>
       </td>
       <td>
         Documentation
@@ -267,7 +267,7 @@ We are currently looking for volunteers to take recommendations made by the UX t
     </tr>
     <tr>
       <td>
-        <a href="/2020-research-outputs/pip-logo">Pip's identity: In search of a logo</a>
+        <a href="2020-research-outputs/pip-logo">Pip's identity: In search of a logo</a>
       </td>
       <td>
         Pip community
@@ -278,7 +278,7 @@ We are currently looking for volunteers to take recommendations made by the UX t
     </tr>
     <tr>
       <td>
-        <a href="/2020-research-outputs/prioritizing-features">Prioritizing features (buy a feature)</a>
+        <a href="2020-research-outputs/prioritizing-features">Prioritizing features (buy a feature)</a>
       </td>
       <td>
         How pip works
@@ -289,7 +289,7 @@ We are currently looking for volunteers to take recommendations made by the UX t
     </tr>
     <tr>
       <td>
-        <a href="/2020-research-outputs/pip-search">Pip Search</a>
+        <a href="2020-research-outputs/pip-search">Pip Search</a>
       </td>
       <td>
         How pip works
@@ -300,7 +300,7 @@ We are currently looking for volunteers to take recommendations made by the UX t
     </tr>
     <tr>
       <td>
-        <a href="/2020-research-outputs/pip-force-reinstall">Pip Force reinstall</a>
+        <a href="2020-research-outputs/pip-force-reinstall">Pip Force reinstall</a>
       </td>
       <td>
         How pip works
@@ -311,7 +311,7 @@ We are currently looking for volunteers to take recommendations made by the UX t
     </tr>
     <tr>
       <td>
-        <a href="/2020-research-outputs/pip-upgrade-conflict">Dependency conflict resolution when upgrading packages</a>
+        <a href="2020-research-outputs/pip-upgrade-conflict">Dependency conflict resolution when upgrading packages</a>
       </td>
       <td>
         2020 dependency resolver
@@ -322,7 +322,7 @@ We are currently looking for volunteers to take recommendations made by the UX t
     </tr>
     <tr>
       <td>
-        <a href="/2020-research-outputs/override-conflicting-dependencies">Providing an override to install packages with conflicting dependencies</a>
+        <a href="2020-research-outputs/override-conflicting-dependencies">Providing an override to install packages with conflicting dependencies</a>
       </td>
       <td>
         2020 dependency resolver

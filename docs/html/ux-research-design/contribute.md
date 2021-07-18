@@ -1,6 +1,6 @@
-# How to contribute
+# How to Contribute
 
-## Participate in UX research
+## Participate in UX Research
 
 It is important that we hear from pip users so that we can:
 *   Understand how pip is currently used by the Python community
@@ -11,11 +11,11 @@ It is important that we hear from pip users so that we can:
 
 If you are interested in participating in pip user research, please[ join pip’s user panel](https://mail.python.org/mailman3/lists/pip-ux-studies.python.org/).
 
-## Test new features
+## Test New Features
 
 You can help the team by testing new features as they are released to the community.
 
-## Report and work on UX issues
+## Report and Work on UX Issues
 
 If you believe that you have found a user experience bug in pip, or you have ideas for how pip could be made better for all users, please file an issue on the[ pip issue tracker](https://github.com/pypa/pip/issues/new).
 

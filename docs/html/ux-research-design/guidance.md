@@ -1,8 +1,8 @@
-# UX guidelines
+# UX Guidelines
 
 This section of the documentation is intended for contributors who wish to work on improving pip's user experience, including pip's documentation.
 
-## What is user centered design?
+## What is User Centered Design?
 
 User-centered design (UCD) or human-centered design (HCD) is an iterative process in which  design decisions are informed by an understanding of users and their needs. There are many terms used to describe this type of work; in this document we will use "user experience (UX) research and design".
 
@@ -23,12 +23,12 @@ For more information on how this process has been applied to the pip project, se
 
 See also:
 
-- [https://www.interaction-design.org/literature/topics/user-centered-design](https://www.interaction-design.org/literature/topics/user-centered-design)
-- [https://www.usability.gov/what-and-why/user-centered-design.html](https://www.usability.gov/what-and-why/user-centered-design.html)
-- [https://www.nngroup.com/topic/user-centered-design/](https://www.nngroup.com/topic/user-centered-design/)
+- [Introduction to user centered design from the interaction design foundation](https://www.interaction-design.org/literature/topics/user-centered-design)
+- [User-Centered Design Basics from usability.gov](https://www.usability.gov/what-and-why/user-centered-design.html)
+- [User-centered design articles and videos from Nielson Norman Group](https://www.nngroup.com/topic/user-centered-design/)
 
 
-## <a name="research"></a>Conducting research for pip
+## <a name="research"></a>Conducting Research for pip
 
 User research can be used to answer a few different types of questions:
 
@@ -64,9 +64,9 @@ As an example, in 2020, the pip UX team published several surveys to learn about
 - Collecting feedback about pip's beta release of the 2020 dependency resolver
 - Asking users how specific parts of pip's 2020 dependency resolver should behave
 
-A full list of the surveys published in 2020 and their results [can be found here](research-results#survey-results).
+A full list of the surveys published in 2020 and their results [can be found here](/research-results#survey-results).
 
-#### Designing surveys
+#### Designing Surveys
 
 When designing surveys, it is important to first establish what you want to learn. It can be useful to write this down as research questions. Example pip research questions [can be found here](https://github.com/pypa/pip/issues/8518).
 
@@ -120,7 +120,7 @@ Below is a brief guide to building a survey for pip:
   </li>
 </ol>
 
-#### Survey case study
+#### Survey Case Study
 
 The process described above was followed in 2020, when we wanted to establish whether pip [should install packages with conflicting dependencies](https://github.com/pypa/pip/issues/8452).
 
@@ -148,7 +148,7 @@ In total, we received 415 responses, with [clear results](2020-research-outputs/
 
 Surveys are particularly useful for being able to quickly understand trends from a larger population of responses. If your questions are designed well, then you should be able to easily aggregate the data and make statements such as: `X% of respondents said that Option B was the best option.`
 
-#### Contextualizing the responses
+#### Contextualizing the Responses
 
 It's important to remember that the responses to your survey will be biased by the way that you did outreach for your survey, so unless you can be sure that the people who responded to your survey are representative of all of your users, then you need to be sure to contextualize the results to the participants. Within your survey responses it can be helpful to see if there is variation in the responses by different aspects of your users or your user community, e.g.
 
@@ -163,9 +163,9 @@ If you are finding that there aren't patterns in the data, it might mean that yo
 
 See also:
 
-- [https://www.nngroup.com/articles/qualitative-surveys/](https://www.nngroup.com/articles/qualitative-surveys/)
-- [https://www.nngroup.com/videos/open-vs-closed-questions/](https://www.nngroup.com/videos/open-vs-closed-questions/)
-- [https://www.hotjar.com/blog/survey-questions/](https://www.hotjar.com/blog/survey-questions/)
+- [28 Tips for Creating Great Qualitative Surveys from Nielson Norman Group](https://www.nngroup.com/articles/qualitative-surveys/)
+- [Open vs. Closed Questions in User Research from Nielsen Norman Group](https://www.nngroup.com/videos/open-vs-closed-questions/)
+- [Survey questions 101: over 70 survey question examples + types of surveys and FAQs - from HotJar](https://www.hotjar.com/blog/survey-questions/)
 
 ### <a name="interviews"></a>Interviews
 
@@ -286,7 +286,7 @@ This depends on the complexity of the issue you are discussing, and whether or n
 
 Often, conducting just a few interviews will uncover so many problems that there is enough material to make recommendations to the team.
 
-#### Analyzing interview data
+#### Analyzing Interview Data
 
 Formal interview analysis typically uses a process called "coding" where multiple researchers review interview transcripts and label different statements or comments based on a code system or typology that has been developed to align with the research. This is a great practice and a great way to make sure that the researchers' bias is addressed as part of the process, but most teams do not have the staffing or resources to do this practice.
 
@@ -296,16 +296,16 @@ Interview analysis is frequently done using sticky notes, where you can write a 
 
 See also:
 
-- [https://www.nngroup.com/articles/user-interviews/](https://www.nngroup.com/articles/user-interviews/)
-- [https://www.nngroup.com/articles/interviewing-users/](https://www.nngroup.com/articles/interviewing-users/)
+- [User Interviews: How, When, and Why to Conduct Them from Nielson Norman Group](https://www.nngroup.com/articles/user-interviews/)
+- [Interviewing Users from Nielson Norman Group](https://www.nngroup.com/articles/interviewing-users/)
 
 
-### <a name="outreach"></a>Survey and interview outreach
+### <a name="outreach"></a>Survey and Interview Outreach
 
 The following is a list of outreach platforms that the pip team used when conducting research in 2020. Some were more successful than others:
 
 #### Recommended: UX Research Panel
-As part of the [2020 UX Work](TODO), we published a form that asked people to join a research panel and be regularly contacted about surveys and interview opportunities. This is now a [mailing list that users can sign up for](https://mail.python.org/mailman3/lists/pip-ux-studies.python.org/), and will be used in an ongoing way in addition to broad public outreach.
+As part of the [2020 UX Work](/research-results#2020-research), we published a form that asked people to join a research panel and be regularly contacted about surveys and interview opportunities. This is now a [mailing list that users can sign up for](https://mail.python.org/mailman3/lists/pip-ux-studies.python.org/), and will be used in an ongoing way in addition to broad public outreach.
 
 #### Recommended: Twitter
 We found Twitter to be a very effective platform for engaging with the Python community and drive participation in UX research. We recommend:
@@ -325,14 +325,14 @@ Posting surveys on Reddit was also not as useful as we had expected. If the user
 
 We engaged with the [PyLadies](https://pyladies.com/) community via their [Slack channel](https://slackin.pyladies.com/) to drive more participation from women using pip, as we found this demographic more difficult to reach via other channels
 
-#### Recommended: Conference communities
+#### Recommended: Conference Communities
 Due to the 2020 Global Pandemic we were unable to engage with users via PyCon (or other regional conferences) as we would have liked. However, we would still recommend this channel as a fast and insightful way to engage with large groups of interested people.
 
 #### Worth Exploring: Adding a prompt/path into pip's 'help' command
 
 We didn't have a chance to explore this opportunity, but the idea came up during workshops in December 2020 with Pypa Maintainers, and could be a great way to engage users and help point them towards opportunities to contribute.
 
-## <a name="design"></a> Design / User interface design
+## <a name="design"></a> Design / User Interface Design
 
 Many people associate the term "user interface" with websites or applications, however it is important to remember that a CLI is a user interface too, and deserves the same design consideration as graphical user interfaces.
 
@@ -342,7 +342,7 @@ Designing for pip includes:
 - Writing pip's _output_ - establishing how pip responds to commands and what information it provides the user. This includes writing success and error messages.
 - Providing supplemental materials  - e.g. documentation that helps users understand pip's operation
 
-### Design principles / usability heuristics
+### Design Principles / Usability Heuristics
 
 There are many interaction design principles that help designers design great experiences. Nielsen Norman's [10 Usability Heuristics for User Interface Design](https://www.nngroup.com/articles/ten-usability-heuristics) is a great place to start.  Here are some of the ways these principles apply to pip:
 
@@ -375,7 +375,7 @@ In 2020, the pip UX team developed the following personas for the pip project:
 - Python Software Maker
 - Python Package Maintainer
 
-An in-depth write up on how the pip personas were created, and how they can be applied to future pip UX work can be [found here](TODO).
+An in-depth write up on how the pip personas were created, and how they can be applied to future pip UX work can be [found here](/2020-research-outputs/personas).
 
 #### <a name="prototypes"></a>Prototyping
 
@@ -399,7 +399,7 @@ The following copywriting Style Guides may be useful to the pip team:
 - [Writing for UIs from Simply Secure](https://simplysecure.org/blog/writing-for-uis)
 
 
-### General resources
+### General Resources
 
 - Heroku talk on design of their CLI tools ([video](https://www.youtube.com/watch?v=PHiDG-_XoRk) transcript)
 - [Simply Secure: UX Starter Pack](https://simplysecure.org/ux-starter-pack/)
