@@ -5,7 +5,7 @@ from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.req_command import SessionCommandMixin, warn_if_run_as_root
-from pip._internal.cli.status_codes import SUCCESS
+from pip._internal.cli.status_codes import SUCCESS, ERROR
 from pip._internal.exceptions import InstallationError
 from pip._internal.req import parse_requirements
 from pip._internal.req.constructors import (
@@ -81,12 +81,18 @@ class UninstallCommand(Command, SessionCommandMixin):
             modifying_pip="pip" in reqs_to_uninstall
         )
 
+        everything_okay = True
         for req in reqs_to_uninstall.values():
             uninstall_pathset = req.uninstall(
                 auto_confirm=options.yes, verbose=self.verbosity > 0,
             )
             if uninstall_pathset:
                 uninstall_pathset.commit()
+            else:
+                everything_okay = False
 
         warn_if_run_as_root()
-        return SUCCESS
+        if everything_okay == True:
+            return SUCCESS
+        else:
+            return ERROR
