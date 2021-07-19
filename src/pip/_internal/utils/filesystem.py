@@ -158,7 +158,7 @@ def find_files(path: str, pattern: str) -> List[str]:
     return result
 
 
-def file_size(path:str) -> Union[int, float]:
+def file_size(path: str) -> Union[int, float]:
     # If it's a symlink, return 0.
     if os.path.islink(path):
         return 0
