@@ -22,8 +22,7 @@ _options = [
 _distutils_getopt = FancyGetopt(_options)  # type: ignore
 
 
-def parse_distutils_args(args):
-    # type: (List[str]) -> Dict[str, str]
+def parse_distutils_args(args: List[str]) -> Dict[str, str]:
     """Parse provided arguments, returning an object that has the
     matched arguments.
 
