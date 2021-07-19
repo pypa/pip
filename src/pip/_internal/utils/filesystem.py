@@ -15,8 +15,7 @@ from pip._internal.utils.compat import get_path_uid
 from pip._internal.utils.misc import format_size
 
 
-def check_path_owner(path):
-    # type: (str) -> bool
+def check_path_owner(path: str) -> bool:
     # If we don't have a way to check the effective uid of this process, then
     # we'll just assume that we own the directory.
     if sys.platform == "win32" or not hasattr(os, "geteuid"):
@@ -43,8 +42,7 @@ def check_path_owner(path):
     return False  # assume we don't own the path
 
 
-def copy2_fixed(src, dest):
-    # type: (str, str) -> None
+def copy2_fixed(src: str, dest: str) -> None:
     """Wrap shutil.copy2() but map errors copying socket files to
     SpecialFileError as expected.
 
@@ -67,14 +65,12 @@ def copy2_fixed(src, dest):
         raise
 
 
-def is_socket(path):
-    # type: (str) -> bool
+def is_socket(path: str) -> bool:
     return stat.S_ISSOCK(os.lstat(path).st_mode)
 
 
 @contextmanager
-def adjacent_tmp_file(path, **kwargs):
-    # type: (str, **Any) -> Iterator[BinaryIO]
+def adjacent_tmp_file(path: str, **kwargs: Any) -> Iterator[BinaryIO]:
     """Return a file-like object pointing to a tmp file next to path.
 
     The file is created securely and is ensured to be written to disk
@@ -106,8 +102,7 @@ replace = _replace_retry(os.replace)
 
 # test_writable_dir and _test_writable_dir_win are copied from Flit,
 # with the author's agreement to also place them under pip's license.
-def test_writable_dir(path):
-    # type: (str) -> bool
+def test_writable_dir(path: str) -> bool:
     """Check if a directory is writable.
 
     Uses os.access() on POSIX, tries creating files on Windows.
@@ -125,8 +120,7 @@ def test_writable_dir(path):
     return _test_writable_dir_win(path)
 
 
-def _test_writable_dir_win(path):
-    # type: (str) -> bool
+def _test_writable_dir_win(path: str) -> bool:
     # os.access doesn't work on Windows: http://bugs.python.org/issue2528
     # and we can't use tempfile: http://bugs.python.org/issue22107
     basename = "accesstest_deleteme_fishfingers_custard_"
@@ -154,32 +148,28 @@ def _test_writable_dir_win(path):
     raise OSError("Unexpected condition testing for writable directory")
 
 
-def find_files(path, pattern):
-    # type: (str, str) -> List[str]
+def find_files(path: str, pattern: str) -> List[str]:
     """Returns a list of absolute paths of files beneath path, recursively,
     with filenames which match the UNIX-style shell glob pattern."""
-    result = []  # type: List[str]
+    result: List[str] = []
     for root, _, files in os.walk(path):
         matches = fnmatch.filter(files, pattern)
         result.extend(os.path.join(root, f) for f in matches)
     return result
 
 
-def file_size(path):
-    # type: (str) -> Union[int, float]
+def file_size(path:str) -> Union[int, float]:
     # If it's a symlink, return 0.
     if os.path.islink(path):
         return 0
     return os.path.getsize(path)
 
 
-def format_file_size(path):
-    # type: (str) -> str
+def format_file_size(path: str) -> str:
     return format_size(file_size(path))
 
 
-def directory_size(path):
-    # type: (str) -> Union[int, float]
+def directory_size(path: str) -> Union[int, float]:
     size = 0.0
     for root, _dirs, files in os.walk(path):
         for filename in files:
@@ -188,6 +178,5 @@ def directory_size(path):
     return size
 
 
-def format_directory_size(path):
-    # type: (str) -> str
+def format_directory_size(path: str) -> str:
     return format_size(directory_size(path))
