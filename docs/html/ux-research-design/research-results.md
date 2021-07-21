@@ -66,7 +66,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
   <tbody>
     <tr>
       <th>
-        <a href="https://tools.simplysecure.org/survey/index.php?r=survey/index&sid=827389&lang=en">Pip research panel survey</a>
+        Pip research panel survey
       </th>
       <td>
         Recruit pip users to participate in user research, user tests and participate in future surveys. See <a href="https://bit.ly/pip-ux-studies">associated blog post</a> for more information.
@@ -77,7 +77,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
     </tr>
     <tr>
       <td>
-        <a href="https://tools.simplysecure.org/survey/index.php?r=survey/index&sid=989272&lang=en">Feedback for testing the new pip resolver</a>
+        Feedback for testing the new pip resolver
       </td>
       <td>
         Understand use cases where the new resolver fails due to dependency conflicts. See <a href="https://bit.ly/pip-ux-test-the-new-resolver">associated blog post</a> for more information.
@@ -88,7 +88,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
     </tr>
     <tr>
       <td>
-        <a href="https://bit.ly/2ZqJijr">How should pip handle conflicts with already installed packages when updating other packages?</a>
+        How should pip handle conflicts with already installed packages when updating other packages?
       </td>
       <td>
         Determine if the way that pip handles package upgrades is in-line with user's expectations/needs. See <a href="https://www.ei8fdb.org/thoughts/2020/07/how-should-pip-handle-conflicts-when-updating-already-installed-packages/">related blog post</a> and <a href="https://github.com/pypa/pip/issues/7744">GitHub issue</a> for more information.
@@ -99,7 +99,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
     </tr>
     <tr>
       <td>
-        <a href="https://bit.ly/pip-learning-about-users-survey">Learning about our users</a>
+        Learning about our users
       </td>
       <td>
         Learn about pip's users, including:
@@ -117,7 +117,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
     </tr>
     <tr>
       <td>
-        <a href="http://bit.ly/buy-a-pip-feature">Buy a pip feature</a>
+        Buy a pip feature
       </td>
       <td>
         Establish which features are most important to pip's users
@@ -128,7 +128,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
     </tr>
     <tr>
       <td>
-        <a href="http://bit.ly/should-pip-install-conflicting-dependencies">Should pip install conflicting dependencies?</a>
+        Should pip install conflicting dependencies?
       </td>
       <td>
         Establish whether pip should provide an override that allows users to install packages with conflicting dependencies
@@ -139,7 +139,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
     </tr>
     <tr>
       <td>
-        <a href="http://bit.ly/how-should-pip-force-reinstall-work">How should pip force reinstall work?</a>
+        How should pip force reinstall work?
       </td>
       <td>
         Establish whether or not pip force reinstall should continue to behave the way it currently does, if the functionality should be changed, or if the option should be removed
@@ -150,7 +150,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
     </tr>
     <tr>
       <td>
-        <a href="http://bit.ly/pip-search">Feedback on pip search</a>
+        Feedback on pip search
       </td>
       <td>
         To establish whether or not to remove or redesign pip search. See <a href="https://github.com/pypa/pip/issues/5216">this GitHub issue</a> for more information.
@@ -161,7 +161,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
     </tr>
     <tr>
       <td>
-        <a href="http://bit.ly/pip-logo">Design brief for pip's logo</a>
+        Design brief for pip's logo
       </td>
       <td>
         To gather information and inspiration from the community to form the basis of a design brief for pip's logo.
@@ -172,7 +172,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
     </tr>
     <tr>
       <td>
-        <a href="https://bit.ly/pip-docs">Feedback on pip's docs</a>
+        Feedback on pip's docs
       </td>
       <td>
         To gather feedback on pip's docs, supplementing feedback gathered in user interviews
