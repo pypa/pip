@@ -1,4 +1,4 @@
-# UX Guidelines
+# UX Guidance
 
 This section of the documentation is intended for contributors who wish to work on improving pip's user experience, including pip's documentation.
 
