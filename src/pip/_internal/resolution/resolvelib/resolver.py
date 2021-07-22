@@ -4,7 +4,6 @@ import os
 from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple, cast
 
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible
 from pip._vendor.resolvelib import Resolver as RLResolver
 from pip._vendor.resolvelib.structs import DirectedGraph
@@ -22,7 +21,6 @@ from pip._internal.resolution.resolvelib.reporter import (
 )
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filetypes import is_archive_file
-from pip._internal.utils.misc import dist_is_editable
 
 from .base import Candidate, Requirement
 from .factory import Factory
@@ -119,10 +117,10 @@ class Resolver(BaseResolver):
             elif self.factory.force_reinstall:
                 # The --force-reinstall flag is set -- reinstall.
                 ireq.should_reinstall = True
-            elif parse_version(installed_dist.version) != candidate.version:
+            elif installed_dist.version != candidate.version:
                 # The installation is different in version -- reinstall.
                 ireq.should_reinstall = True
-            elif candidate.is_editable or dist_is_editable(installed_dist):
+            elif candidate.is_editable or installed_dist.editable:
                 # The incoming distribution is editable, or different in
                 # editable-ness to installation -- reinstall.
                 ireq.should_reinstall = True

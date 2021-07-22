@@ -1,7 +1,15 @@
 import email.message
 import logging
 import zipfile
-from typing import Collection, Iterable, Iterator, List, NamedTuple, Optional
+from typing import (
+    TYPE_CHECKING,
+    Collection,
+    Iterable,
+    Iterator,
+    List,
+    NamedTuple,
+    Optional,
+)
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.requirements import Requirement
@@ -13,6 +21,9 @@ from pip._internal.utils.packaging import get_installer, get_metadata
 from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
 
 from .base import BaseDistribution, BaseEntryPoint, BaseEnvironment, DistributionVersion
+
+if TYPE_CHECKING:
+    from pip._vendor.packaging.utils import NormalizedName
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +49,7 @@ class Distribution(BaseDistribution):
         return self._dist.location
 
     @property
-    def canonical_name(self) -> str:
+    def canonical_name(self) -> "NormalizedName":
         return canonicalize_name(self._dist.project_name)
 
     @property
@@ -60,6 +71,10 @@ class Distribution(BaseDistribution):
     @property
     def in_usersite(self) -> bool:
         return misc.dist_in_usersite(self._dist)
+
+    @property
+    def in_site_packages(self) -> bool:
+        return misc.dist_in_site_packages(self._dist)
 
     def read_text(self, name: str) -> str:
         if not self._dist.has_metadata(name):

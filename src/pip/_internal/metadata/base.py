@@ -25,6 +25,8 @@ from pip._internal.utils.misc import stdlib_pkgs  # TODO: Move definition here.
 
 if TYPE_CHECKING:
     from typing import Protocol
+
+    from pip._vendor.packaging.utils import NormalizedName
 else:
     Protocol = object
 
@@ -59,7 +61,7 @@ class BaseDistribution(Protocol):
         raise NotImplementedError()
 
     @property
-    def canonical_name(self) -> str:
+    def canonical_name(self) -> "NormalizedName":
         raise NotImplementedError()
 
     @property
@@ -106,6 +108,10 @@ class BaseDistribution(Protocol):
 
     @property
     def in_usersite(self) -> bool:
+        raise NotImplementedError()
+
+    @property
+    def in_site_packages(self) -> bool:
         raise NotImplementedError()
 
     def read_text(self, name: str) -> str:

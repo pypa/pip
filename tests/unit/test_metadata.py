@@ -1,8 +1,8 @@
 import logging
 from unittest.mock import patch
 
-from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, ArchiveInfo
 from pip._internal.metadata import BaseDistribution
+from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, ArchiveInfo
 
 
 @patch.object(BaseDistribution, "read_text", side_effect=FileNotFoundError)

@@ -199,7 +199,7 @@ class ListCommand(IndexGroupCommand):
         dep_keys = {
             canonicalize_name(dep.name)
             for dist in packages
-            for dep in dist.iter_dependencies()
+            for dep in (dist.iter_dependencies() or ())
         }
 
         # Create a set to remove duplicate packages, and cast it to a list
