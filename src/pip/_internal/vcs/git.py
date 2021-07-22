@@ -281,6 +281,11 @@ class Git(VersionControl):
                     'checkout', '-b', branch_name, '--track', track_branch,
                 ]
                 self.run_command(cmd_args, cwd=dest)
+        else:
+            sha = self.get_revision(dest)
+            rev_options = rev_options.make_new(sha)
+
+        logger.info("Resolved %s to commit %s", url, rev_options.rev)
 
         #: repo may contain submodules
         self.update_submodules(dest)

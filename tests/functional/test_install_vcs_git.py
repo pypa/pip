@@ -272,6 +272,28 @@ def test_git_install_then_install_ref(script):
 
 
 @pytest.mark.network
+@pytest.mark.parametrize('rev, expected_sha', [
+    # Clone the default branch
+    ("", "5547fa909e83df8bd743d3978d6667497983a4b7"),
+    # Clone a specific tag
+    ("@0.1.1", "7d654e66c8fa7149c165ddeffa5b56bc06619458"),
+    # Clone a specific commit
+    ("@65cf0a5bdd906ecf48a0ac241c17d656d2071d56",
+     "65cf0a5bdd906ecf48a0ac241c17d656d2071d56")
+])
+def test_install_git_logs_commit_sha(script, rev, expected_sha, tmpdir):
+    """
+    Test installing from a git repository logs a commit SHA.
+    """
+    url_path = "pypa/pip-test-package.git"
+    base_local_url = _github_checkout(url_path, tmpdir)
+    local_url = f"{base_local_url}{rev}#egg=pip-test-package"
+    result = script.pip("install", local_url)
+    # `[4:]` removes a 'git+' prefix
+    assert f"Resolved {base_local_url[4:]} to commit {expected_sha}" in result.stdout
+
+
+@pytest.mark.network
 def test_git_with_tag_name_and_update(script, tmpdir):
     """
     Test cloning a git repository and updating to a different version.
