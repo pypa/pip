@@ -1777,6 +1777,96 @@ def test_new_resolver_avoids_incompatible_wheel_tags_in_constraint_url(
     assert_not_installed(script, "dep")
 
 
+@pytest.mark.parametrize(
+    "suffixes_equivalent, depend_suffix, request_suffix",
+    [
+        pytest.param(
+            True,
+            "#egg=foo",
+            "",
+            id="drop-depend-egg",
+        ),
+        pytest.param(
+            True,
+            "",
+            "#egg=foo",
+            id="drop-request-egg",
+        ),
+        pytest.param(
+            True,
+            "#subdirectory=bar&egg=foo",
+            "#subdirectory=bar&egg=bar",
+            id="drop-egg-only",
+        ),
+        pytest.param(
+            True,
+            "#subdirectory=bar&egg=foo",
+            "#egg=foo&subdirectory=bar",
+            id="fragment-ordering",
+        ),
+        pytest.param(
+            True,
+            "?a=1&b=2",
+            "?b=2&a=1",
+            id="query-opordering",
+        ),
+        pytest.param(
+            False,
+            "#sha512=1234567890abcdef",
+            "#sha512=abcdef1234567890",
+            id="different-keys",
+        ),
+        pytest.param(
+            False,
+            "#sha512=1234567890abcdef",
+            "#md5=1234567890abcdef",
+            id="different-values",
+        ),
+        pytest.param(
+            False,
+            "#subdirectory=bar&egg=foo",
+            "#subdirectory=rex",
+            id="drop-egg-still-different",
+        ),
+    ],
+)
+def test_new_resolver_direct_url_equivalent(
+    tmp_path,
+    script,
+    suffixes_equivalent,
+    depend_suffix,
+    request_suffix,
+):
+    pkga = create_basic_wheel_for_package(script, name="pkga", version="1")
+    pkgb = create_basic_wheel_for_package(
+        script,
+        name="pkgb",
+        version="1",
+        depends=[f"pkga@{path_to_url(pkga)}{depend_suffix}"],
+    )
+
+    # Make pkgb visible via --find-links, but not pkga.
+    find_links = tmp_path.joinpath("find_links")
+    find_links.mkdir()
+    with open(pkgb, "rb") as f:
+        find_links.joinpath(pkgb.name).write_bytes(f.read())
+
+    # Install pkgb from --find-links, and pkga directly but from a different
+    # URL suffix as specified in pkgb. This should work!
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", str(find_links),
+        f"{path_to_url(pkga)}{request_suffix}", "pkgb",
+        expect_error=(not suffixes_equivalent),
+    )
+
+    if suffixes_equivalent:
+        assert_installed(script, pkga="1", pkgb="1")
+    else:
+        assert_not_installed(script, "pkga", "pkgb")
+
+
 def test_new_resolver_direct_url_with_extras(tmp_path, script):
     pkg1 = create_basic_wheel_for_package(script, name="pkg1", version="1")
     pkg2 = create_basic_wheel_for_package(

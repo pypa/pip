@@ -423,7 +423,7 @@ def test_constraints_constrain_to_local(script, data, resolver_variant):
     assert 'Running setup.py install for singlemodule' in result.stdout
 
 
-def test_constrained_to_url_install_same_url(script, data, resolver_variant):
+def test_constrained_to_url_install_same_url(script, data):
     to_install = data.src.joinpath("singlemodule")
     constraints = path_to_url(to_install) + "#egg=singlemodule"
     script.scratch_path.joinpath("constraints.txt").write_text(constraints)
@@ -431,17 +431,8 @@ def test_constrained_to_url_install_same_url(script, data, resolver_variant):
         'install', '--no-index', '-f', data.find_links, '-c',
         script.scratch_path / 'constraints.txt', to_install,
         allow_stderr_warning=True,
-        expect_error=(resolver_variant == "2020-resolver"),
     )
-    if resolver_variant == "2020-resolver":
-        assert 'Cannot install singlemodule 0.0.1' in result.stderr, str(result)
-        assert (
-            'because these package versions have conflicting dependencies.'
-            in result.stderr
-        ), str(result)
-    else:
-        assert ('Running setup.py install for singlemodule'
-                in result.stdout), str(result)
+    assert 'Running setup.py install for singlemodule' in result.stdout, str(result)
 
 
 def test_double_install_spurious_hash_mismatch(
