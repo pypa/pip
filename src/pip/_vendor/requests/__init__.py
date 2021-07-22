@@ -46,7 +46,10 @@ from .exceptions import RequestsDependencyWarning
 
 charset_normalizer_version = None
 
-from pip._vendor.chardet import __version__ as chardet_version
+try:
+    from pip._vendor.chardet import __version__ as chardet_version
+except ImportError:
+    chardet_version = None
 
 def check_compatibility(urllib3_version, chardet_version, charset_normalizer_version):
     urllib3_version = urllib3_version.split('.')
