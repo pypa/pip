@@ -92,7 +92,7 @@ class UninstallCommand(Command, SessionCommandMixin):
                 everything_okay = False
 
         warn_if_run_as_root()
-        if everything_okay == True:
+        if everything_okay:
             return SUCCESS
         else:
             return ERROR
