@@ -30,8 +30,7 @@ class UninstallCommand(Command, SessionCommandMixin):
       %prog [options] <package> ...
       %prog [options] -r <requirements file> ..."""
 
-    def add_options(self):
-        # type: () -> None
+    def add_options(self) -> None:
         self.cmd_opts.add_option(
             '-r', '--requirement',
             dest='requirements',
@@ -49,8 +48,7 @@ class UninstallCommand(Command, SessionCommandMixin):
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
-    def run(self, options, args):
-        # type: (Values, List[str]) -> int
+    def run(self, options: Values, args: List[str]) -> int:
         session = self.get_default_session(options)
 
         reqs_to_uninstall = {}

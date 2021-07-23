@@ -4,7 +4,7 @@ Package containing all pip commands
 
 import importlib
 from collections import OrderedDict, namedtuple
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from pip._internal.cli.base_command import Command
 
@@ -18,7 +18,7 @@ CommandInfo = namedtuple('CommandInfo', 'module_path, class_name, summary')
 # in a test-related module).
 #    Finally, we need to pass an iterable of pairs here rather than a dict
 # so that the ordering won't be lost when using Python 2.7.
-commands_dict = OrderedDict([
+commands_dict: Dict[str, CommandInfo] = OrderedDict([
     ('install', CommandInfo(
         'pip._internal.commands.install', 'InstallCommand',
         'Install packages.',
@@ -83,11 +83,10 @@ commands_dict = OrderedDict([
         'pip._internal.commands.help', 'HelpCommand',
         'Show help for commands.',
     )),
-])  # type: OrderedDict[str, CommandInfo]
+])
 
 
-def create_command(name, **kwargs):
-    # type: (str, **Any) -> Command
+def create_command(name: str, **kwargs: Any) -> Command:
     """
     Create an instance of the Command class with the given name.
     """
@@ -99,8 +98,7 @@ def create_command(name, **kwargs):
     return command
 
 
-def get_similar_commands(name):
-    # type: (str) -> Optional[str]
+def get_similar_commands(name: str) -> Optional[str]:
     """Command name auto-correct."""
     from difflib import get_close_matches
 

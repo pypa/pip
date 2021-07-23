@@ -25,8 +25,7 @@ class ShowCommand(Command):
       %prog [options] <package> ..."""
     ignore_require_venv = True
 
-    def add_options(self):
-        # type: () -> None
+    def add_options(self) -> None:
         self.cmd_opts.add_option(
             '-f', '--files',
             dest='files',
@@ -36,8 +35,7 @@ class ShowCommand(Command):
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
-    def run(self, options, args):
-        # type: (Values, List[str]) -> int
+    def run(self, options: Values, args: List[str]) -> int:
         if not args:
             logger.warning('ERROR: Please provide a package name or names.')
             return ERROR

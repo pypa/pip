@@ -46,8 +46,7 @@ class ListCommand(IndexGroupCommand):
     usage = """
       %prog [options]"""
 
-    def add_options(self):
-        # type: () -> None
+    def add_options(self) -> None:
         self.cmd_opts.add_option(
             '-o', '--outdated',
             action='store_true',
@@ -124,8 +123,9 @@ class ListCommand(IndexGroupCommand):
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, self.cmd_opts)
 
-    def _build_package_finder(self, options, session):
-        # type: (Values, PipSession) -> PackageFinder
+    def _build_package_finder(
+        self, options: Values, session: PipSession
+    ) -> PackageFinder:
         """
         Create a package finder appropriate to this list command.
         """
@@ -142,8 +142,7 @@ class ListCommand(IndexGroupCommand):
             selection_prefs=selection_prefs,
         )
 
-    def run(self, options, args):
-        # type: (Values, List[str]) -> int
+    def run(self, options: Values, args: List[str]) -> int:
         if options.outdated and options.uptodate:
             raise CommandError(
                 "Options --outdated and --uptodate cannot be combined.")
@@ -180,22 +179,25 @@ class ListCommand(IndexGroupCommand):
         self.output_package_listing(packages, options)
         return SUCCESS
 
-    def get_outdated(self, packages, options):
-        # type: (_ProcessedDists, Values) -> _ProcessedDists
+    def get_outdated(
+        self, packages: "_ProcessedDists", options: Values
+    ) -> "_ProcessedDists":
         return [
             dist for dist in self.iter_packages_latest_infos(packages, options)
             if dist.latest_version > dist.version
         ]
 
-    def get_uptodate(self, packages, options):
-        # type: (_ProcessedDists, Values) -> _ProcessedDists
+    def get_uptodate(
+        self, packages: "_ProcessedDists", options: Values
+    ) -> "_ProcessedDists":
         return [
             dist for dist in self.iter_packages_latest_infos(packages, options)
             if dist.latest_version == dist.version
         ]
 
-    def get_not_required(self, packages, options):
-        # type: (_ProcessedDists, Values) -> _ProcessedDists
+    def get_not_required(
+        self, packages: "_ProcessedDists", options: Values
+    ) -> "_ProcessedDists":
         dep_keys = {
             canonicalize_name(dep.name)
             for dist in packages
@@ -207,13 +209,15 @@ class ListCommand(IndexGroupCommand):
         # get_uptodate
         return list({pkg for pkg in packages if pkg.canonical_name not in dep_keys})
 
-    def iter_packages_latest_infos(self, packages, options):
-        # type: (_ProcessedDists, Values) -> Iterator[_DistWithLatestInfo]
+    def iter_packages_latest_infos(
+        self, packages: "_ProcessedDists", options: Values
+    ) -> Iterator["_DistWithLatestInfo"]:
         with self._build_session(options) as session:
             finder = self._build_package_finder(options, session)
 
-            def latest_info(dist):
-                # type: (_DistWithLatestInfo) -> Optional[_DistWithLatestInfo]
+            def latest_info(
+                dist: "_DistWithLatestInfo"
+            ) -> Optional["_DistWithLatestInfo"]:
                 all_candidates = finder.find_all_candidates(dist.canonical_name)
                 if not options.pre:
                     # Remove prereleases
@@ -240,8 +244,9 @@ class ListCommand(IndexGroupCommand):
                 if dist is not None:
                     yield dist
 
-    def output_package_listing(self, packages, options):
-        # type: (_ProcessedDists, Values) -> None
+    def output_package_listing(
+        self, packages: "_ProcessedDists", options: Values
+    ) -> None:
         packages = sorted(
             packages,
             key=lambda dist: dist.canonical_name,
@@ -259,8 +264,9 @@ class ListCommand(IndexGroupCommand):
         elif options.list_format == 'json':
             write_output(format_for_json(packages, options))
 
-    def output_package_listing_columns(self, data, header):
-        # type: (List[List[str]], List[str]) -> None
+    def output_package_listing_columns(
+        self, data: List[List[str]], header: List[str]
+    ) -> None:
         # insert the header first: we need to know the size of column names
         if len(data) > 0:
             data.insert(0, header)
@@ -275,8 +281,9 @@ class ListCommand(IndexGroupCommand):
             write_output(val)
 
 
-def format_for_columns(pkgs, options):
-    # type: (_ProcessedDists, Values) -> Tuple[List[List[str]], List[str]]
+def format_for_columns(
+    pkgs: "_ProcessedDists", options: Values
+) -> Tuple[List[List[str]], List[str]]:
     """
     Convert the package data into something usable
     by output_package_listing_columns.
@@ -313,8 +320,7 @@ def format_for_columns(pkgs, options):
     return data, header
 
 
-def format_for_json(packages, options):
-    # type: (_ProcessedDists, Values) -> str
+def format_for_json(packages: "_ProcessedDists", options: Values) -> str:
     data = []
     for dist in packages:
         info = {

@@ -49,10 +49,8 @@ from pip._internal.wheel_builder import (
 logger = getLogger(__name__)
 
 
-def get_check_binary_allowed(format_control):
-    # type: (FormatControl) -> BinaryAllowedPredicate
-    def check_binary_allowed(req):
-        # type: (InstallRequirement) -> bool
+def get_check_binary_allowed(format_control: FormatControl) -> BinaryAllowedPredicate:
+    def check_binary_allowed(req: InstallRequirement) -> bool:
         canonical_name = canonicalize_name(req.name or "")
         allowed_formats = format_control.get_allowed_formats(canonical_name)
         return "binary" in allowed_formats
@@ -80,8 +78,7 @@ class InstallCommand(RequirementCommand):
       %prog [options] [-e] <local project path> ...
       %prog [options] <archive url/path> ..."""
 
-    def add_options(self):
-        # type: () -> None
+    def add_options(self) -> None:
         self.cmd_opts.add_option(cmdoptions.requirements())
         self.cmd_opts.add_option(cmdoptions.constraints())
         self.cmd_opts.add_option(cmdoptions.no_deps())
@@ -225,8 +222,7 @@ class InstallCommand(RequirementCommand):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     @with_cleanup
-    def run(self, options, args):
-        # type: (Values, List[str]) -> int
+    def run(self, options: Values, args: List[str]) -> int:
         if options.use_user_site and options.target_dir is not None:
             raise CommandError("Can not combine '--user' and '--target'")
 
@@ -248,8 +244,8 @@ class InstallCommand(RequirementCommand):
             isolated_mode=options.isolated_mode,
         )
 
-        target_temp_dir = None  # type: Optional[TempDirectory]
-        target_temp_dir_path = None  # type: Optional[str]
+        target_temp_dir: Optional[TempDirectory] = None
+        target_temp_dir_path: Optional[str] = None
         if options.target_dir:
             options.ignore_installed = True
             options.target_dir = os.path.abspath(options.target_dir)
@@ -353,10 +349,10 @@ class InstallCommand(RequirementCommand):
 
             # If we're using PEP 517, we cannot do a direct install
             # so we fail here.
-            pep517_build_failure_names = [
+            pep517_build_failure_names: List[str] = [
                 r.name   # type: ignore
                 for r in build_failures if r.use_pep517
-            ]  # type: List[str]
+            ]
             if pep517_build_failure_names:
                 raise InstallationError(
                     "Could not build wheels for {} which use"
@@ -377,7 +373,7 @@ class InstallCommand(RequirementCommand):
             )
 
             # Check for conflicts in the package set we're installing.
-            conflicts = None  # type: Optional[ConflictDetails]
+            conflicts: Optional[ConflictDetails] = None
             should_warn_about_conflicts = (
                 not options.ignore_dependencies and
                 options.warn_about_conflicts
@@ -454,8 +450,9 @@ class InstallCommand(RequirementCommand):
         warn_if_run_as_root()
         return SUCCESS
 
-    def _handle_target_dir(self, target_dir, target_temp_dir, upgrade):
-        # type: (str, TempDirectory, bool) -> None
+    def _handle_target_dir(
+        self, target_dir: str, target_temp_dir: TempDirectory, upgrade: bool
+    ) -> None:
         ensure_dir(target_dir)
 
         # Checking both purelib and platlib directories for installed
@@ -510,8 +507,9 @@ class InstallCommand(RequirementCommand):
                     target_item_dir
                 )
 
-    def _determine_conflicts(self, to_install):
-        # type: (List[InstallRequirement]) -> Optional[ConflictDetails]
+    def _determine_conflicts(
+        self, to_install: List[InstallRequirement]
+    ) -> Optional[ConflictDetails]:
         try:
             return check_install_conflicts(to_install)
         except Exception:
@@ -521,13 +519,14 @@ class InstallCommand(RequirementCommand):
             )
             return None
 
-    def _warn_about_conflicts(self, conflict_details, resolver_variant):
-        # type: (ConflictDetails, str) -> None
+    def _warn_about_conflicts(
+        self, conflict_details: ConflictDetails, resolver_variant: str
+    ) -> None:
         package_set, (missing, conflicting) = conflict_details
         if not missing and not conflicting:
             return
 
-        parts = []  # type: List[str]
+        parts: List[str] = []
         if resolver_variant == "legacy":
             parts.append(
                 "pip's legacy dependency resolver does not consider dependency "
@@ -576,13 +575,12 @@ class InstallCommand(RequirementCommand):
 
 
 def get_lib_location_guesses(
-        user=False,  # type: bool
-        home=None,  # type: Optional[str]
-        root=None,  # type: Optional[str]
-        isolated=False,  # type: bool
-        prefix=None  # type: Optional[str]
-):
-    # type:(...) -> List[str]
+        user: bool = False,
+        home: Optional[str] = None,
+        root: Optional[str] = None,
+        isolated: bool = False,
+        prefix: Optional[str] = None
+) -> List[str]:
     scheme = get_scheme(
         '',
         user=user,
@@ -594,8 +592,7 @@ def get_lib_location_guesses(
     return [scheme.purelib, scheme.platlib]
 
 
-def site_packages_writable(root, isolated):
-    # type: (Optional[str], bool) -> bool
+def site_packages_writable(root: Optional[str], isolated: bool) -> bool:
     return all(
         test_writable_dir(d) for d in set(
             get_lib_location_guesses(root=root, isolated=isolated))
@@ -603,13 +600,12 @@ def site_packages_writable(root, isolated):
 
 
 def decide_user_install(
-    use_user_site,  # type: Optional[bool]
-    prefix_path=None,  # type: Optional[str]
-    target_dir=None,  # type: Optional[str]
-    root_path=None,  # type: Optional[str]
-    isolated_mode=False,  # type: bool
-):
-    # type: (...) -> bool
+    use_user_site: Optional[bool],
+    prefix_path: Optional[str] = None,
+    target_dir: Optional[str] = None,
+    root_path: Optional[str] = None,
+    isolated_mode: bool = False,
+) -> bool:
     """Determine whether to do a user install based on the input options.
 
     If use_user_site is False, no additional checks are done.
@@ -662,13 +658,13 @@ def decide_user_install(
     return True
 
 
-def reject_location_related_install_options(requirements, options):
-    # type: (List[InstallRequirement], Optional[List[str]]) -> None
+def reject_location_related_install_options(
+    requirements: List[InstallRequirement], options: Optional[List[str]]
+) -> None:
     """If any location-changing --install-option arguments were passed for
     requirements or on the command-line, then show a deprecation warning.
     """
-    def format_options(option_names):
-        # type: (Iterable[str]) -> List[str]
+    def format_options(option_names: Iterable[str]) -> List[str]:
         return ["--{}".format(name.replace("_", "-")) for name in option_names]
 
     offenders = []
@@ -704,8 +700,9 @@ def reject_location_related_install_options(requirements, options):
     )
 
 
-def create_os_error_message(error, show_traceback, using_user_site):
-    # type: (OSError, bool, bool) -> str
+def create_os_error_message(
+    error: OSError, show_traceback: bool, using_user_site: bool
+) -> str:
     """Format an error message for an OSError
 
     It may occur anytime during the execution of the install command.

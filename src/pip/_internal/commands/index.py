@@ -28,8 +28,7 @@ class IndexCommand(IndexGroupCommand):
         %prog versions <package>
     """
 
-    def add_options(self):
-        # type: () -> None
+    def add_options(self) -> None:
         cmdoptions.add_target_python_options(self.cmd_opts)
 
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
@@ -45,8 +44,7 @@ class IndexCommand(IndexGroupCommand):
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, self.cmd_opts)
 
-    def run(self, options, args):
-        # type: (Values, List[Any]) -> int
+    def run(self, options: Values, args: List[Any]) -> int:
         handlers = {
             "versions": self.get_available_package_versions,
         }
@@ -78,12 +76,11 @@ class IndexCommand(IndexGroupCommand):
 
     def _build_package_finder(
         self,
-        options,  # type: Values
-        session,  # type: PipSession
-        target_python=None,  # type: Optional[TargetPython]
-        ignore_requires_python=None,  # type: Optional[bool]
-    ):
-        # type: (...) -> PackageFinder
+        options: Values,
+        session: PipSession,
+        target_python: Optional[TargetPython] = None,
+        ignore_requires_python: Optional[bool] = None,
+    ) -> PackageFinder:
         """
         Create a package finder appropriate to the index command.
         """
@@ -102,8 +99,7 @@ class IndexCommand(IndexGroupCommand):
             target_python=target_python,
         )
 
-    def get_available_package_versions(self, options, args):
-        # type: (Values, List[Any]) -> None
+    def get_available_package_versions(self, options: Values, args: List[Any]) -> None:
         if len(args) != 1:
             raise CommandError('You need to specify exactly one argument')
 

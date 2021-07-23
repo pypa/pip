@@ -19,8 +19,7 @@ class CheckCommand(Command):
     usage = """
       %prog [options]"""
 
-    def run(self, options, args):
-        # type: (Values, List[Any]) -> int
+    def run(self, options: Values, args: List[Any]) -> int:
 
         package_set, parsing_probs = create_package_set_from_installed()
         missing, conflicting = check_package_set(package_set)

@@ -13,8 +13,7 @@ class HelpCommand(Command):
       %prog <command>"""
     ignore_require_venv = True
 
-    def run(self, options, args):
-        # type: (Values, List[str]) -> int
+    def run(self, options: Values, args: List[str]) -> int:
         from pip._internal.commands import (
             commands_dict,
             create_command,
