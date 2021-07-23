@@ -1,18 +1,11 @@
 from functools import partial
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-from pip._internal.models.direct_url import (
-    DIRECT_URL_METADATA_NAME,
-    ArchiveInfo,
-    DirectUrl,
-    DirInfo,
-    VcsInfo,
-)
+from pip._internal.models.direct_url import ArchiveInfo, DirectUrl, DirInfo, VcsInfo
 from pip._internal.models.link import Link
 from pip._internal.utils.direct_url_helpers import (
     direct_url_as_pep440_direct_reference,
     direct_url_from_link,
-    dist_get_direct_url,
 )
 from pip._internal.utils.urls import path_to_url
 
@@ -181,30 +174,3 @@ def test_from_link_hide_user_password():
         link_is_in_wheel_cache=True,
     )
     assert direct_url.to_dict()["url"] == "ssh://git@g.c/u/p.git"
-
-
-def test_dist_get_direct_url_no_metadata():
-    dist = MagicMock()
-    dist.has_metadata.return_value = False
-    assert dist_get_direct_url(dist) is None
-    dist.has_metadata.assert_called()
-
-
-def test_dist_get_direct_url_bad_metadata():
-    dist = MagicMock()
-    dist.has_metadata.return_value = True
-    dist.get_metadata.return_value = "{}"  # invalid direct_url.json
-    assert dist_get_direct_url(dist) is None
-    dist.get_metadata.assert_called_with(DIRECT_URL_METADATA_NAME)
-
-
-def test_dist_get_direct_url_valid_metadata():
-    dist = MagicMock()
-    dist.has_metadata.return_value = True
-    dist.get_metadata.return_value = (
-        '{"url": "https://e.c/p.tgz", "archive_info": {}}'
-    )
-    direct_url = dist_get_direct_url(dist)
-    dist.get_metadata.assert_called_with(DIRECT_URL_METADATA_NAME)
-    assert direct_url.url == "https://e.c/p.tgz"
-    assert isinstance(direct_url.info, ArchiveInfo)

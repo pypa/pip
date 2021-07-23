@@ -2,6 +2,14 @@ from typing import List, Optional
 
 from .base import BaseDistribution, BaseEnvironment
 
+__all__ = [
+    "BaseDistribution",
+    "BaseEnvironment",
+    "get_default_environment",
+    "get_environment",
+    "get_wheel_distribution",
+]
+
 
 def get_default_environment() -> BaseEnvironment:
     """Get the default representation for the current environment.

@@ -11,6 +11,7 @@ from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_scheme
+from pip._internal.metadata import get_wheel_distribution
 from pip._internal.models.direct_url import (
     DIRECT_URL_METADATA_NAME,
     ArchiveInfo,
@@ -22,7 +23,6 @@ from pip._internal.operations.install import wheel
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import hash_file
 from pip._internal.utils.unpacking import unpack_file
-from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
 from tests.lib import DATA_DIR, assert_paths_equal
 from tests.lib.wheel import make_wheel
 
@@ -84,7 +84,7 @@ def test_get_legacy_build_wheel_path__multiple_names(caplog):
         "進入點 = 套件.模組:函式",
     ],
 )
-def test_get_entrypoints(console_scripts):
+def test_get_entrypoints(tmp_path, console_scripts):
     entry_points_text = """
         [console_scripts]
         {}
@@ -99,10 +99,8 @@ def test_get_entrypoints(console_scripts):
         extra_metadata_files={
             "entry_points.txt": entry_points_text,
         },
-    ).as_zipfile()
-    distribution = pkg_resources_distribution_for_wheel(
-        wheel_zip, "simple", "<in memory>"
-    )
+    ).save_to_dir(tmp_path)
+    distribution = get_wheel_distribution(wheel_zip, "simple")
 
     assert wheel.get_entrypoints(distribution) == (
         dict([console_scripts.split(' = ')]),
@@ -110,11 +108,9 @@ def test_get_entrypoints(console_scripts):
     )
 
 
-def test_get_entrypoints_no_entrypoints():
-    wheel_zip = make_wheel("simple", "0.1.0").as_zipfile()
-    distribution = pkg_resources_distribution_for_wheel(
-        wheel_zip, "simple", "<in memory>"
-    )
+def test_get_entrypoints_no_entrypoints(tmp_path):
+    wheel_zip = make_wheel("simple", "0.1.0").save_to_dir(tmp_path)
+    distribution = get_wheel_distribution(wheel_zip, "simple")
 
     console, gui = wheel.get_entrypoints(distribution)
     assert console == {}

@@ -1,3 +1,5 @@
+import email.message
+import json
 import logging
 import re
 from typing import (
@@ -14,16 +16,37 @@ from typing import (
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.version import LegacyVersion, Version
 
+from pip._internal.models.direct_url import (
+    DIRECT_URL_METADATA_NAME,
+    DirectUrl,
+    DirectUrlValidationError,
+)
 from pip._internal.utils.misc import stdlib_pkgs  # TODO: Move definition here.
 
 if TYPE_CHECKING:
     from typing import Protocol
+
+    from pip._vendor.packaging.utils import NormalizedName
 else:
     Protocol = object
 
 DistributionVersion = Union[LegacyVersion, Version]
 
 logger = logging.getLogger(__name__)
+
+
+class BaseEntryPoint(Protocol):
+    @property
+    def name(self) -> str:
+        raise NotImplementedError()
+
+    @property
+    def value(self) -> str:
+        raise NotImplementedError()
+
+    @property
+    def group(self) -> str:
+        raise NotImplementedError()
 
 
 class BaseDistribution(Protocol):
@@ -38,17 +61,38 @@ class BaseDistribution(Protocol):
         raise NotImplementedError()
 
     @property
-    def metadata_version(self) -> Optional[str]:
-        """Value of "Metadata-Version:" in the distribution, if available."""
-        raise NotImplementedError()
-
-    @property
-    def canonical_name(self) -> str:
+    def canonical_name(self) -> "NormalizedName":
         raise NotImplementedError()
 
     @property
     def version(self) -> DistributionVersion:
         raise NotImplementedError()
+
+    @property
+    def direct_url(self) -> Optional[DirectUrl]:
+        """Obtain a DirectUrl from this distribution.
+
+        Returns None if the distribution has no `direct_url.json` metadata,
+        or if `direct_url.json` is invalid.
+        """
+        try:
+            content = self.read_text(DIRECT_URL_METADATA_NAME)
+        except FileNotFoundError:
+            return None
+        try:
+            return DirectUrl.from_json(content)
+        except (
+            UnicodeDecodeError,
+            json.JSONDecodeError,
+            DirectUrlValidationError,
+        ) as e:
+            logger.warning(
+                "Error parsing %s for %s: %s",
+                DIRECT_URL_METADATA_NAME,
+                self.canonical_name,
+                e,
+            )
+            return None
 
     @property
     def installer(self) -> str:
@@ -66,8 +110,39 @@ class BaseDistribution(Protocol):
     def in_usersite(self) -> bool:
         raise NotImplementedError()
 
-    def iter_dependencies(self, extras=()):
-        # type: (Collection[str]) -> Iterable[Requirement]
+    @property
+    def in_site_packages(self) -> bool:
+        raise NotImplementedError()
+
+    def read_text(self, name: str) -> str:
+        """Read a file in the .dist-info (or .egg-info) directory.
+
+        Should raise ``FileNotFoundError`` if ``name`` does not exist in the
+        metadata directory.
+        """
+        raise NotImplementedError()
+
+    def iter_entry_points(self) -> Iterable[BaseEntryPoint]:
+        raise NotImplementedError()
+
+    @property
+    def metadata(self) -> email.message.Message:
+        """Metadata of distribution parsed from e.g. METADATA or PKG-INFO."""
+        raise NotImplementedError()
+
+    @property
+    def metadata_version(self) -> Optional[str]:
+        """Value of "Metadata-Version:" in distribution metadata, if available."""
+        return self.metadata.get("Metadata-Version")
+
+    @property
+    def raw_name(self) -> str:
+        """Value of "Name:" in distribution metadata."""
+        # The metadata should NEVER be missing the Name: key, but if it somehow
+        # does not, fall back to the known canonical name.
+        return self.metadata.get("Name", self.canonical_name)
+
+    def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
         raise NotImplementedError()
 
 

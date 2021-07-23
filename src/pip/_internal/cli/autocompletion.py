@@ -9,7 +9,7 @@ from typing import Any, Iterable, List, Optional
 
 from pip._internal.cli.main_parser import create_main_parser
 from pip._internal.commands import commands_dict, create_command
-from pip._internal.utils.misc import get_installed_distributions
+from pip._internal.metadata import get_default_environment
 
 
 def autocomplete() -> None:
@@ -45,11 +45,13 @@ def autocomplete() -> None:
             "uninstall",
         ]
         if should_list_installed:
+            env = get_default_environment()
             lc = current.lower()
             installed = [
-                dist.key
-                for dist in get_installed_distributions(local_only=True)
-                if dist.key.startswith(lc) and dist.key not in cwords[1:]
+                dist.canonical_name
+                for dist in env.iter_installed_distributions(local_only=True)
+                if dist.canonical_name.startswith(lc)
+                and dist.canonical_name not in cwords[1:]
             ]
             # if there are no dists installed, fall back to option completion
             if installed:

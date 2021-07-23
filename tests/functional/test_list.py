@@ -100,10 +100,10 @@ def test_multiple_exclude_and_normalization(script, tmpdir):
     script.pip("install", "--no-index", req_path)
     result = script.pip("list")
     print(result.stdout)
-    assert "normalizable-name" in result.stdout
+    assert "Normalizable_Name" in result.stdout
     assert "pip" in result.stdout
     result = script.pip("list", "--exclude", "normalizablE-namE", "--exclude", "pIp")
-    assert "normalizable-name" not in result.stdout
+    assert "Normalizable_Name" not in result.stdout
     assert "pip" not in result.stdout
 
 
@@ -477,10 +477,10 @@ def test_not_required_flag(script, data):
         'install', '-f', data.find_links, '--no-index', 'TopoRequires4'
     )
     result = script.pip('list', '--not-required', expect_stderr=True)
-    assert 'toporequires4 ' in result.stdout, str(result)
-    assert 'toporequires ' not in result.stdout
-    assert 'toporequires2 ' not in result.stdout
-    assert 'toporequires3 ' not in result.stdout
+    assert 'TopoRequires4 ' in result.stdout, str(result)
+    assert 'TopoRequires ' not in result.stdout
+    assert 'TopoRequires2 ' not in result.stdout
+    assert 'TopoRequires3 ' not in result.stdout
 
 
 def test_list_freeze(simple_script):
