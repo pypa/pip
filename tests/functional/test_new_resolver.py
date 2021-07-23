@@ -1,4 +1,5 @@
 import os
+import pathlib
 import sys
 import textwrap
 
@@ -1962,3 +1963,49 @@ def test_new_resolver_transitively_depends_on_unnamed_local(script):
         certbot_apache="99.99.0.dev0",
         certbot_docs="1",
     )
+
+
+def _to_uri(path):
+    # Something like file:///path/to/package
+    return pathlib.Path(path).as_uri()
+
+
+def _to_localhost_uri(path):
+    # Something like file://localhost/path/to/package
+    return pathlib.Path(path).as_uri().replace("///", "//localhost/")
+
+
+@pytest.mark.parametrize(
+    "format_dep",
+    [
+        pytest.param(_to_uri, id="emptyhost"),
+        pytest.param(_to_localhost_uri, id="localhost"),
+    ],
+)
+@pytest.mark.parametrize(
+    "format_input",
+    [
+        pytest.param(lambda path: path, id="path"),
+        pytest.param(_to_uri, id="emptyhost"),
+        pytest.param(_to_localhost_uri, id="localhost"),
+    ],
+)
+def test_new_resolver_file_url_normalize(script, format_dep, format_input):
+    lib_a = create_test_package_with_setup(
+        script,
+        name="lib_a",
+        version="1",
+    )
+    lib_b = create_test_package_with_setup(
+        script,
+        name="lib_b",
+        version="1",
+        install_requires=[f"lib_a @ {format_dep(lib_a)}"],
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        format_input(lib_a), lib_b,
+    )
+    script.assert_installed(lib_a="1", lib_b="1")
