@@ -4,7 +4,7 @@ Package containing all pip commands
 
 import importlib
 from collections import OrderedDict, namedtuple
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from pip._internal.cli.base_command import Command
 
@@ -18,7 +18,7 @@ CommandInfo = namedtuple('CommandInfo', 'module_path, class_name, summary')
 # in a test-related module).
 #    Finally, we need to pass an iterable of pairs here rather than a dict
 # so that the ordering won't be lost when using Python 2.7.
-commands_dict: "OrderedDict[str, CommandInfo]" = OrderedDict([
+commands_dict: Dict[str, CommandInfo] = OrderedDict([
     ('install', CommandInfo(
         'pip._internal.commands.install', 'InstallCommand',
         'Install packages.',
