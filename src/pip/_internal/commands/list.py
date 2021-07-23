@@ -215,7 +215,9 @@ class ListCommand(IndexGroupCommand):
         with self._build_session(options) as session:
             finder = self._build_package_finder(options, session)
 
-            def latest_info(dist: "_DistWithLatestInfo") -> Optional["_DistWithLatestInfo"]:
+            def latest_info(
+                dist: "_DistWithLatestInfo"
+            ) -> Optional["_DistWithLatestInfo"]:
                 all_candidates = finder.find_all_candidates(dist.canonical_name)
                 if not options.pre:
                     # Remove prereleases
