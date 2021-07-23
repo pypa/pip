@@ -131,7 +131,7 @@ def show_tags(options: Values) -> None:
 
         if tags_limited:
             msg = (
-                "...\n" "[First {tag_limit} tags shown. Pass --verbose to show all.]"
+                "...\n[First {tag_limit} tags shown. Pass --verbose to show all.]"
             ).format(tag_limit=tag_limit)
             logger.info(msg)
 

@@ -59,9 +59,7 @@ class CacheCommand(Command):
         }
 
         if not options.cache_dir:
-            logger.error(
-                "pip cache commands can not " "function since cache is disabled."
-            )
+            logger.error("pip cache commands can not function since cache is disabled.")
             return ERROR
 
         # Determine action
@@ -104,13 +102,13 @@ class CacheCommand(Command):
         message = (
             textwrap.dedent(
                 """
-            Package index page cache location: {http_cache_location}
-            Package index page cache size: {http_cache_size}
-            Number of HTTP files: {num_http_files}
-            Wheels location: {wheels_cache_location}
-            Wheels size: {wheels_cache_size}
-            Number of wheels: {package_count}
-        """
+                    Package index page cache location: {http_cache_location}
+                    Package index page cache size: {http_cache_size}
+                    Number of HTTP files: {num_http_files}
+                    Wheels location: {wheels_cache_location}
+                    Wheels size: {wheels_cache_size}
+                    Number of wheels: {package_count}
+                """
             )
             .format(
                 http_cache_location=http_cache_location,

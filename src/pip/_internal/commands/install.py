@@ -115,7 +115,7 @@ class InstallCommand(RequirementCommand):
             dest="root_path",
             metavar="dir",
             default=None,
-            help="Install everything relative to this alternate root " "directory.",
+            help="Install everything relative to this alternate root directory.",
         )
         self.cmd_opts.add_option(
             "--prefix",
@@ -158,7 +158,7 @@ class InstallCommand(RequirementCommand):
             "--force-reinstall",
             dest="force_reinstall",
             action="store_true",
-            help="Reinstall all packages even if they are already " "up-to-date.",
+            help="Reinstall all packages even if they are already up-to-date.",
         )
 
         self.cmd_opts.add_option(
@@ -256,7 +256,7 @@ class InstallCommand(RequirementCommand):
                 options.target_dir
             ):
                 raise CommandError(
-                    "Target path exists but is not a directory, will not " "continue."
+                    "Target path exists but is not a directory, will not continue."
                 )
 
             # Create a target directory for using with the target option

@@ -103,15 +103,14 @@ class ListCommand(IndexGroupCommand):
             dest="list_format",
             default="columns",
             choices=("columns", "freeze", "json"),
-            help="Select the output format among: columns (default), freeze, "
-            "or json",
+            help="Select the output format among: columns (default), freeze, or json",
         )
 
         self.cmd_opts.add_option(
             "--not-required",
             action="store_true",
             dest="not_required",
-            help="List packages that are not dependencies of " "installed packages.",
+            help="List packages that are not dependencies of installed packages.",
         )
 
         self.cmd_opts.add_option(
