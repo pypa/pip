@@ -51,8 +51,9 @@ def create_package_set_from_installed() -> Tuple[PackageSet, bool]:
     return package_set, problems
 
 
-def check_package_set(package_set, should_ignore=None):
-    # type: (PackageSet, Optional[Callable[[str], bool]]) -> CheckResult
+def check_package_set(
+    package_set: PackageSet, should_ignore: Optional[Callable[[str], bool]] = None
+) -> CheckResult:
     """Check if a package set is consistent
 
     If should_ignore is passed, it should be a callable that takes a
@@ -64,8 +65,8 @@ def check_package_set(package_set, should_ignore=None):
 
     for package_name, package_detail in package_set.items():
         # Info about dependencies of package_name
-        missing_deps = set()  # type: Set[Missing]
-        conflicting_deps = set()  # type: Set[Conflicting]
+        missing_deps: Set[Missing] = set()
+        conflicting_deps: Set[Conflicting] = set()
 
         if should_ignore and should_ignore(package_name):
             continue
@@ -95,8 +96,7 @@ def check_package_set(package_set, should_ignore=None):
     return missing, conflicting
 
 
-def check_install_conflicts(to_install):
-    # type: (List[InstallRequirement]) -> ConflictDetails
+def check_install_conflicts(to_install: List[InstallRequirement]) -> ConflictDetails:
     """For checking if the dependency graph would be consistent after \
     installing given requirements
     """
@@ -116,8 +116,9 @@ def check_install_conflicts(to_install):
     )
 
 
-def _simulate_installation_of(to_install, package_set):
-    # type: (List[InstallRequirement], PackageSet) -> Set[NormalizedName]
+def _simulate_installation_of(
+    to_install: List[InstallRequirement], package_set: PackageSet
+) -> Set["NormalizedName"]:
     """Computes the version of packages after installing to_install.
     """
     # Keep track of packages that were installed
@@ -137,8 +138,9 @@ def _simulate_installation_of(to_install, package_set):
     return installed
 
 
-def _create_whitelist(would_be_installed, package_set):
-    # type: (Set[NormalizedName], PackageSet) -> Set[NormalizedName]
+def _create_whitelist(
+    would_be_installed: Set["NormalizedName"], package_set: PackageSet
+) -> Set["NormalizedName"]:
     packages_affected = set(would_be_installed)
 
     for package_name in package_set:

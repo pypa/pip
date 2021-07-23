@@ -10,12 +10,11 @@ logger = logging.getLogger(__name__)
 
 
 def build_wheel_pep517(
-    name,  # type: str
-    backend,  # type: Pep517HookCaller
-    metadata_directory,  # type: str
-    tempd,  # type: str
-):
-    # type: (...) -> Optional[str]
+    name: str,
+    backend: Pep517HookCaller,
+    metadata_directory: str,
+    tempd: str,
+) -> Optional[str]:
     """Build one InstallRequirement using the PEP 517 build process.
 
     Returns path to wheel if successfully built. Otherwise, returns None.
