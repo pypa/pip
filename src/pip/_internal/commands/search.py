@@ -125,7 +125,7 @@ def print_dist_installation_info(name: str, latest: str) -> None:
                 if parse_version(latest).pre:
                     write_output(
                         "LATEST:    %s (pre-release; install"
-                        ' with "pip install --pre")',
+                        " with `pip install --pre`)",
                         latest,
                     )
                 else:
