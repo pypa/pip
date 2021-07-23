@@ -23,8 +23,7 @@ class SelectionPreferences:
         format_control: Optional[FormatControl] = None,
         prefer_binary: bool = False,
         ignore_requires_python: Optional[bool] = None,
-    ):
-        # type: (...) -> None
+    ) -> None:
         """Create a SelectionPreferences object.
 
         :param allow_yanked: Whether files marked as yanked (in the sense
