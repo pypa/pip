@@ -260,6 +260,9 @@ class _CleanResult(NamedTuple):
     def from_link(cls, link: Link) -> "_CleanResult":
         parsed = link._parsed_url
         netloc = parsed.netloc.rsplit("@", 1)[-1]
+        # According to RFC 8089, an empty host in file: means localhost.
+        if parsed.scheme == "file" and not netloc:
+            netloc = "localhost"
         fragment = urllib.parse.parse_qs(parsed.fragment)
         if "egg" in fragment:
             logger.debug("Ignoring egg= fragment in %s", link)
