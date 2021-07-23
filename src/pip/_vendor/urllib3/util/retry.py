@@ -37,7 +37,7 @@ class _RetryMeta(type):
     def DEFAULT_METHOD_WHITELIST(cls):
         warnings.warn(
             "Using 'Retry.DEFAULT_METHOD_WHITELIST' is deprecated and "
-            "will be removed in v2.0. Use 'Retry.DEFAULT_METHODS_ALLOWED' instead",
+            "will be removed in v2.0. Use 'Retry.DEFAULT_ALLOWED_METHODS' instead",
             DeprecationWarning,
         )
         return cls.DEFAULT_ALLOWED_METHODS
