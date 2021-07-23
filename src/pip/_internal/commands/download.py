@@ -60,7 +60,7 @@ class DownloadCommand(RequirementCommand):
             dest="download_dir",
             metavar="dir",
             default=os.curdir,
-            help=("Download packages into <dir>."),
+            help="Download packages into <dir>.",
         )
 
         cmdoptions.add_target_python_options(self.cmd_opts)

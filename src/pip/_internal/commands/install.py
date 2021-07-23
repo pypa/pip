@@ -91,10 +91,12 @@ class InstallCommand(RequirementCommand):
             dest="target_dir",
             metavar="dir",
             default=None,
-            help="Install packages into <dir>. "
-            "By default this will not replace existing files/folders in "
-            "<dir>. Use --upgrade to replace existing packages in <dir> "
-            "with new versions.",
+            help=(
+                "Install packages into <dir>. "
+                "By default this will not replace existing files/folders in "
+                "<dir>. Use --upgrade to replace existing packages in <dir> "
+                "with new versions."
+            ),
         )
         cmdoptions.add_target_python_options(self.cmd_opts)
 
@@ -102,13 +104,18 @@ class InstallCommand(RequirementCommand):
             "--user",
             dest="use_user_site",
             action="store_true",
-            help="Install to the Python user install directory for your "
-            "platform. Typically ~/.local/, or %APPDATA%\\Python on "
-            "Windows. (See the Python documentation for site.USER_BASE "
-            "for full details.)",
+            help=(
+                "Install to the Python user install directory for your "
+                "platform. Typically ~/.local/, or %APPDATA%\\Python on "
+                "Windows. (See the Python documentation for site.USER_BASE "
+                "for full details.)"
+            ),
         )
         self.cmd_opts.add_option(
-            "--no-user", dest="use_user_site", action="store_false", help=SUPPRESS_HELP
+            "--no-user",
+            dest="use_user_site",
+            action="store_false",
+            help=SUPPRESS_HELP,
         )
         self.cmd_opts.add_option(
             "--root",
@@ -122,8 +129,10 @@ class InstallCommand(RequirementCommand):
             dest="prefix_path",
             metavar="dir",
             default=None,
-            help="Installation prefix where lib, bin and other top-level "
-            "folders are placed",
+            help=(
+                "Installation prefix where lib, bin and other top-level "
+                "folders are placed"
+            ),
         )
 
         self.cmd_opts.add_option(cmdoptions.build_dir())
@@ -135,9 +144,11 @@ class InstallCommand(RequirementCommand):
             "--upgrade",
             dest="upgrade",
             action="store_true",
-            help="Upgrade all specified packages to the newest available "
-            "version. The handling of dependencies depends on the "
-            "upgrade-strategy used.",
+            help=(
+                "Upgrade all specified packages to the newest available "
+                "version. The handling of dependencies depends on the "
+                "upgrade-strategy used."
+            ),
         )
 
         self.cmd_opts.add_option(
@@ -145,13 +156,15 @@ class InstallCommand(RequirementCommand):
             dest="upgrade_strategy",
             default="only-if-needed",
             choices=["only-if-needed", "eager"],
-            help="Determines how dependency upgrading should be handled "
-            "[default: %default]. "
-            '"eager" - dependencies are upgraded regardless of '
-            "whether the currently installed version satisfies the "
-            "requirements of the upgraded package(s). "
-            '"only-if-needed" -  are upgraded only when they do not '
-            "satisfy the requirements of the upgraded package(s).",
+            help=(
+                "Determines how dependency upgrading should be handled "
+                "[default: %default]. "
+                '"eager" - dependencies are upgraded regardless of '
+                "whether the currently installed version satisfies the "
+                "requirements of the upgraded package(s). "
+                '"only-if-needed" -  are upgraded only when they do not '
+                "satisfy the requirements of the upgraded package(s)."
+            ),
         )
 
         self.cmd_opts.add_option(
@@ -166,10 +179,12 @@ class InstallCommand(RequirementCommand):
             "--ignore-installed",
             dest="ignore_installed",
             action="store_true",
-            help="Ignore the installed packages, overwriting them. "
-            "This can break your system if the existing package "
-            "is of a different version or was installed "
-            "with a different package manager!",
+            help=(
+                "Ignore the installed packages, overwriting them. "
+                "This can break your system if the existing package "
+                "is of a different version or was installed "
+                "with a different package manager!"
+            ),
         )
 
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())

@@ -38,8 +38,10 @@ class UninstallCommand(Command, SessionCommandMixin):
             action="append",
             default=[],
             metavar="file",
-            help="Uninstall all the packages listed in the given requirements "
-            "file.  This option can be used multiple times.",
+            help=(
+                "Uninstall all the packages listed in the given requirements "
+                "file.  This option can be used multiple times."
+            ),
         )
         self.cmd_opts.add_option(
             "-y",

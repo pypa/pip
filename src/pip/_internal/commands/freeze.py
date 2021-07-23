@@ -30,9 +30,11 @@ class FreezeCommand(Command):
             action="append",
             default=[],
             metavar="file",
-            help="Use the order in the given requirements file and its "
-            "comments when generating output. This option can be "
-            "used multiple times.",
+            help=(
+                "Use the order in the given requirements file and its "
+                "comments when generating output. This option can be "
+                "used multiple times."
+            ),
         )
         self.cmd_opts.add_option(
             "-l",
@@ -40,8 +42,10 @@ class FreezeCommand(Command):
             dest="local",
             action="store_true",
             default=False,
-            help="If in a virtualenv that has global access, do not output "
-            "globally-installed packages.",
+            help=(
+                "If in a virtualenv that has global access, do not output "
+                "globally-installed packages."
+            ),
         )
         self.cmd_opts.add_option(
             "--user",
@@ -55,8 +59,10 @@ class FreezeCommand(Command):
             "--all",
             dest="freeze_all",
             action="store_true",
-            help="Do not skip these packages in the output:"
-            " {}".format(", ".join(DEV_PKGS)),
+            help=(
+                "Do not skip these packages in the output:"
+                " {}".format(", ".join(DEV_PKGS))
+            ),
         )
         self.cmd_opts.add_option(
             "--exclude-editable",
