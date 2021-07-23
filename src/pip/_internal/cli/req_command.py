@@ -344,7 +344,7 @@ class RequirementCommand(IndexGroupCommand):
         """
         Parse command-line arguments into the corresponding requirements.
         """
-        requirements = []  # type: List[InstallRequirement]
+        requirements: List[InstallRequirement] = []
         for filename in options.constraints:
             for parsed_req in parse_requirements(
                 filename,

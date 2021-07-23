@@ -142,16 +142,16 @@ class PipOption(Option):
 # options #
 ###########
 
-help_ = partial(
+help_: Callable[..., Option] = partial(
     Option,
     "-h",
     "--help",
     dest="help",
     action="help",
     help="Show help.",
-)  # type: Callable[..., Option]
+)
 
-isolated_mode = partial(
+isolated_mode: Callable[..., Option] = partial(
     Option,
     "--isolated",
     dest="isolated_mode",
@@ -161,9 +161,9 @@ isolated_mode = partial(
         "Run pip in an isolated mode, ignoring environment variables and user "
         "configuration."
     ),
-)  # type: Callable[..., Option]
+)
 
-require_virtualenv = partial(
+require_virtualenv: Callable[..., Option] = partial(
     Option,
     # Run only if inside a virtualenv, bail if not.
     "--require-virtualenv",
@@ -172,9 +172,9 @@ require_virtualenv = partial(
     action="store_true",
     default=False,
     help=SUPPRESS_HELP,
-)  # type: Callable[..., Option]
+)
 
-verbose = partial(
+verbose: Callable[..., Option] = partial(
     Option,
     "-v",
     "--verbose",
@@ -182,27 +182,27 @@ verbose = partial(
     action="count",
     default=0,
     help="Give more output. Option is additive, and can be used up to 3 times.",
-)  # type: Callable[..., Option]
+)
 
-no_color = partial(
+no_color: Callable[..., Option] = partial(
     Option,
     "--no-color",
     dest="no_color",
     action="store_true",
     default=False,
     help="Suppress colored output.",
-)  # type: Callable[..., Option]
+)
 
-version = partial(
+version: Callable[..., Option] = partial(
     Option,
     "-V",
     "--version",
     dest="version",
     action="store_true",
     help="Show version and exit.",
-)  # type: Callable[..., Option]
+)
 
-quiet = partial(
+quiet: Callable[..., Option] = partial(
     Option,
     "-q",
     "--quiet",
@@ -214,9 +214,9 @@ quiet = partial(
         " times (corresponding to WARNING, ERROR, and CRITICAL logging"
         " levels)."
     ),
-)  # type: Callable[..., Option]
+)
 
-progress_bar = partial(
+progress_bar: Callable[..., Option] = partial(
     Option,
     "--progress-bar",
     dest="progress_bar",
@@ -228,9 +228,9 @@ progress_bar = partial(
         + "|".join(BAR_TYPES.keys())
         + "] (default: %default)"
     ),
-)  # type: Callable[..., Option]
+)
 
-log = partial(
+log: Callable[..., Option] = partial(
     PipOption,
     "--log",
     "--log-file",
@@ -239,9 +239,9 @@ log = partial(
     metavar="path",
     type="path",
     help="Path to a verbose appending log.",
-)  # type: Callable[..., Option]
+)
 
-no_input = partial(
+no_input: Callable[..., Option] = partial(
     Option,
     # Don't ask for input
     "--no-input",
@@ -249,18 +249,18 @@ no_input = partial(
     action="store_true",
     default=False,
     help="Disable prompting for input.",
-)  # type: Callable[..., Option]
+)
 
-proxy = partial(
+proxy: Callable[..., Option] = partial(
     Option,
     "--proxy",
     dest="proxy",
     type="str",
     default="",
     help="Specify a proxy in the form [user:passwd@]proxy.server:port.",
-)  # type: Callable[..., Option]
+)
 
-retries = partial(
+retries: Callable[..., Option] = partial(
     Option,
     "--retries",
     dest="retries",
@@ -268,9 +268,9 @@ retries = partial(
     default=5,
     help="Maximum number of retries each connection should attempt "
     "(default %default times).",
-)  # type: Callable[..., Option]
+)
 
-timeout = partial(
+timeout: Callable[..., Option] = partial(
     Option,
     "--timeout",
     "--default-timeout",
@@ -279,7 +279,7 @@ timeout = partial(
     type="float",
     default=15,
     help="Set the socket timeout (default %default seconds).",
-)  # type: Callable[..., Option]
+)
 
 
 def exists_action() -> Option:
@@ -297,7 +297,7 @@ def exists_action() -> Option:
     )
 
 
-cert = partial(
+cert: Callable[..., Option] = partial(
     PipOption,
     "--cert",
     dest="cert",
@@ -309,9 +309,9 @@ cert = partial(
         "See 'SSL Certificate Verification' in pip documentation "
         "for more information."
     ),
-)  # type: Callable[..., Option]
+)
 
-client_cert = partial(
+client_cert: Callable[..., Option] = partial(
     PipOption,
     "--client-cert",
     dest="client_cert",
@@ -320,9 +320,9 @@ client_cert = partial(
     metavar="path",
     help="Path to SSL client certificate, a single file containing the "
     "private key and the certificate in PEM format.",
-)  # type: Callable[..., Option]
+)
 
-index_url = partial(
+index_url: Callable[..., Option] = partial(
     Option,
     "-i",
     "--index-url",
@@ -334,7 +334,7 @@ index_url = partial(
     "This should point to a repository compliant with PEP 503 "
     "(the simple repository API) or a local directory laid out "
     "in the same format.",
-)  # type: Callable[..., Option]
+)
 
 
 def extra_index_url() -> Option:
@@ -350,14 +350,14 @@ def extra_index_url() -> Option:
     )
 
 
-no_index = partial(
+no_index: Callable[..., Option] = partial(
     Option,
     "--no-index",
     dest="no_index",
     action="store_true",
     default=False,
     help="Ignore package index (only looking at --find-links URLs instead).",
-)  # type: Callable[..., Option]
+)
 
 
 def find_links() -> Option:
@@ -434,7 +434,7 @@ def _handle_src(option: Option, opt_str: str, value: str, parser: OptionParser) 
     setattr(parser.values, option.dest, value)
 
 
-src = partial(
+src: Callable[..., Option] = partial(
     PipOption,
     "--src",
     "--source",
@@ -449,7 +449,7 @@ src = partial(
     help="Directory to check out editable projects into. "
     'The default in a virtualenv is "<venv path>/src". '
     'The default for global installs is "<current dir>/src".',
-)  # type: Callable[..., Option]
+)
 
 
 def _get_format_control(values: Values, option: Option) -> Any:
@@ -515,7 +515,7 @@ def only_binary() -> Option:
     )
 
 
-platforms = partial(
+platforms: Callable[..., Option] = partial(
     Option,
     "--platform",
     dest="platforms",
@@ -527,7 +527,7 @@ platforms = partial(
         "platform of the running system. Use this option multiple times to "
         "specify multiple platforms supported by the target interpreter."
     ),
-)  # type: Callable[..., Option]
+)
 
 
 # This was made a separate function for unit-testing purposes.
@@ -577,7 +577,7 @@ def _handle_python_version(
     parser.values.python_version = version_info
 
 
-python_version = partial(
+python_version: Callable[..., Option] = partial(
     Option,
     "--python-version",
     dest="python_version",
@@ -595,10 +595,10 @@ python_version = partial(
     version can also be given as a string without dots (e.g. "37" for 3.7.0).
     """
     ),
-)  # type: Callable[..., Option]
+)
 
 
-implementation = partial(
+implementation: Callable[..., Option] = partial(
     Option,
     "--implementation",
     dest="implementation",
@@ -611,10 +611,10 @@ implementation = partial(
         "interpreter implementation is used.  Use 'py' to force "
         "implementation-agnostic wheels."
     ),
-)  # type: Callable[..., Option]
+)
 
 
-abis = partial(
+abis: Callable[..., Option] = partial(
     Option,
     "--abi",
     dest="abis",
@@ -629,7 +629,7 @@ abis = partial(
         "--implementation, --platform, and --python-version when using this "
         "option."
     ),
-)  # type: Callable[..., Option]
+)
 
 
 def add_target_python_options(cmd_opts: OptionGroup) -> None:
@@ -660,7 +660,7 @@ def prefer_binary() -> Option:
     )
 
 
-cache_dir = partial(
+cache_dir: Callable[..., Option] = partial(
     PipOption,
     "--cache-dir",
     dest="cache_dir",
@@ -668,7 +668,7 @@ cache_dir = partial(
     metavar="dir",
     type="path",
     help="Store the cache data in <dir>.",
-)  # type: Callable[..., Option]
+)
 
 
 def _handle_no_cache_dir(
@@ -700,16 +700,16 @@ def _handle_no_cache_dir(
     parser.values.cache_dir = False
 
 
-no_cache = partial(
+no_cache: Callable[..., Option] = partial(
     Option,
     "--no-cache-dir",
     dest="cache_dir",
     action="callback",
     callback=_handle_no_cache_dir,
     help="Disable the cache.",
-)  # type: Callable[..., Option]
+)
 
-no_deps = partial(
+no_deps: Callable[..., Option] = partial(
     Option,
     "--no-deps",
     "--no-dependencies",
@@ -717,9 +717,9 @@ no_deps = partial(
     action="store_true",
     default=False,
     help="Don't install package dependencies.",
-)  # type: Callable[..., Option]
+)
 
-build_dir = partial(
+build_dir: Callable[..., Option] = partial(
     PipOption,
     "-b",
     "--build",
@@ -729,17 +729,17 @@ build_dir = partial(
     type="path",
     metavar="dir",
     help=SUPPRESS_HELP,
-)  # type: Callable[..., Option]
+)
 
-ignore_requires_python = partial(
+ignore_requires_python: Callable[..., Option] = partial(
     Option,
     "--ignore-requires-python",
     dest="ignore_requires_python",
     action="store_true",
     help="Ignore the Requires-Python information.",
-)  # type: Callable[..., Option]
+)
 
-no_build_isolation = partial(
+no_build_isolation: Callable[..., Option] = partial(
     Option,
     "--no-build-isolation",
     dest="build_isolation",
@@ -748,7 +748,7 @@ no_build_isolation = partial(
     help="Disable isolation when building a modern source distribution. "
     "Build dependencies specified by PEP 518 must be already installed "
     "if this option is used.",
-)  # type: Callable[..., Option]
+)
 
 
 def _handle_no_use_pep517(
@@ -776,7 +776,7 @@ def _handle_no_use_pep517(
     parser.values.use_pep517 = False
 
 
-use_pep517 = partial(
+use_pep517: Any = partial(
     Option,
     "--use-pep517",
     dest="use_pep517",
@@ -784,9 +784,9 @@ use_pep517 = partial(
     default=None,
     help="Use PEP 517 for building source distributions "
     "(use --no-use-pep517 to force legacy behaviour).",
-)  # type: Any
+)
 
-no_use_pep517 = partial(
+no_use_pep517: Any = partial(
     Option,
     "--no-use-pep517",
     dest="use_pep517",
@@ -794,9 +794,9 @@ no_use_pep517 = partial(
     callback=_handle_no_use_pep517,
     default=None,
     help=SUPPRESS_HELP,
-)  # type: Any
+)
 
-install_options = partial(
+install_options: Callable[..., Option] = partial(
     Option,
     "--install-option",
     dest="install_options",
@@ -807,18 +807,18 @@ install_options = partial(
     'bin"). Use multiple --install-option options to pass multiple '
     "options to setup.py install. If you are using an option with a "
     "directory path, be sure to use absolute path.",
-)  # type: Callable[..., Option]
+)
 
-build_options = partial(
+build_options: Callable[..., Option] = partial(
     Option,
     "--build-option",
     dest="build_options",
     metavar="options",
     action="append",
     help="Extra arguments to be supplied to 'setup.py bdist_wheel'.",
-)  # type: Callable[..., Option]
+)
 
-global_options = partial(
+global_options: Callable[..., Option] = partial(
     Option,
     "--global-option",
     dest="global_options",
@@ -826,26 +826,26 @@ global_options = partial(
     metavar="options",
     help="Extra global options to be supplied to the setup.py "
     "call before the install or bdist_wheel command.",
-)  # type: Callable[..., Option]
+)
 
-no_clean = partial(
+no_clean: Callable[..., Option] = partial(
     Option,
     "--no-clean",
     action="store_true",
     default=False,
     help="Don't clean up build directories.",
-)  # type: Callable[..., Option]
+)
 
-pre = partial(
+pre: Callable[..., Option] = partial(
     Option,
     "--pre",
     action="store_true",
     default=False,
     help="Include pre-release and development versions. By default, "
     "pip only finds stable versions.",
-)  # type: Callable[..., Option]
+)
 
-disable_pip_version_check = partial(
+disable_pip_version_check: Callable[..., Option] = partial(
     Option,
     "--disable-pip-version-check",
     dest="disable_pip_version_check",
@@ -853,7 +853,7 @@ disable_pip_version_check = partial(
     default=False,
     help="Don't periodically check PyPI to determine whether a new version "
     "of pip is available for download. Implied with --no-index.",
-)  # type: Callable[..., Option]
+)
 
 
 def _handle_merge_hash(
@@ -880,7 +880,7 @@ def _handle_merge_hash(
     parser.values.hashes.setdefault(algo, []).append(digest)
 
 
-hash = partial(
+hash: Callable[..., Option] = partial(
     Option,
     "--hash",
     # Hash values eventually end up in InstallRequirement.hashes due to
@@ -891,10 +891,10 @@ hash = partial(
     type="string",
     help="Verify that the package's archive matches this "
     "hash before installing. Example: --hash=sha256:abcdef...",
-)  # type: Callable[..., Option]
+)
 
 
-require_hashes = partial(
+require_hashes: Callable[..., Option] = partial(
     Option,
     "--require-hashes",
     dest="require_hashes",
@@ -903,10 +903,10 @@ require_hashes = partial(
     help="Require a hash to check each requirement against, for "
     "repeatable installs. This option is implied when any package in a "
     "requirements file has a --hash option.",
-)  # type: Callable[..., Option]
+)
 
 
-list_path = partial(
+list_path: Callable[..., Option] = partial(
     PipOption,
     "--path",
     dest="path",
@@ -914,7 +914,7 @@ list_path = partial(
     action="append",
     help="Restrict to the specified installation path for listing "
     "packages (can be used multiple times).",
-)  # type: Callable[..., Option]
+)
 
 
 def check_list_path_option(options: Values) -> None:
@@ -922,7 +922,7 @@ def check_list_path_option(options: Values) -> None:
         raise CommandError("Cannot combine '--path' with '--user' or '--local'")
 
 
-list_exclude = partial(
+list_exclude: Callable[..., Option] = partial(
     PipOption,
     "--exclude",
     dest="excludes",
@@ -930,20 +930,20 @@ list_exclude = partial(
     metavar="package",
     type="package_name",
     help="Exclude specified package from the output",
-)  # type: Callable[..., Option]
+)
 
 
-no_python_version_warning = partial(
+no_python_version_warning: Callable[..., Option] = partial(
     Option,
     "--no-python-version-warning",
     dest="no_python_version_warning",
     action="store_true",
     default=False,
     help="Silence deprecation warnings for upcoming unsupported Pythons.",
-)  # type: Callable[..., Option]
+)
 
 
-use_new_feature = partial(
+use_new_feature: Callable[..., Option] = partial(
     Option,
     "--use-feature",
     dest="features_enabled",
@@ -952,9 +952,9 @@ use_new_feature = partial(
     default=[],
     choices=["2020-resolver", "fast-deps", "in-tree-build"],
     help="Enable new functionality, that may be backward incompatible.",
-)  # type: Callable[..., Option]
+)
 
-use_deprecated_feature = partial(
+use_deprecated_feature: Callable[..., Option] = partial(
     Option,
     "--use-deprecated",
     dest="deprecated_features_enabled",
@@ -963,14 +963,14 @@ use_deprecated_feature = partial(
     default=[],
     choices=["legacy-resolver"],
     help=("Enable deprecated functionality, that will be removed in the future."),
-)  # type: Callable[..., Option]
+)
 
 
 ##########
 # groups #
 ##########
 
-general_group = {
+general_group: Dict[str, Any] = {
     "name": "General Options",
     "options": [
         help_,
@@ -996,9 +996,9 @@ general_group = {
         use_new_feature,
         use_deprecated_feature,
     ],
-}  # type: Dict[str, Any]
+}
 
-index_group = {
+index_group: Dict[str, Any] = {
     "name": "Package Index Options",
     "options": [
         index_url,
@@ -1006,4 +1006,4 @@ index_group = {
         no_index,
         find_links,
     ],
-}  # type: Dict[str, Any]
+}

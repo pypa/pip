@@ -45,7 +45,7 @@ def _select_progress_class(preferred: Bar, fallback: Bar) -> Bar:
         return preferred
 
 
-_BaseBar = _select_progress_class(IncrementalBar, Bar)  # type: Any
+_BaseBar: Any = _select_progress_class(IncrementalBar, Bar)
 
 
 class InterruptibleMixin:
@@ -121,7 +121,7 @@ class DownloadProgressMixin:
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         # https://github.com/python/mypy/issues/5887
         super().__init__(*args, **kwargs)  # type: ignore
-        self.message = (" " * (get_indentation() + 2)) + self.message  # type: str
+        self.message: str = (" " * (get_indentation() + 2)) + self.message
 
     @property
     def downloaded(self) -> str:

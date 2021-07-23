@@ -180,9 +180,9 @@ class ConfigOptionParser(CustomOptionParser):
         override_order = ["global", self.name, ":env:"]
 
         # Pool the options into different groups
-        section_items = {
+        section_items: Dict[str, List[Tuple[str, Any]]] = {
             name: [] for name in override_order
-        }  # type: Dict[str, List[Tuple[str, Any]]]
+        }
         for section_key, val in self.config.items():
             # ignore empty values
             if not val:

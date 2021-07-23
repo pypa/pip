@@ -29,7 +29,7 @@ def autocomplete() -> None:
     options = []
 
     # subcommand
-    subcommand_name = None  # type: Optional[str]
+    subcommand_name: Optional[str] = None
     for word in cwords:
         if word in subcommands:
             subcommand_name = word
