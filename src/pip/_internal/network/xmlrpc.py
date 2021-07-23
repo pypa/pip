@@ -30,7 +30,11 @@ class PipXmlrpcTransport(xmlrpc.client.Transport):
         self._session = session
 
     def request(
-        self, host: "_HostType", handler: str, request_body: bytes, verbose: bool = False
+        self,
+        host: "_HostType",
+        handler: str,
+        request_body: bytes,
+        verbose: bool = False,
     ) -> Tuple["_Marshallable", ...]:
         assert isinstance(host, str)
         parts = (self._scheme, host, handler, None, None, None)
