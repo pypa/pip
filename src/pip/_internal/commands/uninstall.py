@@ -15,7 +15,6 @@ from pip._internal.req.constructors import (
 )
 from pip._internal.utils.misc import protect_pip_from_modification_on_windows
 
-
 logger = logging.getLogger(__name__)
 
 
