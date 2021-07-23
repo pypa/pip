@@ -14,22 +14,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import typing
+
 from pip._vendor.tenacity import _utils
 
+if typing.TYPE_CHECKING:
+    import logging
 
-def before_nothing(retry_state):
+    from pip._vendor.tenacity import RetryCallState
+
+
+def before_nothing(retry_state: "RetryCallState") -> None:
     """Before call strategy that does nothing."""
 
 
-def before_log(logger, log_level):
+def before_log(logger: "logging.Logger", log_level: int) -> typing.Callable[["RetryCallState"], None]:
     """Before call strategy that logs to some logger the attempt."""
 
-    def log_it(retry_state):
+    def log_it(retry_state: "RetryCallState") -> None:
         logger.log(
             log_level,
-            "Starting call to '%s', this is the %s time calling it.",
-            _utils.get_callback_name(retry_state.fn),
-            _utils.to_ordinal(retry_state.attempt_number),
+            f"Starting call to '{_utils.get_callback_name(retry_state.fn)}', "
+            f"this is the {_utils.to_ordinal(retry_state.attempt_number)} time calling it.",
         )
 
     return log_it
