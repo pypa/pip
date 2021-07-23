@@ -1,6 +1,6 @@
 """Lazy ZIP over HTTP"""
 
-__all__ = ['HTTPRangeRequestUnsupported', 'dist_from_wheel_url']
+__all__ = ["HTTPRangeRequestUnsupported", "dist_from_wheel_url"]
 
 from bisect import bisect_left, bisect_right
 from contextlib import contextmanager
@@ -53,19 +53,19 @@ class LazyZipOverHTTP:
         raise_for_status(head)
         assert head.status_code == 200
         self._session, self._url, self._chunk_size = session, url, chunk_size
-        self._length = int(head.headers['Content-Length'])
+        self._length = int(head.headers["Content-Length"])
         self._file = NamedTemporaryFile()
         self.truncate(self._length)
         self._left: List[int] = []
         self._right: List[int] = []
-        if 'bytes' not in head.headers.get('Accept-Ranges', 'none'):
-            raise HTTPRangeRequestUnsupported('range request is not supported')
+        if "bytes" not in head.headers.get("Accept-Ranges", "none"):
+            raise HTTPRangeRequestUnsupported("range request is not supported")
         self._check_zip()
 
     @property
     def mode(self) -> str:
         """Opening mode, which is always rb."""
-        return 'rb'
+        return "rb"
 
     @property
     def name(self) -> str:
@@ -94,9 +94,9 @@ class LazyZipOverHTTP:
         """
         download_size = max(size, self._chunk_size)
         start, length = self.tell(), self._length
-        stop = length if size < 0 else min(start+download_size, length)
-        start = max(0, stop-download_size)
-        self._download(start, stop-1)
+        stop = length if size < 0 else min(start + download_size, length)
+        start = max(0, stop - download_size)
+        self._download(start, stop - 1)
         return self._file.read(size)
 
     def readable(self) -> bool:
@@ -170,9 +170,9 @@ class LazyZipOverHTTP:
     ) -> Response:
         """Return HTTP response to a range request from start to end."""
         headers = base_headers.copy()
-        headers['Range'] = f'bytes={start}-{end}'
+        headers["Range"] = f"bytes={start}-{end}"
         # TODO: Get range requests to be correctly cached
-        headers['Cache-Control'] = 'no-cache'
+        headers["Cache-Control"] = "no-cache"
         return self._session.get(self._url, headers=headers, stream=True)
 
     def _merge(
@@ -187,11 +187,11 @@ class LazyZipOverHTTP:
             right (int): Index after last overlapping downloaded data
         """
         lslice, rslice = self._left[left:right], self._right[left:right]
-        i = start = min([start]+lslice[:1])
-        end = max([end]+rslice[-1:])
+        i = start = min([start] + lslice[:1])
+        end = max([end] + rslice[-1:])
         for j, k in zip(lslice, rslice):
             if j > i:
-                yield i, j-1
+                yield i, j - 1
             i = k + 1
         if i <= end:
             yield i, end
