@@ -252,8 +252,11 @@ class InstallCommand(RequirementCommand):
         if options.target_dir:
             options.ignore_installed = True
             options.target_dir = os.path.abspath(options.target_dir)
-            if os.path.exists(options.target_dir) and not os.path.isdir(
-                options.target_dir
+            if (
+                # fmt: off
+                os.path.exists(options.target_dir) and
+                not os.path.isdir(options.target_dir)
+                # fmt: on
             ):
                 raise CommandError(
                     "Target path exists but is not a directory, will not continue."
