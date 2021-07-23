@@ -81,7 +81,7 @@ Below is a brief guide to building a survey for pip:
   </li>
   <li>
     <strong>Design your questions</strong><br>
-    <ol>
+    <ul>
       <li>
         Limit the number of questions you ask to avoid a low response rate. A good rule of thumb is: 3-4 questions about the specific topic, 2-3 questions about users level of experience / what they use Python or pip for.<br>
         When asking about years of experience use the following groupings as options:
@@ -100,7 +100,8 @@ Below is a brief guide to building a survey for pip:
       <li>
         Use <a href="https://en.wikipedia.org/wiki/Open-ended_question">open questions</a> to learn about reasoning. If you are using a lot of closed questions in your survey, it is useful to include some open questions to "fish" for less expected answers - e.g. asking a user "why?" they chose a particular option
       </li>
-    </ol>
+    </ul>
+  </li>
   <li>
     <strong>Pilot your survey and modify it based on feedback</strong><br>
     This could be as simple as sharing it with 1-2 people to see if it makes sense.
@@ -171,7 +172,7 @@ See also:
 
 Interviews are a great way to have more in-depth conversations with users to better understand or explore a topic. Unlike surveys, they are not a great way to understand overall patterns, as it is hard to engage with a large number of people due to the time involved. It can be particularly useful to plan around conferences and events as a way to connect with many users in a more informal setting.
 
-#### Designing Interviews for pip
+#### Designing Interviews
 
 As with surveys, it's important to establish what you want to learn before you begin.
 
@@ -184,7 +185,7 @@ Below is a brief guide to running an interview for pip:
     <strong>Write your script</strong><br>
     This should include an introduction that sets the scene for the participant, explaining what the interview is about, how you (or observers) will take notes, how long it will take, how their feedback will be used (and shared) and any other pointers you want to share.<br>
     Next, design your questions. Limit the number of questions, so that you have enough time to cover key points and the interview does not run for too long. Like in surveys, a good rule of thumb is 2-3 questions about users' level of experience, and what they use Python/pip for, plus 3-4 questions about the specific topic.<br>
-    There are [four different types of interview questions](https://simplysecure.org/resources/qualitative_interviewing.pdf):
+    There are <a href="https://simplysecure.org/resources/qualitative_interviewing.pdf">four different types of interview questions</a>:
     <ol>
       <li>
         <em>Descriptive</em> — This type of question gives you concrete, specific stories and details. It also helps your interviewee "arrive" at the interview, resurfacing their relevant experiences and memories. E.g.<br>
@@ -384,7 +385,7 @@ In any UX project, it is important to prototype and test interfaces with real us
 Prototyping CLIs can be a challenge. See [Creating rapid CLI prototypes with cli-output](https://www.ei8fdb.org/thoughts/2020/10/prototyping-command-line-interfaces-with-cli-output/ ) for recommendations.
 
 
-##### Copywriting Style Guides
+#### Copywriting Style Guides
 
 Given pip's interface is text, it is particularly important that clear and consistent language is used.
 
