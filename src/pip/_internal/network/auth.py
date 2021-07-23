@@ -36,8 +36,7 @@ except Exception as exc:
     keyring = None
 
 
-def get_keyring_auth(url, username):
-    # type: (Optional[str], Optional[str]) -> Optional[AuthInfo]
+def get_keyring_auth(url: Optional[str], username: Optional[str]) -> Optional[AuthInfo]:
     """Return the tuple auth for a given url from keyring."""
     global keyring
     if not url or not keyring:
@@ -71,20 +70,20 @@ def get_keyring_auth(url, username):
 
 class MultiDomainBasicAuth(AuthBase):
 
-    def __init__(self, prompting=True, index_urls=None):
-        # type: (bool, Optional[List[str]]) -> None
+    def __init__(
+        self, prompting: bool = True, index_urls: Optional[List[str]] = None
+    ) -> None:
         self.prompting = prompting
         self.index_urls = index_urls
-        self.passwords = {}  # type: Dict[str, AuthInfo]
+        self.passwords: Dict[str, AuthInfo] = {}
         # When the user is prompted to enter credentials and keyring is
         # available, we will offer to save them. If the user accepts,
         # this value is set to the credentials they entered. After the
         # request authenticates, the caller should call
         # ``save_credentials`` to save these.
-        self._credentials_to_save = None  # type: Optional[Credentials]
+        self._credentials_to_save: Optional[Credentials] = None
 
-    def _get_index_url(self, url):
-        # type: (str) -> Optional[str]
+    def _get_index_url(self, url: str) -> Optional[str]:
         """Return the original index URL matching the requested URL.
 
         Cached or dynamically generated credentials may work against
@@ -106,9 +105,8 @@ class MultiDomainBasicAuth(AuthBase):
                 return u
         return None
 
-    def _get_new_credentials(self, original_url, allow_netrc=True,
-                             allow_keyring=False):
-        # type: (str, bool, bool) -> AuthInfo
+    def _get_new_credentials(self, original_url: str, allow_netrc: bool = True,
+                             allow_keyring: bool = False) -> AuthInfo:
         """Find and return credentials for the specified URL."""
         # Split the credentials and netloc from the url.
         url, netloc, url_user_password = split_auth_netloc_from_url(
@@ -157,8 +155,9 @@ class MultiDomainBasicAuth(AuthBase):
 
         return username, password
 
-    def _get_url_and_credentials(self, original_url):
-        # type: (str) -> Tuple[str, Optional[str], Optional[str]]
+    def _get_url_and_credentials(
+        self, original_url: str
+    ) -> Tuple[str, Optional[str], Optional[str]]:
         """Return the credentials to use for the provided URL.
 
         If allowed, netrc and keyring may be used to obtain the
@@ -197,8 +196,7 @@ class MultiDomainBasicAuth(AuthBase):
 
         return url, username, password
 
-    def __call__(self, req):
-        # type: (Request) -> Request
+    def __call__(self, req: Request) -> Request:
         # Get credentials for this request
         url, username, password = self._get_url_and_credentials(req.url)
 
@@ -215,8 +213,9 @@ class MultiDomainBasicAuth(AuthBase):
         return req
 
     # Factored out to allow for easy patching in tests
-    def _prompt_for_password(self, netloc):
-        # type: (str) -> Tuple[Optional[str], Optional[str], bool]
+    def _prompt_for_password(
+        self, netloc: str
+    ) -> Tuple[Optional[str], Optional[str], bool]:
         username = ask_input(f"User for {netloc}: ")
         if not username:
             return None, None, False
@@ -227,14 +226,12 @@ class MultiDomainBasicAuth(AuthBase):
         return username, password, True
 
     # Factored out to allow for easy patching in tests
-    def _should_save_password_to_keyring(self):
-        # type: () -> bool
+    def _should_save_password_to_keyring(self) -> bool:
         if not keyring:
             return False
         return ask("Save credentials to keyring [y/N]: ", ["y", "n"]) == "y"
 
-    def handle_401(self, resp, **kwargs):
-        # type: (Response, **Any) -> Response
+    def handle_401(self, resp: Response, **kwargs: Any) -> Response:
         # We only care about 401 responses, anything else we want to just
         #   pass through the actual response
         if resp.status_code != 401:
@@ -286,16 +283,14 @@ class MultiDomainBasicAuth(AuthBase):
 
         return new_resp
 
-    def warn_on_401(self, resp, **kwargs):
-        # type: (Response, **Any) -> None
+    def warn_on_401(self, resp: Response, **kwargs: Any) -> None:
         """Response callback to warn about incorrect credentials."""
         if resp.status_code == 401:
             logger.warning(
                 '401 Error, Credentials not correct for %s', resp.request.url,
             )
 
-    def save_credentials(self, resp, **kwargs):
-        # type: (Response, **Any) -> None
+    def save_credentials(self, resp: Response, **kwargs: Any) -> None:
         """Response callback to save credentials on success."""
         assert keyring is not None, "should never reach here without keyring"
         if not keyring:

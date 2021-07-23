@@ -21,15 +21,21 @@ class PipXmlrpcTransport(xmlrpc.client.Transport):
     object.
     """
 
-    def __init__(self, index_url, session, use_datetime=False):
-        # type: (str, PipSession, bool) -> None
+    def __init__(
+        self, index_url: str, session: PipSession, use_datetime: bool = False
+    ) -> None:
         super().__init__(use_datetime)
         index_parts = urllib.parse.urlparse(index_url)
         self._scheme = index_parts.scheme
         self._session = session
 
-    def request(self, host, handler, request_body, verbose=False):
-        # type: (_HostType, str, bytes, bool) -> Tuple[_Marshallable, ...]
+    def request(
+        self,
+        host: "_HostType",
+        handler: str,
+        request_body: bytes,
+        verbose: bool = False,
+    ) -> Tuple["_Marshallable", ...]:
         assert isinstance(host, str)
         parts = (self._scheme, host, handler, None, None, None)
         url = urllib.parse.urlunparse(parts)
