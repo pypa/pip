@@ -51,8 +51,7 @@ class CompletionCommand(Command):
 
     ignore_require_venv = True
 
-    def add_options(self):
-        # type: () -> None
+    def add_options(self) -> None:
         self.cmd_opts.add_option(
             '--bash', '-b',
             action='store_const',
@@ -74,8 +73,7 @@ class CompletionCommand(Command):
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
-    def run(self, options, args):
-        #  type: (Values, List[str]) -> int
+    def run(self, options: Values, args: List[str]) -> int:
         """Prints the completion code of the given shell"""
         shells = COMPLETION_SCRIPTS.keys()
         shell_options = ['--' + shell for shell in sorted(shells)]

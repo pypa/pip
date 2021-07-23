@@ -22,8 +22,7 @@ class FreezeCommand(Command):
       %prog [options]"""
     log_streams = ("ext://sys.stderr", "ext://sys.stderr")
 
-    def add_options(self):
-        # type: () -> None
+    def add_options(self) -> None:
         self.cmd_opts.add_option(
             '-r', '--requirement',
             dest='requirements',
@@ -62,8 +61,7 @@ class FreezeCommand(Command):
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
-    def run(self, options, args):
-        # type: (Values, List[str]) -> int
+    def run(self, options: Values, args: List[str]) -> int:
         skip = set(stdlib_pkgs)
         if not options.freeze_all:
             skip.update(DEV_PKGS)

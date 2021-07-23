@@ -40,8 +40,7 @@ class WheelCommand(RequirementCommand):
       %prog [options] [-e] <local project path> ...
       %prog [options] <archive url/path> ..."""
 
-    def add_options(self):
-        # type: () -> None
+    def add_options(self) -> None:
 
         self.cmd_opts.add_option(
             '-w', '--wheel-dir',
@@ -96,8 +95,7 @@ class WheelCommand(RequirementCommand):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     @with_cleanup
-    def run(self, options, args):
-        # type: (Values, List[str]) -> int
+    def run(self, options: Values, args: List[str]) -> int:
         cmdoptions.check_install_build_global(options)
 
         session = self.get_default_session(options)
@@ -143,7 +141,7 @@ class WheelCommand(RequirementCommand):
             reqs, check_supported_wheels=True
         )
 
-        reqs_to_build = []  # type: List[InstallRequirement]
+        reqs_to_build: List[InstallRequirement] = []
         for req in requirement_set.requirements.values():
             if req.is_wheel:
                 preparer.save_linked_requirement(req)

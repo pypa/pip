@@ -36,8 +36,7 @@ class CacheCommand(Command):
         %prog purge
     """
 
-    def add_options(self):
-        # type: () -> None
+    def add_options(self) -> None:
 
         self.cmd_opts.add_option(
             '--format',
@@ -50,8 +49,7 @@ class CacheCommand(Command):
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
-    def run(self, options, args):
-        # type: (Values, List[Any]) -> int
+    def run(self, options: Values, args: List[Any]) -> int:
         handlers = {
             "dir": self.get_cache_dir,
             "info": self.get_cache_info,
@@ -84,15 +82,13 @@ class CacheCommand(Command):
 
         return SUCCESS
 
-    def get_cache_dir(self, options, args):
-        # type: (Values, List[Any]) -> None
+    def get_cache_dir(self, options: Values, args: List[Any]) -> None:
         if args:
             raise CommandError('Too many arguments')
 
         logger.info(options.cache_dir)
 
-    def get_cache_info(self, options, args):
-        # type: (Values, List[Any]) -> None
+    def get_cache_info(self, options: Values, args: List[Any]) -> None:
         if args:
             raise CommandError('Too many arguments')
 
@@ -124,8 +120,7 @@ class CacheCommand(Command):
 
         logger.info(message)
 
-    def list_cache_items(self, options, args):
-        # type: (Values, List[Any]) -> None
+    def list_cache_items(self, options: Values, args: List[Any]) -> None:
         if len(args) > 1:
             raise CommandError('Too many arguments')
 
@@ -140,8 +135,7 @@ class CacheCommand(Command):
         else:
             self.format_for_abspath(files)
 
-    def format_for_human(self, files):
-        # type: (List[str]) -> None
+    def format_for_human(self, files: List[str]) -> None:
         if not files:
             logger.info('Nothing cached.')
             return
@@ -154,8 +148,7 @@ class CacheCommand(Command):
         logger.info('Cache contents:\n')
         logger.info('\n'.join(sorted(results)))
 
-    def format_for_abspath(self, files):
-        # type: (List[str]) -> None
+    def format_for_abspath(self, files: List[str]) -> None:
         if not files:
             return
 
@@ -165,8 +158,7 @@ class CacheCommand(Command):
 
         logger.info('\n'.join(sorted(results)))
 
-    def remove_cache_items(self, options, args):
-        # type: (Values, List[Any]) -> None
+    def remove_cache_items(self, options: Values, args: List[Any]) -> None:
         if len(args) > 1:
             raise CommandError('Too many arguments')
 
@@ -187,24 +179,20 @@ class CacheCommand(Command):
             logger.verbose("Removed %s", filename)
         logger.info("Files removed: %s", len(files))
 
-    def purge_cache(self, options, args):
-        # type: (Values, List[Any]) -> None
+    def purge_cache(self, options: Values, args: List[Any]) -> None:
         if args:
             raise CommandError('Too many arguments')
 
         return self.remove_cache_items(options, ['*'])
 
-    def _cache_dir(self, options, subdir):
-        # type: (Values, str) -> str
+    def _cache_dir(self, options: Values, subdir: str) -> str:
         return os.path.join(options.cache_dir, subdir)
 
-    def _find_http_files(self, options):
-        # type: (Values) -> List[str]
+    def _find_http_files(self, options: Values) -> List[str]:
         http_dir = self._cache_dir(options, 'http')
         return filesystem.find_files(http_dir, '*')
 
-    def _find_wheels(self, options, pattern):
-        # type: (Values, str) -> List[str]
+    def _find_wheels(self, options: Values, pattern: str) -> List[str]:
         wheel_dir = self._cache_dir(options, 'wheels')
 
         # The wheel filename format, as specified in PEP 427, is:
