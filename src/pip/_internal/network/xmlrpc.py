@@ -40,9 +40,13 @@ class PipXmlrpcTransport(xmlrpc.client.Transport):
         parts = (self._scheme, host, handler, None, None, None)
         url = urllib.parse.urlunparse(parts)
         try:
-            headers = {'Content-Type': 'text/xml'}
-            response = self._session.post(url, data=request_body,
-                                          headers=headers, stream=True)
+            headers = {"Content-Type": "text/xml"}
+            response = self._session.post(
+                url,
+                data=request_body,
+                headers=headers,
+                stream=True,
+            )
             raise_for_status(response)
             self.verbose = verbose
             return self.parse_response(response.raw)
@@ -50,6 +54,7 @@ class PipXmlrpcTransport(xmlrpc.client.Transport):
             assert exc.response
             logger.critical(
                 "HTTP error %s while getting %s",
-                exc.response.status_code, url,
+                exc.response.status_code,
+                url,
             )
             raise

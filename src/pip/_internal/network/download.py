@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 def _get_http_response_size(resp: Response) -> Optional[int]:
     try:
-        return int(resp.headers['content-length'])
+        return int(resp.headers["content-length"])
     except (ValueError, KeyError, TypeError):
         return None
 
@@ -30,7 +30,7 @@ def _get_http_response_size(resp: Response) -> Optional[int]:
 def _prepare_download(
     resp: Response,
     link: Link,
-    progress_bar: str
+    progress_bar: str,
 ) -> Iterable[bytes]:
     total_length = _get_http_response_size(resp)
 
@@ -42,7 +42,7 @@ def _prepare_download(
     logged_url = redact_auth_from_url(url)
 
     if total_length:
-        logged_url = '{} ({})'.format(logged_url, format_size(total_length))
+        logged_url = "{} ({})".format(logged_url, format_size(total_length))
 
     if is_from_cache(resp):
         logger.info("Using cached %s", logged_url)
@@ -65,9 +65,7 @@ def _prepare_download(
     if not show_progress:
         return chunks
 
-    return DownloadProgressProvider(
-        progress_bar, max=total_length
-    )(chunks)
+    return DownloadProgressProvider(progress_bar, max=total_length)(chunks)
 
 
 def sanitize_content_filename(filename: str) -> str:
@@ -83,7 +81,7 @@ def parse_content_disposition(content_disposition: str, default_filename: str) -
     return the default filename if the result is empty.
     """
     _type, params = cgi.parse_header(content_disposition)
-    filename = params.get('filename')
+    filename = params.get("filename")
     if filename:
         # We need to sanitize the filename to prevent directory traversal
         # in case the filename contains ".." path parts.
@@ -97,14 +95,12 @@ def _get_http_response_filename(resp: Response, link: Link) -> str:
     """
     filename = link.filename  # fallback
     # Have a look at the Content-Disposition header for a better guess
-    content_disposition = resp.headers.get('content-disposition')
+    content_disposition = resp.headers.get("content-disposition")
     if content_disposition:
         filename = parse_content_disposition(content_disposition, filename)
     ext: Optional[str] = splitext(filename)[1]
     if not ext:
-        ext = mimetypes.guess_extension(
-            resp.headers.get('content-type', '')
-        )
+        ext = mimetypes.guess_extension(resp.headers.get("content-type", ""))
         if ext:
             filename += ext
     if not ext and link.url != resp.url:
@@ -115,7 +111,7 @@ def _get_http_response_filename(resp: Response, link: Link) -> str:
 
 
 def _http_get_download(session: PipSession, link: Link) -> Response:
-    target_url = link.url.split('#', 1)[0]
+    target_url = link.url.split("#", 1)[0]
     resp = session.get(target_url, headers=HEADERS, stream=True)
     raise_for_status(resp)
     return resp
@@ -145,15 +141,14 @@ class Downloader:
         filepath = os.path.join(location, filename)
 
         chunks = _prepare_download(resp, link, self._progress_bar)
-        with open(filepath, 'wb') as content_file:
+        with open(filepath, "wb") as content_file:
             for chunk in chunks:
                 content_file.write(chunk)
-        content_type = resp.headers.get('Content-Type', '')
+        content_type = resp.headers.get("Content-Type", "")
         return filepath, content_type
 
 
 class BatchDownloader:
-
     def __init__(
         self,
         session: PipSession,
@@ -173,7 +168,8 @@ class BatchDownloader:
                 assert e.response is not None
                 logger.critical(
                     "HTTP error %s while getting %s",
-                    e.response.status_code, link,
+                    e.response.status_code,
+                    link,
                 )
                 raise
 
@@ -181,8 +177,8 @@ class BatchDownloader:
             filepath = os.path.join(location, filename)
 
             chunks = _prepare_download(resp, link, self._progress_bar)
-            with open(filepath, 'wb') as content_file:
+            with open(filepath, "wb") as content_file:
                 for chunk in chunks:
                     content_file.write(chunk)
-            content_type = resp.headers.get('Content-Type', '')
+            content_type = resp.headers.get("Content-Type", "")
             yield link, (filepath, content_type)
