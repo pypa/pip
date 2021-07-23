@@ -40,7 +40,7 @@ COMMENT_RE = re.compile(r'(^|\s+)#.*$')
 # 2013 Edition.
 ENV_VAR_RE = re.compile(r'(?P<var>\$\{(?P<name>[A-Z0-9_]+)\})')
 
-SUPPORTED_OPTIONS = [
+SUPPORTED_OPTIONS: List[Callable[..., optparse.Option]] = [
     cmdoptions.index_url,
     cmdoptions.extra_index_url,
     cmdoptions.no_index,
@@ -55,14 +55,14 @@ SUPPORTED_OPTIONS = [
     cmdoptions.pre,
     cmdoptions.trusted_host,
     cmdoptions.use_new_feature,
-]  # type: List[Callable[..., optparse.Option]]
+]
 
 # options to be passed to requirements
-SUPPORTED_OPTIONS_REQ = [
+SUPPORTED_OPTIONS_REQ: List[Callable[..., optparse.Option]] = [
     cmdoptions.install_options,
     cmdoptions.global_options,
     cmdoptions.hash,
-]  # type: List[Callable[..., optparse.Option]]
+]
 
 # the 'dest' string values
 SUPPORTED_OPTIONS_REQ_DEST = [str(o().dest) for o in SUPPORTED_OPTIONS_REQ]
@@ -71,14 +71,13 @@ SUPPORTED_OPTIONS_REQ_DEST = [str(o().dest) for o in SUPPORTED_OPTIONS_REQ]
 class ParsedRequirement:
     def __init__(
         self,
-        requirement,  # type:str
-        is_editable,  # type: bool
-        comes_from,  # type: str
-        constraint,  # type: bool
-        options=None,  # type: Optional[Dict[str, Any]]
-        line_source=None,  # type: Optional[str]
-    ):
-        # type: (...) -> None
+        requirement: str,
+        is_editable: bool,
+        comes_from: str,
+        constraint: bool,
+        options: Optional[Dict[str, Any]] = None,
+        line_source: Optional[str] = None,
+    ) -> None:
         self.requirement = requirement
         self.is_editable = is_editable
         self.comes_from = comes_from
@@ -90,13 +89,12 @@ class ParsedRequirement:
 class ParsedLine:
     def __init__(
         self,
-        filename,  # type: str
-        lineno,  # type: int
-        args,  # type: str
-        opts,  # type: Values
-        constraint,  # type: bool
-    ):
-        # type: (...) -> None
+        filename: str,
+        lineno: int,
+        args: str,
+        opts: Values,
+        constraint: bool,
+    ) -> None:
         self.filename = filename
         self.lineno = lineno
         self.opts = opts
@@ -116,13 +114,12 @@ class ParsedLine:
 
 
 def parse_requirements(
-    filename,  # type: str
-    session,  # type: PipSession
-    finder=None,  # type: Optional[PackageFinder]
-    options=None,  # type: Optional[optparse.Values]
-    constraint=False,  # type: bool
-):
-    # type: (...) -> Iterator[ParsedRequirement]
+    filename: str,
+    session: PipSession,
+    finder: Optional["PackageFinder"] = None,
+    options: Optional[optparse.Values] = None,
+    constraint: bool = False,
+) -> Iterator[ParsedRequirement]:
     """Parse a requirements file and yield ParsedRequirement instances.
 
     :param filename:    Path or url of requirements file.
@@ -146,13 +143,12 @@ def parse_requirements(
             yield parsed_req
 
 
-def preprocess(content):
-    # type: (str) -> ReqFileLines
+def preprocess(content: str) -> ReqFileLines:
     """Split, filter, and join lines, and return a line iterator
 
     :param content: the content of the requirements file
     """
-    lines_enum = enumerate(content.splitlines(), start=1)  # type: ReqFileLines
+    lines_enum: ReqFileLines = enumerate(content.splitlines(), start=1)
     lines_enum = join_lines(lines_enum)
     lines_enum = ignore_comments(lines_enum)
     lines_enum = expand_env_variables(lines_enum)
@@ -160,10 +156,9 @@ def preprocess(content):
 
 
 def handle_requirement_line(
-    line,  # type: ParsedLine
-    options=None,  # type: Optional[optparse.Values]
-):
-    # type: (...) -> ParsedRequirement
+    line: ParsedLine,
+    options: Optional[optparse.Values] = None,
+) -> ParsedRequirement:
 
     # preserve for the nested code path
     line_comes_from = '{} {} (line {})'.format(
@@ -204,14 +199,13 @@ def handle_requirement_line(
 
 
 def handle_option_line(
-    opts,  # type: Values
-    filename,  # type: str
-    lineno,  # type: int
-    finder=None,  # type: Optional[PackageFinder]
-    options=None,  # type: Optional[optparse.Values]
-    session=None,  # type: Optional[PipSession]
-):
-    # type:  (...) -> None
+    opts: Values,
+    filename: str,
+    lineno: int,
+    finder: Optional["PackageFinder"] = None,
+    options: Optional[optparse.Values] = None,
+    session: Optional[PipSession] = None,
+) -> None:
 
     if options:
         # percolate options upward
@@ -267,12 +261,11 @@ def handle_option_line(
 
 
 def handle_line(
-    line,  # type: ParsedLine
-    options=None,  # type: Optional[optparse.Values]
-    finder=None,  # type: Optional[PackageFinder]
-    session=None,  # type: Optional[PipSession]
-):
-    # type: (...) -> Optional[ParsedRequirement]
+    line: ParsedLine,
+    options: Optional[optparse.Values] = None,
+    finder: Optional["PackageFinder"] = None,
+    session: Optional[PipSession] = None,
+) -> Optional[ParsedRequirement]:
     """Handle a single parsed requirements line; This can result in
     creating/yielding requirements, or updating the finder.
 
@@ -314,21 +307,20 @@ def handle_line(
 class RequirementsFileParser:
     def __init__(
         self,
-        session,  # type: PipSession
-        line_parser,  # type: LineParser
-    ):
-        # type: (...) -> None
+        session: PipSession,
+        line_parser: LineParser,
+    ) -> None:
         self._session = session
         self._line_parser = line_parser
 
-    def parse(self, filename, constraint):
-        # type: (str, bool) -> Iterator[ParsedLine]
+    def parse(self, filename: str, constraint: bool) -> Iterator[ParsedLine]:
         """Parse a given file, yielding parsed lines.
         """
         yield from self._parse_and_recurse(filename, constraint)
 
-    def _parse_and_recurse(self, filename, constraint):
-        # type: (str, bool) -> Iterator[ParsedLine]
+    def _parse_and_recurse(
+        self, filename: str, constraint: bool
+    ) -> Iterator[ParsedLine]:
         for line in self._parse_file(filename, constraint):
             if (
                 not line.is_requirement and
@@ -357,8 +349,7 @@ class RequirementsFileParser:
             else:
                 yield line
 
-    def _parse_file(self, filename, constraint):
-        # type: (str, bool) -> Iterator[ParsedLine]
+    def _parse_file(self, filename: str, constraint: bool) -> Iterator[ParsedLine]:
         _, content = get_file_content(filename, self._session)
 
         lines_enum = preprocess(content)
@@ -380,10 +371,8 @@ class RequirementsFileParser:
             )
 
 
-def get_line_parser(finder):
-    # type: (Optional[PackageFinder]) -> LineParser
-    def parse_line(line):
-        # type: (str) -> Tuple[str, Values]
+def get_line_parser(finder: Optional["PackageFinder"]) -> LineParser:
+    def parse_line(line: str) -> Tuple[str, Values]:
         # Build new parser for each line since it accumulates appendable
         # options.
         parser = build_parser()
@@ -401,8 +390,7 @@ def get_line_parser(finder):
     return parse_line
 
 
-def break_args_options(line):
-    # type: (str) -> Tuple[str, str]
+def break_args_options(line: str) -> Tuple[str, str]:
     """Break up the line into an args and options string.  We only want to shlex
     (and then optparse) the options, not the args.  args can contain markers
     which are corrupted by shlex.
@@ -420,13 +408,11 @@ def break_args_options(line):
 
 
 class OptionParsingError(Exception):
-    def __init__(self, msg):
-        # type: (str) -> None
+    def __init__(self, msg: str) -> None:
         self.msg = msg
 
 
-def build_parser():
-    # type: () -> optparse.OptionParser
+def build_parser() -> optparse.OptionParser:
     """
     Return a parser for parsing requirement lines
     """
@@ -439,8 +425,7 @@ def build_parser():
 
     # By default optparse sys.exits on parsing errors. We want to wrap
     # that in our own exception.
-    def parser_exit(self, msg):
-        # type: (Any, str) -> NoReturn
+    def parser_exit(self: Any, msg: str) -> "NoReturn":
         raise OptionParsingError(msg)
     # NOTE: mypy disallows assigning to a method
     #       https://github.com/python/mypy/issues/2427
@@ -449,13 +434,12 @@ def build_parser():
     return parser
 
 
-def join_lines(lines_enum):
-    # type: (ReqFileLines) -> ReqFileLines
+def join_lines(lines_enum: ReqFileLines) -> ReqFileLines:
     """Joins a line ending in '\' with the previous line (except when following
     comments).  The joined line takes on the index of the first line.
     """
     primary_line_number = None
-    new_line = []  # type: List[str]
+    new_line: List[str] = []
     for line_number, line in lines_enum:
         if not line.endswith('\\') or COMMENT_RE.match(line):
             if COMMENT_RE.match(line):
@@ -481,8 +465,7 @@ def join_lines(lines_enum):
     # TODO: handle space after '\'.
 
 
-def ignore_comments(lines_enum):
-    # type: (ReqFileLines) -> ReqFileLines
+def ignore_comments(lines_enum: ReqFileLines) -> ReqFileLines:
     """
     Strips comments and filter empty lines.
     """
@@ -493,8 +476,7 @@ def ignore_comments(lines_enum):
             yield line_number, line
 
 
-def expand_env_variables(lines_enum):
-    # type: (ReqFileLines) -> ReqFileLines
+def expand_env_variables(lines_enum: ReqFileLines) -> ReqFileLines:
     """Replace all environment variables that can be retrieved via `os.getenv`.
 
     The only allowed format for environment variables defined in the
@@ -521,8 +503,7 @@ def expand_env_variables(lines_enum):
         yield line_number, line
 
 
-def get_file_content(url, session):
-    # type: (str, PipSession) -> Tuple[str, str]
+def get_file_content(url: str, session: PipSession) -> Tuple[str, str]:
     """Gets the content of a file; it may be a filename, file: URL, or
     http: URL.  Returns (location, content).  Content is unicode.
     Respects # -*- coding: declarations on the retrieved files.
