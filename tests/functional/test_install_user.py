@@ -15,16 +15,16 @@ def _patch_dist_in_site_packages(virtualenv):
     # Since the tests are run from a virtualenv, and to avoid the "Will not
     # install to the usersite because it will lack sys.path precedence..."
     # error: Monkey patch `pip._internal.req.req_install.dist_in_site_packages`
-    # and `pip._internal.resolution.resolvelib.factory.dist_in_site_packages`
+    # and `pip._internal.utils.misc.dist_in_site_packages`
     # so it's possible to install a conflicting distribution in the user site.
     virtualenv.sitecustomize = textwrap.dedent("""
         def dist_in_site_packages(dist):
             return False
 
         from pip._internal.req import req_install
-        from pip._internal.resolution.resolvelib import factory
+        from pip._internal.utils import misc
         req_install.dist_in_site_packages = dist_in_site_packages
-        factory.dist_in_site_packages = dist_in_site_packages
+        misc.dist_in_site_packages = dist_in_site_packages
     """)
 
 

@@ -67,6 +67,22 @@ def parse_reqfile(
         )
 
 
+def test_read_file_url(tmp_path):
+    reqs = tmp_path.joinpath("requirements.txt")
+    reqs.write_text("foo")
+    result = list(parse_requirements(reqs.as_posix(), session))
+
+    assert len(result) == 1, result
+    assert result[0].requirement == "foo"
+
+    # The comes_from value has three parts: -r or -c flag, path, and line.
+    # The path value in the middle needs some special logic due to our path
+    # normalization logic.
+    assert result[0].comes_from[:3] == "-r "
+    assert result[0].comes_from[-9:] == " (line 1)"
+    assert os.path.samefile(result[0].comes_from[3:-9], str(reqs))
+
+
 class TestPreprocess:
     """tests for `preprocess`"""
 

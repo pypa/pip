@@ -22,7 +22,6 @@ from pip._vendor.packaging.requirements import InvalidRequirement
 from pip._vendor.packaging.requirements import Requirement as PackagingRequirement
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
-from pip._vendor.pkg_resources import Distribution
 from pip._vendor.resolvelib import ResolutionImpossible
 
 from pip._internal.cache import CacheEntry, WheelCache
@@ -35,6 +34,7 @@ from pip._internal.exceptions import (
     UnsupportedWheel,
 )
 from pip._internal.index.package_finder import PackageFinder
+from pip._internal.metadata import BaseDistribution, get_default_environment
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.operations.prepare import RequirementPreparer
@@ -46,11 +46,6 @@ from pip._internal.req.req_install import (
 from pip._internal.resolution.base import InstallRequirementProvider
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
-from pip._internal.utils.misc import (
-    dist_in_site_packages,
-    dist_in_usersite,
-    get_installed_distributions,
-)
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 from .base import Candidate, CandidateVersion, Constraint, Requirement
@@ -122,9 +117,10 @@ class Factory:
         ] = {}
 
         if not ignore_installed:
+            env = get_default_environment()
             self._installed_dists = {
-                canonicalize_name(dist.project_name): dist
-                for dist in get_installed_distributions(local_only=False)
+                dist.canonical_name: dist
+                for dist in env.iter_installed_distributions(local_only=False)
             }
         else:
             self._installed_dists = {}
@@ -155,15 +151,18 @@ class Factory:
 
     def _make_candidate_from_dist(
         self,
-        dist: Distribution,
+        dist: BaseDistribution,
         extras: FrozenSet[str],
         template: InstallRequirement,
     ) -> Candidate:
         try:
-            base = self._installed_candidate_cache[dist.key]
+            base = self._installed_candidate_cache[dist.canonical_name]
         except KeyError:
-            base = AlreadyInstalledCandidate(dist, template, factory=self)
-            self._installed_candidate_cache[dist.key] = base
+            from pip._internal.metadata.pkg_resources import Distribution as _Dist
+
+            compat_dist = cast(_Dist, dist)._dist
+            base = AlreadyInstalledCandidate(compat_dist, template, factory=self)
+            self._installed_candidate_cache[dist.canonical_name] = base
         if not extras:
             return base
         return self._make_extras_candidate(base, extras)
@@ -520,7 +519,7 @@ class Factory:
             supported_tags=get_supported(),
         )
 
-    def get_dist_to_uninstall(self, candidate: Candidate) -> Optional[Distribution]:
+    def get_dist_to_uninstall(self, candidate: Candidate) -> Optional[BaseDistribution]:
         # TODO: Are there more cases this needs to return True? Editable?
         dist = self._installed_dists.get(candidate.project_name)
         if dist is None:  # Not installed, no uninstallation required.
@@ -533,21 +532,19 @@ class Factory:
             return dist
 
         # We're installing into user site. Remove the user site installation.
-        if dist_in_usersite(dist):
+        if dist.in_usersite:
             return dist
 
         # We're installing into user site, but the installed incompatible
         # package is in global site. We can't uninstall that, and would let
         # the new user installation to "shadow" it. But shadowing won't work
         # in virtual environments, so we error out.
-        if running_under_virtualenv() and dist_in_site_packages(dist):
-            raise InstallationError(
-                "Will not install to the user site because it will "
-                "lack sys.path precedence to {} in {}".format(
-                    dist.project_name,
-                    dist.location,
-                )
+        if running_under_virtualenv() and dist.in_site_packages:
+            message = (
+                f"Will not install to the user site because it will lack "
+                f"sys.path precedence to {dist.raw_name} in {dist.location}"
             )
+            raise InstallationError(message)
         return None
 
     def _report_requires_python_error(

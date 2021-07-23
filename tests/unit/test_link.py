@@ -1,6 +1,6 @@
 import pytest
 
-from pip._internal.models.link import Link
+from pip._internal.models.link import Link, links_equivalent
 from pip._internal.utils.hashes import Hashes
 
 
@@ -138,3 +138,56 @@ class TestLink:
     def test_is_vcs(self, url, expected):
         link = Link(url)
         assert link.is_vcs is expected
+
+
+@pytest.mark.parametrize(
+    "url1, url2",
+    [
+        pytest.param(
+            "https://example.com/foo#egg=foo",
+            "https://example.com/foo",
+            id="drop-egg",
+        ),
+        pytest.param(
+            "https://example.com/foo#subdirectory=bar&egg=foo",
+            "https://example.com/foo#subdirectory=bar&egg=bar",
+            id="drop-egg-only",
+        ),
+        pytest.param(
+            "https://example.com/foo#subdirectory=bar&egg=foo",
+            "https://example.com/foo#egg=foo&subdirectory=bar",
+            id="fragment-ordering",
+        ),
+        pytest.param(
+            "https://example.com/foo?a=1&b=2",
+            "https://example.com/foo?b=2&a=1",
+            id="query-opordering",
+        ),
+    ],
+)
+def test_links_equivalent(url1, url2):
+    assert links_equivalent(Link(url1), Link(url2))
+
+
+@pytest.mark.parametrize(
+    "url1, url2",
+    [
+        pytest.param(
+            "https://example.com/foo#sha512=1234567890abcdef",
+            "https://example.com/foo#sha512=abcdef1234567890",
+            id="different-keys",
+        ),
+        pytest.param(
+            "https://example.com/foo#sha512=1234567890abcdef",
+            "https://example.com/foo#md5=1234567890abcdef",
+            id="different-values",
+        ),
+        pytest.param(
+            "https://example.com/foo#subdirectory=bar&egg=foo",
+            "https://example.com/foo#subdirectory=rex",
+            id="drop-egg-still-different",
+        ),
+    ],
+)
+def test_links_equivalent_false(url1, url2):
+    assert not links_equivalent(Link(url1), Link(url2))

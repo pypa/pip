@@ -14,27 +14,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import typing
+
 from pip._vendor.tenacity import _utils
 
+if typing.TYPE_CHECKING:
+    import logging
 
-def after_nothing(retry_state):
+    from pip._vendor.tenacity import RetryCallState
+
+
+def after_nothing(retry_state: "RetryCallState") -> None:
     """After call strategy that does nothing."""
 
 
-def after_log(logger, log_level, sec_format="%0.3f"):
+def after_log(
+    logger: "logging.Logger",
+    log_level: int,
+    sec_format: str = "%0.3f",
+) -> typing.Callable[["RetryCallState"], None]:
     """After call strategy that logs to some logger the finished attempt."""
-    log_tpl = (
-        "Finished call to '%s' after " + str(sec_format) + "(s), "
-        "this was the %s time calling it."
-    )
 
-    def log_it(retry_state):
+    def log_it(retry_state: "RetryCallState") -> None:
         logger.log(
             log_level,
-            log_tpl,
-            _utils.get_callback_name(retry_state.fn),
-            retry_state.seconds_since_start,
-            _utils.to_ordinal(retry_state.attempt_number),
+            f"Finished call to '{_utils.get_callback_name(retry_state.fn)}' "
+            f"after {sec_format % retry_state.seconds_since_start}(s), "
+            f"this was the {_utils.to_ordinal(retry_state.attempt_number)} time calling it.",
         )
 
     return log_it

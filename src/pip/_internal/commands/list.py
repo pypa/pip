@@ -152,7 +152,7 @@ class ListCommand(IndexGroupCommand):
 
         skip = set(stdlib_pkgs)
         if options.excludes:
-            skip.update(options.excludes)
+            skip.update(canonicalize_name(n) for n in options.excludes)
 
         packages: "_ProcessedDists" = [
             cast("_DistWithLatestInfo", d)
@@ -199,7 +199,7 @@ class ListCommand(IndexGroupCommand):
         dep_keys = {
             canonicalize_name(dep.name)
             for dist in packages
-            for dep in dist.iter_dependencies()
+            for dep in (dist.iter_dependencies() or ())
         }
 
         # Create a set to remove duplicate packages, and cast it to a list
@@ -252,10 +252,10 @@ class ListCommand(IndexGroupCommand):
         elif options.list_format == 'freeze':
             for dist in packages:
                 if options.verbose >= 1:
-                    write_output("%s==%s (%s)", dist.canonical_name,
+                    write_output("%s==%s (%s)", dist.raw_name,
                                  dist.version, dist.location)
                 else:
-                    write_output("%s==%s", dist.canonical_name, dist.version)
+                    write_output("%s==%s", dist.raw_name, dist.version)
         elif options.list_format == 'json':
             write_output(format_for_json(packages, options))
 
@@ -297,7 +297,7 @@ def format_for_columns(pkgs, options):
     for proj in pkgs:
         # if we're working on the 'outdated' list, separate out the
         # latest_version and type
-        row = [proj.canonical_name, str(proj.version)]
+        row = [proj.raw_name, str(proj.version)]
 
         if running_outdated:
             row.append(str(proj.latest_version))
@@ -318,7 +318,7 @@ def format_for_json(packages, options):
     data = []
     for dist in packages:
         info = {
-            'name': dist.canonical_name,
+            'name': dist.raw_name,
             'version': str(dist.version),
         }
         if options.verbose >= 1:

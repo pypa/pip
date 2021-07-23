@@ -164,7 +164,7 @@ except ImportError:
                 "urllib3 from configuring SSL appropriately and may cause "
                 "certain SSL connections to fail. You can upgrade to a newer "
                 "version of Python to solve this. For more information, see "
-                "https://urllib3.readthedocs.io/en/latest/advanced-usage.html"
+                "https://urllib3.readthedocs.io/en/1.26.x/advanced-usage.html"
                 "#ssl-warnings",
                 InsecurePlatformWarning,
             )
@@ -422,7 +422,7 @@ def ssl_wrap_socket(
     try:
         if hasattr(context, "set_alpn_protocols"):
             context.set_alpn_protocols(ALPN_PROTOCOLS)
-    except NotImplementedError:
+    except NotImplementedError:  # Defensive: in CI, we always have set_alpn_protocols
         pass
 
     # If we detect server_hostname is an IP address then the SNI
@@ -440,7 +440,7 @@ def ssl_wrap_socket(
             "This may cause the server to present an incorrect TLS "
             "certificate, which can cause validation failures. You can upgrade to "
             "a newer version of Python to solve this. For more information, see "
-            "https://urllib3.readthedocs.io/en/latest/advanced-usage.html"
+            "https://urllib3.readthedocs.io/en/1.26.x/advanced-usage.html"
             "#ssl-warnings",
             SNIMissingWarning,
         )

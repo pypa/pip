@@ -14,11 +14,13 @@ from types import TracebackType
 from typing import TYPE_CHECKING, Iterable, Iterator, List, Optional, Set, Tuple, Type
 
 from pip._vendor.certifi import where
-from pip._vendor.pkg_resources import Requirement, VersionConflict, WorkingSet
+from pip._vendor.packaging.requirements import Requirement
+from pip._vendor.packaging.version import Version
 
 from pip import __file__ as pip_location
 from pip._internal.cli.spinners import open_spinner
 from pip._internal.locations import get_platlib, get_prefixed_libs, get_purelib
+from pip._internal.metadata import get_environment
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 
@@ -167,14 +169,20 @@ class BuildEnvironment:
         missing = set()
         conflicting = set()
         if reqs:
-            ws = WorkingSet(self._lib_dirs)
-            for req in reqs:
-                try:
-                    if ws.find(Requirement.parse(req)) is None:
-                        missing.add(req)
-                except VersionConflict as e:
-                    conflicting.add((str(e.args[0].as_requirement()),
-                                     str(e.args[1])))
+            env = get_environment(self._lib_dirs)
+            for req_str in reqs:
+                req = Requirement(req_str)
+                dist = env.get_distribution(req.name)
+                if not dist:
+                    missing.add(req_str)
+                    continue
+                if isinstance(dist.version, Version):
+                    installed_req_str = f"{req.name}=={dist.version}"
+                else:
+                    installed_req_str = f"{req.name}==={dist.version}"
+                if dist.version not in req.specifier:
+                    conflicting.add((installed_req_str, req_str))
+                # FIXME: Consider direct URL?
         return conflicting, missing
 
     def install_requirements(

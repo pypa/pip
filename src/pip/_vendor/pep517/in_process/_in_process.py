@@ -63,6 +63,9 @@ class BackendInvalid(Exception):
 
 class HookMissing(Exception):
     """Raised if a hook is missing and we are not executing the fallback"""
+    def __init__(self, hook_name=None):
+        super(HookMissing, self).__init__(hook_name)
+        self.hook_name = hook_name
 
 
 def contained_in(filename, directory):
@@ -114,6 +117,20 @@ def get_requires_for_build_wheel(config_settings):
         return hook(config_settings)
 
 
+def get_requires_for_build_editable(config_settings):
+    """Invoke the optional get_requires_for_build_editable hook
+
+    Returns [] if the hook is not defined.
+    """
+    backend = _build_backend()
+    try:
+        hook = backend.get_requires_for_build_editable
+    except AttributeError:
+        return []
+    else:
+        return hook(config_settings)
+
+
 def prepare_metadata_for_build_wheel(
         metadata_directory, config_settings, _allow_fallback):
     """Invoke optional prepare_metadata_for_build_wheel
@@ -127,8 +144,36 @@ def prepare_metadata_for_build_wheel(
     except AttributeError:
         if not _allow_fallback:
             raise HookMissing()
-        return _get_wheel_metadata_from_wheel(backend, metadata_directory,
+        whl_basename = backend.build_wheel(metadata_directory, config_settings)
+        return _get_wheel_metadata_from_wheel(whl_basename, metadata_directory,
                                               config_settings)
+    else:
+        return hook(metadata_directory, config_settings)
+
+
+def prepare_metadata_for_build_editable(
+        metadata_directory, config_settings, _allow_fallback):
+    """Invoke optional prepare_metadata_for_build_editable
+
+    Implements a fallback by building an editable wheel if the hook isn't
+    defined, unless _allow_fallback is False in which case HookMissing is
+    raised.
+    """
+    backend = _build_backend()
+    try:
+        hook = backend.prepare_metadata_for_build_editable
+    except AttributeError:
+        if not _allow_fallback:
+            raise HookMissing()
+        try:
+            build_hook = backend.build_editable
+        except AttributeError:
+            raise HookMissing(hook_name='build_editable')
+        else:
+            whl_basename = build_hook(metadata_directory, config_settings)
+            return _get_wheel_metadata_from_wheel(whl_basename,
+                                                  metadata_directory,
+                                                  config_settings)
     else:
         return hook(metadata_directory, config_settings)
 
@@ -149,14 +194,13 @@ def _dist_info_files(whl_zip):
 
 
 def _get_wheel_metadata_from_wheel(
-        backend, metadata_directory, config_settings):
-    """Build a wheel and extract the metadata from it.
+        whl_basename, metadata_directory, config_settings):
+    """Extract the metadata from a wheel.
 
     Fallback for when the build backend does not
     define the 'get_wheel_metadata' hook.
     """
     from zipfile import ZipFile
-    whl_basename = backend.build_wheel(metadata_directory, config_settings)
     with open(os.path.join(metadata_directory, WHEEL_BUILT_MARKER), 'wb'):
         pass  # Touch marker file
 
@@ -205,6 +249,27 @@ def build_wheel(wheel_directory, config_settings, metadata_directory=None):
                                         metadata_directory)
 
 
+def build_editable(wheel_directory, config_settings, metadata_directory=None):
+    """Invoke the optional build_editable hook.
+
+    If a wheel was already built in the
+    prepare_metadata_for_build_editable fallback, this
+    will copy it rather than rebuilding the wheel.
+    """
+    backend = _build_backend()
+    try:
+        hook = backend.build_editable
+    except AttributeError:
+        raise HookMissing()
+    else:
+        prebuilt_whl = _find_already_built_wheel(metadata_directory)
+        if prebuilt_whl:
+            shutil.copy2(prebuilt_whl, wheel_directory)
+            return os.path.basename(prebuilt_whl)
+
+        return hook(wheel_directory, config_settings, metadata_directory)
+
+
 def get_requires_for_build_sdist(config_settings):
     """Invoke the optional get_requires_for_build_wheel hook
 
@@ -242,6 +307,9 @@ HOOK_NAMES = {
     'get_requires_for_build_wheel',
     'prepare_metadata_for_build_wheel',
     'build_wheel',
+    'get_requires_for_build_editable',
+    'prepare_metadata_for_build_editable',
+    'build_editable',
     'get_requires_for_build_sdist',
     'build_sdist',
 }
@@ -270,8 +338,9 @@ def main():
     except GotUnsupportedOperation as e:
         json_out['unsupported'] = True
         json_out['traceback'] = e.traceback
-    except HookMissing:
+    except HookMissing as e:
         json_out['hook_missing'] = True
+        json_out['missing_hook_name'] = e.hook_name or hook_name
 
     write_json(json_out, pjoin(control_dir, 'output.json'), indent=2)
 

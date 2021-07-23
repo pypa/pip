@@ -1,8 +1,10 @@
+import functools
+import logging
 import os
 import posixpath
 import re
 import urllib.parse
-from typing import TYPE_CHECKING, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, List, NamedTuple, Optional, Tuple, Union
 
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
 from pip._internal.utils.hashes import Hashes
@@ -16,6 +18,11 @@ from pip._internal.utils.urls import path_to_url, url_to_path
 
 if TYPE_CHECKING:
     from pip._internal.index.collector import HTMLPage
+
+logger = logging.getLogger(__name__)
+
+
+_SUPPORTED_HASHES = ("sha1", "sha224", "sha384", "sha256", "sha512", "md5")
 
 
 class Link(KeyBasedCompareMixin):
@@ -159,7 +166,7 @@ class Link(KeyBasedCompareMixin):
         return match.group(1)
 
     _hash_re = re.compile(
-        r'(sha1|sha224|sha384|sha256|sha512|md5)=([a-f0-9]+)'
+        r'({choices})=([a-f0-9]+)'.format(choices="|".join(_SUPPORTED_HASHES))
     )
 
     @property
@@ -218,6 +225,61 @@ class Link(KeyBasedCompareMixin):
         return hashes.is_hash_allowed(self.hash_name, hex_digest=self.hash)
 
 
-# TODO: Relax this comparison logic to ignore, for example, fragments.
+class _CleanResult(NamedTuple):
+    """Convert link for equivalency check.
+
+    This is used in the resolver to check whether two URL-specified requirements
+    likely point to the same distribution and can be considered equivalent. This
+    equivalency logic avoids comparing URLs literally, which can be too strict
+    (e.g. "a=1&b=2" vs "b=2&a=1") and produce conflicts unexpecting to users.
+
+    Currently this does three things:
+
+    1. Drop the basic auth part. This is technically wrong since a server can
+       serve different content based on auth, but if it does that, it is even
+       impossible to guarantee two URLs without auth are equivalent, since
+       the user can input different auth information when prompted. So the
+       practical solution is to assume the auth doesn't affect the response.
+    2. Parse the query to avoid the ordering issue. Note that ordering under the
+       same key in the query are NOT cleaned; i.e. "a=1&a=2" and "a=2&a=1" are
+       still considered different.
+    3. Explicitly drop most of the fragment part, except ``subdirectory=`` and
+       hash values, since it should have no impact the downloaded content. Note
+       that this drops the "egg=" part historically used to denote the requested
+       project (and extras), which is wrong in the strictest sense, but too many
+       people are supplying it inconsistently to cause superfluous resolution
+       conflicts, so we choose to also ignore them.
+    """
+
+    parsed: urllib.parse.SplitResult
+    query: Dict[str, List[str]]
+    subdirectory: str
+    hashes: Dict[str, str]
+
+    @classmethod
+    def from_link(cls, link: Link) -> "_CleanResult":
+        parsed = link._parsed_url
+        netloc = parsed.netloc.rsplit("@", 1)[-1]
+        fragment = urllib.parse.parse_qs(parsed.fragment)
+        if "egg" in fragment:
+            logger.debug("Ignoring egg= fragment in %s", link)
+        try:
+            # If there are multiple subdirectory values, use the first one.
+            # This matches the behavior of Link.subdirectory_fragment.
+            subdirectory = fragment["subdirectory"][0]
+        except (IndexError, KeyError):
+            subdirectory = ""
+        # If there are multiple hash values under the same algorithm, use the
+        # first one. This matches the behavior of Link.hash_value.
+        hashes = {k: fragment[k][0] for k in _SUPPORTED_HASHES if k in fragment}
+        return cls(
+            parsed=parsed._replace(netloc=netloc, query="", fragment=""),
+            query=urllib.parse.parse_qs(parsed.query),
+            subdirectory=subdirectory,
+            hashes=hashes,
+        )
+
+
+@functools.lru_cache(maxsize=None)
 def links_equivalent(link1: Link, link2: Link) -> bool:
-    return link1 == link2
+    return _CleanResult.from_link(link1) == _CleanResult.from_link(link2)

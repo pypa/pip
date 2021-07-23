@@ -2,7 +2,7 @@ from . import idnadata
 import bisect
 import unicodedata
 import re
-import sys
+from typing import Union, Optional
 from .intranges import intranges_contain
 
 _virama_combining_class = 9
@@ -30,6 +30,7 @@ class InvalidCodepointContext(IDNAError):
 
 
 def _combining_class(cp):
+    # type: (int) -> int
     v = unicodedata.combining(chr(cp))
     if v == 0:
         if not unicodedata.name(chr(cp)):
@@ -37,31 +38,34 @@ def _combining_class(cp):
     return v
 
 def _is_script(cp, script):
+    # type: (str, str) -> bool
     return intranges_contain(ord(cp), idnadata.scripts[script])
 
 def _punycode(s):
+    # type: (str) -> bytes
     return s.encode('punycode')
 
 def _unot(s):
+    # type: (int) -> str
     return 'U+{:04X}'.format(s)
 
 
 def valid_label_length(label):
-
+    # type: (Union[bytes, str]) -> bool
     if len(label) > 63:
         return False
     return True
 
 
 def valid_string_length(label, trailing_dot):
-
+    # type: (Union[bytes, str], bool) -> bool
     if len(label) > (254 if trailing_dot else 253):
         return False
     return True
 
 
 def check_bidi(label, check_ltr=False):
-
+    # type: (str, bool) -> bool
     # Bidi rules should only be applied if string contains RTL characters
     bidi_label = False
     for (idx, cp) in enumerate(label, 1):
@@ -84,7 +88,7 @@ def check_bidi(label, check_ltr=False):
         raise IDNABidiError('First codepoint in label {} must be directionality L, R or AL'.format(repr(label)))
 
     valid_ending = False
-    number_type = False
+    number_type = None  # type: Optional[str]
     for (idx, cp) in enumerate(label, 1):
         direction = unicodedata.bidirectional(cp)
 
@@ -121,14 +125,14 @@ def check_bidi(label, check_ltr=False):
 
 
 def check_initial_combiner(label):
-
+    # type: (str) -> bool
     if unicodedata.category(label[0])[0] == 'M':
         raise IDNAError('Label begins with an illegal combining character')
     return True
 
 
 def check_hyphen_ok(label):
-
+    # type: (str) -> bool
     if label[2:4] == '--':
         raise IDNAError('Label has disallowed hyphens in 3rd and 4th position')
     if label[0] == '-' or label[-1] == '-':
@@ -137,13 +141,13 @@ def check_hyphen_ok(label):
 
 
 def check_nfc(label):
-
+    # type: (str) -> None
     if unicodedata.normalize('NFC', label) != label:
         raise IDNAError('Label must be in Normalization Form C')
 
 
 def valid_contextj(label, pos):
-
+    # type: (str, int) -> bool
     cp_value = ord(label[pos])
 
     if cp_value == 0x200c:
@@ -187,7 +191,7 @@ def valid_contextj(label, pos):
 
 
 def valid_contexto(label, pos, exception=False):
-
+    # type: (str, int, bool) -> bool
     cp_value = ord(label[pos])
 
     if cp_value == 0x00b7:
@@ -226,9 +230,11 @@ def valid_contexto(label, pos, exception=False):
                 return False
         return True
 
+    return False
+
 
 def check_label(label):
-
+    # type: (Union[str, bytes, bytearray]) -> None
     if isinstance(label, (bytes, bytearray)):
         label = label.decode('utf-8')
     if len(label) == 0:
@@ -260,13 +266,13 @@ def check_label(label):
 
 
 def alabel(label):
-
+    # type: (str) -> bytes
     try:
-        label = label.encode('ascii')
-        ulabel(label)
-        if not valid_label_length(label):
+        label_bytes = label.encode('ascii')
+        ulabel(label_bytes)
+        if not valid_label_length(label_bytes):
             raise IDNAError('Label too long')
-        return label
+        return label_bytes
     except UnicodeEncodeError:
         pass
 
@@ -275,51 +281,57 @@ def alabel(label):
 
     label = str(label)
     check_label(label)
-    label = _punycode(label)
-    label = _alabel_prefix + label
+    label_bytes = _punycode(label)
+    label_bytes = _alabel_prefix + label_bytes
 
-    if not valid_label_length(label):
+    if not valid_label_length(label_bytes):
         raise IDNAError('Label too long')
 
-    return label
+    return label_bytes
 
 
 def ulabel(label):
-
+    # type: (Union[str, bytes, bytearray]) -> str
     if not isinstance(label, (bytes, bytearray)):
         try:
-            label = label.encode('ascii')
+            label_bytes = label.encode('ascii')
         except UnicodeEncodeError:
             check_label(label)
             return label
+    else:
+        label_bytes = label
 
-    label = label.lower()
-    if label.startswith(_alabel_prefix):
-        label = label[len(_alabel_prefix):]
-        if not label:
+    label_bytes = label_bytes.lower()
+    if label_bytes.startswith(_alabel_prefix):
+        label_bytes = label_bytes[len(_alabel_prefix):]
+        if not label_bytes:
             raise IDNAError('Malformed A-label, no Punycode eligible content found')
-        if label.decode('ascii')[-1] == '-':
+        if label_bytes.decode('ascii')[-1] == '-':
             raise IDNAError('A-label must not end with a hyphen')
     else:
-        check_label(label)
-        return label.decode('ascii')
+        check_label(label_bytes)
+        return label_bytes.decode('ascii')
 
-    label = label.decode('punycode')
+    label = label_bytes.decode('punycode')
     check_label(label)
     return label
 
 
 def uts46_remap(domain, std3_rules=True, transitional=False):
+    # type: (str, bool, bool) -> str
     """Re-map the characters in the string according to UTS46 processing."""
     from .uts46data import uts46data
     output = ''
-    try:
-        for pos, char in enumerate(domain):
-            code_point = ord(char)
+
+    for pos, char in enumerate(domain):
+        code_point = ord(char)
+        try:
             uts46row = uts46data[code_point if code_point < 256 else
                 bisect.bisect_left(uts46data, (code_point, 'Z')) - 1]
             status = uts46row[1]
-            replacement = uts46row[2] if len(uts46row) == 3 else None
+            replacement = None  # type: Optional[str]
+            if len(uts46row) == 3:
+                replacement = uts46row[2]  # type: ignore
             if (status == 'V' or
                     (status == 'D' and not transitional) or
                     (status == '3' and not std3_rules and replacement is None)):
@@ -330,15 +342,16 @@ def uts46_remap(domain, std3_rules=True, transitional=False):
                 output += replacement
             elif status != 'I':
                 raise IndexError()
-        return unicodedata.normalize('NFC', output)
-    except IndexError:
-        raise InvalidCodepoint(
-            'Codepoint {} not allowed at position {} in {}'.format(
-            _unot(code_point), pos + 1, repr(domain)))
+        except IndexError:
+            raise InvalidCodepoint(
+                'Codepoint {} not allowed at position {} in {}'.format(
+                _unot(code_point), pos + 1, repr(domain)))
+
+    return unicodedata.normalize('NFC', output)
 
 
 def encode(s, strict=False, uts46=False, std3_rules=False, transitional=False):
-
+    # type: (Union[str, bytes, bytearray], bool, bool, bool, bool) -> bytes
     if isinstance(s, (bytes, bytearray)):
         s = s.decode('ascii')
     if uts46:
@@ -369,7 +382,7 @@ def encode(s, strict=False, uts46=False, std3_rules=False, transitional=False):
 
 
 def decode(s, strict=False, uts46=False, std3_rules=False):
-
+    # type: (Union[str, bytes, bytearray], bool, bool, bool) -> str
     if isinstance(s, (bytes, bytearray)):
         s = s.decode('ascii')
     if uts46:
