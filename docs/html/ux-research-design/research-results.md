@@ -94,7 +94,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
         Determine if the way that pip handles package upgrades is in-line with user's expectations/needs. See <a href="https://www.ei8fdb.org/thoughts/2020/07/how-should-pip-handle-conflicts-when-updating-already-installed-packages/">related blog post</a> and <a href="https://github.com/pypa/pip/issues/7744">GitHub issue</a> for more information.
       </td>
       <td>
-        See <a href="https://hackmd.io/2F74AQYbRzeHl3zTgoWUvQ">write up, including recommendations</a>
+        See <a href="../2020-research-outputs/pip-upgrade-conflict">write up, including recommendations</a>
       </td>
     </tr>
     <tr>
@@ -112,7 +112,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
         </ul>
       </td>
       <td>
-        See <a href="https://www.notion.so/simplysecure/pip-UX-research-report-skeleton-3a6efacc3b2e44c8bc9ed707d7f56417">write up</a>
+        See <a href="../2020-research-outputs/about-our-users">write up</a>
       </td>
     </tr>
     <tr>
@@ -123,7 +123,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
         Establish which features are most important to pip's users
       </td>
       <td>
-        See <a href="https://hackmd.io/5YttjmuRSlO1LOz0YexO4g">write up</a>
+        See <a href="../2020-research-outputs/prioritizing-features">write up</a>
       </td>
     </tr>
     <tr>
@@ -134,7 +134,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
         Establish whether pip should provide an override that allows users to install packages with conflicting dependencies
       </td>
       <td>
-        See <a href="https://hackmd.io/MIRY9jpRSNyuzMXoWmSqIg">write up</a>
+        See <a href="../2020-research-outputs/override-conflicting-dependencies">write up</a>
       </td>
     </tr>
     <tr>
@@ -145,7 +145,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
         Establish whether or not pip force reinstall should continue to behave the way it currently does, if the functionality should be changed, or if the option should be removed
       </td>
       <td>
-        See <a href="https://hackmd.io/2naLnfq-SKCaUTZxZmYDNA">write up</a>
+        See <a href="../2020-research-outputs/pip-force-reinstall">write up</a>
       </td>
     </tr>
     <tr>
@@ -156,7 +156,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
         To establish whether or not to remove or redesign pip search. See <a href="https://github.com/pypa/pip/issues/5216">this GitHub issue</a> for more information.
       </td>
       <td>
-        See <a href="https://hackmd.io/okbYASpyQJ-XDIdDAZFQYQ">write up</a>
+        See <a href="../2020-research-outputs/pip-search">write up</a>
       </td>
     </tr>
     <tr>
@@ -167,7 +167,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
         To gather information and inspiration from the community to form the basis of a design brief for pip's logo.
       </td>
       <td>
-        See <a href="https://opensourcedesign.net/jobs/jobs/2020-12-15-help-design-a-logo-for-pip">design brief</a>
+        See <a href="../2020-research-outputs/pip-logo">design brief</a>
       </td>
     </tr>
     <tr>
@@ -178,7 +178,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
         To gather feedback on pip's docs, supplementing feedback gathered in user interviews
       </td>
       <td>
-        See <a href="https://hackmd.io/WuoCani0T0qwqbMinCJTaA">write up</a>
+        See <a href="../2020-research-outputs/improving-pips-documentation">write up</a>
       </td>
     </tr>
   </tbody>
@@ -201,7 +201,7 @@ We are currently looking for volunteers to take recommendations made by the UX t
   <tbody>
     <tr>
       <td>
-        <a href="2020-research-outputs/about-our-users">About our users</a>
+        <a href="../2020-research-outputs/about-our-users">About our users</a>
       </td>
       <td>
         Who uses pip
@@ -212,7 +212,7 @@ We are currently looking for volunteers to take recommendations made by the UX t
     </tr>
     <tr>
       <td>
-        <a href="2020-research-outputs/personas">Pip personas</a>
+        <a href="../2020-research-outputs/personas">Pip personas</a>
       </td>
       <td>
         Who uses pip
@@ -223,7 +223,7 @@ We are currently looking for volunteers to take recommendations made by the UX t
     </tr>
     <tr>
       <td>
-        <a href="2020-research-outputs/mental-models">Mental models of pip</a>
+        <a href="../2020-research-outputs/mental-models">Mental models of pip</a>
       </td>
       <td>
         Who uses pip
@@ -234,7 +234,7 @@ We are currently looking for volunteers to take recommendations made by the UX t
     </tr>
     <tr>
       <td>
-        <a href="2020-research-outputs/users-and-security">Behaviours and attitudes towards code security and integrity</a>
+        <a href="../2020-research-outputs/users-and-security">Behaviours and attitudes towards code security and integrity</a>
       </td>
       <td>
         Who uses pip
@@ -245,7 +245,7 @@ We are currently looking for volunteers to take recommendations made by the UX t
     </tr>
     <tr>
       <td>
-        <a href="2020-research-outputs/ci-cd">Usage of pip in automated and interactive environments</a>
+        <a href="../2020-research-outputs/ci-cd">Usage of pip in automated and interactive environments</a>
       </td>
       <td>
         Who uses pip
@@ -256,7 +256,7 @@ We are currently looking for volunteers to take recommendations made by the UX t
     </tr>
     <tr>
       <td>
-        <a href="2020-research-outputs/improving-pips-documentation">Improving pip's documentation</a>
+        <a href="../2020-research-outputs/improving-pips-documentation">Improving pip's documentation</a>
       </td>
       <td>
         Documentation
@@ -267,7 +267,7 @@ We are currently looking for volunteers to take recommendations made by the UX t
     </tr>
     <tr>
       <td>
-        <a href="2020-research-outputs/pip-logo">Pip's identity: In search of a logo</a>
+        <a href="../2020-research-outputs/pip-logo">Pip's identity: In search of a logo</a>
       </td>
       <td>
         Pip community
@@ -278,7 +278,7 @@ We are currently looking for volunteers to take recommendations made by the UX t
     </tr>
     <tr>
       <td>
-        <a href="2020-research-outputs/prioritizing-features">Prioritizing features (buy a feature)</a>
+        <a href="../2020-research-outputs/prioritizing-features">Prioritizing features (buy a feature)</a>
       </td>
       <td>
         How pip works
@@ -289,7 +289,7 @@ We are currently looking for volunteers to take recommendations made by the UX t
     </tr>
     <tr>
       <td>
-        <a href="2020-research-outputs/pip-search">Pip Search</a>
+        <a href="../2020-research-outputs/pip-search">Pip Search</a>
       </td>
       <td>
         How pip works
@@ -300,7 +300,7 @@ We are currently looking for volunteers to take recommendations made by the UX t
     </tr>
     <tr>
       <td>
-        <a href="2020-research-outputs/pip-force-reinstall">Pip Force reinstall</a>
+        <a href="../2020-research-outputs/pip-force-reinstall">Pip Force reinstall</a>
       </td>
       <td>
         How pip works
@@ -311,7 +311,7 @@ We are currently looking for volunteers to take recommendations made by the UX t
     </tr>
     <tr>
       <td>
-        <a href="2020-research-outputs/pip-upgrade-conflict">Dependency conflict resolution when upgrading packages</a>
+        <a href="../2020-research-outputs/pip-upgrade-conflict">Dependency conflict resolution when upgrading packages</a>
       </td>
       <td>
         2020 dependency resolver
@@ -322,7 +322,7 @@ We are currently looking for volunteers to take recommendations made by the UX t
     </tr>
     <tr>
       <td>
-        <a href="2020-research-outputs/override-conflicting-dependencies">Providing an override to install packages with conflicting dependencies</a>
+        <a href="../2020-research-outputs/override-conflicting-dependencies">Providing an override to install packages with conflicting dependencies</a>
       </td>
       <td>
         2020 dependency resolver
