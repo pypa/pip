@@ -30,7 +30,6 @@ repos:
         ^src/pip/_internal/req|
         ^src/pip/_internal/vcs|
         ^src/pip/_internal/\w+\.py$|
-        ^tools/|
         # Tests
         ^tests/data|
         ^tests/unit|
