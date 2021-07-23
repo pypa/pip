@@ -1,6 +1,15 @@
+import email.message
 import logging
 import zipfile
-from typing import Collection, Iterable, Iterator, List, Optional
+from typing import (
+    TYPE_CHECKING,
+    Collection,
+    Iterable,
+    Iterator,
+    List,
+    NamedTuple,
+    Optional,
+)
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.requirements import Requirement
@@ -8,12 +17,21 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.utils import misc  # TODO: Move definition here.
-from pip._internal.utils.packaging import get_installer
+from pip._internal.utils.packaging import get_installer, get_metadata
 from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
 
-from .base import BaseDistribution, BaseEnvironment, DistributionVersion
+from .base import BaseDistribution, BaseEntryPoint, BaseEnvironment, DistributionVersion
+
+if TYPE_CHECKING:
+    from pip._vendor.packaging.utils import NormalizedName
 
 logger = logging.getLogger(__name__)
+
+
+class EntryPoint(NamedTuple):
+    name: str
+    value: str
+    group: str
 
 
 class Distribution(BaseDistribution):
@@ -31,14 +49,7 @@ class Distribution(BaseDistribution):
         return self._dist.location
 
     @property
-    def metadata_version(self) -> Optional[str]:
-        for line in self._dist.get_metadata_lines(self._dist.PKG_INFO):
-            if line.lower().startswith("metadata-version:"):
-                return line.split(":", 1)[-1].strip()
-        return None
-
-    @property
-    def canonical_name(self) -> str:
+    def canonical_name(self) -> "NormalizedName":
         return canonicalize_name(self._dist.project_name)
 
     @property
@@ -61,18 +72,29 @@ class Distribution(BaseDistribution):
     def in_usersite(self) -> bool:
         return misc.dist_in_usersite(self._dist)
 
-    def iter_dependencies(self, extras=()):
-        # type: (Collection[str]) -> Iterable[Requirement]
-        # pkg_resources raises on invalid extras, so we sanitize.
-        requested_extras = set(extras)
-        valid_extras = requested_extras & set(self._dist.extras)
-        for invalid_extra in requested_extras ^ valid_extras:
-            logger.warning(
-                "Invalid extra %r for package %r discarded",
-                invalid_extra,
-                self.canonical_name,
-            )
-        return self._dist.requires(valid_extras)
+    @property
+    def in_site_packages(self) -> bool:
+        return misc.dist_in_site_packages(self._dist)
+
+    def read_text(self, name: str) -> str:
+        if not self._dist.has_metadata(name):
+            raise FileNotFoundError(name)
+        return self._dist.get_metadata(name)
+
+    def iter_entry_points(self) -> Iterable[BaseEntryPoint]:
+        for group, entries in self._dist.get_entry_map().items():
+            for name, entry_point in entries.items():
+                name, _, value = str(entry_point).partition("=")
+                yield EntryPoint(name=name.strip(), value=value.strip(), group=group)
+
+    @property
+    def metadata(self) -> email.message.Message:
+        return get_metadata(self._dist)
+
+    def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
+        if extras:  # pkg_resources raises on invalid extras, so we sanitize.
+            extras = frozenset(extras).intersection(self._dist.extras)
+        return self._dist.requires(extras)
 
 
 class Environment(BaseEnvironment):

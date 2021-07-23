@@ -1,15 +1,15 @@
 """Build a project using PEP 517 hooks.
 """
 import argparse
+import io
 import logging
 import os
-import toml
 import shutil
 
 from .envbuild import BuildEnvironment
 from .wrappers import Pep517HookCaller
 from .dirtools import tempdir, mkdir_p
-from .compat import FileNotFoundError
+from .compat import FileNotFoundError, toml_load
 
 log = logging.getLogger(__name__)
 
@@ -31,8 +31,8 @@ def load_system(source_dir):
     Load the build system from a source dir (pyproject.toml).
     """
     pyproject = os.path.join(source_dir, 'pyproject.toml')
-    with open(pyproject) as f:
-        pyproject_data = toml.load(f)
+    with io.open(pyproject, encoding="utf-8") as f:
+        pyproject_data = toml_load(f)
     return pyproject_data['build-system']
 
 

@@ -1,0 +1,7 @@
+``pip freeze``, ``pip list``, and ``pip show`` no longer normalize underscore
+(``_``) in distribution names to dash (``-``). This is a side effect of the
+migration to ``importlib.metadata``, since the underscore-dash normalization
+behavior is non-standard and specific to setuptools. This should not affect
+other parts of pip (for example, when feeding the ``pip freeze`` result back
+into ``pip install``) since pip internally performs standard PEP 503
+normalization independently to setuptools.

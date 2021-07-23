@@ -249,7 +249,7 @@ class HTTPConnection(_HTTPConnection, object):
             self.putheader("User-Agent", _get_default_user_agent())
         for header, value in headers.items():
             self.putheader(header, value)
-        if "transfer-encoding" not in headers:
+        if "transfer-encoding" not in header_keys:
             self.putheader("Transfer-Encoding", "chunked")
         self.endheaders()
 

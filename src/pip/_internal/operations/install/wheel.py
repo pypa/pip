@@ -35,14 +35,14 @@ from typing import (
 )
 from zipfile import ZipFile, ZipInfo
 
-from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
-from pip._vendor.pkg_resources import Distribution
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six import ensure_str, ensure_text, reraise
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_major_minor_version
+from pip._internal.metadata import BaseDistribution, get_wheel_distribution
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
@@ -53,7 +53,7 @@ from pip._internal.utils.unpacking import (
     set_extracted_file_to_default_mode_plus_executable,
     zip_item_is_executable,
 )
-from pip._internal.utils.wheel import parse_wheel, pkg_resources_distribution_for_wheel
+from pip._internal.utils.wheel import parse_wheel
 
 if TYPE_CHECKING:
     from typing import Protocol
@@ -118,29 +118,15 @@ def wheel_root_is_purelib(metadata):
     return metadata.get("Root-Is-Purelib", "").lower() == "true"
 
 
-def get_entrypoints(distribution):
-    # type: (Distribution) -> Tuple[Dict[str, str], Dict[str, str]]
-    # get the entry points and then the script names
-    try:
-        console = distribution.get_entry_map('console_scripts')
-        gui = distribution.get_entry_map('gui_scripts')
-    except KeyError:
-        # Our dict-based Distribution raises KeyError if entry_points.txt
-        # doesn't exist.
-        return {}, {}
-
-    def _split_ep(s):
-        # type: (pkg_resources.EntryPoint) -> Tuple[str, str]
-        """get the string representation of EntryPoint,
-        remove space and split on '='
-        """
-        split_parts = str(s).replace(" ", "").split("=")
-        return split_parts[0], split_parts[1]
-
-    # convert the EntryPoint objects into strings with module:function
-    console = dict(_split_ep(v) for v in console.values())
-    gui = dict(_split_ep(v) for v in gui.values())
-    return console, gui
+def get_entrypoints(dist: BaseDistribution) -> Tuple[Dict[str, str], Dict[str, str]]:
+    console_scripts = {}
+    gui_scripts = {}
+    for entry_point in dist.iter_entry_points():
+        if entry_point.group == "console_scripts":
+            console_scripts[entry_point.name] = entry_point.value
+        elif entry_point.group == "gui_scripts":
+            gui_scripts[entry_point.name] = entry_point.value
+    return console_scripts, gui_scripts
 
 
 def message_about_scripts_not_on_PATH(scripts):
@@ -620,9 +606,7 @@ def _install_wheel(
     files = chain(files, other_scheme_files)
 
     # Get the defined entry points
-    distribution = pkg_resources_distribution_for_wheel(
-        wheel_zip, name, wheel_path
-    )
+    distribution = get_wheel_distribution(wheel_path, canonicalize_name(name))
     console, gui = get_entrypoints(distribution)
 
     def is_entrypoint_wrapper(file):
@@ -761,7 +745,7 @@ def _install_wheel(
             pass
         generated.append(requested_path)
 
-    record_text = distribution.get_metadata('RECORD')
+    record_text = distribution.read_text('RECORD')
     record_rows = list(csv.reader(record_text.splitlines()))
 
     rows = get_csv_rows_for_installed(
