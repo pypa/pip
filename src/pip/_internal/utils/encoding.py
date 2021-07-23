@@ -4,7 +4,7 @@ import re
 import sys
 from typing import List, Tuple
 
-BOMS = [
+BOMS: List[Tuple[bytes, str]] = [
     (codecs.BOM_UTF8, "utf-8"),
     (codecs.BOM_UTF16, "utf-16"),
     (codecs.BOM_UTF16_BE, "utf-16-be"),
@@ -12,13 +12,12 @@ BOMS = [
     (codecs.BOM_UTF32, "utf-32"),
     (codecs.BOM_UTF32_BE, "utf-32-be"),
     (codecs.BOM_UTF32_LE, "utf-32-le"),
-]  # type: List[Tuple[bytes, str]]
+]
 
 ENCODING_RE = re.compile(br"coding[:=]\s*([-\w.]+)")
 
 
-def auto_decode(data):
-    # type: (bytes) -> str
+def auto_decode(data: bytes) -> str:
     """Check a bytes string for a BOM to correctly detect the encoding
 
     Fallback to locale.getpreferredencoding(False) like open() on Python3"""

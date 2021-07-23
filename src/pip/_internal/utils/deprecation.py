@@ -17,19 +17,18 @@ class PipDeprecationWarning(Warning):
     pass
 
 
-_original_showwarning = None  # type: Any
+_original_showwarning: Any = None
 
 
 # Warnings <-> Logging Integration
 def _showwarning(
-    message,  # type: Union[Warning, str]
-    category,  # type: Type[Warning]
-    filename,  # type: str
-    lineno,  # type: int
-    file=None,  # type: Optional[TextIO]
-    line=None,  # type: Optional[str]
-):
-    # type: (...) -> None
+    message: Union[Warning, str],
+    category: Type[Warning],
+    filename: str,
+    lineno: int,
+    file: Optional[TextIO] = None,
+    line: Optional[str] = None,
+) -> None:
     if file is not None:
         if _original_showwarning is not None:
             _original_showwarning(message, category, filename, lineno, file, line)
@@ -42,8 +41,7 @@ def _showwarning(
         _original_showwarning(message, category, filename, lineno, file, line)
 
 
-def install_warning_logger():
-    # type: () -> None
+def install_warning_logger() -> None:
     # Enable our Deprecation Warnings
     warnings.simplefilter("default", PipDeprecationWarning, append=True)
 
@@ -54,8 +52,12 @@ def install_warning_logger():
         warnings.showwarning = _showwarning
 
 
-def deprecated(reason, replacement, gone_in, issue=None):
-    # type: (str, Optional[str], Optional[str], Optional[int]) -> None
+def deprecated(
+    reason: str,
+    replacement: Optional[str],
+    gone_in: Optional[str],
+    issue: Optional[int] = None,
+) -> None:
     """Helper to deprecate existing functionality.
 
     reason:
