@@ -20,8 +20,7 @@ class HTTPRangeRequestUnsupported(Exception):
     pass
 
 
-def dist_from_wheel_url(name, url, session):
-    # type: (str, str, PipSession) -> Distribution
+def dist_from_wheel_url(name: str, url: str, session: PipSession) -> Distribution:
     """Return a pkg_resources.Distribution from the given wheel URL.
 
     This uses HTTP range requests to only fetch the potion of the wheel
@@ -47,8 +46,9 @@ class LazyZipOverHTTP:
     during initialization.
     """
 
-    def __init__(self, url, session, chunk_size=CONTENT_CHUNK_SIZE):
-        # type: (str, PipSession, int) -> None
+    def __init__(
+        self, url: str, session: PipSession, chunk_size: int = CONTENT_CHUNK_SIZE
+    ) -> None:
         head = session.head(url, headers=HEADERS)
         raise_for_status(head)
         assert head.status_code == 200
@@ -56,42 +56,36 @@ class LazyZipOverHTTP:
         self._length = int(head.headers['Content-Length'])
         self._file = NamedTemporaryFile()
         self.truncate(self._length)
-        self._left = []  # type: List[int]
-        self._right = []  # type: List[int]
+        self._left: List[int] = []
+        self._right: List[int] = []
         if 'bytes' not in head.headers.get('Accept-Ranges', 'none'):
             raise HTTPRangeRequestUnsupported('range request is not supported')
         self._check_zip()
 
     @property
-    def mode(self):
-        # type: () -> str
+    def mode(self) -> str:
         """Opening mode, which is always rb."""
         return 'rb'
 
     @property
-    def name(self):
-        # type: () -> str
+    def name(self) -> str:
         """Path to the underlying file."""
         return self._file.name
 
-    def seekable(self):
-        # type: () -> bool
+    def seekable(self) -> bool:
         """Return whether random access is supported, which is True."""
         return True
 
-    def close(self):
-        # type: () -> None
+    def close(self) -> None:
         """Close the file."""
         self._file.close()
 
     @property
-    def closed(self):
-        # type: () -> bool
+    def closed(self) -> bool:
         """Whether the file is closed."""
         return self._file.closed
 
-    def read(self, size=-1):
-        # type: (int) -> bytes
+    def read(self, size: int = -1) -> bytes:
         """Read up to size bytes from the object and return them.
 
         As a convenience, if size is unspecified or -1,
@@ -105,13 +99,11 @@ class LazyZipOverHTTP:
         self._download(start, stop-1)
         return self._file.read(size)
 
-    def readable(self):
-        # type: () -> bool
+    def readable(self) -> bool:
         """Return whether the file is readable, which is True."""
         return True
 
-    def seek(self, offset, whence=0):
-        # type: (int, int) -> int
+    def seek(self, offset: int, whence: int = 0) -> int:
         """Change stream position and return the new absolute position.
 
         Seek to offset relative position indicated by whence:
@@ -121,13 +113,11 @@ class LazyZipOverHTTP:
         """
         return self._file.seek(offset, whence)
 
-    def tell(self):
-        # type: () -> int
+    def tell(self) -> int:
         """Return the current position."""
         return self._file.tell()
 
-    def truncate(self, size=None):
-        # type: (Optional[int]) -> int
+    def truncate(self, size: Optional[int] = None) -> int:
         """Resize the stream to the given size in bytes.
 
         If size is unspecified resize to the current position.
@@ -137,23 +127,19 @@ class LazyZipOverHTTP:
         """
         return self._file.truncate(size)
 
-    def writable(self):
-        # type: () -> bool
+    def writable(self) -> bool:
         """Return False."""
         return False
 
-    def __enter__(self):
-        # type: () -> LazyZipOverHTTP
+    def __enter__(self) -> "LazyZipOverHTTP":
         self._file.__enter__()
         return self
 
-    def __exit__(self, *exc):
-        # type: (*Any) -> Optional[bool]
+    def __exit__(self, *exc: Any) -> Optional[bool]:
         return self._file.__exit__(*exc)
 
     @contextmanager
-    def _stay(self):
-        # type: ()-> Iterator[None]
+    def _stay(self) -> Iterator[None]:
         """Return a context manager keeping the position.
 
         At the end of the block, seek back to original position.
@@ -164,8 +150,7 @@ class LazyZipOverHTTP:
         finally:
             self.seek(pos)
 
-    def _check_zip(self):
-        # type: () -> None
+    def _check_zip(self) -> None:
         """Check and download until the file is a valid ZIP."""
         end = self._length - 1
         for start in reversed(range(0, end, self._chunk_size)):
@@ -180,8 +165,9 @@ class LazyZipOverHTTP:
                 else:
                     break
 
-    def _stream_response(self, start, end, base_headers=HEADERS):
-        # type: (int, int, Dict[str, str]) -> Response
+    def _stream_response(
+        self, start: int, end: int, base_headers: Dict[str, str] = HEADERS
+    ) -> Response:
         """Return HTTP response to a range request from start to end."""
         headers = base_headers.copy()
         headers['Range'] = f'bytes={start}-{end}'
@@ -189,8 +175,9 @@ class LazyZipOverHTTP:
         headers['Cache-Control'] = 'no-cache'
         return self._session.get(self._url, headers=headers, stream=True)
 
-    def _merge(self, start, end, left, right):
-        # type: (int, int, int, int) -> Iterator[Tuple[int, int]]
+    def _merge(
+        self, start: int, end: int, left: int, right: int
+    ) -> Iterator[Tuple[int, int]]:
         """Return an iterator of intervals to be fetched.
 
         Args:
@@ -210,8 +197,7 @@ class LazyZipOverHTTP:
             yield i, end
         self._left[left:right], self._right[left:right] = [start], [end]
 
-    def _download(self, start, end):
-        # type: (int, int) -> None
+    def _download(self, start: int, end: int) -> None:
         """Download bytes from start to end inclusively."""
         with self._stay():
             left = bisect_left(self._right, start)

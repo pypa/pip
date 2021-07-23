@@ -20,8 +20,7 @@ from pip._internal.utils.misc import format_size, redact_auth_from_url, splitext
 logger = logging.getLogger(__name__)
 
 
-def _get_http_response_size(resp):
-    # type: (Response) -> Optional[int]
+def _get_http_response_size(resp: Response) -> Optional[int]:
     try:
         return int(resp.headers['content-length'])
     except (ValueError, KeyError, TypeError):
@@ -29,11 +28,10 @@ def _get_http_response_size(resp):
 
 
 def _prepare_download(
-    resp,  # type: Response
-    link,  # type: Link
-    progress_bar  # type: str
-):
-    # type: (...) -> Iterable[bytes]
+    resp: Response,
+    link: Link,
+    progress_bar: str
+) -> Iterable[bytes]:
     total_length = _get_http_response_size(resp)
 
     if link.netloc == PyPI.file_storage_domain:
@@ -72,16 +70,14 @@ def _prepare_download(
     )(chunks)
 
 
-def sanitize_content_filename(filename):
-    # type: (str) -> str
+def sanitize_content_filename(filename: str) -> str:
     """
     Sanitize the "filename" value from a Content-Disposition header.
     """
     return os.path.basename(filename)
 
 
-def parse_content_disposition(content_disposition, default_filename):
-    # type: (str, str) -> str
+def parse_content_disposition(content_disposition: str, default_filename: str) -> str:
     """
     Parse the "filename" value from a Content-Disposition header, and
     return the default filename if the result is empty.
@@ -95,8 +91,7 @@ def parse_content_disposition(content_disposition, default_filename):
     return filename or default_filename
 
 
-def _get_http_response_filename(resp, link):
-    # type: (Response, Link) -> str
+def _get_http_response_filename(resp: Response, link: Link) -> str:
     """Get an ideal filename from the given HTTP response, falling back to
     the link filename if not provided.
     """
@@ -105,7 +100,7 @@ def _get_http_response_filename(resp, link):
     content_disposition = resp.headers.get('content-disposition')
     if content_disposition:
         filename = parse_content_disposition(content_disposition, filename)
-    ext = splitext(filename)[1]  # type: Optional[str]
+    ext: Optional[str] = splitext(filename)[1]
     if not ext:
         ext = mimetypes.guess_extension(
             resp.headers.get('content-type', '')
@@ -119,8 +114,7 @@ def _get_http_response_filename(resp, link):
     return filename
 
 
-def _http_get_download(session, link):
-    # type: (PipSession, Link) -> Response
+def _http_get_download(session: PipSession, link: Link) -> Response:
     target_url = link.url.split('#', 1)[0]
     resp = session.get(target_url, headers=HEADERS, stream=True)
     raise_for_status(resp)
@@ -130,15 +124,13 @@ def _http_get_download(session, link):
 class Downloader:
     def __init__(
         self,
-        session,  # type: PipSession
-        progress_bar,  # type: str
-    ):
-        # type: (...) -> None
+        session: PipSession,
+        progress_bar: str,
+    ) -> None:
         self._session = session
         self._progress_bar = progress_bar
 
-    def __call__(self, link, location):
-        # type: (Link, str) -> Tuple[str, str]
+    def __call__(self, link: Link, location: str) -> Tuple[str, str]:
         """Download the file given by link into location."""
         try:
             resp = _http_get_download(self._session, link)
@@ -164,15 +156,15 @@ class BatchDownloader:
 
     def __init__(
         self,
-        session,  # type: PipSession
-        progress_bar,  # type: str
-    ):
-        # type: (...) -> None
+        session: PipSession,
+        progress_bar: str,
+    ) -> None:
         self._session = session
         self._progress_bar = progress_bar
 
-    def __call__(self, links, location):
-        # type: (Iterable[Link], str) -> Iterable[Tuple[Link, Tuple[str, str]]]
+    def __call__(
+        self, links: Iterable[Link], location: str
+    ) -> Iterable[Tuple[Link, Tuple[str, str]]]:
         """Download the files given by links into location."""
         for link in links:
             try:

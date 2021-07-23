@@ -23,11 +23,10 @@ from pip._internal.exceptions import NetworkConnectionError
 # you're not asking for a compressed file and will then decompress it
 # before sending because if that's the case I don't think it'll ever be
 # possible to make this work.
-HEADERS = {'Accept-Encoding': 'identity'}  # type: Dict[str, str]
+HEADERS: Dict[str, str] = {'Accept-Encoding': 'identity'}
 
 
-def raise_for_status(resp):
-    # type: (Response) -> None
+def raise_for_status(resp: Response) -> None:
     http_error_msg = ''
     if isinstance(resp.reason, bytes):
         # We attempt to decode utf-8 first because some servers
@@ -53,8 +52,9 @@ def raise_for_status(resp):
         raise NetworkConnectionError(http_error_msg, response=resp)
 
 
-def response_chunks(response, chunk_size=CONTENT_CHUNK_SIZE):
-    # type: (Response, int) -> Iterator[bytes]
+def response_chunks(
+    response: Response, chunk_size: int = CONTENT_CHUNK_SIZE
+) -> Iterator[bytes]:
     """Given a requests Response, provide the data chunks.
     """
     try:

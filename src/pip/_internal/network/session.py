@@ -55,7 +55,7 @@ SecureOrigin = Tuple[str, str, Optional[Union[int, str]]]
 warnings.filterwarnings("ignore", category=InsecureRequestWarning)
 
 
-SECURE_ORIGINS = [
+SECURE_ORIGINS: List[SecureOrigin] = [
     # protocol, hostname, port
     # Taken from Chrome's list of secure origins (See: http://bit.ly/1qrySKC)
     ("https", "*", "*"),
@@ -65,7 +65,7 @@ SECURE_ORIGINS = [
     ("file", "*", None),
     # ssh is always secure.
     ("ssh", "*", "*"),
-]  # type: List[SecureOrigin]
+]
 
 
 # These are environment variables present when running under various
@@ -87,8 +87,7 @@ CI_ENVIRONMENT_VARIABLES = (
 )
 
 
-def looks_like_ci():
-    # type: () -> bool
+def looks_like_ci() -> bool:
     """
     Return whether it looks like pip is running under CI.
     """
@@ -98,18 +97,17 @@ def looks_like_ci():
     return any(name in os.environ for name in CI_ENVIRONMENT_VARIABLES)
 
 
-def user_agent():
-    # type: () -> str
+def user_agent() -> str:
     """
     Return a string representing the user agent.
     """
-    data = {
+    data: Dict[str, Any] = {
         "installer": {"name": "pip", "version": __version__},
         "python": platform.python_version(),
         "implementation": {
             "name": platform.python_implementation(),
         },
-    }  # type: Dict[str, Any]
+    }
 
     if data["implementation"]["name"] == 'CPython':
         data["implementation"]["version"] = platform.python_version()
@@ -200,14 +198,13 @@ class LocalFSAdapter(BaseAdapter):
 
     def send(
         self,
-        request,  # type: PreparedRequest
-        stream=False,  # type: bool
-        timeout=None,  # type: Optional[Union[float, Tuple[float, float]]]
-        verify=True,  # type: Union[bool, str]
-        cert=None,  # type: Optional[Union[str, Tuple[str, str]]]
-        proxies=None,  # type:Optional[Mapping[str, str]]
-    ):
-        # type: (...) -> Response
+        request: PreparedRequest,
+        stream: bool = False,
+        timeout: Optional[Union[float, Tuple[float, float]]] = None,
+        verify: Union[bool, str] = True,
+        cert: Optional[Union[str, Tuple[str, str]]] = None,
+        proxies: Optional[Mapping[str, str]] = None,
+    ) -> Response:
         pathname = url_to_path(request.url)
 
         resp = Response()
@@ -233,8 +230,7 @@ class LocalFSAdapter(BaseAdapter):
 
         return resp
 
-    def close(self):
-        # type: () -> None
+    def close(self) -> None:
         pass
 
 
@@ -242,12 +238,11 @@ class InsecureHTTPAdapter(HTTPAdapter):
 
     def cert_verify(
         self,
-        conn,  # type: ConnectionPool
-        url,  # type: str
-        verify,  # type: Union[bool, str]
-        cert,  # type: Optional[Union[str, Tuple[str, str]]]
-    ):
-        # type: (...) -> None
+        conn: ConnectionPool,
+        url: str,
+        verify: Union[bool, str],
+        cert: Optional[Union[str, Tuple[str, str]]],
+    ) -> None:
         super().cert_verify(conn=conn, url=url, verify=False, cert=cert)
 
 
@@ -255,29 +250,27 @@ class InsecureCacheControlAdapter(CacheControlAdapter):
 
     def cert_verify(
         self,
-        conn,  # type: ConnectionPool
-        url,  # type: str
-        verify,  # type: Union[bool, str]
-        cert,  # type: Optional[Union[str, Tuple[str, str]]]
-    ):
-        # type: (...) -> None
+        conn: ConnectionPool,
+        url: str,
+        verify: Union[bool, str],
+        cert: Optional[Union[str, Tuple[str, str]]],
+    ) -> None:
         super().cert_verify(conn=conn, url=url, verify=False, cert=cert)
 
 
 class PipSession(requests.Session):
 
-    timeout = None  # type: Optional[int]
+    timeout: Optional[int] = None
 
     def __init__(
         self,
-        *args,  # type: Any
-        retries=0,  # type: int
-        cache=None,  # type: Optional[str]
-        trusted_hosts=(),  # type: Sequence[str]
-        index_urls=None,  # type: Optional[List[str]]
-        **kwargs,  # type: Any
-    ):
-        # type: (...) -> None
+        *args: Any,
+        retries: int = 0,
+        cache: Optional[str] = None,
+        trusted_hosts: Sequence[str] = (),
+        index_urls: Optional[List[str]] = None,
+        **kwargs: Any,
+    ) -> None:
         """
         :param trusted_hosts: Domains not to emit warnings for when not using
             HTTPS.
@@ -286,7 +279,7 @@ class PipSession(requests.Session):
 
         # Namespace the attribute with "pip_" just in case to prevent
         # possible conflicts with the base class.
-        self.pip_trusted_origins = []  # type: List[Tuple[str, Optional[int]]]
+        self.pip_trusted_origins: List[Tuple[str, Optional[int]]] = []
 
         # Attach our User Agent to the request
         self.headers["User-Agent"] = user_agent()
@@ -348,16 +341,16 @@ class PipSession(requests.Session):
         for host in trusted_hosts:
             self.add_trusted_host(host, suppress_logging=True)
 
-    def update_index_urls(self, new_index_urls):
-        # type: (List[str]) -> None
+    def update_index_urls(self, new_index_urls: List[str]) -> None:
         """
         :param new_index_urls: New index urls to update the authentication
             handler with.
         """
         self.auth.index_urls = new_index_urls
 
-    def add_trusted_host(self, host, source=None, suppress_logging=False):
-        # type: (str, Optional[str], bool) -> None
+    def add_trusted_host(
+        self, host: str, source: Optional[str] = None, suppress_logging: bool = False
+    ) -> None:
         """
         :param host: It is okay to provide a host that has previously been
             added.
@@ -385,14 +378,12 @@ class PipSession(requests.Session):
                 self._trusted_host_adapter
             )
 
-    def iter_secure_origins(self):
-        # type: () -> Iterator[SecureOrigin]
+    def iter_secure_origins(self) -> Iterator[SecureOrigin]:
         yield from SECURE_ORIGINS
         for host, port in self.pip_trusted_origins:
             yield ('*', host, '*' if port is None else port)
 
-    def is_secure_origin(self, location):
-        # type: (Link) -> bool
+    def is_secure_origin(self, location: Link) -> bool:
         # Determine if this url used a secure transport mechanism
         parsed = urllib.parse.urlparse(str(location))
         origin_protocol, origin_host, origin_port = (
@@ -457,8 +448,7 @@ class PipSession(requests.Session):
 
         return False
 
-    def request(self, method, url, *args, **kwargs):
-        # type: (str, str, *Any, **Any) -> Response
+    def request(self, method: str, url: str, *args: Any, **kwargs: Any) -> Response:
         # Allow setting a default timeout on a session
         kwargs.setdefault("timeout", self.timeout)
 
