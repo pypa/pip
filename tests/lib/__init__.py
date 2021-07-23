@@ -289,12 +289,12 @@ class TestPipResult:
         if without_egg_link:
             if egg_link_path in self.files_created:
                 raise TestFailure(
-                    "unexpected egg link file created: " f"{egg_link_path!r}\n{self}"
+                    f"unexpected egg link file created: {egg_link_path!r}\n{self}"
                 )
         else:
             if egg_link_path not in self.files_created:
                 raise TestFailure(
-                    "expected egg link file missing: " f"{egg_link_path!r}\n{self}"
+                    f"expected egg link file missing: {egg_link_path!r}\n{self}"
                 )
 
             egg_link_file = self.files_created[egg_link_path]
@@ -344,7 +344,7 @@ class TestPipResult:
             normalized_path = os.path.normpath(pkg_dir / f)
             if normalized_path not in self.files_created:
                 raise TestFailure(
-                    f"Package directory {pkg_dir!r} missing " f"expected content {f!r}"
+                    f"Package directory {pkg_dir!r} missing expected content {f!r}"
                 )
 
         for f in without_files:
@@ -602,7 +602,7 @@ class PipTestEnvironment(TestFileEnvironment):
             # Then default to allowing logged errors.
             if allow_stderr_error is not None and not allow_stderr_error:
                 raise RuntimeError(
-                    "cannot pass allow_stderr_error=False with " "expect_error=True"
+                    "cannot pass allow_stderr_error=False with expect_error=True"
                 )
             allow_stderr_error = True
 
@@ -610,7 +610,7 @@ class PipTestEnvironment(TestFileEnvironment):
             # Then default to allowing logged warnings.
             if allow_stderr_warning is not None and not allow_stderr_warning:
                 raise RuntimeError(
-                    "cannot pass allow_stderr_warning=False with " "expect_stderr=True"
+                    "cannot pass allow_stderr_warning=False with expect_stderr=True"
                 )
             allow_stderr_warning = True
 

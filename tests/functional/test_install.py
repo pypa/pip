@@ -1835,8 +1835,8 @@ def test_invalid_index_url_argument(script, shared_data):
                         shared_data.find_links3, "Dinner",
                         expect_error=True)
 
-    assert 'WARNING: The index url "--user" seems invalid, ' \
-           'please provide a scheme.' in result.stderr, str(result)
+    assert ('WARNING: The index url "--user" seems invalid, '
+            'please provide a scheme.') in result.stderr, str(result)
 
 
 def test_valid_index_url_argument(script, shared_data):

@@ -223,7 +223,7 @@ class TestPipTestEnvironment:
         """
         kwargs = {"allow_stderr_warning": False, arg_name: True}
         expected_start = (
-            "cannot pass allow_stderr_warning=False with " "allow_stderr_error=True"
+            "cannot pass allow_stderr_warning=False with allow_stderr_error=True"
         )
         with assert_error_startswith(RuntimeError, expected_start):
             script.run("python", **kwargs)
