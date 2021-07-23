@@ -82,7 +82,7 @@ class SearchCommand(Command, SessionCommandMixin):
         return hits
 
 
-def transform_hits(hits: List[Dict[str, str]]) -> List[TransformedHit]:
+def transform_hits(hits: List[Dict[str, str]]) -> List["TransformedHit"]:
     """
     The list from pypi is really a list of versions. We want a list of
     packages with the list of versions stored inline. This converts the
@@ -127,7 +127,7 @@ def print_dist_installation_info(name: str, latest: str) -> None:
 
 
 def print_results(
-    hits: List[TransformedHit],
+    hits: List["TransformedHit"],
     name_column_width: Optional[int] = None,
     terminal_width: Optional[int] = None,
 ) -> None:
