@@ -72,10 +72,15 @@ def _log_context(
     root: Optional[str] = None,
     prefix: Optional[str] = None,
 ) -> None:
-    message = (
-        "Additional context:" "\nuser = %r" "\nhome = %r" "\nroot = %r" "\nprefix = %r"
-    )
-    logger.log(_MISMATCH_LEVEL, message, user, home, root, prefix)
+    parts = [
+        "Additional context:",
+        "user = %r",
+        "home = %r",
+        "root = %r",
+        "prefix = %r",
+    ]
+
+    logger.log(_MISMATCH_LEVEL, "\n".join(parts), user, home, root, prefix)
 
 
 def get_scheme(

@@ -312,8 +312,10 @@ class TestProcessLine:
         assert reqs[0].constraint
 
     def test_options_on_a_requirement_line(self, line_processor):
-        line = 'SomeProject --install-option=yo1 --install-option yo2 '\
-               '--global-option="yo3" --global-option "yo4"'
+        line = (
+            'SomeProject --install-option=yo1 --install-option yo2 '
+            '--global-option="yo3" --global-option "yo4"'
+        )
         filename = 'filename'
         req = line_processor(line, filename, 1)[0]
         assert req.global_options == ['yo3', 'yo4']

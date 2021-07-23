@@ -611,7 +611,7 @@ def test_parse_editable_local_extras(
     exists_mock.return_value = isdir_mock.return_value = True
     abspath_mock.return_value = "/some/path"
     assert parse_editable('.[extras]') == (
-        None, 'file://' + "/some/path", {'extras'},
+        None, "file:///some/path", {'extras'},
     )
     abspath_mock.return_value = "/some/path/foo"
     assert parse_editable('foo[bar,baz]') == (

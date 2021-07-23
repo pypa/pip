@@ -196,8 +196,7 @@ def test_keyring_set_password(monkeypatch, response_status, creds,
         # when _prompt_for_password indicates not to save, we should
         # never call this function
         def should_save_password_to_keyring(*a):
-            assert False, ("_should_save_password_to_keyring should not be " +
-                           "called")
+            assert False, "_should_save_password_to_keyring should not be called"
     monkeypatch.setattr(auth, '_should_save_password_to_keyring',
                         should_save_password_to_keyring)
 
