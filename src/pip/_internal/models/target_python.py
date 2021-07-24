@@ -62,7 +62,7 @@ class TargetPython:
         self.py_version_info = py_version_info
 
         # This is used to cache the return value of get_tags().
-        self._valid_tags = None  # type: Optional[List[Tag]]
+        self._valid_tags: Optional[List[Tag]] = None
 
     def format_given(self) -> str:
         """
