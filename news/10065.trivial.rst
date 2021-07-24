@@ -1,1 +1,0 @@
-Fixed all the annotations from ``pip/_internal/cli``.

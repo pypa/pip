@@ -1,1 +1,0 @@
-Convert type hint commentaries into annotations on ``setup.py``.

@@ -1,3 +1,0 @@
-Add an additional level of verbosity. ``--verbose`` (and the shorthand ``-v``) now
-contains significantly less output, and users that need complete full debug-level output
-should pass it twice (``--verbose --verbose`` or ``-vv``).

@@ -1,2 +1,0 @@
-Re-enable the "Value for ... does not match" location warnings to field a new
-round of feedback for the ``distutils``-``sysconfig`` transition.
