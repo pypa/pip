@@ -287,6 +287,11 @@ name:
 
       py -m pip install './somepackage-1.0-py2.py3-none-any.whl[my-extras]'
 
+.. note::
+
+    In the future, the ``path[extras]`` syntax may become deprecated. It is
+    recommended to use PEP 508 syntax wherever possible.
+
 For the cases where wheels are not available, pip offers :ref:`pip wheel` as a
 convenience, to build wheels for all your requirements and dependencies.
 
