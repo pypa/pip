@@ -151,7 +151,7 @@ class Resolver(BaseResolver):
                     deprecated(
                         reason=reason,
                         replacement=replacement,
-                        gone_in="21.2",
+                        gone_in="21.3",
                         issue=8711,
                     )
 
