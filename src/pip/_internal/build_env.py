@@ -32,8 +32,7 @@ logger = logging.getLogger(__name__)
 
 class _Prefix:
 
-    def __init__(self, path):
-        # type: (str) -> None
+    def __init__(self, path: str) -> None:
         self.path = path
         self.setup = False
         self.bin_dir = get_paths(
@@ -73,8 +72,7 @@ class BuildEnvironment:
     """Creates and manages an isolated environment to install build deps
     """
 
-    def __init__(self):
-        # type: () -> None
+    def __init__(self) -> None:
         temp_dir = TempDirectory(
             kind=tempdir_kinds.BUILD_ENV, globally_managed=True
         )
@@ -84,8 +82,8 @@ class BuildEnvironment:
             for name in ('normal', 'overlay')
         )
 
-        self._bin_dirs = []  # type: List[str]
-        self._lib_dirs = []  # type: List[str]
+        self._bin_dirs: List[str] = []
+        self._lib_dirs: List[str] = []
         for prefix in reversed(list(self._prefixes.values())):
             self._bin_dirs.append(prefix.bin_dir)
             self._lib_dirs.extend(prefix.lib_dirs)
@@ -127,8 +125,7 @@ class BuildEnvironment:
                 '''
             ).format(system_sites=system_sites, lib_dirs=self._lib_dirs))
 
-    def __enter__(self):
-        # type: () -> None
+    def __enter__(self) -> None:
         self._save_env = {
             name: os.environ.get(name, None)
             for name in ('PATH', 'PYTHONNOUSERSITE', 'PYTHONPATH')
@@ -149,19 +146,19 @@ class BuildEnvironment:
 
     def __exit__(
         self,
-        exc_type,  # type: Optional[Type[BaseException]]
-        exc_val,  # type: Optional[BaseException]
-        exc_tb  # type: Optional[TracebackType]
-    ):
-        # type: (...) -> None
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType]
+    ) -> None:
         for varname, old_value in self._save_env.items():
             if old_value is None:
                 os.environ.pop(varname, None)
             else:
                 os.environ[varname] = old_value
 
-    def check_requirements(self, reqs):
-        # type: (Iterable[str]) -> Tuple[Set[Tuple[str, str]], Set[str]]
+    def check_requirements(
+        self, reqs: Iterable[str]
+    ) -> Tuple[Set[Tuple[str, str]], Set[str]]:
         """Return 2 sets:
             - conflicting requirements: set of (installed, wanted) reqs tuples
             - missing requirements: set of reqs
@@ -187,12 +184,11 @@ class BuildEnvironment:
 
     def install_requirements(
         self,
-        finder,  # type: PackageFinder
-        requirements,  # type: Iterable[str]
-        prefix_as_string,  # type: str
-        message  # type: str
-    ):
-        # type: (...) -> None
+        finder: "PackageFinder",
+        requirements: Iterable[str],
+        prefix_as_string: str,
+        message: str
+    ) -> None:
         prefix = self._prefixes[prefix_as_string]
         assert not prefix.setup
         prefix.setup = True
@@ -223,11 +219,11 @@ class BuildEnvironment:
         prefix: _Prefix,
         message: str,
     ) -> None:
-        args = [
+        args: List[str] = [
             sys.executable, pip_runnable, 'install',
             '--ignore-installed', '--no-user', '--prefix', prefix.path,
             '--no-warn-script-location',
-        ]  # type: List[str]
+        ]
         if logger.getEffectiveLevel() <= logging.DEBUG:
             args.append('-v')
         for format_control in ('no_binary', 'only_binary'):
@@ -262,33 +258,28 @@ class NoOpBuildEnvironment(BuildEnvironment):
     """A no-op drop-in replacement for BuildEnvironment
     """
 
-    def __init__(self):
-        # type: () -> None
+    def __init__(self) -> None:
         pass
 
-    def __enter__(self):
-        # type: () -> None
+    def __enter__(self) -> None:
         pass
 
     def __exit__(
         self,
-        exc_type,  # type: Optional[Type[BaseException]]
-        exc_val,  # type: Optional[BaseException]
-        exc_tb  # type: Optional[TracebackType]
-    ):
-        # type: (...) -> None
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType]
+    ) -> None:
         pass
 
-    def cleanup(self):
-        # type: () -> None
+    def cleanup(self) -> None:
         pass
 
     def install_requirements(
         self,
-        finder,  # type: PackageFinder
-        requirements,  # type: Iterable[str]
-        prefix_as_string,  # type: str
-        message  # type: str
-    ):
-        # type: (...) -> None
+        finder: "PackageFinder",
+        requirements: Iterable[str],
+        prefix_as_string: str,
+        message: str
+    ) -> None:
         raise NotImplementedError()
