@@ -14,26 +14,23 @@ logger = logging.getLogger(__name__)
 
 class RequirementSet:
 
-    def __init__(self, check_supported_wheels=True):
-        # type: (bool) -> None
+    def __init__(self, check_supported_wheels: bool = True) -> None:
         """Create a RequirementSet.
         """
 
-        self.requirements = OrderedDict()  # type: Dict[str, InstallRequirement]
+        self.requirements: Dict[str, InstallRequirement] = OrderedDict()
         self.check_supported_wheels = check_supported_wheels
 
-        self.unnamed_requirements = []  # type: List[InstallRequirement]
+        self.unnamed_requirements: List[InstallRequirement] = []
 
-    def __str__(self):
-        # type: () -> str
+    def __str__(self) -> str:
         requirements = sorted(
             (req for req in self.requirements.values() if not req.comes_from),
             key=lambda req: canonicalize_name(req.name or ""),
         )
         return ' '.join(str(req.req) for req in requirements)
 
-    def __repr__(self):
-        # type: () -> str
+    def __repr__(self) -> str:
         requirements = sorted(
             self.requirements.values(),
             key=lambda req: canonicalize_name(req.name or ""),
@@ -46,13 +43,11 @@ class RequirementSet:
             reqs=', '.join(str(req.req) for req in requirements),
         )
 
-    def add_unnamed_requirement(self, install_req):
-        # type: (InstallRequirement) -> None
+    def add_unnamed_requirement(self, install_req: InstallRequirement) -> None:
         assert not install_req.name
         self.unnamed_requirements.append(install_req)
 
-    def add_named_requirement(self, install_req):
-        # type: (InstallRequirement) -> None
+    def add_named_requirement(self, install_req: InstallRequirement) -> None:
         assert install_req.name
 
         project_name = canonicalize_name(install_req.name)
@@ -60,11 +55,10 @@ class RequirementSet:
 
     def add_requirement(
         self,
-        install_req,  # type: InstallRequirement
-        parent_req_name=None,  # type: Optional[str]
-        extras_requested=None  # type: Optional[Iterable[str]]
-    ):
-        # type: (...) -> Tuple[List[InstallRequirement], Optional[InstallRequirement]]
+        install_req: InstallRequirement,
+        parent_req_name: Optional[str] = None,
+        extras_requested: Optional[Iterable[str]] = None
+    ) -> Tuple[List[InstallRequirement], Optional[InstallRequirement]]:
         """Add install_req as a requirement to install.
 
         :param parent_req_name: The name of the requirement that needed this
@@ -112,8 +106,8 @@ class RequirementSet:
             return [install_req], None
 
         try:
-            existing_req = self.get_requirement(
-                install_req.name)  # type: Optional[InstallRequirement]
+            existing_req: Optional[InstallRequirement] = self.get_requirement(
+                install_req.name)
         except KeyError:
             existing_req = None
 
@@ -175,8 +169,7 @@ class RequirementSet:
         # scanning again.
         return [existing_req], existing_req
 
-    def has_requirement(self, name):
-        # type: (str) -> bool
+    def has_requirement(self, name: str) -> bool:
         project_name = canonicalize_name(name)
 
         return (
@@ -184,8 +177,7 @@ class RequirementSet:
             not self.requirements[project_name].constraint
         )
 
-    def get_requirement(self, name):
-        # type: (str) -> InstallRequirement
+    def get_requirement(self, name: str) -> InstallRequirement:
         project_name = canonicalize_name(name)
 
         if project_name in self.requirements:
@@ -194,6 +186,5 @@ class RequirementSet:
         raise KeyError(f"No project with the name {name!r}")
 
     @property
-    def all_requirements(self):
-        # type: () -> List[InstallRequirement]
+    def all_requirements(self) -> List[InstallRequirement]:
         return self.unnamed_requirements + list(self.requirements.values())
