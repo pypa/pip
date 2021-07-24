@@ -48,8 +48,8 @@ drop = [
 
 [tool.vendoring.typing-stubs]
 six = ["six.__init__", "six.moves.__init__", "six.moves.configparser"]
-appdirs = []
 distro = []
+platformdirs = []
 
 [tool.vendoring.license.directories]
 setuptools = "pkg_resources"

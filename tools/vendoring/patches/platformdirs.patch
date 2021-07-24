@@ -1,0 +1,20 @@
+diff --git a/src/pip/_vendor/platformdirs.py b/src/pip/_vendor/platformdirs.py
+index 23c6af8c7..3b8ef8ad8 100644
+--- a/src/pip/_vendor/platformdirs.py
++++ b/src/pip/_vendor/platformdirs.py
+@@ -327,12 +327,10 @@ else:
+         return path
+ 
+     def _site_config_dir_impl(appname=None, appauthor=None, version=None, multipath=False):
+-        # XDG default for $XDG_CONFIG_DIRS
++        # XDG default for $XDG_CONFIG_DIRSS (missing or empty)
++        # see <https://github.com/pypa/pip/pull/7501#discussion_r360624829>
+         # only first, if multipath is False
+-        if 'XDG_CONFIG_DIRS' in os.environ:
+-            path = os.environ['XDG_CONFIG_DIRS']
+-        else:
+-            path = '/etc/xdg'
++        path = os.getenv('XDG_CONFIG_DIRS') or '/etc/xdg'
+ 
+         pathlist = [os.path.expanduser(x.rstrip(os.sep)) for x in path.split(os.pathsep)]
+         if appname:
