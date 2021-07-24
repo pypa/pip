@@ -1,1 +1,0 @@
-Use annotations from the ``typing`` module on some functions.

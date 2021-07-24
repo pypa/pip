@@ -1,1 +1,0 @@
-Correctly allow PEP 517 projects to be detected without warnings in ``pip freeze``.

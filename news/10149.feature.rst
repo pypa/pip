@@ -1,1 +1,0 @@
-Log the resolved commit SHA when installing a package from a Git repository.
