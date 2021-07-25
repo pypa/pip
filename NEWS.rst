@@ -1,3 +1,14 @@
+21.2.1 (2021-07-25)
+===================
+
+
+
+Process
+-------
+
+- The source distribution re-installation feature removal has been delayed to 21.3.
+
+
 21.2 (2021-07-24)
 =================
 
