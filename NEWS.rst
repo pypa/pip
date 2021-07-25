@@ -1,3 +1,112 @@
+21.2.1 (2021-07-25)
+===================
+
+
+
+Process
+-------
+
+- The source distribution re-installation feature removal has been delayed to 21.3.
+
+
+21.2 (2021-07-24)
+=================
+
+
+
+Process
+-------
+
+- ``pip freeze``, ``pip list``, and ``pip show`` no longer normalize underscore
+  (``_``) in distribution names to dash (``-``). This is a side effect of the
+  migration to ``importlib.metadata``, since the underscore-dash normalization
+  behavior is non-standard and specific to setuptools. This should not affect
+  other parts of pip (for example, when feeding the ``pip freeze`` result back
+  into ``pip install``) since pip internally performs standard PEP 503
+  normalization independently to setuptools.
+
+Deprecations and Removals
+-------------------------
+
+- Git version parsing is now done with regular expression to prepare for the
+  pending upstream removal of non-PEP-440 version parsing logic. (`#10117 <https://github.com/pypa/pip/issues/10117>`_)
+- Re-enable the "Value for ... does not match" location warnings to field a new
+  round of feedback for the ``distutils``-``sysconfig`` transition. (`#10151 <https://github.com/pypa/pip/issues/10151>`_)
+- Remove deprecated ``--find-links`` option in ``pip freeze`` (`#9069 <https://github.com/pypa/pip/issues/9069>`_)
+
+Features
+--------
+
+- New resolver: Loosen URL comparison logic when checking for direct URL reference
+  equivalency. The logic includes the following notable characteristics:
+
+  * The authentication part of the URL is explicitly ignored.
+  * Most of the fragment part, including ``egg=``, is explicitly ignored. Only
+    ``subdirectory=`` and hash values (e.g. ``sha256=``) are kept.
+  * The query part of the URL is parsed to allow ordering differences. (`#10002 <https://github.com/pypa/pip/issues/10002>`_)
+- Support TOML v1.0.0 syntax in ``pyproject.toml``. (`#10034 <https://github.com/pypa/pip/issues/10034>`_)
+- Added a warning message for errors caused due to Long Paths being disabled on Windows. (`#10045 <https://github.com/pypa/pip/issues/10045>`_)
+- Change the encoding of log file from default text encoding to UTF-8. (`#10071 <https://github.com/pypa/pip/issues/10071>`_)
+- Log the resolved commit SHA when installing a package from a Git repository. (`#10149 <https://github.com/pypa/pip/issues/10149>`_)
+- Add a warning when passing an invalid requirement to ``pip uninstall``. (`#4958 <https://github.com/pypa/pip/issues/4958>`_)
+- Add new subcommand ``pip index`` used to interact with indexes, and implement
+  ``pip index version`` to list available versions of a package. (`#7975 <https://github.com/pypa/pip/issues/7975>`_)
+- When pip is asked to uninstall a project without the dist-info/RECORD file
+  it will no longer traceback with FileNotFoundError,
+  but it will provide a better error message instead, such as::
+
+      ERROR: Cannot uninstall foobar 0.1, RECORD file not found. You might be able to recover from this via: 'pip install --force-reinstall --no-deps foobar==0.1'.
+
+  When dist-info/INSTALLER is present and contains some useful information, the info is included in the error message instead::
+
+      ERROR: Cannot uninstall foobar 0.1, RECORD file not found. Hint: The package was installed by rpm. (`#8954 <https://github.com/pypa/pip/issues/8954>`_)
+- Add an additional level of verbosity. ``--verbose`` (and the shorthand ``-v``) now
+  contains significantly less output, and users that need complete full debug-level output
+  should pass it twice (``--verbose --verbose`` or ``-vv``). (`#9450 <https://github.com/pypa/pip/issues/9450>`_)
+- New resolver: The order of dependencies resolution has been tweaked to traverse
+  the dependency graph in a more breadth-first approach. (`#9455 <https://github.com/pypa/pip/issues/9455>`_)
+- Make "yes" the default choice in ``pip uninstall``'s prompt. (`#9686 <https://github.com/pypa/pip/issues/9686>`_)
+- Add a special error message when users forget the ``-r`` flag when installing. (`#9915 <https://github.com/pypa/pip/issues/9915>`_)
+- New resolver: A distribution's ``Requires-Python`` metadata is now checked
+  before its Python dependencies. This makes the resolver fail quicker when
+  there's an interpreter version conflict. (`#9925 <https://github.com/pypa/pip/issues/9925>`_)
+- Suppress "not on PATH" warning when ``--prefix`` is given. (`#9931 <https://github.com/pypa/pip/issues/9931>`_)
+- Include ``rustc`` version in pip's ``User-Agent``, when the system has ``rustc``. (`#9987 <https://github.com/pypa/pip/issues/9987>`_)
+
+Bug Fixes
+---------
+
+- Update vendored six to 1.16.0 and urllib3 to 1.26.5 (`#10043 <https://github.com/pypa/pip/issues/10043>`_)
+- Correctly allow PEP 517 projects to be detected without warnings in ``pip freeze``. (`#10080 <https://github.com/pypa/pip/issues/10080>`_)
+- Strip leading slash from a ``file://`` URL built from an path with the Windows
+  drive notation. This fixes bugs where the ``file://`` URL cannot be correctly
+  used as requirement, constraint, or index URLs on Windows. (`#10115 <https://github.com/pypa/pip/issues/10115>`_)
+- New resolver: URL comparison logic now treats ``file://localhost/`` and
+  ``file:///`` as equivalent to conform to RFC 8089. (`#10162 <https://github.com/pypa/pip/issues/10162>`_)
+- Prefer credentials from the URL over the previously-obtained credentials from URLs of the same domain, so it is possible to use different credentials on the same index server for different ``--extra-index-url`` options. (`#3931 <https://github.com/pypa/pip/issues/3931>`_)
+- Fix extraction of files with utf-8 encoded paths from tars. (`#7667 <https://github.com/pypa/pip/issues/7667>`_)
+- Skip distutils configuration parsing on encoding errors. (`#8931 <https://github.com/pypa/pip/issues/8931>`_)
+- New resolver: Detect an unnamed requirement is user-specified (by building its
+  metadata for the project name) so it can be correctly ordered in the resolver. (`#9204 <https://github.com/pypa/pip/issues/9204>`_)
+- Fix :ref:`pip freeze` to output packages :ref:`installed from git <vcs support>`
+  in the correct ``git+protocol://git.example.com/MyProject#egg=MyProject`` format
+  rather than the old and no longer supported ``git+git@`` format. (`#9822 <https://github.com/pypa/pip/issues/9822>`_)
+- Fix warnings about install scheme selection for Python framework builds
+  distributed by Apple's Command Line Tools. (`#9844 <https://github.com/pypa/pip/issues/9844>`_)
+- Relax interpreter detection to quelch a location mismatch warning where PyPy
+  is deliberately breaking backwards compatibility. (`#9845 <https://github.com/pypa/pip/issues/9845>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade certifi to 2021.05.30.
+- Upgrade idna to 3.2.
+- Upgrade packaging to 21.0
+- Upgrade requests to 2.26.0.
+- Upgrade resolvelib to 0.7.1.
+- Upgrade urllib3 to 1.26.6.
+
+
 .. note
 
     You should *NOT* be adding new change log entries to this file, this

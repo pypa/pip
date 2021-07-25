@@ -1,3 +1,0 @@
-Strip leading slash from a ``file://`` URL built from an path with the Windows
-drive notation. This fixes bugs where the ``file://`` URL cannot be correctly
-used as requirement, constraint, or index URLs on Windows.

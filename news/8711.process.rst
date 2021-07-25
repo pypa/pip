@@ -1,1 +1,0 @@
-The source distribution re-installation feature removal has been delayed to 21.3.

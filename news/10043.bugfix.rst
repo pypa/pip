@@ -1,1 +1,0 @@
-Update vendored six to 1.16.0 and urllib3 to 1.26.5

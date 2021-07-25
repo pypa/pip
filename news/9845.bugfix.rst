@@ -1,2 +1,0 @@
-Relax interpreter detection to quelch a location mismatch warning where PyPy
-is deliberately breaking backwards compatibility.
