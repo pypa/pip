@@ -59,7 +59,9 @@ Features
 
   When dist-info/INSTALLER is present and contains some useful information, the info is included in the error message instead::
 
-      ERROR: Cannot uninstall foobar 0.1, RECORD file not found. Hint: The package was installed by rpm. (`#8954 <https://github.com/pypa/pip/issues/8954>`_)
+      ERROR: Cannot uninstall foobar 0.1, RECORD file not found. Hint: The package was installed by rpm.
+
+  (`#8954 <https://github.com/pypa/pip/issues/8954>`_)
 - Add an additional level of verbosity. ``--verbose`` (and the shorthand ``-v``) now
   contains significantly less output, and users that need complete full debug-level output
   should pass it twice (``--verbose --verbose`` or ``-vv``). (`#9450 <https://github.com/pypa/pip/issues/9450>`_)
