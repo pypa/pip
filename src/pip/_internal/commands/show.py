@@ -1,6 +1,6 @@
 import csv
 import logging
-import os
+import pathlib
 from optparse import Values
 from typing import Iterator, List, NamedTuple, Optional
 
@@ -102,12 +102,17 @@ def search_packages_info(query: List[str]) -> Iterator[_PackageInfo]:
             return None
         return (row[0] for row in csv.reader(text.splitlines()))
 
-    def _files_from_installed_files(dist: BaseDistribution) -> Optional[Iterator[str]]:
+    def _files_from_legacy(dist: BaseDistribution) -> Optional[Iterator[str]]:
         try:
             text = dist.read_text('installed-files.txt')
         except FileNotFoundError:
             return None
-        return (p for p in text.splitlines(keepends=False) if p)
+        paths = (p for p in text.splitlines(keepends=False) if p)
+        root = dist.location
+        info = dist.metadata_directory
+        if root is None or info is None:
+            return paths
+        return (str(pathlib.Path(info, p).resolve().relative_to(root)) for p in paths)
 
     for query_name in query_names:
         try:
@@ -121,11 +126,11 @@ def search_packages_info(query: List[str]) -> Iterator[_PackageInfo]:
         except FileNotFoundError:
             entry_points = []
 
-        files_iter = _files_from_record(dist) or _files_from_installed_files(dist)
+        files_iter = _files_from_record(dist) or _files_from_legacy(dist)
         if files_iter is None:
             files: Optional[List[str]] = None
         else:
-            files = sorted(os.path.relpath(p, dist.location) for p in files_iter)
+            files = sorted(files_iter)
 
         metadata = dist.metadata
 

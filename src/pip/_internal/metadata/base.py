@@ -61,6 +61,18 @@ class BaseDistribution(Protocol):
         raise NotImplementedError()
 
     @property
+    def metadata_directory(self) -> Optional[str]:
+        """Location of the metadata directory.
+
+        Similarly to ``location``, a string value is not necessarily a
+        filesystem path. ``None`` means the distribution is created in-memory.
+
+        For a modern .dist-info installation on disk, this should be something
+        like ``{location}/{raw_name}-{version}.dist-info``.
+        """
+        raise NotImplementedError()
+
+    @property
     def canonical_name(self) -> "NormalizedName":
         raise NotImplementedError()
 
