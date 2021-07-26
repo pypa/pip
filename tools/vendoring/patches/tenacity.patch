@@ -1,5 +1,5 @@
 diff --git a/src/pip/_vendor/tenacity/__init__.py b/src/pip/_vendor/tenacity/__init__.py
-index 88c28d2d6..f984eec4e 100644
+index 88c28d2d6..086ad46e1 100644
 --- a/src/pip/_vendor/tenacity/__init__.py
 +++ b/src/pip/_vendor/tenacity/__init__.py
 @@ -76,10 +76,12 @@ from .after import after_nothing  # noqa
@@ -19,3 +19,16 @@ index 88c28d2d6..f984eec4e 100644
 
  if t.TYPE_CHECKING:
      import types
+
+--- a/src/pip/_vendor/tenacity/__init__.py
++++ b/src/pip/_vendor/tenacity/__init__.py
+@@ -190,7 +190,7 @@ class RetryError(Exception):
+         self.last_attempt = last_attempt
+         super().__init__(last_attempt)
+ 
+-    def reraise(self) -> t.NoReturn:
++    def reraise(self) -> "t.NoReturn":
+         if self.last_attempt.failed:
+             raise self.last_attempt.result()
+         raise self
+ 

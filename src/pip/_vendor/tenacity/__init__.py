@@ -190,7 +190,7 @@ class RetryError(Exception):
         self.last_attempt = last_attempt
         super().__init__(last_attempt)
 
-    def reraise(self) -> t.NoReturn:
+    def reraise(self) -> "t.NoReturn":
         if self.last_attempt.failed:
             raise self.last_attempt.result()
         raise self
