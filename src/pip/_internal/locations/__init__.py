@@ -41,6 +41,30 @@ else:
     _MISMATCH_LEVEL = logging.WARNING
 
 
+@functools.lru_cache(maxsize=None)
+def _looks_like_red_hat_patched() -> bool:
+    """Red Hat patches platlib in unix_prefix and unix_home, but not purelib.
+
+    This is the only way I can see to tell a Red Hat-patched Python.
+    """
+    from distutils.command.install import INSTALL_SCHEMES as SCHEMES
+
+    return (
+        k in SCHEMES
+        and "lib64" in SCHEMES[k]["platlib"]
+        and SCHEMES[k]["platlib"].replace("lib64", "lib") == SCHEMES[k]["purelib"]
+        for k in ("unix_prefix", "unix_home")
+    )
+
+
+@functools.lru_cache(maxsize=None)
+def _looks_like_debian_patched() -> bool:
+    """Debian adds two additional schemes."""
+    from distutils.command.install import INSTALL_SCHEMES
+
+    return "deb_system" in INSTALL_SCHEMES and "unix_local" in INSTALL_SCHEMES
+
+
 def _default_base(*, user: bool) -> str:
     if user:
         base = sysconfig.get_config_var("userbase")
@@ -141,6 +165,24 @@ def get_scheme(
             and old_v.name.startswith("python")
         )
         if skip_osx_framework_user_special_case:
+            continue
+
+        # On Red Hat and derived Linux distributions, distutils is patched to
+        # use "lib64" instead of "lib" for platlib.
+        if k == "platlib" and _looks_like_red_hat_patched():
+            continue
+
+        # Both Debian and Red Hat patch Python to place the system site under
+        # /usr/local instead of /usr. Debian also places lib in dist-packages
+        # instead of site-packages, but the /usr/local check should cover it.
+        skip_linux_system_special_case = (
+            not (user or home or prefix)
+            and old_v.parts[1:3] == ("user", "local")
+            and new_v.parts[1] == "usr"
+            and new_v.parts[2] != "local"
+            and (_looks_like_red_hat_patched() or _looks_like_debian_patched())
+        )
+        if skip_linux_system_special_case:
             continue
 
         warned.append(_warn_if_mismatch(old_v, new_v, key=f"scheme.{k}"))
