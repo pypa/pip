@@ -21,13 +21,15 @@ from .base import get_major_minor_version
 logger = logging.getLogger(__name__)
 
 
-def _distutils_scheme(
+def distutils_scheme(
     dist_name: str,
     user: bool = False,
     home: str = None,
     root: str = None,
     isolated: bool = False,
     prefix: str = None,
+    *,
+    ignore_config_files: bool = False,
 ) -> Dict[str, str]:
     """
     Return a distutils install scheme
@@ -39,15 +41,16 @@ def _distutils_scheme(
         dist_args["script_args"] = ["--no-user-cfg"]
 
     d = Distribution(dist_args)
-    try:
-        d.parse_config_files()
-    except UnicodeDecodeError:
-        # Typeshed does not include find_config_files() for some reason.
-        paths = d.find_config_files()  # type: ignore
-        logger.warning(
-            "Ignore distutils configs in %s due to encoding errors.",
-            ", ".join(os.path.basename(p) for p in paths),
-        )
+    if not ignore_config_files:
+        try:
+            d.parse_config_files()
+        except UnicodeDecodeError:
+            # Typeshed does not include find_config_files() for some reason.
+            paths = d.find_config_files()  # type: ignore
+            logger.warning(
+                "Ignore distutils configs in %s due to encoding errors.",
+                ", ".join(os.path.basename(p) for p in paths),
+            )
     obj: Optional[DistutilsCommand] = None
     obj = d.get_command_obj("install", create=True)
     assert obj is not None
@@ -121,7 +124,7 @@ def get_scheme(
     :param prefix: indicates to use the "prefix" scheme and provides the
         base directory for the same
     """
-    scheme = _distutils_scheme(dist_name, user, home, root, isolated, prefix)
+    scheme = distutils_scheme(dist_name, user, home, root, isolated, prefix)
     return Scheme(
         platlib=scheme["platlib"],
         purelib=scheme["purelib"],

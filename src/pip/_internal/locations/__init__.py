@@ -7,6 +7,7 @@ import sysconfig
 from typing import List, Optional
 
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
+from pip._internal.utils.deprecation import deprecated
 
 from . import _distutils, _sysconfig
 from .base import (
@@ -51,9 +52,7 @@ def _default_base(*, user: bool) -> str:
 
 
 @functools.lru_cache(maxsize=None)
-def _warn_if_mismatch(old: pathlib.Path, new: pathlib.Path, *, key: str) -> bool:
-    if old == new:
-        return False
+def _warn_mismatched(old: pathlib.Path, new: pathlib.Path, *, key: str) -> None:
     issue_url = "https://github.com/pypa/pip/issues/10151"
     message = (
         "Value for %s does not match. Please report this to <%s>"
@@ -61,6 +60,12 @@ def _warn_if_mismatch(old: pathlib.Path, new: pathlib.Path, *, key: str) -> bool
         "\nsysconfig: %s"
     )
     logger.log(_MISMATCH_LEVEL, message, key, issue_url, old, new)
+
+
+def _warn_if_mismatch(old: pathlib.Path, new: pathlib.Path, *, key: str) -> bool:
+    if old == new:
+        return False
+    _warn_mismatched(old, new, key=key)
     return True
 
 
@@ -109,11 +114,14 @@ def get_scheme(
     )
 
     base = prefix or home or _default_base(user=user)
-    warned = []
+    warning_contexts = []
     for k in SCHEME_KEYS:
         # Extra join because distutils can return relative paths.
         old_v = pathlib.Path(base, getattr(old, k))
         new_v = pathlib.Path(getattr(new, k))
+
+        if old_v == new_v:
+            continue
 
         # distutils incorrectly put PyPy packages under ``site-packages/python``
         # in the ``posix_home`` scheme, but PyPy devs said they expect the
@@ -143,10 +151,38 @@ def get_scheme(
         if skip_osx_framework_user_special_case:
             continue
 
-        warned.append(_warn_if_mismatch(old_v, new_v, key=f"scheme.{k}"))
+        warning_contexts.append((old_v, new_v, f"scheme.{k}"))
 
-    if any(warned):
-        _log_context(user=user, home=home, root=root, prefix=prefix)
+    if not warning_contexts:
+        return old
+
+    # Check if this path mismatch is caused by distutils config files. Those
+    # files will no longer work once we switch to sysconfig, so this raises a
+    # deprecation message for them.
+    default_old = _distutils.distutils_scheme(
+        dist_name,
+        user,
+        home,
+        root,
+        isolated,
+        prefix,
+        ignore_config_files=True,
+    )
+    if any(default_old[k] != getattr(old, k) for k in SCHEME_KEYS):
+        deprecated(
+            "Configuring installation scheme with distutils config files "
+            "is deprecated and will no longer work in the near future. If you "
+            "are using a Homebrew or Linuxbrew Python, please see discussion "
+            "at https://github.com/Homebrew/homebrew-core/issues/76621",
+            replacement=None,
+            gone_in=None,
+        )
+        return old
+
+    # Post warnings about this mismatch so user can report them back.
+    for old_v, new_v, key in warning_contexts:
+        _warn_mismatched(old_v, new_v, key=key)
+    _log_context(user=user, home=home, root=root, prefix=prefix)
 
     return old
 
