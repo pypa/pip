@@ -4,9 +4,10 @@ import os
 import pathlib
 import sys
 import sysconfig
-from typing import List, Optional
+from typing import Dict, Iterator, List, Optional, Tuple
 
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
+from pip._internal.utils.compat import WINDOWS
 
 from . import _distutils, _sysconfig
 from .base import (
@@ -41,18 +42,25 @@ else:
     _MISMATCH_LEVEL = logging.WARNING
 
 
+def _looks_like_red_hat_patched_platlib_purelib(scheme: Dict[str, str]) -> bool:
+    platlib = scheme["platlib"]
+    if "/lib64/" not in platlib:
+        return False
+    unpatched = platlib.replace("/lib64/", "/lib/")
+    return unpatched.replace("$platbase/", "$base/") == scheme["purelib"]
+
+
 @functools.lru_cache(maxsize=None)
 def _looks_like_red_hat_patched() -> bool:
     """Red Hat patches platlib in unix_prefix and unix_home, but not purelib.
 
     This is the only way I can see to tell a Red Hat-patched Python.
     """
-    from distutils.command.install import INSTALL_SCHEMES as SCHEMES
+    from distutils.command.install import INSTALL_SCHEMES  # type: ignore
 
-    return (
-        k in SCHEMES
-        and "lib64" in SCHEMES[k]["platlib"]
-        and SCHEMES[k]["platlib"].replace("lib64", "lib") == SCHEMES[k]["purelib"]
+    return all(
+        k in INSTALL_SCHEMES
+        and _looks_like_red_hat_patched_platlib_purelib(INSTALL_SCHEMES[k])
         for k in ("unix_prefix", "unix_home")
     )
 
@@ -60,9 +68,25 @@ def _looks_like_red_hat_patched() -> bool:
 @functools.lru_cache(maxsize=None)
 def _looks_like_debian_patched() -> bool:
     """Debian adds two additional schemes."""
-    from distutils.command.install import INSTALL_SCHEMES
+    from distutils.command.install import INSTALL_SCHEMES  # type: ignore
 
     return "deb_system" in INSTALL_SCHEMES and "unix_local" in INSTALL_SCHEMES
+
+
+def _fix_abiflags(parts: Tuple[str]) -> Iterator[str]:
+    ldversion = sysconfig.get_config_var("LDVERSION")
+    abiflags: str = getattr(sys, "abiflags", None)
+
+    # LDVERSION does not end with sys.abiflags. Just return the path unchanged.
+    if not ldversion or not abiflags or not ldversion.endswith(abiflags):
+        yield from parts
+        return
+
+    # Strip sys.abiflags from LDVERSION-based path components.
+    for part in parts:
+        if part.endswith(ldversion):
+            part = part[: (0 - len(abiflags))]
+        yield part
 
 
 def _default_base(*, user: bool) -> str:
@@ -177,12 +201,24 @@ def get_scheme(
         # instead of site-packages, but the /usr/local check should cover it.
         skip_linux_system_special_case = (
             not (user or home or prefix)
-            and old_v.parts[1:3] == ("user", "local")
+            and old_v.parts[1:3] == ("usr", "local")
+            and len(new_v.parts) > 1
             and new_v.parts[1] == "usr"
-            and new_v.parts[2] != "local"
+            and (len(new_v.parts) < 3 or new_v.parts[2] != "local")
             and (_looks_like_red_hat_patched() or _looks_like_debian_patched())
         )
         if skip_linux_system_special_case:
+            continue
+
+        # On Python 3.7 and earlier, sysconfig does not include sys.abiflags in
+        # the "pythonX.Y" part of the path, but distutils does.
+        skip_sysconfig_abiflag_bug = (
+            sys.version_info < (3, 8)
+            and not WINDOWS
+            and k in ("headers", "platlib", "purelib")
+            and tuple(_fix_abiflags(old_v.parts)) == new_v.parts
+        )
+        if skip_sysconfig_abiflag_bug:
             continue
 
         warned.append(_warn_if_mismatch(old_v, new_v, key=f"scheme.{k}"))
