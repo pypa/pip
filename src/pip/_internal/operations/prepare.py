@@ -216,15 +216,13 @@ def unpack_url(
     # be removed.
     if link.is_existing_dir():
         deprecated(
-            "pip currently copies the source tree into a temporary directory "
-            "before building it. In the future, pip will build packages in-place "
-            "within the original source tree (\"in-tree build\"). Before the "
-            "default behavior changes, we recommend testing your packages by "
-            "adding the --use-feature=in-tree-build argument. Regarding the "
-            "current out-of-tree default build behavior,\n",
+            reason="pip copied the source tree into a temporary directory "
+            "before building it. This is changing so that packages are built in-place "
+            'within the original source tree ("in-tree build").',
             replacement=None,
             gone_in="21.3",
-            issue=7555
+            feature_flag="in-tree-build",
+            issue=7555,
         )
         if os.path.isdir(location):
             rmtree(location)
