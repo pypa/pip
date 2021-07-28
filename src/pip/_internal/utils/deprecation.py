@@ -89,7 +89,7 @@ def deprecated(
             gone_in,
             "pip {} will enforce this behaviour change."
             if not is_gone
-            else "This behavior change has been enforced since pip {}.",
+            else "Since pip {}, this is no longer supported.",
         ),
         (
             replacement,
@@ -101,7 +101,7 @@ def deprecated(
         ),
         (
             issue,
-            "Discussion can be found at https://github.com/pypa/pip/issues/{}.",
+            "Discussion can be found at https://github.com/pypa/pip/issues/{}",
         ),
     ]
 
@@ -111,7 +111,7 @@ def deprecated(
         if value is not None
     )
 
-    # Raise as an error if this behaviour is no longer supported.
+    # Raise as an error if this behaviour is deprecated.
     if is_gone:
         raise PipDeprecationWarning(message)
 
