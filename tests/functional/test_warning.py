@@ -14,7 +14,7 @@ def warnings_demo(tmpdir):
         deprecation.install_warning_logger()
         basicConfig()
 
-        deprecation.deprecated("deprecated!", replacement=None, gone_in=None)
+        deprecation.deprecated(reason="deprecated!", replacement=None, gone_in=None)
     '''))
     return demo
 

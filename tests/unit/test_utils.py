@@ -882,7 +882,7 @@ def patch_deprecation_check_version():
 def test_deprecated_message_contains_information(gone_in, replacement, issue):
     with pytest.warns(PipDeprecationWarning) as record:
         deprecated(
-            "Stop doing this!",
+            reason="Stop doing this!",
             replacement=replacement,
             gone_in=gone_in,
             issue=issue,
@@ -904,7 +904,7 @@ def test_deprecated_message_contains_information(gone_in, replacement, issue):
 def test_deprecated_raises_error_if_too_old(replacement, issue):
     with pytest.raises(PipDeprecationWarning) as exception:
         deprecated(
-            "Stop doing this!",
+            reason="Stop doing this!",
             gone_in="1.0",  # this matches the patched version.
             replacement=replacement,
             issue=issue,
@@ -924,7 +924,7 @@ def test_deprecated_raises_error_if_too_old(replacement, issue):
 def test_deprecated_message_reads_well():
     with pytest.raises(PipDeprecationWarning) as exception:
         deprecated(
-            "Stop doing this!",
+            reason="Stop doing this!",
             gone_in="1.0",  # this matches the patched version.
             replacement="to be nicer",
             issue="100000",  # I hope we never reach this number.

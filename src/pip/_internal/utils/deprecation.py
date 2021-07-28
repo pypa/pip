@@ -62,6 +62,7 @@ def install_warning_logger() -> None:
 
 
 def deprecated(
+    *,
     reason: str,
     replacement: Optional[str],
     gone_in: Optional[str],
@@ -86,10 +87,8 @@ def deprecated(
     issue:
         Issue number on the tracker that would serve as a useful place for
         users to find related discussion and provide feedback.
-
-    Always pass replacement, gone_in and issue as keyword arguments for clarity
-    at the call site.
     """
+
     # Determine whether or not the feature is already gone in this version.
     is_gone = gone_in is not None and parse(current_version) >= parse(gone_in)
     # Allow variable substitutions within the "reason" variable.
