@@ -934,9 +934,9 @@ def test_deprecated_message_reads_well():
 
     assert message == (
         "DEPRECATION: Stop doing this! "
-        "pip 1.0 will remove support for this functionality. "
+        "This behavior change has been enforced since pip 1.0. "
         "A possible replacement is to be nicer. "
-        "You can find discussion regarding this at "
+        "Discussion can be found at "
         "https://github.com/pypa/pip/issues/100000."
     )
 
