@@ -25,8 +25,8 @@ LOCATIONS = {
 }
 REQUIREMENTS = {
     "docs": "docs/requirements.txt",
-    "tests": "tools/requirements/tests.txt",
-    "common-wheels": "tools/requirements/tests-common_wheels.txt",
+    "tests": "tests/requirements.txt",
+    "common-wheels": "tests/requirements-common_wheels.txt",
 }
 
 AUTHORS_FILE = "AUTHORS.txt"
