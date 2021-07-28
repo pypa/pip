@@ -8,7 +8,7 @@ from typing import Any, Optional, TextIO, Type, Union
 
 from pip._vendor.packaging.version import parse
 
-from pip import __version__ as current_version
+from pip import __version__ as current_version  # NOTE: tests patch this name.
 
 DEPRECATION_MSG_PREFIX = "DEPRECATION: "
 DEPRECATION_MESSAGE = DEPRECATION_MSG_PREFIX + "{reason}"
@@ -119,7 +119,7 @@ def deprecated(
     ]
     message = " ".join(sentence for sentence in sentences if sentence)
 
-    # Raise as an error if the functionality is gone.
+    # Raise as an error if this behaviour is no longer supported.
     if is_gone:
         raise PipDeprecationWarning(message)
     else:
