@@ -1,7 +1,9 @@
-# Pip upgrade conflict
+# pip upgrade conflict
 
 ## Problem
 Currently, pip does *not* take into account packages that are already installed when a user asks pip to upgrade a package. This can cause dependency conflicts for pip's users.
+
+[Skip to recommendations](#recommendations)
 
 ## Research
 We published a [survey](https://bit.ly/2ZqJijr) asking users how they would solve the following scenario:

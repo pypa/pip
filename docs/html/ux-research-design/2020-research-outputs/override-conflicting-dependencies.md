@@ -10,6 +10,7 @@ As a result, some users may feel that newer versions of pip are "broken" when pi
 
 For this reason, the pip team wanted to know if they should provide an override that allows users to install conflicting packages.
 
+[Skip to recommendations](#recommendations)
 
 ## Research
 

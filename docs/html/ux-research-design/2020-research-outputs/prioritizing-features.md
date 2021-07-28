@@ -4,6 +4,8 @@
 The pip development team is small, and has limited time and energy to work on issues reported via the [issue tracker](https://github.com/pypa/pip/issues). There is also a significant backlog of issues (782 as of November, 2020) for the team to respond to.
 For the team to prioritize their work based on what will have the most impact, we need to develop a better understanding of what users want from pip.
 
+[Skip to recommendations](#recommendations)
+
 ## Research
 To help answer this question, we developed a "buy a feature" survey, with the following scenario:
 

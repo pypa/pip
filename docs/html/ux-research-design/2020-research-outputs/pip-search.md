@@ -1,8 +1,10 @@
-# Pip search
+# pip search
 
 ## Problem
 
 By default, `pip search` searches packages on PyPI.org from the command line. However, the team are [considering removing it](https://github.com/pypa/pip/issues/5216), because they think it's not that useful and using too many resources on PyPI ([PyPI XMLRPC search has been disabled](https://status.python.org/incidents/grk0k7sz6zkp) because of abuse/overuse).
+
+[Skip to recommendations](#recommendations)
 
 ## Research
 
@@ -26,9 +28,9 @@ However, search ranked lower than the following features:
 2. Show information about all installed packages *707*
 3. Show information about a single installed package *596*
 
-We received 302 respones to the pip search survey, with 62 of the 302 (20.5%) respondends either not knowing that the command existed, never using it, or using it "rarely".
+We received 302 responses to the pip search survey, with 62 of the 302 (20.5%) respondents either not knowing that the command existed, never using it, or using it "rarely".
 
-We found that the remaining ~80% of respondends who do use pip search use it to:
+We found that the remaining ~80% of respondents who do use pip search use it to:
 
 - Find/search for the right/new/alternate packages to install:
     - Checking package name (verify correct spelling)
@@ -41,7 +43,7 @@ In general, pip search is regarded as:
 - more useful than not useful
 - more clear than not clear
 
-When asked if pip should search on items _other_ than the package name, respondends most commonly asked to search the package description:
+When asked if pip should search on items _other_ than the package name, respondents most commonly asked to search the package description:
 
 ![](https://i.imgur.com/lxS2TG6.png)
 

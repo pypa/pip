@@ -1,676 +1,291 @@
-# About pip's users
+# About pip's Users
 
 ## Research
 
-It is important to understand users' background, their cultural environment, and how they experience the world. To get this understanding we asked our participants about: their location in the world, their spoken language, if they identified as members of an underrepresented group in the Python community, and also to understand their disabilities and if they affected their usage of pip.
+It is important to understand users' background, their cultural environment, and how they experience the world.
+
+To develop this understanding about pip's users, we published a “Who uses pip?” survey that asked users about :
+
+* Their location in the world
+* Their spoken language
+* If they identified as members of an underrepresented group in the Python community
+* Their disabilities and if those disabilities affected their usage of pip
+
+[Skip to recommendations](#recommendations)
 
 ## Summary
 
-164 participants took part in our "Who uses pip?” user research, 40% of these came from English speaking countries. 80% of participants came from Europe/North America.
+164 people responded to the survey, with 40% of these coming from English speaking countries. 80% of participants came from Europe or North America.
 
-Approx. 60% of participants did not identify as members of under-represented communities. The majority of those who did identify as under-represented did so for gender reasons.
+Approx. 60% did not identify as members of an underrepresented group. The majority of participants who did identify as underrepresented did so for gender reasons.
 
-The majority of participants (94%) responded that they did not have a disability. Those that did have a disability, the majority were cognitive disabilities (Attention Deficit Hyperactivity Disorder (ADHD), Autism, Aspergers, Dyslexia) or a hearing disability.
+The majority of participants (94%) responded that they did not have a disability. Of those that did have a disability, the majority were cognitive disabilities (Attention Deficit Hyperactivity Disorder (ADHD), Autism, Aspergers, Dyslexia) or a hearing disability.
+
+## Participant Demographics
+
+### Location
+
+The majority of participants came from North America and Western Europe. Participation from pip users in Africa, Asia, and the Middle-East was low.
+
+![TODO](images/image1.png "image_tooltip")
+
+Fig. X: Global distribution of pip research participants.
+
+|Country Name|Number of participants|
+|--- |--- |
+|United States of America|42|
+|United Kingdom|17|
+|France|12|
+|Germany|11|
+|Canada|10|
+|Netherlands|8|
+|Spain|6|
+|Switzerland|5|
+|Nigeria|4|
+|India|4|
+|Czech Republic|4|
+|Argentina|4|
+|Sweden|3|
+|Australia|3|
+|Ukraine|2|
+|Taiwan|2|
+|Russia|2|
+|Greece|2|
+|Colombia|2|
+|Chile|2|
+|Brazil|2|
+|Belgium|2|
+|Uganda|1|
+|Turkey|1|
+|Singapore|1|
+|Serbia|1|
+|Norway|1|
+|Luxembourg|1|
+|Japan|1|
+|Italy|1|
+|Israel|1|
+|Ireland|1|
+|Hungary|1|
+|Ghana|1|
+|Finland|1|
+|Bulgaria|1|
+|Austria|1|
+|Total|164|
+
+## Participant's First Language
+
+Even though the research was carried out mainly in English, 51% of participants spoke languages other than English.
+
+|What spoken language do you feel is your first?|Number of participants|
+|--- |--- |
+|English|79|
+|French|18|
+|Spanish|12|
+|German|11|
+|Russian|5|
+|Czech|4|
+|Italian|4|
+|Portuguese|3|
+|Dutch|3|
+|Ukrainian|2|
+|Swedish|2|
+|Greek|2|
+|Catalan|2|
+|Mandarin|2|
+|Hungarian|2|
+|Bengali|1|
+|Luxembourgish|1|
+|Bulgarian|1|
+|Romanian|1|
+|Chinese|1|
+|Norwegian|1|
+|Serbian|1|
+|Polish|1|
+|Hebrew|1|
+|Indonesian|1|
+|Malayalam|1|
+
+NB: English includes British English and American English. Some participants gave more than one answer, their first answer is included here.
+
+## Participants who identified as underrepresented in the Python community
+
+We asked research participants if they identified as members of an underrepresented group within the Python community.
+
+The wording of this question was deliberately broad to discover participants' understanding of the term “underrepresented” - we listed gender, age, educational background, spoken language, and what they use Python for as a non-exhaustive list of examples.
+
+![TODO](images/image3.png "image_tooltip")
+
+Of the 23.5% that responded "Yes" the answers were classified as follows :
+
+|Underrepresentation category|Count|
+|--- |--- |
+|Gender|9|
+|Cultural|3|
+|Age|3|
+|Immigration status|2|
+|Neurodiversity|3|
+|Other|6|
+|No answer|8|
+
+NB: This question was included after the survey was published. Total participants was 106, as opposed to all other questions which had 164.
+
+### Interpreting these Results
+
+The majority of participants did not identify as part of an underrepresented group. However, due to the small sample size these results cannot be seen as representative of the whole pip user base.
+
+#### Participant comments about identifying/not identifying as under-represented
+
+Here is a sample of noteworthy comments from these different groups:
+
+##### Related to Gender
+
+> "(I am) LGBTQ/IA+" - Participant 242608909
+> "I am a 25 year old female Colombian developer." - Participant 242611698
+> "Female, 39, no computer science background whatsoever, self taught." - Participant 242614039
+
+##### Related to Culture
+
+> "The hispanic community is quite underrepresented in the web in general" - Participant 242599212
+> "I am a 1st generation Dominican-American. My parents are from the Dominican Republic." - Participant 242769361
+
+##### Related to Age
+
+> "Older age, I am 50 now." - Participant 242769743
+
+##### Related to Neurodiversity
+
+> "I'm a woman. And autistic. But the latter might not be underrepresented ;)" - Participant 243428773
+
+##### Other
+
+> "Veterans who entered tech post-military" - Participant 243524784
+
+Noteworthy answers where the participant did not identify as under-represented (or were not sure):
+
+> "I'm a young white cis male, so by far not a minority in those aspects. But at the same time I'm from a third world country, Argentina, and that sometimes (and I emphasize, only sometimes) makes me feel like a minority. When participating in our local communities (Python Argentina), I feel clearly not-minority, and with the responsibility of helping minorities, trying to build a more welcoming and fair environment for them. But when I participate in the broader global community, at times I feel underrepresented, seeing it mostly guided by english-s[p]eaking people from first world countries. But if I have to choose, I would say I mostly feel not-minority, because I mostly interact with people from our local communities, where I'm not part of a minority." - Participant 242592869
+
+> "As a CIS male I conform the majoritarian group in the IT world. I'm hopeful that things are changing everywhere, and will keep changing: inclusion is getting bigger and better, more and more people are starting their careers as devs or similar, disregarding ethnicity and/or sexual orientation and that's great! And we need to keep fighting for that." - Participant 243455292
+
+## Participant Disabilities
+
+Disabilities - physical, motor, cognitive, hearing, speech - alter how people perceive and interact with the world around them - software included. We asked participants about their disabilities and how it affected their usage of pip.
+
+Understanding these disabilities is important particularly when designing pip command structures, and designing pip output.
+
+The majority of participants (91%) responded that they did not have a disability. Of those that told us that have a disability, the majority were cognitive disabilities (Attention Deficit Hyperactivity Disorder (ADHD), Autism, Aspergers, Dyslexia, or a hearing disability.
+
+### How many participants identified as having a disability?
+
+|Do you self-identify as someone who has a disability?|Number of responses|
+|No|150|
+|Yes|14|
+|Grand Total|164|
+
+### Types of disabilities mentioned by participants
+
+#### Vision
+
+Participants who answered yes to this question were partially sighted. Their vision disability was not corrected by glasses, but did not significantly affect their usage of pip.
+
+#### Hearing
+
+Five participants identified as having a hearing impairment, or hearing loss. While this disability made participants lives more difficult, it did not affect their usage of pip:
+
+> "Being hard of hearing/impaired makes my life much harder, but so far it never has impacted my usage of pip. Perhaps because I haven‘t used parts of it that would?" - Participant 242934019
+
+> "Not at all given that everything happens by text in my console." - Participant 243455292
+
+However it did affect the way they consume pip learning materials: if video is being used for learning or support, they should have captions/subtitles/transcriptions available.
+
+> "any videos released, it is so helpful if there is either a) transcripts, or b) captions." - Participant 243524784
+
+#### Cognitive Disabilities
+
+Nine participants expressed cognitive disabilities including undefined mental health conditions, Attention Deficit Hyperactivity Disorder (ADHD), Autism, Aspergers, Dyslexia.
+
+These participants did not explain how their cognitive disabilities affect their usage of pip, however there are guidelines and best practices for designing for people with cognitive disabilities.
+
+#### Physical or Mobility Disability
+
+One participant responded that they had a physical or mobility disability, but did not give detail about it in relation to their usage of pip.
+
+## Participants use of Assistive Technology
+
+The term “assistive technology” (AT) is used to describe products or systems that support and assist individuals with disabilities, restricted mobility or other impairments to perform functions that might otherwise be difficult or impossible. A subset of these are used to make computer technology - hardware and software - more accessible. Common examples of AT used with computer technology are: screen readers, text-to-speech outputs/inputs.
+
+The majority of participants (94%) said that they have never used assistive technology.
+
+|Do you use assistive technology (AT) when using computers?|Number of responses|
+|No, I have never used it|128|
+|I only use it when needed|3|
+|I use it everyday|1|
+|I have used it in the past, but not anymore|4|
+
+Of the eight participants who have used assistive technology, one participant uses assistive technology every day with:
+
+* Text-to-speech output as “text to speech allow(s) me to listen and learn when my eyes get strained.”
+* Speech-to-text input as they like using their “tablet and makes typing easier”
+* On-screen keyboards
+* Input switches/touch screens
+
+A further seven participants use assistive technology only as needed:
+
+> "I use custom display filter software to do things like colorize key lines of output automatically (to draw my eye/attention), and provide digit dilimination (I.E. help me tell 1000 and 10000 apart) when using a text console application."
+
+> "The standard Mac user interface design contains enough assistive technology without my needing to use any features which are specifically intended solely as assistive functions."
+
+> "I sometimes use it to make sure that my code will work correctly with AT."
+
+### Operating systems used with assistive technology
+
+Participants use assistive technology across the three most popular desktop operating systems - Linux (most popular), Windows (2nd most popular), and Windows.
+
+![TODO](images/image6.png "image_tooltip")
+
+### Assistive technology when using pip
+
+We asked participants how well their assistive technologies worked when they use pip. All participants using assistive technology with pip said it worked well for them.
+
+We received some feedback about screen readers not coping well with long output, with users experiencing difficulties accessing content at the top of the current terminal window.  Therefore, commands or actions (e.g. pip help, pip install, failed builds) that generate a lot of content can be a problem for screenreader users.
 
 ## Recommendations
 
 ### Supporting languages other than English
 
-The ideal situation to support non-English speaking pip users would be to translate documentation into their language, some alternatives could be drawn from the Python community:
+As 51% of participants speak a language other than English, we recommend that the pip team add localization support to the pip documentation and reach out to the community to find pip users who might be willing to contribute translations. Translators that have [contributed translations to PyPI](https://hosted.weblate.org/projects/pypa/warehouse/) may be a good starting point.
 
-#### Identify community members who could act as other language documentation stewards  
-
-The Python community is global, and so has members who speak many languages. By identifying members who could take care of translating, or identifying already created documentation, this would help non-English speaking pip users.
-
-#### Identify pip documentation in other languages and link to it from the official pip documentation
-
-Our research has already found that users use a mixture of pip documentation, search engine searches, Stack Overflow and blogs/websites to find good documentation.
-
-Providing a list of documentation in different languages for pip users would make it easier to find that documentation.
+If this is not possible, we recommend linking to useful resources in languages other than English from the pip documentation, as we know from our other research that users use a mixture of the official documentation, search engine searches, Stack Overflow and blogs/websites to find solutions to their problems.
 
 ### Supporting pip users with disabilities
 
-Pip's operation is actually very good for users with disabilities. Being a terminal application the user has a large amount of control on how they experience pip - customisation of interface visual preferences (to use contrasting colours, font size and type), there are no distracting images or ancillary content, they can use visual and auditory alerts.
+Pip's operation is generally very good for users with disabilities. Being a command line application there are no distracting images or ancillary content, and the user has a large amount of control on how they experience pip via customisation of interface visual preferences (to use contrasting colours, font size and type) and visual and auditory alerts.
+
+To better support pip's users with disabilities, the pip team should:
+
+* Ensure any future video or audio support materials are provided with captions
+* Improve pip's output (see below)
 
 #### Improving pip output
 
-However the main improvement that should be made is to improve pips output.
-
-Right now pip's output is too verbose - it generates an unhelpful amount of output during it's operation. This causes usability issues for all users - especially users with cognitive disabilities.
+Pip's output is currently too verbose, generating an unhelpful amount of output during its operation. This causes usability issues for all users - especially users with cognitive disabilities.
 
 Pip's output should be improved by:
 
-- Distinguishing what is important  information at the moment (e.g. at install of a package) and remove unimportant information from the terminal output. The information can still be logged to the log files if needed.
-- Reduce the number of verbosity levels to 3. Right now there are 7 &lt;?> levels of verbosity.
-    - Verbosity 0 - shows only what packages are to be installed, notifications identified as important about the operation, any errors and the final outcome
-    - Verbosity 1 - shows more detail about the packages being installed
-    - Verbosity 2 - shows full information which is also logged to logfiles
-
-## Participant demographics
-
-### Location
-
-The majority of participation came from North American, Western European countries. Participation from African, Asian, and Middle-Eastern countries was low.
-
-![alt_textTODO](images/image1.png "image_tooltip")
-Fig. 1: Global distribution of pip research participants.
-
-<table>
-  <tr>
-   <td><em>Country Name</em>
-   </td>
-   <td>Number of participants
-   </td>
-  </tr>
-  <tr>
-   <td>United States of America
-   </td>
-   <td><p style="text-align: right">
-42</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>United Kingdom
-   </td>
-   <td><p style="text-align: right">
-17</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>France
-   </td>
-   <td><p style="text-align: right">
-12</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Germany
-   </td>
-   <td><p style="text-align: right">
-11</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Canada
-   </td>
-   <td><p style="text-align: right">
-10</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Netherlands
-   </td>
-   <td><p style="text-align: right">
-8</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Spain
-   </td>
-   <td><p style="text-align: right">
-6</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Switzerland
-   </td>
-   <td><p style="text-align: right">
-5</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Nigeria
-   </td>
-   <td><p style="text-align: right">
-4</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>India
-   </td>
-   <td><p style="text-align: right">
-4</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Czech Republic
-   </td>
-   <td><p style="text-align: right">
-4</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Argentina
-   </td>
-   <td><p style="text-align: right">
-4</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Sweden
-   </td>
-   <td><p style="text-align: right">
-3</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Australia
-   </td>
-   <td><p style="text-align: right">
-3</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Ukraine
-   </td>
-   <td><p style="text-align: right">
-2</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Taiwan
-   </td>
-   <td><p style="text-align: right">
-2</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Russia
-   </td>
-   <td><p style="text-align: right">
-2</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Greece
-   </td>
-   <td><p style="text-align: right">
-2</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Colombia
-   </td>
-   <td><p style="text-align: right">
-2</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Chile
-   </td>
-   <td><p style="text-align: right">
-2</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Brazil
-   </td>
-   <td><p style="text-align: right">
-2</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Belgium
-   </td>
-   <td><p style="text-align: right">
-2</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Uganda
-   </td>
-   <td><p style="text-align: right">
-1</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Turkey
-   </td>
-   <td><p style="text-align: right">
-1</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Singapore
-   </td>
-   <td><p style="text-align: right">
-1</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Serbia
-   </td>
-   <td><p style="text-align: right">
-1</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Norway
-   </td>
-   <td><p style="text-align: right">
-1</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Luxembourg
-   </td>
-   <td><p style="text-align: right">
-1</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Japan
-   </td>
-   <td><p style="text-align: right">
-1</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Italy
-   </td>
-   <td><p style="text-align: right">
-1</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Israel
-   </td>
-   <td><p style="text-align: right">
-1</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Ireland
-   </td>
-   <td><p style="text-align: right">
-1</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Hungary
-   </td>
-   <td><p style="text-align: right">
-1</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Ghana
-   </td>
-   <td><p style="text-align: right">
-1</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Finland
-   </td>
-   <td><p style="text-align: right">
-1</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Bulgaria
-   </td>
-   <td><p style="text-align: right">
-1</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Austria
-   </td>
-   <td><p style="text-align: right">
-1</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td><strong>Total</strong>
-   </td>
-   <td><p style="text-align: right">
-<strong>164</strong></p>
-
-   </td>
-  </tr>
-</table>
-
-
-
-## Participant's first language
-
-Even though the research was carried out mainly in English, 51% of participants spoke languages other than English.
-
-
-
-<p id="gdcalert2" ><span style="color: red; font-weight: bold">>>>>>  gd2md-html alert: inline image link here (to images/image2.png). Store image on your image server and adjust path/filename/extension if necessary. </span><br>(<a href="#">Back to top</a>)(<a href="#gdcalert3">Next alert</a>)<br><span style="color: red; font-weight: bold">>>>>> </span></p>
-
-
-![alt_text](images/image2.png "image_tooltip")
-NB: English includes British English and American English. Some participants gave more than 1 answer, their first answer is included here.
-
-
-## Are you a member of an underrepresented minority in the Python users community?
-
-We asked research participants if they identified as members of an underrepresented minority. We gave participants a broad definition of underrepresented - gender, age, educational background, language you speak, what you use Python for. The objective of this question was to discover participants' opinions of their understanding of underrepresented.
-
-(This question was included _after _the survey was published. Total participants was 106, as opposed to all other questions which had 164)
-
-![alt_text](images/image3.png "image_tooltip")
-
-Of the 23.5% that responded "Yes" the answers were classified as follows :
-
-<table>
-  <tr>
-   <td><strong>Underrepresentation category</strong>
-   </td>
-   <td><strong>Count</strong>
-   </td>
-  </tr>
-  <tr>
-   <td>Gender
-   </td>
-   <td><p style="text-align: right">
-9</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Cultural
-   </td>
-   <td><p style="text-align: right">
-3</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Age
-   </td>
-   <td><p style="text-align: right">
-3</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Immigration status
-   </td>
-   <td><p style="text-align: right">
-2</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Neurodiversity
-   </td>
-   <td><p style="text-align: right">
-3</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Other
-   </td>
-   <td><p style="text-align: right">
-6</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>No answer
-   </td>
-   <td><p style="text-align: right">
-8</p>
-
-   </td>
-  </tr>
-</table>
-
-
-
-### What do these results mean?
-
-The majority of participants did not identify as part of an underrepresented community. Due to the small sample size these results cannot be seen as representative of the whole pip user base.
-
-
-#### Participant comments about identifying/not identifying as under-represented
-
-Here is a sample of noteworthy comments from these different groups.
-
-
-##### Related to gender
-
-_(I am) LGBTQ/IA+  - _Participant 242608909
-
-_I am a 25 year old female Colombian developer. - _Participant 242611698
-
-_Female, 39, no computer science background whatsoever, self taught. - _Participant 242614039
-
-
-##### Related to culture
-
-_The hispanic community is quite underrepresented in the web in general - Participant 242599212_
-
-_I am a 1st generation Dominican-American. My parents are from the Dominican Republic. - _Participant 242769361
-
-
-##### Age related
-
-_Older age, I am 50 now. - _Participant 242769743
-
-
-##### Neurodiversity related
-
-_I'm a woman. And autistic. But the latter might not be underrepresented ;) - _Participant 243428773
-
-
-##### Other
-
-_Veterans who entered tech post-military _- Participant 243524784
-
-_I'm not sure it applies, but I do feel that distributing CLI packages to workstations is painful with pip. I'm sure in server side environments where you have control over the host it's much easier. - _Participant 242943955
-
-Noteworthy answers where the participant did not identify as under-represented (or were not sure) -
-
-_I'm a young white cis male, so by far not a minority in those aspects. But at the same time I'm from a third world country, Argentina, and that sometimes (and I emphasize, only sometimes) makes me feel like a minority. When participating in our local communities (Python Argentina), I feel clearly not-minority, and with the responsibility of helping minorities, trying to build a more welcoming and fair environment for them. But when I participate in the broader global community, at times I feel underrepresented, seeing it mostly guided by english-seaking people from first world countries. But if I have to choose, I would say I mostly feel not-minority, because I mostly interact with people from our local communities, where I'm not part of a minority. - _Participant 242592869
-
-_As a CIS male I conform the majoritarian group in the IT world. I'm hopeful that things are changing everywhere, and will keep changing: inclusion is getting bigger and better, more and more people are starting their careers as devs or similar, disregarding ethnicity and/or sexual orientation and that's great! And we need to keep fighting for that. - _Participant 243455292
-
-
-## Participant disabilities
-
-Disabilities - physical, motor, cognitive, hearing, speech - alter how people perceive and interact with the world around them - software included. We asked participants about their disabilities and how it affected their usage of pip.
-
-Understanding these disabilities are important particularly when designing pip command structures, and designing pip output.
-
-The majority of participants (150) responded that they did not have a disability. Those that did have a disability, the majority were cognitive disabilities (Attention Deficit Hyperactivity Disorder (ADHD), Autism, Aspergers, Dyslexia) or a hearing disability.
-
-
-### How many participants identified as having a disability?
-
-
-<table>
-  <tr>
-   <td><em>Answer to the question: Do you self-identify as someone who has a disability?</em>
-   </td>
-   <td>Number of responses
-   </td>
-  </tr>
-  <tr>
-   <td>No
-   </td>
-   <td>150
-   </td>
-  </tr>
-  <tr>
-   <td>Yes
-   </td>
-   <td>14
-   </td>
-  </tr>
-  <tr>
-   <td><strong>Grand Total</strong>
-   </td>
-   <td><strong>164</strong>
-   </td>
-  </tr>
-</table>
-
-
-
-
-<p id="gdcalert4" ><span style="color: red; font-weight: bold">>>>>>  gd2md-html alert: inline image link here (to images/image4.png). Store image on your image server and adjust path/filename/extension if necessary. </span><br>(<a href="#">Back to top</a>)(<a href="#gdcalert5">Next alert</a>)<br><span style="color: red; font-weight: bold">>>>>> </span></p>
-
-
-![alt_text](images/image4.png "image_tooltip")
-
-
-
-### Types of disabilities participants mentioned
-
-
-#### Vision
-
-Participants' who answered yes to this question were partially sighted. Their vision disability was not corrected by glasses however it did not significantly affect their usage of pip.
-
-
-#### Hearing
-
-5 participants identified as having a hearing impairment, or hearing loss. While this disability made participants lives more difficult, it did not affect their usage of pip:
-
-_Being hard of hearing/impaired makes my life much harder, but so far it never has impacted my usage of pip. Perhaps because I haven‘t used parts of it that would? _- 242934019
-
-_Not at all given that everything happens by text in my console._ - Participant 243455292
-
-However it does affect the way they consume pip learning materials: if video is being used for learning or support, they should have captions/subtitles/transcriptions available.
-
-_[...] any videos released, it is so helpful if there is either a) transcripts, or b) captions.  \
-_- Participant 243524784
-
-#### Cognitive disabilities
-
-9 participants expressed cognitive disabilities including undefined mental health conditions, Attention Deficit Hyperactivity Disorder (ADHD), Autism, Aspergers, Dyslexia.
-
-These participants did not explain how their cognitive disabilities affect their usage of pip, however there are guidelines and best practices for designing for people with cognitive disabilities.
-
-#### Physical or mobility disability
-
-1 participant responded that they had a physical or mobility disability, but did not give detail about it in relation to their usage of pip.
-
-
-## Use of assistive technology
-
-Assistive technology is  
-
-The majority of participants (94%) never used assistive technology equipment.  
-
-
-
-<p id="gdcalert5" ><span style="color: red; font-weight: bold">>>>>>  gd2md-html alert: inline image link here (to images/image5.png). Store image on your image server and adjust path/filename/extension if necessary. </span><br>(<a href="#">Back to top</a>)(<a href="#gdcalert6">Next alert</a>)<br><span style="color: red; font-weight: bold">>>>>> </span></p>
-
-
-![alt_text](images/image5.png "image_tooltip")
-
-
-One participant (242933506) uses the following every day:
-
-- Text-to-speech output as "text to speech it allow me to listen and learn when my eyes get strained.”
-- Speech-to-text input as they like using their "tablet and makes typing easier”
-- On-screen keyboards
-- Input switches/touch screens
-
-
-### I use it only when needed
-
-7 participants use AT only as needed.
-
-I use custom display filter software to do things like colorize key lines of output automatically (to draw my eye/attention), and provide digit dilimination (I.E. help me tell 1000 and 10000 apart) when using a text console application.
-
-The standard Mac user interface design contains enough assistive technology without my needing to use any features which are specifically intended solely as assistive functions.
-
-I sometimes use it to make sure that my code will work correctly with AT.
-
-
-### How well do your Assistive Technologies work when you use pip?
-
-For all participants who used AT, it worked very well for them, they did not report problems.
-
-When using pip help pipe to unless more/less is used, output can scroll off top of the current terminal window - screen readers do not cope well in this case. The same can happen for installs and failed builds cause a lot of output, often with the critical part off the top of the screen.
-
-
-### What operating system(s) are used with Assistive Technology?
-
-Participants have used AT across 3 most popular desktop operating systems - Linux (most popular), Windows (2nd most popular), and Linux.
-
-
-
-<p id="gdcalert6" ><span style="color: red; font-weight: bold">>>>>>  gd2md-html alert: inline image link here (to images/image6.png). Store image on your image server and adjust path/filename/extension if necessary. </span><br>(<a href="#">Back to top</a>)(<a href="#gdcalert7">Next alert</a>)<br><span style="color: red; font-weight: bold">>>>>> </span></p>
-
-
-![alt_text](images/image6.png "image_tooltip")
-
-
-
-### In your view, what is the most important accessibility improvement we should make to pip?
-
-
-
-**AT setups**
-
-Programmable ergonomic keyboard and a large easy-to-manipulate trackball (which pip doesn't need, being a CLI tool)
-
-Software is a set of custom scripts I've written.
-
-I have my custom keyboard between me and my screen, just like any typical user.
-
-
-## Designing for people with disabilities resources
-
-[An Introduction to inclusive design](https://www.nomensa.com/blog/2011/introduction-inclusive-design)
-
-[How ADHD and dyslexia teach you to do better UX design](https://themasters.io/blog/posts/how-adhd-dyslexia-teach-better-ux-design)
-
-[Improve User Experience by Designing with Cognitive Differences in Mind](https://noti.st/elizabethschafer/fg3BR4)
-
-[Designing accessible software - guidelines for different disabilities](https://ukhomeoffice.github.io/accessibility-posters/)
-
-[Designing  for Children  with ADHD: The Search for Guidelines for Non-Experts](https://uxpamagazine.org/designing_children_adhd/) (written for children however applicable generally)
-
-[Designing for dyslexia](https://uxplanet.org/designing-for-dyslexia-6d12e8c41cd7)
-
-
-## Participant introduction to Python
-
-The majority of participants were introduced to Python in school - second-level school, university, or postgraduate education.
+* Retaining only the information that is important to users in their current moment (e.g. at install of a package)
+* Removing unimportant information from the terminal output. The information can still be logged to the log files if needed.
+* Reducing the number of verbosity levels to three. Right now there are seven levels of verbosity, which is overwhelming and in no way useful.  We recommend:
+    * Verbosity 0 - shows only what packages are to be installed, notifications identified as important about the operation, any errors and the final outcome
+    * Verbosity 1 - shows more detail about the packages being installed
+    * Verbosity 2 - shows full information which is also logged to logfiles
+
+
+## Further reading
+
+### Designing for people with disabilities
+
+* [An Introduction to inclusive design](https://www.nomensa.com/blog/2011/introduction-inclusive-design)
+* [How ADHD and dyslexia teach you to do better UX design](https://themasters.io/blog/posts/how-adhd-dyslexia-teach-better-ux-design)
+* [Improve User Experience by Designing with Cognitive Differences in Mind](https://noti.st/elizabethschafer/fg3BR4)
+* [Designing accessible software - guidelines for different disabilities](https://ukhomeoffice.github.io/accessibility-posters/)
+* [Designing  for Children  with ADHD: The Search for Guidelines for Non-Experts](https://uxpamagazine.org/designing_children_adhd/) (written for children however applicable generally)
+* [Designing for dyslexia](https://uxplanet.org/designing-for-dyslexia-6d12e8c41cd7)

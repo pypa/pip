@@ -4,6 +4,8 @@
 
 We want to establish whether or not the [official pip documentation](https://pip.pypa.io/en/stable/) helps users to solve their pip problems. We also want to identify possible improvements to the content and structure of the docs.
 
+[Skip to recommendations](#recommendations)
+
 ## Research
 
 ### Interviews
@@ -40,7 +42,7 @@ Unfortunatly, we did not gather any useful feedback via this effort
 ## Response / results
 
 In total, we:
-- Conducted 5 user interviews about pip's documentatation
+- Conducted 5 user interviews about pip's documentation
 - Received 141 responses to the question "What would be your ideal way of getting help with pip?"
 - Received 159 responses to the documentation survey
 
@@ -48,12 +50,12 @@ In general, we found that pip's documentation is underutilized by the community,
 
 In response to the question "When you have a problem using pip, what do you do?" (multiselect):
 
-- 81.9% of respondends Google it
-- 56.9% of respondends search or ask on Stack Overflow
-- 33.8% of respondends use pip help from the command line
-- **25.6% of respondends go to the pip docs**
-- 20.6% of respondends go the the Python Packaging User Guide
-- 8.1% of respondends ask on a forum, community board, or chat channel
+- 81.9% of respondents Google it
+- 56.9% of respondents search or ask on Stack Overflow
+- 33.8% of respondents use pip help from the command line
+- **25.6% of respondents go to the pip docs**
+- 20.6% of respondents go the the Python Packaging User Guide
+- 8.1% of respondents ask on a forum, community board, or chat channel
 
 
 ![TODO](https://i.imgur.com/qlt1b4n.png)
@@ -68,10 +70,10 @@ Common feedback that emerged from both surveys and user interviews includes:
 - The documentation performs poorly in search engine results
 - The style and layout is dated (note: this feedback was collected before the [new theme was deployed](https://github.com/pypa/pip/pull/9012))
 - There is not enough guidance/examples on how to resolve common problems, or achieve specific goals
-- The documentaiton information architecture is difficult to navigate (the monolithic structure of the user guide is a problem) and does not prioritise the most useful content
+- The documentation information architecture is difficult to navigate (the monolithic structure of the user guide is a problem) and does not prioritise the most useful content
 - There should be more instructions specific to each user's different situation (e.g. what operating system they are using)
 - The scope of the documentation is unclear
-- The documentaton should recognise that pip exists within an ecosystem of other packaging tools
+- The documentation should recognise that pip exists within an ecosystem of other packaging tools
 - ["There should be one-- and preferably only one --obvious way to do it."](https://www.python.org/dev/peps/pep-0020/) - i.e. the documentation should provide stronger recommendations
 
 While some users mentioned that video would be helpful, more said that video was too long, or inappropriate for the kind of problems they experience using pip.
@@ -178,7 +180,7 @@ From our keyword research we identified seven _query types_: "about pip", "insta
 </details>
 <br/>
 
-The prevelance of "install pip" queries strongly suggests that the current installation documentation should be improved and that users are searching for solutions specific to their operating system.
+The prevalence of "install pip" queries strongly suggests that the current installation documentation should be improved and that users are searching for solutions specific to their operating system.
 
 The "about pip" queries also suggest that beginners would benefit from documentation that better explains pip basics - e.g. what pip is and what it does.
 
@@ -187,14 +189,14 @@ The "about pip" queries also suggest that beginners would benefit from documenta
 Based on our research, we recommend that the pip team:
 
 - Revise the structure of the documentation:
-  - Break monolithic pages into standlone pages on different subjects, with appropriate meta tags. This will help the docs appear higher in search results for the 81.9% of users who use Google to troublehsoot their pip problems.
+  - Break monolithic pages into standalone pages on different subjects, with appropriate meta tags. This will help the docs appear higher in search results for the 81.9% of users who use Google to troubleshoot their pip problems.
   - Prioritise most used features (see "[buy a feature](TODO)" results for guidance)
  - Add a "troubleshooting" section to the documentation that addresses common questions, explains error messages and tells users where they can find more help
 - Provide more context about pip's role in the Python packaging ecosystem by:
     - Introducing packaging concepts that users need to understand in order to use pip
     - Explaining pip's role/scope within the packaging ecosystem
     - Comparing pip to other tools
-- Develop a beginner's guide that walks new pip users through everything they need to know to use pip's most basic functonality. This should include addressing concepts outside of pip's scope (e.g. how to open and use a terminal, how to set up a virtual environment), that may block users from being successful
+- Develop a beginner's guide that walks new pip users through everything they need to know to use pip's most basic functionality. This should include addressing concepts outside of pip's scope (e.g. how to open and use a terminal, how to set up a virtual environment), that may block users from being successful
 - For each page, (where appropriate), add sections for:
     - "tips and tricks" - things to know / gotchas
     - "troubleshooting" - possible error messages and recommended solutions. Where appropriate, this should link to content in the troubleshooting section.
@@ -207,7 +209,7 @@ Based on our research, we recommend that the pip team:
 
 ### Suggested site map
 
-Based on the above user iput, we have developed a proposed [site map](https://i.imgur.com/UP5q09W.png) (link opens larger format image) to help guide the redevelopment of pip's documentation in line with the above recommendations.
+Based on the above user input, we have developed a proposed [site map](https://i.imgur.com/UP5q09W.png) (link opens larger format image) to help guide the redevelopment of pip's documentation in line with the above recommendations.
 
 ![TODO](https://i.imgur.com/UP5q09W.png)
 
@@ -220,7 +222,7 @@ Based on the above user iput, we have developed a proposed [site map](https://i.
 - To link to other (more detailed) areas of the documentation
 
 *Suggested content:*
-- Quick installation guide, including how to use a  virtual environment. This is neccessary for user who want to install more than one Python project on their machine.
+- Quick installation guide, including how to use a  virtual environment. This is necessary for user who want to install more than one Python project on their machine.
 - Common commands / tasks (based on [buy a feature](TODO) data)
 
 ---
@@ -257,7 +259,7 @@ Based on the above user iput, we have developed a proposed [site map](https://i.
 
 *Suggested content:*
 - Compare pip to other installation tools - e.g. poetry, pipenv, conda. What are the features, pros and cons of each? Why do packaging users choose one over the other?
-- Breifly introduce other packaging projects. Link to https://packaging.python.org/key_projects/
+- Briefly introduce other packaging projects. Link to https://packaging.python.org/key_projects/
 
 ---
 #### Node 3.0: Installing pip
@@ -265,7 +267,7 @@ Based on the above user iput, we have developed a proposed [site map](https://i.
 - To help pip users install pip
 
 *Suggested content:*
-- Refactor current page, ephasising pathways for different operating systems
+- Refactor current page, emphasising pathways for different operating systems
 - Add "tips and tricks", "troubleshooting" and "see also" (link to external resources) sections to provide additional help
 
 ---
@@ -292,7 +294,7 @@ Step by step tutorial (possibly broken into several pages) that covers:
 
 #### Node 4.2: Advanced tutorial - using pip behind a proxy
 *Page purpose:*
-- To help advanced pip users acheive specific goals
+- To help advanced pip users achieve specific goals
 
 *Suggested content:*
 - Step by step tutorial for using pip behind a proxy
@@ -317,7 +319,7 @@ Break down current user guide into separate pages, or pages linked by subject. S
 - Running pip
 - Installing Packages
 - Uninstalling Packages
-- Environment recreatiion with requirements files
+- Environment recreation with requirements files
   - sub heading: "pinned version numbers"
   - sub heading: "hash checking mode"
 - Listing Packages
