@@ -11,15 +11,6 @@ from pip._vendor.packaging.version import parse
 from pip import __version__ as current_version  # NOTE: tests patch this name.
 
 DEPRECATION_MSG_PREFIX = "DEPRECATION: "
-DEPRECATION_MESSAGE = DEPRECATION_MSG_PREFIX + "{reason}"
-GONE_IN_MESSAGE_FUTURE = "pip {gone_in} will enforce this behavior change."
-GONE_IN_MESSAGE_PAST = "This behavior change has been enforced since pip {gone_in}."
-REPLACEMENT_MESSAGE = "A possible replacement is {replacement}."
-FEATURE_FLAG_MESSAGE = (
-    "You can temporarily use the flag --use-feature={feature_flag} "
-    "to test the upcoming behavior."
-)
-ISSUE_MESSAGE = "Discussion can be found at https://github.com/pypa/pip/issues/{issue}."
 
 
 class PipDeprecationWarning(Warning):
@@ -91,33 +82,34 @@ def deprecated(
 
     # Determine whether or not the feature is already gone in this version.
     is_gone = gone_in is not None and parse(current_version) >= parse(gone_in)
-    # Allow variable substitutions within the "reason" variable.
-    formatted_reason = reason.format(gone_in=gone_in)
-    # Construct a nice message.
-    #   This is eagerly formatted as we want it to get logged as if someone
-    #   typed this entire message out.
-    formatted_deprecation_message = DEPRECATION_MESSAGE.format(reason=formatted_reason)
-    gone_in_message = GONE_IN_MESSAGE_PAST if is_gone else GONE_IN_MESSAGE_FUTURE
-    formatted_gone_in_message = (
-        gone_in_message.format(gone_in=gone_in) if gone_in else None
-    )
-    formatted_replacement_message = (
-        REPLACEMENT_MESSAGE.format(replacement=replacement) if replacement else None
-    )
-    formatted_feature_flag_message = (
-        None
-        if is_gone or not feature_flag
-        else FEATURE_FLAG_MESSAGE.format(feature_flag=feature_flag)
-    )
-    formatted_issue_message = ISSUE_MESSAGE.format(issue=issue) if issue else None
-    sentences = [
-        formatted_deprecation_message,
-        formatted_gone_in_message,
-        formatted_replacement_message,
-        formatted_feature_flag_message,
-        formatted_issue_message,
+
+    message_parts = [
+        (reason, f"{DEPRECATION_MSG_PREFIX}{{}}"),
+        (
+            gone_in,
+            "pip {} will enforce this behaviour change."
+            if not is_gone
+            else "This behavior change has been enforced since pip {}.",
+        ),
+        (
+            replacement,
+            "A possible replacement is {}.",
+        ),
+        (
+            feature_flag,
+            "You can use the flag --use-feature={} to test the upcoming behaviour.",
+        ),
+        (
+            issue,
+            "Discussion can be found at https://github.com/pypa/pip/issues/{}.",
+        ),
     ]
-    message = " ".join(sentence for sentence in sentences if sentence)
+
+    message = " ".join(
+        format_str.format(value)
+        for value, format_str in message_parts
+        if value is not None
+    )
 
     # Raise as an error if this behaviour is no longer supported.
     if is_gone:
