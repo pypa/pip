@@ -122,5 +122,5 @@ def deprecated(
     # Raise as an error if this behaviour is no longer supported.
     if is_gone:
         raise PipDeprecationWarning(message)
-    else:
-        warnings.warn(message, category=PipDeprecationWarning, stacklevel=2)
+
+    warnings.warn(message, category=PipDeprecationWarning, stacklevel=2)
