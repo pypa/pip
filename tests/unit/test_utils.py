@@ -879,12 +879,16 @@ def patch_deprecation_check_version():
 @pytest.mark.parametrize("replacement", [None, "a magic 8 ball"])
 @pytest.mark.parametrize("gone_in", [None, "2.0"])
 @pytest.mark.parametrize("issue", [None, 988])
-def test_deprecated_message_contains_information(gone_in, replacement, issue):
+@pytest.mark.parametrize("feature_flag", [None, "magic-8-ball"])
+def test_deprecated_message_contains_information(
+    gone_in, replacement, issue, feature_flag
+):
     with pytest.warns(PipDeprecationWarning) as record:
         deprecated(
             reason="Stop doing this!",
             replacement=replacement,
             gone_in=gone_in,
+            feature_flag=feature_flag,
             issue=issue,
         )
 
@@ -893,7 +897,7 @@ def test_deprecated_message_contains_information(gone_in, replacement, issue):
 
     assert "DEPRECATION: Stop doing this!" in message
     # Ensure non-None values are mentioned.
-    for item in [gone_in, replacement, issue]:
+    for item in [gone_in, replacement, issue, feature_flag]:
         if item is not None:
             assert str(item) in message
 
@@ -901,12 +905,14 @@ def test_deprecated_message_contains_information(gone_in, replacement, issue):
 @pytest.mark.usefixtures("patch_deprecation_check_version")
 @pytest.mark.parametrize("replacement", [None, "a magic 8 ball"])
 @pytest.mark.parametrize("issue", [None, 988])
-def test_deprecated_raises_error_if_too_old(replacement, issue):
+@pytest.mark.parametrize("feature_flag", [None, "magic-8-ball"])
+def test_deprecated_raises_error_if_too_old(replacement, issue, feature_flag):
     with pytest.raises(PipDeprecationWarning) as exception:
         deprecated(
             reason="Stop doing this!",
             gone_in="1.0",  # this matches the patched version.
             replacement=replacement,
+            feature_flag=feature_flag,
             issue=issue,
         )
 
@@ -915,7 +921,7 @@ def test_deprecated_raises_error_if_too_old(replacement, issue):
     assert "DEPRECATION: Stop doing this!" in message
     assert "1.0" in message
     # Ensure non-None values are mentioned.
-    for item in [replacement, issue]:
+    for item in [replacement, issue, feature_flag]:
         if item is not None:
             assert str(item) in message
 
