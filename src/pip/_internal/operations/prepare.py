@@ -218,7 +218,8 @@ def unpack_url(
         deprecated(
             reason=(
                 "pip copied the source tree into a temporary directory "
-                "before building it. This is changing so that packages are built in-place "
+                "before building it. This is changing so that packages "
+                "are built in-place "
                 'within the original source tree ("in-tree build").'
             ),
             replacement=None,
