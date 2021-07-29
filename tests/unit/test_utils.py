@@ -920,20 +920,22 @@ def test_deprecated_raises_error_if_too_old(replacement, issue, feature_flag):
 
     assert "DEPRECATION: Stop doing this!" in message
     assert "1.0" in message
+    assert str(feature_flag) not in message
     # Ensure non-None values are mentioned.
-    for item in [replacement, issue, feature_flag]:
+    for item in [replacement, issue]:
         if item is not None:
             assert str(item) in message
 
 
 @pytest.mark.usefixtures("patch_deprecation_check_version")
-def test_deprecated_message_reads_well():
+def test_deprecated_message_reads_well_past():
     with pytest.raises(PipDeprecationWarning) as exception:
         deprecated(
             reason="Stop doing this!",
             gone_in="1.0",  # this matches the patched version.
             replacement="to be nicer",
-            issue="100000",  # I hope we never reach this number.
+            feature_flag="magic-8-ball",
+            issue="100000",
         )
 
     message = exception.value.args[0]
@@ -942,6 +944,29 @@ def test_deprecated_message_reads_well():
         "DEPRECATION: Stop doing this! "
         "Since pip 1.0, this is no longer supported. "
         "A possible replacement is to be nicer. "
+        "Discussion can be found at https://github.com/pypa/pip/issues/100000"
+    )
+
+
+@pytest.mark.usefixtures("patch_deprecation_check_version")
+def test_deprecated_message_reads_well_future():
+    with pytest.warns(PipDeprecationWarning) as record:
+        deprecated(
+            reason="Stop doing this!",
+            gone_in="2.0",  # this is greater than the patched version.
+            replacement="to be nicer",
+            feature_flag="crisis",
+            issue="100000",
+        )
+
+    assert len(record) == 1
+    message = record[0].message.args[0]
+
+    assert message == (
+        "DEPRECATION: Stop doing this! "
+        "pip 2.0 will enforce this behaviour change. "
+        "A possible replacement is to be nicer. "
+        "You can use the flag --use-feature=crisis to test the upcoming behaviour. "
         "Discussion can be found at https://github.com/pypa/pip/issues/100000"
     )
 

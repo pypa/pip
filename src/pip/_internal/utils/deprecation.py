@@ -97,7 +97,9 @@ def deprecated(
         ),
         (
             feature_flag,
-            "You can use the flag --use-feature={} to test the upcoming behaviour.",
+            "You can use the flag --use-feature={} to test the upcoming behaviour."
+            if not is_gone
+            else None,
         ),
         (
             issue,
@@ -108,7 +110,7 @@ def deprecated(
     message = " ".join(
         format_str.format(value)
         for value, format_str in message_parts
-        if value is not None
+        if format_str is not None and value is not None
     )
 
     # Raise as an error if this behaviour is deprecated.
