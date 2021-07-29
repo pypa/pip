@@ -216,9 +216,11 @@ def unpack_url(
     # be removed.
     if link.is_existing_dir():
         deprecated(
-            reason="pip copied the source tree into a temporary directory "
-            "before building it. This is changing so that packages are built in-place "
-            'within the original source tree ("in-tree build").',
+            reason=(
+                "pip copied the source tree into a temporary directory "
+                "before building it. This is changing so that packages are built in-place "
+                'within the original source tree ("in-tree build").'
+            ),
             replacement=None,
             gone_in="21.3",
             feature_flag="in-tree-build",
