@@ -1,3 +1,4 @@
+import functools
 import os
 import site
 import sys
@@ -46,5 +47,6 @@ except AttributeError:
     user_site = site.USER_SITE
 
 
+@functools.lru_cache(maxsize=None)
 def is_osx_framework() -> bool:
     return bool(sysconfig.get_config_var("PYTHONFRAMEWORK"))
