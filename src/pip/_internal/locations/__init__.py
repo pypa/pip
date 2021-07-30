@@ -185,8 +185,8 @@ def get_scheme(
             user
             and is_osx_framework()
             and k == "headers"
-            and old_v.parent == new_v
-            and old_v.name.startswith("python")
+            and old_v.parent.parent == new_v.parent
+            and old_v.parent.name.startswith("python")
         )
         if skip_osx_framework_user_special_case:
             continue
