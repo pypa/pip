@@ -2009,3 +2009,21 @@ def test_new_resolver_file_url_normalize(script, format_dep, format_input):
         format_input(lib_a), lib_b,
     )
     script.assert_installed(lib_a="1", lib_b="1")
+
+
+def test_new_resolver_dont_backtrack_on_extra_if_base_constrained(script):
+    create_basic_wheel_for_package(script, "dep", "1.0")
+    create_basic_wheel_for_package(script, "pkg", "1.0", extras={"ext": ["dep"]})
+    create_basic_wheel_for_package(script, "pkg", "2.0", extras={"ext": ["dep"]})
+    constraints_file = script.scratch_path / "constraints.txt"
+    constraints_file.write_text("pkg==1.0")
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "--constraint", constraints_file,
+        "pkg[ext]",
+    )
+    assert "pkg-2.0" not in result.stdout, "Should not try 2.0 due to constraint"
+    script.assert_installed(pkg="1.0", dep="1.0")
