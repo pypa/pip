@@ -143,6 +143,21 @@ class PipProvider(_ProviderBase):
             identifier,
         )
 
+    def _get_constraint(self, identifier: str) -> Constraint:
+        if identifier in self._constraints:
+            return self._constraints[identifier]
+
+        # HACK: Theoratically we should check whether this identifier is a valid
+        # "NAME[EXTRAS]" format, and parse out the name part with packaging or
+        # some regular expression. But since pip's resolver only spits out
+        # three kinds of identifiers: normalized PEP 503 names, normalized names
+        # plus extras, and Requires-Python, we can cheat a bit here.
+        name, open_bracket, _ = identifier.partition("[")
+        if open_bracket and name in self._constraints:
+            return self._constraints[name]
+
+        return Constraint.empty()
+
     def find_matches(
         self,
         identifier: str,
@@ -169,7 +184,7 @@ class PipProvider(_ProviderBase):
         return self._factory.find_candidates(
             identifier=identifier,
             requirements=requirements,
-            constraint=self._constraints.get(identifier, Constraint.empty()),
+            constraint=self._get_constraint(identifier),
             prefers_installed=(not _eligible_for_upgrade(identifier)),
             incompatibilities=incompatibilities,
         )
