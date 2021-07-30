@@ -109,10 +109,10 @@ def search_packages_info(query: List[str]) -> Iterator[_PackageInfo]:
             return None
         paths = (p for p in text.splitlines(keepends=False) if p)
         root = dist.location
-        info = dist.metadata_directory
+        info = dist.info_directory
         if root is None or info is None:
             return paths
-        return (str(pathlib.Path(info, p).resolve().relative_to(root)) for p in paths)
+        return (str(pathlib.Path(info, p).relative_to(root)) for p in paths)
 
     for query_name in query_names:
         try:

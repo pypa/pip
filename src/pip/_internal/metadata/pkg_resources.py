@@ -49,7 +49,7 @@ class Distribution(BaseDistribution):
         return self._dist.location
 
     @property
-    def metadata_directory(self) -> Optional[str]:
+    def info_directory(self) -> Optional[str]:
         return self._dist.egg_info
 
     @property
