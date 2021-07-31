@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 _AVAILABLE_SCHEMES = set(sysconfig.get_scheme_names())
 
-_HAS_PREFERRED_SCHEME_API = sys.version_info >= (3, 10)
+_HAS_PREFERRED_SCHEME_API = 'get_preferred_scheme' in dir(sysconfig)
 
 
 def _infer_prefix() -> str:
