@@ -1,3 +1,16 @@
+21.2.2 (2021-07-31)
+===================
+
+
+
+Bug Fixes
+---------
+
+- New resolver: When a package is specified with extras in constraints, and with
+  extras in non-constraint requirements, the resolver now correctly identifies the
+  constraint's existence and avoids backtracking. (`#10233 <https://github.com/pypa/pip/issues/10233>`_)
+
+
 21.2.1 (2021-07-25)
 ===================
 
