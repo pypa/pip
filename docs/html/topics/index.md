@@ -14,6 +14,7 @@ authentication
 caching
 configuration
 dependency-resolution
+more-dependency-resolution
 repeatable-installs
 vcs-support
 ```
