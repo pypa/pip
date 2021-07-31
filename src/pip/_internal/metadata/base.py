@@ -57,6 +57,26 @@ class BaseDistribution(Protocol):
         A string value is not necessarily a filesystem path, since distributions
         can be loaded from other sources, e.g. arbitrary zip archives. ``None``
         means the distribution is created in-memory.
+
+        Do not canonicalize this value with e.g. ``pathlib.Path.resolve()``. If
+        this is a symbolic link, we want to preserve the relative path between
+        it and files in the distribution.
+        """
+        raise NotImplementedError()
+
+    @property
+    def info_directory(self) -> Optional[str]:
+        """Location of the .[egg|dist]-info directory.
+
+        Similarly to ``location``, a string value is not necessarily a
+        filesystem path. ``None`` means the distribution is created in-memory.
+
+        For a modern .dist-info installation on disk, this should be something
+        like ``{location}/{raw_name}-{version}.dist-info``.
+
+        Do not canonicalize this value with e.g. ``pathlib.Path.resolve()``. If
+        this is a symbolic link, we want to preserve the relative path between
+        it and other files in the distribution.
         """
         raise NotImplementedError()
 
