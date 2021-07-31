@@ -4,11 +4,12 @@ import os
 import pathlib
 import sys
 import sysconfig
-from typing import Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.deprecation import deprecated
+from pip._internal.utils.virtualenv import running_under_virtualenv
 
 from . import _distutils, _sysconfig
 from .base import (
@@ -52,7 +53,7 @@ def _looks_like_red_hat_patched_platlib_purelib(scheme: Dict[str, str]) -> bool:
 
 
 @functools.lru_cache(maxsize=None)
-def _looks_like_red_hat_patched() -> bool:
+def _looks_like_red_hat_lib() -> bool:
     """Red Hat patches platlib in unix_prefix and unix_home, but not purelib.
 
     This is the only way I can see to tell a Red Hat-patched Python.
@@ -67,11 +68,31 @@ def _looks_like_red_hat_patched() -> bool:
 
 
 @functools.lru_cache(maxsize=None)
-def _looks_like_debian_patched() -> bool:
+def _looks_like_debian_scheme() -> bool:
     """Debian adds two additional schemes."""
     from distutils.command.install import INSTALL_SCHEMES  # type: ignore
 
     return "deb_system" in INSTALL_SCHEMES and "unix_local" in INSTALL_SCHEMES
+
+
+@functools.lru_cache(maxsize=None)
+def _looks_like_red_hat_scheme() -> bool:
+    """Red Hat patches ``sys.prefix`` and ``sys.exec_prefix``.
+
+    Red Hat's ``00251-change-user-install-location.patch`` changes the install
+    command's ``prefix`` and ``exec_prefix`` to append ``"/local"``. This is
+    (fortunately?) done quite unconditionally, so we create a default command
+    object without any configuration to detect this.
+    """
+    from distutils.command.install import install
+    from distutils.dist import Distribution
+
+    cmd: Any = install(Distribution())
+    cmd.finalize_options()
+    return (
+        cmd.exec_prefix == f"{os.path.normpath(sys.exec_prefix)}/local"
+        and cmd.prefix == f"{os.path.normpath(sys.prefix)}/local"
+    )
 
 
 def _fix_abiflags(parts: Tuple[str]) -> Iterator[str]:
@@ -201,19 +222,19 @@ def get_scheme(
 
         # On Red Hat and derived Linux distributions, distutils is patched to
         # use "lib64" instead of "lib" for platlib.
-        if k == "platlib" and _looks_like_red_hat_patched():
+        if k == "platlib" and _looks_like_red_hat_lib():
             continue
 
         # Both Debian and Red Hat patch Python to place the system site under
         # /usr/local instead of /usr. Debian also places lib in dist-packages
         # instead of site-packages, but the /usr/local check should cover it.
         skip_linux_system_special_case = (
-            not (user or home or prefix)
+            not (user or home or prefix or running_under_virtualenv())
             and old_v.parts[1:3] == ("usr", "local")
             and len(new_v.parts) > 1
             and new_v.parts[1] == "usr"
             and (len(new_v.parts) < 3 or new_v.parts[2] != "local")
-            and (_looks_like_red_hat_patched() or _looks_like_debian_patched())
+            and (_looks_like_red_hat_scheme() or _looks_like_debian_scheme())
         )
         if skip_linux_system_special_case:
             continue
