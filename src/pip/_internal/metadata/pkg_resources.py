@@ -49,6 +49,10 @@ class Distribution(BaseDistribution):
         return self._dist.location
 
     @property
+    def info_directory(self) -> Optional[str]:
+        return self._dist.egg_info
+
+    @property
     def canonical_name(self) -> "NormalizedName":
         return canonicalize_name(self._dist.project_name)
 
