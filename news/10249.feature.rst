@@ -1,0 +1,4 @@
+Support `PEP 610 <https://www.python.org/dev/peps/pep-0610/>`_ to detect
+editable installs in ``pip freeze`` and  ``pip list``. The ``pip list`` column output
+has a new ``Editable project location`` column, and  json output has a new
+``editable_project_location`` field.
