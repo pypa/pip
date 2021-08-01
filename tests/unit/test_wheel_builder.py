@@ -39,6 +39,7 @@ class ReqMock:
         constraint: bool = False,
         source_dir: Optional[str] = "/tmp/pip-install-123/pendulum",
         use_pep517: bool = True,
+        supports_pyproject_editable: Optional[bool] = None,
     ) -> None:
         self.name = name
         self.is_wheel = is_wheel
@@ -47,6 +48,7 @@ class ReqMock:
         self.constraint = constraint
         self.source_dir = source_dir
         self.use_pep517 = use_pep517
+        self.supports_pyproject_editable = supports_pyproject_editable
 
 
 @pytest.mark.parametrize(
@@ -63,8 +65,18 @@ class ReqMock:
         (ReqMock(constraint=True), False, False),
         # We don't build reqs that are already wheels.
         (ReqMock(is_wheel=True), False, False),
-        # We don't build editables.
-        (ReqMock(editable=True), False, False),
+        (ReqMock(editable=True, use_pep517=False), False, False),
+        (ReqMock(editable=True, use_pep517=True), False, True),
+        (
+            ReqMock(editable=True, use_pep517=True, supports_pyproject_editable=True),
+            False,
+            True,
+        ),
+        (
+            ReqMock(editable=True, use_pep517=True, supports_pyproject_editable=False),
+            False,
+            False,
+        ),
         (ReqMock(source_dir=None), False, False),
         # By default (i.e. when binaries are allowed), VCS requirements
         # should be built in install mode.
@@ -108,7 +120,8 @@ def test_should_build_for_install_command(
         (ReqMock(), True),
         (ReqMock(constraint=True), False),
         (ReqMock(is_wheel=True), False),
-        (ReqMock(editable=True), True),
+        (ReqMock(editable=True, use_pep517=False), True),
+        (ReqMock(editable=True, use_pep517=True), True),
         (ReqMock(source_dir=None), True),
         (ReqMock(link=Link("git+https://g.c/org/repo")), True),
     ],
@@ -145,7 +158,8 @@ def test_should_build_legacy_wheel_installed(is_wheel_installed: mock.Mock) -> N
 @pytest.mark.parametrize(
     "req, expected",
     [
-        (ReqMock(editable=True), False),
+        (ReqMock(editable=True, use_pep517=False), False),
+        (ReqMock(editable=True, use_pep517=True), False),
         (ReqMock(source_dir=None), False),
         (ReqMock(link=Link("git+https://g.c/org/repo")), False),
         (ReqMock(link=Link("https://g.c/dist.tgz")), False),

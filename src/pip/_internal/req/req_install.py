@@ -16,7 +16,7 @@ from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
-from pip._vendor.pep517.wrappers import Pep517HookCaller
+from pip._vendor.pep517.wrappers import HookMissing, Pep517HookCaller
 from pip._vendor.pkg_resources import Distribution
 
 from pip._internal.build_env import BuildEnvironment, NoOpBuildEnvironment
@@ -24,6 +24,7 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_scheme
 from pip._internal.models.link import Link
 from pip._internal.operations.build.metadata import generate_metadata
+from pip._internal.operations.build.metadata_editable import generate_editable_metadata
 from pip._internal.operations.build.metadata_legacy import (
     generate_metadata as generate_metadata_legacy,
 )
@@ -36,7 +37,10 @@ from pip._internal.operations.install.wheel import install_wheel
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.deprecation import deprecated
-from pip._internal.utils.direct_url_helpers import direct_url_from_link
+from pip._internal.utils.direct_url_helpers import (
+    direct_url_for_editable,
+    direct_url_from_link,
+)
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
@@ -105,12 +109,14 @@ class InstallRequirement:
         constraint: bool = False,
         extras: Collection[str] = (),
         user_supplied: bool = False,
+        permit_editable_wheels: bool = False,
     ) -> None:
         assert req is None or isinstance(req, Requirement), req
         self.req = req
         self.comes_from = comes_from
         self.constraint = constraint
         self.editable = editable
+        self.permit_editable_wheels = permit_editable_wheels
         self.legacy_install_reason: Optional[int] = None
 
         # source_dir is the local directory where the linked requirement is
@@ -190,6 +196,11 @@ class InstallRequirement:
         # Setting an explicit value before loading pyproject.toml is supported,
         # but after loading this flag should be treated as read only.
         self.use_pep517 = use_pep517
+
+        # supports_pyproject_editable will be set to True or False when we try
+        # to prepare editable metadata or build an editable wheel. None means
+        # "we don't know yet".
+        self.supports_pyproject_editable: Optional[bool] = None
 
         # This requirement needs more preparation before it can be built
         self.needs_more_preparation = False
@@ -456,6 +467,13 @@ class InstallRequirement:
         return setup_py
 
     @property
+    def setup_cfg_path(self) -> str:
+        assert self.source_dir, f"No source dir for {self}"
+        setup_cfg = os.path.join(self.unpacked_source_directory, "setup.cfg")
+
+        return setup_cfg
+
+    @property
     def pyproject_toml_path(self) -> str:
         assert self.source_dir, f"No source dir for {self}"
         return make_pyproject_path(self.unpacked_source_directory)
@@ -486,29 +504,75 @@ class InstallRequirement:
             backend_path=backend_path,
         )
 
-    def _generate_metadata(self) -> str:
+    def _generate_editable_metadata(self) -> str:
         """Invokes metadata generator functions, with the required arguments."""
-        if not self.use_pep517:
-            assert self.unpacked_source_directory
-
-            if not os.path.exists(self.setup_py_path):
-                raise InstallationError(
-                    f'File "setup.py" not found for legacy project {self}.'
+        if self.use_pep517:
+            assert self.pep517_backend is not None
+            try:
+                metadata_directory = generate_editable_metadata(
+                    build_env=self.build_env,
+                    backend=self.pep517_backend,
                 )
-
-            return generate_metadata_legacy(
-                build_env=self.build_env,
-                setup_py_path=self.setup_py_path,
-                source_dir=self.unpacked_source_directory,
-                isolated=self.isolated,
-                details=self.name or f"from {self.link}",
+            except HookMissing as e:
+                self.supports_pyproject_editable = False
+                if not os.path.exists(self.setup_py_path) and not os.path.exists(
+                    self.setup_cfg_path
+                ):
+                    raise InstallationError(
+                        f"Project {self} has a 'pyproject.toml' and its build "
+                        f"backend is missing the {e} hook. Since it does not "
+                        f"have a 'setup.py' nor a 'setup.cfg', "
+                        f"it cannot be installed in editable mode. "
+                        f"Consider using a build backend that supports PEP 660."
+                    )
+                # At this point we have determined that the build_editable hook
+                # is missing, and there is a setup.py or setup.cfg
+                # so we fallback to the legacy metadata generation
+            else:
+                self.supports_pyproject_editable = True
+                return metadata_directory
+        elif not os.path.exists(self.setup_py_path) and not os.path.exists(
+            self.setup_cfg_path
+        ):
+            raise InstallationError(
+                f"File 'setup.py' or 'setup.cfg' not found "
+                f"for legacy project {self}. "
+                f"It cannot be installed in editable mode."
             )
 
-        assert self.pep517_backend is not None
-
-        return generate_metadata(
+        return generate_metadata_legacy(
             build_env=self.build_env,
-            backend=self.pep517_backend,
+            setup_py_path=self.setup_py_path,
+            source_dir=self.unpacked_source_directory,
+            isolated=self.isolated,
+            details=self.name or f"from {self.link}",
+        )
+
+    def _generate_metadata(self) -> str:
+        """Invokes metadata generator functions, with the required arguments."""
+        if self.use_pep517:
+            assert self.pep517_backend is not None
+            try:
+                return generate_metadata(
+                    build_env=self.build_env,
+                    backend=self.pep517_backend,
+                )
+            except HookMissing as e:
+                raise InstallationError(
+                    f"Project {self} has a pyproject.toml but its build "
+                    f"backend is missing the required {e} hook."
+                )
+        elif not os.path.exists(self.setup_py_path):
+            raise InstallationError(
+                f"File 'setup.py' not found for legacy project {self}."
+            )
+
+        return generate_metadata_legacy(
+            build_env=self.build_env,
+            setup_py_path=self.setup_py_path,
+            source_dir=self.unpacked_source_directory,
+            isolated=self.isolated,
+            details=self.name or f"from {self.link}",
         )
 
     def prepare_metadata(self) -> None:
@@ -520,7 +584,10 @@ class InstallRequirement:
         assert self.source_dir
 
         with indent_log():
-            self.metadata_directory = self._generate_metadata()
+            if self.editable and self.permit_editable_wheels:
+                self.metadata_directory = self._generate_editable_metadata()
+            else:
+                self.metadata_directory = self._generate_metadata()
 
         # Act on the newly generated metadata, based on the name and version.
         if not self.name:
@@ -728,7 +795,7 @@ class InstallRequirement:
         )
 
         global_options = global_options if global_options is not None else []
-        if self.editable:
+        if self.editable and not self.is_wheel:
             install_editable_legacy(
                 install_options,
                 global_options,
@@ -747,7 +814,9 @@ class InstallRequirement:
         if self.is_wheel:
             assert self.local_file_path
             direct_url = None
-            if self.original_link:
+            if self.editable:
+                direct_url = direct_url_for_editable(self.unpacked_source_directory)
+            elif self.original_link:
                 direct_url = direct_url_from_link(
                     self.original_link,
                     self.source_dir,

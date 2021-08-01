@@ -644,7 +644,7 @@ def test_install_from_local_directory_with_no_setup_py(script, data):
     assert "Neither 'setup.py' nor 'pyproject.toml' found." in result.stderr
 
 
-def test_editable_install__local_dir_no_setup_py(script, data, deprecated_python):
+def test_editable_install__local_dir_no_setup_py(script, data):
     """
     Test installing in editable mode from a local directory with no setup.py.
     """
@@ -652,16 +652,12 @@ def test_editable_install__local_dir_no_setup_py(script, data, deprecated_python
     assert not result.files_created
 
     msg = result.stderr
-    if deprecated_python:
-        assert 'File "setup.py" or "setup.cfg" not found. ' in msg
-    else:
-        assert msg.startswith('ERROR: File "setup.py" or "setup.cfg" not found. ')
+    assert msg.startswith("ERROR: File 'setup.py' or 'setup.cfg' not found ")
+    assert "cannot be installed in editable mode" in msg
     assert "pyproject.toml" not in msg
 
 
-def test_editable_install__local_dir_no_setup_py_with_pyproject(
-    script, deprecated_python
-):
+def test_editable_install__local_dir_no_setup_py_with_pyproject(script):
     """
     Test installing in editable mode from a local directory with no setup.py
     but that does have pyproject.toml.
@@ -675,11 +671,9 @@ def test_editable_install__local_dir_no_setup_py_with_pyproject(
     assert not result.files_created
 
     msg = result.stderr
-    if deprecated_python:
-        assert 'File "setup.py" or "setup.cfg" not found. ' in msg
-    else:
-        assert msg.startswith('ERROR: File "setup.py" or "setup.cfg" not found. ')
-    assert 'A "pyproject.toml" file was found' in msg
+    assert "has a 'pyproject.toml'" in msg
+    assert "does not have a 'setup.py' nor a 'setup.cfg'" in msg
+    assert "cannot be installed in editable mode" in msg
 
 
 @pytest.mark.network

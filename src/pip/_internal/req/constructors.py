@@ -22,7 +22,6 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
-from pip._internal.pyproject import make_pyproject_path
 from pip._internal.req.req_file import ParsedRequirement
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.filetypes import is_archive_file
@@ -75,21 +74,6 @@ def parse_editable(editable_req: str) -> Tuple[Optional[str], str, Set[str]]:
     url_no_extras, extras = _strip_extras(url)
 
     if os.path.isdir(url_no_extras):
-        setup_py = os.path.join(url_no_extras, "setup.py")
-        setup_cfg = os.path.join(url_no_extras, "setup.cfg")
-        if not os.path.exists(setup_py) and not os.path.exists(setup_cfg):
-            msg = (
-                'File "setup.py" or "setup.cfg" not found. Directory cannot be '
-                "installed in editable mode: {}".format(os.path.abspath(url_no_extras))
-            )
-            pyproject_path = make_pyproject_path(url_no_extras)
-            if os.path.isfile(pyproject_path):
-                msg += (
-                    '\n(A "pyproject.toml" file was found, but editable '
-                    "mode currently requires a setuptools-based build.)"
-                )
-            raise InstallationError(msg)
-
         # Treating it as code that has already been checked out
         url_no_extras = path_to_url(url_no_extras)
 
@@ -197,6 +181,7 @@ def install_req_from_editable(
     options: Optional[Dict[str, Any]] = None,
     constraint: bool = False,
     user_supplied: bool = False,
+    permit_editable_wheels: bool = False,
 ) -> InstallRequirement:
 
     parts = parse_req_from_editable(editable_req)
@@ -206,6 +191,7 @@ def install_req_from_editable(
         comes_from=comes_from,
         user_supplied=user_supplied,
         editable=True,
+        permit_editable_wheels=permit_editable_wheels,
         link=parts.link,
         constraint=constraint,
         use_pep517=use_pep517,

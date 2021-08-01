@@ -306,6 +306,12 @@ class InstallCommand(RequirementCommand):
         try:
             reqs = self.get_requirements(args, options, finder, session)
 
+            # Only when installing is it permitted to use PEP 660.
+            # In other circumstances (pip wheel, pip download) we generate
+            # regular (i.e. non editable) metadata and wheels.
+            for req in reqs:
+                req.permit_editable_wheels = True
+
             reject_location_related_install_options(reqs, options.install_options)
 
             preparer = self.make_requirement_preparer(

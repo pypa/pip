@@ -1,0 +1,2 @@
+Support editable installs for projects that have a ``pyproject.toml`` and use a
+build backend that supports :pep:`660`.
