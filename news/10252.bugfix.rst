@@ -1,0 +1,4 @@
+Check if the sysconfig.get_preferred_scheme function
+exists in a different way. The original method relied
+on Python version but led to AttributeError on Python
+3.10.alpha as the function was added in 3.10.beta.
