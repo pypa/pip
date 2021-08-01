@@ -169,7 +169,8 @@ def _get_editable_info(dist: BaseDistribution) -> _EditableInfo:
     """
     if not dist.editable:
         return _EditableInfo(requirement=None, editable=False, comments=[])
-    if dist.location is None:
+    editable_project_location = dist.editable_project_location
+    if editable_project_location is None:
         display = _format_as_name_version(dist)
         logger.warning("Editable requirement not found on disk: %s", display)
         return _EditableInfo(
@@ -178,7 +179,7 @@ def _get_editable_info(dist: BaseDistribution) -> _EditableInfo:
             comments=[f"# Editable install not found ({display})"],
         )
 
-    location = os.path.normcase(os.path.abspath(dist.location))
+    location = os.path.normcase(os.path.abspath(editable_project_location))
 
     from pip._internal.vcs import RemoteNotFoundError, RemoteNotValidError, vcs
 
