@@ -42,7 +42,7 @@ def _infer_prefix() -> str:
     If none of the above works, fall back to ``posix_prefix``.
     """
     if _PREFERRED_SCHEME_API:
-        return _PREFERRED_SCHEME_API("prefix")  # type: ignore
+        return _PREFERRED_SCHEME_API("prefix")
     os_framework_global = is_osx_framework() and not running_under_virtualenv()
     if os_framework_global and "osx_framework_library" in _AVAILABLE_SCHEMES:
         return "osx_framework_library"
@@ -62,7 +62,7 @@ def _infer_prefix() -> str:
 def _infer_user() -> str:
     """Try to find a user scheme for the current platform."""
     if _PREFERRED_SCHEME_API:
-        return _PREFERRED_SCHEME_API("user")  # type: ignore
+        return _PREFERRED_SCHEME_API("user")
     if is_osx_framework() and not running_under_virtualenv():
         suffixed = "osx_framework_user"
     else:
@@ -77,7 +77,7 @@ def _infer_user() -> str:
 def _infer_home() -> str:
     """Try to find a home for the current platform."""
     if _PREFERRED_SCHEME_API:
-        return _PREFERRED_SCHEME_API("home")  # type: ignore
+        return _PREFERRED_SCHEME_API("home")
     suffixed = f"{os.name}_home"
     if suffixed in _AVAILABLE_SCHEMES:
         return suffixed
