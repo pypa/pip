@@ -14,7 +14,8 @@ from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution, get_environment
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.session import PipSession
-from pip._internal.utils.misc import stdlib_pkgs, tabulate, write_output
+from pip._internal.utils.compat import stdlib_pkgs
+from pip._internal.utils.misc import tabulate, write_output
 from pip._internal.utils.parallel import map_multithread
 
 if TYPE_CHECKING:

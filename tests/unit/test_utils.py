@@ -31,7 +31,6 @@ from pip._internal.utils.misc import (
     egg_link_path,
     format_size,
     get_distribution,
-    get_installed_distributions,
     get_prog,
     hide_url,
     hide_value,
@@ -187,9 +186,8 @@ class Tests_EgglinkPath:
 
 @patch("pip._internal.utils.misc.dist_in_usersite")
 @patch("pip._internal.utils.misc.dist_is_local")
-@patch("pip._internal.utils.misc.dist_is_editable")
 class TestsGetDistributions:
-    """Test get_installed_distributions() and get_distribution()."""
+    """Test get_distribution()."""
 
     class MockWorkingSet(List[Mock]):
         def require(self, name):
@@ -219,77 +217,11 @@ class TestsGetDistributions:
         )
     )
 
-    def dist_is_editable(self, dist):
-        return dist.test_name == "editable"
-
     def dist_is_local(self, dist):
         return dist.test_name != "global" and dist.test_name != "user"
 
     def dist_in_usersite(self, dist):
         return dist.test_name == "user"
-
-    @patch("pip._vendor.pkg_resources.working_set", workingset)
-    def test_editables_only(
-        self, mock_dist_is_editable, mock_dist_is_local, mock_dist_in_usersite
-    ):
-        mock_dist_is_editable.side_effect = self.dist_is_editable
-        mock_dist_is_local.side_effect = self.dist_is_local
-        mock_dist_in_usersite.side_effect = self.dist_in_usersite
-        dists = get_installed_distributions(editables_only=True)
-        assert len(dists) == 1, dists
-        assert dists[0].test_name == "editable"
-
-    @patch("pip._vendor.pkg_resources.working_set", workingset)
-    def test_exclude_editables(
-        self, mock_dist_is_editable, mock_dist_is_local, mock_dist_in_usersite
-    ):
-        mock_dist_is_editable.side_effect = self.dist_is_editable
-        mock_dist_is_local.side_effect = self.dist_is_local
-        mock_dist_in_usersite.side_effect = self.dist_in_usersite
-        dists = get_installed_distributions(include_editables=False)
-        assert len(dists) == 1
-        assert dists[0].test_name == "normal"
-
-    @patch("pip._vendor.pkg_resources.working_set", workingset)
-    def test_include_globals(
-        self, mock_dist_is_editable, mock_dist_is_local, mock_dist_in_usersite
-    ):
-        mock_dist_is_editable.side_effect = self.dist_is_editable
-        mock_dist_is_local.side_effect = self.dist_is_local
-        mock_dist_in_usersite.side_effect = self.dist_in_usersite
-        dists = get_installed_distributions(local_only=False)
-        assert len(dists) == 4
-
-    @patch("pip._vendor.pkg_resources.working_set", workingset)
-    def test_user_only(
-        self, mock_dist_is_editable, mock_dist_is_local, mock_dist_in_usersite
-    ):
-        mock_dist_is_editable.side_effect = self.dist_is_editable
-        mock_dist_is_local.side_effect = self.dist_is_local
-        mock_dist_in_usersite.side_effect = self.dist_in_usersite
-        dists = get_installed_distributions(local_only=False, user_only=True)
-        assert len(dists) == 1
-        assert dists[0].test_name == "user"
-
-    @patch("pip._vendor.pkg_resources.working_set", workingset_stdlib)
-    def test_gte_py27_excludes(
-        self, mock_dist_is_editable, mock_dist_is_local, mock_dist_in_usersite
-    ):
-        mock_dist_is_editable.side_effect = self.dist_is_editable
-        mock_dist_is_local.side_effect = self.dist_is_local
-        mock_dist_in_usersite.side_effect = self.dist_in_usersite
-        dists = get_installed_distributions()
-        assert len(dists) == 0
-
-    @patch("pip._vendor.pkg_resources.working_set", workingset_freeze)
-    def test_freeze_excludes(
-        self, mock_dist_is_editable, mock_dist_is_local, mock_dist_in_usersite
-    ):
-        mock_dist_is_editable.side_effect = self.dist_is_editable
-        mock_dist_is_local.side_effect = self.dist_is_local
-        mock_dist_in_usersite.side_effect = self.dist_in_usersite
-        dists = get_installed_distributions(skip=("setuptools", "pip", "distribute"))
-        assert len(dists) == 0
 
     @pytest.mark.parametrize(
         "working_set, req_name",
@@ -306,14 +238,12 @@ class TestsGetDistributions:
     )
     def test_get_distribution(
         self,
-        mock_dist_is_editable,
         mock_dist_is_local,
         mock_dist_in_usersite,
         working_set,
         req_name,
     ):
         """Ensure get_distribution() finds all kinds of distributions."""
-        mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
         with patch("pip._vendor.pkg_resources.working_set", working_set):
@@ -324,11 +254,9 @@ class TestsGetDistributions:
     @patch("pip._vendor.pkg_resources.working_set", workingset)
     def test_get_distribution_nonexist(
         self,
-        mock_dist_is_editable,
         mock_dist_is_local,
         mock_dist_in_usersite,
     ):
-        mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
         dist = get_distribution("non-exist")

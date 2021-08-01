@@ -21,7 +21,6 @@ from typing import (
     Any,
     BinaryIO,
     Callable,
-    Container,
     ContextManager,
     Iterable,
     Iterator,
@@ -40,7 +39,7 @@ from pip._vendor.tenacity import retry, stop_after_delay, wait_fixed
 from pip import __version__
 from pip._internal.exceptions import CommandError
 from pip._internal.locations import get_major_minor_version, site_packages, user_site
-from pip._internal.utils.compat import WINDOWS, stdlib_pkgs
+from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.virtualenv import (
     running_under_virtualenv,
     virtualenv_no_global,
@@ -368,35 +367,6 @@ def egg_link_path_from_sys_path(raw_name: str) -> Optional[str]:
         if os.path.isfile(egg_link):
             return egg_link
     return None
-
-
-def get_installed_distributions(
-    local_only: bool = True,
-    skip: Container[str] = stdlib_pkgs,
-    include_editables: bool = True,
-    editables_only: bool = False,
-    user_only: bool = False,
-    paths: Optional[List[str]] = None,
-) -> List[Distribution]:
-    """Return a list of installed Distribution objects.
-
-    Left for compatibility until direct pkg_resources uses are refactored out.
-    """
-    from pip._internal.metadata import get_default_environment, get_environment
-    from pip._internal.metadata.pkg_resources import Distribution as _Dist
-
-    if paths is None:
-        env = get_default_environment()
-    else:
-        env = get_environment(paths)
-    dists = env.iter_installed_distributions(
-        local_only=local_only,
-        skip=skip,
-        include_editables=include_editables,
-        editables_only=editables_only,
-        user_only=user_only,
-    )
-    return [cast(_Dist, dist)._dist for dist in dists]
 
 
 def get_distribution(req_name: str) -> Optional[Distribution]:
