@@ -38,7 +38,6 @@ from zipfile import ZipFile, ZipInfo
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.six import ensure_str, ensure_text, reraise
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_major_minor_version
@@ -220,8 +219,7 @@ def _normalized_outrows(
     # For additional background, see--
     # https://github.com/pypa/pip/issues/5868
     return sorted(
-        (ensure_str(record_path, encoding="utf-8"), hash_, str(size))
-        for record_path, hash_, size in outrows
+        (record_path, hash_, str(size)) for record_path, hash_, size in outrows
     )
 
 
@@ -242,11 +240,6 @@ def _fs_to_record_path(path: str, relative_to: Optional[str] = None) -> RecordPa
     return cast("RecordPath", path)
 
 
-def _parse_record_path(record_column: str) -> RecordPath:
-    p = ensure_text(record_column, encoding="utf-8")
-    return cast("RecordPath", p)
-
-
 def get_csv_rows_for_installed(
     old_csv_rows: List[List[str]],
     installed: Dict[RecordPath, RecordPath],
@@ -262,7 +255,7 @@ def get_csv_rows_for_installed(
     for row in old_csv_rows:
         if len(row) > 3:
             logger.warning("RECORD line has more than three elements: %s", row)
-        old_record_path = _parse_record_path(row[0])
+        old_record_path = cast("RecordPath", row[0])
         new_record_path = installed.pop(old_record_path, old_record_path)
         if new_record_path in changed:
             digest, length = rehash(_record_to_fs_path(new_record_path))
@@ -483,14 +476,6 @@ def _install_wheel(
         if modified:
             changed.add(_fs_to_record_path(destfile))
 
-    def all_paths() -> Iterable[RecordPath]:
-        names = wheel_zip.namelist()
-        # If a flag is set, names may be unicode in Python 2. We convert to
-        # text explicitly so these are valid for lookup in RECORD.
-        decoded_names = map(ensure_text, names)
-        for name in decoded_names:
-            yield cast("RecordPath", name)
-
     def is_dir_path(path: RecordPath) -> bool:
         return path.endswith("/")
 
@@ -518,12 +503,7 @@ def _install_wheel(
     def data_scheme_file_maker(
         zip_file: ZipFile, scheme: Scheme
     ) -> Callable[[RecordPath], "File"]:
-        scheme_paths = {}
-        for key in SCHEME_KEYS:
-            encoded_key = ensure_text(key)
-            scheme_paths[encoded_key] = ensure_text(
-                getattr(scheme, key), encoding=sys.getfilesystemencoding()
-            )
+        scheme_paths = {key: getattr(scheme, key) for key in SCHEME_KEYS}
 
         def make_data_scheme_file(record_path: RecordPath) -> "File":
             normed_path = os.path.normpath(record_path)
@@ -556,14 +536,11 @@ def _install_wheel(
     def is_data_scheme_path(path: RecordPath) -> bool:
         return path.split("/", 1)[0].endswith(".data")
 
-    paths = all_paths()
+    paths = cast(List[RecordPath], wheel_zip.namelist())
     file_paths = filterfalse(is_dir_path, paths)
     root_scheme_paths, data_scheme_paths = partition(is_data_scheme_path, file_paths)
 
-    make_root_scheme_file = root_scheme_file_maker(
-        wheel_zip,
-        ensure_text(lib_dir, encoding=sys.getfilesystemencoding()),
-    )
+    make_root_scheme_file = root_scheme_file_maker(wheel_zip, lib_dir)
     files: Iterator[File] = map(make_root_scheme_file, root_scheme_paths)
 
     def is_script_scheme_path(path: RecordPath) -> bool:
@@ -722,9 +699,8 @@ def _install_wheel(
     record_path = os.path.join(dest_info_dir, "RECORD")
 
     with _generate_file(record_path, **csv_io_kwargs("w")) as record_file:
-        # The type mypy infers for record_file is different for Python 3
-        # (typing.IO[Any]) and Python 2 (typing.BinaryIO). We explicitly
-        # cast to typing.IO[str] as a workaround.
+        # Explicitly cast to typing.IO[str] as a workaround for the mypy error:
+        # "writer" has incompatible type "BinaryIO"; expected "_Writer"
         writer = csv.writer(cast("IO[str]", record_file))
         writer.writerows(_normalized_outrows(rows))
 
@@ -735,7 +711,7 @@ def req_error_context(req_description: str) -> Iterator[None]:
         yield
     except InstallationError as e:
         message = "For req: {}. {}".format(req_description, e.args[0])
-        reraise(InstallationError, InstallationError(message), sys.exc_info()[2])
+        raise InstallationError(message) from e
 
 
 def install_wheel(
