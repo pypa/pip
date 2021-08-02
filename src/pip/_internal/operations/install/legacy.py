@@ -29,8 +29,7 @@ def write_installed_files_from_setuptools_record(
     root: Optional[str],
     req_description: str,
 ) -> None:
-    def prepend_root(path):
-        # type: (str) -> str
+    def prepend_root(path: str) -> str:
         if root is None or not os.path.isabs(path):
             return path
         else:
