@@ -10,8 +10,9 @@ logger = getLogger(__name__)
 
 
 class PipReporter(BaseReporter):
-    def __init__(self) -> None:
+    def __init__(self, backtracking_message_generator) -> None:
         self.backtracks_by_package: DefaultDict[str, int] = defaultdict(int)
+        self.backtracking_message_generator = backtracking_message_generator
 
         self._messages_at_backtrack = {
             1: (
@@ -42,6 +43,9 @@ class PipReporter(BaseReporter):
         message = self._messages_at_backtrack[count]
         logger.info("INFO: %s", message.format(package_name=candidate.name))
 
+    def start_backtracking(self, causes: Any) -> None:
+        logger.info("INFO: %s", self.backtracking_message_generator(causes))
+
 
 class PipDebuggingReporter(BaseReporter):
     """A reporter that does an info log for every event it sees."""
@@ -63,6 +67,9 @@ class PipDebuggingReporter(BaseReporter):
 
     def backtracking(self, candidate: Candidate) -> None:
         logger.info("Reporter.backtracking(%r)", candidate)
+
+    def start_backtracking(self, cause: Any) -> None:
+        logger.info("Reporter.start_backtracking(%r)", cause)
 
     def pinning(self, candidate: Candidate) -> None:
         logger.info("Reporter.pinning(%r)", candidate)
