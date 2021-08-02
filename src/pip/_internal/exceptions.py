@@ -189,13 +189,9 @@ class HashErrors(InstallationError):
             return '\n'.join(lines)
         return ''
 
-    def __nonzero__(self):
-        # type: () -> bool
-        return bool(self.errors)
-
     def __bool__(self):
         # type: () -> bool
-        return self.__nonzero__()
+        return bool(self.errors)
 
 
 class HashError(InstallationError):
