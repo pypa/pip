@@ -2,16 +2,6 @@
 network request configuration and behavior.
 """
 
-# When mypy runs on Windows the call to distro.linux_distribution() is skipped
-# resulting in the failure:
-#
-#     error: unused 'type: ignore' comment
-#
-# If the upstream module adds typing, this comment should be removed. See
-# https://github.com/nir0s/distro/pull/269
-#
-# mypy: warn-unused-ignores=False
-
 import email.utils
 import ipaddress
 import json
@@ -128,9 +118,8 @@ def user_agent() -> str:
     if sys.platform.startswith("linux"):
         from pip._vendor import distro
 
-        # https://github.com/nir0s/distro/pull/269
-        linux_distribution = distro.linux_distribution()  # type: ignore
-        distro_infos = dict(
+        linux_distribution = distro.name(), distro.version(), distro.codename()
+        distro_infos: Dict[str, Any] = dict(
             filter(
                 lambda x: x[1],
                 zip(["name", "version", "id"], linux_distribution),
