@@ -3,6 +3,7 @@ network request configuration and behavior.
 """
 
 import email.utils
+import io
 import ipaddress
 import json
 import logging
