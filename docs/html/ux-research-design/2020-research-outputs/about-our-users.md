@@ -177,6 +177,7 @@ The majority of participants (91%) responded that they did not have a disability
 ### How many participants identified as having a disability?
 
 |Do you self-identify as someone who has a disability?|Number of responses|
+|--- |--- |
 |No|150|
 |Yes|14|
 |Grand Total|164|
@@ -216,6 +217,7 @@ The term “assistive technology” (AT) is used to describe products or systems
 The majority of participants (94%) said that they have never used assistive technology.
 
 |Do you use assistive technology (AT) when using computers?|Number of responses|
+|--- |--- |
 |No, I have never used it|128|
 |I only use it when needed|3|
 |I use it everyday|1|
@@ -281,7 +283,7 @@ Pip's output should be improved by:
 
 ## Further reading
 
-### Designing for people with disabilities
+Designing for people with disabilities:
 
 * [An Introduction to inclusive design](https://www.nomensa.com/blog/2011/introduction-inclusive-design)
 * [How ADHD and dyslexia teach you to do better UX design](https://themasters.io/blog/posts/how-adhd-dyslexia-teach-better-ux-design)
