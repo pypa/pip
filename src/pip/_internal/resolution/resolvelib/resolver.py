@@ -82,7 +82,11 @@ class Resolver(BaseResolver):
             reporter: BaseReporter = PipDebuggingReporter()
         else:
             reporter = PipReporter(
-                functools.partial(self.factory.get_backtracking_reason_message, constraints=collected.constraints))
+                functools.partial(
+                    self.factory.get_backtracking_reason_message,
+                    constraints=collected.constraints,
+                )
+            )
         resolver: RLResolver[Requirement, Candidate, str] = RLResolver(
             provider,
             reporter,

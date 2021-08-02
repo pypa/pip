@@ -69,10 +69,10 @@ from .requirements import (
 if TYPE_CHECKING:
     from typing import Protocol
 
-
     class ConflictCause(Protocol):
         requirement: RequiresPythonRequirement
         parent: Candidate
+
 
 logger = logging.getLogger(__name__)
 
@@ -88,16 +88,16 @@ class CollectedRootRequirements(NamedTuple):
 
 class Factory:
     def __init__(
-            self,
-            finder: PackageFinder,
-            preparer: RequirementPreparer,
-            make_install_req: InstallRequirementProvider,
-            wheel_cache: Optional[WheelCache],
-            use_user_site: bool,
-            force_reinstall: bool,
-            ignore_installed: bool,
-            ignore_requires_python: bool,
-            py_version_info: Optional[Tuple[int, ...]] = None,
+        self,
+        finder: PackageFinder,
+        preparer: RequirementPreparer,
+        make_install_req: InstallRequirementProvider,
+        wheel_cache: Optional[WheelCache],
+        use_user_site: bool,
+        force_reinstall: bool,
+        ignore_installed: bool,
+        ignore_requires_python: bool,
+        py_version_info: Optional[Tuple[int, ...]] = None,
     ) -> None:
         self._finder = finder
         self.preparer = preparer
@@ -139,7 +139,7 @@ class Factory:
         raise UnsupportedWheel(msg)
 
     def _make_extras_candidate(
-            self, base: BaseCandidate, extras: FrozenSet[str]
+        self, base: BaseCandidate, extras: FrozenSet[str]
     ) -> ExtrasCandidate:
         cache_key = (id(base), extras)
         try:
@@ -150,10 +150,10 @@ class Factory:
         return candidate
 
     def _make_candidate_from_dist(
-            self,
-            dist: BaseDistribution,
-            extras: FrozenSet[str],
-            template: InstallRequirement,
+        self,
+        dist: BaseDistribution,
+        extras: FrozenSet[str],
+        template: InstallRequirement,
     ) -> Candidate:
         try:
             base = self._installed_candidate_cache[dist.canonical_name]
@@ -165,12 +165,12 @@ class Factory:
         return self._make_extras_candidate(base, extras)
 
     def _make_candidate_from_link(
-            self,
-            link: Link,
-            extras: FrozenSet[str],
-            template: InstallRequirement,
-            name: Optional[NormalizedName],
-            version: Optional[CandidateVersion],
+        self,
+        link: Link,
+        extras: FrozenSet[str],
+        template: InstallRequirement,
+        name: Optional[NormalizedName],
+        version: Optional[CandidateVersion],
     ) -> Optional[Candidate]:
         # TODO: Check already installed candidate, and use it if the link and
         # editable flag match.
@@ -216,12 +216,12 @@ class Factory:
         return self._make_extras_candidate(base, extras)
 
     def _iter_found_candidates(
-            self,
-            ireqs: Sequence[InstallRequirement],
-            specifier: SpecifierSet,
-            hashes: Hashes,
-            prefers_installed: bool,
-            incompatible_ids: Set[int],
+        self,
+        ireqs: Sequence[InstallRequirement],
+        specifier: SpecifierSet,
+        hashes: Hashes,
+        prefers_installed: bool,
+        incompatible_ids: Set[int],
     ) -> Iterable[Candidate]:
         if not ireqs:
             return ()
@@ -300,9 +300,9 @@ class Factory:
         )
 
     def _iter_explicit_candidates_from_base(
-            self,
-            base_requirements: Iterable[Requirement],
-            extras: FrozenSet[str],
+        self,
+        base_requirements: Iterable[Requirement],
+        extras: FrozenSet[str],
     ) -> Iterator[Candidate]:
         """Produce explicit candidates from the base given an extra-ed package.
 
@@ -322,10 +322,10 @@ class Factory:
             yield self._make_extras_candidate(base_cand, extras)
 
     def _iter_candidates_from_constraints(
-            self,
-            identifier: str,
-            constraint: Constraint,
-            template: InstallRequirement,
+        self,
+        identifier: str,
+        constraint: Constraint,
+        template: InstallRequirement,
     ) -> Iterator[Candidate]:
         """Produce explicit candidates from constraints.
 
@@ -410,12 +410,12 @@ class Factory:
             c
             for c in explicit_candidates
             if id(c) not in incompat_ids
-               and constraint.is_satisfied_by(c)
-               and all(req.is_satisfied_by(c) for req in requirements[identifier])
+            and constraint.is_satisfied_by(c)
+            and all(req.is_satisfied_by(c) for req in requirements[identifier])
         )
 
     def _make_requirement_from_install_req(
-            self, ireq: InstallRequirement, requested_extras: Iterable[str]
+        self, ireq: InstallRequirement, requested_extras: Iterable[str]
     ) -> Optional[Requirement]:
         if not ireq.match_markers(requested_extras):
             logger.info(
@@ -447,7 +447,7 @@ class Factory:
         return self.make_requirement_from_candidate(cand)
 
     def collect_root_requirements(
-            self, root_ireqs: List[InstallRequirement]
+        self, root_ireqs: List[InstallRequirement]
     ) -> CollectedRootRequirements:
         collected = CollectedRootRequirements([], {}, {})
         for i, ireq in enumerate(root_ireqs):
@@ -477,7 +477,7 @@ class Factory:
         return collected
 
     def make_requirement_from_candidate(
-            self, candidate: Candidate
+        self, candidate: Candidate
     ) -> ExplicitRequirement:
         return ExplicitRequirement(candidate)
 
@@ -502,7 +502,7 @@ class Factory:
         return RequiresPythonRequirement(specifier, self._python_candidate)
 
     def get_wheel_cache_entry(
-            self, link: Link, name: Optional[str]
+        self, link: Link, name: Optional[str]
     ) -> Optional[CacheEntry]:
         """Look up the link in the wheel cache.
 
@@ -549,7 +549,7 @@ class Factory:
         return None
 
     def _report_requires_python_error(
-            self, causes: Sequence["ConflictCause"]
+        self, causes: Sequence["ConflictCause"]
     ) -> UnsupportedPythonVersion:
         assert causes, "Requires-Python error reported with no cause"
 
@@ -571,7 +571,7 @@ class Factory:
         return UnsupportedPythonVersion(message)
 
     def _report_single_requirement_conflict(
-            self, req: Requirement, parent: Optional[Candidate]
+        self, req: Requirement, parent: Optional[Candidate]
     ) -> DistributionNotFound:
         if parent is None:
             req_disp = str(req)
@@ -598,9 +598,9 @@ class Factory:
         return DistributionNotFound(f"No matching distribution found for {req}")
 
     def get_installation_error(
-            self,
-            e: "ResolutionImpossible[Requirement, Candidate]",
-            constraints: Dict[str, Constraint],
+        self,
+        e: "ResolutionImpossible[Requirement, Candidate]",
+        constraints: Dict[str, Constraint],
     ) -> InstallationError:
 
         failure_causes = e.causes
@@ -632,12 +632,12 @@ class Factory:
         logger.critical(self.triggers_message(failure_causes))
 
         msg = (
-                self.causes_message(constraints, failure_causes)
-                + "\n\n"
-                + "To fix this you could try to:\n"
-                + "1. loosen the range of package versions you've specified\n"
-                + "2. remove package versions to allow pip attempt to solve "
-                + "the dependency conflict\n"
+            self.causes_message(constraints, failure_causes)
+            + "\n\n"
+            + "To fix this you could try to:\n"
+            + "1. loosen the range of package versions you've specified\n"
+            + "2. remove package versions to allow pip attempt to solve "
+            + "the dependency conflict\n"
         )
 
         logger.info(msg)
@@ -649,7 +649,9 @@ class Factory:
         )
 
     def get_backtracking_reason_message(self, backtracking_causes, constraints):
-        requires_python_causes = self.extract_requires_python_causes(backtracking_causes)
+        requires_python_causes = self.extract_requires_python_causes(
+            backtracking_causes
+        )
         if requires_python_causes or len(backtracking_causes) == 1:
             # no message when python causes or a single failure, since this is probably a genuine problem
             return
@@ -657,8 +659,9 @@ class Factory:
         # OK, we now have a list of requirements that can't all be
         # satisfied at once.
 
-        return (self.triggers_message(backtracking_causes) +
-                self.causes_message(constraints, backtracking_causes))
+        return self.triggers_message(backtracking_causes) + self.causes_message(
+            constraints, backtracking_causes
+        )
 
     @staticmethod
     def causes_message(constraints, failure_causes):
@@ -719,5 +722,5 @@ class Factory:
             cause
             for cause in failure_causes
             if isinstance(cause.requirement, RequiresPythonRequirement)
-               and not cause.requirement.is_satisfied_by(self._python_candidate)
+            and not cause.requirement.is_satisfied_by(self._python_candidate)
         ]
