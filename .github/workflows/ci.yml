@@ -30,7 +30,6 @@ jobs:
             tests:
               # Anything that's touching testable stuff
               - ".github/workflows/ci.yml"
-              - "tools/requirements/tests.txt"
               - "src/**"
               - "tests/**"
         if: github.event_name == 'pull_request'

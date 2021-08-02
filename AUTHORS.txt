@@ -98,13 +98,16 @@ Brandt Bucher
 Brett Randall
 Brian Cristante
 Brian Rosner
+briantracy
 BrownTruck
 Bruno Oliveira
 Bruno Renié
+Bruno S
 Bstrdsmkr
 Buck Golemon
 burrows
 Bussonnier Matthias
+bwoodsend
 c22
 Caleb Martinez
 Calvin Smith
@@ -177,13 +180,16 @@ David Tucker
 David Wales
 Davidovich
 Deepak Sharma
+Deepyaman Datta
 Denise Yu
 derwolfe
 Desetude
 Devesh Kumar Singh
 Diego Caraballo
+Diego Ramirez
 DiegoCaraballo
 Dimitri Merejkowsky
+Dirk Stolle
 Dmitry Gladkov
 Domen Kožar
 Dominic Davis-Foster
@@ -245,17 +251,18 @@ Greg Ward
 Guilherme Espada
 gutsytechster
 Guy Rozendorn
+Guy Tuval
 gzpan123
 Hanjun Kim
 Hari Charan
 Harsh Vardhan
+harupy
+Harutaka Kawamura
 Henry Schreiner
 Herbert Pfennig
 Hsiaoming Yang
-Hugo
 Hugo Lopes Tavares
 Hugo van Kemenade
-hugovk
 Hynek Schlawack
 Ian Bicking
 Ian Cordasco
@@ -265,12 +272,14 @@ Ian Wienand
 Igor Kuzmitshov
 Igor Sobreira
 Ilan Schnell
+Illia Volochii
 Ilya Baryshev
 Inada Naoki
 Ionel Cristian Mărieș
 Ionel Maries Cristian
 Ivan Pozdeev
 Jacob Kim
+Jacob Walls
 jakirkham
 Jakub Stasiak
 Jakub Vysoky
@@ -295,6 +304,7 @@ Jiashuo Li
 Jim Fisher
 Jim Garrison
 Jivan Amara
+Joe Michelini
 John Paton
 John T. Wodder II
 John-Scott Atlakson
@@ -388,6 +398,7 @@ mayeut
 mbaluna
 mdebi
 memoselyk
+meowmeowcat
 Michael
 Michael Aquilina
 Michael E. Karpeles
@@ -425,6 +436,7 @@ Noah Gorny
 Nowell Strite
 NtaleGrey
 nvdv
+OBITORASU
 Ofekmeister
 ofrinevo
 Oliver Jeeves
@@ -530,6 +542,7 @@ Simon Cross
 Simon Pichugin
 sinoroc
 sinscary
+snook92
 socketubs
 Sorin Sbarnea
 Srinivas Nyayapati
@@ -552,6 +565,7 @@ Surbhi Sharma
 Sviatoslav Sydorenko
 Swat009
 Takayuki SHIMIZUKAWA
+Taneli Hukkinen
 tbeswick
 Thijs Triemstra
 Thomas Fenzl

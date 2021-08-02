@@ -24,6 +24,44 @@ class LegacyInstallFailure(Exception):
         self.parent = sys.exc_info()
 
 
+def write_installed_files_from_setuptools_record(
+    record_lines: List[str],
+    root: Optional[str],
+    req_description: str,
+) -> None:
+    def prepend_root(path):
+        # type: (str) -> str
+        if root is None or not os.path.isabs(path):
+            return path
+        else:
+            return change_root(root, path)
+
+    for line in record_lines:
+        directory = os.path.dirname(line)
+        if directory.endswith(".egg-info"):
+            egg_info_dir = prepend_root(directory)
+            break
+    else:
+        message = (
+            "{} did not indicate that it installed an "
+            ".egg-info directory. Only setup.py projects "
+            "generating .egg-info directories are supported."
+        ).format(req_description)
+        raise InstallationError(message)
+
+    new_lines = []
+    for line in record_lines:
+        filename = line.strip()
+        if os.path.isdir(filename):
+            filename += os.path.sep
+        new_lines.append(os.path.relpath(prepend_root(filename), egg_info_dir))
+    new_lines.sort()
+    ensure_dir(egg_info_dir)
+    inst_files_path = os.path.join(egg_info_dir, "installed-files.txt")
+    with open(inst_files_path, "w") as f:
+        f.write("\n".join(new_lines) + "\n")
+
+
 def install(
     install_options: List[str],
     global_options: Sequence[str],
@@ -45,7 +83,7 @@ def install(
 
     with TempDirectory(kind="record") as temp_dir:
         try:
-            record_filename = os.path.join(temp_dir.path, 'install-record.txt')
+            record_filename = os.path.join(temp_dir.path, "install-record.txt")
             install_args = make_setuptools_install_args(
                 setup_py_path,
                 global_options=global_options,
@@ -70,7 +108,7 @@ def install(
                 )
 
             if not os.path.exists(record_filename):
-                logger.debug('Record file %s not found', record_filename)
+                logger.debug("Record file %s not found", record_filename)
                 # Signal to the caller that we didn't install the new package
                 return False
 
@@ -86,37 +124,5 @@ def install(
         with open(record_filename) as f:
             record_lines = f.read().splitlines()
 
-    def prepend_root(path: str) -> str:
-        if root is None or not os.path.isabs(path):
-            return path
-        else:
-            return change_root(root, path)
-
-    for line in record_lines:
-        directory = os.path.dirname(line)
-        if directory.endswith('.egg-info'):
-            egg_info_dir = prepend_root(directory)
-            break
-    else:
-        message = (
-            "{} did not indicate that it installed an "
-            ".egg-info directory. Only setup.py projects "
-            "generating .egg-info directories are supported."
-        ).format(req_description)
-        raise InstallationError(message)
-
-    new_lines = []
-    for line in record_lines:
-        filename = line.strip()
-        if os.path.isdir(filename):
-            filename += os.path.sep
-        new_lines.append(
-            os.path.relpath(prepend_root(filename), egg_info_dir)
-        )
-    new_lines.sort()
-    ensure_dir(egg_info_dir)
-    inst_files_path = os.path.join(egg_info_dir, 'installed-files.txt')
-    with open(inst_files_path, 'w') as f:
-        f.write('\n'.join(new_lines) + '\n')
-
+    write_installed_files_from_setuptools_record(record_lines, root, req_description)
     return True

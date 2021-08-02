@@ -36,7 +36,7 @@ class SearchScope:
         # it and if it exists, use the normalized version.
         # This is deliberately conservative - it might be fine just to
         # blindly normalize anything starting with a ~...
-        built_find_links = []  # type: List[str]
+        built_find_links: List[str] = []
         for link in find_links:
             if link.startswith('~'):
                 new_link = normalize_path(link)

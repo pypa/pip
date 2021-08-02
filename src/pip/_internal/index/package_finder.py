@@ -502,7 +502,7 @@ class CandidateEvaluator:
         """
         valid_tags = self._supported_tags
         support_num = len(valid_tags)
-        build_tag = ()  # type: BuildTag
+        build_tag: BuildTag = ()
         binary_preference = 0
         link = candidate.link
         if link.is_wheel:
@@ -603,7 +603,7 @@ class PackageFinder:
         self.format_control = format_control
 
         # These are boring links that have already been logged somehow.
-        self._logged_links = set()  # type: Set[Link]
+        self._logged_links: Set[Link] = set()
 
     # Don't include an allow_yanked default value to make sure each call
     # site considers whether yanked releases are allowed. This also causes
@@ -699,7 +699,7 @@ class PackageFinder:
         second, while eliminating duplicates
         """
         eggs, no_eggs = [], []
-        seen = set()  # type: Set[Link]
+        seen: Set[Link] = set()
         for link in links:
             if link not in seen:
                 seen.add(link)
@@ -871,7 +871,7 @@ class PackageFinder:
         )
         best_candidate = best_candidate_result.best_candidate
 
-        installed_version = None    # type: Optional[_BaseVersion]
+        installed_version: Optional[_BaseVersion] = None
         if req.satisfied_by is not None:
             installed_version = parse_version(req.satisfied_by.version)
 

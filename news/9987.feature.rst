@@ -1,1 +1,0 @@
-Include ``rustc`` version in pip's ``User-Agent``, when the system has ``rustc``.

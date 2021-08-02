@@ -1,7 +1,0 @@
-New resolver: Loosen URL comparison logic when checking for direct URL reference
-equivalency. The logic includes the following notable characteristics:
-
-* The authentication part of the URL is explicitly ignored.
-* Most of the fragment part, including ``egg=``, is explicitly ignored. Only
-  ``subdirectory=`` and hash values (e.g. ``sha256=``) are kept.
-* The query part of the URL is parsed to allow ordering differences.

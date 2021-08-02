@@ -1,3 +1,4 @@
+import logging
 from optparse import Values
 from typing import List
 
@@ -13,6 +14,8 @@ from pip._internal.req.constructors import (
     install_req_from_parsed_requirement,
 )
 from pip._internal.utils.misc import protect_pip_from_modification_on_windows
+
+logger = logging.getLogger(__name__)
 
 
 class UninstallCommand(Command, SessionCommandMixin):
@@ -58,6 +61,13 @@ class UninstallCommand(Command, SessionCommandMixin):
             )
             if req.name:
                 reqs_to_uninstall[canonicalize_name(req.name)] = req
+            else:
+                logger.warning(
+                    "Invalid requirement: %r ignored -"
+                    " the uninstall command expects named"
+                    " requirements.",
+                    name,
+                )
         for filename in options.requirements:
             for parsed_req in parse_requirements(
                     filename,

@@ -83,7 +83,7 @@ def _check_dist_requires_python(
     version = ".".join(map(str, version_info))
     if ignore_requires_python:
         logger.debug(
-            "Ignoring failed Requires-Python check for package %r: " "%s not in %r",
+            "Ignoring failed Requires-Python check for package %r: %s not in %r",
             dist.project_name,
             version,
             requires_python,
@@ -344,7 +344,7 @@ class Resolver(BaseResolver):
                 self._set_req_to_reinstall(req)
             else:
                 logger.info(
-                    "Requirement already satisfied (use --upgrade to upgrade):" " %s",
+                    "Requirement already satisfied (use --upgrade to upgrade): %s",
                     req,
                 )
         return dist

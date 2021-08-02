@@ -1,1 +1,0 @@
-Make "yes" the default choice in ``pip uninstall``'s prompt.
