@@ -648,21 +648,6 @@ class Factory:
             "#dealing-with-dependency-conflicts"
         )
 
-    def get_backtracking_reason_message(self, backtracking_causes, constraints):
-        requires_python_causes = self.extract_requires_python_causes(
-            backtracking_causes
-        )
-        if requires_python_causes or len(backtracking_causes) == 1:
-            # no message when python causes or a single failure, since this is probably a genuine problem
-            return
-
-        # OK, we now have a list of requirements that can't all be
-        # satisfied at once.
-
-        return self.triggers_message(backtracking_causes) + self.causes_message(
-            constraints, backtracking_causes
-        )
-
     @staticmethod
     def causes_message(constraints, failure_causes):
         msg = "\nThe conflict is caused by:"
@@ -724,3 +709,18 @@ class Factory:
             if isinstance(cause.requirement, RequiresPythonRequirement)
             and not cause.requirement.is_satisfied_by(self._python_candidate)
         ]
+
+    def get_backtracking_reason_message(self, backtracking_causes, constraints):
+        requires_python_causes = self.extract_requires_python_causes(
+            backtracking_causes
+        )
+        if requires_python_causes or len(backtracking_causes) == 1:
+            # no message when python causes or a single failure, since this is probably a genuine problem
+            return
+
+        # OK, we now have a list of requirements that can't all be
+        # satisfied at once.
+
+        return self.triggers_message(backtracking_causes) + self.causes_message(
+            constraints, backtracking_causes
+        )

@@ -28,6 +28,7 @@ def assert_editable(script, *args):
 
 @pytest.fixture()
 def make_fake_wheel(script):
+
     def _make_fake_wheel(name, version, wheel_tag):
         wheel_house = script.scratch_path.joinpath("wheelhouse")
         wheel_house.mkdir()
@@ -342,10 +343,10 @@ def test_new_resolver_installs_editable(script):
     ],
 )
 def test_new_resolver_requires_python(
-        script,
-        requires_python,
-        ignore_requires_python,
-        dep_version,
+    script,
+    requires_python,
+    ignore_requires_python,
+    dep_version,
 ):
     create_basic_wheel_for_package(
         script,
@@ -592,10 +593,10 @@ def test_new_resolver_force_reinstall(script):
     ids=["default", "exact-pre", "explicit-pre", "no-stable"],
 )
 def test_new_resolver_handles_prerelease(
-        script,
-        available_versions,
-        pip_args,
-        expected_version,
+    script,
+    available_versions,
+    pip_args,
+    expected_version,
 ):
     for version in available_versions:
         create_basic_wheel_for_package(script, "pkg", version)
@@ -686,16 +687,16 @@ def test_new_resolver_constraint_no_specifier(script):
     "constraint, error",
     [
         (
-                "dist.zip",
-                "Unnamed requirements are not allowed as constraints",
+            "dist.zip",
+            "Unnamed requirements are not allowed as constraints",
         ),
         (
-                "-e git+https://example.com/dist.git#egg=req",
-                "Editable requirements are not allowed as constraints",
+            "-e git+https://example.com/dist.git#egg=req",
+            "Editable requirements are not allowed as constraints",
         ),
         (
-                "pkg[extra]",
-                "Constraints cannot have extras",
+            "pkg[extra]",
+            "Constraints cannot have extras",
         ),
     ],
 )
@@ -747,10 +748,10 @@ def test_new_resolver_constraint_on_dependency(script):
     ],
 )
 def test_new_resolver_constraint_on_path_empty(
-        script,
-        constraint_version,
-        expect_error,
-        message,
+    script,
+    constraint_version,
+    expect_error,
+    message,
 ):
     """A path requirement can be filtered by a constraint."""
     setup_py = script.scratch_path / "setup.py"
@@ -1118,7 +1119,7 @@ def test_new_resolver_prefers_installed_in_upgrade_if_latest(script):
 @pytest.mark.parametrize("N", [2, 10, 20])
 def test_new_resolver_presents_messages_when_backtracking_a_lot(script, N):
     # Generate a set of wheels that will definitely cause backtracking.
-    for index in range(1, N + 1):
+    for index in range(1, N+1):
         A_version = f"{index}.0.0"
         B_version = f"{index}.0.0"
         C_version = "{index_minus_one}.0.0".format(index_minus_one=index - 1)
@@ -1130,7 +1131,7 @@ def test_new_resolver_presents_messages_when_backtracking_a_lot(script, N):
         print("A", A_version, "B", B_version, "C", C_version)
         create_basic_wheel_for_package(script, "A", A_version, depends=depends)
 
-    for index in range(1, N + 1):
+    for index in range(1, N+1):
         B_version = f"{index}.0.0"
         C_version = f"{index}.0.0"
         depends = ["C == " + C_version]
@@ -1138,7 +1139,7 @@ def test_new_resolver_presents_messages_when_backtracking_a_lot(script, N):
         print("B", B_version, "C", C_version)
         create_basic_wheel_for_package(script, "B", B_version, depends=depends)
 
-    for index in range(1, N + 1):
+    for index in range(1, N+1):
         C_version = f"{index}.0.0"
         print("C", C_version)
         create_basic_wheel_for_package(script, "C", C_version)
@@ -1216,9 +1217,9 @@ The conflict is caused by:
     ids=["file_dot", "file_underscore"],
 )
 def test_new_resolver_check_wheel_version_normalized(
-        script,
-        metadata_version,
-        filename_version,
+    script,
+    metadata_version,
+    filename_version,
 ):
     filename = f"simple-{filename_version}-py2.py3-none-any.whl"
 
@@ -1605,8 +1606,8 @@ def test_new_resolver_fails_with_url_constraint_and_incompatible_version(
 
     assert "Cannot install test_pkg" in result.stderr, str(result)
     assert (
-               "because these package versions have conflicting dependencies."
-           ) in result.stderr, str(result)
+        "because these package versions have conflicting dependencies."
+    ) in result.stderr, str(result)
 
     script.assert_not_installed("test_pkg")
 
@@ -1696,9 +1697,9 @@ def test_new_resolver_fails_on_needed_conflicting_constraints(script):
     )
 
     assert (
-               "Cannot install test_pkg because these package versions have conflicting "
-               "dependencies."
-           ) in result.stderr, str(result)
+        "Cannot install test_pkg because these package versions have conflicting "
+        "dependencies."
+    ) in result.stderr, str(result)
 
     script.assert_not_installed("test_pkg")
 
@@ -1742,8 +1743,8 @@ def test_new_resolver_fails_on_conflicting_constraint_and_requirement(script):
 
     assert "Cannot install test-pkg 0.2.0" in result.stderr, str(result)
     assert (
-               "because these package versions have conflicting dependencies."
-           ) in result.stderr, str(result)
+        "because these package versions have conflicting dependencies."
+    ) in result.stderr, str(result)
 
     script.assert_not_installed("test_pkg")
 
@@ -1831,7 +1832,7 @@ def test_new_resolver_applies_url_constraint_to_dep(script):
 
 
 def test_new_resolver_handles_compatible_wheel_tags_in_constraint_url(
-        script, make_fake_wheel
+    script, make_fake_wheel
 ):
     initial_path = make_fake_wheel("base", "0.1.0", "fakepy1-fakeabi-fakeplat")
 
@@ -1870,7 +1871,7 @@ def test_new_resolver_handles_compatible_wheel_tags_in_constraint_url(
 
 
 def test_new_resolver_handles_incompatible_wheel_tags_in_constraint_url(
-        script, make_fake_wheel
+    script, make_fake_wheel
 ):
     initial_path = make_fake_wheel("base", "0.1.0", "fakepy1-fakeabi-fakeplat")
 
@@ -1895,15 +1896,15 @@ def test_new_resolver_handles_incompatible_wheel_tags_in_constraint_url(
     )
 
     assert (
-               "Cannot install base because these package versions have conflicting "
-               "dependencies."
-           ) in result.stderr, str(result)
+        "Cannot install base because these package versions have conflicting "
+        "dependencies."
+    ) in result.stderr, str(result)
 
     script.assert_not_installed("base")
 
 
 def test_new_resolver_avoids_incompatible_wheel_tags_in_constraint_url(
-        script, make_fake_wheel
+    script, make_fake_wheel
 ):
     initial_path = make_fake_wheel("dep", "0.1.0", "fakepy1-fakeabi-fakeplat")
 
@@ -1998,11 +1999,11 @@ def test_new_resolver_avoids_incompatible_wheel_tags_in_constraint_url(
     ],
 )
 def test_new_resolver_direct_url_equivalent(
-        tmp_path,
-        script,
-        suffixes_equivalent,
-        depend_suffix,
-        request_suffix,
+    tmp_path,
+    script,
+    suffixes_equivalent,
+    depend_suffix,
+    request_suffix,
 ):
     pkga = create_basic_wheel_for_package(script, name="pkga", version="1")
     pkgb = create_basic_wheel_for_package(
