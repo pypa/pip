@@ -34,7 +34,7 @@ class ConfigurationCommand(Command):
 
     If none of --user, --global and --site are passed, a virtual
     environment configuration file is used if one is active and the file
-    exists. Otherwise, all modifications happen on the to the user file by
+    exists. Otherwise, all modifications happen to the user file by
     default.
     """
 
