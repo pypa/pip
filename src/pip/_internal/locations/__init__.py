@@ -90,15 +90,6 @@ def _fix_abiflags(parts: Tuple[str]) -> Iterator[str]:
         yield part
 
 
-def _default_base(*, user: bool) -> str:
-    if user:
-        base = sysconfig.get_config_var("userbase")
-    else:
-        base = sysconfig.get_config_var("base")
-    assert base is not None
-    return base
-
-
 @functools.lru_cache(maxsize=None)
 def _warn_mismatched(old: pathlib.Path, new: pathlib.Path, *, key: str) -> None:
     issue_url = "https://github.com/pypa/pip/issues/10151"
@@ -161,11 +152,9 @@ def get_scheme(
         prefix=prefix,
     )
 
-    base = prefix or home or _default_base(user=user)
     warning_contexts = []
     for k in SCHEME_KEYS:
-        # Extra join because distutils can return relative paths.
-        old_v = pathlib.Path(base, getattr(old, k))
+        old_v = pathlib.Path(getattr(old, k))
         new_v = pathlib.Path(getattr(new, k))
 
         if old_v == new_v:
