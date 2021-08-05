@@ -211,7 +211,7 @@ class LocalFSAdapter(BaseAdapter):
             # format the exception raised as a io.BytesIO object,
             # to return a better error message:
             resp.status_code = 404
-            error_message = f"{type(exc).__name__}: {str(exc)}"
+            error_message = f"\"{type(exc).__name__}: {str(exc)}\""
             resp.reason = error_message
             resp.raw = io.BytesIO(error_message.encode("utf8"))
         else:
