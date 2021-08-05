@@ -81,8 +81,14 @@ def distutils_scheme(
         scheme.update(dict(purelib=i.install_lib, platlib=i.install_lib))
 
     if running_under_virtualenv():
+        if home:
+            prefix = home
+        elif user:
+            prefix = i.install_userbase  # type: ignore
+        else:
+            prefix = i.prefix
         scheme["headers"] = os.path.join(
-            i.prefix,
+            prefix,
             "include",
             "site",
             f"python{get_major_minor_version()}",
@@ -91,10 +97,7 @@ def distutils_scheme(
 
         if root is not None:
             path_no_drive = os.path.splitdrive(os.path.abspath(scheme["headers"]))[1]
-            scheme["headers"] = os.path.join(
-                root,
-                path_no_drive[1:],
-            )
+            scheme["headers"] = os.path.join(root, path_no_drive[1:])
 
     return scheme
 
