@@ -181,7 +181,7 @@ class HashErrors(InstallationError):
         return ''
 
     def __bool__(self) -> bool:
-        return self.__nonzero__()
+        return bool(self.errors)
 
 
 class HashError(InstallationError):
