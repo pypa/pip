@@ -1,3 +1,15 @@
+21.2.3 (2021-08-06)
+===================
+
+
+
+Bug Fixes
+---------
+
+- Modify the ``sysconfig.get_preferred_scheme`` function check to be
+  compatible with CPython 3.10’s alphareleases. (`#10252 <https://github.com/pypa/pip/issues/10252>`_)
+
+
 21.2.2 (2021-07-31)
 ===================
 
