@@ -138,17 +138,20 @@ def get_scheme(
 
 
 def get_bin_prefix() -> str:
+    # XXX: In old virtualenv versions, sys.prefix can contain '..' components,
+    # so we need to call normpath to eliminate them.
+    prefix = os.path.normpath(sys.prefix)
     if WINDOWS:
-        bin_py = os.path.join(sys.prefix, "Scripts")
+        bin_py = os.path.join(prefix, "Scripts")
         # buildout uses 'bin' on Windows too?
         if not os.path.exists(bin_py):
-            bin_py = os.path.join(sys.prefix, "bin")
+            bin_py = os.path.join(prefix, "bin")
         return bin_py
     # Forcing to use /usr/local/bin for standard macOS framework installs
     # Also log to ~/Library/Logs/ for use with the Console.app log viewer
-    if sys.platform[:6] == "darwin" and sys.prefix[:16] == "/System/Library/":
+    if sys.platform[:6] == "darwin" and prefix[:16] == "/System/Library/":
         return "/usr/local/bin"
-    return os.path.join(sys.prefix, "bin")
+    return os.path.join(prefix, "bin")
 
 
 def get_purelib() -> str:
