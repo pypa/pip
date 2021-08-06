@@ -40,12 +40,12 @@ def _script_names(dist: Distribution, script_name: str, is_gui: bool) -> List[st
     exe_name = os.path.join(bin_dir, script_name)
     paths_to_remove = [exe_name]
     if WINDOWS:
-        paths_to_remove.append(exe_name + '.exe')
-        paths_to_remove.append(exe_name + '.exe.manifest')
+        paths_to_remove.append(exe_name + ".exe")
+        paths_to_remove.append(exe_name + ".exe.manifest")
         if is_gui:
-            paths_to_remove.append(exe_name + '-script.pyw')
+            paths_to_remove.append(exe_name + "-script.pyw")
         else:
-            paths_to_remove.append(exe_name + '-script.py')
+            paths_to_remove.append(exe_name + "-script.py")
     return paths_to_remove
 
 
@@ -57,6 +57,7 @@ def _unique(fn: Callable[..., Iterator[Any]]) -> Callable[..., Iterator[Any]]:
             if item not in seen:
                 seen.add(item)
                 yield item
+
     return unique
 
 
@@ -76,29 +77,31 @@ def uninstallation_paths(dist: Distribution) -> Iterator[str]:
     https://packaging.python.org/specifications/recording-installed-packages/
     """
     try:
-        r = csv.reader(dist.get_metadata_lines('RECORD'))
+        r = csv.reader(dist.get_metadata_lines("RECORD"))
     except FileNotFoundError as missing_record_exception:
-        msg = 'Cannot uninstall {dist}, RECORD file not found.'.format(dist=dist)
+        msg = "Cannot uninstall {dist}, RECORD file not found.".format(dist=dist)
         try:
-            installer = next(dist.get_metadata_lines('INSTALLER'))
-            if not installer or installer == 'pip':
+            installer = next(dist.get_metadata_lines("INSTALLER"))
+            if not installer or installer == "pip":
                 raise ValueError()
         except (OSError, StopIteration, ValueError):
-            dep = '{}=={}'.format(dist.project_name, dist.version)
-            msg += (" You might be able to recover from this via: "
-                    "'pip install --force-reinstall --no-deps {}'.".format(dep))
+            dep = "{}=={}".format(dist.project_name, dist.version)
+            msg += (
+                " You might be able to recover from this via: "
+                "'pip install --force-reinstall --no-deps {}'.".format(dep)
+            )
         else:
-            msg += ' Hint: The package was installed by {}.'.format(installer)
+            msg += " Hint: The package was installed by {}.".format(installer)
         raise UninstallationError(msg) from missing_record_exception
     for row in r:
         path = os.path.join(dist.location, row[0])
         yield path
-        if path.endswith('.py'):
+        if path.endswith(".py"):
             dn, fn = os.path.split(path)
             base = fn[:-3]
-            path = os.path.join(dn, base + '.pyc')
+            path = os.path.join(dn, base + ".pyc")
             yield path
-            path = os.path.join(dn, base + '.pyo')
+            path = os.path.join(dn, base + ".pyo")
             yield path
 
 
@@ -112,8 +115,8 @@ def compact(paths: Iterable[str]) -> Set[str]:
     short_paths: Set[str] = set()
     for path in sorted(paths, key=len):
         should_skip = any(
-            path.startswith(shortpath.rstrip("*")) and
-            path[len(shortpath.rstrip("*").rstrip(sep))] == sep
+            path.startswith(shortpath.rstrip("*"))
+            and path[len(shortpath.rstrip("*").rstrip(sep))] == sep
             for shortpath in short_paths
         )
         if not should_skip:
@@ -136,18 +139,15 @@ def compress_for_rename(paths: Iterable[str]) -> Set[str]:
         return os.path.normcase(os.path.join(*a))
 
     for root in unchecked:
-        if any(os.path.normcase(root).startswith(w)
-               for w in wildcards):
+        if any(os.path.normcase(root).startswith(w) for w in wildcards):
             # This directory has already been handled.
             continue
 
         all_files: Set[str] = set()
         all_subdirs: Set[str] = set()
         for dirname, subdirs, files in os.walk(root):
-            all_subdirs.update(norm_join(root, dirname, d)
-                               for d in subdirs)
-            all_files.update(norm_join(root, dirname, f)
-                             for f in files)
+            all_subdirs.update(norm_join(root, dirname, d) for d in subdirs)
+            all_files.update(norm_join(root, dirname, f) for f in files)
         # If all the files we found are in our remaining set of files to
         # remove, then remove them from the latter set and add a wildcard
         # for the directory.
@@ -196,14 +196,14 @@ def compress_for_output_listing(paths: Iterable[str]) -> Tuple[Set[str], Set[str
                     continue
 
                 file_ = os.path.join(dirpath, fname)
-                if (os.path.isfile(file_) and
-                        os.path.normcase(file_) not in _normcased_files):
+                if (
+                    os.path.isfile(file_)
+                    and os.path.normcase(file_) not in _normcased_files
+                ):
                     # We are skipping this file. Add it to the set.
                     will_skip.add(file_)
 
-    will_remove = files | {
-        os.path.join(folder, "*") for folder in folders
-    }
+    will_remove = files | {os.path.join(folder, "*") for folder in folders}
 
     return will_remove, will_skip
 
@@ -211,6 +211,7 @@ def compress_for_output_listing(paths: Iterable[str]) -> Tuple[Set[str], Set[str
 class StashedUninstallPathSet:
     """A set of file rename operations to stash files while
     tentatively uninstalling them."""
+
     def __init__(self) -> None:
         # Mapping from source file root to [Adjacent]TempDirectory
         # for files under that directory.
@@ -252,7 +253,7 @@ class StashedUninstallPathSet:
         else:
             # Did not find any suitable root
             head = os.path.dirname(path)
-            save_dir = TempDirectory(kind='uninstall')
+            save_dir = TempDirectory(kind="uninstall")
             self._save_dirs[head] = save_dir
 
         relpath = os.path.relpath(path, head)
@@ -271,7 +272,7 @@ class StashedUninstallPathSet:
             new_path = self._get_file_stash(path)
 
         self._moves.append((path, new_path))
-        if (path_is_dir and os.path.isdir(new_path)):
+        if path_is_dir and os.path.isdir(new_path):
             # If we're moving a directory, we need to
             # remove the destination first or else it will be
             # moved to inside the existing directory.
@@ -295,7 +296,7 @@ class StashedUninstallPathSet:
 
         for new_path, path in self._moves:
             try:
-                logger.debug('Replacing %s from %s', new_path, path)
+                logger.debug("Replacing %s from %s", new_path, path)
                 if os.path.isfile(new_path) or os.path.islink(new_path):
                     os.unlink(new_path)
                 elif os.path.isdir(new_path):
@@ -315,6 +316,7 @@ class StashedUninstallPathSet:
 class UninstallPathSet:
     """A set of file paths to be removed in the uninstallation of a
     requirement."""
+
     def __init__(self, dist: Distribution) -> None:
         self.paths: Set[str] = set()
         self._refuse: Set[str] = set()
@@ -346,7 +348,7 @@ class UninstallPathSet:
 
         # __pycache__ files can show up after 'installed-files.txt' is created,
         # due to imports
-        if os.path.splitext(path)[1] == '.py':
+        if os.path.splitext(path)[1] == ".py":
             self.add(cache_from_source(path))
 
     def add_pth(self, pth_file: str, entry: str) -> None:
@@ -369,10 +371,8 @@ class UninstallPathSet:
             )
             return
 
-        dist_name_version = (
-            self.dist.project_name + "-" + self.dist.version
-        )
-        logger.info('Uninstalling %s:', dist_name_version)
+        dist_name_version = self.dist.project_name + "-" + self.dist.version
+        logger.info("Uninstalling %s:", dist_name_version)
 
         with indent_log():
             if auto_confirm or self._allowed_to_proceed(verbose):
@@ -382,16 +382,15 @@ class UninstallPathSet:
 
                 for path in sorted(compact(for_rename)):
                     moved.stash(path)
-                    logger.verbose('Removing file or directory %s', path)
+                    logger.verbose("Removing file or directory %s", path)
 
                 for pth in self.pth.values():
                     pth.remove()
 
-                logger.info('Successfully uninstalled %s', dist_name_version)
+                logger.info("Successfully uninstalled %s", dist_name_version)
 
     def _allowed_to_proceed(self, verbose: bool) -> bool:
-        """Display which files would be deleted and prompt for confirmation
-        """
+        """Display which files would be deleted and prompt for confirmation"""
 
         def _display(msg: str, paths: Iterable[str]) -> None:
             if not paths:
@@ -410,13 +409,13 @@ class UninstallPathSet:
             will_remove = set(self.paths)
             will_skip = set()
 
-        _display('Would remove:', will_remove)
-        _display('Would not remove (might be manually added):', will_skip)
-        _display('Would not remove (outside of prefix):', self._refuse)
+        _display("Would remove:", will_remove)
+        _display("Would not remove (might be manually added):", will_skip)
+        _display("Would not remove (outside of prefix):", self._refuse)
         if verbose:
-            _display('Will actually move:', compress_for_rename(self.paths))
+            _display("Will actually move:", compress_for_rename(self.paths))
 
-        return ask('Proceed (Y/n)? ', ('y', 'n', '')) != 'n'
+        return ask("Proceed (Y/n)? ", ("y", "n", "")) != "n"
 
     def rollback(self) -> None:
         """Rollback the changes previously made by remove()."""
@@ -426,7 +425,7 @@ class UninstallPathSet:
                 self.dist.project_name,
             )
             return
-        logger.info('Rolling back uninstall of %s', self.dist.project_name)
+        logger.info("Rolling back uninstall of %s", self.dist.project_name)
         self._moved_paths.rollback()
         for pth in self.pth.values():
             pth.rollback()
@@ -447,9 +446,11 @@ class UninstallPathSet:
             )
             return cls(dist)
 
-        if dist_path in {p for p in {sysconfig.get_path("stdlib"),
-                                     sysconfig.get_path("platstdlib")}
-                         if p}:
+        if dist_path in {
+            p
+            for p in {sysconfig.get_path("stdlib"), sysconfig.get_path("platstdlib")}
+            if p
+        }:
             logger.info(
                 "Not uninstalling %s at %s, as it is in the standard library.",
                 dist.key,
@@ -459,43 +460,47 @@ class UninstallPathSet:
 
         paths_to_remove = cls(dist)
         develop_egg_link = egg_link_path(dist)
-        develop_egg_link_egg_info = '{}.egg-info'.format(
-            pkg_resources.to_filename(dist.project_name))
+        develop_egg_link_egg_info = "{}.egg-info".format(
+            pkg_resources.to_filename(dist.project_name)
+        )
         egg_info_exists = dist.egg_info and os.path.exists(dist.egg_info)
         # Special case for distutils installed package
-        distutils_egg_info = getattr(dist._provider, 'path', None)
+        distutils_egg_info = getattr(dist._provider, "path", None)
 
         # Uninstall cases order do matter as in the case of 2 installs of the
         # same package, pip needs to uninstall the currently detected version
-        if (egg_info_exists and dist.egg_info.endswith('.egg-info') and
-                not dist.egg_info.endswith(develop_egg_link_egg_info)):
+        if (
+            egg_info_exists
+            and dist.egg_info.endswith(".egg-info")
+            and not dist.egg_info.endswith(develop_egg_link_egg_info)
+        ):
             # if dist.egg_info.endswith(develop_egg_link_egg_info), we
             # are in fact in the develop_egg_link case
             paths_to_remove.add(dist.egg_info)
-            if dist.has_metadata('installed-files.txt'):
+            if dist.has_metadata("installed-files.txt"):
                 for installed_file in dist.get_metadata(
-                        'installed-files.txt').splitlines():
-                    path = os.path.normpath(
-                        os.path.join(dist.egg_info, installed_file)
-                    )
+                    "installed-files.txt"
+                ).splitlines():
+                    path = os.path.normpath(os.path.join(dist.egg_info, installed_file))
                     paths_to_remove.add(path)
             # FIXME: need a test for this elif block
             # occurs with --single-version-externally-managed/--record outside
             # of pip
-            elif dist.has_metadata('top_level.txt'):
-                if dist.has_metadata('namespace_packages.txt'):
-                    namespaces = dist.get_metadata('namespace_packages.txt')
+            elif dist.has_metadata("top_level.txt"):
+                if dist.has_metadata("namespace_packages.txt"):
+                    namespaces = dist.get_metadata("namespace_packages.txt")
                 else:
                     namespaces = []
                 for top_level_pkg in [
-                        p for p
-                        in dist.get_metadata('top_level.txt').splitlines()
-                        if p and p not in namespaces]:
+                    p
+                    for p in dist.get_metadata("top_level.txt").splitlines()
+                    if p and p not in namespaces
+                ]:
                     path = os.path.join(dist.location, top_level_pkg)
                     paths_to_remove.add(path)
-                    paths_to_remove.add(path + '.py')
-                    paths_to_remove.add(path + '.pyc')
-                    paths_to_remove.add(path + '.pyo')
+                    paths_to_remove.add(path + ".py")
+                    paths_to_remove.add(path + ".pyc")
+                    paths_to_remove.add(path + ".pyo")
 
         elif distutils_egg_info:
             raise UninstallationError(
@@ -506,17 +511,18 @@ class UninstallPathSet:
                 )
             )
 
-        elif dist.location.endswith('.egg'):
+        elif dist.location.endswith(".egg"):
             # package installed by easy_install
             # We cannot match on dist.egg_name because it can slightly vary
             # i.e. setuptools-0.6c11-py2.6.egg vs setuptools-0.6rc11-py2.6.egg
             paths_to_remove.add(dist.location)
             easy_install_egg = os.path.split(dist.location)[1]
-            easy_install_pth = os.path.join(os.path.dirname(dist.location),
-                                            'easy-install.pth')
-            paths_to_remove.add_pth(easy_install_pth, './' + easy_install_egg)
+            easy_install_pth = os.path.join(
+                os.path.dirname(dist.location), "easy-install.pth"
+            )
+            paths_to_remove.add_pth(easy_install_pth, "./" + easy_install_egg)
 
-        elif egg_info_exists and dist.egg_info.endswith('.dist-info'):
+        elif egg_info_exists and dist.egg_info.endswith(".dist-info"):
             for path in uninstallation_paths(dist):
                 paths_to_remove.add(path)
 
@@ -524,40 +530,42 @@ class UninstallPathSet:
             # develop egg
             with open(develop_egg_link) as fh:
                 link_pointer = os.path.normcase(fh.readline().strip())
-            assert (link_pointer == dist.location), (
-                'Egg-link {} does not match installed location of {} '
-                '(at {})'.format(
-                    link_pointer, dist.project_name, dist.location)
+            assert (
+                link_pointer == dist.location
+            ), "Egg-link {} does not match installed location of {} (at {})".format(
+                link_pointer, dist.project_name, dist.location
             )
             paths_to_remove.add(develop_egg_link)
-            easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
-                                            'easy-install.pth')
+            easy_install_pth = os.path.join(
+                os.path.dirname(develop_egg_link), "easy-install.pth"
+            )
             paths_to_remove.add_pth(easy_install_pth, dist.location)
 
         else:
             logger.debug(
-                'Not sure how to uninstall: %s - Check: %s',
-                dist, dist.location,
+                "Not sure how to uninstall: %s - Check: %s",
+                dist,
+                dist.location,
             )
 
         # find distutils scripts= scripts
-        if dist.has_metadata('scripts') and dist.metadata_isdir('scripts'):
-            for script in dist.metadata_listdir('scripts'):
+        if dist.has_metadata("scripts") and dist.metadata_isdir("scripts"):
+            for script in dist.metadata_listdir("scripts"):
                 if dist_in_usersite(dist):
                     bin_dir = get_bin_user()
                 else:
                     bin_dir = get_bin_prefix()
                 paths_to_remove.add(os.path.join(bin_dir, script))
                 if WINDOWS:
-                    paths_to_remove.add(os.path.join(bin_dir, script) + '.bat')
+                    paths_to_remove.add(os.path.join(bin_dir, script) + ".bat")
 
         # find console_scripts
         _scripts_to_remove = []
-        console_scripts = dist.get_entry_map(group='console_scripts')
+        console_scripts = dist.get_entry_map(group="console_scripts")
         for name in console_scripts.keys():
             _scripts_to_remove.extend(_script_names(dist, name, False))
         # find gui_scripts
-        gui_scripts = dist.get_entry_map(group='gui_scripts')
+        gui_scripts = dist.get_entry_map(group="gui_scripts")
         for name in gui_scripts.keys():
             _scripts_to_remove.extend(_script_names(dist, name, True))
 
@@ -585,45 +593,41 @@ class UninstallPthEntries:
         # have more than "\\sever\share". Valid examples: "\\server\share\" or
         # "\\server\share\folder".
         if WINDOWS and not os.path.splitdrive(entry)[0]:
-            entry = entry.replace('\\', '/')
+            entry = entry.replace("\\", "/")
         self.entries.add(entry)
 
     def remove(self) -> None:
-        logger.verbose('Removing pth entries from %s:', self.file)
+        logger.verbose("Removing pth entries from %s:", self.file)
 
         # If the file doesn't exist, log a warning and return
         if not os.path.isfile(self.file):
-            logger.warning(
-                "Cannot remove entries from nonexistent file %s", self.file
-            )
+            logger.warning("Cannot remove entries from nonexistent file %s", self.file)
             return
-        with open(self.file, 'rb') as fh:
+        with open(self.file, "rb") as fh:
             # windows uses '\r\n' with py3k, but uses '\n' with py2.x
             lines = fh.readlines()
             self._saved_lines = lines
-        if any(b'\r\n' in line for line in lines):
-            endline = '\r\n'
+        if any(b"\r\n" in line for line in lines):
+            endline = "\r\n"
         else:
-            endline = '\n'
+            endline = "\n"
         # handle missing trailing newline
         if lines and not lines[-1].endswith(endline.encode("utf-8")):
             lines[-1] = lines[-1] + endline.encode("utf-8")
         for entry in self.entries:
             try:
-                logger.verbose('Removing entry: %s', entry)
+                logger.verbose("Removing entry: %s", entry)
                 lines.remove((entry + endline).encode("utf-8"))
             except ValueError:
                 pass
-        with open(self.file, 'wb') as fh:
+        with open(self.file, "wb") as fh:
             fh.writelines(lines)
 
     def rollback(self) -> bool:
         if self._saved_lines is None:
-            logger.error(
-                'Cannot roll back changes to %s, none were made', self.file
-            )
+            logger.error("Cannot roll back changes to %s, none were made", self.file)
             return False
-        logger.debug('Rolling %s back to previous state', self.file)
-        with open(self.file, 'wb') as fh:
+        logger.debug("Rolling %s back to previous state", self.file)
+        with open(self.file, "wb") as fh:
             fh.writelines(self._saved_lines)
         return True

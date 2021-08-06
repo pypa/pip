@@ -138,5 +138,3 @@ class FoundCandidates(collections_abc.Sequence):
         if self._prefers_installed and self._installed:
             return True
         return any(self)
-
-    __nonzero__ = __bool__  # XXX: Python 2.

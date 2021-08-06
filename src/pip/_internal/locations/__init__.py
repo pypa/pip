@@ -4,9 +4,12 @@ import os
 import pathlib
 import sys
 import sysconfig
-from typing import List, Optional
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
+from pip._internal.utils.compat import WINDOWS
+from pip._internal.utils.deprecation import deprecated
+from pip._internal.utils.virtualenv import running_under_virtualenv
 
 from . import _distutils, _sysconfig
 from .base import (
@@ -41,19 +44,75 @@ else:
     _MISMATCH_LEVEL = logging.WARNING
 
 
-def _default_base(*, user: bool) -> str:
-    if user:
-        base = sysconfig.get_config_var("userbase")
-    else:
-        base = sysconfig.get_config_var("base")
-    assert base is not None
-    return base
+def _looks_like_red_hat_patched_platlib_purelib(scheme: Dict[str, str]) -> bool:
+    platlib = scheme["platlib"]
+    if "/lib64/" not in platlib:
+        return False
+    unpatched = platlib.replace("/lib64/", "/lib/")
+    return unpatched.replace("$platbase/", "$base/") == scheme["purelib"]
 
 
 @functools.lru_cache(maxsize=None)
-def _warn_if_mismatch(old: pathlib.Path, new: pathlib.Path, *, key: str) -> bool:
-    if old == new:
-        return False
+def _looks_like_red_hat_lib() -> bool:
+    """Red Hat patches platlib in unix_prefix and unix_home, but not purelib.
+
+    This is the only way I can see to tell a Red Hat-patched Python.
+    """
+    from distutils.command.install import INSTALL_SCHEMES  # type: ignore
+
+    return all(
+        k in INSTALL_SCHEMES
+        and _looks_like_red_hat_patched_platlib_purelib(INSTALL_SCHEMES[k])
+        for k in ("unix_prefix", "unix_home")
+    )
+
+
+@functools.lru_cache(maxsize=None)
+def _looks_like_debian_scheme() -> bool:
+    """Debian adds two additional schemes."""
+    from distutils.command.install import INSTALL_SCHEMES  # type: ignore
+
+    return "deb_system" in INSTALL_SCHEMES and "unix_local" in INSTALL_SCHEMES
+
+
+@functools.lru_cache(maxsize=None)
+def _looks_like_red_hat_scheme() -> bool:
+    """Red Hat patches ``sys.prefix`` and ``sys.exec_prefix``.
+
+    Red Hat's ``00251-change-user-install-location.patch`` changes the install
+    command's ``prefix`` and ``exec_prefix`` to append ``"/local"``. This is
+    (fortunately?) done quite unconditionally, so we create a default command
+    object without any configuration to detect this.
+    """
+    from distutils.command.install import install
+    from distutils.dist import Distribution
+
+    cmd: Any = install(Distribution())
+    cmd.finalize_options()
+    return (
+        cmd.exec_prefix == f"{os.path.normpath(sys.exec_prefix)}/local"
+        and cmd.prefix == f"{os.path.normpath(sys.prefix)}/local"
+    )
+
+
+def _fix_abiflags(parts: Tuple[str]) -> Iterator[str]:
+    ldversion = sysconfig.get_config_var("LDVERSION")
+    abiflags: str = getattr(sys, "abiflags", None)
+
+    # LDVERSION does not end with sys.abiflags. Just return the path unchanged.
+    if not ldversion or not abiflags or not ldversion.endswith(abiflags):
+        yield from parts
+        return
+
+    # Strip sys.abiflags from LDVERSION-based path components.
+    for part in parts:
+        if part.endswith(ldversion):
+            part = part[: (0 - len(abiflags))]
+        yield part
+
+
+@functools.lru_cache(maxsize=None)
+def _warn_mismatched(old: pathlib.Path, new: pathlib.Path, *, key: str) -> None:
     issue_url = "https://github.com/pypa/pip/issues/10151"
     message = (
         "Value for %s does not match. Please report this to <%s>"
@@ -61,6 +120,12 @@ def _warn_if_mismatch(old: pathlib.Path, new: pathlib.Path, *, key: str) -> bool
         "\nsysconfig: %s"
     )
     logger.log(_MISMATCH_LEVEL, message, key, issue_url, old, new)
+
+
+def _warn_if_mismatch(old: pathlib.Path, new: pathlib.Path, *, key: str) -> bool:
+    if old == new:
+        return False
+    _warn_mismatched(old, new, key=key)
     return True
 
 
@@ -108,12 +173,13 @@ def get_scheme(
         prefix=prefix,
     )
 
-    base = prefix or home or _default_base(user=user)
-    warned = []
+    warning_contexts = []
     for k in SCHEME_KEYS:
-        # Extra join because distutils can return relative paths.
-        old_v = pathlib.Path(base, getattr(old, k))
+        old_v = pathlib.Path(getattr(old, k))
         new_v = pathlib.Path(getattr(new, k))
+
+        if old_v == new_v:
+            continue
 
         # distutils incorrectly put PyPy packages under ``site-packages/python``
         # in the ``posix_home`` scheme, but PyPy devs said they expect the
@@ -137,16 +203,74 @@ def get_scheme(
             user
             and is_osx_framework()
             and k == "headers"
-            and old_v.parent == new_v
-            and old_v.name.startswith("python")
+            and old_v.parent.parent == new_v.parent
+            and old_v.parent.name.startswith("python")
         )
         if skip_osx_framework_user_special_case:
             continue
 
-        warned.append(_warn_if_mismatch(old_v, new_v, key=f"scheme.{k}"))
+        # On Red Hat and derived Linux distributions, distutils is patched to
+        # use "lib64" instead of "lib" for platlib.
+        if k == "platlib" and _looks_like_red_hat_lib():
+            continue
 
-    if any(warned):
-        _log_context(user=user, home=home, root=root, prefix=prefix)
+        # Both Debian and Red Hat patch Python to place the system site under
+        # /usr/local instead of /usr. Debian also places lib in dist-packages
+        # instead of site-packages, but the /usr/local check should cover it.
+        skip_linux_system_special_case = (
+            not (user or home or prefix or running_under_virtualenv())
+            and old_v.parts[1:3] == ("usr", "local")
+            and len(new_v.parts) > 1
+            and new_v.parts[1] == "usr"
+            and (len(new_v.parts) < 3 or new_v.parts[2] != "local")
+            and (_looks_like_red_hat_scheme() or _looks_like_debian_scheme())
+        )
+        if skip_linux_system_special_case:
+            continue
+
+        # On Python 3.7 and earlier, sysconfig does not include sys.abiflags in
+        # the "pythonX.Y" part of the path, but distutils does.
+        skip_sysconfig_abiflag_bug = (
+            sys.version_info < (3, 8)
+            and not WINDOWS
+            and k in ("headers", "platlib", "purelib")
+            and tuple(_fix_abiflags(old_v.parts)) == new_v.parts
+        )
+        if skip_sysconfig_abiflag_bug:
+            continue
+
+        warning_contexts.append((old_v, new_v, f"scheme.{k}"))
+
+    if not warning_contexts:
+        return old
+
+    # Check if this path mismatch is caused by distutils config files. Those
+    # files will no longer work once we switch to sysconfig, so this raises a
+    # deprecation message for them.
+    default_old = _distutils.distutils_scheme(
+        dist_name,
+        user,
+        home,
+        root,
+        isolated,
+        prefix,
+        ignore_config_files=True,
+    )
+    if any(default_old[k] != getattr(old, k) for k in SCHEME_KEYS):
+        deprecated(
+            "Configuring installation scheme with distutils config files "
+            "is deprecated and will no longer work in the near future. If you "
+            "are using a Homebrew or Linuxbrew Python, please see discussion "
+            "at https://github.com/Homebrew/homebrew-core/issues/76621",
+            replacement=None,
+            gone_in=None,
+        )
+        return old
+
+    # Post warnings about this mismatch so user can report them back.
+    for old_v, new_v, key in warning_contexts:
+        _warn_mismatched(old_v, new_v, key=key)
+    _log_context(user=user, home=home, root=root, prefix=prefix)
 
     return old
 
@@ -163,10 +287,29 @@ def get_bin_user() -> str:
     return _sysconfig.get_scheme("", user=True).scripts
 
 
+def _looks_like_deb_system_dist_packages(value: str) -> bool:
+    """Check if the value is Debian's APT-controlled dist-packages.
+
+    Debian's ``distutils.sysconfig.get_python_lib()`` implementation returns the
+    default package path controlled by APT, but does not patch ``sysconfig`` to
+    do the same. This is similar to the bug worked around in ``get_scheme()``,
+    but here the default is ``deb_system`` instead of ``unix_local``. Ultimately
+    we can't do anything about this Debian bug, and this detection allows us to
+    skip the warning when needed.
+    """
+    if not _looks_like_debian_patched():
+        return False
+    if value == "/usr/lib/python3/dist-packages":
+        return True
+    return False
+
+
 def get_purelib() -> str:
     """Return the default pure-Python lib location."""
     old = _distutils.get_purelib()
     new = _sysconfig.get_purelib()
+    if _looks_like_deb_system_dist_packages(old):
+        return old
     if _warn_if_mismatch(pathlib.Path(old), pathlib.Path(new), key="purelib"):
         _log_context()
     return old
@@ -176,6 +319,8 @@ def get_platlib() -> str:
     """Return the default platform-shared lib location."""
     old = _distutils.get_platlib()
     new = _sysconfig.get_platlib()
+    if _looks_like_deb_system_dist_packages(old):
+        return old
     if _warn_if_mismatch(pathlib.Path(old), pathlib.Path(new), key="platlib"):
         _log_context()
     return old

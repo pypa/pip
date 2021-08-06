@@ -1,3 +1,0 @@
-Fix :ref:`pip freeze` to output packages :ref:`installed from git <vcs support>`
-in the correct ``git+protocol://git.example.com/MyProject#egg=MyProject`` format
-rather than the old and no longer supported ``git+git@`` format.

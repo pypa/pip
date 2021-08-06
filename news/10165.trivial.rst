@@ -1,0 +1,4 @@
+Add a ``feature_flag`` optional kwarg to the ``deprecated()`` function
+``pip._internal.utils.deprecation:deprecated``. Also formulate a corresponding canned
+message which suggests using the ``--use-feature={feature_flag}`` to test upcoming
+behavior.

@@ -47,7 +47,7 @@ verbosity log will be kept.  This option is empty by default. This log appends
 to previous logging.
 
 Like all pip options, ``--log`` can also be set as an environment variable, or
-placed into the pip config file.  See the :ref:`Configuration` section.
+placed into the pip config file.  See the :doc:`topics/configuration` section.
 
 .. _`exists-action`:
 

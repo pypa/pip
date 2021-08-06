@@ -1,2 +1,0 @@
-New resolver: URL comparison logic now treats ``file://localhost/`` and
-``file:///`` as equivalent to conform to RFC 8089.

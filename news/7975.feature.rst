@@ -1,2 +1,0 @@
-Add new subcommand ``pip index`` used to interact with indexes, and implement
-``pip index version`` to list available versions of a package.

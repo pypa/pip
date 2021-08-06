@@ -1,1 +1,0 @@
-Converted type commentaries into annotations in ``pip/_internal/index``.

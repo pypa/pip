@@ -1,2 +1,0 @@
-Fix warnings about install scheme selection for Python framework builds
-distributed by Apple's Command Line Tools.

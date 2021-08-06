@@ -44,7 +44,7 @@ rooms, and mailing lists is expected to follow the `PSF Code of Conduct`_.
 
 .. _package installer: https://packaging.python.org/guides/tool-recommendations/
 .. _Python Package Index: https://pypi.org
-.. _Installation: https://pip.pypa.io/en/stable/installing.html
+.. _Installation: https://pip.pypa.io/en/stable/installation/
 .. _Usage: https://pip.pypa.io/en/stable/
 .. _Release notes: https://pip.pypa.io/en/stable/news.html
 .. _Release process: https://pip.pypa.io/en/latest/development/release-process/

@@ -117,14 +117,10 @@ class Hashes:
         with open(path, "rb") as file:
             return self.check_against_file(file)
 
-    def __nonzero__(self):
+    def __bool__(self):
         # type: () -> bool
         """Return whether I know any known-good hashes."""
         return bool(self._allowed)
-
-    def __bool__(self):
-        # type: () -> bool
-        return self.__nonzero__()
 
     def __eq__(self, other):
         # type: (object) -> bool

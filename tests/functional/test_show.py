@@ -1,10 +1,12 @@
 import os
 import re
 
-import pytest
-
 from pip import __version__
 from pip._internal.commands.show import search_packages_info
+from pip._internal.operations.install.legacy import (
+    write_installed_files_from_setuptools_record,
+)
+from pip._internal.utils.unpacking import untar_file
 from tests.lib import create_test_package_with_setup
 
 
@@ -41,7 +43,7 @@ def test_show_with_files_not_found(script, data):
 
 def test_show_with_files_from_wheel(script, data):
     """
-    Test that a wheel's files can be listed
+    Test that a wheel's files can be listed.
     """
     wheel_file = data.packages.joinpath('simple.dist-0.1-py2.py3-none-any.whl')
     script.pip('install', '--no-index', wheel_file)
@@ -50,18 +52,36 @@ def test_show_with_files_from_wheel(script, data):
     assert 'Name: simple.dist' in lines
     assert 'Cannot locate RECORD or installed-files.txt' not in lines[6], lines[6]
     assert re.search(r"Files:\n(  .+\n)+", result.stdout)
+    assert f"  simpledist{os.sep}__init__.py" in lines[6:]
 
 
-@pytest.mark.network
-def test_show_with_all_files(script):
+def test_show_with_files_from_legacy(tmp_path, script, data):
     """
-    Test listing all files in the show command.
+    Test listing files in the show command (legacy installed-files.txt).
     """
-    script.pip('install', 'initools==0.2')
-    result = script.pip('show', '--files', 'initools')
+    # Since 'pip install' now always tries to build a wheel from sdist, it
+    # cannot properly generate a setup. The legacy code path is basically
+    # 'setup.py install' plus installed-files.txt, which we manually generate.
+    source_dir = tmp_path.joinpath("unpacked-sdist")
+    setuptools_record = tmp_path.joinpath("installed-record.txt")
+    untar_file(data.packages.joinpath("simple-1.0.tar.gz"), str(source_dir))
+    script.run(
+        "python", "setup.py", "install",
+        "--single-version-externally-managed",
+        "--record", str(setuptools_record),
+        cwd=source_dir,
+    )
+    write_installed_files_from_setuptools_record(
+        setuptools_record.read_text().splitlines(),
+        root=None,
+        req_description="simple==1.0",
+    )
+
+    result = script.pip('show', '--files', 'simple')
     lines = result.stdout.splitlines()
     assert 'Cannot locate RECORD or installed-files.txt' not in lines[6], lines[6]
     assert re.search(r"Files:\n(  .+\n)+", result.stdout)
+    assert f"  simple{os.sep}__init__.py" in lines[6:]
 
 
 def test_missing_argument(script):
