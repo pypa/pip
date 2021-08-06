@@ -211,9 +211,8 @@ class LocalFSAdapter(BaseAdapter):
             # format the exception raised as a io.BytesIO object,
             # to return a better error message:
             resp.status_code = 404
-            error_message = f'"{type(exc).__name__}: {str(exc)}"'
-            resp.reason = error_message
-            resp.raw = io.BytesIO(error_message.encode("utf8"))
+            resp.reason = type(exc).__name__
+            resp.raw = io.BytesIO(f"{resp.reason}: {exc}".encode("utf8"))
         else:
             modified = email.utils.formatdate(stats.st_mtime, usegmt=True)
             content_type = mimetypes.guess_type(pathname)[0] or "text/plain"
