@@ -297,7 +297,7 @@ def _looks_like_deb_system_dist_packages(value: str) -> bool:
     we can't do anything about this Debian bug, and this detection allows us to
     skip the warning when needed.
     """
-    if not _looks_like_debian_patched():
+    if not _looks_like_debian_scheme():
         return False
     if value == "/usr/lib/python3/dist-packages":
         return True
