@@ -22,6 +22,7 @@ Aleks Bunin
 Alethea Flowers
 Alex Gaynor
 Alex Grönholm
+Alex Hedges
 Alex Loosley
 Alex Morega
 Alex Stachowiak
@@ -564,6 +565,7 @@ Sumana Harihareswara
 Surbhi Sharma
 Sviatoslav Sydorenko
 Swat009
+Sylvain
 Takayuki SHIMIZUKAWA
 Taneli Hukkinen
 tbeswick
