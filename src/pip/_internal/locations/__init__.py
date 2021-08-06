@@ -298,10 +298,29 @@ def get_bin_user() -> str:
     return _sysconfig.get_scheme("", user=True).scripts
 
 
+def _looks_like_deb_system_dist_packages(value: str) -> bool:
+    """Check if the value is Debian's APT-controlled dist-packages.
+
+    Debian's ``distutils.sysconfig.get_python_lib()`` implementation returns the
+    default package path controlled by APT, but does not patch ``sysconfig`` to
+    do the same. This is similar to the bug worked around in ``get_scheme()``,
+    but here the default is ``deb_system`` instead of ``unix_local``. Ultimately
+    we can't do anything about this Debian bug, and this detection allows us to
+    skip the warning when needed.
+    """
+    if not _looks_like_debian_patched():
+        return False
+    if value == "/usr/lib/python3/dist-packages":
+        return True
+    return False
+
+
 def get_purelib() -> str:
     """Return the default pure-Python lib location."""
     old = _distutils.get_purelib()
     new = _sysconfig.get_purelib()
+    if _looks_like_deb_system_dist_packages(old):
+        return old
     if _warn_if_mismatch(pathlib.Path(old), pathlib.Path(new), key="purelib"):
         _log_context()
     return old
@@ -311,6 +330,8 @@ def get_platlib() -> str:
     """Return the default platform-shared lib location."""
     old = _distutils.get_platlib()
     new = _sysconfig.get_platlib()
+    if _looks_like_deb_system_dist_packages(old):
+        return old
     if _warn_if_mismatch(pathlib.Path(old), pathlib.Path(new), key="platlib"):
         _log_context()
     return old
