@@ -22,7 +22,6 @@ repos:
   - id: black
     exclude: |
       (?x)
-        ^src/pip/_internal/index|
         ^src/pip/_internal/models|
         ^src/pip/_internal/operations|
         ^src/pip/_internal/vcs|
