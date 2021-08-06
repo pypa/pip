@@ -131,10 +131,10 @@ strategies listed below.
 
 It is usually a good idea to add constraints the package(s) that pip is backtracking on (e.g. in the above example - `cup`).
 
-You could try:
+You could try something like:
 
-```
-pip install tea "cup >= 3.13"
+```{pip-cli}
+$ pip install tea "cup >= 3.13"
 ```
 
 This will reduce the number of versions of `cup` it tries, and
