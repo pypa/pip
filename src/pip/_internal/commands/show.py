@@ -146,8 +146,7 @@ def search_packages_info(query: List[str]) -> Iterator[_PackageInfo]:
         if not info_rel.parts:  # info *is* root.
             return paths
         return (
-            _covert_legacy_entry(pathlib.Path(p).parts, info_rel.parts)
-            for p in paths
+            _covert_legacy_entry(pathlib.Path(p).parts, info_rel.parts) for p in paths
         )
 
     for query_name in query_names:
