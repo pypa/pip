@@ -7,4 +7,4 @@ sphinx:
 python:
   version: 3.8
   install:
-    - requirements: tools/requirements/docs.txt
+    - requirements: docs/requirements.txt
