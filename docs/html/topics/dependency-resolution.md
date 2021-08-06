@@ -106,3 +106,57 @@ Backtracking reduces the risk that installing a new package will accidentally
 break an existing installed package, and so reduces the risk that your
 environment gets messed up. To do this, pip has to do more work, to find out
 which version of a package is a good candidate to install.
+
+## Possible ways to reduce backtracking
+
+There is no one-size-fits-all answer to situations where pip is backtracking
+excessively during dependency resolution. There are ways to reduce the
+degree to which pip might backtrack though. Nearly all of these approaches
+require some amount of trial and error.
+
+### Allow pip to complete its backtracking
+
+In most cases, pip will complete the backtracking process successfully.
+This could take a very long time to complete, so this may not be your
+preferred option.
+
+However, it is a possible that pip will not be able to find a set of
+compatible versions. For this, pip will try every possible combination that
+it needs to and determine that there is no compatible set.
+
+If you'd prefer not to wait, you can interrupt pip (Ctrl+c) and try the
+strategies listed below.
+
+### Reduce the number of versions pip is trying to use
+
+It is usually a good idea to add constraints the package(s) that pip is backtracking on (e.g. in the above example - `cup`).
+
+You could try:
+
+```
+pip install tea "cup >= 3.13"
+```
+
+This will reduce the number of versions of `cup` it tries, and
+possibly reduce the time pip takes to install.
+
+There is a possibility that the addition constraint is incorrect. When this
+happens, the reduced search space makes it easier for pip to more quickly
+determine what caused the conflict and present that to the user. It could also
+result in pip backtracking on a different package due to some other conflict.
+
+### Use constraint files or lockfiles
+
+This option is a progression of the previous section. It requires users to know
+how to inspect:
+
+- the packages they're trying to install
+- the package release frequency and compatibility policies
+- their release notes and changelogs from past versions
+
+During deployment, you can create a lockfile stating the exact package and
+version number for for each dependency of that package. You can create this
+with `pip-tools <https://github.com/jazzband/pip-tools/>`\_\_.
+
+This means the "work" is done once during development process, and thus
+will avoid performing dependency resolution during deployment.
