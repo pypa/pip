@@ -11,8 +11,10 @@ def test_new_resolver_install_user(script):
     create_basic_wheel_for_package(script, "base", "0.1.0")
     result = script.pip(
         "install",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "--user",
         "base",
     )
@@ -29,14 +31,18 @@ def test_new_resolver_install_user_satisfied_by_global_site(script):
 
     script.pip(
         "install",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "base==1.0.0",
     )
     result = script.pip(
         "install",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "--user",
         "base==1.0.0",
     )
@@ -55,16 +61,20 @@ def test_new_resolver_install_user_conflict_in_user_site(script):
 
     script.pip(
         "install",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "--user",
         "base==2.0.0",
     )
 
     result = script.pip(
         "install",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "--user",
         "base==1.0.0",
     )
@@ -83,14 +93,18 @@ def test_new_resolver_install_user_in_virtualenv_with_conflict_fails(script):
 
     script.pip(
         "install",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "base==2.0.0",
     )
     result = script.pip(
         "install",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "--user",
         "base==1.0.0",
         expect_error=True,
@@ -109,13 +123,15 @@ def patch_dist_in_site_packages(virtualenv):
     # install to the usersite because it will lack sys.path precedence..."
     # error: Monkey patch `pip._internal.utils.misc.dist_in_site_packages`
     # so it's possible to install a conflicting distribution in the user site.
-    virtualenv.sitecustomize = textwrap.dedent("""
+    virtualenv.sitecustomize = textwrap.dedent(
+        """
         def dist_in_site_packages(dist):
             return False
 
         from pip._internal.utils import misc
         misc.dist_in_site_packages = dist_in_site_packages
-    """)
+    """
+    )
 
 
 @pytest.mark.incompatible_with_test_venv
@@ -129,14 +145,18 @@ def test_new_resolver_install_user_reinstall_global_site(script):
 
     script.pip(
         "install",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "base==1.0.0",
     )
     result = script.pip(
         "install",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "--user",
         "--force-reinstall",
         "base==1.0.0",
@@ -160,15 +180,19 @@ def test_new_resolver_install_user_conflict_in_global_site(script):
 
     script.pip(
         "install",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "base==1.0.0",
     )
 
     result = script.pip(
         "install",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "--user",
         "base==2.0.0",
     )
@@ -192,14 +216,18 @@ def test_new_resolver_install_user_conflict_in_global_and_user_sites(script):
 
     script.pip(
         "install",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "base==2.0.0",
     )
     script.pip(
         "install",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "--user",
         "--force-reinstall",
         "base==2.0.0",
@@ -207,8 +235,10 @@ def test_new_resolver_install_user_conflict_in_global_and_user_sites(script):
 
     result = script.pip(
         "install",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "--user",
         "base==1.0.0",
     )
