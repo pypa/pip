@@ -96,6 +96,7 @@ jobs:
           - 3.7
           - 3.8
           - 3.9
+          - "3.10.0-alpha - 3.10"
 
     steps:
       - uses: actions/checkout@v2
@@ -137,6 +138,7 @@ jobs:
           # - 3.7
           # - 3.8
           - 3.9
+          - "3.10.0-alpha - 3.10"
         group: [1, 2]
 
     steps:

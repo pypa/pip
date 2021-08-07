@@ -45,7 +45,7 @@ def test_correct_pip_version(script):
     # distribution
     pip_folder_outputed = re.match(
         r"pip \d+(\.[\d]+)+(\.?(b|rc|dev|pre|post)\d+)? from (.*) "
-        r"\(python \d(.[\d])+\)$",
+        r"\(python \d+(\.[\d]+)+\)$",
         result.stdout,
     ).group(4)
     pip_folder = join(SRC_DIR, "src", "pip")
