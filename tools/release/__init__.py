@@ -175,23 +175,18 @@ def isolated_temporary_checkout(
         git_checkout_dir = tmp_dir / f"pip-build-{target_ref}"
         nox_session.run(
             # fmt: off
-            "git", "worktree", "add", "--force", "--checkout",
-            str(git_checkout_dir), str(target_ref),
+            "git", "clone",
+            "--depth", "1",
+            "--config", "core.autocrlf=false",
+            "--branch", str(target_ref),
+            "--",
+            ".", str(git_checkout_dir),
             # fmt: on
             external=True,
             silent=True,
         )
 
-        try:
-            yield git_checkout_dir
-        finally:
-            nox_session.run(
-                # fmt: off
-                "git", "worktree", "remove", "--force", str(git_checkout_dir),
-                # fmt: on
-                external=True,
-                silent=True,
-            )
+        yield git_checkout_dir
 
 
 def get_git_untracked_files() -> Iterator[str]:

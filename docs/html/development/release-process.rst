@@ -116,15 +116,17 @@ Release Process
 Creating a new release
 ----------------------
 
-#. Checkout the current pip ``main`` branch.
 #. Ensure you have the latest ``nox`` installed.
+#. Create a new ``release/YY.N`` branch off ``main`` and switch to it.
 #. Prepare for release using ``nox -s prepare-release -- YY.N``.
    This will update the relevant files and tag the correct commit.
+#. Submit the ``release/YY.N`` branch as a pull request and ensure CI passes.
+   Merge the changes back into ``main`` and pull them back locally.
 #. Build the release artifacts using ``nox -s build-release -- YY.N``.
    This will checkout the tag, generate the distribution files to be
    uploaded and checkout the main branch again.
 #. Upload the release to PyPI using ``nox -s upload-release -- YY.N``.
-#. Push all of the changes including the tag.
+#. Push the tag created by ``prepare-release``.
 #. Regenerate the ``get-pip.py`` script in the `get-pip repository`_ (as
    documented there) and commit the results.
 #. Submit a Pull Request to `CPython`_ adding the new version of pip (and upgrading
@@ -168,7 +170,7 @@ order to create one of these the changes should already be merged into the
 #. Push the ``release/YY.N.Z+1`` branch to github and submit a PR for it against
    the ``main`` branch and wait for the tests to run.
 #. Once tests run, merge the ``release/YY.N.Z+1`` branch into ``main``, and
-   follow the above release process starting with step 4.
+   follow the above release process starting with step 5.
 
 .. _`get-pip repository`: https://github.com/pypa/get-pip
 .. _`psf-salt repository`: https://github.com/python/psf-salt
