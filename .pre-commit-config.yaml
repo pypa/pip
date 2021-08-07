@@ -29,8 +29,6 @@ repos:
         # Tests
         ^tests/data|
         ^tests/unit|
-        ^tests/functional/(?!test_install)|
-        ^tests/functional/test_install|
         # A blank ignore, to avoid merge conflicts later.
         ^$
 
