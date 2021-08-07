@@ -8,10 +8,16 @@ def test_new_resolver_conflict_requirements_file(tmpdir, script):
     create_basic_wheel_for_package(script, "base", "1.0")
     create_basic_wheel_for_package(script, "base", "2.0")
     create_basic_wheel_for_package(
-        script, "pkga", "1.0", depends=["base==1.0"],
+        script,
+        "pkga",
+        "1.0",
+        depends=["base==1.0"],
     )
     create_basic_wheel_for_package(
-        script, "pkgb", "1.0", depends=["base==2.0"],
+        script,
+        "pkgb",
+        "1.0",
+        depends=["base==2.0"],
     )
 
     req_file = tmpdir.joinpath("requirements.txt")
@@ -19,9 +25,12 @@ def test_new_resolver_conflict_requirements_file(tmpdir, script):
 
     result = script.pip(
         "install",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
-        "-r", req_file,
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "-r",
+        req_file,
         expect_error=True,
     )
 
@@ -37,9 +46,12 @@ def test_new_resolver_conflict_constraints_file(tmpdir, script):
 
     result = script.pip(
         "install",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
-        "-c", constrats_file,
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "-c",
+        constrats_file,
         "pkg==1.0",
         expect_error=True,
     )
@@ -95,8 +107,11 @@ def test_new_resolver_checks_requires_python_before_dependencies(script):
     )
 
     result = script.pip(
-        "install", "--no-cache-dir",
-        "--no-index", "--find-links", script.scratch_path,
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "pkg-root",
         expect_error=True,
     )
