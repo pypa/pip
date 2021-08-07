@@ -59,12 +59,11 @@ if TYPE_CHECKING:
     from typing import Protocol
 
     class File(Protocol):
-        src_record_path = None  # type: RecordPath
-        dest_path = None  # type: str
-        changed = None  # type: bool
+        src_record_path: "RecordPath"
+        dest_path: str
+        changed: bool
 
-        def save(self):
-            # type: () -> None
+        def save(self) -> None:
             pass
 
 
@@ -74,8 +73,7 @@ RecordPath = NewType('RecordPath', str)
 InstalledCSVRow = Tuple[RecordPath, str, Union[int, str]]
 
 
-def rehash(path, blocksize=1 << 20):
-    # type: (str, int) -> Tuple[str, str]
+def rehash(path: str, blocksize: int = 1 << 20) -> Tuple[str, str]:
     """Return (encoded_digest, length) for path using hashlib.sha256()"""
     h, length = hash_file(path, blocksize)
     digest = 'sha256=' + urlsafe_b64encode(
@@ -84,16 +82,14 @@ def rehash(path, blocksize=1 << 20):
     return (digest, str(length))
 
 
-def csv_io_kwargs(mode):
-    # type: (str) -> Dict[str, Any]
+def csv_io_kwargs(mode: str) -> Dict[str, Any]:
     """Return keyword arguments to properly open a CSV file
     in the given mode.
     """
     return {'mode': mode, 'newline': '', 'encoding': 'utf-8'}
 
 
-def fix_script(path):
-    # type: (str) -> bool
+def fix_script(path: str) -> bool:
     """Replace #!python with #!/path/to/python
     Return True if file was changed.
     """
@@ -113,8 +109,7 @@ def fix_script(path):
     return True
 
 
-def wheel_root_is_purelib(metadata):
-    # type: (Message) -> bool
+def wheel_root_is_purelib(metadata: Message) -> bool:
     return metadata.get("Root-Is-Purelib", "").lower() == "true"
 
 
@@ -129,8 +124,7 @@ def get_entrypoints(dist: BaseDistribution) -> Tuple[Dict[str, str], Dict[str, s
     return console_scripts, gui_scripts
 
 
-def message_about_scripts_not_on_PATH(scripts):
-    # type: (Sequence[str]) -> Optional[str]
+def message_about_scripts_not_on_PATH(scripts: Sequence[str]) -> Optional[str]:
     """Determine if any scripts are not on PATH and format a warning.
     Returns a warning message if one or more scripts are not on PATH,
     otherwise None.
@@ -139,7 +133,7 @@ def message_about_scripts_not_on_PATH(scripts):
         return None
 
     # Group scripts by the path they were installed in
-    grouped_by_dir = collections.defaultdict(set)  # type: Dict[str, Set[str]]
+    grouped_by_dir: Dict[str, Set[str]] = collections.defaultdict(set)
     for destfile in scripts:
         parent_dir = os.path.dirname(destfile)
         script_name = os.path.basename(destfile)
@@ -153,17 +147,17 @@ def message_about_scripts_not_on_PATH(scripts):
     # If an executable sits with sys.executable, we don't warn for it.
     #     This covers the case of venv invocations without activating the venv.
     not_warn_dirs.append(os.path.normcase(os.path.dirname(sys.executable)))
-    warn_for = {
+    warn_for: Dict[str, Set[str]] = {
         parent_dir: scripts for parent_dir, scripts in grouped_by_dir.items()
         if os.path.normcase(parent_dir) not in not_warn_dirs
-    }  # type: Dict[str, Set[str]]
+    }
     if not warn_for:
         return None
 
     # Format a message
     msg_lines = []
     for parent_dir, dir_scripts in warn_for.items():
-        sorted_scripts = sorted(dir_scripts)  # type: List[str]
+        sorted_scripts: List[str] = sorted(dir_scripts)
         if len(sorted_scripts) == 1:
             start_text = "script {} is".format(sorted_scripts[0])
         else:
@@ -200,8 +194,9 @@ def message_about_scripts_not_on_PATH(scripts):
     return "\n".join(msg_lines)
 
 
-def _normalized_outrows(outrows):
-    # type: (Iterable[InstalledCSVRow]) -> List[Tuple[str, str, str]]
+def _normalized_outrows(
+    outrows: Iterable[InstalledCSVRow]
+) -> List[Tuple[str, str, str]]:
     """Normalize the given rows of a RECORD file.
 
     Items in each row are converted into str. Rows are then sorted to make
@@ -226,13 +221,11 @@ def _normalized_outrows(outrows):
     )
 
 
-def _record_to_fs_path(record_path):
-    # type: (RecordPath) -> str
+def _record_to_fs_path(record_path: RecordPath) -> str:
     return record_path
 
 
-def _fs_to_record_path(path, relative_to=None):
-    # type: (str, Optional[str]) -> RecordPath
+def _fs_to_record_path(path: str, relative_to: Optional[str] = None) -> RecordPath:
     if relative_to is not None:
         # On Windows, do not handle relative paths if they belong to different
         # logical disks
@@ -243,25 +236,23 @@ def _fs_to_record_path(path, relative_to=None):
     return cast('RecordPath', path)
 
 
-def _parse_record_path(record_column):
-    # type: (str) -> RecordPath
+def _parse_record_path(record_column: str) -> RecordPath:
     p = ensure_text(record_column, encoding='utf-8')
     return cast('RecordPath', p)
 
 
 def get_csv_rows_for_installed(
-    old_csv_rows,  # type: List[List[str]]
-    installed,  # type: Dict[RecordPath, RecordPath]
-    changed,  # type: Set[RecordPath]
-    generated,  # type: List[str]
-    lib_dir,  # type: str
-):
-    # type: (...) -> List[InstalledCSVRow]
+    old_csv_rows: List[List[str]],
+    installed: Dict[RecordPath, RecordPath],
+    changed: Set[RecordPath],
+    generated: List[str],
+    lib_dir: str,
+) -> List[InstalledCSVRow]:
     """
     :param installed: A map from archive RECORD path to installation RECORD
         path.
     """
-    installed_rows = []  # type: List[InstalledCSVRow]
+    installed_rows: List[InstalledCSVRow] = []
     for row in old_csv_rows:
         if len(row) > 3:
             logger.warning('RECORD line has more than three elements: %s', row)
@@ -282,8 +273,7 @@ def get_csv_rows_for_installed(
     return installed_rows
 
 
-def get_console_script_specs(console):
-    # type: (Dict[str, str]) -> List[str]
+def get_console_script_specs(console: Dict[str, str]) -> List[str]:
     """
     Given the mapping from entrypoint name to callable, return the relevant
     console script specs.
@@ -369,19 +359,18 @@ def get_console_script_specs(console):
 
 
 class ZipBackedFile:
-    def __init__(self, src_record_path, dest_path, zip_file):
-        # type: (RecordPath, str, ZipFile) -> None
+    def __init__(
+        self, src_record_path: RecordPath, dest_path: str, zip_file: ZipFile
+    ) -> None:
         self.src_record_path = src_record_path
         self.dest_path = dest_path
         self._zip_file = zip_file
         self.changed = False
 
-    def _getinfo(self):
-        # type: () -> ZipInfo
+    def _getinfo(self) -> ZipInfo:
         return self._zip_file.getinfo(self.src_record_path)
 
-    def save(self):
-        # type: () -> None
+    def save(self) -> None:
         # directory creation is lazy and after file filtering
         # to ensure we don't install empty dirs; empty dirs can't be
         # uninstalled.
@@ -410,22 +399,19 @@ class ZipBackedFile:
 
 
 class ScriptFile:
-    def __init__(self, file):
-        # type: (File) -> None
+    def __init__(self, file: "File") -> None:
         self._file = file
         self.src_record_path = self._file.src_record_path
         self.dest_path = self._file.dest_path
         self.changed = False
 
-    def save(self):
-        # type: () -> None
+    def save(self) -> None:
         self._file.save()
         self.changed = fix_script(self.dest_path)
 
 
 class MissingCallableSuffix(InstallationError):
-    def __init__(self, entry_point):
-        # type: (str) -> None
+    def __init__(self, entry_point: str) -> None:
         super().__init__(
             "Invalid script entry point: {} - A callable "
             "suffix is required. Cf https://packaging.python.org/"
@@ -434,31 +420,28 @@ class MissingCallableSuffix(InstallationError):
         )
 
 
-def _raise_for_invalid_entrypoint(specification):
-    # type: (str) -> None
+def _raise_for_invalid_entrypoint(specification: str) -> None:
     entry = get_export_entry(specification)
     if entry is not None and entry.suffix is None:
         raise MissingCallableSuffix(str(entry))
 
 
 class PipScriptMaker(ScriptMaker):
-    def make(self, specification, options=None):
-        # type: (str, Dict[str, Any]) -> List[str]
+    def make(self, specification: str, options: Dict[str, Any] = None) -> List[str]:
         _raise_for_invalid_entrypoint(specification)
         return super().make(specification, options)
 
 
 def _install_wheel(
-    name,  # type: str
-    wheel_zip,  # type: ZipFile
-    wheel_path,  # type: str
-    scheme,  # type: Scheme
-    pycompile=True,  # type: bool
-    warn_script_location=True,  # type: bool
-    direct_url=None,  # type: Optional[DirectUrl]
-    requested=False,  # type: bool
-):
-    # type: (...) -> None
+    name: str,
+    wheel_zip: ZipFile,
+    wheel_path: str,
+    scheme: Scheme,
+    pycompile: bool = True,
+    warn_script_location: bool = True,
+    direct_url: Optional[DirectUrl] = None,
+    requested: bool = False,
+) -> None:
     """Install a wheel.
 
     :param name: Name of the project to install
@@ -485,20 +468,20 @@ def _install_wheel(
     #   installed = files copied from the wheel to the destination
     #   changed = files changed while installing (scripts #! line typically)
     #   generated = files newly generated during the install (script wrappers)
-    installed = {}  # type: Dict[RecordPath, RecordPath]
-    changed = set()  # type: Set[RecordPath]
-    generated = []  # type: List[str]
+    installed: Dict[RecordPath, RecordPath] = {}
+    changed: Set[RecordPath] = set()
+    generated: List[str] = []
 
-    def record_installed(srcfile, destfile, modified=False):
-        # type: (RecordPath, str, bool) -> None
+    def record_installed(
+        srcfile: RecordPath, destfile: str, modified: bool = False
+    ) -> None:
         """Map archive RECORD paths to installation RECORD paths."""
         newpath = _fs_to_record_path(destfile, lib_dir)
         installed[srcfile] = newpath
         if modified:
             changed.add(_fs_to_record_path(destfile))
 
-    def all_paths():
-        # type: () -> Iterable[RecordPath]
+    def all_paths() -> Iterable[RecordPath]:
         names = wheel_zip.namelist()
         # If a flag is set, names may be unicode in Python 2. We convert to
         # text explicitly so these are valid for lookup in RECORD.
@@ -506,12 +489,10 @@ def _install_wheel(
         for name in decoded_names:
             yield cast("RecordPath", name)
 
-    def is_dir_path(path):
-        # type: (RecordPath) -> bool
+    def is_dir_path(path: RecordPath) -> bool:
         return path.endswith("/")
 
-    def assert_no_path_traversal(dest_dir_path, target_path):
-        # type: (str, str) -> None
+    def assert_no_path_traversal(dest_dir_path: str, target_path: str) -> None:
         if not is_within_directory(dest_dir_path, target_path):
             message = (
                 "The wheel {!r} has a file {!r} trying to install"
@@ -521,10 +502,10 @@ def _install_wheel(
                 message.format(wheel_path, target_path, dest_dir_path)
             )
 
-    def root_scheme_file_maker(zip_file, dest):
-        # type: (ZipFile, str) -> Callable[[RecordPath], File]
-        def make_root_scheme_file(record_path):
-            # type: (RecordPath) -> File
+    def root_scheme_file_maker(
+        zip_file: ZipFile, dest: str
+    ) -> Callable[[RecordPath], "File"]:
+        def make_root_scheme_file(record_path: RecordPath) -> "File":
             normed_path = os.path.normpath(record_path)
             dest_path = os.path.join(dest, normed_path)
             assert_no_path_traversal(dest, dest_path)
@@ -532,8 +513,9 @@ def _install_wheel(
 
         return make_root_scheme_file
 
-    def data_scheme_file_maker(zip_file, scheme):
-        # type: (ZipFile, Scheme) -> Callable[[RecordPath], File]
+    def data_scheme_file_maker(
+        zip_file: ZipFile, scheme: Scheme
+    ) -> Callable[[RecordPath], "File"]:
         scheme_paths = {}
         for key in SCHEME_KEYS:
             encoded_key = ensure_text(key)
@@ -541,8 +523,7 @@ def _install_wheel(
                 getattr(scheme, key), encoding=sys.getfilesystemencoding()
             )
 
-        def make_data_scheme_file(record_path):
-            # type: (RecordPath) -> File
+        def make_data_scheme_file(record_path: RecordPath) -> "File":
             normed_path = os.path.normpath(record_path)
             try:
                 _, scheme_key, dest_subpath = normed_path.split(os.path.sep, 2)
@@ -572,8 +553,7 @@ def _install_wheel(
 
         return make_data_scheme_file
 
-    def is_data_scheme_path(path):
-        # type: (RecordPath) -> bool
+    def is_data_scheme_path(path: RecordPath) -> bool:
         return path.split("/", 1)[0].endswith(".data")
 
     paths = all_paths()
@@ -588,8 +568,7 @@ def _install_wheel(
     )
     files = map(make_root_scheme_file, root_scheme_paths)
 
-    def is_script_scheme_path(path):
-        # type: (RecordPath) -> bool
+    def is_script_scheme_path(path: RecordPath) -> bool:
         parts = path.split("/", 2)
         return (
             len(parts) > 2 and
@@ -609,8 +588,7 @@ def _install_wheel(
     distribution = get_wheel_distribution(wheel_path, canonicalize_name(name))
     console, gui = get_entrypoints(distribution)
 
-    def is_entrypoint_wrapper(file):
-        # type: (File) -> bool
+    def is_entrypoint_wrapper(file: "File") -> bool:
         # EP, EP.exe and EP-script.py are scripts generated for
         # entry point EP by setuptools
         path = file.dest_path
@@ -637,8 +615,7 @@ def _install_wheel(
         file.save()
         record_installed(file.src_record_path, file.dest_path, file.changed)
 
-    def pyc_source_file_paths():
-        # type: () -> Iterator[str]
+    def pyc_source_file_paths() -> Iterator[str]:
         # We de-duplicate installation paths, since there can be overlap (e.g.
         # file in .data maps to same location as file in wheel root).
         # Sorting installation paths makes it easier to reproduce and debug
@@ -651,8 +628,7 @@ def _install_wheel(
                 continue
             yield full_installed_path
 
-    def pyc_output_path(path):
-        # type: (str) -> str
+    def pyc_output_path(path: str) -> str:
         """Return the path the pyc file would have been written to.
         """
         return importlib.util.cache_from_source(path)
@@ -716,8 +692,7 @@ def _install_wheel(
     generated_file_mode = 0o666 & ~current_umask()
 
     @contextlib.contextmanager
-    def _generate_file(path, **kwargs):
-        # type: (str, **Any) -> Iterator[BinaryIO]
+    def _generate_file(path: str, **kwargs: Any) -> Iterator[BinaryIO]:
         with adjacent_tmp_file(path, **kwargs) as f:
             yield f
         os.chmod(f.name, generated_file_mode)
@@ -767,8 +742,7 @@ def _install_wheel(
 
 
 @contextlib.contextmanager
-def req_error_context(req_description):
-    # type: (str) -> Iterator[None]
+def req_error_context(req_description: str) -> Iterator[None]:
     try:
         yield
     except InstallationError as e:
@@ -779,16 +753,15 @@ def req_error_context(req_description):
 
 
 def install_wheel(
-    name,  # type: str
-    wheel_path,  # type: str
-    scheme,  # type: Scheme
-    req_description,  # type: str
-    pycompile=True,  # type: bool
-    warn_script_location=True,  # type: bool
-    direct_url=None,  # type: Optional[DirectUrl]
-    requested=False,  # type: bool
-):
-    # type: (...) -> None
+    name: str,
+    wheel_path: str,
+    scheme: Scheme,
+    req_description: str,
+    pycompile: bool = True,
+    warn_script_location: bool = True,
+    direct_url: Optional[DirectUrl] = None,
+    requested: bool = False,
+) -> None:
     with ZipFile(wheel_path, allowZip64=True) as z:
         with req_error_context(req_description):
             _install_wheel(

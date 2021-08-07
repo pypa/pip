@@ -10,8 +10,7 @@ from pip._internal.utils.subprocess import runner_with_spinner_message
 from pip._internal.utils.temp_dir import TempDirectory
 
 
-def generate_metadata(build_env, backend):
-    # type: (BuildEnvironment, Pep517HookCaller) -> str
+def generate_metadata(build_env: BuildEnvironment, backend: Pep517HookCaller) -> str:
     """Generate metadata using mechanisms described in PEP 517.
 
     Returns the generated metadata directory.
