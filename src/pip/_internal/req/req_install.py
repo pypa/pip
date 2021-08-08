@@ -9,7 +9,7 @@ import uuid
 import zipfile
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
 
-from pip._vendor import pkg_resources, six
+from pip._vendor import pkg_resources
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.specifiers import SpecifierSet
@@ -795,7 +795,7 @@ class InstallRequirement:
             )
         except LegacyInstallFailure as exc:
             self.install_succeeded = False
-            six.reraise(*exc.parent)
+            raise exc.__cause__
         except Exception:
             self.install_succeeded = True
             raise

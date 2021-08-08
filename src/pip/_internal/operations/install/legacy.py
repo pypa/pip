@@ -3,7 +3,6 @@
 
 import logging
 import os
-import sys
 from distutils.util import change_root
 from typing import List, Optional, Sequence
 
@@ -20,8 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class LegacyInstallFailure(Exception):
-    def __init__(self) -> None:
-        self.parent = sys.exc_info()
+    pass
 
 
 def write_installed_files_from_setuptools_record(
@@ -111,9 +109,9 @@ def install(
                 # Signal to the caller that we didn't install the new package
                 return False
 
-        except Exception:
+        except Exception as e:
             # Signal to the caller that we didn't install the new package
-            raise LegacyInstallFailure
+            raise LegacyInstallFailure from e
 
         # At this point, we have successfully installed the requirement.
 
