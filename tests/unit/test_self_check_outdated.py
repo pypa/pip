@@ -84,6 +84,7 @@ def _options() -> mock.Mock:
         no_index=False,
         pre=False,
         cache_dir="",
+        deprecated_features_enabled=[],
     )
 
 
