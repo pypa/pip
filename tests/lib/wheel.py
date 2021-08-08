@@ -51,15 +51,13 @@ T = TypeVar("T")
 Defaulted = Union[Default, T]
 
 
-def ensure_binary(value):
-    # type: (AnyStr) -> bytes
+def ensure_binary(value: AnyStr) -> bytes:
     if isinstance(value, bytes):
         return value
     return value.encode()
 
 
-def message_from_dict(headers):
-    # type: (Dict[str, HeaderValue]) -> Message
+def message_from_dict(headers: Dict[str, HeaderValue]) -> Message:
     """Plain key-value pairs are set in the returned message.
 
     List values are converted into repeated headers in the result.
@@ -74,19 +72,17 @@ def message_from_dict(headers):
     return message
 
 
-def dist_info_path(name, version, path):
-    # type: (str, str, str) -> str
+def dist_info_path(name: str, version: str, path: str) -> str:
     return f"{name}-{version}.dist-info/{path}"
 
 
 def make_metadata_file(
-    name,  # type: str
-    version,  # type: str
-    value,  # type: Defaulted[Optional[AnyStr]]
-    updates,  # type: Defaulted[Dict[str, HeaderValue]]
-    body,  # type: Defaulted[AnyStr]
-):
-    # type: () -> File
+    name: str,
+    version: str,
+    value: Defaulted[Optional[AnyStr]],
+    updates: Defaulted[Dict[str, HeaderValue]],
+    body: Defaulted[AnyStr],
+) -> File:
     if value is None:
         return None
 
@@ -113,13 +109,12 @@ def make_metadata_file(
 
 
 def make_wheel_metadata_file(
-    name,  # type: str
-    version,  # type: str
-    value,  # type: Defaulted[Optional[AnyStr]]
-    tags,  # type: Sequence[Tuple[str, str, str]]
-    updates,  # type: Defaulted[Dict[str, HeaderValue]]
-):
-    # type: (...) -> Optional[File]
+    name: str,
+    version: str,
+    value: Defaulted[Optional[AnyStr]],
+    tags: Sequence[Tuple[str, str, str]],
+    updates: Defaulted[Dict[str, HeaderValue]],
+) -> Optional[File]:
     if value is None:
         return None
 
@@ -144,12 +139,11 @@ def make_wheel_metadata_file(
 
 
 def make_entry_points_file(
-    name,  # type: str
-    version,  # type: str
-    entry_points,  # type: Defaulted[Dict[str, List[str]]]
-    console_scripts,  # type: Defaulted[List[str]]
-):
-    # type: (...) -> Optional[File]
+    name: str,
+    version: str,
+    entry_points: Defaulted[Dict[str, List[str]]],
+    console_scripts: Defaulted[List[str]],
+) -> Optional[File]:
     if entry_points is _default and console_scripts is _default:
         return None
 
@@ -172,13 +166,13 @@ def make_entry_points_file(
     )
 
 
-def make_files(files):
-    # type: (Dict[str, AnyStr]) -> List[File]
+def make_files(files: Dict[str, AnyStr]) -> List[File]:
     return [File(name, ensure_binary(contents)) for name, contents in files.items()]
 
 
-def make_metadata_files(name, version, files):
-    # type: (str, str, Dict[str, AnyStr]) -> List[File]
+def make_metadata_files(
+    name: str, version: str, files: Dict[str, AnyStr]
+) -> List[File]:
     get_path = partial(dist_info_path, name, version)
     return [
         File(get_path(name), ensure_binary(contents))
@@ -186,8 +180,7 @@ def make_metadata_files(name, version, files):
     ]
 
 
-def make_data_files(name, version, files):
-    # type: (str, str, Dict[str, AnyStr]) -> List[File]
+def make_data_files(name: str, version: str, files: Dict[str, AnyStr]) -> List[File]:
     data_dir = f"{name}-{version}.data"
     return [
         File(f"{data_dir}/{name}", ensure_binary(contents))
@@ -195,25 +188,22 @@ def make_data_files(name, version, files):
     ]
 
 
-def urlsafe_b64encode_nopad(data):
-    # type: (bytes) -> str
+def urlsafe_b64encode_nopad(data: bytes) -> str:
     return urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
 
 
-def digest(contents):
-    # type: (bytes) -> str
+def digest(contents: bytes) -> str:
     return "sha256={}".format(urlsafe_b64encode_nopad(sha256(contents).digest()))
 
 
 def record_file_maker_wrapper(
-    name,  # type: str
-    version,  # type: str
-    files,  # type: List[File]
-    record,  # type: Defaulted[Optional[AnyStr]]
-    record_callback,  # type: Defaulted[RecordCallback]
-):
-    # type: (...) -> Iterable[File]
-    records = []  # type: List[Record]
+    name: str,
+    version: str,
+    files: List[File],
+    record: Defaulted[Optional[AnyStr]],
+    record_callback: Defaulted[RecordCallback],
+) -> Iterable[File]:
+    records: List[Record] = []
     for file in files:
         records.append(
             Record(file.name, digest(file.contents), str(len(file.contents)))
@@ -243,8 +233,7 @@ def record_file_maker_wrapper(
     yield File(record_path, contents)
 
 
-def wheel_name(name, version, pythons, abis, platforms):
-    # type: (str, str, str, str, str) -> str
+def wheel_name(name: str, version: str, pythons: str, abis: str, platforms: str) -> str:
     stem = "-".join(
         [
             name,
@@ -260,13 +249,11 @@ def wheel_name(name, version, pythons, abis, platforms):
 class WheelBuilder:
     """A wheel that can be saved or converted to several formats."""
 
-    def __init__(self, name, files):
-        # type: (str, List[File]) -> None
+    def __init__(self, name: str, files: List[File]) -> None:
         self._name = name
         self._files = files
 
-    def save_to_dir(self, path):
-        # type: (Union[Path, str]) -> str
+    def save_to_dir(self, path: Union[Path, str]) -> str:
         """Generate wheel file with correct name and save into the provided
         directory.
 
@@ -276,8 +263,7 @@ class WheelBuilder:
         path.write_bytes(self.as_bytes())
         return str(path)
 
-    def save_to(self, path):
-        # type: (Union[Path, str]) -> str
+    def save_to(self, path: Union[Path, str]) -> str:
         """Generate wheel file, saving to the provided path. Any parent
         directories must already exist.
 
@@ -287,36 +273,33 @@ class WheelBuilder:
         path.write_bytes(self.as_bytes())
         return str(path)
 
-    def as_bytes(self):
-        # type: () -> bytes
+    def as_bytes(self) -> bytes:
         with BytesIO() as buf:
             with ZipFile(buf, "w") as z:
                 for file in self._files:
                     z.writestr(file.name, file.contents)
             return buf.getvalue()
 
-    def as_zipfile(self):
-        # type: () -> ZipFile
+    def as_zipfile(self) -> ZipFile:
         return ZipFile(BytesIO(self.as_bytes()))
 
 
 def make_wheel(
-    name,  # type: str
-    version,  # type: str
-    wheel_metadata=_default,  # type: Defaulted[Optional[AnyStr]]
-    wheel_metadata_updates=_default,  # type: Defaulted[Dict[str, HeaderValue]]
-    metadata=_default,  # type: Defaulted[Optional[AnyStr]]
-    metadata_body=_default,  # type: Defaulted[AnyStr]
-    metadata_updates=_default,  # type: Defaulted[Dict[str, HeaderValue]]
-    extra_files=_default,  # type: Defaulted[Dict[str, AnyStr]]
-    extra_metadata_files=_default,  # type: Defaulted[Dict[str, AnyStr]]
-    extra_data_files=_default,  # type: Defaulted[Dict[str, AnyStr]]
-    console_scripts=_default,  # type: Defaulted[List[str]]
-    entry_points=_default,  # type: Defaulted[Dict[str, List[str]]]
-    record=_default,  # type: Defaulted[Optional[AnyStr]]
-    record_callback=_default,  # type: Defaulted[RecordCallback]
-):
-    # type: (...) -> WheelBuilder
+    name: str,
+    version: str,
+    wheel_metadata: Defaulted[Optional[AnyStr]] = _default,
+    wheel_metadata_updates: Defaulted[Dict[str, HeaderValue]] = _default,
+    metadata: Defaulted[Optional[AnyStr]] = _default,
+    metadata_body: Defaulted[AnyStr] = _default,
+    metadata_updates: Defaulted[Dict[str, HeaderValue]] = _default,
+    extra_files: Defaulted[Dict[str, AnyStr]] = _default,
+    extra_metadata_files: Defaulted[Dict[str, AnyStr]] = _default,
+    extra_data_files: Defaulted[Dict[str, AnyStr]] = _default,
+    console_scripts: Defaulted[List[str]] = _default,
+    entry_points: Defaulted[Dict[str, List[str]]] = _default,
+    record: Defaulted[Optional[AnyStr]] = _default,
+    record_callback: Defaulted[RecordCallback] = _default,
+) -> WheelBuilder:
     """
     Helper function for generating test wheels which are compliant by default.
 

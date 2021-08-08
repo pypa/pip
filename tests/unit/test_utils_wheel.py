@@ -13,8 +13,7 @@ from tests.lib.path import Path
 
 @pytest.fixture
 def zip_dir():
-    def make_zip(path):
-        # type: (Path) -> ZipFile
+    def make_zip(path: Path) -> ZipFile:
         buf = BytesIO()
         with ZipFile(buf, "w", allowZip64=True) as z:
             for dirpath, _, filenames in os.walk(path):

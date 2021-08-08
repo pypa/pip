@@ -22,7 +22,7 @@ from tests.lib import make_test_finder
 
 def make_no_network_finder(
     find_links,
-    allow_all_prereleases=False,  # type: bool
+    allow_all_prereleases: bool = False,
 ):
     """
     Create and return a PackageFinder instance for test purposes that

@@ -8,16 +8,14 @@ from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._internal.exceptions import InstallationError
 
 
-def _is_list_of_str(obj):
-    # type: (Any) -> bool
+def _is_list_of_str(obj: Any) -> bool:
     return (
         isinstance(obj, list) and
         all(isinstance(item, str) for item in obj)
     )
 
 
-def make_pyproject_path(unpacked_source_directory):
-    # type: (str) -> str
+def make_pyproject_path(unpacked_source_directory: str) -> str:
     return os.path.join(unpacked_source_directory, 'pyproject.toml')
 
 
@@ -27,12 +25,11 @@ BuildSystemDetails = namedtuple('BuildSystemDetails', [
 
 
 def load_pyproject_toml(
-    use_pep517,  # type: Optional[bool]
-    pyproject_toml,  # type: str
-    setup_py,  # type: str
-    req_name  # type: str
-):
-    # type: (...) -> Optional[BuildSystemDetails]
+    use_pep517: Optional[bool],
+    pyproject_toml: str,
+    setup_py: str,
+    req_name: str
+) -> Optional[BuildSystemDetails]:
     """Load the pyproject.toml file.
 
     Parameters:
@@ -163,7 +160,7 @@ def load_pyproject_toml(
 
     backend = build_system.get("build-backend")
     backend_path = build_system.get("backend-path", [])
-    check = []  # type: List[str]
+    check: List[str] = []
     if backend is None:
         # If the user didn't specify a backend, we assume they want to use
         # the setuptools backend. But we can't be sure they have included

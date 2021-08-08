@@ -34,8 +34,7 @@ BinaryAllowedPredicate = Callable[[InstallRequirement], bool]
 BuildResult = Tuple[List[InstallRequirement], List[InstallRequirement]]
 
 
-def _contains_egg_info(s):
-    # type: (str) -> bool
+def _contains_egg_info(s: str) -> bool:
     """Determine whether the string looks like an egg_info.
 
     :param s: The string to parse. E.g. foo-2.1
@@ -44,11 +43,10 @@ def _contains_egg_info(s):
 
 
 def _should_build(
-    req,  # type: InstallRequirement
-    need_wheel,  # type: bool
-    check_binary_allowed,  # type: BinaryAllowedPredicate
-):
-    # type: (...) -> bool
+    req: InstallRequirement,
+    need_wheel: bool,
+    check_binary_allowed: BinaryAllowedPredicate,
+) -> bool:
     """Return whether an InstallRequirement should be built into a wheel."""
     if req.constraint:
         # never build requirements that are merely constraints
@@ -92,28 +90,25 @@ def _should_build(
 
 
 def should_build_for_wheel_command(
-    req,  # type: InstallRequirement
-):
-    # type: (...) -> bool
+    req: InstallRequirement,
+) -> bool:
     return _should_build(
         req, need_wheel=True, check_binary_allowed=_always_true
     )
 
 
 def should_build_for_install_command(
-    req,  # type: InstallRequirement
-    check_binary_allowed,  # type: BinaryAllowedPredicate
-):
-    # type: (...) -> bool
+    req: InstallRequirement,
+    check_binary_allowed: BinaryAllowedPredicate,
+) -> bool:
     return _should_build(
         req, need_wheel=False, check_binary_allowed=check_binary_allowed
     )
 
 
 def _should_cache(
-    req,  # type: InstallRequirement
-):
-    # type: (...) -> Optional[bool]
+    req: InstallRequirement,
+) -> Optional[bool]:
     """
     Return whether a built InstallRequirement can be stored in the persistent
     wheel cache, assuming the wheel cache is available, and _should_build()
@@ -144,10 +139,9 @@ def _should_cache(
 
 
 def _get_cache_dir(
-    req,  # type: InstallRequirement
-    wheel_cache,  # type: WheelCache
-):
-    # type: (...) -> str
+    req: InstallRequirement,
+    wheel_cache: WheelCache,
+) -> str:
     """Return the persistent or temporary cache directory where the built
     wheel need to be stored.
     """
@@ -160,13 +154,11 @@ def _get_cache_dir(
     return cache_dir
 
 
-def _always_true(_):
-    # type: (Any) -> bool
+def _always_true(_: Any) -> bool:
     return True
 
 
-def _verify_one(req, wheel_path):
-    # type: (InstallRequirement, str) -> None
+def _verify_one(req: InstallRequirement, wheel_path: str) -> None:
     canonical_name = canonicalize_name(req.name or "")
     w = Wheel(os.path.basename(wheel_path))
     if canonicalize_name(w.name) != canonical_name:
@@ -198,13 +190,12 @@ def _verify_one(req, wheel_path):
 
 
 def _build_one(
-    req,  # type: InstallRequirement
-    output_dir,  # type: str
-    verify,  # type: bool
-    build_options,  # type: List[str]
-    global_options,  # type: List[str]
-):
-    # type: (...) -> Optional[str]
+    req: InstallRequirement,
+    output_dir: str,
+    verify: bool,
+    build_options: List[str],
+    global_options: List[str],
+) -> Optional[str]:
     """Build one wheel.
 
     :return: The filename of the built wheel, or None if the build failed.
@@ -233,12 +224,11 @@ def _build_one(
 
 
 def _build_one_inside_env(
-    req,  # type: InstallRequirement
-    output_dir,  # type: str
-    build_options,  # type: List[str]
-    global_options,  # type: List[str]
-):
-    # type: (...) -> Optional[str]
+    req: InstallRequirement,
+    output_dir: str,
+    build_options: List[str],
+    global_options: List[str],
+) -> Optional[str]:
     with TempDirectory(kind="wheel") as temp_dir:
         assert req.name
         if req.use_pep517:
@@ -291,8 +281,7 @@ def _build_one_inside_env(
         return None
 
 
-def _clean_one_legacy(req, global_options):
-    # type: (InstallRequirement, List[str]) -> bool
+def _clean_one_legacy(req: InstallRequirement, global_options: List[str]) -> bool:
     clean_args = make_setuptools_clean_args(
         req.setup_py_path,
         global_options=global_options,
@@ -308,13 +297,12 @@ def _clean_one_legacy(req, global_options):
 
 
 def build(
-    requirements,  # type: Iterable[InstallRequirement]
-    wheel_cache,  # type: WheelCache
-    verify,  # type: bool
-    build_options,  # type: List[str]
-    global_options,  # type: List[str]
-):
-    # type: (...) -> BuildResult
+    requirements: Iterable[InstallRequirement],
+    wheel_cache: WheelCache,
+    verify: bool,
+    build_options: List[str],
+    global_options: List[str],
+) -> BuildResult:
     """Build wheels.
 
     :return: The list of InstallRequirement that succeeded to build and

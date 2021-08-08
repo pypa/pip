@@ -123,8 +123,7 @@ def docs(session: nox.Session) -> None:
     session.install("-e", ".")
     session.install("-r", REQUIREMENTS["docs"])
 
-    def get_sphinx_build_command(kind):
-        # type: (str) -> List[str]
+    def get_sphinx_build_command(kind: str) -> List[str]:
         # Having the conf.py in the docs/html is weird but needed because we
         # can not use a different configuration directory vs source directory
         # on RTD currently. So, we'll pass "-c docs/html" here.
@@ -180,8 +179,7 @@ def vendoring(session: nox.Session) -> None:
         session.run("vendoring", "sync", ".", "-v")
         return
 
-    def pinned_requirements(path):
-        # type: (Path) -> Iterator[Tuple[str, str]]
+    def pinned_requirements(path: Path) -> Iterator[Tuple[str, str]]:
         for line in path.read_text().splitlines(keepends=False):
             one, sep, two = line.partition("==")
             if not sep:
