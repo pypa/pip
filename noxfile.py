@@ -40,8 +40,7 @@ def run_with_protected_pip(session: nox.Session, *arguments: str) -> None:
     (stable) version, and not the code being tested. This ensures pip being
     used is not the code being tested.
     """
-    # https://github.com/theacodes/nox/pull/377
-    env = {"VIRTUAL_ENV": session.virtualenv.location}  # type: ignore
+    env = {"VIRTUAL_ENV": session.virtualenv.location}
 
     command = ("python", LOCATIONS["protected-pip"]) + arguments
     session.run(*command, env=env, silent=True)
@@ -87,8 +86,7 @@ def test(session: nox.Session) -> None:
         session.log(msg)
 
     # Build source distribution
-    # https://github.com/theacodes/nox/pull/377
-    sdist_dir = os.path.join(session.virtualenv.location, "sdist")  # type: ignore
+    sdist_dir = os.path.join(session.virtualenv.location, "sdist")
     if os.path.exists(sdist_dir):
         shutil.rmtree(sdist_dir, ignore_errors=True)
 
