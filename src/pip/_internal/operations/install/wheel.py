@@ -566,7 +566,7 @@ def _install_wheel(
         wheel_zip,
         ensure_text(lib_dir, encoding=sys.getfilesystemencoding()),
     )
-    files = map(make_root_scheme_file, root_scheme_paths)
+    files: Iterator[File] = map(make_root_scheme_file, root_scheme_paths)
 
     def is_script_scheme_path(path: RecordPath) -> bool:
         parts = path.split("/", 2)
@@ -604,7 +604,9 @@ def _install_wheel(
         # Ignore setuptools-generated scripts
         return (matchname in console or matchname in gui)
 
-    script_scheme_files = map(make_data_scheme_file, script_scheme_paths)
+    script_scheme_files: Iterator[File] = map(
+        make_data_scheme_file, script_scheme_paths
+    )
     script_scheme_files = filterfalse(
         is_entrypoint_wrapper, script_scheme_files
     )

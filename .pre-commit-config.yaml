@@ -51,12 +51,17 @@ repos:
     files: \.py$
 
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v0.800
+  rev: v0.910
   hooks:
   - id: mypy
     exclude: tests
-    args: ["--pretty"]
-    additional_dependencies: ['nox==2020.12.31']
+    args: ["--pretty", "--show-error-codes"]
+    additional_dependencies: [
+        'keyring==23.0.1',
+        'nox==2020.12.31',
+        'types-docutils==0.1.8',
+        'types-six==0.1.9',
+    ]
 
 - repo: https://github.com/pre-commit/pygrep-hooks
   rev: v1.7.0
