@@ -6,6 +6,7 @@ import shutil
 import sys
 import urllib.parse
 from typing import (
+    TYPE_CHECKING,
     Any,
     Dict,
     Iterable,
@@ -32,6 +33,13 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.subprocess import CommandArgs, call_subprocess, make_command
 from pip._internal.utils.urls import get_url_scheme
+
+if TYPE_CHECKING:
+    # Literal was introduced in Python 3.8.
+    #
+    # TODO: Remove `if TYPE_CHECKING` when dropping support for Python 3.7.
+    from typing import Literal
+
 
 __all__ = ['vcs']
 
@@ -650,7 +658,7 @@ class VersionControl:
         cmd,  # type: Union[List[str], CommandArgs]
         show_stdout=True,  # type: bool
         cwd=None,  # type: Optional[str]
-        on_returncode='raise',  # type: str
+        on_returncode='raise',  # type: Literal["raise", "warn", "ignore"]
         extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
         command_desc=None,  # type: Optional[str]
         extra_environ=None,  # type: Optional[Mapping[str, Any]]
