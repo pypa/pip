@@ -25,8 +25,7 @@ def test_message_from_dict_multiple_values():
     assert set(message.get_all("a")) == {"1", "2"}
 
 
-def message_from_bytes(contents):
-    # type: (bytes) -> Message
+def message_from_bytes(contents: bytes) -> Message:
     return message_from_string(contents.decode("utf-8"))
 
 

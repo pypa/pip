@@ -159,13 +159,11 @@ class Path(str):
     def join(self, *parts):
         raise RuntimeError("Path.join is invalid, use joinpath instead.")
 
-    def read_bytes(self):
-        # type: () -> bytes
+    def read_bytes(self) -> bytes:
         with open(self, "rb") as fp:
             return fp.read()
 
-    def write_bytes(self, content):
-        # type: (bytes) -> None
+    def write_bytes(self, content: bytes) -> None:
         with open(self, "wb") as f:
             f.write(content)
 

@@ -26,12 +26,10 @@ class Mercurial(VersionControl):
     )
 
     @staticmethod
-    def get_base_rev_args(rev):
-        # type: (str) -> List[str]
+    def get_base_rev_args(rev: str) -> List[str]:
         return [rev]
 
-    def fetch_new(self, dest, url, rev_options):
-        # type: (str, HiddenText, RevOptions) -> None
+    def fetch_new(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
         rev_display = rev_options.to_display()
         logger.info(
             'Cloning hg %s%s to %s',
@@ -45,8 +43,7 @@ class Mercurial(VersionControl):
             cwd=dest,
         )
 
-    def switch(self, dest, url, rev_options):
-        # type: (str, HiddenText, RevOptions) -> None
+    def switch(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
         repo_config = os.path.join(dest, self.dirname, 'hgrc')
         config = configparser.RawConfigParser()
         try:
@@ -62,15 +59,13 @@ class Mercurial(VersionControl):
             cmd_args = make_command('update', '-q', rev_options.to_args())
             self.run_command(cmd_args, cwd=dest)
 
-    def update(self, dest, url, rev_options):
-        # type: (str, HiddenText, RevOptions) -> None
+    def update(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
         self.run_command(['pull', '-q'], cwd=dest)
         cmd_args = make_command('update', '-q', rev_options.to_args())
         self.run_command(cmd_args, cwd=dest)
 
     @classmethod
-    def get_remote_url(cls, location):
-        # type: (str) -> str
+    def get_remote_url(cls, location: str) -> str:
         url = cls.run_command(
             ['showconfig', 'paths.default'],
             show_stdout=False,
@@ -82,8 +77,7 @@ class Mercurial(VersionControl):
         return url.strip()
 
     @classmethod
-    def get_revision(cls, location):
-        # type: (str) -> str
+    def get_revision(cls, location: str) -> str:
         """
         Return the repository-local changeset revision number, as an integer.
         """
@@ -96,8 +90,7 @@ class Mercurial(VersionControl):
         return current_revision
 
     @classmethod
-    def get_requirement_revision(cls, location):
-        # type: (str) -> str
+    def get_requirement_revision(cls, location: str) -> str:
         """
         Return the changeset identification hash, as a 40-character
         hexadecimal string
@@ -111,14 +104,12 @@ class Mercurial(VersionControl):
         return current_rev_hash
 
     @classmethod
-    def is_commit_id_equal(cls, dest, name):
-        # type: (str, Optional[str]) -> bool
+    def is_commit_id_equal(cls, dest: str, name: Optional[str]) -> bool:
         """Always assume the versions don't match"""
         return False
 
     @classmethod
-    def get_subdirectory(cls, location):
-        # type: (str) -> Optional[str]
+    def get_subdirectory(cls, location: str) -> Optional[str]:
         """
         Return the path to Python project root, relative to the repo root.
         Return None if the project root is in the repo root.
@@ -132,8 +123,7 @@ class Mercurial(VersionControl):
         return find_path_to_project_root_from_repo_root(location, repo_root)
 
     @classmethod
-    def get_repository_root(cls, location):
-        # type: (str) -> Optional[str]
+    def get_repository_root(cls, location: str) -> Optional[str]:
         loc = super().get_repository_root(location)
         if loc:
             return loc

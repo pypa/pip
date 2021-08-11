@@ -489,8 +489,7 @@ def deprecated_python():
 
 @pytest.fixture(scope="session")
 def cert_factory(tmpdir_factory):
-    def factory():
-        # type: () -> str
+    def factory() -> str:
         """Returns path to cert/key file."""
         output_path = Path(str(tmpdir_factory.mktemp("certs"))) / "cert.pem"
         # Must be Text on PY2.
@@ -505,8 +504,7 @@ def cert_factory(tmpdir_factory):
 
 
 class MockServer:
-    def __init__(self, server):
-        # type: (_MockServer) -> None
+    def __init__(self, server: _MockServer) -> None:
         self._server = server
         self._running = False
         self.context = ExitStack()
@@ -519,13 +517,11 @@ class MockServer:
     def host(self):
         return self._server.host
 
-    def set_responses(self, responses):
-        # type: (Iterable[Responder]) -> None
+    def set_responses(self, responses: Iterable[Responder]) -> None:
         assert not self._running, "responses cannot be set on running server"
         self._server.mock.side_effect = responses
 
-    def start(self):
-        # type: () -> None
+    def start(self) -> None:
         assert not self._running, "running server cannot be started"
         self.context.enter_context(server_running(self._server))
         self.context.enter_context(self._set_running())
@@ -538,13 +534,11 @@ class MockServer:
         finally:
             self._running = False
 
-    def stop(self):
-        # type: () -> None
+    def stop(self) -> None:
         assert self._running, "idle server cannot be stopped"
         self.context.close()
 
-    def get_requests(self):
-        # type: () -> Dict[str, str]
+    def get_requests(self) -> Dict[str, str]:
         """Get environ for each received request."""
         assert not self._running, "cannot get mock from running server"
         # Legacy: replace call[0][0] with call.args[0]

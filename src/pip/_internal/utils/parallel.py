@@ -44,8 +44,7 @@ TIMEOUT = 2000000
 
 
 @contextmanager
-def closing(pool):
-    # type: (Pool) -> Iterator[Pool]
+def closing(pool: Pool) -> Iterator[Pool]:
     """Return a context manager making sure the pool closes properly."""
     try:
         yield pool
@@ -57,8 +56,9 @@ def closing(pool):
         pool.terminate()
 
 
-def _map_fallback(func, iterable, chunksize=1):
-    # type: (Callable[[S], T], Iterable[S], int) -> Iterator[T]
+def _map_fallback(
+    func: Callable[[S], T], iterable: Iterable[S], chunksize: int = 1
+) -> Iterator[T]:
     """Make an iterator applying func to each element in iterable.
 
     This function is the sequential fallback either on Python 2
@@ -68,8 +68,9 @@ def _map_fallback(func, iterable, chunksize=1):
     return map(func, iterable)
 
 
-def _map_multiprocess(func, iterable, chunksize=1):
-    # type: (Callable[[S], T], Iterable[S], int) -> Iterator[T]
+def _map_multiprocess(
+    func: Callable[[S], T], iterable: Iterable[S], chunksize: int = 1
+) -> Iterator[T]:
     """Chop iterable into chunks and submit them to a process pool.
 
     For very long iterables using a large value for chunksize can make
@@ -81,8 +82,9 @@ def _map_multiprocess(func, iterable, chunksize=1):
         return pool.imap_unordered(func, iterable, chunksize)
 
 
-def _map_multithread(func, iterable, chunksize=1):
-    # type: (Callable[[S], T], Iterable[S], int) -> Iterator[T]
+def _map_multithread(
+    func: Callable[[S], T], iterable: Iterable[S], chunksize: int = 1
+) -> Iterator[T]:
     """Chop iterable into chunks and submit them to a thread pool.
 
     For very long iterables using a large value for chunksize can make

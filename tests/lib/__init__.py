@@ -81,8 +81,8 @@ def create_file(path, contents=None):
 
 
 def make_test_search_scope(
-    find_links=None,  # type: Optional[List[str]]
-    index_urls=None,  # type: Optional[List[str]]
+    find_links: Optional[List[str]] = None,
+    index_urls: Optional[List[str]] = None,
 ):
     if find_links is None:
         find_links = []
@@ -93,11 +93,10 @@ def make_test_search_scope(
 
 
 def make_test_link_collector(
-    find_links=None,  # type: Optional[List[str]]
-    index_urls=None,  # type: Optional[List[str]]
-    session=None,  # type: Optional[PipSession]
-):
-    # type: (...) -> LinkCollector
+    find_links: Optional[List[str]] = None,
+    index_urls: Optional[List[str]] = None,
+    session: Optional[PipSession] = None,
+) -> LinkCollector:
     """
     Create a LinkCollector object for testing purposes.
     """
@@ -113,13 +112,12 @@ def make_test_link_collector(
 
 
 def make_test_finder(
-    find_links=None,  # type: Optional[List[str]]
-    index_urls=None,  # type: Optional[List[str]]
-    allow_all_prereleases=False,  # type: bool
-    session=None,  # type: Optional[PipSession]
-    target_python=None,  # type: Optional[TargetPython]
-):
-    # type: (...) -> PackageFinder
+    find_links: Optional[List[str]] = None,
+    index_urls: Optional[List[str]] = None,
+    allow_all_prereleases: bool = False,
+    session: Optional[PipSession] = None,
+    target_python: Optional[TargetPython] = None,
+) -> PackageFinder:
     """
     Create a PackageFinder for testing purposes.
     """
@@ -1044,13 +1042,11 @@ def create_test_package_with_setup(script, **setup_kwargs):
     return pkg_path
 
 
-def urlsafe_b64encode_nopad(data):
-    # type: (bytes) -> str
+def urlsafe_b64encode_nopad(data: bytes) -> str:
     return urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
 
 
-def create_really_basic_wheel(name, version):
-    # type: (str, str) -> bytes
+def create_really_basic_wheel(name: str, version: str) -> bytes:
     def digest(contents):
         return "sha256={}".format(urlsafe_b64encode_nopad(sha256(contents).digest()))
 

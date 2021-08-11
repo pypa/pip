@@ -24,13 +24,11 @@ class WheelMetadata(DictMetadata):
     internal exception type.
     """
 
-    def __init__(self, metadata, wheel_name):
-        # type: (Dict[str, bytes], str) -> None
+    def __init__(self, metadata: Dict[str, bytes], wheel_name: str) -> None:
         super().__init__(metadata)
         self._wheel_name = wheel_name
 
-    def get_metadata(self, name):
-        # type: (str) -> str
+    def get_metadata(self, name: str) -> str:
         try:
             return super().get_metadata(name)
         except UnicodeDecodeError as e:
@@ -40,8 +38,9 @@ class WheelMetadata(DictMetadata):
             )
 
 
-def pkg_resources_distribution_for_wheel(wheel_zip, name, location):
-    # type: (ZipFile, str, str) -> Distribution
+def pkg_resources_distribution_for_wheel(
+    wheel_zip: ZipFile, name: str, location: str
+) -> Distribution:
     """Get a pkg_resources distribution given a wheel.
 
     :raises UnsupportedWheel: on any errors
@@ -50,7 +49,7 @@ def pkg_resources_distribution_for_wheel(wheel_zip, name, location):
 
     metadata_files = [p for p in wheel_zip.namelist() if p.startswith(f"{info_dir}/")]
 
-    metadata_text = {}  # type: Dict[str, bytes]
+    metadata_text: Dict[str, bytes] = {}
     for path in metadata_files:
         _, metadata_name = path.split("/", 1)
 
@@ -64,8 +63,7 @@ def pkg_resources_distribution_for_wheel(wheel_zip, name, location):
     return DistInfoDistribution(location=location, metadata=metadata, project_name=name)
 
 
-def parse_wheel(wheel_zip, name):
-    # type: (ZipFile, str) -> Tuple[str, Message]
+def parse_wheel(wheel_zip: ZipFile, name: str) -> Tuple[str, Message]:
     """Extract information from the provided wheel, ensuring it meets basic
     standards.
 
@@ -83,8 +81,7 @@ def parse_wheel(wheel_zip, name):
     return info_dir, metadata
 
 
-def wheel_dist_info_dir(source, name):
-    # type: (ZipFile, str) -> str
+def wheel_dist_info_dir(source: ZipFile, name: str) -> str:
     """Returns the name of the contained .dist-info directory.
 
     Raises AssertionError or UnsupportedWheel if not found, >1 found, or
@@ -117,8 +114,7 @@ def wheel_dist_info_dir(source, name):
     return info_dir
 
 
-def read_wheel_metadata_file(source, path):
-    # type: (ZipFile, str) -> bytes
+def read_wheel_metadata_file(source: ZipFile, path: str) -> bytes:
     try:
         return source.read(path)
         # BadZipFile for general corruption, KeyError for missing entry,
@@ -127,8 +123,7 @@ def read_wheel_metadata_file(source, path):
         raise UnsupportedWheel(f"could not read {path!r} file: {e!r}")
 
 
-def wheel_metadata(source, dist_info_dir):
-    # type: (ZipFile, str) -> Message
+def wheel_metadata(source: ZipFile, dist_info_dir: str) -> Message:
     """Return the WHEEL metadata of an extracted wheel, if possible.
     Otherwise, raise UnsupportedWheel.
     """
@@ -147,8 +142,7 @@ def wheel_metadata(source, dist_info_dir):
     return Parser().parsestr(wheel_text)
 
 
-def wheel_version(wheel_data):
-    # type: (Message) -> Tuple[int, ...]
+def wheel_version(wheel_data: Message) -> Tuple[int, ...]:
     """Given WHEEL metadata, return the parsed Wheel-Version.
     Otherwise, raise UnsupportedWheel.
     """
@@ -164,8 +158,7 @@ def wheel_version(wheel_data):
         raise UnsupportedWheel(f"invalid Wheel-Version: {version!r}")
 
 
-def check_compatibility(version, name):
-    # type: (Tuple[int, ...], str) -> None
+def check_compatibility(version: Tuple[int, ...], name: str) -> None:
     """Raises errors or warns if called with an incompatible Wheel-Version.
 
     pip should refuse to install a Wheel-Version that's a major series

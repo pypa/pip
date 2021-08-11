@@ -13,8 +13,9 @@ from pip._internal.utils.misc import display_path
 logger = logging.getLogger(__name__)
 
 
-def check_requires_python(requires_python, version_info):
-    # type: (Optional[str], Tuple[int, ...]) -> bool
+def check_requires_python(
+    requires_python: Optional[str], version_info: Tuple[int, ...]
+) -> bool:
     """
     Check if the given Python version matches a "Requires-Python" specifier.
 
@@ -35,8 +36,7 @@ def check_requires_python(requires_python, version_info):
     return python_version in requires_python_specifier
 
 
-def get_metadata(dist):
-    # type: (Distribution) -> Message
+def get_metadata(dist: Distribution) -> Message:
     """
     :raises NoneMetadataError: if the distribution reports `has_metadata()`
         True but `get_metadata()` returns None.
@@ -63,8 +63,7 @@ def get_metadata(dist):
     return feed_parser.close()
 
 
-def get_requires_python(dist):
-    # type: (pkg_resources.Distribution) -> Optional[str]
+def get_requires_python(dist: pkg_resources.Distribution) -> Optional[str]:
     """
     Return the "Requires-Python" metadata for a distribution, or None
     if not present.
@@ -80,8 +79,7 @@ def get_requires_python(dist):
     return requires_python
 
 
-def get_installer(dist):
-    # type: (Distribution) -> str
+def get_installer(dist: Distribution) -> str:
     if dist.has_metadata("INSTALLER"):
         for line in dist.get_metadata_lines("INSTALLER"):
             if line.strip():
