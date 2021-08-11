@@ -22,9 +22,7 @@ def test_install_requested_basic(script, data, with_wheel):
 
 
 def test_install_requested_requirements(script, data, with_wheel):
-    script.scratch_path.joinpath("requirements.txt").write_text(
-        "require_simple\n"
-    )
+    script.scratch_path.joinpath("requirements.txt").write_text("require_simple\n")
     result = script.pip(
         "install",
         "--no-index",
@@ -55,9 +53,7 @@ def test_install_requested_dep_in_requirements(script, data, with_wheel):
 
 
 def test_install_requested_reqs_and_constraints(script, data, with_wheel):
-    script.scratch_path.joinpath("requirements.txt").write_text(
-        "require_simple\n"
-    )
+    script.scratch_path.joinpath("requirements.txt").write_text("require_simple\n")
     script.scratch_path.joinpath("constraints.txt").write_text("simple<3\n")
     result = script.pip(
         "install",
