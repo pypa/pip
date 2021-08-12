@@ -1,2 +1,0 @@
-Modify the ``sysconfig.get_preferred_scheme`` function check to be
-compatible with CPython 3.10’s alphareleases.
