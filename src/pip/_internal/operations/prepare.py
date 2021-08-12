@@ -8,7 +8,7 @@ import logging
 import mimetypes
 import os
 import shutil
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.pkg_resources import Distribution
@@ -319,8 +319,8 @@ class RequirementPreparer:
         # Should in-tree builds be used for local paths?
         self.in_tree_build = in_tree_build
 
-        # Memoized downloaded files, as mapping of url: (path, mime type)
-        self._downloaded: Dict[str, Tuple[str, str]] = {}
+        # Memoized downloaded files, as mapping of url: path.
+        self._downloaded: Dict[str, str] = {}
 
         # Previous "header" printed for a link-based InstallRequirement
         self._previous_requirement_header = ("", "")
@@ -487,7 +487,7 @@ class RequirementPreparer:
 
             if file_path is not None:
                 # The file is already available, so mark it as downloaded
-                self._downloaded[req.link.url] = file_path, None
+                self._downloaded[req.link.url] = file_path
             else:
                 # The file is not available, attempt to fetch only metadata
                 wheel_dist = self._fetch_metadata_using_lazy_wheel(link)
@@ -509,7 +509,7 @@ class RequirementPreparer:
                 hashes = self._get_linked_req_hashes(req)
                 file_path = _check_download_dir(req.link, self.download_dir, hashes)
                 if file_path is not None:
-                    self._downloaded[req.link.url] = file_path, None
+                    self._downloaded[req.link.url] = file_path
                     req.needs_more_preparation = False
 
         # Prepare requirements we found were already downloaded for some
@@ -550,10 +550,10 @@ class RequirementPreparer:
                     'error {} for URL {}'.format(req, exc, link)
                 )
         else:
-            file_path, content_type = self._downloaded[link.url]
+            file_path = self._downloaded[link.url]
             if hashes:
                 hashes.check_against_path(file_path)
-            local_file = File(file_path, content_type)
+            local_file = File(file_path, content_type=None)
 
         # For use in later processing,
         # preserve the file path on the requirement.
