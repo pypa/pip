@@ -34,10 +34,11 @@ GIT_VERSION_REGEX = re.compile(
     r".*$"  # Suffix, including any pre- and post-release segments we don't care about.
 )
 
-HASH_REGEX = re.compile('^[a-fA-F0-9]{40}$')
+HASH_REGEX = re.compile("^[a-fA-F0-9]{40}$")
 
 # SCP (Secure copy protocol) shorthand. e.g. 'git@example.com:foo/bar.git'
-SCP_REGEX = re.compile(r"""^
+SCP_REGEX = re.compile(
+    r"""^
     # Optional user, e.g. 'git@'
     (\w+@)?
     # Server, e.g. 'github.com'.
@@ -46,7 +47,9 @@ SCP_REGEX = re.compile(r"""^
     # alphanumeric character so as not to be confusable with a Windows paths
     # like 'C:/foo/bar' or 'C:\foo\bar'.
     (\w[^:]*)
-$""", re.VERBOSE)
+    $""",
+    re.VERBOSE,
+)
 
 
 def looks_like_hash(sha):
@@ -55,16 +58,20 @@ def looks_like_hash(sha):
 
 
 class Git(VersionControl):
-    name = 'git'
-    dirname = '.git'
-    repo_name = 'clone'
+    name = "git"
+    dirname = ".git"
+    repo_name = "clone"
     schemes = (
-        'git+http', 'git+https', 'git+ssh', 'git+git', 'git+file',
+        "git+http",
+        "git+https",
+        "git+ssh",
+        "git+git",
+        "git+file",
     )
     # Prevent the user's environment variables from interfering with pip:
     # https://github.com/pypa/pip/issues/1130
-    unset_environ = ('GIT_DIR', 'GIT_WORK_TREE')
-    default_arg_rev = 'HEAD'
+    unset_environ = ("GIT_DIR", "GIT_WORK_TREE")
+    default_arg_rev = "HEAD"
 
     @staticmethod
     def get_base_rev_args(rev):
@@ -83,15 +90,11 @@ class Git(VersionControl):
         # return False in the rare case rev is both a commit hash
         # and a tag or a branch; we don't want to cache in that case
         # because that branch/tag could point to something else in the future
-        is_tag_or_branch = bool(
-            self.get_revision_sha(dest, rev_options.rev)[0]
-        )
+        is_tag_or_branch = bool(self.get_revision_sha(dest, rev_options.rev)[0])
         return not is_tag_or_branch
 
     def get_git_version(self) -> Tuple[int, ...]:
-        version = self.run_command(
-            ['version'], show_stdout=False, stdout_only=True
-        )
+        version = self.run_command(["version"], show_stdout=False, stdout_only=True)
         match = GIT_VERSION_REGEX.match(version)
         if not match:
             return ()
@@ -108,18 +111,18 @@ class Git(VersionControl):
         # HEAD rather than a symbolic ref.  In addition, the -q causes the
         # command to exit with status code 1 instead of 128 in this case
         # and to suppress the message to stderr.
-        args = ['symbolic-ref', '-q', 'HEAD']
+        args = ["symbolic-ref", "-q", "HEAD"]
         output = cls.run_command(
             args,
-            extra_ok_returncodes=(1, ),
+            extra_ok_returncodes=(1,),
             show_stdout=False,
             stdout_only=True,
             cwd=location,
         )
         ref = output.strip()
 
-        if ref.startswith('refs/heads/'):
-            return ref[len('refs/heads/'):]
+        if ref.startswith("refs/heads/"):
+            return ref[len("refs/heads/") :]
 
         return None
 
@@ -136,11 +139,11 @@ class Git(VersionControl):
         """
         # Pass rev to pre-filter the list.
         output = cls.run_command(
-            ['show-ref', rev],
+            ["show-ref", rev],
             cwd=dest,
             show_stdout=False,
             stdout_only=True,
-            on_returncode='ignore',
+            on_returncode="ignore",
         )
         refs = {}
         # NOTE: We do not use splitlines here since that would split on other
@@ -155,12 +158,12 @@ class Git(VersionControl):
             except ValueError:
                 # Include the offending line to simplify troubleshooting if
                 # this error ever occurs.
-                raise ValueError(f'unexpected show-ref line: {line!r}')
+                raise ValueError(f"unexpected show-ref line: {line!r}")
 
             refs[ref_name] = ref_sha
 
-        branch_ref = f'refs/remotes/origin/{rev}'
-        tag_ref = f'refs/tags/{rev}'
+        branch_ref = f"refs/remotes/origin/{rev}"
+        tag_ref = f"refs/tags/{rev}"
 
         sha = refs.get(branch_ref)
         if sha is not None:
@@ -230,11 +233,11 @@ class Git(VersionControl):
 
         # fetch the requested revision
         cls.run_command(
-            make_command('fetch', '-q', url, rev_options.to_args()),
+            make_command("fetch", "-q", url, rev_options.to_args()),
             cwd=dest,
         )
         # Change the revision to the SHA of the ref we fetched
-        sha = cls.get_revision(dest, rev='FETCH_HEAD')
+        sha = cls.get_revision(dest, rev="FETCH_HEAD")
         rev_options = rev_options.make_new(sha)
 
         return rev_options
@@ -258,27 +261,33 @@ class Git(VersionControl):
     def fetch_new(self, dest, url, rev_options):
         # type: (str, HiddenText, RevOptions) -> None
         rev_display = rev_options.to_display()
-        logger.info('Cloning %s%s to %s', url, rev_display, display_path(dest))
-        self.run_command(make_command('clone', '-q', url, dest))
+        logger.info("Cloning %s%s to %s", url, rev_display, display_path(dest))
+        self.run_command(make_command("clone", "-q", url, dest))
 
         if rev_options.rev:
             # Then a specific revision was requested.
             rev_options = self.resolve_revision(dest, url, rev_options)
-            branch_name = getattr(rev_options, 'branch_name', None)
+            branch_name = getattr(rev_options, "branch_name", None)
             if branch_name is None:
                 # Only do a checkout if the current commit id doesn't match
                 # the requested revision.
                 if not self.is_commit_id_equal(dest, rev_options.rev):
                     cmd_args = make_command(
-                        'checkout', '-q', rev_options.to_args(),
+                        "checkout",
+                        "-q",
+                        rev_options.to_args(),
                     )
                     self.run_command(cmd_args, cwd=dest)
             elif self.get_current_branch(dest) != branch_name:
                 # Then a specific branch was requested, and that branch
                 # is not yet checked out.
-                track_branch = f'origin/{branch_name}'
+                track_branch = f"origin/{branch_name}"
                 cmd_args = [
-                    'checkout', '-b', branch_name, '--track', track_branch,
+                    "checkout",
+                    "-b",
+                    branch_name,
+                    "--track",
+                    track_branch,
                 ]
                 self.run_command(cmd_args, cwd=dest)
         else:
@@ -293,10 +302,10 @@ class Git(VersionControl):
     def switch(self, dest, url, rev_options):
         # type: (str, HiddenText, RevOptions) -> None
         self.run_command(
-            make_command('config', 'remote.origin.url', url),
+            make_command("config", "remote.origin.url", url),
             cwd=dest,
         )
-        cmd_args = make_command('checkout', '-q', rev_options.to_args())
+        cmd_args = make_command("checkout", "-q", rev_options.to_args())
         self.run_command(cmd_args, cwd=dest)
 
         self.update_submodules(dest)
@@ -306,12 +315,12 @@ class Git(VersionControl):
         # First fetch changes from the default remote
         if self.get_git_version() >= (1, 9):
             # fetch tags in addition to everything else
-            self.run_command(['fetch', '-q', '--tags'], cwd=dest)
+            self.run_command(["fetch", "-q", "--tags"], cwd=dest)
         else:
-            self.run_command(['fetch', '-q'], cwd=dest)
+            self.run_command(["fetch", "-q"], cwd=dest)
         # Then reset to wanted revision (maybe even origin/master)
         rev_options = self.resolve_revision(dest, url, rev_options)
-        cmd_args = make_command('reset', '--hard', '-q', rev_options.to_args())
+        cmd_args = make_command("reset", "--hard", "-q", rev_options.to_args())
         self.run_command(cmd_args, cwd=dest)
         #: update submodules
         self.update_submodules(dest)
@@ -328,8 +337,8 @@ class Git(VersionControl):
         # We need to pass 1 for extra_ok_returncodes since the command
         # exits with return code 1 if there are no matching lines.
         stdout = cls.run_command(
-            ['config', '--get-regexp', r'remote\..*\.url'],
-            extra_ok_returncodes=(1, ),
+            ["config", "--get-regexp", r"remote\..*\.url"],
+            extra_ok_returncodes=(1,),
             show_stdout=False,
             stdout_only=True,
             cwd=location,
@@ -341,10 +350,10 @@ class Git(VersionControl):
             raise RemoteNotFoundError
 
         for remote in remotes:
-            if remote.startswith('remote.origin.url '):
+            if remote.startswith("remote.origin.url "):
                 found_remote = remote
                 break
-        url = found_remote.split(' ')[1]
+        url = found_remote.split(" ")[1]
         return cls._git_remote_to_pip_url(url.strip())
 
     @staticmethod
@@ -387,7 +396,7 @@ class Git(VersionControl):
         """
         try:
             cls.run_command(
-                ['rev-parse', '-q', '--verify', "sha^" + rev],
+                ["rev-parse", "-q", "--verify", "sha^" + rev],
                 cwd=location,
                 log_failed_cmd=False,
             )
@@ -400,9 +409,9 @@ class Git(VersionControl):
     def get_revision(cls, location, rev=None):
         # type: (str, Optional[str]) -> str
         if rev is None:
-            rev = 'HEAD'
+            rev = "HEAD"
         current_rev = cls.run_command(
-            ['rev-parse', rev],
+            ["rev-parse", rev],
             show_stdout=False,
             stdout_only=True,
             cwd=location,
@@ -418,14 +427,14 @@ class Git(VersionControl):
         """
         # find the repo root
         git_dir = cls.run_command(
-            ['rev-parse', '--git-dir'],
+            ["rev-parse", "--git-dir"],
             show_stdout=False,
             stdout_only=True,
             cwd=location,
         ).strip()
         if not os.path.isabs(git_dir):
             git_dir = os.path.join(location, git_dir)
-        repo_root = os.path.abspath(os.path.join(git_dir, '..'))
+        repo_root = os.path.abspath(os.path.join(git_dir, ".."))
         return find_path_to_project_root_from_repo_root(location, repo_root)
 
     @classmethod
@@ -440,23 +449,21 @@ class Git(VersionControl):
         # Works around an apparent Git bug
         # (see https://article.gmane.org/gmane.comp.version-control.git/146500)
         scheme, netloc, path, query, fragment = urlsplit(url)
-        if scheme.endswith('file'):
-            initial_slashes = path[:-len(path.lstrip('/'))]
-            newpath = (
-                initial_slashes +
-                urllib.request.url2pathname(path)
-                .replace('\\', '/').lstrip('/')
-            )
-            after_plus = scheme.find('+') + 1
+        if scheme.endswith("file"):
+            initial_slashes = path[: -len(path.lstrip("/"))]
+            newpath = initial_slashes + urllib.request.url2pathname(path).replace(
+                "\\", "/"
+            ).lstrip("/")
+            after_plus = scheme.find("+") + 1
             url = scheme[:after_plus] + urlunsplit(
                 (scheme[after_plus:], netloc, newpath, query, fragment),
             )
 
-        if '://' not in url:
-            assert 'file:' not in url
-            url = url.replace('git+', 'git+ssh://')
+        if "://" not in url:
+            assert "file:" not in url
+            url = url.replace("git+", "git+ssh://")
             url, rev, user_pass = super().get_url_rev_and_auth(url)
-            url = url.replace('ssh://', '')
+            url = url.replace("ssh://", "")
         else:
             url, rev, user_pass = super().get_url_rev_and_auth(url)
 
@@ -465,10 +472,10 @@ class Git(VersionControl):
     @classmethod
     def update_submodules(cls, location):
         # type: (str) -> None
-        if not os.path.exists(os.path.join(location, '.gitmodules')):
+        if not os.path.exists(os.path.join(location, ".gitmodules")):
             return
         cls.run_command(
-            ['submodule', 'update', '--init', '--recursive', '-q'],
+            ["submodule", "update", "--init", "--recursive", "-q"],
             cwd=location,
         )
 
@@ -480,26 +487,28 @@ class Git(VersionControl):
             return loc
         try:
             r = cls.run_command(
-                ['rev-parse', '--show-toplevel'],
+                ["rev-parse", "--show-toplevel"],
                 cwd=location,
                 show_stdout=False,
                 stdout_only=True,
-                on_returncode='raise',
+                on_returncode="raise",
                 log_failed_cmd=False,
             )
         except BadCommand:
-            logger.debug("could not determine if %s is under git control "
-                         "because git is not available", location)
+            logger.debug(
+                "could not determine if %s is under git control "
+                "because git is not available",
+                location,
+            )
             return None
         except InstallationError:
             return None
-        return os.path.normpath(r.rstrip('\r\n'))
+        return os.path.normpath(r.rstrip("\r\n"))
 
     @staticmethod
     def should_add_vcs_url_prefix(repo_url):
         # type: (str) -> bool
-        """In either https or ssh form, requirements must be prefixed with git+.
-        """
+        """In either https or ssh form, requirements must be prefixed with git+."""
         return True
 
 
