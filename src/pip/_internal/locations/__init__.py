@@ -111,6 +111,24 @@ def _looks_like_red_hat_scheme() -> bool:
     )
 
 
+@functools.lru_cache(maxsize=None)
+def _looks_like_msys2_mingw_scheme() -> bool:
+    """MSYS2 patches distutils and sysconfig to use a UNIX-like scheme.
+
+    However, MSYS2 incorrectly patches sysconfig ``nt`` scheme. The fix is
+    likely going to be included in their 3.10 release, so we ignore the warning.
+    See msys2/MINGW-packages#9319.
+
+    MSYS2 MINGW's patch uses lowercase ``"lib"`` instead of the usual uppercase,
+    and is missing the final ``"site-packages"``.
+    """
+    paths = sysconfig.get_paths("nt", expand=False)
+    return all(
+        "Lib" not in p and "lib" in p and not p.endswith("site-packages")
+        for p in (paths[key] for key in ("platlib", "purelib"))
+    )
+
+
 def _fix_abiflags(parts: Tuple[str]) -> Iterator[str]:
     ldversion = sysconfig.get_config_var("LDVERSION")
     abiflags: str = getattr(sys, "abiflags", None)
@@ -268,6 +286,14 @@ def get_scheme(
             and tuple(_fix_abiflags(old_v.parts)) == new_v.parts
         )
         if skip_sysconfig_abiflag_bug:
+            continue
+
+        # MSYS2 MINGW's sysconfig patch does not include the "site-packages"
+        # part of the path. This is incorrect and will be fixed in MSYS.
+        skip_msys2_mingw_bug = (
+            WINDOWS and k in ("platlib", "purelib") and _looks_like_msys2_mingw_scheme()
+        )
+        if skip_msys2_mingw_bug:
             continue
 
         warning_contexts.append((old_v, new_v, f"scheme.{k}"))
