@@ -1,7 +1,26 @@
-21.2.3 (2021-08-06)
+.. note
+
+    You should *NOT* be adding new change log entries to this file, this
+    file is managed by towncrier. You *may* edit previous change logs to
+    fix problems like typo corrections or such.
+
+    To add a new change log entry, please see
+        https://pip.pypa.io/en/latest/development/contributing/#news-entries
+
+
+.. towncrier release notes start
+
+21.2.4 (2021-08-12)
 ===================
 
+Bug Fixes
+---------
 
+- Fix 3.6.0 compatibility in link comparison logic. (`#10280 <https://github.com/pypa/pip/issues/10280>`_)
+
+
+21.2.3 (2021-08-06)
+===================
 
 Bug Fixes
 ---------
@@ -12,8 +31,6 @@ Bug Fixes
 
 21.2.2 (2021-07-31)
 ===================
-
-
 
 Bug Fixes
 ---------
@@ -26,8 +43,6 @@ Bug Fixes
 21.2.1 (2021-07-25)
 ===================
 
-
-
 Process
 -------
 
@@ -36,8 +51,6 @@ Process
 
 21.2 (2021-07-24)
 =================
-
-
 
 Process
 -------
@@ -133,17 +146,6 @@ Vendored Libraries
 - Upgrade resolvelib to 0.7.1.
 - Upgrade urllib3 to 1.26.6.
 
-
-.. note
-
-    You should *NOT* be adding new change log entries to this file, this
-    file is managed by towncrier. You *may* edit previous change logs to
-    fix problems like typo corrections or such.
-
-    To add a new change log entry, please see
-        https://pip.pypa.io/en/latest/development/contributing/#news-entries
-
-.. towncrier release notes start
 
 21.1.3 (2021-06-26)
 ===================
