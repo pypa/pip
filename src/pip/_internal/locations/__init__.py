@@ -43,6 +43,22 @@ if os.environ.get("_PIP_LOCATIONS_NO_WARN_ON_MISMATCH"):
 else:
     _MISMATCH_LEVEL = logging.WARNING
 
+_PLATLIBDIR: str = getattr(sys, "platlibdir", "lib")
+
+
+def _looks_like_bpo_44860() -> bool:
+    """The resolution to bpo-44860 will change this incorrect platlib.
+
+    See <https://bugs.python.org/issue44860>.
+    """
+    from distutils.command.install import INSTALL_SCHEMES  # type: ignore
+
+    try:
+        unix_user_platlib = INSTALL_SCHEMES["unix_user"]["platlib"]
+    except KeyError:
+        return False
+    return unix_user_platlib == "$usersite"
+
 
 def _looks_like_red_hat_patched_platlib_purelib(scheme: Dict[str, str]) -> bool:
     platlib = scheme["platlib"]
@@ -212,6 +228,21 @@ def get_scheme(
         # On Red Hat and derived Linux distributions, distutils is patched to
         # use "lib64" instead of "lib" for platlib.
         if k == "platlib" and _looks_like_red_hat_lib():
+            continue
+
+        # On Python 3.9+, sysconfig's posix_user scheme sets platlib against
+        # sys.platlibdir, but distutils's unix_user incorrectly coninutes
+        # using the same $usersite for both platlib and purelib. This creates a
+        # mismatch when sys.platlibdir is not "lib".
+        skip_bpo_44860 = (
+            user
+            and k == "platlib"
+            and not WINDOWS
+            and sys.version_info >= (3, 9)
+            and _PLATLIBDIR != "lib"
+            and _looks_like_bpo_44860()
+        )
+        if skip_bpo_44860:
             continue
 
         # Both Debian and Red Hat patch Python to place the system site under
