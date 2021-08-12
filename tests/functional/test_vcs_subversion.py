@@ -7,7 +7,7 @@ from tests.lib import _create_svn_repo, need_svn
 
 @need_svn
 def test_get_remote_url__no_remote(script, tmpdir):
-    repo_dir = tmpdir / 'temp-repo'
+    repo_dir = tmpdir / "temp-repo"
     repo_dir.mkdir()
     repo_dir = str(repo_dir)
 
@@ -19,7 +19,7 @@ def test_get_remote_url__no_remote(script, tmpdir):
 
 @need_svn
 def test_get_remote_url__no_remote_with_setup(script, tmpdir):
-    repo_dir = tmpdir / 'temp-repo'
+    repo_dir = tmpdir / "temp-repo"
     repo_dir.mkdir()
     setup = repo_dir / "setup.py"
     setup.touch()

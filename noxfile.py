@@ -24,9 +24,9 @@ LOCATIONS = {
     "protected-pip": "tools/tox_pip.py",
 }
 REQUIREMENTS = {
-    "docs": "tools/requirements/docs.txt",
-    "tests": "tools/requirements/tests.txt",
-    "common-wheels": "tools/requirements/tests-common_wheels.txt",
+    "docs": "docs/requirements.txt",
+    "tests": "tests/requirements.txt",
+    "common-wheels": "tests/requirements-common_wheels.txt",
 }
 
 AUTHORS_FILE = "AUTHORS.txt"
@@ -70,7 +70,7 @@ def should_update_common_wheels() -> bool:
 #   completely to nox for all our automation. Contributors should prefer using
 #   `tox -e ...` until this note is removed.
 # -----------------------------------------------------------------------------
-@nox.session(python=["3.6", "3.7", "3.8", "3.9", "pypy3"])
+@nox.session(python=["3.6", "3.7", "3.8", "3.9", "3.10", "pypy3"])
 def test(session: nox.Session) -> None:
     # Get the common wheels.
     if should_update_common_wheels():
@@ -123,8 +123,7 @@ def docs(session: nox.Session) -> None:
     session.install("-e", ".")
     session.install("-r", REQUIREMENTS["docs"])
 
-    def get_sphinx_build_command(kind):
-        # type: (str) -> List[str]
+    def get_sphinx_build_command(kind: str) -> List[str]:
         # Having the conf.py in the docs/html is weird but needed because we
         # can not use a different configuration directory vs source directory
         # on RTD currently. So, we'll pass "-c docs/html" here.
@@ -180,8 +179,7 @@ def vendoring(session: nox.Session) -> None:
         session.run("vendoring", "sync", ".", "-v")
         return
 
-    def pinned_requirements(path):
-        # type: (Path) -> Iterator[Tuple[str, str]]
+    def pinned_requirements(path: Path) -> Iterator[Tuple[str, str]]:
         for line in path.read_text().splitlines(keepends=False):
             one, sep, two = line.partition("==")
             if not sep:

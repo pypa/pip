@@ -18,7 +18,6 @@ from itertools import filterfalse, tee, zip_longest
 from types import TracebackType
 from typing import (
     Any,
-    AnyStr,
     BinaryIO,
     Callable,
     Container,
@@ -104,7 +103,7 @@ def normalize_version_info(py_version_info):
 
 
 def ensure_dir(path):
-    # type: (AnyStr) -> None
+    # type: (str) -> None
     """os.path.makedirs without EEXIST."""
     try:
         os.makedirs(path)
@@ -131,7 +130,7 @@ def get_prog():
 # Tenacity raises RetryError by default, explicitly raise the original exception
 @retry(reraise=True, stop=stop_after_delay(3), wait=wait_fixed(0.5))
 def rmtree(dir, ignore_errors=False):
-    # type: (AnyStr, bool) -> None
+    # type: (str, bool) -> None
     shutil.rmtree(dir, ignore_errors=ignore_errors, onerror=rmtree_errorhandler)
 
 

@@ -49,8 +49,7 @@ def arg_recording_sdist_maker(script):
     output_dir.mkdir(parents=True)
     script.environ["OUTPUT_DIR"] = str(output_dir)
 
-    def _arg_recording_sdist_maker(name):
-        # type: (str) -> ArgRecordingSdist
+    def _arg_recording_sdist_maker(name: str) -> ArgRecordingSdist:
         extra_files = {"setup.py": arg_writing_setup_py.format(name=name)}
         sdist_path = create_basic_sdist_for_package(
             script, name, "0.1.0", extra_files

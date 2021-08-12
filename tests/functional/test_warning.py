@@ -1,3 +1,4 @@
+import sys
 import textwrap
 
 import pytest
@@ -44,6 +45,10 @@ def test_flag_does_nothing_if_python_version_is_not_2(script):
     script.pip("list", "--no-python-version-warning")
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 10),
+    reason="distutils is deprecated in 3.10+"
+)
 def test_pip_works_with_warnings_as_errors(script):
     script.environ['PYTHONWARNINGS'] = 'error'
     script.pip("--version")

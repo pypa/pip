@@ -1,0 +1,1 @@
+Fix 3.6.0 compatibility in link comparison logic.

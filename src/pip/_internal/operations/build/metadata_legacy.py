@@ -13,8 +13,7 @@ from pip._internal.utils.temp_dir import TempDirectory
 logger = logging.getLogger(__name__)
 
 
-def _find_egg_info(directory):
-    # type: (str) -> str
+def _find_egg_info(directory: str) -> str:
     """Find an .egg-info subdirectory in `directory`.
     """
     filenames = [
@@ -37,13 +36,12 @@ def _find_egg_info(directory):
 
 
 def generate_metadata(
-    build_env,  # type: BuildEnvironment
-    setup_py_path,  # type: str
-    source_dir,  # type: str
-    isolated,  # type: bool
-    details,  # type: str
-):
-    # type: (...) -> str
+    build_env: BuildEnvironment,
+    setup_py_path: str,
+    source_dir: str,
+    isolated: bool,
+    details: str,
+) -> str:
     """Generate metadata using setup.py-based defacto mechanisms.
 
     Returns the generated metadata directory.

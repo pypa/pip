@@ -28,13 +28,13 @@ Credentials = Tuple[str, str, str]
 try:
     import keyring
 except ImportError:
-    keyring = None
+    keyring = None  # type: ignore[assignment]
 except Exception as exc:
     logger.warning(
         "Keyring is skipped due to an exception: %s",
         str(exc),
     )
-    keyring = None
+    keyring = None  # type: ignore[assignment]
 
 
 def get_keyring_auth(url: Optional[str], username: Optional[str]) -> Optional[AuthInfo]:
@@ -66,7 +66,7 @@ def get_keyring_auth(url: Optional[str], username: Optional[str]) -> Optional[Au
             "Keyring is skipped due to an exception: %s",
             str(exc),
         )
-        keyring = None
+        keyring = None  # type: ignore[assignment]
     return None
 
 

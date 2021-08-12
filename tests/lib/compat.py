@@ -3,8 +3,7 @@ from typing import Iterator
 
 
 @contextlib.contextmanager
-def nullcontext():
-    # type: () -> Iterator[None]
+def nullcontext() -> Iterator[None]:
     """
     Context manager that does no additional processing.
 

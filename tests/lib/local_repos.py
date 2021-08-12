@@ -29,10 +29,9 @@ def _create_svn_initools_repo(initools_dir):
 
 
 def local_checkout(
-    remote_repo,  # type: str
-    temp_path,  # type: Path
-):
-    # type: (...) -> str
+    remote_repo: str,
+    temp_path: Path,
+) -> str:
     """
     :param temp_path: the return value of the tmpdir fixture, which is a
         temp directory Path object unique to each test function invocation,

@@ -30,7 +30,6 @@ jobs:
             tests:
               # Anything that's touching testable stuff
               - ".github/workflows/ci.yml"
-              - "tools/requirements/tests.txt"
               - "src/**"
               - "tests/**"
         if: github.event_name == 'pull_request'
@@ -97,6 +96,7 @@ jobs:
           - 3.7
           - 3.8
           - 3.9
+          - "3.10.0-alpha - 3.10"
 
     steps:
       - uses: actions/checkout@v2
@@ -138,6 +138,7 @@ jobs:
           # - 3.7
           # - 3.8
           - 3.9
+          - "3.10.0-alpha - 3.10"
         group: [1, 2]
 
     steps:

@@ -25,7 +25,7 @@ Responder = Callable[[Environ, StartResponse], Body]
 
 
 class MockServer(BaseWSGIServer):
-    mock = Mock()  # type: Mock
+    mock: Mock = Mock()
 
 
 # Applies on Python 2 and Windows.
@@ -77,14 +77,14 @@ class _RequestHandler(WSGIRequestHandler):
         return environ
 
 
-def _mock_wsgi_adapter(mock):
-    # type: (Callable[[Environ, StartResponse], Responder]) -> Responder
+def _mock_wsgi_adapter(
+    mock: Callable[[Environ, StartResponse], Responder]
+) -> Responder:
     """Uses a mock to record function arguments and provide
     the actual function that should respond.
     """
 
-    def adapter(environ, start_response):
-        # type: (Environ, StartResponse) -> Body
+    def adapter(environ: Environ, start_response: StartResponse) -> Body:
         try:
             responder = mock(environ, start_response)
         except StopIteration:
@@ -94,8 +94,7 @@ def _mock_wsgi_adapter(mock):
     return adapter
 
 
-def make_mock_server(**kwargs):
-    # type: (Any) -> MockServer
+def make_mock_server(**kwargs: Any) -> MockServer:
     """Creates a mock HTTP(S) server listening on a random port on localhost.
 
     The `mock` property of the returned server provides and records all WSGI
@@ -135,8 +134,7 @@ def make_mock_server(**kwargs):
 
 
 @contextmanager
-def server_running(server):
-    # type: (BaseWSGIServer) -> None
+def server_running(server: BaseWSGIServer) -> None:
     """Context manager for running the provided server in a separate thread."""
     thread = threading.Thread(target=server.serve_forever)
     thread.daemon = True
@@ -152,10 +150,8 @@ def server_running(server):
 # Helper functions for making responses in a declarative way.
 
 
-def text_html_response(text):
-    # type: (str) -> Responder
-    def responder(environ, start_response):
-        # type: (Environ, StartResponse) -> Body
+def text_html_response(text: str) -> Responder:
+    def responder(environ: Environ, start_response: StartResponse) -> Body:
         start_response(
             "200 OK",
             [
@@ -167,8 +163,7 @@ def text_html_response(text):
     return responder
 
 
-def html5_page(text):
-    # type: (str) -> str
+def html5_page(text: str) -> str:
     return (
         dedent(
             """
@@ -185,8 +180,7 @@ def html5_page(text):
     )
 
 
-def index_page(spec):
-    # type: (Dict[str, str]) -> Responder
+def index_page(spec: Dict[str, str]) -> Responder:
     def link(name, value):
         return '<a href="{}">{}</a>'.format(value, name)
 
@@ -194,8 +188,7 @@ def index_page(spec):
     return text_html_response(html5_page(links))
 
 
-def package_page(spec):
-    # type: (Dict[str, str]) -> Responder
+def package_page(spec: Dict[str, str]) -> Responder:
     def link(name, value):
         return '<a href="{}">{}</a>'.format(value, name)
 
@@ -203,10 +196,8 @@ def package_page(spec):
     return text_html_response(html5_page(links))
 
 
-def file_response(path):
-    # type: (str) -> Responder
-    def responder(environ, start_response):
-        # type: (Environ, StartResponse) -> Body
+def file_response(path: str) -> Responder:
+    def responder(environ: Environ, start_response: StartResponse) -> Body:
         size = os.stat(path).st_size
         start_response(
             "200 OK",
@@ -222,12 +213,10 @@ def file_response(path):
     return responder
 
 
-def authorization_response(path):
-    # type: (str) -> Responder
+def authorization_response(path: str) -> Responder:
     correct_auth = "Basic " + b64encode(b"USERNAME:PASSWORD").decode("ascii")
 
-    def responder(environ, start_response):
-        # type: (Environ, StartResponse) -> Body
+    def responder(environ: Environ, start_response: StartResponse) -> Body:
 
         if environ.get("HTTP_AUTHORIZATION") == correct_auth:
             size = os.stat(path).st_size

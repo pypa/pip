@@ -36,16 +36,15 @@ class _EditableInfo(NamedTuple):
 
 
 def freeze(
-    requirement=None,  # type: Optional[List[str]]
-    local_only=False,  # type: bool
-    user_only=False,  # type: bool
-    paths=None,  # type: Optional[List[str]]
-    isolated=False,  # type: bool
-    exclude_editable=False,  # type: bool
-    skip=()  # type: Container[str]
-):
-    # type: (...) -> Iterator[str]
-    installations = {}  # type: Dict[str, FrozenRequirement]
+    requirement: Optional[List[str]] = None,
+    local_only: bool = False,
+    user_only: bool = False,
+    paths: Optional[List[str]] = None,
+    isolated: bool = False,
+    exclude_editable: bool = False,
+    skip: Container[str] = ()
+) -> Iterator[str]:
+    installations: Dict[str, FrozenRequirement] = {}
 
     dists = get_environment(paths).iter_installed_distributions(
         local_only=local_only,
@@ -63,10 +62,10 @@ def freeze(
         # should only be emitted once, even if the same option is in multiple
         # requirements files, so we need to keep track of what has been emitted
         # so that we don't emit it again if it's seen again
-        emitted_options = set()  # type: Set[str]
+        emitted_options: Set[str] = set()
         # keep track of which files a requirement is in so that we can
         # give an accurate warning if a requirement appears multiple times.
-        req_files = collections.defaultdict(list)  # type: Dict[str, List[str]]
+        req_files: Dict[str, List[str]] = collections.defaultdict(list)
         for req_file_path in requirement:
             with open(req_file_path) as req_file:
                 for line in req_file:
@@ -241,8 +240,13 @@ def _get_editable_info(dist: BaseDistribution) -> _EditableInfo:
 
 
 class FrozenRequirement:
-    def __init__(self, name, req, editable, comments=()):
-        # type: (str, Union[str, Requirement], bool, Iterable[str]) -> None
+    def __init__(
+        self,
+        name: str,
+        req: Union[str, Requirement],
+        editable: bool,
+        comments: Iterable[str] = (),
+    ) -> None:
         self.name = name
         self.canonical_name = canonicalize_name(name)
         self.req = req
@@ -269,8 +273,7 @@ class FrozenRequirement:
 
         return cls(dist.raw_name, req, editable, comments=comments)
 
-    def __str__(self):
-        # type: () -> str
+    def __str__(self) -> str:
         req = self.req
         if self.editable:
             req = f'-e {req}'

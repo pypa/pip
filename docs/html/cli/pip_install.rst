@@ -413,14 +413,14 @@ overridden by using ``--cert`` option or by using ``PIP_CERT``,
 Caching
 -------
 
-This is now covered in :doc:`../topics/caching`
+This is now covered in :doc:`../topics/caching`.
 
 .. _`Wheel cache`:
 
 Wheel Cache
 ^^^^^^^^^^^
 
-This is now covered in :doc:`../topics/caching`
+This is now covered in :doc:`../topics/caching`.
 
 .. _`hash-checking mode`:
 
