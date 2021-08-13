@@ -65,10 +65,6 @@ def test_get_cache_entry(tmpdir):
         pass
     other_link = Link("https://g.c/o/r/other")
     supported_tags = [Tag("py3", "none", "any")]
-    assert (
-        wc.get_cache_entry(persi_link, "persi", supported_tags).persistent
-    )
-    assert (
-        not wc.get_cache_entry(ephem_link, "ephem", supported_tags).persistent
-    )
+    assert wc.get_cache_entry(persi_link, "persi", supported_tags).persistent
+    assert not wc.get_cache_entry(ephem_link, "ephem", supported_tags).persistent
     assert wc.get_cache_entry(other_link, "other", supported_tags) is None

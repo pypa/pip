@@ -41,7 +41,7 @@ def preparer(finder):
                     req_tracker=tracker,
                     session=session,
                     finder=finder,
-                    use_user_site=False
+                    use_user_site=False,
                 )
 
                 yield preparer

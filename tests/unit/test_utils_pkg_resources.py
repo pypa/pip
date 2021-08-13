@@ -35,16 +35,15 @@ def test_dict_metadata_works():
     assert set(extras) == set(dist.extras)
     assert [Requirement.parse(require_a)] == dist.requires([])
     assert [
-        Requirement.parse(require_a), Requirement.parse(require_b)
+        Requirement.parse(require_a),
+        Requirement.parse(require_b),
     ] == dist.requires(["also_b"])
     assert metadata.as_string() == get_metadata(dist).as_string()
     assert requires_python == get_requires_python(dist)
 
 
 def test_dict_metadata_throws_on_bad_unicode():
-    metadata = DictMetadata({
-        "METADATA": b"\xff"
-    })
+    metadata = DictMetadata({"METADATA": b"\xff"})
 
     with pytest.raises(UnicodeDecodeError) as e:
         metadata.get_metadata("METADATA")

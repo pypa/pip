@@ -7,8 +7,7 @@ from pip._internal.models import candidate, index
 
 
 class TestPackageIndex:
-    """Tests for pip._internal.models.index.PackageIndex
-    """
+    """Tests for pip._internal.models.index.PackageIndex"""
 
     def test_gives_right_urls(self):
         url = "https://mypypi.internal/path/"
@@ -42,7 +41,6 @@ class TestPackageIndex:
 
 
 class TestInstallationCandidate:
-
     def test_sets_correct_variables(self):
         obj = candidate.InstallationCandidate(
             "A", "1.0.0", "https://somewhere.com/path/A-1.0.0.tar.gz"

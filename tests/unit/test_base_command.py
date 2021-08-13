@@ -13,16 +13,17 @@ from pip._internal.utils.temp_dir import TempDirectory
 
 @pytest.fixture
 def fixed_time(utc):
-    with patch('time.time', lambda: 1547704837.040001):
+    with patch("time.time", lambda: 1547704837.040001):
         yield
 
 
 class FakeCommand(Command):
 
-    _name = 'fake'
+    _name = "fake"
 
     def __init__(self, run_func=None, error=False):
         if error:
+
             def run_func():
                 raise SystemExit(1)
 
@@ -43,21 +44,19 @@ class FakeCommand(Command):
 
 
 class FakeCommandWithUnicode(FakeCommand):
-    _name = 'fake_unicode'
+    _name = "fake_unicode"
 
     def run(self, options, args):
         logging.getLogger("pip.tests").info(b"bytes here \xE9")
-        logging.getLogger("pip.tests").info(
-            b"unicode here \xC3\xA9".decode("utf-8")
-        )
+        logging.getLogger("pip.tests").info(b"unicode here \xC3\xA9".decode("utf-8"))
 
 
 class TestCommand:
-
     def call_main(self, capsys, args):
         """
         Call command.main(), and return the command's stderr.
         """
+
         def raise_broken_stdout():
             raise BrokenStdoutLoggingError()
 
@@ -74,19 +73,19 @@ class TestCommand:
         """
         stderr = self.call_main(capsys, [])
 
-        assert stderr.rstrip() == 'ERROR: Pipe to stdout was broken'
+        assert stderr.rstrip() == "ERROR: Pipe to stdout was broken"
 
     def test_raise_broken_stdout__debug_logging(self, capsys):
         """
         Test raising BrokenStdoutLoggingError with debug logging enabled.
         """
-        stderr = self.call_main(capsys, ['-vv'])
+        stderr = self.call_main(capsys, ["-vv"])
 
-        assert 'ERROR: Pipe to stdout was broken' in stderr
-        assert 'Traceback (most recent call last):' in stderr
+        assert "ERROR: Pipe to stdout was broken" in stderr
+        assert "Traceback (most recent call last):" in stderr
 
 
-@patch('pip._internal.cli.req_command.Command.handle_pip_version_check')
+@patch("pip._internal.cli.req_command.Command.handle_pip_version_check")
 def test_handle_pip_version_check_called(mock_handle_version_check):
     """
     Check that Command.handle_pip_version_check() is called.
@@ -99,28 +98,28 @@ def test_handle_pip_version_check_called(mock_handle_version_check):
 def test_log_command_success(fixed_time, tmpdir):
     """Test the --log option logs when command succeeds."""
     cmd = FakeCommand()
-    log_path = tmpdir.joinpath('log')
-    cmd.main(['fake', '--log', log_path])
+    log_path = tmpdir.joinpath("log")
+    cmd.main(["fake", "--log", log_path])
     with open(log_path) as f:
-        assert f.read().rstrip() == '2019-01-17T06:00:37,040 fake'
+        assert f.read().rstrip() == "2019-01-17T06:00:37,040 fake"
 
 
 def test_log_command_error(fixed_time, tmpdir):
     """Test the --log option logs when command fails."""
     cmd = FakeCommand(error=True)
-    log_path = tmpdir.joinpath('log')
-    cmd.main(['fake', '--log', log_path])
+    log_path = tmpdir.joinpath("log")
+    cmd.main(["fake", "--log", log_path])
     with open(log_path) as f:
-        assert f.read().startswith('2019-01-17T06:00:37,040 fake')
+        assert f.read().startswith("2019-01-17T06:00:37,040 fake")
 
 
 def test_log_file_command_error(fixed_time, tmpdir):
     """Test the --log-file option logs (when there's an error)."""
     cmd = FakeCommand(error=True)
-    log_file_path = tmpdir.joinpath('log_file')
-    cmd.main(['fake', '--log-file', log_file_path])
+    log_file_path = tmpdir.joinpath("log_file")
+    cmd.main(["fake", "--log-file", log_file_path])
     with open(log_file_path) as f:
-        assert f.read().startswith('2019-01-17T06:00:37,040 fake')
+        assert f.read().startswith("2019-01-17T06:00:37,040 fake")
 
 
 def test_log_unicode_messages(fixed_time, tmpdir):
@@ -128,8 +127,8 @@ def test_log_unicode_messages(fixed_time, tmpdir):
     don't break logging.
     """
     cmd = FakeCommandWithUnicode()
-    log_path = tmpdir.joinpath('log')
-    cmd.main(['fake_unicode', '--log', log_path])
+    log_path = tmpdir.joinpath("log")
+    cmd.main(["fake_unicode", "--log", log_path])
 
 
 @pytest.mark.no_auto_tempdir_manager
@@ -151,9 +150,7 @@ def test_base_command_provides_tempdir_helpers():
 not_deleted = "not_deleted"
 
 
-@pytest.mark.parametrize("kind,exists", [
-    (not_deleted, True), ("deleted", False)
-])
+@pytest.mark.parametrize("kind,exists", [(not_deleted, True), ("deleted", False)])
 @pytest.mark.no_auto_tempdir_manager
 def test_base_command_global_tempdir_cleanup(kind, exists):
     assert temp_dir._tempdir_manager is None
@@ -174,9 +171,7 @@ def test_base_command_global_tempdir_cleanup(kind, exists):
     assert os.path.exists(Holder.value) == exists
 
 
-@pytest.mark.parametrize("kind,exists", [
-    (not_deleted, True), ("deleted", False)
-])
+@pytest.mark.parametrize("kind,exists", [(not_deleted, True), ("deleted", False)])
 @pytest.mark.no_auto_tempdir_manager
 def test_base_command_local_tempdir_cleanup(kind, exists):
     assert temp_dir._tempdir_manager is None

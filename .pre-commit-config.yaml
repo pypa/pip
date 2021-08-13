@@ -20,18 +20,6 @@ repos:
   rev: 21.7b0
   hooks:
   - id: black
-    exclude: |
-      (?x)
-        ^src/pip/_internal/models|
-        ^src/pip/_internal/operations|
-        ^src/pip/_internal/\w+\.py$|
-        # Tests
-        ^tests/data|
-        ^tests/unit|
-        ^tests/functional/(?!test_install)|
-        ^tests/functional/test_install|
-        # A blank ignore, to avoid merge conflicts later.
-        ^$
 
 - repo: https://gitlab.com/pycqa/flake8
   rev: 3.8.4

@@ -30,9 +30,7 @@ def test_to_json():
 def test_archive_info():
     direct_url_dict = {
         "url": "file:///home/user/archive.tgz",
-        "archive_info": {
-            "hash": "sha1=1b8c5bc61a86f377fea47b4276c8c8a5842d2220"
-        },
+        "archive_info": {"hash": "sha1=1b8c5bc61a86f377fea47b4276c8c8a5842d2220"},
     }
     direct_url = DirectUrl.from_dict(direct_url_dict)
     assert isinstance(direct_url.info, ArchiveInfo)
@@ -71,47 +69,31 @@ def test_vcs_info():
     assert direct_url.url == direct_url_dict["url"]
     assert direct_url.info.vcs == "git"
     assert direct_url.info.requested_revision == "master"
-    assert (
-        direct_url.info.commit_id == "1b8c5bc61a86f377fea47b4276c8c8a5842d2220"
-    )
+    assert direct_url.info.commit_id == "1b8c5bc61a86f377fea47b4276c8c8a5842d2220"
     assert direct_url.to_dict() == direct_url_dict
 
 
 def test_parsing_validation():
-    with pytest.raises(
-        DirectUrlValidationError, match="url must have a value"
-    ):
+    with pytest.raises(DirectUrlValidationError, match="url must have a value"):
         DirectUrl.from_dict({"dir_info": {}})
     with pytest.raises(
         DirectUrlValidationError,
         match="missing one of archive_info, dir_info, vcs_info",
     ):
         DirectUrl.from_dict({"url": "http://..."})
-    with pytest.raises(
-        DirectUrlValidationError, match="unexpected type for editable"
-    ):
-        DirectUrl.from_dict(
-            {"url": "http://...", "dir_info": {"editable": "false"}}
-        )
-    with pytest.raises(
-        DirectUrlValidationError, match="unexpected type for hash"
-    ):
+    with pytest.raises(DirectUrlValidationError, match="unexpected type for editable"):
+        DirectUrl.from_dict({"url": "http://...", "dir_info": {"editable": "false"}})
+    with pytest.raises(DirectUrlValidationError, match="unexpected type for hash"):
         DirectUrl.from_dict({"url": "http://...", "archive_info": {"hash": 1}})
-    with pytest.raises(
-        DirectUrlValidationError, match="unexpected type for vcs"
-    ):
+    with pytest.raises(DirectUrlValidationError, match="unexpected type for vcs"):
         DirectUrl.from_dict({"url": "http://...", "vcs_info": {"vcs": None}})
-    with pytest.raises(
-        DirectUrlValidationError, match="commit_id must have a value"
-    ):
+    with pytest.raises(DirectUrlValidationError, match="commit_id must have a value"):
         DirectUrl.from_dict({"url": "http://...", "vcs_info": {"vcs": "git"}})
     with pytest.raises(
         DirectUrlValidationError,
         match="more than one of archive_info, dir_info, vcs_info",
     ):
-        DirectUrl.from_dict(
-            {"url": "http://...", "dir_info": {}, "archive_info": {}}
-        )
+        DirectUrl.from_dict({"url": "http://...", "dir_info": {}, "archive_info": {}})
 
 
 def test_redact_url():
@@ -130,22 +112,16 @@ def test_redact_url():
         return direct_url.redacted_url
 
     assert (
-        _redact_git("https://user:password@g.c/u/p.git@branch#egg=pkg") ==
-        "https://g.c/u/p.git@branch#egg=pkg"
+        _redact_git("https://user:password@g.c/u/p.git@branch#egg=pkg")
+        == "https://g.c/u/p.git@branch#egg=pkg"
+    )
+    assert _redact_git("https://${USER}:password@g.c/u/p.git") == "https://g.c/u/p.git"
+    assert (
+        _redact_archive("file://${U}:${PIP_PASSWORD}@g.c/u/p.tgz")
+        == "file://${U}:${PIP_PASSWORD}@g.c/u/p.tgz"
     )
     assert (
-        _redact_git("https://${USER}:password@g.c/u/p.git") ==
-        "https://g.c/u/p.git"
+        _redact_git("https://${PIP_TOKEN}@g.c/u/p.git")
+        == "https://${PIP_TOKEN}@g.c/u/p.git"
     )
-    assert (
-        _redact_archive("file://${U}:${PIP_PASSWORD}@g.c/u/p.tgz") ==
-        "file://${U}:${PIP_PASSWORD}@g.c/u/p.tgz"
-    )
-    assert (
-        _redact_git("https://${PIP_TOKEN}@g.c/u/p.git") ==
-        "https://${PIP_TOKEN}@g.c/u/p.git"
-    )
-    assert (
-        _redact_git("ssh://git@g.c/u/p.git") ==
-        "ssh://git@g.c/u/p.git"
-    )
+    assert _redact_git("ssh://git@g.c/u/p.git") == "ssh://git@g.c/u/p.git"

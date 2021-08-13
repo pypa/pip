@@ -63,9 +63,7 @@ def test_basic_search(script):
 
     """
     output = script.pip("search", "pip")
-    assert (
-        "The PyPA recommended tool for installing Python packages." in output.stdout
-    )
+    assert "The PyPA recommended tool for installing Python packages." in output.stdout
 
 
 @pytest.mark.network
@@ -84,9 +82,7 @@ def test_multiple_search(script):
 
     """
     output = script.pip("search", "pip", "INITools")
-    assert (
-        "The PyPA recommended tool for installing Python packages." in output.stdout
-    )
+    assert "The PyPA recommended tool for installing Python packages." in output.stdout
     assert "Tools for parsing and using INI-style files" in output.stdout
 
 

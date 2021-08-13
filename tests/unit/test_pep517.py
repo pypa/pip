@@ -6,11 +6,14 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.req import InstallRequirement
 
 
-@pytest.mark.parametrize(('source', 'expected'), [
-    ("pep517_setup_and_pyproject", True),
-    ("pep517_setup_only", False),
-    ("pep517_pyproject_only", True),
-])
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        ("pep517_setup_and_pyproject", True),
+        ("pep517_setup_only", False),
+        ("pep517_pyproject_only", True),
+    ],
+)
 def test_use_pep517(shared_data, source, expected):
     """
     Test that we choose correctly between PEP 517 and legacy code paths
@@ -22,10 +25,13 @@ def test_use_pep517(shared_data, source, expected):
     assert req.use_pep517 is expected
 
 
-@pytest.mark.parametrize(('source', 'msg'), [
-    ("pep517_setup_and_pyproject", "specifies a build backend"),
-    ("pep517_pyproject_only", "does not have a setup.py"),
-])
+@pytest.mark.parametrize(
+    ("source", "msg"),
+    [
+        ("pep517_setup_and_pyproject", "specifies a build backend"),
+        ("pep517_pyproject_only", "does not have a setup.py"),
+    ],
+)
 def test_disabling_pep517_invalid(shared_data, source, msg):
     """
     Test that we fail if we try to disable PEP 517 when it's not acceptable
@@ -49,13 +55,17 @@ def test_disabling_pep517_invalid(shared_data, source, msg):
     ("spec",), [("./foo",), ("git+https://example.com/pkg@dev#egg=myproj",)]
 )
 def test_pep517_parsing_checks_requirements(tmpdir, spec):
-    tmpdir.joinpath("pyproject.toml").write_text(dedent(
-        """
+    tmpdir.joinpath("pyproject.toml").write_text(
+        dedent(
+            """
         [build-system]
         requires = [{!r}]
         build-backend = "foo"
-        """.format(spec)
-    ))
+        """.format(
+                spec
+            )
+        )
+    )
     req = InstallRequirement(None, None)
     req.source_dir = tmpdir  # make req believe it has been unpacked
 
