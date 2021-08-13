@@ -345,8 +345,8 @@ class TestProcessLine:
         req = line_processor(line, filename, 1)[0]
         assert req.hash_options == {
             "sha256": [
-                "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e730433" "62938b9824",
-                "486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65" "260e9cb8a7",
+                "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+                "486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65260e9cb8a7",
             ],
             "sha384": [
                 "59e1748777448c69de6b800d7a33bbfb9ff1b463e44354c3553bcd"
@@ -596,7 +596,7 @@ class TestParseRequirements:
         assert finder.index_urls == ["url1", "url2"]
 
     def test_expand_existing_env_variables(self, tmpdir, finder):
-        template = "https://{}:x-oauth-basic@github.com/" "user/{}/archive/master.zip"
+        template = "https://{}:x-oauth-basic@github.com/user/{}/archive/master.zip"
 
         def make_var(name):
             return f"${{{name}}}"

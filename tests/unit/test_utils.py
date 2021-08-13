@@ -423,11 +423,11 @@ def test_rmtree_retries_for_3sec(tmpdir, monkeypatch):
 
 if sys.byteorder == "little":
     expected_byte_string = (
-        "b'\\xff\\xfe/\\x00p\\x00a\\x00t\\x00h\\x00/" "\\x00d\\x00\\xe9\\x00f\\x00'"
+        "b'\\xff\\xfe/\\x00p\\x00a\\x00t\\x00h\\x00/\\x00d\\x00\\xe9\\x00f\\x00'"
     )
 elif sys.byteorder == "big":
     expected_byte_string = (
-        "b'\\xfe\\xff\\x00/\\x00p\\x00a\\x00t\\x00h\\" "x00/\\x00d\\x00\\xe9\\x00f'"
+        "b'\\xfe\\xff\\x00/\\x00p\\x00a\\x00t\\x00h\\x00/\\x00d\\x00\\xe9\\x00f'"
     )
 
 

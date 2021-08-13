@@ -135,7 +135,7 @@ def test_from_link_archive():
     assert direct_url.url == "https://g.c/archive.tgz"
     assert isinstance(direct_url.info, ArchiveInfo)
     direct_url = direct_url_from_link(
-        Link("https://g.c/archive.tgz" "#sha1=1b8c5bc61a86f377fea47b4276c8c8a5842d2220")
+        Link("https://g.c/archive.tgz#sha1=1b8c5bc61a86f377fea47b4276c8c8a5842d2220")
     )
     assert isinstance(direct_url.info, ArchiveInfo)
     assert direct_url.info.hash == "sha1=1b8c5bc61a86f377fea47b4276c8c8a5842d2220"

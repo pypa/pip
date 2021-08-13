@@ -86,7 +86,7 @@ def _check_link_requires_python(
                 return False
 
             logger.debug(
-                "Ignoring failed Requires-Python check (%s not in: %r) " "for link: %s",
+                "Ignoring failed Requires-Python check (%s not in: %r) for link: %s",
                 version,
                 link.requires_python,
                 link,
@@ -935,7 +935,7 @@ class PackageFinder:
         if best_installed:
             # We have an existing version, and its the best version
             logger.debug(
-                "Installed version (%s) is most up-to-date (past versions: " "%s)",
+                "Installed version (%s) is most up-to-date (past versions: %s)",
                 installed_version,
                 _format_versions(best_candidate_result.iter_applicable()),
             )

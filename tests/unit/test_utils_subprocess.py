@@ -152,7 +152,7 @@ def test_call_subprocess_stdout_only(capfd, monkeypatch, stdout_only, expected):
         [
             sys.executable,
             "-c",
-            "import sys; " "sys.stdout.write('out\\n'); " "sys.stderr.write('err\\n')",
+            "import sys; sys.stdout.write('out\\n'); sys.stderr.write('err\\n')",
         ],
         stdout_only=stdout_only,
     )

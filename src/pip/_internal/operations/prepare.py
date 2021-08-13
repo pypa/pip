@@ -254,7 +254,7 @@ def _check_download_dir(
             hashes.check_against_path(download_path)
         except HashMismatch:
             logger.warning(
-                "Previously-downloaded file %s has bad hash. " "Re-downloading.",
+                "Previously-downloaded file %s has bad hash. Re-downloading.",
                 download_path,
             )
             os.unlink(download_path)
@@ -409,7 +409,7 @@ class RequirementPreparer:
             return None
         if link.is_file or not link.is_wheel:
             logger.debug(
-                "Lazy wheel is not used as " "%r does not points to a remote wheel",
+                "Lazy wheel is not used as %r does not points to a remote wheel",
                 link,
             )
             return None

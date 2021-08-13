@@ -654,7 +654,7 @@ def test_install_distribution_union_with_versions(
         assert ("localextras[baz] 0.0.2 depends on localextras 0.0.2") in result.stdout
     else:
         assert (
-            "Successfully installed LocalExtras-0.0.1 simple-3.0 " "singlemodule-0.0.1"
+            "Successfully installed LocalExtras-0.0.1 simple-3.0 singlemodule-0.0.1"
         ) in result.stdout
 
 
@@ -705,8 +705,7 @@ def test_install_unsupported_wheel_file(script, data):
         expect_stderr=True,
     )
     assert (
-        "simple.dist-0.1-py1-none-invalid.whl is not a supported "
-        + "wheel on this platform"
+        "simple.dist-0.1-py1-none-invalid.whl is not a supported wheel on this platform"
         in result.stderr
     )
     assert len(result.files_created) == 0

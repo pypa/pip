@@ -89,7 +89,7 @@ def test_rejection_for_location_requirement_options():
             OSError("Illegal byte sequence"),
             True,
             True,
-            "Could not install" " packages due to an OSError.\n",
+            "Could not install packages due to an OSError.\n",
         ),
         (
             OSError(errno.EACCES, "No file permission"),
@@ -104,7 +104,7 @@ def test_rejection_for_location_requirement_options():
             OSError("Illegal byte sequence"),
             True,
             False,
-            "Could not" " install packages due to an OSError.\n",
+            "Could not install packages due to an OSError.\n",
         ),
         (
             OSError(errno.EACCES, "No file permission"),

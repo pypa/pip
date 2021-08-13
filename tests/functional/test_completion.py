@@ -177,12 +177,12 @@ def test_completion_files_after_option(autocomplete, data):
         cword="3",
         cwd=data.completion_paths,
     )
-    assert "requirements.txt" in res.stdout, (
-        "autocomplete function could not complete <file> " "after options in command"
-    )
-    assert os.path.join("resources", "") in res.stdout, (
-        "autocomplete function could not complete <dir> " "after options in command"
-    )
+    assert (
+        "requirements.txt" in res.stdout
+    ), "autocomplete function could not complete <file> after options in command"
+    assert (
+        os.path.join("resources", "") in res.stdout
+    ), "autocomplete function could not complete <dir> after options in command"
     assert not any(
         out in res.stdout for out in (os.path.join("REPLAY", ""), "README.txt")
     ), (
@@ -191,12 +191,12 @@ def test_completion_files_after_option(autocomplete, data):
     )
     if sys.platform != "win32":
         return
-    assert "readme.txt" in res.stdout, (
-        "autocomplete function could not complete <file> " "after options in command"
-    )
-    assert os.path.join("replay", "") in res.stdout, (
-        "autocomplete function could not complete <dir> " "after options in command"
-    )
+    assert (
+        "readme.txt" in res.stdout
+    ), "autocomplete function could not complete <file> after options in command"
+    assert (
+        os.path.join("replay", "") in res.stdout
+    ), "autocomplete function could not complete <dir> after options in command"
 
 
 def test_completion_not_files_after_option(autocomplete, data):
@@ -209,12 +209,16 @@ def test_completion_not_files_after_option(autocomplete, data):
         cword="2",
         cwd=data.completion_paths,
     )
-    assert not any(out in res.stdout for out in ("requirements.txt", "readme.txt",)), (
-        "autocomplete function completed <file> when " "it should not complete"
-    )
+    assert not any(
+        out in res.stdout
+        for out in (
+            "requirements.txt",
+            "readme.txt",
+        )
+    ), "autocomplete function completed <file> when it should not complete"
     assert not any(
         os.path.join(out, "") in res.stdout for out in ("replay", "resources")
-    ), ("autocomplete function completed <dir> when " "it should not complete")
+    ), "autocomplete function completed <dir> when it should not complete"
 
 
 @pytest.mark.parametrize("cl_opts", ["-U", "--user", "-h"])
@@ -228,12 +232,16 @@ def test_completion_not_files_after_nonexpecting_option(autocomplete, data, cl_o
         cword="2",
         cwd=data.completion_paths,
     )
-    assert not any(out in res.stdout for out in ("requirements.txt", "readme.txt",)), (
-        "autocomplete function completed <file> when " "it should not complete"
-    )
+    assert not any(
+        out in res.stdout
+        for out in (
+            "requirements.txt",
+            "readme.txt",
+        )
+    ), "autocomplete function completed <file> when it should not complete"
     assert not any(
         os.path.join(out, "") in res.stdout for out in ("replay", "resources")
-    ), ("autocomplete function completed <dir> when " "it should not complete")
+    ), "autocomplete function completed <dir> when it should not complete"
 
 
 def test_completion_directories_after_option(autocomplete, data):
@@ -252,7 +260,7 @@ def test_completion_directories_after_option(autocomplete, data):
     assert not any(
         out in res.stdout
         for out in ("requirements.txt", "README.txt", os.path.join("REPLAY", ""))
-    ), ("autocomplete function completed <dir> when " "it should not complete")
+    ), "autocomplete function completed <dir> when it should not complete"
     if sys.platform == "win32":
         assert (
             os.path.join("replay", "") in res.stdout

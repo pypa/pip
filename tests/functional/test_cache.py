@@ -10,7 +10,7 @@ def cache_dir(script):
     result = script.run(
         "python",
         "-c",
-        "from pip._internal.locations import USER_CACHE_DIR;" "print(USER_CACHE_DIR)",
+        "from pip._internal.locations import USER_CACHE_DIR;print(USER_CACHE_DIR)",
     )
     return result.stdout.strip()
 

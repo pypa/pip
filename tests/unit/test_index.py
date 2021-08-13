@@ -103,7 +103,7 @@ def test_check_link_requires_python__invalid_requires(caplog):
     assert actual
 
     expected_message = (
-        "Ignoring invalid Requires-Python ('invalid') for link: " "https://example.com"
+        "Ignoring invalid Requires-Python ('invalid') for link: https://example.com"
     )
     check_caplog(caplog, "DEBUG", expected_message)
 

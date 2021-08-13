@@ -834,7 +834,7 @@ def test_freeze_with_requirement_option_package_repeated_multi_file(script):
         "Requirement file [hint2.txt] contains NoExist, but package "
         "'NoExist' is not installed\n"
     )
-    err2 = "Requirement simple included multiple times " "[hint1.txt, hint2.txt]\n"
+    err2 = "Requirement simple included multiple times [hint1.txt, hint2.txt]\n"
     assert err1 in result.stderr
     assert err2 in result.stderr
     # there shouldn't be any other 'is not installed' warnings

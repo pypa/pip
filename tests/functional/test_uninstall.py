@@ -537,7 +537,7 @@ def test_uninstall_without_record_fails(script, data, installer):
 
     result2 = script.pip("uninstall", "simple.dist", "-y", expect_error=True)
     expected_error_message = (
-        "ERROR: Cannot uninstall simple.dist 0.1, " "RECORD file not found."
+        "ERROR: Cannot uninstall simple.dist 0.1, RECORD file not found."
     )
     if not isinstance(installer, str) or not installer.strip() or installer == "pip":
         expected_error_message += (
@@ -546,7 +546,7 @@ def test_uninstall_without_record_fails(script, data, installer):
             "simple.dist==0.1'."
         )
     elif installer:
-        expected_error_message += " Hint: The package was installed by " "{}.".format(
+        expected_error_message += " Hint: The package was installed by {}.".format(
             installer
         )
     assert result2.stderr.rstrip() == expected_error_message

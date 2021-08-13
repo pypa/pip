@@ -150,7 +150,7 @@ def freeze(
                     ", ".join(sorted(set(files))),
                 )
 
-        yield ("## The following requirements were added by " "pip freeze:")
+        yield ("## The following requirements were added by pip freeze:")
     for installation in sorted(installations.values(), key=lambda x: x.name.lower()):
         if installation.canonical_name not in skip:
             yield str(installation).rstrip()

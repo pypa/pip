@@ -1615,9 +1615,7 @@ def test_double_install_fail(script, resolver_variant):
         expect_error=(resolver_variant == "legacy"),
     )
     if resolver_variant == "legacy":
-        msg = (
-            "Double requirement given: pip==7.1.2 (already in pip==7.*, " "name='pip')"
-        )
+        msg = "Double requirement given: pip==7.1.2 (already in pip==7.*, name='pip')"
         assert msg in result.stderr
 
 
@@ -1939,7 +1937,7 @@ def test_invalid_index_url_argument(script, shared_data):
     )
 
     assert (
-        'WARNING: The index url "--user" seems invalid, ' "please provide a scheme."
+        'WARNING: The index url "--user" seems invalid, please provide a scheme.'
     ) in result.stderr, str(result)
 
 

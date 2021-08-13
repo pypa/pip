@@ -74,7 +74,7 @@ def _should_build(
 
     if not check_binary_allowed(req):
         logger.info(
-            "Skipping wheel build for %s, due to binaries " "being disabled for it.",
+            "Skipping wheel build for %s, due to binaries being disabled for it.",
             req.name,
         )
         return False
@@ -265,7 +265,7 @@ def _build_one_inside_env(
                 wheel_hash, length = hash_file(wheel_path)
                 shutil.move(wheel_path, dest_path)
                 logger.info(
-                    "Created wheel for %s: " "filename=%s size=%d sha256=%s",
+                    "Created wheel for %s: filename=%s size=%d sha256=%s",
                     req.name,
                     wheel_name,
                     length,

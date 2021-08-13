@@ -234,7 +234,7 @@ def test_outdated_flag(script, data):
     script.pip(
         "install",
         "-e",
-        "git+https://github.com/pypa/pip-test-package.git" "@0.1#egg=pip-test-package",
+        "git+https://github.com/pypa/pip-test-package.git@0.1#egg=pip-test-package",
     )
     result = script.pip(
         "list",
@@ -283,7 +283,7 @@ def test_outdated_columns_flag(script, data):
     script.pip(
         "install",
         "-e",
-        "git+https://github.com/pypa/pip-test-package.git" "@0.1#egg=pip-test-package",
+        "git+https://github.com/pypa/pip-test-package.git@0.1#egg=pip-test-package",
     )
     result = script.pip(
         "list",
@@ -397,7 +397,7 @@ def test_outdated_editables_flag(script, data):
     result = script.pip(
         "install",
         "-e",
-        "git+https://github.com/pypa/pip-test-package.git" "@0.1#egg=pip-test-package",
+        "git+https://github.com/pypa/pip-test-package.git@0.1#egg=pip-test-package",
     )
     result = script.pip(
         "list",
@@ -420,7 +420,7 @@ def test_outdated_editables_columns_flag(script, data):
     result = script.pip(
         "install",
         "-e",
-        "git+https://github.com/pypa/pip-test-package.git" "@0.1#egg=pip-test-package",
+        "git+https://github.com/pypa/pip-test-package.git@0.1#egg=pip-test-package",
     )
     result = script.pip(
         "list",

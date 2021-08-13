@@ -15,4 +15,4 @@ def test_timeout(script):
         "Could not fetch URL https://pypi.org/simple/INITools/: "
         "timed out" in result.stdout
     )
-    assert "Could not fetch URL https://pypi.org/simple/: " "timed out" in result.stdout
+    assert "Could not fetch URL https://pypi.org/simple/: timed out" in result.stdout

@@ -231,7 +231,7 @@ def test_get_html_response_dont_log_clear_text_password(mock_raise_for_status, c
     [
         (b"<html></html>", "https://example.com/", "https://example.com/"),
         (
-            b"<html><head>" b'<base href="https://foo.example.com/">' b"</head></html>",
+            b'<html><head><base href="https://foo.example.com/"></head></html>',
             "https://example.com/",
             "https://foo.example.com/",
         ),
