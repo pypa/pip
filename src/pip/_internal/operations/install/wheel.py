@@ -628,10 +628,7 @@ def _install_wheel(
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
                 for path in pyc_source_file_paths():
-                    # Python 2's `compileall.compile_file` requires a str in
-                    # error cases, so we must convert to the native type.
-                    path_arg = ensure_str(path, encoding=sys.getfilesystemencoding())
-                    success = compileall.compile_file(path_arg, force=True, quiet=True)
+                    success = compileall.compile_file(path, force=True, quiet=True)
                     if success:
                         pyc_path = pyc_output_path(path)
                         assert os.path.exists(pyc_path)

@@ -1,0 +1,4 @@
+On Python 3.10 or later, the installation scheme backend has been changed to use
+``sysconfig``. This is to anticipate the deprecation of ``distutils`` in Python
+3.10, and its scheduled removal in 3.12. For compatibility considerations, pip
+installations running on Python 3.9 or lower will continue to use ``distutils``.
