@@ -96,6 +96,7 @@ class TestDistutilsScheme:
             expected = os.path.join(root, path[1:])
             assert os.path.abspath(root_scheme[key]) == expected
 
+    @pytest.mark.incompatible_with_sysconfig
     @pytest.mark.incompatible_with_venv
     def test_distutils_config_file_read(self, tmpdir, monkeypatch):
         # This deals with nt/posix path differences
@@ -115,10 +116,11 @@ class TestDistutilsScheme:
         scheme = _get_scheme_dict('example')
         assert scheme['scripts'] == install_scripts
 
+    @pytest.mark.incompatible_with_sysconfig
     @pytest.mark.incompatible_with_venv
     # when we request install-lib, we should install everything (.py &
     # .so) into that path; i.e. ensure platlib & purelib are set to
-    # this path
+    # this path. sysconfig does not support this.
     def test_install_lib_takes_precedence(self, tmpdir, monkeypatch):
         # This deals with nt/posix path differences
         install_lib = os.path.normcase(os.path.abspath(
