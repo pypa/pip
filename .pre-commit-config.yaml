@@ -27,7 +27,7 @@ repos:
         ^src/pip/_internal/\w+\.py$|
         # Tests
         ^tests/data|
-        ^tests/unit|
+        ^tests/unit|  # TODO: we need to break this up in smaller chunks
         ^tests/functional/test_b|
         ^tests/functional/test_c|
         ^tests/functional/test_d|
