@@ -14,6 +14,7 @@ from typing import (
 )
 
 from pip._vendor.packaging.requirements import Requirement
+from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.version import LegacyVersion, Version
 
 from pip._internal.models.direct_url import (
@@ -159,10 +160,32 @@ class BaseDistribution(Protocol):
     def raw_name(self) -> str:
         """Value of "Name:" in distribution metadata."""
         # The metadata should NEVER be missing the Name: key, but if it somehow
-        # does not, fall back to the known canonical name.
+        # does, fall back to the known canonical name.
         return self.metadata.get("Name", self.canonical_name)
 
+    @property
+    def requires_python(self) -> SpecifierSet:
+        """Value of "Requires-Python:" in distribution metadata.
+
+        If the key does not exist or contains an invalid value, an empty
+        SpecifierSet should be returned.
+        """
+        raise NotImplementedError()
+
     def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
+        """Dependencies of this distribution.
+
+        For modern .dist-info distributions, this is the collection of
+        "Requires-Dist:" entries in distribution metadata.
+        """
+        raise NotImplementedError()
+
+    def iter_provided_extras(self) -> Iterable[str]:
+        """Extras provided by this distribution.
+
+        For modern .dist-info distributions, this is the collection of
+        "Provides-Extra:" entries in distribution metadata.
+        """
         raise NotImplementedError()
 
 

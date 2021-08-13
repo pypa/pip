@@ -13,11 +13,16 @@ from typing import (
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.requirements import Requirement
+from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.utils import misc  # TODO: Move definition here.
-from pip._internal.utils.packaging import get_installer, get_metadata
+from pip._internal.utils.packaging import (
+    get_installer,
+    get_metadata,
+    get_requires_python,
+)
 from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
 
 from .base import BaseDistribution, BaseEntryPoint, BaseEnvironment, DistributionVersion
@@ -95,10 +100,26 @@ class Distribution(BaseDistribution):
     def metadata(self) -> email.message.Message:
         return get_metadata(self._dist)
 
+    @property
+    def requires_python(self) -> SpecifierSet:
+        value = get_requires_python(self._dist)
+        if value is None:
+            return SpecifierSet()
+        try:
+            spec = SpecifierSet(value)
+        except InvalidSpecifier as e:
+            message = "Package %r has an invalid Requires-Python: %s"
+            logger.warning(message, self.raw_name, e)
+            return SpecifierSet()
+        return spec
+
     def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
         if extras:  # pkg_resources raises on invalid extras, so we sanitize.
             extras = frozenset(extras).intersection(self._dist.extras)
         return self._dist.requires(extras)
+
+    def iter_provided_extras(self) -> Iterable[str]:
+        return self._dist.extras
 
 
 class Environment(BaseEnvironment):
