@@ -28,8 +28,23 @@ repos:
         # Tests
         ^tests/data|
         ^tests/unit|
-        ^tests/functional/(?!test_install)|
-        ^tests/functional/test_install|
+        ^tests/functional/test_b|
+        ^tests/functional/test_c|
+        ^tests/functional/test_d|
+        ^tests/functional/test_f|
+        ^tests/functional/test_h|
+        ^tests/functional/test_index|
+        ^tests/functional/test_install_c|
+        ^tests/functional/test_install_[^c]|
+        ^tests/functional/test_install.py|
+        ^tests/functional/test_l|
+        ^tests/functional/test_n|
+        ^tests/functional/test_p|
+        ^tests/functional/test_r|
+        ^tests/functional/test_s|
+        ^tests/functional/test_u|
+        ^tests/functional/test_v|
+        ^tests/functional/test_w|
         # A blank ignore, to avoid merge conflicts later.
         ^$
 
