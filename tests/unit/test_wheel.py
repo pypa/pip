@@ -11,7 +11,6 @@ from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_scheme
-from pip._internal.metadata import get_wheel_distribution
 from pip._internal.models.direct_url import (
     DIRECT_URL_METADATA_NAME,
     ArchiveInfo,
@@ -96,14 +95,13 @@ def test_get_entrypoints(tmp_path, console_scripts):
         console_scripts
     )
 
-    wheel_zip = make_wheel(
+    distribution = make_wheel(
         "simple",
         "0.1.0",
         extra_metadata_files={
             "entry_points.txt": entry_points_text,
         },
-    ).save_to_dir(tmp_path)
-    distribution = get_wheel_distribution(wheel_zip, "simple")
+    ).as_distribution("simple")
 
     assert wheel.get_entrypoints(distribution) == (
         dict([console_scripts.split(" = ")]),
@@ -112,8 +110,7 @@ def test_get_entrypoints(tmp_path, console_scripts):
 
 
 def test_get_entrypoints_no_entrypoints(tmp_path):
-    wheel_zip = make_wheel("simple", "0.1.0").save_to_dir(tmp_path)
-    distribution = get_wheel_distribution(wheel_zip, "simple")
+    distribution = make_wheel("simple", "0.1.0").as_distribution("simple")
 
     console, gui = wheel.get_entrypoints(distribution)
     assert console == {}

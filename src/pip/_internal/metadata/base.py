@@ -2,7 +2,9 @@ import email.message
 import json
 import logging
 import re
+import zipfile
 from typing import (
+    IO,
     TYPE_CHECKING,
     Collection,
     Container,
@@ -14,7 +16,7 @@ from typing import (
 )
 
 from pip._vendor.packaging.requirements import Requirement
-from pip._vendor.packaging.specifiers import SpecifierSet
+from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pip._vendor.packaging.version import LegacyVersion, Version
 
 from pip._internal.models.direct_url import (
@@ -51,6 +53,12 @@ class BaseEntryPoint(Protocol):
 
 
 class BaseDistribution(Protocol):
+    def __repr__(self) -> str:
+        return f"{self.raw_name} {self.version} ({self.location})"
+
+    def __str__(self) -> str:
+        return f"{self.raw_name} {self.version}"
+
     @property
     def location(self) -> Optional[str]:
         """Where the distribution is loaded from.
@@ -170,7 +178,17 @@ class BaseDistribution(Protocol):
         If the key does not exist or contains an invalid value, an empty
         SpecifierSet should be returned.
         """
-        raise NotImplementedError()
+        value = self.metadata.get("Requires-Python")
+        if value is None:
+            return SpecifierSet()
+        try:
+            # Convert to str to satisfy the type checker; this can be a Header object.
+            spec = SpecifierSet(str(value))
+        except InvalidSpecifier as e:
+            message = "Package %r has an invalid Requires-Python: %s"
+            logger.warning(message, self.raw_name, e)
+            return SpecifierSet()
+        return spec
 
     def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
         """Dependencies of this distribution.
@@ -263,3 +281,27 @@ class BaseEnvironment:
         if user_only:
             it = (d for d in it if d.in_usersite)
         return (d for d in it if d.canonical_name not in skip)
+
+
+class Wheel(Protocol):
+    location: str
+
+    def as_zipfile(self) -> zipfile.ZipFile:
+        raise NotImplementedError()
+
+
+class FilesystemWheel(Wheel):
+    def __init__(self, location: str) -> None:
+        self.location = location
+
+    def as_zipfile(self) -> zipfile.ZipFile:
+        return zipfile.ZipFile(self.location, allowZip64=True)
+
+
+class MemoryWheel(Wheel):
+    def __init__(self, location: str, stream: IO[bytes]) -> None:
+        self.location = location
+        self.stream = stream
+
+    def as_zipfile(self) -> zipfile.ZipFile:
+        return zipfile.ZipFile(self.stream, allowZip64=True)

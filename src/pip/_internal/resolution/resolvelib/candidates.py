@@ -287,12 +287,8 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
         )
 
     def _prepare_distribution(self) -> BaseDistribution:
-        from pip._internal.metadata.pkg_resources import Distribution as _CompatDist
-
-        dist = self._factory.preparer.prepare_linked_requirement(
-            self._ireq, parallel_builds=True
-        )
-        return _CompatDist(dist)
+        preparer = self._factory.preparer
+        return preparer.prepare_linked_requirement(self._ireq, parallel_builds=True)
 
 
 class EditableCandidate(_InstallRequirementBackedCandidate):
@@ -316,10 +312,7 @@ class EditableCandidate(_InstallRequirementBackedCandidate):
         )
 
     def _prepare_distribution(self) -> BaseDistribution:
-        from pip._internal.metadata.pkg_resources import Distribution as _CompatDist
-
-        dist = self._factory.preparer.prepare_editable_requirement(self._ireq)
-        return _CompatDist(dist)
+        return self._factory.preparer.prepare_editable_requirement(self._ireq)
 
 
 class AlreadyInstalledCandidate(Candidate):

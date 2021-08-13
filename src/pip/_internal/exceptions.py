@@ -2,7 +2,7 @@
 
 import configparser
 from itertools import chain, groupby, repeat
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 from pip._vendor.pkg_resources import Distribution
 from pip._vendor.requests.models import Request, Response
@@ -10,6 +10,7 @@ from pip._vendor.requests.models import Request, Response
 if TYPE_CHECKING:
     from hashlib import _Hash
 
+    from pip._internal.metadata import BaseDistribution
     from pip._internal.req.req_install import InstallRequirement
 
 
@@ -38,7 +39,11 @@ class NoneMetadataError(PipError):
     "PKG-INFO").
     """
 
-    def __init__(self, dist: Distribution, metadata_name: str) -> None:
+    def __init__(
+        self,
+        dist: Union[Distribution, "BaseDistribution"],
+        metadata_name: str,
+    ) -> None:
         """
         :param dist: A Distribution object.
         :param metadata_name: The name of the metadata being accessed

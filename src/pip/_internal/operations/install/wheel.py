@@ -42,7 +42,11 @@ from pip._vendor.six import ensure_str, ensure_text, reraise
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_major_minor_version
-from pip._internal.metadata import BaseDistribution, get_wheel_distribution
+from pip._internal.metadata import (
+    BaseDistribution,
+    FilesystemWheel,
+    get_wheel_distribution,
+)
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
@@ -575,7 +579,10 @@ def _install_wheel(
     files = chain(files, other_scheme_files)
 
     # Get the defined entry points
-    distribution = get_wheel_distribution(wheel_path, canonicalize_name(name))
+    distribution = get_wheel_distribution(
+        FilesystemWheel(wheel_path),
+        canonicalize_name(name),
+    )
     console, gui = get_entrypoints(distribution)
 
     def is_entrypoint_wrapper(file: "File") -> bool:

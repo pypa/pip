@@ -1,12 +1,11 @@
 import logging
 from typing import Set, Tuple
 
-from pip._vendor.pkg_resources import Distribution
-
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.distributions.base import AbstractDistribution
 from pip._internal.exceptions import InstallationError
 from pip._internal.index.package_finder import PackageFinder
+from pip._internal.metadata import BaseDistribution
 from pip._internal.utils.subprocess import runner_with_spinner_message
 
 logger = logging.getLogger(__name__)
@@ -19,8 +18,10 @@ class SourceDistribution(AbstractDistribution):
     generated, either using PEP 517 or using the legacy `setup.py egg_info`.
     """
 
-    def get_pkg_resources_distribution(self) -> Distribution:
-        return self.req.get_dist()
+    def get_metadata_distribution(self) -> BaseDistribution:
+        from pip._internal.metadata.pkg_resources import Distribution as _Dist
+
+        return _Dist(self.req.get_dist())
 
     def prepare_distribution_metadata(
         self, finder: PackageFinder, build_isolation: bool

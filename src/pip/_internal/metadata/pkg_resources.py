@@ -1,6 +1,5 @@
 import email.message
 import logging
-import zipfile
 from typing import (
     TYPE_CHECKING,
     Collection,
@@ -13,19 +12,20 @@ from typing import (
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.requirements import Requirement
-from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.utils import misc  # TODO: Move definition here.
-from pip._internal.utils.packaging import (
-    get_installer,
-    get_metadata,
-    get_requires_python,
-)
+from pip._internal.utils.packaging import get_installer, get_metadata
 from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
 
-from .base import BaseDistribution, BaseEntryPoint, BaseEnvironment, DistributionVersion
+from .base import (
+    BaseDistribution,
+    BaseEntryPoint,
+    BaseEnvironment,
+    DistributionVersion,
+    Wheel,
+)
 
 if TYPE_CHECKING:
     from pip._vendor.packaging.utils import NormalizedName
@@ -44,9 +44,9 @@ class Distribution(BaseDistribution):
         self._dist = dist
 
     @classmethod
-    def from_wheel(cls, path: str, name: str) -> "Distribution":
-        with zipfile.ZipFile(path, allowZip64=True) as zf:
-            dist = pkg_resources_distribution_for_wheel(zf, name, path)
+    def from_wheel(cls, wheel: Wheel, name: str) -> "Distribution":
+        with wheel.as_zipfile() as zf:
+            dist = pkg_resources_distribution_for_wheel(zf, name, wheel.location)
         return cls(dist)
 
     @property
@@ -99,19 +99,6 @@ class Distribution(BaseDistribution):
     @property
     def metadata(self) -> email.message.Message:
         return get_metadata(self._dist)
-
-    @property
-    def requires_python(self) -> SpecifierSet:
-        value = get_requires_python(self._dist)
-        if value is None:
-            return SpecifierSet()
-        try:
-            spec = SpecifierSet(value)
-        except InvalidSpecifier as e:
-            message = "Package %r has an invalid Requires-Python: %s"
-            logger.warning(message, self.raw_name, e)
-            return SpecifierSet()
-        return spec
 
     def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
         if extras:  # pkg_resources raises on invalid extras, so we sanitize.
