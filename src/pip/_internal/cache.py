@@ -20,8 +20,7 @@ from pip._internal.utils.urls import path_to_url
 logger = logging.getLogger(__name__)
 
 
-def _hash_dict(d):
-    # type: (Dict[str, str]) -> str
+def _hash_dict(d: Dict[str, str]) -> str:
     """Return a stable sha224 of a dictionary."""
     s = json.dumps(d, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
     return hashlib.sha224(s.encode("ascii")).hexdigest()
@@ -38,8 +37,9 @@ class Cache:
             ('binary' and 'source' are the only allowed values)
     """
 
-    def __init__(self, cache_dir, format_control, allowed_formats):
-        # type: (str, FormatControl, Set[str]) -> None
+    def __init__(
+        self, cache_dir: str, format_control: FormatControl, allowed_formats: Set[str]
+    ) -> None:
         super().__init__()
         assert not cache_dir or os.path.isabs(cache_dir)
         self.cache_dir = cache_dir or None
@@ -49,8 +49,7 @@ class Cache:
         _valid_formats = {"source", "binary"}
         assert self.allowed_formats.union(_valid_formats) == _valid_formats
 
-    def _get_cache_path_parts(self, link):
-        # type: (Link) -> List[str]
+    def _get_cache_path_parts(self, link: Link) -> List[str]:
         """Get parts of part that must be os.path.joined with cache_dir
         """
 
@@ -84,8 +83,7 @@ class Cache:
 
         return parts
 
-    def _get_candidates(self, link, canonical_package_name):
-        # type: (Link, str) -> List[Any]
+    def _get_candidates(self, link: Link, canonical_package_name: str) -> List[Any]:
         can_not_cache = (
             not self.cache_dir or
             not canonical_package_name or
@@ -107,19 +105,17 @@ class Cache:
                 candidates.append((candidate, path))
         return candidates
 
-    def get_path_for_link(self, link):
-        # type: (Link) -> str
+    def get_path_for_link(self, link: Link) -> str:
         """Return a directory to store cached items in for link.
         """
         raise NotImplementedError()
 
     def get(
         self,
-        link,            # type: Link
-        package_name,    # type: Optional[str]
-        supported_tags,  # type: List[Tag]
-    ):
-        # type: (...) -> Link
+        link: Link,
+        package_name: Optional[str],
+        supported_tags: List[Tag],
+    ) -> Link:
         """Returns a link to a cached item if it exists, otherwise returns the
         passed link.
         """
@@ -130,12 +126,10 @@ class SimpleWheelCache(Cache):
     """A cache of wheels for future installs.
     """
 
-    def __init__(self, cache_dir, format_control):
-        # type: (str, FormatControl) -> None
+    def __init__(self, cache_dir: str, format_control: FormatControl) -> None:
         super().__init__(cache_dir, format_control, {"binary"})
 
-    def get_path_for_link(self, link):
-        # type: (Link) -> str
+    def get_path_for_link(self, link: Link) -> str:
         """Return a directory to store cached wheels for link
 
         Because there are M wheels for any one sdist, we provide a directory
@@ -157,11 +151,10 @@ class SimpleWheelCache(Cache):
 
     def get(
         self,
-        link,            # type: Link
-        package_name,    # type: Optional[str]
-        supported_tags,  # type: List[Tag]
-    ):
-        # type: (...) -> Link
+        link: Link,
+        package_name: Optional[str],
+        supported_tags: List[Tag],
+    ) -> Link:
         candidates = []
 
         if not package_name:
@@ -204,8 +197,7 @@ class EphemWheelCache(SimpleWheelCache):
     """A SimpleWheelCache that creates it's own temporary cache directory
     """
 
-    def __init__(self, format_control):
-        # type: (FormatControl) -> None
+    def __init__(self, format_control: FormatControl) -> None:
         self._temp_dir = TempDirectory(
             kind=tempdir_kinds.EPHEM_WHEEL_CACHE,
             globally_managed=True,
@@ -217,8 +209,8 @@ class EphemWheelCache(SimpleWheelCache):
 class CacheEntry:
     def __init__(
         self,
-        link,  # type: Link
-        persistent,  # type: bool
+        link: Link,
+        persistent: bool,
     ):
         self.link = link
         self.persistent = persistent
@@ -231,27 +223,23 @@ class WheelCache(Cache):
     when a certain link is not found in the simple wheel cache first.
     """
 
-    def __init__(self, cache_dir, format_control):
-        # type: (str, FormatControl) -> None
+    def __init__(self, cache_dir: str, format_control: FormatControl) -> None:
         super().__init__(cache_dir, format_control, {'binary'})
         self._wheel_cache = SimpleWheelCache(cache_dir, format_control)
         self._ephem_cache = EphemWheelCache(format_control)
 
-    def get_path_for_link(self, link):
-        # type: (Link) -> str
+    def get_path_for_link(self, link: Link) -> str:
         return self._wheel_cache.get_path_for_link(link)
 
-    def get_ephem_path_for_link(self, link):
-        # type: (Link) -> str
+    def get_ephem_path_for_link(self, link: Link) -> str:
         return self._ephem_cache.get_path_for_link(link)
 
     def get(
         self,
-        link,            # type: Link
-        package_name,    # type: Optional[str]
-        supported_tags,  # type: List[Tag]
-    ):
-        # type: (...) -> Link
+        link: Link,
+        package_name: Optional[str],
+        supported_tags: List[Tag],
+    ) -> Link:
         cache_entry = self.get_cache_entry(link, package_name, supported_tags)
         if cache_entry is None:
             return link
@@ -259,11 +247,10 @@ class WheelCache(Cache):
 
     def get_cache_entry(
         self,
-        link,            # type: Link
-        package_name,    # type: Optional[str]
-        supported_tags,  # type: List[Tag]
-    ):
-        # type: (...) -> Optional[CacheEntry]
+        link: Link,
+        package_name: Optional[str],
+        supported_tags: List[Tag],
+    ) -> Optional[CacheEntry]:
         """Returns a CacheEntry with a link to a cached item if it exists or
         None. The cache entry indicates if the item was found in the persistent
         or ephemeral cache.
