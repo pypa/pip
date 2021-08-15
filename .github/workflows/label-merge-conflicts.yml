@@ -1,3 +1,5 @@
+name: Autolabel merge conflicts
+
 on:
   push:
     branches: [main]
