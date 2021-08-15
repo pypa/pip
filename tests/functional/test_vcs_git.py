@@ -3,6 +3,7 @@ Contains functional tests of the Git class.
 """
 
 import os
+from unittest.mock import patch
 
 import pytest
 
@@ -282,3 +283,107 @@ def test_resolve_commit_not_on_branch(script, tmp_path):
     # check we can fetch our commit
     rev_options = Git.make_rev_options(commit)
     Git().fetch_new(str(clone_path), repo_path.as_uri(), rev_options)
+
+
+def _initialize_clonetest_server(repo_path, script, enable_partial_clone):
+    repo_path.mkdir()
+    script.run("git", "init", cwd=str(repo_path))
+    repo_file = repo_path / "file.txt"
+    repo_file.write_text(u".")
+    script.run("git", "add", "file.txt", cwd=str(repo_path))
+    script.run("git", "commit", "-m", "initial commit", cwd=str(repo_path))
+
+    # Enable filtering support on server
+    if enable_partial_clone:
+        script.run("git", "config", "uploadpack.allowFilter", "true", cwd=repo_path)
+        script.run(
+            "git", "config", "uploadpack.allowanysha1inwant", "true", cwd=repo_path
+        )
+
+    return repo_file
+
+
+@pytest.mark.skipif(Git().get_git_version() < (2, 17), reason="git too old")
+def test_partial_clone(script, tmp_path):
+    """Test partial clone w/ a git-server that supports it"""
+    repo_path = tmp_path / "repo"
+    repo_file = _initialize_clonetest_server(
+        repo_path, script, enable_partial_clone=True
+    )
+    clone_path1 = repo_path / "clone1"
+    clone_path2 = repo_path / "clone2"
+
+    commit = script.run("git", "rev-parse", "HEAD", cwd=str(repo_path)).stdout.strip()
+
+    # Check that we can clone at HEAD
+    Git().fetch_new(str(clone_path1), repo_path.as_uri(), Git.make_rev_options())
+    # Check that we can clone to commit
+    Git().fetch_new(str(clone_path2), repo_path.as_uri(), Git.make_rev_options(commit))
+
+    # Write some additional stuff to git pull
+    repo_file.write_text(u"..")
+    script.run("git", "commit", "-am", "second commit", cwd=str(repo_path))
+
+    # Make sure git pull works - with server supporting filtering
+    assert (
+        "warning: filtering not recognized by server, ignoring"
+        not in script.run("git", "pull", cwd=clone_path1).stderr
+    )
+    assert (
+        "warning: filtering not recognized by server, ignoring"
+        not in script.run("git", "pull", cwd=clone_path2).stderr
+    )
+
+
+@pytest.mark.skipif(Git().get_git_version() < (2, 17), reason="git too old")
+def test_partial_clone_without_server_support(script, tmp_path):
+    """Test partial clone w/ a git-server that does not support it"""
+    repo_path = tmp_path / "repo"
+    repo_file = _initialize_clonetest_server(
+        repo_path, script, enable_partial_clone=False
+    )
+    clone_path1 = repo_path / "clone1"
+    clone_path2 = repo_path / "clone2"
+
+    commit = script.run("git", "rev-parse", "HEAD", cwd=str(repo_path)).stdout.strip()
+
+    # Check that we can clone at HEAD
+    Git().fetch_new(str(clone_path1), repo_path.as_uri(), Git.make_rev_options())
+    # Check that we can clone to commit
+    Git().fetch_new(str(clone_path2), repo_path.as_uri(), Git.make_rev_options(commit))
+
+    # Write some additional stuff to git pull
+    repo_file.write_text(u"..")
+    script.run("git", "commit", "-am", "second commit", cwd=str(repo_path))
+
+    # Make sure git pull works - even though server doesn't support filtering
+    assert (
+        "warning: filtering not recognized by server, ignoring"
+        in script.run("git", "pull", cwd=clone_path1).stderr
+    )
+    assert (
+        "warning: filtering not recognized by server, ignoring"
+        in script.run("git", "pull", cwd=clone_path2).stderr
+    )
+
+
+def test_clone_without_partial_clone_support(script, tmp_path):
+    """Older git clients don't support partial clone. Test the fallback path"""
+    repo_path = tmp_path / "repo"
+    repo_file = _initialize_clonetest_server(
+        repo_path, script, enable_partial_clone=True
+    )
+    clone_path = repo_path / "clone1"
+
+    # Check that we can clone w/ old version of git w/o --filter
+    with patch("pip._internal.vcs.git.Git.get_git_version", return_value=(2, 16)):
+        Git().fetch_new(str(clone_path), repo_path.as_uri(), Git.make_rev_options())
+
+    repo_file.write_text(u"...")
+    script.run("git", "commit", "-am", "third commit", cwd=str(repo_path))
+
+    # Should work fine w/o attempting to use `--filter` args
+    assert (
+        "warning: filtering not recognized by server, ignoring"
+        not in script.run("git", "pull", cwd=clone_path).stderr
+    )
