@@ -15,5 +15,11 @@ jobs:
           # `towncrier check` runs `git diff --name-only origin/main...`, which
           # needs a non-shallow clone.
           fetch-depth: 0
-      - run: pipx run towncrier check --compare-with origin/${{ github.event.pull_request.base.ref }}
-        if: ${{ ! (contains(github.event.pull_request.labels.*.name, 'trivial')) }}
+
+      - name: Check news entry
+        if: "!contains(github.event.pull_request.labels.*.name, 'trivial')"
+        run: |
+          if ! pipx run towncrier check --compare-with origin/${{ github.base_ref }}; then
+            echo "Please https://pip.pypa.io/dev/news-entry-failure for guidance."
+            false
+          fi
