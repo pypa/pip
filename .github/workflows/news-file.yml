@@ -20,6 +20,6 @@ jobs:
         if: "!contains(github.event.pull_request.labels.*.name, 'trivial')"
         run: |
           if ! pipx run towncrier check --compare-with origin/${{ github.base_ref }}; then
-            echo "Please https://pip.pypa.io/dev/news-entry-failure for guidance."
+            echo "Please see https://pip.pypa.io/dev/news-entry-failure for guidance."
             false
           fi
