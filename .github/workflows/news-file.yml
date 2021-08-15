@@ -1,13 +1,19 @@
+name: Check
+
 on:
   pull_request:
     types: [labeled, unlabeled, opened, reopened, synchronize]
+
 jobs:
-  check-news-file:
+  check-news-entry:
+    name: news entry
     runs-on: ubuntu-20.04
+
     steps:
       - uses: actions/checkout@v2
         with:
-          # `towncrier check` needs enough history to run `git diff --name-only origin/main...`
+          # `towncrier check` runs `git diff --name-only origin/main...`, which
+          # needs a non-shallow clone.
           fetch-depth: 0
-      - run: pipx run towncrier check --compare-with origin/main
+      - run: pipx run towncrier check --compare-with origin/${{ github.event.pull_request.base.ref }}
         if: ${{ ! (contains(github.event.pull_request.labels.*.name, 'trivial')) }}
