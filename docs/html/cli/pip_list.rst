@@ -35,55 +35,13 @@ Options
 Examples
 ========
 
-#. List installed packages.
+#. List installed packages (with the default column formatting).
 
    .. tab:: Unix/macOS
 
       .. code-block:: console
 
          $ python -m pip list
-         docutils (0.10)
-         Jinja2 (2.7.2)
-         MarkupSafe (0.18)
-         Pygments (1.6)
-         Sphinx (1.2.1)
-
-   .. tab:: Windows
-
-      .. code-block:: console
-
-         C:\> py -m pip list
-         docutils (0.10)
-         Jinja2 (2.7.2)
-         MarkupSafe (0.18)
-         Pygments (1.6)
-         Sphinx (1.2.1)
-
-#. List outdated packages (excluding editables), and the latest version available.
-
-   .. tab:: Unix/macOS
-
-      .. code-block:: console
-
-         $ python -m pip list --outdated
-         docutils (Current: 0.10 Latest: 0.11)
-         Sphinx (Current: 1.2.1 Latest: 1.2.2)
-
-   .. tab:: Windows
-
-      .. code-block:: console
-
-         C:\> py -m pip list --outdated
-         docutils (Current: 0.10 Latest: 0.11)
-         Sphinx (Current: 1.2.1 Latest: 1.2.2)
-
-#. List installed packages with column formatting.
-
-   .. tab:: Unix/macOS
-
-      .. code-block:: console
-
-         $ python -m pip list --format columns
          Package Version
          ------- -------
          docopt  0.6.2
@@ -94,7 +52,7 @@ Examples
 
       .. code-block:: console
 
-         C:\> py -m pip list --format columns
+         C:\> py -m pip list
          Package Version
          ------- -------
          docopt  0.6.2
@@ -107,7 +65,7 @@ Examples
 
       .. code-block:: console
 
-         $ python -m pip list -o --format columns
+         $ python -m pip list --outdated --format columns
          Package    Version Latest Type
          ---------- ------- ------ -----
          retry      0.8.1   0.9.1  wheel
@@ -117,7 +75,7 @@ Examples
 
       .. code-block:: console
 
-         C:\> py -m pip list -o --format columns
+         C:\> py -m pip list --outdated --format columns
          Package    Version Latest Type
          ---------- ------- ------ -----
          retry      0.8.1   0.9.1  wheel
@@ -131,36 +89,18 @@ Examples
       .. code-block:: console
 
          $ python -m pip list --outdated --not-required
-         docutils (Current: 0.10 Latest: 0.11)
+         Package  Version Latest Type
+         -------- ------- ------ -----
+         docutils 0.14    0.17.1 wheel
 
    .. tab:: Windows
 
       .. code-block:: console
 
          C:\> py -m pip list --outdated --not-required
-         docutils (Current: 0.10 Latest: 0.11)
-
-#. Use legacy formatting
-
-   .. tab:: Unix/macOS
-
-      .. code-block:: console
-
-         $ python -m pip list --format=legacy
-         colorama (0.3.7)
-         docopt (0.6.2)
-         idlex (1.13)
-         jedi (0.9.0)
-
-   .. tab:: Windows
-
-      .. code-block:: console
-
-         C:\> py -m pip list --format=legacy
-         colorama (0.3.7)
-         docopt (0.6.2)
-         idlex (1.13)
-         jedi (0.9.0)
+         Package  Version Latest Type
+         -------- ------- ------ -----
+         docutils 0.14    0.17.1 wheel
 
 #. Use json formatting
 
