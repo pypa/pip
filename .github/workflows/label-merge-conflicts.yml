@@ -1,5 +1,9 @@
 name: Autolabel merge conflicts
 
+permissions:
+  issues: write
+  pull-requests: write
+
 on:
   push:
     branches: [main]
