@@ -315,10 +315,12 @@ def get_scheme(
     )
     if any(default_old[k] != getattr(old, k) for k in SCHEME_KEYS):
         deprecated(
-            "Configuring installation scheme with distutils config files "
-            "is deprecated and will no longer work in the near future. If you "
-            "are using a Homebrew or Linuxbrew Python, please see discussion "
-            "at https://github.com/Homebrew/homebrew-core/issues/76621",
+            reason=(
+                "Configuring installation scheme with distutils config files "
+                "is deprecated and will no longer work in the near future. If you "
+                "are using a Homebrew or Linuxbrew Python, please see discussion "
+                "at https://github.com/Homebrew/homebrew-core/issues/76621"
+            ),
             replacement=None,
             gone_in=None,
         )
