@@ -69,7 +69,7 @@ class _PackageInfo(NamedTuple):
     files: Optional[List[str]]
 
 
-def _covert_legacy_entry(entry: Tuple[str, ...], info: Tuple[str, ...]) -> str:
+def _convert_legacy_entry(entry: Tuple[str, ...], info: Tuple[str, ...]) -> str:
     """Convert a legacy installed-files.txt path into modern RECORD path.
 
     The legacy format stores paths relative to the info directory, while the
@@ -146,7 +146,7 @@ def search_packages_info(query: List[str]) -> Iterator[_PackageInfo]:
         if not info_rel.parts:  # info *is* root.
             return paths
         return (
-            _covert_legacy_entry(pathlib.Path(p).parts, info_rel.parts) for p in paths
+            _convert_legacy_entry(pathlib.Path(p).parts, info_rel.parts) for p in paths
         )
 
     for query_name in query_names:
