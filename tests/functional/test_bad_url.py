@@ -19,8 +19,7 @@ def get_random_pathname() -> str:
     "create a random, impossible pathname."
     base = "random_impossible_pathname_"
     alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
-    for _ in range(10):
-        name = base + "".join(random.choice(alphabet))
+    name = base + "".join(random.choice(alphabet) for _ in range(10))
     return name
 
 
