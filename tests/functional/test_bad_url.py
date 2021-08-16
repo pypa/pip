@@ -1,3 +1,6 @@
+# test the error message returned by pip when
+# a bad "file:" URL is passed to it.
+
 import random
 import subprocess
 from typing import List, Tuple
@@ -16,8 +19,7 @@ def get_random_pathname() -> str:
     "create a random, impossible pathname."
     base = "random_impossible_pathname_"
     alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
-    name = base + "".join(random.choice(alphabet) for _ in range(10)
-    return name
+    return base + "".join(random.choice(alphabet) for _ in range(10)
 
 
 def test_bad_url_error_message() -> None:
