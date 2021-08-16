@@ -1,6 +1,7 @@
-import subprocess
 import random
+import subprocess
 from typing import List, Tuple
+
 
 def get_url_error_message(cmd: List[str]) -> Tuple[str, str]:
     # this makes pip to react using
@@ -10,17 +11,17 @@ def get_url_error_message(cmd: List[str]) -> Tuple[str, str]:
     expected_message = "ERROR: 404 Client Error: FileNotFoundError for url: "
     return proc.stderr, expected_message
 
+
 def get_random_pathname() -> str:
     "create a random, impossible pathname."
     base = "random_impossible_pathname_"
     alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
-    name = base + "".join(random.choice(alphabet)) for _ in range(10)
+    name = base + "".join(random.choice(alphabet) for _ in range(10)
     return name
 
+
 def test_bad_url_error_message() -> None:
-    """
-    Test the error message returned when using a bad "file:" URL.
-    """
+    "Test the error message returned when using a bad 'file:' URL."
     file = get_random_pathname()
     command = ["pip", "install", "file:%s"%file]
     msg, expected = get_url_error_message(command)
