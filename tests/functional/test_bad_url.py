@@ -22,7 +22,7 @@ def get_random_pathname() -> str:
     return base + "".join(random.choice(alphabet) for _ in range(10)
 
 
-def test_bad_url_error_message() -> None:
+def test_filenotfound_error_message() -> None:
     "Test the error message returned when using a bad 'file:' URL."
     file = get_random_pathname()
     command = ["pip", "install", "file:%s"%file]
