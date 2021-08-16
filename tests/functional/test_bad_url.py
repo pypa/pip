@@ -19,11 +19,13 @@ def get_random_pathname() -> str:
     "create a random, impossible pathname."
     base = "random_impossible_pathname_"
     alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
-    return base + "".join(random.choice(alphabet)) for _ in range(10)
+    for _ in range(10)
+        name = base + "".join(random.choice(alphabet))
+    return name
 
 
 def test_filenotfound_error_message() -> None:
-    "Test the error message returned when using a bad 'file:' URL."
+    # Test the error message returned when using a bad 'file:' URL.
     file = get_random_pathname()
     command = ["pip", "install", "file:%s"%file]
     msg, expected = get_url_error_message(command)
