@@ -27,7 +27,7 @@ def test_filenotfound_error_message() -> None:
     # Test the error message returned when using a bad 'file:' URL.
     file = get_random_pathname()
     # generate a command
-    command = ["pip", "install", "-r, f"file:{file}"]
+    command = ["pip", "install", "-r", f"file:{file}"]
     # make it fail to get an error message
     msg, expected = get_url_error_message(command)
     # assert that "msg" starts with "expected"
