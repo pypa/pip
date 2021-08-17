@@ -10,5 +10,5 @@ def test_filenotfound_error_message(script: Any) -> None:
     # by running "pip install -r file:nonexistent_file"
     proc = script.pip("install", "-r", "file:unexistent_file", expect_error=True)
     assert proc.returncode == 1
-    expected = "ERROR: 404 Client Error: FileNotFoundError for url: unexistent_file"
-    assert proc.stderr == expected
+    expected = "ERROR: 404 Client Error: FileNotFoundError for url: file:///unexistent_file"
+    assert proc.stderr == expected.rstrip()
