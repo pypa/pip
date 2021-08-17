@@ -12,4 +12,4 @@ def test_filenotfound_error_message(script: Any) -> None:
     assert proc.returncode == 1
     file = "file:///unexistent_file"
     expect = f"ERROR: 404 Client Error: FileNotFoundError for url: {file}"
-    assert proc.stderr == expect.rstrip()
+    assert proc.stderr == expect
