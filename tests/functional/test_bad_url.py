@@ -9,8 +9,6 @@ def test_filenotfound_error_message(script: Any) -> None:
     # make pip to fail and get an error message
     # by running "pip install -r file:nonexistent_file"
     proc = script.pip("install", "-r", "file:unexistent_file", expect_error=True)
+    assert proc.returncode == 1
     expected = "ERROR: 404 Client Error: FileNotFoundError for url: "
-    msg, code = proc.stderr, proc.returncode
-    # assert that "msg" starts with "expected"
-    assert code == 1
-    assert msg.startswith(expected)
+    assert proc.stderr.startswith(expected)
