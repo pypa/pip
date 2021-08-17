@@ -1,34 +1,24 @@
 # test the error message returned by pip when
 # a bad "file:" URL is passed to it.
 
-import random
-import subprocess
-from typing import List, Tuple
+from typing import Tuple
 
 
-def get_url_error_message(cmd: List[str]) -> Tuple[str, str]:
+def get_url_error_message(script: Any, fake_file: str) -> Tuple[str, str, int]:
     # this makes pip to react using
     # subprocess. It must fail, so then
     # we can test the error message.
-    proc = subprocess.run(cmd, capture_output=True, text=True)
+    proc = script.pip("install", "-r", fake_file, expect_error=True)
     expected_message = "ERROR: 404 Client Error: FileNotFoundError for url: "
-    return proc.stderr, expected_message
+    return proc.stderr, expected_message, proc.returncode
 
 
-def get_random_pathname() -> str:
-    "create a random, impossible pathname."
-    base = "random_impossible_pathname_"
-    alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
-    name = base + "".join(random.choice(alphabet) for _ in range(10))
-    return name
-
-
-def test_filenotfound_error_message() -> None:
+def test_filenotfound_error_message(script: Any) -> None:
     # Test the error message returned when using a bad 'file:' URL.
     file = get_random_pathname()
     # generate a command
-    command = ["pip", "install", "-r", f"file:{file}"]
-    # make it fail to get an error message
-    msg, expected = get_url_error_message(command)
+    # make it fail to get an error message by running "pip install -r nonexistent_file"
+    msg, expected, code = get_url_error_message(script, "nonexistent_file")
     # assert that "msg" starts with "expected"
+    assert code == 1
     assert msg.startswith(expected)
