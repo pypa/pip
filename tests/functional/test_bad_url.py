@@ -15,7 +15,8 @@ def get_url_error_message(script: Any, fake_file: str) -> Tuple[str, str, int]:
 
 def test_filenotfound_error_message(script: Any) -> None:
     # Test the error message returned when using a bad 'file:' URL.
-    # make pip to fail and get an error message by running "pip install -r nonexistent_file"
+    # make pip to fail and get an error message
+    # by running "pip install -r nonexistent_file"
     msg, expected, code = get_url_error_message(script, "nonexistent_file")
     # assert that "msg" starts with "expected"
     assert code == 1
