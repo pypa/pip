@@ -1,7 +1,7 @@
 # test the error message returned by pip when
 # a bad "file:" URL is passed to it.
 
-from typing import Any, Tuple
+from typing import Any
 
 
 def test_filenotfound_error_message(script: Any) -> None:
