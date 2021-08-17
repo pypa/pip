@@ -1,7 +1,7 @@
 # test the error message returned by pip when
 # a bad "file:" URL is passed to it.
 
-from typing import Tuple
+from typing import Any, Tuple
 
 
 def get_url_error_message(script: Any, fake_file: str) -> Tuple[str, str, int]:
