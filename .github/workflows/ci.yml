@@ -88,7 +88,7 @@ jobs:
       github.event_name != 'pull_request'
 
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         os: [Ubuntu, MacOS]
         python:
