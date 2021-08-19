@@ -192,20 +192,6 @@ def get_scheme(
     isolated: bool = False,
     prefix: Optional[str] = None,
 ) -> Scheme:
-    old = _distutils.get_scheme(
-        dist_name,
-        user=user,
-        home=home,
-        root=root,
-        isolated=isolated,
-        prefix=prefix,
-    )
-
-    print("Old:")
-    for k in old.__slots__:
-        print(k, getattr(old, k))
-    print()
-
     new = _sysconfig.get_scheme(
         dist_name,
         user=user,
@@ -214,14 +200,17 @@ def get_scheme(
         isolated=isolated,
         prefix=prefix,
     )
-
-    print("New:")
-    for k in new.__slots__:
-        print(k, getattr(new, k))
-    print()
-
     if _USE_SYSCONFIG:
         return new
+
+    old = _distutils.get_scheme(
+        dist_name,
+        user=user,
+        home=home,
+        root=root,
+        isolated=isolated,
+        prefix=prefix,
+    )
 
     warning_contexts = []
     for k in SCHEME_KEYS:
