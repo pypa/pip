@@ -471,12 +471,7 @@ class PipTestEnvironment(TestFileEnvironment):
             site.USER_SITE[len(site.USER_BASE) + 1 :],
         )
         if sys.platform == "win32":
-            if sys.version_info >= (3, 5):
-                scripts_base = Path(
-                    os.path.normpath(self.user_site_path.joinpath(".."))
-                )
-            else:
-                scripts_base = self.user_base_path
+            scripts_base = Path(os.path.normpath(self.user_site_path.joinpath("..")))
             self.user_bin_path = scripts_base.joinpath("Scripts")
         else:
             self.user_bin_path = self.user_base_path.joinpath(
