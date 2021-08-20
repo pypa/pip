@@ -30,13 +30,16 @@ skip_on_windows = pytest.mark.skipif("sys.platform == 'win32'")
 
 
 @skip_on_windows
-@pytest.mark.parametrize("create,result", [
-    (make_socket_file, True),
-    (make_file, False),
-    (make_valid_symlink, False),
-    (make_broken_symlink, False),
-    (make_dir, False),
-])
+@pytest.mark.parametrize(
+    "create,result",
+    [
+        (make_socket_file, True),
+        (make_file, False),
+        (make_valid_symlink, False),
+        (make_broken_symlink, False),
+        (make_dir, False),
+    ],
+)
 def test_is_socket(create, result, tmpdir):
     target = tmpdir.joinpath("target")
     create(target)
@@ -44,12 +47,13 @@ def test_is_socket(create, result, tmpdir):
     assert is_socket(target) == result
 
 
-@pytest.mark.parametrize("create,error_type", [
-    pytest.param(
-        make_socket_file, shutil.SpecialFileError, marks=skip_on_windows
-    ),
-    (make_unreadable_file, OSError),
-])
+@pytest.mark.parametrize(
+    "create,error_type",
+    [
+        pytest.param(make_socket_file, shutil.SpecialFileError, marks=skip_on_windows),
+        (make_unreadable_file, OSError),
+    ],
+)
 def test_copy2_fixed_raises_appropriate_errors(create, error_type, tmpdir):
     src = tmpdir.joinpath("src")
     create(src)

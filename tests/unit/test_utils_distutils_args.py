@@ -36,19 +36,22 @@ def test_multiple_invocations_do_not_keep_options():
     assert result["root"] == "world1"
 
 
-@pytest.mark.parametrize("name,value", [
-    ("exec-prefix", "1"),
-    ("home", "2"),
-    ("install-base", "3"),
-    ("install-data", "4"),
-    ("install-headers", "5"),
-    ("install-lib", "6"),
-    ("install-platlib", "7"),
-    ("install-purelib", "8"),
-    ("install-scripts", "9"),
-    ("prefix", "10"),
-    ("root", "11"),
-])
+@pytest.mark.parametrize(
+    "name,value",
+    [
+        ("exec-prefix", "1"),
+        ("home", "2"),
+        ("install-base", "3"),
+        ("install-data", "4"),
+        ("install-headers", "5"),
+        ("install-lib", "6"),
+        ("install-platlib", "7"),
+        ("install-purelib", "8"),
+        ("install-scripts", "9"),
+        ("prefix", "10"),
+        ("root", "11"),
+    ],
+)
 def test_all_value_options_work(name, value):
     result = parse_distutils_args([f"--{name}={value}"])
     key_name = name.replace("-", "_")

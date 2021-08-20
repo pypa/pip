@@ -69,8 +69,7 @@ def test_new_resolver_correct_number_of_matches(test_cases, factory):
 
 
 def test_new_resolver_candidates_match_requirement(test_cases, factory):
-    """Candidates returned from find_candidates should satisfy the requirement
-    """
+    """Candidates returned from find_candidates should satisfy the requirement"""
     for spec, _, _ in test_cases:
         req = factory.make_requirement_from_spec(spec, comes_from=None)
         candidates = factory.find_candidates(
@@ -90,4 +89,4 @@ def test_new_resolver_full_resolve(factory, provider):
     req = factory.make_requirement_from_spec("simplewheel", comes_from=None)
     r = Resolver(provider, BaseReporter())
     result = r.resolve([req])
-    assert set(result.mapping.keys()) == {'simplewheel'}
+    assert set(result.mapping.keys()) == {"simplewheel"}

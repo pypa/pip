@@ -22,8 +22,12 @@ def test_dist_get_direct_url_invalid_json(mock_read_text, caplog):
         assert dist.direct_url is None
 
     mock_read_text.assert_called_once_with(DIRECT_URL_METADATA_NAME)
-    assert caplog.records[-1].getMessage().startswith(
-        "Error parsing direct_url.json for whatever:",
+    assert (
+        caplog.records[-1]
+        .getMessage()
+        .startswith(
+            "Error parsing direct_url.json for whatever:",
+        )
     )
 
 

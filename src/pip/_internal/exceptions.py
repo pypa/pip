@@ -50,10 +50,9 @@ class NoneMetadataError(PipError):
     def __str__(self) -> str:
         # Use `dist` in the error message because its stringification
         # includes more information, like the version and location.
-        return (
-            'None {} metadata found for distribution: {}'.format(
-                self.metadata_name, self.dist,
-            )
+        return "None {} metadata found for distribution: {}".format(
+            self.metadata_name,
+            self.dist,
         )
 
 
@@ -108,8 +107,11 @@ class NetworkConnectionError(PipError):
         self.response = response
         self.request = request
         self.error_msg = error_msg
-        if (self.response is not None and not self.request and
-                hasattr(response, 'request')):
+        if (
+            self.response is not None
+            and not self.request
+            and hasattr(response, "request")
+        ):
             self.request = self.response.request
         super().__init__(error_msg, response, request)
 
@@ -132,6 +134,7 @@ class MetadataInconsistent(InstallationError):
     that do not match the information previously obtained from sdist filename
     or user-supplied ``#egg=`` value.
     """
+
     def __init__(
         self, ireq: "InstallRequirement", field: str, f_val: str, m_val: str
     ) -> None:
@@ -150,6 +153,7 @@ class MetadataInconsistent(InstallationError):
 
 class InstallationSubprocessError(InstallationError):
     """A subprocess call failed during installation."""
+
     def __init__(self, returncode: int, description: str) -> None:
         self.returncode = returncode
         self.description = description
@@ -177,8 +181,8 @@ class HashErrors(InstallationError):
             lines.append(cls.head)
             lines.extend(e.body() for e in errors_of_cls)
         if lines:
-            return '\n'.join(lines)
-        return ''
+            return "\n".join(lines)
+        return ""
 
     def __bool__(self) -> bool:
         return bool(self.errors)
@@ -200,8 +204,9 @@ class HashError(InstallationError):
         typically available earlier.
 
     """
+
     req: Optional["InstallRequirement"] = None
-    head = ''
+    head = ""
     order: int = -1
 
     def body(self) -> str:
@@ -214,10 +219,10 @@ class HashError(InstallationError):
             its link already populated by the resolver's _populate_link().
 
         """
-        return f'    {self._requirement_name()}'
+        return f"    {self._requirement_name()}"
 
     def __str__(self) -> str:
-        return f'{self.head}\n{self.body()}'
+        return f"{self.head}\n{self.body()}"
 
     def _requirement_name(self) -> str:
         """Return a description of the requirement that triggered me.
@@ -226,7 +231,7 @@ class HashError(InstallationError):
         line numbers
 
         """
-        return str(self.req) if self.req else 'unknown package'
+        return str(self.req) if self.req else "unknown package"
 
 
 class VcsHashUnsupported(HashError):
@@ -234,8 +239,10 @@ class VcsHashUnsupported(HashError):
     we don't have a method for hashing those."""
 
     order = 0
-    head = ("Can't verify hashes for these requirements because we don't "
-            "have a way to hash version control repositories:")
+    head = (
+        "Can't verify hashes for these requirements because we don't "
+        "have a way to hash version control repositories:"
+    )
 
 
 class DirectoryUrlHashUnsupported(HashError):
@@ -243,21 +250,25 @@ class DirectoryUrlHashUnsupported(HashError):
     we don't have a method for hashing those."""
 
     order = 1
-    head = ("Can't verify hashes for these file:// requirements because they "
-            "point to directories:")
+    head = (
+        "Can't verify hashes for these file:// requirements because they "
+        "point to directories:"
+    )
 
 
 class HashMissing(HashError):
     """A hash was needed for a requirement but is absent."""
 
     order = 2
-    head = ('Hashes are required in --require-hashes mode, but they are '
-            'missing from some requirements. Here is a list of those '
-            'requirements along with the hashes their downloaded archives '
-            'actually had. Add lines like these to your requirements files to '
-            'prevent tampering. (If you did not enable --require-hashes '
-            'manually, note that it turns on automatically when any package '
-            'has a hash.)')
+    head = (
+        "Hashes are required in --require-hashes mode, but they are "
+        "missing from some requirements. Here is a list of those "
+        "requirements along with the hashes their downloaded archives "
+        "actually had. Add lines like these to your requirements files to "
+        "prevent tampering. (If you did not enable --require-hashes "
+        "manually, note that it turns on automatically when any package "
+        "has a hash.)"
+    )
 
     def __init__(self, gotten_hash: str) -> None:
         """
@@ -275,13 +286,16 @@ class HashMissing(HashError):
             # In the case of URL-based requirements, display the original URL
             # seen in the requirements file rather than the package name,
             # so the output can be directly copied into the requirements file.
-            package = (self.req.original_link if self.req.original_link
-                       # In case someone feeds something downright stupid
-                       # to InstallRequirement's constructor.
-                       else getattr(self.req, 'req', None))
-        return '    {} --hash={}:{}'.format(package or 'unknown package',
-                                            FAVORITE_HASH,
-                                            self.gotten_hash)
+            package = (
+                self.req.original_link
+                if self.req.original_link
+                # In case someone feeds something downright stupid
+                # to InstallRequirement's constructor.
+                else getattr(self.req, "req", None)
+            )
+        return "    {} --hash={}:{}".format(
+            package or "unknown package", FAVORITE_HASH, self.gotten_hash
+        )
 
 
 class HashUnpinned(HashError):
@@ -289,8 +303,10 @@ class HashUnpinned(HashError):
     version."""
 
     order = 3
-    head = ('In --require-hashes mode, all requirements must have their '
-            'versions pinned with ==. These do not:')
+    head = (
+        "In --require-hashes mode, all requirements must have their "
+        "versions pinned with ==. These do not:"
+    )
 
 
 class HashMismatch(HashError):
@@ -302,11 +318,14 @@ class HashMismatch(HashError):
         improve its error message.
 
     """
+
     order = 4
-    head = ('THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS '
-            'FILE. If you have updated the package versions, please update '
-            'the hashes. Otherwise, examine the package contents carefully; '
-            'someone may have tampered with them.')
+    head = (
+        "THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS "
+        "FILE. If you have updated the package versions, please update "
+        "the hashes. Otherwise, examine the package contents carefully; "
+        "someone may have tampered with them."
+    )
 
     def __init__(self, allowed: Dict[str, List[str]], gots: Dict[str, "_Hash"]) -> None:
         """
@@ -319,8 +338,7 @@ class HashMismatch(HashError):
         self.gots = gots
 
     def body(self) -> str:
-        return '    {}:\n{}'.format(self._requirement_name(),
-                                    self._hash_comparison())
+        return "    {}:\n{}".format(self._requirement_name(), self._hash_comparison())
 
     def _hash_comparison(self) -> str:
         """
@@ -333,19 +351,22 @@ class HashMismatch(HashError):
                     Got        bcdefbcdefbcdefbcdefbcdefbcdefbcdefbcdefbcdef
 
         """
+
         def hash_then_or(hash_name: str) -> "chain[str]":
             # For now, all the decent hashes have 6-char names, so we can get
             # away with hard-coding space literals.
-            return chain([hash_name], repeat('    or'))
+            return chain([hash_name], repeat("    or"))
 
         lines: List[str] = []
         for hash_name, expecteds in self.allowed.items():
             prefix = hash_then_or(hash_name)
-            lines.extend(('        Expected {} {}'.format(next(prefix), e))
-                         for e in expecteds)
-            lines.append('             Got        {}\n'.format(
-                         self.gots[hash_name].hexdigest()))
-        return '\n'.join(lines)
+            lines.extend(
+                ("        Expected {} {}".format(next(prefix), e)) for e in expecteds
+            )
+            lines.append(
+                "             Got        {}\n".format(self.gots[hash_name].hexdigest())
+            )
+        return "\n".join(lines)
 
 
 class UnsupportedPythonVersion(InstallationError):
@@ -354,8 +375,7 @@ class UnsupportedPythonVersion(InstallationError):
 
 
 class ConfigurationFileCouldNotBeLoaded(ConfigurationError):
-    """When there are errors while loading a configuration file
-    """
+    """When there are errors while loading a configuration file"""
 
     def __init__(
         self,

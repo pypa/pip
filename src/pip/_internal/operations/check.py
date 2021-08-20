@@ -24,12 +24,12 @@ class PackageDetails(NamedTuple):
 
 
 # Shorthands
-PackageSet = Dict['NormalizedName', PackageDetails]
-Missing = Tuple['NormalizedName', Requirement]
-Conflicting = Tuple['NormalizedName', DistributionVersion, Requirement]
+PackageSet = Dict["NormalizedName", PackageDetails]
+Missing = Tuple["NormalizedName", Requirement]
+Conflicting = Tuple["NormalizedName", DistributionVersion, Requirement]
 
-MissingDict = Dict['NormalizedName', List[Missing]]
-ConflictingDict = Dict['NormalizedName', List[Conflicting]]
+MissingDict = Dict["NormalizedName", List[Missing]]
+ConflictingDict = Dict["NormalizedName", List[Conflicting]]
 CheckResult = Tuple[MissingDict, ConflictingDict]
 ConflictDetails = Tuple[PackageSet, CheckResult]
 
@@ -112,15 +112,14 @@ def check_install_conflicts(to_install: List[InstallRequirement]) -> ConflictDet
         package_set,
         check_package_set(
             package_set, should_ignore=lambda name: name not in whitelist
-        )
+        ),
     )
 
 
 def _simulate_installation_of(
     to_install: List[InstallRequirement], package_set: PackageSet
 ) -> Set["NormalizedName"]:
-    """Computes the version of packages after installing to_install.
-    """
+    """Computes the version of packages after installing to_install."""
     # Keep track of packages that were installed
     installed = set()
 

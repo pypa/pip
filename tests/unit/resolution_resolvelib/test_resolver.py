@@ -31,8 +31,7 @@ def resolver(preparer, finder):
 
 
 def _make_graph(edges):
-    """Build graph from edge declarations.
-    """
+    """Build graph from edge declarations."""
 
     graph = DirectedGraph()
     for parent, child in edges:

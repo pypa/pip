@@ -5,15 +5,20 @@ from textwrap import dedent
 import pytest
 
 
-@pytest.mark.parametrize("entrypoint", [
-    ("fake_pip = pip._internal.main:main",),
-    ("fake_pip = pip._internal:main",),
-    ("fake_pip = pip:main",),
-])
+@pytest.mark.parametrize(
+    "entrypoint",
+    [
+        ("fake_pip = pip._internal.main:main",),
+        ("fake_pip = pip._internal:main",),
+        ("fake_pip = pip:main",),
+    ],
+)
 def test_entrypoints_work(entrypoint, script):
     fake_pkg = script.temp_path / "fake_pkg"
     fake_pkg.mkdir()
-    fake_pkg.joinpath("setup.py").write_text(dedent("""
+    fake_pkg.joinpath("setup.py").write_text(
+        dedent(
+            """
     from setuptools import setup
 
     setup(
@@ -25,7 +30,11 @@ def test_entrypoints_work(entrypoint, script):
             ]
         }}
     )
-    """.format(entrypoint)))
+    """.format(
+                entrypoint
+            )
+        )
+    )
 
     script.pip("install", "-vvv", str(fake_pkg))
     result = script.pip("-V")
