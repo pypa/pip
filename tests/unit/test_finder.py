@@ -1,5 +1,4 @@
 import logging
-import sys
 from unittest.mock import Mock, patch
 
 import pytest
@@ -403,14 +402,7 @@ def test_finder_only_installs_data_require(data):
     # using a local index (that has pre & dev releases)
     finder = make_test_finder(index_urls=[data.index_url("datarequire")])
     links = finder.find_all_candidates("fakepackage")
-
-    expected = ["1.0.0", "9.9.9"]
-    if (2, 7) < sys.version_info < (3,):
-        expected.append("2.7.0")
-    elif sys.version_info > (3, 3):
-        expected.append("3.3.0")
-
-    assert {str(v.version) for v in links} == set(expected)
+    assert {str(v.version) for v in links} == {"1.0.0", "3.3.0", "9.9.9"}
 
 
 def test_finder_installs_pre_releases(data):

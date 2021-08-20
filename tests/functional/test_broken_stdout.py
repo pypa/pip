@@ -1,13 +1,7 @@
 import os
 import subprocess
-import sys
 
-if sys.version_info < (3, 6):
-    _BROKEN_STDOUT_RETURN_CODE = 1
-else:
-    # The new exit status was added in Python 3.6 as a result of:
-    # https://bugs.python.org/issue5319
-    _BROKEN_STDOUT_RETURN_CODE = 120
+_BROKEN_STDOUT_RETURN_CODE = 120
 
 
 def setup_broken_stdout_test(args, deprecated_python):
