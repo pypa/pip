@@ -141,7 +141,7 @@ no-dependencies = yes
 ```
 
 To enable the boolean options `--no-compile`, `--no-warn-script-location` and
-`--no-cache-dir`, falsy values have to be used:
+`--no-cache-dir`, false values have to be used:
 
 ```ini
 [global]
