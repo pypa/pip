@@ -5,7 +5,6 @@ The main purpose of this module is to expose LinkCollector.collect_sources().
 import cgi
 import collections
 import functools
-import html
 import itertools
 import logging
 import os
@@ -248,11 +247,7 @@ def _create_link_from_element(
 
     url = _clean_link(urllib.parse.urljoin(base_url, href))
     pyrequire = anchor.get("data-requires-python")
-    pyrequire = html.unescape(pyrequire) if pyrequire else None
-
     yanked_reason = anchor.get("data-yanked")
-    if yanked_reason:
-        yanked_reason = html.unescape(yanked_reason)
 
     link = Link(
         url,
