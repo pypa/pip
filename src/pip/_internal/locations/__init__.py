@@ -45,6 +45,8 @@ else:
 
 _PLATLIBDIR: str = getattr(sys, "platlibdir", "lib")
 
+_USE_SYSCONFIG = sys.version_info >= (3, 10)
+
 
 def _looks_like_bpo_44860() -> bool:
     """The resolution to bpo-44860 will change this incorrect platlib.
@@ -190,7 +192,7 @@ def get_scheme(
     isolated: bool = False,
     prefix: Optional[str] = None,
 ) -> Scheme:
-    old = _distutils.get_scheme(
+    new = _sysconfig.get_scheme(
         dist_name,
         user=user,
         home=home,
@@ -198,7 +200,10 @@ def get_scheme(
         isolated=isolated,
         prefix=prefix,
     )
-    new = _sysconfig.get_scheme(
+    if _USE_SYSCONFIG:
+        return new
+
+    old = _distutils.get_scheme(
         dist_name,
         user=user,
         home=home,
@@ -335,8 +340,11 @@ def get_scheme(
 
 
 def get_bin_prefix() -> str:
-    old = _distutils.get_bin_prefix()
     new = _sysconfig.get_bin_prefix()
+    if _USE_SYSCONFIG:
+        return new
+
+    old = _distutils.get_bin_prefix()
     if _warn_if_mismatch(pathlib.Path(old), pathlib.Path(new), key="bin_prefix"):
         _log_context()
     return old
@@ -365,8 +373,11 @@ def _looks_like_deb_system_dist_packages(value: str) -> bool:
 
 def get_purelib() -> str:
     """Return the default pure-Python lib location."""
-    old = _distutils.get_purelib()
     new = _sysconfig.get_purelib()
+    if _USE_SYSCONFIG:
+        return new
+
+    old = _distutils.get_purelib()
     if _looks_like_deb_system_dist_packages(old):
         return old
     if _warn_if_mismatch(pathlib.Path(old), pathlib.Path(new), key="purelib"):
@@ -376,8 +387,11 @@ def get_purelib() -> str:
 
 def get_platlib() -> str:
     """Return the default platform-shared lib location."""
-    old = _distutils.get_platlib()
     new = _sysconfig.get_platlib()
+    if _USE_SYSCONFIG:
+        return new
+
+    old = _distutils.get_platlib()
     if _looks_like_deb_system_dist_packages(old):
         return old
     if _warn_if_mismatch(pathlib.Path(old), pathlib.Path(new), key="platlib"):
@@ -385,10 +399,20 @@ def get_platlib() -> str:
     return old
 
 
+def _deduplicated(v1: str, v2: str) -> List[str]:
+    """Deduplicate values from a list."""
+    if v1 == v2:
+        return [v1]
+    return [v1, v2]
+
+
 def get_prefixed_libs(prefix: str) -> List[str]:
     """Return the lib locations under ``prefix``."""
-    old_pure, old_plat = _distutils.get_prefixed_libs(prefix)
     new_pure, new_plat = _sysconfig.get_prefixed_libs(prefix)
+    if _USE_SYSCONFIG:
+        return _deduplicated(new_pure, new_plat)
+
+    old_pure, old_plat = _distutils.get_prefixed_libs(prefix)
 
     warned = [
         _warn_if_mismatch(
@@ -405,6 +429,4 @@ def get_prefixed_libs(prefix: str) -> List[str]:
     if any(warned):
         _log_context(prefix=prefix)
 
-    if old_pure == old_plat:
-        return [old_pure]
-    return [old_pure, old_plat]
+    return _deduplicated(old_pure, old_plat)

@@ -422,7 +422,7 @@ class TestInstallUnpackedWheel:
             self.name,
             user=False,
             home=None,
-            root=tmpdir,
+            root=str(tmpdir),  # Casting needed for CPython 3.10+. See GH-10358.
             isolated=False,
             prefix=prefix,
         )
