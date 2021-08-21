@@ -139,3 +139,93 @@ Examples
          docopt==0.6.2
          idlex==1.13
          jedi==0.9.0
+
+#. List packages installed in editable mode
+
+When some packages are installed in editable mode, ``pip list`` outputs an
+additional column that shows the directory where the editable project is
+located (i.e. the directory that contains the ``pyproject.toml`` or
+``setup.py`` file).
+
+   .. tab:: Unix/macOS
+
+      .. code-block:: console
+
+         $ python -m pip list
+         Package          Version  Editable project location
+         ---------------- -------- -------------------------------------
+         pip              21.2.4
+         pip-test-package 0.1.1    /home/you/.venv/src/pip-test-package
+         setuptools       57.4.0
+         wheel            0.36.2
+
+
+   .. tab:: Windows
+
+      .. code-block:: console
+
+         C:\> py -m pip list
+         Package          Version  Editable project location
+         ---------------- -------- ----------------------------------------
+         pip              21.2.4
+         pip-test-package 0.1.1    C:\Users\You\.venv\src\pip-test-package
+         setuptools       57.4.0
+         wheel            0.36.2
+
+The json format outputs an additional ``editable_project_location`` field.
+
+   .. tab:: Unix/macOS
+
+      .. code-block:: console
+
+         $ python -m pip list --format=json | python -m json.tool
+         [
+           {
+             "name": "pip",
+             "version": "21.2.4",
+           },
+           {
+             "name": "pip-test-package",
+             "version": "0.1.1",
+             "editable_project_location": "/home/you/.venv/src/pip-test-package"
+           },
+           {
+             "name": "setuptools",
+             "version": "57.4.0"
+           },
+           {
+             "name": "wheel",
+             "version": "0.36.2"
+           }
+         ]
+
+   .. tab:: Windows
+
+      .. code-block:: console
+
+         C:\> py -m pip list --format=json | py -m json.tool
+         [
+           {
+             "name": "pip",
+             "version": "21.2.4",
+           },
+           {
+             "name": "pip-test-package",
+             "version": "0.1.1",
+             "editable_project_location": "C:\Users\You\.venv\src\pip-test-package"
+           },
+           {
+             "name": "setuptools",
+             "version": "57.4.0"
+           },
+           {
+             "name": "wheel",
+             "version": "0.36.2"
+           }
+         ]
+
+.. note::
+
+   Contrarily to the ``freeze``  comand, ``pip list --format=freeze`` will not
+   report editable install information, and will report the version of the
+   package at the time it was installed.
