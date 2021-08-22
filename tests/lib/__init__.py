@@ -821,18 +821,18 @@ def _git_commit(
 
 
 def _vcs_add(script, version_pkg_path, vcs="git"):
-    if vcs == "git":
-        _git(script, version_pkg_path)
-    elif vcs == "hg":
-        _hg((script, version_pkg_path)
-        
-    elif vcs == "svn":
-        _svn(script, version_pkg_path)
+    all_vcs: Dict[str, Callable] = {"git": _git,
+                                "hg": _hg,
+                                "svn":_svn,
+                                "bazaar":_bazaar,
+                                }
 
-    elif vcs == "bazaar":
-        _bazaar(script, version_pkg_path)
+    if vcs in all_vcs:
+        # get corresponding vcs function and call it.
+        all_vcs[vcs](script, version_pkg_path)
     else:
         raise ValueError(f"Unknown vcs: {vcs}")
+
     return version_pkg_path
 
 def _git(script, version_pkg_path):
