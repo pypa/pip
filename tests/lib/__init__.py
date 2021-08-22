@@ -923,11 +923,7 @@ def _create_test_package_with_subdirectory(script, subdirectory):
         )
     )
 
-    script.run("git", "init", cwd=version_pkg_path)
-    script.run("git", "add", ".", cwd=version_pkg_path)
-    _git_commit(script, version_pkg_path, message="initial version")
-
-    return version_pkg_path
+    return _vcs_add(script, version_pkg_path)
 
 
 def _create_test_package_with_srcdir(script, name="version_pkg", vcs="git"):
