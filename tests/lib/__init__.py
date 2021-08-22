@@ -787,7 +787,7 @@ def _create_main_file(dir_path, name=None, output=None):
 def _git_commit(
     env_or_script,
     repo_dir,
-    message=None,
+    message= "test commit",
     allow_empty=False,
     stage_modified=False,
 ):
@@ -799,8 +799,6 @@ def _git_commit(
       repo_dir: a path to a Git repository.
       message: an optional commit message.
     """
-    if message is None:
-        message = "test commit"
 
     args = []
 
