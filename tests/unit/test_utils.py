@@ -10,6 +10,7 @@ import stat
 import sys
 import time
 from io import BytesIO
+from typing import List
 from unittest.mock import Mock, patch
 
 import pytest
@@ -190,7 +191,7 @@ class Tests_EgglinkPath:
 class TestsGetDistributions:
     """Test get_installed_distributions() and get_distribution()."""
 
-    class MockWorkingSet(list):
+    class MockWorkingSet(List[Mock]):
         def require(self, name):
             pass
 

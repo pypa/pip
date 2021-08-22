@@ -8,7 +8,7 @@ import subprocess
 import sys
 import time
 from contextlib import ExitStack, contextmanager
-from typing import Dict, Iterable
+from typing import TYPE_CHECKING, Dict, Iterable, List
 from unittest.mock import patch
 
 import pytest
@@ -21,10 +21,13 @@ from tests.lib import DATA_DIR, SRC_DIR, PipTestEnvironment, TestData
 from tests.lib.certs import make_tls_cert, serialize_cert, serialize_key
 from tests.lib.path import Path
 from tests.lib.server import MockServer as _MockServer
-from tests.lib.server import Responder, make_mock_server, server_running
+from tests.lib.server import make_mock_server, server_running
 from tests.lib.venv import VirtualEnvironment
 
 from .lib.compat import nullcontext
+
+if TYPE_CHECKING:
+    from wsgi import WSGIApplication
 
 
 def pytest_addoption(parser):
@@ -521,7 +524,7 @@ class MockServer:
     def host(self):
         return self._server.host
 
-    def set_responses(self, responses: Iterable[Responder]) -> None:
+    def set_responses(self, responses: Iterable["WSGIApplication"]) -> None:
         assert not self._running, "responses cannot be set on running server"
         self._server.mock.side_effect = responses
 
@@ -542,7 +545,7 @@ class MockServer:
         assert self._running, "idle server cannot be stopped"
         self.context.close()
 
-    def get_requests(self) -> Dict[str, str]:
+    def get_requests(self) -> List[Dict[str, str]]:
         """Get environ for each received request."""
         assert not self._running, "cannot get mock from running server"
         # Legacy: replace call[0][0] with call.args[0]

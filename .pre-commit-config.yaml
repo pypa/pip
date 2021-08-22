@@ -42,12 +42,13 @@ repos:
   rev: v0.910
   hooks:
   - id: mypy
-    exclude: tests
+    exclude: tests/data
     args: ["--pretty", "--show-error-codes"]
     additional_dependencies: [
         'keyring==23.0.1',
         'nox==2021.6.12',
         'types-docutils==0.1.8',
+        'types-setuptools==57.0.2',
         'types-six==0.1.9',
     ]
 
