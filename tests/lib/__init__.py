@@ -826,7 +826,7 @@ def _with_vcs_tracking(script, version_pkg_path, vcs="git"):
     elif vcs == "hg":
         _with_hg(script, version_pkg_path)
     elif vcs == "svn":
-        _svn(script, version_pkg_path)
+        _with_svn(script, version_pkg_path)
     elif vcs == "bazaar":
         _bazaar(script, version_pkg_path)
     else:
@@ -856,7 +856,7 @@ def _with_hg(script, version_pkg_path):
     )
 
 
-def _svn(script, version_pkg_path):
+def _with_svn(script, version_pkg_path):
     repo_url = _create_svn_repo(script, version_pkg_path)
     script.run("svn", "checkout", repo_url, "pip-test-package", cwd=script.scratch_path)
     checkout_path = script.scratch_path / "pip-test-package"
