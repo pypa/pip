@@ -19,25 +19,6 @@ from pip._internal.req.constructors import install_req_from_line
 from tests.lib import make_test_finder
 
 
-def make_no_network_finder(
-    find_links,
-    allow_all_prereleases: bool = False,
-):
-    """
-    Create and return a PackageFinder instance for test purposes that
-    doesn't make any network requests when _get_pages() is called.
-    """
-    finder = make_test_finder(
-        find_links=find_links,
-        allow_all_prereleases=allow_all_prereleases,
-    )
-    # Replace the PackageFinder._link_collector's _get_pages() with a no-op.
-    link_collector = finder._link_collector
-    link_collector._get_pages = lambda locations: []
-
-    return finder
-
-
 def test_no_mpkg(data):
     """Finder skips zipfiles with "macosx10" in the name."""
     finder = make_test_finder(find_links=[data.find_links])
@@ -342,7 +323,7 @@ def test_finder_priority_nonegg_over_eggfragments():
     req = install_req_from_line("bar==1.0", None)
     links = ["http://foo/bar.py#egg=bar-1.0", "http://foo/bar-1.0.tar.gz"]
 
-    finder = make_no_network_finder(links)
+    finder = make_test_finder(links)
     all_versions = finder.find_all_candidates(req.name)
     assert all_versions[0].link.url.endswith("tar.gz")
     assert all_versions[1].link.url.endswith("#egg=bar-1.0")
@@ -353,7 +334,7 @@ def test_finder_priority_nonegg_over_eggfragments():
 
     links.reverse()
 
-    finder = make_no_network_finder(links)
+    finder = make_test_finder(links)
     all_versions = finder.find_all_candidates(req.name)
     assert all_versions[0].link.url.endswith("tar.gz")
     assert all_versions[1].link.url.endswith("#egg=bar-1.0")
@@ -377,13 +358,13 @@ def test_finder_only_installs_stable_releases(data):
     # using find-links
     links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
 
-    finder = make_no_network_finder(links)
+    finder = make_test_finder(links)
     found = finder.find_requirement(req, False)
     assert found.link.url == "https://foo/bar-1.0.tar.gz"
 
     links.reverse()
 
-    finder = make_no_network_finder(links)
+    finder = make_test_finder(links)
     found = finder.find_requirement(req, False)
     assert found.link.url == "https://foo/bar-1.0.tar.gz"
 
@@ -423,13 +404,13 @@ def test_finder_installs_pre_releases(data):
     # using find-links
     links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
 
-    finder = make_no_network_finder(links, allow_all_prereleases=True)
+    finder = make_test_finder(links, allow_all_prereleases=True)
     found = finder.find_requirement(req, False)
     assert found.link.url == "https://foo/bar-2.0b1.tar.gz"
 
     links.reverse()
 
-    finder = make_no_network_finder(links, allow_all_prereleases=True)
+    finder = make_test_finder(links, allow_all_prereleases=True)
     found = finder.find_requirement(req, False)
     assert found.link.url == "https://foo/bar-2.0b1.tar.gz"
 
@@ -457,13 +438,13 @@ def test_finder_installs_pre_releases_with_version_spec():
     req = install_req_from_line("bar>=0.0.dev0", None)
     links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
 
-    finder = make_no_network_finder(links)
+    finder = make_test_finder(links)
     found = finder.find_requirement(req, False)
     assert found.link.url == "https://foo/bar-2.0b1.tar.gz"
 
     links.reverse()
 
-    finder = make_no_network_finder(links)
+    finder = make_test_finder(links)
     found = finder.find_requirement(req, False)
     assert found.link.url == "https://foo/bar-2.0b1.tar.gz"
 
