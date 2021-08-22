@@ -68,14 +68,14 @@ def _check_dist_requires_python(
     :raises UnsupportedPythonVersion: When the given Python version isn't
         compatible.
     """
+    # This idiosyncratically converts the SpecifierSet to str and let
+    # check_requires_python then parse it again into SpecifierSet. But this
+    # is the legacy resolver so I'm just not going to bother refactoring.
     try:
         requires_python = str(dist.requires_python)
     except FileNotFoundError as e:
         raise NoneMetadataError(dist, str(e))
     try:
-        # This idiosyncratically converts the SpecifierSet to str and let
-        # check_requires_python then parse it again into SpecifierSet. But this
-        # is the legacy resolver so I'm just not going to bother refactoring.
         is_compatible = check_requires_python(
             requires_python,
             version_info=version_info,
@@ -391,10 +391,7 @@ class Resolver(BaseResolver):
             # This idiosyncratically converts the Requirement to str and let
             # make_install_req then parse it again into Requirement. But this is
             # the legacy resolver so I'm just not going to bother refactoring.
-            sub_install_req = self._make_install_req(
-                str(subreq),
-                req_to_install,
-            )
+            sub_install_req = self._make_install_req(str(subreq), req_to_install)
             parent_req_name = req_to_install.name
             to_scan_again, add_to_parent = requirement_set.add_requirement(
                 sub_install_req,
