@@ -820,7 +820,7 @@ def _git_commit(
     env_or_script.run(*new_args, cwd=repo_dir)
 
 
-def _vcs_add(script, version_pkg_path, vcs="git"):
+def _with_vcs_tracking(script, version_pkg_path, vcs="git"):
     if vcs == "git":
         _git(script, version_pkg_path)
     elif vcs == "hg":
@@ -923,7 +923,7 @@ def _create_test_package_with_subdirectory(script, subdirectory):
         )
     )
 
-    return _vcs_add(script, version_pkg_path)
+    return _with_vcs_tracking(script, version_pkg_path)
 
 
 def _create_test_package_with_srcdir(script, name="version_pkg", vcs="git"):
@@ -951,7 +951,7 @@ def _create_test_package_with_srcdir(script, name="version_pkg", vcs="git"):
             )
         )
     )
-    return _vcs_add(script, version_pkg_path, vcs)
+    return _with_vcs_tracking(script, version_pkg_path, vcs)
 
 
 def _create_test_package(script, name="version_pkg", vcs="git"):
@@ -974,7 +974,7 @@ def _create_test_package(script, name="version_pkg", vcs="git"):
             )
         )
     )
-    return _vcs_add(script, version_pkg_path, vcs)
+    return _with_vcs_tracking(script, version_pkg_path, vcs)
 
 
 def _create_svn_repo(script, version_pkg_path):
