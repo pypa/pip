@@ -1082,6 +1082,9 @@ def create_basic_wheel_for_package(
     requires_python=None,
     extra_files=None,
 ):
+
+    # these can't be made default args because some tests/functions pass None as an arg.
+    # for e.g create_basic_wheel_for_package("scriptname", "name", "v1.0.0", None)
     if depends is None:
         depends = []
     if extras is None:
