@@ -830,21 +830,7 @@ def _vcs_add(script, version_pkg_path, vcs="git"):
         _svn(script, version_pkg_path)
 
     elif vcs == "bazaar":
-        script.run("bzr", "init", cwd=version_pkg_path)
-        script.run("bzr", "add", ".", cwd=version_pkg_path)
-        script.run(
-            "bzr", "whoami", "pip <distutils-sig@python.org>", cwd=version_pkg_path
-        )
-        script.run(
-            "bzr",
-            "commit",
-            "-q",
-            "--author",
-            "pip <distutils-sig@python.org>",
-            "-m",
-            "initial version",
-            cwd=version_pkg_path,
-        )
+        _bazaar(script, version_pkg_path)
     else:
         raise ValueError(f"Unknown vcs: {vcs}")
     return version_pkg_path
@@ -879,6 +865,24 @@ def _svn(script, version_pkg_path):
     checkout_path = checkout_path.replace("c:", "C:")
 
     version_pkg_path = checkout_path
+
+def _bazaar(script, version_pkg_path):
+    script.run("bzr", "init", cwd=version_pkg_path)
+    script.run("bzr", "add", ".", cwd=version_pkg_path)
+    script.run(
+        "bzr", "whoami", "pip <distutils-sig@python.org>", cwd=version_pkg_path
+    )
+    script.run(
+        "bzr",
+        "commit",
+        "-q",
+        "--author",
+        "pip <distutils-sig@python.org>",
+        "-m",
+        "initial version",
+        cwd=version_pkg_path,
+    )
+
 
 def _create_test_package_with_subdirectory(script, subdirectory):
     script.scratch_path.joinpath("version_pkg").mkdir()
