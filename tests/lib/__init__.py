@@ -822,9 +822,7 @@ def _git_commit(
 
 def _vcs_add(script, version_pkg_path, vcs="git"):
     if vcs == "git":
-        script.run("git", "init", cwd=version_pkg_path)
-        script.run("git", "add", ".", cwd=version_pkg_path)
-        _git_commit(script, version_pkg_path, message="initial version")
+        _git(script, version_pkg_path)
     elif vcs == "hg":
         script.run("hg", "init", cwd=version_pkg_path)
         script.run("hg", "add", ".", cwd=version_pkg_path)
@@ -868,6 +866,11 @@ def _vcs_add(script, version_pkg_path, vcs="git"):
     else:
         raise ValueError(f"Unknown vcs: {vcs}")
     return version_pkg_path
+
+def _git(script, version_pkg_path):
+    script.run("git", "init", cwd=version_pkg_path)
+    script.run("git", "add", ".", cwd=version_pkg_path)
+    _git_commit(script, version_pkg_path, message="initial version")
 
 
 def _create_test_package_with_subdirectory(script, subdirectory):
