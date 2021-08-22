@@ -787,7 +787,7 @@ def _create_main_file(dir_path, name=None, output=None):
 def _git_commit(
     env_or_script,
     repo_dir,
-    message= "test commit",
+    message="test commit",
     allow_empty=False,
     stage_modified=False,
 ):
