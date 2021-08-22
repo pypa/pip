@@ -1,54 +1,45 @@
+import email.message
 import logging
 from unittest import mock
 
 import pytest
-from pip._vendor import pkg_resources
+from pip._vendor.packaging.specifiers import SpecifierSet
 
 from pip._internal.exceptions import NoneMetadataError, UnsupportedPythonVersion
+from pip._internal.metadata import BaseDistribution
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.resolution.legacy.resolver import (
     Resolver,
     _check_dist_requires_python,
 )
-from pip._internal.utils.packaging import get_requires_python
 from tests.lib import make_test_finder
 from tests.lib.index import make_mock_candidate
 
 
-# We need to inherit from DistInfoDistribution for the `isinstance()`
-# check inside `packaging.get_metadata()` to work.
-class FakeDist(pkg_resources.DistInfoDistribution):
-    def __init__(self, metadata, metadata_name=None):
-        """
-        :param metadata: The value that dist.get_metadata() should return
-            for the `metadata_name` metadata.
-        :param metadata_name: The name of the metadata to store
-            (can be "METADATA" or "PKG-INFO").  Defaults to "METADATA".
-        """
-        if metadata_name is None:
-            metadata_name = "METADATA"
-
-        self.project_name = "my-project"
-        self.metadata_name = metadata_name
-        self.metadata = metadata
+class FakeDist(BaseDistribution):
+    def __init__(self, metadata):
+        self._canonical_name = "my-project"
+        self._metadata = metadata
 
     def __str__(self):
-        return f"<distribution {self.project_name!r}>"
+        return f"<distribution {self.canonical_name!r}>"
 
-    def has_metadata(self, name):
-        return name == self.metadata_name
+    @property
+    def canonical_name(self):
+        return self._canonical_name
 
-    def get_metadata(self, name):
-        assert name == self.metadata_name
-        return self.metadata
+    @property
+    def metadata(self):
+        return self._metadata
 
 
-def make_fake_dist(requires_python=None, metadata_name=None):
-    metadata = "Name: test\n"
+def make_fake_dist(*, klass=FakeDist, requires_python=None):
+    metadata = email.message.Message()
+    metadata["Name"] = "my-project"
     if requires_python is not None:
-        metadata += f"Requires-Python:{requires_python}"
+        metadata["Requires-Python"] = requires_python
 
-    return FakeDist(metadata, metadata_name=metadata_name)
+    return klass(metadata)
 
 
 class TestCheckDistRequiresPython:
@@ -62,7 +53,7 @@ class TestCheckDistRequiresPython:
         Test a Python version compatible with the dist's Requires-Python.
         """
         caplog.set_level(logging.DEBUG)
-        dist = make_fake_dist("== 3.6.5")
+        dist = make_fake_dist(requires_python="== 3.6.5")
 
         _check_dist_requires_python(
             dist,
@@ -75,7 +66,7 @@ class TestCheckDistRequiresPython:
         """
         Test a Python version incompatible with the dist's Requires-Python.
         """
-        dist = make_fake_dist("== 3.6.4")
+        dist = make_fake_dist(requires_python="== 3.6.4")
         with pytest.raises(UnsupportedPythonVersion) as exc:
             _check_dist_requires_python(
                 dist,
@@ -84,7 +75,7 @@ class TestCheckDistRequiresPython:
             )
         assert str(exc.value) == (
             "Package 'my-project' requires a different Python: "
-            "3.6.5 not in '== 3.6.4'"
+            "3.6.5 not in '==3.6.4'"
         )
 
     def test_incompatible_with_ignore_requires(self, caplog):
@@ -93,7 +84,7 @@ class TestCheckDistRequiresPython:
         while passing ignore_requires_python=True.
         """
         caplog.set_level(logging.DEBUG)
-        dist = make_fake_dist("== 3.6.4")
+        dist = make_fake_dist(requires_python="== 3.6.4")
         _check_dist_requires_python(
             dist,
             version_info=(3, 6, 5),
@@ -104,7 +95,7 @@ class TestCheckDistRequiresPython:
         assert record.levelname == "DEBUG"
         assert record.message == (
             "Ignoring failed Requires-Python check for package 'my-project': "
-            "3.6.5 not in '== 3.6.4'"
+            "3.6.5 not in '==3.6.4'"
         )
 
     def test_none_requires_python(self, caplog):
@@ -114,7 +105,7 @@ class TestCheckDistRequiresPython:
         caplog.set_level(logging.DEBUG)
         dist = make_fake_dist()
         # Make sure our test setup is correct.
-        assert get_requires_python(dist) is None
+        assert dist.requires_python == SpecifierSet()
         assert len(caplog.records) == 0
 
         # Then there is no exception and no log message.
@@ -130,7 +121,7 @@ class TestCheckDistRequiresPython:
         Test a dist with an invalid Requires-Python.
         """
         caplog.set_level(logging.DEBUG)
-        dist = make_fake_dist("invalid")
+        dist = make_fake_dist(requires_python="invalid")
         _check_dist_requires_python(
             dist,
             version_info=(3, 6, 5),
@@ -151,17 +142,15 @@ class TestCheckDistRequiresPython:
             "PKG-INFO",
         ],
     )
-    def test_empty_metadata_error(self, caplog, metadata_name):
-        """
-        Test dist.has_metadata() returning True and dist.get_metadata()
-        returning None.
-        """
-        dist = make_fake_dist(metadata_name=metadata_name)
-        dist.metadata = None
+    def test_empty_metadata_error(self, metadata_name):
+        """Test dist.metadata raises FileNotFoundError."""
 
-        # Make sure our test setup is correct.
-        assert dist.has_metadata(metadata_name)
-        assert dist.get_metadata(metadata_name) is None
+        class NotWorkingFakeDist(FakeDist):
+            @property
+            def metadata(self):
+                raise FileNotFoundError(metadata_name)
+
+        dist = make_fake_dist(klass=NotWorkingFakeDist)
 
         with pytest.raises(NoneMetadataError) as exc:
             _check_dist_requires_python(

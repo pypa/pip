@@ -11,7 +11,6 @@ import shutil
 from typing import Dict, Iterable, List, Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.pkg_resources import Distribution
 
 from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.distributions.installed import InstalledDistribution
@@ -25,6 +24,7 @@ from pip._internal.exceptions import (
     VcsHashUnsupported,
 )
 from pip._internal.index.package_finder import PackageFinder
+from pip._internal.metadata import BaseDistribution
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.network.download import BatchDownloader, Downloader
@@ -52,12 +52,12 @@ def _get_prepared_distribution(
     req_tracker: RequirementTracker,
     finder: PackageFinder,
     build_isolation: bool,
-) -> Distribution:
+) -> BaseDistribution:
     """Prepare a distribution for installation."""
     abstract_dist = make_distribution_for_install_requirement(req)
     with req_tracker.track(req):
         abstract_dist.prepare_distribution_metadata(finder, build_isolation)
-    return abstract_dist.get_pkg_resources_distribution()
+    return abstract_dist.get_metadata_distribution()
 
 
 def unpack_vcs_link(link: Link, location: str) -> None:
@@ -400,7 +400,10 @@ class RequirementPreparer:
         # showing the user what the hash should be.
         return req.hashes(trust_internet=False) or MissingHashes()
 
-    def _fetch_metadata_using_lazy_wheel(self, link: Link) -> Optional[Distribution]:
+    def _fetch_metadata_using_lazy_wheel(
+        self,
+        link: Link,
+    ) -> Optional[BaseDistribution]:
         """Fetch metadata using lazy wheel, if possible."""
         if not self.use_lazy_wheel:
             return None
@@ -462,7 +465,7 @@ class RequirementPreparer:
 
     def prepare_linked_requirement(
         self, req: InstallRequirement, parallel_builds: bool = False
-    ) -> Distribution:
+    ) -> BaseDistribution:
         """Prepare a requirement to be obtained from req.link."""
         assert req.link
         link = req.link
@@ -520,7 +523,7 @@ class RequirementPreparer:
 
     def _prepare_linked_requirement(
         self, req: InstallRequirement, parallel_builds: bool
-    ) -> Distribution:
+    ) -> BaseDistribution:
         assert req.link
         link = req.link
 
@@ -587,8 +590,8 @@ class RequirementPreparer:
     def prepare_editable_requirement(
         self,
         req: InstallRequirement,
-    ) -> Distribution:
-        """Prepare an editable requirement"""
+    ) -> BaseDistribution:
+        """Prepare an editable requirement."""
         assert req.editable, "cannot prepare a non-editable req as editable"
 
         logger.info("Obtaining %s", req)
@@ -615,9 +618,11 @@ class RequirementPreparer:
         return dist
 
     def prepare_installed_requirement(
-        self, req: InstallRequirement, skip_reason: str
-    ) -> Distribution:
-        """Prepare an already-installed requirement"""
+        self,
+        req: InstallRequirement,
+        skip_reason: str,
+    ) -> BaseDistribution:
+        """Prepare an already-installed requirement."""
         assert req.satisfied_by, "req should have been satisfied but isn't"
         assert skip_reason is not None, (
             "did not get skip reason skipped but req.satisfied_by "
@@ -634,4 +639,4 @@ class RequirementPreparer:
                     "completely repeatable environment, install into an "
                     "empty virtualenv."
                 )
-            return InstalledDistribution(req).get_pkg_resources_distribution()
+            return InstalledDistribution(req).get_metadata_distribution()

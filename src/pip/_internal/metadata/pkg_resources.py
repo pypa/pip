@@ -1,6 +1,5 @@
 import email.message
 import logging
-import zipfile
 from typing import (
     TYPE_CHECKING,
     Collection,
@@ -20,7 +19,13 @@ from pip._internal.utils import misc  # TODO: Move definition here.
 from pip._internal.utils.packaging import get_installer, get_metadata
 from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
 
-from .base import BaseDistribution, BaseEntryPoint, BaseEnvironment, DistributionVersion
+from .base import (
+    BaseDistribution,
+    BaseEntryPoint,
+    BaseEnvironment,
+    DistributionVersion,
+    Wheel,
+)
 
 if TYPE_CHECKING:
     from pip._vendor.packaging.utils import NormalizedName
@@ -39,9 +44,9 @@ class Distribution(BaseDistribution):
         self._dist = dist
 
     @classmethod
-    def from_wheel(cls, path: str, name: str) -> "Distribution":
-        with zipfile.ZipFile(path, allowZip64=True) as zf:
-            dist = pkg_resources_distribution_for_wheel(zf, name, path)
+    def from_wheel(cls, wheel: Wheel, name: str) -> "Distribution":
+        with wheel.as_zipfile() as zf:
+            dist = pkg_resources_distribution_for_wheel(zf, name, wheel.location)
         return cls(dist)
 
     @property
@@ -99,6 +104,9 @@ class Distribution(BaseDistribution):
         if extras:  # pkg_resources raises on invalid extras, so we sanitize.
             extras = frozenset(extras).intersection(self._dist.extras)
         return self._dist.requires(extras)
+
+    def iter_provided_extras(self) -> Iterable[str]:
+        return self._dist.extras
 
 
 class Environment(BaseEnvironment):

@@ -25,6 +25,7 @@ from zipfile import ZipFile
 
 from pip._vendor.requests.structures import CaseInsensitiveDict
 
+from pip._internal.metadata import BaseDistribution, MemoryWheel, get_wheel_distribution
 from tests.lib.path import Path
 
 # As would be used in metadata
@@ -280,6 +281,10 @@ class WheelBuilder:
 
     def as_zipfile(self) -> ZipFile:
         return ZipFile(BytesIO(self.as_bytes()))
+
+    def as_distribution(self, name: str) -> BaseDistribution:
+        stream = BytesIO(self.as_bytes())
+        return get_wheel_distribution(MemoryWheel(self._name, stream), name)
 
 
 def make_wheel(

@@ -158,10 +158,7 @@ class Factory:
         try:
             base = self._installed_candidate_cache[dist.canonical_name]
         except KeyError:
-            from pip._internal.metadata.pkg_resources import Distribution as _Dist
-
-            compat_dist = cast(_Dist, dist)._dist
-            base = AlreadyInstalledCandidate(compat_dist, template, factory=self)
+            base = AlreadyInstalledCandidate(dist, template, factory=self)
             self._installed_candidate_cache[dist.canonical_name] = base
         if not extras:
             return base
@@ -494,9 +491,13 @@ class Factory:
         return self._make_requirement_from_install_req(ireq, requested_extras)
 
     def make_requires_python_requirement(
-        self, specifier: Optional[SpecifierSet]
+        self,
+        specifier: SpecifierSet,
     ) -> Optional[Requirement]:
-        if self._ignore_requires_python or specifier is None:
+        if self._ignore_requires_python:
+            return None
+        # Don't bother creating a dependency for an empty Requires-Python.
+        if not str(specifier):
             return None
         return RequiresPythonRequirement(specifier, self._python_candidate)
 
