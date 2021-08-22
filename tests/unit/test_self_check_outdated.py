@@ -4,13 +4,14 @@ import json
 import os
 import sys
 
-import freezegun
+import freezegun  # type: ignore
 import pretend
 import pytest
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal import self_outdated_check
 from pip._internal.models.candidate import InstallationCandidate
+from pip._internal.models.link import Link
 from pip._internal.self_outdated_check import (
     SelfCheckState,
     logger,
@@ -29,9 +30,21 @@ class MockPackageFinder:
     BASE_URL = "https://pypi.org/simple/pip-{0}.tar.gz"
     PIP_PROJECT_NAME = "pip"
     INSTALLATION_CANDIDATES = [
-        InstallationCandidate(PIP_PROJECT_NAME, "6.9.0", BASE_URL.format("6.9.0")),
-        InstallationCandidate(PIP_PROJECT_NAME, "3.3.1", BASE_URL.format("3.3.1")),
-        InstallationCandidate(PIP_PROJECT_NAME, "1.0", BASE_URL.format("1.0")),
+        InstallationCandidate(
+            PIP_PROJECT_NAME,
+            "6.9.0",
+            Link(BASE_URL.format("6.9.0")),
+        ),
+        InstallationCandidate(
+            PIP_PROJECT_NAME,
+            "3.3.1",
+            Link(BASE_URL.format("3.3.1")),
+        ),
+        InstallationCandidate(
+            PIP_PROJECT_NAME,
+            "1.0",
+            Link(BASE_URL.format("1.0")),
+        ),
     ]
 
     @classmethod

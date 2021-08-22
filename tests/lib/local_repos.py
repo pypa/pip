@@ -54,6 +54,7 @@ def local_checkout(
         repo_url_path = os.path.join(repo_url_path, "trunk")
     else:
         vcs_backend = vcs.get_backend(vcs_name)
+        assert vcs_backend is not None
         vcs_backend.obtain(repo_url_path, url=hide_url(remote_repo))
 
     return "{}+{}".format(vcs_name, path_to_url(repo_url_path))
