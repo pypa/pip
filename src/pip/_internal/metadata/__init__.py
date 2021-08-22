@@ -38,7 +38,7 @@ def get_environment(paths: Optional[List[str]]) -> BaseEnvironment:
     return Environment.from_paths(paths)
 
 
-def get_wheel_distribution(wheel: Wheel, canonical_name: str) -> BaseDistribution:
+def get_distribution_for_wheel(wheel: Wheel, canonical_name: str) -> BaseDistribution:
     """Get the representation of the specified wheel's distribution metadata.
 
     This returns a Distribution instance from the chosen backend based on
@@ -49,3 +49,14 @@ def get_wheel_distribution(wheel: Wheel, canonical_name: str) -> BaseDistributio
     from .pkg_resources import Distribution
 
     return Distribution.from_wheel(wheel, canonical_name)
+
+
+def get_distribution_for_info_directory(directory_path: str) -> BaseDistribution:
+    """Get the specified info directory's distribution representation.
+
+    The directory should be an on-disk ``NAME-VERSION.dist-info`` or
+    ``NAME.egg-info`` directory.
+    """
+    from .pkg_resources import Distribution
+
+    return Distribution.from_info_directory(directory_path)

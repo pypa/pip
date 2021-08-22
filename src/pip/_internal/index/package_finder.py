@@ -881,7 +881,7 @@ class PackageFinder:
 
         installed_version: Optional[_BaseVersion] = None
         if req.satisfied_by is not None:
-            installed_version = parse_version(req.satisfied_by.version)
+            installed_version = req.satisfied_by.version
 
         def _format_versions(cand_iter: Iterable[InstallationCandidate]) -> str:
             # This repeated parse_version and str() conversion is needed to

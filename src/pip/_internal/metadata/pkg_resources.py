@@ -1,5 +1,7 @@
 import email.message
 import logging
+import os
+import pathlib
 from typing import (
     TYPE_CHECKING,
     Collection,
@@ -49,6 +51,25 @@ class Distribution(BaseDistribution):
             dist = pkg_resources_distribution_for_wheel(zf, name, wheel.location)
         return cls(dist)
 
+    @classmethod
+    def from_info_directory(cls, path: str) -> "Distribution":
+        dist_dir = path.rstrip(os.sep)
+
+        # Build a PathMetadata object, from path to metadata. :wink:
+        base_dir, dist_dir_name = os.path.split(dist_dir)
+        metadata = pkg_resources.PathMetadata(base_dir, dist_dir)
+
+        # Determine the correct Distribution object type.
+        if dist_dir.endswith(".egg-info"):
+            dist_cls = pkg_resources.Distribution
+            dist_name = os.path.splitext(dist_dir_name)[0]
+        else:
+            assert dist_dir.endswith(".dist-info")
+            dist_cls = pkg_resources.DistInfoDistribution
+            dist_name = os.path.splitext(dist_dir_name)[0].split("-", 1)[0]
+
+        return cls(dist_cls(base_dir, project_name=dist_name, metadata=metadata))
+
     @property
     def location(self) -> Optional[str]:
         return self._dist.location
@@ -63,11 +84,18 @@ class Distribution(BaseDistribution):
 
     @property
     def version(self) -> DistributionVersion:
+        # pkg_resouces may contain a different copy of packaging.version from
+        # pip in if the downstream distributor does a poor job debundling pip.
+        # We avoid parsed_version and use our vendored packaging instead.
         return parse_version(self._dist.version)
 
     @property
     def installer(self) -> str:
         return get_installer(self._dist)
+
+    @property
+    def egg_link(self) -> Optional[str]:
+        return misc.egg_link_path(self._dist)
 
     @property
     def editable(self) -> bool:
@@ -89,6 +117,15 @@ class Distribution(BaseDistribution):
         if not self._dist.has_metadata(name):
             raise FileNotFoundError(name)
         return self._dist.get_metadata(name)
+
+    def iterdir(self, name: str) -> Iterable[pathlib.PurePosixPath]:
+        if not self._dist.has_metadata(name):
+            raise FileNotFoundError(name)
+        if not self._dist.metadata_isdir(name):
+            raise NotADirectoryError(name)
+        return (
+            pathlib.PurePosixPath(name, n) for n in self._dist.metadata_listdir(name)
+        )
 
     def iter_entry_points(self) -> Iterable[BaseEntryPoint]:
         for group, entries in self._dist.get_entry_map().items():

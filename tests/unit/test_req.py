@@ -7,7 +7,6 @@ from functools import partial
 from unittest.mock import patch
 
 import pytest
-from pip._vendor import pkg_resources
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 
@@ -435,8 +434,7 @@ class TestInstallRequirement:
         req = install_req_from_line("foo")
         req.metadata_directory = path
         dist = req.get_dist()
-        assert isinstance(dist, pkg_resources.Distribution)
-        assert dist.project_name == "foo"
+        assert dist.canonical_name == "foo"
         assert dist.location == "/path/to".replace("/", os.path.sep)
 
     def test_markers(self):

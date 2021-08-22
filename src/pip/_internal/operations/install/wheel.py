@@ -45,7 +45,7 @@ from pip._internal.locations import get_major_minor_version
 from pip._internal.metadata import (
     BaseDistribution,
     FilesystemWheel,
-    get_wheel_distribution,
+    get_distribution_for_wheel,
 )
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
@@ -579,7 +579,7 @@ def _install_wheel(
     files = chain(files, other_scheme_files)
 
     # Get the defined entry points
-    distribution = get_wheel_distribution(
+    distribution = get_distribution_for_wheel(
         FilesystemWheel(wheel_path),
         canonicalize_name(name),
     )

@@ -1,6 +1,8 @@
+import csv
 import email.message
 import json
 import logging
+import pathlib
 import re
 import zipfile
 from typing import (
@@ -12,6 +14,7 @@ from typing import (
     Iterator,
     List,
     Optional,
+    Tuple,
     Union,
 )
 
@@ -36,6 +39,33 @@ else:
 DistributionVersion = Union[LegacyVersion, Version]
 
 logger = logging.getLogger(__name__)
+
+
+def _convert_legacy_file(entry: Tuple[str, ...], info: Tuple[str, ...]) -> pathlib.Path:
+    """Convert a legacy installed-files.txt path into modern RECORD path.
+
+    The legacy format stores paths relative to the info directory, while the
+    modern format stores paths relative to the package root, e.g. the
+    site-packages directory.
+
+    :param entry: Path parts of the installed-files.txt entry.
+    :param info: Path parts of the egg-info directory relative to package root.
+    :returns: The converted entry.
+
+    For best compatibility with symlinks, this does not use ``abspath()`` or
+    ``Path.resolve()``, but tries to work with path parts:
+
+    1. While ``entry`` starts with ``..``, remove the equal amounts of parts
+       from ``info``; if ``info`` is empty, start appending ``..`` instead.
+    2. Join the two directly.
+    """
+    while entry and entry[0] == "..":
+        if not info or info[-1] == "..":
+            info += ("..",)
+        else:
+            info = info[:-1]
+        entry = entry[1:]
+    return pathlib.Path(*info, *entry)
 
 
 class BaseEntryPoint(Protocol):
@@ -128,6 +158,17 @@ class BaseDistribution(Protocol):
         raise NotImplementedError()
 
     @property
+    def egg_link(self) -> Optional[str]:
+        """Location of the ``.egg-link`` for this distribution.
+
+        If there's not a matching file, None is returned. Note that finding this
+        file does not necessarily mean the currently-installed distribution is
+        editable since the ``.egg-link`` can still be shadowed by a
+        non-editable installation located in front of it in ``sys.path``.
+        """
+        raise NotImplementedError()
+
+    @property
     def editable(self) -> bool:
         raise NotImplementedError()
 
@@ -146,10 +187,19 @@ class BaseDistribution(Protocol):
     def read_text(self, name: str) -> str:
         """Read a file in the .dist-info (or .egg-info) directory.
 
-        Should raise ``FileNotFoundError`` if ``name`` does not exist in the
-        metadata directory.
+        :raises FileNotFoundError: ``name`` does not exist in the info directory.
         """
         raise NotImplementedError()
+
+    def iterdir(self, name: str) -> Iterable[pathlib.PurePosixPath]:
+        """Iterate through a directory in the info directory.
+
+        Each item is a path relative to the info directory.
+
+        :raises FileNotFoundError: ``name`` does not exist in the info directory.
+        :raises NotADirectoryError: ``name`` exists in the info directory, but
+            is not a directory.
+        """
 
     def iter_entry_points(self) -> Iterable[BaseEntryPoint]:
         raise NotImplementedError()
@@ -205,6 +255,43 @@ class BaseDistribution(Protocol):
         "Provides-Extra:" entries in distribution metadata.
         """
         raise NotImplementedError()
+
+    def _iter_files_from_legacy(self) -> Optional[Iterator[pathlib.Path]]:
+        try:
+            text = self.read_text("installed-files.txt")
+        except FileNotFoundError:
+            return None
+        paths = (pathlib.Path(p) for p in text.splitlines(keepends=False) if p)
+        root = self.location
+        info = self.info_directory
+        if root is None or info is None:
+            return paths
+        try:
+            rel = pathlib.Path(info).relative_to(root)
+        except ValueError:  # info is not relative to root.
+            return paths
+        if not rel.parts:  # info *is* root.
+            return paths
+        return (_convert_legacy_file(p.parts, rel.parts) for p in paths)
+
+    def _iter_files_from_record(self) -> Optional[Iterator[pathlib.Path]]:
+        try:
+            text = self.read_text("RECORD")
+        except FileNotFoundError:
+            return None
+        return (pathlib.Path(row[0]) for row in csv.reader(text.splitlines()))
+
+    def iter_files(self) -> Optional[Iterator[pathlib.Path]]:
+        """Files in the distribution's record.
+
+        For modern .dist-info distributions, this is the files listed in the
+        ``RECORD`` file. All entries are paths relative to this distribution's
+        ``location``.
+
+        Note that this can be None for unmanagable distributions, e.g. an
+        installation performed by distutils or a foreign package manager.
+        """
+        return self._iter_files_from_record() or self._iter_files_from_legacy()
 
 
 class BaseEnvironment:

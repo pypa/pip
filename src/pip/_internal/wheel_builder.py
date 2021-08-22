@@ -12,7 +12,7 @@ from pip._vendor.packaging.version import InvalidVersion, Version
 
 from pip._internal.cache import WheelCache
 from pip._internal.exceptions import InvalidWheelFilename, UnsupportedWheel
-from pip._internal.metadata import FilesystemWheel, get_wheel_distribution
+from pip._internal.metadata import FilesystemWheel, get_distribution_for_wheel
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.operations.build.wheel import build_wheel_pep517
@@ -166,7 +166,7 @@ def _verify_one(req: InstallRequirement, wheel_path: str) -> None:
             "Wheel has unexpected file name: expected {!r}, "
             "got {!r}".format(canonical_name, w.name),
         )
-    dist = get_wheel_distribution(FilesystemWheel(wheel_path), canonical_name)
+    dist = get_distribution_for_wheel(FilesystemWheel(wheel_path), canonical_name)
     dist_verstr = str(dist.version)
     if canonicalize_version(dist_verstr) != canonicalize_version(w.version):
         raise InvalidWheelFilename(

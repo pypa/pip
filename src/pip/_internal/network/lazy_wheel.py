@@ -11,7 +11,11 @@ from zipfile import BadZipfile, ZipFile
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 
-from pip._internal.metadata import BaseDistribution, MemoryWheel, get_wheel_distribution
+from pip._internal.metadata import (
+    BaseDistribution,
+    MemoryWheel,
+    get_distribution_for_wheel,
+)
 from pip._internal.network.session import PipSession
 from pip._internal.network.utils import HEADERS, raise_for_status, response_chunks
 
@@ -34,7 +38,7 @@ def dist_from_wheel_url(name: str, url: str, session: PipSession) -> BaseDistrib
         wheel = MemoryWheel(zf.name, zf)  # type: ignore
         # After context manager exit, wheel.name
         # is an invalid file by intention.
-        return get_wheel_distribution(wheel, canonicalize_name(name))
+        return get_distribution_for_wheel(wheel, canonicalize_name(name))
 
 
 class LazyZipOverHTTP:

@@ -1,15 +1,15 @@
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
 
+import email.message
 import logging
 import os
 import shutil
 import sys
 import uuid
 import zipfile
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
+from typing import Dict, Iterable, List, Optional, Sequence, Union
 
-from pip._vendor import pkg_resources
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.specifiers import SpecifierSet
@@ -17,11 +17,16 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.pep517.wrappers import Pep517HookCaller
-from pip._vendor.pkg_resources import Distribution
+from pip._vendor.pkg_resources import safe_extra  # TODO: Put this in packaging?
 
 from pip._internal.build_env import BuildEnvironment, NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_scheme
+from pip._internal.metadata import (
+    BaseDistribution,
+    get_default_environment,
+    get_distribution_for_info_directory,
+)
 from pip._internal.models.link import Link
 from pip._internal.operations.build.metadata import generate_metadata
 from pip._internal.operations.build.metadata_legacy import (
@@ -43,44 +48,14 @@ from pip._internal.utils.misc import (
     ask_path_exists,
     backup_dir,
     display_path,
-    dist_in_site_packages,
-    dist_in_usersite,
-    get_distribution,
     hide_url,
     redact_auth_from_url,
 )
-from pip._internal.utils.packaging import get_metadata
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
 
 logger = logging.getLogger(__name__)
-
-
-def _get_dist(metadata_directory: str) -> Distribution:
-    """Return a pkg_resources.Distribution for the provided
-    metadata directory.
-    """
-    dist_dir = metadata_directory.rstrip(os.sep)
-
-    # Build a PathMetadata object, from path to metadata. :wink:
-    base_dir, dist_dir_name = os.path.split(dist_dir)
-    metadata = pkg_resources.PathMetadata(base_dir, dist_dir)
-
-    # Determine the correct Distribution object type.
-    if dist_dir.endswith(".egg-info"):
-        dist_cls = pkg_resources.Distribution
-        dist_name = os.path.splitext(dist_dir_name)[0]
-    else:
-        assert dist_dir.endswith(".dist-info")
-        dist_cls = pkg_resources.DistInfoDistribution
-        dist_name = os.path.splitext(dist_dir_name)[0].split("-")[0]
-
-    return dist_cls(
-        base_dir,
-        project_name=dist_name,
-        metadata=metadata,
-    )
 
 
 class InstallRequirement:
@@ -138,16 +113,15 @@ class InstallRequirement:
         if extras:
             self.extras = extras
         elif req:
-            self.extras = {pkg_resources.safe_extra(extra) for extra in req.extras}
+            self.extras = {safe_extra(extra) for extra in req.extras}
         else:
             self.extras = set()
         if markers is None and req:
             markers = req.marker
         self.markers = markers
 
-        # This holds the pkg_resources.Distribution object if this requirement
-        # is already available:
-        self.satisfied_by: Optional[Distribution] = None
+        # This holds the distribution object if this requirement is already available:
+        self.satisfied_by: Optional[BaseDistribution] = None
         # Whether the installation process should try to uninstall an existing
         # distribution before installing this requirement.
         self.should_reinstall = False
@@ -235,7 +209,7 @@ class InstallRequirement:
     def name(self) -> Optional[str]:
         if self.req is None:
             return None
-        return pkg_resources.safe_name(self.req.name)
+        return canonicalize_name(self.req.name)
 
     @property
     def specifier(self) -> SpecifierSet:
@@ -396,14 +370,10 @@ class InstallRequirement:
         """
         if self.req is None:
             return
-        existing_dist = get_distribution(self.req.name)
+        existing_dist = get_default_environment().get_distribution(self.req.name)
         if not existing_dist:
             return
 
-        # pkg_resouces may contain a different copy of packaging.version from
-        # pip in if the downstream distributor does a poor job debundling pip.
-        # We avoid existing_dist.parsed_version and let SpecifierSet.contains
-        # parses the version instead.
         existing_version = existing_dist.version
         version_compatible = (
             existing_version is not None
@@ -412,15 +382,13 @@ class InstallRequirement:
         if not version_compatible:
             self.satisfied_by = None
             if use_user_site:
-                if dist_in_usersite(existing_dist):
+                if existing_dist.in_usersite:
                     self.should_reinstall = True
-                elif running_under_virtualenv() and dist_in_site_packages(
-                    existing_dist
-                ):
+                elif running_under_virtualenv() and existing_dist.in_site_packages:
                     raise InstallationError(
                         "Will not install to the user site because it will "
                         "lack sys.path precedence to {} in {}".format(
-                            existing_dist.project_name, existing_dist.location
+                            existing_dist.canonical_name, existing_dist.location
                         )
                     )
             else:
@@ -531,14 +499,14 @@ class InstallRequirement:
         self.assert_source_matches_version()
 
     @property
-    def metadata(self) -> Any:
+    def metadata(self) -> email.message.Message:
         if not hasattr(self, "_metadata"):
-            self._metadata = get_metadata(self.get_dist())
+            self._metadata = self.get_dist().metadata
 
         return self._metadata
 
-    def get_dist(self) -> Distribution:
-        return _get_dist(self.metadata_directory)
+    def get_dist(self) -> BaseDistribution:
+        return get_distribution_for_info_directory(self.metadata_directory)
 
     def assert_source_matches_version(self) -> None:
         assert self.source_dir
@@ -617,7 +585,7 @@ class InstallRequirement:
 
         """
         assert self.req
-        dist = get_distribution(self.req.name)
+        dist = get_default_environment().get_distribution(self.req.name)
         if not dist:
             logger.warning("Skipping %s as it is not installed.", self.name)
             return None

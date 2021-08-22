@@ -5,6 +5,7 @@ from unittest.mock import Mock
 import pytest
 
 import pip._internal.req.req_uninstall
+from pip._internal.metadata.base import BaseDistribution
 from pip._internal.req.req_uninstall import (
     StashedUninstallPathSet,
     UninstallPathSet,
@@ -24,13 +25,13 @@ def mock_is_local(path):
 
 
 def test_uninstallation_paths():
-    class dist:
-        def get_metadata_lines(self, record):
-            return ["file.py,,", "file.pyc,,", "file.so,,", "nopyc.py"]
+    class FakeDist(BaseDistribution):
+        def read_text(self, name):
+            if name != "RECORD":
+                raise FileNotFoundError(name)
+            return "file.py,,\nfile.pyc,,\nfile.so,,\nnopyc.py"
 
-        location = ""
-
-    d = dist()
+    d = FakeDist()
 
     paths = list(uninstallation_paths(d))
 
