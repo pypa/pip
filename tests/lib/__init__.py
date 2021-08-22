@@ -820,7 +820,7 @@ def _git_commit(
     env_or_script.run(*new_args, cwd=repo_dir)
 
 
-def _with_vcs_tracking(script, version_pkg_path, vcs="git"):
+def _with_vcs_tracking(script, version_pkg_path, *, vcs="git"):
     if vcs == "git":
         _with_git(script, version_pkg_path)
     elif vcs == "hg":
