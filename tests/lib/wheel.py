@@ -12,7 +12,6 @@ from hashlib import sha256
 from io import BytesIO, StringIO
 from typing import (
     AnyStr,
-    Callable,
     Dict,
     Iterable,
     List,
@@ -28,9 +27,6 @@ from pip._vendor.requests.structures import CaseInsensitiveDict
 
 from tests.lib.path import Path
 
-# path, digest, size
-RecordLike = Tuple[str, str, str]
-RecordCallback = Callable[[List["Record"]], Union[str, bytes, List[RecordLike]]]
 # As would be used in metadata
 HeaderValue = Union[str, List[str]]
 
@@ -197,11 +193,7 @@ def digest(contents: bytes) -> str:
 
 
 def record_file_maker_wrapper(
-    name: str,
-    version: str,
-    files: List[File],
-    record: Defaulted[Optional[AnyStr]],
-    record_callback: Defaulted[RecordCallback],
+    name: str, version: str, files: List[File], record: Defaulted[Optional[AnyStr]]
 ) -> Iterable[File]:
     records: List[Record] = []
     for file in files:
@@ -220,9 +212,6 @@ def record_file_maker_wrapper(
         return
 
     records.append(Record(record_path, "", ""))
-
-    if record_callback is not _default:
-        records = record_callback(records)
 
     with StringIO(newline="") as buf:
         writer = csv.writer(buf)
@@ -298,7 +287,6 @@ def make_wheel(
     console_scripts: Defaulted[List[str]] = _default,
     entry_points: Defaulted[Dict[str, List[str]]] = _default,
     record: Defaulted[Optional[AnyStr]] = _default,
-    record_callback: Defaulted[RecordCallback] = _default,
 ) -> WheelBuilder:
     """
     Helper function for generating test wheels which are compliant by default.
@@ -359,9 +347,6 @@ def make_wheel(
     :param entry_points:
     :param record: if provided and None, then no RECORD file is generated;
         else if a string then sets the content of the RECORD file
-    :param record_callback: callback function that receives and can edit the
-        records before they are written to RECORD, ignored if record is
-        provided
     """
     pythons = ["py2", "py3"]
     abis = ["none"]
@@ -388,7 +373,7 @@ def make_wheel(
     actual_files = filter(None, possible_files)
 
     files_and_record_file = record_file_maker_wrapper(
-        name, version, actual_files, record, record_callback
+        name, version, actual_files, record
     )
     wheel_file_name = wheel_name(name, version, pythons, abis, platforms)
 
