@@ -824,19 +824,11 @@ def _vcs_add(script, version_pkg_path, vcs="git"):
     if vcs == "git":
         _git(script, version_pkg_path)
     elif vcs == "hg":
-        _hg(script, version_pkg_path)
+        _hg((script, version_pkg_path)
         
     elif vcs == "svn":
-        repo_url = _create_svn_repo(script, version_pkg_path)
-        script.run(
-            "svn", "checkout", repo_url, "pip-test-package", cwd=script.scratch_path
-        )
-        checkout_path = script.scratch_path / "pip-test-package"
+        _svn(script, version_pkg_path)
 
-        # svn internally stores windows drives as uppercase; we'll match that.
-        checkout_path = checkout_path.replace("c:", "C:")
-
-        version_pkg_path = checkout_path
     elif vcs == "bazaar":
         script.run("bzr", "init", cwd=version_pkg_path)
         script.run("bzr", "add", ".", cwd=version_pkg_path)
@@ -875,6 +867,18 @@ def _hg(script, version_pkg_path):
         "initial version",
         cwd=version_pkg_path,
     )
+
+def _svn(script, version_pkg_path):
+    repo_url = _create_svn_repo(script, version_pkg_path)
+    script.run(
+        "svn", "checkout", repo_url, "pip-test-package", cwd=script.scratch_path
+    )
+    checkout_path = script.scratch_path / "pip-test-package"
+
+    # svn internally stores windows drives as uppercase; we'll match that.
+    checkout_path = checkout_path.replace("c:", "C:")
+
+    version_pkg_path = checkout_path
 
 def _create_test_package_with_subdirectory(script, subdirectory):
     script.scratch_path.joinpath("version_pkg").mkdir()
