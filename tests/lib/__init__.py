@@ -828,7 +828,7 @@ def _with_vcs_tracking(script, version_pkg_path, vcs="git"):
     elif vcs == "svn":
         _with_svn(script, version_pkg_path)
     elif vcs == "bazaar":
-        _bazaar(script, version_pkg_path)
+        _with_bazaar(script, version_pkg_path)
     else:
         raise ValueError(f"Unknown vcs: {vcs}")
 
@@ -867,7 +867,7 @@ def _with_svn(script, version_pkg_path):
     version_pkg_path = checkout_path
 
 
-def _bazaar(script, version_pkg_path):
+def _with_bazaar(script, version_pkg_path):
     script.run("bzr", "init", cwd=version_pkg_path)
     script.run("bzr", "add", ".", cwd=version_pkg_path)
     script.run("bzr", "whoami", "pip <distutils-sig@python.org>", cwd=version_pkg_path)
