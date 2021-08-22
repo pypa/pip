@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from hashlib import sha256
 from io import BytesIO
 from textwrap import dedent
-from typing import List, Optional
+from typing import List, Optional, Dict
 from zipfile import ZipFile
 
 import pytest
