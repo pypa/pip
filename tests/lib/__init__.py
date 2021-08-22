@@ -824,18 +824,8 @@ def _vcs_add(script, version_pkg_path, vcs="git"):
     if vcs == "git":
         _git(script, version_pkg_path)
     elif vcs == "hg":
-        script.run("hg", "init", cwd=version_pkg_path)
-        script.run("hg", "add", ".", cwd=version_pkg_path)
-        script.run(
-            "hg",
-            "commit",
-            "-q",
-            "--user",
-            "pip <distutils-sig@python.org>",
-            "-m",
-            "initial version",
-            cwd=version_pkg_path,
-        )
+        _hg(script, version_pkg_path)
+        
     elif vcs == "svn":
         repo_url = _create_svn_repo(script, version_pkg_path)
         script.run(
@@ -872,6 +862,19 @@ def _git(script, version_pkg_path):
     script.run("git", "add", ".", cwd=version_pkg_path)
     _git_commit(script, version_pkg_path, message="initial version")
 
+def _hg(script, version_pkg_path):
+    script.run("hg", "init", cwd=version_pkg_path)
+    script.run("hg", "add", ".", cwd=version_pkg_path)
+    script.run(
+        "hg",
+        "commit",
+        "-q",
+        "--user",
+        "pip <distutils-sig@python.org>",
+        "-m",
+        "initial version",
+        cwd=version_pkg_path,
+    )
 
 def _create_test_package_with_subdirectory(script, subdirectory):
     script.scratch_path.joinpath("version_pkg").mkdir()
