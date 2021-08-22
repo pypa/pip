@@ -93,7 +93,7 @@ def make_install_req_from_editable(
 def _make_install_req_from_dist(
     dist: BaseDistribution, template: InstallRequirement
 ) -> InstallRequirement:
-    from pip._internal.metadata.pkg_resources import Distribution as _CompatDist
+    from pip._internal.metadata.pkg_resources import Distribution as _Dist
 
     if template.req:
         line = str(template.req)
@@ -114,7 +114,7 @@ def _make_install_req_from_dist(
             hashes=template.hash_options,
         ),
     )
-    ireq.satisfied_by = cast(_CompatDist, dist)._dist
+    ireq.satisfied_by = cast(_Dist, dist)._dist
     return ireq
 
 
