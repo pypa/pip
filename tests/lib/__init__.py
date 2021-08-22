@@ -824,11 +824,9 @@ def _vcs_add(script, version_pkg_path, vcs="git"):
     if vcs == "git":
         _git(script, version_pkg_path)
     elif vcs == "hg":
-        _hg((script, version_pkg_path)
-        
+        _hg(script, version_pkg_path)
     elif vcs == "svn":
         _svn(script, version_pkg_path)
-
     elif vcs == "bazaar":
         _bazaar(script, version_pkg_path)
     else:
@@ -841,6 +839,7 @@ def _git(script, version_pkg_path):
     script.run("git", "init", cwd=version_pkg_path)
     script.run("git", "add", ".", cwd=version_pkg_path)
     _git_commit(script, version_pkg_path, message="initial version")
+
 
 def _hg(script, version_pkg_path):
     script.run("hg", "init", cwd=version_pkg_path)
@@ -856,11 +855,10 @@ def _hg(script, version_pkg_path):
         cwd=version_pkg_path,
     )
 
+
 def _svn(script, version_pkg_path):
     repo_url = _create_svn_repo(script, version_pkg_path)
-    script.run(
-        "svn", "checkout", repo_url, "pip-test-package", cwd=script.scratch_path
-    )
+    script.run("svn", "checkout", repo_url, "pip-test-package", cwd=script.scratch_path)
     checkout_path = script.scratch_path / "pip-test-package"
 
     # svn internally stores windows drives as uppercase; we'll match that.
@@ -868,12 +866,11 @@ def _svn(script, version_pkg_path):
 
     version_pkg_path = checkout_path
 
+
 def _bazaar(script, version_pkg_path):
     script.run("bzr", "init", cwd=version_pkg_path)
     script.run("bzr", "add", ".", cwd=version_pkg_path)
-    script.run(
-        "bzr", "whoami", "pip <distutils-sig@python.org>", cwd=version_pkg_path
-    )
+    script.run("bzr", "whoami", "pip <distutils-sig@python.org>", cwd=version_pkg_path)
     script.run(
         "bzr",
         "commit",
