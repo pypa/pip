@@ -951,7 +951,7 @@ def _create_test_package_with_srcdir(script, name="version_pkg", vcs="git"):
             )
         )
     )
-    return _with_vcs_tracking(script, version_pkg_path, vcs)
+    return _with_vcs_tracking(script, version_pkg_path, vcs=vcs)
 
 
 def _create_test_package(script, name="version_pkg", vcs="git"):
@@ -974,7 +974,7 @@ def _create_test_package(script, name="version_pkg", vcs="git"):
             )
         )
     )
-    return _with_vcs_tracking(script, version_pkg_path, vcs)
+    return _with_vcs_tracking(script, version_pkg_path, vcs=vcs)
 
 
 def _create_svn_repo(script, version_pkg_path):
