@@ -11,7 +11,7 @@ from tests.lib import (
     _create_test_package,
     _create_test_package_with_srcdir,
     _git_commit,
-    _vcs_add,
+    _with_vcs_tracking,
     create_test_package_with_setup,
     need_bzr,
     need_mercurial,
@@ -546,7 +546,7 @@ def test_freeze_nested_vcs(script, outer_vcs, inner_vcs):
     root_path.mkdir()
     root_path.joinpath(".hgignore").write_text("src")
     root_path.joinpath(".gitignore").write_text("src")
-    _vcs_add(script, root_path, outer_vcs)
+    _with_vcs_tracking(script, root_path, outer_vcs)
 
     # Clone Python package into inner directory and install it.
     src_path = root_path.joinpath("src")
