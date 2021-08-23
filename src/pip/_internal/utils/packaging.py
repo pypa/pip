@@ -63,22 +63,6 @@ def get_metadata(dist: Distribution) -> Message:
     return feed_parser.close()
 
 
-def get_requires_python(dist: pkg_resources.Distribution) -> Optional[str]:
-    """
-    Return the "Requires-Python" metadata for a distribution, or None
-    if not present.
-    """
-    pkg_info_dict = get_metadata(dist)
-    requires_python = pkg_info_dict.get("Requires-Python")
-
-    if requires_python is not None:
-        # Convert to a str to satisfy the type checker, since requires_python
-        # can be a Header object.
-        requires_python = str(requires_python)
-
-    return requires_python
-
-
 def get_installer(dist: Distribution) -> str:
     if dist.has_metadata("INSTALLER"):
         for line in dist.get_metadata_lines("INSTALLER"):

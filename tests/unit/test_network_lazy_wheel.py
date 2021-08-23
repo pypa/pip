@@ -1,6 +1,6 @@
 from zipfile import BadZipfile
 
-from pip._vendor.pkg_resources import Requirement
+from pip._vendor.packaging.version import Version
 from pytest import fixture, mark, raises
 
 from pip._internal.network.lazy_wheel import (
@@ -16,10 +16,10 @@ MYPY_0_782_WHL = (
     "mypy-0.782-py3-none-any.whl"
 )
 MYPY_0_782_REQS = {
-    Requirement("typed-ast (<1.5.0,>=1.4.0)"),
-    Requirement("typing-extensions (>=3.7.4)"),
-    Requirement("mypy-extensions (<0.5.0,>=0.4.3)"),
-    Requirement('psutil (>=4.0); extra == "dmypy"'),
+    "typed-ast<1.5.0,>=1.4.0",
+    "typing-extensions>=3.7.4",
+    "mypy-extensions<0.5.0,>=0.4.3",
+    'psutil>=4.0; extra == "dmypy"',
 }
 
 
@@ -42,10 +42,11 @@ def mypy_whl_no_range(mock_server, shared_data):
 def test_dist_from_wheel_url(session):
     """Test if the acquired distribution contain correct information."""
     dist = dist_from_wheel_url("mypy", MYPY_0_782_WHL, session)
-    assert dist.key == "mypy"
-    assert dist.version == "0.782"
-    assert dist.extras == ["dmypy"]
-    assert set(dist.requires(dist.extras)) == MYPY_0_782_REQS
+    assert dist.canonical_name == "mypy"
+    assert dist.version == Version("0.782")
+    extras = list(dist.iter_provided_extras())
+    assert extras == ["dmypy"]
+    assert {str(d) for d in dist.iter_dependencies(extras)} == MYPY_0_782_REQS
 
 
 def test_dist_from_wheel_url_no_range(session, mypy_whl_no_range):

@@ -12,7 +12,6 @@ from hashlib import sha256
 from io import BytesIO, StringIO
 from typing import (
     AnyStr,
-    Callable,
     Dict,
     Iterable,
     List,
@@ -26,11 +25,9 @@ from zipfile import ZipFile
 
 from pip._vendor.requests.structures import CaseInsensitiveDict
 
+from pip._internal.metadata import BaseDistribution, MemoryWheel, get_wheel_distribution
 from tests.lib.path import Path
 
-# path, digest, size
-RecordLike = Tuple[str, str, str]
-RecordCallback = Callable[[List["Record"]], Union[str, bytes, List[RecordLike]]]
 # As would be used in metadata
 HeaderValue = Union[str, List[str]]
 
@@ -82,7 +79,7 @@ def make_metadata_file(
     value: Defaulted[Optional[AnyStr]],
     updates: Defaulted[Dict[str, HeaderValue]],
     body: Defaulted[AnyStr],
-) -> File:
+) -> Optional[File]:
     if value is None:
         return None
 
@@ -199,9 +196,8 @@ def digest(contents: bytes) -> str:
 def record_file_maker_wrapper(
     name: str,
     version: str,
-    files: List[File],
+    files: Iterable[File],
     record: Defaulted[Optional[AnyStr]],
-    record_callback: Defaulted[RecordCallback],
 ) -> Iterable[File]:
     records: List[Record] = []
     for file in files:
@@ -221,19 +217,22 @@ def record_file_maker_wrapper(
 
     records.append(Record(record_path, "", ""))
 
-    if record_callback is not _default:
-        records = record_callback(records)
-
     with StringIO(newline="") as buf:
         writer = csv.writer(buf)
-        for record in records:
-            writer.writerow(record)
+        for r in records:
+            writer.writerow(r)
         contents = buf.getvalue().encode("utf-8")
 
     yield File(record_path, contents)
 
 
-def wheel_name(name: str, version: str, pythons: str, abis: str, platforms: str) -> str:
+def wheel_name(
+    name: str,
+    version: str,
+    pythons: Iterable[str],
+    abis: Iterable[str],
+    platforms: Iterable[str],
+) -> str:
     stem = "-".join(
         [
             name,
@@ -249,7 +248,7 @@ def wheel_name(name: str, version: str, pythons: str, abis: str, platforms: str)
 class WheelBuilder:
     """A wheel that can be saved or converted to several formats."""
 
-    def __init__(self, name: str, files: List[File]) -> None:
+    def __init__(self, name: str, files: Iterable[File]) -> None:
         self._name = name
         self._files = files
 
@@ -259,9 +258,9 @@ class WheelBuilder:
 
         :returns the wheel file path
         """
-        path = Path(path) / self._name
-        path.write_bytes(self.as_bytes())
-        return str(path)
+        p = Path(path) / self._name
+        p.write_bytes(self.as_bytes())
+        return str(p)
 
     def save_to(self, path: Union[Path, str]) -> str:
         """Generate wheel file, saving to the provided path. Any parent
@@ -283,6 +282,10 @@ class WheelBuilder:
     def as_zipfile(self) -> ZipFile:
         return ZipFile(BytesIO(self.as_bytes()))
 
+    def as_distribution(self, name: str) -> BaseDistribution:
+        stream = BytesIO(self.as_bytes())
+        return get_wheel_distribution(MemoryWheel(self._name, stream), name)
+
 
 def make_wheel(
     name: str,
@@ -298,7 +301,6 @@ def make_wheel(
     console_scripts: Defaulted[List[str]] = _default,
     entry_points: Defaulted[Dict[str, List[str]]] = _default,
     record: Defaulted[Optional[AnyStr]] = _default,
-    record_callback: Defaulted[RecordCallback] = _default,
 ) -> WheelBuilder:
     """
     Helper function for generating test wheels which are compliant by default.
@@ -359,9 +361,6 @@ def make_wheel(
     :param entry_points:
     :param record: if provided and None, then no RECORD file is generated;
         else if a string then sets the content of the RECORD file
-    :param record_callback: callback function that receives and can edit the
-        records before they are written to RECORD, ignored if record is
-        provided
     """
     pythons = ["py2", "py3"]
     abis = ["none"]
@@ -388,7 +387,7 @@ def make_wheel(
     actual_files = filter(None, possible_files)
 
     files_and_record_file = record_file_maker_wrapper(
-        name, version, actual_files, record, record_callback
+        name, version, actual_files, record
     )
     wheel_file_name = wheel_name(name, version, pythons, abis, platforms)
 

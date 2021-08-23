@@ -10,4 +10,4 @@ setuptools
 virtualenv < 20.0
 werkzeug
 wheel
-toml
+tomli-w

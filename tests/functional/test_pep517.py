@@ -1,8 +1,5 @@
 import pytest
-
-# The vendored `tomli` package is not used here because it doesn't
-# have write capability
-import toml
+import tomli_w
 
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.req import InstallRequirement
@@ -18,7 +15,7 @@ def make_project(tmpdir, requires=None, backend=None, backend_path=None):
         buildsys["build-backend"] = backend
     if backend_path:
         buildsys["backend-path"] = backend_path
-    data = toml.dumps({"build-system": buildsys})
+    data = tomli_w.dumps({"build-system": buildsys})
     project_dir.joinpath("pyproject.toml").write_text(data)
     return project_dir
 
@@ -189,7 +186,7 @@ def make_pyproject_with_setup(tmpdir, build_system=True, set_backend=True):
         if set_backend:
             buildsys["build-backend"] = "setuptools.build_meta"
             expect_script_dir_on_path = False
-        project_data = toml.dumps({"build-system": buildsys})
+        project_data = tomli_w.dumps({"build-system": buildsys})
     else:
         project_data = ""
 
