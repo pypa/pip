@@ -1,12 +1,7 @@
-# flake8: noqa
 # Author: Aziz Köksal
 import glob
 import os
-
-try:
-    from os import supports_fd
-except ImportError:
-    supports_fd = set()
+from typing import Iterable, Iterator, Union
 
 
 class Path(str):
@@ -20,12 +15,12 @@ class Path(str):
     # Separator in the PATH environment variable.
     pathsep = os.pathsep
 
-    def __new__(cls, *paths):
+    def __new__(cls, *paths: str) -> "Path":
         if len(paths):
             return super().__new__(cls, os.path.join(*paths))
         return super().__new__(cls)
 
-    def __div__(self, path):
+    def __div__(self, path: str) -> "Path":
         """
         Joins this path with another path.
 
@@ -36,7 +31,7 @@ class Path(str):
 
     __truediv__ = __div__
 
-    def __rdiv__(self, path):
+    def __rdiv__(self, path: str) -> "Path":
         """
         Joins this path with another path.
 
@@ -46,7 +41,7 @@ class Path(str):
 
     __rtruediv__ = __rdiv__
 
-    def __idiv__(self, path):
+    def __idiv__(self, path: str) -> "Path":
         """
         Like __div__ but also assigns to the variable.
 
@@ -56,52 +51,52 @@ class Path(str):
 
     __itruediv__ = __idiv__
 
-    def __add__(self, path):
+    def __add__(self, path: str) -> "Path":
         """
         >>> Path('/home/a') + 'bc.d'
         '/home/abc.d'
         """
         return Path(str(self) + path)
 
-    def __radd__(self, path):
+    def __radd__(self, path: str) -> "Path":
         """
         >>> '/home/a' + Path('bc.d')
         '/home/abc.d'
         """
         return Path(path + str(self))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Path({inner})".format(inner=str.__repr__(self))
 
     @property
-    def name(self):
+    def name(self) -> str:
         """
         '/home/a/bc.d' -> 'bc.d'
         """
         return os.path.basename(self)
 
     @property
-    def stem(self):
+    def stem(self) -> str:
         """
         '/home/a/bc.d' -> 'bc'
         """
         return Path(os.path.splitext(self)[0]).name
 
     @property
-    def suffix(self):
+    def suffix(self) -> str:
         """
         '/home/a/bc.d' -> '.d'
         """
         return Path(os.path.splitext(self)[1])
 
-    def resolve(self):
+    def resolve(self) -> "Path":
         """
         Resolves symbolic links.
         """
         return Path(os.path.realpath(self))
 
     @property
-    def parent(self):
+    def parent(self) -> "Path":
         """
         Returns the parent directory of this path.
 
@@ -111,13 +106,18 @@ class Path(str):
         """
         return Path(os.path.dirname(self))
 
-    def exists(self):
+    def exists(self) -> bool:
         """
         Returns True if the path exists.
         """
         return os.path.exists(self)
 
-    def mkdir(self, mode=0x1FF, exist_ok=False, parents=False):  # 0o777
+    def mkdir(
+        self,
+        mode: int = 0o777,
+        exist_ok: bool = False,
+        parents: bool = False,
+    ) -> None:
         """
         Creates a directory, if it doesn't exist already.
 
@@ -131,32 +131,32 @@ class Path(str):
             if not exist_ok or not os.path.isdir(self):
                 raise
 
-    def unlink(self):
+    def unlink(self) -> None:
         """
         Removes a file.
         """
-        return os.remove(self)
+        os.remove(self)
 
-    def rmdir(self):
+    def rmdir(self) -> None:
         """
         Removes a directory.
         """
-        return os.rmdir(self)
+        os.rmdir(self)
 
-    def rename(self, to):
+    def rename(self, to: str) -> None:
         """
         Renames a file or directory. May throw an OSError.
         """
-        return os.rename(self, to)
+        os.rename(self, to)
 
-    def glob(self, pattern):
+    def glob(self, pattern: str) -> Iterator["Path"]:
         return (Path(i) for i in glob.iglob(self.joinpath(pattern)))
 
-    def joinpath(self, *parts):
+    def joinpath(self, *parts: str) -> "Path":
         return Path(self, *parts)
 
     # TODO: Remove after removing inheritance from str.
-    def join(self, *parts):
+    def join(self, parts: Iterable[str]) -> str:
         raise RuntimeError("Path.join is invalid, use joinpath instead.")
 
     def read_bytes(self) -> bytes:
@@ -167,23 +167,23 @@ class Path(str):
         with open(self, "wb") as f:
             f.write(content)
 
-    def read_text(self):
+    def read_text(self) -> str:
         with open(self, "r") as fp:
             return fp.read()
 
-    def write_text(self, content):
+    def write_text(self, content: str) -> None:
         with open(self, "w") as fp:
             fp.write(content)
 
-    def touch(self):
+    def touch(self) -> None:
         with open(self, "a") as fp:
-            path = fp.fileno() if os.utime in supports_fd else self
-            os.utime(path, None)  # times is not optional on Python 2.7
+            path: Union[int, str] = fp.fileno() if os.utime in os.supports_fd else self
+            os.utime(path)
 
-    def symlink_to(self, target):
+    def symlink_to(self, target: str) -> None:
         os.symlink(target, self)
 
-    def stat(self):
+    def stat(self) -> os.stat_result:
         return os.stat(self)
 
 

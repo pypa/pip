@@ -1,9 +1,11 @@
 import re
+from typing import Optional
 
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
+from tests.lib import TestPipResult
 
 
-def get_created_direct_url(result, pkg):
+def get_created_direct_url(result: TestPipResult, pkg: str) -> Optional[DirectUrl]:
     direct_url_metadata_re = re.compile(
         pkg + r"-[\d\.]+\.dist-info." + DIRECT_URL_METADATA_NAME + r"$"
     )
