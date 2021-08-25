@@ -4,8 +4,9 @@ Contains interface (MultiDomainBasicAuth) and associated glue code for
 providing credentials in the context of network requests.
 """
 
+import importlib
 import urllib.parse
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
 from pip._vendor.requests.models import Request, Response
@@ -72,7 +73,8 @@ def get_keyring_auth(url: Optional[str], username: Optional[str]) -> Optional[Au
 
 class MultiDomainBasicAuth(AuthBase):
     def __init__(
-        self, prompting: bool = True, index_urls: Optional[List[str]] = None
+        self, prompting: bool = True, index_urls: Optional[List[str]] = None,
+        credential_helpers: Optional[Mapping[str, str]] = None
     ) -> None:
         self.prompting = prompting
         self.index_urls = index_urls
@@ -83,6 +85,7 @@ class MultiDomainBasicAuth(AuthBase):
         # request authenticates, the caller should call
         # ``save_credentials`` to save these.
         self._credentials_to_save: Optional[Credentials] = None
+        self._credential_helpers = credential_helpers or {}
 
     def _get_index_url(self, url: str) -> Optional[str]:
         """Return the original index URL matching the requested URL.
@@ -159,6 +162,20 @@ class MultiDomainBasicAuth(AuthBase):
             if kr_auth:
                 logger.debug("Found credentials in keyring for %s", netloc)
                 return kr_auth
+
+        if username is None and password is None and netloc in self._credential_helpers:
+            helper_name = self._credential_helpers[netloc]
+            logger.debug("Using credential helper module %s for %s", helper_name, netloc)
+            try:
+                helper = importlib.import_module(helper_name)
+                if not hasattr(helper, 'get_pip_credentials'):
+                    logger.error("Credential helper module %s is missing get_pip_credentials", helper_name)
+                else:
+                    username, password = helper.get_pip_credentials(netloc)
+                    logger.debug("Fetched credentials from helper module %s for %s", helper_name, netloc)
+                    return username, password
+            except ModuleNotFoundError:
+                logger.error("Credential helper module %s for %s not found", helper_name, netloc)
 
         return username, password
 

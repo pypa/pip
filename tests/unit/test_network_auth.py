@@ -1,6 +1,8 @@
 import functools
+import sys
 
 import pytest
+import unittest.mock
 
 import pip._internal.network.auth
 from pip._internal.network.auth import MultiDomainBasicAuth
@@ -76,6 +78,30 @@ def test_get_credentials_uses_cached_credentials():
     got = auth._get_url_and_credentials("http://example.com/path")
     expected = ("http://example.com/path", "user", "pass")
     assert got == expected
+
+
+def test_get_credentials_with_credential_helper():
+    try:
+        fake_helper = unittest.mock.Mock()
+        fake_helper.get_pip_credentials = unittest.mock.Mock(
+            return_value=("username", "password"),
+        )
+        sys.modules["fake_helper"] = fake_helper
+
+        auth = MultiDomainBasicAuth(
+            credential_helpers={
+                "example.com": "fake_helper",
+            },
+        )
+
+        got = auth._get_url_and_credentials("https://example.com/path")
+        expected = ("https://example.com/path", "username", "password")
+        assert got == expected
+
+        assert fake_helper.get_pip_credentials.call_count == 1
+        assert fake_helper.get_pip_credentials.call_args == (("example.com",),)
+    finally:
+        sys.modules.pop('fake_helper', None)
 
 
 def test_get_index_url_credentials():
