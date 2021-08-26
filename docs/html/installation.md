@@ -60,6 +60,14 @@ If you face issues when using Python and pip installed using these mechanisms,
 it is recommended to request for support from the relevant provider (eg: Linux
 distro community, cloud provider support channels, etc).
 
+## Upgrading `pip`
+
+Upgrading your `pip` by running:
+
+```{pip-cli}
+$ python -m pip install --upgrade pip
+```
+
 (compatibility-requirements)=
 
 ## Compatibility
