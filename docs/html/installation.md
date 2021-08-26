@@ -65,7 +65,7 @@ distro community, cloud provider support channels, etc).
 Upgrading your `pip` by running:
 
 ```{pip-cli}
-$ python -m pip install --upgrade pip
+$ pip install --upgrade pip
 ```
 
 (compatibility-requirements)=
