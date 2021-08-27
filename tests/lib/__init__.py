@@ -552,7 +552,6 @@ class PipTestEnvironment(TestFileEnvironment):
         self,
         *args,
         cwd=None,
-        run_from=None,
         allow_stderr_error=None,
         allow_stderr_warning=None,
         allow_error=None,
@@ -580,8 +579,7 @@ class PipTestEnvironment(TestFileEnvironment):
         if self.verbose:
             print(f">> running {args} {kw}")
 
-        assert not cwd or not run_from, "Don't use run_from; it's going away"
-        cwd = cwd or run_from or self.cwd
+        cwd = cwd or self.cwd
         if sys.platform == "win32":
             # Partial fix for ScriptTest.run using `shell=True` on Windows.
             args = [str(a).replace("^", "^^").replace("&", "^&") for a in args]
