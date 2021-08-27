@@ -1,6 +1,8 @@
-# Ref: https://help.github.com/en/github/building-a-strong-community/configuring-issue-templates-for-your-repository#configuring-the-template-chooser
+# Documentation for this file can be found at:
+# https://help.github.com/en/github/building-a-strong-community/configuring-issue-templates-for-your-repository
+
 blank_issues_enabled: false
 contact_links:
-- name: '💬 IRC: #pypa'
-  url: https://kiwiirc.com/nextclient/#ircs://irc.libera.chat:+6697/pypa
-  about: Chat with devs
+  - name: "💬 IRC: #pypa"
+    url: https://kiwiirc.com/nextclient/#ircs://irc.libera.chat:+6697/pypa
+    about: Chat with devs
