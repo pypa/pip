@@ -3,6 +3,17 @@ description: Something is not working correctly.
 labels: "S: needs triage, type: bug"
 
 body:
+  - type: markdown
+    attributes:
+      value: >-
+        Hi there!
+
+        We'd appreciate it if you could search on pip's existing issues prior to filing
+        a bug report.
+
+        We get a lot of duplicate tickets and have limited maintainer capacity to triage
+        them. Thanks!
+
   - type: textarea
     attributes:
       label: Description

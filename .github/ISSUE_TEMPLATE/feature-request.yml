@@ -3,6 +3,17 @@ description: Suggest an idea for this project
 labels: "S: needs triage, type: feature request"
 
 body:
+  - type: markdown
+    attributes:
+      value: >-
+        Hi there!
+
+        We'd appreciate it if you could search on pip's existing issues prior to filing
+        a feature request.
+
+        We get a lot of duplicate tickets and have limited maintainer capacity to triage
+        them. Thanks!
+
   - type: textarea
     attributes:
       label: What's the problem this feature will solve?
