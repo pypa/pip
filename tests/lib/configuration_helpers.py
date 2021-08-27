@@ -19,11 +19,6 @@ class ConfigurationMixin:
         self.configuration = pip._internal.configuration.Configuration(
             isolated=False,
         )
-        self._files_to_clear = []
-
-    def teardown(self):
-        for fname in self._files_to_clear:
-            fname.stop()
 
     def patch_configuration(self, variant, di):
         old = self.configuration._load_config_files
