@@ -232,9 +232,6 @@ class FrozenRequirement:
 
     @classmethod
     def from_dist(cls, dist: BaseDistribution) -> "FrozenRequirement":
-        # TODO `get_requirement_info` is taking care of editable requirements.
-        # TODO This should be refactored when we will add detection of
-        #      editable that provide .dist-info metadata.
         editable = dist.editable
         if editable:
             req, comments = _get_editable_info(dist)
