@@ -31,7 +31,6 @@ logger = logging.getLogger(__name__)
 
 class _EditableInfo(NamedTuple):
     requirement: str
-    editable: bool
     comments: List[str]
 
 
@@ -164,7 +163,7 @@ def _format_as_name_version(dist: BaseDistribution) -> str:
 
 def _get_editable_info(dist: BaseDistribution) -> _EditableInfo:
     """
-    Compute and return values (req, editable, comments) for use in
+    Compute and return values (req, comments) for use in
     FrozenRequirement.from_dist().
     """
     editable_project_location = dist.editable_project_location
@@ -184,7 +183,6 @@ def _get_editable_info(dist: BaseDistribution) -> _EditableInfo:
         )
         return _EditableInfo(
             requirement=location,
-            editable=True,
             comments=[f"# Editable install with no version control ({display})"],
         )
 
@@ -196,14 +194,12 @@ def _get_editable_info(dist: BaseDistribution) -> _EditableInfo:
         display = _format_as_name_version(dist)
         return _EditableInfo(
             requirement=location,
-            editable=True,
             comments=[f"# Editable {vcs_name} install with no remote ({display})"],
         )
     except RemoteNotValidError as ex:
         display = _format_as_name_version(dist)
         return _EditableInfo(
             requirement=location,
-            editable=True,
             comments=[
                 f"# Editable {vcs_name} install ({display}) with either a deleted "
                 f"local remote or invalid URI:",
@@ -217,17 +213,16 @@ def _get_editable_info(dist: BaseDistribution) -> _EditableInfo:
             location,
             vcs_backend.name,
         )
-        return _EditableInfo(requirement=location, editable=True, comments=[])
+        return _EditableInfo(requirement=location, comments=[])
     except InstallationError as exc:
         logger.warning("Error when trying to get requirement for VCS system %s", exc)
     else:
-        return _EditableInfo(requirement=req, editable=True, comments=[])
+        return _EditableInfo(requirement=req, comments=[])
 
     logger.warning("Could not determine repository location of %s", location)
 
     return _EditableInfo(
         requirement=location,
-        editable=True,
         comments=["## !! Could not determine repository location"],
     )
 
@@ -251,8 +246,9 @@ class FrozenRequirement:
         # TODO `get_requirement_info` is taking care of editable requirements.
         # TODO This should be refactored when we will add detection of
         #      editable that provide .dist-info metadata.
-        if dist.editable:
-            req, editable, comments = _get_editable_info(dist)
+        editable = dist.editable
+        if editable:
+            req, comments = _get_editable_info(dist)
         else:
             comments = []
             direct_url = dist.direct_url
