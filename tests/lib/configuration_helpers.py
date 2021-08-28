@@ -46,8 +46,3 @@ class ConfigurationMixin:
         yield path
 
         os.remove(path)
-
-    @staticmethod
-    def get_file_contents(path):
-        with open(path) as f:
-            return f.read()
