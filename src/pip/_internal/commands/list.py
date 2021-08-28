@@ -309,12 +309,16 @@ def format_for_columns(
     else:
         header = ["Package", "Version"]
 
-    data = []
-    if options.verbose >= 1 or any(x.editable for x in pkgs):
+    has_editables = any(x.editable for x in pkgs)
+    if has_editables:
+        header.append("Editable project location")
+
+    if options.verbose >= 1:
         header.append("Location")
     if options.verbose >= 1:
         header.append("Installer")
 
+    data = []
     for proj in pkgs:
         # if we're working on the 'outdated' list, separate out the
         # latest_version and type
@@ -324,7 +328,10 @@ def format_for_columns(
             row.append(str(proj.latest_version))
             row.append(proj.latest_filetype)
 
-        if options.verbose >= 1 or proj.editable:
+        if has_editables:
+            row.append(proj.editable_project_location or "")
+
+        if options.verbose >= 1:
             row.append(proj.location or "")
         if options.verbose >= 1:
             row.append(proj.installer)
@@ -347,5 +354,8 @@ def format_for_json(packages: "_ProcessedDists", options: Values) -> str:
         if options.outdated:
             info["latest_version"] = str(dist.latest_version)
             info["latest_filetype"] = dist.latest_filetype
+        editable_project_location = dist.editable_project_location
+        if editable_project_location:
+            info["editable_project_location"] = editable_project_location
         data.append(info)
     return json.dumps(data)
