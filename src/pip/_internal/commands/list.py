@@ -303,12 +303,11 @@ def format_for_columns(
     Convert the package data into something usable
     by output_package_listing_columns.
     """
+    header = ["Package", "Version"]
+
     running_outdated = options.outdated
-    # Adjust the header for the `pip list --outdated` case.
     if running_outdated:
-        header = ["Package", "Version", "Latest", "Type"]
-    else:
-        header = ["Package", "Version"]
+        header.extend(["Latest", "Type"])
 
     has_editables = any(x.editable for x in pkgs)
     if has_editables:
