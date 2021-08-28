@@ -104,6 +104,14 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
+      - name: Install Ubuntu dependencies
+        if: matrix.os == 'Ubuntu'
+        run: sudo apt-get install bzr
+
+      - name: Install MacOS dependencies
+        if: matrix.os == 'MacOS'
+        run: brew install bzr
+
       - run: pip install tox 'virtualenv<20'
 
       # Main check

@@ -30,7 +30,6 @@ The ``README``, license, ``pyproject.toml``, ``setup.py``, and so on are in the 
 * ``.gitignore``
 * ``.mailmap``
 * ``.readthedocs.yml``
-* ``.travis.yml``
 * ``docs/`` *[documentation, built with Sphinx]*
 
   * ``html/`` *[sources to HTML documentation avail. online]*
@@ -52,8 +51,7 @@ The ``README``, license, ``pyproject.toml``, ``setup.py``, and so on are in the 
   * ``lib/`` *[helpers for tests]*
   * ``unit/`` *[unit tests -- fast and small and nice!]*
 
-* ``tools`` *[misc development workflow tools, like requirements files & Travis CI files & helpers for tox]*
-* ``.azure-pipelines``
+* ``tools`` *[misc development workflow tools, like requirements files & CI files & helpers for tox]*
 * ``.github``
 * ``.tox``
 
