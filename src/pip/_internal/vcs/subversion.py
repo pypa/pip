@@ -34,18 +34,15 @@ class Subversion(VersionControl):
     schemes = ("svn+ssh", "svn+http", "svn+https", "svn+svn", "svn+file")
 
     @classmethod
-    def should_add_vcs_url_prefix(cls, remote_url):
-        # type: (str) -> bool
+    def should_add_vcs_url_prefix(cls, remote_url: str) -> bool:
         return True
 
     @staticmethod
-    def get_base_rev_args(rev):
-        # type: (str) -> List[str]
+    def get_base_rev_args(rev: str) -> List[str]:
         return ["-r", rev]
 
     @classmethod
-    def get_revision(cls, location):
-        # type: (str) -> str
+    def get_revision(cls, location: str) -> str:
         """
         Return the maximum revision for all files under a given location
         """
@@ -74,8 +71,9 @@ class Subversion(VersionControl):
         return str(revision)
 
     @classmethod
-    def get_netloc_and_auth(cls, netloc, scheme):
-        # type: (str, str) -> Tuple[str, Tuple[Optional[str], Optional[str]]]
+    def get_netloc_and_auth(
+        cls, netloc: str, scheme: str
+    ) -> Tuple[str, Tuple[Optional[str], Optional[str]]]:
         """
         This override allows the auth information to be passed to svn via the
         --username and --password options instead of via the URL.
@@ -88,8 +86,7 @@ class Subversion(VersionControl):
         return split_auth_from_netloc(netloc)
 
     @classmethod
-    def get_url_rev_and_auth(cls, url):
-        # type: (str) -> Tuple[str, Optional[str], AuthInfo]
+    def get_url_rev_and_auth(cls, url: str) -> Tuple[str, Optional[str], AuthInfo]:
         # hotfix the URL scheme after removing svn+ from svn+ssh:// readd it
         url, rev, user_pass = super().get_url_rev_and_auth(url)
         if url.startswith("ssh://"):
@@ -97,9 +94,10 @@ class Subversion(VersionControl):
         return url, rev, user_pass
 
     @staticmethod
-    def make_rev_args(username, password):
-        # type: (Optional[str], Optional[HiddenText]) -> CommandArgs
-        extra_args = []  # type: CommandArgs
+    def make_rev_args(
+        username: Optional[str], password: Optional[HiddenText]
+    ) -> CommandArgs:
+        extra_args: CommandArgs = []
         if username:
             extra_args += ["--username", username]
         if password:
@@ -108,8 +106,7 @@ class Subversion(VersionControl):
         return extra_args
 
     @classmethod
-    def get_remote_url(cls, location):
-        # type: (str) -> str
+    def get_remote_url(cls, location: str) -> str:
         # In cases where the source is in a subdirectory, we have to look up in
         # the location until we find a valid project root.
         orig_location = location
@@ -133,8 +130,7 @@ class Subversion(VersionControl):
         return url
 
     @classmethod
-    def _get_svn_url_rev(cls, location):
-        # type: (str) -> Tuple[Optional[str], int]
+    def _get_svn_url_rev(cls, location: str) -> Tuple[Optional[str], int]:
         from pip._internal.exceptions import InstallationError
 
         entries_path = os.path.join(location, cls.dirname, "entries")
@@ -184,13 +180,11 @@ class Subversion(VersionControl):
         return url, rev
 
     @classmethod
-    def is_commit_id_equal(cls, dest, name):
-        # type: (str, Optional[str]) -> bool
+    def is_commit_id_equal(cls, dest: str, name: Optional[str]) -> bool:
         """Always assume the versions don't match"""
         return False
 
-    def __init__(self, use_interactive=None):
-        # type: (bool) -> None
+    def __init__(self, use_interactive: bool = None) -> None:
         if use_interactive is None:
             use_interactive = is_console_interactive()
         self.use_interactive = use_interactive
@@ -200,12 +194,11 @@ class Subversion(VersionControl):
         # Special value definitions:
         #   None: Not evaluated yet.
         #   Empty tuple: Could not parse version.
-        self._vcs_version = None  # type: Optional[Tuple[int, ...]]
+        self._vcs_version: Optional[Tuple[int, ...]] = None
 
         super().__init__()
 
-    def call_vcs_version(self):
-        # type: () -> Tuple[int, ...]
+    def call_vcs_version(self) -> Tuple[int, ...]:
         """Query the version of the currently installed Subversion client.
 
         :return: A tuple containing the parts of the version information or
@@ -233,8 +226,7 @@ class Subversion(VersionControl):
 
         return parsed_version
 
-    def get_vcs_version(self):
-        # type: () -> Tuple[int, ...]
+    def get_vcs_version(self) -> Tuple[int, ...]:
         """Return the version of the currently installed Subversion client.
 
         If the version of the Subversion client has already been queried,
@@ -254,8 +246,7 @@ class Subversion(VersionControl):
         self._vcs_version = vcs_version
         return vcs_version
 
-    def get_remote_call_options(self):
-        # type: () -> CommandArgs
+    def get_remote_call_options(self) -> CommandArgs:
         """Return options to be used on calls to Subversion that contact the server.
 
         These options are applicable for the following ``svn`` subcommands used
@@ -286,8 +277,7 @@ class Subversion(VersionControl):
 
         return []
 
-    def fetch_new(self, dest, url, rev_options):
-        # type: (str, HiddenText, RevOptions) -> None
+    def fetch_new(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
         rev_display = rev_options.to_display()
         logger.info(
             "Checking out %s%s to %s",
@@ -305,8 +295,7 @@ class Subversion(VersionControl):
         )
         self.run_command(cmd_args)
 
-    def switch(self, dest, url, rev_options):
-        # type: (str, HiddenText, RevOptions) -> None
+    def switch(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
         cmd_args = make_command(
             "switch",
             self.get_remote_call_options(),
@@ -316,8 +305,7 @@ class Subversion(VersionControl):
         )
         self.run_command(cmd_args)
 
-    def update(self, dest, url, rev_options):
-        # type: (str, HiddenText, RevOptions) -> None
+    def update(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
         cmd_args = make_command(
             "update",
             self.get_remote_call_options(),
