@@ -1,19 +1,8 @@
 import collections
 import logging
 import os
-from typing import (
-    Container,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    NamedTuple,
-    Optional,
-    Set,
-    Union,
-)
+from typing import Container, Dict, Iterable, Iterator, List, NamedTuple, Optional, Set
 
-from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 
@@ -231,7 +220,7 @@ class FrozenRequirement:
     def __init__(
         self,
         name: str,
-        req: Union[str, Requirement],
+        req: str,
         editable: bool,
         comments: Iterable[str] = (),
     ) -> None:
