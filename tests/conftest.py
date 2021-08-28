@@ -8,10 +8,19 @@ import subprocess
 import sys
 import time
 from contextlib import ExitStack, contextmanager
-from typing import TYPE_CHECKING, Dict, Iterable, List
+from typing import TYPE_CHECKING, Callable, Dict, Iterable, Iterator, List, Optional
 from unittest.mock import patch
 
+import py.path
 import pytest
+
+# Config will be available from the public API in pytest >= 7.0.0:
+# https://github.com/pytest-dev/pytest/commit/88d84a57916b592b070f4201dc84f0286d1f9fef
+from _pytest.config import Config
+
+# Parser will be available from the public API in pytest >= 7.0.0:
+# https://github.com/pytest-dev/pytest/commit/538b5c24999e9ebb4fab43faabc8bcc28737bcdf
+from _pytest.config.argparsing import Parser
 from setuptools.wheel import Wheel
 
 from pip._internal.cli.main import main as pip_entry_point
@@ -22,7 +31,7 @@ from tests.lib.certs import make_tls_cert, serialize_cert, serialize_key
 from tests.lib.path import Path
 from tests.lib.server import MockServer as _MockServer
 from tests.lib.server import make_mock_server, server_running
-from tests.lib.venv import VirtualEnvironment
+from tests.lib.venv import VirtualEnvironment, VirtualEnvironmentType
 
 from .lib.compat import nullcontext
 
@@ -30,7 +39,7 @@ if TYPE_CHECKING:
     from wsgi import WSGIApplication
 
 
-def pytest_addoption(parser):
+def pytest_addoption(parser: Parser) -> None:
     parser.addoption(
         "--keep-tmpdir",
         action="store_true",
@@ -58,7 +67,7 @@ def pytest_addoption(parser):
     )
 
 
-def pytest_collection_modifyitems(config, items):
+def pytest_collection_modifyitems(config: Config, items: List[pytest.Item]) -> None:
     for item in items:
         if not hasattr(item, "module"):  # e.g.: DoctestTextfile
             continue
@@ -84,9 +93,10 @@ def pytest_collection_modifyitems(config, items):
         if item.get_closest_marker("incompatible_with_sysconfig") and _USE_SYSCONFIG:
             item.add_marker(pytest.mark.skip("Incompatible with sysconfig"))
 
+        # "Item" has no attribute "module"
+        module_file = item.module.__file__  # type: ignore[attr-defined]
         module_path = os.path.relpath(
-            item.module.__file__,
-            os.path.commonprefix([__file__, item.module.__file__]),
+            module_file, os.path.commonprefix([__file__, module_file])
         )
 
         module_root_dir = module_path.split(os.pathsep)[0]
@@ -103,7 +113,7 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def resolver_variant(request):
+def resolver_variant(request: pytest.FixtureRequest) -> Iterator[str]:
     """Set environment variable to make pip default to the correct resolver."""
     resolver = request.config.getoption("--resolver")
 
@@ -125,7 +135,9 @@ def resolver_variant(request):
 
 
 @pytest.fixture(scope="session")
-def tmpdir_factory(request, tmpdir_factory):
+def tmpdir_factory(
+    request: pytest.FixtureRequest, tmpdir_factory: pytest.TempdirFactory
+) -> Iterator[pytest.TempdirFactory]:
     """Modified `tmpdir_factory` session fixture
     that will automatically cleanup after itself.
     """
@@ -138,7 +150,7 @@ def tmpdir_factory(request, tmpdir_factory):
 
 
 @pytest.fixture
-def tmpdir(request, tmpdir):
+def tmpdir(request: pytest.FixtureRequest, tmpdir: py.path.local) -> Iterator[Path]:
     """
     Return a temporary directory path object which is unique to each test
     function invocation, created as a sub directory of the base temporary
@@ -158,7 +170,7 @@ def tmpdir(request, tmpdir):
 
 
 @pytest.fixture(autouse=True)
-def isolate(tmpdir, monkeypatch):
+def isolate(tmpdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """
     Isolate our tests so that things like global configuration files and the
     like do not affect our test results.
@@ -257,7 +269,7 @@ def isolate(tmpdir, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def scoped_global_tempdir_manager(request):
+def scoped_global_tempdir_manager(request: pytest.FixtureRequest) -> Iterator[None]:
     """Make unit tests with globally-managed tempdirs easier
 
     Each test function gets its own individual scope for globally-managed
@@ -273,12 +285,14 @@ def scoped_global_tempdir_manager(request):
 
 
 @pytest.fixture(scope="session")
-def pip_src(tmpdir_factory):
-    def not_code_files_and_folders(path, names):
+def pip_src(tmpdir_factory: pytest.TempdirFactory) -> Path:
+    def not_code_files_and_folders(path: str, names: List[str]) -> Iterable[str]:
         # In the root directory...
         if path == SRC_DIR:
             # ignore all folders except "src"
-            folders = {name for name in names if os.path.isdir(path / name)}
+            folders = {
+                name for name in names if os.path.isdir(os.path.join(path, name))
+            }
             to_ignore = folders - {"src"}
             # and ignore ".git" if present (which may be a file if in a linked
             # worktree).
@@ -302,7 +316,9 @@ def pip_src(tmpdir_factory):
     return pip_src
 
 
-def _common_wheel_editable_install(tmpdir_factory, common_wheels, package):
+def _common_wheel_editable_install(
+    tmpdir_factory: pytest.TempdirFactory, common_wheels: Path, package: str
+) -> Path:
     wheel_candidates = list(common_wheels.glob(f"{package}-*.whl"))
     assert len(wheel_candidates) == 1, wheel_candidates
     install_dir = Path(str(tmpdir_factory.mktemp(package))) / "install"
@@ -313,21 +329,27 @@ def _common_wheel_editable_install(tmpdir_factory, common_wheels, package):
 
 
 @pytest.fixture(scope="session")
-def setuptools_install(tmpdir_factory, common_wheels):
+def setuptools_install(
+    tmpdir_factory: pytest.TempdirFactory, common_wheels: Path
+) -> Path:
     return _common_wheel_editable_install(tmpdir_factory, common_wheels, "setuptools")
 
 
 @pytest.fixture(scope="session")
-def wheel_install(tmpdir_factory, common_wheels):
+def wheel_install(tmpdir_factory: pytest.TempdirFactory, common_wheels: Path) -> Path:
     return _common_wheel_editable_install(tmpdir_factory, common_wheels, "wheel")
 
 
 @pytest.fixture(scope="session")
-def coverage_install(tmpdir_factory, common_wheels):
+def coverage_install(
+    tmpdir_factory: pytest.TempdirFactory, common_wheels: Path
+) -> Path:
     return _common_wheel_editable_install(tmpdir_factory, common_wheels, "coverage")
 
 
-def install_egg_link(venv, project_name, egg_info_dir):
+def install_egg_link(
+    venv: VirtualEnvironment, project_name: str, egg_info_dir: Path
+) -> None:
     with open(venv.site / "easy-install.pth", "a") as fp:
         fp.write(str(egg_info_dir.resolve()) + "\n")
     with open(venv.site / (project_name + ".egg-link"), "w") as fp:
@@ -336,9 +358,14 @@ def install_egg_link(venv, project_name, egg_info_dir):
 
 @pytest.fixture(scope="session")
 def virtualenv_template(
-    request, tmpdir_factory, pip_src, setuptools_install, coverage_install
-):
+    request: pytest.FixtureRequest,
+    tmpdir_factory: pytest.TempdirFactory,
+    pip_src: Path,
+    setuptools_install: Path,
+    coverage_install: Path,
+) -> Iterator[VirtualEnvironment]:
 
+    venv_type: VirtualEnvironmentType
     if request.config.getoption("--use-venv"):
         venv_type = "venv"
     else:
@@ -388,15 +415,19 @@ def virtualenv_template(
 
 
 @pytest.fixture(scope="session")
-def virtualenv_factory(virtualenv_template):
-    def factory(tmpdir):
+def virtualenv_factory(
+    virtualenv_template: VirtualEnvironment,
+) -> Callable[[Path], VirtualEnvironment]:
+    def factory(tmpdir: Path) -> VirtualEnvironment:
         return VirtualEnvironment(tmpdir, virtualenv_template)
 
     return factory
 
 
 @pytest.fixture
-def virtualenv(virtualenv_factory, tmpdir):
+def virtualenv(
+    virtualenv_factory: Callable[[Path], VirtualEnvironment], tmpdir: Path
+) -> Iterator[VirtualEnvironment]:
     """
     Return a virtual environment which is unique to each test function
     invocation created inside of a sub directory of the test function's
@@ -407,13 +438,17 @@ def virtualenv(virtualenv_factory, tmpdir):
 
 
 @pytest.fixture
-def with_wheel(virtualenv, wheel_install):
+def with_wheel(virtualenv: VirtualEnvironment, wheel_install: Path) -> None:
     install_egg_link(virtualenv, "wheel", wheel_install)
 
 
 @pytest.fixture(scope="session")
-def script_factory(virtualenv_factory, deprecated_python):
-    def factory(tmpdir, virtualenv=None):
+def script_factory(
+    virtualenv_factory: Callable[[Path], VirtualEnvironment], deprecated_python: bool
+) -> Callable[[Path, Optional[VirtualEnvironment]], PipTestEnvironment]:
+    def factory(
+        tmpdir: Path, virtualenv: Optional[VirtualEnvironment] = None
+    ) -> PipTestEnvironment:
         if virtualenv is None:
             virtualenv = virtualenv_factory(tmpdir.joinpath("venv"))
         return PipTestEnvironment(
@@ -437,7 +472,11 @@ def script_factory(virtualenv_factory, deprecated_python):
 
 
 @pytest.fixture
-def script(tmpdir, virtualenv, script_factory):
+def script(
+    tmpdir: Path,
+    virtualenv: VirtualEnvironment,
+    script_factory: Callable[[Path, Optional[VirtualEnvironment]], PipTestEnvironment],
+) -> PipTestEnvironment:
     """
     Return a PipTestEnvironment which is unique to each test function and
     will execute all commands inside of the unique virtual environment for this
@@ -448,29 +487,29 @@ def script(tmpdir, virtualenv, script_factory):
 
 
 @pytest.fixture(scope="session")
-def common_wheels():
+def common_wheels() -> Path:
     """Provide a directory with latest setuptools and wheel wheels"""
     return DATA_DIR.joinpath("common_wheels")
 
 
 @pytest.fixture(scope="session")
-def shared_data(tmpdir_factory):
+def shared_data(tmpdir_factory: pytest.TempdirFactory) -> TestData:
     return TestData.copy(Path(str(tmpdir_factory.mktemp("data"))))
 
 
 @pytest.fixture
-def data(tmpdir):
+def data(tmpdir: Path) -> TestData:
     return TestData.copy(tmpdir.joinpath("data"))
 
 
 class InMemoryPipResult:
-    def __init__(self, returncode, stdout):
+    def __init__(self, returncode: int, stdout: str) -> None:
         self.returncode = returncode
         self.stdout = stdout
 
 
 class InMemoryPip:
-    def pip(self, *args):
+    def pip(self, *args: str) -> InMemoryPipResult:
         orig_stdout = sys.stdout
         stdout = io.StringIO()
         sys.stdout = stdout
@@ -484,18 +523,18 @@ class InMemoryPip:
 
 
 @pytest.fixture
-def in_memory_pip():
+def in_memory_pip() -> InMemoryPip:
     return InMemoryPip()
 
 
 @pytest.fixture(scope="session")
-def deprecated_python():
+def deprecated_python() -> bool:
     """Used to indicate whether pip deprecated this Python version"""
     return sys.version_info[:2] in []
 
 
 @pytest.fixture(scope="session")
-def cert_factory(tmpdir_factory):
+def cert_factory(tmpdir_factory: pytest.TempdirFactory) -> Callable[[], str]:
     def factory() -> str:
         """Returns path to cert/key file."""
         output_path = Path(str(tmpdir_factory.mktemp("certs"))) / "cert.pem"
@@ -517,11 +556,11 @@ class MockServer:
         self.context = ExitStack()
 
     @property
-    def port(self):
+    def port(self) -> int:
         return self._server.port
 
     @property
-    def host(self):
+    def host(self) -> str:
         return self._server.host
 
     def set_responses(self, responses: Iterable["WSGIApplication"]) -> None:
@@ -534,7 +573,7 @@ class MockServer:
         self.context.enter_context(self._set_running())
 
     @contextmanager
-    def _set_running(self):
+    def _set_running(self) -> Iterator[None]:
         self._running = True
         try:
             yield
@@ -554,7 +593,7 @@ class MockServer:
 
 
 @pytest.fixture
-def mock_server():
+def mock_server() -> Iterator[MockServer]:
     server = make_mock_server()
     test_server = MockServer(server)
     with test_server.context:
@@ -562,7 +601,7 @@ def mock_server():
 
 
 @pytest.fixture
-def utc():
+def utc() -> Iterator[None]:
     # time.tzset() is not implemented on some platforms, e.g. Windows.
     tzset = getattr(time, "tzset", lambda: None)
     with patch.dict(os.environ, {"TZ": "UTC"}):
