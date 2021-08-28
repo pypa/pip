@@ -26,7 +26,7 @@ from pip._internal.models.direct_url import (
     DirInfo,
 )
 from pip._internal.utils.compat import stdlib_pkgs  # TODO: Move definition here.
-from pip._internal.utils.misc import egg_link_path_from_sys_path
+from pip._internal.utils.egg_link import egg_link_path_from_sys_path
 from pip._internal.utils.urls import url_to_path
 
 if TYPE_CHECKING:

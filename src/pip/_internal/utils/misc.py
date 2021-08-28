@@ -9,7 +9,6 @@ import io
 import logging
 import os
 import posixpath
-import re
 import shutil
 import stat
 import sys
@@ -40,10 +39,8 @@ from pip import __version__
 from pip._internal.exceptions import CommandError
 from pip._internal.locations import get_major_minor_version, site_packages, user_site
 from pip._internal.utils.compat import WINDOWS
-from pip._internal.utils.virtualenv import (
-    running_under_virtualenv,
-    virtualenv_no_global,
-)
+from pip._internal.utils.egg_link import egg_link_path
+from pip._internal.utils.virtualenv import running_under_virtualenv
 
 __all__ = [
     "rmtree",
@@ -357,18 +354,6 @@ def dist_in_site_packages(dist: Distribution) -> bool:
     return dist_location(dist).startswith(normalize_path(site_packages))
 
 
-def egg_link_path_from_sys_path(raw_name: str) -> Optional[str]:
-    """
-    Look for a .egg-link file for project name, by walking sys.path.
-    """
-    egg_link_name = _egg_link_name(raw_name)
-    for path_item in sys.path:
-        egg_link = os.path.join(path_item, egg_link_name)
-        if os.path.isfile(egg_link):
-            return egg_link
-    return None
-
-
 def get_distribution(req_name: str) -> Optional[Distribution]:
     """Given a requirement name, return the installed Distribution object.
 
@@ -384,55 +369,6 @@ def get_distribution(req_name: str) -> Optional[Distribution]:
     if dist is None:
         return None
     return cast(_Dist, dist)._dist
-
-
-def _egg_link_name(raw_name: str) -> str:
-    """
-    Convert a Name metadata value to a .egg-link name, by applying
-    the same substitution as pkg_resources's safe_name function.
-    Note: we cannot use canonicalize_name because it has a different logic.
-    """
-    return re.sub("[^A-Za-z0-9.]+", "-", raw_name) + ".egg-link"
-
-
-def egg_link_path_from_location(raw_name: str) -> Optional[str]:
-    """
-    Return the path for the .egg-link file if it exists, otherwise, None.
-
-    There's 3 scenarios:
-    1) not in a virtualenv
-       try to find in site.USER_SITE, then site_packages
-    2) in a no-global virtualenv
-       try to find in site_packages
-    3) in a yes-global virtualenv
-       try to find in site_packages, then site.USER_SITE
-       (don't look in global location)
-
-    For #1 and #3, there could be odd cases, where there's an egg-link in 2
-    locations.
-
-    This method will just return the first one found.
-    """
-    sites = []
-    if running_under_virtualenv():
-        sites.append(site_packages)
-        if not virtualenv_no_global() and user_site:
-            sites.append(user_site)
-    else:
-        if user_site:
-            sites.append(user_site)
-        sites.append(site_packages)
-
-    egg_link_name = _egg_link_name(raw_name)
-    for site in sites:
-        egglink = os.path.join(site, egg_link_name)
-        if os.path.isfile(egglink):
-            return egglink
-    return None
-
-
-def egg_link_path(dist: Distribution) -> Optional[str]:
-    return egg_link_path_from_location(dist.project_name)
 
 
 def dist_location(dist: Distribution) -> str:

@@ -67,7 +67,7 @@ class Tests_EgglinkPath:
         )
 
         # patches
-        from pip._internal.utils import misc as utils
+        from pip._internal.utils import egg_link as utils
 
         self.old_site_packages = utils.site_packages
         self.mock_site_packages = utils.site_packages = "SITE_PACKAGES"
