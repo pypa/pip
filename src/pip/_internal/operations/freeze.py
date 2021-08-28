@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 class _EditableInfo(NamedTuple):
-    requirement: Optional[str]
+    requirement: str
     editable: bool
     comments: List[str]
 
@@ -167,8 +167,6 @@ def _get_editable_info(dist: BaseDistribution) -> _EditableInfo:
     Compute and return values (req, editable, comments) for use in
     FrozenRequirement.from_dist().
     """
-    if not dist.editable:
-        return _EditableInfo(requirement=None, editable=False, comments=[])
     editable_project_location = dist.editable_project_location
     assert editable_project_location
     location = os.path.normcase(os.path.abspath(editable_project_location))
@@ -253,16 +251,17 @@ class FrozenRequirement:
         # TODO `get_requirement_info` is taking care of editable requirements.
         # TODO This should be refactored when we will add detection of
         #      editable that provide .dist-info metadata.
-        req, editable, comments = _get_editable_info(dist)
-        if req is None and not editable:
-            # if PEP 610 metadata is present, attempt to use it
+        if dist.editable:
+            req, editable, comments = _get_editable_info(dist)
+        else:
+            comments = []
             direct_url = dist.direct_url
             if direct_url:
+                # if PEP 610 metadata is present, use it
                 req = direct_url_as_pep440_direct_reference(direct_url, dist.raw_name)
-                comments = []
-        if req is None:
-            # name==version requirement
-            req = _format_as_name_version(dist)
+            else:
+                # name==version requirement
+                req = _format_as_name_version(dist)
 
         return cls(dist.raw_name, req, editable, comments=comments)
 
