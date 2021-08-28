@@ -17,6 +17,7 @@ import pytest
 
 from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError
 from pip._internal.utils.deprecation import PipDeprecationWarning, deprecated
+from pip._internal.utils.egg_link import egg_link_path_from_location
 from pip._internal.utils.encoding import BOMS, auto_decode
 from pip._internal.utils.glibc import (
     glibc_version_string,
@@ -28,7 +29,6 @@ from pip._internal.utils.misc import (
     HiddenText,
     build_netloc,
     build_url_from_netloc,
-    egg_link_path,
     format_size,
     get_distribution,
     get_prog,
@@ -51,7 +51,7 @@ from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 
 
 class Tests_EgglinkPath:
-    "util.egg_link_path() tests"
+    "util.egg_link_path_from_location() tests"
 
     def setup(self):
 
@@ -106,19 +106,25 @@ class Tests_EgglinkPath:
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = False
         self.mock_isfile.side_effect = self.eggLinkInUserSite
-        assert egg_link_path(self.mock_dist) == self.user_site_egglink
+        assert (
+            egg_link_path_from_location(self.mock_dist.project_name)
+            == self.user_site_egglink
+        )
 
     def test_egglink_in_usersite_venv_noglobal(self):
         self.mock_virtualenv_no_global.return_value = True
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.side_effect = self.eggLinkInUserSite
-        assert egg_link_path(self.mock_dist) is None
+        assert egg_link_path_from_location(self.mock_dist.project_name) is None
 
     def test_egglink_in_usersite_venv_global(self):
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.side_effect = self.eggLinkInUserSite
-        assert egg_link_path(self.mock_dist) == self.user_site_egglink
+        assert (
+            egg_link_path_from_location(self.mock_dist.project_name)
+            == self.user_site_egglink
+        )
 
     # ####################### #
     # # egglink in sitepkgs # #
@@ -127,19 +133,28 @@ class Tests_EgglinkPath:
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = False
         self.mock_isfile.side_effect = self.eggLinkInSitePackages
-        assert egg_link_path(self.mock_dist) == self.site_packages_egglink
+        assert (
+            egg_link_path_from_location(self.mock_dist.project_name)
+            == self.site_packages_egglink
+        )
 
     def test_egglink_in_sitepkgs_venv_noglobal(self):
         self.mock_virtualenv_no_global.return_value = True
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.side_effect = self.eggLinkInSitePackages
-        assert egg_link_path(self.mock_dist) == self.site_packages_egglink
+        assert (
+            egg_link_path_from_location(self.mock_dist.project_name)
+            == self.site_packages_egglink
+        )
 
     def test_egglink_in_sitepkgs_venv_global(self):
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.side_effect = self.eggLinkInSitePackages
-        assert egg_link_path(self.mock_dist) == self.site_packages_egglink
+        assert (
+            egg_link_path_from_location(self.mock_dist.project_name)
+            == self.site_packages_egglink
+        )
 
     # ################################## #
     # # egglink in usersite & sitepkgs # #
@@ -148,19 +163,28 @@ class Tests_EgglinkPath:
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = False
         self.mock_isfile.return_value = True
-        assert egg_link_path(self.mock_dist) == self.user_site_egglink
+        assert (
+            egg_link_path_from_location(self.mock_dist.project_name)
+            == self.user_site_egglink
+        )
 
     def test_egglink_in_both_venv_noglobal(self):
         self.mock_virtualenv_no_global.return_value = True
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.return_value = True
-        assert egg_link_path(self.mock_dist) == self.site_packages_egglink
+        assert (
+            egg_link_path_from_location(self.mock_dist.project_name)
+            == self.site_packages_egglink
+        )
 
     def test_egglink_in_both_venv_global(self):
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.return_value = True
-        assert egg_link_path(self.mock_dist) == self.site_packages_egglink
+        assert (
+            egg_link_path_from_location(self.mock_dist.project_name)
+            == self.site_packages_egglink
+        )
 
     # ############## #
     # # no egglink # #
@@ -169,19 +193,19 @@ class Tests_EgglinkPath:
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = False
         self.mock_isfile.return_value = False
-        assert egg_link_path(self.mock_dist) is None
+        assert egg_link_path_from_location(self.mock_dist.project_name) is None
 
     def test_noegglink_in_sitepkgs_venv_noglobal(self):
         self.mock_virtualenv_no_global.return_value = True
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.return_value = False
-        assert egg_link_path(self.mock_dist) is None
+        assert egg_link_path_from_location(self.mock_dist.project_name) is None
 
     def test_noegglink_in_sitepkgs_venv_global(self):
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.return_value = False
-        assert egg_link_path(self.mock_dist) is None
+        assert egg_link_path_from_location(self.mock_dist.project_name) is None
 
 
 @patch("pip._internal.utils.misc.dist_in_usersite")

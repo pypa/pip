@@ -6,8 +6,6 @@ import re
 import sys
 from typing import Optional
 
-from pip._vendor.pkg_resources import Distribution
-
 from pip._internal.locations import site_packages, user_site
 from pip._internal.utils.virtualenv import (
     running_under_virtualenv,
@@ -17,7 +15,6 @@ from pip._internal.utils.virtualenv import (
 __all__ = [
     "egg_link_path_from_sys_path",
     "egg_link_path_from_location",
-    "egg_link_path",
 ]
 
 
@@ -76,8 +73,3 @@ def egg_link_path_from_location(raw_name: str) -> Optional[str]:
         if os.path.isfile(egglink):
             return egglink
     return None
-
-
-def egg_link_path(dist):
-    # type: (Distribution) -> Optional[str]
-    return egg_link_path_from_location(dist.project_name)

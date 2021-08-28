@@ -12,12 +12,12 @@ from pip._vendor.pkg_resources import Distribution
 from pip._internal.exceptions import UninstallationError
 from pip._internal.locations import get_bin_prefix, get_bin_user
 from pip._internal.utils.compat import WINDOWS
+from pip._internal.utils.egg_link import egg_link_path_from_location
 from pip._internal.utils.logging import getLogger, indent_log
 from pip._internal.utils.misc import (
     ask,
     dist_in_usersite,
     dist_is_local,
-    egg_link_path,
     is_local,
     normalize_path,
     renames,
@@ -459,7 +459,7 @@ class UninstallPathSet:
             return cls(dist)
 
         paths_to_remove = cls(dist)
-        develop_egg_link = egg_link_path(dist)
+        develop_egg_link = egg_link_path_from_location(dist.project_name)
         develop_egg_link_egg_info = "{}.egg-info".format(
             pkg_resources.to_filename(dist.project_name)
         )

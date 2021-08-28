@@ -39,7 +39,7 @@ from pip import __version__
 from pip._internal.exceptions import CommandError
 from pip._internal.locations import get_major_minor_version, site_packages, user_site
 from pip._internal.utils.compat import WINDOWS
-from pip._internal.utils.egg_link import egg_link_path
+from pip._internal.utils.egg_link import egg_link_path_from_location
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 __all__ = [
@@ -380,7 +380,7 @@ def dist_location(dist: Distribution) -> str:
 
     The returned location is normalized (in particular, with symlinks removed).
     """
-    egg_link = egg_link_path(dist)
+    egg_link = egg_link_path_from_location(dist.project_name)
     if egg_link:
         return normalize_path(egg_link)
     return normalize_path(dist.location)
