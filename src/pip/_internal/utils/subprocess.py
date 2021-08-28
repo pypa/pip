@@ -30,12 +30,11 @@ CommandArgs = List[Union[str, HiddenText]]
 LOG_DIVIDER = "----------------------------------------"
 
 
-def make_command(*args):
-    # type: (Union[str, HiddenText, CommandArgs]) -> CommandArgs
+def make_command(*args: Union[str, HiddenText, CommandArgs]) -> CommandArgs:
     """
     Create a CommandArgs object.
     """
-    command_args = []  # type: CommandArgs
+    command_args: CommandArgs = []
     for arg in args:
         # Check for list instead of CommandArgs since CommandArgs is
         # only known during type-checking.
@@ -48,8 +47,7 @@ def make_command(*args):
     return command_args
 
 
-def format_command_args(args):
-    # type: (Union[List[str], CommandArgs]) -> str
+def format_command_args(args: Union[List[str], CommandArgs]) -> str:
     """
     Format command arguments for display.
     """
@@ -64,8 +62,7 @@ def format_command_args(args):
     )
 
 
-def reveal_command_args(args):
-    # type: (Union[List[str], CommandArgs]) -> List[str]
+def reveal_command_args(args: Union[List[str], CommandArgs]) -> List[str]:
     """
     Return the arguments in their raw, unredacted form.
     """
@@ -73,12 +70,11 @@ def reveal_command_args(args):
 
 
 def make_subprocess_output_error(
-    cmd_args,  # type: Union[List[str], CommandArgs]
-    cwd,  # type: Optional[str]
-    lines,  # type: List[str]
-    exit_status,  # type: int
-):
-    # type: (...) -> str
+    cmd_args: Union[List[str], CommandArgs],
+    cwd: Optional[str],
+    lines: List[str],
+    exit_status: int,
+) -> str:
     """
     Create and return the error message to use to log a subprocess error
     with command output.
@@ -109,19 +105,18 @@ def make_subprocess_output_error(
 
 
 def call_subprocess(
-    cmd,  # type: Union[List[str], CommandArgs]
-    show_stdout=False,  # type: bool
-    cwd=None,  # type: Optional[str]
-    on_returncode="raise",  # type: Literal["raise", "warn", "ignore"]
-    extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
-    command_desc=None,  # type: Optional[str]
-    extra_environ=None,  # type: Optional[Mapping[str, Any]]
-    unset_environ=None,  # type: Optional[Iterable[str]]
-    spinner=None,  # type: Optional[SpinnerInterface]
-    log_failed_cmd=True,  # type: Optional[bool]
-    stdout_only=False,  # type: Optional[bool]
-):
-    # type: (...) -> str
+    cmd: Union[List[str], CommandArgs],
+    show_stdout: bool = False,
+    cwd: Optional[str] = None,
+    on_returncode: 'Literal["raise", "warn", "ignore"]' = "raise",
+    extra_ok_returncodes: Optional[Iterable[int]] = None,
+    command_desc: Optional[str] = None,
+    extra_environ: Optional[Mapping[str, Any]] = None,
+    unset_environ: Optional[Iterable[str]] = None,
+    spinner: Optional[SpinnerInterface] = None,
+    log_failed_cmd: Optional[bool] = True,
+    stdout_only: Optional[bool] = False,
+) -> str:
     """
     Args:
       show_stdout: if true, use INFO to log the subprocess's stderr and
@@ -206,7 +201,7 @@ def call_subprocess(
         proc.stdin.close()
         # In this mode, stdout and stderr are in the same pipe.
         while True:
-            line = proc.stdout.readline()  # type: str
+            line: str = proc.stdout.readline()
             if not line:
                 break
             line = line.rstrip()
@@ -271,8 +266,7 @@ def call_subprocess(
     return output
 
 
-def runner_with_spinner_message(message):
-    # type: (str) -> Callable[..., None]
+def runner_with_spinner_message(message: str) -> Callable[..., None]:
     """Provide a subprocess_runner that shows a spinner message.
 
     Intended for use with for pep517's Pep517HookCaller. Thus, the runner has
@@ -280,11 +274,10 @@ def runner_with_spinner_message(message):
     """
 
     def runner(
-        cmd,  # type: List[str]
-        cwd=None,  # type: Optional[str]
-        extra_environ=None,  # type: Optional[Mapping[str, Any]]
-    ):
-        # type: (...) -> None
+        cmd: List[str],
+        cwd: Optional[str] = None,
+        extra_environ: Optional[Mapping[str, Any]] = None,
+    ) -> None:
         with open_spinner(message) as spinner:
             call_subprocess(
                 cmd,

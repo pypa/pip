@@ -52,8 +52,7 @@ SCP_REGEX = re.compile(
 )
 
 
-def looks_like_hash(sha):
-    # type: (str) -> bool
+def looks_like_hash(sha: str) -> bool:
     return bool(HASH_REGEX.match(sha))
 
 
@@ -74,12 +73,10 @@ class Git(VersionControl):
     default_arg_rev = "HEAD"
 
     @staticmethod
-    def get_base_rev_args(rev):
-        # type: (str) -> List[str]
+    def get_base_rev_args(rev: str) -> List[str]:
         return [rev]
 
-    def is_immutable_rev_checkout(self, url, dest):
-        # type: (str, str) -> bool
+    def is_immutable_rev_checkout(self, url: str, dest: str) -> bool:
         _, rev_options = self.get_url_rev_options(hide_url(url))
         if not rev_options.rev:
             return False
@@ -101,8 +98,7 @@ class Git(VersionControl):
         return tuple(int(c) for c in match.groups())
 
     @classmethod
-    def get_current_branch(cls, location):
-        # type: (str) -> Optional[str]
+    def get_current_branch(cls, location: str) -> Optional[str]:
         """
         Return the current branch, or None if HEAD isn't at a branch
         (e.g. detached HEAD).
@@ -127,8 +123,7 @@ class Git(VersionControl):
         return None
 
     @classmethod
-    def get_revision_sha(cls, dest, rev):
-        # type: (str, str) -> Tuple[Optional[str], bool]
+    def get_revision_sha(cls, dest: str, rev: str) -> Tuple[Optional[str], bool]:
         """
         Return (sha_or_none, is_branch), where sha_or_none is a commit hash
         if the revision names a remote branch or tag, otherwise None.
@@ -174,8 +169,7 @@ class Git(VersionControl):
         return (sha, False)
 
     @classmethod
-    def _should_fetch(cls, dest, rev):
-        # type: (str, str) -> bool
+    def _should_fetch(cls, dest: str, rev: str) -> bool:
         """
         Return true if rev is a ref or is a commit that we don't have locally.
 
@@ -198,8 +192,9 @@ class Git(VersionControl):
         return True
 
     @classmethod
-    def resolve_revision(cls, dest, url, rev_options):
-        # type: (str, HiddenText, RevOptions) -> RevOptions
+    def resolve_revision(
+        cls, dest: str, url: HiddenText, rev_options: RevOptions
+    ) -> RevOptions:
         """
         Resolve a revision to a new RevOptions object with the SHA1 of the
         branch, tag, or ref if found.
@@ -243,8 +238,7 @@ class Git(VersionControl):
         return rev_options
 
     @classmethod
-    def is_commit_id_equal(cls, dest, name):
-        # type: (str, Optional[str]) -> bool
+    def is_commit_id_equal(cls, dest: str, name: Optional[str]) -> bool:
         """
         Return whether the current commit hash equals the given name.
 
@@ -258,8 +252,7 @@ class Git(VersionControl):
 
         return cls.get_revision(dest) == name
 
-    def fetch_new(self, dest, url, rev_options):
-        # type: (str, HiddenText, RevOptions) -> None
+    def fetch_new(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
         rev_display = rev_options.to_display()
         logger.info("Cloning %s%s to %s", url, rev_display, display_path(dest))
         if self.get_git_version() >= (2, 17):
@@ -314,8 +307,7 @@ class Git(VersionControl):
         #: repo may contain submodules
         self.update_submodules(dest)
 
-    def switch(self, dest, url, rev_options):
-        # type: (str, HiddenText, RevOptions) -> None
+    def switch(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
         self.run_command(
             make_command("config", "remote.origin.url", url),
             cwd=dest,
@@ -325,8 +317,7 @@ class Git(VersionControl):
 
         self.update_submodules(dest)
 
-    def update(self, dest, url, rev_options):
-        # type: (str, HiddenText, RevOptions) -> None
+    def update(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
         # First fetch changes from the default remote
         if self.get_git_version() >= (1, 9):
             # fetch tags in addition to everything else
@@ -341,8 +332,7 @@ class Git(VersionControl):
         self.update_submodules(dest)
 
     @classmethod
-    def get_remote_url(cls, location):
-        # type: (str) -> str
+    def get_remote_url(cls, location: str) -> str:
         """
         Return URL of the first remote encountered.
 
@@ -372,8 +362,7 @@ class Git(VersionControl):
         return cls._git_remote_to_pip_url(url.strip())
 
     @staticmethod
-    def _git_remote_to_pip_url(url):
-        # type: (str) -> str
+    def _git_remote_to_pip_url(url: str) -> str:
         """
         Convert a remote url from what git uses to what pip accepts.
 
@@ -404,8 +393,7 @@ class Git(VersionControl):
         raise RemoteNotValidError(url)
 
     @classmethod
-    def has_commit(cls, location, rev):
-        # type: (str, str) -> bool
+    def has_commit(cls, location: str, rev: str) -> bool:
         """
         Check if rev is a commit that is available in the local repository.
         """
@@ -421,8 +409,7 @@ class Git(VersionControl):
             return True
 
     @classmethod
-    def get_revision(cls, location, rev=None):
-        # type: (str, Optional[str]) -> str
+    def get_revision(cls, location: str, rev: Optional[str] = None) -> str:
         if rev is None:
             rev = "HEAD"
         current_rev = cls.run_command(
@@ -434,8 +421,7 @@ class Git(VersionControl):
         return current_rev.strip()
 
     @classmethod
-    def get_subdirectory(cls, location):
-        # type: (str) -> Optional[str]
+    def get_subdirectory(cls, location: str) -> Optional[str]:
         """
         Return the path to Python project root, relative to the repo root.
         Return None if the project root is in the repo root.
@@ -453,8 +439,7 @@ class Git(VersionControl):
         return find_path_to_project_root_from_repo_root(location, repo_root)
 
     @classmethod
-    def get_url_rev_and_auth(cls, url):
-        # type: (str) -> Tuple[str, Optional[str], AuthInfo]
+    def get_url_rev_and_auth(cls, url: str) -> Tuple[str, Optional[str], AuthInfo]:
         """
         Prefixes stub URLs like 'user@hostname:user/repo.git' with 'ssh://'.
         That's required because although they use SSH they sometimes don't
@@ -485,8 +470,7 @@ class Git(VersionControl):
         return url, rev, user_pass
 
     @classmethod
-    def update_submodules(cls, location):
-        # type: (str) -> None
+    def update_submodules(cls, location: str) -> None:
         if not os.path.exists(os.path.join(location, ".gitmodules")):
             return
         cls.run_command(
@@ -495,8 +479,7 @@ class Git(VersionControl):
         )
 
     @classmethod
-    def get_repository_root(cls, location):
-        # type: (str) -> Optional[str]
+    def get_repository_root(cls, location: str) -> Optional[str]:
         loc = super().get_repository_root(location)
         if loc:
             return loc
@@ -521,8 +504,7 @@ class Git(VersionControl):
         return os.path.normpath(r.rstrip("\r\n"))
 
     @staticmethod
-    def should_add_vcs_url_prefix(repo_url):
-        # type: (str) -> bool
+    def should_add_vcs_url_prefix(repo_url: str) -> bool:
         """In either https or ssh form, requirements must be prefixed with git+."""
         return True
 
