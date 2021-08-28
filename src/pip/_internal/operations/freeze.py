@@ -212,7 +212,6 @@ def _get_editable_info(dist: BaseDistribution) -> _EditableInfo:
                 f"# '{ex.url}'",
             ],
         )
-
     except BadCommand:
         logger.warning(
             "cannot determine version of editable source in %s "
@@ -220,22 +219,17 @@ def _get_editable_info(dist: BaseDistribution) -> _EditableInfo:
             location,
             vcs_backend.name,
         )
-        return _EditableInfo(requirement=None, editable=True, comments=[])
-
+        return _EditableInfo(requirement=location, editable=True, comments=[])
     except InstallationError as exc:
-        logger.warning(
-            "Error when trying to get requirement for VCS system %s, "
-            "falling back to uneditable format",
-            exc,
-        )
+        logger.warning("Error when trying to get requirement for VCS system %s", exc)
     else:
         return _EditableInfo(requirement=req, editable=True, comments=[])
 
     logger.warning("Could not determine repository location of %s", location)
 
     return _EditableInfo(
-        requirement=None,
-        editable=False,
+        requirement=location,
+        editable=True,
         comments=["## !! Could not determine repository location"],
     )
 
