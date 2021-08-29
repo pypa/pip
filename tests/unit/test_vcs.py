@@ -17,10 +17,10 @@ from tests.lib import is_svn_installed, need_svn
 
 
 @pytest.mark.skipif(
-    "TRAVIS" not in os.environ, reason="Subversion is only required under Travis"
+    "CI" not in os.environ, reason="Subversion is only required under CI"
 )
 def test_ensure_svn_available():
-    """Make sure that svn is available when running in Travis."""
+    """Make sure that svn is available when running in CI."""
     assert is_svn_installed()
 
 
