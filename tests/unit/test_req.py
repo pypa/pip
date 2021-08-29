@@ -38,7 +38,7 @@ from pip._internal.req.req_file import (
 from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.resolution.legacy.resolver import Resolver
 from pip._internal.utils.urls import path_to_url
-from tests.lib import assert_raises_regexp, make_test_finder, requirements_file
+from tests.lib import make_test_finder, requirements_file
 
 
 def get_processed_req_from_line(line, fname="file", lineno=1):
@@ -117,15 +117,15 @@ class TestRequirementSet:
         reqset.add_requirement(req)
         finder = make_test_finder(find_links=[data.find_links])
         with self._basic_resolver(finder) as resolver:
-            assert_raises_regexp(
+            with pytest.raises(
                 PreviousBuildDirError,
-                r"pip can't proceed with [\s\S]*{req}[\s\S]*{build_dir_esc}".format(
-                    build_dir_esc=build_dir.replace("\\", "\\\\"), req=req
+                match=(
+                    r"pip can't proceed with [\s\S]*{req}[\s\S]*{build_dir_esc}".format(
+                        build_dir_esc=build_dir.replace("\\", "\\\\"), req=req
+                    )
                 ),
-                resolver.resolve,
-                reqset.all_requirements,
-                True,
-            )
+            ):
+                resolver.resolve(reqset.all_requirements, True)
 
     def test_environment_marker_extras(self, data):
         """
@@ -151,16 +151,16 @@ class TestRequirementSet:
         finder = make_test_finder(find_links=[data.find_links])
 
         with self._basic_resolver(finder, require_hashes=True) as resolver:
-            assert_raises_regexp(
+            with pytest.raises(
                 HashErrors,
-                r"Hashes are required in --require-hashes mode, but they are "
-                r"missing .*\n"
-                r"    simple==1.0 --hash=sha256:393043e672415891885c9a2a0929b1"
-                r"af95fb866d6ca016b42d2e6ce53619b653$",
-                resolver.resolve,
-                reqset.all_requirements,
-                True,
-            )
+                match=(
+                    r"Hashes are required in --require-hashes mode, but they are "
+                    r"missing .*\n"
+                    r"    simple==1.0 --hash=sha256:393043e672415891885c9a2a0929b1"
+                    r"af95fb866d6ca016b42d2e6ce53619b653$"
+                ),
+            ):
+                resolver.resolve(reqset.all_requirements, True)
 
     def test_missing_hash_with_require_hashes_in_reqs_file(self, data, tmpdir):
         """--require-hashes in a requirements file should make its way to the
@@ -203,20 +203,20 @@ class TestRequirementSet:
             sep = "\\\\"  # This needs to be escaped for the regex
 
         with self._basic_resolver(finder, require_hashes=True) as resolver:
-            assert_raises_regexp(
+            with pytest.raises(
                 HashErrors,
-                r"Can't verify hashes for these requirements because we don't "
-                r"have a way to hash version control repositories:\n"
-                r"    git\+git://github\.com/pypa/pip-test-package \(from -r "
-                r"file \(line 1\)\)\n"
-                r"Can't verify hashes for these file:// requirements because "
-                r"they point to directories:\n"
-                r"    file://.*{sep}data{sep}packages{sep}FSPkg "
-                r"\(from -r file \(line 2\)\)".format(sep=sep),
-                resolver.resolve,
-                reqset.all_requirements,
-                True,
-            )
+                match=(
+                    r"Can't verify hashes for these requirements because we don't "
+                    r"have a way to hash version control repositories:\n"
+                    r"    git\+git://github\.com/pypa/pip-test-package \(from -r "
+                    r"file \(line 1\)\)\n"
+                    r"Can't verify hashes for these file:// requirements because "
+                    r"they point to directories:\n"
+                    r"    file://.*{sep}data{sep}packages{sep}FSPkg "
+                    r"\(from -r file \(line 2\)\)".format(sep=sep)
+                ),
+            ):
+                resolver.resolve(reqset.all_requirements, True)
 
     def test_unpinned_hash_checking(self, data):
         """Make sure prepare_files() raises an error when a requirement is not
@@ -241,16 +241,16 @@ class TestRequirementSet:
         )
         finder = make_test_finder(find_links=[data.find_links])
         with self._basic_resolver(finder, require_hashes=True) as resolver:
-            assert_raises_regexp(
+            with pytest.raises(
                 HashErrors,
                 # Make sure all failing requirements are listed:
-                r"versions pinned with ==. These do not:\n"
-                r"    simple .* \(from -r file \(line 1\)\)\n"
-                r"    simple2>1.0 .* \(from -r file \(line 2\)\)",
-                resolver.resolve,
-                reqset.all_requirements,
-                True,
-            )
+                match=(
+                    r"versions pinned with ==. These do not:\n"
+                    r"    simple .* \(from -r file \(line 1\)\)\n"
+                    r"    simple2>1.0 .* \(from -r file \(line 2\)\)"
+                ),
+            ):
+                resolver.resolve(reqset.all_requirements, True)
 
     def test_hash_mismatch(self, data):
         """A hash mismatch should raise an error."""
@@ -264,17 +264,17 @@ class TestRequirementSet:
         )
         finder = make_test_finder(find_links=[data.find_links])
         with self._basic_resolver(finder, require_hashes=True) as resolver:
-            assert_raises_regexp(
+            with pytest.raises(
                 HashErrors,
-                r"THESE PACKAGES DO NOT MATCH THE HASHES.*\n"
-                r"    file:///.*/data/packages/simple-1\.0\.tar\.gz .*:\n"
-                r"        Expected sha256 badbad\n"
-                r"             Got        393043e672415891885c9a2a0929b1af95fb"
-                r"866d6ca016b42d2e6ce53619b653$",
-                resolver.resolve,
-                reqset.all_requirements,
-                True,
-            )
+                match=(
+                    r"THESE PACKAGES DO NOT MATCH THE HASHES.*\n"
+                    r"    file:///.*/data/packages/simple-1\.0\.tar\.gz .*:\n"
+                    r"        Expected sha256 badbad\n"
+                    r"             Got        393043e672415891885c9a2a0929b1af95fb"
+                    r"866d6ca016b42d2e6ce53619b653$"
+                ),
+            ):
+                resolver.resolve(reqset.all_requirements, True)
 
     def test_unhashed_deps_on_require_hashes(self, data):
         """Make sure unhashed, unpinned, or otherwise unrepeatable
@@ -291,15 +291,15 @@ class TestRequirementSet:
         )
 
         with self._basic_resolver(finder, require_hashes=True) as resolver:
-            assert_raises_regexp(
+            with pytest.raises(
                 HashErrors,
-                r"In --require-hashes mode, all requirements must have their "
-                r"versions pinned.*\n"
-                r"    TopoRequires from .*$",
-                resolver.resolve,
-                reqset.all_requirements,
-                True,
-            )
+                match=(
+                    r"In --require-hashes mode, all requirements must have their "
+                    r"versions pinned.*\n"
+                    r"    TopoRequires from .*$"
+                ),
+            ):
+                resolver.resolve(reqset.all_requirements, True)
 
     def test_hashed_deps_on_require_hashes(self):
         """Make sure hashed dependencies get installed when --require-hashes

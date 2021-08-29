@@ -991,19 +991,6 @@ def _change_test_package_version(script, version_pkg_path):
     _git_commit(script, version_pkg_path, message="messed version", stage_modified=True)
 
 
-def assert_raises_regexp(exception, reg, run, *args, **kwargs):
-    """Like assertRaisesRegexp in unittest"""
-    __tracebackhide__ = True
-
-    try:
-        run(*args, **kwargs)
-        assert False, f"{exception} should have been thrown"
-    except exception:
-        e = sys.exc_info()[1]
-        p = re.compile(reg)
-        assert p.search(str(e)), str(e)
-
-
 @contextmanager
 def requirements_file(contents, tmpdir):
     """Return a Path to a requirements file of given contents.
