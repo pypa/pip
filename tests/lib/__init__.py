@@ -447,6 +447,7 @@ def _check_stderr(
 
     lines = stderr.splitlines()
     for line in lines:
+        line = line.lstrip()
         # First check for logging errors, which we don't allow during
         # tests even if allow_stderr_error=True (since a logging error
         # would signal a bug in pip's code).
