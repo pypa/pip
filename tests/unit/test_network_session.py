@@ -1,16 +1,19 @@
 import logging
+from typing import Any, List
 
 import pytest
 
 from pip import __version__
+from pip._internal.models.link import Link
 from pip._internal.network.session import CI_ENVIRONMENT_VARIABLES, PipSession
+from tests.lib.path import Path
 
 
-def get_user_agent():
+def get_user_agent() -> str:
     return PipSession().headers["User-Agent"]
 
 
-def test_user_agent():
+def test_user_agent() -> None:
     user_agent = get_user_agent()
 
     assert user_agent.startswith(f"pip/{__version__}")
@@ -27,7 +30,9 @@ def test_user_agent():
         ("BUILD", False),
     ],
 )
-def test_user_agent__ci(monkeypatch, name, expected_like_ci):
+def test_user_agent__ci(
+    monkeypatch: pytest.MonkeyPatch, name: str, expected_like_ci: bool
+) -> None:
     # Delete the variable names we use to check for CI to prevent the
     # detection from always returning True in case the tests are being run
     # under actual CI.  It is okay to depend on CI_ENVIRONMENT_VARIABLES
@@ -47,19 +52,19 @@ def test_user_agent__ci(monkeypatch, name, expected_like_ci):
     assert ('"ci":null' in user_agent) == (not expected_like_ci)
 
 
-def test_user_agent_user_data(monkeypatch):
+def test_user_agent_user_data(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PIP_USER_AGENT_USER_DATA", "some_string")
     assert "some_string" in PipSession().headers["User-Agent"]
 
 
 class TestPipSession:
-    def test_cache_defaults_off(self):
+    def test_cache_defaults_off(self) -> None:
         session = PipSession()
 
         assert not hasattr(session.adapters["http://"], "cache")
         assert not hasattr(session.adapters["https://"], "cache")
 
-    def test_cache_is_enabled(self, tmpdir):
+    def test_cache_is_enabled(self, tmpdir: Path) -> None:
         cache_directory = tmpdir.joinpath("test-cache")
         session = PipSession(cache=cache_directory)
 
@@ -67,12 +72,12 @@ class TestPipSession:
 
         assert session.adapters["https://"].cache.directory == cache_directory
 
-    def test_http_cache_is_not_enabled(self, tmpdir):
+    def test_http_cache_is_not_enabled(self, tmpdir: Path) -> None:
         session = PipSession(cache=tmpdir.joinpath("test-cache"))
 
         assert not hasattr(session.adapters["http://"], "cache")
 
-    def test_trusted_hosts_adapter(self, tmpdir):
+    def test_trusted_hosts_adapter(self, tmpdir: Path) -> None:
         session = PipSession(
             cache=tmpdir.joinpath("test-cache"),
             trusted_hosts=["example.com"],
@@ -85,7 +90,7 @@ class TestPipSession:
         assert hasattr(session.adapters["http://example.com/"], "cache")
         assert hasattr(session.adapters["https://example.com/"], "cache")
 
-    def test_add_trusted_host(self):
+    def test_add_trusted_host(self) -> None:
         # Leave a gap to test how the ordering is affected.
         trusted_hosts = ["host1", "host3"]
         session = PipSession(trusted_hosts=trusted_hosts)
@@ -141,7 +146,7 @@ class TestPipSession:
         assert session.adapters[prefix4] is trusted_host_adapter
         assert session.adapters[prefix4_http] is trusted_host_adapter
 
-    def test_add_trusted_host__logging(self, caplog):
+    def test_add_trusted_host__logging(self, caplog: pytest.LogCaptureFixture) -> None:
         """
         Test logging when add_trusted_host() is called.
         """
@@ -163,7 +168,7 @@ class TestPipSession:
         ]
         assert actual == expected
 
-    def test_iter_secure_origins(self):
+    def test_iter_secure_origins(self) -> None:
         trusted_hosts = ["host1", "host2", "host3:8080"]
         session = PipSession(trusted_hosts=trusted_hosts)
 
@@ -177,7 +182,7 @@ class TestPipSession:
             ("*", "host3", 8080),
         ]
 
-    def test_iter_secure_origins__trusted_hosts_empty(self):
+    def test_iter_secure_origins__trusted_hosts_empty(self) -> None:
         """
         Test iter_secure_origins() after passing trusted_hosts=[].
         """
@@ -210,16 +215,22 @@ class TestPipSession:
             ("http://example.com:8888/something/", ["example.com:8080"], False),
         ],
     )
-    def test_is_secure_origin(self, caplog, location, trusted, expected):
+    def test_is_secure_origin(
+        self,
+        caplog: pytest.LogCaptureFixture,
+        location: str,
+        trusted: List[str],
+        expected: bool,
+    ) -> None:
         class MockLogger:
-            def __init__(self):
+            def __init__(self) -> None:
                 self.called = False
 
-            def warning(self, *args, **kwargs):
+            def warning(self, *args: Any, **kwargs: Any) -> None:
                 self.called = True
 
         session = PipSession(trusted_hosts=trusted)
-        actual = session.is_secure_origin(location)
+        actual = session.is_secure_origin(Link(location))
         assert actual == expected
 
         log_records = [(r.levelname, r.message) for r in caplog.records]

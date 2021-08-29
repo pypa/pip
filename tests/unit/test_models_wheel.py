@@ -7,7 +7,7 @@ from pip._internal.utils import compatibility_tags
 
 
 class TestWheelFile:
-    def test_std_wheel_pattern(self):
+    def test_std_wheel_pattern(self) -> None:
         w = Wheel("simple-1.1.1-py2-none-any.whl")
         assert w.name == "simple"
         assert w.version == "1.1.1"
@@ -15,7 +15,7 @@ class TestWheelFile:
         assert w.abis == ["none"]
         assert w.plats == ["any"]
 
-    def test_wheel_pattern_multi_values(self):
+    def test_wheel_pattern_multi_values(self) -> None:
         w = Wheel("simple-1.1-py2.py3-abi1.abi2-any.whl")
         assert w.name == "simple"
         assert w.version == "1.1"
@@ -23,7 +23,7 @@ class TestWheelFile:
         assert w.abis == ["abi1", "abi2"]
         assert w.plats == ["any"]
 
-    def test_wheel_with_build_tag(self):
+    def test_wheel_with_build_tag(self) -> None:
         # pip doesn't do anything with build tags, but theoretically, we might
         # see one, in this case the build tag = '4'
         w = Wheel("simple-1.1-4-py2-none-any.whl")
@@ -33,44 +33,44 @@ class TestWheelFile:
         assert w.abis == ["none"]
         assert w.plats == ["any"]
 
-    def test_single_digit_version(self):
+    def test_single_digit_version(self) -> None:
         w = Wheel("simple-1-py2-none-any.whl")
         assert w.version == "1"
 
-    def test_non_pep440_version(self):
+    def test_non_pep440_version(self) -> None:
         w = Wheel("simple-_invalid_-py2-none-any.whl")
         assert w.version == "-invalid-"
 
-    def test_missing_version_raises(self):
+    def test_missing_version_raises(self) -> None:
         with pytest.raises(InvalidWheelFilename):
             Wheel("Cython-cp27-none-linux_x86_64.whl")
 
-    def test_invalid_filename_raises(self):
+    def test_invalid_filename_raises(self) -> None:
         with pytest.raises(InvalidWheelFilename):
             Wheel("invalid.whl")
 
-    def test_supported_single_version(self):
+    def test_supported_single_version(self) -> None:
         """
         Test single-version wheel is known to be supported
         """
         w = Wheel("simple-0.1-py2-none-any.whl")
         assert w.supported(tags=[Tag("py2", "none", "any")])
 
-    def test_supported_multi_version(self):
+    def test_supported_multi_version(self) -> None:
         """
         Test multi-version wheel is known to be supported
         """
         w = Wheel("simple-0.1-py2.py3-none-any.whl")
         assert w.supported(tags=[Tag("py3", "none", "any")])
 
-    def test_not_supported_version(self):
+    def test_not_supported_version(self) -> None:
         """
         Test unsupported wheel is known to be unsupported
         """
         w = Wheel("simple-0.1-py2-none-any.whl")
         assert not w.supported(tags=[Tag("py1", "none", "any")])
 
-    def test_supported_osx_version(self):
+    def test_supported_osx_version(self) -> None:
         """
         Wheels built for macOS 10.6 are supported on 10.9
         """
@@ -82,7 +82,7 @@ class TestWheelFile:
         w = Wheel("simple-0.1-cp27-none-macosx_10_9_intel.whl")
         assert w.supported(tags=tags)
 
-    def test_not_supported_osx_version(self):
+    def test_not_supported_osx_version(self) -> None:
         """
         Wheels built for macOS 10.9 are not supported on 10.6
         """
@@ -100,7 +100,7 @@ class TestWheelFile:
             "https://github.com/pypa/packaging/pull/361 for further discussion."
         )
     )
-    def test_supported_multiarch_darwin(self):
+    def test_supported_multiarch_darwin(self) -> None:
         """
         Multi-arch wheels (intel) are supported on components (i386, x86_64)
         """
@@ -138,7 +138,7 @@ class TestWheelFile:
         assert w.supported(tags=ppc)
         assert w.supported(tags=ppc64)
 
-    def test_not_supported_multiarch_darwin(self):
+    def test_not_supported_multiarch_darwin(self) -> None:
         """
         Single-arch wheels (x86_64) are not supported on multi-arch (intel)
         """
@@ -156,7 +156,7 @@ class TestWheelFile:
         assert not w.supported(tags=intel)
         assert not w.supported(tags=universal)
 
-    def test_support_index_min(self):
+    def test_support_index_min(self) -> None:
         """
         Test results from `support_index_min`
         """
@@ -170,7 +170,7 @@ class TestWheelFile:
         w = Wheel("simple-0.1-py2-none-TEST.whl")
         assert w.support_index_min(tags=tags) == 0
 
-    def test_support_index_min__none_supported(self):
+    def test_support_index_min__none_supported(self) -> None:
         """
         Test a wheel not supported by the given tags.
         """
@@ -178,7 +178,7 @@ class TestWheelFile:
         with pytest.raises(ValueError):
             w.support_index_min(tags=[])
 
-    def test_version_underscore_conversion(self):
+    def test_version_underscore_conversion(self) -> None:
         """
         Test that we convert '_' to '-' for versions parsed out of wheel
         filenames

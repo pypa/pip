@@ -8,7 +8,17 @@ import re
 import shlex
 import urllib.parse
 from optparse import Values
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterator, List, Optional, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+)
 
 from pip._internal.cli import cmdoptions
 from pip._internal.exceptions import InstallationError, RequirementsFileParseError
@@ -27,7 +37,7 @@ if TYPE_CHECKING:
 
 __all__ = ["parse_requirements"]
 
-ReqFileLines = Iterator[Tuple[int, str]]
+ReqFileLines = Iterable[Tuple[int, str]]
 
 LineParser = Callable[[str], Tuple[str, Values]]
 

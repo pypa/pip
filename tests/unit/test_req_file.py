@@ -1,14 +1,18 @@
 import collections
 import logging
 import os
+import pathlib
 import subprocess
 import textwrap
+from optparse import Values
+from typing import TYPE_CHECKING, Any, Iterator, List, Optional, Tuple
 from unittest import mock
 
 import pytest
 
 import pip._internal.req.req_file  # this will be monkeypatched
 from pip._internal.exceptions import InstallationError, RequirementsFileParseError
+from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.format_control import FormatControl
 from pip._internal.network.session import PipSession
 from pip._internal.req.constructors import (
@@ -23,21 +27,29 @@ from pip._internal.req.req_file import (
     parse_requirements,
     preprocess,
 )
-from tests.lib import make_test_finder, requirements_file
+from pip._internal.req.req_install import InstallRequirement
+from tests.lib import TestData, make_test_finder, requirements_file
+from tests.lib.path import Path
+
+if TYPE_CHECKING:
+    from typing import Protocol
+else:
+    # Protocol was introduced in Python 3.8.
+    Protocol = object
 
 
 @pytest.fixture
-def session():
+def session() -> PipSession:
     return PipSession()
 
 
 @pytest.fixture
-def finder(session):
+def finder(session: PipSession) -> PackageFinder:
     return make_test_finder(session=session)
 
 
 @pytest.fixture
-def options(session):
+def options(session: PipSession) -> mock.Mock:
     return mock.Mock(
         isolated_mode=False,
         index_url="default_url",
@@ -47,13 +59,13 @@ def options(session):
 
 
 def parse_reqfile(
-    filename,
-    session,
-    finder=None,
-    options=None,
-    constraint=False,
-    isolated=False,
-):
+    filename: str,
+    session: PipSession,
+    finder: PackageFinder = None,
+    options: Values = None,
+    constraint: bool = False,
+    isolated: bool = False,
+) -> Iterator[InstallRequirement]:
     # Wrap parse_requirements/install_req_from_parsed_requirement to
     # avoid having to write the same chunk of code in lots of tests.
     for parsed_req in parse_requirements(
@@ -66,7 +78,7 @@ def parse_reqfile(
         yield install_req_from_parsed_requirement(parsed_req, isolated=isolated)
 
 
-def test_read_file_url(tmp_path, session):
+def test_read_file_url(tmp_path: pathlib.Path, session: PipSession) -> None:
     reqs = tmp_path.joinpath("requirements.txt")
     reqs.write_text("foo")
     result = list(parse_requirements(reqs.as_posix(), session))
@@ -85,7 +97,7 @@ def test_read_file_url(tmp_path, session):
 class TestPreprocess:
     """tests for `preprocess`"""
 
-    def test_comments_and_joins_case1(self):
+    def test_comments_and_joins_case1(self) -> None:
         content = textwrap.dedent(
             """\
           req1 \\
@@ -96,7 +108,7 @@ class TestPreprocess:
         result = preprocess(content)
         assert list(result) == [(1, "req1"), (3, "req2")]
 
-    def test_comments_and_joins_case2(self):
+    def test_comments_and_joins_case2(self) -> None:
         content = textwrap.dedent(
             """\
           req1\\
@@ -106,7 +118,7 @@ class TestPreprocess:
         result = preprocess(content)
         assert list(result) == [(1, "req1")]
 
-    def test_comments_and_joins_case3(self):
+    def test_comments_and_joins_case3(self) -> None:
         content = textwrap.dedent(
             """\
           req1 \\
@@ -121,17 +133,17 @@ class TestPreprocess:
 class TestIgnoreComments:
     """tests for `ignore_comment`"""
 
-    def test_ignore_line(self):
+    def test_ignore_line(self) -> None:
         lines = [(1, ""), (2, "req1"), (3, "req2")]
         result = ignore_comments(lines)
         assert list(result) == [(2, "req1"), (3, "req2")]
 
-    def test_ignore_comment(self):
+    def test_ignore_comment(self) -> None:
         lines = [(1, "req1"), (2, "# comment"), (3, "req2")]
         result = ignore_comments(lines)
         assert list(result) == [(1, "req1"), (3, "req2")]
 
-    def test_strip_comment(self):
+    def test_strip_comment(self) -> None:
         lines = [(1, "req1"), (2, "req # comment"), (3, "req2")]
         result = ignore_comments(lines)
         assert list(result) == [(1, "req1"), (2, "req"), (3, "req2")]
@@ -140,7 +152,7 @@ class TestIgnoreComments:
 class TestJoinLines:
     """tests for `join_lines`"""
 
-    def test_join_lines(self):
+    def test_join_lines(self) -> None:
         lines = enumerate(
             [
                 "line 1",
@@ -161,7 +173,7 @@ class TestJoinLines:
         ]
         assert expect == list(join_lines(lines))
 
-    def test_last_line_with_escape(self):
+    def test_last_line_with_escape(self) -> None:
         lines = enumerate(
             [
                 "line 1",
@@ -176,20 +188,31 @@ class TestJoinLines:
         assert expect == list(join_lines(lines))
 
 
+class LineProcessor(Protocol):
+    def __call__(
+        self,
+        line: str,
+        filename: str,
+        line_number: int,
+        finder: Optional[PackageFinder] = None,
+        options: Optional[Values] = None,
+        session: Optional[PipSession] = None,
+        constraint: bool = False,
+    ) -> List[InstallRequirement]:
+        ...
+
+
 @pytest.fixture
-def line_processor(
-    monkeypatch,
-    tmpdir,
-):
+def line_processor(monkeypatch: pytest.MonkeyPatch, tmpdir: Path) -> LineProcessor:
     def process_line(
-        line,
-        filename,
-        line_number,
-        finder=None,
-        options=None,
-        session=None,
-        constraint=False,
-    ):
+        line: str,
+        filename: str,
+        line_number: int,
+        finder: Optional[PackageFinder] = None,
+        options: Optional[Values] = None,
+        session: Optional[PipSession] = None,
+        constraint: bool = False,
+    ) -> List[InstallRequirement]:
         if session is None:
             session = PipSession()
 
@@ -215,28 +238,28 @@ def line_processor(
 class TestProcessLine:
     """tests for `process_line`"""
 
-    def test_parser_error(self, line_processor):
+    def test_parser_error(self, line_processor: LineProcessor) -> None:
         with pytest.raises(RequirementsFileParseError):
             line_processor("--bogus", "file", 1)
 
-    def test_parser_offending_line(self, line_processor):
+    def test_parser_offending_line(self, line_processor: LineProcessor) -> None:
         line = "pkg==1.0.0 --hash=somehash"
         with pytest.raises(RequirementsFileParseError) as err:
             line_processor(line, "file", 1)
         assert line in str(err.value)
 
-    def test_parser_non_offending_line(self, line_processor):
+    def test_parser_non_offending_line(self, line_processor: LineProcessor) -> None:
         try:
             line_processor("pkg==1.0.0 --hash=sha256:somehash", "file", 1)
         except RequirementsFileParseError:
             pytest.fail("Reported offending line where it should not.")
 
-    def test_only_one_req_per_line(self, line_processor):
+    def test_only_one_req_per_line(self, line_processor: LineProcessor) -> None:
         # pkg_resources raises the ValueError
         with pytest.raises(InstallationError):
             line_processor("req1 req2", "file", 1)
 
-    def test_error_message(self, line_processor):
+    def test_error_message(self, line_processor: LineProcessor) -> None:
         """
         Test the error message if a parsing error occurs (all of path,
         line number, and hint).
@@ -253,21 +276,21 @@ class TestProcessLine:
         )
         assert str(exc.value) == expected
 
-    def test_yield_line_requirement(self, line_processor):
+    def test_yield_line_requirement(self, line_processor: LineProcessor) -> None:
         line = "SomeProject"
         filename = "filename"
         comes_from = f"-r {filename} (line 1)"
         req = install_req_from_line(line, comes_from=comes_from)
         assert repr(line_processor(line, filename, 1)[0]) == repr(req)
 
-    def test_yield_pep440_line_requirement(self, line_processor):
+    def test_yield_pep440_line_requirement(self, line_processor: LineProcessor) -> None:
         line = "SomeProject @ https://url/SomeProject-py2-py3-none-any.whl"
         filename = "filename"
         comes_from = f"-r {filename} (line 1)"
         req = install_req_from_line(line, comes_from=comes_from)
         assert repr(line_processor(line, filename, 1)[0]) == repr(req)
 
-    def test_yield_line_constraint(self, line_processor):
+    def test_yield_line_constraint(self, line_processor: LineProcessor) -> None:
         line = "SomeProject"
         filename = "filename"
         comes_from = "-c {} (line {})".format(filename, 1)
@@ -276,15 +299,18 @@ class TestProcessLine:
         assert repr(found_req) == repr(req)
         assert found_req.constraint is True
 
-    def test_yield_line_requirement_with_spaces_in_specifier(self, line_processor):
+    def test_yield_line_requirement_with_spaces_in_specifier(
+        self, line_processor: LineProcessor
+    ) -> None:
         line = "SomeProject >= 2"
         filename = "filename"
         comes_from = f"-r {filename} (line 1)"
         req = install_req_from_line(line, comes_from=comes_from)
         assert repr(line_processor(line, filename, 1)[0]) == repr(req)
+        assert req.req is not None
         assert str(req.req.specifier) == ">=2"
 
-    def test_yield_editable_requirement(self, line_processor):
+    def test_yield_editable_requirement(self, line_processor: LineProcessor) -> None:
         url = "git+https://url#egg=SomeProject"
         line = f"-e {url}"
         filename = "filename"
@@ -292,7 +318,7 @@ class TestProcessLine:
         req = install_req_from_editable(url, comes_from=comes_from)
         assert repr(line_processor(line, filename, 1)[0]) == repr(req)
 
-    def test_yield_editable_constraint(self, line_processor):
+    def test_yield_editable_constraint(self, line_processor: LineProcessor) -> None:
         url = "git+https://url#egg=SomeProject"
         line = f"-e {url}"
         filename = "filename"
@@ -302,7 +328,9 @@ class TestProcessLine:
         assert repr(found_req) == repr(req)
         assert found_req.constraint is True
 
-    def test_nested_constraints_file(self, monkeypatch, tmpdir, session):
+    def test_nested_constraints_file(
+        self, monkeypatch: pytest.MonkeyPatch, tmpdir: Path, session: PipSession
+    ) -> None:
         req_name = "hello"
         req_file = tmpdir / "parent" / "req_file.txt"
         req_file.parent.mkdir()
@@ -316,7 +344,7 @@ class TestProcessLine:
         assert reqs[0].name == req_name
         assert reqs[0].constraint
 
-    def test_options_on_a_requirement_line(self, line_processor):
+    def test_options_on_a_requirement_line(self, line_processor: LineProcessor) -> None:
         line = (
             "SomeProject --install-option=yo1 --install-option yo2 "
             '--global-option="yo3" --global-option "yo4"'
@@ -326,7 +354,7 @@ class TestProcessLine:
         assert req.global_options == ["yo3", "yo4"]
         assert req.install_options == ["yo1", "yo2"]
 
-    def test_hash_options(self, line_processor):
+    def test_hash_options(self, line_processor: LineProcessor) -> None:
         """Test the --hash option: mostly its value storage.
 
         Make sure it reads and preserve multiple hashes.
@@ -353,34 +381,50 @@ class TestProcessLine:
             ],
         }
 
-    def test_set_isolated(self, line_processor, options):
+    def test_set_isolated(
+        self, line_processor: LineProcessor, options: mock.Mock
+    ) -> None:
         line = "SomeProject"
         filename = "filename"
         options.isolated_mode = True
         result = line_processor(line, filename, 1, options=options)
         assert result[0].isolated
 
-    def test_set_finder_no_index(self, line_processor, finder):
+    def test_set_finder_no_index(
+        self, line_processor: LineProcessor, finder: PackageFinder
+    ) -> None:
         line_processor("--no-index", "file", 1, finder=finder)
         assert finder.index_urls == []
 
-    def test_set_finder_index_url(self, line_processor, finder, session):
+    def test_set_finder_index_url(
+        self, line_processor: LineProcessor, finder: PackageFinder, session: PipSession
+    ) -> None:
         line_processor("--index-url=url", "file", 1, finder=finder, session=session)
         assert finder.index_urls == ["url"]
         assert session.auth.index_urls == ["url"]
 
-    def test_set_finder_find_links(self, line_processor, finder):
+    def test_set_finder_find_links(
+        self, line_processor: LineProcessor, finder: PackageFinder
+    ) -> None:
         line_processor("--find-links=url", "file", 1, finder=finder)
         assert finder.find_links == ["url"]
 
-    def test_set_finder_extra_index_urls(self, line_processor, finder, session):
+    def test_set_finder_extra_index_urls(
+        self, line_processor: LineProcessor, finder: PackageFinder, session: PipSession
+    ) -> None:
         line_processor(
             "--extra-index-url=url", "file", 1, finder=finder, session=session
         )
         assert finder.index_urls == ["url"]
         assert session.auth.index_urls == ["url"]
 
-    def test_set_finder_trusted_host(self, line_processor, caplog, session, finder):
+    def test_set_finder_trusted_host(
+        self,
+        line_processor: LineProcessor,
+        caplog: pytest.LogCaptureFixture,
+        session: PipSession,
+        finder: PackageFinder,
+    ) -> None:
         with caplog.at_level(logging.INFO):
             line_processor(
                 "--trusted-host=host1 --trusted-host=host2:8080",
@@ -399,24 +443,32 @@ class TestProcessLine:
         expected = ("INFO", "adding trusted host: 'host1' (from line 1 of file.txt)")
         assert expected in actual
 
-    def test_set_finder_allow_all_prereleases(self, line_processor, finder):
+    def test_set_finder_allow_all_prereleases(
+        self, line_processor: LineProcessor, finder: PackageFinder
+    ) -> None:
         line_processor("--pre", "file", 1, finder=finder)
         assert finder.allow_all_prereleases
 
-    def test_use_feature(self, line_processor, options):
+    def test_use_feature(
+        self, line_processor: LineProcessor, options: mock.Mock
+    ) -> None:
         """--use-feature can be set in requirements files."""
         line_processor("--use-feature=2020-resolver", "filename", 1, options=options)
         assert "2020-resolver" in options.features_enabled
 
     def test_relative_local_find_links(
-        self, line_processor, finder, monkeypatch, tmpdir
-    ):
+        self,
+        line_processor: LineProcessor,
+        finder: PackageFinder,
+        monkeypatch: pytest.MonkeyPatch,
+        tmpdir: Path,
+    ) -> None:
         """
         Test a relative find_links path is joined with the req file directory
         """
         base_path = tmpdir / "path"
 
-        def normalize(path):
+        def normalize(path: Path) -> str:
             return os.path.normcase(os.path.abspath(os.path.normpath(str(path))))
 
         # Make sure the test also passes on windows
@@ -424,24 +476,31 @@ class TestProcessLine:
         nested_link = normalize(base_path / "rel_path")
         exists_ = os.path.exists
 
-        def exists(path):
+        def exists(path: str) -> bool:
             if path == nested_link:
                 return True
             else:
-                exists_(path)
+                return exists_(path)
 
         monkeypatch.setattr(os.path, "exists", exists)
         line_processor("--find-links=rel_path", req_file, 1, finder=finder)
         assert finder.find_links == [nested_link]
 
-    def test_relative_http_nested_req_files(self, finder, session, monkeypatch):
+    def test_relative_http_nested_req_files(
+        self,
+        finder: PackageFinder,
+        session: PipSession,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         """
         Test a relative nested req file path is joined with the req file url
         """
         req_name = "hello"
         req_file = "http://me.com/me/req_file.txt"
 
-        def get_file_content(filename, *args, **kwargs):
+        def get_file_content(
+            filename: str, *args: Any, **kwargs: Any
+        ) -> Tuple[None, str]:
             if filename == req_file:
                 return None, "-r reqs.txt"
             elif filename == "http://me.com/me/reqs.txt":
@@ -457,7 +516,9 @@ class TestProcessLine:
         assert result[0].name == req_name
         assert not result[0].constraint
 
-    def test_relative_local_nested_req_files(self, session, monkeypatch, tmpdir):
+    def test_relative_local_nested_req_files(
+        self, session: PipSession, monkeypatch: pytest.MonkeyPatch, tmpdir: Path
+    ) -> None:
         """
         Test a relative nested req file path is joined with the req file dir
         """
@@ -474,7 +535,9 @@ class TestProcessLine:
         assert reqs[0].name == req_name
         assert not reqs[0].constraint
 
-    def test_absolute_local_nested_req_files(self, session, tmpdir):
+    def test_absolute_local_nested_req_files(
+        self, session: PipSession, tmpdir: Path
+    ) -> None:
         """
         Test an absolute nested req file path
         """
@@ -494,7 +557,9 @@ class TestProcessLine:
         assert reqs[0].name == req_name
         assert not reqs[0].constraint
 
-    def test_absolute_http_nested_req_file_in_local(self, session, monkeypatch, tmpdir):
+    def test_absolute_http_nested_req_file_in_local(
+        self, session: PipSession, monkeypatch: pytest.MonkeyPatch, tmpdir: Path
+    ) -> None:
         """
         Test a nested req file url in a local req file
         """
@@ -502,7 +567,9 @@ class TestProcessLine:
         req_file = tmpdir / "req_file.txt"
         nested_req_file = "http://me.com/me/req_file.txt"
 
-        def get_file_content(filename, *args, **kwargs):
+        def get_file_content(
+            filename: str, *args: Any, **kwargs: Any
+        ) -> Tuple[None, str]:
             if filename == str(req_file):
                 return None, f"-r {nested_req_file}"
             elif filename == nested_req_file:
@@ -520,17 +587,17 @@ class TestProcessLine:
 
 
 class TestBreakOptionsArgs:
-    def test_no_args(self):
+    def test_no_args(self) -> None:
         assert ("", "--option") == break_args_options("--option")
 
-    def test_no_options(self):
+    def test_no_options(self) -> None:
         assert ("arg arg", "") == break_args_options("arg arg")
 
-    def test_args_short_options(self):
+    def test_args_short_options(self) -> None:
         result = break_args_options("arg arg -s")
         assert ("arg arg", "-s") == result
 
-    def test_args_long_options(self):
+    def test_args_long_options(self) -> None:
         result = break_args_options("arg arg --long")
         assert ("arg arg", "--long") == result
 
@@ -539,23 +606,33 @@ class TestOptionVariants:
 
     # this suite is really just testing optparse, but added it anyway
 
-    def test_variant1(self, line_processor, finder):
+    def test_variant1(
+        self, line_processor: LineProcessor, finder: PackageFinder
+    ) -> None:
         line_processor("-i url", "file", 1, finder=finder)
         assert finder.index_urls == ["url"]
 
-    def test_variant2(self, line_processor, finder):
+    def test_variant2(
+        self, line_processor: LineProcessor, finder: PackageFinder
+    ) -> None:
         line_processor("-i 'url'", "file", 1, finder=finder)
         assert finder.index_urls == ["url"]
 
-    def test_variant3(self, line_processor, finder):
+    def test_variant3(
+        self, line_processor: LineProcessor, finder: PackageFinder
+    ) -> None:
         line_processor("--index-url=url", "file", 1, finder=finder)
         assert finder.index_urls == ["url"]
 
-    def test_variant4(self, line_processor, finder):
+    def test_variant4(
+        self, line_processor: LineProcessor, finder: PackageFinder
+    ) -> None:
         line_processor("--index-url url", "file", 1, finder=finder)
         assert finder.index_urls == ["url"]
 
-    def test_variant5(self, line_processor, finder):
+    def test_variant5(
+        self, line_processor: LineProcessor, finder: PackageFinder
+    ) -> None:
         line_processor("--index-url='url'", "file", 1, finder=finder)
         assert finder.index_urls == ["url"]
 
@@ -564,7 +641,7 @@ class TestParseRequirements:
     """tests for `parse_reqfile`"""
 
     @pytest.mark.network
-    def test_remote_reqs_parse(self):
+    def test_remote_reqs_parse(self) -> None:
         """
         Test parsing a simple remote requirements file
         """
@@ -578,7 +655,9 @@ class TestParseRequirements:
         ):
             pass
 
-    def test_multiple_appending_options(self, tmpdir, finder, options):
+    def test_multiple_appending_options(
+        self, tmpdir: Path, finder: PackageFinder, options: mock.Mock
+    ) -> None:
         with open(tmpdir.joinpath("req1.txt"), "w") as fp:
             fp.write("--extra-index-url url1 \n")
             fp.write("--extra-index-url url2 ")
@@ -594,10 +673,12 @@ class TestParseRequirements:
 
         assert finder.index_urls == ["url1", "url2"]
 
-    def test_expand_existing_env_variables(self, tmpdir, finder):
+    def test_expand_existing_env_variables(
+        self, tmpdir: Path, finder: PackageFinder
+    ) -> None:
         template = "https://{}:x-oauth-basic@github.com/user/{}/archive/master.zip"
 
-        def make_var(name):
+        def make_var(name: str) -> str:
             return f"${{{name}}}"
 
         env_vars = collections.OrderedDict(
@@ -625,9 +706,12 @@ class TestParseRequirements:
         assert len(reqs) == 1, "parsing requirement file with env variable failed"
 
         expected_url = template.format(*env_vars.values())
+        assert reqs[0].link is not None
         assert reqs[0].link.url == expected_url, "variable expansion in req file failed"
 
-    def test_expand_missing_env_variables(self, tmpdir, finder):
+    def test_expand_missing_env_variables(
+        self, tmpdir: Path, finder: PackageFinder
+    ) -> None:
         req_url = (
             "https://${NON_EXISTENT_VARIABLE}:$WRONG_FORMAT@"
             "%WINDOWS_FORMAT%github.com/user/repo/archive/master.zip"
@@ -649,11 +733,12 @@ class TestParseRequirements:
             )
 
             assert len(reqs) == 1, "parsing requirement file with env variable failed"
+            assert reqs[0].link is not None
             assert (
                 reqs[0].link.url == req_url
             ), "ignoring invalid env variable in req file failed"
 
-    def test_join_lines(self, tmpdir, finder):
+    def test_join_lines(self, tmpdir: Path, finder: PackageFinder) -> None:
         with open(tmpdir.joinpath("req1.txt"), "w") as fp:
             fp.write("--extra-index-url url1 \\\n--extra-index-url url2")
 
@@ -665,7 +750,9 @@ class TestParseRequirements:
 
         assert finder.index_urls == ["url1", "url2"]
 
-    def test_req_file_parse_no_only_binary(self, data, finder):
+    def test_req_file_parse_no_only_binary(
+        self, data: TestData, finder: PackageFinder
+    ) -> None:
         list(
             parse_reqfile(
                 data.reqfiles.joinpath("supported_options2.txt"),
@@ -676,7 +763,9 @@ class TestParseRequirements:
         expected = FormatControl({"fred"}, {"wilma"})
         assert finder.format_control == expected
 
-    def test_req_file_parse_comment_start_of_line(self, tmpdir, finder):
+    def test_req_file_parse_comment_start_of_line(
+        self, tmpdir: Path, finder: PackageFinder
+    ) -> None:
         """
         Test parsing comments in a requirements file
         """
@@ -691,7 +780,9 @@ class TestParseRequirements:
 
         assert not reqs
 
-    def test_req_file_parse_comment_end_of_line_with_url(self, tmpdir, finder):
+    def test_req_file_parse_comment_end_of_line_with_url(
+        self, tmpdir: Path, finder: PackageFinder
+    ) -> None:
         """
         Test parsing comments in a requirements file
         """
@@ -705,9 +796,12 @@ class TestParseRequirements:
         )
 
         assert len(reqs) == 1
+        assert reqs[0].link is not None
         assert reqs[0].link.url == "https://example.com/foo.tar.gz"
 
-    def test_req_file_parse_egginfo_end_of_line_with_url(self, tmpdir, finder):
+    def test_req_file_parse_egginfo_end_of_line_with_url(
+        self, tmpdir: Path, finder: PackageFinder
+    ) -> None:
         """
         Test parsing comments in a requirements file
         """
@@ -723,7 +817,7 @@ class TestParseRequirements:
         assert len(reqs) == 1
         assert reqs[0].name == "wat"
 
-    def test_req_file_no_finder(self, tmpdir):
+    def test_req_file_no_finder(self, tmpdir: Path) -> None:
         """
         Test parsing a requirements file without a finder
         """
@@ -740,7 +834,13 @@ class TestParseRequirements:
 
         parse_reqfile(tmpdir.joinpath("req.txt"), session=PipSession())
 
-    def test_install_requirements_with_options(self, tmpdir, finder, session, options):
+    def test_install_requirements_with_options(
+        self,
+        tmpdir: Path,
+        finder: PackageFinder,
+        session: PipSession,
+        options: mock.Mock,
+    ) -> None:
         global_option = "--dry-run"
         install_option = "--prefix=/opt"
 

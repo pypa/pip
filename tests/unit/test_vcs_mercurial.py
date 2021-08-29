@@ -8,10 +8,11 @@ import os
 from pip._internal.utils.misc import hide_url
 from pip._internal.vcs.mercurial import Mercurial
 from tests.lib import need_mercurial
+from tests.lib.path import Path
 
 
 @need_mercurial
-def test_mercurial_switch_updates_config_file_when_found(tmpdir):
+def test_mercurial_switch_updates_config_file_when_found(tmpdir: Path) -> None:
     hg = Mercurial()
     options = hg.make_rev_options()
     hg_dir = os.path.join(tmpdir, ".hg")

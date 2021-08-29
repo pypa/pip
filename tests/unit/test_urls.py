@@ -1,6 +1,7 @@
 import os
 import sys
 import urllib.request
+from typing import Optional
 
 import pytest
 
@@ -16,19 +17,19 @@ from pip._internal.utils.urls import get_url_scheme, path_to_url, url_to_path
         ("", None),
     ],
 )
-def test_get_url_scheme(url, expected):
+def test_get_url_scheme(url: str, expected: Optional[str]) -> None:
     assert get_url_scheme(url) == expected
 
 
 @pytest.mark.skipif("sys.platform == 'win32'")
-def test_path_to_url_unix():
+def test_path_to_url_unix() -> None:
     assert path_to_url("/tmp/file") == "file:///tmp/file"
     path = os.path.join(os.getcwd(), "file")
     assert path_to_url("file") == "file://" + urllib.request.pathname2url(path)
 
 
 @pytest.mark.skipif("sys.platform != 'win32'")
-def test_path_to_url_win():
+def test_path_to_url_win() -> None:
     assert path_to_url("c:/tmp/file") == "file:///C:/tmp/file"
     assert path_to_url("c:\\tmp\\file") == "file:///C:/tmp/file"
     assert path_to_url(r"\\unc\as\path") == "file://unc/as/path"
@@ -49,7 +50,7 @@ def test_path_to_url_win():
         ("file:///c:/tmp/file", r"C:\tmp\file", "/c:/tmp/file"),
     ],
 )
-def test_url_to_path(url, win_expected, non_win_expected):
+def test_url_to_path(url: str, win_expected: str, non_win_expected: str) -> None:
     if sys.platform == "win32":
         expected_path = win_expected
     else:
@@ -63,7 +64,7 @@ def test_url_to_path(url, win_expected, non_win_expected):
 
 
 @pytest.mark.skipif("sys.platform != 'win32'")
-def test_url_to_path_path_to_url_symmetry_win():
+def test_url_to_path_path_to_url_symmetry_win() -> None:
     path = r"C:\tmp\file"
     assert url_to_path(path_to_url(path)) == path
 

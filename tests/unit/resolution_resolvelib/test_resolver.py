@@ -1,3 +1,4 @@
+from typing import Dict, List, Optional, Tuple, cast
 from unittest import mock
 
 import pytest
@@ -5,6 +6,8 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib.resolvers import Result
 from pip._vendor.resolvelib.structs import DirectedGraph
 
+from pip._internal.index.package_finder import PackageFinder
+from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.resolvelib.resolver import (
@@ -14,29 +17,31 @@ from pip._internal.resolution.resolvelib.resolver import (
 
 
 @pytest.fixture()
-def resolver(preparer, finder):
+def resolver(preparer: RequirementPreparer, finder: PackageFinder) -> Resolver:
     resolver = Resolver(
         preparer=preparer,
         finder=finder,
         wheel_cache=None,
         make_install_req=mock.Mock(),
-        use_user_site="not-used",
-        ignore_dependencies="not-used",
-        ignore_installed="not-used",
-        ignore_requires_python="not-used",
-        force_reinstall="not-used",
+        use_user_site=False,
+        ignore_dependencies=False,
+        ignore_installed=False,
+        ignore_requires_python=False,
+        force_reinstall=False,
         upgrade_strategy="to-satisfy-only",
     )
     return resolver
 
 
-def _make_graph(edges):
+def _make_graph(
+    edges: List[Tuple[Optional[str], Optional[str]]]
+) -> "DirectedGraph[Optional[str]]":
     """Build graph from edge declarations."""
 
-    graph = DirectedGraph()
+    graph: "DirectedGraph[Optional[str]]" = DirectedGraph()
     for parent, child in edges:
-        parent = canonicalize_name(parent) if parent else None
-        child = canonicalize_name(child) if child else None
+        parent = cast(str, canonicalize_name(parent)) if parent else None
+        child = cast(str, canonicalize_name(child)) if child else None
         for v in (parent, child):
             if v not in graph:
                 graph.add(v)
@@ -76,12 +81,16 @@ def _make_graph(edges):
         ),
     ],
 )
-def test_new_resolver_get_installation_order(resolver, edges, ordered_reqs):
+def test_new_resolver_get_installation_order(
+    resolver: Resolver,
+    edges: List[Tuple[Optional[str], Optional[str]]],
+    ordered_reqs: List[str],
+) -> None:
     graph = _make_graph(edges)
 
     # Mapping values and criteria are not used in test, so we stub them out.
     mapping = {vertex: None for vertex in graph if vertex is not None}
-    resolver._result = Result(mapping, graph, criteria=None)
+    resolver._result = Result(mapping, graph, criteria=None)  # type: ignore
 
     reqset = RequirementSet()
     for r in ordered_reqs:
@@ -229,7 +238,11 @@ def test_new_resolver_get_installation_order(resolver, edges, ordered_reqs):
         ),
     ],
 )
-def test_new_resolver_topological_weights(name, edges, expected_weights):
+def test_new_resolver_topological_weights(
+    name: str,
+    edges: List[Tuple[Optional[str], Optional[str]]],
+    expected_weights: Dict[Optional[str], int],
+) -> None:
     graph = _make_graph(edges)
 
     weights = get_topological_weights(graph, len(expected_weights))

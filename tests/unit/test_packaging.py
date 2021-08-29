@@ -1,3 +1,5 @@
+from typing import Optional, Tuple
+
 import pytest
 from pip._vendor.packaging import specifiers
 
@@ -12,12 +14,14 @@ from pip._internal.utils.packaging import check_requires_python
         ((3, 6, 5), None, True),
     ],
 )
-def test_check_requires_python(version_info, requires_python, expected):
+def test_check_requires_python(
+    version_info: Tuple[int, int, int], requires_python: Optional[str], expected: bool
+) -> None:
     actual = check_requires_python(requires_python, version_info)
     assert actual == expected
 
 
-def test_check_requires_python__invalid():
+def test_check_requires_python__invalid() -> None:
     """
     Test an invalid Requires-Python value.
     """

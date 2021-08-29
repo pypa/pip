@@ -347,7 +347,7 @@ class Factory:
     def find_candidates(
         self,
         identifier: str,
-        requirements: Mapping[str, Iterator[Requirement]],
+        requirements: Mapping[str, Iterable[Requirement]],
         incompatibilities: Mapping[str, Iterator[Candidate]],
         constraint: Constraint,
         prefers_installed: bool,
@@ -484,7 +484,7 @@ class Factory:
     def make_requirement_from_spec(
         self,
         specifier: str,
-        comes_from: InstallRequirement,
+        comes_from: Optional[InstallRequirement],
         requested_extras: Iterable[str] = (),
     ) -> Optional[Requirement]:
         ireq = self._make_install_req_from_spec(specifier, comes_from)

@@ -9,14 +9,15 @@ from pip._internal.models.direct_url import (
 )
 
 
-def test_from_json():
+def test_from_json() -> None:
     json = '{"url": "file:///home/user/project", "dir_info": {}}'
     direct_url = DirectUrl.from_json(json)
     assert direct_url.url == "file:///home/user/project"
+    assert isinstance(direct_url.info, DirInfo)
     assert direct_url.info.editable is False
 
 
-def test_to_json():
+def test_to_json() -> None:
     direct_url = DirectUrl(
         url="file:///home/user/archive.tgz",
         info=ArchiveInfo(),
@@ -27,7 +28,7 @@ def test_to_json():
     )
 
 
-def test_archive_info():
+def test_archive_info() -> None:
     direct_url_dict = {
         "url": "file:///home/user/archive.tgz",
         "archive_info": {"hash": "sha1=1b8c5bc61a86f377fea47b4276c8c8a5842d2220"},
@@ -35,11 +36,13 @@ def test_archive_info():
     direct_url = DirectUrl.from_dict(direct_url_dict)
     assert isinstance(direct_url.info, ArchiveInfo)
     assert direct_url.url == direct_url_dict["url"]
-    assert direct_url.info.hash == direct_url_dict["archive_info"]["hash"]
+    assert (
+        direct_url.info.hash == direct_url_dict["archive_info"]["hash"]  # type: ignore
+    )
     assert direct_url.to_dict() == direct_url_dict
 
 
-def test_dir_info():
+def test_dir_info() -> None:
     direct_url_dict = {
         "url": "file:///home/user/project",
         "dir_info": {"editable": True},
@@ -52,10 +55,11 @@ def test_dir_info():
     # test editable default to False
     direct_url_dict = {"url": "file:///home/user/project", "dir_info": {}}
     direct_url = DirectUrl.from_dict(direct_url_dict)
+    assert isinstance(direct_url.info, DirInfo)
     assert direct_url.info.editable is False
 
 
-def test_vcs_info():
+def test_vcs_info() -> None:
     direct_url_dict = {
         "url": "https:///g.c/u/p.git",
         "vcs_info": {
@@ -73,7 +77,7 @@ def test_vcs_info():
     assert direct_url.to_dict() == direct_url_dict
 
 
-def test_parsing_validation():
+def test_parsing_validation() -> None:
     with pytest.raises(DirectUrlValidationError, match="url must have a value"):
         DirectUrl.from_dict({"dir_info": {}})
     with pytest.raises(
@@ -96,15 +100,15 @@ def test_parsing_validation():
         DirectUrl.from_dict({"url": "http://...", "dir_info": {}, "archive_info": {}})
 
 
-def test_redact_url():
-    def _redact_git(url):
+def test_redact_url() -> None:
+    def _redact_git(url: str) -> str:
         direct_url = DirectUrl(
             url=url,
             info=VcsInfo(vcs="git", commit_id="1"),
         )
         return direct_url.redacted_url
 
-    def _redact_archive(url):
+    def _redact_archive(url: str) -> str:
         direct_url = DirectUrl(
             url=url,
             info=ArchiveInfo(),
