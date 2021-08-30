@@ -23,7 +23,6 @@ from pip._internal.models.direct_url import (
     DIRECT_URL_METADATA_NAME,
     DirectUrl,
     DirectUrlValidationError,
-    DirInfo,
 )
 from pip._internal.utils.compat import stdlib_pkgs  # TODO: Move definition here.
 from pip._internal.utils.egg_link import egg_link_path_from_sys_path
@@ -86,7 +85,7 @@ class BaseDistribution(Protocol):
         # TODO: this property is relatively costly to compute, memoize it ?
         direct_url = self.direct_url
         if direct_url:
-            if isinstance(direct_url.info, DirInfo) and direct_url.info.editable:
+            if direct_url.is_local_editable():
                 return url_to_path(direct_url.url)
         else:
             # Search for an .egg-link file by walking sys.path, as it was
