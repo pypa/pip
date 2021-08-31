@@ -13,7 +13,6 @@ Some terminology:
 
 import configparser
 import locale
-import logging
 import os
 import sys
 from typing import Any, Dict, Iterable, List, NewType, Optional, Tuple
@@ -24,6 +23,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.utils import appdirs
 from pip._internal.utils.compat import WINDOWS
+from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import ensure_dir, enum
 
 RawConfigParser = configparser.RawConfigParser  # Shorthand
@@ -43,7 +43,7 @@ kinds = enum(
 OVERRIDE_ORDER = kinds.GLOBAL, kinds.USER, kinds.SITE, kinds.ENV, kinds.ENV_VAR
 VALID_LOAD_ONLY = kinds.USER, kinds.GLOBAL, kinds.SITE
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
 # NOTE: Maybe use the optionx attribute to normalize keynames.
@@ -250,7 +250,7 @@ class Configuration:
                 self._parsers[variant].append((fname, parser))
 
     def _load_file(self, variant: Kind, fname: str) -> RawConfigParser:
-        logger.debug("For variant '%s', will try loading '%s'", variant, fname)
+        logger.verbose("For variant '%s', will try loading '%s'", variant, fname)
         parser = self._construct_parser(fname)
 
         for section in parser.sections():
