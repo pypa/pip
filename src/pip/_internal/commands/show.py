@@ -155,6 +155,11 @@ def search_packages_info(query: List[str]) -> Iterator[_PackageInfo]:
         except KeyError:
             continue
 
+        requires = sorted(
+            (req.name for req in dist.iter_dependencies()), key=lambda pkg: pkg.lower()
+        )
+        required_by = sorted(_get_requiring_packages(dist), key=lambda pkg: pkg.lower())
+
         try:
             entry_points_text = dist.read_text("entry_points.txt")
             entry_points = entry_points_text.splitlines(keepends=False)
@@ -173,8 +178,8 @@ def search_packages_info(query: List[str]) -> Iterator[_PackageInfo]:
             name=dist.raw_name,
             version=str(dist.version),
             location=dist.location or "",
-            requires=[req.name for req in dist.iter_dependencies()],
-            required_by=_get_requiring_packages(dist),
+            requires=requires,
+            required_by=required_by,
             installer=dist.installer,
             metadata_version=dist.metadata_version or "",
             classifiers=metadata.get_all("Classifier", []),
