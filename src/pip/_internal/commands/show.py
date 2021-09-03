@@ -155,10 +155,8 @@ def search_packages_info(query: List[str]) -> Iterator[_PackageInfo]:
         except KeyError:
             continue
 
-        requires = sorted(
-            (req.name for req in dist.iter_dependencies()), key=lambda pkg: pkg.lower()
-        )
-        required_by = sorted(_get_requiring_packages(dist), key=lambda pkg: pkg.lower())
+        requires = sorted((req.name for req in dist.iter_dependencies()), key=str.lower)
+        required_by = sorted(_get_requiring_packages(dist), key=str.lower)
 
         try:
             entry_points_text = dist.read_text("entry_points.txt")
