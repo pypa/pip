@@ -8,7 +8,6 @@ from textwrap import dedent
 from unittest import mock
 from unittest.mock import Mock, patch
 
-import pretend
 import pytest
 from pip._vendor import html5lib, requests
 
@@ -518,7 +517,7 @@ def test_request_retries(caplog):
 
 def test_make_html_page():
     headers = {"Content-Type": "text/html; charset=UTF-8"}
-    response = pretend.stub(
+    response = Mock(
         content=b"<content>",
         url="https://example.com/index.html",
         headers=headers,
@@ -604,7 +603,7 @@ def make_fake_html_response(url):
     """
     )
     content = html.encode("utf-8")
-    return pretend.stub(content=content, url=url, headers={})
+    return Mock(content=content, url=url, headers={})
 
 
 def test_get_html_page_directory_append_index(tmpdir):
@@ -636,8 +635,8 @@ def test_collect_sources__file_expand_dir(data):
     Test that a file:// dir from --find-links becomes _FlatDirectorySource
     """
     collector = LinkCollector.create(
-        session=pretend.stub(is_secure_origin=None),  # Shouldn't be used.
-        options=pretend.stub(
+        session=Mock(is_secure_origin=None),  # Shouldn't be used.
+        options=Mock(
             index_url="ignored-by-no-index",
             extra_index_urls=[],
             no_index=True,
@@ -664,8 +663,8 @@ def test_collect_sources__file_not_find_link(data):
     run
     """
     collector = LinkCollector.create(
-        session=pretend.stub(is_secure_origin=None),  # Shouldn't be used.
-        options=pretend.stub(
+        session=Mock(is_secure_origin=None),  # Shouldn't be used.
+        options=Mock(
             index_url=data.index_url("empty_with_pkg"),
             extra_index_urls=[],
             no_index=False,
@@ -688,8 +687,8 @@ def test_collect_sources__non_existing_path():
     Test that a non-existing path is ignored.
     """
     collector = LinkCollector.create(
-        session=pretend.stub(is_secure_origin=None),  # Shouldn't be used.
-        options=pretend.stub(
+        session=Mock(is_secure_origin=None),  # Shouldn't be used.
+        options=Mock(
             index_url="ignored-by-no-index",
             extra_index_urls=[],
             no_index=True,
@@ -810,7 +809,7 @@ def test_link_collector_create(
     """
     expected_find_links, expected_index_urls = expected
     session = PipSession()
-    options = pretend.stub(
+    options = Mock(
         find_links=find_links,
         index_url="default_url",
         extra_index_urls=["url1", "url2"],
@@ -846,7 +845,7 @@ def test_link_collector_create_find_links_expansion(
     mock_expanduser.side_effect = expand_path
 
     session = PipSession()
-    options = pretend.stub(
+    options = Mock(
         find_links=["~/temp1", "~/temp2"],
         index_url="default_url",
         extra_index_urls=[],

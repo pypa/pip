@@ -3,10 +3,9 @@ import logging
 import os
 import subprocess
 import textwrap
-from unittest.mock import patch
+from unittest import mock
 
 import pytest
-from pretend import stub
 
 import pip._internal.req.req_file  # this will be monkeypatched
 from pip._internal.exceptions import InstallationError, RequirementsFileParseError
@@ -39,7 +38,7 @@ def finder(session):
 
 @pytest.fixture
 def options(session):
-    return stub(
+    return mock.Mock(
         isolated_mode=False,
         index_url="default_url",
         format_control=FormatControl(set(), set()),
@@ -614,7 +613,7 @@ class TestParseRequirements:
         # Construct the session outside the monkey-patch, since it access the
         # env
         session = PipSession()
-        with patch("pip._internal.req.req_file.os.getenv") as getenv:
+        with mock.patch("pip._internal.req.req_file.os.getenv") as getenv:
             getenv.side_effect = lambda n: env_vars[n]
 
             reqs = list(
@@ -640,7 +639,7 @@ class TestParseRequirements:
         # Construct the session outside the monkey-patch, since it access the
         # env
         session = PipSession()
-        with patch("pip._internal.req.req_file.os.getenv") as getenv:
+        with mock.patch("pip._internal.req.req_file.os.getenv") as getenv:
             getenv.return_value = ""
 
             reqs = list(
@@ -761,7 +760,7 @@ class TestParseRequirements:
             )
 
         req.source_dir = os.curdir
-        with patch.object(subprocess, "Popen") as popen:
+        with mock.patch.object(subprocess, "Popen") as popen:
             popen.return_value.stdout.readline.return_value = b""
             try:
                 req.install([])
