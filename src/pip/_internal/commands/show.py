@@ -113,13 +113,13 @@ def search_packages_info(query: List[str]) -> Iterator[_PackageInfo]:
     if missing:
         logger.warning("Package(s) not found: %s", ", ".join(missing))
 
-    def _get_requiring_packages(current_dist: BaseDistribution) -> List[str]:
-        return [
+    def _get_requiring_packages(current_dist: BaseDistribution) -> Iterator[str]:
+        return (
             dist.metadata["Name"] or "UNKNOWN"
             for dist in installed.values()
             if current_dist.canonical_name
             in {canonicalize_name(d.name) for d in dist.iter_dependencies()}
-        ]
+        )
 
     def _files_from_record(dist: BaseDistribution) -> Optional[Iterator[str]]:
         try:
