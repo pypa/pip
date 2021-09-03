@@ -7,7 +7,7 @@ import os
 import sys
 import traceback
 from optparse import Values
-from typing import Any, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.command_context import CommandContextMixIn
@@ -85,7 +85,7 @@ class Command(CommandContextMixIn):
         # are present.
         assert not hasattr(options, "no_index")
 
-    def run(self, options: Values, args: List[Any]) -> int:
+    def run(self, options: Values, args: List[str]) -> int:
         raise NotImplementedError
 
     def parse_args(self, args: List[str]) -> Tuple[Values, List[str]]:

@@ -49,7 +49,7 @@ class CacheCommand(Command):
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
-    def run(self, options: Values, args: List[Any]) -> int:
+    def run(self, options: Values, args: List[str]) -> int:
         handlers = {
             "dir": self.get_cache_dir,
             "info": self.get_cache_info,

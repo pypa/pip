@@ -1,6 +1,6 @@
 import logging
 from optparse import Values
-from typing import Any, List
+from typing import List
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
@@ -19,7 +19,7 @@ class CheckCommand(Command):
     usage = """
       %prog [options]"""
 
-    def run(self, options: Values, args: List[Any]) -> int:
+    def run(self, options: Values, args: List[str]) -> int:
 
         package_set, parsing_probs = create_package_set_from_installed()
         missing, conflicting = check_package_set(package_set)
