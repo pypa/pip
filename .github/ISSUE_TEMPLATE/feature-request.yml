@@ -1,0 +1,59 @@
+name: Feature request
+description: Suggest an idea for this project
+labels: "S: needs triage, type: feature request"
+
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Hi there!
+
+        We'd appreciate it if you could search on pip's existing issues prior to filing
+        a feature request.
+
+        We get a lot of duplicate tickets and have limited maintainer capacity to triage
+        them. Thanks!
+
+  - type: textarea
+    attributes:
+      label: What's the problem this feature will solve?
+      description: >-
+        What are you trying to do, that you are unable to achieve with pip as it
+        currently stands?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Describe the solution you'd like
+      description: >-
+        Clear and concise description of what you want to happen. Please use examples
+        of real world use cases that this would help with, and how it solves the
+        problem described above.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Alternative Solutions
+      description: >-
+        Have you tried to workaround the problem using pip or other tools? Or a
+        different approach to solving this issue? Please elaborate here.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: >-
+        Add any other context, links, etc. relevant to the feature request.
+    validations:
+      required: true
+
+  - type: checkboxes
+    attributes:
+      label: Code of Conduct
+      options:
+        - label: >-
+            I agree to follow the [PSF Code of Conduct](https://www.python.org/psf/conduct/).
+          required: true
