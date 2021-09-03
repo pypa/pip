@@ -71,14 +71,14 @@ class TestOptionPrecedence(AddFakeCommandMixin):
         options, args = main(["fake"])
         assert options.find_links == values
 
-    @pytest.mark.parametrize("choises", (["w"], ["s", "w"]))
-    def test_env_override_default_choice(self, choises, monkeypatch):
+    @pytest.mark.parametrize("choices", (["w"], ["s", "w"]))
+    def test_env_override_default_choice(self, choices, monkeypatch):
         """
         Test that environment variable overrides a choice option default.
         """
-        monkeypatch.setenv("PIP_EXISTS_ACTION", " ".join(choises))
+        monkeypatch.setenv("PIP_EXISTS_ACTION", " ".join(choices))
         options, args = main(["fake"])
-        assert options.exists_action == choises
+        assert options.exists_action == choices
 
     @pytest.mark.parametrize("name", ("PIP_LOG_FILE", "PIP_LOCAL_LOG"))
     def test_env_alias_override_default(self, name, monkeypatch):
