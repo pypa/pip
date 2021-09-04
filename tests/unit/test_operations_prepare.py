@@ -182,7 +182,7 @@ class Test_unpack_url:
         assert os.path.isdir(os.path.join(self.build_dir, "simple"))
         assert not os.path.isfile(os.path.join(self.download_dir, self.dist_file))
 
-    def test_unpack_url_bad_hash(self, tmpdir, data, monkeypatch):
+    def test_unpack_url_bad_hash(self, tmpdir, data):
         """
         Test when the file url hash fragment is wrong
         """

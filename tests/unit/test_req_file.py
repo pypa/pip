@@ -475,7 +475,7 @@ class TestProcessLine:
         assert reqs[0].name == req_name
         assert not reqs[0].constraint
 
-    def test_absolute_local_nested_req_files(self, session, monkeypatch, tmpdir):
+    def test_absolute_local_nested_req_files(self, session, tmpdir):
         """
         Test an absolute nested req file path
         """

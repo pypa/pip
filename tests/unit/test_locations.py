@@ -82,7 +82,7 @@ class TestLocations:
 
 
 class TestDistutilsScheme:
-    def test_root_modifies_appropriately(self, monkeypatch):
+    def test_root_modifies_appropriately(self):
         # This deals with nt/posix path differences
         # root is c:\somewhere\else or /somewhere/else
         root = os.path.normcase(

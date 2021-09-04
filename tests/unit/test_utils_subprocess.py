@@ -87,7 +87,7 @@ def test_make_subprocess_output_error__non_ascii_command_arg(monkeypatch):
     assert actual == expected, f"actual: {actual}"
 
 
-def test_make_subprocess_output_error__non_ascii_cwd_python_3(monkeypatch):
+def test_make_subprocess_output_error__non_ascii_cwd_python_3():
     """
     Test a str (text) cwd with a non-ascii character in Python 3.
     """
