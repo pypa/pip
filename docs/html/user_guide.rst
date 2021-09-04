@@ -428,6 +428,28 @@ For more information and examples, see the :ref:`pip list` and :ref:`pip show`
 reference pages.
 
 
+Searching for Packages
+======================
+
+pip can search `PyPI`_ for packages using the ``pip index versions``
+subcommand:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip index versions "package"
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip index versions "package"
+
+This lists all available versions of a given package.
+
+For more information and examples, see the :ref:`pip index` reference.
+
 .. _`Configuration`:
 
 

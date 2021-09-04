@@ -33,6 +33,13 @@ pip_hash
 
 ```{toctree}
 :maxdepth: 1
+:caption: Package Index information
+
+pip_index
+```
+
+```{toctree}
+:maxdepth: 1
 :caption: Managing pip itself
 
 pip_cache

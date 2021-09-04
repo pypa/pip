@@ -1,1 +1,2 @@
-Remove the ``pip search`` command as it is basically a no-op with PyPI.
+Remove the ``pip search`` command because it no longer works. The command was never
+standardised and common uses can be replaced with ``pip index``.
