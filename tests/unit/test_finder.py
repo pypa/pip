@@ -126,7 +126,7 @@ class TestWheel:
 
         assert "Skipping link: invalid wheel filename:" in caplog.text
 
-    def test_not_find_wheel_not_supported(self, data, monkeypatch):
+    def test_not_find_wheel_not_supported(self, data):
         """
         Test not finding an unsupported wheel.
         """
