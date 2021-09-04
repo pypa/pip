@@ -180,7 +180,7 @@ In practice, there are 4 common uses of Requirements files:
 
 It's important to be clear that pip determines package dependencies using
 `install_requires metadata
-<https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-dependencies>`_,
+<https://setuptools.readthedocs.io/en/latest/userguide/dependency_management.html>`_,
 not by discovering ``requirements.txt`` files embedded in projects.
 
 See also:
