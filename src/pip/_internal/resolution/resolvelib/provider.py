@@ -66,12 +66,13 @@ class PipProvider(_ProviderBase):
     def identify(self, requirement_or_candidate: Union[Requirement, Candidate]) -> str:
         return requirement_or_candidate.name
 
-    def get_preference(
+    def get_preference(  # type: ignore
         self,
         identifier: str,
         resolutions: Mapping[str, Candidate],
         candidates: Mapping[str, Iterator[Candidate]],
         information: Mapping[str, Iterable["PreferenceInformation"]],
+        backtrack_causes: Sequence["PreferenceInformation"],
     ) -> "Preference":
         """Produce a sort key for given requirement based on preference.
 
@@ -132,11 +133,17 @@ class PipProvider(_ProviderBase):
         # while we work on "proper" branch pruning techniques.
         delay_this = identifier == "setuptools"
 
+        # Prefer the causes of backtracking on the assumption that the problem
+        # resolving the dependency tree is related to the failures that caused
+        # the backtracking
+        backtrack_cause = self.is_backtrack_cause(identifier, backtrack_causes)
+
         return (
             not requires_python,
             delay_this,
             not direct,
             not pinned,
+            not backtrack_cause,
             inferred_depth,
             requested_order,
             not unfree,
@@ -195,3 +202,14 @@ class PipProvider(_ProviderBase):
     def get_dependencies(self, candidate: Candidate) -> Sequence[Requirement]:
         with_requires = not self._ignore_dependencies
         return [r for r in candidate.iter_dependencies(with_requires) if r is not None]
+
+    @staticmethod
+    def is_backtrack_cause(
+        identifier: str, backtrack_causes: Sequence["PreferenceInformation"]
+    ) -> bool:
+        for backtrack_cause in backtrack_causes:
+            if identifier == backtrack_cause.requirement.name:
+                return True
+            if backtrack_cause.parent and identifier == backtrack_cause.parent.name:
+                return True
+        return False
