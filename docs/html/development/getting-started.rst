@@ -59,9 +59,9 @@ You can then invoke your local source tree pip normally.
 Running Tests
 =============
 
-pip's tests are written using the :pypi:`pytest` test framework, :pypi:`mock`
-and :pypi:`pretend`. :pypi:`tox` is used to automate the setup and execution of
-pip's tests.
+pip's tests are written using the :pypi:`pytest` test framework and
+:mod:`unittest.mock`. :pypi:`tox` is used to automate the setup and execution
+of pip's tests.
 
 It is preferable to run the tests in parallel for better experience during development,
 since the tests can take a long time to finish when run sequentially.

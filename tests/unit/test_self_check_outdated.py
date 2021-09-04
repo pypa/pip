@@ -3,9 +3,9 @@ import functools
 import json
 import os
 import sys
+from unittest import mock
 
 import freezegun  # type: ignore
-import pretend
 import pytest
 from pip._vendor.packaging.version import parse as parse_version
 
@@ -75,7 +75,7 @@ class MockEnvironment:
 def _options():
     """Some default options that we pass to
     self_outdated_check.pip_self_version_check"""
-    return pretend.stub(
+    return mock.Mock(
         find_links=[],
         index_url="default_url",
         extra_index_urls=[],
@@ -124,20 +124,12 @@ def test_pip_self_version_check(
         "PackageFinder",
         MockPackageFinder,
     )
-    monkeypatch.setattr(
-        logger,
-        "warning",
-        pretend.call_recorder(lambda *a, **kw: None),
-    )
-    monkeypatch.setattr(
-        logger,
-        "debug",
-        pretend.call_recorder(lambda s, exc_info=None: None),
-    )
+    monkeypatch.setattr(logger, "warning", mock.Mock())
+    monkeypatch.setattr(logger, "debug", mock.Mock())
 
-    fake_state = pretend.stub(
+    fake_state = mock.Mock(
         state={"last_check": stored_time, "pypi_version": installed_ver},
-        save=pretend.call_recorder(lambda v, t: None),
+        save=mock.Mock(),
     )
     monkeypatch.setattr(self_outdated_check, "SelfCheckState", lambda **kw: fake_state)
 
@@ -156,20 +148,20 @@ def test_pip_self_version_check(
         assert not latest_pypi_version
     # See that we saved the correct version
     elif check_if_upgrade_required:
-        assert fake_state.save.calls == [
-            pretend.call(new_ver, datetime.datetime(1970, 1, 9, 10, 00, 00)),
+        assert fake_state.save.call_args_list == [
+            mock.call(new_ver, datetime.datetime(1970, 1, 9, 10, 00, 00)),
         ]
     else:
         # Make sure no Exceptions
-        assert not logger.debug.calls
+        assert not logger.debug.call_args_list
         # See that save was not called
-        assert fake_state.save.calls == []
+        assert fake_state.save.call_args_list == []
 
     # Ensure we warn the user or not
     if check_warn_logs:
-        assert len(logger.warning.calls) == 1
+        assert logger.warning.call_count == 1
     else:
-        assert len(logger.warning.calls) == 0
+        assert logger.warning.call_count == 0
 
 
 statefile_name_case_1 = "fcd2d5175dd33d5df759ee7b045264230205ef837bf9f582f7c3ada7"

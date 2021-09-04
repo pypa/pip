@@ -2,8 +2,8 @@ import ntpath
 import os
 import posixpath
 import sys
+from unittest import mock
 
-import pretend
 from pip._vendor import appdirs as _appdirs
 
 from pip._internal.utils import appdirs
@@ -11,9 +11,7 @@ from pip._internal.utils import appdirs
 
 class TestUserCacheDir:
     def test_user_cache_dir_win(self, monkeypatch):
-        @pretend.call_recorder
-        def _get_win_folder(base):
-            return "C:\\Users\\test\\AppData\\Local"
+        _get_win_folder = mock.Mock(return_value="C:\\Users\\test\\AppData\\Local")
 
         monkeypatch.setattr(
             _appdirs,
@@ -28,7 +26,7 @@ class TestUserCacheDir:
             appdirs.user_cache_dir("pip")
             == "C:\\Users\\test\\AppData\\Local\\pip\\Cache"
         )
-        assert _get_win_folder.calls == [pretend.call("CSIDL_LOCAL_APPDATA")]
+        assert _get_win_folder.call_args_list == [mock.call("CSIDL_LOCAL_APPDATA")]
 
     def test_user_cache_dir_osx(self, monkeypatch):
         monkeypatch.setattr(_appdirs, "system", "darwin")
@@ -89,9 +87,7 @@ class TestUserCacheDir:
 
 class TestSiteConfigDirs:
     def test_site_config_dirs_win(self, monkeypatch):
-        @pretend.call_recorder
-        def _get_win_folder(base):
-            return "C:\\ProgramData"
+        _get_win_folder = mock.Mock(return_value="C:\\ProgramData")
 
         monkeypatch.setattr(
             _appdirs,
@@ -103,7 +99,7 @@ class TestSiteConfigDirs:
         monkeypatch.setattr(os, "path", ntpath)
 
         assert appdirs.site_config_dirs("pip") == ["C:\\ProgramData\\pip"]
-        assert _get_win_folder.calls == [pretend.call("CSIDL_COMMON_APPDATA")]
+        assert _get_win_folder.call_args_list == [mock.call("CSIDL_COMMON_APPDATA")]
 
     def test_site_config_dirs_osx(self, monkeypatch):
         monkeypatch.setattr(_appdirs, "system", "darwin")
@@ -146,9 +142,7 @@ class TestSiteConfigDirs:
 
 class TestUserConfigDir:
     def test_user_config_dir_win_no_roaming(self, monkeypatch):
-        @pretend.call_recorder
-        def _get_win_folder(base):
-            return "C:\\Users\\test\\AppData\\Local"
+        _get_win_folder = mock.Mock(return_value="C:\\Users\\test\\AppData\\Local")
 
         monkeypatch.setattr(
             _appdirs,
@@ -163,12 +157,10 @@ class TestUserConfigDir:
             appdirs.user_config_dir("pip", roaming=False)
             == "C:\\Users\\test\\AppData\\Local\\pip"
         )
-        assert _get_win_folder.calls == [pretend.call("CSIDL_LOCAL_APPDATA")]
+        assert _get_win_folder.call_args_list == [mock.call("CSIDL_LOCAL_APPDATA")]
 
     def test_user_config_dir_win_yes_roaming(self, monkeypatch):
-        @pretend.call_recorder
-        def _get_win_folder(base):
-            return "C:\\Users\\test\\AppData\\Roaming"
+        _get_win_folder = mock.Mock(return_value="C:\\Users\\test\\AppData\\Roaming")
 
         monkeypatch.setattr(
             _appdirs,
@@ -182,7 +174,7 @@ class TestUserConfigDir:
         assert (
             appdirs.user_config_dir("pip") == "C:\\Users\\test\\AppData\\Roaming\\pip"
         )
-        assert _get_win_folder.calls == [pretend.call("CSIDL_APPDATA")]
+        assert _get_win_folder.call_args_list == [mock.call("CSIDL_APPDATA")]
 
     def test_user_config_dir_osx(self, monkeypatch):
         monkeypatch.setattr(_appdirs, "system", "darwin")
