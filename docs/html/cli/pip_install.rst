@@ -379,7 +379,7 @@ Finding Packages
 
 pip searches for packages on `PyPI`_ using the
 `HTTP simple interface <https://pypi.org/simple/>`_,
-which is documented `here <https://setuptools.readthedocs.io/en/latest/easy_install.html#package-index-api>`_
+which is documented `here <https://setuptools.readthedocs.io/en/latest/deprecated/easy_install.html#package-index-api>`_
 and `there <https://www.python.org/dev/peps/pep-0503/>`_.
 
 pip offers a number of package index options for modifying how packages are
@@ -620,7 +620,7 @@ option in pip's command line.
 ^^^^^^^^^^^^^^^^^^^
 
 "Editable" installs are fundamentally `"setuptools develop mode"
-<https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode>`_
+<https://setuptools.readthedocs.io/en/latest/userguide/development_mode.html>`_
 installs.
 
 You can install local projects or VCS projects in "editable" mode:
@@ -653,7 +653,7 @@ Controlling setup_requires
 --------------------------
 
 Setuptools offers the ``setup_requires`` `setup() keyword
-<https://setuptools.readthedocs.io/en/latest/setuptools.html#new-and-changed-setup-keywords>`_
+<https://setuptools.readthedocs.io/en/latest/userguide/keywords.html>`_
 for specifying dependencies that need to be present in order for the
 ``setup.py`` script to run.  Internally, Setuptools uses ``easy_install``
 to fulfill these dependencies.
@@ -693,7 +693,7 @@ the following commands::
 
 The ``egg_info`` command should create egg metadata for the package, as
 described in the setuptools documentation at
-https://setuptools.readthedocs.io/en/latest/setuptools.html#egg-info-create-egg-metadata-and-set-build-tags
+https://setuptools.readthedocs.io/en/latest/userguide/commands.html#egg-info-create-egg-metadata-and-set-build-tags
 
 The ``install`` command should implement the complete process of installing the
 package to the target directory XXX.
