@@ -1008,9 +1008,9 @@ How to upgrade and migrate
 
 4. **Troubleshoot and try these workarounds if necessary.**
 
-   -  If pip is taking longer to install packages, read
-      :ref:`Dependency resolution backtracking` for ways to reduce the
-      time pip spends backtracking due to dependency conflicts.
+   -  If pip is taking longer to install packages, read :doc:`Dependency
+      resolution backtracking <topics/dependency-resolution>` for ways to
+      reduce the time pip spends backtracking due to dependency conflicts.
    -  If you don't want pip to actually resolve dependencies, use the
       ``--no-deps`` option. This is useful when you have a set of package
       versions that work together in reality, even though their metadata says
