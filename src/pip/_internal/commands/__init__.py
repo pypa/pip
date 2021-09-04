@@ -58,11 +58,6 @@ commands_dict: Dict[str, CommandInfo] = {
         "ConfigurationCommand",
         "Manage local and global configuration.",
     ),
-    "search": CommandInfo(
-        "pip._internal.commands.search",
-        "SearchCommand",
-        "Search PyPI for packages.",
-    ),
     "cache": CommandInfo(
         "pip._internal.commands.cache",
         "CacheCommand",

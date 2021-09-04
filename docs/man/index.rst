@@ -43,9 +43,6 @@ pip-show(1)
 pip-check(1)
     Verify installed packages have compatible dependencies.
 
-pip-search(1)
-    Search PyPI for packages.
-
 pip-wheel(1)
     Build wheels from your requirements.
 

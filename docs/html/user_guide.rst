@@ -428,29 +428,6 @@ For more information and examples, see the :ref:`pip list` and :ref:`pip show`
 reference pages.
 
 
-Searching for Packages
-======================
-
-pip can search `PyPI`_ for packages using the ``pip search``
-command:
-
-.. tab:: Unix/macOS
-
-   .. code-block:: shell
-
-      python -m pip search "query"
-
-.. tab:: Windows
-
-   .. code-block:: shell
-
-      py -m pip search "query"
-
-The query will be used to search the names and summaries of all
-packages.
-
-For more information and examples, see the :ref:`pip search` reference.
-
 .. _`Configuration`:
 
 

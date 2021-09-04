@@ -1,0 +1,1 @@
+Remove the ``pip search`` command as it is basically a no-op with PyPI.

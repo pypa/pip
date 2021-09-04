@@ -166,10 +166,10 @@ def test_completion_for_default_parameters(autocomplete: DoAutocomplete) -> None
 
 def test_completion_option_for_command(autocomplete: DoAutocomplete) -> None:
     """
-    Test getting completion for ``--`` in command (e.g. ``pip search --``)
+    Test getting completion for ``--`` in command (e.g. ``pip show --``)
     """
 
-    res, env = autocomplete("pip search --", "2")
+    res, env = autocomplete("pip show --", "2")
     assert "--help" in res.stdout, "autocomplete function could not complete ``--``"
 
 
@@ -188,10 +188,10 @@ def test_completion_short_option(autocomplete: DoAutocomplete) -> None:
 def test_completion_short_option_for_command(autocomplete: DoAutocomplete) -> None:
     """
     Test getting completion for short options after ``-`` in command
-    (eg. pip search -)
+    (eg. pip show -)
     """
 
-    res, env = autocomplete("pip search -", "2")
+    res, env = autocomplete("pip show -", "2")
 
     assert (
         "-h" in res.stdout.split()

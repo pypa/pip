@@ -52,7 +52,7 @@ def test_session_commands() -> None:
     def is_session_command(command: Command) -> bool:
         return isinstance(command, SessionCommandMixin)
 
-    expected = ["download", "index", "install", "list", "search", "uninstall", "wheel"]
+    expected = ["download", "index", "install", "list", "uninstall", "wheel"]
     check_commands(is_session_command, expected)
 
 
