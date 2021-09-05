@@ -7,7 +7,7 @@ pip-index
 Description
 ***********
 
-.. pip-command-description:: indx
+.. pip-command-description:: index
 
 Usage
 *****
