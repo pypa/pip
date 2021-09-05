@@ -391,7 +391,7 @@ def write_output(msg: Any, *args: Any) -> None:
 
 
 class StreamWrapper(StringIO):
-    orig_stream: TextIO = None
+    orig_stream: TextIO
 
     @classmethod
     def from_stream(cls, orig_stream: TextIO) -> "StreamWrapper":
@@ -475,7 +475,7 @@ def parse_netloc(netloc: str) -> Tuple[str, Optional[int]]:
     """
     url = build_url_from_netloc(netloc)
     parsed = urllib.parse.urlparse(url)
-    return parsed.hostname, parsed.port
+    return parsed.hostname or "", parsed.port
 
 
 def split_auth_from_netloc(netloc: str) -> NetlocTuple:
@@ -557,7 +557,9 @@ def _redact_netloc(netloc: str) -> Tuple[str]:
     return (redact_netloc(netloc),)
 
 
-def split_auth_netloc_from_url(url: str) -> Tuple[str, str, Tuple[str, str]]:
+def split_auth_netloc_from_url(
+    url: str,
+) -> Tuple[str, str, Tuple[Optional[str], Optional[str]]]:
     """
     Parse a url into separate netloc, auth, and url with no auth.
 

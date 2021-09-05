@@ -6,10 +6,6 @@ globally. One reason being that options with action='append' can carry state
 between parses. pip parses general options twice internally, and shouldn't
 pass on state. To be consistent, all options will follow this design.
 """
-
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 import os
 import textwrap
 import warnings
@@ -443,6 +439,7 @@ def editable() -> Option:
 
 def _handle_src(option: Option, opt_str: str, value: str, parser: OptionParser) -> None:
     value = os.path.abspath(value)
+    assert option.dest is not None
     setattr(parser.values, option.dest, value)
 
 
@@ -466,12 +463,14 @@ src: Callable[..., Option] = partial(
 
 def _get_format_control(values: Values, option: Option) -> Any:
     """Get a format_control object."""
+    assert option.dest is not None
     return getattr(values, option.dest)
 
 
 def _handle_no_binary(
     option: Option, opt_str: str, value: str, parser: OptionParser
 ) -> None:
+    assert parser.values is not None
     existing = _get_format_control(parser.values, option)
     FormatControl.handle_mutual_excludes(
         value,
@@ -483,6 +482,7 @@ def _handle_no_binary(
 def _handle_only_binary(
     option: Option, opt_str: str, value: str, parser: OptionParser
 ) -> None:
+    assert parser.values is not None
     existing = _get_format_control(parser.values, option)
     FormatControl.handle_mutual_excludes(
         value,
@@ -543,7 +543,9 @@ platforms: Callable[..., Option] = partial(
 
 
 # This was made a separate function for unit-testing purposes.
-def _convert_python_version(value: str) -> Tuple[Tuple[int, ...], Optional[str]]:
+def _convert_python_version(
+    value: str,
+) -> Tuple[Optional[Tuple[int, ...]], Optional[str]]:
     """
     Convert a version string like "3", "37", or "3.7.3" into a tuple of ints.
 
@@ -586,6 +588,7 @@ def _handle_python_version(
         )
         raise_option_error(parser, option=option, msg=msg)
 
+    assert parser.values is not None
     parser.values.python_version = version_info
 
 
@@ -702,6 +705,7 @@ def _handle_no_cache_dir(
         except ValueError as exc:
             raise_option_error(parser, option=option, msg=str(exc))
 
+    assert parser.values is not None
     # Originally, setting PIP_NO_CACHE_DIR to a value that strtobool()
     # converted to 0 (like "false" or "no") caused cache_dir to be disabled
     # rather than enabled (logic would say the latter).  Thus, we disable
@@ -784,6 +788,7 @@ def _handle_no_use_pep517(
         """
         raise_option_error(parser, option=option, msg=msg)
 
+    assert parser.values is not None
     # Otherwise, --no-use-pep517 was passed via the command-line.
     parser.values.use_pep517 = False
 
@@ -873,6 +878,7 @@ def _handle_merge_hash(
 ) -> None:
     """Given a value spelled "algo:digest", append the digest to a list
     pointed to in a dict by the algo name."""
+    assert parser.values is not None
     if not parser.values.hashes:
         parser.values.hashes = {}
     try:

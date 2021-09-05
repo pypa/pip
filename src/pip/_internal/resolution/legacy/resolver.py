@@ -9,10 +9,6 @@ for top-level requirements:
 for sub-dependencies
     a. "first found, wins" (where the order is breadth first)
 """
-
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 import logging
 import sys
 from collections import defaultdict
@@ -301,6 +297,8 @@ class Resolver(BaseResolver):
 
         if self.wheel_cache is None or self.preparer.require_hashes:
             return
+
+        assert req.link is not None
         cache_entry = self.wheel_cache.get_cache_entry(
             link=req.link,
             package_name=req.name,
@@ -405,7 +403,9 @@ class Resolver(BaseResolver):
         with indent_log():
             # We add req_to_install before its dependencies, so that we
             # can refer to it when adding dependencies.
-            if not requirement_set.has_requirement(req_to_install.name):
+            if req_to_install.name is not None and not requirement_set.has_requirement(
+                req_to_install.name
+            ):
                 # 'unnamed' requirements will get added here
                 # 'unnamed' requirements can only come from being directly
                 # provided by the user.
@@ -457,6 +457,7 @@ class Resolver(BaseResolver):
                 return
             if req.constraint:
                 return
+            assert req.name is not None
             ordered_reqs.add(req)
             for dep in self._discovered_dependencies[req.name]:
                 schedule(dep)

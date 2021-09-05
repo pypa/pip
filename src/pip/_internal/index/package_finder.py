@@ -1,8 +1,4 @@
 """Routines related to PyPI, indexes"""
-
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 import functools
 import itertools
 import logging
@@ -234,7 +230,7 @@ class LinkEvaluator:
 
 def filter_unallowed_hashes(
     candidates: List[InstallationCandidate],
-    hashes: Hashes,
+    hashes: Optional[Hashes],
     project_name: str,
 ) -> List[InstallationCandidate]:
     """
@@ -523,6 +519,7 @@ class CandidateEvaluator:
                 binary_preference = 1
             if wheel.build_tag is not None:
                 match = re.match(r"^(\d+)(.*)$", wheel.build_tag)
+                assert match is not None
                 build_tag_groups = match.groups()
                 build_tag = (int(build_tag_groups[0]), build_tag_groups[1])
         else:  # sdist
@@ -735,6 +732,7 @@ class PackageFinder:
                 self._log_skipped_link(link, reason=result)
             return None
 
+        assert result is not None
         return InstallationCandidate(
             name=link_evaluator.project_name,
             link=link,
@@ -924,6 +922,7 @@ class PackageFinder:
                     installed_version,
                 )
             else:
+                assert best_candidate is not None
                 logger.debug(
                     "Existing installed version (%s) satisfies requirement "
                     "(most up-to-date version is %s)",
@@ -941,6 +940,7 @@ class PackageFinder:
             )
             raise BestVersionAlreadyInstalled
 
+        assert best_candidate is not None
         logger.debug(
             "Using version %s (newest of versions: %s)",
             best_candidate.version,

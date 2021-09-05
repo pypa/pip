@@ -1,6 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 import os
 import sys
 from typing import Optional, Tuple
@@ -19,12 +16,23 @@ def glibc_version_string_confstr() -> Optional[str]:
     # https://github.com/python/cpython/blob/fcf1d003bf4f0100c9d0921ff3d70e1127ca1b71/Lib/platform.py#L175-L183
     if sys.platform == "win32":
         return None
+
     try:
         # os.confstr("CS_GNU_LIBC_VERSION") returns a string like "glibc 2.17":
-        _, version = os.confstr("CS_GNU_LIBC_VERSION").split()
+        conf = os.confstr("CS_GNU_LIBC_VERSION")
     except (AttributeError, OSError, ValueError):
-        # os.confstr() or CS_GNU_LIBC_VERSION not available (or a bad value)...
+        # os.confstr() or CS_GNU_LIBC_VERSION not available.
         return None
+
+    if conf is None:
+        return None
+
+    try:
+        _, version = conf.split()
+    except ValueError:
+        # Bad value.
+        return None
+
     return version
 
 

@@ -1,9 +1,5 @@
 """Prepares a distribution for installation
 """
-
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 import logging
 import mimetypes
 import os
@@ -187,6 +183,7 @@ def unpack_url(
     """
     # non-editable vcs urls
     if link.is_vcs:
+        assert location is not None
         unpack_vcs_link(link, location)
         return None
 
@@ -306,6 +303,7 @@ class RequirementPreparer:
 
     def _log_preparing_link(self, req: InstallRequirement) -> None:
         """Provide context for the requirement being prepared."""
+        assert req.link is not None
         if req.link.is_file and not req.original_link_is_in_wheel_cache:
             message = "Processing %s"
             information = str(display_path(req.link.file_path))
@@ -325,6 +323,7 @@ class RequirementPreparer:
         self, req: InstallRequirement, parallel_builds: bool
     ) -> None:
         """Ensure source_dir of a linked InstallRequirement."""
+        assert req.link is not None
         # Since source_dir is only set for editable requirements.
         if req.link.is_wheel:
             # We don't need to unpack wheels, so no need for a source
@@ -348,7 +347,7 @@ class RequirementPreparer:
         # installation.
         # FIXME: this won't upgrade when there's an existing
         # package unpacked in `req.source_dir`
-        if is_installable_dir(req.source_dir):
+        if req.source_dir is not None and is_installable_dir(req.source_dir):
             raise PreviousBuildDirError(
                 "pip can't proceed with requirements '{}' due to a"
                 "pre-existing build directory ({}). This is likely "
@@ -370,10 +369,11 @@ class RequirementPreparer:
         # and save repetition of conditions, but then we would
         # report less-useful error messages for unhashable
         # requirements, complaining that there's no hash provided.
-        if req.link.is_vcs:
-            raise VcsHashUnsupported()
-        if req.link.is_existing_dir():
-            raise DirectoryUrlHashUnsupported()
+        if req.link is not None:
+            if req.link.is_vcs:
+                raise VcsHashUnsupported()
+            if req.link.is_existing_dir():
+                raise DirectoryUrlHashUnsupported()
 
         # Unpinned packages are asking for trouble when a new version
         # is uploaded.  This isn't a security check, but it saves users
@@ -487,7 +487,11 @@ class RequirementPreparer:
         reqs = [req for req in reqs if req.needs_more_preparation]
         for req in reqs:
             # Determine if any of these requirements were already downloaded.
-            if self.download_dir is not None and req.link.is_wheel:
+            if (
+                self.download_dir is not None
+                and req.link is not None
+                and req.link.is_wheel
+            ):
                 hashes = self._get_linked_req_hashes(req)
                 file_path = _check_download_dir(req.link, self.download_dir, hashes)
                 if file_path is not None:
@@ -521,7 +525,7 @@ class RequirementPreparer:
 
         if link.is_existing_dir() and self.in_tree_build:
             local_file = None
-        elif link.url not in self._downloaded:
+        elif link.url not in self._downloaded and req.source_dir is not None:
             try:
                 local_file = unpack_url(
                     link, req.source_dir, self._download, self.download_dir, hashes

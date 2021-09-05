@@ -19,7 +19,8 @@ logger = logging.getLogger(__name__)
 
 
 class LegacyInstallFailure(Exception):
-    pass
+    def __init__(self, cause: Exception):
+        self.cause = cause
 
 
 def write_installed_files_from_setuptools_record(

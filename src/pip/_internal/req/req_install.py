@@ -1,6 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 import logging
 import os
 import shutil
@@ -249,6 +246,7 @@ class InstallRequirement:
 
     @property
     def specifier(self) -> SpecifierSet:
+        assert self.req is not None
         return self.req.specifier
 
     @property
@@ -299,7 +297,7 @@ class InstallRequirement:
         """
         good_hashes = self.hash_options.copy()
         link = self.link if trust_internet else self.original_link
-        if link and link.hash:
+        if link and link.hash_name and link.hash:
             good_hashes.setdefault(link.hash_name, []).append(link.hash)
         return Hashes(good_hashes)
 
@@ -310,7 +308,7 @@ class InstallRequirement:
         s = str(self.req)
         if self.comes_from:
             if isinstance(self.comes_from, str):
-                comes_from = self.comes_from
+                comes_from: Optional[str] = self.comes_from
             else:
                 comes_from = self.comes_from.from_path()
             if comes_from:
@@ -340,6 +338,7 @@ class InstallRequirement:
 
         # When parallel builds are enabled, add a UUID to the build directory
         # name so multiple builds do not interfere with each other.
+        assert self.name is not None
         dir_name: str = canonicalize_name(self.name)
         if parallel_builds:
             dir_name = f"{dir_name}_{uuid.uuid4().hex}"
@@ -384,7 +383,7 @@ class InstallRequirement:
 
     def warn_on_mismatching_name(self) -> None:
         metadata_name = canonicalize_name(self.metadata["Name"])
-        if canonicalize_name(self.req.name) == metadata_name:
+        if self.req is not None and canonicalize_name(self.req.name) == metadata_name:
             # Everything is fine.
             return
 
@@ -454,6 +453,7 @@ class InstallRequirement:
     # Things valid for sdists
     @property
     def unpacked_source_directory(self) -> str:
+        assert self.source_dir is not None
         return os.path.join(
             self.source_dir, self.link and self.link.subdirectory_fragment or ""
         )
@@ -607,12 +607,17 @@ class InstallRequirement:
         return self._metadata
 
     def get_dist(self) -> Distribution:
+        assert self.metadata_directory is not None
         return _get_dist(self.metadata_directory)
 
     def assert_source_matches_version(self) -> None:
         assert self.source_dir
         version = self.metadata["version"]
-        if self.req.specifier and version not in self.req.specifier:
+        if (
+            self.req is not None
+            and self.req.specifier
+            and version not in self.req.specifier
+        ):
             logger.warning(
                 "Requested %s, but installing version %s",
                 self,
@@ -705,6 +710,7 @@ class InstallRequirement:
             name = name.replace(os.path.sep, "/")
             return name
 
+        assert self.name is not None
         path = os.path.join(parentdir, path)
         name = _clean_zip_name(path, rootdir)
         return self.name + "/" + name
@@ -787,6 +793,8 @@ class InstallRequirement:
         use_user_site: bool = False,
         pycompile: bool = True,
     ) -> None:
+        assert self.name is not None
+
         scheme = get_scheme(
             self.name,
             user=use_user_site,
@@ -866,7 +874,9 @@ class InstallRequirement:
             )
         except LegacyInstallFailure as exc:
             self.install_succeeded = False
-            raise exc.__cause__
+            if exc.__cause__ is not None:
+                raise exc.__cause__
+            raise
         except Exception:
             self.install_succeeded = True
             raise

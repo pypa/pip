@@ -1,8 +1,4 @@
 """Locations where we look for configs, install stuff, etc"""
-
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 import logging
 import os
 import sys
@@ -87,6 +83,7 @@ def distutils_scheme(
             prefix = i.install_userbase  # type: ignore
         else:
             prefix = i.prefix
+        assert prefix is not None
         scheme["headers"] = os.path.join(
             prefix,
             "include",
