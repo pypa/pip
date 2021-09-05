@@ -410,6 +410,45 @@ def test_clean_link(url, clean_url):
     assert _clean_link(url) == clean_url
 
 
+def _test_parse_links_data_attribute(anchor_html, attr, expected):
+    html = f'<html><head><meta charset="utf-8"><head><body>{anchor_html}</body></html>'
+    html_bytes = html.encode("utf-8")
+    page = HTMLPage(
+        html_bytes,
+        encoding=None,
+        # parse_links() is cached by url, so we inject a random uuid to ensure
+        # the page content isn't cached.
+        url=f"https://example.com/simple-{uuid.uuid4()}/",
+    )
+    links = list(parse_links(page))
+    (link,) = links
+    actual = getattr(link, attr)
+    assert actual == expected
+
+
+@pytest.mark.parametrize(
+    "anchor_html, expected",
+    [
+        # Test not present.
+        ('<a href="/pkg-1.0.tar.gz"></a>', None),
+        # Test present with no value.
+        ('<a href="/pkg-1.0.tar.gz" data-requires-python></a>', None),
+        # Test a value with an escaped character.
+        (
+            '<a href="/pkg-1.0.tar.gz" data-requires-python="&gt;=3.6"></a>',
+            ">=3.6",
+        ),
+        # Test requires python is unescaped once.
+        (
+            '<a href="/pkg-1.0.tar.gz" data-requires-python="&amp;gt;=3.6"></a>',
+            "&gt;=3.6",
+        ),
+    ],
+)
+def test_parse_links__requires_python(anchor_html, expected):
+    _test_parse_links_data_attribute(anchor_html, "requires_python", expected)
+
+
 @pytest.mark.parametrize(
     "anchor_html, expected",
     [
@@ -428,27 +467,15 @@ def test_clean_link(url, clean_url):
             '<a href="/pkg-1.0.tar.gz" data-yanked="curlyquote \u2018"></a>',
             "curlyquote \u2018",
         ),
+        # Test yanked reason is unescaped once.
+        (
+            '<a href="/pkg-1.0.tar.gz" data-yanked="version &amp;lt; 1"></a>',
+            "version &lt; 1",
+        ),
     ],
 )
 def test_parse_links__yanked_reason(anchor_html, expected):
-    html = (
-        # Mark this as a unicode string for Python 2 since anchor_html
-        # can contain non-ascii.
-        '<html><head><meta charset="utf-8"><head>'
-        "<body>{}</body></html>"
-    ).format(anchor_html)
-    html_bytes = html.encode("utf-8")
-    page = HTMLPage(
-        html_bytes,
-        encoding=None,
-        # parse_links() is cached by url, so we inject a random uuid to ensure
-        # the page content isn't cached.
-        url=f"https://example.com/simple-{uuid.uuid4()}/",
-    )
-    links = list(parse_links(page))
-    (link,) = links
-    actual = link.yanked_reason
-    assert actual == expected
+    _test_parse_links_data_attribute(anchor_html, "yanked_reason", expected)
 
 
 def test_parse_links_caches_same_page_by_url():
