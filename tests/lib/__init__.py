@@ -826,7 +826,9 @@ def _with_vcs_tracking(script, version_pkg_path, *, vcs="git"):
     elif vcs == "hg":
         _with_hg(script, version_pkg_path)
     elif vcs == "svn":
-        _with_svn(script, version_pkg_path)
+        # since svn internally stores windows drives as uppercase, 
+        # version_pkg_path needs to be updated.
+        version_pkg_path = _with_svn(script, version_pkg_path)
     elif vcs == "bazaar":
         _with_bazaar(script, version_pkg_path)
     else:
@@ -862,10 +864,7 @@ def _with_svn(script, version_pkg_path):
     checkout_path = script.scratch_path / "pip-test-package"
 
     # svn internally stores windows drives as uppercase; we'll match that.
-    checkout_path = checkout_path.replace("c:", "C:")
-
-    version_pkg_path = checkout_path
-
+    return checkout_path.replace("c:", "C:")
 
 def _with_bazaar(script, version_pkg_path):
     script.run("bzr", "init", cwd=version_pkg_path)
