@@ -64,6 +64,8 @@ def _looks_like_bpo_44860() -> bool:
 
 def _looks_like_red_hat_patched_platlib_purelib(scheme: Dict[str, str]) -> bool:
     platlib = scheme["platlib"]
+    if "/$platlibdir/" in platlib and hasattr(sys, "platlibdir"):
+        platlib = platlib.replace("/$platlibdir/", f"/{sys.platlibdir}/")
     if "/lib64/" not in platlib:
         return False
     unpatched = platlib.replace("/lib64/", "/lib/")
