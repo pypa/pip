@@ -150,6 +150,8 @@ class TestData:
     data into a directory and operating on the copied data.
     """
 
+    __test__ = False
+
     def __init__(self, root, source=None):
         self.source = source or DATA_DIR
         self.root = Path(root).resolve()
