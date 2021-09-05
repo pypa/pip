@@ -67,7 +67,7 @@ def test_wheel_dist_info_dir_wrong_name(tmpdir, zip_dir):
     assert "does not start with 'simple'" in str(e.value)
 
 
-def test_wheel_version_ok(tmpdir, data):
+def test_wheel_version_ok(data):
     assert wheel.wheel_version(message_from_string("Wheel-Version: 1.9")) == (1, 9)
 
 

@@ -122,7 +122,7 @@ def test_from_link_vcs_with_source_dir_obtains_commit_id(script, tmpdir):
     assert direct_url.info.commit_id == commit_id
 
 
-def test_from_link_vcs_without_source_dir(script, tmpdir):
+def test_from_link_vcs_without_source_dir(script):
     direct_url = direct_url_from_link(
         Link("git+https://g.c/u/p.git@1"), link_is_in_wheel_cache=True
     )

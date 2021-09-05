@@ -580,7 +580,7 @@ def test_wheel_compile_syntax_error(script, data):
     assert "SyntaxError: " not in result.stdout
 
 
-def test_wheel_install_with_no_cache_dir(script, tmpdir, data):
+def test_wheel_install_with_no_cache_dir(script, data):
     """Check wheel installations work, even with no cache."""
     package = data.packages.joinpath("simple.dist-0.1-py2.py3-none-any.whl")
     result = script.pip("install", "--no-cache-dir", "--no-index", package)

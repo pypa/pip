@@ -150,7 +150,7 @@ def test_should_cache(req, expected):
     assert wheel_builder._should_cache(req) is expected
 
 
-def test_should_cache_git_sha(script, tmpdir):
+def test_should_cache_git_sha(script):
     repo_path = _create_test_package(script, name="mypkg")
     commit = script.run("git", "rev-parse", "HEAD", cwd=repo_path).stdout.strip()
 

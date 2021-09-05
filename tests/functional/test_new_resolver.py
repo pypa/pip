@@ -954,12 +954,7 @@ class TestExtraMerge:
             _wheel_from_index,
         ],
     )
-    def test_new_resolver_extra_merge_in_package(
-        self,
-        monkeypatch,
-        script,
-        pkg_builder,
-    ):
+    def test_new_resolver_extra_merge_in_package(self, script, pkg_builder):
         create_basic_wheel_for_package(script, "depdev", "1.0.0")
         create_basic_wheel_for_package(
             script,

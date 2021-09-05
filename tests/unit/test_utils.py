@@ -405,7 +405,7 @@ class Failer:
             raise OSError("Failed")
 
 
-def test_rmtree_retries(tmpdir, monkeypatch):
+def test_rmtree_retries(monkeypatch):
     """
     Test pip._internal.utils.rmtree will retry failures
     """
@@ -413,7 +413,7 @@ def test_rmtree_retries(tmpdir, monkeypatch):
     rmtree("foo")
 
 
-def test_rmtree_retries_for_3sec(tmpdir, monkeypatch):
+def test_rmtree_retries_for_3sec(monkeypatch):
     """
     Test pip._internal.utils.rmtree will retry failures for no more than 3 sec
     """

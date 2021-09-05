@@ -164,7 +164,7 @@ def test_freeze_with_invalid_names(script):
 
 
 @pytest.mark.git
-def test_freeze_editable_not_vcs(script, tmpdir):
+def test_freeze_editable_not_vcs(script):
     """
     Test an editable install that is not version controlled.
     """
@@ -189,7 +189,7 @@ def test_freeze_editable_not_vcs(script, tmpdir):
 
 
 @pytest.mark.git
-def test_freeze_editable_git_with_no_remote(script, tmpdir, deprecated_python):
+def test_freeze_editable_git_with_no_remote(script, deprecated_python):
     """
     Test an editable Git install with no remote url.
     """
@@ -214,7 +214,7 @@ def test_freeze_editable_git_with_no_remote(script, tmpdir, deprecated_python):
 
 
 @need_svn
-def test_freeze_svn(script, tmpdir):
+def test_freeze_svn(script):
     """Test freezing a svn checkout"""
 
     checkout_path = _create_test_package(script, vcs="svn")
@@ -237,7 +237,7 @@ def test_freeze_svn(script, tmpdir):
     run=True,
     strict=True,
 )
-def test_freeze_exclude_editable(script, tmpdir):
+def test_freeze_exclude_editable(script):
     """
     Test excluding editable from freezing list.
     """
@@ -270,7 +270,7 @@ def test_freeze_exclude_editable(script, tmpdir):
 
 
 @pytest.mark.git
-def test_freeze_git_clone(script, tmpdir):
+def test_freeze_git_clone(script):
     """
     Test freezing a Git clone.
     """
@@ -328,7 +328,7 @@ def test_freeze_git_clone(script, tmpdir):
 
 
 @pytest.mark.git
-def test_freeze_git_clone_srcdir(script, tmpdir):
+def test_freeze_git_clone_srcdir(script):
     """
     Test freezing a Git clone where setup.py is in a subdirectory
     relative the repo root and the source code is in a subdirectory
@@ -363,7 +363,7 @@ def test_freeze_git_clone_srcdir(script, tmpdir):
 
 
 @need_mercurial
-def test_freeze_mercurial_clone_srcdir(script, tmpdir):
+def test_freeze_mercurial_clone_srcdir(script):
     """
     Test freezing a Mercurial clone where setup.py is in a subdirectory
     relative to the repo root and the source code is in a subdirectory
@@ -386,7 +386,7 @@ def test_freeze_mercurial_clone_srcdir(script, tmpdir):
 
 
 @pytest.mark.git
-def test_freeze_git_remote(script, tmpdir):
+def test_freeze_git_remote(script):
     """
     Test freezing a Git clone.
     """
@@ -469,7 +469,7 @@ def test_freeze_git_remote(script, tmpdir):
 
 
 @need_mercurial
-def test_freeze_mercurial_clone(script, tmpdir):
+def test_freeze_mercurial_clone(script):
     """
     Test freezing a Mercurial clone.
 
@@ -503,7 +503,7 @@ def test_freeze_mercurial_clone(script, tmpdir):
 
 
 @need_bzr
-def test_freeze_bazaar_clone(script, tmpdir):
+def test_freeze_bazaar_clone(script):
     """
     Test freezing a Bazaar clone.
 
