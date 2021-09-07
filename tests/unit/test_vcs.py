@@ -299,6 +299,25 @@ def test_git_is_commit_id_equal(mock_get_revision, rev_name, result):
     assert Git.is_commit_id_equal("/path", rev_name) is result
 
 
+@pytest.mark.parametrize(
+    "version_out,result",
+    (
+        ("git version -2.25.1", ()),
+        ("git version 2.a.1", ()),
+        ("git ver. 2.25.1", ()),
+    ),
+)
+@patch("pip._internal.vcs.versioncontrol.VersionControl.run_command")
+def test_git_parse_fail_warning(mock_run_command, caplog, version_out, result):
+    """
+    Test Git.get_git_version().
+    """
+    mock_run_command.return_value = version_out
+    git_tuple = Git().get_git_version()
+    assert git_tuple == result
+    assert caplog.messages == ["Unable to parse '%s'." % version_out]
+
+
 # The non-SVN backends all use the same get_netloc_and_auth(), so only test
 # Git as a representative.
 @pytest.mark.parametrize(
