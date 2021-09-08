@@ -1,7 +1,9 @@
 # Requirements File Format
 
 Requirements files serve as a list of items to be installed by pip, when
-using {ref}`pip install`.
+using {ref}`pip install`. Files that use this format are often called
+"pip requirements.txt files", since `requirements.txt` is usually what
+these files are named (although, that is not a requirement).
 
 ```{note}
 This is NOT a format that other tools should try to consume.
