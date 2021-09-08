@@ -42,8 +42,8 @@ You can then invoke your local source tree pip normally.
 
     .. code-block:: shell
 
-        virtualenv venv # You can also use "python -m venv venv" from python3.3+
-        source venv/bin/activate
+        python -m venv .venv
+        source .venv/bin/activate
         python -m pip install -e .
         python -m pip --version
 
@@ -51,8 +51,8 @@ You can then invoke your local source tree pip normally.
 
     .. code-block:: shell
 
-        virtualenv venv # You can also use "py -m venv venv" from python3.3+
-        venv\Scripts\activate
+        py -m venv .venv
+        .venv\Scripts\activate
         py -m pip install -e .
         py -m pip --version
 
@@ -94,9 +94,10 @@ can select tests using the various ways that pytest provides:
     $ # Using keywords
     $ tox -e py36 -- -k "install and not wheel"
 
-Running pip's test suite requires supported version control tools (subversion,
-bazaar, git, and mercurial) to be installed. If you are missing one of the VCS
-tools, you can tell pip to skip those tests:
+Running pip's entire test suite requires supported version control tools
+(subversion, bazaar, git, and mercurial) to be installed. If you are missing
+any of these VCS, those tests should be skipped automatically. You can also
+explicitly tell pytest to skip those tests:
 
 .. code-block:: console
 
