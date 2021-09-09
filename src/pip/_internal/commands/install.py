@@ -652,11 +652,6 @@ def decide_user_install(
         logger.debug("Non-user install due to --prefix or --target option")
         return False
 
-    # If user installs are not enabled, choose a non-user install
-    if not site.ENABLE_USER_SITE:
-        logger.debug("Non-user install because user site-packages disabled")
-        return False
-
     # If we have permission for a non-user install, do that,
     # otherwise do a user install.
     if site_packages_writable(root=root_path, isolated=isolated_mode):
@@ -667,6 +662,15 @@ def decide_user_install(
         "Defaulting to user installation because normal site-packages "
         "is not writeable"
     )
+	
+	# Assert user installs are enabled
+    if not site.ENABLE_USER_SITE:
+        raise InstallationError(
+                "Can not perform a '--user' install. User site-packages "
+                "are disabled. Enable user site-packages or run "
+				"installation with privileged access."
+            )
+	
     return True
 
 
