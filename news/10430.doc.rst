@@ -1,0 +1,1 @@
+Update links of setuptools as setuptools moved these documents. The Simple Repository link now points to PyPUG as that is the canonical place of packaging specification, and setuptools's ``easy_install`` is deprecated.
