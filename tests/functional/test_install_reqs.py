@@ -62,7 +62,7 @@ def test_requirements_file(script, with_wheel):
     Test installing from a requirements file.
 
     """
-    other_lib_name, other_lib_version = "anyjson", "0.3"
+    other_lib_name, other_lib_version = "peppercorn", "0.6"
     script.scratch_path.joinpath("initools-req.txt").write_text(
         textwrap.dedent(
             f"""\
@@ -157,7 +157,7 @@ def test_multiple_requirements_files(script, tmpdir, with_wheel):
     Test installing from multiple nested requirements files.
 
     """
-    other_lib_name, other_lib_version = "anyjson", "0.3"
+    other_lib_name, other_lib_version = "six", "1.16.0"
     script.scratch_path.joinpath("initools-req.txt").write_text(
         textwrap.dedent(
             """
