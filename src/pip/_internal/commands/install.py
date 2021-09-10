@@ -666,9 +666,9 @@ def decide_user_install(
 	# Assert user installs are enabled
     if not site.ENABLE_USER_SITE:
         raise InstallationError(
-                "Can not perform a '--user' install. User site-packages "
-                "are disabled. Enable user site-packages or run "
-				"installation with privileged access."
+                "Can not perform user install because user site-packages "
+                "are disabled. Enable them or run "
+		"installation with privileged access."
             )
 	
     return True
