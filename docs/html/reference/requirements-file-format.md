@@ -6,10 +6,11 @@ using {ref}`pip install`. Files that use this format are often called
 these files are named (although, that is not a requirement).
 
 ```{note}
-This is NOT a format that other tools should try to consume.
-
-It depends on various internal details of how pip works (eg: pip's CLI
-options) and is not designed for interoperability.
+The requirements file format is closely tied to a number of internal details of
+pip (e.g., pip's command line options). The basic format is relatively stable
+and portable but the full syntax, as described here, is only intended for
+consumption by pip, and other tools should take that into account before using
+it for their own purposes.
 ```
 
 ## Structure
