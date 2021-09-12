@@ -4,19 +4,26 @@ import sys
 import textwrap
 from os.path import join, normpath
 from tempfile import mkdtemp
+from typing import Any
 from unittest.mock import Mock
 
 import pytest
 
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.utils.misc import rmtree
-from tests.lib import assert_all_changes, create_test_package_with_setup, need_svn
+from tests.lib import (
+    PipTestEnvironment,
+    TestData,
+    assert_all_changes,
+    create_test_package_with_setup,
+    need_svn,
+)
 from tests.lib.local_repos import local_checkout, local_repo
 from tests.lib.path import Path
 
 
 @pytest.mark.network
-def test_basic_uninstall(script):
+def test_basic_uninstall(script: PipTestEnvironment) -> None:
     """
     Test basic install and uninstall.
 
@@ -30,7 +37,7 @@ def test_basic_uninstall(script):
     assert_all_changes(result, result2, [script.venv / "build", "cache"])
 
 
-def test_basic_uninstall_distutils(script):
+def test_basic_uninstall_distutils(script: PipTestEnvironment) -> None:
     """
     Test basic install and uninstall.
 
@@ -62,7 +69,7 @@ def test_basic_uninstall_distutils(script):
 
 
 @pytest.mark.network
-def test_basic_uninstall_with_scripts(script):
+def test_basic_uninstall_with_scripts(script: PipTestEnvironment) -> None:
     """
     Uninstall an easy_installed package with scripts.
 
@@ -83,7 +90,9 @@ def test_basic_uninstall_with_scripts(script):
 
 
 @pytest.mark.parametrize("name", ["GTrolls.tar.gz", "https://guyto.com/archives/"])
-def test_uninstall_invalid_parameter(script, caplog, name):
+def test_uninstall_invalid_parameter(
+    script: PipTestEnvironment, caplog: pytest.LogCaptureFixture, name: str
+) -> None:
     result = script.pip("uninstall", name, "-y", expect_error=True)
     expected_message = (
         f"Invalid requirement: '{name}' ignored -"
@@ -93,7 +102,7 @@ def test_uninstall_invalid_parameter(script, caplog, name):
 
 
 @pytest.mark.network
-def test_uninstall_easy_install_after_import(script):
+def test_uninstall_easy_install_after_import(script: PipTestEnvironment) -> None:
     """
     Uninstall an easy_installed package after it's been imported
 
@@ -118,7 +127,7 @@ def test_uninstall_easy_install_after_import(script):
 
 
 @pytest.mark.network
-def test_uninstall_trailing_newline(script):
+def test_uninstall_trailing_newline(script: PipTestEnvironment) -> None:
     """
     Uninstall behaves appropriately if easy-install.pth
     lacks a trailing newline
@@ -153,7 +162,7 @@ def test_uninstall_trailing_newline(script):
 
 
 @pytest.mark.network
-def test_basic_uninstall_namespace_package(script):
+def test_basic_uninstall_namespace_package(script: PipTestEnvironment) -> None:
     """
     Uninstall a distribution with a namespace package without clobbering
     the namespace and everything in it.
@@ -170,7 +179,9 @@ def test_basic_uninstall_namespace_package(script):
     )
 
 
-def test_uninstall_overlapping_package(script, data):
+def test_uninstall_overlapping_package(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Uninstalling a distribution that adds modules to a pre-existing package
     should only remove those added modules, not the rest of the existing
@@ -210,7 +221,9 @@ def test_uninstall_overlapping_package(script, data):
 @pytest.mark.parametrize(
     "console_scripts", ["test_ = distutils_install", "test_:test_ = distutils_install"]
 )
-def test_uninstall_entry_point_colon_in_name(script, console_scripts):
+def test_uninstall_entry_point_colon_in_name(
+    script: PipTestEnvironment, console_scripts: str
+) -> None:
     """
     Test uninstall package with two or more entry points in the same section,
     whose name contain a colon.
@@ -242,7 +255,7 @@ def test_uninstall_entry_point_colon_in_name(script, console_scripts):
     script.assert_not_installed("ep-install")
 
 
-def test_uninstall_gui_scripts(script):
+def test_uninstall_gui_scripts(script: PipTestEnvironment) -> None:
     """
     Make sure that uninstall removes gui scripts
     """
@@ -266,7 +279,7 @@ def test_uninstall_gui_scripts(script):
     assert not script_name.exists()
 
 
-def test_uninstall_console_scripts(script):
+def test_uninstall_console_scripts(script: PipTestEnvironment) -> None:
     """
     Test uninstalling a package with more files (console_script entry points,
     extra directories).
@@ -291,7 +304,7 @@ def test_uninstall_console_scripts(script):
     )
 
 
-def test_uninstall_console_scripts_uppercase_name(script):
+def test_uninstall_console_scripts_uppercase_name(script: PipTestEnvironment) -> None:
     """
     Test uninstalling console script with uppercase character.
     """
@@ -315,7 +328,7 @@ def test_uninstall_console_scripts_uppercase_name(script):
 
 
 @pytest.mark.network
-def test_uninstall_easy_installed_console_scripts(script):
+def test_uninstall_easy_installed_console_scripts(script: PipTestEnvironment) -> None:
     """
     Test uninstalling package with console_scripts that is easy_installed.
     """
@@ -340,7 +353,7 @@ def test_uninstall_easy_installed_console_scripts(script):
 @pytest.mark.xfail
 @pytest.mark.network
 @need_svn
-def test_uninstall_editable_from_svn(script, tmpdir):
+def test_uninstall_editable_from_svn(script: PipTestEnvironment, tmpdir: Path) -> None:
     """
     Test uninstalling an editable installation from svn.
     """
@@ -366,7 +379,9 @@ def test_uninstall_editable_from_svn(script, tmpdir):
 
 
 @pytest.mark.network
-def test_uninstall_editable_with_source_outside_venv(script, tmpdir):
+def test_uninstall_editable_with_source_outside_venv(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
     """
     Test uninstalling editable install from existing source outside the venv.
     """
@@ -383,10 +398,10 @@ def test_uninstall_editable_with_source_outside_venv(script, tmpdir):
 
 
 def _test_uninstall_editable_with_source_outside_venv(
-    script,
-    tmpdir,
-    temp_pkg_dir,
-):
+    script: PipTestEnvironment,
+    tmpdir: Path,
+    temp_pkg_dir: str,
+) -> None:
     result = script.run(
         "git",
         "clone",
@@ -407,7 +422,7 @@ def _test_uninstall_editable_with_source_outside_venv(
 @pytest.mark.xfail
 @pytest.mark.network
 @need_svn
-def test_uninstall_from_reqs_file(script, tmpdir):
+def test_uninstall_from_reqs_file(script: PipTestEnvironment, tmpdir: Path) -> None:
     """
     Test uninstall from a requirements file.
 
@@ -453,7 +468,7 @@ def test_uninstall_from_reqs_file(script, tmpdir):
     )
 
 
-def test_uninstallpathset_no_paths(caplog):
+def test_uninstallpathset_no_paths(caplog: pytest.LogCaptureFixture) -> None:
     """
     Test UninstallPathSet logs notification when there are no paths to
     uninstall
@@ -471,7 +486,9 @@ def test_uninstallpathset_no_paths(caplog):
     assert "Can't uninstall 'pip'. No files were found to uninstall." in caplog.text
 
 
-def test_uninstall_non_local_distutils(caplog, monkeypatch, tmpdir):
+def test_uninstall_non_local_distutils(
+    caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch, tmpdir: Path
+) -> None:
     einfo = tmpdir.joinpath("thing-1.0.egg-info")
     with open(einfo, "wb"):
         pass
@@ -491,7 +508,7 @@ def test_uninstall_non_local_distutils(caplog, monkeypatch, tmpdir):
     assert os.path.exists(einfo)
 
 
-def test_uninstall_wheel(script, data):
+def test_uninstall_wheel(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test uninstalling a wheel
     """
@@ -515,7 +532,9 @@ def test_uninstall_wheel(script, data):
         "MegaCorp Cloud Install-O-Matic",
     ],
 )
-def test_uninstall_without_record_fails(script, data, installer):
+def test_uninstall_without_record_fails(
+    script: PipTestEnvironment, data: TestData, installer: Any
+) -> None:
     """
     Test uninstalling a package installed without RECORD
     """
@@ -562,7 +581,9 @@ def test_uninstall_without_record_fails(script, data, installer):
 
 
 @pytest.mark.skipif("sys.platform == 'win32'")
-def test_uninstall_with_symlink(script, data, tmpdir):
+def test_uninstall_with_symlink(
+    script: PipTestEnvironment, data: TestData, tmpdir: Path
+) -> None:
     """
     Test uninstalling a wheel, with an additional symlink
     https://github.com/pypa/pip/issues/6892
@@ -583,7 +604,9 @@ def test_uninstall_with_symlink(script, data, tmpdir):
     assert symlink_target.stat().st_mode == st_mode
 
 
-def test_uninstall_setuptools_develop_install(script, data):
+def test_uninstall_setuptools_develop_install(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """Try uninstall after setup.py develop followed of setup.py install"""
     pkg_path = data.packages.joinpath("FSPkg")
     script.run("python", "setup.py", "develop", expect_stderr=True, cwd=pkg_path)
@@ -599,7 +622,9 @@ def test_uninstall_setuptools_develop_install(script, data):
     script.assert_not_installed("FSPkg")
 
 
-def test_uninstall_editable_and_pip_install(script, data):
+def test_uninstall_editable_and_pip_install(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """Try uninstall after pip install -e after pip install"""
     # SETUPTOOLS_SYS_PATH_TECHNIQUE=raw removes the assumption that `-e`
     # installs are always higher priority than regular installs.
@@ -623,7 +648,9 @@ def test_uninstall_editable_and_pip_install(script, data):
     script.assert_not_installed("FSPkg")
 
 
-def test_uninstall_editable_and_pip_install_easy_install_remove(script, data):
+def test_uninstall_editable_and_pip_install_easy_install_remove(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """Try uninstall after pip install -e after pip install
     and removing easy-install.pth"""
     # SETUPTOOLS_SYS_PATH_TECHNIQUE=raw removes the assumption that `-e`
@@ -665,7 +692,9 @@ def test_uninstall_editable_and_pip_install_easy_install_remove(script, data):
     os.rename(pip_test_pth, easy_install_pth)
 
 
-def test_uninstall_ignores_missing_packages(script, data):
+def test_uninstall_ignores_missing_packages(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """Uninstall of a non existent package prints a warning and exits cleanly"""
     result = script.pip(
         "uninstall",
@@ -678,7 +707,9 @@ def test_uninstall_ignores_missing_packages(script, data):
     assert result.returncode == 0, "Expected clean exit"
 
 
-def test_uninstall_ignores_missing_packages_and_uninstalls_rest(script, data):
+def test_uninstall_ignores_missing_packages_and_uninstalls_rest(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     script.pip_install_local("simple")
     result = script.pip(
         "uninstall",

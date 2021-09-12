@@ -6,8 +6,10 @@ import subprocess
 
 import pytest
 
+from tests.lib import PipTestEnvironment
 
-def test_no_color(script):
+
+def test_no_color(script: PipTestEnvironment) -> None:
     """Ensure colour output disabled when --no-color is passed."""
     # Using 'script' in this test allows for transparently testing pip's output
     # since pip is smart enough to disable colour output when piped, which is
@@ -22,7 +24,7 @@ def test_no_color(script):
         '--command "pip uninstall {} noSuchPackage"'
     )
 
-    def get_run_output(option):
+    def get_run_output(option: str) -> str:
         cmd = command.format(option)
         proc = subprocess.Popen(
             cmd,

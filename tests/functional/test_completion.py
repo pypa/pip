@@ -1,9 +1,20 @@
 import os
 import sys
+from typing import TYPE_CHECKING, Optional, Tuple
 
 import pytest
 
+from tests.conftest import ScriptFactory
+from tests.lib import PipTestEnvironment, TestData, TestPipResult
 from tests.lib.path import Path
+
+if TYPE_CHECKING:
+    from typing import Protocol
+else:
+    # TODO: Protocol was introduced in Python 3.8. Remove this branch when
+    # dropping support for Python 3.7.
+    Protocol = object
+
 
 COMPLETION_FOR_SUPPORTED_SHELLS_TESTS = (
     (
@@ -47,7 +58,12 @@ compctl -K _pip_completion pip""",
 
 
 @pytest.fixture(scope="session")
-def script_with_launchers(tmpdir_factory, script_factory, common_wheels, pip_src):
+def script_with_launchers(
+    tmpdir_factory: pytest.TempdirFactory,
+    script_factory: ScriptFactory,
+    common_wheels: Path,
+    pip_src: Path,
+) -> PipTestEnvironment:
     tmpdir = Path(str(tmpdir_factory.mktemp("script_with_launchers")))
     script = script_factory(tmpdir.joinpath("workspace"))
     # Re-install pip so we get the launchers.
@@ -60,7 +76,9 @@ def script_with_launchers(tmpdir_factory, script_factory, common_wheels, pip_src
     COMPLETION_FOR_SUPPORTED_SHELLS_TESTS,
     ids=[t[0] for t in COMPLETION_FOR_SUPPORTED_SHELLS_TESTS],
 )
-def test_completion_for_supported_shells(script_with_launchers, shell, completion):
+def test_completion_for_supported_shells(
+    script_with_launchers: PipTestEnvironment, shell: str, completion: str
+) -> None:
     """
     Test getting completion for bash shell
     """
@@ -69,17 +87,30 @@ def test_completion_for_supported_shells(script_with_launchers, shell, completio
 
 
 @pytest.fixture(scope="session")
-def autocomplete_script(tmpdir_factory, script_factory):
+def autocomplete_script(
+    tmpdir_factory: pytest.TempdirFactory, script_factory: ScriptFactory
+) -> PipTestEnvironment:
     tmpdir = Path(str(tmpdir_factory.mktemp("autocomplete_script")))
     return script_factory(tmpdir.joinpath("workspace"))
 
 
+class DoAutocomplete(Protocol):
+    def __call__(
+        self, words: str, cword: str, cwd: Optional[str] = None
+    ) -> Tuple[TestPipResult, PipTestEnvironment]:
+        ...
+
+
 @pytest.fixture
-def autocomplete(autocomplete_script, monkeypatch):
+def autocomplete(
+    autocomplete_script: PipTestEnvironment, monkeypatch: pytest.MonkeyPatch
+) -> DoAutocomplete:
     monkeypatch.setattr(autocomplete_script, "environ", os.environ.copy())
     autocomplete_script.environ["PIP_AUTO_COMPLETE"] = "1"
 
-    def do_autocomplete(words, cword, cwd=None):
+    def do_autocomplete(
+        words: str, cword: str, cwd: Optional[str] = None
+    ) -> Tuple[TestPipResult, PipTestEnvironment]:
         autocomplete_script.environ["COMP_WORDS"] = words
         autocomplete_script.environ["COMP_CWORD"] = cword
         result = autocomplete_script.run(
@@ -96,7 +127,7 @@ def autocomplete(autocomplete_script, monkeypatch):
     return do_autocomplete
 
 
-def test_completion_for_unknown_shell(autocomplete_script):
+def test_completion_for_unknown_shell(autocomplete_script: PipTestEnvironment) -> None:
     """
     Test getting completion for an unknown shell
     """
@@ -105,7 +136,7 @@ def test_completion_for_unknown_shell(autocomplete_script):
     assert error_msg in result.stderr, "tests for an unknown shell failed"
 
 
-def test_completion_alone(autocomplete_script):
+def test_completion_alone(autocomplete_script: PipTestEnvironment) -> None:
     """
     Test getting completion for none shell, just pip completion
     """
@@ -115,7 +146,7 @@ def test_completion_alone(autocomplete_script):
     )
 
 
-def test_completion_for_un_snippet(autocomplete):
+def test_completion_for_un_snippet(autocomplete: DoAutocomplete) -> None:
     """
     Test getting completion for ``un`` should return uninstall
     """
@@ -124,7 +155,7 @@ def test_completion_for_un_snippet(autocomplete):
     assert res.stdout.strip().split() == ["uninstall"], res.stdout
 
 
-def test_completion_for_default_parameters(autocomplete):
+def test_completion_for_default_parameters(autocomplete: DoAutocomplete) -> None:
     """
     Test getting completion for ``--`` should contain --help
     """
@@ -133,7 +164,7 @@ def test_completion_for_default_parameters(autocomplete):
     assert "--help" in res.stdout, "autocomplete function could not complete ``--``"
 
 
-def test_completion_option_for_command(autocomplete):
+def test_completion_option_for_command(autocomplete: DoAutocomplete) -> None:
     """
     Test getting completion for ``--`` in command (e.g. ``pip search --``)
     """
@@ -142,7 +173,7 @@ def test_completion_option_for_command(autocomplete):
     assert "--help" in res.stdout, "autocomplete function could not complete ``--``"
 
 
-def test_completion_short_option(autocomplete):
+def test_completion_short_option(autocomplete: DoAutocomplete) -> None:
     """
     Test getting completion for short options after ``-`` (eg. pip -)
     """
@@ -154,7 +185,7 @@ def test_completion_short_option(autocomplete):
     ), "autocomplete function could not complete short options after ``-``"
 
 
-def test_completion_short_option_for_command(autocomplete):
+def test_completion_short_option_for_command(autocomplete: DoAutocomplete) -> None:
     """
     Test getting completion for short options after ``-`` in command
     (eg. pip search -)
@@ -167,7 +198,9 @@ def test_completion_short_option_for_command(autocomplete):
     ), "autocomplete function could not complete short options after ``-``"
 
 
-def test_completion_files_after_option(autocomplete, data):
+def test_completion_files_after_option(
+    autocomplete: DoAutocomplete, data: TestData
+) -> None:
     """
     Test getting completion for <file> or <dir> after options in command
     (e.g. ``pip install -r``)
@@ -199,7 +232,9 @@ def test_completion_files_after_option(autocomplete, data):
     ), "autocomplete function could not complete <dir> after options in command"
 
 
-def test_completion_not_files_after_option(autocomplete, data):
+def test_completion_not_files_after_option(
+    autocomplete: DoAutocomplete, data: TestData
+) -> None:
     """
     Test not getting completion files after options which not applicable
     (e.g. ``pip install``)
@@ -222,7 +257,9 @@ def test_completion_not_files_after_option(autocomplete, data):
 
 
 @pytest.mark.parametrize("cl_opts", ["-U", "--user", "-h"])
-def test_completion_not_files_after_nonexpecting_option(autocomplete, data, cl_opts):
+def test_completion_not_files_after_nonexpecting_option(
+    autocomplete: DoAutocomplete, data: TestData, cl_opts: str
+) -> None:
     """
     Test not getting completion files after options which not applicable
     (e.g. ``pip install``)
@@ -244,7 +281,9 @@ def test_completion_not_files_after_nonexpecting_option(autocomplete, data, cl_o
     ), "autocomplete function completed <dir> when it should not complete"
 
 
-def test_completion_directories_after_option(autocomplete, data):
+def test_completion_directories_after_option(
+    autocomplete: DoAutocomplete, data: TestData
+) -> None:
     """
     Test getting completion <dir> after options in command
     (e.g. ``pip --cache-dir``)
@@ -267,7 +306,9 @@ def test_completion_directories_after_option(autocomplete, data):
         ), "autocomplete function could not complete <dir> after options"
 
 
-def test_completion_subdirectories_after_option(autocomplete, data):
+def test_completion_subdirectories_after_option(
+    autocomplete: DoAutocomplete, data: TestData
+) -> None:
     """
     Test getting completion <dir> after options in command
     given path of a directory
@@ -283,7 +324,9 @@ def test_completion_subdirectories_after_option(autocomplete, data):
     )
 
 
-def test_completion_path_after_option(autocomplete, data):
+def test_completion_path_after_option(
+    autocomplete: DoAutocomplete, data: TestData
+) -> None:
     """
     Test getting completion <path> after options in command
     given absolute path
@@ -303,8 +346,8 @@ def test_completion_path_after_option(autocomplete, data):
 
 @pytest.mark.parametrize("flag", ["--bash", "--zsh", "--fish"])
 def test_completion_uses_same_executable_name(
-    autocomplete_script, flag, deprecated_python
-):
+    autocomplete_script: PipTestEnvironment, flag: str, deprecated_python: bool
+) -> None:
     executable_name = "pip{}".format(sys.version_info[0])
     # Deprecated python versions produce an extra deprecation warning
     result = autocomplete_script.run(

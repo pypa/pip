@@ -1,22 +1,30 @@
 """
 Contains functional tests of the Git class.
 """
-
 import os
+import pathlib
+from typing import List, Optional, Tuple
 from unittest.mock import patch
 
 import pytest
 
+from pip._internal.utils.misc import HiddenText
 from pip._internal.vcs import vcs
 from pip._internal.vcs.git import Git, RemoteNotFoundError
-from tests.lib import _create_test_package, _git_commit, _test_path_to_file_url
+from tests.lib import (
+    PipTestEnvironment,
+    _create_test_package,
+    _git_commit,
+    _test_path_to_file_url,
+)
+from tests.lib.path import Path
 
 
-def test_get_backend_for_scheme():
+def test_get_backend_for_scheme() -> None:
     assert vcs.get_backend_for_scheme("git+https") is vcs.get_backend("Git")
 
 
-def get_head_sha(script, dest):
+def get_head_sha(script: PipTestEnvironment, dest: str) -> str:
     """Return the HEAD sha."""
     result = script.run("git", "rev-parse", "HEAD", cwd=dest)
     sha = result.stdout.strip()
@@ -24,11 +32,11 @@ def get_head_sha(script, dest):
     return sha
 
 
-def checkout_ref(script, repo_dir, ref):
+def checkout_ref(script: PipTestEnvironment, repo_dir: str, ref: str) -> None:
     script.run("git", "checkout", ref, cwd=repo_dir)
 
 
-def checkout_new_branch(script, repo_dir, branch):
+def checkout_new_branch(script: PipTestEnvironment, repo_dir: str, branch: str) -> None:
     script.run(
         "git",
         "checkout",
@@ -38,12 +46,12 @@ def checkout_new_branch(script, repo_dir, branch):
     )
 
 
-def do_commit(script, dest):
+def do_commit(script: PipTestEnvironment, dest: str) -> str:
     _git_commit(script, dest, message="test commit", allow_empty=True)
     return get_head_sha(script, dest)
 
 
-def add_commits(script, dest, count):
+def add_commits(script: PipTestEnvironment, dest: str, count: int) -> List[str]:
     """Return a list of the commit hashes from oldest to newest."""
     shas = []
     for _ in range(count):
@@ -53,11 +61,11 @@ def add_commits(script, dest, count):
     return shas
 
 
-def check_rev(repo_dir, rev, expected):
+def check_rev(repo_dir: str, rev: str, expected: Tuple[Optional[str], bool]) -> None:
     assert Git.get_revision_sha(repo_dir, rev) == expected
 
 
-def test_git_dir_ignored(tmpdir):
+def test_git_dir_ignored(tmpdir: Path) -> None:
     """
     Test that a GIT_DIR environment variable is ignored.
     """
@@ -71,7 +79,7 @@ def test_git_dir_ignored(tmpdir):
     assert os.listdir(repo_dir) == [".git"]
 
 
-def test_git_work_tree_ignored(tmpdir):
+def test_git_work_tree_ignored(tmpdir: Path) -> None:
     """
     Test that a GIT_WORK_TREE environment variable is ignored.
     """
@@ -87,12 +95,12 @@ def test_git_work_tree_ignored(tmpdir):
     Git.run_command(["status", repo_dir], extra_environ=env, cwd=repo_dir)
 
 
-def test_get_remote_url(script, tmpdir):
-    source_dir = tmpdir / "source"
-    source_dir.mkdir()
-    source_url = _test_path_to_file_url(source_dir)
+def test_get_remote_url(script: PipTestEnvironment, tmpdir: Path) -> None:
+    source_path = tmpdir / "source"
+    source_path.mkdir()
+    source_url = _test_path_to_file_url(source_path)
 
-    source_dir = str(source_dir)
+    source_dir = str(source_path)
     script.run("git", "init", cwd=source_dir)
     do_commit(script, source_dir)
 
@@ -103,13 +111,13 @@ def test_get_remote_url(script, tmpdir):
     assert remote_url == source_url
 
 
-def test_get_remote_url__no_remote(script, tmpdir):
+def test_get_remote_url__no_remote(script: PipTestEnvironment, tmpdir: Path) -> None:
     """
     Test a repo with no remote.
     """
-    repo_dir = tmpdir / "temp-repo"
-    repo_dir.mkdir()
-    repo_dir = str(repo_dir)
+    repo_path = tmpdir / "temp-repo"
+    repo_path.mkdir()
+    repo_dir = str(repo_path)
 
     script.run("git", "init", cwd=repo_dir)
 
@@ -117,7 +125,7 @@ def test_get_remote_url__no_remote(script, tmpdir):
         Git.get_remote_url(repo_dir)
 
 
-def test_get_current_branch(script):
+def test_get_current_branch(script: PipTestEnvironment) -> None:
     repo_dir = str(script.scratch_path)
 
     script.run("git", "init", cwd=repo_dir)
@@ -135,7 +143,9 @@ def test_get_current_branch(script):
     assert Git.get_current_branch(repo_dir) is None
 
 
-def test_get_current_branch__branch_and_tag_same_name(script, tmpdir):
+def test_get_current_branch__branch_and_tag_same_name(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
     """
     Check calling get_current_branch() from a branch or tag when the branch
     and tag have the same name.
@@ -154,7 +164,7 @@ def test_get_current_branch__branch_and_tag_same_name(script, tmpdir):
     assert Git.get_current_branch(repo_dir) is None
 
 
-def test_get_revision_sha(script):
+def test_get_revision_sha(script: PipTestEnvironment) -> None:
     repo_dir = str(script.scratch_path)
 
     script.run("git", "init", cwd=repo_dir)
@@ -210,7 +220,7 @@ def test_get_revision_sha(script):
         check_rev(repo_dir, name, (None, False))
 
 
-def test_is_commit_id_equal(script):
+def test_is_commit_id_equal(script: PipTestEnvironment) -> None:
     """
     Test Git.is_commit_id_equal().
     """
@@ -226,7 +236,7 @@ def test_is_commit_id_equal(script):
     assert not Git.is_commit_id_equal(version_pkg_path, None)
 
 
-def test_is_immutable_rev_checkout(script):
+def test_is_immutable_rev_checkout(script: PipTestEnvironment) -> None:
     version_pkg_path = _create_test_package(script)
     commit = script.run("git", "rev-parse", "HEAD", cwd=version_pkg_path).stdout.strip()
     assert Git().is_immutable_rev_checkout(
@@ -238,19 +248,23 @@ def test_is_immutable_rev_checkout(script):
     )
 
 
-def test_get_repository_root(script):
+def test_get_repository_root(script: PipTestEnvironment) -> None:
     version_pkg_path = _create_test_package(script)
     tests_path = version_pkg_path.joinpath("tests")
     tests_path.mkdir()
 
     root1 = Git.get_repository_root(version_pkg_path)
+    assert root1 is not None
     assert os.path.normcase(root1) == os.path.normcase(version_pkg_path)
 
     root2 = Git.get_repository_root(version_pkg_path.joinpath("tests"))
+    assert root2 is not None
     assert os.path.normcase(root2) == os.path.normcase(version_pkg_path)
 
 
-def test_resolve_commit_not_on_branch(script, tmp_path):
+def test_resolve_commit_not_on_branch(
+    script: PipTestEnvironment, tmp_path: pathlib.Path
+) -> None:
     repo_path = tmp_path / "repo"
     repo_file = repo_path / "file.txt"
     clone_path = repo_path / "clone"
@@ -277,10 +291,14 @@ def test_resolve_commit_not_on_branch(script, tmp_path):
 
     # check we can fetch our commit
     rev_options = Git.make_rev_options(commit)
-    Git().fetch_new(str(clone_path), repo_path.as_uri(), rev_options)
+    Git().fetch_new(
+        str(clone_path), HiddenText(repo_path.as_uri(), redacted="*"), rev_options
+    )
 
 
-def _initialize_clonetest_server(repo_path, script, enable_partial_clone):
+def _initialize_clonetest_server(
+    repo_path: pathlib.Path, script: PipTestEnvironment, enable_partial_clone: bool
+) -> pathlib.Path:
     repo_path.mkdir()
     script.run("git", "init", cwd=str(repo_path))
     repo_file = repo_path / "file.txt"
@@ -299,7 +317,7 @@ def _initialize_clonetest_server(repo_path, script, enable_partial_clone):
 
 
 @pytest.mark.skipif(Git().get_git_version() < (2, 17), reason="git too old")
-def test_partial_clone(script, tmp_path):
+def test_partial_clone(script: PipTestEnvironment, tmp_path: pathlib.Path) -> None:
     """Test partial clone w/ a git-server that supports it"""
     repo_path = tmp_path / "repo"
     repo_file = _initialize_clonetest_server(
@@ -311,9 +329,17 @@ def test_partial_clone(script, tmp_path):
     commit = script.run("git", "rev-parse", "HEAD", cwd=str(repo_path)).stdout.strip()
 
     # Check that we can clone at HEAD
-    Git().fetch_new(str(clone_path1), repo_path.as_uri(), Git.make_rev_options())
+    Git().fetch_new(
+        str(clone_path1),
+        HiddenText(repo_path.as_uri(), redacted="*"),
+        Git.make_rev_options(),
+    )
     # Check that we can clone to commit
-    Git().fetch_new(str(clone_path2), repo_path.as_uri(), Git.make_rev_options(commit))
+    Git().fetch_new(
+        str(clone_path2),
+        HiddenText(repo_path.as_uri(), redacted="*"),
+        Git.make_rev_options(commit),
+    )
 
     # Write some additional stuff to git pull
     repo_file.write_text(u"..")
@@ -331,7 +357,9 @@ def test_partial_clone(script, tmp_path):
 
 
 @pytest.mark.skipif(Git().get_git_version() < (2, 17), reason="git too old")
-def test_partial_clone_without_server_support(script, tmp_path):
+def test_partial_clone_without_server_support(
+    script: PipTestEnvironment, tmp_path: pathlib.Path
+) -> None:
     """Test partial clone w/ a git-server that does not support it"""
     repo_path = tmp_path / "repo"
     repo_file = _initialize_clonetest_server(
@@ -343,9 +371,17 @@ def test_partial_clone_without_server_support(script, tmp_path):
     commit = script.run("git", "rev-parse", "HEAD", cwd=str(repo_path)).stdout.strip()
 
     # Check that we can clone at HEAD
-    Git().fetch_new(str(clone_path1), repo_path.as_uri(), Git.make_rev_options())
+    Git().fetch_new(
+        str(clone_path1),
+        HiddenText(repo_path.as_uri(), redacted="*"),
+        Git.make_rev_options(),
+    )
     # Check that we can clone to commit
-    Git().fetch_new(str(clone_path2), repo_path.as_uri(), Git.make_rev_options(commit))
+    Git().fetch_new(
+        str(clone_path2),
+        HiddenText(repo_path.as_uri(), redacted="*"),
+        Git.make_rev_options(commit),
+    )
 
     # Write some additional stuff to git pull
     repo_file.write_text(u"..")
@@ -362,7 +398,9 @@ def test_partial_clone_without_server_support(script, tmp_path):
     )
 
 
-def test_clone_without_partial_clone_support(script, tmp_path):
+def test_clone_without_partial_clone_support(
+    script: PipTestEnvironment, tmp_path: pathlib.Path
+) -> None:
     """Older git clients don't support partial clone. Test the fallback path"""
     repo_path = tmp_path / "repo"
     repo_file = _initialize_clonetest_server(
@@ -372,7 +410,11 @@ def test_clone_without_partial_clone_support(script, tmp_path):
 
     # Check that we can clone w/ old version of git w/o --filter
     with patch("pip._internal.vcs.git.Git.get_git_version", return_value=(2, 16)):
-        Git().fetch_new(str(clone_path), repo_path.as_uri(), Git.make_rev_options())
+        Git().fetch_new(
+            str(clone_path),
+            HiddenText(repo_path.as_uri(), redacted="*"),
+            Git.make_rev_options(),
+        )
 
     repo_file.write_text(u"...")
     script.run("git", "commit", "-am", "third commit", cwd=str(repo_path))

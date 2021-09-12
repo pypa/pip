@@ -3,14 +3,25 @@ import os
 
 import pytest
 
-from pip._internal.models.direct_url import DirectUrl
-from tests.lib import _create_test_package, create_test_package_with_setup, wheel
+from pip._internal.models.direct_url import DirectUrl, DirInfo
+from tests.conftest import ScriptFactory
+from tests.lib import (
+    PipTestEnvironment,
+    TestData,
+    _create_test_package,
+    create_test_package_with_setup,
+    wheel,
+)
 from tests.lib.direct_url import get_created_direct_url_path
 from tests.lib.path import Path
 
 
 @pytest.fixture(scope="session")
-def simple_script(tmpdir_factory, script_factory, shared_data):
+def simple_script(
+    tmpdir_factory: pytest.TempdirFactory,
+    script_factory: ScriptFactory,
+    shared_data: TestData,
+) -> PipTestEnvironment:
     tmpdir = Path(str(tmpdir_factory.mktemp("pip_test_package")))
     script = script_factory(tmpdir.joinpath("workspace"))
     script.pip(
@@ -24,7 +35,7 @@ def simple_script(tmpdir_factory, script_factory, shared_data):
     return script
 
 
-def test_basic_list(simple_script):
+def test_basic_list(simple_script: PipTestEnvironment) -> None:
     """
     Test default behavior of list command without format specifier.
 
@@ -34,7 +45,7 @@ def test_basic_list(simple_script):
     assert "simple2    3.0" in result.stdout, str(result)
 
 
-def test_verbose_flag(simple_script):
+def test_verbose_flag(simple_script: PipTestEnvironment) -> None:
     """
     Test the list command with the '-v' option
     """
@@ -47,7 +58,7 @@ def test_verbose_flag(simple_script):
     assert "simple2    3.0" in result.stdout, str(result)
 
 
-def test_columns_flag(simple_script):
+def test_columns_flag(simple_script: PipTestEnvironment) -> None:
     """
     Test the list command with the '--format=columns' option
     """
@@ -59,7 +70,7 @@ def test_columns_flag(simple_script):
     assert "simple2    3.0" in result.stdout, str(result)
 
 
-def test_format_priority(simple_script):
+def test_format_priority(simple_script: PipTestEnvironment) -> None:
     """
     Test that latest format has priority over previous ones.
     """
@@ -80,7 +91,7 @@ def test_format_priority(simple_script):
     assert "simple2    3.0" in result.stdout, str(result)
 
 
-def test_local_flag(simple_script):
+def test_local_flag(simple_script: PipTestEnvironment) -> None:
     """
     Test the behavior of --local flag in the list command
 
@@ -89,7 +100,7 @@ def test_local_flag(simple_script):
     assert {"name": "simple", "version": "1.0"} in json.loads(result.stdout)
 
 
-def test_local_columns_flag(simple_script):
+def test_local_columns_flag(simple_script: PipTestEnvironment) -> None:
     """
     Test the behavior of --local --format=columns flags in the list command
 
@@ -101,7 +112,9 @@ def test_local_columns_flag(simple_script):
     assert "simple     1.0" in result.stdout, str(result)
 
 
-def test_multiple_exclude_and_normalization(script, tmpdir):
+def test_multiple_exclude_and_normalization(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
     req_path = wheel.make_wheel(name="Normalizable_Name", version="1.0").save_to_dir(
         tmpdir
     )
@@ -117,7 +130,7 @@ def test_multiple_exclude_and_normalization(script, tmpdir):
 
 @pytest.mark.network
 @pytest.mark.incompatible_with_test_venv
-def test_user_flag(script, data):
+def test_user_flag(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test the behavior of --user flag in the list command
 
@@ -132,7 +145,7 @@ def test_user_flag(script, data):
 
 @pytest.mark.network
 @pytest.mark.incompatible_with_test_venv
-def test_user_columns_flag(script, data):
+def test_user_columns_flag(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test the behavior of --user --format=columns flags in the list command
 
@@ -148,7 +161,7 @@ def test_user_columns_flag(script, data):
 
 
 @pytest.mark.network
-def test_uptodate_flag(script, data):
+def test_uptodate_flag(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test the behavior of --uptodate flag in the list command
 
@@ -188,7 +201,7 @@ def test_uptodate_flag(script, data):
 
 
 @pytest.mark.network
-def test_uptodate_columns_flag(script, data):
+def test_uptodate_columns_flag(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test the behavior of --uptodate --format=columns flag in the list command
 
@@ -223,7 +236,7 @@ def test_uptodate_columns_flag(script, data):
 
 
 @pytest.mark.network
-def test_outdated_flag(script, data):
+def test_outdated_flag(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test the behavior of --outdated flag in the list command
 
@@ -283,7 +296,7 @@ def test_outdated_flag(script, data):
 
 
 @pytest.mark.network
-def test_outdated_columns_flag(script, data):
+def test_outdated_columns_flag(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test the behavior of --outdated --format=columns flag in the list command
 
@@ -322,7 +335,11 @@ def test_outdated_columns_flag(script, data):
 
 
 @pytest.fixture(scope="session")
-def pip_test_package_script(tmpdir_factory, script_factory, shared_data):
+def pip_test_package_script(
+    tmpdir_factory: pytest.TempdirFactory,
+    script_factory: ScriptFactory,
+    shared_data: TestData,
+) -> PipTestEnvironment:
     tmpdir = Path(str(tmpdir_factory.mktemp("pip_test_package")))
     script = script_factory(tmpdir.joinpath("workspace"))
     script.pip("install", "-f", shared_data.find_links, "--no-index", "simple==1.0")
@@ -335,7 +352,7 @@ def pip_test_package_script(tmpdir_factory, script_factory, shared_data):
 
 
 @pytest.mark.network
-def test_editables_flag(pip_test_package_script):
+def test_editables_flag(pip_test_package_script: PipTestEnvironment) -> None:
     """
     Test the behavior of --editables flag in the list command
     """
@@ -346,7 +363,7 @@ def test_editables_flag(pip_test_package_script):
 
 
 @pytest.mark.network
-def test_exclude_editable_flag(pip_test_package_script):
+def test_exclude_editable_flag(pip_test_package_script: PipTestEnvironment) -> None:
     """
     Test the behavior of --editables flag in the list command
     """
@@ -356,7 +373,7 @@ def test_exclude_editable_flag(pip_test_package_script):
 
 
 @pytest.mark.network
-def test_editables_columns_flag(pip_test_package_script):
+def test_editables_columns_flag(pip_test_package_script: PipTestEnvironment) -> None:
     """
     Test the behavior of --editables flag in the list command
     """
@@ -368,7 +385,9 @@ def test_editables_columns_flag(pip_test_package_script):
 
 
 @pytest.mark.network
-def test_uptodate_editables_flag(pip_test_package_script, data):
+def test_uptodate_editables_flag(
+    pip_test_package_script: PipTestEnvironment, data: TestData
+) -> None:
     """
     test the behavior of --editable --uptodate flag in the list command
     """
@@ -385,7 +404,9 @@ def test_uptodate_editables_flag(pip_test_package_script, data):
 
 
 @pytest.mark.network
-def test_uptodate_editables_columns_flag(pip_test_package_script, data):
+def test_uptodate_editables_columns_flag(
+    pip_test_package_script: PipTestEnvironment, data: TestData
+) -> None:
     """
     test the behavior of --editable --uptodate --format=columns flag in the
     list command
@@ -406,7 +427,7 @@ def test_uptodate_editables_columns_flag(pip_test_package_script, data):
 
 
 @pytest.mark.network
-def test_outdated_editables_flag(script, data):
+def test_outdated_editables_flag(script: PipTestEnvironment, data: TestData) -> None:
     """
     test the behavior of --editable --outdated flag in the list command
     """
@@ -429,7 +450,9 @@ def test_outdated_editables_flag(script, data):
 
 
 @pytest.mark.network
-def test_outdated_editables_columns_flag(script, data):
+def test_outdated_editables_columns_flag(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     test the behavior of --editable --outdated flag in the list command
     """
@@ -454,7 +477,7 @@ def test_outdated_editables_columns_flag(script, data):
     assert os.path.join("src", "pip-test-package") in result.stdout, str(result)
 
 
-def test_outdated_not_required_flag(script, data):
+def test_outdated_not_required_flag(script: PipTestEnvironment, data: TestData) -> None:
     """
     test the behavior of --outdated --not-required flag in the list command
     """
@@ -478,7 +501,7 @@ def test_outdated_not_required_flag(script, data):
     assert [] == json.loads(result.stdout)
 
 
-def test_outdated_pre(script, data):
+def test_outdated_pre(script: PipTestEnvironment, data: TestData) -> None:
     script.pip("install", "-f", data.find_links, "--no-index", "simple==1.0")
 
     # Let's build a fake wheelhouse
@@ -525,7 +548,7 @@ def test_outdated_pre(script, data):
     } in json.loads(result_pre.stdout)
 
 
-def test_outdated_formats(script, data):
+def test_outdated_formats(script: PipTestEnvironment, data: TestData) -> None:
     """Test of different outdated formats"""
     script.pip("install", "-f", data.find_links, "--no-index", "simple==1.0")
 
@@ -585,7 +608,7 @@ def test_outdated_formats(script, data):
     ]
 
 
-def test_not_required_flag(script, data):
+def test_not_required_flag(script: PipTestEnvironment, data: TestData) -> None:
     script.pip("install", "-f", data.find_links, "--no-index", "TopoRequires4")
     result = script.pip("list", "--not-required", expect_stderr=True)
     assert "TopoRequires4 " in result.stdout, str(result)
@@ -594,7 +617,7 @@ def test_not_required_flag(script, data):
     assert "TopoRequires3 " not in result.stdout
 
 
-def test_list_freeze(simple_script):
+def test_list_freeze(simple_script: PipTestEnvironment) -> None:
     """
     Test freeze formatting of list command
 
@@ -604,7 +627,7 @@ def test_list_freeze(simple_script):
     assert "simple2==3.0" in result.stdout, str(result)
 
 
-def test_list_json(simple_script):
+def test_list_json(simple_script: PipTestEnvironment) -> None:
     """
     Test json formatting of list command
 
@@ -615,7 +638,7 @@ def test_list_json(simple_script):
     assert {"name": "simple2", "version": "3.0"} in data
 
 
-def test_list_path(tmpdir, script, data):
+def test_list_path(tmpdir: Path, script: PipTestEnvironment, data: TestData) -> None:
     """
     Test list with --path.
     """
@@ -630,7 +653,9 @@ def test_list_path(tmpdir, script, data):
 
 
 @pytest.mark.incompatible_with_test_venv
-def test_list_path_exclude_user(tmpdir, script, data):
+def test_list_path_exclude_user(
+    tmpdir: Path, script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Test list with --path and make sure packages from --user are not picked
     up.
@@ -647,7 +672,9 @@ def test_list_path_exclude_user(tmpdir, script, data):
     assert {"name": "simple", "version": "1.0"} in json_result
 
 
-def test_list_path_multiple(tmpdir, script, data):
+def test_list_path_multiple(
+    tmpdir: Path, script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Test list with multiple --path arguments.
     """
@@ -669,7 +696,7 @@ def test_list_path_multiple(tmpdir, script, data):
     assert {"name": "simple2", "version": "3.0"} in json_result
 
 
-def test_list_skip_work_dir_pkg(script):
+def test_list_skip_work_dir_pkg(script: PipTestEnvironment) -> None:
     """
     Test that list should not include package in working directory
     """
@@ -684,7 +711,7 @@ def test_list_skip_work_dir_pkg(script):
     assert {"name": "simple", "version": "1.0"} not in json_result
 
 
-def test_list_include_work_dir_pkg(script):
+def test_list_include_work_dir_pkg(script: PipTestEnvironment) -> None:
     """
     Test that list should include package in working directory
     if working directory is added in PYTHONPATH
@@ -703,7 +730,8 @@ def test_list_include_work_dir_pkg(script):
     assert {"name": "simple", "version": "1.0"} in json_result
 
 
-def test_list_pep610_editable(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_list_pep610_editable(script: PipTestEnvironment) -> None:
     """
     Test that a package installed with a direct_url.json with editable=true
     is correctly listed as editable.
@@ -715,6 +743,7 @@ def test_list_pep610_editable(script, with_wheel):
     # patch direct_url.json to simulate an editable install
     with open(direct_url_path) as f:
         direct_url = DirectUrl.from_json(f.read())
+    assert isinstance(direct_url.info, DirInfo)
     direct_url.info.editable = True
     with open(direct_url_path, "w") as f:
         f.write(direct_url.to_json())

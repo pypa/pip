@@ -2,10 +2,14 @@ from os.path import exists
 
 import pytest
 
+from tests.lib import PipTestEnvironment, TestData
+
 
 @pytest.mark.network
 @pytest.mark.xfail(reason="The --build option was removed")
-def test_no_clean_option_blocks_cleaning_after_install(script, data):
+def test_no_clean_option_blocks_cleaning_after_install(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Test --no-clean option blocks cleaning after install
     """
@@ -28,7 +32,7 @@ def test_no_clean_option_blocks_cleaning_after_install(script, data):
 
 @pytest.mark.network
 @pytest.mark.usefixtures("with_wheel")
-def test_pep517_no_legacy_cleanup(script, data):
+def test_pep517_no_legacy_cleanup(script: PipTestEnvironment, data: TestData) -> None:
     """Test a PEP 517 failed build does not attempt a legacy cleanup"""
     to_install = data.packages.joinpath("pep517_wrapper_buildsys")
     script.environ["PIP_TEST_FAIL_BUILD_WHEEL"] = "1"

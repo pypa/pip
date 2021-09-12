@@ -36,7 +36,13 @@ from tests.lib.venv import VirtualEnvironment, VirtualEnvironmentType
 from .lib.compat import nullcontext
 
 if TYPE_CHECKING:
+    from typing import Protocol
+
     from wsgi import WSGIApplication
+else:
+    # TODO: Protocol was introduced in Python 3.8. Remove this branch when
+    # dropping support for Python 3.7.
+    Protocol = object
 
 
 def pytest_addoption(parser: Parser) -> None:
@@ -442,10 +448,17 @@ def with_wheel(virtualenv: VirtualEnvironment, wheel_install: Path) -> None:
     install_egg_link(virtualenv, "wheel", wheel_install)
 
 
+class ScriptFactory(Protocol):
+    def __call__(
+        self, tmpdir: Path, virtualenv: Optional[VirtualEnvironment] = None
+    ) -> PipTestEnvironment:
+        ...
+
+
 @pytest.fixture(scope="session")
 def script_factory(
     virtualenv_factory: Callable[[Path], VirtualEnvironment], deprecated_python: bool
-) -> Callable[[Path, Optional[VirtualEnvironment]], PipTestEnvironment]:
+) -> ScriptFactory:
     def factory(
         tmpdir: Path, virtualenv: Optional[VirtualEnvironment] = None
     ) -> PipTestEnvironment:
@@ -533,8 +546,11 @@ def deprecated_python() -> bool:
     return sys.version_info[:2] in []
 
 
+CertFactory = Callable[[], str]
+
+
 @pytest.fixture(scope="session")
-def cert_factory(tmpdir_factory: pytest.TempdirFactory) -> Callable[[], str]:
+def cert_factory(tmpdir_factory: pytest.TempdirFactory) -> CertFactory:
     def factory() -> str:
         """Returns path to cert/key file."""
         output_path = Path(str(tmpdir_factory.mktemp("certs"))) / "cert.pem"

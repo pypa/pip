@@ -1,16 +1,26 @@
 from textwrap import dedent
+from typing import Optional
 
 import pytest
 
 from pip._internal.build_env import BuildEnvironment
-from tests.lib import create_basic_wheel_for_package, make_test_finder
+from tests.lib import (
+    PipTestEnvironment,
+    TestPipResult,
+    create_basic_wheel_for_package,
+    make_test_finder,
+)
 
 
-def indent(text, prefix):
+def indent(text: str, prefix: str) -> str:
     return "\n".join((prefix if line else "") + line for line in text.split("\n"))
 
 
-def run_with_build_env(script, setup_script_contents, test_script_contents=None):
+def run_with_build_env(
+    script: PipTestEnvironment,
+    setup_script_contents: str,
+    test_script_contents: Optional[str] = None,
+) -> TestPipResult:
     build_env_script = script.scratch_path / "build_env.py"
     build_env_script.write_text(
         dedent(
@@ -66,13 +76,16 @@ def run_with_build_env(script, setup_script_contents, test_script_contents=None)
     return script.run(*args)
 
 
-def test_build_env_allow_empty_requirements_install():
+def test_build_env_allow_empty_requirements_install() -> None:
+    finder = make_test_finder()
     build_env = BuildEnvironment()
     for prefix in ("normal", "overlay"):
-        build_env.install_requirements(None, [], prefix, None)
+        build_env.install_requirements(
+            finder, [], prefix, "Installing build dependencies"
+        )
 
 
-def test_build_env_allow_only_one_install(script):
+def test_build_env_allow_only_one_install(script: PipTestEnvironment) -> None:
     create_basic_wheel_for_package(script, "foo", "1.0")
     create_basic_wheel_for_package(script, "bar", "1.0")
     finder = make_test_finder(find_links=[script.scratch_path])
@@ -91,7 +104,7 @@ def test_build_env_allow_only_one_install(script):
             )
 
 
-def test_build_env_requirements_check(script):
+def test_build_env_requirements_check(script: PipTestEnvironment) -> None:
 
     create_basic_wheel_for_package(script, "foo", "2.0")
     create_basic_wheel_for_package(script, "bar", "1.0")
@@ -152,7 +165,7 @@ def test_build_env_requirements_check(script):
     )
 
 
-def test_build_env_overlay_prefix_has_priority(script):
+def test_build_env_overlay_prefix_has_priority(script: PipTestEnvironment) -> None:
     create_basic_wheel_for_package(script, "pkg", "2.0")
     create_basic_wheel_for_package(script, "pkg", "4.3")
     result = run_with_build_env(
@@ -171,7 +184,7 @@ def test_build_env_overlay_prefix_has_priority(script):
 
 
 @pytest.mark.incompatible_with_test_venv
-def test_build_env_isolation(script):
+def test_build_env_isolation(script: PipTestEnvironment) -> None:
 
     # Create dummy `pkg` wheel.
     pkg_whl = create_basic_wheel_for_package(script, "pkg", "1.0")

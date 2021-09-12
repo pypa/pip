@@ -1,16 +1,24 @@
+from typing import Any, Dict, List, Optional, Tuple
+
 import pytest
 import tomli_w
 
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.req import InstallRequirement
-from tests.lib import make_test_finder, path_to_url
+from tests.lib import PipTestEnvironment, TestData, make_test_finder, path_to_url
+from tests.lib.path import Path
 
 
-def make_project(tmpdir, requires=None, backend=None, backend_path=None):
+def make_project(
+    tmpdir: Path,
+    requires: Optional[List[str]] = None,
+    backend: Optional[str] = None,
+    backend_path: Optional[List[str]] = None,
+) -> Path:
     requires = requires or []
     project_dir = tmpdir / "project"
     project_dir.mkdir()
-    buildsys = {"requires": requires}
+    buildsys: Dict[str, Any] = {"requires": requires}
     if backend:
         buildsys["build-backend"] = backend
     if backend_path:
@@ -20,7 +28,7 @@ def make_project(tmpdir, requires=None, backend=None, backend_path=None):
     return project_dir
 
 
-def test_backend(tmpdir, data):
+def test_backend(tmpdir: Path, data: TestData) -> None:
     """Check we can call a requirement's backend successfully"""
     project_dir = make_project(tmpdir, backend="dummy_backend")
     req = InstallRequirement(None, None)
@@ -33,6 +41,7 @@ def test_backend(tmpdir, data):
     assert not conflicting and not missing
     assert hasattr(req.pep517_backend, "build_wheel")
     with env:
+        assert req.pep517_backend is not None
         assert req.pep517_backend.build_wheel("dir") == "Backend called"
 
 
@@ -46,7 +55,7 @@ def build_wheel(
 """
 
 
-def test_backend_path(tmpdir, data):
+def test_backend_path(tmpdir: Path, data: TestData) -> None:
     """Check we can call a backend inside the project"""
     project_dir = make_project(tmpdir, backend="dummy_backend", backend_path=["."])
     (project_dir / "dummy_backend.py").write_text(dummy_backend_code)
@@ -57,10 +66,11 @@ def test_backend_path(tmpdir, data):
     env = BuildEnvironment()
     assert hasattr(req.pep517_backend, "build_wheel")
     with env:
+        assert req.pep517_backend is not None
         assert req.pep517_backend.build_wheel("dir") == "Backend called"
 
 
-def test_backend_path_and_dep(tmpdir, data):
+def test_backend_path_and_dep(tmpdir: Path, data: TestData) -> None:
     """Check we can call a requirement's backend successfully"""
     project_dir = make_project(
         tmpdir, backend="dummy_internal_backend", backend_path=["."]
@@ -77,10 +87,13 @@ def test_backend_path_and_dep(tmpdir, data):
 
     assert hasattr(req.pep517_backend, "build_wheel")
     with env:
+        assert req.pep517_backend is not None
         assert req.pep517_backend.build_wheel("dir") == "Backend called"
 
 
-def test_pep517_install(script, tmpdir, data):
+def test_pep517_install(
+    script: PipTestEnvironment, tmpdir: Path, data: TestData
+) -> None:
     """Check we can build with a custom backend"""
     project_dir = make_project(
         tmpdir, requires=["test_backend"], backend="test_backend"
@@ -89,7 +102,9 @@ def test_pep517_install(script, tmpdir, data):
     result.assert_installed("project", editable=False)
 
 
-def test_pep517_install_with_reqs(script, tmpdir, data):
+def test_pep517_install_with_reqs(
+    script: PipTestEnvironment, tmpdir: Path, data: TestData
+) -> None:
     """Backend generated requirements are installed in the build env"""
     project_dir = make_project(
         tmpdir, requires=["test_backend"], backend="test_backend"
@@ -101,7 +116,9 @@ def test_pep517_install_with_reqs(script, tmpdir, data):
     result.assert_installed("project", editable=False)
 
 
-def test_no_use_pep517_without_setup_py(script, tmpdir, data):
+def test_no_use_pep517_without_setup_py(
+    script: PipTestEnvironment, tmpdir: Path, data: TestData
+) -> None:
     """Using --no-use-pep517 requires setup.py"""
     project_dir = make_project(
         tmpdir, requires=["test_backend"], backend="test_backend"
@@ -118,7 +135,9 @@ def test_no_use_pep517_without_setup_py(script, tmpdir, data):
     assert "project does not have a setup.py" in result.stderr
 
 
-def test_conflicting_pep517_backend_requirements(script, tmpdir, data):
+def test_conflicting_pep517_backend_requirements(
+    script: PipTestEnvironment, tmpdir: Path, data: TestData
+) -> None:
     project_dir = make_project(
         tmpdir, requires=["test_backend", "simplewheel==1.0"], backend="test_backend"
     )
@@ -141,7 +160,9 @@ def test_conflicting_pep517_backend_requirements(script, tmpdir, data):
     assert result.returncode != 0 and msg in result.stderr, str(result)
 
 
-def test_pep517_backend_requirements_already_satisfied(script, tmpdir, data):
+def test_pep517_backend_requirements_already_satisfied(
+    script: PipTestEnvironment, tmpdir: Path, data: TestData
+) -> None:
     project_dir = make_project(
         tmpdir, requires=["test_backend", "simplewheel==1.0"], backend="test_backend"
     )
@@ -158,7 +179,9 @@ def test_pep517_backend_requirements_already_satisfied(script, tmpdir, data):
     assert "Installing backend dependencies:" not in result.stdout
 
 
-def test_pep517_install_with_no_cache_dir(script, tmpdir, data):
+def test_pep517_install_with_no_cache_dir(
+    script: PipTestEnvironment, tmpdir: Path, data: TestData
+) -> None:
     """Check builds with a custom backends work, even with no cache."""
     project_dir = make_project(
         tmpdir, requires=["test_backend"], backend="test_backend"
@@ -174,13 +197,15 @@ def test_pep517_install_with_no_cache_dir(script, tmpdir, data):
     result.assert_installed("project", editable=False)
 
 
-def make_pyproject_with_setup(tmpdir, build_system=True, set_backend=True):
+def make_pyproject_with_setup(
+    tmpdir: Path, build_system: bool = True, set_backend: bool = True
+) -> Tuple[Path, str]:
     project_dir = tmpdir / "project"
     project_dir.mkdir()
     setup_script = "from setuptools import setup\n"
     expect_script_dir_on_path = True
     if build_system:
-        buildsys = {
+        buildsys: Dict[str, Any] = {
             "requires": ["setuptools", "wheel"],
         }
         if set_backend:
@@ -212,7 +237,9 @@ def make_pyproject_with_setup(tmpdir, build_system=True, set_backend=True):
     return project_dir, "pep517_test"
 
 
-def test_no_build_system_section(script, tmpdir, data, common_wheels):
+def test_no_build_system_section(
+    script: PipTestEnvironment, tmpdir: Path, data: TestData, common_wheels: Path
+) -> None:
     """Check builds with setup.py, pyproject.toml, but no build-system section."""
     project_dir, name = make_pyproject_with_setup(tmpdir, build_system=False)
     result = script.pip(
@@ -226,7 +253,9 @@ def test_no_build_system_section(script, tmpdir, data, common_wheels):
     result.assert_installed(name, editable=False)
 
 
-def test_no_build_backend_entry(script, tmpdir, data, common_wheels):
+def test_no_build_backend_entry(
+    script: PipTestEnvironment, tmpdir: Path, data: TestData, common_wheels: Path
+) -> None:
     """Check builds with setup.py, pyproject.toml, but no build-backend entry."""
     project_dir, name = make_pyproject_with_setup(tmpdir, set_backend=False)
     result = script.pip(
@@ -240,7 +269,9 @@ def test_no_build_backend_entry(script, tmpdir, data, common_wheels):
     result.assert_installed(name, editable=False)
 
 
-def test_explicit_setuptools_backend(script, tmpdir, data, common_wheels):
+def test_explicit_setuptools_backend(
+    script: PipTestEnvironment, tmpdir: Path, data: TestData, common_wheels: Path
+) -> None:
     """Check builds with setup.py, pyproject.toml, and a build-backend entry."""
     project_dir, name = make_pyproject_with_setup(tmpdir)
     result = script.pip(
@@ -255,7 +286,9 @@ def test_explicit_setuptools_backend(script, tmpdir, data, common_wheels):
 
 
 @pytest.mark.network
-def test_pep517_and_build_options(script, tmpdir, data, common_wheels):
+def test_pep517_and_build_options(
+    script: PipTestEnvironment, tmpdir: Path, data: TestData, common_wheels: Path
+) -> None:
     """Backend generated requirements are installed in the build env"""
     project_dir, name = make_pyproject_with_setup(tmpdir)
     result = script.pip(
@@ -273,7 +306,9 @@ def test_pep517_and_build_options(script, tmpdir, data, common_wheels):
 
 
 @pytest.mark.network
-def test_pep517_and_global_options(script, tmpdir, data, common_wheels):
+def test_pep517_and_global_options(
+    script: PipTestEnvironment, tmpdir: Path, data: TestData, common_wheels: Path
+) -> None:
     """Backend generated requirements are installed in the build env"""
     project_dir, name = make_pyproject_with_setup(tmpdir)
     result = script.pip(
