@@ -1,6 +1,5 @@
 import itertools
 import os
-import sys
 import textwrap
 
 import pytest
@@ -350,54 +349,6 @@ def test_upgrade_vcs_req_with_dist_found(script):
     script.pip("install", req, expect_stderr=True)
     result = script.pip("install", "-U", req, expect_stderr=True)
     assert "pypi.org" not in result.stdout, result.stdout
-
-
-class TestUpgradeDistributeToSetuptools:
-    """
-    From pip1.4 to pip6, pip supported a set of "hacks" (see Issue #1122) to
-    allow distribute to conflict with setuptools, so that the following would
-    work to upgrade distribute:
-
-     ``pip install -U  setuptools``
-
-    In pip7, the hacks were removed.  This test remains to at least confirm pip
-    can upgrade distribute to setuptools using:
-
-      ``pip install -U distribute``
-
-    The reason this works is that a final version of distribute (v0.7.3) was
-    released that is simple wrapper with:
-
-      install_requires=['setuptools>=0.7']
-
-    The test use a fixed set of packages from our test packages dir. Note that
-    virtualenv-1.9.1 contains distribute-0.6.34 and virtualenv-1.10 contains
-    setuptools-0.9.7
-    """
-
-    def prep_ve(self, script, version, pip_src, distribute=False):
-        self.script = script
-        self.script.pip_install_local(f"virtualenv=={version}")
-        args = ["virtualenv", self.script.scratch_path / "VE"]
-        if distribute:
-            args.insert(1, "--distribute")
-        if version == "1.9.1" and not distribute:
-            # setuptools 0.6 didn't support PYTHONDONTWRITEBYTECODE
-            del self.script.environ["PYTHONDONTWRITEBYTECODE"]
-        self.script.run(*args)
-        if sys.platform == "win32":
-            bindir = "Scripts"
-        else:
-            bindir = "bin"
-        self.ve_bin = self.script.scratch_path / "VE" / bindir
-        self.script.run(self.ve_bin / "pip", "uninstall", "-y", "pip")
-        self.script.run(
-            self.ve_bin / "python",
-            "setup.py",
-            "install",
-            cwd=pip_src,
-            expect_stderr=True,
-        )
 
 
 @pytest.mark.parametrize(
