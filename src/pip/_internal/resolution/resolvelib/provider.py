@@ -112,9 +112,9 @@ class PipProvider(_ProviderBase):
                 for _, parent in information[identifier]
             )
             inferred_depth = min(d for d in parent_depths) + 1.0
-            self._known_depths[identifier] = inferred_depth
         else:
             inferred_depth = 1.0
+        self._known_depths[identifier] = inferred_depth
 
         requested_order = self._user_requested.get(identifier, math.inf)
 
