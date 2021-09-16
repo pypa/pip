@@ -802,18 +802,26 @@ class InstallRequirement:
 
         self.install_succeeded = success
 
-        if success and self.legacy_install_reason == 8368:
-            deprecated(
-                reason=(
-                    "{} was installed using the legacy 'setup.py install' "
-                    "method, because a wheel could not be built for it.".format(
-                        self.name
-                    )
-                ),
-                replacement="to fix the wheel build issue reported above",
-                gone_in=None,
-                issue=8368,
-            )
+        if success:
+            if self.legacy_install_reason == 8368:
+                deprecated(
+                    reason=(
+                        "{} was installed using the legacy 'setup.py install' "
+                        "method, because a wheel could not be built for it.".format(
+                            self.name
+                        )
+                    ),
+                    replacement="to fix the wheel build issue reported above",
+                    gone_in=None,
+                    issue=8368,
+                )
+            if self.link.is_vcs:
+                logger.warning(
+                    "Direct URL of package '%s' will not be recorded when "
+                    "using legacy 'setup.py install'.\n"
+                    "Consider installing the 'wheel' package.",
+                    self.name,
+                )
 
 
 def check_invalid_constraint_type(req: InstallRequirement) -> str:

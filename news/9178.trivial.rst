@@ -1,0 +1,1 @@
+Add warning of not recording VCS info with legacy 'setup.py install'
