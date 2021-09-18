@@ -113,7 +113,7 @@ installed using :ref:`pip install` like so:
 
       py -m pip install -r requirements.txt
 
-Details on the format of the files are here: :ref:`Requirements File Format`.
+Details on the format of the files are here: :ref:`requirements-file-format`.
 
 Logically, a Requirements file is just a list of :ref:`pip install` arguments
 placed in a file. Note that you should not rely on the items in the file being
@@ -185,7 +185,7 @@ not by discovering ``requirements.txt`` files embedded in projects.
 
 See also:
 
-* :ref:`Requirements File Format`
+* :ref:`requirements-file-format`
 * :ref:`pip freeze`
 * `"setup.py vs requirements.txt" (an article by Donald Stufft)
   <https://caremad.io/2013/07/setup-vs-requirement/>`_
