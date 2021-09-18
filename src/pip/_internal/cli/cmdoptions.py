@@ -731,18 +731,6 @@ no_deps: Callable[..., Option] = partial(
     help="Don't install package dependencies.",
 )
 
-build_dir: Callable[..., Option] = partial(
-    PipOption,
-    "-b",
-    "--build",
-    "--build-dir",
-    "--build-directory",
-    dest="build_dir",
-    type="path",
-    metavar="dir",
-    help=SUPPRESS_HELP,
-)
-
 ignore_requires_python: Callable[..., Option] = partial(
     Option,
     "--ignore-requires-python",

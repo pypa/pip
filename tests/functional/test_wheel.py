@@ -2,7 +2,6 @@
 import os
 import re
 import sys
-from os.path import exists
 
 import pytest
 
@@ -238,35 +237,6 @@ def test_pip_wheel_fail(script, data):
     assert "FakeError" in result.stderr, result.stderr
     assert "Failed to build wheelbroken" in result.stdout, result.stdout
     assert result.returncode != 0
-
-
-def test_no_clean_option_blocks_cleaning_after_wheel(
-    script,
-    data,
-    resolver_variant,
-):
-    """
-    Test --no-clean option blocks cleaning after wheel build
-    """
-    build = script.venv_path / "build"
-    result = script.pip(
-        "wheel",
-        "--no-clean",
-        "--no-index",
-        "--build",
-        build,
-        f"--find-links={data.find_links}",
-        "simple",
-        expect_temp=True,
-        # TODO: allow_stderr_warning is used for the --build deprecation,
-        #       remove it when removing support for --build
-        allow_stderr_warning=True,
-    )
-
-    if resolver_variant == "legacy":
-        build = build / "simple"
-        message = f"build/simple should still exist {result}"
-        assert exists(build), message
 
 
 def test_pip_wheel_source_deps(script, data):

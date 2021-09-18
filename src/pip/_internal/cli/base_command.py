@@ -27,7 +27,6 @@ from pip._internal.exceptions import (
     PreviousBuildDirError,
     UninstallationError,
 )
-from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.logging import BrokenStdoutLoggingError, setup_logging
 from pip._internal.utils.misc import get_prog, normalize_path
@@ -148,20 +147,6 @@ class Command(CommandContextMixIn):
                     options.cache_dir,
                 )
                 options.cache_dir = None
-
-        if getattr(options, "build_dir", None):
-            deprecated(
-                reason=(
-                    "The -b/--build/--build-dir/--build-directory "
-                    "option is deprecated and has no effect anymore."
-                ),
-                replacement=(
-                    "use the TMPDIR/TEMP/TMP environment variable, "
-                    "possibly combined with --no-clean"
-                ),
-                gone_in="21.3",
-                issue=8333,
-            )
 
         if "2020-resolver" in options.features_enabled:
             logger.warning(
