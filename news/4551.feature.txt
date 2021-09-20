@@ -1,0 +1,1 @@
+ Added an ``upgrade-all`` command. This command will update all packages that can be updated.
