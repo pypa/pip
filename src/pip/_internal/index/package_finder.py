@@ -223,7 +223,7 @@ class LinkEvaluator:
             ignore_requires_python=self._ignore_requires_python,
         )
         if not supports_python:
-            reason = f'{version} Requires-Python {link.requires_python}'
+            reason = f"{version} Requires-Python {link.requires_python}"
             return (False, reason)
 
         logger.debug("Found link %s, version: %s", link, version)
@@ -685,6 +685,11 @@ class PackageFinder:
     def set_prefer_binary(self) -> None:
         self._candidate_prefs.prefer_binary = True
 
+    def skipped_links_requires_python(self) -> List[str]:
+        return sorted(
+            {reason for _, reason in self._logged_links if "Requires-Python" in reason}
+        )
+
     def make_link_evaluator(self, project_name: str) -> LinkEvaluator:
         canonical_name = canonicalize_name(project_name)
         formats = self.format_control.get_allowed_formats(canonical_name)
@@ -697,18 +702,6 @@ class PackageFinder:
             allow_yanked=self._allow_yanked,
             ignore_requires_python=self._ignore_requires_python,
         )
-
-    def skipped_links_requires_python(self):
-        # type: () -> List[str]
-        return sorted(
-            {reason for _, reason in self._logged_links if 'Requires-Python' in reason}
-        )
-
-    def logged_links_rp(self):
-        # type: () -> List[str]
-        skips = [skip for skip in self._logged_links_rp]
-        skips.sort()
-        return skips
 
     def _sort_links(self, links: Iterable[Link]) -> List[Link]:
         """
@@ -730,7 +723,7 @@ class PackageFinder:
         if (link, reason) not in self._logged_links:
             # Put the link at the end so the reason is more visible and because
             # the link string is usually very long.
-            logger.debug('Skipping link: %s: %s', reason, link)
+            logger.debug("Skipping link: %s: %s", reason, link)
             self._logged_links.add((link, reason))
 
     def get_install_candidate(
@@ -750,11 +743,6 @@ class PackageFinder:
             link=link,
             version=result,
         )
-
-    def _log_skipped_link_rp(self, reason):
-        # type: (str) -> None
-        if reason not in self._logged_links_rp:
-            self._logged_links_rp.add(reason)
 
     def evaluate_links(
         self, link_evaluator: LinkEvaluator, links: Iterable[Link]
