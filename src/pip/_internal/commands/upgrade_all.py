@@ -1,12 +1,11 @@
+import os
 import logging
 import operator
-from functools import partial
-from optparse import SUPPRESS_HELP, Values
-from typing import TYPE_CHECKING, List, Sequence, cast, Iterator, Optional, Tuple
+from optparse import Values
+from typing import TYPE_CHECKING, List, Sequence, cast, Iterator, Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
 
-from pip._internal.utils.compat import stdlib_pkgs
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
@@ -21,17 +20,12 @@ from pip._internal.commands.install import (
     decide_user_install,
 )
 from pip._internal.cli.status_codes import ERROR, SUCCESS
-from pip._internal.exceptions import InstallationError
-from pip._internal.index.package_finder import PackageFinder
+from pip._internal.exceptions import InstallationError, CommandError
 from pip._internal.metadata import BaseDistribution, get_environment
-from pip._internal.operations.prepare import RequirementPreparer
-from pip._internal.req.constructors import (
-    install_req_from_req_string,
-)
 
 from pip._internal.req import install_given_reqs
 from pip._internal.req.req_tracker import get_requirement_tracker
-from pip._internal.resolution.base import BaseResolver
+from pip._internal.utils.compat import stdlib_pkgs
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.misc import (
     write_output,
@@ -116,7 +110,7 @@ class UpgradeAllCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.list_path())
         self.cmd_opts.add_option(cmdoptions.global_options())
 
-        #TODO: bundle all these options so they can be reused in install command
+        # TODO: bundle all these options so they can be reused in install command
         self.cmd_opts.add_option(
             "--compile",
             action="store_true",
@@ -255,7 +249,6 @@ class UpgradeAllCommand(RequirementCommand):
             )
         ]
 
-        packages = self.get_outdated(packages, options)
         reqs = [dist.canonical_name for dist in packages]
 
         logging.info("upgrading %s", reqs)
@@ -267,7 +260,7 @@ class UpgradeAllCommand(RequirementCommand):
             root_path=options.root_path,
             isolated_mode=options.isolated_mode,
         )
-        #TODO: create self.handle_target_dir function to reuse here
+        # TODO: create self.handle_target_dir function to reuse here
 
         target_temp_dir: Optional[TempDirectory] = None
         target_temp_dir_path: Optional[str] = None
@@ -289,12 +282,11 @@ class UpgradeAllCommand(RequirementCommand):
             target_temp_dir_path = target_temp_dir.path
             self.enter_context(target_temp_dir)
 
-
         options.upgrade = True
         # we don't upgrade in editable mode
         options.editable = False
 
-        #TODO: make internal function in install command to reuse steps here
+        # TODO: make internal function in install command to reuse steps here
         target_python = make_target_python(options)
         session = self.get_default_session(options)
         finder = self._build_package_finder(
