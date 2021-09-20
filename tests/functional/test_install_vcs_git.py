@@ -158,7 +158,7 @@ def test_install_editable_from_git_with_https(script, tmpdir):
 
 
 @pytest.mark.network
-def test_install_noneditable_git(script, tmpdir, with_wheel):
+def test_install_noneditable_git(script, with_wheel):
     """
     Test installing from a non-editable git URL with a given tag.
     """

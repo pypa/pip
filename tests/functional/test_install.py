@@ -300,7 +300,7 @@ def test_basic_install_editable_from_svn(script):
     result.assert_installed("version-pkg", with_files=[".svn"])
 
 
-def _test_install_editable_from_git(script, tmpdir):
+def _test_install_editable_from_git(script):
     """Test cloning from Git."""
     pkg_path = _create_test_package(script, name="testpackage", vcs="git")
     args = [
@@ -312,12 +312,12 @@ def _test_install_editable_from_git(script, tmpdir):
     result.assert_installed("testpackage", with_files=[".git"])
 
 
-def test_basic_install_editable_from_git(script, tmpdir):
-    _test_install_editable_from_git(script, tmpdir)
+def test_basic_install_editable_from_git(script):
+    _test_install_editable_from_git(script)
 
 
-def test_install_editable_from_git_autobuild_wheel(script, tmpdir, with_wheel):
-    _test_install_editable_from_git(script, tmpdir)
+def test_install_editable_from_git_autobuild_wheel(script, with_wheel):
+    _test_install_editable_from_git(script)
 
 
 @pytest.mark.network
@@ -375,7 +375,7 @@ def test_install_editable_uninstalls_existing_from_path(script, data):
 
 
 @need_mercurial
-def test_basic_install_editable_from_hg(script, tmpdir):
+def test_basic_install_editable_from_hg(script):
     """Test cloning and hg+file install from Mercurial."""
     pkg_path = _create_test_package(script, name="testpackage", vcs="hg")
     url = "hg+{}#egg=testpackage".format(path_to_url(pkg_path))
@@ -386,7 +386,7 @@ def test_basic_install_editable_from_hg(script, tmpdir):
 
 
 @need_mercurial
-def test_vcs_url_final_slash_normalization(script, tmpdir):
+def test_vcs_url_final_slash_normalization(script):
     """
     Test that presence or absence of final slash in VCS URL is normalized.
     """
@@ -401,7 +401,7 @@ def test_vcs_url_final_slash_normalization(script, tmpdir):
 
 
 @need_bzr
-def test_install_editable_from_bazaar(script, tmpdir):
+def test_install_editable_from_bazaar(script):
     """Test checking out from Bazaar."""
     pkg_path = _create_test_package(script, name="testpackage", vcs="bazaar")
     args = [

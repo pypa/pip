@@ -364,7 +364,7 @@ def test_pip_wheel_ext_module_with_tmpdir_inside(script, data, common_wheels):
 
 
 @pytest.mark.network
-def test_pep517_wheels_are_not_confused_with_other_files(script, tmpdir, data):
+def test_pep517_wheels_are_not_confused_with_other_files(script, data):
     """Check correct wheels are copied. (#6196)"""
     pkg_to_wheel = data.src / "withpyproject"
     add_files_to_dist_directory(pkg_to_wheel)
@@ -377,7 +377,7 @@ def test_pep517_wheels_are_not_confused_with_other_files(script, tmpdir, data):
     result.did_create(wheel_file_path)
 
 
-def test_legacy_wheels_are_not_confused_with_other_files(script, tmpdir, data):
+def test_legacy_wheels_are_not_confused_with_other_files(script, data):
     """Check correct wheels are copied. (#6196)"""
     pkg_to_wheel = data.src / "simplewheel-1.0"
     add_files_to_dist_directory(pkg_to_wheel)
