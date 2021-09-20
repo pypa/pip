@@ -11,8 +11,8 @@ from pip._internal.cli.main_parser import create_main_parser
 from pip._internal.commands import commands_dict, create_command
 from pip._internal.metadata import get_default_environment
 
-
 DELIMITER = "*"
+
 
 def autocomplete() -> None:
     """Entry Point for completion of main and subcommand options."""
@@ -27,10 +27,9 @@ def autocomplete() -> None:
         current = ""
 
     parser = create_main_parser()
-    subcommands: Dict[str,str] = {
+    subcommands: Dict[str, Optional[str]] = {
         name: command.summary for name, command in commands_dict.items()
     }
-    options = []
 
     # subcommand
     subcommand_name: Optional[str] = None
@@ -60,11 +59,14 @@ def autocomplete() -> None:
             # if there are no dists installed, fall back to option completion
             if installed:
                 for dist, version in installed:
-                    output_completion_with_description(name=dist, description=version)
+                    output_completion_with_description(
+                        name=dist, description=str(version)
+                    )
                 sys.exit(1)
 
         subcommand = create_command(subcommand_name)
 
+        options = []
         for opt in subcommand.parser.option_list_all:
             if opt.help != optparse.SUPPRESS_HELP:
                 for opt_str in opt._long_opts + opt._short_opts:
@@ -72,7 +74,7 @@ def autocomplete() -> None:
 
         # filter out previously specified options from available options
         prev_opts = [x.split("=")[0] for x in cwords[1 : cword - 1]]
-        options = [(x, v, h) for (x, v) in options if x not in prev_opts]
+        options = [(x, v, h) for x, v, h in options if x not in prev_opts]
         # filter options by current input
         options = [(k, v, h) for k, v, h in options if k.startswith(current)]
         # get completion type given cwords and available subcommand options
@@ -117,11 +119,17 @@ def autocomplete() -> None:
     sys.exit(1)
 
 
-def output_completion_with_description(name: str, description: str="") -> None:
+def output_completion_with_description(
+    name: str, description: Optional[str] = ""
+) -> None:
     """Prints the string for completion with its description in a consistent way."""
+    # Handle no description as an empty description
+    if description is None:
+        description = ""
     # Make descriptions oneliners so they're grouped as one.
     description = " ".join(description.splitlines())
     print(name + DELIMITER + description)
+
 
 def get_path_completion_type(
     cwords: List[str], cword: int, opts: Iterable[Any]
