@@ -99,7 +99,8 @@ def test_exclude_and_normalization(script, tmpdir):
     assert "Normalizable_Name" not in result.stdout
 
 
-def test_freeze_multiple_exclude_with_all(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_freeze_multiple_exclude_with_all(script):
     result = script.pip("freeze", "--all")
     assert "pip==" in result.stdout
     assert "wheel==" in result.stdout
@@ -936,7 +937,8 @@ def test_freeze_path_multiple(tmpdir, script, data):
     _check_output(result.stdout, expected)
 
 
-def test_freeze_direct_url_archive(script, shared_data, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_freeze_direct_url_archive(script, shared_data):
     req = "simple @ " + path_to_url(shared_data.packages / "simple-2.0.tar.gz")
     assert req.startswith("simple @ file://")
     script.pip("install", req)

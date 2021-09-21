@@ -222,7 +222,8 @@ def test_options_from_venv_config(script, virtualenv):
     assert msg.lower() in result.stdout.lower(), str(result)
 
 
-def test_install_no_binary_via_config_disables_cached_wheels(script, data, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_no_binary_via_config_disables_cached_wheels(script, data):
     config_file = tempfile.NamedTemporaryFile(mode="wt", delete=False)
     try:
         script.environ["PIP_CONFIG_FILE"] = config_file.name

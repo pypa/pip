@@ -36,9 +36,8 @@ def test_invalid_upgrade_strategy_causes_error(script):
     assert "invalid choice" in result.stderr
 
 
-def test_only_if_needed_does_not_upgrade_deps_when_satisfied(
-    script, resolver_variant, with_wheel
-):
+@pytest.mark.usefixtures("with_wheel")
+def test_only_if_needed_does_not_upgrade_deps_when_satisfied(script, resolver_variant):
     """
     It doesn't upgrade a dependency if it already satisfies the requirements.
 
@@ -63,7 +62,8 @@ def test_only_if_needed_does_not_upgrade_deps_when_satisfied(
     ), "did not print correct message for not-upgraded requirement"
 
 
-def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(script):
     """
     It does upgrade a dependency if it no longer satisfies the requirements.
 
@@ -82,7 +82,8 @@ def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(script, with_
     assert expected in result.files_deleted, "should have uninstalled simple==1.0"
 
 
-def test_eager_does_upgrade_dependecies_when_currently_satisfied(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_eager_does_upgrade_dependecies_when_currently_satisfied(script):
     """
     It does upgrade a dependency even if it already satisfies the requirements.
 
@@ -100,7 +101,8 @@ def test_eager_does_upgrade_dependecies_when_currently_satisfied(script, with_wh
     ) in result.files_deleted, "should have uninstalled simple==2.0"
 
 
-def test_eager_does_upgrade_dependecies_when_no_longer_satisfied(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_eager_does_upgrade_dependecies_when_no_longer_satisfied(script):
     """
     It does upgrade a dependency if it no longer satisfies the requirements.
 
@@ -123,7 +125,8 @@ def test_eager_does_upgrade_dependecies_when_no_longer_satisfied(script, with_wh
 
 
 @pytest.mark.network
-def test_upgrade_to_specific_version(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_upgrade_to_specific_version(script):
     """
     It does upgrade to specific version requested.
 
@@ -136,7 +139,8 @@ def test_upgrade_to_specific_version(script, with_wheel):
 
 
 @pytest.mark.network
-def test_upgrade_if_requested(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_upgrade_if_requested(script):
     """
     And it does upgrade if requested.
 
@@ -296,7 +300,8 @@ def test_uninstall_rollback(script, data):
 
 
 @pytest.mark.network
-def test_should_not_install_always_from_cache(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_should_not_install_always_from_cache(script):
     """
     If there is an old cached package, pip should download the newer version
     Related to issue #175
@@ -309,7 +314,8 @@ def test_should_not_install_always_from_cache(script, with_wheel):
 
 
 @pytest.mark.network
-def test_install_with_ignoreinstalled_requested(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_with_ignoreinstalled_requested(script):
     """
     Test old conflicting package is completely ignored
     """

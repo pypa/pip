@@ -69,9 +69,8 @@ class Tests_UserSite:
         result.assert_installed("INITools", use_user_site=True)
 
     @pytest.mark.incompatible_with_test_venv
-    def test_install_from_current_directory_into_usersite(
-        self, script, data, with_wheel
-    ):
+    @pytest.mark.usefixtures("with_wheel")
+    def test_install_from_current_directory_into_usersite(self, script, data):
         """
         Test installing current directory ('.') into usersite
         """
