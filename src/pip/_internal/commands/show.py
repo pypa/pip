@@ -113,13 +113,13 @@ def search_packages_info(query: List[str]) -> Iterator[_PackageInfo]:
     if missing:
         logger.warning("Package(s) not found: %s", ", ".join(missing))
 
-    def _get_requiring_packages(current_dist: BaseDistribution) -> List[str]:
-        return [
+    def _get_requiring_packages(current_dist: BaseDistribution) -> Iterator[str]:
+        return (
             dist.metadata["Name"] or "UNKNOWN"
             for dist in installed.values()
             if current_dist.canonical_name
             in {canonicalize_name(d.name) for d in dist.iter_dependencies()}
-        ]
+        )
 
     def _files_from_record(dist: BaseDistribution) -> Optional[Iterator[str]]:
         try:
@@ -155,6 +155,9 @@ def search_packages_info(query: List[str]) -> Iterator[_PackageInfo]:
         except KeyError:
             continue
 
+        requires = sorted((req.name for req in dist.iter_dependencies()), key=str.lower)
+        required_by = sorted(_get_requiring_packages(dist), key=str.lower)
+
         try:
             entry_points_text = dist.read_text("entry_points.txt")
             entry_points = entry_points_text.splitlines(keepends=False)
@@ -173,8 +176,8 @@ def search_packages_info(query: List[str]) -> Iterator[_PackageInfo]:
             name=dist.raw_name,
             version=str(dist.version),
             location=dist.location or "",
-            requires=[req.name for req in dist.iter_dependencies()],
-            required_by=_get_requiring_packages(dist),
+            requires=requires,
+            required_by=required_by,
             installer=dist.installer,
             metadata_version=dist.metadata_version or "",
             classifiers=metadata.get_all("Classifier", []),
