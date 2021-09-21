@@ -9,10 +9,7 @@ import pytest
 from pip._internal.cli.status_codes import ERROR
 from tests.lib import pyversion  # noqa: F401
 
-
-@pytest.fixture(autouse=True)
-def auto_with_wheel(with_wheel):
-    pass
+pytestmark = pytest.mark.usefixtures("with_wheel")
 
 
 def add_files_to_dist_directory(folder):

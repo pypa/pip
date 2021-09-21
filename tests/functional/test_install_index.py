@@ -2,8 +2,11 @@ import os
 import textwrap
 import urllib.parse
 
+import pytest
 
-def test_find_links_relative_path(script, data, with_wheel):
+
+@pytest.mark.usefixtures("with_wheel")
+def test_find_links_relative_path(script, data):
     """Test find-links as a relative path."""
     result = script.pip(
         "install",
@@ -19,7 +22,8 @@ def test_find_links_relative_path(script, data, with_wheel):
     result.did_create(initools_folder)
 
 
-def test_find_links_requirements_file_relative_path(script, data, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_find_links_requirements_file_relative_path(script, data):
     """Test find-links as a relative path to a reqs file."""
     script.scratch_path.joinpath("test-req.txt").write_text(
         textwrap.dedent(
@@ -44,7 +48,8 @@ def test_find_links_requirements_file_relative_path(script, data, with_wheel):
     result.did_create(initools_folder)
 
 
-def test_install_from_file_index_hash_link(script, data, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_from_file_index_hash_link(script, data):
     """
     Test that a pkg can be installed from a file:// index using a link with a
     hash
@@ -54,7 +59,8 @@ def test_install_from_file_index_hash_link(script, data, with_wheel):
     result.did_create(dist_info_folder)
 
 
-def test_file_index_url_quoting(script, data, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_file_index_url_quoting(script, data):
     """
     Test url quoting of file index url with a space
     """

@@ -158,7 +158,8 @@ def test_install_editable_from_git_with_https(script, tmpdir):
 
 
 @pytest.mark.network
-def test_install_noneditable_git(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_noneditable_git(script):
     """
     Test installing from a non-editable git URL with a given tag.
     """
@@ -516,7 +517,8 @@ def test_check_submodule_addition(script):
     update_result.did_create(script.venv / "src/version-pkg/testpkg/static/testfile2")
 
 
-def test_install_git_branch_not_cached(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_git_branch_not_cached(script):
     """
     Installing git urls with a branch revision does not cause wheel caching.
     """
@@ -531,7 +533,8 @@ def test_install_git_branch_not_cached(script, with_wheel):
     assert f"Successfully built {PKG}" in result.stdout, result.stdout
 
 
-def test_install_git_sha_cached(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_git_sha_cached(script):
     """
     Installing git urls with a sha revision does cause wheel caching.
     """

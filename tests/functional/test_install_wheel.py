@@ -172,7 +172,8 @@ def test_install_from_wheel_with_headers(script):
     assert header_path.read_text() == header_text
 
 
-def test_install_wheel_with_target(script, shared_data, with_wheel, tmpdir):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_wheel_with_target(script, shared_data, tmpdir):
     """
     Test installing a wheel using pip install --target
     """
@@ -190,7 +191,8 @@ def test_install_wheel_with_target(script, shared_data, with_wheel, tmpdir):
     result.did_create(Path("scratch") / "target" / "simpledist")
 
 
-def test_install_wheel_with_target_and_data_files(script, data, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_wheel_with_target_and_data_files(script, data):
     """
     Test for issue #4092. It will be checked that a data_files specification in
     setup.py is handled correctly when a wheel is installed with the --target
@@ -326,7 +328,8 @@ def test_wheel_record_lines_have_hash_for_data_files(script):
 
 
 @pytest.mark.incompatible_with_test_venv
-def test_install_user_wheel(script, shared_data, with_wheel, tmpdir):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_user_wheel(script, shared_data, tmpdir):
     """
     Test user install from wheel (that has a script)
     """
