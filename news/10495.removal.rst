@@ -1,0 +1,3 @@
+In-tree builds are now the default. ``--use-feature=in-tree-build`` is now
+ignored. ``--use-deprecated=out-of-tree-build`` may be used temporarily to ease
+the transition.
