@@ -1,0 +1,1 @@
+Added an explicit warning when pip is unable to parse git version.
