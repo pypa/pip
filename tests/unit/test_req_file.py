@@ -66,7 +66,7 @@ def parse_reqfile(
         yield install_req_from_parsed_requirement(parsed_req, isolated=isolated)
 
 
-def test_read_file_url(tmp_path):
+def test_read_file_url(tmp_path, session):
     reqs = tmp_path.joinpath("requirements.txt")
     reqs.write_text("foo")
     result = list(parse_requirements(reqs.as_posix(), session))
@@ -302,7 +302,7 @@ class TestProcessLine:
         assert repr(found_req) == repr(req)
         assert found_req.constraint is True
 
-    def test_nested_constraints_file(self, monkeypatch, tmpdir):
+    def test_nested_constraints_file(self, monkeypatch, tmpdir, session):
         req_name = "hello"
         req_file = tmpdir / "parent" / "req_file.txt"
         req_file.parent.mkdir()
