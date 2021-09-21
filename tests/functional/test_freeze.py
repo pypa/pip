@@ -7,6 +7,7 @@ from doctest import ELLIPSIS, OutputChecker
 import pytest
 from pip._vendor.packaging.utils import canonicalize_name
 
+from pip._internal.models.direct_url import DirectUrl
 from tests.lib import (
     _create_test_package,
     _create_test_package_with_srcdir,
@@ -19,6 +20,7 @@ from tests.lib import (
     path_to_url,
     wheel,
 )
+from tests.lib.direct_url import get_created_direct_url_path
 
 distribute_re = re.compile("^distribute==[0-9.]+\n", re.MULTILINE)
 
@@ -975,3 +977,22 @@ def test_freeze_include_work_dir_pkg(script):
     # when package directory is in PYTHONPATH
     result = script.pip("freeze", cwd=pkg_path)
     assert "simple==1.0" in result.stdout
+
+
+def test_freeze_pep610_editable(script, with_wheel):
+    """
+    Test that a package installed with a direct_url.json with editable=true
+    is correctly frozeon as editable.
+    """
+    pkg_path = _create_test_package(script, name="testpkg")
+    result = script.pip("install", pkg_path)
+    direct_url_path = get_created_direct_url_path(result, "testpkg")
+    assert direct_url_path
+    # patch direct_url.json to simulate an editable install
+    with open(direct_url_path) as f:
+        direct_url = DirectUrl.from_json(f.read())
+    direct_url.info.editable = True
+    with open(direct_url_path, "w") as f:
+        f.write(direct_url.to_json())
+    result = script.pip("freeze")
+    assert "# Editable Git install with no remote (testpkg==0.1)" in result.stdout

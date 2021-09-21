@@ -70,10 +70,6 @@ class Distribution(BaseDistribution):
         return get_installer(self._dist)
 
     @property
-    def editable(self) -> bool:
-        return misc.dist_is_editable(self._dist)
-
-    @property
     def local(self) -> bool:
         return misc.dist_is_local(self._dist)
 

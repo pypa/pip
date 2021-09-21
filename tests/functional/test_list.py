@@ -3,7 +3,9 @@ import os
 
 import pytest
 
-from tests.lib import create_test_package_with_setup, wheel
+from pip._internal.models.direct_url import DirectUrl
+from tests.lib import _create_test_package, create_test_package_with_setup, wheel
+from tests.lib.direct_url import get_created_direct_url_path
 from tests.lib.path import Path
 
 
@@ -172,13 +174,17 @@ def test_uptodate_flag(script, data):
         "--uptodate",
         "--format=json",
     )
-    assert {"name": "simple", "version": "1.0"} not in json.loads(
-        result.stdout
-    )  # 3.0 is latest
-    assert {"name": "pip-test-package", "version": "0.1.1"} in json.loads(
-        result.stdout
-    )  # editables included
-    assert {"name": "simple2", "version": "3.0"} in json.loads(result.stdout)
+    json_output = json.loads(result.stdout)
+    for item in json_output:
+        if "editable_project_location" in item:
+            item["editable_project_location"] = "<location>"
+    assert {"name": "simple", "version": "1.0"} not in json_output  # 3.0 is latest
+    assert {
+        "name": "pip-test-package",
+        "version": "0.1.1",
+        "editable_project_location": "<location>",
+    } in json_output  # editables included
+    assert {"name": "simple2", "version": "3.0"} in json_output
 
 
 @pytest.mark.network
@@ -210,7 +216,7 @@ def test_uptodate_columns_flag(script, data):
     )
     assert "Package" in result.stdout
     assert "Version" in result.stdout
-    assert "Location" in result.stdout  # editables included
+    assert "Editable project location" in result.stdout  # editables included
     assert "pip-test-package (0.1.1," not in result.stdout
     assert "pip-test-package 0.1.1" in result.stdout, str(result)
     assert "simple2          3.0" in result.stdout, str(result)
@@ -244,25 +250,36 @@ def test_outdated_flag(script, data):
         "--outdated",
         "--format=json",
     )
+    json_output = json.loads(result.stdout)
+    for item in json_output:
+        if "editable_project_location" in item:
+            item["editable_project_location"] = "<location>"
     assert {
         "name": "simple",
         "version": "1.0",
         "latest_version": "3.0",
         "latest_filetype": "sdist",
-    } in json.loads(result.stdout)
-    assert dict(
-        name="simplewheel", version="1.0", latest_version="2.0", latest_filetype="wheel"
-    ) in json.loads(result.stdout)
+    } in json_output
+    assert (
+        dict(
+            name="simplewheel",
+            version="1.0",
+            latest_version="2.0",
+            latest_filetype="wheel",
+        )
+        in json_output
+    )
     assert (
         dict(
             name="pip-test-package",
             version="0.1",
             latest_version="0.1.1",
             latest_filetype="sdist",
+            editable_project_location="<location>",
         )
-        in json.loads(result.stdout)
+        in json_output
     )
-    assert "simple2" not in {p["name"] for p in json.loads(result.stdout)}
+    assert "simple2" not in {p["name"] for p in json_output}
 
 
 @pytest.mark.network
@@ -346,7 +363,7 @@ def test_editables_columns_flag(pip_test_package_script):
     result = pip_test_package_script.pip("list", "--editable", "--format=columns")
     assert "Package" in result.stdout
     assert "Version" in result.stdout
-    assert "Location" in result.stdout
+    assert "Editable project location" in result.stdout
     assert os.path.join("src", "pip-test-package") in result.stdout, str(result)
 
 
@@ -384,7 +401,7 @@ def test_uptodate_editables_columns_flag(pip_test_package_script, data):
     )
     assert "Package" in result.stdout
     assert "Version" in result.stdout
-    assert "Location" in result.stdout
+    assert "Editable project location" in result.stdout
     assert os.path.join("src", "pip-test-package") in result.stdout, str(result)
 
 
@@ -433,7 +450,7 @@ def test_outdated_editables_columns_flag(script, data):
     )
     assert "Package" in result.stdout
     assert "Version" in result.stdout
-    assert "Location" in result.stdout
+    assert "Editable project location" in result.stdout
     assert os.path.join("src", "pip-test-package") in result.stdout, str(result)
 
 
@@ -684,3 +701,27 @@ def test_list_include_work_dir_pkg(script):
     result = script.pip("list", "--format=json", cwd=pkg_path)
     json_result = json.loads(result.stdout)
     assert {"name": "simple", "version": "1.0"} in json_result
+
+
+def test_list_pep610_editable(script, with_wheel):
+    """
+    Test that a package installed with a direct_url.json with editable=true
+    is correctly listed as editable.
+    """
+    pkg_path = _create_test_package(script, name="testpkg")
+    result = script.pip("install", pkg_path)
+    direct_url_path = get_created_direct_url_path(result, "testpkg")
+    assert direct_url_path
+    # patch direct_url.json to simulate an editable install
+    with open(direct_url_path) as f:
+        direct_url = DirectUrl.from_json(f.read())
+    direct_url.info.editable = True
+    with open(direct_url_path, "w") as f:
+        f.write(direct_url.to_json())
+    result = script.pip("list", "--format=json")
+    for item in json.loads(result.stdout):
+        if item["name"] == "testpkg":
+            assert item["editable_project_location"]
+            break
+    else:
+        assert False, "package 'testpkg' not found in pip list result"
