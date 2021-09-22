@@ -109,7 +109,7 @@ blank issues. After that, the link to create
 issues becomes https://github.com/pypa/pip/issues/new/choose
 (note the ``new/choose`` part), where you have to choose
 one of our forms. Only the maintainers of the repository
-can override that choice (going just to ``new/``).
+can override that choice (going just to https://github.com/pypa/pip/issues/new/).
 
 
 Triage Issues
