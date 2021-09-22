@@ -141,7 +141,7 @@ class TestSiteConfigDirs:
 
         assert appdirs.site_config_dirs("pip") == [
             "/Library/Preferences/pip",
-            "/Library/Application Support/pip"
+            "/Library/Application Support/pip",
         ]
 
     def test_site_config_dirs_linux(self, monkeypatch: pytest.MonkeyPatch, platformdirs_linux) -> None:
@@ -153,7 +153,7 @@ class TestSiteConfigDirs:
         self, monkeypatch: pytest.MonkeyPatch, platformdirs_linux
     ) -> None:
         monkeypatch.setattr(os, "path", posixpath)
-        monkeypatch.setattr(os, "pathsep", ':')
+        monkeypatch.setattr(os, "pathsep", ":")
         monkeypatch.setenv("XDG_CONFIG_DIRS", "/spam:/etc:/etc/xdg")
 
         assert appdirs.site_config_dirs("pip") == [
@@ -167,9 +167,9 @@ class TestSiteConfigDirs:
         self, monkeypatch: pytest.MonkeyPatch, platformdirs_linux
     ) -> None:
         monkeypatch.setattr(os, "path", posixpath)
-        monkeypatch.setattr(os, "pathsep", ':')
+        monkeypatch.setattr(os, "pathsep", ":")
         monkeypatch.setenv("XDG_CONFIG_DIRS", "")
-        assert appdirs.site_config_dirs("pip") == ['/etc/xdg/pip', '/etc']
+        assert appdirs.site_config_dirs("pip") == ["/etc/xdg/pip", "/etc"]
 
 
 class TestUserConfigDir:
