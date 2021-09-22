@@ -64,7 +64,7 @@ setup(
         "pip._vendor.certifi": ["*.pem"],
         "pip._vendor.requests": ["*.pem"],
         "pip._vendor.distlib._backport": ["sysconfig.cfg"],
-        "pip._vendor.distlib": ["t32.exe", "t64.exe", "w32.exe", "w64.exe"],
+        "pip._vendor.distlib": ["t32.exe", "t64.exe", "w32.exe", "w64.exe", "t64-arm.exe", "w64-arm.exe"],
     },
     entry_points={
         "console_scripts": [
