@@ -1,1 +1,1 @@
-New resolver: Fix prefering packages which are not as deep in the dependency tree
+New resolver: Fixes depth ordering of packages during resolution, e.g. a package 2 levels of dependency down will be ordered before a package 3 levels of dependecy down.
