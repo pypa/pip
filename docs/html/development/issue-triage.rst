@@ -99,6 +99,24 @@ After an issue has been closed for 30 days, the
 issues, but unfortunately prevents and references to issues from showing up as
 links on the closed issue.
 
+Issue forms
+-----------
+
+We are using `issue forms
+<https://github.blog/changelog/2021-06-23-issues-forms-beta-for-public-repositories/>`_
+to create structured issues, and disable
+blank issues. We have 3 issue forms:
+
+**Bug report**
+  Something is not working correctly.
+
+**Feature request**
+  Suggest an idea for this project
+
+**Good first issue**
+  This is for maintainers-only.
+  Create a "good first issue" for new contributors.
+
 
 Triage Issues
 =============
