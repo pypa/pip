@@ -105,17 +105,11 @@ Issue forms
 We are using `issue forms
 <https://github.blog/changelog/2021-06-23-issues-forms-beta-for-public-repositories/>`_
 to create structured issues, and disable
-blank issues. We have 3 issue forms:
-
-**Bug report**
-  Something is not working correctly.
-
-**Feature request**
-  Suggest an idea for this project
-
-**Good first issue**
-  This is for maintainers-only.
-  Create a "good first issue" for new contributors.
+blank issues. After that, the link to create
+issues becomes https://github.com/pypa/pip/issues/new/choose
+(note the ``new/choose`` part), where you have to choose
+one of our forms. Only the maintainers of the repository
+can override that choice (going just to ``new/``).
 
 
 Triage Issues
