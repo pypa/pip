@@ -1,0 +1,1 @@
+Added documentation for pip show header and json format
