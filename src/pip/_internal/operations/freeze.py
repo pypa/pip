@@ -1,19 +1,8 @@
 import collections
 import logging
 import os
-from typing import (
-    Container,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    NamedTuple,
-    Optional,
-    Set,
-    Union,
-)
+from typing import Container, Dict, Iterable, Iterator, List, NamedTuple, Optional, Set
 
-from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 
@@ -30,8 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class _EditableInfo(NamedTuple):
-    requirement: Optional[str]
-    editable: bool
+    requirement: str
     comments: List[str]
 
 
@@ -164,11 +152,9 @@ def _format_as_name_version(dist: BaseDistribution) -> str:
 
 def _get_editable_info(dist: BaseDistribution) -> _EditableInfo:
     """
-    Compute and return values (req, editable, comments) for use in
+    Compute and return values (req, comments) for use in
     FrozenRequirement.from_dist().
     """
-    if not dist.editable:
-        return _EditableInfo(requirement=None, editable=False, comments=[])
     editable_project_location = dist.editable_project_location
     assert editable_project_location
     location = os.path.normcase(os.path.abspath(editable_project_location))
@@ -186,7 +172,6 @@ def _get_editable_info(dist: BaseDistribution) -> _EditableInfo:
         )
         return _EditableInfo(
             requirement=location,
-            editable=True,
             comments=[f"# Editable install with no version control ({display})"],
         )
 
@@ -198,21 +183,18 @@ def _get_editable_info(dist: BaseDistribution) -> _EditableInfo:
         display = _format_as_name_version(dist)
         return _EditableInfo(
             requirement=location,
-            editable=True,
             comments=[f"# Editable {vcs_name} install with no remote ({display})"],
         )
     except RemoteNotValidError as ex:
         display = _format_as_name_version(dist)
         return _EditableInfo(
             requirement=location,
-            editable=True,
             comments=[
                 f"# Editable {vcs_name} install ({display}) with either a deleted "
                 f"local remote or invalid URI:",
                 f"# '{ex.url}'",
             ],
         )
-
     except BadCommand:
         logger.warning(
             "cannot determine version of editable source in %s "
@@ -220,22 +202,16 @@ def _get_editable_info(dist: BaseDistribution) -> _EditableInfo:
             location,
             vcs_backend.name,
         )
-        return _EditableInfo(requirement=None, editable=True, comments=[])
-
+        return _EditableInfo(requirement=location, comments=[])
     except InstallationError as exc:
-        logger.warning(
-            "Error when trying to get requirement for VCS system %s, "
-            "falling back to uneditable format",
-            exc,
-        )
+        logger.warning("Error when trying to get requirement for VCS system %s", exc)
     else:
-        return _EditableInfo(requirement=req, editable=True, comments=[])
+        return _EditableInfo(requirement=req, comments=[])
 
     logger.warning("Could not determine repository location of %s", location)
 
     return _EditableInfo(
-        requirement=None,
-        editable=False,
+        requirement=location,
         comments=["## !! Could not determine repository location"],
     )
 
@@ -244,7 +220,7 @@ class FrozenRequirement:
     def __init__(
         self,
         name: str,
-        req: Union[str, Requirement],
+        req: str,
         editable: bool,
         comments: Iterable[str] = (),
     ) -> None:
@@ -256,19 +232,18 @@ class FrozenRequirement:
 
     @classmethod
     def from_dist(cls, dist: BaseDistribution) -> "FrozenRequirement":
-        # TODO `get_requirement_info` is taking care of editable requirements.
-        # TODO This should be refactored when we will add detection of
-        #      editable that provide .dist-info metadata.
-        req, editable, comments = _get_editable_info(dist)
-        if req is None and not editable:
-            # if PEP 610 metadata is present, attempt to use it
+        editable = dist.editable
+        if editable:
+            req, comments = _get_editable_info(dist)
+        else:
+            comments = []
             direct_url = dist.direct_url
             if direct_url:
+                # if PEP 610 metadata is present, use it
                 req = direct_url_as_pep440_direct_reference(direct_url, dist.raw_name)
-                comments = []
-        if req is None:
-            # name==version requirement
-            req = _format_as_name_version(dist)
+            else:
+                # name==version requirement
+                req = _format_as_name_version(dist)
 
         return cls(dist.raw_name, req, editable, comments=comments)
 
