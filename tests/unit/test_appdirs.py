@@ -1,4 +1,3 @@
-import importlib
 import ntpath
 import os
 import posixpath
@@ -18,12 +17,10 @@ def platformdirs_win32(monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(sys, "platform", "win32")
         m.setattr(os, "path", ntpath)
-        importlib.reload(platformdirs)
-        importlib.reload(appdirs)
+        platformdirs.PlatformDirs = platformdirs._set_platform_dir_class()
         yield
 
-    importlib.reload(platformdirs)
-    importlib.reload(appdirs)
+    platformdirs.PlatformDirs = platformdirs._set_platform_dir_class()
 
 
 @pytest.fixture()
@@ -33,12 +30,10 @@ def platformdirs_darwin(monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(sys, "platform", "darwin")
         m.setattr(os, "path", posixpath)
-        importlib.reload(platformdirs)
-        importlib.reload(appdirs)
+        platformdirs.PlatformDirs = platformdirs._set_platform_dir_class()
         yield
 
-    importlib.reload(platformdirs)
-    importlib.reload(appdirs)
+    platformdirs.PlatformDirs = platformdirs._set_platform_dir_class()
 
 
 @pytest.fixture()
@@ -48,12 +43,10 @@ def platformdirs_linux(monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(sys, "platform", "linux")
         m.setattr(os, "path", posixpath)
-        importlib.reload(platformdirs)
-        importlib.reload(appdirs)
+        platformdirs.PlatformDirs = platformdirs._set_platform_dir_class()
         yield
 
-    importlib.reload(platformdirs)
-    importlib.reload(appdirs)
+    platformdirs.PlatformDirs = platformdirs._set_platform_dir_class()
 
 
 class TestUserCacheDir:
@@ -61,8 +54,8 @@ class TestUserCacheDir:
         _get_win_folder = mock.Mock(return_value="C:\\Users\\test\\AppData\\Local")
 
         monkeypatch.setattr(
-            platformdirs,
-            "_get_win_folder",
+            platformdirs.windows,
+            "get_win_folder",
             _get_win_folder,
             raising=False,
         )
@@ -108,7 +101,7 @@ class TestUserCacheDir:
         def my_get_win_folder(csidl_name):
             return "\u00DF\u00E4\u03B1\u20AC"
 
-        monkeypatch.setattr(platformdirs, "_get_win_folder", my_get_win_folder)
+        monkeypatch.setattr(platformdirs.windows, "get_win_folder", my_get_win_folder)
 
         # Do not use the isinstance expression directly in the
         # assert statement, as the Unicode characters in the result
@@ -127,8 +120,8 @@ class TestSiteConfigDirs:
         _get_win_folder = mock.Mock(return_value="C:\\ProgramData")
 
         monkeypatch.setattr(
-            platformdirs,
-            "_get_win_folder",
+            platformdirs.windows,
+            "get_win_folder",
             _get_win_folder,
             raising=False,
         )
@@ -179,8 +172,8 @@ class TestUserConfigDir:
         _get_win_folder = mock.Mock(return_value="C:\\Users\\test\\AppData\\Local")
 
         monkeypatch.setattr(
-            platformdirs,
-            "_get_win_folder",
+            platformdirs.windows,
+            "get_win_folder",
             _get_win_folder,
             raising=False,
         )
@@ -197,8 +190,8 @@ class TestUserConfigDir:
         _get_win_folder = mock.Mock(return_value="C:\\Users\\test\\AppData\\Roaming")
 
         monkeypatch.setattr(
-            platformdirs,
-            "_get_win_folder",
+            platformdirs.windows,
+            "get_win_folder",
             _get_win_folder,
             raising=False,
         )

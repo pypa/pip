@@ -1,20 +1,22 @@
-diff --git a/src/pip/_vendor/platformdirs.py b/src/pip/_vendor/platformdirs.py
-index 23c6af8c7..3b8ef8ad8 100644
---- a/src/pip/_vendor/platformdirs.py
-+++ b/src/pip/_vendor/platformdirs.py
-@@ -327,12 +327,10 @@ else:
-         return path
+diff --git a/src/pip/_vendor/platformdirs/__init__.py b/src/pip/_vendor/platformdirs/__init__.py
+index 693b64843..07baa5b1d 100644
+--- a/src/pip/_vendor/platformdirs/__init__.py
++++ b/src/pip/_vendor/platformdirs/__init__.py
+@@ -17,13 +17,13 @@ from .version import __version__, __version_info__
  
-     def _site_config_dir_impl(appname=None, appauthor=None, version=None, multipath=False):
--        # XDG default for $XDG_CONFIG_DIRS
-+        # XDG default for $XDG_CONFIG_DIRSS (missing or empty)
-+        # see <https://github.com/pypa/pip/pull/7501#discussion_r360624829>
-         # only first, if multipath is False
--        if 'XDG_CONFIG_DIRS' in os.environ:
--            path = os.environ['XDG_CONFIG_DIRS']
--        else:
--            path = '/etc/xdg'
-+        path = os.getenv('XDG_CONFIG_DIRS') or '/etc/xdg'
+ def _set_platform_dir_class() -> Type[PlatformDirsABC]:
+     if os.getenv("ANDROID_DATA") == "/data" and os.getenv("ANDROID_ROOT") == "/system":
+-        module, name = "platformdirs.android", "Android"
++        module, name = "pip._vendor.platformdirs.android", "Android"
+     elif sys.platform == "win32":
+-        module, name = "platformdirs.windows", "Windows"
++        module, name = "pip._vendor.platformdirs.windows", "Windows"
+     elif sys.platform == "darwin":
+-        module, name = "platformdirs.macos", "MacOS"
++        module, name = "pip._vendor.platformdirs.macos", "MacOS"
+     else:
+-        module, name = "platformdirs.unix", "Unix"
++        module, name = "pip._vendor.platformdirs.unix", "Unix"
+     result: Type[PlatformDirsABC] = getattr(importlib.import_module(module), name)
+     return result
  
-         pathlist = [os.path.expanduser(x.rstrip(os.sep)) for x in path.split(os.pathsep)]
-         if appname:

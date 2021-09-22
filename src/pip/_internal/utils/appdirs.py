@@ -7,6 +7,7 @@ and eventually drop this after all usages are changed.
 """
 
 import os
+import sys
 from typing import List
 
 from pip._vendor import platformdirs as _appdirs
@@ -18,7 +19,7 @@ def user_cache_dir(appname: str) -> str:
 
 def user_config_dir(appname: str, roaming: bool = True) -> str:
     path = _appdirs.user_config_dir(appname, appauthor=False, roaming=roaming)
-    if _appdirs.system == "darwin" and not os.path.isdir(path):
+    if sys.platform == "darwin" and not os.path.isdir(path):
         path = os.path.expanduser("~/.config/")
         if appname:
             path = os.path.join(path, appname)
@@ -29,10 +30,10 @@ def user_config_dir(appname: str, roaming: bool = True) -> str:
 # see <https://github.com/pypa/pip/issues/1733>
 def site_config_dirs(appname: str) -> List[str]:
     dirval = _appdirs.site_config_dir(appname, appauthor=False, multipath=True)
-    if _appdirs.system == "darwin":
+    if sys.platform == "darwin":
         # always look in /Library/Application Support/pip as well
         return dirval.split(os.pathsep) + ["/Library/Application Support/pip"]
-    elif _appdirs.system == "win32":
+    elif sys.platform == "win32":
         return [dirval]
     else:
         # always look in /etc directly as well
