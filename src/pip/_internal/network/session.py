@@ -358,8 +358,15 @@ class PipSession(requests.Session):
         if host_port not in self.pip_trusted_origins:
             self.pip_trusted_origins.append(host_port)
 
+        self.mount(
+            build_url_from_netloc(host, scheme="http") + "/", self._trusted_host_adapter
+        )
         self.mount(build_url_from_netloc(host) + "/", self._trusted_host_adapter)
         if not host_port[1]:
+            self.mount(
+                build_url_from_netloc(host, scheme="http") + ":",
+                self._trusted_host_adapter,
+            )
             # Mount wildcard ports for the same host.
             self.mount(build_url_from_netloc(host) + ":", self._trusted_host_adapter)
 

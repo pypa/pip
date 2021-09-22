@@ -82,6 +82,7 @@ class TestPipSession:
         # Check that the "port wildcard" is present.
         assert "https://example.com:" in session.adapters
         # Check that the cache is enabled.
+        assert hasattr(session.adapters["http://example.com/"], "cache")
         assert hasattr(session.adapters["https://example.com/"], "cache")
 
     def test_add_trusted_host(self):
@@ -93,12 +94,20 @@ class TestPipSession:
         prefix3 = "https://host3/"
         prefix3_wildcard = "https://host3:"
 
+        prefix2_http = "http://host2/"
+        prefix3_http = "http://host3/"
+        prefix3_wildcard_http = "http://host3:"
+
         # Confirm some initial conditions as a baseline.
         assert session.pip_trusted_origins == [("host1", None), ("host3", None)]
         assert session.adapters[prefix3] is trusted_host_adapter
         assert session.adapters[prefix3_wildcard] is trusted_host_adapter
 
+        assert session.adapters[prefix3_http] is trusted_host_adapter
+        assert session.adapters[prefix3_wildcard_http] is trusted_host_adapter
+
         assert prefix2 not in session.adapters
+        assert prefix2_http not in session.adapters
 
         # Test adding a new host.
         session.add_trusted_host("host2")
@@ -110,6 +119,7 @@ class TestPipSession:
         # Check that prefix3 is still present.
         assert session.adapters[prefix3] is trusted_host_adapter
         assert session.adapters[prefix2] is trusted_host_adapter
+        assert session.adapters[prefix2_http] is trusted_host_adapter
 
         # Test that adding the same host doesn't create a duplicate.
         session.add_trusted_host("host3")
@@ -121,6 +131,7 @@ class TestPipSession:
 
         session.add_trusted_host("host4:8080")
         prefix4 = "https://host4:8080/"
+        prefix4_http = "http://host4:8080/"
         assert session.pip_trusted_origins == [
             ("host1", None),
             ("host3", None),
@@ -128,6 +139,7 @@ class TestPipSession:
             ("host4", 8080),
         ]
         assert session.adapters[prefix4] is trusted_host_adapter
+        assert session.adapters[prefix4_http] is trusted_host_adapter
 
     def test_add_trusted_host__logging(self, caplog):
         """
