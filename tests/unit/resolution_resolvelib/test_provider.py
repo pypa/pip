@@ -2,7 +2,7 @@ import operator
 
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.resolvelib.resolvers import Criterion, RequirementInformation
-from pip._vendor.resolvelib.structs import IteratorMapping, build_iter_view
+from pip._vendor.resolvelib.structs import IteratorMapping
 
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.link import Link
@@ -36,7 +36,7 @@ def test_provider_known_depths(factory: Factory):
             {}, operator.attrgetter("incompatibilities"), {"my-package": []}
         ),
     )
-    my_package_matches_iterview = build_iter_view(my_package_matches)
+    my_package_matches_iterview = iter(my_package_matches)
     my_package_requirement_information = RequirementInformation(
         requirement=SpecifierRequirement(my_package_install_requirement), parent=None
     )
@@ -80,7 +80,7 @@ def test_provider_known_depths(factory: Factory):
             {}, operator.attrgetter("incompatibilities"), {"my-transitive-package": []}
         ),
     )
-    my_transative_package_matches_iterview = build_iter_view(
+    my_transative_package_matches_iterview = iter(
         my_transative_package_matches
     )
     my_transative_package_requirement_information = RequirementInformation(
