@@ -1,20 +1,17 @@
 import operator
 
-from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.resolvelib.resolvers import Criterion, RequirementInformation
 from pip._vendor.resolvelib.structs import IteratorMapping
 
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.link import Link
-from pip._internal.req.req_install import InstallRequirement
+from pip._internal.req.constructors import install_req_from_req_string
 from pip._internal.resolution.resolvelib.provider import PipProvider
 from pip._internal.resolution.resolvelib.requirements import SpecifierRequirement
 
 
 def build_package_criterion(provider, name, parent):
-    install_requirement = InstallRequirement(
-        Requirement(name), "-r requirements.txt (line 1)"
-    )
+    install_requirement = install_req_from_req_string(name)
     matches = provider.find_matches(
         identifier=name,
         requirements={name: iter([SpecifierRequirement(install_requirement)])},
