@@ -1,7 +1,7 @@
 appdirs==1.4.4
 CacheControl==0.12.6
 colorama==0.4.4
-distlib==0.3.2
+distlib==0.3.3
 distro==1.6.0
 html5lib==1.1
 msgpack==1.0.2
