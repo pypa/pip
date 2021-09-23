@@ -145,7 +145,6 @@ class TestSiteConfigDirs:
     def test_site_config_dirs_linux_override(
         self, monkeypatch: pytest.MonkeyPatch, platformdirs_linux
     ) -> None:
-        monkeypatch.setattr(os, "path", posixpath)
         monkeypatch.setattr(os, "pathsep", ":")
         monkeypatch.setenv("XDG_CONFIG_DIRS", "/spam:/etc:/etc/xdg")
 
@@ -159,7 +158,6 @@ class TestSiteConfigDirs:
     def test_site_config_dirs_linux_empty(
         self, monkeypatch: pytest.MonkeyPatch, platformdirs_linux
     ) -> None:
-        monkeypatch.setattr(os, "path", posixpath)
         monkeypatch.setattr(os, "pathsep", ":")
         monkeypatch.setenv("XDG_CONFIG_DIRS", "")
         assert appdirs.site_config_dirs("pip") == ["/etc/xdg/pip", "/etc"]
