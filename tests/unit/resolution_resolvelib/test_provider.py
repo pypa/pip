@@ -65,7 +65,9 @@ def test_provider_known_depths(factory):
     transative_requirement_name = "my-transitive-package"
 
     transative_package_criterion = build_package_criterion(
-        provider, transative_requirement_name, root_package_candidate
+        provider=provider,
+        name=transative_requirement_name,
+        parent=root_package_candidate,
     )
     provider.get_preference(
         identifier=transative_requirement_name,
