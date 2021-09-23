@@ -70,9 +70,5 @@ def test_provider_known_depths(factory: Factory):
             {'my-package': my_package_criterion, "my-transitive-package": my_transative_package_criterion},
             operator.attrgetter('information')
         )
-        # information={
-        #     "my-package": iter([(Requirement("user-requested"), None)]),
-        #     "transitive": iter([(Requirement("transitive"), Candidate("user-requested", "1.0")]),
-        # },
     )
     assert provider._known_depths == {"my-transitive-package": 2.0, "my-package": 1.0}
