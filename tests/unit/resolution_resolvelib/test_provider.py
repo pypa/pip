@@ -60,7 +60,8 @@ def test_provider_known_depths(factory: Factory):
         Link("https://my-package.com"),
     )
 
-    # Setup all "my-transitive-package", a package dependent on "my-package", objects required to call get_preference
+    # Setup all "my-transitive-package", a package dependent on "my-package", 
+    # objects required to call get_preference
     my_transative_package_install_requirement = InstallRequirement(
         Requirement("my-package"), "-r .\\reqs.txt (line 1)"
     )
