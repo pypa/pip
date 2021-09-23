@@ -12,21 +12,18 @@ from pip._internal.resolution.resolvelib.requirements import SpecifierRequiremen
 
 
 def build_package_criterion(provider, name, parent):
-    my_package_install_requirement = InstallRequirement(
+    install_requirement = InstallRequirement(
         Requirement(name), "-r requirements.txt (line 1)"
     )
-    my_package_matches = provider.find_matches(
+    matches = provider.find_matches(
         identifier=name,
-        requirements={
-            name: iter([SpecifierRequirement(my_package_install_requirement)])
-        },
+        requirements={name: iter([SpecifierRequirement(install_requirement)])},
         incompatibilities={name: iter([])},
     )
-    my_package_matches_iter = iter(my_package_matches)
-    my_package_requirement_information = RequirementInformation(
-        requirement=SpecifierRequirement(my_package_install_requirement), parent=parent
+    requirement_information = RequirementInformation(
+        requirement=SpecifierRequirement(install_requirement), parent=parent
     )
-    return Criterion(my_package_matches_iter, [my_package_requirement_information], [])
+    return Criterion(iter(matches), [requirement_information], [])
 
 
 def test_provider_known_depths(factory):
