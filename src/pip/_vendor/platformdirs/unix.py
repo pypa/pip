@@ -1,15 +1,7 @@
 import os
-import sys
 from pathlib import Path
 
 from .api import PlatformDirsABC
-
-if sys.platform.startswith("linux"):  # pragma: no branch # no op check, only to please the type checker
-    from os import getuid
-else:
-
-    def getuid() -> int:
-        raise RuntimeError("should only be used on Linux")
 
 
 class Unix(PlatformDirsABC):
@@ -110,17 +102,6 @@ class Unix(PlatformDirsABC):
         if self.opinion:
             path = os.path.join(path, "log")
         return path
-
-    @property
-    def user_runtime_dir(self) -> str:
-        """
-        :return: runtime directory tied to the user, e.g. ``/run/user/$(id -u)/$appname/$version`` or
-         ``$XDG_RUNTIME_DIR/$appname/$version``
-        """
-        path = os.environ.get("XDG_RUNTIME_DIR", "")
-        if not path.strip():
-            path = f"/run/user/{getuid()}"
-        return self._append_app_name_and_version(path)
 
     @property
     def site_data_path(self) -> Path:

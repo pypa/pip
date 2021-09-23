@@ -56,17 +56,6 @@ class Android(PlatformDirsABC):
             path = os.path.join(path, "log")
         return path
 
-    @property
-    def user_runtime_dir(self) -> str:
-        """
-        :return: runtime directory tied to the user, same as `user_cache_dir` if not opinionated else ``tmp`` in it,
-          e.g. ``/data/user/<userid>/<packagename>/cache/<AppName>/tmp``
-        """
-        path = self.user_cache_dir
-        if self.opinion:
-            path = os.path.join(path, "tmp")
-        return path
-
 
 @lru_cache(maxsize=1)
 def _android_folder() -> str:

@@ -100,11 +100,6 @@ class PlatformDirsABC(ABC):
         """:return: log directory tied to the user"""
 
     @property
-    @abstractmethod
-    def user_runtime_dir(self) -> str:
-        """:return: runtime directory tied to the user"""
-
-    @property
     def user_data_path(self) -> Path:
         """:return: data path tied to the user"""
         return Path(self.user_data_dir)
@@ -138,8 +133,3 @@ class PlatformDirsABC(ABC):
     def user_log_path(self) -> Path:
         """:return: log path tied to the user"""
         return Path(self.user_log_dir)
-
-    @property
-    def user_runtime_path(self) -> Path:
-        """:return: runtime path tied to the user"""
-        return Path(self.user_runtime_dir)

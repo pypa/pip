@@ -144,22 +144,6 @@ def user_log_dir(
     return PlatformDirs(appname=appname, appauthor=appauthor, version=version, opinion=opinion).user_log_dir
 
 
-def user_runtime_dir(
-    appname: Optional[str] = None,
-    appauthor: Union[str, None, "Literal[False]"] = None,
-    version: Optional[str] = None,
-    opinion: bool = True,
-) -> str:
-    """
-    :param appname: See `appname <platformdirs.api.PlatformDirsABC.appname>`.
-    :param appauthor: See `appauthor <platformdirs.api.PlatformDirsABC.appauthor>`.
-    :param version: See `version <platformdirs.api.PlatformDirsABC.version>`.
-    :param opinion: See `opinion <platformdirs.api.PlatformDirsABC.opinion>`.
-    :returns: runtime directory tied to the user
-    """
-    return PlatformDirs(appname=appname, appauthor=appauthor, version=version, opinion=opinion).user_runtime_dir
-
-
 def user_data_path(
     appname: Optional[str] = None,
     appauthor: Union[str, None, "Literal[False]"] = None,
@@ -272,22 +256,6 @@ def user_log_path(
     return PlatformDirs(appname=appname, appauthor=appauthor, version=version, opinion=opinion).user_log_path
 
 
-def user_runtime_path(
-    appname: Optional[str] = None,
-    appauthor: Union[str, None, "Literal[False]"] = None,
-    version: Optional[str] = None,
-    opinion: bool = True,
-) -> Path:
-    """
-    :param appname: See `appname <platformdirs.api.PlatformDirsABC.appname>`.
-    :param appauthor: See `appauthor <platformdirs.api.PlatformDirsABC.appauthor>`.
-    :param version: See `version <platformdirs.api.PlatformDirsABC.version>`.
-    :param opinion: See `opinion <platformdirs.api.PlatformDirsABC.opinion>`.
-    :returns: runtime path tied to the user
-    """
-    return PlatformDirs(appname=appname, appauthor=appauthor, version=version, opinion=opinion).user_runtime_path
-
-
 __all__ = [
     "__version__",
     "__version_info__",
@@ -299,7 +267,6 @@ __all__ = [
     "user_cache_dir",
     "user_state_dir",
     "user_log_dir",
-    "user_runtime_dir",
     "site_data_dir",
     "site_config_dir",
     "user_data_path",
@@ -307,7 +274,6 @@ __all__ = [
     "user_cache_path",
     "user_state_path",
     "user_log_path",
-    "user_runtime_path",
     "site_data_path",
     "site_config_path",
 ]
