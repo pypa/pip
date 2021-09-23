@@ -11,7 +11,7 @@ from pip._internal.resolution.resolvelib.provider import PipProvider
 from pip._internal.resolution.resolvelib.requirements import SpecifierRequirement
 
 
-def build_package_criteron(provider, name, parent):
+def build_package_criterion(provider, name, parent):
     my_package_install_requirement = InstallRequirement(
         Requirement(name), "-r requirements.txt (line 1)"
     )
@@ -41,7 +41,7 @@ def test_provider_known_depths(factory):
         user_requested={root_requirement_name: 0},
     )
 
-    root_requirement_criteron = build_package_criteron(
+    root_requirement_criteron = build_package_criterion(
         provider=provider, name=root_requirement_name, parent=None
     )
     provider.get_preference(
@@ -64,7 +64,7 @@ def test_provider_known_depths(factory):
     )
     transative_requirement_name = "my-transitive-package"
 
-    transative_package_criterion = build_package_criteron(
+    transative_package_criterion = build_package_criterion(
         provider, transative_requirement_name, root_package_candidate
     )
     provider.get_preference(
