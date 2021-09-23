@@ -60,7 +60,7 @@ def test_provider_known_depths(factory: Factory):
         Link("https://my-package.com"),
     )
 
-    # Setup all "my-transitive-package", a package dependent on "my-package", 
+    # Setup all "my-transitive-package", a package dependent on "my-package",
     # objects required to call get_preference
     my_transative_package_install_requirement = InstallRequirement(
         Requirement("my-package"), "-r .\\reqs.txt (line 1)"
@@ -80,9 +80,7 @@ def test_provider_known_depths(factory: Factory):
             {}, operator.attrgetter("incompatibilities"), {"my-transitive-package": []}
         ),
     )
-    my_transative_package_matches_iterview = iter(
-        my_transative_package_matches
-    )
+    my_transative_package_matches_iterview = iter(my_transative_package_matches)
     my_transative_package_requirement_information = RequirementInformation(
         requirement=SpecifierRequirement(my_transative_package_install_requirement),
         parent=my_package_candidate,
