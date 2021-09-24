@@ -101,7 +101,7 @@ Modifications
 * ``setuptools`` is completely stripped to only keep ``pkg_resources``.
 * ``pkg_resources`` has been modified to import its dependencies from
   ``pip._vendor``, and to use the vendored copy of ``platformdirs``
-  rather than ``appdirs`.
+  rather than ``appdirs``.
 * ``packaging`` has been modified to import its dependencies from
   ``pip._vendor``.
 * ``html5lib`` has been modified to import six from ``pip._vendor``, to prefer
