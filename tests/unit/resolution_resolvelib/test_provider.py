@@ -1,7 +1,4 @@
-import operator
-
-from pip._vendor.resolvelib.resolvers import Criterion, RequirementInformation
-from pip._vendor.resolvelib.structs import IteratorMapping
+from pip._vendor.resolvelib.resolvers import RequirementInformation
 
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.link import Link
@@ -10,17 +7,12 @@ from pip._internal.resolution.resolvelib.provider import PipProvider
 from pip._internal.resolution.resolvelib.requirements import SpecifierRequirement
 
 
-def build_package_criterion(provider, name, parent):
+def build_requirement_information(name, parent):
     install_requirement = install_req_from_req_string(name)
-    matches = provider.find_matches(
-        identifier=name,
-        requirements={name: iter([SpecifierRequirement(install_requirement)])},
-        incompatibilities={name: iter([])},
-    )
     requirement_information = RequirementInformation(
         requirement=SpecifierRequirement(install_requirement), parent=parent
     )
-    return Criterion(iter(matches), [requirement_information], [])
+    return [requirement_information]
 
 
 def test_provider_known_depths(factory):
@@ -35,17 +27,14 @@ def test_provider_known_depths(factory):
         user_requested={root_requirement_name: 0},
     )
 
-    root_requirement_criteron = build_package_criterion(
-        provider=provider, name=root_requirement_name, parent=None
+    root_requirement_information = build_requirement_information(
+        name=root_requirement_name, parent=None
     )
     provider.get_preference(
         identifier=root_requirement_name,
         resolutions={},
         candidates={},
-        information=IteratorMapping(
-            {root_requirement_name: root_requirement_criteron},
-            operator.attrgetter("information"),
-        ),
+        information={root_requirement_name: root_requirement_information},
     )
     assert provider._known_depths == {root_requirement_name: 1.0}
 
@@ -58,22 +47,17 @@ def test_provider_known_depths(factory):
     )
     transative_requirement_name = "my-transitive-package"
 
-    transative_package_criterion = build_package_criterion(
-        provider=provider,
-        name=transative_requirement_name,
-        parent=root_package_candidate,
+    transative_package_information = build_requirement_information(
+        name=transative_requirement_name, parent=root_package_candidate
     )
     provider.get_preference(
         identifier=transative_requirement_name,
         resolutions={},
         candidates={},
-        information=IteratorMapping(
-            {
-                root_requirement_name: root_requirement_criteron,
-                transative_requirement_name: transative_package_criterion,
-            },
-            operator.attrgetter("information"),
-        ),
+        information={
+            root_requirement_name: root_requirement_information,
+            transative_requirement_name: transative_package_information,
+        },
     )
     assert provider._known_depths == {
         transative_requirement_name: 2.0,
