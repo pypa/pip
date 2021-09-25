@@ -528,6 +528,10 @@ class InstallRequirement:
                 # At this point we have determined that the build_editable hook
                 # is missing, and there is a setup.py or setup.cfg
                 # so we fallback to the legacy metadata generation
+                logger.info(
+                    "Build backend does not support editables, "
+                    "falling back to setup.py egg_info."
+                )
             else:
                 self.supports_pyproject_editable = True
                 return metadata_directory
