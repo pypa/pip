@@ -25,7 +25,9 @@ def generate_editable_metadata(
         # Note that Pep517HookCaller implements a fallback for
         # prepare_metadata_for_build_wheel/editable, so we don't have to
         # consider the possibility that this hook doesn't exist.
-        runner = runner_with_spinner_message("Preparing editable metadata")
+        runner = runner_with_spinner_message(
+            "Preparing editable metadata (pyproject.toml)"
+        )
         with backend.subprocess_runner(runner):
             distinfo_dir = backend.prepare_metadata_for_build_editable(metadata_dir)
 
