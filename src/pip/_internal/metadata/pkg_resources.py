@@ -1,18 +1,10 @@
 import email.message
 import logging
-from typing import (
-    TYPE_CHECKING,
-    Collection,
-    Iterable,
-    Iterator,
-    List,
-    NamedTuple,
-    Optional,
-)
+from typing import Collection, Iterable, Iterator, List, NamedTuple, Optional
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.requirements import Requirement
-from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.utils import misc  # TODO: Move definition here.
@@ -26,9 +18,6 @@ from .base import (
     DistributionVersion,
     Wheel,
 )
-
-if TYPE_CHECKING:
-    from pip._vendor.packaging.utils import NormalizedName
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +47,7 @@ class Distribution(BaseDistribution):
         return self._dist.egg_info
 
     @property
-    def canonical_name(self) -> "NormalizedName":
+    def canonical_name(self) -> NormalizedName:
         return canonicalize_name(self._dist.project_name)
 
     @property
