@@ -1,21 +1,32 @@
+from typing import TYPE_CHECKING, List, Optional
+
 from pip._vendor.resolvelib.resolvers import RequirementInformation
 
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.link import Link
 from pip._internal.req.constructors import install_req_from_req_string
+from pip._internal.resolution.resolvelib.factory import Factory
 from pip._internal.resolution.resolvelib.provider import PipProvider
 from pip._internal.resolution.resolvelib.requirements import SpecifierRequirement
 
+if TYPE_CHECKING:
+    from pip._internal.resolution.resolvelib.provider import PreferenceInformation
 
-def build_requirement_information(name, parent):
+
+def build_requirement_information(
+    name: str, parent: Optional[InstallationCandidate]
+) -> List["PreferenceInformation"]:
     install_requirement = install_req_from_req_string(name)
-    requirement_information = RequirementInformation(
-        requirement=SpecifierRequirement(install_requirement), parent=parent
+    # RequirementInformation is typed as a tuple, but it is a namedtupled.
+    # https://github.com/sarugaku/resolvelib/blob/7bc025aa2a4e979597c438ad7b17d2e8a08a364e/src/resolvelib/resolvers.pyi#L20-L22
+    requirement_information: PreferenceInformation = RequirementInformation(
+        requirement=SpecifierRequirement(install_requirement),  # type: ignore[call-arg]
+        parent=parent,
     )
     return [requirement_information]
 
 
-def test_provider_known_depths(factory):
+def test_provider_known_depths(factory: Factory) -> None:
     # Root requirement is specified by the user
     # therefore has an infered depth of 1
     root_requirement_name = "my-package"

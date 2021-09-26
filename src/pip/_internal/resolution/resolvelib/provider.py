@@ -71,7 +71,7 @@ class PipProvider(_ProviderBase):
         identifier: str,
         resolutions: Mapping[str, Candidate],
         candidates: Mapping[str, Iterator[Candidate]],
-        information: Mapping[str, Iterator["PreferenceInformation"]],
+        information: Mapping[str, Iterable["PreferenceInformation"]],
     ) -> "Preference":
         """Produce a sort key for given requirement based on preference.
 
