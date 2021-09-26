@@ -7,7 +7,7 @@ import shutil
 import sys
 import uuid
 import zipfile
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
+from typing import Any, Collection, Dict, Iterable, List, Optional, Sequence, Union
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.markers import Marker
@@ -103,7 +103,7 @@ class InstallRequirement:
         global_options: Optional[List[str]] = None,
         hash_options: Optional[Dict[str, List[str]]] = None,
         constraint: bool = False,
-        extras: Iterable[str] = (),
+        extras: Collection[str] = (),
         user_supplied: bool = False,
     ) -> None:
         assert req is None or isinstance(req, Requirement), req

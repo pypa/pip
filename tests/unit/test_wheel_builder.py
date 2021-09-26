@@ -1,12 +1,14 @@
 import logging
-from unittest.mock import patch
+from typing import Optional, cast
+from unittest import mock
 
 import pytest
 
 from pip._internal import wheel_builder
 from pip._internal.models.link import Link
 from pip._internal.operations.build.wheel_legacy import format_command_result
-from tests.lib import _create_test_package
+from pip._internal.req.req_install import InstallRequirement
+from tests.lib import PipTestEnvironment, _create_test_package
 
 
 @pytest.mark.parametrize(
@@ -22,7 +24,7 @@ from tests.lib import _create_test_package
         ("im_invalid", False),
     ],
 )
-def test_contains_egg_info(s, expected):
+def test_contains_egg_info(s: str, expected: bool) -> None:
     result = wheel_builder._contains_egg_info(s)
     assert result == expected
 
@@ -30,14 +32,14 @@ def test_contains_egg_info(s, expected):
 class ReqMock:
     def __init__(
         self,
-        name="pendulum",
-        is_wheel=False,
-        editable=False,
-        link=None,
-        constraint=False,
-        source_dir="/tmp/pip-install-123/pendulum",
-        use_pep517=True,
-    ):
+        name: str = "pendulum",
+        is_wheel: bool = False,
+        editable: bool = False,
+        link: Optional[Link] = None,
+        constraint: bool = False,
+        source_dir: Optional[str] = "/tmp/pip-install-123/pendulum",
+        use_pep517: bool = True,
+    ) -> None:
         self.name = name
         self.is_wheel = is_wheel
         self.editable = editable
@@ -90,9 +92,11 @@ class ReqMock:
         ),
     ],
 )
-def test_should_build_for_install_command(req, disallow_binaries, expected):
+def test_should_build_for_install_command(
+    req: ReqMock, disallow_binaries: bool, expected: bool
+) -> None:
     should_build = wheel_builder.should_build_for_install_command(
-        req,
+        cast(InstallRequirement, req),
         check_binary_allowed=lambda req: not disallow_binaries,
     )
     assert should_build is expected
@@ -109,28 +113,30 @@ def test_should_build_for_install_command(req, disallow_binaries, expected):
         (ReqMock(link=Link("git+https://g.c/org/repo")), True),
     ],
 )
-def test_should_build_for_wheel_command(req, expected):
-    should_build = wheel_builder.should_build_for_wheel_command(req)
+def test_should_build_for_wheel_command(req: ReqMock, expected: bool) -> None:
+    should_build = wheel_builder.should_build_for_wheel_command(
+        cast(InstallRequirement, req)
+    )
     assert should_build is expected
 
 
-@patch("pip._internal.wheel_builder.is_wheel_installed")
-def test_should_build_legacy_wheel_not_installed(is_wheel_installed):
+@mock.patch("pip._internal.wheel_builder.is_wheel_installed")
+def test_should_build_legacy_wheel_not_installed(is_wheel_installed: mock.Mock) -> None:
     is_wheel_installed.return_value = False
     legacy_req = ReqMock(use_pep517=False)
     should_build = wheel_builder.should_build_for_install_command(
-        legacy_req,
+        cast(InstallRequirement, legacy_req),
         check_binary_allowed=lambda req: True,
     )
     assert not should_build
 
 
-@patch("pip._internal.wheel_builder.is_wheel_installed")
-def test_should_build_legacy_wheel_installed(is_wheel_installed):
+@mock.patch("pip._internal.wheel_builder.is_wheel_installed")
+def test_should_build_legacy_wheel_installed(is_wheel_installed: mock.Mock) -> None:
     is_wheel_installed.return_value = True
     legacy_req = ReqMock(use_pep517=False)
     should_build = wheel_builder.should_build_for_install_command(
-        legacy_req,
+        cast(InstallRequirement, legacy_req),
         check_binary_allowed=lambda req: True,
     )
     assert should_build
@@ -146,26 +152,26 @@ def test_should_build_legacy_wheel_installed(is_wheel_installed):
         (ReqMock(link=Link("https://g.c/dist-2.0.4.tgz")), True),
     ],
 )
-def test_should_cache(req, expected):
-    assert wheel_builder._should_cache(req) is expected
+def test_should_cache(req: ReqMock, expected: bool) -> None:
+    assert wheel_builder._should_cache(cast(InstallRequirement, req)) is expected
 
 
-def test_should_cache_git_sha(script):
+def test_should_cache_git_sha(script: PipTestEnvironment) -> None:
     repo_path = _create_test_package(script, name="mypkg")
     commit = script.run("git", "rev-parse", "HEAD", cwd=repo_path).stdout.strip()
 
     # a link referencing a sha should be cached
     url = "git+https://g.c/o/r@" + commit + "#egg=mypkg"
     req = ReqMock(link=Link(url), source_dir=repo_path)
-    assert wheel_builder._should_cache(req)
+    assert wheel_builder._should_cache(cast(InstallRequirement, req))
 
     # a link not referencing a sha should not be cached
     url = "git+https://g.c/o/r@master#egg=mypkg"
     req = ReqMock(link=Link(url), source_dir=repo_path)
-    assert not wheel_builder._should_cache(req)
+    assert not wheel_builder._should_cache(cast(InstallRequirement, req))
 
 
-def test_format_command_result__INFO(caplog):
+def test_format_command_result__INFO(caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.INFO)
     actual = format_command_result(
         # Include an argument with a space to test argument quoting.
@@ -187,7 +193,9 @@ def test_format_command_result__INFO(caplog):
         "output line 1\noutput line 2",
     ],
 )
-def test_format_command_result__DEBUG(caplog, command_output):
+def test_format_command_result__DEBUG(
+    caplog: pytest.LogCaptureFixture, command_output: str
+) -> None:
     caplog.set_level(logging.DEBUG)
     actual = format_command_result(
         command_args=["arg1", "arg2"],
@@ -203,7 +211,9 @@ def test_format_command_result__DEBUG(caplog, command_output):
 
 
 @pytest.mark.parametrize("log_level", ["DEBUG", "INFO"])
-def test_format_command_result__empty_output(caplog, log_level):
+def test_format_command_result__empty_output(
+    caplog: pytest.LogCaptureFixture, log_level: str
+) -> None:
     caplog.set_level(log_level)
     actual = format_command_result(
         command_args=["arg1", "arg2"],

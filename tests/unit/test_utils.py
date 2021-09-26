@@ -10,7 +10,7 @@ import stat
 import sys
 import time
 from io import BytesIO
-from typing import List
+from typing import Any, Callable, Iterator, List, NoReturn, Optional, Tuple, Type
 from unittest.mock import Mock, patch
 
 import pytest
@@ -48,12 +48,13 @@ from pip._internal.utils.misc import (
     tabulate,
 )
 from pip._internal.utils.setuptools_build import make_setuptools_shim_args
+from tests.lib.path import Path
 
 
 class Tests_EgglinkPath:
     "util.egg_link_path_from_location() tests"
 
-    def setup(self):
+    def setup(self) -> None:
 
         project = "foo"
 
@@ -82,8 +83,8 @@ class Tests_EgglinkPath:
         self.old_isfile = path.isfile
         self.mock_isfile = path.isfile = Mock()
 
-    def teardown(self):
-        from pip._internal.utils import misc as utils
+    def teardown(self) -> None:
+        from pip._internal.utils import egg_link as utils
 
         utils.site_packages = self.old_site_packages
         utils.running_under_virtualenv = self.old_running_under_virtualenv
@@ -93,16 +94,16 @@ class Tests_EgglinkPath:
 
         path.isfile = self.old_isfile
 
-    def eggLinkInUserSite(self, egglink):
+    def eggLinkInUserSite(self, egglink: str) -> bool:
         return egglink == self.user_site_egglink
 
-    def eggLinkInSitePackages(self, egglink):
+    def eggLinkInSitePackages(self, egglink: str) -> bool:
         return egglink == self.site_packages_egglink
 
     # ####################### #
     # # egglink in usersite # #
     # ####################### #
-    def test_egglink_in_usersite_notvenv(self):
+    def test_egglink_in_usersite_notvenv(self) -> None:
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = False
         self.mock_isfile.side_effect = self.eggLinkInUserSite
@@ -111,13 +112,13 @@ class Tests_EgglinkPath:
             == self.user_site_egglink
         )
 
-    def test_egglink_in_usersite_venv_noglobal(self):
+    def test_egglink_in_usersite_venv_noglobal(self) -> None:
         self.mock_virtualenv_no_global.return_value = True
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.side_effect = self.eggLinkInUserSite
         assert egg_link_path_from_location(self.mock_dist.project_name) is None
 
-    def test_egglink_in_usersite_venv_global(self):
+    def test_egglink_in_usersite_venv_global(self) -> None:
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.side_effect = self.eggLinkInUserSite
@@ -129,7 +130,7 @@ class Tests_EgglinkPath:
     # ####################### #
     # # egglink in sitepkgs # #
     # ####################### #
-    def test_egglink_in_sitepkgs_notvenv(self):
+    def test_egglink_in_sitepkgs_notvenv(self) -> None:
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = False
         self.mock_isfile.side_effect = self.eggLinkInSitePackages
@@ -138,7 +139,7 @@ class Tests_EgglinkPath:
             == self.site_packages_egglink
         )
 
-    def test_egglink_in_sitepkgs_venv_noglobal(self):
+    def test_egglink_in_sitepkgs_venv_noglobal(self) -> None:
         self.mock_virtualenv_no_global.return_value = True
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.side_effect = self.eggLinkInSitePackages
@@ -147,7 +148,7 @@ class Tests_EgglinkPath:
             == self.site_packages_egglink
         )
 
-    def test_egglink_in_sitepkgs_venv_global(self):
+    def test_egglink_in_sitepkgs_venv_global(self) -> None:
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.side_effect = self.eggLinkInSitePackages
@@ -159,7 +160,7 @@ class Tests_EgglinkPath:
     # ################################## #
     # # egglink in usersite & sitepkgs # #
     # ################################## #
-    def test_egglink_in_both_notvenv(self):
+    def test_egglink_in_both_notvenv(self) -> None:
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = False
         self.mock_isfile.return_value = True
@@ -168,7 +169,7 @@ class Tests_EgglinkPath:
             == self.user_site_egglink
         )
 
-    def test_egglink_in_both_venv_noglobal(self):
+    def test_egglink_in_both_venv_noglobal(self) -> None:
         self.mock_virtualenv_no_global.return_value = True
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.return_value = True
@@ -177,7 +178,7 @@ class Tests_EgglinkPath:
             == self.site_packages_egglink
         )
 
-    def test_egglink_in_both_venv_global(self):
+    def test_egglink_in_both_venv_global(self) -> None:
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.return_value = True
@@ -189,19 +190,19 @@ class Tests_EgglinkPath:
     # ############## #
     # # no egglink # #
     # ############## #
-    def test_noegglink_in_sitepkgs_notvenv(self):
+    def test_noegglink_in_sitepkgs_notvenv(self) -> None:
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = False
         self.mock_isfile.return_value = False
         assert egg_link_path_from_location(self.mock_dist.project_name) is None
 
-    def test_noegglink_in_sitepkgs_venv_noglobal(self):
+    def test_noegglink_in_sitepkgs_venv_noglobal(self) -> None:
         self.mock_virtualenv_no_global.return_value = True
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.return_value = False
         assert egg_link_path_from_location(self.mock_dist.project_name) is None
 
-    def test_noegglink_in_sitepkgs_venv_global(self):
+    def test_noegglink_in_sitepkgs_venv_global(self) -> None:
         self.mock_virtualenv_no_global.return_value = False
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.return_value = False
@@ -214,7 +215,7 @@ class TestsGetDistributions:
     """Test get_distribution()."""
 
     class MockWorkingSet(List[Mock]):
-        def require(self, name):
+        def require(self, name: str) -> None:
             pass
 
     workingset = MockWorkingSet(
@@ -241,10 +242,10 @@ class TestsGetDistributions:
         )
     )
 
-    def dist_is_local(self, dist):
+    def dist_is_local(self, dist: Mock) -> bool:
         return dist.test_name != "global" and dist.test_name != "user"
 
-    def dist_in_usersite(self, dist):
+    def dist_in_usersite(self, dist: Mock) -> bool:
         return dist.test_name == "user"
 
     @pytest.mark.parametrize(
@@ -262,11 +263,11 @@ class TestsGetDistributions:
     )
     def test_get_distribution(
         self,
-        mock_dist_is_local,
-        mock_dist_in_usersite,
-        working_set,
-        req_name,
-    ):
+        mock_dist_is_local: Mock,
+        mock_dist_in_usersite: Mock,
+        working_set: MockWorkingSet,
+        req_name: str,
+    ) -> None:
         """Ensure get_distribution() finds all kinds of distributions."""
         mock_dist_is_local.side_effect = self.dist_is_local
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
@@ -278,26 +279,28 @@ class TestsGetDistributions:
     @patch("pip._vendor.pkg_resources.working_set", workingset)
     def test_get_distribution_nonexist(
         self,
-        mock_dist_is_local,
-        mock_dist_in_usersite,
-    ):
+        mock_dist_is_local: Mock,
+        mock_dist_in_usersite: Mock,
+    ) -> None:
         mock_dist_is_local.side_effect = self.dist_is_local
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
         dist = get_distribution("non-exist")
         assert dist is None
 
 
-def test_rmtree_errorhandler_nonexistent_directory(tmpdir):
+def test_rmtree_errorhandler_nonexistent_directory(tmpdir: Path) -> None:
     """
     Test rmtree_errorhandler ignores the given non-existing directory.
     """
     nonexistent_path = str(tmpdir / "foo")
     mock_func = Mock()
-    rmtree_errorhandler(mock_func, nonexistent_path, None)
+    # Argument 3 to "rmtree_errorhandler" has incompatible type "None"; expected
+    # "Tuple[Type[BaseException], BaseException, TracebackType]"
+    rmtree_errorhandler(mock_func, nonexistent_path, None)  # type: ignore[arg-type]
     mock_func.assert_not_called()
 
 
-def test_rmtree_errorhandler_readonly_directory(tmpdir):
+def test_rmtree_errorhandler_readonly_directory(tmpdir: Path) -> None:
     """
     Test rmtree_errorhandler makes the given read-only directory writable.
     """
@@ -309,14 +312,16 @@ def test_rmtree_errorhandler_readonly_directory(tmpdir):
 
     # Make sure mock_func is called with the given path
     mock_func = Mock()
-    rmtree_errorhandler(mock_func, path, None)
+    # Argument 3 to "rmtree_errorhandler" has incompatible type "None"; expected
+    # "Tuple[Type[BaseException], BaseException, TracebackType]"
+    rmtree_errorhandler(mock_func, path, None)  # type: ignore[arg-type]
     mock_func.assert_called_with(path)
 
     # Make sure the path is now writable
     assert os.stat(path).st_mode & stat.S_IWRITE
 
 
-def test_rmtree_errorhandler_reraises_error(tmpdir):
+def test_rmtree_errorhandler_reraises_error(tmpdir: Path) -> None:
     """
     Test rmtree_errorhandler reraises an exception
     by the given unreadable directory.
@@ -334,30 +339,32 @@ def test_rmtree_errorhandler_reraises_error(tmpdir):
     except RuntimeError:
         # Make sure the handler reraises an exception
         with pytest.raises(RuntimeError, match="test message"):
-            rmtree_errorhandler(mock_func, path, None)
+            # Argument 3 to "rmtree_errorhandler" has incompatible type "None"; expected
+            # "Tuple[Type[BaseException], BaseException, TracebackType]"
+            rmtree_errorhandler(mock_func, path, None)  # type: ignore[arg-type]
 
     mock_func.assert_not_called()
 
 
-def test_rmtree_skips_nonexistent_directory():
+def test_rmtree_skips_nonexistent_directory() -> None:
     """
     Test wrapped rmtree doesn't raise an error
     by the given nonexistent directory.
     """
-    rmtree.__wrapped__("nonexistent-subdir")
+    rmtree.__wrapped__("nonexistent-subdir")  # type: ignore[attr-defined]
 
 
 class Failer:
-    def __init__(self, duration=1):
+    def __init__(self, duration: int = 1) -> None:
         self.succeed_after = time.time() + duration
 
-    def call(self, *args, **kw):
+    def call(self, *args: Any, **kw: Any) -> None:
         """Fail with OSError self.max_fails times"""
         if time.time() < self.succeed_after:
             raise OSError("Failed")
 
 
-def test_rmtree_retries(monkeypatch):
+def test_rmtree_retries(monkeypatch: pytest.MonkeyPatch) -> None:
     """
     Test pip._internal.utils.rmtree will retry failures
     """
@@ -365,7 +372,7 @@ def test_rmtree_retries(monkeypatch):
     rmtree("foo")
 
 
-def test_rmtree_retries_for_3sec(monkeypatch):
+def test_rmtree_retries_for_3sec(monkeypatch: pytest.MonkeyPatch) -> None:
     """
     Test pip._internal.utils.rmtree will retry failures for no more than 3 sec
     """
@@ -389,7 +396,7 @@ class Test_normalize_path:
     # permission bit to create them, and Python 2 doesn't support it anyway, so
     # it's easiest just to skip this test on Windows altogether.
     @pytest.mark.skipif("sys.platform == 'win32'")
-    def test_resolve_symlinks(self, tmpdir):
+    def test_resolve_symlinks(self, tmpdir: Path) -> None:
         print(type(tmpdir))
         print(dir(tmpdir))
         orig_working_dir = os.getcwd()
@@ -436,14 +443,16 @@ class TestHashes:
             ("sha512", 128 * "c", False),
         ],
     )
-    def test_is_hash_allowed(self, hash_name, hex_digest, expected):
+    def test_is_hash_allowed(
+        self, hash_name: str, hex_digest: str, expected: bool
+    ) -> None:
         hashes_data = {
             "sha512": [128 * "a", 128 * "b"],
         }
         hashes = Hashes(hashes_data)
         assert hashes.is_hash_allowed(hash_name, hex_digest) == expected
 
-    def test_success(self, tmpdir):
+    def test_success(self, tmpdir: Path) -> None:
         """Make sure no error is raised when at least one hash matches.
 
         Test check_against_path because it calls everything else.
@@ -463,37 +472,37 @@ class TestHashes:
         )
         hashes.check_against_path(file)
 
-    def test_failure(self):
+    def test_failure(self) -> None:
         """Hashes should raise HashMismatch when no hashes match."""
         hashes = Hashes({"sha256": ["wrongwrong"]})
         with pytest.raises(HashMismatch):
             hashes.check_against_file(BytesIO(b"hello"))
 
-    def test_missing_hashes(self):
+    def test_missing_hashes(self) -> None:
         """MissingHashes should raise HashMissing when any check is done."""
         with pytest.raises(HashMissing):
             MissingHashes().check_against_file(BytesIO(b"hello"))
 
-    def test_unknown_hash(self):
+    def test_unknown_hash(self) -> None:
         """Hashes should raise InstallationError when it encounters an unknown
         hash."""
         hashes = Hashes({"badbad": ["dummy"]})
         with pytest.raises(InstallationError):
             hashes.check_against_file(BytesIO(b"hello"))
 
-    def test_non_zero(self):
+    def test_non_zero(self) -> None:
         """Test that truthiness tests tell whether any known-good hashes
         exist."""
-        assert Hashes({"sha256": "dummy"})
+        assert Hashes({"sha256": ["dummy"]})
         assert not Hashes()
         assert not Hashes({})
 
-    def test_equality(self):
+    def test_equality(self) -> None:
         assert Hashes() == Hashes()
         assert Hashes({"sha256": ["abcd"]}) == Hashes({"sha256": ["abcd"]})
         assert Hashes({"sha256": ["ab", "cd"]}) == Hashes({"sha256": ["cd", "ab"]})
 
-    def test_hash(self):
+    def test_hash(self) -> None:
         cache = {}
         cache[Hashes({"sha256": ["ab", "cd"]})] = 42
         assert cache[Hashes({"sha256": ["ab", "cd"]})] == 42
@@ -502,7 +511,7 @@ class TestHashes:
 class TestEncoding:
     """Tests for pip._internal.utils.encoding"""
 
-    def test_auto_decode_utf_16_le(self):
+    def test_auto_decode_utf_16_le(self) -> None:
         data = (
             b"\xff\xfeD\x00j\x00a\x00n\x00g\x00o\x00=\x00"
             b"=\x001\x00.\x004\x00.\x002\x00"
@@ -510,7 +519,7 @@ class TestEncoding:
         assert data.startswith(codecs.BOM_UTF16_LE)
         assert auto_decode(data) == "Django==1.4.2"
 
-    def test_auto_decode_utf_16_be(self):
+    def test_auto_decode_utf_16_be(self) -> None:
         data = (
             b"\xfe\xff\x00D\x00j\x00a\x00n\x00g\x00o\x00="
             b"\x00=\x001\x00.\x004\x00.\x002"
@@ -518,14 +527,14 @@ class TestEncoding:
         assert data.startswith(codecs.BOM_UTF16_BE)
         assert auto_decode(data) == "Django==1.4.2"
 
-    def test_auto_decode_no_bom(self):
+    def test_auto_decode_no_bom(self) -> None:
         assert auto_decode(b"foobar") == "foobar"
 
-    def test_auto_decode_pep263_headers(self):
+    def test_auto_decode_pep263_headers(self) -> None:
         latin1_req = "# coding=latin1\n# Pas trop de café"
         assert auto_decode(latin1_req.encode("latin1")) == latin1_req
 
-    def test_auto_decode_no_preferred_encoding(self):
+    def test_auto_decode_no_preferred_encoding(self) -> None:
         om, em = Mock(), Mock()
         om.return_value = "ascii"
         em.return_value = None
@@ -536,18 +545,18 @@ class TestEncoding:
         assert ret == data
 
     @pytest.mark.parametrize("encoding", [encoding for bom, encoding in BOMS])
-    def test_all_encodings_are_valid(self, encoding):
+    def test_all_encodings_are_valid(self, encoding: str) -> None:
         # we really only care that there is no LookupError
         assert "".encode(encoding).decode(encoding) == ""
 
 
-def raises(error):
+def raises(error: Type[Exception]) -> NoReturn:
     raise error
 
 
 class TestGlibc:
     @pytest.mark.skipif("sys.platform == 'win32'")
-    def test_glibc_version_string(self, monkeypatch):
+    def test_glibc_version_string(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(
             os,
             "confstr",
@@ -557,7 +566,9 @@ class TestGlibc:
         assert glibc_version_string() == "2.20"
 
     @pytest.mark.skipif("sys.platform == 'win32'")
-    def test_glibc_version_string_confstr(self, monkeypatch):
+    def test_glibc_version_string_confstr(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setattr(
             os,
             "confstr",
@@ -574,15 +585,21 @@ class TestGlibc:
             lambda x: "XXX",
         ],
     )
-    def test_glibc_version_string_confstr_fail(self, monkeypatch, failure):
+    def test_glibc_version_string_confstr_fail(
+        self, monkeypatch: pytest.MonkeyPatch, failure: Callable[[Any], Any]
+    ) -> None:
         monkeypatch.setattr(os, "confstr", failure, raising=False)
         assert glibc_version_string_confstr() is None
 
-    def test_glibc_version_string_confstr_missing(self, monkeypatch):
+    def test_glibc_version_string_confstr_missing(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.delattr(os, "confstr", raising=False)
         assert glibc_version_string_confstr() is None
 
-    def test_glibc_version_string_ctypes_missing(self, monkeypatch):
+    def test_glibc_version_string_ctypes_missing(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setitem(sys.modules, "ctypes", None)
         assert glibc_version_string_ctypes() is None
 
@@ -597,7 +614,9 @@ class TestGlibc:
         ((3, 6, 2, 4), (3, 6, 2)),
     ],
 )
-def test_normalize_version_info(version_info, expected):
+def test_normalize_version_info(
+    version_info: Tuple[int, ...], expected: Tuple[int, int, int]
+) -> None:
     actual = normalize_version_info(version_info)
     assert actual == expected
 
@@ -612,7 +631,9 @@ class TestGetProg:
             ("/usr/bin/pip3", "", "pip3"),
         ],
     )
-    def test_get_prog(self, monkeypatch, argv, executable, expected):
+    def test_get_prog(
+        self, monkeypatch: pytest.MonkeyPatch, argv: str, executable: str, expected: str
+    ) -> None:
         monkeypatch.setattr("pip._internal.utils.misc.sys.argv", [argv])
         monkeypatch.setattr("pip._internal.utils.misc.sys.executable", executable)
         assert get_prog() == expected
@@ -633,7 +654,9 @@ class TestGetProg:
         (("2001:db6::1", 5000), "[2001:db6::1]:5000"),
     ],
 )
-def test_build_netloc(host_port, expected_netloc):
+def test_build_netloc(
+    host_port: Tuple[str, Optional[int]], expected_netloc: str
+) -> None:
     assert build_netloc(*host_port) == expected_netloc
 
 
@@ -659,10 +682,10 @@ def test_build_netloc(host_port, expected_netloc):
     ],
 )
 def test_build_url_from_netloc_and_parse_netloc(
-    netloc,
-    expected_url,
-    expected_host_port,
-):
+    netloc: str,
+    expected_url: str,
+    expected_host_port: Tuple[str, Optional[int]],
+) -> None:
     assert build_url_from_netloc(netloc) == expected_url
     assert parse_netloc(netloc) == expected_host_port
 
@@ -686,7 +709,9 @@ def test_build_url_from_netloc_and_parse_netloc(
         ("user%3Aname:%23%40%5E@example.com", ("example.com", ("user:name", "#@^"))),
     ],
 )
-def test_split_auth_from_netloc(netloc, expected):
+def test_split_auth_from_netloc(
+    netloc: str, expected: Tuple[str, Tuple[Optional[str], Optional[str]]]
+) -> None:
     actual = split_auth_from_netloc(netloc)
     assert actual == expected
 
@@ -731,7 +756,9 @@ def test_split_auth_from_netloc(netloc, expected):
         ),
     ],
 )
-def test_split_auth_netloc_from_url(url, expected):
+def test_split_auth_netloc_from_url(
+    url: str, expected: Tuple[str, str, Tuple[Optional[str], Optional[str]]]
+) -> None:
     actual = split_auth_netloc_from_url(url)
     assert actual == expected
 
@@ -755,7 +782,7 @@ def test_split_auth_netloc_from_url(url, expected):
         ("user%3Aname:%23%40%5E@example.com", "user%3Aname:****@example.com"),
     ],
 )
-def test_redact_netloc(netloc, expected):
+def test_redact_netloc(netloc: str, expected: str) -> None:
     actual = redact_netloc(netloc)
     assert actual == expected
 
@@ -784,7 +811,7 @@ def test_redact_netloc(netloc, expected):
         ("git+ssh://git@pypi.org/something", "git+ssh://pypi.org/something"),
     ],
 )
-def test_remove_auth_from_url(auth_url, expected_url):
+def test_remove_auth_from_url(auth_url: str, expected_url: str) -> None:
     url = remove_auth_from_url(auth_url)
     assert url == expected_url
 
@@ -803,13 +830,13 @@ def test_remove_auth_from_url(auth_url, expected_url):
         ),
     ],
 )
-def test_redact_auth_from_url(auth_url, expected_url):
+def test_redact_auth_from_url(auth_url: str, expected_url: str) -> None:
     url = redact_auth_from_url(auth_url)
     assert url == expected_url
 
 
 class TestHiddenText:
-    def test_basic(self):
+    def test_basic(self) -> None:
         """
         Test str(), repr(), and attribute access.
         """
@@ -819,7 +846,7 @@ class TestHiddenText:
         assert hidden.redacted == "######"
         assert hidden.secret == "my-secret"
 
-    def test_equality_with_str(self):
+    def test_equality_with_str(self) -> None:
         """
         Test equality (and inequality) with str objects.
         """
@@ -833,7 +860,7 @@ class TestHiddenText:
         assert hidden != hidden.redacted
         assert hidden.redacted != hidden
 
-    def test_equality_same_secret(self):
+    def test_equality_same_secret(self) -> None:
         """
         Test equality with an object having the same secret.
         """
@@ -845,7 +872,7 @@ class TestHiddenText:
         # Also test __ne__.
         assert not hidden1 != hidden2
 
-    def test_equality_different_secret(self):
+    def test_equality_different_secret(self) -> None:
         """
         Test equality with an object having a different secret.
         """
@@ -857,7 +884,7 @@ class TestHiddenText:
         assert not hidden1 == hidden2
 
 
-def test_hide_value():
+def test_hide_value() -> None:
     hidden = hide_value("my-secret")
     assert repr(hidden) == "<HiddenText '****'>"
     assert str(hidden) == "****"
@@ -865,7 +892,7 @@ def test_hide_value():
     assert hidden.secret == "my-secret"
 
 
-def test_hide_url():
+def test_hide_url() -> None:
     hidden_url = hide_url("https://user:password@example.com")
     assert repr(hidden_url) == "<HiddenText 'https://user:****@example.com'>"
     assert str(hidden_url) == "https://user:****@example.com"
@@ -874,7 +901,7 @@ def test_hide_url():
 
 
 @pytest.fixture()
-def patch_deprecation_check_version():
+def patch_deprecation_check_version() -> Iterator[None]:
     # We do this, so that the deprecation tests are easier to write.
     import pip._internal.utils.deprecation as d
 
@@ -890,8 +917,11 @@ def patch_deprecation_check_version():
 @pytest.mark.parametrize("issue", [None, 988])
 @pytest.mark.parametrize("feature_flag", [None, "magic-8-ball"])
 def test_deprecated_message_contains_information(
-    gone_in, replacement, issue, feature_flag
-):
+    gone_in: Optional[str],
+    replacement: Optional[str],
+    issue: Optional[int],
+    feature_flag: Optional[str],
+) -> None:
     with pytest.warns(PipDeprecationWarning) as record:
         deprecated(
             reason="Stop doing this!",
@@ -902,6 +932,7 @@ def test_deprecated_message_contains_information(
         )
 
     assert len(record) == 1
+    assert isinstance(record[0].message, PipDeprecationWarning)
     message = record[0].message.args[0]
 
     assert "DEPRECATION: Stop doing this!" in message
@@ -915,7 +946,9 @@ def test_deprecated_message_contains_information(
 @pytest.mark.parametrize("replacement", [None, "a magic 8 ball"])
 @pytest.mark.parametrize("issue", [None, 988])
 @pytest.mark.parametrize("feature_flag", [None, "magic-8-ball"])
-def test_deprecated_raises_error_if_too_old(replacement, issue, feature_flag):
+def test_deprecated_raises_error_if_too_old(
+    replacement: Optional[str], issue: Optional[int], feature_flag: Optional[str]
+) -> None:
     with pytest.raises(PipDeprecationWarning) as exception:
         deprecated(
             reason="Stop doing this!",
@@ -937,14 +970,14 @@ def test_deprecated_raises_error_if_too_old(replacement, issue, feature_flag):
 
 
 @pytest.mark.usefixtures("patch_deprecation_check_version")
-def test_deprecated_message_reads_well_past():
+def test_deprecated_message_reads_well_past() -> None:
     with pytest.raises(PipDeprecationWarning) as exception:
         deprecated(
             reason="Stop doing this!",
             gone_in="1.0",  # this matches the patched version.
             replacement="to be nicer",
             feature_flag="magic-8-ball",
-            issue="100000",
+            issue=100000,
         )
 
     message = exception.value.args[0]
@@ -958,17 +991,18 @@ def test_deprecated_message_reads_well_past():
 
 
 @pytest.mark.usefixtures("patch_deprecation_check_version")
-def test_deprecated_message_reads_well_future():
+def test_deprecated_message_reads_well_future() -> None:
     with pytest.warns(PipDeprecationWarning) as record:
         deprecated(
             reason="Stop doing this!",
             gone_in="2.0",  # this is greater than the patched version.
             replacement="to be nicer",
             feature_flag="crisis",
-            issue="100000",
+            issue=100000,
         )
 
     assert len(record) == 1
+    assert isinstance(record[0].message, PipDeprecationWarning)
     message = record[0].message.args[0]
 
     assert message == (
@@ -980,7 +1014,7 @@ def test_deprecated_message_reads_well_future():
     )
 
 
-def test_make_setuptools_shim_args():
+def test_make_setuptools_shim_args() -> None:
     # Test all arguments at once, including the overall ordering.
     args = make_setuptools_shim_args(
         "/dir/path/setup.py",
@@ -997,7 +1031,9 @@ def test_make_setuptools_shim_args():
 
 
 @pytest.mark.parametrize("global_options", [None, [], ["--some", "--option"]])
-def test_make_setuptools_shim_args__global_options(global_options):
+def test_make_setuptools_shim_args__global_options(
+    global_options: Optional[List[str]],
+) -> None:
     args = make_setuptools_shim_args(
         "/dir/path/setup.py",
         global_options=global_options,
@@ -1012,7 +1048,7 @@ def test_make_setuptools_shim_args__global_options(global_options):
 
 
 @pytest.mark.parametrize("no_user_config", [False, True])
-def test_make_setuptools_shim_args__no_user_config(no_user_config):
+def test_make_setuptools_shim_args__no_user_config(no_user_config: bool) -> None:
     args = make_setuptools_shim_args(
         "/dir/path/setup.py",
         no_user_config=no_user_config,
@@ -1021,7 +1057,7 @@ def test_make_setuptools_shim_args__no_user_config(no_user_config):
 
 
 @pytest.mark.parametrize("unbuffered_output", [False, True])
-def test_make_setuptools_shim_args__unbuffered_output(unbuffered_output):
+def test_make_setuptools_shim_args__unbuffered_output(unbuffered_output: bool) -> None:
     args = make_setuptools_shim_args(
         "/dir/path/setup.py", unbuffered_output=unbuffered_output
     )
@@ -1037,7 +1073,9 @@ def test_make_setuptools_shim_args__unbuffered_output(unbuffered_output):
         (False, True, False),
     ],
 )
-def test_is_console_interactive(monkeypatch, isatty, no_stdin, expected):
+def test_is_console_interactive(
+    monkeypatch: pytest.MonkeyPatch, isatty: bool, no_stdin: bool, expected: bool
+) -> None:
     monkeypatch.setattr(sys.stdin, "isatty", Mock(return_value=isatty))
 
     if no_stdin:
@@ -1055,7 +1093,7 @@ def test_is_console_interactive(monkeypatch, isatty, no_stdin, expected):
         (1234567890, "1234.6 MB"),
     ],
 )
-def test_format_size(size, expected):
+def test_format_size(size: int, expected: str) -> None:
     assert format_size(size) == expected
 
 
@@ -1083,5 +1121,5 @@ def test_format_size(size, expected):
         ),
     ],
 )
-def test_tabulate(rows, table, sizes):
+def test_tabulate(rows: List[Tuple[str]], table: List[str], sizes: List[int]) -> None:
     assert tabulate(rows) == (table, sizes)

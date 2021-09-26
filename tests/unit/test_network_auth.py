@@ -1,4 +1,5 @@
 import functools
+from typing import Any, List, Optional, Tuple
 
 import pytest
 
@@ -36,7 +37,9 @@ from tests.lib.requests_mocks import MockConnection, MockRequest, MockResponse
         ),
     ],
 )
-def test_get_credentials_parses_correctly(input_url, url, username, password):
+def test_get_credentials_parses_correctly(
+    input_url: str, url: str, username: Optional[str], password: Optional[str]
+) -> None:
     auth = MultiDomainBasicAuth()
     get = auth._get_url_and_credentials
 
@@ -51,7 +54,7 @@ def test_get_credentials_parses_correctly(input_url, url, username, password):
     )
 
 
-def test_get_credentials_not_to_uses_cached_credentials():
+def test_get_credentials_not_to_uses_cached_credentials() -> None:
     auth = MultiDomainBasicAuth()
     auth.passwords["example.com"] = ("user", "pass")
 
@@ -60,7 +63,7 @@ def test_get_credentials_not_to_uses_cached_credentials():
     assert got == expected
 
 
-def test_get_credentials_not_to_uses_cached_credentials_only_username():
+def test_get_credentials_not_to_uses_cached_credentials_only_username() -> None:
     auth = MultiDomainBasicAuth()
     auth.passwords["example.com"] = ("user", "pass")
 
@@ -69,7 +72,7 @@ def test_get_credentials_not_to_uses_cached_credentials_only_username():
     assert got == expected
 
 
-def test_get_credentials_uses_cached_credentials():
+def test_get_credentials_uses_cached_credentials() -> None:
     auth = MultiDomainBasicAuth()
     auth.passwords["example.com"] = ("user", "pass")
 
@@ -78,7 +81,7 @@ def test_get_credentials_uses_cached_credentials():
     assert got == expected
 
 
-def test_get_credentials_uses_cached_credentials_only_username():
+def test_get_credentials_uses_cached_credentials_only_username() -> None:
     auth = MultiDomainBasicAuth()
     auth.passwords["example.com"] = ("user", "pass")
 
@@ -87,7 +90,7 @@ def test_get_credentials_uses_cached_credentials_only_username():
     assert got == expected
 
 
-def test_get_index_url_credentials():
+def test_get_index_url_credentials() -> None:
     auth = MultiDomainBasicAuth(index_urls=["http://foo:bar@example.com/path"])
     get = functools.partial(
         auth._get_new_credentials, allow_netrc=False, allow_keyring=False
@@ -103,17 +106,17 @@ class KeyringModuleV1:
     was added.
     """
 
-    def __init__(self):
-        self.saved_passwords = []
+    def __init__(self) -> None:
+        self.saved_passwords: List[Tuple[str, str, str]] = []
 
-    def get_password(self, system, username):
+    def get_password(self, system: str, username: str) -> Optional[str]:
         if system == "example.com" and username:
             return username + "!netloc"
         if system == "http://example.com/path2" and username:
             return username + "!url"
         return None
 
-    def set_password(self, system, username, password):
+    def set_password(self, system: str, username: str, password: str) -> None:
         self.saved_passwords.append((system, username, password))
 
 
@@ -129,7 +132,11 @@ class KeyringModuleV1:
         ("http://foo@example.com/path2/path3", ("foo", "foo!url")),
     ),
 )
-def test_keyring_get_password(monkeypatch, url, expect):
+def test_keyring_get_password(
+    monkeypatch: pytest.MonkeyPatch,
+    url: str,
+    expect: Tuple[Optional[str], Optional[str]],
+) -> None:
     keyring = KeyringModuleV1()
     monkeypatch.setattr("pip._internal.network.auth.keyring", keyring)
     auth = MultiDomainBasicAuth(index_urls=["http://example.com/path2"])
@@ -138,12 +145,12 @@ def test_keyring_get_password(monkeypatch, url, expect):
     assert actual == expect
 
 
-def test_keyring_get_password_after_prompt(monkeypatch):
+def test_keyring_get_password_after_prompt(monkeypatch: pytest.MonkeyPatch) -> None:
     keyring = KeyringModuleV1()
     monkeypatch.setattr("pip._internal.network.auth.keyring", keyring)
     auth = MultiDomainBasicAuth()
 
-    def ask_input(prompt):
+    def ask_input(prompt: str) -> str:
         assert prompt == "User for example.com: "
         return "user"
 
@@ -152,16 +159,18 @@ def test_keyring_get_password_after_prompt(monkeypatch):
     assert actual == ("user", "user!netloc", False)
 
 
-def test_keyring_get_password_after_prompt_when_none(monkeypatch):
+def test_keyring_get_password_after_prompt_when_none(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     keyring = KeyringModuleV1()
     monkeypatch.setattr("pip._internal.network.auth.keyring", keyring)
     auth = MultiDomainBasicAuth()
 
-    def ask_input(prompt):
+    def ask_input(prompt: str) -> str:
         assert prompt == "User for unknown.com: "
         return "user"
 
-    def ask_password(prompt):
+    def ask_password(prompt: str) -> str:
         assert prompt == "Password: "
         return "fake_password"
 
@@ -171,7 +180,9 @@ def test_keyring_get_password_after_prompt_when_none(monkeypatch):
     assert actual == ("user", "fake_password", True)
 
 
-def test_keyring_get_password_username_in_index(monkeypatch):
+def test_keyring_get_password_username_in_index(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     keyring = KeyringModuleV1()
     monkeypatch.setattr("pip._internal.network.auth.keyring", keyring)
     auth = MultiDomainBasicAuth(index_urls=["http://user@example.com/path2"])
@@ -199,7 +210,12 @@ def test_keyring_get_password_username_in_index(monkeypatch):
         ),
     ),
 )
-def test_keyring_set_password(monkeypatch, response_status, creds, expect_save):
+def test_keyring_set_password(
+    monkeypatch: pytest.MonkeyPatch,
+    response_status: int,
+    creds: Tuple[str, str, bool],
+    expect_save: bool,
+) -> None:
     keyring = KeyringModuleV1()
     monkeypatch.setattr("pip._internal.network.auth.keyring", keyring)
     auth = MultiDomainBasicAuth(prompting=True)
@@ -207,13 +223,13 @@ def test_keyring_set_password(monkeypatch, response_status, creds, expect_save):
     monkeypatch.setattr(auth, "_prompt_for_password", lambda *a: creds)
     if creds[2]:
         # when _prompt_for_password indicates to save, we should save
-        def should_save_password_to_keyring(*a):
+        def should_save_password_to_keyring(*a: Any) -> bool:
             return True
 
     else:
         # when _prompt_for_password indicates not to save, we should
         # never call this function
-        def should_save_password_to_keyring(*a):
+        def should_save_password_to_keyring(*a: Any) -> bool:
             assert False, "_should_save_password_to_keyring should not be called"
 
     monkeypatch.setattr(
@@ -225,14 +241,15 @@ def test_keyring_set_password(monkeypatch, response_status, creds, expect_save):
     resp.url = req.url
     connection = MockConnection()
 
-    def _send(sent_req, **kwargs):
+    def _send(sent_req: MockRequest, **kwargs: Any) -> MockResponse:
         assert sent_req is req
         assert "Authorization" in sent_req.headers
         r = MockResponse(b"")
         r.status_code = response_status
         return r
 
-    connection._send = _send
+    # https://github.com/python/mypy/issues/2427
+    connection._send = _send  # type: ignore[assignment]
 
     resp.request = req
     resp.status_code = 401
@@ -250,14 +267,14 @@ class KeyringModuleV2:
     """Represents the current supported API of keyring"""
 
     class Credential:
-        def __init__(self, username, password):
+        def __init__(self, username: str, password: str) -> None:
             self.username = username
             self.password = password
 
-    def get_password(self, system, username):
+    def get_password(self, system: str, username: str) -> None:
         assert False, "get_password should not ever be called"
 
-    def get_credential(self, system, username):
+    def get_credential(self, system: str, username: str) -> Optional[Credential]:
         if system == "http://example.com/path2":
             return self.Credential("username", "url")
         if system == "example.com":
@@ -273,7 +290,9 @@ class KeyringModuleV2:
         ("http://user2@example.com/path2/path3", ("username", "url")),
     ),
 )
-def test_keyring_get_credential(monkeypatch, url, expect):
+def test_keyring_get_credential(
+    monkeypatch: pytest.MonkeyPatch, url: str, expect: str
+) -> None:
     monkeypatch.setattr(pip._internal.network.auth, "keyring", KeyringModuleV2())
     auth = MultiDomainBasicAuth(index_urls=["http://example.com/path2"])
 
@@ -285,15 +304,15 @@ def test_keyring_get_credential(monkeypatch, url, expect):
 class KeyringModuleBroken:
     """Represents the current supported API of keyring, but broken"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._call_count = 0
 
-    def get_credential(self, system, username):
+    def get_credential(self, system: str, username: str) -> None:
         self._call_count += 1
         raise Exception("This keyring is broken!")
 
 
-def test_broken_keyring_disables_keyring(monkeypatch):
+def test_broken_keyring_disables_keyring(monkeypatch: pytest.MonkeyPatch) -> None:
     keyring_broken = KeyringModuleBroken()
     monkeypatch.setattr(pip._internal.network.auth, "keyring", keyring_broken)
 

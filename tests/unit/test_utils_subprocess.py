@@ -2,6 +2,7 @@ import locale
 import sys
 from logging import DEBUG, ERROR, INFO, WARNING
 from textwrap import dedent
+from typing import List, Optional, Tuple, Type
 
 import pytest
 
@@ -10,6 +11,7 @@ from pip._internal.exceptions import InstallationSubprocessError
 from pip._internal.utils.logging import VERBOSE
 from pip._internal.utils.misc import hide_value
 from pip._internal.utils.subprocess import (
+    CommandArgs,
     call_subprocess,
     format_command_args,
     make_command,
@@ -33,12 +35,12 @@ from pip._internal.utils.subprocess import (
         ),
     ],
 )
-def test_format_command_args(args, expected):
+def test_format_command_args(args: CommandArgs, expected: str) -> None:
     actual = format_command_args(args)
     assert actual == expected
 
 
-def test_make_subprocess_output_error():
+def test_make_subprocess_output_error() -> None:
     cmd_args = ["test", "has space"]
     cwd = "/path/to/cwd"
     lines = ["line1\n", "line2\n", "line3\n"]
@@ -62,7 +64,9 @@ def test_make_subprocess_output_error():
     assert actual == expected, f"actual: {actual}"
 
 
-def test_make_subprocess_output_error__non_ascii_command_arg(monkeypatch):
+def test_make_subprocess_output_error__non_ascii_command_arg(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """
     Test a command argument with a non-ascii character.
     """
@@ -87,7 +91,7 @@ def test_make_subprocess_output_error__non_ascii_command_arg(monkeypatch):
     assert actual == expected, f"actual: {actual}"
 
 
-def test_make_subprocess_output_error__non_ascii_cwd_python_3():
+def test_make_subprocess_output_error__non_ascii_cwd_python_3() -> None:
     """
     Test a str (text) cwd with a non-ascii character in Python 3.
     """
@@ -111,7 +115,7 @@ def test_make_subprocess_output_error__non_ascii_cwd_python_3():
 
 
 # This test is mainly important for checking unicode in Python 2.
-def test_make_subprocess_output_error__non_ascii_line():
+def test_make_subprocess_output_error__non_ascii_line() -> None:
     """
     Test a line with a non-ascii character.
     """
@@ -141,7 +145,12 @@ def test_make_subprocess_output_error__non_ascii_line():
         (False, ("out\nerr\n", "out\r\nerr\r\n", "err\nout\n", "err\r\nout\r\n")),
     ],
 )
-def test_call_subprocess_stdout_only(capfd, monkeypatch, stdout_only, expected):
+def test_call_subprocess_stdout_only(
+    capfd: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+    stdout_only: bool,
+    expected: Tuple[str, ...],
+) -> None:
     log = []
     monkeypatch.setattr(
         subprocess_logger,
@@ -167,14 +176,14 @@ def test_call_subprocess_stdout_only(capfd, monkeypatch, stdout_only, expected):
 
 
 class FakeSpinner(SpinnerInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         self.spin_count = 0
-        self.final_status = None
+        self.final_status: Optional[str] = None
 
-    def spin(self):
+    def spin(self) -> None:
         self.spin_count += 1
 
-    def finish(self, final_status):
+    def finish(self, final_status: str) -> None:
         self.final_status = final_status
 
 
@@ -186,14 +195,14 @@ class TestCallSubprocess:
 
     def check_result(
         self,
-        capfd,
-        caplog,
-        log_level,
-        spinner,
-        result,
-        expected,
-        expected_spinner,
-    ):
+        capfd: pytest.CaptureFixture[str],
+        caplog: pytest.LogCaptureFixture,
+        log_level: int,
+        spinner: FakeSpinner,
+        result: Optional[str],
+        expected: Tuple[Optional[List[str]], List[Tuple[str, int, str]]],
+        expected_spinner: Tuple[int, Optional[str]],
+    ) -> None:
         """
         Check the result of calling call_subprocess().
 
@@ -215,6 +224,7 @@ class TestCallSubprocess:
         if expected_proc is None:
             assert result is None
         else:
+            assert result is not None
             assert result.splitlines() == expected_proc
 
         # Confirm that stdout and stderr haven't been written to.
@@ -238,7 +248,12 @@ class TestCallSubprocess:
 
         assert (spinner.spin_count, spinner.final_status) == expected_spinner
 
-    def prepare_call(self, caplog, log_level, command=None):
+    def prepare_call(
+        self,
+        caplog: pytest.LogCaptureFixture,
+        log_level: int,
+        command: Optional[str] = None,
+    ) -> Tuple[List[str], FakeSpinner]:
         if command is None:
             command = 'print("Hello"); print("world")'
 
@@ -248,7 +263,9 @@ class TestCallSubprocess:
 
         return (args, spinner)
 
-    def test_debug_logging(self, capfd, caplog):
+    def test_debug_logging(
+        self, capfd: pytest.CaptureFixture[str], caplog: pytest.LogCaptureFixture
+    ) -> None:
         """
         Test DEBUG logging (and without passing show_stdout=True).
         """
@@ -276,7 +293,9 @@ class TestCallSubprocess:
             expected_spinner=(0, None),
         )
 
-    def test_info_logging(self, capfd, caplog):
+    def test_info_logging(
+        self, capfd: pytest.CaptureFixture[str], caplog: pytest.LogCaptureFixture
+    ) -> None:
         """
         Test INFO logging (and without passing show_stdout=True).
         """
@@ -284,7 +303,10 @@ class TestCallSubprocess:
         args, spinner = self.prepare_call(caplog, log_level)
         result = call_subprocess(args, spinner=spinner)
 
-        expected = (["Hello", "world"], [])
+        expected: Tuple[List[str], List[Tuple[str, int, str]]] = (
+            ["Hello", "world"],
+            [],
+        )
         # The spinner should spin twice in this case since the subprocess
         # output isn't being written to the console.
         self.check_result(
@@ -297,7 +319,9 @@ class TestCallSubprocess:
             expected_spinner=(2, "done"),
         )
 
-    def test_info_logging__subprocess_error(self, capfd, caplog):
+    def test_info_logging__subprocess_error(
+        self, capfd: pytest.CaptureFixture[str], caplog: pytest.LogCaptureFixture
+    ) -> None:
         """
         Test INFO logging of a subprocess with an error (and without passing
         show_stdout=True).
@@ -358,7 +382,9 @@ class TestCallSubprocess:
         assert command_line.startswith(" command: ")
         assert command_line.endswith('print("world"); exit("fail")\'')
 
-    def test_info_logging_with_show_stdout_true(self, capfd, caplog):
+    def test_info_logging_with_show_stdout_true(
+        self, capfd: pytest.CaptureFixture[str], caplog: pytest.LogCaptureFixture
+    ) -> None:
         """
         Test INFO logging with show_stdout=True.
         """
@@ -410,13 +436,13 @@ class TestCallSubprocess:
     )
     def test_spinner_finish(
         self,
-        exit_status,
-        show_stdout,
-        extra_ok_returncodes,
-        log_level,
-        caplog,
-        expected,
-    ):
+        exit_status: int,
+        show_stdout: bool,
+        extra_ok_returncodes: Optional[Tuple[int, ...]],
+        log_level: int,
+        caplog: pytest.LogCaptureFixture,
+        expected: Tuple[Optional[Type[Exception]], Optional[str], int],
+    ) -> None:
         """
         Test that the spinner finishes correctly.
         """
@@ -426,6 +452,7 @@ class TestCallSubprocess:
 
         command = f'print("Hello"); print("world"); exit({exit_status})'
         args, spinner = self.prepare_call(caplog, log_level, command=command)
+        exc_type: Optional[Type[Exception]]
         try:
             call_subprocess(
                 args,
@@ -442,7 +469,7 @@ class TestCallSubprocess:
         assert spinner.final_status == expected_final_status
         assert spinner.spin_count == expected_spin_count
 
-    def test_closes_stdin(self):
+    def test_closes_stdin(self) -> None:
         with pytest.raises(InstallationSubprocessError):
             call_subprocess(
                 [sys.executable, "-c", "input()"],
@@ -450,7 +477,7 @@ class TestCallSubprocess:
             )
 
 
-def test_unicode_decode_error(caplog):
+def test_unicode_decode_error(caplog: pytest.LogCaptureFixture) -> None:
     if locale.getpreferredencoding() != "UTF-8":
         pytest.skip("locale.getpreferredencoding() is not UTF-8")
     caplog.set_level(INFO)

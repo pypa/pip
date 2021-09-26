@@ -29,6 +29,7 @@ class MockResponse:
         self.url = None
         self.headers = {"Content-Length": len(contents)}
         self.history = []
+        self.from_cache = False
 
 
 class MockConnection:

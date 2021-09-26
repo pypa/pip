@@ -1,5 +1,5 @@
 import errno
-from unittest.mock import patch
+from unittest import mock
 
 import pytest
 from pip._vendor.packaging.requirements import Requirement
@@ -15,9 +15,9 @@ from pip._internal.req.req_install import InstallRequirement
 
 
 class TestDecideUserInstall:
-    @patch("site.ENABLE_USER_SITE", True)
-    @patch("pip._internal.commands.install.site_packages_writable")
-    def test_prefix_and_target(self, sp_writable):
+    @mock.patch("site.ENABLE_USER_SITE", True)
+    @mock.patch("pip._internal.commands.install.site_packages_writable")
+    def test_prefix_and_target(self, sp_writable: mock.Mock) -> None:
         sp_writable.return_value = False
 
         assert decide_user_install(use_user_site=None, prefix_path="foo") is False
@@ -35,11 +35,11 @@ class TestDecideUserInstall:
     )
     def test_most_cases(
         self,
-        enable_user_site,
-        site_packages_writable,
-        result,
-        monkeypatch,
-    ):
+        enable_user_site: bool,
+        site_packages_writable: bool,
+        result: bool,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         monkeypatch.setattr("site.ENABLE_USER_SITE", enable_user_site)
         monkeypatch.setattr(
             "pip._internal.commands.install.site_packages_writable",
@@ -48,7 +48,7 @@ class TestDecideUserInstall:
         assert decide_user_install(use_user_site=None) is result
 
 
-def test_rejection_for_pip_install_options():
+def test_rejection_for_pip_install_options() -> None:
     install_options = ["--prefix=/hello"]
     with pytest.raises(CommandError) as e:
         reject_location_related_install_options([], install_options)
@@ -56,9 +56,7 @@ def test_rejection_for_pip_install_options():
     assert "['--prefix'] from command line" in str(e.value)
 
 
-def test_rejection_for_location_requirement_options():
-    install_options = []
-
+def test_rejection_for_location_requirement_options() -> None:
     bad_named_req_options = ["--home=/wow"]
     bad_named_req = InstallRequirement(
         Requirement("hello"), "requirements.txt", install_options=bad_named_req_options
@@ -71,7 +69,7 @@ def test_rejection_for_location_requirement_options():
 
     with pytest.raises(CommandError) as e:
         reject_location_related_install_options(
-            [bad_named_req, bad_unnamed_req], install_options
+            [bad_named_req, bad_unnamed_req], options=[]
         )
 
     assert (
@@ -151,8 +149,12 @@ def test_rejection_for_location_requirement_options():
     ],
 )
 def test_create_os_error_message(
-    monkeypatch, error, show_traceback, using_user_site, expected
-):
+    monkeypatch: pytest.MonkeyPatch,
+    error: OSError,
+    show_traceback: bool,
+    using_user_site: bool,
+    expected: str,
+) -> None:
     monkeypatch.setattr(install, "running_under_virtualenv", lambda: False)
     msg = create_os_error_message(error, show_traceback, using_user_site)
     assert msg == expected

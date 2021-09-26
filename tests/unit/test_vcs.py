@@ -1,12 +1,13 @@
 import os
 import pathlib
-from unittest import TestCase
-from unittest.mock import patch
+from typing import Any, Dict, List, Optional, Tuple, Type
+from unittest import TestCase, mock
 
 import pytest
 
 from pip._internal.exceptions import BadCommand, InstallationError
-from pip._internal.utils.misc import hide_url, hide_value
+from pip._internal.utils.misc import HiddenText, hide_url, hide_value
+from pip._internal.utils.subprocess import CommandArgs
 from pip._internal.vcs import make_vcs_requirement_url
 from pip._internal.vcs.bazaar import Bazaar
 from pip._internal.vcs.git import Git, RemoteNotValidError, looks_like_hash
@@ -14,12 +15,13 @@ from pip._internal.vcs.mercurial import Mercurial
 from pip._internal.vcs.subversion import Subversion
 from pip._internal.vcs.versioncontrol import RevOptions, VersionControl
 from tests.lib import is_svn_installed, need_svn
+from tests.lib.path import Path
 
 
 @pytest.mark.skipif(
     "CI" not in os.environ, reason="Subversion is only required under CI"
 )
-def test_ensure_svn_available():
+def test_ensure_svn_available() -> None:
     """Make sure that svn is available when running in CI."""
     assert is_svn_installed()
 
@@ -49,12 +51,12 @@ def test_ensure_svn_available():
         ),
     ],
 )
-def test_make_vcs_requirement_url(args, expected):
+def test_make_vcs_requirement_url(args: Tuple[Any, ...], expected: str) -> None:
     actual = make_vcs_requirement_url(*args)
     assert actual == expected
 
 
-def test_rev_options_repr():
+def test_rev_options_repr() -> None:
     rev_options = RevOptions(Git, "develop")
     assert repr(rev_options) == "<RevOptions git: rev='develop'>"
 
@@ -76,7 +78,12 @@ def test_rev_options_repr():
         ),
     ],
 )
-def test_rev_options_to_args(vc_class, expected1, expected2, kwargs):
+def test_rev_options_to_args(
+    vc_class: Type[VersionControl],
+    expected1: List[str],
+    expected2: List[str],
+    kwargs: Dict[str, Any],
+) -> None:
     """
     Test RevOptions.to_args().
     """
@@ -84,7 +91,7 @@ def test_rev_options_to_args(vc_class, expected1, expected2, kwargs):
     assert RevOptions(vc_class, "123", **kwargs).to_args() == expected2
 
 
-def test_rev_options_to_display():
+def test_rev_options_to_display() -> None:
     """
     Test RevOptions.to_display().
     """
@@ -97,7 +104,7 @@ def test_rev_options_to_display():
     assert rev_options.to_display() == " (to revision master)"
 
 
-def test_rev_options_make_new():
+def test_rev_options_make_new() -> None:
     """
     Test RevOptions.make_new().
     """
@@ -124,7 +131,7 @@ def test_rev_options_make_new():
         ((41 * "a"), False),
     ],
 )
-def test_looks_like_hash(sha, expected):
+def test_looks_like_hash(sha: str, expected: bool) -> None:
     assert looks_like_hash(sha) == expected
 
 
@@ -142,7 +149,9 @@ def test_looks_like_hash(sha, expected):
         (Subversion, "svn://example.com/MyProject", True),
     ],
 )
-def test_should_add_vcs_url_prefix(vcs_cls, remote_url, expected):
+def test_should_add_vcs_url_prefix(
+    vcs_cls: Type[VersionControl], remote_url: str, expected: bool
+) -> None:
     actual = vcs_cls.should_add_vcs_url_prefix(remote_url)
     assert actual == expected
 
@@ -166,7 +175,7 @@ def test_should_add_vcs_url_prefix(vcs_cls, remote_url, expected):
         ("https://bob@example.com/foo", "https://bob@example.com/foo"),
     ],
 )
-def test_git_remote_url_to_pip(url, target):
+def test_git_remote_url_to_pip(url: str, target: str) -> None:
     assert Git._git_remote_to_pip_url(url) == target
 
 
@@ -180,7 +189,7 @@ def test_git_remote_url_to_pip(url, target):
         ("/muffle/fuffle/pufffle/fluffle.git", "posix"),
     ],
 )
-def test_paths_are_not_mistaken_for_scp_shorthand(url, platform):
+def test_paths_are_not_mistaken_for_scp_shorthand(url: str, platform: str) -> None:
     # File paths should not be mistaken for SCP shorthand. If they do then
     # 'c:/piffle/wiffle' would end up as 'ssh://c/piffle/wiffle'.
     from pip._internal.vcs.git import SCP_REGEX
@@ -192,16 +201,16 @@ def test_paths_are_not_mistaken_for_scp_shorthand(url, platform):
             Git._git_remote_to_pip_url(url)
 
 
-def test_git_remote_local_path(tmpdir):
+def test_git_remote_local_path(tmpdir: Path) -> None:
     path = pathlib.Path(tmpdir, "project.git")
     path.mkdir()
     # Path must exist to be recognised as a local git remote.
     assert Git._git_remote_to_pip_url(str(path)) == path.as_uri()
 
 
-@patch("pip._internal.vcs.git.Git.get_remote_url")
-@patch("pip._internal.vcs.git.Git.get_revision")
-@patch("pip._internal.vcs.git.Git.get_subdirectory")
+@mock.patch("pip._internal.vcs.git.Git.get_remote_url")
+@mock.patch("pip._internal.vcs.git.Git.get_revision")
+@mock.patch("pip._internal.vcs.git.Git.get_subdirectory")
 @pytest.mark.parametrize(
     "git_url, target_url_prefix",
     [
@@ -218,12 +227,12 @@ def test_git_remote_local_path(tmpdir):
 )
 @pytest.mark.network
 def test_git_get_src_requirements(
-    mock_get_subdirectory,
-    mock_get_revision,
-    mock_get_remote_url,
-    git_url,
-    target_url_prefix,
-):
+    mock_get_subdirectory: mock.Mock,
+    mock_get_revision: mock.Mock,
+    mock_get_remote_url: mock.Mock,
+    git_url: str,
+    target_url_prefix: str,
+) -> None:
     sha = "5547fa909e83df8bd743d3978d6667497983a4b7"
 
     mock_get_remote_url.return_value = Git._git_remote_to_pip_url(git_url)
@@ -236,30 +245,32 @@ def test_git_get_src_requirements(
     assert ret == target
 
 
-@patch("pip._internal.vcs.git.Git.get_revision_sha")
-def test_git_resolve_revision_rev_exists(get_sha_mock):
+@mock.patch("pip._internal.vcs.git.Git.get_revision_sha")
+def test_git_resolve_revision_rev_exists(get_sha_mock: mock.Mock) -> None:
     get_sha_mock.return_value = ("123456", False)
-    url = "git+https://git.example.com"
+    url = HiddenText("git+https://git.example.com", redacted="*")
     rev_options = Git.make_rev_options("develop")
 
     new_options = Git.resolve_revision(".", url, rev_options)
     assert new_options.rev == "123456"
 
 
-@patch("pip._internal.vcs.git.Git.get_revision_sha")
-def test_git_resolve_revision_rev_not_found(get_sha_mock):
+@mock.patch("pip._internal.vcs.git.Git.get_revision_sha")
+def test_git_resolve_revision_rev_not_found(get_sha_mock: mock.Mock) -> None:
     get_sha_mock.return_value = (None, False)
-    url = "git+https://git.example.com"
+    url = HiddenText("git+https://git.example.com", redacted="*")
     rev_options = Git.make_rev_options("develop")
 
     new_options = Git.resolve_revision(".", url, rev_options)
     assert new_options.rev == "develop"
 
 
-@patch("pip._internal.vcs.git.Git.get_revision_sha")
-def test_git_resolve_revision_not_found_warning(get_sha_mock, caplog):
+@mock.patch("pip._internal.vcs.git.Git.get_revision_sha")
+def test_git_resolve_revision_not_found_warning(
+    get_sha_mock: mock.Mock, caplog: pytest.LogCaptureFixture
+) -> None:
     get_sha_mock.return_value = (None, False)
-    url = "git+https://git.example.com"
+    url = HiddenText("git+https://git.example.com", redacted="*")
     sha = 40 * "a"
     rev_options = Git.make_rev_options(sha)
 
@@ -290,8 +301,10 @@ def test_git_resolve_revision_not_found_warning(get_sha_mock, caplog):
         (None, False),
     ),
 )
-@patch("pip._internal.vcs.git.Git.get_revision")
-def test_git_is_commit_id_equal(mock_get_revision, rev_name, result):
+@mock.patch("pip._internal.vcs.git.Git.get_revision")
+def test_git_is_commit_id_equal(
+    mock_get_revision: mock.Mock, rev_name: Optional[str], result: bool
+) -> None:
     """
     Test Git.is_commit_id_equal().
     """
@@ -310,7 +323,9 @@ def test_git_is_commit_id_equal(mock_get_revision, rev_name, result):
         (("user:pass@example.com", "https"), ("user:pass@example.com", (None, None))),
     ],
 )
-def test_git__get_netloc_and_auth(args, expected):
+def test_git__get_netloc_and_auth(
+    args: Tuple[str, str], expected: Tuple[str, Tuple[None, None]]
+) -> None:
     """
     Test VersionControl.get_netloc_and_auth().
     """
@@ -337,7 +352,9 @@ def test_git__get_netloc_and_auth(args, expected):
         (("user:pass@example.com", "ssh"), ("user:pass@example.com", (None, None))),
     ],
 )
-def test_subversion__get_netloc_and_auth(args, expected):
+def test_subversion__get_netloc_and_auth(
+    args: Tuple[str, str], expected: Tuple[str, Tuple[Optional[str], Optional[str]]]
+) -> None:
     """
     Test Subversion.get_netloc_and_auth().
     """
@@ -346,7 +363,7 @@ def test_subversion__get_netloc_and_auth(args, expected):
     assert actual == expected
 
 
-def test_git__get_url_rev__idempotent():
+def test_git__get_url_rev__idempotent() -> None:
     """
     Check that Git.get_url_rev_and_auth() is idempotent for what the code calls
     "stub URLs" (i.e. URLs that don't contain "://").
@@ -375,7 +392,9 @@ def test_git__get_url_rev__idempotent():
         ),
     ],
 )
-def test_version_control__get_url_rev_and_auth(url, expected):
+def test_version_control__get_url_rev_and_auth(
+    url: str, expected: Tuple[str, None, Tuple[None, None]]
+) -> None:
     """
     Test the basic case of VersionControl.get_url_rev_and_auth().
     """
@@ -391,7 +410,7 @@ def test_version_control__get_url_rev_and_auth(url, expected):
         "https://svn.example.com/My+Project",
     ],
 )
-def test_version_control__get_url_rev_and_auth__missing_plus(url):
+def test_version_control__get_url_rev_and_auth__missing_plus(url: str) -> None:
     """
     Test passing a URL to VersionControl.get_url_rev_and_auth() with a "+"
     missing from the scheme.
@@ -409,7 +428,7 @@ def test_version_control__get_url_rev_and_auth__missing_plus(url):
         "git+https://github.com/MyUser/myProject.git@#egg=py_pkg",
     ],
 )
-def test_version_control__get_url_rev_and_auth__no_revision(url):
+def test_version_control__get_url_rev_and_auth__no_revision(url: str) -> None:
     """
     Test passing a URL to VersionControl.get_url_rev_and_auth() with
     empty revision
@@ -429,16 +448,19 @@ def test_version_control__get_url_rev_and_auth__no_revision(url):
     ],
     ids=["FileNotFoundError", "PermissionError"],
 )
-def test_version_control__run_command__fails(vcs_cls, exc_cls, msg_re):
+def test_version_control__run_command__fails(
+    vcs_cls: Type[VersionControl], exc_cls: Type[Exception], msg_re: str
+) -> None:
     """
     Test that ``VersionControl.run_command()`` raises ``BadCommand``
     when the command is not found or when the user have no permission
     to execute it. The error message must contains the command name.
     """
-    with patch("pip._internal.vcs.versioncontrol.call_subprocess") as call:
+    with mock.patch("pip._internal.vcs.versioncontrol.call_subprocess") as call:
         call.side_effect = exc_cls
         with pytest.raises(BadCommand, match=msg_re.format(name=vcs_cls.name)):
-            vcs_cls.run_command([])
+            # https://github.com/python/mypy/issues/3283
+            vcs_cls.run_command([])  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize(
@@ -473,7 +495,7 @@ def test_version_control__run_command__fails(vcs_cls, exc_cls, msg_re):
         ),
     ],
 )
-def test_bazaar__get_url_rev_and_auth(url, expected):
+def test_bazaar__get_url_rev_and_auth(url: str, expected: str) -> None:
     """
     Test Bazaar.get_url_rev_and_auth().
     """
@@ -506,7 +528,9 @@ def test_bazaar__get_url_rev_and_auth(url, expected):
         ),
     ],
 )
-def test_subversion__get_url_rev_and_auth(url, expected):
+def test_subversion__get_url_rev_and_auth(
+    url: str, expected: Tuple[str, None, Tuple[Optional[str], Optional[str]]]
+) -> None:
     """
     Test Subversion.get_url_rev_and_auth().
     """
@@ -524,7 +548,9 @@ def test_subversion__get_url_rev_and_auth(url, expected):
         ("user", hide_value("pass"), []),
     ],
 )
-def test_git__make_rev_args(username, password, expected):
+def test_git__make_rev_args(
+    username: Optional[str], password: Optional[HiddenText], expected: CommandArgs
+) -> None:
     """
     Test VersionControl.make_rev_args().
     """
@@ -544,7 +570,9 @@ def test_git__make_rev_args(username, password, expected):
         ),
     ],
 )
-def test_subversion__make_rev_args(username, password, expected):
+def test_subversion__make_rev_args(
+    username: Optional[str], password: Optional[HiddenText], expected: CommandArgs
+) -> None:
     """
     Test Subversion.make_rev_args().
     """
@@ -552,7 +580,7 @@ def test_subversion__make_rev_args(username, password, expected):
     assert actual == expected
 
 
-def test_subversion__get_url_rev_options():
+def test_subversion__get_url_rev_options() -> None:
     """
     Test Subversion.get_url_rev_options().
     """
@@ -566,7 +594,7 @@ def test_subversion__get_url_rev_options():
     )
 
 
-def test_get_git_version():
+def test_get_git_version() -> None:
     git_version = Git().get_git_version()
     assert git_version >= (1, 0, 0)
 
@@ -582,10 +610,10 @@ def test_get_git_version():
         (True, True, True),
     ],
 )
-@patch("sys.stdin.isatty")
+@mock.patch("sys.stdin.isatty")
 def test_subversion__init_use_interactive(
-    mock_isatty, use_interactive, is_atty, expected
-):
+    mock_isatty: mock.Mock, use_interactive: bool, is_atty: bool, expected: bool
+) -> None:
     """
     Test Subversion.__init__() with mocked sys.stdin.isatty() output.
     """
@@ -595,7 +623,7 @@ def test_subversion__init_use_interactive(
 
 
 @need_svn
-def test_subversion__call_vcs_version():
+def test_subversion__call_vcs_version() -> None:
     """
     Test Subversion.call_vcs_version() against local ``svn``.
     """
@@ -630,10 +658,10 @@ def test_subversion__call_vcs_version():
         ("", ()),
     ],
 )
-@patch("pip._internal.vcs.subversion.Subversion.run_command")
+@mock.patch("pip._internal.vcs.subversion.Subversion.run_command")
 def test_subversion__call_vcs_version_patched(
-    mock_run_command, svn_output, expected_version
-):
+    mock_run_command: mock.Mock, svn_output: str, expected_version: Tuple[int, ...]
+) -> None:
     """
     Test Subversion.call_vcs_version() against patched output.
     """
@@ -642,8 +670,10 @@ def test_subversion__call_vcs_version_patched(
     assert version == expected_version
 
 
-@patch("pip._internal.vcs.subversion.Subversion.run_command")
-def test_subversion__call_vcs_version_svn_not_installed(mock_run_command):
+@mock.patch("pip._internal.vcs.subversion.Subversion.run_command")
+def test_subversion__call_vcs_version_svn_not_installed(
+    mock_run_command: mock.Mock,
+) -> None:
     """
     Test Subversion.call_vcs_version() when svn is not installed.
     """
@@ -661,7 +691,7 @@ def test_subversion__call_vcs_version_svn_not_installed(mock_run_command):
         (1, 8, 0),
     ],
 )
-def test_subversion__get_vcs_version_cached(version):
+def test_subversion__get_vcs_version_cached(version: Tuple[int, ...]) -> None:
     """
     Test Subversion.get_vcs_version() with previously cached result.
     """
@@ -678,8 +708,10 @@ def test_subversion__get_vcs_version_cached(version):
         (1, 8, 0),
     ],
 )
-@patch("pip._internal.vcs.subversion.Subversion.call_vcs_version")
-def test_subversion__get_vcs_version_call_vcs(mock_call_vcs, vcs_version):
+@mock.patch("pip._internal.vcs.subversion.Subversion.call_vcs_version")
+def test_subversion__get_vcs_version_call_vcs(
+    mock_call_vcs: mock.Mock, vcs_version: Tuple[int, ...]
+) -> None:
     """
     Test Subversion.get_vcs_version() with mocked output from
     call_vcs_version().
@@ -704,8 +736,8 @@ def test_subversion__get_vcs_version_call_vcs(mock_call_vcs, vcs_version):
     ],
 )
 def test_subversion__get_remote_call_options(
-    use_interactive, vcs_version, expected_options
-):
+    use_interactive: bool, vcs_version: Tuple[int, ...], expected_options: List[str]
+) -> None:
     """
     Test Subversion.get_remote_call_options().
     """
@@ -715,8 +747,8 @@ def test_subversion__get_remote_call_options(
 
 
 class TestSubversionArgs(TestCase):
-    def setUp(self):
-        patcher = patch("pip._internal.vcs.versioncontrol.call_subprocess")
+    def setUp(self) -> None:
+        patcher = mock.patch("pip._internal.vcs.versioncontrol.call_subprocess")
         self.addCleanup(patcher.stop)
         self.call_subprocess_mock = patcher.start()
 
@@ -728,10 +760,10 @@ class TestSubversionArgs(TestCase):
         self.rev_options = RevOptions(Subversion)
         self.dest = "/tmp/test"
 
-    def assert_call_args(self, args):
+    def assert_call_args(self, args: CommandArgs) -> None:
         assert self.call_subprocess_mock.call_args[0][0] == args
 
-    def test_obtain(self):
+    def test_obtain(self) -> None:
         self.svn.obtain(self.dest, hide_url(self.url))
         self.assert_call_args(
             [
@@ -748,7 +780,7 @@ class TestSubversionArgs(TestCase):
             ]
         )
 
-    def test_fetch_new(self):
+    def test_fetch_new(self) -> None:
         self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options)
         self.assert_call_args(
             [
@@ -761,7 +793,7 @@ class TestSubversionArgs(TestCase):
             ]
         )
 
-    def test_fetch_new_revision(self):
+    def test_fetch_new_revision(self) -> None:
         rev_options = RevOptions(Subversion, "123")
         self.svn.fetch_new(self.dest, hide_url(self.url), rev_options)
         self.assert_call_args(
@@ -777,7 +809,7 @@ class TestSubversionArgs(TestCase):
             ]
         )
 
-    def test_switch(self):
+    def test_switch(self) -> None:
         self.svn.switch(self.dest, hide_url(self.url), self.rev_options)
         self.assert_call_args(
             [
@@ -789,7 +821,7 @@ class TestSubversionArgs(TestCase):
             ]
         )
 
-    def test_update(self):
+    def test_update(self) -> None:
         self.svn.update(self.dest, hide_url(self.url), self.rev_options)
         self.assert_call_args(
             [
