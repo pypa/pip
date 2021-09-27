@@ -17,6 +17,7 @@ from typing import (
 
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
+from pip._vendor.packaging.utils import NormalizedName
 from pip._vendor.packaging.version import LegacyVersion, Version
 
 from pip._internal.models.direct_url import (
@@ -30,8 +31,6 @@ from pip._internal.utils.urls import url_to_path
 
 if TYPE_CHECKING:
     from typing import Protocol
-
-    from pip._vendor.packaging.utils import NormalizedName
 else:
     Protocol = object
 
@@ -114,7 +113,7 @@ class BaseDistribution(Protocol):
         raise NotImplementedError()
 
     @property
-    def canonical_name(self) -> "NormalizedName":
+    def canonical_name(self) -> NormalizedName:
         raise NotImplementedError()
 
     @property

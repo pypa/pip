@@ -2,18 +2,15 @@
 """
 
 import logging
-from typing import TYPE_CHECKING, Callable, Dict, List, NamedTuple, Optional, Set, Tuple
+from typing import Callable, Dict, List, NamedTuple, Optional, Set, Tuple
 
 from pip._vendor.packaging.requirements import Requirement
-from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 
 from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.metadata import get_default_environment
 from pip._internal.metadata.base import DistributionVersion
 from pip._internal.req.req_install import InstallRequirement
-
-if TYPE_CHECKING:
-    from pip._vendor.packaging.utils import NormalizedName
 
 logger = logging.getLogger(__name__)
 
@@ -24,12 +21,12 @@ class PackageDetails(NamedTuple):
 
 
 # Shorthands
-PackageSet = Dict["NormalizedName", PackageDetails]
-Missing = Tuple["NormalizedName", Requirement]
-Conflicting = Tuple["NormalizedName", DistributionVersion, Requirement]
+PackageSet = Dict[NormalizedName, PackageDetails]
+Missing = Tuple[NormalizedName, Requirement]
+Conflicting = Tuple[NormalizedName, DistributionVersion, Requirement]
 
-MissingDict = Dict["NormalizedName", List[Missing]]
-ConflictingDict = Dict["NormalizedName", List[Conflicting]]
+MissingDict = Dict[NormalizedName, List[Missing]]
+ConflictingDict = Dict[NormalizedName, List[Conflicting]]
 CheckResult = Tuple[MissingDict, ConflictingDict]
 ConflictDetails = Tuple[PackageSet, CheckResult]
 
@@ -118,7 +115,7 @@ def check_install_conflicts(to_install: List[InstallRequirement]) -> ConflictDet
 
 def _simulate_installation_of(
     to_install: List[InstallRequirement], package_set: PackageSet
-) -> Set["NormalizedName"]:
+) -> Set[NormalizedName]:
     """Computes the version of packages after installing to_install."""
     # Keep track of packages that were installed
     installed = set()
@@ -136,8 +133,8 @@ def _simulate_installation_of(
 
 
 def _create_whitelist(
-    would_be_installed: Set["NormalizedName"], package_set: PackageSet
-) -> Set["NormalizedName"]:
+    would_be_installed: Set[NormalizedName], package_set: PackageSet
+) -> Set[NormalizedName]:
     packages_affected = set(would_be_installed)
 
     for package_name in package_set:
