@@ -13,6 +13,7 @@ class PipReporter(BaseReporter):
     def __init__(self) -> None:
         self.backtracks_by_package: DefaultDict[str, int] = defaultdict(int)
 
+        reduce_backtracking_url = "https://pip.pypa.io/en/latest/topics/dependency-resolution/#possible-ways-to-reduce-backtracking"  # noqa: E501
         self._messages_at_backtrack = {
             1: (
                 "pip is looking at multiple versions of {package_name} to "
@@ -27,8 +28,8 @@ class PipReporter(BaseReporter):
             13: (
                 "This is taking longer than usual. You might need to provide "
                 "the dependency resolver with stricter constraints to reduce "
-                "runtime. If you want to abort this run, you can press "
-                "Ctrl + C to do so."
+                f"runtime. See {reduce_backtracking_url} for tips and/or "
+                "press Ctrl + C to abort this run."
             ),
         }
 
