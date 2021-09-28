@@ -1,0 +1,2 @@
+Do not raise error when there are no files to remove with ``pip cache purge/remove``.
+Instead log a warning and continue (to log that we removed 0 files).

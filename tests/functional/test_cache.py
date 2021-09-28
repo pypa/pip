@@ -244,6 +244,24 @@ def test_cache_list_with_empty_cache_abspath(script):
     assert result.stdout.strip() == ""
 
 
+@pytest.mark.usefixtures("empty_wheel_cache")
+def test_cache_purge_with_empty_cache(script):
+    """Running `pip cache purge` with an empty cache should print a warning
+    and exit without an error code."""
+    result = script.pip("cache", "purge", allow_stderr_warning=True)
+    assert result.stderr == "WARNING: No matching packages\n"
+    assert result.stdout == "Files removed: 0\n"
+
+
+@pytest.mark.usefixtures("populate_wheel_cache")
+def test_cache_remove_with_bad_pattern(script):
+    """Running `pip cache remove` with a bad pattern should print a warning
+    and exit without an error code."""
+    result = script.pip("cache", "remove", "aaa", allow_stderr_warning=True)
+    assert result.stderr == 'WARNING: No matching packages for pattern "aaa"\n'
+    assert result.stdout == "Files removed: 0\n"
+
+
 def test_cache_list_too_many_args(script):
     """Passing `pip cache list` too many arguments should cause an error."""
     script.pip("cache", "list", "aaa", "bbb", expect_error=True)

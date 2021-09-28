@@ -170,12 +170,16 @@ class CacheCommand(Command):
 
         files = self._find_wheels(options, args[0])
 
-        # Only fetch http files if no specific pattern given
+        no_matching_msg = "No matching packages"
         if args[0] == "*":
+            # Only fetch http files if no specific pattern given
             files += self._find_http_files(options)
+        else:
+            # Add the pattern to the log message
+            no_matching_msg += ' for pattern "{}"'.format(args[0])
 
         if not files:
-            raise CommandError("No matching packages")
+            logger.warning(no_matching_msg)
 
         for filename in files:
             os.unlink(filename)
