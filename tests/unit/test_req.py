@@ -21,7 +21,7 @@ from pip._internal.exceptions import (
     PreviousBuildDirError,
 )
 from pip._internal.index.package_finder import PackageFinder
-from pip._internal.metadata import BaseDistribution
+from pip._internal.metadata.pkg_resources import Distribution
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import InstallRequirement, RequirementSet
@@ -451,7 +451,7 @@ class TestInstallRequirement:
         req = install_req_from_line("foo")
         req.metadata_directory = path
         dist = req.get_dist()
-        assert isinstance(dist, BaseDistribution)
+        assert isinstance(dist, Distribution)
         assert dist.raw_name == dist.canonical_name == "foo"
         assert dist.location == "/path/to".replace("/", os.path.sep)
 

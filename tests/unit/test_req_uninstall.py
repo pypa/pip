@@ -137,12 +137,12 @@ class TestUninstallPathSet:
             pass
 
         ups = UninstallPathSet(dist=Mock())
-        assert ups.paths == set()
+        assert ups._paths == set()
         ups.add(file_extant)
-        assert ups.paths == {file_extant}
+        assert ups._paths == {file_extant}
 
         ups.add(file_nonexistent)
-        assert ups.paths == {file_extant}
+        assert ups._paths == {file_extant}
 
     def test_add_pth(self, tmpdir: str, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(pip._internal.req.req_uninstall, "is_local", mock_is_local)
@@ -184,7 +184,7 @@ class TestUninstallPathSet:
 
         ups = UninstallPathSet(dist=Mock())
         ups.add(foo_link)
-        assert ups.paths == {foo_link}
+        assert ups._paths == {foo_link}
 
     def test_compact_shorter_path(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(pip._internal.req.req_uninstall, "is_local", mock_is_local)
@@ -196,7 +196,7 @@ class TestUninstallPathSet:
         ups = UninstallPathSet(dist=Mock())
         ups.add(short_path)
         ups.add(os.path.join(short_path, "longer"))
-        assert compact(ups.paths) == {short_path}
+        assert compact(ups._paths) == {short_path}
 
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_detect_symlink_dirs(
@@ -218,7 +218,7 @@ class TestUninstallPathSet:
         ups = UninstallPathSet(dist=Mock())
         ups.add(path1)
         ups.add(path2)
-        assert ups.paths == {path1}
+        assert ups._paths == {path1}
 
 
 class TestStashedUninstallPathSet:

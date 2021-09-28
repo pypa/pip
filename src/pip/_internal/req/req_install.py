@@ -408,10 +408,9 @@ class InstallRequirement:
                     existing_dist
                 ):
                     raise InstallationError(
-                        "Will not install to the user site because it will "
-                        "lack sys.path precedence to {} in {}".format(
-                            existing_dist.project_name, existing_dist.location
-                        )
+                        f"Will not install to the user site because it will "
+                        f"lack sys.path precedence to {existing_dist.raw_name} "
+                        f"in {existing_dist.location}"
                     )
             else:
                 self.should_reinstall = True
