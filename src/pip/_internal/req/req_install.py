@@ -23,7 +23,11 @@ from pip._vendor.pkg_resources import Distribution
 from pip._internal.build_env import BuildEnvironment, NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_scheme
-from pip._internal.metadata import get_default_environment
+from pip._internal.metadata import (
+    BaseDistribution,
+    get_default_environment,
+    get_directory_distribution,
+)
 from pip._internal.models.link import Link
 from pip._internal.operations.build.metadata import generate_metadata
 from pip._internal.operations.build.metadata_editable import generate_editable_metadata
@@ -54,39 +58,12 @@ from pip._internal.utils.misc import (
     hide_url,
     redact_auth_from_url,
 )
-from pip._internal.utils.packaging import get_metadata
 from pip._internal.utils.subprocess import runner_with_spinner_message
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
 
 logger = logging.getLogger(__name__)
-
-
-def _get_dist(metadata_directory: str) -> Distribution:
-    """Return a pkg_resources.Distribution for the provided
-    metadata directory.
-    """
-    dist_dir = metadata_directory.rstrip(os.sep)
-
-    # Build a PathMetadata object, from path to metadata. :wink:
-    base_dir, dist_dir_name = os.path.split(dist_dir)
-    metadata = pkg_resources.PathMetadata(base_dir, dist_dir)
-
-    # Determine the correct Distribution object type.
-    if dist_dir.endswith(".egg-info"):
-        dist_cls = pkg_resources.Distribution
-        dist_name = os.path.splitext(dist_dir_name)[0]
-    else:
-        assert dist_dir.endswith(".dist-info")
-        dist_cls = pkg_resources.DistInfoDistribution
-        dist_name = os.path.splitext(dist_dir_name)[0].split("-")[0]
-
-    return dist_cls(
-        base_dir,
-        project_name=dist_name,
-        metadata=metadata,
-    )
 
 
 class InstallRequirement:
@@ -578,12 +555,12 @@ class InstallRequirement:
     @property
     def metadata(self) -> Any:
         if not hasattr(self, "_metadata"):
-            self._metadata = get_metadata(self.get_dist())
+            self._metadata = self.get_dist().metadata
 
         return self._metadata
 
-    def get_dist(self) -> Distribution:
-        return _get_dist(self.metadata_directory)
+    def get_dist(self) -> BaseDistribution:
+        return get_directory_distribution(self.metadata_directory)
 
     def assert_source_matches_version(self) -> None:
         assert self.source_dir

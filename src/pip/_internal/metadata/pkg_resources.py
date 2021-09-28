@@ -1,5 +1,6 @@
 import email.message
 import logging
+import os
 import pathlib
 from typing import Collection, Iterable, Iterator, List, NamedTuple, Optional
 from zipfile import BadZipFile
@@ -35,6 +36,26 @@ class EntryPoint(NamedTuple):
 class Distribution(BaseDistribution):
     def __init__(self, dist: pkg_resources.Distribution) -> None:
         self._dist = dist
+
+    @classmethod
+    def from_directory(cls, directory: str) -> "Distribution":
+        dist_dir = directory.rstrip(os.sep)
+
+        # Build a PathMetadata object, from path to metadata. :wink:
+        base_dir, dist_dir_name = os.path.split(dist_dir)
+        metadata = pkg_resources.PathMetadata(base_dir, dist_dir)
+
+        # Determine the correct Distribution object type.
+        if dist_dir.endswith(".egg-info"):
+            dist_cls = pkg_resources.Distribution
+            dist_name = os.path.splitext(dist_dir_name)[0]
+        else:
+            assert dist_dir.endswith(".dist-info")
+            dist_cls = pkg_resources.DistInfoDistribution
+            dist_name = os.path.splitext(dist_dir_name)[0].split("-")[0]
+
+        dist = dist_cls(base_dir, project_name=dist_name, metadata=metadata)
+        return cls(dist)
 
     @classmethod
     def from_wheel(cls, wheel: Wheel, name: str) -> "Distribution":

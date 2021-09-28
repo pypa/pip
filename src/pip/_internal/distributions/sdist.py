@@ -19,9 +19,7 @@ class SourceDistribution(AbstractDistribution):
     """
 
     def get_metadata_distribution(self) -> BaseDistribution:
-        from pip._internal.metadata.pkg_resources import Distribution as _Dist
-
-        return _Dist(self.req.get_dist())
+        return self.req.get_dist()
 
     def prepare_distribution_metadata(
         self, finder: PackageFinder, build_isolation: bool
