@@ -23,6 +23,7 @@ from pip._vendor.pkg_resources import Distribution
 from pip._internal.build_env import BuildEnvironment, NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_scheme
+from pip._internal.metadata import get_default_environment
 from pip._internal.models.link import Link
 from pip._internal.operations.build.metadata import generate_metadata
 from pip._internal.operations.build.metadata_editable import generate_editable_metadata
@@ -661,7 +662,7 @@ class InstallRequirement:
 
         """
         assert self.req
-        dist = get_distribution(self.req.name)
+        dist = get_default_environment().get_distribution(self.req.name)
         if not dist:
             logger.warning("Skipping %s as it is not installed.", self.name)
             return None

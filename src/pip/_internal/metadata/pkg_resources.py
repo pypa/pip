@@ -1,5 +1,6 @@
 import email.message
 import logging
+import pathlib
 from typing import Collection, Iterable, Iterator, List, NamedTuple, Optional
 from zipfile import BadZipFile
 
@@ -18,6 +19,7 @@ from .base import (
     BaseEntryPoint,
     BaseEnvironment,
     DistributionVersion,
+    InfoPath,
     Wheel,
 )
 
@@ -53,8 +55,18 @@ class Distribution(BaseDistribution):
         return self._dist.location
 
     @property
-    def info_directory(self) -> Optional[str]:
+    def info_location(self) -> Optional[str]:
         return self._dist.egg_info
+
+    @property
+    def installed_by_distutils(self) -> bool:
+        # A distutils-installed distribution is provided by FileMetadata. This
+        # provider has a "path" attribute not present anywhere else. Not the
+        # best introspection logic, but pip has been doing this for a long time.
+        try:
+            return bool(self._dist._provider.path)
+        except AttributeError:
+            return False
 
     @property
     def canonical_name(self) -> NormalizedName:
@@ -80,7 +92,20 @@ class Distribution(BaseDistribution):
     def in_site_packages(self) -> bool:
         return misc.dist_in_site_packages(self._dist)
 
-    def read_text(self, name: str) -> str:
+    def is_file(self, path: InfoPath) -> bool:
+        return self._dist.has_metadata(str(path))
+
+    def iterdir(self, path: InfoPath) -> Iterator[pathlib.PurePosixPath]:
+        name = str(path)
+        if not self._dist.has_metadata(name):
+            raise FileNotFoundError(name)
+        if not self._dist.isdir(name):
+            raise NotADirectoryError(name)
+        for child in self._dist.metadata_listdir(name):
+            yield pathlib.PurePosixPath(path, child)
+
+    def read_text(self, path: InfoPath) -> str:
+        name = str(path)
         if not self._dist.has_metadata(name):
             raise FileNotFoundError(name)
         return self._dist.get_metadata(name)

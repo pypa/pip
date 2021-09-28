@@ -458,13 +458,12 @@ def test_uninstallpathset_no_paths(caplog):
     Test UninstallPathSet logs notification when there are no paths to
     uninstall
     """
-    from pkg_resources import get_distribution
-
+    from pip._internal.metadata import get_default_environment
     from pip._internal.req.req_uninstall import UninstallPathSet
 
     caplog.set_level(logging.INFO)
 
-    test_dist = get_distribution("pip")
+    test_dist = get_default_environment().get_distribution("pip")
     uninstall_set = UninstallPathSet(test_dist)
     uninstall_set.remove()  # with no files added to set
 

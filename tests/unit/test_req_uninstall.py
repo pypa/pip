@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import Iterator, List, Tuple
+from typing import Iterator, List, Optional, Tuple
 from unittest.mock import Mock
 
 import pytest
@@ -27,8 +27,11 @@ def mock_is_local(path: str) -> bool:
 
 def test_uninstallation_paths() -> None:
     class dist:
-        def get_metadata_lines(self, record: str) -> List[str]:
-            return ["file.py,,", "file.pyc,,", "file.so,,", "nopyc.py"]
+        def iter_declared_entries(self) -> Optional[Iterator[str]]:
+            yield "file.py"
+            yield "file.pyc"
+            yield "file.so"
+            yield "nopyc.py"
 
         location = ""
 
