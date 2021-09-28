@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 import pytest
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.tags import Tag
-from pkg_resources import parse_version
+from pip._vendor.packaging.version import parse as parse_version
 
 import pip._internal.utils.compatibility_tags
 from pip._internal.exceptions import BestVersionAlreadyInstalled, DistributionNotFound
