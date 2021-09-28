@@ -86,8 +86,7 @@ def test_finder_detects_latest_already_satisfied_find_links(data: TestData) -> N
     latest_version = "3.0"
     satisfied_by = Mock(
         location="/path",
-        parsed_version=parse_version(latest_version),
-        version=latest_version,
+        version=parse_version(latest_version),
     )
     req.satisfied_by = satisfied_by
     finder = make_test_finder(find_links=[data.find_links])
@@ -104,8 +103,7 @@ def test_finder_detects_latest_already_satisfied_pypi_links() -> None:
     latest_version = "0.3.1"
     satisfied_by = Mock(
         location="/path",
-        parsed_version=parse_version(latest_version),
-        version=latest_version,
+        version=parse_version(latest_version),
     )
     req.satisfied_by = satisfied_by
     finder = make_test_finder(index_urls=["http://pypi.org/simple/"])
@@ -185,8 +183,7 @@ class TestWheel:
         latest_version = "1.0"
         satisfied_by = Mock(
             location="/path",
-            parsed_version=parse_version(latest_version),
-            version=latest_version,
+            version=parse_version(latest_version),
         )
         req.satisfied_by = satisfied_by
         finder = make_test_finder(find_links=[data.find_links])
