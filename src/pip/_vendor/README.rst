@@ -112,7 +112,7 @@ Modifications
 * ``requests`` has been modified to import its other dependencies from
   ``pip._vendor`` and to *not* load ``simplejson`` (all platforms) and
   ``pyopenssl`` (Windows).
-
+* ``platformdirs`` has been modified to import its submodules from ``pip._vendor.platformdirs``.
 
 Automatic Vendoring
 ===================
