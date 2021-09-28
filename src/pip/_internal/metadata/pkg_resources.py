@@ -99,7 +99,10 @@ class Distribution(BaseDistribution):
 
     @property
     def installer(self) -> str:
-        return get_installer(self._dist)
+        try:
+            return get_installer(self._dist)
+        except (OSError, ValueError):
+            return ""  # Fail silently if the installer file cannot be read.
 
     @property
     def local(self) -> bool:
