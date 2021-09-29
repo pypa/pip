@@ -112,12 +112,12 @@ you will need to configure its behaviour using a
   ```
 
 ```{admonition} Historical context
-`setuptools < 52.0` will use `easy_install` to try to fulfill those
-dependencies, which can result in weird failures -- it does not understand
-many of the modern Python packaging standards, and will usually attempt to
-install incompatible package versions or to build packages incorrectly. It also
-generates improper script wrappers, which don't do the right thing in many
-situations.
+`setuptools < 52.0` will use `easy_install` to try to fulfill `setup_requires`
+dependencies, which can result in weird failures -- `easy_install` does not
+understand many of the modern Python packaging standards, and will usually
+attempt to install incompatible package versions or to build packages
+incorrectly. It also generates improper script wrappers, which don't do the
+right thing in many situations.
 
 Newer versions of `setuptools` will use `pip` for these installations, but have
 limited ability to pass through any command line arguments. This can also result
