@@ -76,8 +76,23 @@ can be [cached](wheel-caching) for reuse, to speed up future installations.
 
 ### Editable Installation
 
-This is currently not supported. However, this will be supported in the near
-future, once {pep}`660` is implemented in pip.
+```{versionadded} 21.3
+
+```
+
+For performing editable installs, pip will use {pep}`660`'s
+`build_wheel_for_editable` hook that needs to be provided by the build backend.
+The wheels generated using this mechanism are not cached.
+
+```{admonition} Compatibility fallback
+If this hook is missing on the build backend _and_ there's a `setup.py` file
+in the project, pip will fallback to the legacy setup.py-based editable
+installation.
+
+This is considered a stopgap solution until setuptools adds support for
+{pep}`660`, at which point this functionality will be removed; following pip's
+regular {ref}`deprecation policy <Deprecation Policy>`.
+```
 
 ## Build output
 

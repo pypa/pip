@@ -43,15 +43,20 @@ When performing a build, pip will mention which build system interface it is
 using. Typically, this will take the form of a message like:
 
 ```none
-Building wheel for pip (PEP 517)... done
+Building wheel for pip (pyproject.toml)... done
 ```
 
 ```none
 Building wheel for pip (setup.py)... done
 ```
 
-Here, "PEP 517" refers to `pyproject.toml` based builds and "setup.py" refers
-to `setup.py` based builds.
+The content in the brackets, refers to which build system interface is being
+used.
+
+```{versionchanged} 21.3
+The output uses "pyproject.toml" instead of "PEP 517" to refer to be
+`pyproject.toml` based build system interface.
+```
 
 ## Controlling which build system interface is used
 
