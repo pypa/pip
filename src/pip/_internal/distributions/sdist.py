@@ -1,5 +1,5 @@
 import logging
-from typing import Set, Tuple
+from typing import Iterable, Set, Tuple
 
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.distributions.base import AbstractDistribution
@@ -37,23 +37,17 @@ class SourceDistribution(AbstractDistribution):
         self.req.prepare_metadata()
 
     def _setup_isolation(self, finder: PackageFinder) -> None:
-        def _raise_conflicts(
-            conflicting_with: str, conflicting_reqs: Set[Tuple[str, str]]
-        ) -> None:
-            format_string = (
-                "Some build dependencies for {requirement} "
-                "conflict with {conflicting_with}: {description}."
-            )
-            error_message = format_string.format(
-                requirement=self.req,
-                conflicting_with=conflicting_with,
-                description=", ".join(
-                    f"{installed} is incompatible with {wanted}"
-                    for installed, wanted in sorted(conflicting)
-                ),
-            )
-            raise InstallationError(error_message)
+        self._prepare_build_backend(finder)
+        # Install any extra build dependencies that the backend requests.
+        # This must be done in a second pass, as the pyproject.toml
+        # dependencies must be installed before we can call the backend.
+        if self.req.editable and self.req.permit_editable_wheels:
+            build_reqs = self._get_build_requires_editable()
+        else:
+            build_reqs = self._get_build_requires_wheel()
+        self._install_build_reqs(finder, build_reqs)
 
+    def _prepare_build_backend(self, finder: PackageFinder) -> None:
         # Isolate in a BuildEnvironment and install the build-time
         # requirements.
         pyproject_requires = self.req.pyproject_requires
@@ -67,7 +61,7 @@ class SourceDistribution(AbstractDistribution):
             self.req.requirements_to_check
         )
         if conflicting:
-            _raise_conflicts("PEP 517/518 supported requirements", conflicting)
+            self._raise_conflicts("PEP 517/518 supported requirements", conflicting)
         if missing:
             logger.warning(
                 "Missing build requirements in pyproject.toml for %s.",
@@ -78,19 +72,46 @@ class SourceDistribution(AbstractDistribution):
                 "pip cannot fall back to setuptools without %s.",
                 " and ".join(map(repr, sorted(missing))),
             )
-        # Install any extra build dependencies that the backend requests.
-        # This must be done in a second pass, as the pyproject.toml
-        # dependencies must be installed before we can call the backend.
+
+    def _get_build_requires_wheel(self) -> Iterable[str]:
         with self.req.build_env:
             runner = runner_with_spinner_message("Getting requirements to build wheel")
             backend = self.req.pep517_backend
             assert backend is not None
             with backend.subprocess_runner(runner):
-                reqs = backend.get_requires_for_build_wheel()
+                return backend.get_requires_for_build_wheel()
 
+    def _get_build_requires_editable(self) -> Iterable[str]:
+        with self.req.build_env:
+            runner = runner_with_spinner_message(
+                "Getting requirements to build editable"
+            )
+            backend = self.req.pep517_backend
+            assert backend is not None
+            with backend.subprocess_runner(runner):
+                return backend.get_requires_for_build_editable()
+
+    def _install_build_reqs(self, finder: PackageFinder, reqs: Iterable[str]) -> None:
         conflicting, missing = self.req.build_env.check_requirements(reqs)
         if conflicting:
-            _raise_conflicts("the backend dependencies", conflicting)
+            self._raise_conflicts("the backend dependencies", conflicting)
         self.req.build_env.install_requirements(
             finder, missing, "normal", "Installing backend dependencies"
         )
+
+    def _raise_conflicts(
+        self, conflicting_with: str, conflicting_reqs: Set[Tuple[str, str]]
+    ) -> None:
+        format_string = (
+            "Some build dependencies for {requirement} "
+            "conflict with {conflicting_with}: {description}."
+        )
+        error_message = format_string.format(
+            requirement=self.req,
+            conflicting_with=conflicting_with,
+            description=", ".join(
+                f"{installed} is incompatible with {wanted}"
+                for installed, wanted in sorted(conflicting_reqs)
+            ),
+        )
+        raise InstallationError(error_message)
