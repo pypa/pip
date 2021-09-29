@@ -42,7 +42,6 @@ from pip._internal.utils.direct_url_helpers import (
     direct_url_from_link,
 )
 from pip._internal.utils.hashes import Hashes
-from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     ask_path_exists,
     backup_dir,
@@ -587,11 +586,10 @@ class InstallRequirement:
         """
         assert self.source_dir
 
-        with indent_log():
-            if self.editable and self.permit_editable_wheels:
-                self.metadata_directory = self._generate_editable_metadata()
-            else:
-                self.metadata_directory = self._generate_metadata()
+        if self.editable and self.permit_editable_wheels:
+            self.metadata_directory = self._generate_editable_metadata()
+        else:
+            self.metadata_directory = self._generate_metadata()
 
         # Act on the newly generated metadata, based on the name and version.
         if not self.name:
