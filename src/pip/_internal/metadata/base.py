@@ -167,10 +167,10 @@ class BaseDistribution(Protocol):
         This usually indicates the distribution was installed by (older versions
         of) easy_install.
         """
-        info_location = self.info_location
-        if not info_location:
+        location = self.location
+        if not location:
             return False
-        return info_location.endswith(".egg")
+        return location.endswith(".egg")
 
     @property
     def installed_with_setuptools_egg_info(self) -> bool:
