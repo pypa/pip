@@ -42,7 +42,7 @@ You can then invoke your local source tree pip normally.
 
     .. code-block:: shell
 
-        virtualenv .venv # You can also use "python -m venv .venv" from python3.3+
+        virtualenv .venv # You can also use "python -m venv .venv"
         source .venv/bin/activate
         python -m pip install -e .
         python -m pip --version
@@ -51,7 +51,7 @@ You can then invoke your local source tree pip normally.
 
     .. code-block:: shell
 
-        virtualenv .venv # You can also use "py -m venv .venv" from python3.3+
+        virtualenv .venv # You can also use "py -m venv .venv"
         .venv\Scripts\activate
         py -m pip install -e .
         py -m pip --version
