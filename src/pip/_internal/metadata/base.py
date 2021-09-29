@@ -215,6 +215,14 @@ class BaseDistribution(Protocol):
         raise NotImplementedError()
 
     @property
+    def setuptools_filename(self) -> str:
+        """Convert a project name to its setuptools-compatible filename.
+
+        This is a copy of ``pkg_resources.to_filename()`` for compatibility.
+        """
+        return self.raw_name.replace("-", "_")
+
+    @property
     def direct_url(self) -> Optional[DirectUrl]:
         """Obtain a DirectUrl from this distribution.
 

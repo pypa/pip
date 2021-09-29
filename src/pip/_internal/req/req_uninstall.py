@@ -455,11 +455,21 @@ class UninstallPathSet:
         paths_to_remove = cls(dist)
         develop_egg_link = egg_link_path_from_location(dist.raw_name)
 
+        # Distribution is installed with metadata in a "flat" .egg-info
+        # directory. This means it is not a modern .dist-info installation, an
+        # egg, or legacy editable.
+        setuptools_flat_installation = (
+            dist.installed_with_setuptools_egg_info
+            and info_location is not None
+            and os.path.exists(info_location)
+            # If dist is editable and the location points to a ``.egg-info``,
+            # we are in fact in the legacy editable case.
+            and not info_location.endswith(f"{dist.setuptools_filename}.egg-info")
+        )
+
         # Uninstall cases order do matter as in the case of 2 installs of the
         # same package, pip needs to uninstall the currently detected version
-        if dist.installed_with_setuptools_egg_info and not dist.editable:
-            # if dist is editable and the location points to a ``.egg-info``,
-            # we are in fact in the ``.egg_link`` case.
+        if setuptools_flat_installation:
             if info_location is not None:
                 paths_to_remove.add(info_location)
             installed_files = dist.iter_declared_entries()
@@ -512,15 +522,14 @@ class UninstallPathSet:
             for path in uninstallation_paths(dist):
                 paths_to_remove.add(path)
 
-        elif dist.editable and develop_egg_link:
+        elif develop_egg_link:
             # PEP 660 modern editable is handled in the ``.dist-info`` case
             # above, so this only covers the setuptools-style editable.
             with open(develop_egg_link) as fh:
                 link_pointer = os.path.normcase(fh.readline().strip())
-            assert (
-                link_pointer == dist_location
-            ), "Egg-link {} does not match installed location of {} (at {})".format(
-                link_pointer, dist.raw_name, dist_location
+            assert link_pointer == dist_location, (
+                f"Egg-link {link_pointer} does not match installed location of "
+                f"{dist.raw_name} (at {dist_location})"
             )
             paths_to_remove.add(develop_egg_link)
             easy_install_pth = os.path.join(
