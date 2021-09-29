@@ -88,7 +88,7 @@ and `pip wheel` inject additional arguments into the `setup.py` command
 (`--build-option` is only available in `pip wheel`).
 
 ```{attention}
-The use of `--global-option` and `--build-option` is highly build-system
+The use of `--global-option` and `--build-option` is highly setuptools
 specific, and is considered more an accident of the current implementation than
 a supported interface. It is documented here for completeness. These flags will
 not be supported, once this build system interface is dropped.
@@ -114,6 +114,8 @@ setup.py bdist_ext -DFOO bdist_wheel -d TARGET
 ```
 
 This passes a preprocessor symbol to the extension build.
+
+(build-output)=
 
 ## Build Output
 

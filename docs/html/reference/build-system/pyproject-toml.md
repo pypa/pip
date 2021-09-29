@@ -6,7 +6,7 @@
 
 Modern Python packages can contain a `pyproject.toml` file, first introduced in
 {pep}`518` and later expanded in {pep}`517`, {pep}`621` and {pep}`660`.
-This file contains build system requirements and information, which is used by
+This file contains build system requirements and information, which are used by
 pip to build the package.
 
 ## Build process
@@ -46,7 +46,8 @@ requires = ["setuptools ~= 58.0", "cython ~= 0.29.0"]
 It is also possible for a build backend to provide dynamically calculated
 build dependencies, using {pep}`517`'s `get_requires_for_build_wheel` hook. This
 hook will be called by pip, and dependencies it describes will also be installed
-in the build environment.
+in the build environment. For example, newer versions of setuptools expose the
+contents of `setup_requires` to pip via this hook.
 
 ### Metadata Generation
 
@@ -69,10 +70,13 @@ within such a wheel will be used.
 
 ```
 
-For generating a wheel, pip uses the {pep}`517`'s `build_wheel` hook that needs
-to be provided by the build backend. The build backend may compile C/C++ code
-at this point, depending on the package. Wheels generated using this mechanism
-can be [cached](wheel-caching) for reuse, to speed up future installations.
+For generating a wheel, pip uses the {pep}`517` `build_wheel` hook that has
+to be provided by the build backend. The build backend will generate a wheel,
+which may involve compiling extension code written in C/C++ (or other
+languages).
+
+Wheels generated using this mechanism can be [cached](wheel-caching) for reuse,
+to speed up future installations.
 
 ### Editable Installation
 
@@ -80,8 +84,8 @@ can be [cached](wheel-caching) for reuse, to speed up future installations.
 
 ```
 
-For performing editable installs, pip will use {pep}`660`'s
-`build_wheel_for_editable` hook that needs to be provided by the build backend.
+For performing editable installs, pip will use {pep}`660`
+`build_wheel_for_editable` hook that has to be provided by the build backend.
 The wheels generated using this mechanism are not cached.
 
 ```{admonition} Compatibility fallback
@@ -97,8 +101,8 @@ regular {ref}`deprecation policy <Deprecation Policy>`.
 ## Build output
 
 It is the responsibility of the build backend to ensure that the output is
-in the correct encoding, as described in {pep}`517`. These likely involve
-the same challenges as pip has for legacy builds.
+in the correct encoding, as described in {pep}`517`. This likely involves
+dealing with [the same challenges as pip has for legacy builds](build-output).
 
 ## Fallback Behaviour
 
@@ -114,7 +118,7 @@ build-backend = "setuptools.build_meta:__legacy__"
 If a project has a `build-system` section but no `build-backend`, then:
 
 - It is expected to include `setuptools` and `wheel` as build requirements. An
-  error is reported if the installed version of `setuptools` is not recent
+  error is reported if the available version of `setuptools` is not recent
   enough.
 
 - The `setuptools.build_meta:__legacy__` build backend will be used.
