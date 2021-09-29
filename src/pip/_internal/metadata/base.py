@@ -148,7 +148,7 @@ class BaseDistribution(Protocol):
         raise NotImplementedError()
 
     @property
-    def installed_by_legacy_distutils(self) -> bool:
+    def installed_by_distutils(self) -> bool:
         """Whether this distribution is installed with legacy distutils format.
 
         A distribution installed with "raw" distutils not patched by setuptools
@@ -173,19 +173,22 @@ class BaseDistribution(Protocol):
         return info_location.endswith(".egg")
 
     @property
-    def installed_with_egg_info(self) -> bool:
+    def installed_with_setuptools_egg_info(self) -> bool:
         """Whether this distribution is installed with the ``.egg-info`` format.
 
         This usually indicates the distribution was installed with setuptools
         with an old pip version or with ``single-version-externally-managed``.
 
-        Note that this *does not* ensure ``.egg-info`` is a directory. It can
-        be a file when ``installed_by_legacy_distutils`` is also True.
+        Note that this ensure the metadata store is a directory. distutils can
+        also installs an ``.egg-info``, but as a file, not a directory. This
+        property is *False* for that case. Also see ``installed_by_distutils``.
         """
         info_location = self.info_location
         if not info_location:
             return False
-        return info_location.endswith(".egg-info")
+        if not info_location.endswith(".egg-info"):
+            return False
+        return pathlib.Path(info_location).is_dir()
 
     @property
     def installed_with_dist_info(self) -> bool:

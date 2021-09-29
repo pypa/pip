@@ -423,7 +423,7 @@ class UninstallPathSet:
     def from_dist(cls, dist: BaseDistribution) -> "UninstallPathSet":
         dist_location = dist.location
         info_location = dist.info_location
-        if dist_location is None or info_location is None:
+        if dist_location is None:
             logger.info(
                 "Not uninstalling %s since it is not installed",
                 dist.canonical_name,
@@ -457,10 +457,11 @@ class UninstallPathSet:
 
         # Uninstall cases order do matter as in the case of 2 installs of the
         # same package, pip needs to uninstall the currently detected version
-        if dist.installed_with_egg_info and not dist.editable:
+        if dist.installed_with_setuptools_egg_info and not dist.editable:
             # if dist is editable and the location points to a ``.egg-info``,
             # we are in fact in the ``.egg_link`` case.
-            paths_to_remove.add(info_location)
+            if info_location is not None:
+                paths_to_remove.add(info_location)
             installed_files = dist.iter_declared_entries()
             if installed_files is not None:
                 for installed_file in installed_files:
@@ -486,7 +487,7 @@ class UninstallPathSet:
                     paths_to_remove.add(f"{path}.pyc")
                     paths_to_remove.add(f"{path}.pyo")
 
-        elif dist.installed_by_legacy_distutils:
+        elif dist.installed_by_distutils:
             raise UninstallationError(
                 "Cannot uninstall {!r}. It is a distutils installed project "
                 "and thus we cannot accurately determine which files belong "
