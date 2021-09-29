@@ -1,2 +1,0 @@
-Fix a crash when installing an editable requirement using the legacy resolver
-due to a mismatch in internal metadata representation interfaces.
