@@ -4,14 +4,17 @@ import re
 import sys
 from contextlib import contextmanager
 from os.path import isdir, join
+from typing import Any, Dict, Iterator, Type
 
 import pytest
 
-from tests.lib import SRC_DIR
+from tests.lib import SRC_DIR, PipTestEnvironment
 
 
 @contextmanager
-def assert_error_startswith(exc_type, expected_start):
+def assert_error_startswith(
+    exc_type: Type[Exception], expected_start: str
+) -> Iterator[None]:
     """
     Assert that an exception is raised starting with a certain message.
     """
@@ -21,7 +24,7 @@ def assert_error_startswith(exc_type, expected_start):
     assert str(err.value).startswith(expected_start), f"full message: {err.value}"
 
 
-def test_tmp_dir_exists_in_env(script):
+def test_tmp_dir_exists_in_env(script: PipTestEnvironment) -> None:
     """
     Test that $TMPDIR == env.temp_path and path exists and env.assert_no_temp()
     passes (in fast env)
@@ -33,7 +36,7 @@ def test_tmp_dir_exists_in_env(script):
     assert isdir(script.temp_path)
 
 
-def test_correct_pip_version(script):
+def test_correct_pip_version(script: PipTestEnvironment) -> None:
     """
     Check we are running proper version of pip in run_pip.
     """
@@ -43,11 +46,13 @@ def test_correct_pip_version(script):
 
     # compare the directory tree of the invoked pip with that of this source
     # distribution
-    pip_folder_outputed = re.match(
+    match = re.match(
         r"pip \d+(\.[\d]+)+(\.?(b|rc|dev|pre|post)\d+)? from (.*) "
         r"\(python \d+(\.[\d]+)+\)$",
         result.stdout,
-    ).group(4)
+    )
+    assert match is not None
+    pip_folder_outputed = match.group(4)
     pip_folder = join(SRC_DIR, "src", "pip")
 
     diffs = filecmp.dircmp(pip_folder, pip_folder_outputed)
@@ -67,7 +72,7 @@ def test_correct_pip_version(script):
     )
 
 
-def test_as_import(script):
+def test_as_import(script: PipTestEnvironment) -> None:
     """test that pip.__init__.py does not shadow
     the command submodule with a dictionary
     """
@@ -77,7 +82,9 @@ def test_as_import(script):
 
 
 class TestPipTestEnvironment:
-    def run_stderr_with_prefix(self, script, prefix, **kwargs):
+    def run_stderr_with_prefix(
+        self, script: PipTestEnvironment, prefix: str, **kwargs: Any
+    ) -> None:
         """
         Call run() that prints stderr with the given prefix.
         """
@@ -86,7 +93,9 @@ class TestPipTestEnvironment:
         args = [sys.executable, "-c", command]
         script.run(*args, **kwargs)
 
-    def run_with_log_command(self, script, sub_string, **kwargs):
+    def run_with_log_command(
+        self, script: PipTestEnvironment, sub_string: str, **kwargs: Any
+    ) -> None:
         """
         Call run() on a command that logs a "%"-style format string using
         the given substring as the string's replacement field.
@@ -106,14 +115,14 @@ class TestPipTestEnvironment:
             "FOO",
         ),
     )
-    def test_run__allowed_stderr(self, script, prefix):
+    def test_run__allowed_stderr(self, script: PipTestEnvironment, prefix: str) -> None:
         """
         Test calling run() with allowed stderr.
         """
         # Check that no error happens.
         self.run_stderr_with_prefix(script, prefix)
 
-    def test_run__allow_stderr_warning(self, script):
+    def test_run__allow_stderr_warning(self, script: PipTestEnvironment) -> None:
         """
         Test passing allow_stderr_warning=True.
         """
@@ -141,7 +150,9 @@ class TestPipTestEnvironment:
             "ERROR",
         ),
     )
-    def test_run__allow_stderr_error(self, script, prefix):
+    def test_run__allow_stderr_error(
+        self, script: PipTestEnvironment, prefix: str
+    ) -> None:
         """
         Test passing allow_stderr_error=True.
         """
@@ -156,14 +167,16 @@ class TestPipTestEnvironment:
             ("ERROR", "stderr has an unexpected error"),
         ),
     )
-    def test_run__unexpected_stderr(self, script, prefix, expected_start):
+    def test_run__unexpected_stderr(
+        self, script: PipTestEnvironment, prefix: str, expected_start: str
+    ) -> None:
         """
         Test calling run() with unexpected stderr output.
         """
         with assert_error_startswith(RuntimeError, expected_start):
             self.run_stderr_with_prefix(script, prefix)
 
-    def test_run__logging_error(self, script):
+    def test_run__logging_error(self, script: PipTestEnvironment) -> None:
         """
         Test calling run() with an unexpected logging error.
         """
@@ -183,9 +196,8 @@ class TestPipTestEnvironment:
             )
 
     def test_run__allow_stderr_error_false_error_with_expect_error(
-        self,
-        script,
-    ):
+        self, script: PipTestEnvironment
+    ) -> None:
         """
         Test passing allow_stderr_error=False with expect_error=True.
         """
@@ -194,9 +206,8 @@ class TestPipTestEnvironment:
             script.run("python", allow_stderr_error=False, expect_error=True)
 
     def test_run__allow_stderr_warning_false_error_with_expect_stderr(
-        self,
-        script,
-    ):
+        self, script: PipTestEnvironment
+    ) -> None:
         """
         Test passing allow_stderr_warning=False with expect_stderr=True.
         """
@@ -217,23 +228,29 @@ class TestPipTestEnvironment:
             "allow_stderr_error",
         ),
     )
-    def test_run__allow_stderr_warning_false_error(self, script, arg_name):
+    def test_run__allow_stderr_warning_false_error(
+        self, script: PipTestEnvironment, arg_name: str
+    ) -> None:
         """
         Test passing allow_stderr_warning=False when it is not allowed.
         """
-        kwargs = {"allow_stderr_warning": False, arg_name: True}
+        kwargs: Dict[str, Any] = {"allow_stderr_warning": False, arg_name: True}
         expected_start = (
             "cannot pass allow_stderr_warning=False with allow_stderr_error=True"
         )
         with assert_error_startswith(RuntimeError, expected_start):
             script.run("python", **kwargs)
 
-    def test_run__expect_error_fails_when_zero_returncode(self, script):
+    def test_run__expect_error_fails_when_zero_returncode(
+        self, script: PipTestEnvironment
+    ) -> None:
         expected_start = "Script passed unexpectedly"
         with assert_error_startswith(AssertionError, expected_start):
             script.run("python", expect_error=True)
 
-    def test_run__no_expect_error_fails_when_nonzero_returncode(self, script):
+    def test_run__no_expect_error_fails_when_nonzero_returncode(
+        self, script: PipTestEnvironment
+    ) -> None:
         expected_start = "Script returned code: 1"
         with assert_error_startswith(AssertionError, expected_start):
             script.run("python", "-c", "import sys; sys.exit(1)")

@@ -14,6 +14,10 @@ if TYPE_CHECKING:
     # Literal was introduced in Python 3.8.
     from typing import Literal
 
+    VirtualEnvironmentType = Literal["virtualenv", "venv"]
+else:
+    VirtualEnvironmentType = str
+
 
 class VirtualEnvironment:
     """
@@ -25,11 +29,11 @@ class VirtualEnvironment:
         self,
         location: str,
         template: Optional["VirtualEnvironment"] = None,
-        venv_type: 'Literal[None, "virtualenv", "venv"]' = None,
+        venv_type: Optional[VirtualEnvironmentType] = None,
     ):
         self.location = Path(location)
         assert template is None or venv_type is None
-        self._venv_type: Literal["virtualenv", "venv"]
+        self._venv_type: VirtualEnvironmentType
         if template is not None:
             self._venv_type = template._venv_type
         elif venv_type is not None:
