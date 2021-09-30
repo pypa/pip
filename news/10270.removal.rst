@@ -1,0 +1,2 @@
+Suppress location mismatch warnings when pip is invoked from a Python source
+tree, so ``ensurepip`` does not emit warnings on CPython ``make install``.

@@ -303,6 +303,18 @@ def get_scheme(
         if skip_msys2_mingw_bug:
             continue
 
+        # CPython's POSIX install script invokes pip (via ensurepip) against the
+        # interpreter located in the source tree, not the install site. This
+        # triggers special logic in sysconfig that's not present in distutils.
+        # https://github.com/python/cpython/blob/8c21941ddaf/Lib/sysconfig.py#L178-L194
+        skip_cpython_build = (
+            sysconfig.is_python_build(check_home=True)
+            and not WINDOWS
+            and k in ("headers", "include", "platinclude")
+        )
+        if skip_cpython_build:
+            continue
+
         warning_contexts.append((old_v, new_v, f"scheme.{k}"))
 
     if not warning_contexts:
