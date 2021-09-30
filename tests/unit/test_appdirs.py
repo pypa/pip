@@ -2,6 +2,7 @@ import ntpath
 import os
 import posixpath
 import sys
+from typing import Generator
 from unittest import mock
 
 import pytest
@@ -11,7 +12,8 @@ from pip._internal.utils import appdirs
 
 
 @pytest.fixture()
-def platformdirs_win32(monkeypatch):
+def platformdirs_win32(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]:
+
     # Monkeypatch platformdirs to pretend we're running on Windows
 
     with monkeypatch.context() as m:
@@ -24,7 +26,8 @@ def platformdirs_win32(monkeypatch):
 
 
 @pytest.fixture()
-def platformdirs_darwin(monkeypatch):
+def platformdirs_darwin(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]:
+
     # Monkeypatch platformdirs to pretend we're running on macOS
 
     with monkeypatch.context() as m:
@@ -37,7 +40,8 @@ def platformdirs_darwin(monkeypatch):
 
 
 @pytest.fixture()
-def platformdirs_linux(monkeypatch):
+def platformdirs_linux(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]:
+
     # Monkeypatch platformdirs to pretend we're running on Linux
 
     with monkeypatch.context() as m:
@@ -50,11 +54,12 @@ def platformdirs_linux(monkeypatch):
 
 
 class TestUserCacheDir:
-    def test_user_cache_dir_win(self, monkeypatch: pytest.MonkeyPatch, platformdirs_win32) -> None:
+    @pytest.mark.usefixtures("platformdirs_win32")
+    def test_user_cache_dir_win(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _get_win_folder = mock.Mock(return_value="C:\\Users\\test\\AppData\\Local")
 
         monkeypatch.setattr(
-            platformdirs.windows,
+            platformdirs.windows,  # type: ignore[attr-defined]
             "get_win_folder",
             _get_win_folder,
             raising=False,
@@ -66,27 +71,31 @@ class TestUserCacheDir:
         )
         assert _get_win_folder.call_args_list == [mock.call("CSIDL_LOCAL_APPDATA")]
 
-    def test_user_cache_dir_osx(self, monkeypatch: pytest.MonkeyPatch, platformdirs_darwin) -> None:
+    @pytest.mark.usefixtures("platformdirs_darwin")
+    def test_user_cache_dir_osx(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("HOME", "/home/test")
 
         assert appdirs.user_cache_dir("pip") == "/home/test/Library/Caches/pip"
 
-    def test_user_cache_dir_linux(self, monkeypatch: pytest.MonkeyPatch, platformdirs_linux) -> None:
+    @pytest.mark.usefixtures("platformdirs_linux")
+    def test_user_cache_dir_linux(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("XDG_CACHE_HOME", raising=False)
         monkeypatch.setenv("HOME", "/home/test")
 
         assert appdirs.user_cache_dir("pip") == "/home/test/.cache/pip"
 
+    @pytest.mark.usefixtures("platformdirs_linux")
     def test_user_cache_dir_linux_override(
-        self, monkeypatch: pytest.MonkeyPatch, platformdirs_linux
+        self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setenv("XDG_CACHE_HOME", "/home/test/.other-cache")
         monkeypatch.setenv("HOME", "/home/test")
 
         assert appdirs.user_cache_dir("pip") == "/home/test/.other-cache/pip"
 
+    @pytest.mark.usefixtures("platformdirs_linux")
     def test_user_cache_dir_linux_home_slash(
-        self, monkeypatch: pytest.MonkeyPatch, platformdirs_linux
+        self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         # Verify that we are not affected by https://bugs.python.org/issue14768
         monkeypatch.delenv("XDG_CACHE_HOME", raising=False)
@@ -116,11 +125,12 @@ class TestUserCacheDir:
 
 
 class TestSiteConfigDirs:
-    def test_site_config_dirs_win(self, monkeypatch: pytest.MonkeyPatch, platformdirs_win32) -> None:
+    @pytest.mark.usefixtures("platformdirs_win32")
+    def test_site_config_dirs_win(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _get_win_folder = mock.Mock(return_value="C:\\ProgramData")
 
         monkeypatch.setattr(
-            platformdirs.windows,
+            platformdirs.windows,  # type: ignore[attr-defined]
             "get_win_folder",
             _get_win_folder,
             raising=False,
@@ -129,7 +139,8 @@ class TestSiteConfigDirs:
         assert appdirs.site_config_dirs("pip") == ["C:\\ProgramData\\pip"]
         assert _get_win_folder.call_args_list == [mock.call("CSIDL_COMMON_APPDATA")]
 
-    def test_site_config_dirs_osx(self, monkeypatch: pytest.MonkeyPatch, platformdirs_darwin) -> None:
+    @pytest.mark.usefixtures("platformdirs_darwin")
+    def test_site_config_dirs_osx(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("HOME", "/home/test")
 
         assert appdirs.site_config_dirs("pip") == [
@@ -137,13 +148,15 @@ class TestSiteConfigDirs:
             "/Library/Application Support/pip",
         ]
 
-    def test_site_config_dirs_linux(self, monkeypatch: pytest.MonkeyPatch, platformdirs_linux) -> None:
+    @pytest.mark.usefixtures("platformdirs_linux")
+    def test_site_config_dirs_linux(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("XDG_CONFIG_DIRS", raising=False)
 
         assert appdirs.site_config_dirs("pip") == ["/etc/xdg/pip", "/etc"]
 
+    @pytest.mark.usefixtures("platformdirs_linux")
     def test_site_config_dirs_linux_override(
-        self, monkeypatch: pytest.MonkeyPatch, platformdirs_linux
+        self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setattr(os, "pathsep", ":")
         monkeypatch.setenv("XDG_CONFIG_DIRS", "/spam:/etc:/etc/xdg")
@@ -155,8 +168,9 @@ class TestSiteConfigDirs:
             "/etc",
         ]
 
+    @pytest.mark.usefixtures("platformdirs_linux")
     def test_site_config_dirs_linux_empty(
-        self, monkeypatch: pytest.MonkeyPatch, platformdirs_linux
+        self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setattr(os, "pathsep", ":")
         monkeypatch.setenv("XDG_CONFIG_DIRS", "")
@@ -164,13 +178,14 @@ class TestSiteConfigDirs:
 
 
 class TestUserConfigDir:
+    @pytest.mark.usefixtures("platformdirs_win32")
     def test_user_config_dir_win_no_roaming(
-        self, monkeypatch: pytest.MonkeyPatch, platformdirs_win32
+        self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         _get_win_folder = mock.Mock(return_value="C:\\Users\\test\\AppData\\Local")
 
         monkeypatch.setattr(
-            platformdirs.windows,
+            platformdirs.windows,  # type: ignore[attr-defined]
             "get_win_folder",
             _get_win_folder,
             raising=False,
@@ -182,13 +197,14 @@ class TestUserConfigDir:
         )
         assert _get_win_folder.call_args_list == [mock.call("CSIDL_LOCAL_APPDATA")]
 
+    @pytest.mark.usefixtures("platformdirs_win32")
     def test_user_config_dir_win_yes_roaming(
-        self, monkeypatch: pytest.MonkeyPatch, platformdirs_win32
+        self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         _get_win_folder = mock.Mock(return_value="C:\\Users\\test\\AppData\\Roaming")
 
         monkeypatch.setattr(
-            platformdirs.windows,
+            platformdirs.windows,  # type: ignore[attr-defined]
             "get_win_folder",
             _get_win_folder,
             raising=False,
@@ -199,7 +215,8 @@ class TestUserConfigDir:
         )
         assert _get_win_folder.call_args_list == [mock.call("CSIDL_APPDATA")]
 
-    def test_user_config_dir_osx(self, monkeypatch: pytest.MonkeyPatch, platformdirs_darwin) -> None:
+    @pytest.mark.usefixtures("platformdirs_darwin")
+    def test_user_config_dir_osx(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("HOME", "/home/test")
 
         if os.path.isdir("/home/test/Library/Application Support/"):
@@ -210,22 +227,25 @@ class TestUserConfigDir:
         else:
             assert appdirs.user_config_dir("pip") == "/home/test/.config/pip"
 
-    def test_user_config_dir_linux(self, monkeypatch: pytest.MonkeyPatch, platformdirs_darwin) -> None:
+    @pytest.mark.usefixtures("platformdirs_linux")
+    def test_user_config_dir_linux(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
         monkeypatch.setenv("HOME", "/home/test")
 
         assert appdirs.user_config_dir("pip") == "/home/test/.config/pip"
 
+    @pytest.mark.usefixtures("platformdirs_linux")
     def test_user_config_dir_linux_override(
-        self, monkeypatch: pytest.MonkeyPatch, platformdirs_linux
+        self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setenv("XDG_CONFIG_HOME", "/home/test/.other-config")
         monkeypatch.setenv("HOME", "/home/test")
 
         assert appdirs.user_config_dir("pip") == "/home/test/.other-config/pip"
 
+    @pytest.mark.usefixtures("platformdirs_linux")
     def test_user_config_dir_linux_home_slash(
-        self, monkeypatch: pytest.MonkeyPatch, platformdirs_linux
+        self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         # Verify that we are not affected by https://bugs.python.org/issue14768
         monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
