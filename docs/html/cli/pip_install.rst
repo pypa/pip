@@ -419,7 +419,7 @@ with other repeatability strategies.
    (rare) packages that use it will cause those dependencies to be downloaded
    by setuptools directly, skipping pip's hash-checking. If you need to use
    such a package, see :ref:`Controlling
-   setup_requires<controlling-setup-requires>`.
+   setup_requires <controlling-setup_requires>`.
 
 .. warning::
 
@@ -537,83 +537,10 @@ the project path.  This is one advantage over just using ``setup.py develop``,
 which creates the "egg-info" directly relative the current working directory.
 
 
-.. _`controlling-setup-requires`:
-
-Controlling setup_requires
---------------------------
-
-Setuptools offers the ``setup_requires`` `setup() keyword
-<https://setuptools.readthedocs.io/en/latest/userguide/keywords.html>`_
-for specifying dependencies that need to be present in order for the
-``setup.py`` script to run.  Internally, Setuptools uses ``easy_install``
-to fulfill these dependencies.
-
-pip has no way to control how these dependencies are located.  None of the
-package index options have an effect.
-
-The solution is to configure a "system" or "personal" `Distutils configuration
-file
-<https://docs.python.org/3/install/index.html#distutils-configuration-files>`_ to
-manage the fulfillment.
-
-For example, to have the dependency located at an alternate index, add this:
-
-::
-
-  [easy_install]
-  index_url = https://my.index-mirror.com
-
-To have the dependency located from a local directory and not crawl PyPI, add this:
-
-::
-
-  [easy_install]
-  allow_hosts = ''
-  find_links = file:///path/to/local/archives/
-
-
 Build System Interface
 ----------------------
 
-In order for pip to install a package from source, ``setup.py`` must implement
-the following commands::
-
-    setup.py egg_info [--egg-base XXX]
-    setup.py install --record XXX [--single-version-externally-managed] [--root XXX] [--compile|--no-compile] [--install-headers XXX]
-
-The ``egg_info`` command should create egg metadata for the package, as
-described in the setuptools documentation at
-https://setuptools.readthedocs.io/en/latest/userguide/commands.html#egg-info-create-egg-metadata-and-set-build-tags
-
-The ``install`` command should implement the complete process of installing the
-package to the target directory XXX.
-
-To install a package in "editable" mode (``pip install -e``), ``setup.py`` must
-implement the following command::
-
-    setup.py develop --no-deps
-
-This should implement the complete process of installing the package in
-"editable" mode.
-
-All packages will be attempted to built into wheels::
-
-    setup.py bdist_wheel -d XXX
-
-One further ``setup.py`` command is invoked by ``pip install``::
-
-    setup.py clean
-
-This command is invoked to clean up temporary commands from the build. (TODO:
-Investigate in more detail when this command is required).
-
-No other build system commands are invoked by the ``pip install`` command.
-
-Installing a package from a wheel does not invoke the build system at all.
-
-.. _PyPI: https://pypi.org/
-.. _setuptools extras: https://setuptools.readthedocs.io/en/latest/userguide/dependency_management.html#optional-dependencies
-
+This is now covered in :doc:`../reference/build-system/index`.
 
 
 .. _`pip install Options`:
@@ -906,3 +833,6 @@ Examples
 
 .. [1] This is true with the exception that pip v7.0 and v7.0.1 required quotes
        around specifiers containing environment markers in requirement files.
+
+.. _setuptools extras: https://setuptools.readthedocs.io/en/latest/userguide/dependency_management.html#optional-dependencies
+.. _PyPI: https://pypi.org/

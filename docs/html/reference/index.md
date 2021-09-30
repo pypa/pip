@@ -6,5 +6,6 @@ interoperability standards that pip utilises/implements.
 ```{toctree}
 :titlesonly:
 
+build-system/index
 requirements-file-format
 ```
