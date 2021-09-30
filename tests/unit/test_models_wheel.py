@@ -92,14 +92,6 @@ class TestWheelFile:
         w = Wheel("simple-0.1-cp27-none-macosx_10_9_intel.whl")
         assert not w.supported(tags=tags)
 
-    @pytest.mark.xfail(
-        reason=(
-            "packaging.tags changed behaviour in this area, and @pradyunsg "
-            "decided as the release manager that this behaviour change is less "
-            "critical than Big Sur support for pip 20.3. See "
-            "https://github.com/pypa/packaging/pull/361 for further discussion."
-        )
-    )
     def test_supported_multiarch_darwin(self) -> None:
         """
         Multi-arch wheels (intel) are supported on components (i386, x86_64)
