@@ -75,7 +75,7 @@ and use the `setup_requires` keyword argument in their setup.py file.
 ```
 
 The `setup_requires` argument in `setup.py` is used to specify build-time
-dependencies for a package. This has been superceded by the
+dependencies for a package. This has been superseded by the
 `build-system.requires` key in `pyproject.toml` files (per {pep}`518`).
 However, there are situations where you might encounter a package that uses
 `setup_requires` (eg: the package has not been updated to use the newer
