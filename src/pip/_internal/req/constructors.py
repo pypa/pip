@@ -25,7 +25,6 @@ from pip._internal.models.wheel import Wheel
 from pip._internal.req.req_file import ParsedRequirement
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.filetypes import is_archive_file
-from pip._internal.utils.misc import is_installable_dir
 from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs import is_url, vcs
@@ -233,12 +232,7 @@ def _get_url_from_path(path: str, name: str) -> Optional[str]:
     an @, it will treat it as a PEP 440 URL requirement and return the path.
     """
     if _looks_like_path(name) and os.path.isdir(path):
-        if is_installable_dir(path):
-            return path_to_url(path)
-        raise InstallationError(
-            f"Directory {name!r} is not installable. Neither 'setup.py' "
-            "nor 'pyproject.toml' found."
-        )
+        return path_to_url(path)
     if not is_archive_file(path):
         return None
     if os.path.isfile(path):

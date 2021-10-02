@@ -799,14 +799,3 @@ def test_get_url_from_path__installable_dir(
     path = os.path.join("/path/to/" + name)
     url = path_to_url(path)
     assert _get_url_from_path(path, name) == url
-
-
-@mock.patch("pip._internal.req.req_install.os.path.isdir")
-def test_get_url_from_path__installable_error(isdir_mock: mock.Mock) -> None:
-    isdir_mock.return_value = True
-    name = "some/setuptools/project"
-    path = os.path.join("/path/to/" + name)
-    with pytest.raises(InstallationError) as e:
-        _get_url_from_path(path, name)
-    err_msg = e.value.args[0]
-    assert "Neither 'setup.py' nor 'pyproject.toml' found" in err_msg

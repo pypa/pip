@@ -27,6 +27,19 @@ def test_use_pep517(shared_data: TestData, source: str, expected: bool) -> None:
     assert req.use_pep517 is expected
 
 
+def test_use_pep517_rejects_setup_cfg_only(shared_data: TestData) -> None:
+    """
+    Test that projects with setup.cfg but no pyproject.toml are rejected.
+    """
+    src = shared_data.src.joinpath("pep517_setup_cfg_only")
+    req = InstallRequirement(None, None)
+    req.source_dir = src  # make req believe it has been unpacked
+    with pytest.raises(InstallationError) as e:
+        req.load_pyproject_toml()
+    err_msg = e.value.args[0]
+    assert "no pyproject.toml or setup.py" in err_msg
+
+
 @pytest.mark.parametrize(
     ("source", "msg"),
     [
