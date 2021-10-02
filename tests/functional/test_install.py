@@ -653,7 +653,6 @@ def test_install_from_local_directory_with_no_setup_py(script, data):
     """
     result = script.pip("install", data.root, expect_error=True)
     assert not result.files_created
-    assert "is not installable." in result.stderr
     assert "Neither 'setup.py' nor 'pyproject.toml' found." in result.stderr
 
 
@@ -663,11 +662,10 @@ def test_editable_install__local_dir_no_setup_py(script, data):
     """
     result = script.pip("install", "-e", data.root, expect_error=True)
     assert not result.files_created
-
-    msg = result.stderr
-    assert msg.startswith("ERROR: File 'setup.py' or 'setup.cfg' not found ")
-    assert "cannot be installed in editable mode" in msg
-    assert "pyproject.toml" not in msg
+    assert (
+        "does not appear to be a Python project: "
+        "neither 'setup.py' nor 'pyproject.toml' found" in result.stderr
+    )
 
 
 def test_editable_install__local_dir_no_setup_py_with_pyproject(script):
