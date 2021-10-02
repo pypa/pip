@@ -27,8 +27,8 @@ class PipReporter(BaseReporter):
             13: (
                 "This is taking longer than usual. You might need to provide "
                 "the dependency resolver with stricter constraints to reduce "
-                "runtime. If you want to abort this run, you can press "
-                "Ctrl + C to do so."
+                "runtime. See https://pip.pypa.io/warnings/backtracking for "
+                "guidance. If you want to abort this run, press Ctrl + C."
             ),
         }
 
