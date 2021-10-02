@@ -93,7 +93,6 @@ def test_install_pep517_basic(tmpdir, script, with_wheel):
     project_dir = _make_project(tmpdir, BACKEND_WITHOUT_PEP660, with_setup_py=False)
     script.pip(
         "install",
-        "--use-feature=in-tree-build",
         "--no-index",
         "--no-build-isolation",
         project_dir,
