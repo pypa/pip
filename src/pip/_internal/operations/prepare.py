@@ -35,7 +35,6 @@ from pip._internal.network.lazy_wheel import (
 from pip._internal.network.session import PipSession
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.req.req_tracker import RequirementTracker
-from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.logging import indent_log
@@ -197,19 +196,9 @@ def unpack_url(
     #
     # As further cleanup, _copy_source_tree and accompanying tests can
     # be removed.
+    #
+    # TODO when use-deprecated=out-of-tree-build is removed
     if link.is_existing_dir():
-        deprecated(
-            reason=(
-                "pip copied the source tree into a temporary directory "
-                "before building it. This is changing so that packages "
-                "are built in-place "
-                'within the original source tree ("in-tree build").'
-            ),
-            replacement=None,
-            gone_in="21.3",
-            feature_flag="in-tree-build",
-            issue=7555,
-        )
         if os.path.isdir(location):
             rmtree(location)
         _copy_source_tree(link.file_path, location)

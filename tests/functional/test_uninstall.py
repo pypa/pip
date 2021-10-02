@@ -12,6 +12,7 @@ from pip._internal.req.constructors import install_req_from_line
 from pip._internal.utils.misc import rmtree
 from tests.lib import assert_all_changes, create_test_package_with_setup, need_svn
 from tests.lib.local_repos import local_checkout, local_repo
+from tests.lib.path import Path
 
 
 @pytest.mark.network
@@ -279,7 +280,15 @@ def test_uninstall_console_scripts(script):
     result = script.pip("install", pkg_path)
     result.did_create(script.bin / "discover" + script.exe)
     result2 = script.pip("uninstall", "discover", "-y")
-    assert_all_changes(result, result2, [script.venv / "build", "cache"])
+    assert_all_changes(
+        result,
+        result2,
+        [
+            script.venv / "build",
+            "cache",
+            Path("scratch") / "discover" / "discover.egg-info",
+        ],
+    )
 
 
 def test_uninstall_console_scripts_uppercase_name(script):

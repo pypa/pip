@@ -587,7 +587,12 @@ def test_install_from_local_directory_with_symlinks_to_directories(script, data)
     Test installing from a local directory containing symlinks to directories.
     """
     to_install = data.packages.joinpath("symlinks")
-    result = script.pip("install", to_install)
+    result = script.pip(
+        "install",
+        "--use-deprecated=out-of-tree-build",
+        to_install,
+        allow_stderr_warning=True,  # TODO: set to False when removing out-of-tree-build
+    )
     pkg_folder = script.site_packages / "symlinks"
     dist_info_folder = script.site_packages / "symlinks-0.1.dev0.dist-info"
     result.did_create(pkg_folder)
@@ -597,10 +602,10 @@ def test_install_from_local_directory_with_symlinks_to_directories(script, data)
 @pytest.mark.usefixtures("with_wheel")
 def test_install_from_local_directory_with_in_tree_build(script, data):
     """
-    Test installing from a local directory with --use-feature=in-tree-build.
+    Test installing from a local directory with default in tree build.
     """
     to_install = data.packages.joinpath("FSPkg")
-    args = ["install", "--use-feature=in-tree-build", to_install]
+    args = ["install", to_install]
 
     in_tree_build_dir = to_install / "build"
     assert not in_tree_build_dir.exists()
@@ -618,6 +623,8 @@ def test_install_from_local_directory_with_socket_file(script, data, tmpdir):
     """
     Test installing from a local directory containing a socket file.
     """
+    # TODO: remove this test when removing out-of-tree-build support,
+    # it is only meant to test the copy of socket files
     dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
     package_folder = script.site_packages / "fspkg"
     to_copy = data.packages.joinpath("FSPkg")
@@ -628,7 +635,13 @@ def test_install_from_local_directory_with_socket_file(script, data, tmpdir):
     socket_file_path = os.path.join(to_install, "example")
     make_socket_file(socket_file_path)
 
-    result = script.pip("install", "--verbose", to_install)
+    result = script.pip(
+        "install",
+        "--use-deprecated=out-of-tree-build",
+        "--verbose",
+        to_install,
+        allow_stderr_warning=True,  # because of the out-of-tree deprecation warning
+    )
     result.did_create(package_folder)
     result.did_create(dist_info_folder)
     assert str(socket_file_path) in result.stderr

@@ -973,7 +973,7 @@ use_deprecated_feature: Callable[..., Option] = partial(
     metavar="feature",
     action="append",
     default=[],
-    choices=["legacy-resolver"],
+    choices=["legacy-resolver", "out-of-tree-build"],
     help=("Enable deprecated functionality, that will be removed in the future."),
 )
 
