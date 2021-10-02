@@ -48,7 +48,6 @@ drop = [
 
 [tool.vendoring.typing-stubs]
 six = ["six.__init__", "six.moves.__init__", "six.moves.configparser"]
-appdirs = []
 distro = []
 
 [tool.vendoring.license.directories]
