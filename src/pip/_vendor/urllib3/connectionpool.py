@@ -1020,6 +1020,17 @@ class HTTPSConnectionPool(HTTPConnectionPool):
                 InsecureRequestWarning,
             )
 
+        if getattr(conn, "proxy_is_verified", None) is False:
+            warnings.warn(
+                (
+                    "Unverified HTTPS connection done to an HTTPS proxy. "
+                    "Adding certificate verification is strongly advised. See: "
+                    "https://urllib3.readthedocs.io/en/1.26.x/advanced-usage.html"
+                    "#ssl-warnings"
+                ),
+                InsecureRequestWarning,
+            )
+
 
 def connection_from_url(url, **kw):
     """
