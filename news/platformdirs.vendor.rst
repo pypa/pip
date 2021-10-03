@@ -1,1 +1,1 @@
-Upgrade platformdirs to 2.4.0
+Add platformdirs as a vendored dependency.
