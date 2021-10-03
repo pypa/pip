@@ -46,6 +46,16 @@ class MacOS(PlatformDirsABC):
         """:return: log directory tied to the user, e.g. ``~/Library/Logs/$appname/$version``"""
         return self._append_app_name_and_version(os.path.expanduser("~/Library/Logs"))
 
+    @property
+    def user_documents_dir(self) -> str:
+        """:return: documents directory tied to the user, e.g. ``~/Documents``"""
+        return os.path.expanduser("~/Documents")
+
+    @property
+    def user_runtime_dir(self) -> str:
+        """:return: runtime directory tied to the user, e.g. ``~/Library/Caches/TemporaryItems/$appname/$version``"""
+        return self._append_app_name_and_version(os.path.expanduser("~/Library/Caches/TemporaryItems"))
+
 
 __all__ = [
     "MacOS",

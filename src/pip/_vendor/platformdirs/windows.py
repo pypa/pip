@@ -80,9 +80,28 @@ class Windows(PlatformDirsABC):
             path = os.path.join(path, "Logs")
         return path
 
+    @property
+    def user_documents_dir(self) -> str:
+        """
+        :return: documents directory tied to the user e.g. ``%USERPROFILE%\\Documents``
+        """
+        return os.path.normpath(get_win_folder("CSIDL_PERSONAL"))
+
+    @property
+    def user_runtime_dir(self) -> str:
+        """
+        :return: runtime directory tied to the user, e.g.
+         ``%USERPROFILE%\\AppData\\Local\\Temp\\$appauthor\\$appname``
+        """
+        path = os.path.normpath(os.path.join(get_win_folder("CSIDL_LOCAL_APPDATA"), "Temp"))
+        return self._append_parts(path)
+
 
 def get_win_folder_from_env_vars(csidl_name: str) -> str:
     """Get folder from environment variables."""
+    if csidl_name == "CSIDL_PERSONAL":  # does not have an environment name
+        return os.path.join(os.path.normpath(os.environ["USERPROFILE"]), "Documents")
+
     env_var_name = {
         "CSIDL_APPDATA": "APPDATA",
         "CSIDL_COMMON_APPDATA": "ALLUSERSPROFILE",
@@ -107,6 +126,7 @@ def get_win_folder_from_registry(csidl_name: str) -> str:
         "CSIDL_APPDATA": "AppData",
         "CSIDL_COMMON_APPDATA": "Common AppData",
         "CSIDL_LOCAL_APPDATA": "Local AppData",
+        "CSIDL_PERSONAL": "Personal",
     }.get(csidl_name)
     if shell_folder_name is None:
         raise ValueError(f"Unknown CSIDL name: {csidl_name}")
@@ -124,6 +144,7 @@ def get_win_folder_via_ctypes(csidl_name: str) -> str:
         "CSIDL_APPDATA": 26,
         "CSIDL_COMMON_APPDATA": 35,
         "CSIDL_LOCAL_APPDATA": 28,
+        "CSIDL_PERSONAL": 5,
     }.get(csidl_name)
     if csidl_const is None:
         raise ValueError(f"Unknown CSIDL name: {csidl_name}")
@@ -132,12 +153,8 @@ def get_win_folder_via_ctypes(csidl_name: str) -> str:
     windll = getattr(ctypes, "windll")  # noqa: B009 # using getattr to avoid false positive with mypy type checker
     windll.shell32.SHGetFolderPathW(None, csidl_const, None, 0, buf)
 
-    has_high_char = False  # Downgrade to short path name if it has highbit chars.
-    for c in buf:
-        if ord(c) > 255:
-            has_high_char = True
-            break
-    if has_high_char:
+    # Downgrade to short path name if it has highbit chars.
+    if any(ord(c) > 255 for c in buf):
         buf2 = ctypes.create_unicode_buffer(1024)
         if windll.kernel32.GetShortPathNameW(buf.value, buf2, 1024):
             buf = buf2

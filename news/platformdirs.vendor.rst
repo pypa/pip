@@ -1,1 +1,1 @@
-Patch platformdirs import its submodules from ``pip._vendor.platformdirs``.
+Upgrade platformdirs to 2.4.0

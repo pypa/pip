@@ -56,6 +56,24 @@ class Android(PlatformDirsABC):
             path = os.path.join(path, "log")
         return path
 
+    @property
+    def user_documents_dir(self) -> str:
+        """
+        :return: documents directory tied to the user e.g. ``/storage/emulated/0/Documents``
+        """
+        return _android_documents_folder()
+
+    @property
+    def user_runtime_dir(self) -> str:
+        """
+        :return: runtime directory tied to the user, same as `user_cache_dir` if not opinionated else ``tmp`` in it,
+          e.g. ``/data/user/<userid>/<packagename>/cache/<AppName>/tmp``
+        """
+        path = self.user_cache_dir
+        if self.opinion:
+            path = os.path.join(path, "tmp")
+        return path
+
 
 @lru_cache(maxsize=1)
 def _android_folder() -> str:
@@ -76,6 +94,22 @@ def _android_folder() -> str:
         else:
             raise OSError("Cannot find path to android app folder")
     return result
+
+
+@lru_cache(maxsize=1)
+def _android_documents_folder() -> str:
+    """:return: documents folder for the Android OS"""
+    # Get directories with pyjnius
+    try:
+        from jnius import autoclass  # noqa: SC200
+
+        Context = autoclass("android.content.Context")  # noqa: SC200
+        Environment = autoclass("android.os.Environment")
+        documents_dir: str = Context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS).getAbsolutePath()
+    except Exception:
+        documents_dir = "/storage/emulated/0/Documents"
+
+    return documents_dir
 
 
 __all__ = [
