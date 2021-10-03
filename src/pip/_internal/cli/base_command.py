@@ -22,6 +22,7 @@ from pip._internal.cli.status_codes import (
 from pip._internal.exceptions import (
     BadCommand,
     CommandError,
+    DiagnosticPipError,
     InstallationError,
     NetworkConnectionError,
     PreviousBuildDirError,
@@ -169,6 +170,11 @@ class Command(CommandContextMixIn):
                     logger.debug("Exception information:", exc_info=True)
 
                     return PREVIOUS_BUILD_DIR_ERROR
+                except DiagnosticPipError as exc:
+                    logger.critical(str(exc))
+                    logger.debug("Exception information:", exc_info=True)
+
+                    return ERROR
                 except (
                     InstallationError,
                     UninstallationError,
