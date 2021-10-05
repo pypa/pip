@@ -42,7 +42,7 @@ class DiagnosticPipError(PipError):
     This contains a bunch of logic, to enable pretty presentation of our error
     messages. Each error gets a unique reference. Each error can also include
     additional context, a hint and/or a note -- which are presented with the
-    main erorr message in a consistent style.
+    main error message in a consistent style.
     """
 
     reference: str
