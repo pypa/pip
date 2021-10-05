@@ -135,8 +135,6 @@ class InstallCommand(RequirementCommand):
             ),
         )
 
-        self.cmd_opts.add_option(cmdoptions.build_dir())
-
         self.cmd_opts.add_option(cmdoptions.src())
 
         self.cmd_opts.add_option(
