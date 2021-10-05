@@ -1,7 +1,17 @@
 import os
+import sys
+from configparser import ConfigParser
 from pathlib import Path
+from typing import Optional
 
 from .api import PlatformDirsABC
+
+if sys.platform.startswith("linux"):  # pragma: no branch # no op check, only to please the type checker
+    from os import getuid
+else:
+
+    def getuid() -> int:
+        raise RuntimeError("should only be used on Linux")
 
 
 class Unix(PlatformDirsABC):
@@ -104,6 +114,30 @@ class Unix(PlatformDirsABC):
         return path
 
     @property
+    def user_documents_dir(self) -> str:
+        """
+        :return: documents directory tied to the user, e.g. ``~/Documents``
+        """
+        documents_dir = _get_user_dirs_folder("XDG_DOCUMENTS_DIR")
+        if documents_dir is None:
+            documents_dir = os.environ.get("XDG_DOCUMENTS_DIR", "").strip()
+            if not documents_dir:
+                documents_dir = os.path.expanduser("~/Documents")
+
+        return documents_dir
+
+    @property
+    def user_runtime_dir(self) -> str:
+        """
+        :return: runtime directory tied to the user, e.g. ``/run/user/$(id -u)/$appname/$version`` or
+         ``$XDG_RUNTIME_DIR/$appname/$version``
+        """
+        path = os.environ.get("XDG_RUNTIME_DIR", "")
+        if not path.strip():
+            path = f"/run/user/{getuid()}"
+        return self._append_app_name_and_version(path)
+
+    @property
     def site_data_path(self) -> Path:
         """:return: data path shared by users. Only return first item, even if ``multipath`` is set to ``True``"""
         return self._first_item_as_path_if_multipath(self.site_data_dir)
@@ -118,6 +152,27 @@ class Unix(PlatformDirsABC):
             # If multipath is True, the first path is returned.
             directory = directory.split(os.pathsep)[0]
         return Path(directory)
+
+
+def _get_user_dirs_folder(key: str) -> Optional[str]:
+    """Return directory from user-dirs.dirs config file. See https://freedesktop.org/wiki/Software/xdg-user-dirs/"""
+    user_dirs_config_path = os.path.join(Unix().user_config_dir, "user-dirs.dirs")
+    if os.path.exists(user_dirs_config_path):
+        parser = ConfigParser()
+
+        with open(user_dirs_config_path) as stream:
+            # Add fake section header, so ConfigParser doesn't complain
+            parser.read_string(f"[top]\n{stream.read()}")
+
+        if key not in parser["top"]:
+            return None
+
+        path = parser["top"][key].strip('"')
+        # Handle relative home paths
+        path = path.replace("$HOME", os.path.expanduser("~"))
+        return path
+
+    return None
 
 
 __all__ = [

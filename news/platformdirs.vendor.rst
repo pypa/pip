@@ -1,1 +1,1 @@
-Patch platformdirs import its submodules from ``pip._vendor.platformdirs``.
+Add platformdirs as a vendored dependency.

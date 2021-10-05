@@ -6,14 +6,14 @@ html5lib==1.1
 msgpack==1.0.2
 packaging==21.0
 pep517==0.11.0
-platformdirs==2.2.0
-progress==1.5
+platformdirs==2.4.0
+progress==1.6
 pyparsing==2.4.7
 requests==2.26.0
     certifi==2021.05.30
     chardet==4.0.0
     idna==3.2
-    urllib3==1.26.6
+    urllib3==1.26.7
 resolvelib==0.7.1
 setuptools==44.0.0
 six==1.16.0
