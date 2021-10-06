@@ -658,6 +658,14 @@ def test_parse_editable_local_extras(
     )
 
 
+def test_get_or_create_caching() -> None:
+    """test caching of get_or_create requirement"""
+    teststr = "affinegap==1.10"
+    assert get_or_create_requirement(teststr) == Requirement(teststr)
+    assert not (get_or_create_requirement(teststr) is Requirement(teststr))
+    assert get_or_create_requirement(teststr) is get_or_create_requirement(teststr)
+
+
 def test_exclusive_environment_markers() -> None:
     """Make sure RequirementSet accepts several excluding env markers"""
     eq36 = install_req_from_line("Django>=1.6.10,<1.7 ; python_version == '3.6'")

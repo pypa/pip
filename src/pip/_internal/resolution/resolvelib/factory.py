@@ -18,8 +18,9 @@ from typing import (
     cast,
 )
 
-from pip._vendor.packaging.requirements import InvalidRequirement
-from pip._vendor.packaging.requirements import Requirement as PackagingRequirement
+from pip._vendor.packaging.requirements import (
+    InvalidRequirement,
+)
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.resolvelib import ResolutionImpossible
@@ -38,7 +39,7 @@ from pip._internal.metadata import BaseDistribution, get_default_environment
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.operations.prepare import RequirementPreparer
-from pip._internal.req.constructors import install_req_from_link_and_ireq
+from pip._internal.req.constructors import get_or_create_requirement, install_req_from_link_and_ireq
 from pip._internal.req.req_install import (
     InstallRequirement,
     check_invalid_constraint_type,
@@ -365,7 +366,7 @@ class Factory:
         # If the current identifier contains extras, add explicit candidates
         # from entries from extra-less identifier.
         with contextlib.suppress(InvalidRequirement):
-            parsed_requirement = PackagingRequirement(identifier)
+            parsed_requirement = get_or_create_requirement(identifier)
             explicit_candidates.update(
                 self._iter_explicit_candidates_from_base(
                     requirements.get(parsed_requirement.name, ()),

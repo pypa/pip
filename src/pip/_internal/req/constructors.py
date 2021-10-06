@@ -8,6 +8,7 @@ These are meant to be used elsewhere within pip to create instances of
 InstallRequirement.
 """
 
+import functools
 import logging
 import os
 import re
@@ -39,6 +40,11 @@ logger = logging.getLogger(__name__)
 operators = Specifier._operators.keys()
 
 
+@functools.lru_cache(maxsize=None)
+def get_or_create_requirement(req_string: str) -> Requirement:
+    return Requirement(req_string)
+
+
 def _strip_extras(path: str) -> Tuple[str, Optional[str]]:
     m = re.match(r"^(.+)(\[[^\]]+\])$", path)
     extras = None
@@ -54,7 +60,7 @@ def _strip_extras(path: str) -> Tuple[str, Optional[str]]:
 def convert_extras(extras: Optional[str]) -> Set[str]:
     if not extras:
         return set()
-    return Requirement("placeholder" + extras.lower()).extras
+    return get_or_create_requirement("placeholder" + extras.lower()).extras
 
 
 def parse_editable(editable_req: str) -> Tuple[Optional[str], str, Set[str]]:
@@ -83,7 +89,7 @@ def parse_editable(editable_req: str) -> Tuple[Optional[str], str, Set[str]]:
             return (
                 package_name,
                 url_no_extras,
-                Requirement("placeholder" + extras.lower()).extras,
+                get_or_create_requirement("placeholder" + extras.lower()).extras,
             )
         else:
             return package_name, url_no_extras, set()
@@ -309,7 +315,7 @@ def parse_req_from_line(name: str, line_source: Optional[str]) -> RequirementPar
 
     def _parse_req_string(req_as_string: str) -> Requirement:
         try:
-            req = Requirement(req_as_string)
+            req = get_or_create_requirement(req_as_string)
         except InvalidRequirement:
             if os.path.sep in req_as_string:
                 add_msg = "It looks like a path."
@@ -386,7 +392,7 @@ def install_req_from_req_string(
     user_supplied: bool = False,
 ) -> InstallRequirement:
     try:
-        req = Requirement(req_string)
+        req = get_or_create_requirement(req_string)
     except InvalidRequirement:
         raise InstallationError(f"Invalid requirement: '{req_string}'")
 
