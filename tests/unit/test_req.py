@@ -662,7 +662,12 @@ def test_parse_editable_local_extras(
 def test_get_or_create_caching() -> None:
     """test caching of get_or_create requirement"""
     teststr = "affinegap==1.10"
-    assert get_or_create_requirement(teststr) == Requirement(teststr)
+    from_helper = get_or_create_requirement(teststr)
+    freshly_made = Requirement(teststr)
+    # Requirement doesn't have an equality operator (yet) so test
+    # equality of attribute for list of attributes
+    for iattr in ["name", "url", "extras", "specifier", "marker"]:
+        assert getattr(from_helper, iattr) == getattr(freshly_made, iattr)
     assert not (get_or_create_requirement(teststr) is Requirement(teststr))
     assert get_or_create_requirement(teststr) is get_or_create_requirement(teststr)
 
