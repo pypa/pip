@@ -28,6 +28,7 @@ from pip._internal.req import InstallRequirement, RequirementSet
 from pip._internal.req.constructors import (
     _get_url_from_path,
     _looks_like_path,
+    get_or_create_requirement,
     install_req_from_editable,
     install_req_from_line,
     install_req_from_parsed_requirement,

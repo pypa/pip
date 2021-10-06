@@ -18,9 +18,7 @@ from typing import (
     cast,
 )
 
-from pip._vendor.packaging.requirements import (
-    InvalidRequirement,
-)
+from pip._vendor.packaging.requirements import InvalidRequirement
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.resolvelib import ResolutionImpossible
@@ -39,7 +37,10 @@ from pip._internal.metadata import BaseDistribution, get_default_environment
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.operations.prepare import RequirementPreparer
-from pip._internal.req.constructors import get_or_create_requirement, install_req_from_link_and_ireq
+from pip._internal.req.constructors import (
+    get_or_create_requirement,
+    install_req_from_link_and_ireq,
+)
 from pip._internal.req.req_install import (
     InstallRequirement,
     check_invalid_constraint_type,
