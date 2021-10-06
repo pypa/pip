@@ -1,11 +1,9 @@
+from optparse import Values
+from typing import List
+
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.exceptions import CommandError
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from optparse import Values
-    from typing import List
 
 
 class HelpCommand(Command):
@@ -15,8 +13,7 @@ class HelpCommand(Command):
       %prog <command>"""
     ignore_require_venv = True
 
-    def run(self, options, args):
-        # type: (Values, List[str]) -> int
+    def run(self, options: Values, args: List[str]) -> int:
         from pip._internal.commands import (
             commands_dict,
             create_command,
@@ -36,7 +33,7 @@ class HelpCommand(Command):
             if guess:
                 msg.append(f'maybe you meant "{guess}"')
 
-            raise CommandError(' - '.join(msg))
+            raise CommandError(" - ".join(msg))
 
         command = create_command(cmd_name)
         command.parser.print_help()

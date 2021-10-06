@@ -11,7 +11,7 @@ We have an in-progress guide to the
 Submitting Pull Requests
 ========================
 
-Submit pull requests against the ``master`` branch, providing a good
+Submit pull requests against the ``main`` branch, providing a good
 description of what you're doing and why. You must have legal permission to
 distribute any code you contribute to pip and it must be available under the
 MIT License.
@@ -39,9 +39,8 @@ separately, as a "formatting cleanup" PR, if needed.
 Automated Testing
 =================
 
-All pull requests and merges to 'master' branch are tested using `Travis CI`_,
-`Azure Pipelines`_ and `GitHub Actions`_ based on our `.travis.yml`_,
-`.azure-pipelines`_ and `.github/workflows`_ files. More details about pip's
+All pull requests and merges to 'main' branch are tested using `GitHub
+Actions`_ based on our `.github/workflows`_ files. More details about pip's
 Continuous Integration can be found in the `CI Documentation`_
 
 
@@ -131,8 +130,8 @@ updating deprecation policy, etc.
 Updating your branch
 ====================
 
-As you work, you might need to update your local master branch up-to-date with
-the ``master`` branch in the main pip repository, which moves forward as the
+As you work, you might need to update your local main branch up-to-date with
+the ``main`` branch in the main pip repository, which moves forward as the
 maintainers merge pull requests. Most people working on the project use the
 following workflow.
 
@@ -160,24 +159,24 @@ First, fetch the latest changes from the main pip repository, ``upstream``:
 
     git fetch upstream
 
-Then, check out your local ``master`` branch, and rebase the changes on top of
+Then, check out your local ``main`` branch, and rebase the changes on top of
 it:
 
 .. code-block:: console
 
-    git checkout master
-    git rebase upstream/master
+    git checkout main
+    git rebase upstream/main
 
 At this point, you might have to `resolve merge conflicts`_. Once this is done,
-push the updates you have just made to your local ``master`` branch to your
+push the updates you have just made to your local ``main`` branch to your
 ``origin`` repository on GitHub:
 
 .. code-block:: console
 
-    git checkout master
-    git push origin master
+    git checkout main
+    git push origin main
 
-Now your local ``master`` branch and the ``master`` branch in your ``origin``
+Now your local ``main`` branch and the ``main`` branch in your ``origin``
 repo have been updated with the most recent changes from the main pip
 repository.
 
@@ -187,10 +186,10 @@ To keep your branches updated, the process is similar:
 
     git checkout awesome-feature
     git fetch upstream
-    git rebase upstream/master
+    git rebase upstream/main
 
 Now your branch has been updated with the latest changes from the
-``master`` branch on the upstream pip repository.
+``main`` branch on the upstream pip repository.
 
 It's good practice to back up your branches by pushing them to your
 ``origin`` on GitHub as you are working on them. To push a branch,
@@ -230,7 +229,7 @@ If you get an error message like this:
 
 Try force-pushing your branch with ``push -f``.
 
-The ``master`` branch in the main pip repository gets updated frequently, so
+The ``main`` branch in the main pip repository gets updated frequently, so
 you might have to update your branch at least once while you are working on it.
 
 Thank you for your contribution!
@@ -264,12 +263,8 @@ will initiate a vote among the existing maintainers.
 
 .. _`Studies have shown`: https://www.kessler.de/prd/smartbear/BestPracticesForPeerCodeReview.pdf
 .. _`resolve merge conflicts`: https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line
-.. _`Travis CI`: https://travis-ci.org/
-.. _`Azure Pipelines`: https://azure.microsoft.com/en-in/services/devops/pipelines/
 .. _`GitHub Actions`: https://github.com/features/actions
-.. _`.travis.yml`: https://github.com/pypa/pip/blob/master/.travis.yml
-.. _`.azure-pipelines`: https://github.com/pypa/pip/blob/master/.azure-pipelines
-.. _`.github/workflows`: https://github.com/pypa/pip/blob/master/.github/workflows
+.. _`.github/workflows`: https://github.com/pypa/pip/blob/main/.github/workflows
 .. _`CI Documentation`: https://pip.pypa.io/en/latest/development/ci/
 .. _`towncrier`: https://pypi.org/project/towncrier/
 .. _`Testing the next-gen pip dependency resolver`: https://pradyunsg.me/blog/2020/03/27/pip-resolver-testing/

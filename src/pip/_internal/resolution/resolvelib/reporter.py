@@ -1,24 +1,17 @@
 from collections import defaultdict
 from logging import getLogger
+from typing import Any, DefaultDict
 
 from pip._vendor.resolvelib.reporters import BaseReporter
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Any, DefaultDict
-
-    from .base import Candidate, Requirement
-
+from .base import Candidate, Requirement
 
 logger = getLogger(__name__)
 
 
 class PipReporter(BaseReporter):
-
-    def __init__(self):
-        # type: () -> None
-        self.backtracks_by_package = defaultdict(int)  # type: DefaultDict[str, int]
+    def __init__(self) -> None:
+        self.backtracks_by_package: DefaultDict[str, int] = defaultdict(int)
 
         self._messages_at_backtrack = {
             1: (
@@ -34,14 +27,12 @@ class PipReporter(BaseReporter):
             13: (
                 "This is taking longer than usual. You might need to provide "
                 "the dependency resolver with stricter constraints to reduce "
-                "runtime. If you want to abort this run, you can press "
-                "Ctrl + C to do so. To improve how pip performs, tell us what "
-                "happened here: https://pip.pypa.io/surveys/backtracking"
-            )
+                "runtime. See https://pip.pypa.io/warnings/backtracking for "
+                "guidance. If you want to abort this run, press Ctrl + C."
+            ),
         }
 
-    def backtracking(self, candidate):
-        # type: (Candidate) -> None
+    def backtracking(self, candidate: Candidate) -> None:
         self.backtracks_by_package[candidate.name] += 1
 
         count = self.backtracks_by_package[candidate.name]
@@ -55,30 +46,23 @@ class PipReporter(BaseReporter):
 class PipDebuggingReporter(BaseReporter):
     """A reporter that does an info log for every event it sees."""
 
-    def starting(self):
-        # type: () -> None
+    def starting(self) -> None:
         logger.info("Reporter.starting()")
 
-    def starting_round(self, index):
-        # type: (int) -> None
+    def starting_round(self, index: int) -> None:
         logger.info("Reporter.starting_round(%r)", index)
 
-    def ending_round(self, index, state):
-        # type: (int, Any) -> None
+    def ending_round(self, index: int, state: Any) -> None:
         logger.info("Reporter.ending_round(%r, state)", index)
 
-    def ending(self, state):
-        # type: (Any) -> None
+    def ending(self, state: Any) -> None:
         logger.info("Reporter.ending(%r)", state)
 
-    def adding_requirement(self, requirement, parent):
-        # type: (Requirement, Candidate) -> None
+    def adding_requirement(self, requirement: Requirement, parent: Candidate) -> None:
         logger.info("Reporter.adding_requirement(%r, %r)", requirement, parent)
 
-    def backtracking(self, candidate):
-        # type: (Candidate) -> None
+    def backtracking(self, candidate: Candidate) -> None:
         logger.info("Reporter.backtracking(%r)", candidate)
 
-    def pinning(self, candidate):
-        # type: (Candidate) -> None
+    def pinning(self, candidate: Candidate) -> None:
         logger.info("Reporter.pinning(%r)", candidate)

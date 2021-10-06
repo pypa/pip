@@ -318,7 +318,7 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
         pass
 
     def _get_timeout(self, timeout):
-        """ Helper that always returns a :class:`urllib3.util.Timeout` """
+        """Helper that always returns a :class:`urllib3.util.Timeout`"""
         if timeout is _Default:
             return self.timeout.clone()
 
@@ -1014,8 +1014,19 @@ class HTTPSConnectionPool(HTTPConnectionPool):
                 (
                     "Unverified HTTPS request is being made to host '%s'. "
                     "Adding certificate verification is strongly advised. See: "
-                    "https://urllib3.readthedocs.io/en/latest/advanced-usage.html"
+                    "https://urllib3.readthedocs.io/en/1.26.x/advanced-usage.html"
                     "#ssl-warnings" % conn.host
+                ),
+                InsecureRequestWarning,
+            )
+
+        if getattr(conn, "proxy_is_verified", None) is False:
+            warnings.warn(
+                (
+                    "Unverified HTTPS connection done to an HTTPS proxy. "
+                    "Adding certificate verification is strongly advised. See: "
+                    "https://urllib3.readthedocs.io/en/1.26.x/advanced-usage.html"
+                    "#ssl-warnings"
                 ),
                 InsecureRequestWarning,
             )

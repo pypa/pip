@@ -1,0 +1,1 @@
+Improve deprecation warning regarding the copying of source trees when installing from a local directory.

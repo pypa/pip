@@ -1,8 +1,0 @@
-sphinx == 3.2.1
-furo
-sphinx-inline-tabs
-sphinxcontrib-towncrier
-
-# `docs.pipext` uses pip's internals to generate documentation. So, we install
-# the current directory to make it work.
-.

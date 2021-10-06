@@ -5,6 +5,6 @@ sphinx:
   configuration: docs/html/conf.py
 
 python:
-  version: 3.7
+  version: 3.8
   install:
-    - requirements: tools/requirements/docs.txt
+    - requirements: docs/requirements.txt

@@ -1,8 +1,14 @@
+from typing import Iterator, List, Tuple
+
 import pytest
 from pip._vendor.resolvelib import BaseReporter, Resolver
 
-from pip._internal.resolution.resolvelib.base import Candidate, Constraint
+from pip._internal.resolution.resolvelib.base import Candidate, Constraint, Requirement
+from pip._internal.resolution.resolvelib.factory import Factory
+from pip._internal.resolution.resolvelib.provider import PipProvider
 from pip._internal.utils.urls import path_to_url
+from tests.lib import TestData
+from tests.lib.path import Path
 
 # NOTE: All tests are prefixed `test_rlr` (for "test resolvelib resolver").
 #       This helps select just these tests using pytest's `-k` option, and
@@ -18,11 +24,11 @@ from pip._internal.utils.urls import path_to_url
 
 
 @pytest.fixture
-def test_cases(data):
-    def data_file(name):
+def test_cases(data: TestData) -> Iterator[List[Tuple[str, str, int]]]:
+    def data_file(name: str) -> Path:
         return data.packages.joinpath(name)
 
-    def data_url(name):
+    def data_url(name: str) -> str:
         return path_to_url(data_file(name))
 
     test_cases = [
@@ -47,39 +53,56 @@ def test_cases(data):
     yield test_cases
 
 
-def test_new_resolver_requirement_has_name(test_cases, factory):
+def test_new_resolver_requirement_has_name(
+    test_cases: List[Tuple[str, str, int]], factory: Factory
+) -> None:
     """All requirements should have a name"""
     for spec, name, _ in test_cases:
         req = factory.make_requirement_from_spec(spec, comes_from=None)
+        assert req is not None
         assert req.name == name
 
 
-def test_new_resolver_correct_number_of_matches(test_cases, factory):
+def test_new_resolver_correct_number_of_matches(
+    test_cases: List[Tuple[str, str, int]], factory: Factory
+) -> None:
     """Requirements should return the correct number of candidates"""
     for spec, _, match_count in test_cases:
         req = factory.make_requirement_from_spec(spec, comes_from=None)
+        assert req is not None
         matches = factory.find_candidates(
-            [req], Constraint.empty(), prefers_installed=False,
+            req.name,
+            {req.name: [req]},
+            {},
+            Constraint.empty(),
+            prefers_installed=False,
         )
         assert sum(1 for _ in matches) == match_count
 
 
-def test_new_resolver_candidates_match_requirement(test_cases, factory):
-    """Candidates returned from find_candidates should satisfy the requirement
-    """
+def test_new_resolver_candidates_match_requirement(
+    test_cases: List[Tuple[str, str, int]], factory: Factory
+) -> None:
+    """Candidates returned from find_candidates should satisfy the requirement"""
     for spec, _, _ in test_cases:
         req = factory.make_requirement_from_spec(spec, comes_from=None)
+        assert req is not None
         candidates = factory.find_candidates(
-            [req], Constraint.empty(), prefers_installed=False,
+            req.name,
+            {req.name: [req]},
+            {},
+            Constraint.empty(),
+            prefers_installed=False,
         )
         for c in candidates:
             assert isinstance(c, Candidate)
             assert req.is_satisfied_by(c)
 
 
-def test_new_resolver_full_resolve(factory, provider):
+def test_new_resolver_full_resolve(factory: Factory, provider: PipProvider) -> None:
     """A very basic full resolve"""
     req = factory.make_requirement_from_spec("simplewheel", comes_from=None)
-    r = Resolver(provider, BaseReporter())
+    assert req is not None
+    r: Resolver[Requirement, Candidate, str] = Resolver(provider, BaseReporter())
     result = r.resolve([req])
-    assert set(result.mapping.keys()) == {'simplewheel'}
+    assert set(result.mapping.keys()) == {"simplewheel"}

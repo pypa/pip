@@ -1,89 +1,112 @@
-import zipfile
+import email.message
+import logging
+from typing import Collection, Iterable, Iterator, List, NamedTuple, Optional
 
 from pip._vendor import pkg_resources
-from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.requirements import Requirement
+from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
+from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.utils import misc  # TODO: Move definition here.
-from pip._internal.utils.packaging import get_installer
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.packaging import get_installer, get_metadata
 from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
 
-from .base import BaseDistribution, BaseEnvironment
+from .base import (
+    BaseDistribution,
+    BaseEntryPoint,
+    BaseEnvironment,
+    DistributionVersion,
+    Wheel,
+)
 
-if MYPY_CHECK_RUNNING:
-    from typing import Iterator, List, Optional
+logger = logging.getLogger(__name__)
 
-    from pip._vendor.packaging.version import _BaseVersion
+
+class EntryPoint(NamedTuple):
+    name: str
+    value: str
+    group: str
 
 
 class Distribution(BaseDistribution):
-    def __init__(self, dist):
-        # type: (pkg_resources.Distribution) -> None
+    def __init__(self, dist: pkg_resources.Distribution) -> None:
         self._dist = dist
 
     @classmethod
-    def from_wheel(cls, path, name):
-        # type: (str, str) -> Distribution
-        with zipfile.ZipFile(path, allowZip64=True) as zf:
-            dist = pkg_resources_distribution_for_wheel(zf, name, path)
+    def from_wheel(cls, wheel: Wheel, name: str) -> "Distribution":
+        with wheel.as_zipfile() as zf:
+            dist = pkg_resources_distribution_for_wheel(zf, name, wheel.location)
         return cls(dist)
 
     @property
-    def metadata_version(self):
-        # type: () -> Optional[str]
-        for line in self._dist.get_metadata_lines(self._dist.PKG_INFO):
-            if line.lower().startswith("metadata-version:"):
-                return line.split(":", 1)[-1].strip()
-        return None
+    def location(self) -> Optional[str]:
+        return self._dist.location
 
     @property
-    def canonical_name(self):
-        # type: () -> str
+    def info_directory(self) -> Optional[str]:
+        return self._dist.egg_info
+
+    @property
+    def canonical_name(self) -> NormalizedName:
         return canonicalize_name(self._dist.project_name)
 
     @property
-    def version(self):
-        # type: () -> _BaseVersion
-        return self._dist.parsed_version
+    def version(self) -> DistributionVersion:
+        return parse_version(self._dist.version)
 
     @property
-    def installer(self):
-        # type: () -> str
+    def installer(self) -> str:
         return get_installer(self._dist)
 
     @property
-    def editable(self):
-        # type: () -> bool
-        return misc.dist_is_editable(self._dist)
-
-    @property
-    def local(self):
-        # type: () -> bool
+    def local(self) -> bool:
         return misc.dist_is_local(self._dist)
 
     @property
-    def in_usersite(self):
-        # type: () -> bool
+    def in_usersite(self) -> bool:
         return misc.dist_in_usersite(self._dist)
+
+    @property
+    def in_site_packages(self) -> bool:
+        return misc.dist_in_site_packages(self._dist)
+
+    def read_text(self, name: str) -> str:
+        if not self._dist.has_metadata(name):
+            raise FileNotFoundError(name)
+        return self._dist.get_metadata(name)
+
+    def iter_entry_points(self) -> Iterable[BaseEntryPoint]:
+        for group, entries in self._dist.get_entry_map().items():
+            for name, entry_point in entries.items():
+                name, _, value = str(entry_point).partition("=")
+                yield EntryPoint(name=name.strip(), value=value.strip(), group=group)
+
+    @property
+    def metadata(self) -> email.message.Message:
+        return get_metadata(self._dist)
+
+    def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
+        if extras:  # pkg_resources raises on invalid extras, so we sanitize.
+            extras = frozenset(extras).intersection(self._dist.extras)
+        return self._dist.requires(extras)
+
+    def iter_provided_extras(self) -> Iterable[str]:
+        return self._dist.extras
 
 
 class Environment(BaseEnvironment):
-    def __init__(self, ws):
-        # type: (pkg_resources.WorkingSet) -> None
+    def __init__(self, ws: pkg_resources.WorkingSet) -> None:
         self._ws = ws
 
     @classmethod
-    def default(cls):
-        # type: () -> BaseEnvironment
+    def default(cls) -> BaseEnvironment:
         return cls(pkg_resources.working_set)
 
     @classmethod
-    def from_paths(cls, paths):
-        # type: (Optional[List[str]]) -> BaseEnvironment
+    def from_paths(cls, paths: Optional[List[str]]) -> BaseEnvironment:
         return cls(pkg_resources.WorkingSet(paths))
 
-    def _search_distribution(self, name):
-        # type: (str) -> Optional[BaseDistribution]
+    def _search_distribution(self, name: str) -> Optional[BaseDistribution]:
         """Find a distribution matching the ``name`` in the environment.
 
         This searches from *all* distributions available in the environment, to
@@ -95,8 +118,7 @@ class Environment(BaseEnvironment):
                 return dist
         return None
 
-    def get_distribution(self, name):
-        # type: (str) -> Optional[BaseDistribution]
+    def get_distribution(self, name: str) -> Optional[BaseDistribution]:
 
         # Search the distribution by looking through the working set.
         dist = self._search_distribution(name)
@@ -119,7 +141,6 @@ class Environment(BaseEnvironment):
             return None
         return self._search_distribution(name)
 
-    def iter_distributions(self):
-        # type: () -> Iterator[BaseDistribution]
+    def _iter_distributions(self) -> Iterator[BaseDistribution]:
         for dist in self._ws:
             yield Distribution(dist)

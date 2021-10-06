@@ -1,41 +1,29 @@
 import os
 from collections import namedtuple
+from typing import Any, List, Optional
 
-from pip._vendor import toml
+from pip._vendor import tomli
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 
 from pip._internal.exceptions import InstallationError
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Any, List, Optional
 
 
-def _is_list_of_str(obj):
-    # type: (Any) -> bool
-    return (
-        isinstance(obj, list) and
-        all(isinstance(item, str) for item in obj)
-    )
+def _is_list_of_str(obj: Any) -> bool:
+    return isinstance(obj, list) and all(isinstance(item, str) for item in obj)
 
 
-def make_pyproject_path(unpacked_source_directory):
-    # type: (str) -> str
-    return os.path.join(unpacked_source_directory, 'pyproject.toml')
+def make_pyproject_path(unpacked_source_directory: str) -> str:
+    return os.path.join(unpacked_source_directory, "pyproject.toml")
 
 
-BuildSystemDetails = namedtuple('BuildSystemDetails', [
-    'requires', 'backend', 'check', 'backend_path'
-])
+BuildSystemDetails = namedtuple(
+    "BuildSystemDetails", ["requires", "backend", "check", "backend_path"]
+)
 
 
 def load_pyproject_toml(
-    use_pep517,  # type: Optional[bool]
-    pyproject_toml,  # type: str
-    setup_py,  # type: str
-    req_name  # type: str
-):
-    # type: (...) -> Optional[BuildSystemDetails]
+    use_pep517: Optional[bool], pyproject_toml: str, setup_py: str, req_name: str
+) -> Optional[BuildSystemDetails]:
     """Load the pyproject.toml file.
 
     Parameters:
@@ -62,7 +50,7 @@ def load_pyproject_toml(
 
     if has_pyproject:
         with open(pyproject_toml, encoding="utf-8") as f:
-            pp_toml = toml.load(f)
+            pp_toml = tomli.load(f)
         build_system = pp_toml.get("build-system")
     else:
         build_system = None
@@ -85,9 +73,7 @@ def load_pyproject_toml(
             raise InstallationError(
                 "Disabling PEP 517 processing is invalid: "
                 "project specifies a build backend of {} "
-                "in pyproject.toml".format(
-                    build_system["build-backend"]
-                )
+                "in pyproject.toml".format(build_system["build-backend"])
             )
         use_pep517 = True
 
@@ -135,19 +121,24 @@ def load_pyproject_toml(
     # Specifying the build-system table but not the requires key is invalid
     if "requires" not in build_system:
         raise InstallationError(
-            error_template.format(package=req_name, reason=(
-                "it has a 'build-system' table but not "
-                "'build-system.requires' which is mandatory in the table"
-            ))
+            error_template.format(
+                package=req_name,
+                reason=(
+                    "it has a 'build-system' table but not "
+                    "'build-system.requires' which is mandatory in the table"
+                ),
+            )
         )
 
     # Error out if requires is not a list of strings
     requires = build_system["requires"]
     if not _is_list_of_str(requires):
-        raise InstallationError(error_template.format(
-            package=req_name,
-            reason="'build-system.requires' is not a list of strings.",
-        ))
+        raise InstallationError(
+            error_template.format(
+                package=req_name,
+                reason="'build-system.requires' is not a list of strings.",
+            )
+        )
 
     # Each requirement must be valid as per PEP 508
     for requirement in requires:
@@ -166,7 +157,7 @@ def load_pyproject_toml(
 
     backend = build_system.get("build-backend")
     backend_path = build_system.get("backend-path", [])
-    check = []  # type: List[str]
+    check: List[str] = []
     if backend is None:
         # If the user didn't specify a backend, we assume they want to use
         # the setuptools backend. But we can't be sure they have included

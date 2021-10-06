@@ -1,25 +1,21 @@
 import logging
+from email.message import Message
 from email.parser import FeedParser
+from typing import Optional, Tuple
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging import specifiers, version
+from pip._vendor.pkg_resources import Distribution
 
 from pip._internal.exceptions import NoneMetadataError
 from pip._internal.utils.misc import display_path
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from email.message import Message
-    from typing import Optional, Tuple
-
-    from pip._vendor.pkg_resources import Distribution
-
 
 logger = logging.getLogger(__name__)
 
 
-def check_requires_python(requires_python, version_info):
-    # type: (Optional[str], Tuple[int, ...]) -> bool
+def check_requires_python(
+    requires_python: Optional[str], version_info: Tuple[int, ...]
+) -> bool:
     """
     Check if the given Python version matches a "Requires-Python" specifier.
 
@@ -36,26 +32,26 @@ def check_requires_python(requires_python, version_info):
         return True
     requires_python_specifier = specifiers.SpecifierSet(requires_python)
 
-    python_version = version.parse('.'.join(map(str, version_info)))
+    python_version = version.parse(".".join(map(str, version_info)))
     return python_version in requires_python_specifier
 
 
-def get_metadata(dist):
-    # type: (Distribution) -> Message
+def get_metadata(dist: Distribution) -> Message:
     """
     :raises NoneMetadataError: if the distribution reports `has_metadata()`
         True but `get_metadata()` returns None.
     """
-    metadata_name = 'METADATA'
-    if (isinstance(dist, pkg_resources.DistInfoDistribution) and
-            dist.has_metadata(metadata_name)):
+    metadata_name = "METADATA"
+    if isinstance(dist, pkg_resources.DistInfoDistribution) and dist.has_metadata(
+        metadata_name
+    ):
         metadata = dist.get_metadata(metadata_name)
-    elif dist.has_metadata('PKG-INFO'):
-        metadata_name = 'PKG-INFO'
+    elif dist.has_metadata("PKG-INFO"):
+        metadata_name = "PKG-INFO"
         metadata = dist.get_metadata(metadata_name)
     else:
         logger.warning("No metadata found in %s", display_path(dist.location))
-        metadata = ''
+        metadata = ""
 
     if metadata is None:
         raise NoneMetadataError(dist, metadata_name)
@@ -67,27 +63,9 @@ def get_metadata(dist):
     return feed_parser.close()
 
 
-def get_requires_python(dist):
-    # type: (pkg_resources.Distribution) -> Optional[str]
-    """
-    Return the "Requires-Python" metadata for a distribution, or None
-    if not present.
-    """
-    pkg_info_dict = get_metadata(dist)
-    requires_python = pkg_info_dict.get('Requires-Python')
-
-    if requires_python is not None:
-        # Convert to a str to satisfy the type checker, since requires_python
-        # can be a Header object.
-        requires_python = str(requires_python)
-
-    return requires_python
-
-
-def get_installer(dist):
-    # type: (Distribution) -> str
-    if dist.has_metadata('INSTALLER'):
-        for line in dist.get_metadata_lines('INSTALLER'):
+def get_installer(dist: Distribution) -> str:
+    if dist.has_metadata("INSTALLER"):
+        for line in dist.get_metadata_lines("INSTALLER"):
             if line.strip():
                 return line.strip()
-    return ''
+    return ""

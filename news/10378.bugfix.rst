@@ -1,0 +1,1 @@
+Fix double unescape of HTML ``data-requires-python`` and ``data-yanked`` attributes.

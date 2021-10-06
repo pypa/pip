@@ -44,7 +44,7 @@ rooms, and mailing lists is expected to follow the `PSF Code of Conduct`_.
 
 .. _package installer: https://packaging.python.org/guides/tool-recommendations/
 .. _Python Package Index: https://pypi.org
-.. _Installation: https://pip.pypa.io/en/stable/installing.html
+.. _Installation: https://pip.pypa.io/en/stable/installation/
 .. _Usage: https://pip.pypa.io/en/stable/
 .. _Release notes: https://pip.pypa.io/en/stable/news.html
 .. _Release process: https://pip.pypa.io/en/latest/development/release-process/
@@ -57,6 +57,6 @@ rooms, and mailing lists is expected to follow the `PSF Code of Conduct`_.
 .. _Issue tracking: https://github.com/pypa/pip/issues
 .. _Discourse channel: https://discuss.python.org/c/packaging
 .. _Development mailing list: https://mail.python.org/mailman3/lists/distutils-sig.python.org/
-.. _User IRC: https://webchat.freenode.net/?channels=%23pypa
-.. _Development IRC: https://webchat.freenode.net/?channels=%23pypa-dev
+.. _User IRC: https://kiwiirc.com/nextclient/#ircs://irc.libera.chat:+6697/pypa
+.. _Development IRC: https://kiwiirc.com/nextclient/#ircs://irc.libera.chat:+6697/pypa-dev
 .. _PSF Code of Conduct: https://github.com/pypa/.github/blob/main/CODE_OF_CONDUCT.md

@@ -1,17 +1,16 @@
 """Exceptions used throughout package"""
 
+import configparser
 from itertools import chain, groupby, repeat
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._vendor.pkg_resources import Distribution
+from pip._vendor.requests.models import Request, Response
 
-if MYPY_CHECK_RUNNING:
-    import configparser
+if TYPE_CHECKING:
     from hashlib import _Hash
-    from typing import Dict, List, Optional
 
-    from pip._vendor.pkg_resources import Distribution
-    from pip._vendor.requests.models import Request, Response
-
+    from pip._internal.metadata import BaseDistribution
     from pip._internal.req.req_install import InstallRequirement
 
 
@@ -40,8 +39,11 @@ class NoneMetadataError(PipError):
     "PKG-INFO").
     """
 
-    def __init__(self, dist, metadata_name):
-        # type: (Distribution, str) -> None
+    def __init__(
+        self,
+        dist: Union[Distribution, "BaseDistribution"],
+        metadata_name: str,
+    ) -> None:
         """
         :param dist: A Distribution object.
         :param metadata_name: The name of the metadata being accessed
@@ -50,15 +52,26 @@ class NoneMetadataError(PipError):
         self.dist = dist
         self.metadata_name = metadata_name
 
-    def __str__(self):
-        # type: () -> str
+    def __str__(self) -> str:
         # Use `dist` in the error message because its stringification
         # includes more information, like the version and location.
-        return (
-            'None {} metadata found for distribution: {}'.format(
-                self.metadata_name, self.dist,
-            )
+        return "None {} metadata found for distribution: {}".format(
+            self.metadata_name,
+            self.dist,
         )
+
+
+class UserInstallationInvalid(InstallationError):
+    """A --user install is requested on an environment without user site."""
+
+    def __str__(self) -> str:
+        return "User base directory is not specified"
+
+
+class InvalidSchemeCombination(InstallationError):
+    def __str__(self) -> str:
+        before = ", ".join(str(a) for a in self.args[:-1])
+        return f"Cannot set {before} and {self.args[-1]} together"
 
 
 class DistributionNotFound(InstallationError):
@@ -89,8 +102,9 @@ class PreviousBuildDirError(PipError):
 class NetworkConnectionError(PipError):
     """HTTP connection error"""
 
-    def __init__(self, error_msg, response=None, request=None):
-        # type: (str, Response, Request) -> None
+    def __init__(
+        self, error_msg: str, response: Response = None, request: Request = None
+    ) -> None:
         """
         Initialize NetworkConnectionError with  `request` and `response`
         objects.
@@ -98,13 +112,15 @@ class NetworkConnectionError(PipError):
         self.response = response
         self.request = request
         self.error_msg = error_msg
-        if (self.response is not None and not self.request and
-                hasattr(response, 'request')):
+        if (
+            self.response is not None
+            and not self.request
+            and hasattr(response, "request")
+        ):
             self.request = self.response.request
         super().__init__(error_msg, response, request)
 
-    def __str__(self):
-        # type: () -> str
+    def __str__(self) -> str:
         return str(self.error_msg)
 
 
@@ -123,15 +139,16 @@ class MetadataInconsistent(InstallationError):
     that do not match the information previously obtained from sdist filename
     or user-supplied ``#egg=`` value.
     """
-    def __init__(self, ireq, field, f_val, m_val):
-        # type: (InstallRequirement, str, str, str) -> None
+
+    def __init__(
+        self, ireq: "InstallRequirement", field: str, f_val: str, m_val: str
+    ) -> None:
         self.ireq = ireq
         self.field = field
         self.f_val = f_val
         self.m_val = m_val
 
-    def __str__(self):
-        # type: () -> str
+    def __str__(self) -> str:
         template = (
             "Requested {} has inconsistent {}: "
             "filename has {!r}, but metadata has {!r}"
@@ -141,13 +158,12 @@ class MetadataInconsistent(InstallationError):
 
 class InstallationSubprocessError(InstallationError):
     """A subprocess call failed during installation."""
-    def __init__(self, returncode, description):
-        # type: (int, str) -> None
+
+    def __init__(self, returncode: int, description: str) -> None:
         self.returncode = returncode
         self.description = description
 
-    def __str__(self):
-        # type: () -> str
+    def __str__(self) -> str:
         return (
             "Command errored out with exit status {}: {} "
             "Check the logs for full command output."
@@ -157,32 +173,24 @@ class InstallationSubprocessError(InstallationError):
 class HashErrors(InstallationError):
     """Multiple HashError instances rolled into one for reporting"""
 
-    def __init__(self):
-        # type: () -> None
-        self.errors = []  # type: List[HashError]
+    def __init__(self) -> None:
+        self.errors: List["HashError"] = []
 
-    def append(self, error):
-        # type: (HashError) -> None
+    def append(self, error: "HashError") -> None:
         self.errors.append(error)
 
-    def __str__(self):
-        # type: () -> str
+    def __str__(self) -> str:
         lines = []
         self.errors.sort(key=lambda e: e.order)
         for cls, errors_of_cls in groupby(self.errors, lambda e: e.__class__):
             lines.append(cls.head)
             lines.extend(e.body() for e in errors_of_cls)
         if lines:
-            return '\n'.join(lines)
-        return ''
+            return "\n".join(lines)
+        return ""
 
-    def __nonzero__(self):
-        # type: () -> bool
+    def __bool__(self) -> bool:
         return bool(self.errors)
-
-    def __bool__(self):
-        # type: () -> bool
-        return self.__nonzero__()
 
 
 class HashError(InstallationError):
@@ -201,12 +209,12 @@ class HashError(InstallationError):
         typically available earlier.
 
     """
-    req = None  # type: Optional[InstallRequirement]
-    head = ''
-    order = -1  # type: int
 
-    def body(self):
-        # type: () -> str
+    req: Optional["InstallRequirement"] = None
+    head = ""
+    order: int = -1
+
+    def body(self) -> str:
         """Return a summary of me for display under the heading.
 
         This default implementation simply prints a description of the
@@ -216,21 +224,19 @@ class HashError(InstallationError):
             its link already populated by the resolver's _populate_link().
 
         """
-        return f'    {self._requirement_name()}'
+        return f"    {self._requirement_name()}"
 
-    def __str__(self):
-        # type: () -> str
-        return f'{self.head}\n{self.body()}'
+    def __str__(self) -> str:
+        return f"{self.head}\n{self.body()}"
 
-    def _requirement_name(self):
-        # type: () -> str
+    def _requirement_name(self) -> str:
         """Return a description of the requirement that triggered me.
 
         This default implementation returns long description of the req, with
         line numbers
 
         """
-        return str(self.req) if self.req else 'unknown package'
+        return str(self.req) if self.req else "unknown package"
 
 
 class VcsHashUnsupported(HashError):
@@ -238,8 +244,10 @@ class VcsHashUnsupported(HashError):
     we don't have a method for hashing those."""
 
     order = 0
-    head = ("Can't verify hashes for these requirements because we don't "
-            "have a way to hash version control repositories:")
+    head = (
+        "Can't verify hashes for these requirements because we don't "
+        "have a way to hash version control repositories:"
+    )
 
 
 class DirectoryUrlHashUnsupported(HashError):
@@ -247,32 +255,34 @@ class DirectoryUrlHashUnsupported(HashError):
     we don't have a method for hashing those."""
 
     order = 1
-    head = ("Can't verify hashes for these file:// requirements because they "
-            "point to directories:")
+    head = (
+        "Can't verify hashes for these file:// requirements because they "
+        "point to directories:"
+    )
 
 
 class HashMissing(HashError):
     """A hash was needed for a requirement but is absent."""
 
     order = 2
-    head = ('Hashes are required in --require-hashes mode, but they are '
-            'missing from some requirements. Here is a list of those '
-            'requirements along with the hashes their downloaded archives '
-            'actually had. Add lines like these to your requirements files to '
-            'prevent tampering. (If you did not enable --require-hashes '
-            'manually, note that it turns on automatically when any package '
-            'has a hash.)')
+    head = (
+        "Hashes are required in --require-hashes mode, but they are "
+        "missing from some requirements. Here is a list of those "
+        "requirements along with the hashes their downloaded archives "
+        "actually had. Add lines like these to your requirements files to "
+        "prevent tampering. (If you did not enable --require-hashes "
+        "manually, note that it turns on automatically when any package "
+        "has a hash.)"
+    )
 
-    def __init__(self, gotten_hash):
-        # type: (str) -> None
+    def __init__(self, gotten_hash: str) -> None:
         """
         :param gotten_hash: The hash of the (possibly malicious) archive we
             just downloaded
         """
         self.gotten_hash = gotten_hash
 
-    def body(self):
-        # type: () -> str
+    def body(self) -> str:
         # Dodge circular import.
         from pip._internal.utils.hashes import FAVORITE_HASH
 
@@ -281,13 +291,16 @@ class HashMissing(HashError):
             # In the case of URL-based requirements, display the original URL
             # seen in the requirements file rather than the package name,
             # so the output can be directly copied into the requirements file.
-            package = (self.req.original_link if self.req.original_link
-                       # In case someone feeds something downright stupid
-                       # to InstallRequirement's constructor.
-                       else getattr(self.req, 'req', None))
-        return '    {} --hash={}:{}'.format(package or 'unknown package',
-                                            FAVORITE_HASH,
-                                            self.gotten_hash)
+            package = (
+                self.req.original_link
+                if self.req.original_link
+                # In case someone feeds something downright stupid
+                # to InstallRequirement's constructor.
+                else getattr(self.req, "req", None)
+            )
+        return "    {} --hash={}:{}".format(
+            package or "unknown package", FAVORITE_HASH, self.gotten_hash
+        )
 
 
 class HashUnpinned(HashError):
@@ -295,8 +308,10 @@ class HashUnpinned(HashError):
     version."""
 
     order = 3
-    head = ('In --require-hashes mode, all requirements must have their '
-            'versions pinned with ==. These do not:')
+    head = (
+        "In --require-hashes mode, all requirements must have their "
+        "versions pinned with ==. These do not:"
+    )
 
 
 class HashMismatch(HashError):
@@ -308,14 +323,16 @@ class HashMismatch(HashError):
         improve its error message.
 
     """
-    order = 4
-    head = ('THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS '
-            'FILE. If you have updated the package versions, please update '
-            'the hashes. Otherwise, examine the package contents carefully; '
-            'someone may have tampered with them.')
 
-    def __init__(self, allowed, gots):
-        # type: (Dict[str, List[str]], Dict[str, _Hash]) -> None
+    order = 4
+    head = (
+        "THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS "
+        "FILE. If you have updated the package versions, please update "
+        "the hashes. Otherwise, examine the package contents carefully; "
+        "someone may have tampered with them."
+    )
+
+    def __init__(self, allowed: Dict[str, List[str]], gots: Dict[str, "_Hash"]) -> None:
         """
         :param allowed: A dict of algorithm names pointing to lists of allowed
             hex digests
@@ -325,13 +342,10 @@ class HashMismatch(HashError):
         self.allowed = allowed
         self.gots = gots
 
-    def body(self):
-        # type: () -> str
-        return '    {}:\n{}'.format(self._requirement_name(),
-                                    self._hash_comparison())
+    def body(self) -> str:
+        return "    {}:\n{}".format(self._requirement_name(), self._hash_comparison())
 
-    def _hash_comparison(self):
-        # type: () -> str
+    def _hash_comparison(self) -> str:
         """
         Return a comparison of actual and expected hash values.
 
@@ -342,20 +356,22 @@ class HashMismatch(HashError):
                     Got        bcdefbcdefbcdefbcdefbcdefbcdefbcdefbcdefbcdef
 
         """
-        def hash_then_or(hash_name):
-            # type: (str) -> chain[str]
+
+        def hash_then_or(hash_name: str) -> "chain[str]":
             # For now, all the decent hashes have 6-char names, so we can get
             # away with hard-coding space literals.
-            return chain([hash_name], repeat('    or'))
+            return chain([hash_name], repeat("    or"))
 
-        lines = []  # type: List[str]
+        lines: List[str] = []
         for hash_name, expecteds in self.allowed.items():
             prefix = hash_then_or(hash_name)
-            lines.extend(('        Expected {} {}'.format(next(prefix), e))
-                         for e in expecteds)
-            lines.append('             Got        {}\n'.format(
-                         self.gots[hash_name].hexdigest()))
-        return '\n'.join(lines)
+            lines.extend(
+                ("        Expected {} {}".format(next(prefix), e)) for e in expecteds
+            )
+            lines.append(
+                "             Got        {}\n".format(self.gots[hash_name].hexdigest())
+            )
+        return "\n".join(lines)
 
 
 class UnsupportedPythonVersion(InstallationError):
@@ -364,18 +380,20 @@ class UnsupportedPythonVersion(InstallationError):
 
 
 class ConfigurationFileCouldNotBeLoaded(ConfigurationError):
-    """When there are errors while loading a configuration file
-    """
+    """When there are errors while loading a configuration file"""
 
-    def __init__(self, reason="could not be loaded", fname=None, error=None):
-        # type: (str, Optional[str], Optional[configparser.Error]) -> None
+    def __init__(
+        self,
+        reason: str = "could not be loaded",
+        fname: Optional[str] = None,
+        error: Optional[configparser.Error] = None,
+    ) -> None:
         super().__init__(error)
         self.reason = reason
         self.fname = fname
         self.error = error
 
-    def __str__(self):
-        # type: () -> str
+    def __str__(self) -> str:
         if self.fname is not None:
             message_part = f" in {self.fname}."
         else:

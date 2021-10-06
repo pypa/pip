@@ -1,9 +1,5 @@
 import sys
-
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import List, Optional, Sequence
+from typing import List, Optional, Sequence
 
 # Shim to wrap setup.py invocation with setuptools
 #
@@ -12,21 +8,22 @@ if MYPY_CHECK_RUNNING:
 # invoking via the shim.  This avoids e.g. the following manifest_maker
 # warning: "warning: manifest_maker: standard file '-c' not found".
 _SETUPTOOLS_SHIM = (
-    "import sys, setuptools, tokenize; sys.argv[0] = {0!r}; __file__={0!r};"
-    "f=getattr(tokenize, 'open', open)(__file__);"
-    "code=f.read().replace('\\r\\n', '\\n');"
+    "import io, os, sys, setuptools, tokenize; sys.argv[0] = {0!r}; __file__={0!r};"
+    "f = getattr(tokenize, 'open', open)(__file__) "
+    "if os.path.exists(__file__) "
+    "else io.StringIO('from setuptools import setup; setup()');"
+    "code = f.read().replace('\\r\\n', '\\n');"
     "f.close();"
     "exec(compile(code, __file__, 'exec'))"
 )
 
 
 def make_setuptools_shim_args(
-    setup_py_path,  # type: str
-    global_options=None,  # type: Sequence[str]
-    no_user_config=False,  # type: bool
-    unbuffered_output=False  # type: bool
-):
-    # type: (...) -> List[str]
+    setup_py_path: str,
+    global_options: Sequence[str] = None,
+    no_user_config: bool = False,
+    unbuffered_output: bool = False,
+) -> List[str]:
     """
     Get setuptools command arguments with shim wrapped setup file invocation.
 
@@ -48,20 +45,17 @@ def make_setuptools_shim_args(
 
 
 def make_setuptools_bdist_wheel_args(
-    setup_py_path,  # type: str
-    global_options,  # type: Sequence[str]
-    build_options,  # type: Sequence[str]
-    destination_dir,  # type: str
-):
-    # type: (...) -> List[str]
+    setup_py_path: str,
+    global_options: Sequence[str],
+    build_options: Sequence[str],
+    destination_dir: str,
+) -> List[str]:
     # NOTE: Eventually, we'd want to also -S to the flags here, when we're
     # isolating. Currently, it breaks Python in virtualenvs, because it
     # relies on site.py to find parts of the standard library outside the
     # virtualenv.
     args = make_setuptools_shim_args(
-        setup_py_path,
-        global_options=global_options,
-        unbuffered_output=True
+        setup_py_path, global_options=global_options, unbuffered_output=True
     )
     args += ["bdist_wheel", "-d", destination_dir]
     args += build_options
@@ -69,29 +63,25 @@ def make_setuptools_bdist_wheel_args(
 
 
 def make_setuptools_clean_args(
-    setup_py_path,  # type: str
-    global_options,  # type: Sequence[str]
-):
-    # type: (...) -> List[str]
+    setup_py_path: str,
+    global_options: Sequence[str],
+) -> List[str]:
     args = make_setuptools_shim_args(
-        setup_py_path,
-        global_options=global_options,
-        unbuffered_output=True
+        setup_py_path, global_options=global_options, unbuffered_output=True
     )
     args += ["clean", "--all"]
     return args
 
 
 def make_setuptools_develop_args(
-    setup_py_path,  # type: str
-    global_options,  # type: Sequence[str]
-    install_options,  # type: Sequence[str]
-    no_user_config,  # type: bool
-    prefix,  # type: Optional[str]
-    home,  # type: Optional[str]
-    use_user_site,  # type: bool
-):
-    # type: (...) -> List[str]
+    setup_py_path: str,
+    global_options: Sequence[str],
+    install_options: Sequence[str],
+    no_user_config: bool,
+    prefix: Optional[str],
+    home: Optional[str],
+    use_user_site: bool,
+) -> List[str]:
     assert not (use_user_site and prefix)
 
     args = make_setuptools_shim_args(
@@ -107,7 +97,7 @@ def make_setuptools_develop_args(
     if prefix:
         args += ["--prefix", prefix]
     if home is not None:
-        args += ["--home", home]
+        args += ["--install-dir", home]
 
     if use_user_site:
         args += ["--user", "--prefix="]
@@ -116,14 +106,11 @@ def make_setuptools_develop_args(
 
 
 def make_setuptools_egg_info_args(
-    setup_py_path,  # type: str
-    egg_info_dir,  # type: Optional[str]
-    no_user_config,  # type: bool
-):
-    # type: (...) -> List[str]
-    args = make_setuptools_shim_args(
-        setup_py_path, no_user_config=no_user_config
-    )
+    setup_py_path: str,
+    egg_info_dir: Optional[str],
+    no_user_config: bool,
+) -> List[str]:
+    args = make_setuptools_shim_args(setup_py_path, no_user_config=no_user_config)
 
     args += ["egg_info"]
 
@@ -134,19 +121,18 @@ def make_setuptools_egg_info_args(
 
 
 def make_setuptools_install_args(
-    setup_py_path,  # type: str
-    global_options,  # type: Sequence[str]
-    install_options,  # type: Sequence[str]
-    record_filename,  # type: str
-    root,  # type: Optional[str]
-    prefix,  # type: Optional[str]
-    header_dir,  # type: Optional[str]
-    home,  # type: Optional[str]
-    use_user_site,  # type: bool
-    no_user_config,  # type: bool
-    pycompile  # type: bool
-):
-    # type: (...) -> List[str]
+    setup_py_path: str,
+    global_options: Sequence[str],
+    install_options: Sequence[str],
+    record_filename: str,
+    root: Optional[str],
+    prefix: Optional[str],
+    header_dir: Optional[str],
+    home: Optional[str],
+    use_user_site: bool,
+    no_user_config: bool,
+    pycompile: bool,
+) -> List[str]:
     assert not (use_user_site and prefix)
     assert not (use_user_site and root)
 
@@ -154,7 +140,7 @@ def make_setuptools_install_args(
         setup_py_path,
         global_options=global_options,
         no_user_config=no_user_config,
-        unbuffered_output=True
+        unbuffered_output=True,
     )
     args += ["install", "--record", record_filename]
     args += ["--single-version-externally-managed"]

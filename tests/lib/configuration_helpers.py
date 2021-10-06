@@ -6,44 +6,44 @@ import functools
 import os
 import tempfile
 import textwrap
+from typing import Any, Dict, Iterator
 
 import pip._internal.configuration
 from pip._internal.utils.misc import ensure_dir
 
 # This is so that tests don't need to import pip._internal.configuration.
+Kind = pip._internal.configuration.Kind
 kinds = pip._internal.configuration.kinds
 
 
 class ConfigurationMixin:
-
-    def setup(self):
+    def setup(self) -> None:
         self.configuration = pip._internal.configuration.Configuration(
             isolated=False,
         )
-        self._files_to_clear = []
 
-    def teardown(self):
-        for fname in self._files_to_clear:
-            fname.stop()
-
-    def patch_configuration(self, variant, di):
+    def patch_configuration(self, variant: Kind, di: Dict[str, Any]) -> None:
         old = self.configuration._load_config_files
 
         @functools.wraps(old)
-        def overridden():
+        def overridden() -> None:
             # Manual Overload
             self.configuration._config[variant].update(di)
-            self.configuration._parsers[variant].append((None, None))
-            return old()
+            # Configuration._parsers has type:
+            # Dict[Kind, List[Tuple[str, RawConfigParser]]].
+            # As a testing convenience, pass a special value.
+            self.configuration._parsers[variant].append(
+                (None, None),  # type: ignore[arg-type]
+            )
+            old()
 
-        self.configuration._load_config_files = overridden
+        # https://github.com/python/mypy/issues/2427
+        self.configuration._load_config_files = overridden  # type: ignore[assignment]
 
     @contextlib.contextmanager
-    def tmpfile(self, contents):
+    def tmpfile(self, contents: str) -> Iterator[str]:
         # Create a temporary file
-        fd, path = tempfile.mkstemp(
-            prefix="pip_", suffix="_config.ini", text=True
-        )
+        fd, path = tempfile.mkstemp(prefix="pip_", suffix="_config.ini", text=True)
         os.close(fd)
 
         contents = textwrap.dedent(contents).lstrip()
@@ -54,8 +54,3 @@ class ConfigurationMixin:
         yield path
 
         os.remove(path)
-
-    @staticmethod
-    def get_file_contents(path):
-        with open(path) as f:
-            return f.read()

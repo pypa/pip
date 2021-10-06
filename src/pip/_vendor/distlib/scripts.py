@@ -14,7 +14,7 @@ import sys
 from .compat import sysconfig, detect_encoding, ZipFile
 from .resources import finder
 from .util import (FileOperator, get_export_entry, convert_path,
-                   get_executable, in_venv)
+                   get_executable, get_platform, in_venv)
 
 logger = logging.getLogger(__name__)
 
@@ -170,6 +170,11 @@ class ScriptMaker(object):
                 sysconfig.get_config_var('BINDIR'),
                'python%s%s' % (sysconfig.get_config_var('VERSION'),
                                sysconfig.get_config_var('EXE')))
+            if not os.path.isfile(executable):
+                # for Python builds from source on Windows, no Python executables with
+                # a version suffix are created, so we use python.exe
+                executable = os.path.join(sysconfig.get_config_var('BINDIR'),
+                                'python%s' % (sysconfig.get_config_var('EXE')))
         if options:
             executable = self._get_alternate_executable(executable, options)
 
@@ -282,6 +287,19 @@ class ScriptMaker(object):
                     self._fileop.set_executable_mode([outname])
             filenames.append(outname)
 
+    variant_separator = '-'
+
+    def get_script_filenames(self, name):
+        result = set()
+        if '' in self.variants:
+            result.add(name)
+        if 'X' in self.variants:
+            result.add('%s%s' % (name, self.version_info[0]))
+        if 'X.Y' in self.variants:
+            result.add('%s%s%s.%s' % (name, self.variant_separator,
+                                      self.version_info[0], self.version_info[1]))
+        return result
+
     def _make_script(self, entry, filenames, options=None):
         post_interp = b''
         if options:
@@ -291,15 +309,7 @@ class ScriptMaker(object):
                 post_interp = args.encode('utf-8')
         shebang = self._get_shebang('utf-8', post_interp, options=options)
         script = self._get_script_text(entry).encode('utf-8')
-        name = entry.name
-        scriptnames = set()
-        if '' in self.variants:
-            scriptnames.add(name)
-        if 'X' in self.variants:
-            scriptnames.add('%s%s' % (name, self.version_info[0]))
-        if 'X.Y' in self.variants:
-            scriptnames.add('%s-%s.%s' % (name, self.version_info[0],
-                                          self.version_info[1]))
+        scriptnames = self.get_script_filenames(entry.name)
         if options and options.get('gui', False):
             ext = 'pyw'
         else:
@@ -326,8 +336,7 @@ class ScriptMaker(object):
         else:
             first_line = f.readline()
             if not first_line:  # pragma: no cover
-                logger.warning('%s: %s is an empty file (skipping)',
-                               self.get_command_name(),  script)
+                logger.warning('%s is an empty file (skipping)', script)
                 return
 
             match = FIRST_LINE_RE.match(first_line.replace(b'\r\n', b'\n'))
@@ -375,7 +384,8 @@ class ScriptMaker(object):
                 bits = '64'
             else:
                 bits = '32'
-            name = '%s%s.exe' % (kind, bits)
+            platform_suffix = '-arm' if get_platform() == 'win-arm64' else ''
+            name = '%s%s%s.exe' % (kind, bits, platform_suffix)
             # Issue 31: don't hardcode an absolute package name, but
             # determine it relative to the current package
             distlib_package = __name__.rsplit('.', 1)[0]

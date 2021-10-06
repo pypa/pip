@@ -1,5 +1,7 @@
 import logging
 import os
+from optparse import Values
+from typing import List
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
@@ -8,11 +10,6 @@ from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.utils.misc import ensure_dir, normalize_path, write_output
 from pip._internal.utils.temp_dir import TempDirectory
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from optparse import Values
-    from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -37,11 +34,9 @@ class DownloadCommand(RequirementCommand):
       %prog [options] <local project path> ...
       %prog [options] <archive url/path> ..."""
 
-    def add_options(self):
-        # type: () -> None
+    def add_options(self) -> None:
         self.cmd_opts.add_option(cmdoptions.constraints())
         self.cmd_opts.add_option(cmdoptions.requirements())
-        self.cmd_opts.add_option(cmdoptions.build_dir())
         self.cmd_opts.add_option(cmdoptions.no_deps())
         self.cmd_opts.add_option(cmdoptions.global_options())
         self.cmd_opts.add_option(cmdoptions.no_binary())
@@ -57,11 +52,14 @@ class DownloadCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
 
         self.cmd_opts.add_option(
-            '-d', '--dest', '--destination-dir', '--destination-directory',
-            dest='download_dir',
-            metavar='dir',
+            "-d",
+            "--dest",
+            "--destination-dir",
+            "--destination-directory",
+            dest="download_dir",
+            metavar="dir",
             default=os.curdir,
-            help=("Download packages into <dir>."),
+            help="Download packages into <dir>.",
         )
 
         cmdoptions.add_target_python_options(self.cmd_opts)
@@ -75,8 +73,7 @@ class DownloadCommand(RequirementCommand):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     @with_cleanup
-    def run(self, options, args):
-        # type: (Values, List[str]) -> int
+    def run(self, options: Values, args: List[str]) -> int:
 
         options.ignore_installed = True
         # editable doesn't really make sense for `pip download`, but the bowels
@@ -128,17 +125,15 @@ class DownloadCommand(RequirementCommand):
 
         self.trace_basic_info(finder)
 
-        requirement_set = resolver.resolve(
-            reqs, check_supported_wheels=True
-        )
+        requirement_set = resolver.resolve(reqs, check_supported_wheels=True)
 
-        downloaded = []  # type: List[str]
+        downloaded: List[str] = []
         for req in requirement_set.requirements.values():
             if req.satisfied_by is None:
                 assert req.name is not None
                 preparer.save_linked_requirement(req)
                 downloaded.append(req.name)
         if downloaded:
-            write_output('Successfully downloaded %s', ' '.join(downloaded))
+            write_output("Successfully downloaded %s", " ".join(downloaded))
 
         return SUCCESS

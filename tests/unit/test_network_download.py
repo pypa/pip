@@ -1,5 +1,6 @@
 import logging
 import sys
+from typing import Dict
 
 import pytest
 
@@ -12,23 +13,51 @@ from pip._internal.network.download import (
 from tests.lib.requests_mocks import MockResponse
 
 
-@pytest.mark.parametrize("url, headers, from_cache, expected", [
-    ('http://example.com/foo.tgz', {}, False,
-        "Downloading http://example.com/foo.tgz"),
-    ('http://example.com/foo.tgz', {'content-length': 2}, False,
-        "Downloading http://example.com/foo.tgz (2 bytes)"),
-    ('http://example.com/foo.tgz', {'content-length': 2}, True,
-        "Using cached http://example.com/foo.tgz (2 bytes)"),
-    ('https://files.pythonhosted.org/foo.tgz', {}, False,
-        "Downloading foo.tgz"),
-    ('https://files.pythonhosted.org/foo.tgz', {'content-length': 2}, False,
-        "Downloading foo.tgz (2 bytes)"),
-    ('https://files.pythonhosted.org/foo.tgz', {'content-length': 2}, True,
-        "Using cached foo.tgz"),
-])
-def test_prepare_download__log(caplog, url, headers, from_cache, expected):
+@pytest.mark.parametrize(
+    "url, headers, from_cache, expected",
+    [
+        (
+            "http://example.com/foo.tgz",
+            {},
+            False,
+            "Downloading http://example.com/foo.tgz",
+        ),
+        (
+            "http://example.com/foo.tgz",
+            {"content-length": "2"},
+            False,
+            "Downloading http://example.com/foo.tgz (2 bytes)",
+        ),
+        (
+            "http://example.com/foo.tgz",
+            {"content-length": "2"},
+            True,
+            "Using cached http://example.com/foo.tgz (2 bytes)",
+        ),
+        ("https://files.pythonhosted.org/foo.tgz", {}, False, "Downloading foo.tgz"),
+        (
+            "https://files.pythonhosted.org/foo.tgz",
+            {"content-length": "2"},
+            False,
+            "Downloading foo.tgz (2 bytes)",
+        ),
+        (
+            "https://files.pythonhosted.org/foo.tgz",
+            {"content-length": "2"},
+            True,
+            "Using cached foo.tgz",
+        ),
+    ],
+)
+def test_prepare_download__log(
+    caplog: pytest.LogCaptureFixture,
+    url: str,
+    headers: Dict[str, str],
+    from_cache: bool,
+    expected: str,
+) -> None:
     caplog.set_level(logging.INFO)
-    resp = MockResponse(b'')
+    resp = MockResponse(b"")
     resp.url = url
     resp.headers = headers
     if from_cache:
@@ -38,55 +67,60 @@ def test_prepare_download__log(caplog, url, headers, from_cache, expected):
 
     assert len(caplog.records) == 1
     record = caplog.records[0]
-    assert record.levelname == 'INFO'
+    assert record.levelname == "INFO"
     assert expected in record.message
 
 
-@pytest.mark.parametrize("filename, expected", [
-    ('dir/file', 'file'),
-    ('../file', 'file'),
-    ('../../file', 'file'),
-    ('../', ''),
-    ('../..', '..'),
-    ('/', ''),
-])
-def test_sanitize_content_filename(filename, expected):
+@pytest.mark.parametrize(
+    "filename, expected",
+    [
+        ("dir/file", "file"),
+        ("../file", "file"),
+        ("../../file", "file"),
+        ("../", ""),
+        ("../..", ".."),
+        ("/", ""),
+    ],
+)
+def test_sanitize_content_filename(filename: str, expected: str) -> None:
     """
     Test inputs where the result is the same for Windows and non-Windows.
     """
     assert sanitize_content_filename(filename) == expected
 
 
-@pytest.mark.parametrize("filename, win_expected, non_win_expected", [
-    ('dir\\file', 'file', 'dir\\file'),
-    ('..\\file', 'file', '..\\file'),
-    ('..\\..\\file', 'file', '..\\..\\file'),
-    ('..\\', '', '..\\'),
-    ('..\\..', '..', '..\\..'),
-    ('\\', '', '\\'),
-])
+@pytest.mark.parametrize(
+    "filename, win_expected, non_win_expected",
+    [
+        ("dir\\file", "file", "dir\\file"),
+        ("..\\file", "file", "..\\file"),
+        ("..\\..\\file", "file", "..\\..\\file"),
+        ("..\\", "", "..\\"),
+        ("..\\..", "..", "..\\.."),
+        ("\\", "", "\\"),
+    ],
+)
 def test_sanitize_content_filename__platform_dependent(
-    filename,
-    win_expected,
-    non_win_expected
-):
+    filename: str, win_expected: str, non_win_expected: str
+) -> None:
     """
     Test inputs where the result is different for Windows and non-Windows.
     """
-    if sys.platform == 'win32':
+    if sys.platform == "win32":
         expected = win_expected
     else:
         expected = non_win_expected
     assert sanitize_content_filename(filename) == expected
 
 
-@pytest.mark.parametrize("content_disposition, default_filename, expected", [
-    ('attachment;filename="../file"', 'df', 'file'),
-])
+@pytest.mark.parametrize(
+    "content_disposition, default_filename, expected",
+    [
+        ('attachment;filename="../file"', "df", "file"),
+    ],
+)
 def test_parse_content_disposition(
-    content_disposition,
-    default_filename,
-    expected
-):
+    content_disposition: str, default_filename: str, expected: str
+) -> None:
     actual = parse_content_disposition(content_disposition, default_filename)
     assert actual == expected

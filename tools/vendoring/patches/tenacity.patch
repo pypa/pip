@@ -1,0 +1,34 @@
+diff --git a/src/pip/_vendor/tenacity/__init__.py b/src/pip/_vendor/tenacity/__init__.py
+index 88c28d2d6..086ad46e1 100644
+--- a/src/pip/_vendor/tenacity/__init__.py
++++ b/src/pip/_vendor/tenacity/__init__.py
+@@ -76,10 +76,12 @@ from .after import after_nothing  # noqa
+ from .before_sleep import before_sleep_log  # noqa
+ from .before_sleep import before_sleep_nothing  # noqa
+
+-try:
+-    import tornado  # type: ignore
+-except ImportError:
+-    tornado = None  # type: ignore
++# Replace a conditional import with a hard-coded None so that pip does
++# not attempt to use tornado even if it is present in the environment.
++# If tornado is non-None, tenacity will attempt to execute some code
++# that is sensitive to the version of tornado, which could break pip
++# if an old version is found.
++tornado = None  # type: ignore
+
+ if t.TYPE_CHECKING:
+     import types
+
+--- a/src/pip/_vendor/tenacity/__init__.py
++++ b/src/pip/_vendor/tenacity/__init__.py
+@@ -190,7 +190,7 @@ class RetryError(Exception):
+         self.last_attempt = last_attempt
+         super().__init__(last_attempt)
+ 
+-    def reraise(self) -> t.NoReturn:
++    def reraise(self) -> "t.NoReturn":
+         if self.last_attempt.failed:
+             raise self.last_attempt.result()
+         raise self
+ 

@@ -1,13 +1,20 @@
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from typing import List, Optional
 
-if MYPY_CHECK_RUNNING:
-    from typing import List, Optional
+from .base import BaseDistribution, BaseEnvironment, FilesystemWheel, MemoryWheel, Wheel
 
-    from .base import BaseDistribution, BaseEnvironment
+__all__ = [
+    "BaseDistribution",
+    "BaseEnvironment",
+    "FilesystemWheel",
+    "MemoryWheel",
+    "Wheel",
+    "get_default_environment",
+    "get_environment",
+    "get_wheel_distribution",
+]
 
 
-def get_default_environment():
-    # type: () -> BaseEnvironment
+def get_default_environment() -> BaseEnvironment:
     """Get the default representation for the current environment.
 
     This returns an Environment instance from the chosen backend. The default
@@ -19,8 +26,7 @@ def get_default_environment():
     return Environment.default()
 
 
-def get_environment(paths):
-    # type: (Optional[List[str]]) -> BaseEnvironment
+def get_environment(paths: Optional[List[str]]) -> BaseEnvironment:
     """Get a representation of the environment specified by ``paths``.
 
     This returns an Environment instance from the chosen backend based on the
@@ -32,8 +38,7 @@ def get_environment(paths):
     return Environment.from_paths(paths)
 
 
-def get_wheel_distribution(wheel_path, canonical_name):
-    # type: (str, str) -> BaseDistribution
+def get_wheel_distribution(wheel: Wheel, canonical_name: str) -> BaseDistribution:
     """Get the representation of the specified wheel's distribution metadata.
 
     This returns a Distribution instance from the chosen backend based on
@@ -43,4 +48,4 @@ def get_wheel_distribution(wheel_path, canonical_name):
     """
     from .pkg_resources import Distribution
 
-    return Distribution.from_wheel(wheel_path, canonical_name)
+    return Distribution.from_wheel(wheel, canonical_name)

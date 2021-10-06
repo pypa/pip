@@ -10,11 +10,11 @@ recursive-include  src/pip/_vendor *LICENSE*
 recursive-include  src/pip/_vendor *COPYING*
 
 include docs/docutils.conf
+include docs/requirements.txt
 
 exclude .coveragerc
 exclude .mailmap
 exclude .appveyor.yml
-exclude .travis.yml
 exclude .readthedocs.yml
 exclude .pre-commit-config.yaml
 exclude tox.ini
@@ -22,14 +22,13 @@ exclude noxfile.py
 
 recursive-include src/pip/_vendor *.pem
 recursive-include src/pip/_vendor py.typed
-recursive-include docs *.css *.rst *.py
+recursive-include docs *.css *.py *.rst *.md
 
 exclude src/pip/_vendor/six
 exclude src/pip/_vendor/six/moves
 recursive-exclude src/pip/_vendor *.pyi
 
 prune .github
-prune .azure-pipelines
 prune docs/build
 prune news
 prune tasks

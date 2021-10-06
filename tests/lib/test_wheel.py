@@ -2,13 +2,13 @@
 """
 import csv
 from email import message_from_string
+from email.message import Message
 from functools import partial
 from zipfile import ZipFile
 
-from pip._vendor.six import ensure_text
-
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from tests.lib.path import Path
 from tests.lib.wheel import (
+    File,
     _default,
     make_metadata_file,
     make_wheel,
@@ -16,22 +16,18 @@ from tests.lib.wheel import (
     message_from_dict,
 )
 
-if MYPY_CHECK_RUNNING:
-    from email import Message
 
-
-def test_message_from_dict_one_value():
+def test_message_from_dict_one_value() -> None:
     message = message_from_dict({"a": "1"})
     assert set(message.get_all("a")) == {"1"}
 
 
-def test_message_from_dict_multiple_values():
+def test_message_from_dict_multiple_values() -> None:
     message = message_from_dict({"a": ["1", "2"]})
     assert set(message.get_all("a")) == {"1", "2"}
 
 
-def message_from_bytes(contents):
-    # type: (bytes) -> Message
+def message_from_bytes(contents: bytes) -> Message:
     return message_from_string(contents.decode("utf-8"))
 
 
@@ -45,7 +41,7 @@ default_make_metadata = partial(
 )
 
 
-def default_metadata_checks(f):
+def default_metadata_checks(f: File) -> Message:
     assert f.name == "simple-0.1.0.dist-info/METADATA"
     message = message_from_bytes(f.contents)
     assert message.get_all("Metadata-Version") == ["2.1"]
@@ -54,32 +50,37 @@ def default_metadata_checks(f):
     return message
 
 
-def test_make_metadata_file_defaults():
+def test_make_metadata_file_defaults() -> None:
     f = default_make_metadata()
+    assert f is not None
     default_metadata_checks(f)
 
 
-def test_make_metadata_file_custom_value():
+def test_make_metadata_file_custom_value() -> None:
     f = default_make_metadata(updates={"a": "1"})
+    assert f is not None
     message = default_metadata_checks(f)
     assert message.get_all("a") == ["1"]
 
 
-def test_make_metadata_file_custom_value_list():
+def test_make_metadata_file_custom_value_list() -> None:
     f = default_make_metadata(updates={"a": ["1", "2"]})
+    assert f is not None
     message = default_metadata_checks(f)
     assert set(message.get_all("a")) == {"1", "2"}
 
 
-def test_make_metadata_file_custom_value_overrides():
+def test_make_metadata_file_custom_value_overrides() -> None:
     f = default_make_metadata(updates={"Metadata-Version": "2.2"})
+    assert f is not None
     message = message_from_bytes(f.contents)
     assert message.get_all("Metadata-Version") == ["2.2"]
 
 
-def test_make_metadata_file_custom_contents():
+def test_make_metadata_file_custom_contents() -> None:
     value = b"hello"
     f = default_make_metadata(value=value)
+    assert f is not None
     assert f.contents == value
 
 
@@ -94,7 +95,7 @@ default_make_wheel_metadata = partial(
 )
 
 
-def default_wheel_metadata_checks(f):
+def default_wheel_metadata_checks(f: File) -> Message:
     assert f.name == "simple-0.1.0.dist-info/WHEEL"
     message = message_from_bytes(f.contents)
     assert message.get_all("Wheel-Version") == ["1.0"]
@@ -104,43 +105,47 @@ def default_wheel_metadata_checks(f):
     return message
 
 
-def test_make_wheel_metadata_file_defaults():
+def test_make_wheel_metadata_file_defaults() -> None:
     f = default_make_wheel_metadata()
+    assert f is not None
     default_wheel_metadata_checks(f)
 
 
-def test_make_wheel_metadata_file_custom_value():
+def test_make_wheel_metadata_file_custom_value() -> None:
     f = default_make_wheel_metadata(updates={"a": "1"})
+    assert f is not None
     message = default_wheel_metadata_checks(f)
     assert message.get_all("a") == ["1"]
 
 
-def test_make_wheel_metadata_file_custom_value_list():
+def test_make_wheel_metadata_file_custom_value_list() -> None:
     f = default_make_wheel_metadata(updates={"a": ["1", "2"]})
+    assert f is not None
     message = default_wheel_metadata_checks(f)
     assert set(message.get_all("a")) == {"1", "2"}
 
 
-def test_make_wheel_metadata_file_custom_value_override():
+def test_make_wheel_metadata_file_custom_value_override() -> None:
     f = default_make_wheel_metadata(updates={"Wheel-Version": "1.1"})
+    assert f is not None
     message = message_from_bytes(f.contents)
     assert message.get_all("Wheel-Version") == ["1.1"]
 
 
-def test_make_wheel_metadata_file_custom_contents():
+def test_make_wheel_metadata_file_custom_contents() -> None:
     value = b"hello"
     f = default_make_wheel_metadata(value=value)
-
+    assert f is not None
     assert f.name == "simple-0.1.0.dist-info/WHEEL"
     assert f.contents == value
 
 
-def test_make_wheel_metadata_file_no_contents():
+def test_make_wheel_metadata_file_no_contents() -> None:
     f = default_make_wheel_metadata(value=None)
     assert f is None
 
 
-def test_make_wheel_basics(tmpdir):
+def test_make_wheel_basics(tmpdir: Path) -> None:
     make_wheel(name="simple", version="0.1.0").save_to_dir(tmpdir)
 
     expected_wheel_path = tmpdir / "simple-0.1.0-py2.py3-none-any.whl"
@@ -155,7 +160,7 @@ def test_make_wheel_basics(tmpdir):
         }
 
 
-def test_make_wheel_default_record():
+def test_make_wheel_default_record() -> None:
     with make_wheel(
         name="simple",
         version="0.1.0",
@@ -164,21 +169,22 @@ def test_make_wheel_default_record():
         extra_data_files={"purelib/info.txt": "c"},
     ).as_zipfile() as z:
         record_bytes = z.read("simple-0.1.0.dist-info/RECORD")
-        record_text = ensure_text(record_bytes)
+        record_text = record_bytes.decode()
         record_rows = list(csv.reader(record_text.splitlines()))
-        records = {
-            row[0]: row[1:] for row in record_rows
-        }
+        records = {row[0]: row[1:] for row in record_rows}
 
         expected = {
             "simple/__init__.py": [
-                "sha256=ypeBEsobvcr6wjGzmiPcTaeG7_gUfE5yuYB3ha_uSLs", "1"
+                "sha256=ypeBEsobvcr6wjGzmiPcTaeG7_gUfE5yuYB3ha_uSLs",
+                "1",
             ],
             "simple-0.1.0.data/purelib/info.txt": [
-                "sha256=Ln0sA6lQeuJl7PW1NWiFpTOTogKdJBOUmXJloaJa78Y", "1"
+                "sha256=Ln0sA6lQeuJl7PW1NWiFpTOTogKdJBOUmXJloaJa78Y",
+                "1",
             ],
             "simple-0.1.0.dist-info/LICENSE": [
-                "sha256=PiPoFgA5WUoziU9lZOGxNIu9egCI1CxKy3PurtWcAJ0", "1"
+                "sha256=PiPoFgA5WUoziU9lZOGxNIu9egCI1CxKy3PurtWcAJ0",
+                "1",
             ],
             "simple-0.1.0.dist-info/RECORD": ["", ""],
         }
@@ -196,7 +202,7 @@ def test_make_wheel_default_record():
             assert records[name][1] == length, name
 
 
-def test_make_wheel_extra_files():
+def test_make_wheel_extra_files() -> None:
     with make_wheel(
         name="simple",
         version="0.1.0",
@@ -219,7 +225,7 @@ def test_make_wheel_extra_files():
         assert z.read("simple-0.1.0.data/info.txt") == b"c"
 
 
-def test_make_wheel_no_files():
+def test_make_wheel_no_files() -> None:
     with make_wheel(
         name="simple",
         version="0.1.0",
@@ -230,7 +236,7 @@ def test_make_wheel_no_files():
         assert not z.namelist()
 
 
-def test_make_wheel_custom_files():
+def test_make_wheel_custom_files() -> None:
     with make_wheel(
         name="simple",
         version="0.1.0",

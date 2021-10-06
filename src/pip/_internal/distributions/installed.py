@@ -1,12 +1,6 @@
 from pip._internal.distributions.base import AbstractDistribution
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Optional
-
-    from pip._vendor.pkg_resources import Distribution
-
-    from pip._internal.index.package_finder import PackageFinder
+from pip._internal.index.package_finder import PackageFinder
+from pip._internal.metadata import BaseDistribution
 
 
 class InstalledDistribution(AbstractDistribution):
@@ -16,10 +10,13 @@ class InstalledDistribution(AbstractDistribution):
     been computed.
     """
 
-    def get_pkg_resources_distribution(self):
-        # type: () -> Optional[Distribution]
-        return self.req.satisfied_by
+    def get_metadata_distribution(self) -> BaseDistribution:
+        from pip._internal.metadata.pkg_resources import Distribution as _Dist
 
-    def prepare_distribution_metadata(self, finder, build_isolation):
-        # type: (PackageFinder, bool) -> None
+        assert self.req.satisfied_by is not None, "not actually installed"
+        return _Dist(self.req.satisfied_by)
+
+    def prepare_distribution_metadata(
+        self, finder: PackageFinder, build_isolation: bool
+    ) -> None:
         pass

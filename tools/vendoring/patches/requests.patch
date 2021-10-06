@@ -1,0 +1,119 @@
+diff --git a/src/pip/_vendor/requests/packages.py b/src/pip/_vendor/requests/packages.py
+index 0f8ae0d38..9582fa730 100644
+--- a/src/pip/_vendor/requests/packages.py
++++ b/src/pip/_vendor/requests/packages.py
+@@ -1,26 +1,16 @@
+ import sys
+
+-try:
+-    import chardet
+-except ImportError:
+-    import charset_normalizer as chardet
+-    import warnings
+-
+-    warnings.filterwarnings('ignore', 'Trying to detect', module='charset_normalizer')
+-
+ # This code exists for backwards compatibility reasons.
+ # I don't like it either. Just look the other way. :)
+
+-for package in ('urllib3', 'idna'):
+-    locals()[package] = __import__(package)
++for package in ('urllib3', 'idna', 'chardet'):
++    vendored_package = "pip._vendor." + package
++    locals()[package] = __import__(vendored_package)
+     # This traversal is apparently necessary such that the identities are
+     # preserved (requests.packages.urllib3.* is urllib3.*)
+     for mod in list(sys.modules):
+-        if mod == package or mod.startswith(package + '.'):
+-            sys.modules['requests.packages.' + mod] = sys.modules[mod]
++        if mod == vendored_package or mod.startswith(vendored_package + '.'):
++            unprefixed_mod = mod[len("pip._vendor."):]
++            sys.modules['pip._vendor.requests.packages.' + unprefixed_mod] = sys.modules[mod]
+
+-target = chardet.__name__
+-for mod in list(sys.modules):
+-    if mod == target or mod.startswith(target + '.'):
+-        sys.modules['requests.packages.' + target.replace(target, 'chardet')] = sys.modules[mod]
+ # Kinda cool, though, right?
+
+diff --git a/src/pip/_vendor/requests/__init__.py b/src/pip/_vendor/requests/__init__.py
+index 973497f5e..4f80e28fc 100644
+--- a/src/pip/_vendor/requests/__init__.py
++++ b/src/pip/_vendor/requests/__init__.py
+@@ -44,10 +44,7 @@ import urllib3
+ import warnings
+ from .exceptions import RequestsDependencyWarning
+
+-try:
+-    from charset_normalizer import __version__ as charset_normalizer_version
+-except ImportError:
+-    charset_normalizer_version = None
++charset_normalizer_version = None
+
+ try:
+     from chardet import __version__ as chardet_version
+@@ -107,6 +104,11 @@ except (AssertionError, ValueError):
+ # if the standard library doesn't support SNI or the
+ # 'ssl' library isn't available.
+ try:
++    # Note: This logic prevents upgrading cryptography on Windows, if imported
++    #       as part of pip.
++    from pip._internal.utils.compat import WINDOWS
++    if not WINDOWS:
++        raise ImportError("pip internals: don't import cryptography on Windows")
+     try:
+         import ssl
+     except ImportError:
+
+diff --git a/src/pip/_vendor/requests/compat.py b/src/pip/_vendor/requests/compat.py
+index 409b7b028..9e2937167 100644
+--- a/src/pip/_vendor/requests/compat.py
++++ b/src/pip/_vendor/requests/compat.py
+@@ -8,10 +8,7 @@ This module handles import compatibility issues between Python 2 and
+ Python 3.
+ """
+
+-try:
+-    import chardet
+-except ImportError:
+-    import charset_normalizer as chardet
++import chardet
+
+ import sys
+
+@@ -28,10 +25,14 @@ is_py2 = (_ver[0] == 2)
+ #: Python 3.x?
+ is_py3 = (_ver[0] == 3)
+
+-try:
+-    import simplejson as json
+-except ImportError:
+-    import json
++# Note: We've patched out simplejson support in pip because it prevents
++#       upgrading simplejson on Windows.
++# try:
++#     import simplejson as json
++# except (ImportError, SyntaxError):
++#     # simplejson does not support Python 3.2, it throws a SyntaxError
++#     # because of u'...' Unicode literals.
++import json
+
+ # ---------
+ # Specifics
+
+diff --git a/src/pip/_vendor/requests/help.py b/src/pip/_vendor/requests/help.py
+index 3a843404c..745f0d7b3 100644
+--- a/src/pip/_vendor/requests/help.py
++++ b/src/pip/_vendor/requests/help.py
+@@ -11,10 +11,7 @@ import urllib3
+
+ from . import __version__ as requests_version
+
+-try:
+-    import charset_normalizer
+-except ImportError:
+-    charset_normalizer = None
++charset_normalizer = None
+
+ try:
+     import chardet

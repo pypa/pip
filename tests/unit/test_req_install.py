@@ -10,22 +10,24 @@ from pip._internal.req.constructors import (
     install_req_from_req_string,
 )
 from pip._internal.req.req_install import InstallRequirement
+from tests.lib.path import Path
 
 
 class TestInstallRequirementBuildDirectory:
     # no need to test symlinks on Windows
     @pytest.mark.skipif("sys.platform == 'win32'")
-    def test_tmp_build_directory(self):
+    def test_tmp_build_directory(self) -> None:
         # when req is None, we can produce a temporary directory
         # Make sure we're handling it correctly with real path.
         requirement = InstallRequirement(None, None)
-        tmp_dir = tempfile.mkdtemp('-build', 'pip-')
+        tmp_dir = tempfile.mkdtemp("-build", "pip-")
         tmp_build_dir = requirement.ensure_build_location(
-            tmp_dir, autodelete=False, parallel_builds=False,
+            tmp_dir,
+            autodelete=False,
+            parallel_builds=False,
         )
-        assert (
-            os.path.dirname(tmp_build_dir) ==
-            os.path.realpath(os.path.dirname(tmp_dir))
+        assert os.path.dirname(tmp_build_dir) == os.path.realpath(
+            os.path.dirname(tmp_dir)
         )
         # are we on a system where /tmp is a symlink
         if os.path.realpath(tmp_dir) != os.path.abspath(tmp_dir):
@@ -35,14 +37,14 @@ class TestInstallRequirementBuildDirectory:
         os.rmdir(tmp_dir)
         assert not os.path.exists(tmp_dir)
 
-    def test_forward_slash_results_in_a_link(self, tmpdir):
+    def test_forward_slash_results_in_a_link(self, tmpdir: Path) -> None:
         install_dir = tmpdir / "foo" / "bar"
 
         # Just create a file for letting the logic work
         setup_py_path = install_dir / "setup.py"
         os.makedirs(str(install_dir))
-        with open(setup_py_path, 'w') as f:
-            f.write('')
+        with open(setup_py_path, "w") as f:
+            f.write("")
 
         requirement = install_req_from_line(
             str(install_dir).replace(os.sep, os.altsep or os.sep)
@@ -52,8 +54,7 @@ class TestInstallRequirementBuildDirectory:
 
 
 class TestInstallRequirementFrom:
-
-    def test_install_req_from_string_invalid_requirement(self):
+    def test_install_req_from_string_invalid_requirement(self) -> None:
         """
         Requirement strings that cannot be parsed by
         packaging.requirements.Requirement raise an InstallationError.
@@ -61,50 +62,53 @@ class TestInstallRequirementFrom:
         with pytest.raises(InstallationError) as excinfo:
             install_req_from_req_string("http:/this/is/invalid")
 
-        assert str(excinfo.value) == (
-            "Invalid requirement: 'http:/this/is/invalid'"
-        )
+        assert str(excinfo.value) == ("Invalid requirement: 'http:/this/is/invalid'")
 
-    def test_install_req_from_string_without_comes_from(self):
+    def test_install_req_from_string_without_comes_from(self) -> None:
         """
         Test to make sure that install_req_from_string succeeds
         when called with URL (PEP 508) but without comes_from.
         """
         # Test with a PEP 508 url install string:
-        wheel_url = ("https://download.pytorch.org/whl/cu90/"
-                     "torch-1.0.0-cp36-cp36m-win_amd64.whl")
+        wheel_url = (
+            "https://download.pytorch.org/whl/cu90/"
+            "torch-1.0.0-cp36-cp36m-win_amd64.whl"
+        )
         install_str = "torch@ " + wheel_url
         install_req = install_req_from_req_string(install_str)
 
         assert isinstance(install_req, InstallRequirement)
+        assert install_req.link is not None
         assert install_req.link.url == wheel_url
+        assert install_req.req is not None
         assert install_req.req.url == wheel_url
         assert install_req.comes_from is None
         assert install_req.is_wheel
 
-    def test_install_req_from_string_with_comes_from_without_link(self):
+    def test_install_req_from_string_with_comes_from_without_link(self) -> None:
         """
         Test to make sure that install_req_from_string succeeds
         when called with URL (PEP 508) and comes_from
         does not have a link.
         """
         # Test with a PEP 508 url install string:
-        wheel_url = ("https://download.pytorch.org/whl/cu90/"
-                     "torch-1.0.0-cp36-cp36m-win_amd64.whl")
+        wheel_url = (
+            "https://download.pytorch.org/whl/cu90/"
+            "torch-1.0.0-cp36-cp36m-win_amd64.whl"
+        )
         install_str = "torch@ " + wheel_url
 
         # Dummy numpy "comes_from" requirement without link:
-        comes_from = InstallRequirement(
-            Requirement("numpy>=1.15.0"), comes_from=None
-        )
+        comes_from = InstallRequirement(Requirement("numpy>=1.15.0"), comes_from=None)
 
         # Attempt install from install string comes:
-        install_req = install_req_from_req_string(
-            install_str, comes_from=comes_from
-        )
+        install_req = install_req_from_req_string(install_str, comes_from=comes_from)
 
         assert isinstance(install_req, InstallRequirement)
+        assert isinstance(install_req.comes_from, InstallRequirement)
         assert install_req.comes_from.link is None
+        assert install_req.link is not None
         assert install_req.link.url == wheel_url
+        assert install_req.req is not None
         assert install_req.req.url == wheel_url
         assert install_req.is_wheel

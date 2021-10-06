@@ -1,16 +1,13 @@
 import hashlib
 import logging
 import sys
+from optparse import Values
+from typing import List
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.utils.hashes import FAVORITE_HASH, STRONG_HASHES
 from pip._internal.utils.misc import read_chunks, write_output
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from optparse import Values
-    from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -23,38 +20,39 @@ class HashCommand(Command):
     installs.
     """
 
-    usage = '%prog [options] <file> ...'
+    usage = "%prog [options] <file> ..."
     ignore_require_venv = True
 
-    def add_options(self):
-        # type: () -> None
+    def add_options(self) -> None:
         self.cmd_opts.add_option(
-            '-a', '--algorithm',
-            dest='algorithm',
+            "-a",
+            "--algorithm",
+            dest="algorithm",
             choices=STRONG_HASHES,
-            action='store',
+            action="store",
             default=FAVORITE_HASH,
-            help='The hash algorithm to use: one of {}'.format(
-                 ', '.join(STRONG_HASHES)))
+            help="The hash algorithm to use: one of {}".format(
+                ", ".join(STRONG_HASHES)
+            ),
+        )
         self.parser.insert_option_group(0, self.cmd_opts)
 
-    def run(self, options, args):
-        # type: (Values, List[str]) -> int
+    def run(self, options: Values, args: List[str]) -> int:
         if not args:
             self.parser.print_usage(sys.stderr)
             return ERROR
 
         algorithm = options.algorithm
         for path in args:
-            write_output('%s:\n--hash=%s:%s',
-                         path, algorithm, _hash_of_file(path, algorithm))
+            write_output(
+                "%s:\n--hash=%s:%s", path, algorithm, _hash_of_file(path, algorithm)
+            )
         return SUCCESS
 
 
-def _hash_of_file(path, algorithm):
-    # type: (str, str) -> str
+def _hash_of_file(path: str, algorithm: str) -> str:
     """Return the hash digest of a file."""
-    with open(path, 'rb') as archive:
+    with open(path, "rb") as archive:
         hash = hashlib.new(algorithm)
         for chunk in read_chunks(archive):
             hash.update(chunk)

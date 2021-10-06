@@ -1,29 +1,12 @@
-import json
-import logging
+from typing import Optional
 
-from pip._internal.models.direct_url import (
-    DIRECT_URL_METADATA_NAME,
-    ArchiveInfo,
-    DirectUrl,
-    DirectUrlValidationError,
-    DirInfo,
-    VcsInfo,
-)
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.models.direct_url import ArchiveInfo, DirectUrl, DirInfo, VcsInfo
+from pip._internal.models.link import Link
+from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs import vcs
 
-if MYPY_CHECK_RUNNING:
-    from typing import Optional
 
-    from pip._vendor.pkg_resources import Distribution
-
-    from pip._internal.models.link import Link
-
-logger = logging.getLogger(__name__)
-
-
-def direct_url_as_pep440_direct_reference(direct_url, name):
-    # type: (DirectUrl, str) -> str
+def direct_url_as_pep440_direct_reference(direct_url: DirectUrl, name: str) -> str:
     """Convert a DirectUrl to a pip requirement string."""
     direct_url.validate()  # if invalid, this is a pip bug
     requirement = name + " @ "
@@ -46,13 +29,21 @@ def direct_url_as_pep440_direct_reference(direct_url, name):
     return requirement
 
 
-def direct_url_from_link(link, source_dir=None, link_is_in_wheel_cache=False):
-    # type: (Link, Optional[str], bool) -> DirectUrl
+def direct_url_for_editable(source_dir: str) -> DirectUrl:
+    return DirectUrl(
+        url=path_to_url(source_dir),
+        info=DirInfo(editable=True),
+    )
+
+
+def direct_url_from_link(
+    link: Link, source_dir: Optional[str] = None, link_is_in_wheel_cache: bool = False
+) -> DirectUrl:
     if link.is_vcs:
         vcs_backend = vcs.get_backend_for_scheme(link.scheme)
         assert vcs_backend
-        url, requested_revision, _ = (
-            vcs_backend.get_url_rev_and_auth(link.url_without_fragment)
+        url, requested_revision, _ = vcs_backend.get_url_rev_and_auth(
+            link.url_without_fragment
         )
         # For VCS links, we need to find out and add commit_id.
         if link_is_in_wheel_cache:
@@ -94,28 +85,3 @@ def direct_url_from_link(link, source_dir=None, link_is_in_wheel_cache=False):
             info=ArchiveInfo(hash=hash),
             subdirectory=link.subdirectory_fragment,
         )
-
-
-def dist_get_direct_url(dist):
-    # type: (Distribution) -> Optional[DirectUrl]
-    """Obtain a DirectUrl from a pkg_resource.Distribution.
-
-    Returns None if the distribution has no `direct_url.json` metadata,
-    or if `direct_url.json` is invalid.
-    """
-    if not dist.has_metadata(DIRECT_URL_METADATA_NAME):
-        return None
-    try:
-        return DirectUrl.from_json(dist.get_metadata(DIRECT_URL_METADATA_NAME))
-    except (
-        DirectUrlValidationError,
-        json.JSONDecodeError,
-        UnicodeDecodeError
-    ) as e:
-        logger.warning(
-            "Error parsing %s for %s: %s",
-            DIRECT_URL_METADATA_NAME,
-            dist.project_name,
-            e,
-        )
-        return None

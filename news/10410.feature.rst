@@ -1,0 +1,3 @@
+``pip freeze`` will now always fallback to reporting the editable project
+location when it encounters a VCS error while analyzing an editable
+requirement. Before, it sometimes reported the requirement as non-editable.
