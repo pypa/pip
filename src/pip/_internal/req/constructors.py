@@ -8,7 +8,6 @@ These are meant to be used elsewhere within pip to create instances of
 InstallRequirement.
 """
 
-import functools
 import logging
 import os
 import re
@@ -27,6 +26,7 @@ from pip._internal.req.req_file import ParsedRequirement
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import is_installable_dir
+from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs import is_url, vcs
 
@@ -38,11 +38,6 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 operators = Specifier._operators.keys()
-
-
-@functools.lru_cache(maxsize=None)
-def get_or_create_requirement(req_string: str) -> Requirement:
-    return Requirement(req_string)
 
 
 def _strip_extras(path: str) -> Tuple[str, Optional[str]]:
@@ -60,7 +55,7 @@ def _strip_extras(path: str) -> Tuple[str, Optional[str]]:
 def convert_extras(extras: Optional[str]) -> Set[str]:
     if not extras:
         return set()
-    return get_or_create_requirement("placeholder" + extras.lower()).extras
+    return get_requirement("placeholder" + extras.lower()).extras
 
 
 def parse_editable(editable_req: str) -> Tuple[Optional[str], str, Set[str]]:
@@ -89,7 +84,7 @@ def parse_editable(editable_req: str) -> Tuple[Optional[str], str, Set[str]]:
             return (
                 package_name,
                 url_no_extras,
-                get_or_create_requirement("placeholder" + extras.lower()).extras,
+                get_requirement("placeholder" + extras.lower()).extras,
             )
         else:
             return package_name, url_no_extras, set()
@@ -315,7 +310,7 @@ def parse_req_from_line(name: str, line_source: Optional[str]) -> RequirementPar
 
     def _parse_req_string(req_as_string: str) -> Requirement:
         try:
-            req = get_or_create_requirement(req_as_string)
+            req = get_requirement(req_as_string)
         except InvalidRequirement:
             if os.path.sep in req_as_string:
                 add_msg = "It looks like a path."
@@ -392,7 +387,7 @@ def install_req_from_req_string(
     user_supplied: bool = False,
 ) -> InstallRequirement:
     try:
-        req = get_or_create_requirement(req_string)
+        req = get_requirement(req_string)
     except InvalidRequirement:
         raise InstallationError(f"Invalid requirement: '{req_string}'")
 

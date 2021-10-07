@@ -1,3 +1,4 @@
+import functools
 import logging
 from email.message import Message
 from email.parser import FeedParser
@@ -5,6 +6,7 @@ from typing import Optional, Tuple
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging import specifiers, version
+from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.pkg_resources import Distribution
 
 from pip._internal.exceptions import NoneMetadataError
@@ -69,3 +71,14 @@ def get_installer(dist: Distribution) -> str:
             if line.strip():
                 return line.strip()
     return ""
+
+
+@functools.lru_cache(maxsize=None)
+def get_requirement(req_string: str) -> Requirement:
+    """Construct a packaging.Requirement object with caching"""
+    # Parsing requirement strings is expensive, and is also expected to happen
+    # with a low diversity of different arguments (at least relative the number
+    # constructed). This method adds a cache to requirement object creation to
+    # minimize repeated parsing of the same string to construct equivalent
+    # Requirement objects.
+    return Requirement(req_string)

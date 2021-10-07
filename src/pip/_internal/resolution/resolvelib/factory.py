@@ -37,10 +37,7 @@ from pip._internal.metadata import BaseDistribution, get_default_environment
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.operations.prepare import RequirementPreparer
-from pip._internal.req.constructors import (
-    get_or_create_requirement,
-    install_req_from_link_and_ireq,
-)
+from pip._internal.req.constructors import install_req_from_link_and_ireq
 from pip._internal.req.req_install import (
     InstallRequirement,
     check_invalid_constraint_type,
@@ -48,6 +45,7 @@ from pip._internal.req.req_install import (
 from pip._internal.resolution.base import InstallRequirementProvider
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
+from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 from .base import Candidate, CandidateVersion, Constraint, Requirement
@@ -367,7 +365,7 @@ class Factory:
         # If the current identifier contains extras, add explicit candidates
         # from entries from extra-less identifier.
         with contextlib.suppress(InvalidRequirement):
-            parsed_requirement = get_or_create_requirement(identifier)
+            parsed_requirement = get_requirement(identifier)
             explicit_candidates.update(
                 self._iter_explicit_candidates_from_base(
                     requirements.get(parsed_requirement.name, ()),
