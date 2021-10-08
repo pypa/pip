@@ -1,5 +1,5 @@
 pip - The Python Package Installer
-==================================
+=================================
 
 .. image:: https://img.shields.io/pypi/v/pip.svg
    :target: https://pypi.org/project/pip/
