@@ -73,7 +73,7 @@ def get_installer(dist: Distribution) -> str:
     return ""
 
 
-@functools.lru_cache(maxsize=None)
+@functools.lru_cache(maxsize=512)
 def get_requirement(req_string: str) -> Requirement:
     """Construct a packaging.Requirement object with caching"""
     # Parsing requirement strings is expensive, and is also expected to happen
