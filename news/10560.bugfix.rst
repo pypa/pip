@@ -1,0 +1,1 @@
+Fix conditional checks to prevent ``pip.exe`` from trying to modify itself, on Windows.
