@@ -35,9 +35,10 @@ def test_get_or_create_caching() -> None:
     teststr = "affinegap==1.10"
     from_helper = get_requirement(teststr)
     freshly_made = Requirement(teststr)
+
     # Requirement doesn't have an equality operator (yet) so test
     # equality of attribute for list of attributes
     for iattr in ["name", "url", "extras", "specifier", "marker"]:
         assert getattr(from_helper, iattr) == getattr(freshly_made, iattr)
-    assert not (get_requirement(teststr) is Requirement(teststr))
+    assert get_requirement(teststr) is not Requirement(teststr)
     assert get_requirement(teststr) is get_requirement(teststr)

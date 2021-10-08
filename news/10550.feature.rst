@@ -1,1 +1,1 @@
-Improve performance of dependency resolution.
+Cache requirement objects, to improve performance reducing reparses of requirement strings.
