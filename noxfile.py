@@ -174,7 +174,7 @@ def vendoring(session: nox.Session) -> None:
     session.install("vendoring~=1.0.0")
 
     if "--upgrade" not in session.posargs:
-        session.run("vendoring", "sync", ".", "-v")
+        session.run("vendoring", "sync", "-v")
         return
 
     def pinned_requirements(path: Path) -> Iterator[Tuple[str, str]]:
