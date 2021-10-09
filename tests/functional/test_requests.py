@@ -5,7 +5,7 @@ import pytest
 def test_timeout(script):
     result = script.pip(
         "--timeout",
-        "0.001",
+        "0.0001",
         "install",
         "-vvv",
         "INITools",
