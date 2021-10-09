@@ -19,8 +19,6 @@ from pip._internal.resolution.resolvelib.reporter import (
     PipDebuggingReporter,
     PipReporter,
 )
-from pip._internal.utils.deprecation import deprecated
-from pip._internal.utils.filetypes import is_archive_file
 
 from .base import Candidate, Requirement
 from .factory import Factory
@@ -135,25 +133,6 @@ class Resolver(BaseResolver):
                         ireq.name,
                     )
                     continue
-
-                looks_like_sdist = (
-                    is_archive_file(candidate.source_link.file_path)
-                    and candidate.source_link.ext != ".zip"
-                )
-                if looks_like_sdist:
-                    # is a local sdist -- show a deprecation warning!
-                    reason = (
-                        "Source distribution is being reinstalled despite an "
-                        "installed package having the same name and version as "
-                        "the installed package."
-                    )
-                    replacement = "use --force-reinstall"
-                    deprecated(
-                        reason=reason,
-                        replacement=replacement,
-                        gone_in="21.3",
-                        issue=8711,
-                    )
 
                 # is a local sdist or path -- reinstall
                 ireq.should_reinstall = True

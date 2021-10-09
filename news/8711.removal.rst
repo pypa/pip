@@ -1,0 +1,1 @@
+Un-deprecate source distribution re-installation behaviour.

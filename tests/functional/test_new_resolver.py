@@ -1228,7 +1228,6 @@ def test_new_resolver_does_reinstall_local_sdists(script):
         expect_stderr=True,
     )
     assert "Installing collected packages: pkg" in result.stdout, str(result)
-    assert "DEPRECATION" in result.stderr, str(result)
     script.assert_installed(pkg="1.0")
 
 
