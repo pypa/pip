@@ -1,0 +1,1 @@
+Cache requirement objects, to improve performance reducing reparses of requirement strings.
