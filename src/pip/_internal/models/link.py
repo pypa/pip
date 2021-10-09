@@ -259,7 +259,7 @@ class _CleanResult(NamedTuple):
 
 def _clean_link(link: Link) -> _CleanResult:
     parsed = link._parsed_url
-    netloc = parsed.netloc.rsplit("@", 1)[-1]
+    netloc, _ = split_auth_from_netloc(parsed.netloc)
     # According to RFC 8089, an empty host in file: means localhost.
     if parsed.scheme == "file" and not netloc:
         netloc = "localhost"
