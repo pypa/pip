@@ -10,18 +10,18 @@ from pip._vendor.resolvelib.structs import DirectedGraph
 
 from pip._internal.cache import WheelCache
 from pip._internal.index.package_finder import PackageFinder
+from pip._internal.models.direct_url import VcsInfo
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver, InstallRequirementProvider
-from pip._internal.resolution.resolvelib.provider import PipProvider
-from pip._internal.resolution.resolvelib.reporter import (
-    PipDebuggingReporter,
-    PipReporter,
-)
+from pip._internal.utils.direct_url_helpers import link_matches_direct_url
+from pip._internal.vcs.versioncontrol import vcs
 
 from .base import Candidate, Requirement
 from .factory import Factory
+from .provider import PipProvider
+from .reporter import PipDebuggingReporter, PipReporter
 
 if TYPE_CHECKING:
     from pip._vendor.resolvelib.resolvers import Result as RLResult
@@ -69,6 +69,94 @@ class Resolver(BaseResolver):
         self.upgrade_strategy = upgrade_strategy
         self._result: Optional[Result] = None
 
+    def _get_ireq(
+        self,
+        candidate: Candidate,
+        direct_url_requested: bool,
+    ) -> Optional[InstallRequirement]:
+        ireq = candidate.get_install_requirement()
+
+        # No ireq to install (e.g. extra-ed candidate). Skip.
+        if ireq is None:
+            return None
+
+        # The currently installed distribution of the same identifier.
+        installed_dist = self.factory.get_dist_to_uninstall(candidate)
+
+        if installed_dist is None:  # Not installed. Install incoming candidate.
+            return ireq
+
+        # If we return this ireq, it should trigger uninstallation of the
+        # existing distribution for reinstallation.
+        ireq.should_reinstall = True
+
+        # Reinstall if --force-reinstall is set.
+        if self.factory.force_reinstall:
+            return ireq
+
+        # The artifact represented by the incoming candidate.
+        cand_link = candidate.source_link
+
+        # The candidate does not point to an artifact. This means the resolver
+        # has already decided the installed distribution is good enough.
+        if cand_link is None:
+            return None
+
+        # The incoming candidate was produced only from version requirements.
+        # Reinstall if the installed distribution's version does not match.
+        if not direct_url_requested:
+            if installed_dist.version == candidate.version:
+                return None
+            return ireq
+
+        # At this point, the incoming candidate was produced from a direct URL.
+        # Determine whether to upgrade based on flags and whether the installed
+        # distribution was done via a direct URL.
+
+        # Always reinstall an incoming wheel candidate on the local filesystem.
+        # This is quite fast anyway, and we can avoid drama when users want
+        # their in-development direct URL requirement automatically reinstalled.
+        if cand_link.is_file and cand_link.is_wheel:
+            return ireq
+
+        # Reinstall if --upgrade is specified.
+        if self.upgrade_strategy != "to-satisfy-only":
+            return ireq
+
+        # The PEP 610 direct URL representation of the installed distribution.
+        dist_direct_url = installed_dist.direct_url
+
+        # The incoming candidate was produced from a direct URL, but the
+        # currently installed distribution was not. Always reinstall to be sure.
+        if dist_direct_url is None:
+            return ireq
+
+        # Editable candidate always triggers reinstallation.
+        if candidate.is_editable:
+            return ireq
+
+        # The currently installed distribution is editable, but the incoming
+        # candidate is not. Uninstall the editable one to match.
+        if installed_dist.editable:
+            return ireq
+
+        # Reinstall if the direct URLs don't match.
+        if not link_matches_direct_url(cand_link, dist_direct_url):
+            return ireq
+
+        # If VCS, only reinstall if the resolved revisions don't match.
+        cand_vcs = vcs.get_backend_for_scheme(cand_link.scheme)
+        dist_direct_info = dist_direct_url.info
+        if cand_vcs and ireq.source_dir and isinstance(dist_direct_info, VcsInfo):
+            candidate_rev = cand_vcs.get_revision(ireq.source_dir)
+            if candidate_rev != dist_direct_info.commit_id:
+                return ireq
+
+        # Now we know both the installed distribution and incoming candidate
+        # are based on direct URLs, neither are editable nor VCS, and point to
+        # equivalent targets. They are probably the same, don't reinstall.
+        return None
+
     def resolve(
         self, root_reqs: List[InstallRequirement], check_supported_wheels: bool
     ) -> RequirementSet:
@@ -103,59 +191,29 @@ class Resolver(BaseResolver):
             raise error from e
 
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)
-        for candidate in result.mapping.values():
-            ireq = candidate.get_install_requirement()
+        for identifier, candidate in result.mapping.items():
+            # Whether the candidate was resolved from direct URL requirements.
+            direct_url_requested = any(
+                requirement.get_candidate_lookup()[0] is not None
+                for requirement in result.criteria[identifier].iter_requirement()
+            )
+
+            ireq = self._get_ireq(candidate, direct_url_requested)
             if ireq is None:
-                continue
-
-            # Check if there is already an installation under the same name,
-            # and set a flag for later stages to uninstall it, if needed.
-            installed_dist = self.factory.get_dist_to_uninstall(candidate)
-            if installed_dist is None:
-                # There is no existing installation -- nothing to uninstall.
-                ireq.should_reinstall = False
-            elif self.factory.force_reinstall:
-                # The --force-reinstall flag is set -- reinstall.
-                ireq.should_reinstall = True
-            elif installed_dist.version != candidate.version:
-                # The installation is different in version -- reinstall.
-                ireq.should_reinstall = True
-            elif candidate.is_editable or installed_dist.editable:
-                # The incoming distribution is editable, or different in
-                # editable-ness to installation -- reinstall.
-                ireq.should_reinstall = True
-            elif candidate.source_link and candidate.source_link.is_file:
-                # The incoming distribution is under file://
-                if candidate.source_link.is_wheel:
-                    # is a local wheel -- do nothing.
-                    logger.info(
-                        "%s is already installed with the same version as the "
-                        "provided wheel. Use --force-reinstall to force an "
-                        "installation of the wheel.",
-                        ireq.name,
-                    )
-                    continue
-
-                # is a local sdist or path -- reinstall
-                ireq.should_reinstall = True
-            else:
                 continue
 
             link = candidate.source_link
             if link and link.is_yanked:
-                # The reason can contain non-ASCII characters, Unicode
-                # is required for Python 2.
-                msg = (
+                reason = link.yanked_reason or "<none given>"
+                logger.warning(
                     "The candidate selected for download or install is a "
-                    "yanked version: {name!r} candidate (version {version} "
-                    "at {link})\nReason for being yanked: {reason}"
-                ).format(
-                    name=candidate.name,
-                    version=candidate.version,
-                    link=link,
-                    reason=link.yanked_reason or "<none given>",
+                    "yanked version: %r candidate (version %s at %s)\n"
+                    "Reason for being yanked: %s",
+                    candidate.name,
+                    candidate.version,
+                    link,
+                    reason,
                 )
-                logger.warning(msg)
 
             req_set.add_named_requirement(ireq)
 
