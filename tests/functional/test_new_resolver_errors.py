@@ -41,8 +41,8 @@ def test_new_resolver_conflict_requirements_file(tmpdir, script):
 def test_new_resolver_conflict_constraints_file(tmpdir, script):
     create_basic_wheel_for_package(script, "pkg", "1.0")
 
-    constrats_file = tmpdir.joinpath("constraints.txt")
-    constrats_file.write_text("pkg!=1.0")
+    constraints_file = tmpdir.joinpath("constraints.txt")
+    constraints_file.write_text("pkg!=1.0")
 
     result = script.pip(
         "install",
@@ -51,7 +51,7 @@ def test_new_resolver_conflict_constraints_file(tmpdir, script):
         "--find-links",
         script.scratch_path,
         "-c",
-        constrats_file,
+        constraints_file,
         "pkg==1.0",
         expect_error=True,
     )

@@ -260,7 +260,7 @@ class Factory:
                 extras=extras,
                 template=template,
             )
-            # The candidate is a known incompatiblity. Don't use it.
+            # The candidate is a known incompatibility. Don't use it.
             if id(candidate) in incompatible_ids:
                 return None
             return candidate
@@ -374,7 +374,7 @@ class Factory:
             )
 
         # Add explicit candidates from constraints. We only do this if there are
-        # kown ireqs, which represent requirements not already explicit. If
+        # known ireqs, which represent requirements not already explicit. If
         # there are no ireqs, we're constraining already-explicit requirements,
         # which is handled later when we return the explicit candidates.
         if ireqs:
@@ -615,7 +615,7 @@ class Factory:
         ]
         if requires_python_causes:
             # The comprehension above makes sure all Requirement instances are
-            # RequiresPythonRequirement, so let's cast for convinience.
+            # RequiresPythonRequirement, so let's cast for convenience.
             return self._report_requires_python_error(
                 cast("Sequence[ConflictCause]", requires_python_causes),
             )
