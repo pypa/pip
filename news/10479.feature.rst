@@ -1,1 +1,0 @@
-When backtracking during dependency resolution, prefer the dependencies which are involved in the most recent conflict. This can significantly reduce the amount of backtracking required.

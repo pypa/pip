@@ -1,3 +1,0 @@
-Fix the auth credential cache to allow for the case in which
-the index url contains the username, but the password comes
-from an external source, such as keyring.

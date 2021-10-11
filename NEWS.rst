@@ -7,8 +7,78 @@
     To add a new change log entry, please see
         https://pip.pypa.io/en/latest/development/contributing/#news-entries
 
-
 .. towncrier release notes start
+
+21.3 (2021-10-11)
+=================
+
+Deprecations and Removals
+-------------------------
+
+- Improve deprecation warning regarding the copying of source trees when installing from a local directory. (`#10128 <https://github.com/pypa/pip/issues/10128>`_)
+- Suppress location mismatch warnings when pip is invoked from a Python source
+  tree, so ``ensurepip`` does not emit warnings on CPython ``make install``. (`#10270 <https://github.com/pypa/pip/issues/10270>`_)
+- On Python 3.10 or later, the installation scheme backend has been changed to use
+  ``sysconfig``. This is to anticipate the deprecation of ``distutils`` in Python
+  3.10, and its scheduled removal in 3.12. For compatibility considerations, pip
+  installations running on Python 3.9 or lower will continue to use ``distutils``. (`#10358 <https://github.com/pypa/pip/issues/10358>`_)
+- Remove the ``--build-dir`` option and aliases, one last time. (`#10485 <https://github.com/pypa/pip/issues/10485>`_)
+- In-tree builds are now the default. ``--use-feature=in-tree-build`` is now
+  ignored. ``--use-deprecated=out-of-tree-build`` may be used temporarily to ease
+  the transition. (`#10495 <https://github.com/pypa/pip/issues/10495>`_)
+- Un-deprecate source distribution re-installation behaviour. (`#8711 <https://github.com/pypa/pip/issues/8711>`_)
+
+Features
+--------
+
+- Replace vendored appdirs with platformdirs. (`#10202 <https://github.com/pypa/pip/issues/10202>`_)
+- Support `PEP 610 <https://www.python.org/dev/peps/pep-0610/>`_ to detect
+  editable installs in ``pip freeze`` and  ``pip list``. The ``pip list`` column output
+  has a new ``Editable project location`` column, and the JSON output has a new
+  ``editable_project_location`` field. (`#10249 <https://github.com/pypa/pip/issues/10249>`_)
+- ``pip freeze`` will now always fallback to reporting the editable project
+  location when it encounters a VCS error while analyzing an editable
+  requirement. Before, it sometimes reported the requirement as non-editable. (`#10410 <https://github.com/pypa/pip/issues/10410>`_)
+- ``pip show`` now sorts ``Requires`` and ``Required-By`` alphabetically. (`#10422 <https://github.com/pypa/pip/issues/10422>`_)
+- Do not raise error when there are no files to remove with ``pip cache purge/remove``.
+  Instead log a warning and continue (to log that we removed 0 files). (`#10459 <https://github.com/pypa/pip/issues/10459>`_)
+- When backtracking during dependency resolution, prefer the dependencies which are involved in the most recent conflict. This can significantly reduce the amount of backtracking required. (`#10479 <https://github.com/pypa/pip/issues/10479>`_)
+- Cache requirement objects, to improve performance reducing reparses of requirement strings. (`#10550 <https://github.com/pypa/pip/issues/10550>`_)
+- Support editable installs for projects that have a ``pyproject.toml`` and use a
+  build backend that supports :pep:`660`. (`#8212 <https://github.com/pypa/pip/issues/8212>`_)
+- When a revision is specified in a Git URL, use git's partial clone feature to speed up source retrieval. (`#9086 <https://github.com/pypa/pip/issues/9086>`_)
+- Add a ``--debug`` flag, to enable a mode that doesn't log errors and propagates them to the top level instead. This is primarily to aid with debugging pip's crashes. (`#9349 <https://github.com/pypa/pip/issues/9349>`_)
+- If a host is explicitly specified as trusted by the user (via the --trusted-host option), cache HTTP responses from it in addition to HTTPS ones. (`#9498 <https://github.com/pypa/pip/issues/9498>`_)
+
+Bug Fixes
+---------
+
+- Present a better error message, when a ``file:`` URL is not found. (`#10263 <https://github.com/pypa/pip/issues/10263>`_)
+- Fix the auth credential cache to allow for the case in which
+  the index url contains the username, but the password comes
+  from an external source, such as keyring. (`#10269 <https://github.com/pypa/pip/issues/10269>`_)
+- Fix double unescape of HTML ``data-requires-python`` and ``data-yanked`` attributes. (`#10378 <https://github.com/pypa/pip/issues/10378>`_)
+- New resolver: Fixes depth ordering of packages during resolution, e.g. a dependency 2 levels deep will be ordered before a dependecy 3 levels deep. (`#10482 <https://github.com/pypa/pip/issues/10482>`_)
+- Correctly indent metadata preparation messages in pip output. (`#10524 <https://github.com/pypa/pip/issues/10524>`_)
+
+Vendored Libraries
+------------------
+
+- Remove appdirs as a vendored dependency.
+- Upgrade distlib to 0.3.3
+- Upgrade distro to 1.6.0
+- Patch pkg_resources to use platformdirs rather than appdirs.
+- Add platformdirs as a vendored dependency.
+- Upgrade progress to 1.6
+- Upgrade resolvelib to 0.8.0
+- Upgrade urllib3 to 1.26.7
+
+Improved Documentation
+----------------------
+
+- Update links of setuptools as setuptools moved these documents. The Simple Repository link now points to PyPUG as that is the canonical place of packaging specification, and setuptools's ``easy_install`` is deprecated. (`#10430 <https://github.com/pypa/pip/issues/10430>`_)
+- Create a "Build System Interface" reference section, for documenting how pip interacts with build systems. (`#10497 <https://github.com/pypa/pip/issues/10497>`_)
+
 
 21.2.4 (2021-08-12)
 ===================

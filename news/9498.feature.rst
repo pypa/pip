@@ -1,1 +1,0 @@
-If a host is explicitly specified as trusted by the user (via the --trusted-host option), cache HTTP responses from it in addition to HTTPS ones.

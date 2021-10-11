@@ -1,1 +1,0 @@
-``pip show`` now sorts ``Requires`` and ``Required-By`` alphabetically.
