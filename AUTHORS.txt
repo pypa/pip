@@ -77,6 +77,7 @@ Bastian Venthur
 Ben Bodenmiller
 Ben Darnell
 Ben Hoyt
+Ben Mares
 Ben Rosser
 Bence Nagy
 Benjamin Peterson
@@ -148,7 +149,9 @@ Cristina Muñoz
 Curtis Doty
 cytolentino
 Daan De Meyer
+Damian
 Damian Quiroga
+Damian Shaw
 Dan Black
 Dan Savilonis
 Dan Sully
@@ -301,6 +304,7 @@ Jelmer Vernooĳ
 jenix21
 Jeremy Stanley
 Jeremy Zafran
+Jesse Rittner
 Jiashuo Li
 Jim Fisher
 Jim Garrison
@@ -431,7 +435,9 @@ Nicole Harris
 Nikhil Benesch
 Nikita Chepanov
 Nikolay Korolev
+Nipunn Koorapati
 Nitesh Sharma
+Niyas Sait
 Noah
 Noah Gorny
 Nowell Strite
@@ -464,9 +470,11 @@ Paul Nasrat
 Paul Oswald
 Paul van der Linden
 Paulus Schoutsen
+Pavel Safronov
 Pavithra Eswaramoorthy
 Pawel Jasinski
 Pekka Klärck
+Peter Gessler
 Peter Lisák
 Peter Waller
 petr-tik
@@ -629,6 +637,7 @@ Yu Jian
 Yuan Jing Vincent Yan
 Zearin
 Zhiping Deng
+ziebam
 Zvezdan Petkovic
 Łukasz Langa
 Семён Марьясин
