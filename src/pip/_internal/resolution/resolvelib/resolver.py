@@ -177,6 +177,10 @@ class Resolver(BaseResolver):
         """
         assert self._result is not None, "must call resolve() first"
 
+        if not req_set.requirements:
+            # Nothing is left to install, so we do not need an order.
+            return []
+
         graph = self._result.graph
         weights = get_topological_weights(
             graph,
@@ -213,6 +217,35 @@ def get_topological_weights(
     path: Set[Optional[str]] = set()
     weights: Dict[Optional[str], int] = {}
 
+    # Make a copy of the graph and edit the copy,
+    # instead of changing the original.
+    cgraph: "DirectedGraph[Optional[str]]" = graph.copy()
+
+    def simplify_graph():
+        # In the first pass, we iterate over the original graph,
+        # looking for any keys that have no dependencies themselves.
+        # Use a large weight for them.
+        # Actually, maybe not.
+        leaves = set()
+        for key in cgraph:
+            if not cgraph._forwards[key] and key is not None:
+                leaves.add(key)
+        if not leaves:
+            # We are done simplifying.
+            return
+        # Calculate the weight for the leaves.
+        weight = len(cgraph) - 1
+        if weight == 0:
+            # Precaution against dividing by zero.  We are done.
+            return
+        for leave in leaves:
+            weights[leave] = weight
+        # Remove the leaves from the copy of the graph, making the copy simpler.
+        for leave in leaves:
+            cgraph.remove(leave)
+        # Now that we have a simpler graph, try to simplify it again.
+        simplify_graph()
+
     def visit(node: Optional[str]) -> None:
         if node in path:
             # We hit a cycle, so we'll break it here.
@@ -220,13 +253,19 @@ def get_topological_weights(
 
         # Time to visit the children!
         path.add(node)
-        for child in graph.iter_children(node):
+        for child in cgraph.iter_children(node):
             visit(child)
         path.remove(node)
 
         last_known_parent_count = weights.get(node, 0)
         weights[node] = max(last_known_parent_count, len(path))
 
+    # Recursively simplify the graph, pruning leaves that have no dependencies.
+    # This is needed for large graphs (say over 200 packages) because the
+    # `visit` function is exponentially slower then, taking minutes.
+    # See https://github.com/pypa/pip/issues/10557
+    simplify_graph()
+    # Visit the remaining graph.
     # `None` is guaranteed to be the root node by resolvelib.
     visit(None)
 
