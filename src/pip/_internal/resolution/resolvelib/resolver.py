@@ -224,7 +224,7 @@ def get_topological_weights(
     def simplify_graph() -> None:
         leaves = set()
         for key in cgraph:
-            if not cgraph._forwards[key] and key is not None:
+            if not list(cgraph.iter_children(key)) and key is not None:
                 leaves.add(key)
         if not leaves:
             # We are done simplifying.
