@@ -221,7 +221,7 @@ def get_topological_weights(
     # instead of changing the original.
     cgraph: "DirectedGraph[Optional[str]]" = graph.copy()
 
-    def simplify_graph():
+    def simplify_graph() -> None:
         # In the first pass, we iterate over the original graph,
         # looking for any keys that have no dependencies themselves.
         # Use a large weight for them.
