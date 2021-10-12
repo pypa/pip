@@ -222,10 +222,6 @@ def get_topological_weights(
     cgraph: "DirectedGraph[Optional[str]]" = graph.copy()
 
     def simplify_graph() -> None:
-        # In the first pass, we iterate over the original graph,
-        # looking for any keys that have no dependencies themselves.
-        # Use a large weight for them.
-        # Actually, maybe not.
         leaves = set()
         for key in cgraph:
             if not cgraph._forwards[key] and key is not None:
@@ -235,9 +231,6 @@ def get_topological_weights(
             return
         # Calculate the weight for the leaves.
         weight = len(cgraph) - 1
-        if weight == 0:
-            # Precaution against dividing by zero.  We are done.
-            return
         for leave in leaves:
             weights[leave] = weight
         # Remove the leaves from the copy of the graph, making the copy simpler.
