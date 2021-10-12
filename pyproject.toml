@@ -3,13 +3,19 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.towncrier]
+# For finding the __version__
 package = "pip"
 package_dir = "src"
+# For writing into the correct file
 filename = "NEWS.rst"
+# For finding the news fragments
 directory = "news/"
-title_format = "{version} ({project_date})"
+
+# For rendering properly for this project
 issue_format = "`#{issue} <https://github.com/pypa/pip/issues/{issue}>`_"
 template = "tools/news/template.rst"
+
+# Grouping of entries, within our changelog
 type = [
   { name = "Process",                   directory = "process", showcontent = true },
   { name = "Deprecations and Removals", directory = "removal", showcontent = true },
