@@ -687,6 +687,26 @@ def test_editable_install__local_dir_no_setup_py_with_pyproject(script):
     assert "cannot be installed in editable mode" in msg
 
 
+def test_editable_install__local_dir_setup_requires_with_pyproject(script, shared_data):
+    """
+    Test installing in editable mode from a local directory with a setup.py
+    that has setup_requires and a pyproject.toml.
+
+    https://github.com/pypa/pip/issues/10573
+    """
+    local_dir = script.scratch_path.joinpath("temp")
+    local_dir.mkdir()
+    pyproject_path = local_dir.joinpath("pyproject.toml")
+    pyproject_path.write_text("")
+    setup_py_path = local_dir.joinpath("setup.py")
+    setup_py_path.write_text(
+        "from setuptools import setup\n"
+        "setup(name='dummy', setup_requires=['simplewheel'])\n"
+    )
+
+    script.pip("install", "--find-links", shared_data.find_links, "-e", local_dir)
+
+
 @pytest.mark.network
 def test_upgrade_argparse_shadowed(script):
     # If argparse is installed - even if shadowed for imported - we support
