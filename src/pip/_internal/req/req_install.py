@@ -667,7 +667,7 @@ class InstallRequirement:
         # So here, if it's neither a path nor a valid VCS URL, it's a bug.
         assert vcs_backend, f"Unsupported VCS URL {self.link.url}"
         hidden_url = hide_url(self.link.url)
-        vcs_backend.obtain(self.source_dir, url=hidden_url)
+        vcs_backend.obtain(self.source_dir, url=hidden_url, verbosity=0)
 
     # Top-level Actions
     def uninstall(

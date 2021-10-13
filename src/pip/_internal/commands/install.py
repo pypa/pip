@@ -319,6 +319,7 @@ class InstallCommand(RequirementCommand):
                 session=session,
                 finder=finder,
                 use_user_site=options.use_user_site,
+                verbosity=self.verbosity,
             )
             resolver = self.make_resolver(
                 preparer=preparer,

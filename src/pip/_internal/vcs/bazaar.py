@@ -33,7 +33,7 @@ class Bazaar(VersionControl):
     def get_base_rev_args(rev: str) -> List[str]:
         return ["-r", rev]
 
-    def fetch_new(self, dest: str, url: HiddenText, rev_options: RevOptions, verbose: bool) -> None:
+    def fetch_new(self, dest: str, url: HiddenText, rev_options: RevOptions, verbosity: int) -> None:
         rev_display = rev_options.to_display()
         logger.info(
             "Checking out %s%s to %s",
@@ -41,8 +41,13 @@ class Bazaar(VersionControl):
             rev_display,
             display_path(dest),
         )
-        flags = ('--verbose',) if verbose else ('--quiet',)
-        cmd_args = make_command("branch", *flags, rev_options.to_args(), url, dest)
+        if verbosity <= 0:
+            flag = "--quiet"
+        elif verbosity == 1:
+            flag = ""
+        else:
+            flag = f"-{'v'*verbosity}"
+        cmd_args = make_command("branch", flag, rev_options.to_args(), url, dest)
         self.run_command(cmd_args)
 
     def switch(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:

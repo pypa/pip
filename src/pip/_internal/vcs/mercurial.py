@@ -33,7 +33,7 @@ class Mercurial(VersionControl):
     def get_base_rev_args(rev: str) -> List[str]:
         return [rev]
 
-    def fetch_new(self, dest: str, url: HiddenText, rev_options: RevOptions, verbose: bool) -> None:
+    def fetch_new(self, dest: str, url: HiddenText, rev_options: RevOptions, verbosity: int) -> None:
         rev_display = rev_options.to_display()
         logger.info(
             "Cloning hg %s%s to %s",
@@ -41,7 +41,14 @@ class Mercurial(VersionControl):
             rev_display,
             display_path(dest),
         )
-        flags = ('--verbose', ) if verbose else ('--quiet',)
+        if verbosity <= 0:
+            flags = ("--quiet",)
+        elif verbosity == 1:
+            flags = ()
+        elif verbosity == 2:
+            flags = ("--verbose",)
+        else:
+            flags = ("--verbose", "--debug")
         self.run_command(make_command("clone", "--noupdate", *flags, url, dest))
         self.run_command(
             make_command("update", *flags, rev_options.to_args()),

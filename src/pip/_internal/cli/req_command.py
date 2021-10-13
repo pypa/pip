@@ -236,6 +236,7 @@ class RequirementCommand(IndexGroupCommand):
         finder: PackageFinder,
         use_user_site: bool,
         download_dir: Optional[str] = None,
+        verbosity: int = 0,
     ) -> RequirementPreparer:
         """
         Create a RequirementPreparer instance for the given parameters.
@@ -287,7 +288,7 @@ class RequirementCommand(IndexGroupCommand):
             require_hashes=options.require_hashes,
             use_user_site=use_user_site,
             lazy_wheel=lazy_wheel,
-            verbose=options.verbose > 2,
+            verbosity=verbosity,
             in_tree_build=in_tree_build,
         )
 
