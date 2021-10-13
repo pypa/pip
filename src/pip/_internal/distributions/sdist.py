@@ -38,10 +38,22 @@ class SourceDistribution(AbstractDistribution):
 
     def _setup_isolation(self, finder: PackageFinder) -> None:
         self._prepare_build_backend(finder)
+        # Check that if the requirement is editable, it either supports PEP 660 or has a
+        # setup.py or a setup.cfg. This cannot be done earlier because we need to setup
+        # the build backend to verify it supports build_editable, nor can it be done
+        # later, because we want to avoid installing build requirements needlessly.
+        # Doing it here also works around setuptools generating UNKNOWN.egg-info when
+        # running get_requires_for_build_wheel on a directory without setup.py nor
+        # setup.cfg.
+        self.req.isolated_editable_sanity_check()
         # Install any extra build dependencies that the backend requests.
         # This must be done in a second pass, as the pyproject.toml
         # dependencies must be installed before we can call the backend.
-        if self.req.editable and self.req.permit_editable_wheels:
+        if (
+            self.req.editable
+            and self.req.permit_editable_wheels
+            and self.req.supports_pyproject_editable()
+        ):
             build_reqs = self._get_build_requires_editable()
         else:
             build_reqs = self._get_build_requires_wheel()
