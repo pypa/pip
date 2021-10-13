@@ -173,9 +173,10 @@ def warn_if_run_as_root() -> None:
     # checks: https://mypy.readthedocs.io/en/stable/common_issues.html
     if sys.platform == "win32" or sys.platform == "cygwin":
         return
-    if sys.platform == "darwin" or sys.platform == "linux":
-        if os.getuid() != 0:
-            return
+
+    if os.getuid() != 0:
+        return
+
     logger.warning(
         "Running pip as the 'root' user can result in broken permissions and "
         "conflicting behaviour with the system package manager. "
