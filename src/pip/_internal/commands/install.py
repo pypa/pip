@@ -117,7 +117,6 @@ class InstallCommand(RequirementCommand):
             action="store_false",
             help=SUPPRESS_HELP,
         )
-
         self.cmd_opts.add_option(
             "--root",
             dest="root_path",
