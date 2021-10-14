@@ -17,24 +17,36 @@ def user_cache_dir(appname: str) -> str:
     return _appdirs.user_cache_dir(appname, appauthor=False)
 
 
+def _macos_user_config_dir(appname: str, roaming: bool = True) -> str:
+    # Use ~/Application Support/pip, if the directory exists.
+    path = _appdirs.user_data_dir(appname, appauthor=False, roaming=roaming)
+    if os.path.isdir(path):
+        return path
+
+    # Use a Linux-like ~/.config/pip, by default.
+    linux_like_path = "~/.config/"
+    if appname:
+        linux_like_path = os.path.join(linux_like_path, appname)
+
+    return os.path.expanduser(linux_like_path)
+
+
 def user_config_dir(appname: str, roaming: bool = True) -> str:
-    path = _appdirs.user_config_dir(appname, appauthor=False, roaming=roaming)
-    if sys.platform == "darwin" and not os.path.isdir(path):
-        path = os.path.expanduser("~/.config/")
-        if appname:
-            path = os.path.join(path, appname)
-    return path
+    if sys.platform == "darwin":
+        return _macos_user_config_dir(appname, roaming)
+
+    return _appdirs.user_config_dir(appname, appauthor=False, roaming=roaming)
 
 
 # for the discussion regarding site_config_dir locations
 # see <https://github.com/pypa/pip/issues/1733>
 def site_config_dirs(appname: str) -> List[str]:
-    dirval = _appdirs.site_config_dir(appname, appauthor=False, multipath=True)
     if sys.platform == "darwin":
-        # always look in /Library/Application Support/pip as well
-        return dirval.split(os.pathsep) + ["/Library/Application Support/pip"]
-    elif sys.platform == "win32":
+        return [_appdirs.site_data_dir(appname, appauthor=False, multipath=True)]
+
+    dirval = _appdirs.site_config_dir(appname, appauthor=False, multipath=True)
+    if sys.platform == "win32":
         return [dirval]
-    else:
-        # always look in /etc directly as well
-        return dirval.split(os.pathsep) + ["/etc"]
+
+    # Unix-y system. Look in /etc as well.
+    return dirval.split(os.pathsep) + ["/etc"]
