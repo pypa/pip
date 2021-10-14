@@ -117,14 +117,7 @@ class InstallCommand(RequirementCommand):
             action="store_false",
             help=SUPPRESS_HELP,
         )
-        self.cmd_opts.add_option(
-            "--require-virtualenv",
-            "--require-venv",
-            dest="require_venv",
-            action="store_true",
-            default=False,
-            help="Run pip only if inside a virtualenv, bail if not.",
-        )
+        self.cmd_opts.add_option(cmdoptions.require_virtualenv())
 
         self.cmd_opts.add_option(
             "--root",
