@@ -98,6 +98,11 @@ commands_dict: Dict[str, CommandInfo] = {
         "HelpCommand",
         "Show help for commands.",
     ),
+    "resolve": CommandInfo(
+        "pip._internal.commands.resolve",
+        "ResolveCommand",
+        "Resolver requirements.",
+    ),
 }
 
 
