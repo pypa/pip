@@ -58,7 +58,7 @@ Bug Fixes
   the index url contains the username, but the password comes
   from an external source, such as keyring. (`#10269 <https://github.com/pypa/pip/issues/10269>`_)
 - Fix double unescape of HTML ``data-requires-python`` and ``data-yanked`` attributes. (`#10378 <https://github.com/pypa/pip/issues/10378>`_)
-- New resolver: Fixes depth ordering of packages during resolution, e.g. a dependency 2 levels deep will be ordered before a dependecy 3 levels deep. (`#10482 <https://github.com/pypa/pip/issues/10482>`_)
+- New resolver: Fixes depth ordering of packages during resolution, e.g. a dependency 2 levels deep will be ordered before a dependency 3 levels deep. (`#10482 <https://github.com/pypa/pip/issues/10482>`_)
 - Correctly indent metadata preparation messages in pip output. (`#10524 <https://github.com/pypa/pip/issues/10524>`_)
 
 Vendored Libraries

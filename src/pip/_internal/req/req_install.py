@@ -410,7 +410,7 @@ class InstallRequirement:
         if not existing_dist:
             return
 
-        # pkg_resouces may contain a different copy of packaging.version from
+        # pkg_resources may contain a different copy of packaging.version from
         # pip in if the downstream distributor does a poor job debundling pip.
         # We avoid existing_dist.parsed_version and let SpecifierSet.contains
         # parses the version instead.

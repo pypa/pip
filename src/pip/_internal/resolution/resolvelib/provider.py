@@ -129,7 +129,7 @@ class PipProvider(_ProviderBase):
         # (Most projects specify it only to request for an installer feature,
         # which does not work, but that's another topic.) Intentionally
         # delaying Setuptools helps reduce branches the resolver has to check.
-        # This serves as a temporary fix for issues like "apache-airlfow[all]"
+        # This serves as a temporary fix for issues like "apache-airflow[all]"
         # while we work on "proper" branch pruning techniques.
         delay_this = identifier == "setuptools"
 
@@ -154,7 +154,7 @@ class PipProvider(_ProviderBase):
         if identifier in self._constraints:
             return self._constraints[identifier]
 
-        # HACK: Theoratically we should check whether this identifier is a valid
+        # HACK: Theoretically we should check whether this identifier is a valid
         # "NAME[EXTRAS]" format, and parse out the name part with packaging or
         # some regular expression. But since pip's resolver only spits out
         # three kinds of identifiers: normalized PEP 503 names, normalized names

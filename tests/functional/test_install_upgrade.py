@@ -83,7 +83,7 @@ def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(script):
 
 
 @pytest.mark.usefixtures("with_wheel")
-def test_eager_does_upgrade_dependecies_when_currently_satisfied(script):
+def test_eager_does_upgrade_dependencies_when_currently_satisfied(script):
     """
     It does upgrade a dependency even if it already satisfies the requirements.
 
@@ -102,7 +102,7 @@ def test_eager_does_upgrade_dependecies_when_currently_satisfied(script):
 
 
 @pytest.mark.usefixtures("with_wheel")
-def test_eager_does_upgrade_dependecies_when_no_longer_satisfied(script):
+def test_eager_does_upgrade_dependencies_when_no_longer_satisfied(script):
     """
     It does upgrade a dependency if it no longer satisfies the requirements.
 
