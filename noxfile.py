@@ -171,7 +171,7 @@ def lint(session: nox.Session) -> None:
 
 @nox.session
 def vendoring(session: nox.Session) -> None:
-    session.install("vendoring~=1.0.0")
+    session.install("vendoring~=1.2.0")
 
     if "--upgrade" not in session.posargs:
         session.run("vendoring", "sync", "-v")
