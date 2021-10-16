@@ -182,7 +182,7 @@ require_virtualenv: Callable[..., Option] = partial(
     dest="require_venv",
     action="store_true",
     default=False,
-    help="Run pip only if inside a virtualenv, bail if not.",
+    help="Allow pip to only run in a virtual environment; exit with an error otherwise.",
 )
 
 verbose: Callable[..., Option] = partial(
