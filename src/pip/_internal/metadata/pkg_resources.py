@@ -1,12 +1,14 @@
 import email.message
 import logging
 from typing import Collection, Iterable, Iterator, List, NamedTuple, Optional
+from zipfile import BadZipFile
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
 
+from pip._internal.exceptions import InvalidWheel
 from pip._internal.utils import misc  # TODO: Move definition here.
 from pip._internal.utils.packaging import get_installer, get_metadata
 from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
@@ -34,8 +36,16 @@ class Distribution(BaseDistribution):
 
     @classmethod
     def from_wheel(cls, wheel: Wheel, name: str) -> "Distribution":
-        with wheel.as_zipfile() as zf:
-            dist = pkg_resources_distribution_for_wheel(zf, name, wheel.location)
+        """Load the distribution from a given wheel.
+
+        :raises InvalidWheel: Whenever loading of the wheel causes a
+            :py:exc:`zipfile.BadZipFile` exception to be thrown.
+        """
+        try:
+            with wheel.as_zipfile() as zf:
+                dist = pkg_resources_distribution_for_wheel(zf, name, wheel.location)
+        except BadZipFile as e:
+            raise InvalidWheel(wheel.location, name) from e
         return cls(dist)
 
     @property

@@ -1,0 +1,2 @@
+Catch ``BadZipFile`` errors and re-raise them as ``InvalidWheel`` which
+additionally reports wheel name and path.
