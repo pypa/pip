@@ -272,7 +272,7 @@ class Configuration:
             except UnicodeDecodeError:
                 # See https://github.com/pypa/pip/issues/4963
                 raise ConfigurationFileCouldNotBeLoaded(
-                    reason="contains invalid {} characters".format(locale_encoding),
+                    reason=f"contains invalid {locale_encoding} characters",
                     fname=fname,
                 )
             except configparser.Error as error:
