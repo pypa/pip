@@ -530,10 +530,11 @@ class UninstallPathSet:
             # develop egg
             with open(develop_egg_link) as fh:
                 link_pointer = os.path.normcase(fh.readline().strip())
-            assert (
-                link_pointer == dist.location
-            ), "Egg-link {} does not match installed location of {} (at {})".format(
-                link_pointer, dist.project_name, dist.location
+            assert link_pointer == dist.location, (
+                "Egg-link located at {} and pointing to {} does not match "
+                "installed location of {} at {}".format(
+                    develop_egg_link, link_pointer, dist.project_name, dist.location
+                )
             )
             paths_to_remove.add(develop_egg_link)
             easy_install_pth = os.path.join(
