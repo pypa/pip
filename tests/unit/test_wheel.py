@@ -252,9 +252,9 @@ def test_wheel_root_is_purelib(text: str, expected: bool) -> None:
     assert wheel.wheel_root_is_purelib(message_from_string(text)) == expected
 
 
-def test_dist_from_broken_wheel_fails(data) -> None:
+def test_dist_from_broken_wheel_fails(data: TestData) -> None:
     from pip._internal.exceptions import InvalidWheel
-    from pip._internal.metadata import get_wheel_distribution, FilesystemWheel
+    from pip._internal.metadata import FilesystemWheel, get_wheel_distribution
 
     package = data.packages.joinpath("corruptwheel-1.0-py2.py3-none-any.whl")
     with pytest.raises(InvalidWheel):

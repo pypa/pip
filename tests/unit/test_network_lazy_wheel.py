@@ -1,9 +1,9 @@
 from typing import Iterator
 
-from pip._internal.exceptions import InvalidWheel
 from pip._vendor.packaging.version import Version
 from pytest import fixture, mark, raises
 
+from pip._internal.exceptions import InvalidWheel
 from pip._internal.network.lazy_wheel import (
     HTTPRangeRequestUnsupported,
     dist_from_wheel_url,
