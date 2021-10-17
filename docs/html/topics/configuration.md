@@ -29,11 +29,10 @@ complexity for backwards compatibility reasons.
 ```{tab} Unix
 
 Global
-: {file}`/etc/pip.conf`
+: In a "pip" subdirectory of any of the paths set in the environment variable
+  `XDG_CONFIG_DIRS` (if it exists), for example {file}`/etc/xdg/pip/pip.conf`.
 
-  Alternatively, it may be in a "pip" subdirectory of any of the paths set
-  in the environment variable `XDG_CONFIG_DIRS` (if it exists), for
-  example {file}`/etc/xdg/pip/pip.conf`.
+  This will be followed by loading {file}`/etc/pip.conf`.
 
 User
 : {file}`$HOME/.config/pip/pip.conf`, which respects the `XDG_CONFIG_HOME` environment variable.
