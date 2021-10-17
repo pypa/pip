@@ -252,6 +252,15 @@ def test_wheel_root_is_purelib(text: str, expected: bool) -> None:
     assert wheel.wheel_root_is_purelib(message_from_string(text)) == expected
 
 
+def test_dist_from_broken_wheel_fails(data) -> None:
+    from pip._internal.exceptions import InvalidWheel
+    from pip._internal.metadata import get_wheel_distribution, FilesystemWheel
+
+    package = data.packages.joinpath("corruptwheel-1.0-py2.py3-none-any.whl")
+    with pytest.raises(InvalidWheel):
+        get_wheel_distribution(FilesystemWheel(package), "brokenwheel")
+
+
 class TestWheelFile:
     def test_unpack_wheel_no_flatten(self, tmpdir: Path) -> None:
         filepath = os.path.join(DATA_DIR, "packages", "meta-1.0-py2.py3-none-any.whl")
