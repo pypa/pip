@@ -93,7 +93,9 @@ class BuildEnvironment:
         self._site_dir = os.path.join(temp_dir.path, "site")
         if not os.path.exists(self._site_dir):
             os.mkdir(self._site_dir)
-        with open(os.path.join(self._site_dir, "sitecustomize.py"), "w") as fp:
+        with open(
+            os.path.join(self._site_dir, "sitecustomize.py"), "w", encoding="utf-8"
+        ) as fp:
             fp.write(
                 textwrap.dedent(
                     """
