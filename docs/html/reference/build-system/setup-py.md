@@ -54,7 +54,9 @@ depending on the package), the generated wheel is added to pip's wheel cache
 and will be used for this installation. The built wheel is cached locally
 by pip to avoid repeated identical builds.
 
-If this wheel generation fails, pip will attempt a direct installation instead.
+If this wheel generation fails, pip runs `setup.py clean` to clean up any build
+artifacts that may have been generated. After that, pip will attempt a direct
+installation.
 
 ### Direct Installation
 
@@ -69,11 +71,6 @@ For installing packages in "editable" mode
 ({ref}`pip install --editable <install_--editable>`), pip will invoke
 `setup.py develop`, which will use setuptools' mechanisms to perform an
 editable/development installation.
-
-### Cleanup
-
-After attempting installation, pip may run `setup.py clean` to clean up build
-artifacts from that setuptools has generated.
 
 ## Setuptools Injection
 
