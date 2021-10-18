@@ -99,7 +99,6 @@ class TestSiteConfigDirs:
         monkeypatch.setenv("HOME", "/home/test")
 
         assert appdirs.site_config_dirs("pip") == [
-            "/Library/Preferences/pip",
             "/Library/Application Support/pip",
         ]
 
@@ -107,7 +106,10 @@ class TestSiteConfigDirs:
     def test_site_config_dirs_linux(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("XDG_CONFIG_DIRS", raising=False)
 
-        assert appdirs.site_config_dirs("pip") == ["/etc/xdg/pip", "/etc"]
+        assert appdirs.site_config_dirs("pip") == [
+            "/etc/xdg/pip",
+            "/etc",
+        ]
 
     @pytest.mark.skipif(sys.platform != "linux", reason="Linux-only test")
     def test_site_config_dirs_linux_override(
@@ -129,7 +131,10 @@ class TestSiteConfigDirs:
     ) -> None:
         monkeypatch.setattr(os, "pathsep", ":")
         monkeypatch.setenv("XDG_CONFIG_DIRS", "")
-        assert appdirs.site_config_dirs("pip") == ["/etc/xdg/pip", "/etc"]
+        assert appdirs.site_config_dirs("pip") == [
+            "/etc/xdg/pip",
+            "/etc",
+        ]
 
 
 class TestUserConfigDir:
