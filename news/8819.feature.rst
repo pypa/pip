@@ -1,1 +1,1 @@
-Verbosity level controls verbosity of invoked VCS tools
+Forward pip's verbosity configuration to VCS tools to control their output accordingly.
