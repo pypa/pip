@@ -2,7 +2,7 @@ from textwrap import dedent
 
 import pytest
 
-from pip._internal.exceptions import InstallationError
+from pip._internal.exceptions import InstallationError, InvalidPyProjectBuildRequires
 from pip._internal.req import InstallRequirement
 from tests.lib import TestData
 from tests.lib.path import Path
@@ -75,20 +75,24 @@ def test_disabling_pep517_invalid(shared_data: TestData, source: str, msg: str) 
 def test_pep517_parsing_checks_requirements(tmpdir: Path, spec: str) -> None:
     tmpdir.joinpath("pyproject.toml").write_text(
         dedent(
+            f"""
+            [build-system]
+            requires = [{spec!r}]
+            build-backend = "foo"
             """
-        [build-system]
-        requires = [{!r}]
-        build-backend = "foo"
-        """.format(
-                spec
-            )
         )
     )
     req = InstallRequirement(None, None)
     req.source_dir = tmpdir  # make req believe it has been unpacked
 
-    with pytest.raises(InstallationError) as e:
+    with pytest.raises(InvalidPyProjectBuildRequires) as e:
         req.load_pyproject_toml()
 
-    err_msg = e.value.args[0]
-    assert "contains an invalid requirement" in err_msg
+    error = e.value
+
+    assert str(req) in error.message
+    assert error.context
+    assert "build-system.requires" in error.context
+    assert "contains an invalid requirement" in error.context
+    assert error.hint_stmt
+    assert "PEP 518" in error.hint_stmt

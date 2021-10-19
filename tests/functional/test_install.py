@@ -108,7 +108,12 @@ def test_pep518_refuses_invalid_requires(script, data, common_wheels):
         expect_error=True,
     )
     assert result.returncode == 1
-    assert "does not comply with PEP 518" in result.stderr
+
+    # Ensure the relevant things are mentioned.
+    assert "PEP 518" in result.stderr
+    assert "not a list of strings" in result.stderr
+    assert "build-system.requires" in result.stderr
+    assert "pyproject.toml" in result.stderr
 
 
 def test_pep518_refuses_invalid_build_system(script, data, common_wheels):
@@ -120,7 +125,12 @@ def test_pep518_refuses_invalid_build_system(script, data, common_wheels):
         expect_error=True,
     )
     assert result.returncode == 1
-    assert "does not comply with PEP 518" in result.stderr
+
+    # Ensure the relevant things are mentioned.
+    assert "PEP 518" in result.stderr
+    assert "mandatory `requires` key" in result.stderr
+    assert "[build-system] table" in result.stderr
+    assert "pyproject.toml" in result.stderr
 
 
 def test_pep518_allows_missing_requires(script, data, common_wheels):
@@ -132,7 +142,7 @@ def test_pep518_allows_missing_requires(script, data, common_wheels):
         expect_stderr=True,
     )
     # Make sure we don't warn when this occurs.
-    assert "does not comply with PEP 518" not in result.stderr
+    assert "PEP 518" not in result.stderr
 
     # We want it to go through isolation for now.
     assert "Installing build dependencies" in result.stdout, result.stdout

@@ -109,6 +109,45 @@ class UninstallationError(PipError):
     """General exception during uninstallation"""
 
 
+class MissingPyProjectBuildRequires(DiagnosticPipError):
+    """Raised when pyproject.toml has `build-system`, but no `build-system.requires`."""
+
+    reference = "missing-pyproject-build-system-requires"
+
+    def __init__(self, *, package: str) -> None:
+        super().__init__(
+            message=f"Can not process {package}",
+            context=(
+                "This package has an invalid pyproject.toml file.\n"
+                "The [build-system] table is missing the mandatory `requires` key."
+            ),
+            attention_stmt=(
+                "This is an issue with the package mentioned above, not pip."
+            ),
+            hint_stmt="See PEP 518 for the detailed specification.",
+        )
+
+
+class InvalidPyProjectBuildRequires(DiagnosticPipError):
+    """Raised when pyproject.toml an invalid `build-system.requires`."""
+
+    reference = "invalid-pyproject-build-system-requires"
+
+    def __init__(self, *, package: str, reason: str) -> None:
+        super().__init__(
+            message=f"Can not process {package}",
+            context=(
+                "This package has an invalid `build-system.requires` key in "
+                "pyproject.toml.\n"
+                f"{reason}"
+            ),
+            hint_stmt="See PEP 518 for the detailed specification.",
+            attention_stmt=(
+                "This is an issue with the package mentioned above, not pip."
+            ),
+        )
+
+
 class NoneMetadataError(PipError):
     """
     Raised when accessing "METADATA" or "PKG-INFO" metadata for a
