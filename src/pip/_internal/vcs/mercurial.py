@@ -1,7 +1,7 @@
 import configparser
 import logging
 import os
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import HiddenText, display_path
@@ -42,7 +42,7 @@ class Mercurial(VersionControl):
             display_path(dest),
         )
         if verbosity <= 0:
-            flags = ("--quiet",)
+            flags: Tuple[str, ...] = ("--quiet",)
         elif verbosity == 1:
             flags = ()
         elif verbosity == 2:
