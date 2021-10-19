@@ -244,7 +244,13 @@ def test_unpack_url_excludes_expected_dirs(tmpdir: Path, exclude_dir: str) -> No
     dst_included_dir = dst_dir.joinpath("subdir", exclude_dir)
 
     src_link = Link(path_to_url(src_dir))
-    unpack_url(src_link, dst_dir, Mock(side_effect=AssertionError), download_dir=None, verbosity=0)
+    unpack_url(
+        src_link,
+        dst_dir,
+        Mock(side_effect=AssertionError),
+        download_dir=None,
+        verbosity=0,
+    )
     assert not os.path.isdir(dst_excluded_dir)
     assert not os.path.isfile(dst_excluded_file)
     assert os.path.isfile(dst_included_file)

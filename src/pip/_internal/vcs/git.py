@@ -253,7 +253,9 @@ class Git(VersionControl):
 
         return cls.get_revision(dest) == name
 
-    def fetch_new(self, dest: str, url: HiddenText, rev_options: RevOptions, verbosity: int) -> None:
+    def fetch_new(
+        self, dest: str, url: HiddenText, rev_options: RevOptions, verbosity: int
+    ) -> None:
         rev_display = rev_options.to_display()
         logger.info("Cloning %s%s to %s", url, rev_display, display_path(dest))
         if verbosity <= 0:

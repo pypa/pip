@@ -529,8 +529,12 @@ class RequirementPreparer:
         elif link.url not in self._downloaded:
             try:
                 local_file = unpack_url(
-                    link, req.source_dir, self._download, self.verbosity,
-                    self.download_dir, hashes
+                    link,
+                    req.source_dir,
+                    self._download,
+                    self.verbosity,
+                    self.download_dir,
+                    hashes,
                 )
             except NetworkConnectionError as exc:
                 raise InstallationError(

@@ -277,7 +277,9 @@ class Subversion(VersionControl):
 
         return []
 
-    def fetch_new(self, dest: str, url: HiddenText, rev_options: RevOptions, verbosity: int) -> None:
+    def fetch_new(
+        self, dest: str, url: HiddenText, rev_options: RevOptions, verbosity: int
+    ) -> None:
         rev_display = rev_options.to_display()
         logger.info(
             "Checking out %s%s to %s",

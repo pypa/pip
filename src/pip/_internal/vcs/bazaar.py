@@ -33,7 +33,9 @@ class Bazaar(VersionControl):
     def get_base_rev_args(rev: str) -> List[str]:
         return ["-r", rev]
 
-    def fetch_new(self, dest: str, url: HiddenText, rev_options: RevOptions, verbosity: int) -> None:
+    def fetch_new(
+        self, dest: str, url: HiddenText, rev_options: RevOptions, verbosity: int
+    ) -> None:
         rev_display = rev_options.to_display()
         logger.info(
             "Checking out %s%s to %s",
