@@ -277,7 +277,7 @@ def test_resolve_commit_not_on_branch(script, tmp_path):
 
     # check we can fetch our commit
     rev_options = Git.make_rev_options(commit)
-    Git().fetch_new(str(clone_path), repo_path.as_uri(), rev_options)
+    Git().fetch_new(str(clone_path), repo_path.as_uri(), rev_options, verbosity=0)
 
 
 def _initialize_clonetest_server(repo_path, script, enable_partial_clone):
@@ -311,9 +311,9 @@ def test_partial_clone(script, tmp_path):
     commit = script.run("git", "rev-parse", "HEAD", cwd=str(repo_path)).stdout.strip()
 
     # Check that we can clone at HEAD
-    Git().fetch_new(str(clone_path1), repo_path.as_uri(), Git.make_rev_options())
+    Git().fetch_new(str(clone_path1), repo_path.as_uri(), Git.make_rev_options(), verbosity=0)
     # Check that we can clone to commit
-    Git().fetch_new(str(clone_path2), repo_path.as_uri(), Git.make_rev_options(commit))
+    Git().fetch_new(str(clone_path2), repo_path.as_uri(), Git.make_rev_options(commit), verbosity=0)
 
     # Write some additional stuff to git pull
     repo_file.write_text(u"..")
@@ -343,9 +343,9 @@ def test_partial_clone_without_server_support(script, tmp_path):
     commit = script.run("git", "rev-parse", "HEAD", cwd=str(repo_path)).stdout.strip()
 
     # Check that we can clone at HEAD
-    Git().fetch_new(str(clone_path1), repo_path.as_uri(), Git.make_rev_options())
+    Git().fetch_new(str(clone_path1), repo_path.as_uri(), Git.make_rev_options(), verbosity=0)
     # Check that we can clone to commit
-    Git().fetch_new(str(clone_path2), repo_path.as_uri(), Git.make_rev_options(commit))
+    Git().fetch_new(str(clone_path2), repo_path.as_uri(), Git.make_rev_options(commit), verbosity=0)
 
     # Write some additional stuff to git pull
     repo_file.write_text(u"..")
@@ -372,7 +372,7 @@ def test_clone_without_partial_clone_support(script, tmp_path):
 
     # Check that we can clone w/ old version of git w/o --filter
     with patch("pip._internal.vcs.git.Git.get_git_version", return_value=(2, 16)):
-        Git().fetch_new(str(clone_path), repo_path.as_uri(), Git.make_rev_options())
+        Git().fetch_new(str(clone_path), repo_path.as_uri(), Git.make_rev_options(), verbosity=0)
 
     repo_file.write_text(u"...")
     script.run("git", "commit", "-am", "third commit", cwd=str(repo_path))
