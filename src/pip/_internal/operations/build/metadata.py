@@ -23,9 +23,7 @@ def generate_metadata(build_env: BuildEnvironment, backend: Pep517HookCaller) ->
         # Note that Pep517HookCaller implements a fallback for
         # prepare_metadata_for_build_wheel, so we don't have to
         # consider the possibility that this hook doesn't exist.
-        runner = runner_with_spinner_message(
-            "Preparing wheel metadata (pyproject.toml)"
-        )
+        runner = runner_with_spinner_message("Preparing metadata (pyproject.toml)")
         with backend.subprocess_runner(runner):
             distinfo_dir = backend.prepare_metadata_for_build_wheel(metadata_dir)
 

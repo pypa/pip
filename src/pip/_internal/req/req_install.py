@@ -1,6 +1,7 @@
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
 
+import functools
 import logging
 import os
 import shutil
@@ -16,7 +17,7 @@ from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
-from pip._vendor.pep517.wrappers import HookMissing, Pep517HookCaller
+from pip._vendor.pep517.wrappers import Pep517HookCaller
 from pip._vendor.pkg_resources import Distribution
 
 from pip._internal.build_env import BuildEnvironment, NoOpBuildEnvironment
@@ -53,6 +54,7 @@ from pip._internal.utils.misc import (
     redact_auth_from_url,
 )
 from pip._internal.utils.packaging import get_metadata
+from pip._internal.utils.subprocess import runner_with_spinner_message
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
@@ -196,11 +198,6 @@ class InstallRequirement:
         # but after loading this flag should be treated as read only.
         self.use_pep517 = use_pep517
 
-        # supports_pyproject_editable will be set to True or False when we try
-        # to prepare editable metadata or build an editable wheel. None means
-        # "we don't know yet".
-        self.supports_pyproject_editable: Optional[bool] = None
-
         # This requirement needs more preparation before it can be built
         self.needs_more_preparation = False
 
@@ -246,6 +243,18 @@ class InstallRequirement:
         if self.req is None:
             return None
         return pkg_resources.safe_name(self.req.name)
+
+    @functools.lru_cache()  # use cached_property in python 3.8+
+    def supports_pyproject_editable(self) -> bool:
+        if not self.use_pep517:
+            return False
+        assert self.pep517_backend
+        with self.build_env:
+            runner = runner_with_spinner_message(
+                "Checking if build backend supports build_editable"
+            )
+            with self.pep517_backend.subprocess_runner(runner):
+                return "build_editable" in self.pep517_backend._supported_features()
 
     @property
     def specifier(self) -> SpecifierSet:
@@ -503,93 +512,59 @@ class InstallRequirement:
             backend_path=backend_path,
         )
 
-    def _generate_editable_metadata(self) -> str:
-        """Invokes metadata generator functions, with the required arguments."""
-        if self.use_pep517:
-            assert self.pep517_backend is not None
-            try:
-                metadata_directory = generate_editable_metadata(
-                    build_env=self.build_env,
-                    backend=self.pep517_backend,
-                )
-            except HookMissing as e:
-                self.supports_pyproject_editable = False
-                if not os.path.exists(self.setup_py_path) and not os.path.exists(
-                    self.setup_cfg_path
-                ):
-                    raise InstallationError(
-                        f"Project {self} has a 'pyproject.toml' and its build "
-                        f"backend is missing the {e} hook. Since it does not "
-                        f"have a 'setup.py' nor a 'setup.cfg', "
-                        f"it cannot be installed in editable mode. "
-                        f"Consider using a build backend that supports PEP 660."
-                    )
-                # At this point we have determined that the build_editable hook
-                # is missing, and there is a setup.py or setup.cfg
-                # so we fallback to the legacy metadata generation
-                logger.info(
-                    "Build backend does not support editables, "
-                    "falling back to setup.py egg_info."
-                )
-            else:
-                self.supports_pyproject_editable = True
-                return metadata_directory
-        elif not os.path.exists(self.setup_py_path) and not os.path.exists(
-            self.setup_cfg_path
+    def isolated_editable_sanity_check(self) -> None:
+        """Check that an editable requirement if valid for use with PEP 517/518.
+
+        This verifies that an editable that has a pyproject.toml either supports PEP 660
+        or as a setup.py or a setup.cfg
+        """
+        if (
+            self.editable
+            and self.use_pep517
+            and not self.supports_pyproject_editable()
+            and not os.path.isfile(self.setup_py_path)
+            and not os.path.isfile(self.setup_cfg_path)
         ):
             raise InstallationError(
-                f"File 'setup.py' or 'setup.cfg' not found "
-                f"for legacy project {self}. "
-                f"It cannot be installed in editable mode."
+                f"Project {self} has a 'pyproject.toml' and its build "
+                f"backend is missing the 'build_editable' hook. Since it does not "
+                f"have a 'setup.py' nor a 'setup.cfg', "
+                f"it cannot be installed in editable mode. "
+                f"Consider using a build backend that supports PEP 660."
             )
-
-        return generate_metadata_legacy(
-            build_env=self.build_env,
-            setup_py_path=self.setup_py_path,
-            source_dir=self.unpacked_source_directory,
-            isolated=self.isolated,
-            details=self.name or f"from {self.link}",
-        )
-
-    def _generate_metadata(self) -> str:
-        """Invokes metadata generator functions, with the required arguments."""
-        if self.use_pep517:
-            assert self.pep517_backend is not None
-            try:
-                return generate_metadata(
-                    build_env=self.build_env,
-                    backend=self.pep517_backend,
-                )
-            except HookMissing as e:
-                raise InstallationError(
-                    f"Project {self} has a pyproject.toml but its build "
-                    f"backend is missing the required {e} hook."
-                )
-        elif not os.path.exists(self.setup_py_path):
-            raise InstallationError(
-                f"File 'setup.py' not found for legacy project {self}."
-            )
-
-        return generate_metadata_legacy(
-            build_env=self.build_env,
-            setup_py_path=self.setup_py_path,
-            source_dir=self.unpacked_source_directory,
-            isolated=self.isolated,
-            details=self.name or f"from {self.link}",
-        )
 
     def prepare_metadata(self) -> None:
         """Ensure that project metadata is available.
 
-        Under PEP 517, call the backend hook to prepare the metadata.
+        Under PEP 517 and PEP 660, call the backend hook to prepare the metadata.
         Under legacy processing, call setup.py egg-info.
         """
         assert self.source_dir
 
-        if self.editable and self.permit_editable_wheels:
-            self.metadata_directory = self._generate_editable_metadata()
+        if self.use_pep517:
+            assert self.pep517_backend is not None
+            if (
+                self.editable
+                and self.permit_editable_wheels
+                and self.supports_pyproject_editable()
+            ):
+                self.metadata_directory = generate_editable_metadata(
+                    build_env=self.build_env,
+                    backend=self.pep517_backend,
+                )
+            else:
+                self.metadata_directory = generate_metadata(
+                    build_env=self.build_env,
+                    backend=self.pep517_backend,
+                )
         else:
-            self.metadata_directory = self._generate_metadata()
+            self.metadata_directory = generate_metadata_legacy(
+                build_env=self.build_env,
+                setup_py_path=self.setup_py_path,
+                source_dir=self.unpacked_source_directory,
+                isolated=self.isolated,
+                details=self.name or f"from {self.link}",
+            )
 
         # Act on the newly generated metadata, based on the name and version.
         if not self.name:

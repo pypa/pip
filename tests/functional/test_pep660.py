@@ -59,19 +59,22 @@ def build_editable(wheel_directory, config_settings=None, metadata_directory=Non
 # fmt: on
 
 
-def _make_project(tmpdir, backend_code, with_setup_py):
+def _make_project(tmpdir, backend_code, with_setup_py, with_pyproject=True):
     project_dir = tmpdir / "project"
     project_dir.mkdir()
     project_dir.joinpath("setup.cfg").write_text(SETUP_CFG)
     if with_setup_py:
         project_dir.joinpath("setup.py").write_text(SETUP_PY)
     if backend_code:
+        assert with_pyproject
         buildsys = {"requires": ["setuptools", "wheel"]}
         buildsys["build-backend"] = "test_backend"
         buildsys["backend-path"] = ["."]
         data = tomli_w.dumps({"build-system": buildsys})
         project_dir.joinpath("pyproject.toml").write_text(data)
         project_dir.joinpath("test_backend.py").write_text(backend_code)
+    elif with_pyproject:
+        project_dir.joinpath("pyproject.toml").touch()
     project_dir.joinpath("log.txt").touch()
     return project_dir
 
@@ -124,7 +127,8 @@ def test_install_pep660_basic(tmpdir, script, with_wheel):
 def test_install_no_pep660_setup_py_fallback(tmpdir, script, with_wheel):
     """
     Test that we fall back to setuptools develop when using a backend that
-    does not support build_editable .
+    does not support build_editable. Since there is a pyproject.toml,
+    the prepare_metadata_for_build_wheel hook is called.
     """
     project_dir = _make_project(tmpdir, BACKEND_WITHOUT_PEP660, with_setup_py=True)
     result = script.pip(
@@ -135,6 +139,7 @@ def test_install_no_pep660_setup_py_fallback(tmpdir, script, with_wheel):
         project_dir,
         allow_stderr_warning=False,
     )
+    _assert_hook_called(project_dir, "prepare_metadata_for_build_wheel")
     assert (
         result.test_env.site_packages.joinpath("project.egg-link")
         in result.files_created
@@ -144,7 +149,8 @@ def test_install_no_pep660_setup_py_fallback(tmpdir, script, with_wheel):
 def test_install_no_pep660_setup_cfg_fallback(tmpdir, script, with_wheel):
     """
     Test that we fall back to setuptools develop when using a backend that
-    does not support build_editable .
+    does not support build_editable. Since there is a pyproject.toml,
+    the prepare_metadata_for_build_wheel hook is called.
     """
     project_dir = _make_project(tmpdir, BACKEND_WITHOUT_PEP660, with_setup_py=False)
     result = script.pip(
@@ -156,6 +162,7 @@ def test_install_no_pep660_setup_cfg_fallback(tmpdir, script, with_wheel):
         allow_stderr_warning=False,
     )
     print(result.stdout, result.stderr)
+    _assert_hook_called(project_dir, "prepare_metadata_for_build_wheel")
     assert (
         result.test_env.site_packages.joinpath("project.egg-link")
         in result.files_created

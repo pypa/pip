@@ -48,6 +48,12 @@ def load_pyproject_toml(
     has_pyproject = os.path.isfile(pyproject_toml)
     has_setup = os.path.isfile(setup_py)
 
+    if not has_pyproject and not has_setup:
+        raise InstallationError(
+            f"{req_name} does not appear to be a Python project: "
+            f"neither 'setup.py' nor 'pyproject.toml' found."
+        )
+
     if has_pyproject:
         with open(pyproject_toml, encoding="utf-8") as f:
             pp_toml = tomli.load(f)
