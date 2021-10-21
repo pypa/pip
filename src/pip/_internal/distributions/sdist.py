@@ -32,20 +32,21 @@ class SourceDistribution(AbstractDistribution):
         # Set up the build isolation, if this requirement should be isolated
         should_isolate = self.req.use_pep517 and build_isolation
         if should_isolate:
-            self._setup_isolation(finder)
+            # Setup an isolated environment and install the build backend static
+            # requirements in it.
+            self._prepare_build_backend(finder)
+            # Check that if the requirement is editable, it either supports PEP 660 or
+            # has a setup.py or a setup.cfg. This cannot be done earlier because we need
+            # to setup the build backend to verify it supports build_editable, nor can
+            # it be done later, because we want to avoid installing build requirements
+            # needlessly. Doing it here also works around setuptools generating
+            # UNKNOWN.egg-info when running get_requires_for_build_wheel on a directory
+            # without setup.py nor setup.cfg.
+            self.req.isolated_editable_sanity_check()
+            # Install the dynamic build requirements.
+            self._install_build_reqs(finder)
 
         self.req.prepare_metadata()
-
-    def _setup_isolation(self, finder: PackageFinder) -> None:
-        self._prepare_build_backend(finder)
-        # Install any extra build dependencies that the backend requests.
-        # This must be done in a second pass, as the pyproject.toml
-        # dependencies must be installed before we can call the backend.
-        if self.req.editable and self.req.permit_editable_wheels:
-            build_reqs = self._get_build_requires_editable()
-        else:
-            build_reqs = self._get_build_requires_wheel()
-        self._install_build_reqs(finder, build_reqs)
 
     def _prepare_build_backend(self, finder: PackageFinder) -> None:
         # Isolate in a BuildEnvironment and install the build-time
@@ -91,8 +92,19 @@ class SourceDistribution(AbstractDistribution):
             with backend.subprocess_runner(runner):
                 return backend.get_requires_for_build_editable()
 
-    def _install_build_reqs(self, finder: PackageFinder, reqs: Iterable[str]) -> None:
-        conflicting, missing = self.req.build_env.check_requirements(reqs)
+    def _install_build_reqs(self, finder: PackageFinder) -> None:
+        # Install any extra build dependencies that the backend requests.
+        # This must be done in a second pass, as the pyproject.toml
+        # dependencies must be installed before we can call the backend.
+        if (
+            self.req.editable
+            and self.req.permit_editable_wheels
+            and self.req.supports_pyproject_editable()
+        ):
+            build_reqs = self._get_build_requires_editable()
+        else:
+            build_reqs = self._get_build_requires_wheel()
+        conflicting, missing = self.req.build_env.check_requirements(build_reqs)
         if conflicting:
             self._raise_conflicts("the backend dependencies", conflicting)
         self.req.build_env.install_requirements(

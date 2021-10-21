@@ -653,7 +653,6 @@ def test_install_from_local_directory_with_no_setup_py(script, data):
     """
     result = script.pip("install", data.root, expect_error=True)
     assert not result.files_created
-    assert "is not installable." in result.stderr
     assert "Neither 'setup.py' nor 'pyproject.toml' found." in result.stderr
 
 
@@ -663,11 +662,10 @@ def test_editable_install__local_dir_no_setup_py(script, data):
     """
     result = script.pip("install", "-e", data.root, expect_error=True)
     assert not result.files_created
-
-    msg = result.stderr
-    assert msg.startswith("ERROR: File 'setup.py' or 'setup.cfg' not found ")
-    assert "cannot be installed in editable mode" in msg
-    assert "pyproject.toml" not in msg
+    assert (
+        "does not appear to be a Python project: "
+        "neither 'setup.py' nor 'pyproject.toml' found" in result.stderr
+    )
 
 
 def test_editable_install__local_dir_no_setup_py_with_pyproject(script):
@@ -687,6 +685,26 @@ def test_editable_install__local_dir_no_setup_py_with_pyproject(script):
     assert "has a 'pyproject.toml'" in msg
     assert "does not have a 'setup.py' nor a 'setup.cfg'" in msg
     assert "cannot be installed in editable mode" in msg
+
+
+def test_editable_install__local_dir_setup_requires_with_pyproject(script, shared_data):
+    """
+    Test installing in editable mode from a local directory with a setup.py
+    that has setup_requires and a pyproject.toml.
+
+    https://github.com/pypa/pip/issues/10573
+    """
+    local_dir = script.scratch_path.joinpath("temp")
+    local_dir.mkdir()
+    pyproject_path = local_dir.joinpath("pyproject.toml")
+    pyproject_path.write_text("")
+    setup_py_path = local_dir.joinpath("setup.py")
+    setup_py_path.write_text(
+        "from setuptools import setup\n"
+        "setup(name='dummy', setup_requires=['simplewheel'])\n"
+    )
+
+    script.pip("install", "--find-links", shared_data.find_links, "-e", local_dir)
 
 
 @pytest.mark.network

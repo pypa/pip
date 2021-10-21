@@ -39,7 +39,7 @@ class ReqMock:
         constraint: bool = False,
         source_dir: Optional[str] = "/tmp/pip-install-123/pendulum",
         use_pep517: bool = True,
-        supports_pyproject_editable: Optional[bool] = None,
+        supports_pyproject_editable: bool = False,
     ) -> None:
         self.name = name
         self.is_wheel = is_wheel
@@ -48,7 +48,10 @@ class ReqMock:
         self.constraint = constraint
         self.source_dir = source_dir
         self.use_pep517 = use_pep517
-        self.supports_pyproject_editable = supports_pyproject_editable
+        self._supports_pyproject_editable = supports_pyproject_editable
+
+    def supports_pyproject_editable(self) -> bool:
+        return self._supports_pyproject_editable
 
 
 @pytest.mark.parametrize(
@@ -66,7 +69,6 @@ class ReqMock:
         # We don't build reqs that are already wheels.
         (ReqMock(is_wheel=True), False, False),
         (ReqMock(editable=True, use_pep517=False), False, False),
-        (ReqMock(editable=True, use_pep517=True), False, True),
         (
             ReqMock(editable=True, use_pep517=True, supports_pyproject_editable=True),
             False,

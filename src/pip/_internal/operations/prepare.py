@@ -348,6 +348,7 @@ class RequirementPreparer:
         # installation.
         # FIXME: this won't upgrade when there's an existing
         # package unpacked in `req.source_dir`
+        # TODO: this check is now probably dead code
         if is_installable_dir(req.source_dir):
             raise PreviousBuildDirError(
                 "pip can't proceed with requirements '{}' due to a"

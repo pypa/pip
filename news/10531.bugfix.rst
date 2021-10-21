@@ -1,0 +1,2 @@
+Always refuse installing or building projects that have no ``pyproject.toml`` nor
+``setup.py``.

@@ -71,10 +71,8 @@ def _should_build(
         return False
 
     if req.editable:
-        if req.use_pep517 and req.supports_pyproject_editable is not False:
-            return True
-        # we don't build legacy editable requirements
-        return False
+        # we only build PEP 660 editable requirements
+        return req.supports_pyproject_editable()
 
     if req.use_pep517:
         return True

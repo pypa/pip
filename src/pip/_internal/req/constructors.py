@@ -235,6 +235,8 @@ def _get_url_from_path(path: str, name: str) -> Optional[str]:
     if _looks_like_path(name) and os.path.isdir(path):
         if is_installable_dir(path):
             return path_to_url(path)
+        # TODO: The is_installable_dir test here might not be necessary
+        #       now that it is done in load_pyproject_toml too.
         raise InstallationError(
             f"Directory {name!r} is not installable. Neither 'setup.py' "
             "nor 'pyproject.toml' found."
