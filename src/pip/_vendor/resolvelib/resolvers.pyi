@@ -9,13 +9,7 @@ from typing import (
 )
 
 from .providers import AbstractProvider, AbstractResolver
-from .structs import (
-    CT,
-    KT,
-    RT,
-    DirectedGraph,
-    IterableView,
-)
+from .structs import CT, KT, RT, DirectedGraph, IterableView
 
 # This should be a NamedTuple, but Python 3.6 has a bug that prevents it.
 # https://stackoverflow.com/a/50531189/1376863
