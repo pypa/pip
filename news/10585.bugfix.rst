@@ -1,1 +1,0 @@
-Restore compatibility of where configuration files are loaded from on MacOS (back to ``Library/Application Support/pip``, instead of ``Preferences/pip``).
