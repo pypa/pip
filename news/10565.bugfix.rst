@@ -1,1 +1,0 @@
-Tweak running-as-root detection, to check ``os.getuid`` if it exists, on Unix-y and non-Linux/non-MacOS machines.
