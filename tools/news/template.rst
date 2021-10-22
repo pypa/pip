@@ -33,6 +33,7 @@
 
 {# This is the loop that generates individual entries #}
 {% for message, issue_reference in sections[section_name][type_]|dictsort(by='value') %}
+
 - {{ message }}
   {%- if type_ not in ["vendor", "process"] %} ({{ issue_reference|sort|join(', ') }}){% endif %}
 {% endfor %}
