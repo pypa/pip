@@ -9,6 +9,31 @@
 
 .. towncrier release notes start
 
+21.3.1 (2021-10-22)
+===================
+
+
+Bug Fixes
+---------
+
+
+- Always refuse installing or building projects that have no ``pyproject.toml`` nor
+  ``setup.py``. (`#10531 <https://github.com/pypa/pip/issues/10531>`_)
+- Tweak running-as-root detection, to check ``os.getuid`` if it exists, on Unix-y and non-Linux/non-MacOS machines. (`#10565 <https://github.com/pypa/pip/issues/10565>`_)
+- When installing projects with a ``pyproject.toml`` in editable mode, and the build
+  backend does not support :pep:`660`, prepare metadata using
+  ``prepare_metadata_for_build_wheel`` instead of ``setup.py egg_info``. Also, refuse
+  installing projects that only have a ``setup.cfg`` and no ``setup.py`` nor
+  ``pyproject.toml``. These restore the pre-21.3 behaviour. (`#10573 <https://github.com/pypa/pip/issues/10573>`_)
+- Restore compatibility of where configuration files are loaded from on MacOS (back to ``Library/Application Support/pip``, instead of ``Preferences/pip``). (`#10585 <https://github.com/pypa/pip/issues/10585>`_)
+
+Vendored Libraries
+------------------
+
+
+- Upgrade pep517 to 0.12.0
+
+
 21.3 (2021-10-11)
 =================
 
