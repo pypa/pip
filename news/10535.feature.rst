@@ -1,2 +1,2 @@
-Catch ``BadZipFile`` errors and re-raise them as ``InvalidWheel`` which
-additionally reports wheel name and path.
+Catch exception when an invalid wheel is accessed
+and provide more information about the culprit in a new stacktrace.
