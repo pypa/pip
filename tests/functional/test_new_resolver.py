@@ -28,7 +28,6 @@ def assert_editable(script, *args):
 
 @pytest.fixture()
 def make_fake_wheel(script):
-
     def _make_fake_wheel(name, version, wheel_tag):
         wheel_house = script.scratch_path.joinpath("wheelhouse")
         wheel_house.mkdir()
@@ -1119,7 +1118,7 @@ def test_new_resolver_prefers_installed_in_upgrade_if_latest(script):
 @pytest.mark.parametrize("N", [2, 10, 20])
 def test_new_resolver_presents_messages_when_backtracking_a_lot(script, N):
     # Generate a set of wheels that will definitely cause backtracking.
-    for index in range(1, N+1):
+    for index in range(1, N + 1):
         A_version = f"{index}.0.0"
         B_version = f"{index}.0.0"
         C_version = "{index_minus_one}.0.0".format(index_minus_one=index - 1)
@@ -1131,7 +1130,7 @@ def test_new_resolver_presents_messages_when_backtracking_a_lot(script, N):
         print("A", A_version, "B", B_version, "C", C_version)
         create_basic_wheel_for_package(script, "A", A_version, depends=depends)
 
-    for index in range(1, N+1):
+    for index in range(1, N + 1):
         B_version = f"{index}.0.0"
         C_version = f"{index}.0.0"
         depends = ["C == " + C_version]
@@ -1139,7 +1138,7 @@ def test_new_resolver_presents_messages_when_backtracking_a_lot(script, N):
         print("B", B_version, "C", C_version)
         create_basic_wheel_for_package(script, "B", B_version, depends=depends)
 
-    for index in range(1, N+1):
+    for index in range(1, N + 1):
         C_version = f"{index}.0.0"
         print("C", C_version)
         create_basic_wheel_for_package(script, "C", C_version)
@@ -1181,8 +1180,10 @@ def test_new_resolver_presents_messages_when_resolving_conflicts(script):
         "install",
         "--no-cache-dir",
         "--no-index",
-        "--find-links", script.scratch_path,
-        "a", "b"
+        "--find-links",
+        script.scratch_path,
+        "a",
+        "b",
     )
 
     script.assert_installed(A="1.0.0", B="1.0.0", C="1.0.0")
