@@ -83,7 +83,7 @@ class Resolver(BaseResolver):
         else:
             reporter = PipReporter(
                 functools.partial(
-                    self.factory.get_backtracking_reason_message,
+                    self.factory.get_conflict_message,
                     constraints=collected.constraints,
                 )
             )

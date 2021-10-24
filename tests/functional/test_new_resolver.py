@@ -1164,7 +1164,7 @@ def test_new_resolver_presents_messages_when_backtracking_a_lot(script, N):
         assert "press Ctrl + C" in result.stdout
 
 
-def test_new_resolver_presents_messages_when_backtracking_starts(script):
+def test_new_resolver_presents_messages_when_resolving_conflicts(script):
     packages = [
         ("a", "2.0.0", ["c==2.0.0"]),
         ("a", "1.0.0", ["c==1.0.0"]),
@@ -1185,7 +1185,7 @@ def test_new_resolver_presents_messages_when_backtracking_starts(script):
         "a", "b"
     )
 
-    assert_installed(script, A="1.0.0", B="1.0.0", C="1.0.0")
+    script.assert_installed(A="1.0.0", B="1.0.0", C="1.0.0")
     message = """INFO: Cannot install a==2.0.0 and b==1.0.0 because these package versions have conflicting dependencies.
 The conflict is caused by:
     a 2.0.0 depends on c==2.0.0
