@@ -1,6 +1,15 @@
 import collections
 import math
-from typing import TYPE_CHECKING, Dict, Iterable, Iterator, Mapping, Sequence, Union
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    Iterable,
+    Iterator,
+    Mapping,
+    Sequence,
+    TypeVar,
+    Union,
+)
 
 from pip._vendor.resolvelib.providers import AbstractProvider
 
@@ -35,6 +44,35 @@ else:
 # and is created by the resolver and held as a property of the provider. It is
 # responsible for creating Requirement and Candidate objects, and provides
 # services to those objects (access to pip's finder and preparer).
+
+
+D = TypeVar("D")
+V = TypeVar("V")
+
+
+def _get_with_identifier(
+    mapping: Mapping[str, V],
+    identifier: str,
+    default: D,
+) -> Union[D, V]:
+    """Get item from a package name lookup mapping with a resolver identifier.
+
+    This extra logic is needed when the target mapping is keyed by package
+    name, which cannot be directly looked up with an identifier (which may
+    contain requested extras). Additional logic is added to also look up a value
+    by "cleaning up" the extras from the identifier.
+    """
+    if identifier in mapping:
+        return mapping[identifier]
+    # HACK: Theoretically we should check whether this identifier is a valid
+    # "NAME[EXTRAS]" format, and parse out the name part with packaging or
+    # some regular expression. But since pip's resolver only spits out three
+    # kinds of identifiers: normalized PEP 503 names, normalized names plus
+    # extras, and Requires-Python, we can cheat a bit here.
+    name, open_bracket, _ = identifier.partition("[")
+    if open_bracket and name in mapping:
+        return mapping[name]
+    return default
 
 
 class PipProvider(_ProviderBase):
@@ -150,28 +188,13 @@ class PipProvider(_ProviderBase):
             identifier,
         )
 
-    def _get_constraint(self, identifier: str) -> Constraint:
-        if identifier in self._constraints:
-            return self._constraints[identifier]
-
-        # HACK: Theoretically we should check whether this identifier is a valid
-        # "NAME[EXTRAS]" format, and parse out the name part with packaging or
-        # some regular expression. But since pip's resolver only spits out
-        # three kinds of identifiers: normalized PEP 503 names, normalized names
-        # plus extras, and Requires-Python, we can cheat a bit here.
-        name, open_bracket, _ = identifier.partition("[")
-        if open_bracket and name in self._constraints:
-            return self._constraints[name]
-
-        return Constraint.empty()
-
     def find_matches(
         self,
         identifier: str,
         requirements: Mapping[str, Iterator[Requirement]],
         incompatibilities: Mapping[str, Iterator[Candidate]],
     ) -> Iterable[Candidate]:
-        def _eligible_for_upgrade(name: str) -> bool:
+        def _eligible_for_upgrade(identifier: str) -> bool:
             """Are upgrades allowed for this project?
 
             This checks the upgrade strategy, and whether the project was one
@@ -185,13 +208,23 @@ class PipProvider(_ProviderBase):
             if self._upgrade_strategy == "eager":
                 return True
             elif self._upgrade_strategy == "only-if-needed":
-                return name in self._user_requested
+                user_order = _get_with_identifier(
+                    self._user_requested,
+                    identifier,
+                    default=None,
+                )
+                return user_order is not None
             return False
 
+        constraint = _get_with_identifier(
+            self._constraints,
+            identifier,
+            default=Constraint.empty(),
+        )
         return self._factory.find_candidates(
             identifier=identifier,
             requirements=requirements,
-            constraint=self._get_constraint(identifier),
+            constraint=constraint,
             prefers_installed=(not _eligible_for_upgrade(identifier)),
             incompatibilities=incompatibilities,
         )

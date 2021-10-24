@@ -2180,3 +2180,36 @@ def test_new_resolver_dont_backtrack_on_extra_if_base_constrained(script):
     )
     assert "pkg-2.0" not in result.stdout, "Should not try 2.0 due to constraint"
     script.assert_installed(pkg="1.0", dep="1.0")
+
+
+def test_new_resolver_respect_user_requested_if_extra_is_installed(script):
+    create_basic_wheel_for_package(script, "pkg1", "1.0")
+    create_basic_wheel_for_package(script, "pkg2", "1.0", extras={"ext": ["pkg1"]})
+    create_basic_wheel_for_package(script, "pkg2", "2.0", extras={"ext": ["pkg1"]})
+    create_basic_wheel_for_package(script, "pkg3", "1.0", depends=["pkg2[ext]"])
+
+    # Install pkg3 with an older pkg2.
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "pkg3",
+        "pkg2==1.0",
+    )
+    script.assert_installed(pkg3="1.0", pkg2="1.0", pkg1="1.0")
+
+    # Now upgrade both pkg3 and pkg2. pkg2 should be upgraded although pkg2[ext]
+    # is not requested by the user.
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "--upgrade",
+        "pkg3",
+        "pkg2",
+    )
+    script.assert_installed(pkg3="1.0", pkg2="2.0", pkg1="1.0")
