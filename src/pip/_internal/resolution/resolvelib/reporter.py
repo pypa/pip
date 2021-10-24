@@ -1,8 +1,10 @@
 from collections import defaultdict
 from logging import getLogger
-from typing import Any, DefaultDict
+from typing import Any, DefaultDict, Callable, List, Optional
 
 from pip._vendor.resolvelib.reporters import BaseReporter
+from pip._vendor.resolvelib.resolvers import RequirementInformation
+from pip._vendor.resolvelib.structs import RT, CT
 
 from .base import Candidate, Requirement
 
@@ -10,7 +12,7 @@ logger = getLogger(__name__)
 
 
 class PipReporter(BaseReporter):
-    def __init__(self, conflicts_message_generator) -> None:
+    def __init__(self, conflicts_message_generator: Callable[[List[List[RequirementInformation[RT, CT]]]], Optional[str]]) -> None:
         self.backtracks_by_package: DefaultDict[str, int] = defaultdict(int)
         self.conflicts_message_generator = conflicts_message_generator
 

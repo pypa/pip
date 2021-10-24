@@ -47,6 +47,8 @@ from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.virtualenv import running_under_virtualenv
+from pip._vendor.resolvelib.resolvers import RequirementInformation
+from pip._vendor.resolvelib.structs import RT, CT
 
 from .base import Candidate, CandidateVersion, Constraint, Requirement
 from .candidates import (
@@ -78,6 +80,7 @@ logger = logging.getLogger(__name__)
 
 C = TypeVar("C")
 Cache = Dict[Link, C]
+Constraints = Dict[str, Constraint]
 
 
 class CollectedRootRequirements(NamedTuple):
@@ -600,7 +603,7 @@ class Factory:
     def get_installation_error(
         self,
         e: "ResolutionImpossible[Requirement, Candidate]",
-        constraints: Dict[str, Constraint],
+        constraints: Constraints,
     ) -> InstallationError:
 
         failure_causes = e.causes
@@ -632,7 +635,7 @@ class Factory:
         logger.critical(self.triggers_message(failure_causes))
 
         msg = (
-            self.causes_message(constraints, failure_causes)
+            self.causes_message(failure_causes, constraints)
             + "\n\n"
             + "To fix this you could try to:\n"
             + "1. loosen the range of package versions you've specified\n"
@@ -649,10 +652,12 @@ class Factory:
         )
 
     @staticmethod
-    def causes_message(constraints, failure_causes):
+    def causes_message(
+        causes: List[RequirementInformation[RT, CT]], constraints: Constraints
+    ) -> str:
         msg = "\nThe conflict is caused by:"
         relevant_constraints = set()
-        for req, parent in failure_causes:
+        for req, parent in causes:
             if req.name in constraints:
                 relevant_constraints.add(req.name)
             msg = msg + "\n    "
@@ -667,7 +672,7 @@ class Factory:
         return msg
 
     @staticmethod
-    def triggers_message(failure_causes):
+    def triggers_message(causes: List[RequirementInformation[RT, CT]]) -> str:
         # A couple of formatting helpers
         def text_join(parts: List[str]) -> str:
             if len(parts) == 1:
@@ -684,7 +689,7 @@ class Factory:
             return str(ireq.comes_from)
 
         triggers = set()
-        for req, parent in failure_causes:
+        for req, parent in causes:
             if parent is None:
                 # This is a root requirement, so we can report it directly
                 trigger = req.format_for_error()
@@ -701,22 +706,25 @@ class Factory:
         )
         return msg
 
-
-    def extract_requires_python_causes(self, failure_causes):
+    def extract_requires_python_causes(
+        self, causes: List[RequirementInformation[RT, CT]]
+    ) -> List[RequirementInformation[RT, CT]]:
         return [
             cause
-            for cause in failure_causes
+            for cause in causes
             if isinstance(cause.requirement, RequiresPythonRequirement)
             and not cause.requirement.is_satisfied_by(self._python_candidate)
         ]
 
-    def get_conflict_message(self, causes, constraints):
+    def get_conflict_message(
+        self, causes: List[RequirementInformation[RT, CT]], constraints: Constraints
+    ) -> Optional[str]:
         requires_python_causes = self.extract_requires_python_causes(causes)
         if requires_python_causes or len(causes) == 1:
             # no message when python causes or a single failure, since this is probably a genuine problem
-            return
+            return None
 
         # OK, we now have a list of requirements that can't all be
         # satisfied at once.
 
-        return self.triggers_message(causes) + self.causes_message(constraints, causes)
+        return self.triggers_message(causes) + self.causes_message(causes, constraints)
