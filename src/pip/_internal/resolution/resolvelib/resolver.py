@@ -217,25 +217,23 @@ def get_topological_weights(
     path: Set[Optional[str]] = set()
     weights: Dict[Optional[str], int] = {}
 
-    # Make a copy of the graph and edit the copy,
-    # instead of changing the original.
-    cgraph: "DirectedGraph[Optional[str]]" = graph.copy()
-
     def simplify_graph() -> None:
         leaves = set()
-        for key in cgraph:
-            if not list(cgraph.iter_children(key)) and key is not None:
+        for key in graph:
+            if key is None:
+                continue
+            if next(graph.iter_children(key), None) is not None:
                 leaves.add(key)
         if not leaves:
             # We are done simplifying.
             return
         # Calculate the weight for the leaves.
-        weight = len(cgraph) - 1
-        for leave in leaves:
-            weights[leave] = weight
+        weight = len(graph) - 1
+        for leaf in leaves:
+            weights[leaf] = weight
         # Remove the leaves from the copy of the graph, making the copy simpler.
-        for leave in leaves:
-            cgraph.remove(leave)
+        for leaf in leaves:
+            graph.remove(leaf)
         # Now that we have a simpler graph, try to simplify it again.
         simplify_graph()
 
@@ -246,7 +244,7 @@ def get_topological_weights(
 
         # Time to visit the children!
         path.add(node)
-        for child in cgraph.iter_children(node):
+        for child in graph.iter_children(node):
             visit(child)
         path.remove(node)
 
