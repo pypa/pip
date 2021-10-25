@@ -22,6 +22,7 @@ from pip._vendor.packaging.requirements import InvalidRequirement
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.resolvelib import ResolutionImpossible
+from pip._vendor.resolvelib.resolvers import RequirementInformation
 
 from pip._internal.cache import CacheEntry, WheelCache
 from pip._internal.exceptions import (
@@ -47,8 +48,6 @@ from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.virtualenv import running_under_virtualenv
-from pip._vendor.resolvelib.resolvers import RequirementInformation
-from pip._vendor.resolvelib.structs import RT, CT
 
 from .base import Candidate, CandidateVersion, Constraint, Requirement
 from .candidates import (
@@ -81,6 +80,7 @@ logger = logging.getLogger(__name__)
 C = TypeVar("C")
 Cache = Dict[Link, C]
 Constraints = Dict[str, Constraint]
+Causes = Sequence[RequirementInformation[Requirement, Candidate]]
 
 
 class CollectedRootRequirements(NamedTuple):
@@ -652,9 +652,7 @@ class Factory:
         )
 
     @staticmethod
-    def causes_message(
-        causes: List[RequirementInformation[RT, CT]], constraints: Constraints
-    ) -> str:
+    def causes_message(causes: Causes, constraints: Constraints) -> str:
         msg = "\nThe conflict is caused by:"
         relevant_constraints = set()
         for req, parent in causes:
@@ -672,7 +670,7 @@ class Factory:
         return msg
 
     @staticmethod
-    def triggers_message(causes: List[RequirementInformation[RT, CT]]) -> str:
+    def triggers_message(causes: Causes) -> str:
         # A couple of formatting helpers
         def text_join(parts: List[str]) -> str:
             if len(parts) == 1:
@@ -706,9 +704,7 @@ class Factory:
         )
         return msg
 
-    def extract_requires_python_causes(
-        self, causes: List[RequirementInformation[RT, CT]]
-    ) -> List[RequirementInformation[RT, CT]]:
+    def extract_requires_python_causes(self, causes: Causes) -> Causes:
         return [
             cause
             for cause in causes
@@ -717,7 +713,7 @@ class Factory:
         ]
 
     def get_conflict_message(
-        self, causes: List[RequirementInformation[RT, CT]], constraints: Constraints
+        self, causes: Causes, constraints: Constraints
     ) -> Optional[str]:
         requires_python_causes = self.extract_requires_python_causes(causes)
         if requires_python_causes or len(causes) == 1:
