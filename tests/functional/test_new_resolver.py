@@ -1187,10 +1187,13 @@ def test_new_resolver_presents_messages_when_resolving_conflicts(script):
     )
 
     script.assert_installed(A="1.0.0", B="1.0.0", C="1.0.0")
-    message = """INFO: Cannot install a==2.0.0 and b==1.0.0 because these package versions have conflicting dependencies.
-The conflict is caused by:
-    a 2.0.0 depends on c==2.0.0
-    b 1.0.0 depends on c==1.0.0"""
+    message = (
+        "INFO: Cannot install a==2.0.0 and b==1.0.0 "
+        "because these package versions have conflicting dependencies.\n"
+        "The conflict is caused by:\n"
+        "    a 2.0.0 depends on c==2.0.0\n"
+        "    b 1.0.0 depends on c==1.0.0"
+    )
     stdout = result.stdout
     assert message in stdout
 

@@ -74,13 +74,15 @@ if TYPE_CHECKING:
         requirement: RequiresPythonRequirement
         parent: Candidate
 
+    Causes = Sequence[RequirementInformation[Requirement, Candidate]]
+else:
+    Causes = Sequence
 
 logger = logging.getLogger(__name__)
 
 C = TypeVar("C")
 Cache = Dict[Link, C]
 Constraints = Dict[str, Constraint]
-Causes = Sequence[RequirementInformation[Requirement, Candidate]]
 
 
 class CollectedRootRequirements(NamedTuple):
@@ -717,7 +719,8 @@ class Factory:
     ) -> Optional[str]:
         requires_python_causes = self.extract_requires_python_causes(causes)
         if requires_python_causes or len(causes) == 1:
-            # no message when python causes or a single failure, since this is probably a genuine problem
+            # no message when python causes or a single failure
+            # since this is probably a genuine problem
             return None
 
         # OK, we now have a list of requirements that can't all be

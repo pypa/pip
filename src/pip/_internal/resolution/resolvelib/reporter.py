@@ -1,13 +1,16 @@
 from collections import defaultdict
 from logging import getLogger
-from typing import Any, Callable, DefaultDict, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, DefaultDict, Optional, Sequence
 
 from pip._vendor.resolvelib.reporters import BaseReporter
 from pip._vendor.resolvelib.resolvers import RequirementInformation
 
 from .base import Candidate, Requirement
 
-Causes = List[RequirementInformation[Requirement, Candidate]]
+if TYPE_CHECKING:
+    Causes = Sequence[RequirementInformation[Requirement, Candidate]]
+else:
+    Causes = Sequence
 
 
 logger = getLogger(__name__)
