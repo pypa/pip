@@ -222,7 +222,7 @@ def get_topological_weights(
         for key in graph:
             if key is None:
                 continue
-            if next(graph.iter_children(key), None) is not None:
+            if next(graph.iter_children(key), None) is None:
                 leaves.add(key)
         if not leaves:
             # We are done simplifying.
