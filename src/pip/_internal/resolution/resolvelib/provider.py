@@ -7,6 +7,7 @@ from typing import (
     Iterator,
     Mapping,
     Sequence,
+    Set,
     TypeVar,
     Union,
 )
@@ -73,6 +74,24 @@ def _get_with_identifier(
     if open_bracket and name in mapping:
         return mapping[name]
     return default
+
+
+key_to_names: Dict[int, Set[str]] = {}
+
+
+def _get_causes_set(backtrack_causes: Sequence["PreferenceInformation"]) -> Set[str]:
+    key = id(backtrack_causes)
+    cached_names = key_to_names.get(key)
+    if cached_names is None:
+        key_to_names.clear()
+        cached_names = set()
+        for backtrack_cause in backtrack_causes:
+            cached_names.add(backtrack_cause.requirement.name)
+            parent = backtrack_cause.parent
+            if parent:
+                cached_names.add(parent.name)
+        key_to_names[key] = cached_names
+    return cached_names
 
 
 class PipProvider(_ProviderBase):
@@ -240,9 +259,4 @@ class PipProvider(_ProviderBase):
     def is_backtrack_cause(
         identifier: str, backtrack_causes: Sequence["PreferenceInformation"]
     ) -> bool:
-        for backtrack_cause in backtrack_causes:
-            if identifier == backtrack_cause.requirement.name:
-                return True
-            if backtrack_cause.parent and identifier == backtrack_cause.parent.name:
-                return True
-        return False
+        return identifier in _get_causes_set(backtrack_causes)
