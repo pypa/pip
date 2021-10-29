@@ -8,6 +8,7 @@ from typing import (
     Mapping,
     Sequence,
     Set,
+    Tuple,
     TypeVar,
     Union,
 )
@@ -76,24 +77,6 @@ def _get_with_identifier(
     return default
 
 
-key_to_names: Dict[int, Set[str]] = {}
-
-
-def _get_causes_set(backtrack_causes: Sequence["PreferenceInformation"]) -> Set[str]:
-    key = id(backtrack_causes)
-    cached_names = key_to_names.get(key)
-    if cached_names is None:
-        key_to_names.clear()
-        cached_names = set()
-        for backtrack_cause in backtrack_causes:
-            cached_names.add(backtrack_cause.requirement.name)
-            parent = backtrack_cause.parent
-            if parent:
-                cached_names.add(parent.name)
-        key_to_names[key] = cached_names
-    return cached_names
-
-
 class PipProvider(_ProviderBase):
     """Pip's provider implementation for resolvelib.
 
@@ -119,6 +102,7 @@ class PipProvider(_ProviderBase):
         self._upgrade_strategy = upgrade_strategy
         self._user_requested = user_requested
         self._known_depths: Dict[str, float] = collections.defaultdict(lambda: math.inf)
+        self._backtrack_cause_name_collections: Dict[Tuple[int, ...], Set[str]] = {}
 
     def identify(self, requirement_or_candidate: Union[Requirement, Candidate]) -> str:
         return requirement_or_candidate.name
@@ -255,8 +239,28 @@ class PipProvider(_ProviderBase):
         with_requires = not self._ignore_dependencies
         return [r for r in candidate.iter_dependencies(with_requires) if r is not None]
 
-    @staticmethod
     def is_backtrack_cause(
-        identifier: str, backtrack_causes: Sequence["PreferenceInformation"]
+        self, identifier: str, backtrack_causes: Sequence["PreferenceInformation"]
     ) -> bool:
-        return identifier in _get_causes_set(backtrack_causes)
+        return identifier in self._get_causes_set(backtrack_causes)
+
+    def _get_causes_set(
+        self,
+        backtrack_causes: Sequence["PreferenceInformation"],
+    ) -> Set[str]:
+        backtrack_causes_collection_key = tuple(id(c) for c in backtrack_causes)
+        cached_names = self._backtrack_cause_name_collections.get(
+            backtrack_causes_collection_key
+        )
+        if cached_names is None:
+            self._backtrack_cause_name_collections.clear()
+            cached_names = set()
+            for backtrack_cause in backtrack_causes:
+                cached_names.add(backtrack_cause.requirement.name)
+                parent = backtrack_cause.parent
+                if parent:
+                    cached_names.add(parent.name)
+            self._backtrack_cause_name_collections[
+                backtrack_causes_collection_key
+            ] = cached_names
+        return cached_names
