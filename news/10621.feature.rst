@@ -1,1 +1,1 @@
-Optimize performance of conflict cause resolution while backtracking.
+Optimize performance of conflict cause resolution while the dependency resolver backtracks.
