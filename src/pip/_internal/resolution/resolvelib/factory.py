@@ -696,6 +696,6 @@ class Factory:
 
         return DistributionNotFound(
             "ResolutionImpossible: for help visit "
-            "https://pip.pypa.io/en/latest/user_guide/"
-            "#fixing-conflicting-dependencies"
+            "https://pip.pypa.io/en/latest/topics/dependency-resolution/"
+            "#dealing-with-dependency-conflicts"
         )
