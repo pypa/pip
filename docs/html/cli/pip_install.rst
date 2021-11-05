@@ -672,7 +672,7 @@ Examples
          py -m pip install -e git+https://git.repo/some_pkg.git@feature#egg=SomePackage  # from 'feature' branch
          py -m pip install -e "git+https://git.repo/some_repo.git#egg=subdir&subdirectory=subdir_path" # install a python package from a repo subdirectory
 
-#. Install a package with `setuptools extras`_.
+#. Install a package with `extras`_.
 
    .. tab:: Unix/macOS
 
@@ -836,5 +836,5 @@ Examples
 .. [1] This is true with the exception that pip v7.0 and v7.0.1 required quotes
        around specifiers containing environment markers in requirement files.
 
-.. _setuptools extras: https://setuptools.readthedocs.io/en/latest/userguide/dependency_management.html#optional-dependencies
+.. _extras: https://www.python.org/dev/peps/pep-0508/#extras
 .. _PyPI: https://pypi.org/
