@@ -14,6 +14,9 @@ requests==2.26.0
     chardet==4.0.0
     idna==3.2
     urllib3==1.26.7
+rich==10.13.0
+    pygments==2.10.0
+    typing_extensions==3.10.0.2
 resolvelib==0.8.1
 setuptools==44.0.0
 six==1.16.0
