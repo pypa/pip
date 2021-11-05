@@ -135,8 +135,6 @@ class InstallCommand(RequirementCommand):
             ),
         )
 
-        self.cmd_opts.add_option(cmdoptions.build_dir())
-
         self.cmd_opts.add_option(cmdoptions.src())
 
         self.cmd_opts.add_option(
@@ -306,6 +304,12 @@ class InstallCommand(RequirementCommand):
         try:
             reqs = self.get_requirements(args, options, finder, session)
 
+            # Only when installing is it permitted to use PEP 660.
+            # In other circumstances (pip wheel, pip download) we generate
+            # regular (i.e. non editable) metadata and wheels.
+            for req in reqs:
+                req.permit_editable_wheels = True
+
             reject_location_related_install_options(reqs, options.install_options)
 
             preparer = self.make_requirement_preparer(
@@ -361,22 +365,22 @@ class InstallCommand(RequirementCommand):
                 global_options=[],
             )
 
-            # If we're using PEP 517, we cannot do a direct install
+            # If we're using PEP 517, we cannot do a legacy setup.py install
             # so we fail here.
             pep517_build_failure_names: List[str] = [
                 r.name for r in build_failures if r.use_pep517  # type: ignore
             ]
             if pep517_build_failure_names:
                 raise InstallationError(
-                    "Could not build wheels for {} which use"
-                    " PEP 517 and cannot be installed directly".format(
+                    "Could not build wheels for {}, which is required to "
+                    "install pyproject.toml-based projects".format(
                         ", ".join(pep517_build_failure_names)
                     )
                 )
 
             # For now, we just warn about failures building legacy
-            # requirements, as we'll fall through to a direct
-            # install for those.
+            # requirements, as we'll fall through to a setup.py install for
+            # those.
             for r in build_failures:
                 if not r.use_pep517:
                     r.legacy_install_reason = 8368

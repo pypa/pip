@@ -11,7 +11,7 @@ from pip._internal.metadata.pkg_resources import (
 from pip._internal.utils.pkg_resources import DictMetadata
 
 
-def test_dict_metadata_works():
+def test_dict_metadata_works() -> None:
     name = "simple"
     version = "0.1.0"
     require_a = "a==1.0"
@@ -48,7 +48,7 @@ def test_dict_metadata_works():
     assert SpecifierSet(requires_python) == dist.requires_python
 
 
-def test_dict_metadata_throws_on_bad_unicode():
+def test_dict_metadata_throws_on_bad_unicode() -> None:
     metadata = DictMetadata({"METADATA": b"\xff"})
 
     with pytest.raises(UnicodeDecodeError) as e:

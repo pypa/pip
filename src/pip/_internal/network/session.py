@@ -3,6 +3,7 @@ network request configuration and behavior.
 """
 
 import email.utils
+import io
 import ipaddress
 import json
 import logging
@@ -207,8 +208,11 @@ class LocalFSAdapter(BaseAdapter):
         try:
             stats = os.stat(pathname)
         except OSError as exc:
+            # format the exception raised as a io.BytesIO object,
+            # to return a better error message:
             resp.status_code = 404
-            resp.raw = exc
+            resp.reason = type(exc).__name__
+            resp.raw = io.BytesIO(f"{resp.reason}: {exc}".encode("utf8"))
         else:
             modified = email.utils.formatdate(stats.st_mtime, usegmt=True)
             content_type = mimetypes.guess_type(pathname)[0] or "text/plain"
@@ -358,8 +362,15 @@ class PipSession(requests.Session):
         if host_port not in self.pip_trusted_origins:
             self.pip_trusted_origins.append(host_port)
 
+        self.mount(
+            build_url_from_netloc(host, scheme="http") + "/", self._trusted_host_adapter
+        )
         self.mount(build_url_from_netloc(host) + "/", self._trusted_host_adapter)
         if not host_port[1]:
+            self.mount(
+                build_url_from_netloc(host, scheme="http") + ":",
+                self._trusted_host_adapter,
+            )
             # Mount wildcard ports for the same host.
             self.mount(build_url_from_netloc(host) + ":", self._trusted_host_adapter)
 

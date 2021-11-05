@@ -31,10 +31,11 @@ if not hasattr(signal, "pthread_sigmask"):
 else:
 
     @contextmanager
-    def blocked_signals():
+    def blocked_signals() -> Iterator[None]:
         """Block all signals for e.g. starting a worker thread."""
         # valid_signals() was added in Python 3.8 (and not using it results
         # in a warning on pthread_sigmask() call)
+        mask: Iterable[int]
         try:
             mask = signal.valid_signals()
         except AttributeError:
@@ -48,7 +49,7 @@ else:
 
 
 class _RequestHandler(WSGIRequestHandler):
-    def make_environ(self):
+    def make_environ(self) -> Dict[str, Any]:
         environ = super().make_environ()
 
         # From pallets/werkzeug#1469, will probably be in release after
@@ -176,7 +177,7 @@ def html5_page(text: str) -> str:
 
 
 def index_page(spec: Dict[str, str]) -> "WSGIApplication":
-    def link(name, value):
+    def link(name: str, value: str) -> str:
         return '<a href="{}">{}</a>'.format(value, name)
 
     links = "".join(link(*kv) for kv in spec.items())
@@ -184,7 +185,7 @@ def index_page(spec: Dict[str, str]) -> "WSGIApplication":
 
 
 def package_page(spec: Dict[str, str]) -> "WSGIApplication":
-    def link(name, value):
+    def link(name: str, value: str) -> str:
         return '<a href="{}">{}</a>'.format(value, name)
 
     links = "".join(link(*kv) for kv in spec.items())

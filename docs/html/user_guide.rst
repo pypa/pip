@@ -113,7 +113,7 @@ installed using :ref:`pip install` like so:
 
       py -m pip install -r requirements.txt
 
-Details on the format of the files are here: :ref:`Requirements File Format`.
+Details on the format of the files are here: :ref:`requirements-file-format`.
 
 Logically, a Requirements file is just a list of :ref:`pip install` arguments
 placed in a file. Note that you should not rely on the items in the file being
@@ -180,12 +180,12 @@ In practice, there are 4 common uses of Requirements files:
 
 It's important to be clear that pip determines package dependencies using
 `install_requires metadata
-<https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-dependencies>`_,
+<https://setuptools.readthedocs.io/en/latest/userguide/dependency_management.html>`_,
 not by discovering ``requirements.txt`` files embedded in projects.
 
 See also:
 
-* :ref:`Requirements File Format`
+* :ref:`requirements-file-format`
 * :ref:`pip freeze`
 * `"setup.py vs requirements.txt" (an article by Donald Stufft)
   <https://caremad.io/2013/07/setup-vs-requirement/>`_
@@ -1008,9 +1008,9 @@ How to upgrade and migrate
 
 4. **Troubleshoot and try these workarounds if necessary.**
 
-   -  If pip is taking longer to install packages, read
-      :ref:`Dependency resolution backtracking` for ways to reduce the
-      time pip spends backtracking due to dependency conflicts.
+   -  If pip is taking longer to install packages, read :doc:`Dependency
+      resolution backtracking <topics/dependency-resolution>` for ways to
+      reduce the time pip spends backtracking due to dependency conflicts.
    -  If you don't want pip to actually resolve dependencies, use the
       ``--no-deps`` option. This is useful when you have a set of package
       versions that work together in reality, even though their metadata says

@@ -44,7 +44,7 @@ class IndexCommand(IndexGroupCommand):
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, self.cmd_opts)
 
-    def run(self, options: Values, args: List[Any]) -> int:
+    def run(self, options: Values, args: List[str]) -> int:
         handlers = {
             "versions": self.get_available_package_versions,
         }

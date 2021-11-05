@@ -34,6 +34,7 @@ from pip._internal.req.req_install import InstallRequirement
 from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.self_outdated_check import pip_self_version_check
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.temp_dir import (
     TempDirectory,
     TempDirectoryTypeRegistry,
@@ -172,9 +173,10 @@ def warn_if_run_as_root() -> None:
     # checks: https://mypy.readthedocs.io/en/stable/common_issues.html
     if sys.platform == "win32" or sys.platform == "cygwin":
         return
-    if sys.platform == "darwin" or sys.platform == "linux":
-        if os.getuid() != 0:
-            return
+
+    if os.getuid() != 0:
+        return
+
     logger.warning(
         "Running pip as the 'root' user can result in broken permissions and "
         "conflicting behaviour with the system package manager. "
@@ -260,6 +262,20 @@ class RequirementCommand(IndexGroupCommand):
                     "fast-deps has no effect when used with the legacy resolver."
                 )
 
+        in_tree_build = "out-of-tree-build" not in options.deprecated_features_enabled
+        if "in-tree-build" in options.features_enabled:
+            deprecated(
+                reason="In-tree builds are now the default.",
+                replacement="to remove the --use-feature=in-tree-build flag",
+                gone_in="22.1",
+            )
+        if "out-of-tree-build" in options.deprecated_features_enabled:
+            deprecated(
+                reason="Out-of-tree builds are deprecated.",
+                replacement=None,
+                gone_in="22.1",
+            )
+
         return RequirementPreparer(
             build_dir=temp_build_dir_path,
             src_dir=options.src_dir,
@@ -272,7 +288,7 @@ class RequirementCommand(IndexGroupCommand):
             require_hashes=options.require_hashes,
             use_user_site=use_user_site,
             lazy_wheel=lazy_wheel,
-            in_tree_build="in-tree-build" in options.features_enabled,
+            in_tree_build=in_tree_build,
         )
 
     @classmethod

@@ -622,11 +622,8 @@ def make_wheel_with_python_requires(script, package_name, python_requires):
     return package_dir / "dist" / file_name
 
 
-def test_download__python_version_used_for_python_requires(
-    script,
-    data,
-    with_wheel,
-):
+@pytest.mark.usefixtures("with_wheel")
+def test_download__python_version_used_for_python_requires(script, data):
     """
     Test that --python-version is used for the Requires-Python check.
     """
@@ -664,10 +661,8 @@ def test_download__python_version_used_for_python_requires(
     script.pip(*args)  # no exception
 
 
-def test_download_ignore_requires_python_dont_fail_with_wrong_python(
-    script,
-    with_wheel,
-):
+@pytest.mark.usefixtures("with_wheel")
+def test_download_ignore_requires_python_dont_fail_with_wrong_python(script):
     """
     Test that --ignore-requires-python ignores Requires-Python check.
     """

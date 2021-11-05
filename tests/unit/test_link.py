@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pytest
 
 from pip._internal.models.link import Link, links_equivalent
@@ -14,7 +16,7 @@ class TestLink:
             ),
         ],
     )
-    def test_repr(self, url, expected):
+    def test_repr(self, url: str, expected: str) -> None:
         link = Link(url)
         assert repr(link) == expected
 
@@ -42,32 +44,32 @@ class TestLink:
             ),
         ],
     )
-    def test_filename(self, url, expected):
+    def test_filename(self, url: str, expected: str) -> None:
         link = Link(url)
         assert link.filename == expected
 
-    def test_splitext(self):
+    def test_splitext(self) -> None:
         assert ("wheel", ".whl") == Link("http://yo/wheel.whl").splitext()
 
-    def test_no_ext(self):
+    def test_no_ext(self) -> None:
         assert "" == Link("http://yo/wheel").ext
 
-    def test_ext(self):
+    def test_ext(self) -> None:
         assert ".whl" == Link("http://yo/wheel.whl").ext
 
-    def test_ext_fragment(self):
+    def test_ext_fragment(self) -> None:
         assert ".whl" == Link("http://yo/wheel.whl#frag").ext
 
-    def test_ext_query(self):
+    def test_ext_query(self) -> None:
         assert ".whl" == Link("http://yo/wheel.whl?a=b").ext
 
-    def test_is_wheel(self):
+    def test_is_wheel(self) -> None:
         assert Link("http://yo/wheel.whl").is_wheel
 
-    def test_is_wheel_false(self):
+    def test_is_wheel_false(self) -> None:
         assert not Link("http://yo/not_a_wheel").is_wheel
 
-    def test_fragments(self):
+    def test_fragments(self) -> None:
         url = "git+https://example.com/package#egg=eggname"
         assert "eggname" == Link(url).egg_fragment
         assert None is Link(url).subdirectory_fragment
@@ -86,7 +88,7 @@ class TestLink:
             ("there was a mistake", True),
         ],
     )
-    def test_is_yanked(self, yanked_reason, expected):
+    def test_is_yanked(self, yanked_reason: Optional[str], expected: bool) -> None:
         link = Link(
             "https://example.com/wheel.whl",
             yanked_reason=yanked_reason,
@@ -107,7 +109,9 @@ class TestLink:
             ("sha512", "", False),
         ],
     )
-    def test_is_hash_allowed(self, hash_name, hex_digest, expected):
+    def test_is_hash_allowed(
+        self, hash_name: str, hex_digest: str, expected: bool
+    ) -> None:
         url = "https://example.com/wheel.whl#{hash_name}={hex_digest}".format(
             hash_name=hash_name,
             hex_digest=hex_digest,
@@ -119,7 +123,7 @@ class TestLink:
         hashes = Hashes(hashes_data)
         assert link.is_hash_allowed(hashes) == expected
 
-    def test_is_hash_allowed__no_hash(self):
+    def test_is_hash_allowed__no_hash(self) -> None:
         link = Link("https://example.com/wheel.whl")
         hashes_data = {
             "sha512": [128 * "a"],
@@ -135,7 +139,9 @@ class TestLink:
             (Hashes({"sha512": [128 * "a"]}), True),
         ],
     )
-    def test_is_hash_allowed__none_hashes(self, hashes, expected):
+    def test_is_hash_allowed__none_hashes(
+        self, hashes: Optional[Hashes], expected: bool
+    ) -> None:
         url = "https://example.com/wheel.whl#sha512={}".format(128 * "a")
         link = Link(url)
         assert link.is_hash_allowed(hashes) == expected
@@ -150,7 +156,7 @@ class TestLink:
             ("file://home/foo/some.whl", False),
         ],
     )
-    def test_is_vcs(self, url, expected):
+    def test_is_vcs(self, url: str, expected: bool) -> None:
         link = Link(url)
         assert link.is_vcs is expected
 
@@ -180,7 +186,7 @@ class TestLink:
         ),
     ],
 )
-def test_links_equivalent(url1, url2):
+def test_links_equivalent(url1: str, url2: str) -> None:
     assert links_equivalent(Link(url1), Link(url2))
 
 
@@ -204,5 +210,5 @@ def test_links_equivalent(url1, url2):
         ),
     ],
 )
-def test_links_equivalent_false(url1, url2):
+def test_links_equivalent_false(url1: str, url2: str) -> None:
     assert not links_equivalent(Link(url1), Link(url2))

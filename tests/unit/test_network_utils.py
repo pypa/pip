@@ -12,25 +12,24 @@ from tests.lib.requests_mocks import MockResponse
         (501, "Server Error"),
     ],
 )
-def test_raise_for_status_raises_exception(status_code, error_type):
+def test_raise_for_status_raises_exception(status_code: int, error_type: str) -> None:
     contents = b"downloaded"
     resp = MockResponse(contents)
     resp.status_code = status_code
     resp.url = "http://www.example.com/whatever.tgz"
     resp.reason = "Network Error"
-    with pytest.raises(NetworkConnectionError) as exc:
+    with pytest.raises(NetworkConnectionError) as excinfo:
         raise_for_status(resp)
-        assert str(exc.info) == (
-            "{} {}: Network Error for url:"
-            " http://www.example.com/whatever.tgz".format(status_code, error_type)
-        )
+    assert str(excinfo.value) == (
+        "{} {}: Network Error for url:"
+        " http://www.example.com/whatever.tgz".format(status_code, error_type)
+    )
 
 
-def test_raise_for_status_does_not_raises_exception():
+def test_raise_for_status_does_not_raises_exception() -> None:
     contents = b"downloaded"
     resp = MockResponse(contents)
     resp.status_code = 201
     resp.url = "http://www.example.com/whatever.tgz"
     resp.reason = "No error"
-    return_value = raise_for_status(resp)
-    assert return_value is None
+    raise_for_status(resp)

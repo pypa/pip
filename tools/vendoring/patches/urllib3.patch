@@ -1,0 +1,29 @@
+diff --git a/src/pip/_vendor/urllib3/contrib/securetransport.py b/src/pip/_vendor/urllib3/contrib/securetransport.py
+index b97555454..189132baa 100644
+--- a/src/pip/_vendor/urllib3/contrib/securetransport.py
++++ b/src/pip/_vendor/urllib3/contrib/securetransport.py
+@@ -19,8 +19,8 @@
+
+ To use this module, simply import and inject it::
+
+-    import urllib3.contrib.securetransport
+-    urllib3.contrib.securetransport.inject_into_urllib3()
++    import urllib3.contrib.securetransport as securetransport
++    securetransport.inject_into_urllib3()
+
+ Happy TLSing!
+
+diff --git a/src/pip/_vendor/urllib3/contrib/pyopenssl.py b/src/pip/_vendor/urllib3/contrib/pyopenssl.py
+index c43146279..4cded53f6 100644
+--- a/src/pip/_vendor/urllib3/contrib/pyopenssl.py
++++ b/src/pip/_vendor/urllib3/contrib/pyopenssl.py
+@@ -28,7 +28,7 @@
+ .. code-block:: python
+
+     try:
+-        import urllib3.contrib.pyopenssl
+-        urllib3.contrib.pyopenssl.inject_into_urllib3()
++        import urllib3.contrib.pyopenssl as pyopenssl
++        pyopenssl.inject_into_urllib3()
+     except ImportError:
+         pass

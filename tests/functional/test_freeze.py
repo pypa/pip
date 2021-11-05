@@ -7,6 +7,7 @@ from doctest import ELLIPSIS, OutputChecker
 import pytest
 from pip._vendor.packaging.utils import canonicalize_name
 
+from pip._internal.models.direct_url import DirectUrl
 from tests.lib import (
     _create_test_package,
     _create_test_package_with_srcdir,
@@ -19,6 +20,7 @@ from tests.lib import (
     path_to_url,
     wheel,
 )
+from tests.lib.direct_url import get_created_direct_url_path
 
 distribute_re = re.compile("^distribute==[0-9.]+\n", re.MULTILINE)
 
@@ -99,7 +101,8 @@ def test_exclude_and_normalization(script, tmpdir):
     assert "Normalizable_Name" not in result.stdout
 
 
-def test_freeze_multiple_exclude_with_all(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_freeze_multiple_exclude_with_all(script):
     result = script.pip("freeze", "--all")
     assert "pip==" in result.stdout
     assert "wheel==" in result.stdout
@@ -164,7 +167,7 @@ def test_freeze_with_invalid_names(script):
 
 
 @pytest.mark.git
-def test_freeze_editable_not_vcs(script, tmpdir):
+def test_freeze_editable_not_vcs(script):
     """
     Test an editable install that is not version controlled.
     """
@@ -189,7 +192,7 @@ def test_freeze_editable_not_vcs(script, tmpdir):
 
 
 @pytest.mark.git
-def test_freeze_editable_git_with_no_remote(script, tmpdir, deprecated_python):
+def test_freeze_editable_git_with_no_remote(script, deprecated_python):
     """
     Test an editable Git install with no remote url.
     """
@@ -214,7 +217,7 @@ def test_freeze_editable_git_with_no_remote(script, tmpdir, deprecated_python):
 
 
 @need_svn
-def test_freeze_svn(script, tmpdir):
+def test_freeze_svn(script):
     """Test freezing a svn checkout"""
 
     checkout_path = _create_test_package(script, vcs="svn")
@@ -237,7 +240,7 @@ def test_freeze_svn(script, tmpdir):
     run=True,
     strict=True,
 )
-def test_freeze_exclude_editable(script, tmpdir):
+def test_freeze_exclude_editable(script):
     """
     Test excluding editable from freezing list.
     """
@@ -270,7 +273,7 @@ def test_freeze_exclude_editable(script, tmpdir):
 
 
 @pytest.mark.git
-def test_freeze_git_clone(script, tmpdir):
+def test_freeze_git_clone(script):
     """
     Test freezing a Git clone.
     """
@@ -328,7 +331,7 @@ def test_freeze_git_clone(script, tmpdir):
 
 
 @pytest.mark.git
-def test_freeze_git_clone_srcdir(script, tmpdir):
+def test_freeze_git_clone_srcdir(script):
     """
     Test freezing a Git clone where setup.py is in a subdirectory
     relative the repo root and the source code is in a subdirectory
@@ -363,7 +366,7 @@ def test_freeze_git_clone_srcdir(script, tmpdir):
 
 
 @need_mercurial
-def test_freeze_mercurial_clone_srcdir(script, tmpdir):
+def test_freeze_mercurial_clone_srcdir(script):
     """
     Test freezing a Mercurial clone where setup.py is in a subdirectory
     relative to the repo root and the source code is in a subdirectory
@@ -386,7 +389,7 @@ def test_freeze_mercurial_clone_srcdir(script, tmpdir):
 
 
 @pytest.mark.git
-def test_freeze_git_remote(script, tmpdir):
+def test_freeze_git_remote(script):
     """
     Test freezing a Git clone.
     """
@@ -469,7 +472,7 @@ def test_freeze_git_remote(script, tmpdir):
 
 
 @need_mercurial
-def test_freeze_mercurial_clone(script, tmpdir):
+def test_freeze_mercurial_clone(script):
     """
     Test freezing a Mercurial clone.
 
@@ -503,7 +506,7 @@ def test_freeze_mercurial_clone(script, tmpdir):
 
 
 @need_bzr
-def test_freeze_bazaar_clone(script, tmpdir):
+def test_freeze_bazaar_clone(script):
     """
     Test freezing a Bazaar clone.
 
@@ -936,7 +939,8 @@ def test_freeze_path_multiple(tmpdir, script, data):
     _check_output(result.stdout, expected)
 
 
-def test_freeze_direct_url_archive(script, shared_data, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_freeze_direct_url_archive(script, shared_data):
     req = "simple @ " + path_to_url(shared_data.packages / "simple-2.0.tar.gz")
     assert req.startswith("simple @ file://")
     script.pip("install", req)
@@ -975,3 +979,22 @@ def test_freeze_include_work_dir_pkg(script):
     # when package directory is in PYTHONPATH
     result = script.pip("freeze", cwd=pkg_path)
     assert "simple==1.0" in result.stdout
+
+
+def test_freeze_pep610_editable(script, with_wheel):
+    """
+    Test that a package installed with a direct_url.json with editable=true
+    is correctly frozeon as editable.
+    """
+    pkg_path = _create_test_package(script, name="testpkg")
+    result = script.pip("install", pkg_path)
+    direct_url_path = get_created_direct_url_path(result, "testpkg")
+    assert direct_url_path
+    # patch direct_url.json to simulate an editable install
+    with open(direct_url_path) as f:
+        direct_url = DirectUrl.from_json(f.read())
+    direct_url.info.editable = True
+    with open(direct_url_path, "w") as f:
+        f.write(direct_url.to_json())
+    result = script.pip("freeze")
+    assert "# Editable Git install with no remote (testpkg==0.1)" in result.stdout

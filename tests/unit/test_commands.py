@@ -1,7 +1,9 @@
-from unittest.mock import patch
+from typing import Callable, List
+from unittest import mock
 
 import pytest
 
+from pip._internal.cli.base_command import Command
 from pip._internal.cli.req_command import (
     IndexGroupCommand,
     RequirementCommand,
@@ -14,7 +16,7 @@ from pip._internal.commands import commands_dict, create_command
 EXPECTED_INDEX_GROUP_COMMANDS = ["download", "index", "install", "list", "wheel"]
 
 
-def check_commands(pred, expected):
+def check_commands(pred: Callable[[Command], bool], expected: List[str]) -> None:
     """
     Check the commands satisfying a predicate.
     """
@@ -23,7 +25,7 @@ def check_commands(pred, expected):
     assert actual == expected, f"actual: {actual}"
 
 
-def test_commands_dict__order():
+def test_commands_dict__order() -> None:
     """
     Check the ordering of commands_dict.
     """
@@ -35,38 +37,38 @@ def test_commands_dict__order():
 
 
 @pytest.mark.parametrize("name", list(commands_dict))
-def test_create_command(name):
+def test_create_command(name: str) -> None:
     """Test creating an instance of each available command."""
     command = create_command(name)
     assert command.name == name
     assert command.summary == commands_dict[name].summary
 
 
-def test_session_commands():
+def test_session_commands() -> None:
     """
     Test which commands inherit from SessionCommandMixin.
     """
 
-    def is_session_command(command):
+    def is_session_command(command: Command) -> bool:
         return isinstance(command, SessionCommandMixin)
 
     expected = ["download", "index", "install", "list", "search", "uninstall", "wheel"]
     check_commands(is_session_command, expected)
 
 
-def test_index_group_commands():
+def test_index_group_commands() -> None:
     """
     Test the commands inheriting from IndexGroupCommand.
     """
 
-    def is_index_group_command(command):
+    def is_index_group_command(command: Command) -> bool:
         return isinstance(command, IndexGroupCommand)
 
     check_commands(is_index_group_command, EXPECTED_INDEX_GROUP_COMMANDS)
 
     # Also check that the commands inheriting from IndexGroupCommand are
     # exactly the commands with the --no-index option.
-    def has_option_no_index(command):
+    def has_option_no_index(command: Command) -> bool:
         return command.parser.has_option("--no-index")
 
     check_commands(has_option_no_index, EXPECTED_INDEX_GROUP_COMMANDS)
@@ -84,14 +86,14 @@ def test_index_group_commands():
         (True, True, False),
     ],
 )
-@patch("pip._internal.cli.req_command.pip_self_version_check")
+@mock.patch("pip._internal.cli.req_command.pip_self_version_check")
 def test_index_group_handle_pip_version_check(
-    mock_version_check,
-    command_name,
-    disable_pip_version_check,
-    no_index,
-    expected_called,
-):
+    mock_version_check: mock.Mock,
+    command_name: str,
+    disable_pip_version_check: bool,
+    no_index: bool,
+    expected_called: bool,
+) -> None:
     """
     Test whether pip_self_version_check() is called when
     handle_pip_version_check() is called, for each of the
@@ -109,12 +111,12 @@ def test_index_group_handle_pip_version_check(
         mock_version_check.assert_not_called()
 
 
-def test_requirement_commands():
+def test_requirement_commands() -> None:
     """
     Test which commands inherit from RequirementCommand.
     """
 
-    def is_requirement_command(command):
+    def is_requirement_command(command: Command) -> bool:
         return isinstance(command, RequirementCommand)
 
     check_commands(is_requirement_command, ["download", "install", "wheel"])

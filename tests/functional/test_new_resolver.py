@@ -16,16 +16,6 @@ from tests.lib.path import Path
 from tests.lib.wheel import make_wheel
 
 
-# TODO: Remove me.
-def assert_installed(script, **kwargs):
-    script.assert_installed(**kwargs)
-
-
-# TODO: Remove me.
-def assert_not_installed(script, *args):
-    script.assert_not_installed(*args)
-
-
 def assert_editable(script, *args):
     # This simply checks whether all of the listed packages have a
     # corresponding .egg-link file installed.
@@ -67,7 +57,7 @@ def test_new_resolver_can_install(script):
         script.scratch_path,
         "simple",
     )
-    assert_installed(script, simple="0.1.0")
+    script.assert_installed(simple="0.1.0")
 
 
 def test_new_resolver_can_install_with_version(script):
@@ -84,7 +74,7 @@ def test_new_resolver_can_install_with_version(script):
         script.scratch_path,
         "simple==0.1.0",
     )
-    assert_installed(script, simple="0.1.0")
+    script.assert_installed(simple="0.1.0")
 
 
 def test_new_resolver_picks_latest_version(script):
@@ -106,7 +96,7 @@ def test_new_resolver_picks_latest_version(script):
         script.scratch_path,
         "simple",
     )
-    assert_installed(script, simple="0.2.0")
+    script.assert_installed(simple="0.2.0")
 
 
 def test_new_resolver_picks_installed_version(script):
@@ -128,7 +118,7 @@ def test_new_resolver_picks_installed_version(script):
         script.scratch_path,
         "simple==0.1.0",
     )
-    assert_installed(script, simple="0.1.0")
+    script.assert_installed(simple="0.1.0")
 
     result = script.pip(
         "install",
@@ -139,7 +129,7 @@ def test_new_resolver_picks_installed_version(script):
         "simple",
     )
     assert "Collecting" not in result.stdout, "Should not fetch new version"
-    assert_installed(script, simple="0.1.0")
+    script.assert_installed(simple="0.1.0")
 
 
 def test_new_resolver_picks_installed_version_if_no_match_found(script):
@@ -161,11 +151,11 @@ def test_new_resolver_picks_installed_version_if_no_match_found(script):
         script.scratch_path,
         "simple==0.1.0",
     )
-    assert_installed(script, simple="0.1.0")
+    script.assert_installed(simple="0.1.0")
 
     result = script.pip("install", "--no-cache-dir", "--no-index", "simple")
     assert "Collecting" not in result.stdout, "Should not fetch new version"
-    assert_installed(script, simple="0.1.0")
+    script.assert_installed(simple="0.1.0")
 
 
 def test_new_resolver_installs_dependencies(script):
@@ -188,7 +178,7 @@ def test_new_resolver_installs_dependencies(script):
         script.scratch_path,
         "base",
     )
-    assert_installed(script, base="0.1.0", dep="0.1.0")
+    script.assert_installed(base="0.1.0", dep="0.1.0")
 
 
 def test_new_resolver_ignore_dependencies(script):
@@ -212,8 +202,8 @@ def test_new_resolver_ignore_dependencies(script):
         script.scratch_path,
         "base",
     )
-    assert_installed(script, base="0.1.0")
-    assert_not_installed(script, "dep")
+    script.assert_installed(base="0.1.0")
+    script.assert_not_installed("dep")
 
 
 @pytest.mark.parametrize(
@@ -247,7 +237,7 @@ def test_new_resolver_installs_extras(tmpdir, script, root_dep):
         "-r",
         req_file,
     )
-    assert_installed(script, base="0.1.0", dep="0.1.0")
+    script.assert_installed(base="0.1.0", dep="0.1.0")
 
 
 def test_new_resolver_installs_extras_warn_missing(script):
@@ -273,7 +263,7 @@ def test_new_resolver_installs_extras_warn_missing(script):
     )
     assert "does not provide the extra" in result.stderr, str(result)
     assert "missing" in result.stderr, str(result)
-    assert_installed(script, base="0.1.0", dep="0.1.0")
+    script.assert_installed(base="0.1.0", dep="0.1.0")
 
 
 def test_new_resolver_installed_message(script):
@@ -336,7 +326,7 @@ def test_new_resolver_installs_editable(script):
         "--editable",
         source_dir,
     )
-    assert_installed(script, base="0.1.0", dep="0.1.0")
+    script.assert_installed(base="0.1.0", dep="0.1.0")
     assert_editable(script, "dep")
 
 
@@ -388,7 +378,7 @@ def test_new_resolver_requires_python(
 
     script.pip(*args)
 
-    assert_installed(script, base="0.1.0", dep=dep_version)
+    script.assert_installed(base="0.1.0", dep=dep_version)
 
 
 def test_new_resolver_requires_python_error(script):
@@ -513,7 +503,7 @@ def test_new_resolver_only_builds_sdists_when_needed(script):
         script.scratch_path,
         "base",
     )
-    assert_installed(script, base="0.1.0", dep="0.2.0")
+    script.assert_installed(base="0.1.0", dep="0.2.0")
 
     # We merge criteria here, as we have two "dep" requirements
     script.pip(
@@ -525,7 +515,7 @@ def test_new_resolver_only_builds_sdists_when_needed(script):
         "base",
         "dep",
     )
-    assert_installed(script, base="0.1.0", dep="0.2.0")
+    script.assert_installed(base="0.1.0", dep="0.2.0")
 
 
 def test_new_resolver_install_different_version(script):
@@ -554,7 +544,7 @@ def test_new_resolver_install_different_version(script):
     assert "Uninstalling base-0.1.0" in result.stdout, str(result)
     assert "Successfully uninstalled base-0.1.0" in result.stdout, str(result)
     result.did_update(script.site_packages / "base", message="base not upgraded")
-    assert_installed(script, base="0.2.0")
+    script.assert_installed(base="0.2.0")
 
 
 def test_new_resolver_force_reinstall(script):
@@ -584,7 +574,7 @@ def test_new_resolver_force_reinstall(script):
     assert "Uninstalling base-0.1.0" in result.stdout, str(result)
     assert "Successfully uninstalled base-0.1.0" in result.stdout, str(result)
     result.did_update(script.site_packages / "base", message="base not reinstalled")
-    assert_installed(script, base="0.1.0")
+    script.assert_installed(base="0.1.0")
 
 
 @pytest.mark.parametrize(
@@ -617,7 +607,7 @@ def test_new_resolver_handles_prerelease(
         script.scratch_path,
         *pip_args,
     )
-    assert_installed(script, pkg=expected_version)
+    script.assert_installed(pkg=expected_version)
 
 
 @pytest.mark.parametrize(
@@ -629,7 +619,7 @@ def test_new_resolver_handles_prerelease(
         ([], ["pkg", "dep; os_name == 'nonexist_os'"]),
     ],
 )
-def test_new_reolver_skips_marker(script, pkg_deps, root_deps):
+def test_new_resolver_skips_marker(script, pkg_deps, root_deps):
     create_basic_wheel_for_package(script, "pkg", "1.0", depends=pkg_deps)
     create_basic_wheel_for_package(script, "dep", "1.0")
 
@@ -641,8 +631,8 @@ def test_new_reolver_skips_marker(script, pkg_deps, root_deps):
         script.scratch_path,
         *root_deps,
     )
-    assert_installed(script, pkg="1.0")
-    assert_not_installed(script, "dep")
+    script.assert_installed(pkg="1.0")
+    script.assert_not_installed("dep")
 
 
 @pytest.mark.parametrize(
@@ -670,8 +660,8 @@ def test_new_resolver_constraints(script, constraints):
         constraints_file,
         "pkg",
     )
-    assert_installed(script, pkg="1.0")
-    assert_not_installed(script, "constraint_only")
+    script.assert_installed(pkg="1.0")
+    script.assert_not_installed("constraint_only")
 
 
 def test_new_resolver_constraint_no_specifier(script):
@@ -689,7 +679,7 @@ def test_new_resolver_constraint_no_specifier(script):
         constraints_file,
         "pkg",
     )
-    assert_installed(script, pkg="1.0")
+    script.assert_installed(pkg="1.0")
 
 
 @pytest.mark.parametrize(
@@ -745,8 +735,8 @@ def test_new_resolver_constraint_on_dependency(script):
         constraints_file,
         "base",
     )
-    assert_installed(script, base="1.0")
-    assert_installed(script, dep="2.0")
+    script.assert_installed(base="1.0")
+    script.assert_installed(dep="2.0")
 
 
 @pytest.mark.parametrize(
@@ -791,14 +781,14 @@ def test_new_resolver_constraint_only_marker_match(script):
     create_basic_wheel_for_package(script, "pkg", "2.0")
     create_basic_wheel_for_package(script, "pkg", "3.0")
 
-    constrants_content = textwrap.dedent(
+    constraints_content = textwrap.dedent(
         """
         pkg==1.0; python_version == "{ver[0]}.{ver[1]}"  # Always satisfies.
         pkg==2.0; python_version < "0"  # Never satisfies.
         """
     ).format(ver=sys.version_info)
     constraints_txt = script.scratch_path / "constraints.txt"
-    constraints_txt.write_text(constrants_content)
+    constraints_txt.write_text(constraints_content)
 
     script.pip(
         "install",
@@ -810,7 +800,7 @@ def test_new_resolver_constraint_only_marker_match(script):
         script.scratch_path,
         "pkg",
     )
-    assert_installed(script, pkg="1.0")
+    script.assert_installed(pkg="1.0")
 
 
 def test_new_resolver_upgrade_needs_option(script):
@@ -839,7 +829,7 @@ def test_new_resolver_upgrade_needs_option(script):
     )
 
     assert "Requirement already satisfied" in result.stdout, str(result)
-    assert_installed(script, pkg="1.0.0")
+    script.assert_installed(pkg="1.0.0")
 
     # This should upgrade
     result = script.pip(
@@ -855,7 +845,7 @@ def test_new_resolver_upgrade_needs_option(script):
     assert "Uninstalling pkg-1.0.0" in result.stdout, str(result)
     assert "Successfully uninstalled pkg-1.0.0" in result.stdout, str(result)
     result.did_update(script.site_packages / "pkg", message="pkg not upgraded")
-    assert_installed(script, pkg="2.0.0")
+    script.assert_installed(pkg="2.0.0")
 
 
 def test_new_resolver_upgrade_strategy(script):
@@ -870,8 +860,8 @@ def test_new_resolver_upgrade_strategy(script):
         "base",
     )
 
-    assert_installed(script, base="1.0.0")
-    assert_installed(script, dep="1.0.0")
+    script.assert_installed(base="1.0.0")
+    script.assert_installed(dep="1.0.0")
 
     # Now release new versions
     create_basic_wheel_for_package(script, "base", "2.0.0", depends=["dep"])
@@ -889,8 +879,8 @@ def test_new_resolver_upgrade_strategy(script):
 
     # With upgrade strategy "only-if-needed" (the default), dep should not
     # be upgraded.
-    assert_installed(script, base="2.0.0")
-    assert_installed(script, dep="1.0.0")
+    script.assert_installed(base="2.0.0")
+    script.assert_installed(dep="1.0.0")
 
     create_basic_wheel_for_package(script, "base", "3.0.0", depends=["dep"])
     script.pip(
@@ -905,8 +895,8 @@ def test_new_resolver_upgrade_strategy(script):
     )
 
     # With upgrade strategy "eager", dep should be upgraded.
-    assert_installed(script, base="3.0.0")
-    assert_installed(script, dep="2.0.0")
+    script.assert_installed(base="3.0.0")
+    script.assert_installed(dep="2.0.0")
 
 
 class TestExtraMerge:
@@ -954,12 +944,7 @@ class TestExtraMerge:
             _wheel_from_index,
         ],
     )
-    def test_new_resolver_extra_merge_in_package(
-        self,
-        monkeypatch,
-        script,
-        pkg_builder,
-    ):
+    def test_new_resolver_extra_merge_in_package(self, script, pkg_builder):
         create_basic_wheel_for_package(script, "depdev", "1.0.0")
         create_basic_wheel_for_package(
             script,
@@ -983,7 +968,7 @@ class TestExtraMerge:
             script.scratch_path,
             requirement + "[dev]",
         )
-        assert_installed(script, pkg="1.0.0", dep="1.0.0", depdev="1.0.0")
+        script.assert_installed(pkg="1.0.0", dep="1.0.0", depdev="1.0.0")
 
 
 def test_new_resolver_build_directory_error_zazo_19(script):
@@ -1028,7 +1013,7 @@ def test_new_resolver_build_directory_error_zazo_19(script):
         "pkg-a",
         "pkg-b",
     )
-    assert_installed(script, pkg_a="3.0.0", pkg_b="1.0.0")
+    script.assert_installed(pkg_a="3.0.0", pkg_b="1.0.0")
 
 
 def test_new_resolver_upgrade_same_version(script):
@@ -1043,7 +1028,7 @@ def test_new_resolver_upgrade_same_version(script):
         script.scratch_path,
         "pkg",
     )
-    assert_installed(script, pkg="2")
+    script.assert_installed(pkg="2")
 
     script.pip(
         "install",
@@ -1054,7 +1039,7 @@ def test_new_resolver_upgrade_same_version(script):
         "--upgrade",
         "pkg",
     )
-    assert_installed(script, pkg="2")
+    script.assert_installed(pkg="2")
 
 
 def test_new_resolver_local_and_req(script):
@@ -1127,7 +1112,7 @@ def test_new_resolver_prefers_installed_in_upgrade_if_latest(script):
         "--upgrade",
         "pkg",
     )
-    assert_installed(script, pkg="2")
+    script.assert_installed(pkg="2")
 
 
 @pytest.mark.parametrize("N", [2, 10, 20])
@@ -1168,7 +1153,7 @@ def test_new_resolver_presents_messages_when_backtracking_a_lot(script, N):
         "A",
     )
 
-    assert_installed(script, A="1.0.0", B="1.0.0", C="1.0.0")
+    script.assert_installed(A="1.0.0", B="1.0.0", C="1.0.0")
     # These numbers are hard-coded in the code.
     if N >= 1:
         assert "This could take a while." in result.stdout
@@ -1218,7 +1203,7 @@ def test_new_resolver_check_wheel_version_normalized(
         script.scratch_path,
         "simple",
     )
-    assert_installed(script, simple="0.1.0+local.1")
+    script.assert_installed(simple="0.1.0+local.1")
 
 
 def test_new_resolver_does_reinstall_local_sdists(script):
@@ -1233,7 +1218,7 @@ def test_new_resolver_does_reinstall_local_sdists(script):
         "--no-index",
         archive_path,
     )
-    assert_installed(script, pkg="1.0")
+    script.assert_installed(pkg="1.0")
 
     result = script.pip(
         "install",
@@ -1243,8 +1228,7 @@ def test_new_resolver_does_reinstall_local_sdists(script):
         expect_stderr=True,
     )
     assert "Installing collected packages: pkg" in result.stdout, str(result)
-    assert "DEPRECATION" in result.stderr, str(result)
-    assert_installed(script, pkg="1.0")
+    script.assert_installed(pkg="1.0")
 
 
 def test_new_resolver_does_reinstall_local_paths(script):
@@ -1255,7 +1239,7 @@ def test_new_resolver_does_reinstall_local_paths(script):
         "--no-index",
         pkg,
     )
-    assert_installed(script, pkg="1.0")
+    script.assert_installed(pkg="1.0")
 
     result = script.pip(
         "install",
@@ -1264,7 +1248,7 @@ def test_new_resolver_does_reinstall_local_paths(script):
         pkg,
     )
     assert "Installing collected packages: pkg" in result.stdout, str(result)
-    assert_installed(script, pkg="1.0")
+    script.assert_installed(pkg="1.0")
 
 
 def test_new_resolver_does_not_reinstall_when_from_a_local_index(script):
@@ -1281,7 +1265,7 @@ def test_new_resolver_does_not_reinstall_when_from_a_local_index(script):
         script.scratch_path,
         "simple",
     )
-    assert_installed(script, simple="0.1.0")
+    script.assert_installed(simple="0.1.0")
 
     result = script.pip(
         "install",
@@ -1294,7 +1278,7 @@ def test_new_resolver_does_not_reinstall_when_from_a_local_index(script):
     # Should not reinstall!
     assert "Installing collected packages: simple" not in result.stdout, str(result)
     assert "Requirement already satisfied: simple" in result.stdout, str(result)
-    assert_installed(script, simple="0.1.0")
+    script.assert_installed(simple="0.1.0")
 
 
 def test_new_resolver_skip_inconsistent_metadata(script):
@@ -1317,7 +1301,7 @@ def test_new_resolver_skip_inconsistent_metadata(script):
     assert (
         " inconsistent version: filename has '3', but metadata has '2'"
     ) in result.stderr, str(result)
-    assert_installed(script, a="1")
+    script.assert_installed(a="1")
 
 
 @pytest.mark.parametrize(
@@ -1357,9 +1341,9 @@ def test_new_resolver_lazy_fetch_candidates(script, upgrade):
 
     # pip should install the version preferred by the strategy...
     if upgrade:
-        assert_installed(script, myuberpkg="3")
+        script.assert_installed(myuberpkg="3")
     else:
-        assert_installed(script, myuberpkg="1")
+        script.assert_installed(myuberpkg="1")
 
     # But should reach there in the best route possible, without trying
     # candidates it does not need to.
@@ -1424,8 +1408,8 @@ def test_new_resolver_does_not_install_unneeded_packages_with_url_constraint(scr
         "installed",
     )
 
-    assert_installed(script, installed="0.1.0")
-    assert_not_installed(script, "not_installed")
+    script.assert_installed(installed="0.1.0")
+    script.assert_not_installed("not_installed")
 
 
 def test_new_resolver_installs_packages_with_url_constraint(script):
@@ -1442,7 +1426,7 @@ def test_new_resolver_installs_packages_with_url_constraint(script):
         "install", "--no-cache-dir", "--no-index", "-c", constraints_file, "installed"
     )
 
-    assert_installed(script, installed="0.1.0")
+    script.assert_installed(installed="0.1.0")
 
 
 def test_new_resolver_reinstall_link_requirement_with_constraint(script):
@@ -1475,7 +1459,7 @@ def test_new_resolver_reinstall_link_requirement_with_constraint(script):
     # TODO: strengthen assertion to "second invocation does no work"
     # I don't think this is true yet, but it should be in the future.
 
-    assert_installed(script, installed="0.1.0")
+    script.assert_installed(installed="0.1.0")
 
 
 def test_new_resolver_prefers_url_constraint(script):
@@ -1507,7 +1491,7 @@ def test_new_resolver_prefers_url_constraint(script):
         "test_pkg",
     )
 
-    assert_installed(script, test_pkg="0.1.0")
+    script.assert_installed(test_pkg="0.1.0")
 
 
 def test_new_resolver_prefers_url_constraint_on_update(script):
@@ -1537,7 +1521,7 @@ def test_new_resolver_prefers_url_constraint_on_update(script):
         "test_pkg",
     )
 
-    assert_installed(script, test_pkg="0.2.0")
+    script.assert_installed(test_pkg="0.2.0")
 
     script.pip(
         "install",
@@ -1550,7 +1534,7 @@ def test_new_resolver_prefers_url_constraint_on_update(script):
         "test_pkg",
     )
 
-    assert_installed(script, test_pkg="0.1.0")
+    script.assert_installed(test_pkg="0.1.0")
 
 
 @pytest.mark.parametrize("version_option", ["--constraint", "--requirement"])
@@ -1594,7 +1578,7 @@ def test_new_resolver_fails_with_url_constraint_and_incompatible_version(
         "because these package versions have conflicting dependencies."
     ) in result.stderr, str(result)
 
-    assert_not_installed(script, "test_pkg")
+    script.assert_not_installed("test_pkg")
 
     # Assert that pip works properly in the absence of the constraints file.
     script.pip(
@@ -1645,8 +1629,8 @@ def test_new_resolver_ignores_unneeded_conflicting_constraints(script):
         "installed",
     )
 
-    assert_not_installed(script, "test_pkg")
-    assert_installed(script, installed="0.1.0")
+    script.assert_not_installed("test_pkg")
+    script.assert_installed(installed="0.1.0")
 
 
 def test_new_resolver_fails_on_needed_conflicting_constraints(script):
@@ -1686,7 +1670,7 @@ def test_new_resolver_fails_on_needed_conflicting_constraints(script):
         "dependencies."
     ) in result.stderr, str(result)
 
-    assert_not_installed(script, "test_pkg")
+    script.assert_not_installed("test_pkg")
 
     # Assert that pip works properly in the absence of the constraints file.
     script.pip(
@@ -1731,7 +1715,7 @@ def test_new_resolver_fails_on_conflicting_constraint_and_requirement(script):
         "because these package versions have conflicting dependencies."
     ) in result.stderr, str(result)
 
-    assert_not_installed(script, "test_pkg")
+    script.assert_not_installed("test_pkg")
 
     # Assert that pip works properly in the absence of the constraints file.
     script.pip(
@@ -1776,7 +1760,7 @@ def test_new_resolver_succeeds_on_matching_constraint_and_requirement(script, ed
         *last_args,
     )
 
-    assert_installed(script, test_pkg="0.1.0")
+    script.assert_installed(test_pkg="0.1.0")
     if editable:
         assert_editable(script, "test-pkg")
 
@@ -1813,7 +1797,7 @@ def test_new_resolver_applies_url_constraint_to_dep(script):
         "base",
     )
 
-    assert_installed(script, dep="0.1.0")
+    script.assert_installed(dep="0.1.0")
 
 
 def test_new_resolver_handles_compatible_wheel_tags_in_constraint_url(
@@ -1885,7 +1869,7 @@ def test_new_resolver_handles_incompatible_wheel_tags_in_constraint_url(
         "dependencies."
     ) in result.stderr, str(result)
 
-    assert_not_installed(script, "base")
+    script.assert_not_installed("base")
 
 
 def test_new_resolver_avoids_incompatible_wheel_tags_in_constraint_url(
@@ -1926,8 +1910,8 @@ def test_new_resolver_avoids_incompatible_wheel_tags_in_constraint_url(
         "base",
     )
 
-    assert_installed(script, base="0.1.0")
-    assert_not_installed(script, "dep")
+    script.assert_installed(base="0.1.0")
+    script.assert_not_installed("dep")
 
 
 @pytest.mark.parametrize(
@@ -2018,9 +2002,9 @@ def test_new_resolver_direct_url_equivalent(
     )
 
     if suffixes_equivalent:
-        assert_installed(script, pkga="1", pkgb="1")
+        script.assert_installed(pkga="1", pkgb="1")
     else:
-        assert_not_installed(script, "pkga", "pkgb")
+        script.assert_not_installed("pkga", "pkgb")
 
 
 def test_new_resolver_direct_url_with_extras(tmp_path, script):
@@ -2058,7 +2042,7 @@ def test_new_resolver_direct_url_with_extras(tmp_path, script):
         "pkg3",
     )
 
-    assert_installed(script, pkg1="1", pkg2="1", pkg3="1")
+    script.assert_installed(pkg1="1", pkg2="1", pkg3="1")
     assert not get_created_direct_url(result, "pkg1")
     assert get_created_direct_url(result, "pkg2")
     assert not get_created_direct_url(result, "pkg3")
@@ -2095,7 +2079,7 @@ def test_new_resolver_modifies_installed_incompatible(script):
         script.scratch_path,
         "d==1",
     )
-    assert_installed(script, d="1", c="2", b="2", a="2")
+    script.assert_installed(d="1", c="2", b="2", a="2")
 
 
 def test_new_resolver_transitively_depends_on_unnamed_local(script):
@@ -2122,8 +2106,7 @@ def test_new_resolver_transitively_depends_on_unnamed_local(script):
         f"{certbot}[docs]",
         certbot_apache,
     )
-    assert_installed(
-        script,
+    script.assert_installed(
         certbot="99.99.0.dev0",
         certbot_apache="99.99.0.dev0",
         certbot_docs="1",
@@ -2197,3 +2180,36 @@ def test_new_resolver_dont_backtrack_on_extra_if_base_constrained(script):
     )
     assert "pkg-2.0" not in result.stdout, "Should not try 2.0 due to constraint"
     script.assert_installed(pkg="1.0", dep="1.0")
+
+
+def test_new_resolver_respect_user_requested_if_extra_is_installed(script):
+    create_basic_wheel_for_package(script, "pkg1", "1.0")
+    create_basic_wheel_for_package(script, "pkg2", "1.0", extras={"ext": ["pkg1"]})
+    create_basic_wheel_for_package(script, "pkg2", "2.0", extras={"ext": ["pkg1"]})
+    create_basic_wheel_for_package(script, "pkg3", "1.0", depends=["pkg2[ext]"])
+
+    # Install pkg3 with an older pkg2.
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "pkg3",
+        "pkg2==1.0",
+    )
+    script.assert_installed(pkg3="1.0", pkg2="1.0", pkg1="1.0")
+
+    # Now upgrade both pkg3 and pkg2. pkg2 should be upgraded although pkg2[ext]
+    # is not requested by the user.
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "--upgrade",
+        "pkg3",
+        "pkg2",
+    )
+    script.assert_installed(pkg3="1.0", pkg2="2.0", pkg1="1.0")

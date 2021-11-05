@@ -172,15 +172,22 @@ def test_install_requirements_no_r_flag(script):
 
 
 @pytest.mark.parametrize(
-    "extra_to_install, simple_version",
+    "extra_to_install, simple_version, fails_on_legacy",
     [
-        ["", "3.0"],
-        pytest.param("[extra1]", "2.0", marks=pytest.mark.xfail),
-        pytest.param("[extra2]", "1.0", marks=pytest.mark.xfail),
-        pytest.param("[extra1,extra2]", "1.0", marks=pytest.mark.xfail),
+        ("", "3.0", False),
+        ("[extra1]", "2.0", True),
+        ("[extra2]", "1.0", True),
+        ("[extra1,extra2]", "1.0", True),
     ],
 )
-def test_install_extra_merging(script, data, extra_to_install, simple_version):
+@pytest.mark.usefixtures("data")
+def test_install_extra_merging(
+    script,
+    resolver_variant,
+    extra_to_install,
+    simple_version,
+    fails_on_legacy,
+):
     # Check that extra specifications in the extras section are honoured.
     pkga_path = script.scratch_path / "pkga"
     pkga_path.mkdir()
@@ -200,6 +207,9 @@ def test_install_extra_merging(script, data, extra_to_install, simple_version):
 
     result = script.pip_install_local(
         f"{pkga_path}{extra_to_install}",
+        expect_error=(fails_on_legacy and resolver_variant == "legacy"),
     )
 
-    assert f"Successfully installed pkga-0.1 simple-{simple_version}" in result.stdout
+    if not fails_on_legacy or resolver_variant == "2020-resolver":
+        expected = f"Successfully installed pkga-0.1 simple-{simple_version}"
+        assert expected in result.stdout

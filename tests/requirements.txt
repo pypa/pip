@@ -1,6 +1,5 @@
 cryptography
 freezegun
-pretend
 pytest
 pytest-cov
 pytest-rerunfailures

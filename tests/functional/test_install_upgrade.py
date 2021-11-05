@@ -1,6 +1,5 @@
 import itertools
 import os
-import sys
 import textwrap
 
 import pytest
@@ -37,9 +36,8 @@ def test_invalid_upgrade_strategy_causes_error(script):
     assert "invalid choice" in result.stderr
 
 
-def test_only_if_needed_does_not_upgrade_deps_when_satisfied(
-    script, resolver_variant, with_wheel
-):
+@pytest.mark.usefixtures("with_wheel")
+def test_only_if_needed_does_not_upgrade_deps_when_satisfied(script, resolver_variant):
     """
     It doesn't upgrade a dependency if it already satisfies the requirements.
 
@@ -64,7 +62,8 @@ def test_only_if_needed_does_not_upgrade_deps_when_satisfied(
     ), "did not print correct message for not-upgraded requirement"
 
 
-def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(script):
     """
     It does upgrade a dependency if it no longer satisfies the requirements.
 
@@ -83,7 +82,8 @@ def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(script, with_
     assert expected in result.files_deleted, "should have uninstalled simple==1.0"
 
 
-def test_eager_does_upgrade_dependecies_when_currently_satisfied(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_eager_does_upgrade_dependencies_when_currently_satisfied(script):
     """
     It does upgrade a dependency even if it already satisfies the requirements.
 
@@ -101,7 +101,8 @@ def test_eager_does_upgrade_dependecies_when_currently_satisfied(script, with_wh
     ) in result.files_deleted, "should have uninstalled simple==2.0"
 
 
-def test_eager_does_upgrade_dependecies_when_no_longer_satisfied(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_eager_does_upgrade_dependencies_when_no_longer_satisfied(script):
     """
     It does upgrade a dependency if it no longer satisfies the requirements.
 
@@ -124,7 +125,8 @@ def test_eager_does_upgrade_dependecies_when_no_longer_satisfied(script, with_wh
 
 
 @pytest.mark.network
-def test_upgrade_to_specific_version(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_upgrade_to_specific_version(script):
     """
     It does upgrade to specific version requested.
 
@@ -137,7 +139,8 @@ def test_upgrade_to_specific_version(script, with_wheel):
 
 
 @pytest.mark.network
-def test_upgrade_if_requested(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_upgrade_if_requested(script):
     """
     And it does upgrade if requested.
 
@@ -297,7 +300,8 @@ def test_uninstall_rollback(script, data):
 
 
 @pytest.mark.network
-def test_should_not_install_always_from_cache(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_should_not_install_always_from_cache(script):
     """
     If there is an old cached package, pip should download the newer version
     Related to issue #175
@@ -310,7 +314,8 @@ def test_should_not_install_always_from_cache(script, with_wheel):
 
 
 @pytest.mark.network
-def test_install_with_ignoreinstalled_requested(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_with_ignoreinstalled_requested(script):
     """
     Test old conflicting package is completely ignored
     """
@@ -350,54 +355,6 @@ def test_upgrade_vcs_req_with_dist_found(script):
     script.pip("install", req, expect_stderr=True)
     result = script.pip("install", "-U", req, expect_stderr=True)
     assert "pypi.org" not in result.stdout, result.stdout
-
-
-class TestUpgradeDistributeToSetuptools:
-    """
-    From pip1.4 to pip6, pip supported a set of "hacks" (see Issue #1122) to
-    allow distribute to conflict with setuptools, so that the following would
-    work to upgrade distribute:
-
-     ``pip install -U  setuptools``
-
-    In pip7, the hacks were removed.  This test remains to at least confirm pip
-    can upgrade distribute to setuptools using:
-
-      ``pip install -U distribute``
-
-    The reason this works is that a final version of distribute (v0.7.3) was
-    released that is simple wrapper with:
-
-      install_requires=['setuptools>=0.7']
-
-    The test use a fixed set of packages from our test packages dir. Note that
-    virtualenv-1.9.1 contains distribute-0.6.34 and virtualenv-1.10 contains
-    setuptools-0.9.7
-    """
-
-    def prep_ve(self, script, version, pip_src, distribute=False):
-        self.script = script
-        self.script.pip_install_local(f"virtualenv=={version}")
-        args = ["virtualenv", self.script.scratch_path / "VE"]
-        if distribute:
-            args.insert(1, "--distribute")
-        if version == "1.9.1" and not distribute:
-            # setuptools 0.6 didn't support PYTHONDONTWRITEBYTECODE
-            del self.script.environ["PYTHONDONTWRITEBYTECODE"]
-        self.script.run(*args)
-        if sys.platform == "win32":
-            bindir = "Scripts"
-        else:
-            bindir = "bin"
-        self.ve_bin = self.script.scratch_path / "VE" / bindir
-        self.script.run(self.ve_bin / "pip", "uninstall", "-y", "pip")
-        self.script.run(
-            self.ve_bin / "python",
-            "setup.py",
-            "install",
-            cwd=pip_src,
-            expect_stderr=True,
-        )
 
 
 @pytest.mark.parametrize(

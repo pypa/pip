@@ -2,17 +2,13 @@
 import os
 import re
 import sys
-from os.path import exists
 
 import pytest
 
 from pip._internal.cli.status_codes import ERROR
 from tests.lib import pyversion  # noqa: F401
 
-
-@pytest.fixture(autouse=True)
-def auto_with_wheel(with_wheel):
-    pass
+pytestmark = pytest.mark.usefixtures("with_wheel")
 
 
 def add_files_to_dist_directory(folder):
@@ -243,36 +239,6 @@ def test_pip_wheel_fail(script, data):
     assert result.returncode != 0
 
 
-@pytest.mark.xfail(reason="The --build option was removed")
-def test_no_clean_option_blocks_cleaning_after_wheel(
-    script,
-    data,
-    resolver_variant,
-):
-    """
-    Test --no-clean option blocks cleaning after wheel build
-    """
-    build = script.venv_path / "build"
-    result = script.pip(
-        "wheel",
-        "--no-clean",
-        "--no-index",
-        "--build",
-        build,
-        f"--find-links={data.find_links}",
-        "simple",
-        expect_temp=True,
-        # TODO: allow_stderr_warning is used for the --build deprecation,
-        #       remove it when removing support for --build
-        allow_stderr_warning=True,
-    )
-
-    if resolver_variant == "legacy":
-        build = build / "simple"
-        message = f"build/simple should still exist {result}"
-        assert exists(build), message
-
-
 def test_pip_wheel_source_deps(script, data):
     """
     Test 'pip wheel' finds and builds source archive dependencies
@@ -364,7 +330,7 @@ def test_pip_wheel_ext_module_with_tmpdir_inside(script, data, common_wheels):
 
 
 @pytest.mark.network
-def test_pep517_wheels_are_not_confused_with_other_files(script, tmpdir, data):
+def test_pep517_wheels_are_not_confused_with_other_files(script, data):
     """Check correct wheels are copied. (#6196)"""
     pkg_to_wheel = data.src / "withpyproject"
     add_files_to_dist_directory(pkg_to_wheel)
@@ -377,7 +343,7 @@ def test_pep517_wheels_are_not_confused_with_other_files(script, tmpdir, data):
     result.did_create(wheel_file_path)
 
 
-def test_legacy_wheels_are_not_confused_with_other_files(script, tmpdir, data):
+def test_legacy_wheels_are_not_confused_with_other_files(script, data):
     """Check correct wheels are copied. (#6196)"""
     pkg_to_wheel = data.src / "simplewheel-1.0"
     add_files_to_dist_directory(pkg_to_wheel)

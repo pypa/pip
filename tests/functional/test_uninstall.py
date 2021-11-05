@@ -4,14 +4,15 @@ import sys
 import textwrap
 from os.path import join, normpath
 from tempfile import mkdtemp
+from unittest.mock import Mock
 
-import pretend
 import pytest
 
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.utils.misc import rmtree
 from tests.lib import assert_all_changes, create_test_package_with_setup, need_svn
 from tests.lib.local_repos import local_checkout, local_repo
+from tests.lib.path import Path
 
 
 @pytest.mark.network
@@ -279,7 +280,15 @@ def test_uninstall_console_scripts(script):
     result = script.pip("install", pkg_path)
     result.did_create(script.bin / "discover" + script.exe)
     result2 = script.pip("uninstall", "discover", "-y")
-    assert_all_changes(result, result2, [script.venv / "build", "cache"])
+    assert_all_changes(
+        result,
+        result2,
+        [
+            script.venv / "build",
+            "cache",
+            Path("scratch") / "discover" / "discover.egg-info",
+        ],
+    )
 
 
 def test_uninstall_console_scripts_uppercase_name(script):
@@ -467,14 +476,13 @@ def test_uninstall_non_local_distutils(caplog, monkeypatch, tmpdir):
     with open(einfo, "wb"):
         pass
 
-    dist = pretend.stub(
+    get_dist = Mock()
+    get_dist.return_value = Mock(
         key="thing",
         project_name="thing",
         egg_info=einfo,
         location=einfo,
-        _provider=pretend.stub(),
     )
-    get_dist = pretend.call_recorder(lambda x: dist)
     monkeypatch.setattr("pip._vendor.pkg_resources.get_distribution", get_dist)
 
     req = install_req_from_line("thing")

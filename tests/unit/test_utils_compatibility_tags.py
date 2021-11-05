@@ -1,4 +1,5 @@
 import sysconfig
+from typing import Any, Callable, Dict, List, Tuple
 from unittest.mock import patch
 
 import pytest
@@ -19,26 +20,26 @@ from pip._internal.utils import compatibility_tags
         ((3, 10), "310"),
     ],
 )
-def test_version_info_to_nodot(version_info, expected):
+def test_version_info_to_nodot(version_info: Tuple[int], expected: str) -> None:
     actual = compatibility_tags.version_info_to_nodot(version_info)
     assert actual == expected
 
 
 class Testcompatibility_tags:
-    def mock_get_config_var(self, **kwd):
+    def mock_get_config_var(self, **kwd: str) -> Callable[[str], Any]:
         """
         Patch sysconfig.get_config_var for arbitrary keys.
         """
         get_config_var = sysconfig.get_config_var
 
-        def _mock_get_config_var(var):
+        def _mock_get_config_var(var: str) -> Any:
             if var in kwd:
                 return kwd[var]
             return get_config_var(var)
 
         return _mock_get_config_var
 
-    def test_no_hyphen_tag(self):
+    def test_no_hyphen_tag(self) -> None:
         """
         Test that no tag contains a hyphen.
         """
@@ -63,11 +64,13 @@ class TestManylinux2010Tags:
             ("manylinux2010_i686", "manylinux1_i686"),
         ],
     )
-    def test_manylinux2010_implies_manylinux1(self, manylinux2010, manylinux1):
+    def test_manylinux2010_implies_manylinux1(
+        self, manylinux2010: str, manylinux1: str
+    ) -> None:
         """
         Specifying manylinux2010 implies manylinux1.
         """
-        groups = {}
+        groups: Dict[Tuple[str, str], List[str]] = {}
         supported = compatibility_tags.get_supported(platforms=[manylinux2010])
         for tag in supported:
             groups.setdefault((tag.interpreter, tag.abi), []).append(tag.platform)
@@ -86,11 +89,13 @@ class TestManylinux2014Tags:
             ("manylinux2014_i686", ["manylinux2010_i686", "manylinux1_i686"]),
         ],
     )
-    def test_manylinuxA_implies_manylinuxB(self, manylinuxA, manylinuxB):
+    def test_manylinuxA_implies_manylinuxB(
+        self, manylinuxA: str, manylinuxB: List[str]
+    ) -> None:
         """
         Specifying manylinux2014 implies manylinux2010/manylinux1.
         """
-        groups = {}
+        groups: Dict[Tuple[str, str], List[str]] = {}
         supported = compatibility_tags.get_supported(platforms=[manylinuxA])
         for tag in supported:
             groups.setdefault((tag.interpreter, tag.abi), []).append(tag.platform)

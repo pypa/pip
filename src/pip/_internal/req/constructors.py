@@ -22,11 +22,11 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
-from pip._internal.pyproject import make_pyproject_path
 from pip._internal.req.req_file import ParsedRequirement
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import is_installable_dir
+from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs import is_url, vcs
 
@@ -55,7 +55,7 @@ def _strip_extras(path: str) -> Tuple[str, Optional[str]]:
 def convert_extras(extras: Optional[str]) -> Set[str]:
     if not extras:
         return set()
-    return Requirement("placeholder" + extras.lower()).extras
+    return get_requirement("placeholder" + extras.lower()).extras
 
 
 def parse_editable(editable_req: str) -> Tuple[Optional[str], str, Set[str]]:
@@ -75,21 +75,6 @@ def parse_editable(editable_req: str) -> Tuple[Optional[str], str, Set[str]]:
     url_no_extras, extras = _strip_extras(url)
 
     if os.path.isdir(url_no_extras):
-        setup_py = os.path.join(url_no_extras, "setup.py")
-        setup_cfg = os.path.join(url_no_extras, "setup.cfg")
-        if not os.path.exists(setup_py) and not os.path.exists(setup_cfg):
-            msg = (
-                'File "setup.py" or "setup.cfg" not found. Directory cannot be '
-                "installed in editable mode: {}".format(os.path.abspath(url_no_extras))
-            )
-            pyproject_path = make_pyproject_path(url_no_extras)
-            if os.path.isfile(pyproject_path):
-                msg += (
-                    '\n(A "pyproject.toml" file was found, but editable '
-                    "mode currently requires a setuptools-based build.)"
-                )
-            raise InstallationError(msg)
-
         # Treating it as code that has already been checked out
         url_no_extras = path_to_url(url_no_extras)
 
@@ -99,7 +84,7 @@ def parse_editable(editable_req: str) -> Tuple[Optional[str], str, Set[str]]:
             return (
                 package_name,
                 url_no_extras,
-                Requirement("placeholder" + extras.lower()).extras,
+                get_requirement("placeholder" + extras.lower()).extras,
             )
         else:
             return package_name, url_no_extras, set()
@@ -197,6 +182,7 @@ def install_req_from_editable(
     options: Optional[Dict[str, Any]] = None,
     constraint: bool = False,
     user_supplied: bool = False,
+    permit_editable_wheels: bool = False,
 ) -> InstallRequirement:
 
     parts = parse_req_from_editable(editable_req)
@@ -206,6 +192,7 @@ def install_req_from_editable(
         comes_from=comes_from,
         user_supplied=user_supplied,
         editable=True,
+        permit_editable_wheels=permit_editable_wheels,
         link=parts.link,
         constraint=constraint,
         use_pep517=use_pep517,
@@ -248,6 +235,8 @@ def _get_url_from_path(path: str, name: str) -> Optional[str]:
     if _looks_like_path(name) and os.path.isdir(path):
         if is_installable_dir(path):
             return path_to_url(path)
+        # TODO: The is_installable_dir test here might not be necessary
+        #       now that it is done in load_pyproject_toml too.
         raise InstallationError(
             f"Directory {name!r} is not installable. Neither 'setup.py' "
             "nor 'pyproject.toml' found."
@@ -323,7 +312,7 @@ def parse_req_from_line(name: str, line_source: Optional[str]) -> RequirementPar
 
     def _parse_req_string(req_as_string: str) -> Requirement:
         try:
-            req = Requirement(req_as_string)
+            req = get_requirement(req_as_string)
         except InvalidRequirement:
             if os.path.sep in req_as_string:
                 add_msg = "It looks like a path."
@@ -400,7 +389,7 @@ def install_req_from_req_string(
     user_supplied: bool = False,
 ) -> InstallRequirement:
     try:
-        req = Requirement(req_string)
+        req = get_requirement(req_string)
     except InvalidRequirement:
         raise InstallationError(f"Invalid requirement: '{req_string}'")
 

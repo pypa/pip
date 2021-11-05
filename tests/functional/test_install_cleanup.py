@@ -27,7 +27,8 @@ def test_no_clean_option_blocks_cleaning_after_install(script, data):
 
 
 @pytest.mark.network
-def test_pep517_no_legacy_cleanup(script, data, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_pep517_no_legacy_cleanup(script, data):
     """Test a PEP 517 failed build does not attempt a legacy cleanup"""
     to_install = data.packages.joinpath("pep517_wrapper_buildsys")
     script.environ["PIP_TEST_FAIL_BUILD_WHEEL"] = "1"

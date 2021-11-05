@@ -57,12 +57,13 @@ def arg_recording_sdist_maker(script):
 
 
 @pytest.mark.network
-def test_requirements_file(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_requirements_file(script):
     """
     Test installing from a requirements file.
 
     """
-    other_lib_name, other_lib_version = "anyjson", "0.3"
+    other_lib_name, other_lib_version = "peppercorn", "0.6"
     script.scratch_path.joinpath("initools-req.txt").write_text(
         textwrap.dedent(
             f"""\
@@ -107,7 +108,8 @@ def test_schema_check_in_requirements_file(script):
         ("embedded_rel_path", True),
     ],
 )
-def test_relative_requirements_file(script, data, test_type, editable, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_relative_requirements_file(script, data, test_type, editable):
     """
     Test installing from a requirements file with a relative path. For path
     URLs, use an egg= definition.
@@ -152,12 +154,13 @@ def test_relative_requirements_file(script, data, test_type, editable, with_whee
 @pytest.mark.xfail
 @pytest.mark.network
 @need_svn
-def test_multiple_requirements_files(script, tmpdir, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_multiple_requirements_files(script, tmpdir):
     """
     Test installing from multiple nested requirements files.
 
     """
-    other_lib_name, other_lib_version = "anyjson", "0.3"
+    other_lib_name, other_lib_version = "six", "1.16.0"
     script.scratch_path.joinpath("initools-req.txt").write_text(
         textwrap.dedent(
             """
@@ -210,7 +213,7 @@ def test_multiple_constraints_files(script, data):
     assert "installed Upper-1.0" in result.stdout
 
 
-@pytest.mark.xfail(reason="Unclear what this guarantee is for.")
+# FIXME: Unclear what this guarantee is for.
 def test_respect_order_in_requirements_file(script, data):
     script.scratch_path.joinpath("frameworks-req.txt").write_text(
         textwrap.dedent(
@@ -290,7 +293,8 @@ def test_install_local_with_subdirectory(script):
 
 
 @pytest.mark.incompatible_with_test_venv
-def test_wheel_user_with_prefix_in_pydistutils_cfg(script, data, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_wheel_user_with_prefix_in_pydistutils_cfg(script, data):
     if os.name == "posix":
         user_filename = ".pydistutils.cfg"
     else:
@@ -482,7 +486,8 @@ def test_constrained_to_url_install_same_url(script, data):
     assert "Running setup.py install for singlemodule" in result.stdout, str(result)
 
 
-def test_double_install_spurious_hash_mismatch(script, tmpdir, data, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_double_install_spurious_hash_mismatch(script, tmpdir, data):
     """Make sure installing the same hashed sdist twice doesn't throw hash
     mismatch errors.
 

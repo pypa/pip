@@ -1,6 +1,6 @@
 import logging
+from unittest import mock
 
-import pretend
 import pytest
 
 from pip._internal.cli.status_codes import NO_MATCHES_FOUND, SUCCESS
@@ -156,18 +156,18 @@ def test_latest_prerelease_install_message(caplog, monkeypatch):
         }
     ]
 
-    installed_package = pretend.stub(project_name="ni")
+    installed_package = mock.Mock(project_name="ni")
     monkeypatch.setattr("pip._vendor.pkg_resources.working_set", [installed_package])
 
-    dist = pretend.stub(version="1.0.0")
-    get_dist = pretend.call_recorder(lambda x: dist)
+    get_dist = mock.Mock()
+    get_dist.return_value = mock.Mock(version="1.0.0")
     monkeypatch.setattr("pip._internal.commands.search.get_distribution", get_dist)
     with caplog.at_level(logging.INFO):
         print_results(hits)
 
     message = caplog.records[-1].getMessage()
     assert 'pre-release; install with "pip install --pre"' in message
-    assert get_dist.calls == [pretend.call("ni")]
+    assert get_dist.call_args_list == [mock.call("ni")]
 
 
 @pytest.mark.search

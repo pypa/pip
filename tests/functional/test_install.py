@@ -108,7 +108,12 @@ def test_pep518_refuses_invalid_requires(script, data, common_wheels):
         expect_error=True,
     )
     assert result.returncode == 1
-    assert "does not comply with PEP 518" in result.stderr
+
+    # Ensure the relevant things are mentioned.
+    assert "PEP 518" in result.stderr
+    assert "not a list of strings" in result.stderr
+    assert "build-system.requires" in result.stderr
+    assert "pyproject.toml" in result.stderr
 
 
 def test_pep518_refuses_invalid_build_system(script, data, common_wheels):
@@ -120,7 +125,12 @@ def test_pep518_refuses_invalid_build_system(script, data, common_wheels):
         expect_error=True,
     )
     assert result.returncode == 1
-    assert "does not comply with PEP 518" in result.stderr
+
+    # Ensure the relevant things are mentioned.
+    assert "PEP 518" in result.stderr
+    assert "mandatory `requires` key" in result.stderr
+    assert "[build-system] table" in result.stderr
+    assert "pyproject.toml" in result.stderr
 
 
 def test_pep518_allows_missing_requires(script, data, common_wheels):
@@ -132,7 +142,7 @@ def test_pep518_allows_missing_requires(script, data, common_wheels):
         expect_stderr=True,
     )
     # Make sure we don't warn when this occurs.
-    assert "does not comply with PEP 518" not in result.stderr
+    assert "PEP 518" not in result.stderr
 
     # We want it to go through isolation for now.
     assert "Installing build dependencies" in result.stdout, result.stdout
@@ -222,8 +232,9 @@ def test_pep518_forkbombs(script, data, common_wheels, command, package):
 
 
 @pytest.mark.network
+@pytest.mark.usefixtures("with_wheel")
 def test_pip_second_command_line_interface_works(
-    script, pip_src, data, common_wheels, deprecated_python, with_wheel
+    script, pip_src, data, common_wheels, deprecated_python
 ):
     """
     Check if ``pip<PYVERSION>`` commands behaves equally
@@ -258,7 +269,8 @@ def test_install_exit_status_code_when_blank_requirements_file(script):
 
 
 @pytest.mark.network
-def test_basic_install_from_pypi(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_basic_install_from_pypi(script):
     """
     Test installing a package from PyPI.
     """
@@ -300,7 +312,7 @@ def test_basic_install_editable_from_svn(script):
     result.assert_installed("version-pkg", with_files=[".svn"])
 
 
-def _test_install_editable_from_git(script, tmpdir):
+def _test_install_editable_from_git(script):
     """Test cloning from Git."""
     pkg_path = _create_test_package(script, name="testpackage", vcs="git")
     args = [
@@ -312,12 +324,13 @@ def _test_install_editable_from_git(script, tmpdir):
     result.assert_installed("testpackage", with_files=[".git"])
 
 
-def test_basic_install_editable_from_git(script, tmpdir):
-    _test_install_editable_from_git(script, tmpdir)
+def test_basic_install_editable_from_git(script):
+    _test_install_editable_from_git(script)
 
 
-def test_install_editable_from_git_autobuild_wheel(script, tmpdir, with_wheel):
-    _test_install_editable_from_git(script, tmpdir)
+@pytest.mark.usefixtures("with_wheel")
+def test_install_editable_from_git_autobuild_wheel(script):
+    _test_install_editable_from_git(script)
 
 
 @pytest.mark.network
@@ -375,7 +388,7 @@ def test_install_editable_uninstalls_existing_from_path(script, data):
 
 
 @need_mercurial
-def test_basic_install_editable_from_hg(script, tmpdir):
+def test_basic_install_editable_from_hg(script):
     """Test cloning and hg+file install from Mercurial."""
     pkg_path = _create_test_package(script, name="testpackage", vcs="hg")
     url = "hg+{}#egg=testpackage".format(path_to_url(pkg_path))
@@ -386,7 +399,7 @@ def test_basic_install_editable_from_hg(script, tmpdir):
 
 
 @need_mercurial
-def test_vcs_url_final_slash_normalization(script, tmpdir):
+def test_vcs_url_final_slash_normalization(script):
     """
     Test that presence or absence of final slash in VCS URL is normalized.
     """
@@ -401,7 +414,7 @@ def test_vcs_url_final_slash_normalization(script, tmpdir):
 
 
 @need_bzr
-def test_install_editable_from_bazaar(script, tmpdir):
+def test_install_editable_from_bazaar(script):
     """Test checking out from Bazaar."""
     pkg_path = _create_test_package(script, name="testpackage", vcs="bazaar")
     args = [
@@ -434,7 +447,8 @@ def test_vcs_url_urlquote_normalization(script, tmpdir):
 
 
 @pytest.mark.parametrize("resolver", ["", "--use-deprecated=legacy-resolver"])
-def test_basic_install_from_local_directory(script, data, resolver, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_basic_install_from_local_directory(script, data, resolver):
     """
     Test installing from a local directory.
     """
@@ -461,9 +475,8 @@ def test_basic_install_from_local_directory(script, data, resolver, with_wheel):
         ("embedded_rel_path", True),
     ],
 )
-def test_basic_install_relative_directory(
-    script, data, test_type, editable, with_wheel
-):
+@pytest.mark.usefixtures("with_wheel")
+def test_basic_install_relative_directory(script, data, test_type, editable):
     """
     Test installing a requirement using a relative path.
     """
@@ -578,26 +591,31 @@ def test_hashed_install_failure_later_flag(script, tmpdir):
     )
 
 
-def test_install_from_local_directory_with_symlinks_to_directories(
-    script, data, with_wheel
-):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_from_local_directory_with_symlinks_to_directories(script, data):
     """
     Test installing from a local directory containing symlinks to directories.
     """
     to_install = data.packages.joinpath("symlinks")
-    result = script.pip("install", to_install)
+    result = script.pip(
+        "install",
+        "--use-deprecated=out-of-tree-build",
+        to_install,
+        allow_stderr_warning=True,  # TODO: set to False when removing out-of-tree-build
+    )
     pkg_folder = script.site_packages / "symlinks"
     dist_info_folder = script.site_packages / "symlinks-0.1.dev0.dist-info"
     result.did_create(pkg_folder)
     result.did_create(dist_info_folder)
 
 
-def test_install_from_local_directory_with_in_tree_build(script, data, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_from_local_directory_with_in_tree_build(script, data):
     """
-    Test installing from a local directory with --use-feature=in-tree-build.
+    Test installing from a local directory with default in tree build.
     """
     to_install = data.packages.joinpath("FSPkg")
-    args = ["install", "--use-feature=in-tree-build", to_install]
+    args = ["install", to_install]
 
     in_tree_build_dir = to_install / "build"
     assert not in_tree_build_dir.exists()
@@ -610,12 +628,13 @@ def test_install_from_local_directory_with_in_tree_build(script, data, with_whee
 
 
 @pytest.mark.skipif("sys.platform == 'win32'")
-def test_install_from_local_directory_with_socket_file(
-    script, data, tmpdir, with_wheel
-):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_from_local_directory_with_socket_file(script, data, tmpdir):
     """
     Test installing from a local directory containing a socket file.
     """
+    # TODO: remove this test when removing out-of-tree-build support,
+    # it is only meant to test the copy of socket files
     dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
     package_folder = script.site_packages / "fspkg"
     to_copy = data.packages.joinpath("FSPkg")
@@ -626,7 +645,13 @@ def test_install_from_local_directory_with_socket_file(
     socket_file_path = os.path.join(to_install, "example")
     make_socket_file(socket_file_path)
 
-    result = script.pip("install", "--verbose", to_install)
+    result = script.pip(
+        "install",
+        "--use-deprecated=out-of-tree-build",
+        "--verbose",
+        to_install,
+        allow_stderr_warning=True,  # because of the out-of-tree deprecation warning
+    )
     result.did_create(package_folder)
     result.did_create(dist_info_folder)
     assert str(socket_file_path) in result.stderr
@@ -638,28 +663,22 @@ def test_install_from_local_directory_with_no_setup_py(script, data):
     """
     result = script.pip("install", data.root, expect_error=True)
     assert not result.files_created
-    assert "is not installable." in result.stderr
     assert "Neither 'setup.py' nor 'pyproject.toml' found." in result.stderr
 
 
-def test_editable_install__local_dir_no_setup_py(script, data, deprecated_python):
+def test_editable_install__local_dir_no_setup_py(script, data):
     """
     Test installing in editable mode from a local directory with no setup.py.
     """
     result = script.pip("install", "-e", data.root, expect_error=True)
     assert not result.files_created
-
-    msg = result.stderr
-    if deprecated_python:
-        assert 'File "setup.py" or "setup.cfg" not found. ' in msg
-    else:
-        assert msg.startswith('ERROR: File "setup.py" or "setup.cfg" not found. ')
-    assert "pyproject.toml" not in msg
+    assert (
+        "does not appear to be a Python project: "
+        "neither 'setup.py' nor 'pyproject.toml' found" in result.stderr
+    )
 
 
-def test_editable_install__local_dir_no_setup_py_with_pyproject(
-    script, deprecated_python
-):
+def test_editable_install__local_dir_no_setup_py_with_pyproject(script):
     """
     Test installing in editable mode from a local directory with no setup.py
     but that does have pyproject.toml.
@@ -673,11 +692,29 @@ def test_editable_install__local_dir_no_setup_py_with_pyproject(
     assert not result.files_created
 
     msg = result.stderr
-    if deprecated_python:
-        assert 'File "setup.py" or "setup.cfg" not found. ' in msg
-    else:
-        assert msg.startswith('ERROR: File "setup.py" or "setup.cfg" not found. ')
-    assert 'A "pyproject.toml" file was found' in msg
+    assert "has a 'pyproject.toml'" in msg
+    assert "does not have a 'setup.py' nor a 'setup.cfg'" in msg
+    assert "cannot be installed in editable mode" in msg
+
+
+def test_editable_install__local_dir_setup_requires_with_pyproject(script, shared_data):
+    """
+    Test installing in editable mode from a local directory with a setup.py
+    that has setup_requires and a pyproject.toml.
+
+    https://github.com/pypa/pip/issues/10573
+    """
+    local_dir = script.scratch_path.joinpath("temp")
+    local_dir.mkdir()
+    pyproject_path = local_dir.joinpath("pyproject.toml")
+    pyproject_path.write_text("")
+    setup_py_path = local_dir.joinpath("setup.py")
+    setup_py_path.write_text(
+        "from setuptools import setup\n"
+        "setup(name='dummy', setup_requires=['simplewheel'])\n"
+    )
+
+    script.pip("install", "--find-links", shared_data.find_links, "-e", local_dir)
 
 
 @pytest.mark.network
@@ -689,7 +726,8 @@ def test_upgrade_argparse_shadowed(script):
     assert "Not uninstalling argparse" not in result.stdout
 
 
-def test_install_curdir(script, data, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_curdir(script, data):
     """
     Test installing current directory ('.').
     """
@@ -705,7 +743,8 @@ def test_install_curdir(script, data, with_wheel):
     result.did_create(dist_info_folder)
 
 
-def test_install_pardir(script, data, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_pardir(script, data):
     """
     Test installing parent directory ('..').
     """
@@ -780,7 +819,8 @@ def test_install_global_option_using_editable(script, tmpdir):
 
 
 @pytest.mark.network
-def test_install_package_with_same_name_in_curdir(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_package_with_same_name_in_curdir(script):
     """
     Test installing a package with the same name of a local folder
     """
@@ -798,7 +838,8 @@ mock100_setup_py = textwrap.dedent(
 )
 
 
-def test_install_folder_using_dot_slash(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_folder_using_dot_slash(script):
     """
     Test installing a folder using pip install ./foldername
     """
@@ -810,7 +851,8 @@ def test_install_folder_using_dot_slash(script, with_wheel):
     result.did_create(dist_info_folder)
 
 
-def test_install_folder_using_slash_in_the_end(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_folder_using_slash_in_the_end(script):
     r"""
     Test installing a folder using pip install foldername/ or foldername\
     """
@@ -822,7 +864,8 @@ def test_install_folder_using_slash_in_the_end(script, with_wheel):
     result.did_create(dist_info_folder)
 
 
-def test_install_folder_using_relative_path(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_folder_using_relative_path(script):
     """
     Test installing a folder using pip install folder1/folder2
     """
@@ -836,7 +879,8 @@ def test_install_folder_using_relative_path(script, with_wheel):
 
 
 @pytest.mark.network
-def test_install_package_which_contains_dev_in_name(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_package_which_contains_dev_in_name(script):
     """
     Test installing package from PyPI which contains 'dev' in name
     """
@@ -847,7 +891,8 @@ def test_install_package_which_contains_dev_in_name(script, with_wheel):
     result.did_create(dist_info_folder)
 
 
-def test_install_package_with_target(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_package_with_target(script):
     """
     Test installing a package using pip install --target
     """
@@ -975,7 +1020,8 @@ def test_install_nonlocal_compatible_wheel_path(
 
 
 @pytest.mark.parametrize("opt", ("--target", "--prefix"))
-def test_install_with_target_or_prefix_and_scripts_no_warning(opt, script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_with_target_or_prefix_and_scripts_no_warning(opt, script):
     """
     Test that installing with --target does not trigger the "script not
     in PATH" warning (issue #5201)
@@ -1011,7 +1057,8 @@ def test_install_with_target_or_prefix_and_scripts_no_warning(opt, script, with_
     assert "--no-warn-script-location" not in result.stderr, str(result)
 
 
-def test_install_package_with_root(script, data, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_package_with_root(script, data):
     """
     Test installing a package using pip install --root
     """
@@ -1194,7 +1241,8 @@ def test_install_package_with_latin1_setup(script, data):
     script.pip("install", to_install)
 
 
-def test_url_req_case_mismatch_no_index(script, data, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_url_req_case_mismatch_no_index(script, data):
     """
     tar ball url requirements (with no egg fragment), that happen to have upper
     case project names, should be considered equal to later requirements that
@@ -1215,7 +1263,8 @@ def test_url_req_case_mismatch_no_index(script, data, with_wheel):
     result.did_not_create(dist_info_folder)
 
 
-def test_url_req_case_mismatch_file_index(script, data, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_url_req_case_mismatch_file_index(script, data):
     """
     tar ball url requirements (with no egg fragment), that happen to have upper
     case project names, should be considered equal to later requirements that
@@ -1242,7 +1291,8 @@ def test_url_req_case_mismatch_file_index(script, data, with_wheel):
     result.did_not_create(dist_info_folder)
 
 
-def test_url_incorrect_case_no_index(script, data, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_url_incorrect_case_no_index(script, data):
     """
     Same as test_url_req_case_mismatch_no_index, except testing for the case
     where the incorrect case is given in the name of the package to install
@@ -1263,7 +1313,8 @@ def test_url_incorrect_case_no_index(script, data, with_wheel):
     result.did_create(dist_info_folder)
 
 
-def test_url_incorrect_case_file_index(script, data, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_url_incorrect_case_file_index(script, data):
     """
     Same as test_url_req_case_mismatch_file_index, except testing for the case
     where the incorrect case is given in the name of the package to install
@@ -1408,12 +1459,14 @@ def test_install_topological_sort(script, data):
     assert order1 in res or order2 in res, res
 
 
-def test_install_wheel_broken(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_wheel_broken(script):
     res = script.pip_install_local("wheelbroken", expect_stderr=True)
     assert "Successfully installed wheelbroken-0.1" in str(res), str(res)
 
 
-def test_cleanup_after_failed_wheel(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_cleanup_after_failed_wheel(script):
     res = script.pip_install_local("wheelbrokenafter", expect_stderr=True)
     # One of the effects of not cleaning up is broken scripts:
     script_py = script.bin_path / "script.py"
@@ -1426,7 +1479,8 @@ def test_cleanup_after_failed_wheel(script, with_wheel):
     assert "Running setup.py clean for wheelbrokenafter" in str(res), str(res)
 
 
-def test_install_builds_wheels(script, data, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_builds_wheels(script, data):
     # We need to use a subprocess to get the right value on Windows.
     res = script.run(
         "python",
@@ -1473,7 +1527,8 @@ def test_install_builds_wheels(script, data, with_wheel):
     ]
 
 
-def test_install_no_binary_disables_building_wheels(script, data, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_no_binary_disables_building_wheels(script, data):
     to_install = data.packages.joinpath("requires_wheelbroken_upper")
     res = script.pip(
         "install",
@@ -1504,7 +1559,8 @@ def test_install_no_binary_disables_building_wheels(script, data, with_wheel):
 
 
 @pytest.mark.network
-def test_install_no_binary_builds_pep_517_wheel(script, data, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_no_binary_builds_pep_517_wheel(script, data):
     to_install = data.packages.joinpath("pep517_setup_and_pyproject")
     res = script.pip("install", "--no-binary=:all:", "-f", data.find_links, to_install)
     expected = "Successfully installed pep517-setup-and-pyproject"
@@ -1516,7 +1572,8 @@ def test_install_no_binary_builds_pep_517_wheel(script, data, with_wheel):
 
 
 @pytest.mark.network
-def test_install_no_binary_uses_local_backend(script, data, with_wheel, tmpdir):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_no_binary_uses_local_backend(script, data, tmpdir):
     to_install = data.packages.joinpath("pep517_wrapper_buildsys")
     script.environ["PIP_TEST_MARKER_FILE"] = marker = str(tmpdir / "marker")
     res = script.pip("install", "--no-binary=:all:", "-f", data.find_links, to_install)
@@ -1527,7 +1584,8 @@ def test_install_no_binary_uses_local_backend(script, data, with_wheel, tmpdir):
     assert os.path.isfile(marker), "Local PEP 517 backend not used"
 
 
-def test_install_no_binary_disables_cached_wheels(script, data, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_no_binary_disables_cached_wheels(script, data):
     # Seed the cache
     script.pip("install", "--no-index", "-f", data.find_links, "upper")
     script.pip("uninstall", "upper", "-y")
@@ -1659,7 +1717,8 @@ def test_install_incompatible_python_requires_editable(script):
     assert _get_expected_error_text() in result.stderr, str(result)
 
 
-def test_install_incompatible_python_requires_wheel(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_incompatible_python_requires_wheel(script):
     script.scratch_path.joinpath("pkga").mkdir()
     pkga_path = script.scratch_path / "pkga"
     pkga_path.joinpath("setup.py").write_text(

@@ -35,36 +35,18 @@ class BrokenStdoutLoggingError(Exception):
     Raised if BrokenPipeError occurs for the stdout stream while logging.
     """
 
-    pass
 
+def _is_broken_pipe_error(exc_class: Type[BaseException], exc: BaseException) -> bool:
+    if exc_class is BrokenPipeError:
+        return True
 
-# BrokenPipeError manifests differently in Windows and non-Windows.
-if WINDOWS:
-    # In Windows, a broken pipe can show up as EINVAL rather than EPIPE:
+    # On Windows, a broken pipe can show up as EINVAL rather than EPIPE:
     # https://bugs.python.org/issue19612
     # https://bugs.python.org/issue30418
-    def _is_broken_pipe_error(
-        exc_class: Type[BaseException], exc: BaseException
-    ) -> bool:
-        """See the docstring for non-Windows below."""
-        return (exc_class is BrokenPipeError) or (
-            isinstance(exc, OSError) and exc.errno in (errno.EINVAL, errno.EPIPE)
-        )
+    if not WINDOWS:
+        return False
 
-
-else:
-    # Then we are in the non-Windows case.
-    def _is_broken_pipe_error(
-        exc_class: Type[BaseException], exc: BaseException
-    ) -> bool:
-        """
-        Return whether an exception is a broken pipe error.
-
-        Args:
-          exc_class: an exception class.
-          exc: an exception instance.
-        """
-        return exc_class is BrokenPipeError
+    return isinstance(exc, OSError) and exc.errno in (errno.EINVAL, errno.EPIPE)
 
 
 @contextlib.contextmanager

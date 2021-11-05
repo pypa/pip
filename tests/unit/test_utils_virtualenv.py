@@ -1,10 +1,12 @@
 import logging
 import site
 import sys
+from typing import List, Optional
 
 import pytest
 
 from pip._internal.utils import virtualenv
+from tests.lib.path import Path
 
 
 @pytest.mark.parametrize(
@@ -21,7 +23,12 @@ from pip._internal.utils import virtualenv
         ("not_sys_prefix", "not_sys_prefix", True),  # Unknown case
     ],
 )
-def test_running_under_virtualenv(monkeypatch, real_prefix, base_prefix, expected):
+def test_running_under_virtualenv(
+    monkeypatch: pytest.MonkeyPatch,
+    real_prefix: Optional[str],
+    base_prefix: Optional[str],
+    expected: bool,
+) -> None:
     # Use raising=False to prevent AttributeError on missing attribute
     if real_prefix is None:
         monkeypatch.delattr(sys, "real_prefix", raising=False)
@@ -44,12 +51,12 @@ def test_running_under_virtualenv(monkeypatch, real_prefix, base_prefix, expecte
     ],
 )
 def test_virtualenv_no_global_with_regular_virtualenv(
-    monkeypatch,
-    tmpdir,
-    under_virtualenv,
-    no_global_file,
-    expected,
-):
+    monkeypatch: pytest.MonkeyPatch,
+    tmpdir: Path,
+    under_virtualenv: bool,
+    no_global_file: bool,
+    expected: bool,
+) -> None:
     monkeypatch.setattr(virtualenv, "_running_under_venv", lambda: False)
 
     monkeypatch.setattr(site, "__file__", tmpdir / "site.py")
@@ -92,13 +99,13 @@ def test_virtualenv_no_global_with_regular_virtualenv(
     ],
 )
 def test_virtualenv_no_global_with_pep_405_virtual_environment(
-    monkeypatch,
-    caplog,
-    pyvenv_cfg_lines,
-    under_venv,
-    expected,
-    expect_warning,
-):
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    pyvenv_cfg_lines: Optional[List[str]],
+    under_venv: bool,
+    expected: bool,
+    expect_warning: bool,
+) -> None:
     monkeypatch.setattr(virtualenv, "_running_under_regular_virtualenv", lambda: False)
     monkeypatch.setattr(virtualenv, "_get_pyvenv_cfg_lines", lambda: pyvenv_cfg_lines)
     monkeypatch.setattr(virtualenv, "_running_under_venv", lambda: under_venv)
@@ -125,11 +132,11 @@ def test_virtualenv_no_global_with_pep_405_virtual_environment(
     ],
 )
 def test_get_pyvenv_cfg_lines_for_pep_405_virtual_environment(
-    monkeypatch,
-    tmpdir,
-    contents,
-    expected,
-):
+    monkeypatch: pytest.MonkeyPatch,
+    tmpdir: Path,
+    contents: Optional[str],
+    expected: Optional[List[str]],
+) -> None:
     monkeypatch.setattr(sys, "prefix", str(tmpdir))
     if contents is not None:
         tmpdir.joinpath("pyvenv.cfg").write_text(contents)

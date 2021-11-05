@@ -17,6 +17,7 @@ from typing import (
 
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
+from pip._vendor.packaging.utils import NormalizedName
 from pip._vendor.packaging.version import LegacyVersion, Version
 
 from pip._internal.models.direct_url import (
@@ -24,12 +25,12 @@ from pip._internal.models.direct_url import (
     DirectUrl,
     DirectUrlValidationError,
 )
-from pip._internal.utils.misc import stdlib_pkgs  # TODO: Move definition here.
+from pip._internal.utils.compat import stdlib_pkgs  # TODO: Move definition here.
+from pip._internal.utils.egg_link import egg_link_path_from_sys_path
+from pip._internal.utils.urls import url_to_path
 
 if TYPE_CHECKING:
     from typing import Protocol
-
-    from pip._vendor.packaging.utils import NormalizedName
 else:
     Protocol = object
 
@@ -74,6 +75,28 @@ class BaseDistribution(Protocol):
         raise NotImplementedError()
 
     @property
+    def editable_project_location(self) -> Optional[str]:
+        """The project location for editable distributions.
+
+        This is the directory where pyproject.toml or setup.py is located.
+        None if the distribution is not installed in editable mode.
+        """
+        # TODO: this property is relatively costly to compute, memoize it ?
+        direct_url = self.direct_url
+        if direct_url:
+            if direct_url.is_local_editable():
+                return url_to_path(direct_url.url)
+        else:
+            # Search for an .egg-link file by walking sys.path, as it was
+            # done before by dist_is_editable().
+            egg_link_path = egg_link_path_from_sys_path(self.raw_name)
+            if egg_link_path:
+                # TODO: get project location from second line of egg_link file
+                #       (https://github.com/pypa/pip/issues/10243)
+                return self.location
+        return None
+
+    @property
     def info_directory(self) -> Optional[str]:
         """Location of the .[egg|dist]-info directory.
 
@@ -90,7 +113,7 @@ class BaseDistribution(Protocol):
         raise NotImplementedError()
 
     @property
-    def canonical_name(self) -> "NormalizedName":
+    def canonical_name(self) -> NormalizedName:
         raise NotImplementedError()
 
     @property
@@ -129,7 +152,7 @@ class BaseDistribution(Protocol):
 
     @property
     def editable(self) -> bool:
-        raise NotImplementedError()
+        return bool(self.editable_project_location)
 
     @property
     def local(self) -> bool:

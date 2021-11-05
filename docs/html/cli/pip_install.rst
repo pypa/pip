@@ -149,120 +149,10 @@ profile:
    ``setup_requires``.
 
 
-.. _`Requirements File Format`:
-
 Requirements File Format
 ------------------------
 
-Each line of the requirements file indicates something to be installed,
-and like arguments to :ref:`pip install`, the following forms are supported::
-
-    [[--option]...]
-    <requirement specifier> [; markers] [[--option]...]
-    <archive url/path>
-    [-e] <local project path>
-    [-e] <vcs project url>
-
-For details on requirement specifiers, see :ref:`Requirement Specifiers`.
-
-See the :ref:`pip install Examples<pip install Examples>` for examples of all these forms.
-
-A line that begins with ``#`` is treated as a comment and ignored. Whitespace
-followed by a ``#`` causes the ``#`` and the remainder of the line to be
-treated as a comment.
-
-A line ending in an unescaped ``\`` is treated as a line continuation
-and the newline following it is effectively ignored.
-
-Comments are stripped *after* line continuations are processed.
-
-To interpret the requirements file in UTF-8 format add a comment
-``# -*- coding: utf-8 -*-`` to the first or second line of the file.
-
-The following options are supported:
-
-.. pip-requirements-file-options-ref-list::
-
-Please note that the above options are global options, and should be specified on their individual lines.
-The options which can be applied to individual requirements are
-:ref:`--install-option <install_--install-option>`, :ref:`--global-option <install_--global-option>` and ``--hash``.
-
-For example, to specify :ref:`--pre <install_--pre>`, :ref:`--no-index <install_--no-index>` and two
-:ref:`--find-links <install_--find-links>` locations:
-
-::
-
---pre
---no-index
---find-links /my/local/archives
---find-links http://some.archives.com/archives
-
-
-If you wish, you can refer to other requirements files, like this::
-
-    -r more_requirements.txt
-
-You can also refer to :ref:`constraints files <Constraints Files>`, like this::
-
-    -c some_constraints.txt
-
-.. _`Using Environment Variables`:
-
-Using Environment Variables
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Since version 10, pip supports the use of environment variables inside the
-requirements file. You can now store sensitive data (tokens, keys, etc.) in
-environment variables and only specify the variable name for your requirements,
-letting pip lookup the value at runtime. This approach aligns with the commonly
-used `12-factor configuration pattern <https://12factor.net/config>`_.
-
-You have to use the POSIX format for variable names including brackets around
-the uppercase name as shown in this example: ``${API_TOKEN}``. pip will attempt
-to find the corresponding environment variable defined on the host system at
-runtime.
-
-.. note::
-
-   There is no support for other variable expansion syntaxes such as
-   ``$VARIABLE`` and ``%VARIABLE%``.
-
-
-.. _`Example Requirements File`:
-
-Example Requirements File
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Use ``pip install -r example-requirements.txt`` to install::
-
-    #
-    ####### example-requirements.txt #######
-    #
-    ###### Requirements without Version Specifiers ######
-    nose
-    nose-cov
-    beautifulsoup4
-    #
-    ###### Requirements with Version Specifiers ######
-    #   See https://www.python.org/dev/peps/pep-0440/#version-specifiers
-    docopt == 0.6.1             # Version Matching. Must be version 0.6.1
-    keyring >= 4.1.1            # Minimum version 4.1.1
-    coverage != 3.5             # Version Exclusion. Anything except version 3.5
-    Mopidy-Dirble ~= 1.1        # Compatible release. Same as >= 1.1, == 1.*
-    #
-    ###### Refer to other requirements files ######
-    -r other-requirements.txt
-    #
-    #
-    ###### A particular file ######
-    ./downloads/numpy-1.9.2-cp34-none-win32.whl
-    http://wxpython.org/Phoenix/snapshot-builds/wxPython_Phoenix-3.0.3.dev1820+49a8884-cp34-none-win_amd64.whl
-    #
-    ###### Additional Requirements without Version Specifiers ######
-    #   Same as 1st section, just here to show that you can put things in any order.
-    rejected
-    green
-    #
+This section has been moved to :doc:`../reference/requirements-file-format`.
 
 .. _`Requirement Specifiers`:
 
@@ -379,7 +269,7 @@ Finding Packages
 
 pip searches for packages on `PyPI`_ using the
 `HTTP simple interface <https://pypi.org/simple/>`_,
-which is documented `here <https://setuptools.readthedocs.io/en/latest/easy_install.html#package-index-api>`_
+which is documented `here <https://packaging.python.org/specifications/simple-repository-api/>`_
 and `there <https://www.python.org/dev/peps/pep-0503/>`_.
 
 pip offers a number of package index options for modifying how packages are
@@ -529,7 +419,7 @@ with other repeatability strategies.
    (rare) packages that use it will cause those dependencies to be downloaded
    by setuptools directly, skipping pip's hash-checking. If you need to use
    such a package, see :ref:`Controlling
-   setup_requires<controlling-setup-requires>`.
+   setup_requires <controlling-setup_requires>`.
 
 .. warning::
 
@@ -600,18 +490,20 @@ You can install local projects by specifying the project path to pip:
 
       py -m pip install path/to/SomeProject
 
-During regular installation, pip will copy the entire project directory to a
-temporary location and install from there. The exception is that pip will
-exclude .tox and .nox directories present in the top level of the project from
-being copied. This approach is the cause of several performance and correctness
-issues, so it is planned that pip 21.3 will change to install directly from the
-local project directory. Depending on the build backend used by the project,
-this may generate secondary build artifacts in the project directory, such as
-the ``.egg-info`` and ``build`` directories in the case of the setuptools
-backend.
+.. note::
 
-To opt in to the future behavior, specify the ``--use-feature=in-tree-build``
-option in pip's command line.
+   Depending on the build backend used by the project, this may generate
+   secondary build artifacts in the project directory, such as the
+   ``.egg-info`` and ``build`` directories in the case of the setuptools
+   backend.
+
+   Pip has a legacy behaviour that copies the entire project directory to a
+   temporary location and installs from there. This approach was the cause of
+   several performance and correctness issues, so it is now disabled by
+   default, and it is planned that pip 22.1 will remove it.
+
+   To opt in to the legacy behavior, specify the
+   ``--use-deprecated=out-of-tree-build`` option in pip's command line.
 
 
 .. _`editable-installs`:
@@ -620,7 +512,7 @@ option in pip's command line.
 ^^^^^^^^^^^^^^^^^^^
 
 "Editable" installs are fundamentally `"setuptools develop mode"
-<https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode>`_
+<https://setuptools.readthedocs.io/en/latest/userguide/development_mode.html>`_
 installs.
 
 You can install local projects or VCS projects in "editable" mode:
@@ -647,83 +539,10 @@ the project path.  This is one advantage over just using ``setup.py develop``,
 which creates the "egg-info" directly relative the current working directory.
 
 
-.. _`controlling-setup-requires`:
-
-Controlling setup_requires
---------------------------
-
-Setuptools offers the ``setup_requires`` `setup() keyword
-<https://setuptools.readthedocs.io/en/latest/setuptools.html#new-and-changed-setup-keywords>`_
-for specifying dependencies that need to be present in order for the
-``setup.py`` script to run.  Internally, Setuptools uses ``easy_install``
-to fulfill these dependencies.
-
-pip has no way to control how these dependencies are located.  None of the
-package index options have an effect.
-
-The solution is to configure a "system" or "personal" `Distutils configuration
-file
-<https://docs.python.org/3/install/index.html#distutils-configuration-files>`_ to
-manage the fulfillment.
-
-For example, to have the dependency located at an alternate index, add this:
-
-::
-
-  [easy_install]
-  index_url = https://my.index-mirror.com
-
-To have the dependency located from a local directory and not crawl PyPI, add this:
-
-::
-
-  [easy_install]
-  allow_hosts = ''
-  find_links = file:///path/to/local/archives/
-
-
 Build System Interface
 ----------------------
 
-In order for pip to install a package from source, ``setup.py`` must implement
-the following commands::
-
-    setup.py egg_info [--egg-base XXX]
-    setup.py install --record XXX [--single-version-externally-managed] [--root XXX] [--compile|--no-compile] [--install-headers XXX]
-
-The ``egg_info`` command should create egg metadata for the package, as
-described in the setuptools documentation at
-https://setuptools.readthedocs.io/en/latest/setuptools.html#egg-info-create-egg-metadata-and-set-build-tags
-
-The ``install`` command should implement the complete process of installing the
-package to the target directory XXX.
-
-To install a package in "editable" mode (``pip install -e``), ``setup.py`` must
-implement the following command::
-
-    setup.py develop --no-deps
-
-This should implement the complete process of installing the package in
-"editable" mode.
-
-All packages will be attempted to built into wheels::
-
-    setup.py bdist_wheel -d XXX
-
-One further ``setup.py`` command is invoked by ``pip install``::
-
-    setup.py clean
-
-This command is invoked to clean up temporary commands from the build. (TODO:
-Investigate in more detail when this command is required).
-
-No other build system commands are invoked by the ``pip install`` command.
-
-Installing a package from a wheel does not invoke the build system at all.
-
-.. _PyPI: https://pypi.org/
-.. _setuptools extras: https://setuptools.readthedocs.io/en/latest/userguide/dependency_management.html#optional-dependencies
-
+This is now covered in :doc:`../reference/build-system/index`.
 
 
 .. _`pip install Options`:
@@ -853,7 +672,7 @@ Examples
          py -m pip install -e git+https://git.repo/some_pkg.git@feature#egg=SomePackage  # from 'feature' branch
          py -m pip install -e "git+https://git.repo/some_repo.git#egg=subdir&subdirectory=subdir_path" # install a python package from a repo subdirectory
 
-#. Install a package with `setuptools extras`_.
+#. Install a package with `extras`_.
 
    .. tab:: Unix/macOS
 
@@ -1016,3 +835,6 @@ Examples
 
 .. [1] This is true with the exception that pip v7.0 and v7.0.1 required quotes
        around specifiers containing environment markers in requirement files.
+
+.. _extras: https://www.python.org/dev/peps/pep-0508/#extras
+.. _PyPI: https://pypi.org/

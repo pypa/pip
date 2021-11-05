@@ -64,6 +64,8 @@ def _looks_like_bpo_44860() -> bool:
 
 def _looks_like_red_hat_patched_platlib_purelib(scheme: Dict[str, str]) -> bool:
     platlib = scheme["platlib"]
+    if "/$platlibdir/" in platlib and hasattr(sys, "platlibdir"):
+        platlib = platlib.replace("/$platlibdir/", f"/{sys.platlibdir}/")
     if "/lib64/" not in platlib:
         return False
     unpatched = platlib.replace("/lib64/", "/lib/")
@@ -299,6 +301,18 @@ def get_scheme(
             WINDOWS and k in ("platlib", "purelib") and _looks_like_msys2_mingw_scheme()
         )
         if skip_msys2_mingw_bug:
+            continue
+
+        # CPython's POSIX install script invokes pip (via ensurepip) against the
+        # interpreter located in the source tree, not the install site. This
+        # triggers special logic in sysconfig that's not present in distutils.
+        # https://github.com/python/cpython/blob/8c21941ddaf/Lib/sysconfig.py#L178-L194
+        skip_cpython_build = (
+            sysconfig.is_python_build(check_home=True)
+            and not WINDOWS
+            and k in ("headers", "include", "platinclude")
+        )
+        if skip_cpython_build:
             continue
 
         warning_contexts.append((old_v, new_v, f"scheme.{k}"))

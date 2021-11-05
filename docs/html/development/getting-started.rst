@@ -59,9 +59,9 @@ You can then invoke your local source tree pip normally.
 Running Tests
 =============
 
-pip's tests are written using the :pypi:`pytest` test framework, :pypi:`mock`
-and :pypi:`pretend`. :pypi:`tox` is used to automate the setup and execution of
-pip's tests.
+pip's tests are written using the :pypi:`pytest` test framework and
+:mod:`unittest.mock`. :pypi:`tox` is used to automate the setup and execution
+of pip's tests.
 
 It is preferable to run the tests in parallel for better experience during development,
 since the tests can take a long time to finish when run sequentially.
@@ -124,6 +124,25 @@ To use linters locally, run:
     possible, warnings should be fixed instead. ``# noqa`` comments are
     reserved for rare cases where the recommended style causes severe
     readability problems.
+
+
+Running pip under a debugger
+============================
+
+In order to debug pip's behavior, you can run it under a debugger like so:
+
+.. code-block:: console
+
+    $ python -m pdb -m pip --debug ...
+
+
+Replace the ``...`` with arguments you'd like to run pip with. Give PDB the
+``c`` ("continue") command afterwards, to run the process.
+
+The ``--debug`` flag disables pip's exception handler, which would normally
+catch all unhandled exceptions. With this flag, pip will let these exceptions
+propagate outside of its main subroutine, letting them get caught by the
+debugger. This way you'll be able to debug an exception post-mortem via PDB.
 
 
 Building Documentation

@@ -1,23 +1,102 @@
 """Exceptions used throughout package"""
 
 import configparser
+import re
 from itertools import chain, groupby, repeat
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Dict, Iterator, List, Optional, Union
 
 from pip._vendor.pkg_resources import Distribution
 from pip._vendor.requests.models import Request, Response
 
 if TYPE_CHECKING:
     from hashlib import _Hash
+    from typing import Literal
 
     from pip._internal.metadata import BaseDistribution
     from pip._internal.req.req_install import InstallRequirement
 
 
+#
+# Scaffolding
+#
+def _is_kebab_case(s: str) -> bool:
+    return re.match(r"^[a-z]+(-[a-z]+)*$", s) is not None
+
+
+def _prefix_with_indent(prefix: str, s: str, indent: Optional[str] = None) -> str:
+    if indent is None:
+        indent = " " * len(prefix)
+    else:
+        assert len(indent) == len(prefix)
+    message = s.replace("\n", "\n" + indent)
+    return f"{prefix}{message}\n"
+
+
 class PipError(Exception):
-    """Base pip exception"""
+    """The base pip error."""
 
 
+class DiagnosticPipError(PipError):
+    """A pip error, that presents diagnostic information to the user.
+
+    This contains a bunch of logic, to enable pretty presentation of our error
+    messages. Each error gets a unique reference. Each error can also include
+    additional context, a hint and/or a note -- which are presented with the
+    main error message in a consistent style.
+    """
+
+    reference: str
+
+    def __init__(
+        self,
+        *,
+        message: str,
+        context: Optional[str],
+        hint_stmt: Optional[str],
+        attention_stmt: Optional[str] = None,
+        reference: Optional[str] = None,
+        kind: 'Literal["error", "warning"]' = "error",
+    ) -> None:
+
+        # Ensure a proper reference is provided.
+        if reference is None:
+            assert hasattr(self, "reference"), "error reference not provided!"
+            reference = self.reference
+        assert _is_kebab_case(reference), "error reference must be kebab-case!"
+
+        super().__init__(f"{reference}: {message}")
+
+        self.kind = kind
+        self.message = message
+        self.context = context
+
+        self.reference = reference
+        self.attention_stmt = attention_stmt
+        self.hint_stmt = hint_stmt
+
+    def __str__(self) -> str:
+        return "".join(self._string_parts())
+
+    def _string_parts(self) -> Iterator[str]:
+        # Present the main message, with relevant context indented.
+        yield f"{self.message}\n"
+        if self.context is not None:
+            yield f"\n{self.context}\n"
+
+        # Space out the note/hint messages.
+        if self.attention_stmt is not None or self.hint_stmt is not None:
+            yield "\n"
+
+        if self.attention_stmt is not None:
+            yield _prefix_with_indent("Note: ", self.attention_stmt)
+
+        if self.hint_stmt is not None:
+            yield _prefix_with_indent("Hint: ", self.hint_stmt)
+
+
+#
+# Actual Errors
+#
 class ConfigurationError(PipError):
     """General exception in configuration"""
 
@@ -28,6 +107,45 @@ class InstallationError(PipError):
 
 class UninstallationError(PipError):
     """General exception during uninstallation"""
+
+
+class MissingPyProjectBuildRequires(DiagnosticPipError):
+    """Raised when pyproject.toml has `build-system`, but no `build-system.requires`."""
+
+    reference = "missing-pyproject-build-system-requires"
+
+    def __init__(self, *, package: str) -> None:
+        super().__init__(
+            message=f"Can not process {package}",
+            context=(
+                "This package has an invalid pyproject.toml file.\n"
+                "The [build-system] table is missing the mandatory `requires` key."
+            ),
+            attention_stmt=(
+                "This is an issue with the package mentioned above, not pip."
+            ),
+            hint_stmt="See PEP 518 for the detailed specification.",
+        )
+
+
+class InvalidPyProjectBuildRequires(DiagnosticPipError):
+    """Raised when pyproject.toml an invalid `build-system.requires`."""
+
+    reference = "invalid-pyproject-build-system-requires"
+
+    def __init__(self, *, package: str, reason: str) -> None:
+        super().__init__(
+            message=f"Can not process {package}",
+            context=(
+                "This package has an invalid `build-system.requires` key in "
+                "pyproject.toml.\n"
+                f"{reason}"
+            ),
+            hint_stmt="See PEP 518 for the detailed specification.",
+            attention_stmt=(
+                "This is an issue with the package mentioned above, not pip."
+            ),
+        )
 
 
 class NoneMetadataError(PipError):

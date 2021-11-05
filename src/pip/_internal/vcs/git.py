@@ -94,6 +94,7 @@ class Git(VersionControl):
         version = self.run_command(["version"], show_stdout=False, stdout_only=True)
         match = GIT_VERSION_REGEX.match(version)
         if not match:
+            logger.warning("Can't parse git version: %s", version)
             return ()
         return tuple(int(c) for c in match.groups())
 

@@ -23,7 +23,7 @@ def test_options_from_env_vars(script):
     result = script.pip("install", "-vvv", "INITools", expect_error=True)
     assert "Ignoring indexes:" in result.stdout, str(result)
     msg = "DistributionNotFound: No matching distribution found for INITools"
-    # Case insensitive as the new resolver canonicalises the project name
+    # Case insensitive as the new resolver canonicalizes the project name
     assert msg.lower() in result.stdout.lower(), str(result)
 
 
@@ -70,7 +70,7 @@ def test_env_vars_override_config_file(script, virtualenv):
     )
     result = script.pip("install", "-vvv", "INITools", expect_error=True)
     msg = "DistributionNotFound: No matching distribution found for INITools"
-    # Case insensitive as the new resolver canonicalises the project name
+    # Case insensitive as the new resolver canonicalizes the project name
     assert msg.lower() in result.stdout.lower(), str(result)
     script.environ["PIP_NO_INDEX"] = "0"
     virtualenv.clear()
@@ -218,11 +218,12 @@ def test_options_from_venv_config(script, virtualenv):
     result = script.pip("install", "-vvv", "INITools", expect_error=True)
     assert "Ignoring indexes:" in result.stdout, str(result)
     msg = "DistributionNotFound: No matching distribution found for INITools"
-    # Case insensitive as the new resolver canonicalises the project name
+    # Case insensitive as the new resolver canonicalizes the project name
     assert msg.lower() in result.stdout.lower(), str(result)
 
 
-def test_install_no_binary_via_config_disables_cached_wheels(script, data, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_no_binary_via_config_disables_cached_wheels(script, data):
     config_file = tempfile.NamedTemporaryFile(mode="wt", delete=False)
     try:
         script.environ["PIP_CONFIG_FILE"] = config_file.name

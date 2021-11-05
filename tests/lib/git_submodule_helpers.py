@@ -1,9 +1,11 @@
 import textwrap
+from typing import Tuple
 
-from tests.lib import _create_main_file, _git_commit
+from tests.lib import PipTestEnvironment, _create_main_file, _git_commit
+from tests.lib.path import Path
 
 
-def _create_test_package_submodule(env):
+def _create_test_package_submodule(env: PipTestEnvironment) -> Path:
     env.scratch_path.joinpath("version_pkg_submodule").mkdir()
     submodule_path = env.scratch_path / "version_pkg_submodule"
     env.run("touch", "testfile", cwd=submodule_path)
@@ -14,14 +16,18 @@ def _create_test_package_submodule(env):
     return submodule_path
 
 
-def _change_test_package_submodule(env, submodule_path):
+def _change_test_package_submodule(
+    env: PipTestEnvironment, submodule_path: Path
+) -> None:
     submodule_path.joinpath("testfile").write_text("this is a changed file")
     submodule_path.joinpath("testfile2").write_text("this is an added file")
     env.run("git", "add", ".", cwd=submodule_path)
     _git_commit(env, submodule_path, message="submodule change")
 
 
-def _pull_in_submodule_changes_to_module(env, module_path, rel_path):
+def _pull_in_submodule_changes_to_module(
+    env: PipTestEnvironment, module_path: Path, rel_path: Path
+) -> None:
     """
     Args:
       rel_path: the location of the submodule relative to the superproject.
@@ -32,7 +38,9 @@ def _pull_in_submodule_changes_to_module(env, module_path, rel_path):
     _git_commit(env, module_path, message="submodule change", stage_modified=True)
 
 
-def _create_test_package_with_submodule(env, rel_path):
+def _create_test_package_with_submodule(
+    env: PipTestEnvironment, rel_path: Path
+) -> Tuple[Path, Path]:
     """
     Args:
       rel_path: the location of the submodule relative to the superproject.
