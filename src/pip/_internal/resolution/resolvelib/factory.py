@@ -274,14 +274,24 @@ class Factory:
             icans = list(result.iter_applicable())
 
             # PEP 592: Yanked releases are ignored unless the specifier
-            # explicitely requests a version ('==' or '===') that can be
+            # explicitely pins a version (via '==' or '===') that can be
             # solely satisfied by a yanked release.
             all_yanked = all(ican.link.is_yanked for ican in icans)
-            direct_specifier = any({'==' in sp.operator for sp in specifier})
+
+            def is_pinned(specifier: SpecifierSet) -> bool:
+                for sp in specifier:
+                    if sp.operator == "===":
+                        return True
+                    if sp.operator != "==":
+                        continue
+                    if sp.version.endswith(".*"):
+                        continue
+                    return True
+                return False
 
             # PackageFinder returns earlier versions first, so we reverse.
             for ican in reversed(icans):
-                if (all_yanked and not direct_specifier) and ican.link.is_yanked:
+                if (all_yanked and not is_pinned(specifier)) and ican.link.is_yanked:
                     continue
                 func = functools.partial(
                     self._make_candidate_from_link,
