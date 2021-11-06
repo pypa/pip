@@ -2039,13 +2039,13 @@ def test_error_all_yanked_files_and_no_pin(script, data):
         "simple",
         "--index-url",
         data.index_url("yanked_all"),
-        expect_error=True
+        expect_error=True,
     )
     # Make sure an error is raised
     assert (
         result.returncode == 1
         and "ERROR: No matching distribution found for simple\n" in result.stderr
-        ), str(result)
+    ), str(result)
 
 
 @pytest.mark.parametrize(
