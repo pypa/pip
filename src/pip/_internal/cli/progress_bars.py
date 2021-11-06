@@ -1,7 +1,7 @@
 import itertools
 import sys
 from signal import SIGINT, default_int_handler, signal
-from typing import Any
+from typing import Any, Callable, Iterator
 
 from pip._vendor.progress.bar import Bar, FillingCirclesBar, IncrementalBar
 from pip._vendor.progress.spinner import Spinner
@@ -16,6 +16,8 @@ try:
 # ImportError.
 except Exception:
     colorama = None
+
+DownloadProgressRenderer = Callable[[Iterator[bytes]], Iterator[bytes]]
 
 
 def _select_progress_class(preferred: Bar, fallback: Bar) -> Bar:
@@ -243,8 +245,10 @@ BAR_TYPES = {
 }
 
 
-def DownloadProgressProvider(progress_bar, max=None):  # type: ignore
+def DownloadProgressProvider(
+    progress_bar: str, max: Optional[int]
+) -> DownloadProgressRenderer:
     if max is None or max == 0:
-        return BAR_TYPES[progress_bar][1]().iter
+        return BAR_TYPES[progress_bar][1]().iter  # type: ignore
     else:
         return BAR_TYPES[progress_bar][0](max=max).iter
