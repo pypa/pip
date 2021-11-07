@@ -102,11 +102,10 @@ jobs:
       matrix:
         os: [Ubuntu, MacOS]
         python:
-          - 3.6
           - 3.7
           - 3.8
           - 3.9
-          - "3.10.0-alpha - 3.10"
+          - "3.10"
 
     steps:
       - uses: actions/checkout@v2
@@ -151,12 +150,11 @@ jobs:
       matrix:
         os: [Windows]
         python:
-          - 3.6
+          - 3.7
           # Commented out, since Windows tests are expensively slow.
-          # - 3.7
           # - 3.8
           - 3.9
-          - "3.10.0-alpha - 3.10"
+          - "3.10"
         group: [1, 2]
 
     steps:

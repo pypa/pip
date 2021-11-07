@@ -16,7 +16,6 @@ from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.session import PipSession
 from pip._internal.utils.compat import stdlib_pkgs
 from pip._internal.utils.misc import tabulate, write_output
-from pip._internal.utils.parallel import map_multithread
 
 if TYPE_CHECKING:
     from pip._internal.metadata.base import DistributionVersion
@@ -254,7 +253,7 @@ class ListCommand(IndexGroupCommand):
                 dist.latest_filetype = typ
                 return dist
 
-            for dist in map_multithread(latest_info, packages):
+            for dist in map(latest_info, packages):
                 if dist is not None:
                     yield dist
 
