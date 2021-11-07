@@ -289,9 +289,11 @@ class Factory:
                     return True
                 return False
 
+            pinned = is_pinned(specifier)
+
             # PackageFinder returns earlier versions first, so we reverse.
             for ican in reversed(icans):
-                if (all_yanked and not is_pinned(specifier)) and ican.link.is_yanked:
+                if not (all_yanked and pinned) and ican.link.is_yanked:
                     continue
                 func = functools.partial(
                     self._make_candidate_from_link,
