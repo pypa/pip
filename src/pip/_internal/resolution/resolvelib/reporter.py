@@ -20,8 +20,9 @@ class PipReporter(BaseReporter):
     def __init__(
         self, conflicts_message_generator: Callable[[Causes], Optional[str]]
     ) -> None:
-        self.backtracks_by_package: DefaultDict[str, int] = defaultdict(int)
         self.conflicts_message_generator = conflicts_message_generator
+        self.resolved_conflicts = False
+        self.backtracks_by_package: DefaultDict[str, int] = defaultdict(int)
 
         self._messages_at_backtrack = {
             1: (
@@ -53,7 +54,9 @@ class PipReporter(BaseReporter):
         logger.info("INFO: %s", message.format(package_name=candidate.name))
 
     def resolving_conflicts(self, causes: Any) -> None:
-        logger.info("INFO: %s", self.conflicts_message_generator(causes))
+        if not self.resolved_conflicts:
+            self.resolved_conflicts = True
+            logger.info("INFO: %s", self.conflicts_message_generator(causes))
 
 
 class PipDebuggingReporter(BaseReporter):

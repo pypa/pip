@@ -1163,13 +1163,26 @@ def test_new_resolver_presents_messages_when_backtracking_a_lot(script, N):
         assert "press Ctrl + C" in result.stdout
 
 
-def test_new_resolver_presents_messages_when_resolving_conflicts(script):
+def test_new_resolver_presents_conflicts_when_resolving_conflicts_for_the_first_time(
+    script,
+):
+    def conflict_message(v):
+        return (
+            f"INFO: Cannot install a=={v}.0.0 and b==1.0.0 "
+            f"because these package versions have conflicting dependencies.\n"
+            f"The conflict is caused by:\n"
+            f"    a {v}.0.0 depends on c=={v}.0.0\n"
+            f"    b 1.0.0 depends on c==1.0.0"
+        )
+
     packages = [
+        ("a", "3.0.0", ["c==3.0.0"]),
         ("a", "2.0.0", ["c==2.0.0"]),
         ("a", "1.0.0", ["c==1.0.0"]),
         ("b", "1.0.0", ["c==1.0.0"]),
         ("c", "1.0.0", []),
         ("c", "2.0.0", []),
+        ("c", "3.0.0", []),
     ]
 
     for name, version, depends in packages:
@@ -1187,15 +1200,12 @@ def test_new_resolver_presents_messages_when_resolving_conflicts(script):
     )
 
     script.assert_installed(A="1.0.0", B="1.0.0", C="1.0.0")
-    message = (
-        "INFO: Cannot install a==2.0.0 and b==1.0.0 "
-        "because these package versions have conflicting dependencies.\n"
-        "The conflict is caused by:\n"
-        "    a 2.0.0 depends on c==2.0.0\n"
-        "    b 1.0.0 depends on c==1.0.0"
-    )
+    first_message = conflict_message(3)
+    second_message = conflict_message(2)
+
     stdout = result.stdout
-    assert message in stdout
+    assert first_message in stdout
+    assert second_message not in stdout
 
 
 @pytest.mark.parametrize(
