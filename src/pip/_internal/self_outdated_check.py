@@ -4,6 +4,7 @@ import json
 import logging
 import optparse
 import os.path
+import subprocess
 import sys
 from typing import Any, Dict
 
@@ -164,16 +165,17 @@ def pip_self_version_check(session: PipSession, options: optparse.Values) -> Non
 
         # We cannot tell how the current pip is available in the current
         # command context, so be pragmatic here and suggest the command
-        # that's always available. This does not accommodate spaces in
-        # `sys.executable`.
-        pip_cmd = f"{sys.executable} -m pip"
+        # that's always available.
+        pip_upgrade_cmd = subprocess.list2cmdline(
+            [sys.executable, "-m", "pip", "install", "--upgrade", "pip"]
+        )
         logger.warning(
             "You are using pip version %s; however, version %s is "
             "available.\nYou should consider upgrading via the "
-            "'%s install --upgrade pip' command.",
+            "following command:\n%s",
             pip_version,
             pypi_version,
-            pip_cmd,
+            pip_upgrade_cmd,
         )
     except Exception:
         logger.debug(
