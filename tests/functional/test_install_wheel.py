@@ -45,13 +45,20 @@ def test_install_from_future_wheel_version(script, tmpdir):
     result.assert_installed("futurewheel", without_egg_link=True, editable=False)
 
 
-def test_install_from_broken_wheel(script, data):
+@pytest.mark.parametrize(
+    "wheel_name",
+    [
+        "brokenwheel-1.0-py2.py3-none-any.whl",
+        "corruptwheel-1.0-py2.py3-none-any.whl",
+    ],
+)
+def test_install_from_broken_wheel(script, data, wheel_name):
     """
     Test that installing a broken wheel fails properly
     """
     from tests.lib import TestFailure
 
-    package = data.packages.joinpath("brokenwheel-1.0-py2.py3-none-any.whl")
+    package = data.packages.joinpath(wheel_name)
     result = script.pip("install", package, "--no-index", expect_error=True)
     with pytest.raises(TestFailure):
         result.assert_installed("futurewheel", without_egg_link=True, editable=False)
