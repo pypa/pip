@@ -70,15 +70,15 @@ To run tests:
 
 .. code-block:: console
 
-    $ tox -e py36 -- -n auto
+    $ tox -e py310 -- -n auto
 
 To run tests without parallelization, run:
 
 .. code-block:: console
 
-    $ tox -e py36
+    $ tox -e py310
 
-The example above runs tests against Python 3.6. You can also use other
+The example above runs tests against Python 3.10. You can also use other
 versions like ``py39`` and ``pypy3``.
 
 ``tox`` has been configured to forward any additional arguments it is given to
@@ -88,11 +88,11 @@ can select tests using the various ways that pytest provides:
 .. code-block:: console
 
     $ # Using file name
-    $ tox -e py36 -- tests/functional/test_install.py
+    $ tox -e py310 -- tests/functional/test_install.py
     $ # Using markers
-    $ tox -e py36 -- -m unit
+    $ tox -e py310 -- -m unit
     $ # Using keywords
-    $ tox -e py36 -- -k "install and not wheel"
+    $ tox -e py310 -- -k "install and not wheel"
 
 Running pip's entire test suite requires supported version control tools
 (subversion, bazaar, git, and mercurial) to be installed. If you are missing
@@ -101,8 +101,8 @@ explicitly tell pytest to skip those tests:
 
 .. code-block:: console
 
-    $ tox -e py36 -- -k "not svn"
-    $ tox -e py36 -- -k "not (svn or git)"
+    $ tox -e py310 -- -k "not svn"
+    $ tox -e py310 -- -k "not (svn or git)"
 
 
 Running Linters

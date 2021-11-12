@@ -197,14 +197,7 @@ class BuildEnvironment:
         if not requirements:
             return
         with contextlib.ExitStack() as ctx:
-            # TODO: Remove this block when dropping 3.6 support. Python 3.6
-            # lacks importlib.resources and pep517 has issues loading files in
-            # a zip, so we fallback to the "old" method by adding the current
-            # pip directory to the child process's sys.path.
-            if sys.version_info < (3, 7):
-                pip_runnable = os.path.dirname(pip_location)
-            else:
-                pip_runnable = ctx.enter_context(_create_standalone_pip())
+            pip_runnable = ctx.enter_context(_create_standalone_pip())
             self._install_requirements(
                 pip_runnable,
                 finder,
