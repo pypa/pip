@@ -31,7 +31,12 @@ from pip._internal.utils.misc import (
     is_installable_dir,
     rmtree,
 )
-from pip._internal.utils.subprocess import CommandArgs, call_subprocess, make_command
+from pip._internal.utils.subprocess import (
+    CommandArgs,
+    call_subprocess,
+    format_command_args,
+    make_command,
+)
 from pip._internal.utils.urls import get_url_scheme
 
 if TYPE_CHECKING:
@@ -634,6 +639,8 @@ class VersionControl:
         command name, and checks that the VCS is available
         """
         cmd = make_command(cls.name, *cmd)
+        if command_desc is None:
+            command_desc = format_command_args(cmd)
         try:
             return call_subprocess(
                 cmd,

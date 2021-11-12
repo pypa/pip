@@ -163,6 +163,7 @@ def test_call_subprocess_stdout_only(
             "-c",
             "import sys; sys.stdout.write('out\\n'); sys.stderr.write('err\\n')",
         ],
+        command_desc="test stdout_only",
         stdout_only=stdout_only,
     )
     assert out in expected
@@ -271,7 +272,11 @@ class TestCallSubprocess:
         """
         log_level = DEBUG
         args, spinner = self.prepare_call(caplog, log_level)
-        result = call_subprocess(args, spinner=spinner)
+        result = call_subprocess(
+            args,
+            command_desc="test debug logging",
+            spinner=spinner,
+        )
 
         expected = (
             ["Hello", "world"],
@@ -301,7 +306,11 @@ class TestCallSubprocess:
         """
         log_level = INFO
         args, spinner = self.prepare_call(caplog, log_level)
-        result = call_subprocess(args, spinner=spinner)
+        result = call_subprocess(
+            args,
+            command_desc="test info logging",
+            spinner=spinner,
+        )
 
         expected: Tuple[List[str], List[Tuple[str, int, str]]] = (
             ["Hello", "world"],
@@ -331,7 +340,11 @@ class TestCallSubprocess:
         args, spinner = self.prepare_call(caplog, log_level, command=command)
 
         with pytest.raises(InstallationSubprocessError) as exc:
-            call_subprocess(args, spinner=spinner)
+            call_subprocess(
+                args,
+                command_desc="test info logging with subprocess error",
+                spinner=spinner,
+            )
         result = None
         exc_message = str(exc.value)
         assert exc_message.startswith("Command errored out with exit status 1: ")
@@ -390,7 +403,12 @@ class TestCallSubprocess:
         """
         log_level = INFO
         args, spinner = self.prepare_call(caplog, log_level)
-        result = call_subprocess(args, spinner=spinner, show_stdout=True)
+        result = call_subprocess(
+            args,
+            command_desc="test info logging with show_stdout",
+            spinner=spinner,
+            show_stdout=True,
+        )
 
         expected = (
             ["Hello", "world"],
@@ -456,6 +474,7 @@ class TestCallSubprocess:
         try:
             call_subprocess(
                 args,
+                command_desc="spinner go spinny",
                 show_stdout=show_stdout,
                 extra_ok_returncodes=extra_ok_returncodes,
                 spinner=spinner,
@@ -474,6 +493,7 @@ class TestCallSubprocess:
             call_subprocess(
                 [sys.executable, "-c", "input()"],
                 show_stdout=True,
+                command_desc="stdin reader",
             )
 
 
@@ -487,6 +507,7 @@ def test_unicode_decode_error(caplog: pytest.LogCaptureFixture) -> None:
             "-c",
             "import sys; sys.stdout.buffer.write(b'\\xff')",
         ],
+        command_desc="invalid decode output",
         show_stdout=True,
     )
 

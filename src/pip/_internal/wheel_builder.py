@@ -310,7 +310,9 @@ def _clean_one_legacy(req: InstallRequirement, global_options: List[str]) -> boo
 
     logger.info("Running setup.py clean for %s", req.name)
     try:
-        call_subprocess(clean_args, cwd=req.source_dir)
+        call_subprocess(
+            clean_args, command_desc="python setup.py clean", cwd=req.source_dir
+        )
         return True
     except Exception:
         logger.error("Failed cleaning build dir for %s", req.name)

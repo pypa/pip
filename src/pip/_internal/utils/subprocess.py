@@ -110,12 +110,13 @@ def call_subprocess(
     cwd: Optional[str] = None,
     on_returncode: 'Literal["raise", "warn", "ignore"]' = "raise",
     extra_ok_returncodes: Optional[Iterable[int]] = None,
-    command_desc: Optional[str] = None,
     extra_environ: Optional[Mapping[str, Any]] = None,
     unset_environ: Optional[Iterable[str]] = None,
     spinner: Optional[SpinnerInterface] = None,
     log_failed_cmd: Optional[bool] = True,
     stdout_only: Optional[bool] = False,
+    *,
+    command_desc: str,
 ) -> str:
     """
     Args:
@@ -165,9 +166,6 @@ def call_subprocess(
     # Only use the spinner if we're not showing the subprocess output
     # and we have a spinner.
     use_spinner = not showing_subprocess and spinner is not None
-
-    if command_desc is None:
-        command_desc = format_command_args(cmd)
 
     log_subprocess("Running command %s", command_desc)
     env = os.environ.copy()
@@ -281,6 +279,7 @@ def runner_with_spinner_message(message: str) -> Callable[..., None]:
         with open_spinner(message) as spinner:
             call_subprocess(
                 cmd,
+                command_desc=message,
                 cwd=cwd,
                 extra_environ=extra_environ,
                 spinner=spinner,

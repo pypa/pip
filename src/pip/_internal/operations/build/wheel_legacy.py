@@ -86,6 +86,7 @@ def build_wheel_legacy(
         try:
             output = call_subprocess(
                 wheel_args,
+                command_desc="python setup.py bdist_wheel",
                 cwd=source_dir,
                 spinner=spinner,
             )

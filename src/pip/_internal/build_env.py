@@ -189,7 +189,8 @@ class BuildEnvironment:
         finder: "PackageFinder",
         requirements: Iterable[str],
         prefix_as_string: str,
-        message: str,
+        *,
+        kind: str,
     ) -> None:
         prefix = self._prefixes[prefix_as_string]
         assert not prefix.setup
@@ -203,7 +204,7 @@ class BuildEnvironment:
                 finder,
                 requirements,
                 prefix,
-                message,
+                kind=kind,
             )
 
     @staticmethod
@@ -212,7 +213,8 @@ class BuildEnvironment:
         finder: "PackageFinder",
         requirements: Iterable[str],
         prefix: _Prefix,
-        message: str,
+        *,
+        kind: str,
     ) -> None:
         args: List[str] = [
             sys.executable,
@@ -254,8 +256,13 @@ class BuildEnvironment:
         args.append("--")
         args.extend(requirements)
         extra_environ = {"_PIP_STANDALONE_CERT": where()}
-        with open_spinner(message) as spinner:
-            call_subprocess(args, spinner=spinner, extra_environ=extra_environ)
+        with open_spinner(f"Installing {kind}") as spinner:
+            call_subprocess(
+                args,
+                command_desc=f"pip subprocess to install {kind}",
+                spinner=spinner,
+                extra_environ=extra_environ,
+            )
 
 
 class NoOpBuildEnvironment(BuildEnvironment):
@@ -283,6 +290,7 @@ class NoOpBuildEnvironment(BuildEnvironment):
         finder: "PackageFinder",
         requirements: Iterable[str],
         prefix_as_string: str,
-        message: str,
+        *,
+        kind: str,
     ) -> None:
         raise NotImplementedError()
