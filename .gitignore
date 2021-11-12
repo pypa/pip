@@ -10,6 +10,7 @@ __pycache__/
 *.eggs
 *.egg-info/
 MANIFEST
+pip-wheel-metadata/
 
 # Documentation
 docs/build/

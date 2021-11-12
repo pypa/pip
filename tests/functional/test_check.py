@@ -1,3 +1,5 @@
+import pytest
+
 from tests.lib import create_test_package_with_setup
 
 
@@ -301,5 +303,25 @@ def test_check_include_work_dir_pkg(script):
     # is in PYTHONPATH
     result = script.pip("check", expect_error=True, cwd=pkg_path)
     expected_lines = ("simple 1.0 requires missing, which is not installed.",)
+    assert matches_expected_lines(result.stdout, expected_lines)
+    assert result.returncode == 1
+
+
+@pytest.mark.xfail(
+    reason='Not yet implemented: https://github.com/pypa/pip/pull/8633',
+    strict=True,
+)
+def test_check_integrity_errors_on_missing_files(data, script, tmpdir):
+    """Ensure that pip check detects a missing file post-install."""
+    to_install = data.packages.joinpath("pip-test-package-0.1.tar.gz")
+    result = script.pip_install_local(to_install)
+    assert 'Successfully installed pip-test-package' in result.stdout
+
+    (script.site_packages_path / "piptestpackage/__init__.py").unlink()
+
+    result = script.pip('check --integrity', expect_error=True)
+    expected_lines = (
+        "piptestpackage is missing the __init__.py file",
+    )
     assert matches_expected_lines(result.stdout, expected_lines)
     assert result.returncode == 1
