@@ -1,8 +1,10 @@
 """Tests the presentation style of exceptions."""
 
+import io
 import textwrap
 
 import pytest
+from pip._vendor import rich
 
 from pip._internal.exceptions import DiagnosticPipError
 
@@ -57,6 +59,17 @@ class TestDiagnosticPipErrorCreation:
         assert str(exc_info.value) == "error reference must be kebab-case!"
 
 
+def rendered_in_ascii(error: DiagnosticPipError, *, color: bool = False) -> str:
+    with io.BytesIO() as stream:
+        console = rich.console.Console(
+            force_terminal=False,
+            file=io.TextIOWrapper(stream, encoding="ascii"),
+            color_system="truecolor" if color else None,
+        )
+        console.print(error)
+        return stream.getvalue().decode("ascii")
+
+
 class TestDiagnosticPipErrorPresentation_ASCII:
     def test_complete(self) -> None:
         err = DiagnosticPipError(
@@ -67,16 +80,45 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             hint_stmt="Do it better next time, by trying harder.",
         )
 
-        assert str(err) == textwrap.dedent(
+        assert rendered_in_ascii(err) == textwrap.dedent(
             """\
+            error: test-diagnostic
+
             Oh no!
             It broke. :(
 
             Something went wrong
             very wrong.
 
-            Note: You did something wrong, which is what caused this error.
-            Hint: Do it better next time, by trying harder.
+            note: You did something wrong, which is what caused this error.
+            hint: Do it better next time, by trying harder.
+            """
+        )
+
+    def test_complete_color(self) -> None:
+        err = DiagnosticPipError(
+            reference="test-diagnostic",
+            message="Oh no!\nIt broke.",
+            context="Something went wrong\nvery wrong.",
+            attention_stmt="You did something wrong.",
+            hint_stmt="Do it better next time, by trying harder.",
+        )
+
+        def esc(code: str = "0") -> str:
+            return f"\x1b[{code}m"
+
+        assert rendered_in_ascii(err, color=True) == textwrap.dedent(
+            f"""\
+            {esc("1;31")}error{esc("0")}: {esc("1")}test-diagnostic{esc("0")}
+
+            Oh no!
+            It broke.
+
+            Something went wrong
+            very wrong.
+
+            {esc("1;35")}note{esc("0")}: You did something wrong.
+            {esc("1;36")}hint{esc("0")}: Do it better next time, by trying harder.
             """
         )
 
@@ -89,13 +131,15 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             hint_stmt="Do it better next time, by trying harder.",
         )
 
-        assert str(err) == textwrap.dedent(
+        assert rendered_in_ascii(err) == textwrap.dedent(
             """\
+            error: test-diagnostic
+
             Oh no!
             It broke. :(
 
-            Note: You did something wrong, which is what caused this error.
-            Hint: Do it better next time, by trying harder.
+            note: You did something wrong, which is what caused this error.
+            hint: Do it better next time, by trying harder.
             """
         )
 
@@ -108,15 +152,17 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             hint_stmt="Do it better next time, by trying harder.",
         )
 
-        assert str(err) == textwrap.dedent(
+        assert rendered_in_ascii(err) == textwrap.dedent(
             """\
+            error: test-diagnostic
+
             Oh no!
             It broke. :(
 
             Something went wrong
             very wrong.
 
-            Hint: Do it better next time, by trying harder.
+            hint: Do it better next time, by trying harder.
             """
         )
 
@@ -129,15 +175,17 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             hint_stmt=None,
         )
 
-        assert str(err) == textwrap.dedent(
+        assert rendered_in_ascii(err) == textwrap.dedent(
             """\
+            error: test-diagnostic
+
             Oh no!
             It broke. :(
 
             Something went wrong
             very wrong.
 
-            Note: You did something wrong, which is what caused this error.
+            note: You did something wrong, which is what caused this error.
             """
         )
 
@@ -150,12 +198,14 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             hint_stmt=None,
         )
 
-        assert str(err) == textwrap.dedent(
+        assert rendered_in_ascii(err) == textwrap.dedent(
             """\
+            error: test-diagnostic
+
             Oh no!
             It broke. :(
 
-            Note: You did something wrong, which is what caused this error.
+            note: You did something wrong, which is what caused this error.
             """
         )
 
@@ -168,12 +218,14 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             hint_stmt="Do it better next time, by trying harder.",
         )
 
-        assert str(err) == textwrap.dedent(
+        assert rendered_in_ascii(err) == textwrap.dedent(
             """\
+            error: test-diagnostic
+
             Oh no!
             It broke. :(
 
-            Hint: Do it better next time, by trying harder.
+            hint: Do it better next time, by trying harder.
             """
         )
 
@@ -186,8 +238,10 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             hint_stmt=None,
         )
 
-        assert str(err) == textwrap.dedent(
+        assert rendered_in_ascii(err) == textwrap.dedent(
             """\
+            error: test-diagnostic
+
             Oh no!
             It broke. :(
 
@@ -205,9 +259,216 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             attention_stmt=None,
         )
 
-        assert str(err) == textwrap.dedent(
+        assert rendered_in_ascii(err) == textwrap.dedent(
             """\
+            error: test-diagnostic
+
             Oh no!
             It broke. :(
+            """
+        )
+
+
+def rendered(error: DiagnosticPipError, *, color: bool = False) -> str:
+    with io.StringIO() as stream:
+        console = rich.console.Console(
+            force_terminal=False,
+            file=stream,
+            color_system="truecolor" if color else None,
+        )
+        console.print(error)
+        return stream.getvalue()
+
+
+class TestDiagnosticPipErrorPresentation_Unicode:
+    def test_complete(self) -> None:
+        err = DiagnosticPipError(
+            reference="test-diagnostic",
+            message="Oh no!\nIt broke. :(",
+            context="Something went wrong\nvery wrong.",
+            attention_stmt="You did something wrong, which is what caused this error.",
+            hint_stmt="Do it better next time, by trying harder.",
+        )
+
+        assert rendered(err) == textwrap.dedent(
+            """\
+            error: test-diagnostic
+
+            × Oh no!
+            │ It broke. :(
+            ╰─> Something went wrong
+                very wrong.
+
+            note: You did something wrong, which is what caused this error.
+            hint: Do it better next time, by trying harder.
+            """
+        )
+
+    def test_complete_color(self) -> None:
+        err = DiagnosticPipError(
+            reference="test-diagnostic",
+            message="Oh no!\nIt broke.",
+            context="Something went wrong\nvery wrong.",
+            attention_stmt="You did something wrong.",
+            hint_stmt="Do it better next time, by trying harder.",
+        )
+
+        def esc(code: str = "0") -> str:
+            return f"\x1b[{code}m"
+
+        assert rendered(err, color=True) == textwrap.dedent(
+            f"""\
+            {esc("1;31")}error{esc("0")}: {esc("1")}test-diagnostic{esc("0")}
+
+            {esc("31")}×{esc("0")} Oh no!
+            {esc("31")}│{esc("0")} It broke.
+            {esc("31")}╰─>{esc("0")} Something went wrong
+            {esc("31")}   {esc("0")} very wrong.
+
+            {esc("1;35")}note{esc("0")}: You did something wrong.
+            {esc("1;36")}hint{esc("0")}: Do it better next time, by trying harder.
+            """
+        )
+
+    def test_no_context(self) -> None:
+        err = DiagnosticPipError(
+            reference="test-diagnostic",
+            message="Oh no!\nIt broke. :(",
+            context=None,
+            attention_stmt="You did something wrong, which is what caused this error.",
+            hint_stmt="Do it better next time, by trying harder.",
+        )
+
+        assert rendered(err) == textwrap.dedent(
+            """\
+            error: test-diagnostic
+
+            × Oh no!
+              It broke. :(
+
+            note: You did something wrong, which is what caused this error.
+            hint: Do it better next time, by trying harder.
+            """
+        )
+
+    def test_no_note(self) -> None:
+        err = DiagnosticPipError(
+            reference="test-diagnostic",
+            message="Oh no!\nIt broke. :(",
+            context="Something went wrong\nvery wrong.",
+            attention_stmt=None,
+            hint_stmt="Do it better next time, by trying harder.",
+        )
+
+        assert rendered(err) == textwrap.dedent(
+            """\
+            error: test-diagnostic
+
+            × Oh no!
+            │ It broke. :(
+            ╰─> Something went wrong
+                very wrong.
+
+            hint: Do it better next time, by trying harder.
+            """
+        )
+
+    def test_no_hint(self) -> None:
+        err = DiagnosticPipError(
+            reference="test-diagnostic",
+            message="Oh no!\nIt broke. :(",
+            context="Something went wrong\nvery wrong.",
+            attention_stmt="You did something wrong, which is what caused this error.",
+            hint_stmt=None,
+        )
+
+        assert rendered(err) == textwrap.dedent(
+            """\
+            error: test-diagnostic
+
+            × Oh no!
+            │ It broke. :(
+            ╰─> Something went wrong
+                very wrong.
+
+            note: You did something wrong, which is what caused this error.
+            """
+        )
+
+    def test_no_context_no_hint(self) -> None:
+        err = DiagnosticPipError(
+            reference="test-diagnostic",
+            message="Oh no!\nIt broke. :(",
+            context=None,
+            attention_stmt="You did something wrong, which is what caused this error.",
+            hint_stmt=None,
+        )
+
+        assert rendered(err) == textwrap.dedent(
+            """\
+            error: test-diagnostic
+
+            × Oh no!
+              It broke. :(
+
+            note: You did something wrong, which is what caused this error.
+            """
+        )
+
+    def test_no_context_no_note(self) -> None:
+        err = DiagnosticPipError(
+            reference="test-diagnostic",
+            message="Oh no!\nIt broke. :(",
+            context=None,
+            attention_stmt=None,
+            hint_stmt="Do it better next time, by trying harder.",
+        )
+
+        assert rendered(err) == textwrap.dedent(
+            """\
+            error: test-diagnostic
+
+            × Oh no!
+              It broke. :(
+
+            hint: Do it better next time, by trying harder.
+            """
+        )
+
+    def test_no_hint_no_note(self) -> None:
+        err = DiagnosticPipError(
+            reference="test-diagnostic",
+            message="Oh no!\nIt broke. :(",
+            context="Something went wrong\nvery wrong.",
+            attention_stmt=None,
+            hint_stmt=None,
+        )
+
+        assert rendered(err) == textwrap.dedent(
+            """\
+            error: test-diagnostic
+
+            × Oh no!
+            │ It broke. :(
+            ╰─> Something went wrong
+                very wrong.
+            """
+        )
+
+    def test_no_hint_no_note_no_context(self) -> None:
+        err = DiagnosticPipError(
+            reference="test-diagnostic",
+            message="Oh no!\nIt broke. :(",
+            context=None,
+            hint_stmt=None,
+            attention_stmt=None,
+        )
+
+        assert rendered(err) == textwrap.dedent(
+            """\
+            error: test-diagnostic
+
+            × Oh no!
+              It broke. :(
             """
         )

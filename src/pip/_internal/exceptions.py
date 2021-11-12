@@ -3,9 +3,11 @@
 import configparser
 import re
 from itertools import chain, groupby, repeat
-from typing import TYPE_CHECKING, Dict, Iterator, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 from pip._vendor.requests.models import Request, Response
+from pip._vendor.rich.console import Console, ConsoleOptions, RenderResult
+from pip._vendor.rich.text import Text
 
 if TYPE_CHECKING:
     from hashlib import _Hash
@@ -22,13 +24,21 @@ def _is_kebab_case(s: str) -> bool:
     return re.match(r"^[a-z]+(-[a-z]+)*$", s) is not None
 
 
-def _prefix_with_indent(prefix: str, s: str, indent: Optional[str] = None) -> str:
-    if indent is None:
-        indent = " " * len(prefix)
+def _prefix_with_indent(
+    s: Union[Text, str],
+    console: Console,
+    *,
+    prefix: str,
+    indent: str,
+) -> Text:
+    if isinstance(s, Text):
+        text = s
     else:
-        assert len(indent) == len(prefix)
-    message = s.replace("\n", "\n" + indent)
-    return f"{prefix}{message}\n"
+        text = console.render_str(s)
+
+    lines = text.wrap(console, console.width - width_offset)
+
+    return console.render_str(prefix) + console.render_str(f"\n{indent}").join(lines)
 
 
 class PipError(Exception):
@@ -36,12 +46,14 @@ class PipError(Exception):
 
 
 class DiagnosticPipError(PipError):
-    """A pip error, that presents diagnostic information to the user.
+    """An error, that presents diagnostic information to the user.
 
     This contains a bunch of logic, to enable pretty presentation of our error
     messages. Each error gets a unique reference. Each error can also include
     additional context, a hint and/or a note -- which are presented with the
     main error message in a consistent style.
+
+    This is adapted from the error output styling in `sphinx-theme-builder`.
     """
 
     reference: str
@@ -49,48 +61,103 @@ class DiagnosticPipError(PipError):
     def __init__(
         self,
         *,
-        message: str,
-        context: Optional[str],
-        hint_stmt: Optional[str],
-        attention_stmt: Optional[str] = None,
-        reference: Optional[str] = None,
         kind: 'Literal["error", "warning"]' = "error",
+        reference: Optional[str] = None,
+        message: Union[str, Text],
+        context: Optional[Union[str, Text]],
+        hint_stmt: Optional[Union[str, Text]],
+        attention_stmt: Optional[Union[str, Text]] = None,
+        link: Optional[str] = None,
     ) -> None:
-
         # Ensure a proper reference is provided.
         if reference is None:
             assert hasattr(self, "reference"), "error reference not provided!"
             reference = self.reference
         assert _is_kebab_case(reference), "error reference must be kebab-case!"
 
-        super().__init__(f"{reference}: {message}")
-
         self.kind = kind
+        self.reference = reference
+
         self.message = message
         self.context = context
 
-        self.reference = reference
         self.attention_stmt = attention_stmt
         self.hint_stmt = hint_stmt
 
-    def __str__(self) -> str:
-        return "".join(self._string_parts())
+        self.link = link
 
-    def _string_parts(self) -> Iterator[str]:
-        # Present the main message, with relevant context indented.
-        yield f"{self.message}\n"
-        if self.context is not None:
-            yield f"\n{self.context}\n"
+        super().__init__(f"<{self.__class__.__name__}: {self.reference}>")
 
-        # Space out the note/hint messages.
+    def __repr__(self) -> str:
+        return (
+            f"<{self.__class__.__name__}("
+            f"reference={self.reference!r}, "
+            f"message={self.message!r}, "
+            f"context={self.context!r}, "
+            f"attention_stmt={self.attention_stmt!r}, "
+            f"hint_stmt={self.hint_stmt!r}"
+            ")>"
+        )
+
+    def __rich_console__(
+        self,
+        console: Console,
+        options: ConsoleOptions,
+    ) -> RenderResult:
+        colour = "red" if self.kind == "error" else "yellow"
+
+        yield f"[{colour} bold]{self.kind}[/]: [bold]{self.reference}[/]"
+        yield ""
+
+        if not options.ascii_only:
+            # Present the main message, with relevant context indented.
+            if self.context is not None:
+                yield _prefix_with_indent(
+                    self.message,
+                    console,
+                    prefix=f"[{colour}]×[/] ",
+                    indent=f"[{colour}]│[/] ",
+                )
+                yield _prefix_with_indent(
+                    self.context,
+                    console,
+                    prefix=f"[{colour}]╰─>[/] ",
+                    indent=f"[{colour}]   [/] ",
+                )
+            else:
+                yield _prefix_with_indent(
+                    self.message,
+                    console,
+                    prefix="[red]×[/] ",
+                    indent="  ",
+                )
+        else:
+            yield self.message
+            if self.context is not None:
+                yield ""
+                yield self.context
+
         if self.attention_stmt is not None or self.hint_stmt is not None:
-            yield "\n"
+            yield ""
 
         if self.attention_stmt is not None:
-            yield _prefix_with_indent("Note: ", self.attention_stmt)
-
+            yield _prefix_with_indent(
+                self.attention_stmt,
+                console,
+                prefix="[magenta bold]note[/]: ",
+                indent="      ",
+            )
         if self.hint_stmt is not None:
-            yield _prefix_with_indent("Hint: ", self.hint_stmt)
+            yield _prefix_with_indent(
+                self.hint_stmt,
+                console,
+                prefix="[cyan bold]hint[/]: ",
+                indent="      ",
+            )
+
+        if self.link is not None:
+            yield ""
+            yield f"Link: {self.link}"
 
 
 #
@@ -118,12 +185,12 @@ class MissingPyProjectBuildRequires(DiagnosticPipError):
             message=f"Can not process {package}",
             context=(
                 "This package has an invalid pyproject.toml file.\n"
-                "The [build-system] table is missing the mandatory `requires` key."
+                R"The \[build-system] table is missing the mandatory `requires` key."
             ),
             attention_stmt=(
                 "This is an issue with the package mentioned above, not pip."
             ),
-            hint_stmt="See PEP 518 for the detailed specification.",
+            hint_stmt=Text("See PEP 518 for the detailed specification."),
         )
 
 
@@ -135,12 +202,12 @@ class InvalidPyProjectBuildRequires(DiagnosticPipError):
     def __init__(self, *, package: str, reason: str) -> None:
         super().__init__(
             message=f"Can not process {package}",
-            context=(
+            context=Text(
                 "This package has an invalid `build-system.requires` key in "
                 "pyproject.toml.\n"
                 f"{reason}"
             ),
-            hint_stmt="See PEP 518 for the detailed specification.",
+            hint_stmt=Text("See PEP 518 for the detailed specification."),
             attention_stmt=(
                 "This is an issue with the package mentioned above, not pip."
             ),
