@@ -36,9 +36,9 @@ def _prefix_with_indent(
     else:
         text = console.render_str(s)
 
-    lines = text.wrap(console, console.width - width_offset)
-
-    return console.render_str(prefix) + console.render_str(f"\n{indent}").join(lines)
+    return console.render_str(prefix, overflow="ignore") + console.render_str(
+        f"\n{indent}", overflow="ignore"
+    ).join(text.split(allow_blank=True))
 
 
 class PipError(Exception):

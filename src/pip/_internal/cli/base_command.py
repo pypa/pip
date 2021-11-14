@@ -10,8 +10,6 @@ import traceback
 from optparse import Values
 from typing import Any, Callable, List, Optional, Tuple
 
-from pip._vendor import rich
-
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.command_context import CommandContextMixIn
 from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
@@ -168,7 +166,7 @@ class Command(CommandContextMixIn):
                     assert isinstance(status, int)
                     return status
                 except DiagnosticPipError as exc:
-                    rich.print(exc, file=sys.stderr)
+                    logger.error("[present-diagnostic]", exc)
                     logger.debug("Exception information:", exc_info=True)
 
                     return ERROR

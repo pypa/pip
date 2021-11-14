@@ -6,8 +6,8 @@ import pytest
 
 from pip._internal.utils.logging import (
     BrokenStdoutLoggingError,
-    ColorizedStreamHandler,
     IndentingFormatter,
+    RichPipStreamHandler,
     indent_log,
 )
 from pip._internal.utils.misc import captured_stderr, captured_stdout
@@ -142,7 +142,7 @@ class TestColorizedStreamHandler:
         record = self._make_log_record()
 
         with captured_stderr() as stderr:
-            handler = ColorizedStreamHandler(stream=stderr)
+            handler = RichPipStreamHandler(stream=stderr, no_color=True)
             with patch("sys.stderr.flush") as mock_flush:
                 mock_flush.side_effect = BrokenPipeError()
                 # The emit() call raises no exception.
@@ -165,7 +165,7 @@ class TestColorizedStreamHandler:
         record = self._make_log_record()
 
         with captured_stdout() as stdout:
-            handler = ColorizedStreamHandler(stream=stdout)
+            handler = RichPipStreamHandler(stream=stdout, no_color=True)
             with patch("sys.stdout.write") as mock_write:
                 mock_write.side_effect = BrokenPipeError()
                 with pytest.raises(BrokenStdoutLoggingError):
@@ -180,7 +180,7 @@ class TestColorizedStreamHandler:
         record = self._make_log_record()
 
         with captured_stdout() as stdout:
-            handler = ColorizedStreamHandler(stream=stdout)
+            handler = RichPipStreamHandler(stream=stdout, no_color=True)
             with patch("sys.stdout.flush") as mock_flush:
                 mock_flush.side_effect = BrokenPipeError()
                 with pytest.raises(BrokenStdoutLoggingError):
