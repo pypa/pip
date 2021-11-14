@@ -1,1 +1,1 @@
-found conflicts are output before pip delves into version resolution.
+Display found conflicts before pip delves into version resolution.
