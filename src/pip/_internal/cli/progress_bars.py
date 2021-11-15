@@ -132,7 +132,9 @@ class DownloadProgressMixin:
         # Avoid zero division errors...
         if self.avg == 0.0:  # type: ignore
             return "..."
-        return format_size(1 / self.avg) + "/s"  # type: ignore
+        if self.eta:  # type: ignore
+            return format_size(1 / self.avg) + "/s"  # type: ignore
+        return ""
 
     @property
     def pretty_eta(self) -> str:
