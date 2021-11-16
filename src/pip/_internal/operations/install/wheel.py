@@ -75,7 +75,7 @@ logger = logging.getLogger(__name__)
 RecordPath = NewType("RecordPath", str)
 InstalledCSVRow = Tuple[RecordPath, str, Union[int, str]]
 
-SHEBANG_PYTHON = re.compile(b'^#!python[w]*([ \t].*)?$')
+SHEBANG_PYTHON = re.compile(b"^#!python[w]*(\s.*)?$")
 
 
 def rehash(path: str, blocksize: int = 1 << 20) -> Tuple[str, str]:
@@ -105,7 +105,10 @@ def fix_script(path: str) -> bool:
         if not match:
             return False
         exename = sys.executable.encode(sys.getfilesystemencoding())
-        firstline = b"#!" + exename + (match.group(1) or b'') + os.linesep.encode("ascii")
+        postinterp = match.group(1).rstrip() or b""
+        firstline = (
+            b"#!" + exename + postinterp + os.linesep.encode("ascii")
+        )
         rest = script.read()
     with open(path, "wb") as script:
         script.write(firstline)
