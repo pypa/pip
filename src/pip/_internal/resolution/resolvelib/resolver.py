@@ -217,30 +217,6 @@ def get_topological_weights(
     path: Set[Optional[str]] = set()
     weights: Dict[Optional[str], int] = {}
 
-    def simplify_graph() -> None:
-        leaves = set()
-        for key in graph:
-            if key is None:
-                continue
-            for _child in graph.iter_children(key):
-                # This means we have at least one child
-                break
-            else:
-                # No child.
-                leaves.add(key)
-        if not leaves:
-            # We are done simplifying.
-            return
-        # Calculate the weight for the leaves.
-        weight = len(graph) - 1
-        for leaf in leaves:
-            weights[leaf] = weight
-        # Remove the leaves from the copy of the graph, making the copy simpler.
-        for leaf in leaves:
-            graph.remove(leaf)
-        # Now that we have a simpler graph, try to simplify it again.
-        simplify_graph()
-
     def visit(node: Optional[str]) -> None:
         if node in path:
             # We hit a cycle, so we'll break it here.
@@ -255,11 +231,33 @@ def get_topological_weights(
         last_known_parent_count = weights.get(node, 0)
         weights[node] = max(last_known_parent_count, len(path))
 
-    # Recursively simplify the graph, pruning leaves that have no dependencies.
+    # Simplify the graph, pruning leaves that have no dependencies.
     # This is needed for large graphs (say over 200 packages) because the
     # `visit` function is exponentially slower then, taking minutes.
     # See https://github.com/pypa/pip/issues/10557
-    simplify_graph()
+    # We will loop until we explicitly break the loop.
+    while True:
+        leaves = set()
+        for key in graph:
+            if key is None:
+                continue
+            for _child in graph.iter_children(key):
+                # This means we have at least one child
+                break
+            else:
+                # No child.
+                leaves.add(key)
+        if not leaves:
+            # We are done simplifying.
+            break
+        # Calculate the weight for the leaves.
+        weight = len(graph) - 1
+        for leaf in leaves:
+            weights[leaf] = weight
+        # Remove the leaves from the copy of the graph, making the copy simpler.
+        for leaf in leaves:
+            graph.remove(leaf)
+
     # Visit the remaining graph.
     # `None` is guaranteed to be the root node by resolvelib.
     visit(None)
