@@ -1,0 +1,1 @@
+Script shebang "#!python" replacement now preserves all arguments after the first space (e.g. "#!python -i")
