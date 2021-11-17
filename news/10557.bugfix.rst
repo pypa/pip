@@ -1,1 +1,1 @@
-Optimize installation order calculation to improve performance when installing requirements that form a complex depedency graph with a large amount of edges.
+Optimize installation order calculation to improve performance when installing requirements that form a complex dependency graph with a large amount of edges.
