@@ -171,9 +171,11 @@ class Resolver(BaseResolver):
         get installed one-by-one.
 
         The current implementation creates a topological ordering of the
-        dependency graph, while breaking any cycles in the graph at arbitrary
-        points. We make no guarantees about where the cycle would be broken,
-        other than they would be broken.
+        dependency graph, giving more weight to packages with less
+        or no dependencies, while breaking any cycles in the graph at
+        arbitrary points.
+        We make no guarantees about where the cycle would be broken,
+        other than it *would* be broken.
         """
         assert self._result is not None, "must call resolve() first"
 
@@ -203,13 +205,22 @@ def get_topological_weights(
     This implementation may change at any point in the future without prior
     notice.
 
+    We first simplify the dependency graph by pruning any leaves
+    and giving them the highest weight: a package without any dependencies
+    should be installed first.
+    We simplify again and again in the same way, giving ever less weight
+    to the newly found leaves.
+    This stops when no leaves are left: all remaining packages have at least
+    one dependency left in the graph.
+
+    Then we continue with the remaining graph.
     We take the length for the longest path to any node from root, ignoring any
     paths that contain a single node twice (i.e. cycles). This is done through
     a depth-first search through the graph, while keeping track of the path to
     the node.
 
     Cycles in the graph result would result in node being revisited while also
-    being it's own path. In this case, take no action. This helps ensure we
+    being on it's own path. In this case, take no action. This helps ensure we
     don't get stuck in a cycle.
 
     When assigning weight, the longer path (i.e. larger length) is preferred.
