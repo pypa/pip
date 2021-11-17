@@ -254,7 +254,7 @@ def get_topological_weights(
         weight = len(graph) - 1
         for leaf in leaves:
             weights[leaf] = weight
-        # Remove the leaves from the copy of the graph, making the copy simpler.
+        # Remove the leaves from the graph, making it simpler.
         for leaf in leaves:
             graph.remove(leaf)
 
