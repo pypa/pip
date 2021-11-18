@@ -106,7 +106,7 @@ def _link_from_direct_url(direct_url: DirectUrl) -> Link:
 
     direct_url_info = direct_url.info
     if isinstance(direct_url_info, VcsInfo):
-        url = f"{url}@{direct_url_info.requested_revision}"
+        url = f"{url}@{direct_url_info.commit_id}"
     elif isinstance(direct_url_info, ArchiveInfo):
         hash_frag = direct_url_info.hash
 
