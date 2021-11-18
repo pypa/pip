@@ -74,6 +74,11 @@ class Resolver(BaseResolver):
         candidate: Candidate,
         direct_url_requested: bool,
     ) -> Optional[InstallRequirement]:
+        """Get the InstallRequirement to install for a candidate.
+
+        Returning None means the candidate is already satisfied by the current
+        environment state and does not need to be handled.
+        """
         ireq = candidate.get_install_requirement()
 
         # No ireq to install (e.g. extra-ed candidate). Skip.
@@ -113,10 +118,8 @@ class Resolver(BaseResolver):
         # Determine whether to upgrade based on flags and whether the installed
         # distribution was done via a direct URL.
 
-        # Always reinstall an incoming wheel candidate on the local filesystem.
-        # This is quite fast anyway, and we can avoid drama when users want
-        # their in-development direct URL requirement automatically reinstalled.
-        if cand_link.is_file and cand_link.is_wheel:
+        # Always reinstall a direct candidate if it's on the local file system.
+        if cand_link.is_file:
             return ireq
 
         # Reinstall if --upgrade is specified.
