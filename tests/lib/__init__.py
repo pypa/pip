@@ -1,5 +1,6 @@
 import json
 import os
+import pathlib
 import re
 import shutil
 import site
@@ -11,7 +12,18 @@ from contextlib import contextmanager
 from hashlib import sha256
 from io import BytesIO
 from textwrap import dedent
-from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 from zipfile import ZipFile
 
 import pytest
@@ -29,6 +41,14 @@ from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from tests.lib.path import Path, curdir
 from tests.lib.venv import VirtualEnvironment
 from tests.lib.wheel import make_wheel
+
+if TYPE_CHECKING:
+    # Literal was introduced in Python 3.8.
+    from typing import Literal
+
+    ResolverVariant = Literal["resolvelib", "legacy"]
+else:
+    ResolverVariant = str
 
 DATA_DIR = Path(__file__).parent.parent.joinpath("data").resolve()
 SRC_DIR = Path(__file__).resolve().parent.parent.parent
@@ -266,11 +286,11 @@ class TestPipResult:
         self,
         pkg_name: str,
         editable: bool = True,
-        with_files: Optional[List[Path]] = None,
-        without_files: Optional[List[Path]] = None,
+        with_files: Optional[List[str]] = None,
+        without_files: Optional[List[str]] = None,
         without_egg_link: bool = False,
         use_user_site: bool = False,
-        sub_dir: bool = False,
+        sub_dir: Optional[str] = None,
     ) -> None:
         with_files = with_files or []
         without_files = without_files or []
@@ -358,16 +378,16 @@ class TestPipResult:
                     f"Package directory {pkg_dir!r} has unexpected content {f}"
                 )
 
-    def did_create(self, path: Path, message: Optional[str] = None) -> None:
+    def did_create(self, path: str, message: Optional[str] = None) -> None:
         assert str(path) in self.files_created, _one_or_both(message, self)
 
-    def did_not_create(self, path: Path, message: Optional[str] = None) -> None:
+    def did_not_create(self, path: str, message: Optional[str] = None) -> None:
         assert str(path) not in self.files_created, _one_or_both(message, self)
 
-    def did_update(self, path: Path, message: Optional[str] = None) -> None:
+    def did_update(self, path: str, message: Optional[str] = None) -> None:
         assert str(path) in self.files_updated, _one_or_both(message, self)
 
-    def did_not_update(self, path: Path, message: Optional[str] = None) -> None:
+    def did_not_update(self, path: str, message: Optional[str] = None) -> None:
         assert str(path) not in self.files_updated, _one_or_both(message, self)
 
 
@@ -567,7 +587,7 @@ class PipTestEnvironment(TestFileEnvironment):
     def run(
         self,
         *args: str,
-        cwd: Optional[str] = None,
+        cwd: Union[None, str, pathlib.Path] = None,
         allow_stderr_error: Optional[bool] = None,
         allow_stderr_warning: Optional[bool] = None,
         allow_error: bool = False,
@@ -847,8 +867,8 @@ def _git_commit(
 
 
 def _vcs_add(
-    script: PipTestEnvironment, version_pkg_path: str, vcs: str = "git"
-) -> str:
+    script: PipTestEnvironment, version_pkg_path: Path, vcs: str = "git"
+) -> Path:
     if vcs == "git":
         script.run("git", "init", cwd=version_pkg_path)
         script.run("git", "add", ".", cwd=version_pkg_path)
@@ -874,7 +894,7 @@ def _vcs_add(
         checkout_path: str = script.scratch_path / "pip-test-package"
 
         # svn internally stores windows drives as uppercase; we'll match that.
-        checkout_path = checkout_path.replace("c:", "C:")
+        checkout_path = Path(checkout_path.replace("c:", "C:"))
 
         version_pkg_path = checkout_path
     elif vcs == "bazaar":
@@ -949,7 +969,7 @@ def _create_test_package_with_subdirectory(
 
 def _create_test_package_with_srcdir(
     script: PipTestEnvironment, name: str = "version_pkg", vcs: str = "git"
-) -> str:
+) -> Path:
     script.scratch_path.joinpath(name).mkdir()
     version_pkg_path = script.scratch_path / name
     subdir_path = version_pkg_path.joinpath("subdir")
@@ -979,7 +999,7 @@ def _create_test_package_with_srcdir(
 
 def _create_test_package(
     script: PipTestEnvironment, name: str = "version_pkg", vcs: str = "git"
-) -> str:
+) -> Path:
     script.scratch_path.joinpath(name).mkdir()
     version_pkg_path = script.scratch_path / name
     _create_main_file(version_pkg_path, name=name, output="0.1")
@@ -1101,9 +1121,9 @@ def create_basic_wheel_for_package(
     name: str,
     version: str,
     depends: Optional[List[str]] = None,
-    extras: Dict[str, str] = None,
+    extras: Dict[str, List[str]] = None,
     requires_python: Optional[str] = None,
-    extra_files: Optional[Dict[str, str]] = None,
+    extra_files: Optional[Dict[str, Union[bytes, str]]] = None,
 ) -> Path:
     if depends is None:
         depends = []

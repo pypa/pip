@@ -1,4 +1,5 @@
 import os
+import pathlib
 import re
 
 from pip import __version__
@@ -7,10 +8,10 @@ from pip._internal.operations.install.legacy import (
     write_installed_files_from_setuptools_record,
 )
 from pip._internal.utils.unpacking import untar_file
-from tests.lib import create_test_package_with_setup
+from tests.lib import PipTestEnvironment, TestData, create_test_package_with_setup
 
 
-def test_basic_show(script):
+def test_basic_show(script: PipTestEnvironment) -> None:
     """
     Test end to end test for show command.
     """
@@ -23,7 +24,7 @@ def test_basic_show(script):
     assert "Requires: " in lines
 
 
-def test_show_with_files_not_found(script, data):
+def test_show_with_files_not_found(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test for show command with installed files listing enabled and
     installed-files.txt not found.
@@ -41,7 +42,7 @@ def test_show_with_files_not_found(script, data):
     assert "Cannot locate RECORD or installed-files.txt" in lines
 
 
-def test_show_with_files_from_wheel(script, data):
+def test_show_with_files_from_wheel(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test that a wheel's files can be listed.
     """
@@ -55,7 +56,9 @@ def test_show_with_files_from_wheel(script, data):
     assert f"  simpledist{os.sep}__init__.py" in lines[6:]
 
 
-def test_show_with_files_from_legacy(tmp_path, script, data):
+def test_show_with_files_from_legacy(
+    tmp_path: pathlib.Path, script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Test listing files in the show command (legacy installed-files.txt).
     """
@@ -87,7 +90,7 @@ def test_show_with_files_from_legacy(tmp_path, script, data):
     assert f"  simple{os.sep}__init__.py" in lines[6:]
 
 
-def test_missing_argument(script):
+def test_missing_argument(script: PipTestEnvironment) -> None:
     """
     Test show command with no arguments.
     """
@@ -95,7 +98,7 @@ def test_missing_argument(script):
     assert "ERROR: Please provide a package name or names." in result.stderr
 
 
-def test_find_package_not_found():
+def test_find_package_not_found() -> None:
     """
     Test trying to get info about a nonexistent package.
     """
@@ -103,7 +106,7 @@ def test_find_package_not_found():
     assert len(list(result)) == 0
 
 
-def test_report_single_not_found(script):
+def test_report_single_not_found(script: PipTestEnvironment) -> None:
     """
     Test passing one name and that isn't found.
     """
@@ -117,7 +120,7 @@ def test_report_single_not_found(script):
     assert not result.stdout.splitlines()
 
 
-def test_report_mixed_not_found(script):
+def test_report_mixed_not_found(script: PipTestEnvironment) -> None:
     """
     Test passing a mixture of found and not-found names.
     """
@@ -129,7 +132,7 @@ def test_report_mixed_not_found(script):
     assert "Name: pip" in lines
 
 
-def test_search_any_case():
+def test_search_any_case() -> None:
     """
     Search for a package in any case.
 
@@ -139,7 +142,7 @@ def test_search_any_case():
     assert result[0].name == "pip"
 
 
-def test_more_than_one_package():
+def test_more_than_one_package() -> None:
     """
     Search for more than one package.
 
@@ -148,7 +151,7 @@ def test_more_than_one_package():
     assert len(result) == 3
 
 
-def test_show_verbose_with_classifiers(script):
+def test_show_verbose_with_classifiers(script: PipTestEnvironment) -> None:
     """
     Test that classifiers can be listed
     """
@@ -159,7 +162,7 @@ def test_show_verbose_with_classifiers(script):
     assert "Intended Audience :: Developers" in result.stdout
 
 
-def test_show_verbose_installer(script, data):
+def test_show_verbose_installer(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test that the installer is shown (this currently needs a wheel install)
     """
@@ -171,7 +174,7 @@ def test_show_verbose_installer(script, data):
     assert "Installer: pip" in lines
 
 
-def test_show_verbose(script):
+def test_show_verbose(script: PipTestEnvironment) -> None:
     """
     Test end to end test for verbose show command.
     """
@@ -183,7 +186,7 @@ def test_show_verbose(script):
     assert "Classifiers:" in lines
 
 
-def test_all_fields(script):
+def test_all_fields(script: PipTestEnvironment) -> None:
     """
     Test that all the fields are present
     """
@@ -205,7 +208,7 @@ def test_all_fields(script):
     assert actual == expected
 
 
-def test_pip_show_is_short(script):
+def test_pip_show_is_short(script: PipTestEnvironment) -> None:
     """
     Test that pip show stays short
     """
@@ -214,7 +217,7 @@ def test_pip_show_is_short(script):
     assert len(lines) <= 10
 
 
-def test_pip_show_divider(script, data):
+def test_pip_show_divider(script: PipTestEnvironment, data: TestData) -> None:
     """
     Expect a divider between packages
     """
@@ -224,7 +227,9 @@ def test_pip_show_divider(script, data):
     assert "---" in lines
 
 
-def test_package_name_is_canonicalized(script, data):
+def test_package_name_is_canonicalized(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     script.pip("install", "pip-test-package", "--no-index", "-f", data.packages)
 
     dash_show_result = script.pip("show", "pip-test-package")
@@ -234,7 +239,9 @@ def test_package_name_is_canonicalized(script, data):
     assert underscore_upper_show_result.stdout == dash_show_result.stdout
 
 
-def test_show_required_by_packages_basic(script, data):
+def test_show_required_by_packages_basic(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Test that installed packages that depend on this package are shown
     """
@@ -248,7 +255,9 @@ def test_show_required_by_packages_basic(script, data):
     assert "Required-by: requires-simple" in lines
 
 
-def test_show_required_by_packages_capitalized(script, data):
+def test_show_required_by_packages_capitalized(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Test that the installed packages which depend on a package are shown
     where the package has a capital letter
@@ -263,7 +272,9 @@ def test_show_required_by_packages_capitalized(script, data):
     assert "Required-by: Requires-Capitalized" in lines
 
 
-def test_show_required_by_packages_requiring_capitalized(script, data):
+def test_show_required_by_packages_requiring_capitalized(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Test that the installed packages which depend on a package are shown
     where the package has a name with a mix of
@@ -282,7 +293,7 @@ def test_show_required_by_packages_requiring_capitalized(script, data):
     assert "Required-by: requires-requires-capitalized" in lines
 
 
-def test_show_skip_work_dir_pkg(script):
+def test_show_skip_work_dir_pkg(script: PipTestEnvironment) -> None:
     """
     Test that show should not include package
     present in working directory
@@ -297,7 +308,7 @@ def test_show_skip_work_dir_pkg(script):
     assert "WARNING: Package(s) not found: simple" in result.stderr
 
 
-def test_show_include_work_dir_pkg(script):
+def test_show_include_work_dir_pkg(script: PipTestEnvironment) -> None:
     """
     Test that show should include package in working directory
     if working directory is added in PYTHONPATH

@@ -1,4 +1,5 @@
 import logging
+from typing import TYPE_CHECKING, Dict, List
 from unittest import mock
 
 import pytest
@@ -6,9 +7,13 @@ import pytest
 from pip._internal.cli.status_codes import NO_MATCHES_FOUND, SUCCESS
 from pip._internal.commands import create_command
 from pip._internal.commands.search import highest_version, print_results, transform_hits
+from tests.lib import PipTestEnvironment
+
+if TYPE_CHECKING:
+    from pip._internal.commands.search import TransformedHit
 
 
-def test_version_compare():
+def test_version_compare() -> None:
     """
     Test version comparison.
 
@@ -17,12 +22,12 @@ def test_version_compare():
     assert highest_version(["1.0a1", "1.0"]) == "1.0"
 
 
-def test_pypi_xml_transformation():
+def test_pypi_xml_transformation() -> None:
     """
     Test transformation of data structures (PyPI xmlrpc to custom list).
 
     """
-    pypi_hits = [
+    pypi_hits: List[Dict[str, str]] = [
         {
             "name": "foo",
             "summary": "foo summary",
@@ -34,13 +39,13 @@ def test_pypi_xml_transformation():
             "version": "2.0",
         },
         {
-            "_pypi_ordering": 50,
+            "_pypi_ordering": 50,  # type: ignore[dict-item]
             "name": "bar",
             "summary": "bar summary",
             "version": "1.0",
         },
     ]
-    expected = [
+    expected: List["TransformedHit"] = [
         {
             "versions": ["1.0", "2.0"],
             "name": "foo",
@@ -57,7 +62,7 @@ def test_pypi_xml_transformation():
 
 @pytest.mark.network
 @pytest.mark.search
-def test_basic_search(script):
+def test_basic_search(script: PipTestEnvironment) -> None:
     """
     End to end test of search command.
 
@@ -76,7 +81,7 @@ def test_basic_search(script):
     ),
 )
 @pytest.mark.search
-def test_multiple_search(script):
+def test_multiple_search(script: PipTestEnvironment) -> None:
     """
     Test searching for multiple packages at once.
 
@@ -87,7 +92,7 @@ def test_multiple_search(script):
 
 
 @pytest.mark.search
-def test_search_missing_argument(script):
+def test_search_missing_argument(script: PipTestEnvironment) -> None:
     """
     Test missing required argument for search
     """
@@ -97,7 +102,7 @@ def test_search_missing_argument(script):
 
 @pytest.mark.network
 @pytest.mark.search
-def test_run_method_should_return_success_when_find_packages():
+def test_run_method_should_return_success_when_find_packages() -> None:
     """
     Test SearchCommand.run for found package
     """
@@ -111,7 +116,7 @@ def test_run_method_should_return_success_when_find_packages():
 
 @pytest.mark.network
 @pytest.mark.search
-def test_run_method_should_return_no_matches_found_when_does_not_find_pkgs():
+def test_run_method_should_return_no_matches_found_when_does_not_find_pkgs() -> None:
     """
     Test SearchCommand.run for no matches
     """
@@ -125,7 +130,9 @@ def test_run_method_should_return_no_matches_found_when_does_not_find_pkgs():
 
 @pytest.mark.network
 @pytest.mark.search
-def test_search_should_exit_status_code_zero_when_find_packages(script):
+def test_search_should_exit_status_code_zero_when_find_packages(
+    script: PipTestEnvironment,
+) -> None:
     """
     Test search exit status code for package found
     """
@@ -135,7 +142,9 @@ def test_search_should_exit_status_code_zero_when_find_packages(script):
 
 @pytest.mark.network
 @pytest.mark.search
-def test_search_exit_status_code_when_finds_no_package(script):
+def test_search_exit_status_code_when_finds_no_package(
+    script: PipTestEnvironment,
+) -> None:
     """
     Test search exit status code for no matches
     """
@@ -144,11 +153,13 @@ def test_search_exit_status_code_when_finds_no_package(script):
 
 
 @pytest.mark.search
-def test_latest_prerelease_install_message(caplog, monkeypatch):
+def test_latest_prerelease_install_message(
+    caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """
     Test documentation for installing pre-release packages is displayed
     """
-    hits = [
+    hits: List["TransformedHit"] = [
         {
             "name": "ni",
             "summary": "For knights who say Ni!",
@@ -171,11 +182,13 @@ def test_latest_prerelease_install_message(caplog, monkeypatch):
 
 
 @pytest.mark.search
-def test_search_print_results_should_contain_latest_versions(caplog):
+def test_search_print_results_should_contain_latest_versions(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """
     Test that printed search results contain the latest package versions
     """
-    hits = [
+    hits: List["TransformedHit"] = [
         {
             "name": "testlib1",
             "summary": "Test library 1.",

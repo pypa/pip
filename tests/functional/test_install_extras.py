@@ -4,9 +4,11 @@ from os.path import join
 
 import pytest
 
+from tests.lib import PipTestEnvironment, ResolverVariant, TestData
+
 
 @pytest.mark.network
-def test_simple_extras_install_from_pypi(script):
+def test_simple_extras_install_from_pypi(script: PipTestEnvironment) -> None:
     """
     Test installing a package from PyPI using extras dependency Paste[openid].
     """
@@ -19,7 +21,7 @@ def test_simple_extras_install_from_pypi(script):
     result.did_create(initools_folder)
 
 
-def test_extras_after_wheel(script, data):
+def test_extras_after_wheel(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test installing a package with extras after installing from a wheel.
     """
@@ -47,7 +49,7 @@ def test_extras_after_wheel(script, data):
 
 
 @pytest.mark.network
-def test_no_extras_uninstall(script):
+def test_no_extras_uninstall(script: PipTestEnvironment) -> None:
     """
     No extras dependency gets uninstalled when the root package is uninstalled
     """
@@ -64,7 +66,9 @@ def test_no_extras_uninstall(script):
     assert initools_folder not in result2.files_deleted, result.files_deleted
 
 
-def test_nonexistent_extra_warns_user_no_wheel(script, data):
+def test_nonexistent_extra_warns_user_no_wheel(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     A warning is logged telling the user that the extra option they requested
     does not exist in the project they are wishing to install.
@@ -84,7 +88,9 @@ def test_nonexistent_extra_warns_user_no_wheel(script, data):
     )
 
 
-def test_nonexistent_extra_warns_user_with_wheel(script, data):
+def test_nonexistent_extra_warns_user_with_wheel(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     A warning is logged telling the user that the extra option they requested
     does not exist in the project they are wishing to install.
@@ -101,7 +107,9 @@ def test_nonexistent_extra_warns_user_with_wheel(script, data):
     assert "simplewheel 2.0 does not provide the extra 'nonexistent'" in result.stderr
 
 
-def test_nonexistent_options_listed_in_order(script, data):
+def test_nonexistent_options_listed_in_order(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Warn the user for each extra that doesn't exist.
     """
@@ -118,7 +126,9 @@ def test_nonexistent_options_listed_in_order(script, data):
     assert matches == ["nonexistent", "nope"]
 
 
-def test_install_fails_if_extra_at_end(script, data):
+def test_install_fails_if_extra_at_end(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Fail if order of specifiers and extras is incorrect.
 
@@ -140,7 +150,7 @@ def test_install_fails_if_extra_at_end(script, data):
     assert "Extras after version" in result.stderr
 
 
-def test_install_special_extra(script):
+def test_install_special_extra(script: PipTestEnvironment) -> None:
     # Check that uppercase letters and '-' are dealt with
     # make a dummy project
     pkga_path = script.scratch_path / "pkga"
@@ -165,7 +175,7 @@ def test_install_special_extra(script):
     ) in result.stderr, str(result)
 
 
-def test_install_requirements_no_r_flag(script):
+def test_install_requirements_no_r_flag(script: PipTestEnvironment) -> None:
     """Beginners sometimes forget the -r and this leads to confusion"""
     result = script.pip("install", "requirements.txt", expect_error=True)
     assert 'literally named "requirements.txt"' in result.stdout
@@ -182,12 +192,12 @@ def test_install_requirements_no_r_flag(script):
 )
 @pytest.mark.usefixtures("data")
 def test_install_extra_merging(
-    script,
-    resolver_variant,
-    extra_to_install,
-    simple_version,
-    fails_on_legacy,
-):
+    script: PipTestEnvironment,
+    resolver_variant: ResolverVariant,
+    extra_to_install: str,
+    simple_version: str,
+    fails_on_legacy: bool,
+) -> None:
     # Check that extra specifications in the extras section are honoured.
     pkga_path = script.scratch_path / "pkga"
     pkga_path.mkdir()

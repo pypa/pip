@@ -26,7 +26,7 @@ def _change_test_package_submodule(
 
 
 def _pull_in_submodule_changes_to_module(
-    env: PipTestEnvironment, module_path: Path, rel_path: Path
+    env: PipTestEnvironment, module_path: Path, rel_path: str
 ) -> None:
     """
     Args:
@@ -39,7 +39,7 @@ def _pull_in_submodule_changes_to_module(
 
 
 def _create_test_package_with_submodule(
-    env: PipTestEnvironment, rel_path: Path
+    env: PipTestEnvironment, rel_path: str
 ) -> Tuple[Path, Path]:
     """
     Args:

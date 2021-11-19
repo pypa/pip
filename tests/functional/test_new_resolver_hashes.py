@@ -4,7 +4,11 @@ import hashlib
 import pytest
 
 from pip._internal.utils.urls import path_to_url
-from tests.lib import create_basic_sdist_for_package, create_basic_wheel_for_package
+from tests.lib import (
+    PipTestEnvironment,
+    create_basic_sdist_for_package,
+    create_basic_wheel_for_package,
+)
 
 _FindLinks = collections.namedtuple(
     "_FindLinks",
@@ -12,7 +16,7 @@ _FindLinks = collections.namedtuple(
 )
 
 
-def _create_find_links(script):
+def _create_find_links(script: PipTestEnvironment) -> _FindLinks:
     sdist_path = create_basic_sdist_for_package(script, "base", "0.1.0")
     wheel_path = create_basic_wheel_for_package(script, "base", "0.1.0")
 
@@ -60,7 +64,9 @@ def _create_find_links(script):
     ],
     ids=["identical", "intersect"],
 )
-def test_new_resolver_hash_intersect(script, requirements_template, message):
+def test_new_resolver_hash_intersect(
+    script: PipTestEnvironment, requirements_template: str, message: str
+) -> None:
     find_links = _create_find_links(script)
 
     requirements_txt = script.scratch_path / "requirements.txt"
@@ -86,7 +92,9 @@ def test_new_resolver_hash_intersect(script, requirements_template, message):
     assert message.format(name="base") in result.stdout, str(result)
 
 
-def test_new_resolver_hash_intersect_from_constraint(script):
+def test_new_resolver_hash_intersect_from_constraint(
+    script: PipTestEnvironment,
+) -> None:
     find_links = _create_find_links(script)
 
     constraints_txt = script.scratch_path / "constraints.txt"
@@ -144,10 +152,10 @@ def test_new_resolver_hash_intersect_from_constraint(script):
     ids=["both-requirements", "one-each"],
 )
 def test_new_resolver_hash_intersect_empty(
-    script,
-    requirements_template,
-    constraints_template,
-):
+    script: PipTestEnvironment,
+    requirements_template: str,
+    constraints_template: str,
+) -> None:
     find_links = _create_find_links(script)
 
     constraints_txt = script.scratch_path / "constraints.txt"
@@ -185,7 +193,9 @@ def test_new_resolver_hash_intersect_empty(
     ) in result.stderr, str(result)
 
 
-def test_new_resolver_hash_intersect_empty_from_constraint(script):
+def test_new_resolver_hash_intersect_empty_from_constraint(
+    script: PipTestEnvironment,
+) -> None:
     find_links = _create_find_links(script)
 
     constraints_txt = script.scratch_path / "constraints.txt"
@@ -221,9 +231,9 @@ def test_new_resolver_hash_intersect_empty_from_constraint(script):
 
 @pytest.mark.parametrize("constrain_by_hash", [False, True])
 def test_new_resolver_hash_requirement_and_url_constraint_can_succeed(
-    script,
-    constrain_by_hash,
-):
+    script: PipTestEnvironment,
+    constrain_by_hash: bool,
+) -> None:
     wheel_path = create_basic_wheel_for_package(script, "base", "0.1.0")
 
     wheel_hash = hashlib.sha256(wheel_path.read_bytes()).hexdigest()
@@ -260,9 +270,9 @@ def test_new_resolver_hash_requirement_and_url_constraint_can_succeed(
 
 @pytest.mark.parametrize("constrain_by_hash", [False, True])
 def test_new_resolver_hash_requirement_and_url_constraint_can_fail(
-    script,
-    constrain_by_hash,
-):
+    script: PipTestEnvironment,
+    constrain_by_hash: bool,
+) -> None:
     wheel_path = create_basic_wheel_for_package(script, "base", "0.1.0")
     other_path = create_basic_wheel_for_package(script, "other", "0.1.0")
 

@@ -5,43 +5,46 @@ import pytest
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.commands import commands_dict, create_command
 from pip._internal.exceptions import CommandError
+from tests.conftest import InMemoryPip
+from tests.lib import PipTestEnvironment
 
 
-def test_run_method_should_return_success_when_finds_command_name():
+def test_run_method_should_return_success_when_finds_command_name() -> None:
     """
     Test HelpCommand.run for existing command
     """
     options_mock = Mock()
-    args = ("freeze",)
+    args = ["freeze"]
     help_cmd = create_command("help")
     status = help_cmd.run(options_mock, args)
     assert status == SUCCESS
 
 
-def test_run_method_should_return_success_when_command_name_not_specified():
+def test_run_method_should_return_success_when_command_name_not_specified() -> None:
     """
     Test HelpCommand.run when there are no args
     """
     options_mock = Mock()
-    args = ()
     help_cmd = create_command("help")
-    status = help_cmd.run(options_mock, args)
+    status = help_cmd.run(options_mock, [])
     assert status == SUCCESS
 
 
-def test_run_method_should_raise_command_error_when_command_does_not_exist():
+def test_run_method_should_raise_command_error_when_command_does_not_exist() -> None:
     """
     Test HelpCommand.run for non-existing command
     """
     options_mock = Mock()
-    args = ("mycommand",)
+    args = ["mycommand"]
     help_cmd = create_command("help")
 
     with pytest.raises(CommandError):
         help_cmd.run(options_mock, args)
 
 
-def test_help_command_should_exit_status_ok_when_command_exists(script):
+def test_help_command_should_exit_status_ok_when_command_exists(
+    script: PipTestEnvironment,
+) -> None:
     """
     Test `help` command for existing command
     """
@@ -49,7 +52,9 @@ def test_help_command_should_exit_status_ok_when_command_exists(script):
     assert result.returncode == SUCCESS
 
 
-def test_help_command_should_exit_status_ok_when_no_cmd_is_specified(script):
+def test_help_command_should_exit_status_ok_when_no_cmd_is_specified(
+    script: PipTestEnvironment,
+) -> None:
     """
     Test `help` command for no command
     """
@@ -57,7 +62,9 @@ def test_help_command_should_exit_status_ok_when_no_cmd_is_specified(script):
     assert result.returncode == SUCCESS
 
 
-def test_help_command_should_exit_status_error_when_cmd_does_not_exist(script):
+def test_help_command_should_exit_status_error_when_cmd_does_not_exist(
+    script: PipTestEnvironment,
+) -> None:
     """
     Test `help` command for non-existing command
     """
@@ -65,7 +72,7 @@ def test_help_command_should_exit_status_error_when_cmd_does_not_exist(script):
     assert result.returncode == ERROR
 
 
-def test_help_command_redact_auth_from_url(script):
+def test_help_command_redact_auth_from_url(script: PipTestEnvironment) -> None:
     """
     Test `help` on various subcommands redact auth from url
     """
@@ -75,7 +82,9 @@ def test_help_command_redact_auth_from_url(script):
     assert "secret" not in result.stdout
 
 
-def test_help_command_redact_auth_from_url_with_extra_index_url(script):
+def test_help_command_redact_auth_from_url_with_extra_index_url(
+    script: PipTestEnvironment,
+) -> None:
     """
     Test `help` on various subcommands redact auth from url with extra index url
     """
@@ -86,7 +95,7 @@ def test_help_command_redact_auth_from_url_with_extra_index_url(script):
     assert "secret" not in result.stdout
 
 
-def test_help_commands_equally_functional(in_memory_pip):
+def test_help_commands_equally_functional(in_memory_pip: InMemoryPip) -> None:
     """
     Test if `pip help` and 'pip --help' behave the same way.
     """

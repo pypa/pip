@@ -7,13 +7,14 @@ import pytest
 
 from tests.functional.test_install_user import _patch_dist_in_site_packages
 from tests.lib import pyversion  # noqa: F401
-from tests.lib import assert_all_changes
+from tests.lib import PipTestEnvironment, TestData, assert_all_changes
+from tests.lib.venv import VirtualEnvironment
 
 
 @pytest.mark.incompatible_with_test_venv
 class Tests_UninstallUserSite:
     @pytest.mark.network
-    def test_uninstall_from_usersite(self, script):
+    def test_uninstall_from_usersite(self, script: PipTestEnvironment) -> None:
         """
         Test uninstall from usersite
         """
@@ -21,7 +22,9 @@ class Tests_UninstallUserSite:
         result2 = script.pip("uninstall", "-y", "INITools")
         assert_all_changes(result1, result2, [script.venv / "build", "cache"])
 
-    def test_uninstall_from_usersite_with_dist_in_global_site(self, virtualenv, script):
+    def test_uninstall_from_usersite_with_dist_in_global_site(
+        self, virtualenv: VirtualEnvironment, script: PipTestEnvironment
+    ) -> None:
         """
         Test uninstall from usersite (with same dist in global site)
         """
@@ -50,7 +53,9 @@ class Tests_UninstallUserSite:
         )
         assert isdir(egg_info_folder)
 
-    def test_uninstall_editable_from_usersite(self, script, data):
+    def test_uninstall_editable_from_usersite(
+        self, script: PipTestEnvironment, data: TestData
+    ) -> None:
         """
         Test uninstall editable local user install
         """
