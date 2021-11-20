@@ -6,13 +6,14 @@ import getpass
 import os
 import shutil
 import sys
+import sysconfig
 import tempfile
 from typing import Any, Dict
 from unittest.mock import Mock
 
 import pytest
 
-from pip._internal.locations import SCHEME_KEYS, get_scheme
+from pip._internal.locations import SCHEME_KEYS, _should_use_sysconfig, get_scheme
 from tests.lib.path import Path
 
 if sys.platform == "win32":
@@ -81,6 +82,24 @@ class TestLocations:
         result = Mock()
         result.pw_name = self.username
         return result
+
+    def test_default_should_use_sysconfig(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.delattr(sysconfig, "_PIP_USE_SYSCONFIG", raising=False)
+        if sys.version_info[:2] >= (3, 10):
+            assert _should_use_sysconfig() is True
+        else:
+            assert _should_use_sysconfig() is False
+
+    @pytest.mark.parametrize("vendor_value", [True, False, None, "", 0, 1])
+    def test_vendor_overriden_should_use_sysconfig(
+        self, monkeypatch: pytest.MonkeyPatch, vendor_value: Any
+    ) -> None:
+        monkeypatch.setattr(
+            sysconfig, "_PIP_USE_SYSCONFIG", vendor_value, raising=False
+        )
+        assert _should_use_sysconfig() is bool(vendor_value)
 
 
 class TestDistutilsScheme:
