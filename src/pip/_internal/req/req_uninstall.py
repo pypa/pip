@@ -559,14 +559,17 @@ class UninstallPathSet:
             pass
 
         # find console_scripts and gui_scripts
-        def iter_scripts_to_remove() -> Iterator[str]:
+        def iter_scripts_to_remove(
+            dist: BaseDistribution,
+            bin_dir: str,
+        ) -> Iterator[str]:
             for entry_point in dist.iter_entry_points():
                 if entry_point.group == "console_scripts":
                     yield from _script_names(bin_dir, entry_point.name, False)
                 elif entry_point.group == "gui_scripts":
                     yield from _script_names(bin_dir, entry_point.name, True)
 
-        for s in iter_scripts_to_remove():
+        for s in iter_scripts_to_remove(dist, bin_dir):
             paths_to_remove.add(s)
 
         return paths_to_remove
