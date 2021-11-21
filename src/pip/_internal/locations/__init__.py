@@ -137,6 +137,8 @@ def _looks_like_slackware_scheme() -> bool:
     Slackware changes sysconfig's user scheme to use ``"lib64"`` for the lib
     path, but does not do the same to the site module.
     """
+    if user_site is None:  # User-site not available.
+        return False
     try:
         paths = sysconfig.get_paths(scheme="posix_user", expand=False)
     except KeyError:  # User-site not available.
