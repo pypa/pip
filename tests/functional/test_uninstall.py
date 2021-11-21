@@ -464,6 +464,8 @@ def test_uninstallpathset_no_paths(caplog):
     caplog.set_level(logging.INFO)
 
     test_dist = get_default_environment().get_distribution("pip")
+    assert test_dist is not None, "pip not installed"
+
     uninstall_set = UninstallPathSet(test_dist)
     uninstall_set.remove()  # with no files added to set
 
