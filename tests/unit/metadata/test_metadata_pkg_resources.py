@@ -1,10 +1,18 @@
+import email.message
 import itertools
 from typing import List, cast
 from unittest import mock
 
 import pytest
+from pip._vendor.packaging.specifiers import SpecifierSet
+from pip._vendor.packaging.version import parse as parse_version
 
-from pip._internal.metadata.pkg_resources import Distribution, Environment
+from pip._internal.exceptions import UnsupportedWheel
+from pip._internal.metadata.pkg_resources import (
+    Distribution,
+    Environment,
+    WheelMetadata,
+)
 
 pkg_resources = pytest.importorskip("pip._vendor.pkg_resources")
 
@@ -68,3 +76,48 @@ def test_get_distribution(ws: _MockWorkingSet, req_name: str) -> None:
 def test_get_distribution_nonexist() -> None:
     dist = Environment(workingset).get_distribution("non-exist")
     assert dist is None
+
+
+def test_wheel_metadata_works() -> None:
+    name = "simple"
+    version = "0.1.0"
+    require_a = "a==1.0"
+    require_b = 'b==1.1; extra == "also_b"'
+    requires = [require_a, require_b, 'c==1.2; extra == "also_c"']
+    extras = ["also_b", "also_c"]
+    requires_python = ">=3"
+
+    metadata = email.message.Message()
+    metadata["Name"] = name
+    metadata["Version"] = version
+    for require in requires:
+        metadata["Requires-Dist"] = require
+    for extra in extras:
+        metadata["Provides-Extra"] = extra
+    metadata["Requires-Python"] = requires_python
+
+    dist = Distribution(
+        pkg_resources.DistInfoDistribution(
+            location="<in-memory>",
+            metadata=WheelMetadata({"METADATA": metadata.as_bytes()}, "<in-memory>"),
+            project_name=name,
+        ),
+    )
+
+    assert name == dist.canonical_name == dist.raw_name
+    assert parse_version(version) == dist.version
+    assert set(extras) == set(dist.iter_provided_extras())
+    assert [require_a] == [str(r) for r in dist.iter_dependencies()]
+    assert [require_a, require_b] == [
+        str(r) for r in dist.iter_dependencies(["also_b"])
+    ]
+    assert metadata.as_string() == dist.metadata.as_string()
+    assert SpecifierSet(requires_python) == dist.requires_python
+
+
+def test_wheel_metadata_throws_on_bad_unicode() -> None:
+    metadata = WheelMetadata({"METADATA": b"\xff"}, "<in-memory>")
+
+    with pytest.raises(UnsupportedWheel) as e:
+        metadata.get_metadata("METADATA")
+    assert "METADATA" in str(e.value)
