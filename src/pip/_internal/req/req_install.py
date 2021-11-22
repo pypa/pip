@@ -51,8 +51,6 @@ from pip._internal.utils.misc import (
     ask_path_exists,
     backup_dir,
     display_path,
-    dist_in_site_packages,
-    dist_in_usersite,
     hide_url,
     redact_auth_from_url,
 )
@@ -402,11 +400,9 @@ class InstallRequirement:
         if not version_compatible:
             self.satisfied_by = None
             if use_user_site:
-                if dist_in_usersite(existing_dist):
+                if existing_dist.in_usersite:
                     self.should_reinstall = True
-                elif running_under_virtualenv() and dist_in_site_packages(
-                    existing_dist
-                ):
+                elif running_under_virtualenv() and existing_dist.in_site_packages:
                     raise InstallationError(
                         f"Will not install to the user site because it will "
                         f"lack sys.path precedence to {existing_dist.raw_name} "

@@ -23,13 +23,19 @@ from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName
 from pip._vendor.packaging.version import LegacyVersion, Version
 
+from pip._internal.exceptions import NoneMetadataError
+from pip._internal.locations import site_packages, user_site
 from pip._internal.models.direct_url import (
     DIRECT_URL_METADATA_NAME,
     DirectUrl,
     DirectUrlValidationError,
 )
 from pip._internal.utils.compat import stdlib_pkgs  # TODO: Move definition here.
-from pip._internal.utils.egg_link import egg_link_path_from_sys_path
+from pip._internal.utils.egg_link import (
+    egg_link_path_from_location,
+    egg_link_path_from_sys_path,
+)
+from pip._internal.utils.misc import is_local, normalize_path
 from pip._internal.utils.urls import url_to_path
 
 if TYPE_CHECKING:
@@ -130,6 +136,26 @@ class BaseDistribution(Protocol):
                 #       (https://github.com/pypa/pip/issues/10243)
                 return self.location
         return None
+
+    @property
+    def installed_location(self) -> Optional[str]:
+        """The distribution's "installed" location.
+
+        This should generally be a ``site-packages`` directory. This is
+        usually ``dist.location``, except for legacy develop-installed packages,
+        where ``dist.location`` is the source code location, and this is where
+        the ``.egg-link`` file is.
+
+        The returned location is normalized (in particular, with symlinks removed).
+        """
+        egg_link = egg_link_path_from_location(self.raw_name)
+        if egg_link:
+            location = egg_link
+        elif self.location:
+            location = self.location
+        else:
+            return None
+        return normalize_path(location)
 
     @property
     def info_location(self) -> Optional[str]:
@@ -250,7 +276,15 @@ class BaseDistribution(Protocol):
 
     @property
     def installer(self) -> str:
-        raise NotImplementedError()
+        try:
+            installer_text = self.read_text("INSTALLER")
+        except (OSError, ValueError, NoneMetadataError):
+            return ""  # Fail silently if the installer file cannot be read.
+        for line in installer_text.splitlines():
+            cleaned_line = line.strip()
+            if cleaned_line:
+                return cleaned_line
+        return ""
 
     @property
     def editable(self) -> bool:
@@ -258,15 +292,25 @@ class BaseDistribution(Protocol):
 
     @property
     def local(self) -> bool:
-        raise NotImplementedError()
+        """If distribution is installed in the current virtual environment.
+
+        Always True if we're not in a virtualenv.
+        """
+        if self.installed_location is None:
+            return False
+        return is_local(self.installed_location)
 
     @property
     def in_usersite(self) -> bool:
-        raise NotImplementedError()
+        if self.installed_location is None or user_site is None:
+            return False
+        return self.installed_location.startswith(normalize_path(user_site))
 
     @property
     def in_site_packages(self) -> bool:
-        raise NotImplementedError()
+        if self.installed_location is None or site_packages is None:
+            return False
+        return self.installed_location.startswith(normalize_path(site_packages))
 
     def is_file(self, path: InfoPath) -> bool:
         """Check whether an entry in the info directory is a file."""
@@ -286,6 +330,8 @@ class BaseDistribution(Protocol):
         """Read a file in the info directory.
 
         :raise FileNotFoundError: If ``name`` does not exist in the directory.
+        :raise NoneMetadataError: If ``name`` exists in the info directory, but
+            cannot be read.
         """
         raise NotImplementedError()
 
@@ -294,7 +340,13 @@ class BaseDistribution(Protocol):
 
     @property
     def metadata(self) -> email.message.Message:
-        """Metadata of distribution parsed from e.g. METADATA or PKG-INFO."""
+        """Metadata of distribution parsed from e.g. METADATA or PKG-INFO.
+
+        This should return an empty message if the metadata file is unavailable.
+
+        :raises NoneMetadataError: If the metadata file is available, but does
+            not contain valid metadata.
+        """
         raise NotImplementedError()
 
     @property
@@ -402,7 +454,11 @@ class BaseEnvironment:
         raise NotImplementedError()
 
     def get_distribution(self, name: str) -> Optional["BaseDistribution"]:
-        """Given a requirement name, return the installed distributions."""
+        """Given a requirement name, return the installed distributions.
+
+        The name may not be normalized. The implementation must canonicalize
+        it for lookup.
+        """
         raise NotImplementedError()
 
     def _iter_distributions(self) -> Iterator["BaseDistribution"]:

@@ -3,7 +3,6 @@ util tests
 
 """
 import codecs
-import itertools
 import os
 import shutil
 import stat
@@ -30,7 +29,6 @@ from pip._internal.utils.misc import (
     build_netloc,
     build_url_from_netloc,
     format_size,
-    get_distribution,
     get_prog,
     hide_url,
     hide_value,
@@ -207,85 +205,6 @@ class Tests_EgglinkPath:
         self.mock_running_under_virtualenv.return_value = True
         self.mock_isfile.return_value = False
         assert egg_link_path_from_location(self.mock_dist.project_name) is None
-
-
-@patch("pip._internal.utils.misc.dist_in_usersite")
-@patch("pip._internal.utils.misc.dist_is_local")
-class TestsGetDistributions:
-    """Test get_distribution()."""
-
-    class MockWorkingSet(List[Mock]):
-        def require(self, name: str) -> None:
-            pass
-
-    workingset = MockWorkingSet(
-        (
-            Mock(test_name="global", project_name="global"),
-            Mock(test_name="editable", project_name="editable"),
-            Mock(test_name="normal", project_name="normal"),
-            Mock(test_name="user", project_name="user"),
-        )
-    )
-
-    workingset_stdlib = MockWorkingSet(
-        (
-            Mock(test_name="normal", project_name="argparse"),
-            Mock(test_name="normal", project_name="wsgiref"),
-        )
-    )
-
-    workingset_freeze = MockWorkingSet(
-        (
-            Mock(test_name="normal", project_name="pip"),
-            Mock(test_name="normal", project_name="setuptools"),
-            Mock(test_name="normal", project_name="distribute"),
-        )
-    )
-
-    def dist_is_local(self, dist: Mock) -> bool:
-        return dist.test_name != "global" and dist.test_name != "user"
-
-    def dist_in_usersite(self, dist: Mock) -> bool:
-        return dist.test_name == "user"
-
-    @pytest.mark.parametrize(
-        "working_set, req_name",
-        itertools.chain(
-            itertools.product(
-                [workingset],
-                (d.project_name for d in workingset),
-            ),
-            itertools.product(
-                [workingset_stdlib],
-                (d.project_name for d in workingset_stdlib),
-            ),
-        ),
-    )
-    def test_get_distribution(
-        self,
-        mock_dist_is_local: Mock,
-        mock_dist_in_usersite: Mock,
-        working_set: MockWorkingSet,
-        req_name: str,
-    ) -> None:
-        """Ensure get_distribution() finds all kinds of distributions."""
-        mock_dist_is_local.side_effect = self.dist_is_local
-        mock_dist_in_usersite.side_effect = self.dist_in_usersite
-        with patch("pip._vendor.pkg_resources.working_set", working_set):
-            dist = get_distribution(req_name)
-        assert dist is not None
-        assert dist.project_name == req_name
-
-    @patch("pip._vendor.pkg_resources.working_set", workingset)
-    def test_get_distribution_nonexist(
-        self,
-        mock_dist_is_local: Mock,
-        mock_dist_in_usersite: Mock,
-    ) -> None:
-        mock_dist_is_local.side_effect = self.dist_is_local
-        mock_dist_in_usersite.side_effect = self.dist_in_usersite
-        dist = get_distribution("non-exist")
-        assert dist is None
 
 
 def test_rmtree_errorhandler_nonexistent_directory(tmpdir: Path) -> None:

@@ -149,12 +149,12 @@ class InvalidPyProjectBuildRequires(DiagnosticPipError):
 
 
 class NoneMetadataError(PipError):
-    """
-    Raised when accessing "METADATA" or "PKG-INFO" metadata for a
-    pip._vendor.pkg_resources.Distribution object and
-    `dist.has_metadata('METADATA')` returns True but
-    `dist.get_metadata('METADATA')` returns None (and similarly for
-    "PKG-INFO").
+    """Raised when accessing a Distribution's "METADATA" or "PKG-INFO".
+
+    This signifies an inconsistency, when the Distribution claims to have
+    the metadata file (if not, raise ``FileNotFoundError`` instead), but is
+    not actually able to produce its content. This may be due to permission
+    errors.
     """
 
     def __init__(

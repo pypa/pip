@@ -1,19 +1,19 @@
 import email.message
+import email.parser
 import logging
 import os
 import pathlib
-from typing import Collection, Iterable, Iterator, List, NamedTuple, Optional
-from zipfile import BadZipFile
+import zipfile
+from typing import Collection, Iterable, Iterator, List, Mapping, NamedTuple, Optional
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
 
-from pip._internal.exceptions import InvalidWheel
-from pip._internal.utils import misc  # TODO: Move definition here.
-from pip._internal.utils.packaging import get_installer, get_metadata
-from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
+from pip._internal.exceptions import InvalidWheel, NoneMetadataError, UnsupportedWheel
+from pip._internal.utils.misc import display_path
+from pip._internal.utils.wheel import parse_wheel, read_wheel_metadata_file
 
 from .base import (
     BaseDistribution,
@@ -31,6 +31,41 @@ class EntryPoint(NamedTuple):
     name: str
     value: str
     group: str
+
+
+class _WheelMetadata:
+    """IMetadataProvider that reads metadata files from a dictionary.
+
+    This also maps metadata decoding exceptions to our internal exception type.
+    """
+
+    def __init__(self, metadata: Mapping[str, bytes], wheel_name: str) -> None:
+        self._metadata = metadata
+        self._wheel_name = wheel_name
+
+    def has_metadata(self, name: str) -> bool:
+        return name in self._metadata
+
+    def get_metadata(self, name: str) -> str:
+        try:
+            return self._metadata[name].decode()
+        except UnicodeDecodeError as e:
+            # Augment the default error with the origin of the file.
+            raise UnsupportedWheel(
+                f"Error decoding metadata for {self._wheel_name}: {e} in {name} file"
+            )
+
+    def get_metadata_lines(self, name: str) -> Iterable[str]:
+        return pkg_resources.yield_lines(self.get_metadata(name))
+
+    def metadata_isdir(self, name: str) -> bool:
+        return False
+
+    def metadata_listdir(self, name: str) -> List[str]:
+        return []
+
+    def run_script(self, script_name: str, namespace: str) -> None:
+        pass
 
 
 class Distribution(BaseDistribution):
@@ -63,12 +98,26 @@ class Distribution(BaseDistribution):
 
         :raises InvalidWheel: Whenever loading of the wheel causes a
             :py:exc:`zipfile.BadZipFile` exception to be thrown.
+        :raises UnsupportedWheel: If the wheel is a valid zip, but malformed
+            internally.
         """
         try:
             with wheel.as_zipfile() as zf:
-                dist = pkg_resources_distribution_for_wheel(zf, name, wheel.location)
-        except BadZipFile as e:
+                info_dir, _ = parse_wheel(zf, name)
+                metadata_text = {
+                    path.split("/", 1)[-1]: read_wheel_metadata_file(zf, path)
+                    for path in zf.namelist()
+                    if path.startswith(f"{info_dir}/")
+                }
+        except zipfile.BadZipFile as e:
             raise InvalidWheel(wheel.location, name) from e
+        except UnsupportedWheel as e:
+            raise UnsupportedWheel(f"{name} has an invalid wheel, {e}")
+        dist = pkg_resources.DistInfoDistribution(
+            location=wheel.location,
+            metadata=_WheelMetadata(metadata_text, wheel.location),
+            project_name=name,
+        )
         return cls(dist)
 
     @property
@@ -97,25 +146,6 @@ class Distribution(BaseDistribution):
     def version(self) -> DistributionVersion:
         return parse_version(self._dist.version)
 
-    @property
-    def installer(self) -> str:
-        try:
-            return get_installer(self._dist)
-        except (OSError, ValueError):
-            return ""  # Fail silently if the installer file cannot be read.
-
-    @property
-    def local(self) -> bool:
-        return misc.dist_is_local(self._dist)
-
-    @property
-    def in_usersite(self) -> bool:
-        return misc.dist_in_usersite(self._dist)
-
-    @property
-    def in_site_packages(self) -> bool:
-        return misc.dist_in_site_packages(self._dist)
-
     def is_file(self, path: InfoPath) -> bool:
         return self._dist.has_metadata(str(path))
 
@@ -132,7 +162,10 @@ class Distribution(BaseDistribution):
         name = str(path)
         if not self._dist.has_metadata(name):
             raise FileNotFoundError(name)
-        return self._dist.get_metadata(name)
+        content = self._dist.get_metadata(name)
+        if content is None:
+            raise NoneMetadataError(self, name)
+        return content
 
     def iter_entry_points(self) -> Iterable[BaseEntryPoint]:
         for group, entries in self._dist.get_entry_map().items():
@@ -142,7 +175,26 @@ class Distribution(BaseDistribution):
 
     @property
     def metadata(self) -> email.message.Message:
-        return get_metadata(self._dist)
+        """
+        :raises NoneMetadataError: if the distribution reports `has_metadata()`
+            True but `get_metadata()` returns None.
+        """
+        if isinstance(self._dist, pkg_resources.DistInfoDistribution):
+            metadata_name = "METADATA"
+        else:
+            metadata_name = "PKG-INFO"
+        try:
+            metadata = self.read_text(metadata_name)
+        except FileNotFoundError:
+            if self.location:
+                displaying_path = display_path(self.location)
+            else:
+                displaying_path = repr(self.location)
+            logger.warning("No metadata found in %s", displaying_path)
+            metadata = ""
+        feed_parser = email.parser.FeedParser()
+        feed_parser.feed(metadata)
+        return feed_parser.close()
 
     def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
         if extras:  # pkg_resources raises on invalid extras, so we sanitize.
@@ -178,7 +230,6 @@ class Environment(BaseEnvironment):
         return None
 
     def get_distribution(self, name: str) -> Optional[BaseDistribution]:
-
         # Search the distribution by looking through the working set.
         dist = self._search_distribution(name)
         if dist:
