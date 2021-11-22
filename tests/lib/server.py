@@ -14,7 +14,7 @@ from werkzeug.serving import make_server as _make_server
 from .compat import nullcontext
 
 if TYPE_CHECKING:
-    from wsgi import StartResponse, WSGIApplication, WSGIEnvironment
+    from _typeshed.wsgi import StartResponse, WSGIApplication, WSGIEnvironment
 
 Body = Iterable[bytes]
 
@@ -23,7 +23,7 @@ class MockServer(BaseWSGIServer):
     mock: Mock = Mock()
 
 
-# Applies on Python 2 and Windows.
+# Applies on Windows.
 if not hasattr(signal, "pthread_sigmask"):
     # We're not relying on this behavior anywhere currently, it's just best
     # practice.
@@ -41,11 +41,17 @@ else:
         except AttributeError:
             mask = set(range(1, signal.NSIG))
 
-        old_mask = signal.pthread_sigmask(signal.SIG_SETMASK, mask)
+        old_mask = signal.pthread_sigmask(  # type: ignore[attr-defined]
+            signal.SIG_SETMASK,  # type: ignore[attr-defined]
+            mask,
+        )
         try:
             yield
         finally:
-            signal.pthread_sigmask(signal.SIG_SETMASK, old_mask)
+            signal.pthread_sigmask(  # type: ignore[attr-defined]
+                signal.SIG_SETMASK,  # type: ignore[attr-defined]
+                old_mask,
+            )
 
 
 class _RequestHandler(WSGIRequestHandler):

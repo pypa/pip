@@ -65,7 +65,11 @@ class TestUserCacheDir:
         def my_get_win_folder(csidl_name: str) -> str:
             return "\u00DF\u00E4\u03B1\u20AC"
 
-        monkeypatch.setattr(platformdirs.windows, "get_win_folder", my_get_win_folder)
+        monkeypatch.setattr(
+            platformdirs.windows,  # type: ignore[attr-defined]
+            "get_win_folder",
+            my_get_win_folder,
+        )
 
         # Do not use the isinstance expression directly in the
         # assert statement, as the Unicode characters in the result

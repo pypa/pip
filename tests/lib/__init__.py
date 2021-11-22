@@ -266,14 +266,14 @@ class TestPipResult:
     if sys.platform == "win32":
 
         @property
-        def stdout(self):
+        def stdout(self) -> str:
             return self._impl.stdout.replace("\r\n", "\n")
 
         @property
-        def stderr(self):
+        def stderr(self) -> str:
             return self._impl.stderr.replace("\r\n", "\n")
 
-        def __str__(self):
+        def __str__(self) -> str:
             return str(self._impl).replace("\r\n", "\n")
 
     else:
@@ -618,7 +618,7 @@ class PipTestEnvironment(TestFileEnvironment):
         cwd = cwd or self.cwd
         if sys.platform == "win32":
             # Partial fix for ScriptTest.run using `shell=True` on Windows.
-            args = [str(a).replace("^", "^^").replace("&", "^&") for a in args]
+            args = tuple(str(a).replace("^", "^^").replace("&", "^&") for a in args)
 
         if allow_error:
             kw["expect_error"] = True

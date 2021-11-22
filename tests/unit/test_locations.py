@@ -51,10 +51,9 @@ class TestLocations:
         # now patch
         tempfile.gettempdir = lambda: self.tempdir
         getpass.getuser = lambda: self.username
-        os.geteuid = lambda: self.st_uid
         os.fstat = lambda fd: self.get_mock_fstat(fd)
-
         if sys.platform != "win32":
+            os.geteuid = lambda: self.st_uid
             pwd.getpwuid = self.get_mock_getpwuid
 
     def revert_patch(self) -> None:
