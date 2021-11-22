@@ -3,9 +3,8 @@
 import configparser
 import re
 from itertools import chain, groupby, repeat
-from typing import TYPE_CHECKING, Dict, Iterator, List, Optional, Union
+from typing import TYPE_CHECKING, Dict, Iterator, List, Optional
 
-from pip._vendor.pkg_resources import Distribution
 from pip._vendor.requests.models import Request, Response
 
 if TYPE_CHECKING:
@@ -159,7 +158,7 @@ class NoneMetadataError(PipError):
 
     def __init__(
         self,
-        dist: Union[Distribution, "BaseDistribution"],
+        dist: "BaseDistribution",
         metadata_name: str,
     ) -> None:
         """
