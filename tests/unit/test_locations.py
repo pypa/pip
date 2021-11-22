@@ -55,7 +55,7 @@ class TestLocations:
         os.fstat = lambda fd: self.get_mock_fstat(fd)
 
         if sys.platform != "win32":
-            pwd.getpwuid = lambda uid: self.get_mock_getpwuid(uid)
+            pwd.getpwuid = self.get_mock_getpwuid
 
     def revert_patch(self) -> None:
         """revert the patches to python methods"""
@@ -75,7 +75,7 @@ class TestLocations:
         result.st_uid = self.st_uid
         return result
 
-    def get_mock_getpwuid(self, uid: int) -> pwd.struct_passwd:
+    def get_mock_getpwuid(self, uid: int) -> Any:
         """returns a basic mock pwd.getpwuid call result.
         Currently only the pw_name attribute has been set.
         """

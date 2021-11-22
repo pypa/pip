@@ -9,7 +9,6 @@ from typing import Iterator, Tuple, cast
 from unittest import mock
 
 import pytest
-from pip._vendor import pkg_resources
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 
@@ -22,6 +21,7 @@ from pip._internal.exceptions import (
     PreviousBuildDirError,
 )
 from pip._internal.index.package_finder import PackageFinder
+from pip._internal.metadata.pkg_resources import Distribution
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import InstallRequirement, RequirementSet
@@ -451,8 +451,8 @@ class TestInstallRequirement:
         req = install_req_from_line("foo")
         req.metadata_directory = path
         dist = req.get_dist()
-        assert isinstance(dist, pkg_resources.Distribution)
-        assert dist.project_name == "foo"
+        assert isinstance(dist, Distribution)
+        assert dist.raw_name == dist.canonical_name == "foo"
         assert dist.location == "/path/to".replace("/", os.path.sep)
 
     def test_markers(self) -> None:

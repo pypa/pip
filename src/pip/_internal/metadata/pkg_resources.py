@@ -1,5 +1,7 @@
 import email.message
 import logging
+import os
+import pathlib
 from typing import Collection, Iterable, Iterator, List, NamedTuple, Optional
 from zipfile import BadZipFile
 
@@ -18,6 +20,7 @@ from .base import (
     BaseEntryPoint,
     BaseEnvironment,
     DistributionVersion,
+    InfoPath,
     Wheel,
 )
 
@@ -33,6 +36,26 @@ class EntryPoint(NamedTuple):
 class Distribution(BaseDistribution):
     def __init__(self, dist: pkg_resources.Distribution) -> None:
         self._dist = dist
+
+    @classmethod
+    def from_directory(cls, directory: str) -> "Distribution":
+        dist_dir = directory.rstrip(os.sep)
+
+        # Build a PathMetadata object, from path to metadata. :wink:
+        base_dir, dist_dir_name = os.path.split(dist_dir)
+        metadata = pkg_resources.PathMetadata(base_dir, dist_dir)
+
+        # Determine the correct Distribution object type.
+        if dist_dir.endswith(".egg-info"):
+            dist_cls = pkg_resources.Distribution
+            dist_name = os.path.splitext(dist_dir_name)[0]
+        else:
+            assert dist_dir.endswith(".dist-info")
+            dist_cls = pkg_resources.DistInfoDistribution
+            dist_name = os.path.splitext(dist_dir_name)[0].split("-")[0]
+
+        dist = dist_cls(base_dir, project_name=dist_name, metadata=metadata)
+        return cls(dist)
 
     @classmethod
     def from_wheel(cls, wheel: Wheel, name: str) -> "Distribution":
@@ -53,8 +76,18 @@ class Distribution(BaseDistribution):
         return self._dist.location
 
     @property
-    def info_directory(self) -> Optional[str]:
+    def info_location(self) -> Optional[str]:
         return self._dist.egg_info
+
+    @property
+    def installed_by_distutils(self) -> bool:
+        # A distutils-installed distribution is provided by FileMetadata. This
+        # provider has a "path" attribute not present anywhere else. Not the
+        # best introspection logic, but pip has been doing this for a long time.
+        try:
+            return bool(self._dist._provider.path)
+        except AttributeError:
+            return False
 
     @property
     def canonical_name(self) -> NormalizedName:
@@ -66,7 +99,10 @@ class Distribution(BaseDistribution):
 
     @property
     def installer(self) -> str:
-        return get_installer(self._dist)
+        try:
+            return get_installer(self._dist)
+        except (OSError, ValueError):
+            return ""  # Fail silently if the installer file cannot be read.
 
     @property
     def local(self) -> bool:
@@ -80,7 +116,20 @@ class Distribution(BaseDistribution):
     def in_site_packages(self) -> bool:
         return misc.dist_in_site_packages(self._dist)
 
-    def read_text(self, name: str) -> str:
+    def is_file(self, path: InfoPath) -> bool:
+        return self._dist.has_metadata(str(path))
+
+    def iterdir(self, path: InfoPath) -> Iterator[pathlib.PurePosixPath]:
+        name = str(path)
+        if not self._dist.has_metadata(name):
+            raise FileNotFoundError(name)
+        if not self._dist.isdir(name):
+            raise NotADirectoryError(name)
+        for child in self._dist.metadata_listdir(name):
+            yield pathlib.PurePosixPath(path, child)
+
+    def read_text(self, path: InfoPath) -> str:
+        name = str(path)
         if not self._dist.has_metadata(name):
             raise FileNotFoundError(name)
         return self._dist.get_metadata(name)

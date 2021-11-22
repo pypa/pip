@@ -62,7 +62,7 @@ class TestUserCacheDir:
         if sys.platform != "win32":
             return
 
-        def my_get_win_folder(csidl_name):
+        def my_get_win_folder(csidl_name: str) -> str:
             return "\u00DF\u00E4\u03B1\u20AC"
 
         monkeypatch.setattr(platformdirs.windows, "get_win_folder", my_get_win_folder)

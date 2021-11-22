@@ -43,7 +43,7 @@ from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver, InstallRequirementProvider
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import dist_in_usersite, normalize_version_info
+from pip._internal.utils.misc import normalize_version_info
 from pip._internal.utils.packaging import check_requires_python
 
 logger = logging.getLogger(__name__)
@@ -203,7 +203,7 @@ class Resolver(BaseResolver):
         """
         # Don't uninstall the conflict if doing a user install and the
         # conflict is not a user install.
-        if not self.use_user_site or dist_in_usersite(req.satisfied_by):
+        if not self.use_user_site or req.satisfied_by.in_usersite:
             req.should_reinstall = True
         req.satisfied_by = None
 
