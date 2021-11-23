@@ -6,7 +6,7 @@ import sys
 from typing import Any, Optional, cast
 from unittest import mock
 
-import freezegun  # type: ignore  # mypy: no-warn-unused-ignores
+import freezegun  # type: ignore
 import pytest
 from pip._vendor.packaging.version import parse as parse_version
 
