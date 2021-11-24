@@ -59,6 +59,14 @@ def autocomplete() -> None:
                     print(dist)
                 sys.exit(1)
 
+        should_list_installables = (
+            not current.startswith("-") and subcommand_name == "install"
+        )
+        if should_list_installables:
+            for path in auto_complete_paths(current, "path"):
+                print(path)
+            sys.exit(1)
+
         subcommand = create_command(subcommand_name)
 
         for opt in subcommand.parser.option_list_all:
