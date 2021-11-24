@@ -138,7 +138,7 @@ def auto_complete_paths(current: str, completion_type: str) -> Iterable[str]:
     starting with ``current``.
 
     :param current: The word to be completed
-    :param completion_type: path completion type(`file`, `path` or `dir`)i
+    :param completion_type: path completion type(``file``, ``path`` or ``dir``)
     :return: A generator of regular files and/or directories
     """
     directory, filename = os.path.split(current)
