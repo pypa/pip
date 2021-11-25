@@ -223,6 +223,22 @@ def vendoring(session: nox.Session) -> None:
         release.commit_file(session, ".", message=message)
 
 
+
+@nox.session
+def coverage(session: nox.Session):
+    session.run(
+        "python",
+        "-c",
+        "'import os, sys; os.path.exists(sys.argv[1]) or os.mkdir(sys.argv[1])'",
+        "./.coverage-output"
+    )
+    session.run(
+        "pytest",
+        "--cov=pip",
+        "--cov-config=./setup.cfg"
+    )
+
+
 # -----------------------------------------------------------------------------
 # Release Commands
 # -----------------------------------------------------------------------------
