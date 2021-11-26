@@ -39,7 +39,7 @@ substitute = [
   # pkg_resource's vendored packages are directly vendored in pip.
   { match='pkg_resources\.extern', replace="pip._vendor" },
   { match='from \.extern', replace="from pip._vendor" },
-  { match='''\('pygments\.lexers\.''', replace="('pip._vendor.pygments.lexer." },
+  { match='''\('pygments\.lexers\.''', replace="('pip._vendor.pygments.lexers." },
 ]
 drop = [
   # contains unnecessary scripts
