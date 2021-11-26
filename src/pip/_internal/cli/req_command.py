@@ -276,6 +276,13 @@ class RequirementCommand(IndexGroupCommand):
                 gone_in="22.1",
             )
 
+        if options.progress_bar not in {"on", "off"}:
+            deprecated(
+                reason="Custom progress bar styles are deprecated",
+                replacement="to use the default progress bar style.",
+                gone_in="22.1",
+            )
+
         return RequirementPreparer(
             build_dir=temp_build_dir_path,
             src_dir=options.src_dir,
