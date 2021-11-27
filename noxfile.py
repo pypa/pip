@@ -226,16 +226,16 @@ def vendoring(session: nox.Session) -> None:
 
 @nox.session
 def coverage(session: nox.Session):
-    session.run(
-        "python",
-        "-c",
-        "'import os, sys; os.path.exists(sys.argv[1]) or os.mkdir(sys.argv[1])'",
-        "./.coverage-output"
-    )
+    if not os.path.exists("./.coverage-output"):
+        os.mkdirs("./coverage-output")
     session.run(
         "pytest",
         "--cov=pip",
         "--cov-config=./setup.cfg"
+        env={
+            "COVERAGE_OUTPUT_DIR": "./coverage-output",
+            "COVERAGE_PROCESS_START": "./setup.cfg",
+        }
     )
 
 
