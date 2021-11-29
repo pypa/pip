@@ -1,0 +1,1 @@
+Fix ``pip install --pre`` for packages with pre-release dependencies defined both in ``pyproject.toml`` and ``setup.py``.
