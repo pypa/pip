@@ -121,17 +121,17 @@ jobs:
         if: matrix.os == 'MacOS'
         run: brew install bzr
 
-      - run: pip install tox 'virtualenv<20'
+      - run: pip install nox 'virtualenv<20'
 
       # Main check
       - name: Run unit tests
         run: >-
-          tox -e py --
+          nox -s test-${{ matrix.python }} --
           -m unit
           --verbose --numprocesses auto --showlocals
       - name: Run integration tests
         run: >-
-          tox -e py --
+          nox -s test-${{ matrix.python }} --
           -m integration
           --verbose --numprocesses auto --showlocals
           --durations=5
@@ -178,7 +178,7 @@ jobs:
           $acl.AddAccessRule($rule)
           Set-Acl "R:\Temp" $acl
 
-      - run: pip install tox 'virtualenv<20'
+      - run: pip install nox 'virtualenv<20'
         env:
           TEMP: "R:\\Temp"
 
@@ -186,7 +186,7 @@ jobs:
       - name: Run unit tests
         if: matrix.group == 1
         run: >-
-          tox -e py --
+          nox -s test-${{ matrix.python }} --
           -m unit
           --verbose --numprocesses auto --showlocals
         env:
@@ -195,7 +195,7 @@ jobs:
       - name: Run integration tests (group 1)
         if: matrix.group == 1
         run: >-
-          tox -e py --
+          nox -s test-${{ matrix.python }} --
           -m integration -k "not test_install"
           --verbose --numprocesses auto --showlocals
         env:
@@ -204,7 +204,7 @@ jobs:
       - name: Run integration tests (group 2)
         if: matrix.group == 2
         run: >-
-          tox -e py --
+          nox -s test-${{ matrix.python }} --
           -m integration -k "test_install"
           --verbose --numprocesses auto --showlocals
         env:

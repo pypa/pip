@@ -63,12 +63,6 @@ def should_update_common_wheels() -> bool:
     return need_to_repopulate
 
 
-# -----------------------------------------------------------------------------
-# Development Commands
-#   These are currently prototypes to evaluate whether we want to switch over
-#   completely to nox for all our automation. Contributors should prefer using
-#   `tox -e ...` until this note is removed.
-# -----------------------------------------------------------------------------
 @nox.session(python=["3.7", "3.8", "3.9", "3.10", "pypy3"])
 def test(session: nox.Session) -> None:
     # Get the common wheels.
