@@ -1,1 +1,1 @@
-Fix uninstall editable from Windows junction link
+Fix uninstall editable from Windows junction link.
