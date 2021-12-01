@@ -63,6 +63,10 @@ def should_update_common_wheels() -> bool:
     return need_to_repopulate
 
 
+
+# -----------------------------------------------------------------------------
+# Development Commands
+# -----------------------------------------------------------------------------
 @nox.session(python=["3.7", "3.8", "3.9", "3.10", "pypy3"])
 def test(session: nox.Session) -> None:
     # Get the common wheels.
@@ -220,13 +224,13 @@ def vendoring(session: nox.Session) -> None:
 @nox.session
 def coverage(session: nox.Session) -> None:
     if not os.path.exists("./.coverage-output"):
-        os.mkdir("./coverage-output")
+        os.mkdir("./.coverage-output")
     session.run(
         "pytest",
         "--cov=pip",
         "--cov-config=./setup.cfg",
         env={
-            "COVERAGE_OUTPUT_DIR": "./coverage-output",
+            "COVERAGE_OUTPUT_DIR": "./.coverage-output",
             "COVERAGE_PROCESS_START": "./setup.cfg",
         },
     )
