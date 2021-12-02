@@ -161,7 +161,10 @@ class ScriptMaker(object):
             executable = self.executable
             enquote = False     # assume this will be taken care of
         elif not sysconfig.is_python_build():
-            executable = get_executable()
+            if self._is_nt:
+                executable = '/usr/bin/env python'
+            else:
+                executable = get_executable()
         elif in_venv():  # pragma: no cover
             executable = os.path.join(sysconfig.get_path('scripts'),
                             'python%s' % sysconfig.get_config_var('EXE'))
