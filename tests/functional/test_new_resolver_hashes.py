@@ -313,7 +313,7 @@ def test_new_resolver_hash_requirement_and_url_constraint_can_fail(
     script.assert_not_installed("base", "other")
 
 
-def test_new_resolver_hash_with_extras(script):
+def test_new_resolver_hash_with_extras(script: PipTestEnvironment) -> None:
     parent_with_extra_path = create_basic_wheel_for_package(
         script, "parent_with_extra", "0.1.0", depends=["child[extra]"]
     )
