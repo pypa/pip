@@ -65,9 +65,6 @@ def should_update_common_wheels() -> bool:
 
 # -----------------------------------------------------------------------------
 # Development Commands
-#   These are currently prototypes to evaluate whether we want to switch over
-#   completely to nox for all our automation. Contributors should prefer using
-#   `tox -e ...` until this note is removed.
 # -----------------------------------------------------------------------------
 @nox.session(python=["3.7", "3.8", "3.9", "3.10", "pypy3"])
 def test(session: nox.Session) -> None:
@@ -221,6 +218,21 @@ def vendoring(session: nox.Session) -> None:
 
         # Commit the changes
         release.commit_file(session, ".", message=message)
+
+
+@nox.session
+def coverage(session: nox.Session) -> None:
+    if not os.path.exists("./.coverage-output"):
+        os.mkdir("./.coverage-output")
+    session.run(
+        "pytest",
+        "--cov=pip",
+        "--cov-config=./setup.cfg",
+        env={
+            "COVERAGE_OUTPUT_DIR": "./.coverage-output",
+            "COVERAGE_PROCESS_START": "./setup.cfg",
+        },
+    )
 
 
 # -----------------------------------------------------------------------------
