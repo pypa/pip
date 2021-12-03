@@ -11,6 +11,10 @@ on:
   schedule:
     - cron: 0 0 * * MON # Run every Monday at 00:00 UTC
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
 jobs:
   docs:
     name: docs
