@@ -27,7 +27,6 @@ from pip._internal.cli.main import main as pip_entry_point
 from pip._internal.locations import _USE_SYSCONFIG
 from pip._internal.utils.temp_dir import global_tempdir_manager
 from tests.lib import DATA_DIR, SRC_DIR, PipTestEnvironment, TestData
-from tests.lib.certs import make_tls_cert, serialize_cert, serialize_key
 from tests.lib.path import Path
 from tests.lib.server import MockServer as _MockServer
 from tests.lib.server import make_mock_server, server_running
@@ -551,6 +550,11 @@ CertFactory = Callable[[], str]
 
 @pytest.fixture(scope="session")
 def cert_factory(tmpdir_factory: pytest.TempdirFactory) -> CertFactory:
+    # Delay the import requiring cryptography in order to make it possible
+    # to deselect relevant tests on systems where cryptography cannot
+    # be installed.
+    from tests.lib.certs import make_tls_cert, serialize_cert, serialize_key
+
     def factory() -> str:
         """Returns path to cert/key file."""
         output_path = Path(str(tmpdir_factory.mktemp("certs"))) / "cert.pem"
