@@ -1,0 +1,1 @@
+Utilise ``rich`` for presenting pip's default download progress bar.
