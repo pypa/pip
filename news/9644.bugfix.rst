@@ -1,0 +1,1 @@
+Fix an issue where pip did not consider dependencies with and without extras to be equal

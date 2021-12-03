@@ -311,3 +311,64 @@ def test_new_resolver_hash_requirement_and_url_constraint_can_fail(
     ) in result.stderr, str(result)
 
     script.assert_not_installed("base", "other")
+
+
+def test_new_resolver_hash_with_extras(script: PipTestEnvironment) -> None:
+    parent_with_extra_path = create_basic_wheel_for_package(
+        script, "parent_with_extra", "0.1.0", depends=["child[extra]"]
+    )
+    parent_with_extra_hash = hashlib.sha256(
+        parent_with_extra_path.read_bytes()
+    ).hexdigest()
+
+    parent_without_extra_path = create_basic_wheel_for_package(
+        script, "parent_without_extra", "0.1.0", depends=["child"]
+    )
+    parent_without_extra_hash = hashlib.sha256(
+        parent_without_extra_path.read_bytes()
+    ).hexdigest()
+
+    child_path = create_basic_wheel_for_package(
+        script, "child", "0.1.0", extras={"extra": ["extra"]}
+    )
+    child_hash = hashlib.sha256(child_path.read_bytes()).hexdigest()
+
+    # Newer release
+    create_basic_wheel_for_package(
+        script, "child", "0.2.0", extras={"extra": ["extra"]}
+    )
+
+    extra_path = create_basic_wheel_for_package(script, "extra", "0.1.0")
+    extra_hash = hashlib.sha256(extra_path.read_bytes()).hexdigest()
+
+    requirements_txt = script.scratch_path / "requirements.txt"
+    requirements_txt.write_text(
+        """
+        child[extra]==0.1.0 --hash=sha256:{child_hash}
+        parent_with_extra==0.1.0 --hash=sha256:{parent_with_extra_hash}
+        parent_without_extra==0.1.0 --hash=sha256:{parent_without_extra_hash}
+        extra==0.1.0 --hash=sha256:{extra_hash}
+        """.format(
+            child_hash=child_hash,
+            parent_with_extra_hash=parent_with_extra_hash,
+            parent_without_extra_hash=parent_without_extra_hash,
+            extra_hash=extra_hash,
+        ),
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "--requirement",
+        requirements_txt,
+    )
+
+    script.assert_installed(
+        parent_with_extra="0.1.0",
+        parent_without_extra="0.1.0",
+        child="0.1.0",
+        extra="0.1.0",
+    )
