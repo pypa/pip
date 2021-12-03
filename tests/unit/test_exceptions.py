@@ -63,7 +63,7 @@ def rendered_in_ascii(error: DiagnosticPipError, *, color: bool = False) -> str:
     with io.BytesIO() as stream:
         console = rich.console.Console(
             force_terminal=False,
-            file=io.TextIOWrapper(stream, encoding="ascii"),
+            file=io.TextIOWrapper(stream, encoding="ascii", newline=""),
             color_system="truecolor" if color else None,
         )
         console.print(error)
