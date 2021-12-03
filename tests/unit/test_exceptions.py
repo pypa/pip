@@ -76,7 +76,7 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             reference="test-diagnostic",
             message="Oh no!\nIt broke. :(",
             context="Something went wrong\nvery wrong.",
-            attention_stmt="You did something wrong, which is what caused this error.",
+            note_stmt="You did something wrong, which is what caused this error.",
             hint_stmt="Do it better next time, by trying harder.",
         )
 
@@ -100,7 +100,7 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             reference="test-diagnostic",
             message="Oh no!\nIt broke.",
             context="Something went wrong\nvery wrong.",
-            attention_stmt="You did something wrong.",
+            note_stmt="You did something wrong.",
             hint_stmt="Do it better next time, by trying harder.",
         )
 
@@ -127,7 +127,7 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             reference="test-diagnostic",
             message="Oh no!\nIt broke. :(",
             context=None,
-            attention_stmt="You did something wrong, which is what caused this error.",
+            note_stmt="You did something wrong, which is what caused this error.",
             hint_stmt="Do it better next time, by trying harder.",
         )
 
@@ -148,7 +148,7 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             reference="test-diagnostic",
             message="Oh no!\nIt broke. :(",
             context="Something went wrong\nvery wrong.",
-            attention_stmt=None,
+            note_stmt=None,
             hint_stmt="Do it better next time, by trying harder.",
         )
 
@@ -171,7 +171,7 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             reference="test-diagnostic",
             message="Oh no!\nIt broke. :(",
             context="Something went wrong\nvery wrong.",
-            attention_stmt="You did something wrong, which is what caused this error.",
+            note_stmt="You did something wrong, which is what caused this error.",
             hint_stmt=None,
         )
 
@@ -194,7 +194,7 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             reference="test-diagnostic",
             message="Oh no!\nIt broke. :(",
             context=None,
-            attention_stmt="You did something wrong, which is what caused this error.",
+            note_stmt="You did something wrong, which is what caused this error.",
             hint_stmt=None,
         )
 
@@ -214,7 +214,7 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             reference="test-diagnostic",
             message="Oh no!\nIt broke. :(",
             context=None,
-            attention_stmt=None,
+            note_stmt=None,
             hint_stmt="Do it better next time, by trying harder.",
         )
 
@@ -234,7 +234,7 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             reference="test-diagnostic",
             message="Oh no!\nIt broke. :(",
             context="Something went wrong\nvery wrong.",
-            attention_stmt=None,
+            note_stmt=None,
             hint_stmt=None,
         )
 
@@ -256,7 +256,7 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             message="Oh no!\nIt broke. :(",
             context=None,
             hint_stmt=None,
-            attention_stmt=None,
+            note_stmt=None,
         )
 
         assert rendered_in_ascii(err) == textwrap.dedent(
@@ -286,7 +286,7 @@ class TestDiagnosticPipErrorPresentation_Unicode:
             reference="test-diagnostic",
             message="Oh no!\nIt broke. :(",
             context="Something went wrong\nvery wrong.",
-            attention_stmt="You did something wrong, which is what caused this error.",
+            note_stmt="You did something wrong, which is what caused this error.",
             hint_stmt="Do it better next time, by trying harder.",
         )
 
@@ -309,7 +309,7 @@ class TestDiagnosticPipErrorPresentation_Unicode:
             reference="test-diagnostic",
             message="Oh no!\nIt broke.",
             context="Something went wrong\nvery wrong.",
-            attention_stmt="You did something wrong.",
+            note_stmt="You did something wrong.",
             hint_stmt="Do it better next time, by trying harder.",
         )
 
@@ -335,7 +335,7 @@ class TestDiagnosticPipErrorPresentation_Unicode:
             reference="test-diagnostic",
             message="Oh no!\nIt broke. :(",
             context=None,
-            attention_stmt="You did something wrong, which is what caused this error.",
+            note_stmt="You did something wrong, which is what caused this error.",
             hint_stmt="Do it better next time, by trying harder.",
         )
 
@@ -356,7 +356,7 @@ class TestDiagnosticPipErrorPresentation_Unicode:
             reference="test-diagnostic",
             message="Oh no!\nIt broke. :(",
             context="Something went wrong\nvery wrong.",
-            attention_stmt=None,
+            note_stmt=None,
             hint_stmt="Do it better next time, by trying harder.",
         )
 
@@ -378,7 +378,7 @@ class TestDiagnosticPipErrorPresentation_Unicode:
             reference="test-diagnostic",
             message="Oh no!\nIt broke. :(",
             context="Something went wrong\nvery wrong.",
-            attention_stmt="You did something wrong, which is what caused this error.",
+            note_stmt="You did something wrong, which is what caused this error.",
             hint_stmt=None,
         )
 
@@ -400,7 +400,7 @@ class TestDiagnosticPipErrorPresentation_Unicode:
             reference="test-diagnostic",
             message="Oh no!\nIt broke. :(",
             context=None,
-            attention_stmt="You did something wrong, which is what caused this error.",
+            note_stmt="You did something wrong, which is what caused this error.",
             hint_stmt=None,
         )
 
@@ -420,7 +420,7 @@ class TestDiagnosticPipErrorPresentation_Unicode:
             reference="test-diagnostic",
             message="Oh no!\nIt broke. :(",
             context=None,
-            attention_stmt=None,
+            note_stmt=None,
             hint_stmt="Do it better next time, by trying harder.",
         )
 
@@ -440,7 +440,7 @@ class TestDiagnosticPipErrorPresentation_Unicode:
             reference="test-diagnostic",
             message="Oh no!\nIt broke. :(",
             context="Something went wrong\nvery wrong.",
-            attention_stmt=None,
+            note_stmt=None,
             hint_stmt=None,
         )
 
@@ -461,7 +461,7 @@ class TestDiagnosticPipErrorPresentation_Unicode:
             message="Oh no!\nIt broke. :(",
             context=None,
             hint_stmt=None,
-            attention_stmt=None,
+            note_stmt=None,
         )
 
         assert rendered(err) == textwrap.dedent(

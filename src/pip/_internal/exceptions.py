@@ -66,7 +66,7 @@ class DiagnosticPipError(PipError):
         message: Union[str, Text],
         context: Optional[Union[str, Text]],
         hint_stmt: Optional[Union[str, Text]],
-        attention_stmt: Optional[Union[str, Text]] = None,
+        note_stmt: Optional[Union[str, Text]] = None,
         link: Optional[str] = None,
     ) -> None:
         # Ensure a proper reference is provided.
@@ -81,7 +81,7 @@ class DiagnosticPipError(PipError):
         self.message = message
         self.context = context
 
-        self.attention_stmt = attention_stmt
+        self.note_stmt = note_stmt
         self.hint_stmt = hint_stmt
 
         self.link = link
@@ -94,7 +94,7 @@ class DiagnosticPipError(PipError):
             f"reference={self.reference!r}, "
             f"message={self.message!r}, "
             f"context={self.context!r}, "
-            f"attention_stmt={self.attention_stmt!r}, "
+            f"note_stmt={self.note_stmt!r}, "
             f"hint_stmt={self.hint_stmt!r}"
             ")>"
         )
@@ -137,12 +137,12 @@ class DiagnosticPipError(PipError):
                 yield ""
                 yield self.context
 
-        if self.attention_stmt is not None or self.hint_stmt is not None:
+        if self.note_stmt is not None or self.hint_stmt is not None:
             yield ""
 
-        if self.attention_stmt is not None:
+        if self.note_stmt is not None:
             yield _prefix_with_indent(
-                self.attention_stmt,
+                self.note_stmt,
                 console,
                 prefix="[magenta bold]note[/]: ",
                 indent="      ",
@@ -187,9 +187,7 @@ class MissingPyProjectBuildRequires(DiagnosticPipError):
                 "This package has an invalid pyproject.toml file.\n"
                 R"The \[build-system] table is missing the mandatory `requires` key."
             ),
-            attention_stmt=(
-                "This is an issue with the package mentioned above, not pip."
-            ),
+            note_stmt="This is an issue with the package mentioned above, not pip.",
             hint_stmt=Text("See PEP 518 for the detailed specification."),
         )
 
@@ -207,10 +205,8 @@ class InvalidPyProjectBuildRequires(DiagnosticPipError):
                 "pyproject.toml.\n"
                 f"{reason}"
             ),
+            note_stmt="This is an issue with the package mentioned above, not pip.",
             hint_stmt=Text("See PEP 518 for the detailed specification."),
-            attention_stmt=(
-                "This is an issue with the package mentioned above, not pip."
-            ),
         )
 
 
