@@ -182,13 +182,13 @@ class MissingPyProjectBuildRequires(DiagnosticPipError):
 
     def __init__(self, *, package: str) -> None:
         super().__init__(
-            message=f"Can not process {package}",
-            context=(
+            message=Text(f"Can not process {package}"),
+            context=Text(
                 "This package has an invalid pyproject.toml file.\n"
-                R"The \[build-system] table is missing the mandatory `requires` key."
+                "The [build-system] table is missing the mandatory `requires` key."
             ),
             note_stmt="This is an issue with the package mentioned above, not pip.",
-            hint_stmt=Text("See PEP 518 for the detailed specification."),
+            hint_stmt="See PEP 518 for the detailed specification.",
         )
 
 
@@ -199,14 +199,13 @@ class InvalidPyProjectBuildRequires(DiagnosticPipError):
 
     def __init__(self, *, package: str, reason: str) -> None:
         super().__init__(
-            message=f"Can not process {package}",
+            message=Text(f"Can not process {package}"),
             context=Text(
                 "This package has an invalid `build-system.requires` key in "
-                "pyproject.toml.\n"
-                f"{reason}"
+                f"pyproject.toml.\n{reason}"
             ),
             note_stmt="This is an issue with the package mentioned above, not pip.",
-            hint_stmt=Text("See PEP 518 for the detailed specification."),
+            hint_stmt="See PEP 518 for the detailed specification.",
         )
 
 
