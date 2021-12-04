@@ -32,14 +32,12 @@ from typing import (
     cast,
 )
 
-from pip._vendor.pkg_resources import Distribution
 from pip._vendor.tenacity import retry, stop_after_delay, wait_fixed
 
 from pip import __version__
 from pip._internal.exceptions import CommandError
-from pip._internal.locations import get_major_minor_version, site_packages, user_site
+from pip._internal.locations import get_major_minor_version
 from pip._internal.utils.compat import WINDOWS
-from pip._internal.utils.egg_link import egg_link_path_from_location
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 __all__ = [
@@ -326,64 +324,6 @@ def is_local(path: str) -> bool:
     if not running_under_virtualenv():
         return True
     return path.startswith(normalize_path(sys.prefix))
-
-
-def dist_is_local(dist: Distribution) -> bool:
-    """
-    Return True if given Distribution object is installed locally
-    (i.e. within current virtualenv).
-
-    Always True if we're not in a virtualenv.
-
-    """
-    return is_local(dist_location(dist))
-
-
-def dist_in_usersite(dist: Distribution) -> bool:
-    """
-    Return True if given Distribution is installed in user site.
-    """
-    return dist_location(dist).startswith(normalize_path(user_site))
-
-
-def dist_in_site_packages(dist: Distribution) -> bool:
-    """
-    Return True if given Distribution is installed in
-    sysconfig.get_python_lib().
-    """
-    return dist_location(dist).startswith(normalize_path(site_packages))
-
-
-def get_distribution(req_name: str) -> Optional[Distribution]:
-    """Given a requirement name, return the installed Distribution object.
-
-    This searches from *all* distributions available in the environment, to
-    match the behavior of ``pkg_resources.get_distribution()``.
-
-    Left for compatibility until direct pkg_resources uses are refactored out.
-    """
-    from pip._internal.metadata import get_default_environment
-    from pip._internal.metadata.pkg_resources import Distribution as _Dist
-
-    dist = get_default_environment().get_distribution(req_name)
-    if dist is None:
-        return None
-    return cast(_Dist, dist)._dist
-
-
-def dist_location(dist: Distribution) -> str:
-    """
-    Get the site-packages location of this distribution. Generally
-    this is dist.location, except in the case of develop-installed
-    packages, where dist.location is the source code location, and we
-    want to know where the egg-link file is.
-
-    The returned location is normalized (in particular, with symlinks removed).
-    """
-    egg_link = egg_link_path_from_location(dist.project_name)
-    if egg_link:
-        return normalize_path(egg_link)
-    return normalize_path(dist.location)
 
 
 def write_output(msg: Any, *args: Any) -> None:

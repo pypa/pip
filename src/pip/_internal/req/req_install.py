@@ -10,7 +10,6 @@ import uuid
 import zipfile
 from typing import Any, Collection, Dict, Iterable, List, Optional, Sequence, Union
 
-from pip._vendor import pkg_resources
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.specifiers import SpecifierSet
@@ -51,11 +50,10 @@ from pip._internal.utils.misc import (
     ask_path_exists,
     backup_dir,
     display_path,
-    dist_in_site_packages,
-    dist_in_usersite,
     hide_url,
     redact_auth_from_url,
 )
+from pip._internal.utils.packaging import safe_extra
 from pip._internal.utils.subprocess import runner_with_spinner_message
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 from pip._internal.utils.virtualenv import running_under_virtualenv
@@ -121,15 +119,14 @@ class InstallRequirement:
         if extras:
             self.extras = extras
         elif req:
-            self.extras = {pkg_resources.safe_extra(extra) for extra in req.extras}
+            self.extras = {safe_extra(extra) for extra in req.extras}
         else:
             self.extras = set()
         if markers is None and req:
             markers = req.marker
         self.markers = markers
 
-        # This holds the pkg_resources.Distribution object if this requirement
-        # is already available:
+        # This holds the Distribution object if this requirement is already installed.
         self.satisfied_by: Optional[BaseDistribution] = None
         # Whether the installation process should try to uninstall an existing
         # distribution before installing this requirement.
@@ -218,7 +215,7 @@ class InstallRequirement:
     def name(self) -> Optional[str]:
         if self.req is None:
             return None
-        return pkg_resources.safe_name(self.req.name)
+        return self.req.name
 
     @functools.lru_cache()  # use cached_property in python 3.8+
     def supports_pyproject_editable(self) -> bool:
@@ -402,11 +399,9 @@ class InstallRequirement:
         if not version_compatible:
             self.satisfied_by = None
             if use_user_site:
-                if dist_in_usersite(existing_dist):
+                if existing_dist.in_usersite:
                     self.should_reinstall = True
-                elif running_under_virtualenv() and dist_in_site_packages(
-                    existing_dist
-                ):
+                elif running_under_virtualenv() and existing_dist.in_site_packages:
                     raise InstallationError(
                         f"Will not install to the user site because it will "
                         f"lack sys.path precedence to {existing_dist.raw_name} "

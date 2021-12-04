@@ -1939,7 +1939,7 @@ def test_installing_scripts_outside_path_prints_warning(
     script: PipTestEnvironment,
 ) -> None:
     result = script.pip_install_local("--prefix", script.scratch_path, "script_wheel1")
-    assert "Successfully installed script-wheel1" in result.stdout, str(result)
+    assert "Successfully installed script_wheel1" in result.stdout, str(result)
     assert "--no-warn-script-location" in result.stderr
 
 
@@ -1949,7 +1949,7 @@ def test_installing_scripts_outside_path_can_suppress_warning(
     result = script.pip_install_local(
         "--prefix", script.scratch_path, "--no-warn-script-location", "script_wheel1"
     )
-    assert "Successfully installed script-wheel1" in result.stdout, str(result)
+    assert "Successfully installed script_wheel1" in result.stdout, str(result)
     assert "--no-warn-script-location" not in result.stderr
 
 
@@ -1957,7 +1957,7 @@ def test_installing_scripts_on_path_does_not_print_warning(
     script: PipTestEnvironment,
 ) -> None:
     result = script.pip_install_local("script_wheel1")
-    assert "Successfully installed script-wheel1" in result.stdout, str(result)
+    assert "Successfully installed script_wheel1" in result.stdout, str(result)
     assert "--no-warn-script-location" not in result.stderr
 
 

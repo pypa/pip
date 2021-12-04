@@ -16,7 +16,6 @@ from typing import Any, Dict, Optional, Set, Tuple, Union
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.specifiers import Specifier
-from pip._vendor.pkg_resources import RequirementParseError, parse_requirements
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.models.index import PyPI, TestPyPI
@@ -113,31 +112,56 @@ def parse_editable(editable_req: str) -> Tuple[Optional[str], str, Set[str]]:
     return package_name, url, set()
 
 
+def check_first_requirement_in_file(filename: str) -> None:
+    """Check if file is parsable as a requirements file.
+
+    This is heavily based on ``pkg_resources.parse_requirements``, but
+    simplified to just check the first meaningful line.
+
+    :raises InvalidRequirement: If the first meaningful line cannot be parsed
+        as an requirement.
+    """
+    with open(filename, encoding="utf-8", errors="ignore") as f:
+        # Create a steppable iterator, so we can handle \-continuations.
+        lines = (
+            line
+            for line in (line.strip() for line in f)
+            if line and not line.startswith("#")  # Skip blank lines/comments.
+        )
+
+        for line in lines:
+            # Drop comments -- a hash without a space may be in a URL.
+            if " #" in line:
+                line = line[: line.find(" #")]
+            # If there is a line continuation, drop it, and append the next line.
+            if line.endswith("\\"):
+                line = line[:-2].strip() + next(lines, "")
+            Requirement(line)
+            return
+
+
 def deduce_helpful_msg(req: str) -> str:
     """Returns helpful msg in case requirements file does not exist,
     or cannot be parsed.
 
     :params req: Requirements file path
     """
-    msg = ""
-    if os.path.exists(req):
-        msg = " The path does exist. "
-        # Try to parse and check if it is a requirements file.
-        try:
-            with open(req) as fp:
-                # parse first line only
-                next(parse_requirements(fp.read()))
-                msg += (
-                    "The argument you provided "
-                    "({}) appears to be a"
-                    " requirements file. If that is the"
-                    " case, use the '-r' flag to install"
-                    " the packages specified within it."
-                ).format(req)
-        except RequirementParseError:
-            logger.debug("Cannot parse '%s' as requirements file", req, exc_info=True)
+    if not os.path.exists(req):
+        return f" File '{req}' does not exist."
+    msg = " The path does exist. "
+    # Try to parse and check if it is a requirements file.
+    try:
+        check_first_requirement_in_file(req)
+    except InvalidRequirement:
+        logger.debug("Cannot parse '%s' as requirements file", req)
     else:
-        msg += f" File '{req}' does not exist."
+        msg += (
+            f"The argument you provided "
+            f"({req}) appears to be a"
+            f" requirements file. If that is the"
+            f" case, use the '-r' flag to install"
+            f" the packages specified within it."
+        )
     return msg
 
 

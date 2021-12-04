@@ -1,16 +1,12 @@
 import functools
 import logging
-from email.message import Message
-from email.parser import FeedParser
-from typing import Optional, Tuple
+import re
+from typing import NewType, Optional, Tuple, cast
 
-from pip._vendor import pkg_resources
 from pip._vendor.packaging import specifiers, version
 from pip._vendor.packaging.requirements import Requirement
-from pip._vendor.pkg_resources import Distribution
 
-from pip._internal.exceptions import NoneMetadataError
-from pip._internal.utils.misc import display_path
+NormalizedExtra = NewType("NormalizedExtra", str)
 
 logger = logging.getLogger(__name__)
 
@@ -38,41 +34,6 @@ def check_requires_python(
     return python_version in requires_python_specifier
 
 
-def get_metadata(dist: Distribution) -> Message:
-    """
-    :raises NoneMetadataError: if the distribution reports `has_metadata()`
-        True but `get_metadata()` returns None.
-    """
-    metadata_name = "METADATA"
-    if isinstance(dist, pkg_resources.DistInfoDistribution) and dist.has_metadata(
-        metadata_name
-    ):
-        metadata = dist.get_metadata(metadata_name)
-    elif dist.has_metadata("PKG-INFO"):
-        metadata_name = "PKG-INFO"
-        metadata = dist.get_metadata(metadata_name)
-    else:
-        logger.warning("No metadata found in %s", display_path(dist.location))
-        metadata = ""
-
-    if metadata is None:
-        raise NoneMetadataError(dist, metadata_name)
-
-    feed_parser = FeedParser()
-    # The following line errors out if with a "NoneType" TypeError if
-    # passed metadata=None.
-    feed_parser.feed(metadata)
-    return feed_parser.close()
-
-
-def get_installer(dist: Distribution) -> str:
-    if dist.has_metadata("INSTALLER"):
-        for line in dist.get_metadata_lines("INSTALLER"):
-            if line.strip():
-                return line.strip()
-    return ""
-
-
 @functools.lru_cache(maxsize=512)
 def get_requirement(req_string: str) -> Requirement:
     """Construct a packaging.Requirement object with caching"""
@@ -82,3 +43,15 @@ def get_requirement(req_string: str) -> Requirement:
     # minimize repeated parsing of the same string to construct equivalent
     # Requirement objects.
     return Requirement(req_string)
+
+
+def safe_extra(extra: str) -> NormalizedExtra:
+    """Convert an arbitrary string to a standard 'extra' name
+
+    Any runs of non-alphanumeric characters are replaced with a single '_',
+    and the result is always lowercased.
+
+    This function is duplicated from ``pkg_resources``. Note that this is not
+    the same to either ``canonicalize_name`` or ``_egg_link_name``.
+    """
+    return cast(NormalizedExtra, re.sub("[^A-Za-z0-9.-]+", "_", extra).lower())
