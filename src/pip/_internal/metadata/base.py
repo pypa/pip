@@ -96,6 +96,28 @@ def _convert_installed_files_path(
 
 
 class BaseDistribution(Protocol):
+    @classmethod
+    def from_directory(cls, directory: str) -> "BaseDistribution":
+        """Load the distribution from a metadata directory.
+
+        :param directory: Path to a metadata directory, e.g. ``.dist-info``.
+        """
+        raise NotImplementedError()
+
+    @classmethod
+    def from_wheel(cls, wheel: "Wheel", name: str) -> "BaseDistribution":
+        """Load the distribution from a given wheel.
+
+        :param wheel: A concrete wheel definition.
+        :param name: File name of the wheel.
+
+        :raises InvalidWheel: Whenever loading of the wheel causes a
+            :py:exc:`zipfile.BadZipFile` exception to be thrown.
+        :raises UnsupportedWheel: If the wheel is a valid zip, but malformed
+            internally.
+        """
+        raise NotImplementedError()
+
     def __repr__(self) -> str:
         return f"{self.raw_name} {self.version} ({self.location})"
 

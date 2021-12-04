@@ -73,7 +73,7 @@ class Distribution(BaseDistribution):
         self._dist = dist
 
     @classmethod
-    def from_directory(cls, directory: str) -> "Distribution":
+    def from_directory(cls, directory: str) -> BaseDistribution:
         dist_dir = directory.rstrip(os.sep)
 
         # Build a PathMetadata object, from path to metadata. :wink:
@@ -93,14 +93,7 @@ class Distribution(BaseDistribution):
         return cls(dist)
 
     @classmethod
-    def from_wheel(cls, wheel: Wheel, name: str) -> "Distribution":
-        """Load the distribution from a given wheel.
-
-        :raises InvalidWheel: Whenever loading of the wheel causes a
-            :py:exc:`zipfile.BadZipFile` exception to be thrown.
-        :raises UnsupportedWheel: If the wheel is a valid zip, but malformed
-            internally.
-        """
+    def from_wheel(cls, wheel: Wheel, name: str) -> BaseDistribution:
         try:
             with wheel.as_zipfile() as zf:
                 info_dir, _ = parse_wheel(zf, name)
