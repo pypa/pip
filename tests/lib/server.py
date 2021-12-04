@@ -1,5 +1,4 @@
 import os
-import signal
 import ssl
 import threading
 from base64 import b64encode
@@ -11,41 +10,16 @@ from unittest.mock import Mock
 from werkzeug.serving import BaseWSGIServer, WSGIRequestHandler
 from werkzeug.serving import make_server as _make_server
 
-from .compat import nullcontext
+from .compat import blocked_signals
 
 if TYPE_CHECKING:
-    from wsgi import StartResponse, WSGIApplication, WSGIEnvironment
+    from _typeshed.wsgi import StartResponse, WSGIApplication, WSGIEnvironment
 
 Body = Iterable[bytes]
 
 
 class MockServer(BaseWSGIServer):
     mock: Mock = Mock()
-
-
-# Applies on Python 2 and Windows.
-if not hasattr(signal, "pthread_sigmask"):
-    # We're not relying on this behavior anywhere currently, it's just best
-    # practice.
-    blocked_signals = nullcontext
-else:
-
-    @contextmanager
-    def blocked_signals() -> Iterator[None]:
-        """Block all signals for e.g. starting a worker thread."""
-        # valid_signals() was added in Python 3.8 (and not using it results
-        # in a warning on pthread_sigmask() call)
-        mask: Iterable[int]
-        try:
-            mask = signal.valid_signals()
-        except AttributeError:
-            mask = set(range(1, signal.NSIG))
-
-        old_mask = signal.pthread_sigmask(signal.SIG_SETMASK, mask)
-        try:
-            yield
-        finally:
-            signal.pthread_sigmask(signal.SIG_SETMASK, old_mask)
 
 
 class _RequestHandler(WSGIRequestHandler):
