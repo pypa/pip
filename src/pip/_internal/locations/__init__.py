@@ -131,6 +131,22 @@ def _looks_like_red_hat_scheme() -> bool:
 
 
 @functools.lru_cache(maxsize=None)
+def _looks_like_slackware_scheme() -> bool:
+    """Slackware patches sysconfig but fails to patch distutils and site.
+
+    Slackware changes sysconfig's user scheme to use ``"lib64"`` for the lib
+    path, but does not do the same to the site module.
+    """
+    if user_site is None:  # User-site not available.
+        return False
+    try:
+        paths = sysconfig.get_paths(scheme="posix_user", expand=False)
+    except KeyError:  # User-site not available.
+        return False
+    return "/lib64/" in paths["purelib"] and "/lib64/" not in user_site
+
+
+@functools.lru_cache(maxsize=None)
 def _looks_like_msys2_mingw_scheme() -> bool:
     """MSYS2 patches distutils and sysconfig to use a UNIX-like scheme.
 
@@ -283,6 +299,17 @@ def get_scheme(
             and _looks_like_bpo_44860()
         )
         if skip_bpo_44860:
+            continue
+
+        # Slackware incorrectly patches posix_user to use lib64 instead of lib,
+        # but not usersite to match the location.
+        skip_slackware_user_scheme = (
+            user
+            and k in ("platlib", "purelib")
+            and not WINDOWS
+            and _looks_like_slackware_scheme()
+        )
+        if skip_slackware_user_scheme:
             continue
 
         # Both Debian and Red Hat patch Python to place the system site under
