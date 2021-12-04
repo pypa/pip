@@ -18,6 +18,7 @@ from pip._vendor.rich.console import (
 from pip._vendor.rich.highlighter import NullHighlighter
 from pip._vendor.rich.logging import RichHandler
 from pip._vendor.rich.segment import Segment
+from pip._vendor.rich.style import Style
 
 from pip._internal.exceptions import DiagnosticPipError
 from pip._internal.utils._log import VERBOSE, getLogger
@@ -148,6 +149,8 @@ class RichPipStreamHandler(RichHandler):
 
     # Our custom override on rich's logger, to make things work as we need them to.
     def emit(self, record: logging.LogRecord) -> None:
+        style: Optional[Style] = None
+
         # If we are given a diagnostic error to present, present it with indentation.
         if record.msg == "[present-diagnostic]" and len(record.args) == 1:
             diagnostic_error: DiagnosticPipError = record.args[0]  # type: ignore[index]
@@ -159,9 +162,14 @@ class RichPipStreamHandler(RichHandler):
         else:
             message = self.format(record)
             renderable = self.render_message(record, message)
+            if record.levelno is not None:
+                if record.levelno >= logging.ERROR:
+                    style = Style(color="red")
+                elif record.levelno >= logging.WARNING:
+                    style = Style(color="yellow")
 
         try:
-            self.console.print(renderable, overflow="ignore", crop=False)
+            self.console.print(renderable, overflow="ignore", crop=False, style=style)
         except Exception:
             self.handleError(record)
 
@@ -252,7 +260,6 @@ def setup_logging(verbosity: int, no_color: bool, user_log_file: Optional[str]) 
         "stderr": "ext://sys.stderr",
     }
     handler_classes = {
-        "subprocess": "logging.StreamHandler",
         "stream": "pip._internal.utils.logging.RichPipStreamHandler",
         "file": "pip._internal.utils.logging.BetterRotatingFileHandler",
     }
@@ -310,8 +317,9 @@ def setup_logging(verbosity: int, no_color: bool, user_log_file: Optional[str]) 
                 # from the "subprocessor" logger.
                 "console_subprocess": {
                     "level": level,
-                    "class": handler_classes["subprocess"],
+                    "class": handler_classes["stream"],
                     "stream": log_streams["stderr"],
+                    "no_color": no_color,
                     "filters": ["restrict_to_subprocess"],
                     "formatter": "indent",
                 },
