@@ -435,6 +435,13 @@ def _deduplicated(v1: str, v2: str) -> List[str]:
     return [v1, v2]
 
 
+def _looks_like_apple_library(path: str) -> bool:
+    """Apple patches sysconfig to *always* look under */Library/Python*."""
+    if sys.platform[:6] != "darwin":
+        return False
+    return path == f"/Library/Python/{get_major_minor_version()}/site-packages"
+
+
 def get_prefixed_libs(prefix: str) -> List[str]:
     """Return the lib locations under ``prefix``."""
     new_pure, new_plat = _sysconfig.get_prefixed_libs(prefix)
@@ -442,6 +449,26 @@ def get_prefixed_libs(prefix: str) -> List[str]:
         return _deduplicated(new_pure, new_plat)
 
     old_pure, old_plat = _distutils.get_prefixed_libs(prefix)
+    old_lib_paths = _deduplicated(old_pure, old_plat)
+
+    # Apple's Python (shipped with Xcode and Command Line Tools) hard-code
+    # platlib and purelib to '/Library/Python/X.Y/site-packages'. This will
+    # cause serious build isolation bugs when Apple starts shipping 3.10 because
+    # pip will install build backends to the wrong location. This tells users
+    # who is at fault so Apple may notice it and fix the issue in time.
+    if all(_looks_like_apple_library(p) for p in old_lib_paths):
+        deprecated(
+            reason=(
+                "Python distributed by Apple's Command Line Tools incorrectly "
+                "patches sysconfig to always point to '/Library/Python'. This "
+                "will cause build isolation to operate incorrectly on Python "
+                "3.10 or later. Please help report this to Apple so they can "
+                "fix this. https://developer.apple.com/bug-reporting/"
+            ),
+            replacement=None,
+            gone_in=None,
+        )
+        return old_lib_paths
 
     warned = [
         _warn_if_mismatch(
@@ -458,4 +485,4 @@ def get_prefixed_libs(prefix: str) -> List[str]:
     if any(warned):
         _log_context(prefix=prefix)
 
-    return _deduplicated(old_pure, old_plat)
+    return old_lib_paths
