@@ -96,7 +96,13 @@ class WheelDistribution(importlib.metadata.Distribution):
             data = self._files[pathlib.PurePosixPath(filename)]
         except KeyError:
             return None
-        return data.decode("utf-8")
+        try:
+            text = data.decode("utf-8")
+        except UnicodeDecodeError as e:
+            wheel = self.info_location.parent
+            error = f"Error decoding metadata for {wheel}: {e} in {filename} file"
+            raise UnsupportedWheel(error)
+        return text
 
 
 class Distribution(BaseDistribution):
