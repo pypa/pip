@@ -6,10 +6,12 @@ import sys
 import zipfile
 from typing import (
     Collection,
+    Dict,
     Iterable,
     Iterator,
     List,
     Mapping,
+    NamedTuple,
     Optional,
     Protocol,
     Sequence,
@@ -21,6 +23,7 @@ from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.exceptions import InvalidWheel, UnsupportedWheel
+from pip._internal.utils.packaging import safe_extra
 from pip._internal.utils.wheel import parse_wheel, read_wheel_metadata_file
 
 from .base import (
@@ -34,8 +37,11 @@ from .base import (
 
 
 def _get_dist_normalized_name(dist: importlib.metadata.Distribution) -> NormalizedName:
-    # The 'name' attribute is only available in Python 3.10 or later. We are
-    # targeting exactly that, but Mypy does not know this.
+    """Get the distribution's project name.
+
+    The ``name`` attribute is only available in Python 3.10 or later. We are
+    targeting exactly that, but Mypy does not know this.
+    """
     return canonicalize_name(dist.name)  # type: ignore[attr-defined]
 
 
@@ -51,6 +57,12 @@ class BasePath(Protocol):
     """
 
     name: str
+
+
+class RequiresEntry(NamedTuple):
+    requirement: str
+    extra: str
+    marker: str
 
 
 class WheelDistribution(importlib.metadata.Distribution):
@@ -190,38 +202,87 @@ class Distribution(BaseDistribution):
     def metadata(self) -> email.message.Message:
         return self._dist.metadata
 
-    def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
-        requires = self._dist.requires
-        if requires is None:
+    def _iter_requires_txt_entries(self) -> Iterator[RequiresEntry]:
+        """Parse a ``requires.txt`` in an egg-info directory.
+
+        This is an INI-ish format where an egg-info stores dependencies. A
+        section name describes extra other environment markers, while each entry
+        is an arbitrary string (not a key-value pair) representing a dependency
+        as a requirement string (no markers).
+
+        There is a construct in ``importlib.metadata`` called ``Sectioned`` that
+        does mostly the same, but the format is currently considered private.
+        """
+        content = self._dist.read_text("requires.txt")
+        if content is None:
             return
-        for r in requires:
-            req = Requirement(r)
+        extra = marker = ""  # Section-less entries don't have markers.
+        for line in content.splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):  # Comment; ignored.
+                continue
+            if line.startswith("[") and line.endswith("]"):  # A section header.
+                extra, _, marker = line.strip("[]").partition(":")
+                continue
+            yield RequiresEntry(requirement=line, extra=extra, marker=marker)
+
+    def _iter_egg_info_extras(self) -> Iterable[str]:
+        """Get extras from the egg-info directory."""
+        known_extras = {""}
+        for entry in self._iter_requires_txt_entries():
+            if entry.extra in known_extras:
+                continue
+            known_extras.add(entry.extra)
+            yield entry.extra
+
+    def iter_provided_extras(self) -> Iterable[str]:
+        iterator = (
+            self._dist.metadata.get_all("Provides-Extra")
+            or self._iter_egg_info_extras()
+        )
+        return (safe_extra(extra) for extra in iterator)
+
+    def _iter_egg_info_dependencies(self) -> Iterable[str]:
+        """Get distribution dependencies from the egg-info directory.
+
+        To ease parsing, this converts a legacy dependency entry into a PEP 508
+        requirement string. Like ``_iter_requires_txt_entries()``, there is code
+        in ``importlib.metadata`` that does mostly the same, but not do exactly
+        what we need.
+
+        Namely, ``importlib.metadata`` does not normalize the extra name before
+        putting it into the requirement string, which causes marker comparison
+        to fail because the dist-info format do normalize. This is consistent in
+        all currently available PEP 517 backends, although not standardized.
+        """
+        for entry in self._iter_requires_txt_entries():
+            if entry.extra and entry.marker:
+                marker = f'({entry.marker}) and extra == "{safe_extra(entry.extra)}"'
+            elif entry.extra:
+                marker = f'extra == "{safe_extra(entry.extra)}"'
+            elif entry.marker:
+                marker = entry.marker
+            else:
+                marker = ""
+            if marker:
+                yield f"{entry.requirement} ; {marker}"
+            else:
+                yield entry.requirement
+
+    def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
+        req_string_iterator = (
+            self._dist.metadata.get_all("Requires-Dist")
+            or self._iter_egg_info_dependencies()
+        )
+        contexts: Sequence[Dict[str, str]] = [{"extra": safe_extra(e)} for e in extras]
+        for req_string in req_string_iterator:
+            req = Requirement(req_string)
             if not req.marker:
                 yield req
             elif not extras and req.marker.evaluate({"extra": ""}):
                 yield req
-            elif any(req.marker.evaluate({"extra": extra}) for extra in extras):
+            elif any(req.marker.evaluate(context) for context in contexts):
                 yield req
-
-    def _iter_egg_info_extras(self) -> Iterable[str]:
-        """Parse extras from an .egg-info directory.
-
-        An .egg-info directory stores dependencies in an INI-like file named
-        ``requires.txt``, with extras being a part of the section names.
-        """
-        requires_txt = self._dist.read_text("requires.txt")
-        if requires_txt is None:
-            return
-        for line in requires_txt.splitlines():
-            line = line.strip()
-            if line.startswith("[") and line.endswith("]"):
-                yield line.strip("[]").partition(":")[0]
-
-    def iter_provided_extras(self) -> Iterable[str]:
-        return (
-            self._dist.metadata.get_all("Provides-Extra")
-            or self._iter_egg_info_extras()
-        )
 
 
 def _get_info_location(d: importlib.metadata.Distribution) -> Optional[BasePath]:
