@@ -1233,7 +1233,7 @@ def test_new_resolver_presents_messages_when_backtracking_a_lot(
         # cannot handle it correctly. Nobody is complaining about it right now,
         # we're probably dropping it for importlib.metadata soon(tm), so let's
         # ignore it for the time being.
-        pytest.param("0.1.0+local-1", marks=pytest.mark.xfail),
+        pytest.param("0.1.0+local-1", marks=pytest.mark.xfail(strict=False)),
     ],
     ids=["meta_dot", "meta_underscore", "meta_dash"],
 )
