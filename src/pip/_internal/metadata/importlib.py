@@ -198,6 +198,8 @@ class Distribution(BaseDistribution):
             req = Requirement(r)
             if not req.marker:
                 yield req
+            elif not extras and req.marker.evaluate({"extra": ""}):
+                yield req
             elif any(req.marker.evaluate({"extra": extra}) for extra in extras):
                 yield req
 
