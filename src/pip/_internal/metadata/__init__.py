@@ -28,7 +28,7 @@ class _Backend(Protocol):
 
 @functools.lru_cache(maxsize=None)
 def _select_backend() -> _Backend:
-    if os.environ.get("_PIP_METADATA_BACKEND_USE_IMPORTLIB"):
+    if os.environ.get("_PIP_METADATA_BACKEND_IMPORTLIB"):
         from . import importlib
 
         return cast(_Backend, importlib)
