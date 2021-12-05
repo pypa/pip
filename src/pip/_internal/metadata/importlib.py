@@ -13,6 +13,7 @@ from typing import (
     Optional,
     Protocol,
     Sequence,
+    Set,
 )
 
 from pip._vendor.packaging.requirements import Requirement
@@ -30,6 +31,12 @@ from .base import (
     InfoPath,
     Wheel,
 )
+
+
+def _get_dist_normalized_name(dist: importlib.metadata.Distribution) -> NormalizedName:
+    # The 'name' attribute is only available in Python 3.10 or later. We are
+    # targeting exactly that, but Mypy does not know this.
+    return canonicalize_name(dist.name)  # type: ignore[attr-defined]
 
 
 class BasePath(Protocol):
@@ -144,20 +151,15 @@ class Distribution(BaseDistribution):
             return None
         return str(self._info_location)
 
-    def _get_dist_normalized_name(self) -> NormalizedName:
-        # The 'name' attribute is only available in Python 3.10 or later. We are
-        # only targeting that, but Mypy does not know this.
-        return canonicalize_name(self._dist.name)  # type: ignore[attr-defined]
-
     @property
     def canonical_name(self) -> NormalizedName:
         # Try to get the name from the metadata directory name. This is much
         # faster than reading metadata.
         if self._info_location is None:
-            return self._get_dist_normalized_name()
+            return _get_dist_normalized_name(self._dist)
         stem, suffix = os.path.splitext(self._info_location.name)
         if suffix not in (".dist-info", ".egg-info"):
-            return self._get_dist_normalized_name()
+            return _get_dist_normalized_name(self._dist)
         name, _, _ = stem.partition("-")
         return canonicalize_name(name)
 
@@ -249,8 +251,13 @@ class Environment(BaseEnvironment):
     def _iter_distributions(self) -> Iterator[BaseDistribution]:
         # To know exact where we found a distribution, we have to feed the paths
         # in one by one, instead of dumping entire list to importlib.metadata.
+        found_names: Set[NormalizedName] = set()
         for path in self._paths:
             for dist in importlib.metadata.distributions(path=[path]):
+                normalized_name = _get_dist_normalized_name(dist)
+                if normalized_name in found_names:
+                    continue
+                found_names.add(normalized_name)
                 location = pathlib.Path(path)
                 info_location = _get_info_location(dist)
                 yield Distribution(dist, location, info_location)
