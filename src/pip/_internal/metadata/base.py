@@ -46,7 +46,7 @@ else:
 
 DistributionVersion = Union[LegacyVersion, Version]
 
-InfoPath = Union[str, pathlib.PurePosixPath]
+InfoPath = Union[str, pathlib.PurePath]
 
 logger = logging.getLogger(__name__)
 
@@ -344,16 +344,16 @@ class BaseDistribution(Protocol):
 
         Each item yielded would be a path relative to the info directory.
 
-        :raise FileNotFoundError: If ``name`` does not exist in the directory.
-        :raise NotADirectoryError: If ``name`` does not point to a directory.
+        :raise FileNotFoundError: If ``path`` does not exist in the directory.
+        :raise NotADirectoryError: If ``path`` does not point to a directory.
         """
         raise NotImplementedError()
 
     def read_text(self, path: InfoPath) -> str:
         """Read a file in the info directory.
 
-        :raise FileNotFoundError: If ``name`` does not exist in the directory.
-        :raise NoneMetadataError: If ``name`` exists in the info directory, but
+        :raise FileNotFoundError: If ``path`` does not exist in the directory.
+        :raise NoneMetadataError: If ``path`` exists in the info directory, but
             cannot be read.
         """
         raise NotImplementedError()
