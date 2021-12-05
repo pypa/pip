@@ -76,7 +76,7 @@ def search_packages_info(query: List[str]) -> Generator[_PackageInfo, None, None
     """
     env = get_default_environment()
 
-    installed = {dist.canonical_name: dist for dist in env.iter_distributions()}
+    installed = {dist.canonical_name: dist for dist in env.iter_all_distributions()}
     query_names = [canonicalize_name(name) for name in query]
     missing = sorted(
         [name for name, pkg in zip(query, query_names) if pkg not in installed]

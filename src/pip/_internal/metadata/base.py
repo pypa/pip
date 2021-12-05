@@ -10,7 +10,6 @@ from typing import (
     TYPE_CHECKING,
     Collection,
     Container,
-    Generator,
     Iterable,
     Iterator,
     List,
@@ -491,8 +490,8 @@ class BaseEnvironment:
         """
         raise NotImplementedError()
 
-    def iter_distributions(self) -> Generator["BaseDistribution", None, None]:
-        """Iterate through installed distributions."""
+    def iter_all_distributions(self) -> Iterator[BaseDistribution]:
+        """Iterate through all installed distributions without any filtering."""
         for dist in self._iter_distributions():
             # Make sure the distribution actually comes from a valid Python
             # packaging distribution. Pip's AdjacentTempDirectory leaves folders
@@ -522,6 +521,11 @@ class BaseEnvironment:
     ) -> Iterator[BaseDistribution]:
         """Return a list of installed distributions.
 
+        This is based on ``iter_all_distributions()``, but applies some
+        configurabilities. Note that ``iter_installed_distributions()`` without
+        arguments is *not* equal to ``iter_all_distributions()``, since some of
+        the configurations exclude packages by default.
+
         :param local_only: If True (default), only return installations
         local to the current virtualenv, if in a virtualenv.
         :param skip: An iterable of canonicalized project names to ignore;
@@ -531,7 +535,7 @@ class BaseEnvironment:
         :param user_only: If True, only report installations in the user
         site directory.
         """
-        it = self.iter_distributions()
+        it = self.iter_all_distributions()
         if local_only:
             it = (d for d in it if d.local)
         if not include_editables:

@@ -258,7 +258,7 @@ class Environment(BaseEnvironment):
     def get_distribution(self, name: str) -> Optional[BaseDistribution]:
         matches = (
             distribution
-            for distribution in self._iter_distributions()
+            for distribution in self.iter_all_distributions()
             if distribution.canonical_name == canonicalize_name(name)
         )
         return next(matches, None)

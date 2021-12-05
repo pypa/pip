@@ -203,6 +203,10 @@ class Environment(BaseEnvironment):
     def from_paths(cls, paths: Optional[List[str]]) -> BaseEnvironment:
         return cls(pkg_resources.WorkingSet(paths))
 
+    def _iter_distributions(self) -> Iterator[BaseDistribution]:
+        for dist in self._ws:
+            yield Distribution(dist)
+
     def _search_distribution(self, name: str) -> Optional[BaseDistribution]:
         """Find a distribution matching the ``name`` in the environment.
 
@@ -210,7 +214,7 @@ class Environment(BaseEnvironment):
         match the behavior of ``pkg_resources.get_distribution()``.
         """
         canonical_name = canonicalize_name(name)
-        for dist in self.iter_distributions():
+        for dist in self.iter_all_distributions():
             if dist.canonical_name == canonical_name:
                 return dist
         return None
@@ -236,7 +240,3 @@ class Environment(BaseEnvironment):
         except pkg_resources.DistributionNotFound:
             return None
         return self._search_distribution(name)
-
-    def _iter_distributions(self) -> Iterator[BaseDistribution]:
-        for dist in self._ws:
-            yield Distribution(dist)
