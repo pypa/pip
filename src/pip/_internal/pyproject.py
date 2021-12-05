@@ -60,7 +60,7 @@ def load_pyproject_toml(
 
     if has_pyproject:
         with open(pyproject_toml, encoding="utf-8") as f:
-            pp_toml = tomli.load(f)
+            pp_toml = tomli.loads(f.read())
         build_system = pp_toml.get("build-system")
     else:
         build_system = None
