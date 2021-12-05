@@ -2,9 +2,8 @@ import email.message
 import email.parser
 import logging
 import os
-import pathlib
 import zipfile
-from typing import Collection, Generator, Iterable, List, Mapping, NamedTuple, Optional
+from typing import Collection, Iterable, Iterator, List, Mapping, NamedTuple, Optional
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.requirements import Requirement
@@ -142,14 +141,8 @@ class Distribution(BaseDistribution):
     def is_file(self, path: InfoPath) -> bool:
         return self._dist.has_metadata(str(path))
 
-    def iterdir(self, path: InfoPath) -> Generator[pathlib.PurePosixPath, None, None]:
-        name = str(path)
-        if not self._dist.has_metadata(name):
-            raise FileNotFoundError(name)
-        if not self._dist.isdir(name):
-            raise NotADirectoryError(name)
-        for child in self._dist.metadata_listdir(name):
-            yield pathlib.PurePosixPath(path, child)
+    def iter_distutils_script_names(self) -> Iterator[str]:
+        yield from self._dist.metadata_listdir("scripts")
 
     def read_text(self, path: InfoPath) -> str:
         name = str(path)
@@ -244,6 +237,6 @@ class Environment(BaseEnvironment):
             return None
         return self._search_distribution(name)
 
-    def _iter_distributions(self) -> Generator[BaseDistribution, None, None]:
+    def _iter_distributions(self) -> Iterator[BaseDistribution]:
         for dist in self._ws:
             yield Distribution(dist)

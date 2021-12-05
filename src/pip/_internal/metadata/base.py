@@ -339,13 +339,11 @@ class BaseDistribution(Protocol):
         """Check whether an entry in the info directory is a file."""
         raise NotImplementedError()
 
-    def iterdir(self, path: InfoPath) -> Iterator[pathlib.PurePosixPath]:
-        """Iterate through a directory in the info directory.
+    def iter_distutils_script_names(self) -> Iterator[str]:
+        """Find distutils 'scripts' entries metadata.
 
-        Each item yielded would be a path relative to the info directory.
-
-        :raise FileNotFoundError: If ``path`` does not exist in the directory.
-        :raise NotADirectoryError: If ``path`` does not point to a directory.
+        If 'scripts' is supplied in ``setup.py``, distutils records those in the
+        installed distribution's ``scripts`` directory, a file for each script.
         """
         raise NotImplementedError()
 

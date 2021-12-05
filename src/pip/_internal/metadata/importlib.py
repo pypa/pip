@@ -1,10 +1,19 @@
-import contextlib
 import email.message
 import importlib.metadata
+import os
 import pathlib
 import sys
 import zipfile
-from typing import Collection, Iterable, Iterator, List, Mapping, Optional, Sequence
+from typing import (
+    Collection,
+    Iterable,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Protocol,
+    Sequence,
+)
 
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
@@ -23,7 +32,21 @@ from .base import (
 )
 
 
-class _WheelDistribution(importlib.metadata.Distribution):
+class BasePath(Protocol):
+    """A protocol that various path objects conform.
+
+    This exists because importlib.metadata uses both ``pathlib.Path`` and
+    ``zipfile.Path``, and we need a common base for type hints (Union does not
+    work well since ``zipfile.Path`` is too new for our linter setup).
+
+    This does not mean to be exhaustive, but only contains things that present
+    in both classes *that we need*.
+    """
+
+    name: str
+
+
+class WheelDistribution(importlib.metadata.Distribution):
     """Distribution read from a wheel.
 
     Although ``importlib.metadata.PathDistribution`` accepts ``zipfile.Path``,
@@ -48,7 +71,7 @@ class _WheelDistribution(importlib.metadata.Distribution):
         zf: zipfile.ZipFile,
         name: str,
         location: str,
-    ) -> "_WheelDistribution":
+    ) -> "WheelDistribution":
         info_dir, _ = parse_wheel(zf, name)
         paths = (
             (name, pathlib.PurePosixPath(name.split("/", 1)[-1]))
@@ -80,8 +103,8 @@ class Distribution(BaseDistribution):
     def __init__(
         self,
         dist: importlib.metadata.Distribution,
-        location: pathlib.PurePath,
-        info_location: Optional[pathlib.PurePath],
+        location: BasePath,
+        info_location: Optional[BasePath],
     ) -> None:
         self._dist = dist
         self._location = location
@@ -98,7 +121,7 @@ class Distribution(BaseDistribution):
     def from_wheel(cls, wheel: Wheel, name: str) -> BaseDistribution:
         try:
             with wheel.as_zipfile() as zf:
-                dist = _WheelDistribution.from_zipfile(zf, name, wheel.location)
+                dist = WheelDistribution.from_zipfile(zf, name, wheel.location)
         except zipfile.BadZipFile as e:
             raise InvalidWheel(wheel.location, name) from e
         except UnsupportedWheel as e:
@@ -115,21 +138,21 @@ class Distribution(BaseDistribution):
             return None
         return str(self._info_location)
 
-    def _get_dist_name(self) -> str:
+    def _get_dist_normalized_name(self) -> NormalizedName:
         # The 'name' attribute is only available in Python 3.10 or later. We are
         # only targeting that, but Mypy does not know this.
-        return self._dist.name  # type: ignore[attr-defined]
+        return canonicalize_name(self._dist.name)  # type: ignore[attr-defined]
 
     @property
     def canonical_name(self) -> NormalizedName:
         # Try to get the name from the metadata directory name. This is much
         # faster than reading metadata.
         if self._info_location is None:
-            name = self._get_dist_name()
-        elif self._info_location.suffix in (".dist-info", ".egg-info"):
-            name, _, _ = self._info_location.stem.partition("-")
-        else:
-            name = self._get_dist_name()
+            return self._get_dist_normalized_name()
+        stem, suffix = os.path.splitext(self._info_location.name)
+        if suffix not in (".dist-info", ".egg-info"):
+            return self._get_dist_normalized_name()
+        name, _, _ = stem.partition("-")
         return canonicalize_name(name)
 
     @property
@@ -139,25 +162,11 @@ class Distribution(BaseDistribution):
     def is_file(self, path: InfoPath) -> bool:
         return self._dist.read_text(str(path)) is not None
 
-    def iterdir(self, path: InfoPath) -> Iterator[pathlib.PurePosixPath]:
-        # We have an optimized implementation for wheels.
-        with contextlib.suppress(AttributeError):
-            return self._dist.iterdir(path)  # type: ignore [attr-defined]
-
-        # This is not actually based on anything concrete to iterate on.
-        if self._info_location is None:
-            raise FileNotFoundError(path)
-
-        # Just use pathlib if this is actually on the filesystem.
-        info_root = self._info_location
-        full_path = info_root.joinpath(path)
-        if isinstance(full_path, pathlib.Path):
-            return (
-                pathlib.PurePosixPath(p.relative_to(info_root).as_posix())
-                for p in full_path.iterdir()
-            )
-
-        raise FileNotFoundError(path)  # Nothing else is implemetned for now.
+    def iter_distutils_script_names(self) -> Iterator[str]:
+        if not isinstance(self._info_location, pathlib.Path):
+            return
+        for child in self._info_location.joinpath("scripts").iterdir():
+            yield child.name
 
     def read_text(self, path: InfoPath) -> str:
         content = self._dist.read_text(str(path))
@@ -205,7 +214,7 @@ class Distribution(BaseDistribution):
         )
 
 
-def _get_info_location(d: importlib.metadata.Distribution) -> Optional[pathlib.Path]:
+def _get_info_location(d: importlib.metadata.Distribution) -> Optional[BasePath]:
     """Find the path to the distribution's metadata directory.
 
     HACK: This relies on importlib.metadata's private ``_path`` attribute. Not
