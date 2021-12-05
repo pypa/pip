@@ -37,7 +37,6 @@ from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import build_netloc
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.utils.unpacking import SUPPORTED_EXTENSIONS
-from pip._internal.utils.urls import url_to_path
 
 __all__ = ["FormatControl", "BestCandidateResult", "PackageFinder"]
 
@@ -816,7 +815,14 @@ class PackageFinder:
         )
 
         if logger.isEnabledFor(logging.DEBUG) and file_candidates:
-            paths = [url_to_path(c.link.url) for c in file_candidates]
+            paths = []
+            for candidate in file_candidates:
+                assert candidate.link.url  # we need to have a URL
+                try:
+                    paths.append(candidate.link.file_path)
+                except Exception:
+                    paths.append(candidate.link.url)  # it's not a local file
+
             logger.debug("Local files found: %s", ", ".join(paths))
 
         # This is an intentional priority ordering
