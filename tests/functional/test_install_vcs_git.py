@@ -347,6 +347,7 @@ def test_git_with_tag_name_and_update(script: PipTestEnvironment, tmpdir: Path) 
         "--global-option=--version",
         "-e",
         new_local_url,
+        allow_stderr_warning=True,
     )
     assert "0.1.2" in result.stdout
 
@@ -380,7 +381,12 @@ def test_git_with_non_editable_unpacking(
         rev="0.1.2",
         egg="pip-test-package",
     )
-    result = script.pip("install", "--global-option=--version", local_url)
+    result = script.pip(
+        "install",
+        "--global-option=--version",
+        local_url,
+        allow_stderr_warning=True,
+    )
     assert "0.1.2" in result.stdout
 
 

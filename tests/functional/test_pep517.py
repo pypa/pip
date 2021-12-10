@@ -300,6 +300,7 @@ def test_pep517_and_build_options(
         "-f",
         common_wheels,
         project_dir,
+        allow_stderr_warning=True,
     )
     assert "Ignoring --build-option when building" in result.stderr
     assert "using PEP 517" in result.stderr
@@ -320,6 +321,7 @@ def test_pep517_and_global_options(
         "-f",
         common_wheels,
         project_dir,
+        allow_stderr_warning=True,
     )
     assert "Ignoring --global-option when building" in result.stderr
     assert "using PEP 517" in result.stderr

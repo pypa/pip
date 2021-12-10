@@ -351,6 +351,7 @@ def test_install_option_in_requirements_file_overrides_cli(
         "-r",
         str(reqs_file),
         "--install-option=-O1",
+        allow_stderr_warning=True,
     )
     simple_args = simple_sdist.args()
     assert "install" in simple_args
@@ -790,6 +791,7 @@ def test_install_options_local_to_package(
         str(simple1_sdist.sdist_path.parent),
         "-r",
         reqs_file,
+        allow_stderr_warning=True,
     )
 
     simple1_args = simple1_sdist.args()
