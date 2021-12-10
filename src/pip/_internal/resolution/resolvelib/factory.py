@@ -27,7 +27,6 @@ from pip._internal.cache import CacheEntry, WheelCache
 from pip._internal.exceptions import (
     DistributionNotFound,
     InstallationError,
-    InstallationSubprocessError,
     MetadataInconsistent,
     UnsupportedPythonVersion,
     UnsupportedWheel,
@@ -190,7 +189,7 @@ class Factory:
                         name=name,
                         version=version,
                     )
-                except (InstallationSubprocessError, MetadataInconsistent) as e:
+                except MetadataInconsistent as e:
                     logger.info(
                         "Discarding [blue underline]%s[/]: [yellow]%s[reset]",
                         link,
@@ -210,7 +209,7 @@ class Factory:
                         name=name,
                         version=version,
                     )
-                except (InstallationSubprocessError, MetadataInconsistent) as e:
+                except MetadataInconsistent as e:
                     logger.info(
                         "Discarding [blue underline]%s[/]: [yellow]%s[reset]",
                         link,

@@ -2308,3 +2308,22 @@ def test_new_resolver_respect_user_requested_if_extra_is_installed(
         "pkg2",
     )
     script.assert_installed(pkg3="1.0", pkg2="2.0", pkg1="1.0")
+
+
+def test_new_resolver_do_not_backtrack_on_build_failure(
+    script: PipTestEnvironment,
+) -> None:
+    create_basic_sdist_for_package(script, "pkg1", "2.0", fails_egg_info=True)
+    create_basic_wheel_for_package(script, "pkg1", "1.0")
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "pkg1",
+        expect_error=True,
+    )
+
+    assert "egg_info" in result.stderr

@@ -1183,22 +1183,36 @@ def create_basic_sdist_for_package(
     name: str,
     version: str,
     extra_files: Optional[Dict[str, str]] = None,
+    *,
+    fails_egg_info: bool = False,
+    fails_bdist_wheel: bool = False,
 ) -> Path:
     files = {
-        "setup.py": """
+        "setup.py": f"""\
+            import sys
             from setuptools import find_packages, setup
+
+            fails_bdist_wheel = {fails_bdist_wheel!r}
+            fails_egg_info = {fails_egg_info!r}
+
+            if fails_egg_info and "egg_info" in sys.argv:
+                raise Exception("Simulated failure for generating metadata.")
+
+            if fails_bdist_wheel and "bdist_wheel" in sys.argv:
+                raise Exception("Simulated failure for building a wheel.")
+
             setup(name={name!r}, version={version!r})
         """,
     }
 
     # Some useful shorthands
-    archive_name = "{name}-{version}.tar.gz".format(name=name, version=version)
+    archive_name = f"{name}-{version}.tar.gz"
 
     # Replace key-values with formatted values
     for key, value in list(files.items()):
         del files[key]
         key = key.format(name=name)
-        files[key] = textwrap.dedent(value).format(name=name, version=version).strip()
+        files[key] = textwrap.dedent(value)
 
     # Add new files after formatting
     if extra_files:
