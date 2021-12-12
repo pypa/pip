@@ -26,6 +26,7 @@ from pip._internal.metadata.base import (
     InfoPath,
     Wheel,
 )
+from pip._internal.utils.misc import normalize_path
 from pip._internal.utils.packaging import safe_extra
 from pip._internal.utils.wheel import parse_wheel, read_wheel_metadata_file
 
@@ -141,7 +142,7 @@ class Distribution(BaseDistribution):
     def installed_location(self) -> Optional[str]:
         if self._installed_location is None:
             return None
-        return str(self._installed_location)
+        return normalize_path(str(self._installed_location))
 
     def _get_dist_name_from_location(self) -> Optional[str]:
         """Try to get the name from the metadata directory name.

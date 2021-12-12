@@ -151,10 +151,11 @@ class Environment(BaseEnvironment):
         finder = _DistributionFinder()
         for location in self._paths:
             yield from finder.find(location)
-            yield from finder.find_linked(location)
             for dist in finder.find_eggs(location):
                 # _emit_egg_deprecation(dist.location)  # TODO: Enable this.
                 yield dist
+            # This must go last because that's how pkg_resources tie-breaks.
+            yield from finder.find_linked(location)
 
     def get_distribution(self, name: str) -> Optional[BaseDistribution]:
         matches = (

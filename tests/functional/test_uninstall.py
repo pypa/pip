@@ -615,11 +615,13 @@ def test_uninstall_setuptools_develop_install(
     script.assert_installed(FSPkg="0.1.dev0")
     # Uninstall both develop and install
     uninstall = script.pip("uninstall", "FSPkg", "-y")
-    assert any(filename.endswith(".egg") for filename in uninstall.files_deleted.keys())
+    assert any(filename.endswith(".egg") for filename in uninstall.files_deleted), str(
+        uninstall
+    )
     uninstall2 = script.pip("uninstall", "FSPkg", "-y")
     assert (
         join(script.site_packages, "FSPkg.egg-link") in uninstall2.files_deleted
-    ), list(uninstall2.files_deleted.keys())
+    ), str(uninstall2)
     script.assert_not_installed("FSPkg")
 
 
