@@ -11,7 +11,8 @@ from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.exceptions import InvalidWheel, NoneMetadataError, UnsupportedWheel
-from pip._internal.utils.misc import display_path
+from pip._internal.utils.egg_link import egg_link_path_from_location
+from pip._internal.utils.misc import display_path, normalize_path
 from pip._internal.utils.wheel import parse_wheel, read_wheel_metadata_file
 
 from .base import (
@@ -115,6 +116,17 @@ class Distribution(BaseDistribution):
     @property
     def location(self) -> Optional[str]:
         return self._dist.location
+
+    @property
+    def installed_location(self) -> Optional[str]:
+        egg_link = egg_link_path_from_location(self.raw_name)
+        if egg_link:
+            location = egg_link
+        elif self.location:
+            location = self.location
+        else:
+            return None
+        return normalize_path(location)
 
     @property
     def info_location(self) -> Optional[str]:

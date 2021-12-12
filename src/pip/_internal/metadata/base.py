@@ -31,10 +31,7 @@ from pip._internal.models.direct_url import (
     DirectUrlValidationError,
 )
 from pip._internal.utils.compat import stdlib_pkgs  # TODO: Move definition here.
-from pip._internal.utils.egg_link import (
-    egg_link_path_from_location,
-    egg_link_path_from_sys_path,
-)
+from pip._internal.utils.egg_link import egg_link_path_from_sys_path
 from pip._internal.utils.misc import is_local, normalize_path
 from pip._internal.utils.urls import url_to_path
 
@@ -170,14 +167,7 @@ class BaseDistribution(Protocol):
 
         The returned location is normalized (in particular, with symlinks removed).
         """
-        egg_link = egg_link_path_from_location(self.raw_name)
-        if egg_link:
-            location = egg_link
-        elif self.location:
-            location = self.location
-        else:
-            return None
-        return normalize_path(location)
+        raise NotImplementedError()
 
     @property
     def info_location(self) -> Optional[str]:

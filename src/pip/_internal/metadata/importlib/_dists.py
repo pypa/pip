@@ -2,20 +2,16 @@ import email.message
 import importlib.metadata
 import os
 import pathlib
-import sys
 import zipfile
 from typing import (
     Collection,
     Dict,
     Iterable,
     Iterator,
-    List,
     Mapping,
     NamedTuple,
     Optional,
-    Protocol,
     Sequence,
-    Set,
 )
 
 from pip._vendor.packaging.requirements import Requirement
@@ -23,50 +19,21 @@ from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.exceptions import InvalidWheel, UnsupportedWheel
-from pip._internal.utils.packaging import safe_extra
-from pip._internal.utils.wheel import parse_wheel, read_wheel_metadata_file
-
-from .base import (
+from pip._internal.metadata.base import (
     BaseDistribution,
     BaseEntryPoint,
-    BaseEnvironment,
     DistributionVersion,
     InfoPath,
     Wheel,
 )
+from pip._internal.utils.packaging import safe_extra
+from pip._internal.utils.wheel import parse_wheel, read_wheel_metadata_file
 
-
-def _get_dist_normalized_name(dist: importlib.metadata.Distribution) -> NormalizedName:
-    """Get the distribution's project name.
-
-    The ``name`` attribute is only available in Python 3.10 or later. We are
-    targeting exactly that, but Mypy does not know this.
-    """
-    return canonicalize_name(dist.name)  # type: ignore[attr-defined]
-
-
-class BasePath(Protocol):
-    """A protocol that various path objects conform.
-
-    This exists because importlib.metadata uses both ``pathlib.Path`` and
-    ``zipfile.Path``, and we need a common base for type hints (Union does not
-    work well since ``zipfile.Path`` is too new for our linter setup).
-
-    This does not mean to be exhaustive, but only contains things that present
-    in both classes *that we need*.
-    """
-
-    name: str
-
-
-class RequiresEntry(NamedTuple):
-    requirement: str
-    extra: str
-    marker: str
+from ._compat import BasePath, get_dist_normalized_name
 
 
 class WheelDistribution(importlib.metadata.Distribution):
-    """Distribution read from a wheel.
+    """An ``importlib.metadata.Distribution`` read from a wheel.
 
     Although ``importlib.metadata.PathDistribution`` accepts ``zipfile.Path``,
     its implementation is too "lazy" for pip's needs (we can't keep the ZipFile
@@ -124,16 +91,24 @@ class WheelDistribution(importlib.metadata.Distribution):
         return text
 
 
+class RequiresEntry(NamedTuple):
+    requirement: str
+    extra: str
+    marker: str
+
+
 class Distribution(BaseDistribution):
     def __init__(
         self,
         dist: importlib.metadata.Distribution,
         location: BasePath,
         info_location: Optional[BasePath],
+        installed_location: Optional[BasePath],
     ) -> None:
         self._dist = dist
         self._location = location
         self._info_location = info_location
+        self._installed_location = installed_location
 
     @classmethod
     def from_directory(cls, directory: str) -> BaseDistribution:
@@ -164,14 +139,20 @@ class Distribution(BaseDistribution):
         return str(self._info_location)
 
     @property
+    def installed_location(self) -> Optional[str]:
+        if self._installed_location is None:
+            return None
+        return str(self._installed_location)
+
+    @property
     def canonical_name(self) -> NormalizedName:
         # Try to get the name from the metadata directory name. This is much
         # faster than reading metadata.
         if self._info_location is None:
-            return _get_dist_normalized_name(self._dist)
+            return get_dist_normalized_name(self._dist)
         stem, suffix = os.path.splitext(self._info_location.name)
         if suffix not in (".dist-info", ".egg-info"):
-            return _get_dist_normalized_name(self._dist)
+            return get_dist_normalized_name(self._dist)
         name, _, _ = stem.partition("-")
         return canonicalize_name(name)
 
@@ -283,52 +264,3 @@ class Distribution(BaseDistribution):
                 yield req
             elif any(req.marker.evaluate(context) for context in contexts):
                 yield req
-
-
-def _get_info_location(d: importlib.metadata.Distribution) -> Optional[BasePath]:
-    """Find the path to the distribution's metadata directory.
-
-    HACK: This relies on importlib.metadata's private ``_path`` attribute. Not
-    all distributions exist on disk, so importlib.metadata is correct to not
-    expose the attribute as public. But pip's code base is old and not as clean,
-    so we do this to avoid having to rewrite too many things. Hopefully we can
-    eliminate this some day.
-    """
-    return getattr(d, "_path", None)
-
-
-class Environment(BaseEnvironment):
-    def __init__(self, paths: Sequence[str]) -> None:
-        self._paths = paths
-
-    @classmethod
-    def default(cls) -> BaseEnvironment:
-        return cls(sys.path)
-
-    @classmethod
-    def from_paths(cls, paths: Optional[List[str]]) -> BaseEnvironment:
-        if paths is None:
-            return cls(sys.path)
-        return cls(paths)
-
-    def _iter_distributions(self) -> Iterator[BaseDistribution]:
-        # To know exact where we found a distribution, we have to feed the paths
-        # in one by one, instead of dumping entire list to importlib.metadata.
-        found_names: Set[NormalizedName] = set()
-        for path in self._paths:
-            for dist in importlib.metadata.distributions(path=[path]):
-                normalized_name = _get_dist_normalized_name(dist)
-                if normalized_name in found_names:
-                    continue
-                found_names.add(normalized_name)
-                location = pathlib.Path(path)
-                info_location = _get_info_location(dist)
-                yield Distribution(dist, location, info_location)
-
-    def get_distribution(self, name: str) -> Optional[BaseDistribution]:
-        matches = (
-            distribution
-            for distribution in self.iter_all_distributions()
-            if distribution.canonical_name == canonicalize_name(name)
-        )
-        return next(matches, None)
