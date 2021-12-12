@@ -30,7 +30,11 @@ class _DistributionFinder:
         self._found_names: Set[NormalizedName] = set()
 
     def _find_impl(self, path: pathlib.Path, source: BasePath) -> Distributions:
-        """Find distributions in a location."""
+        """Find distributions in a location.
+
+        The extra *source* argument is used by the egg-link finder to specify
+        where the egg-link file is found.
+        """
         # To know exact where we found a distribution, we have to feed the paths
         # in one by one, instead of dumping entire list to importlib.metadata.
         for dist in importlib.metadata.distributions(path=[str(path)]):
@@ -47,6 +51,27 @@ class _DistributionFinder:
         The path can be either a directory, or a ZIP archive.
         """
         yield from self._find_impl(path, source=path)
+
+    def find_linked(self, path: pathlib.Path) -> Distributions:
+        """Read location in egg-link files and return distributions in there.
+
+        The path should be a directory; otherwise this returns nothing. This
+        follows how setuptools does this for compatibility. The first non-empty
+        line in the egg-link is read as a path (resolved against the egg-link's
+        containing directory if relative). Distributions found at that linked
+        location are returned.
+        """
+        if not path.is_dir():
+            return
+        for child in path.iterdir():
+            if child.suffix != ".egg-link":
+                continue
+            with child.open() as f:
+                lines = (line.strip() for line in f)
+                target_rel = next((line for line in lines if line), "")
+            if not target_rel:
+                continue
+            yield from self._find_impl(path.joinpath(target_rel), source=path)
 
 
 class Environment(BaseEnvironment):
@@ -66,7 +91,14 @@ class Environment(BaseEnvironment):
     def _iter_distributions(self) -> Iterator[BaseDistribution]:
         finder = _DistributionFinder()
         for location in self._paths:
-            yield from finder.find_in(pathlib.Path(location))
+            path = pathlib.Path(location)
+            # Setuptools actually "mixes" dist-info, egg-info, and egg-link, and
+            # returns an arbitrary one if multiple are found under a path since
+            # it uses os.listdir(). This is not useful nor easy to implement, so
+            # a deterministic (but unspecified) order is used instead. We put
+            # egg-link last since it is only supported for legacy editables.
+            yield from finder.find_in(path)
+            yield from finder.find_linked(path)
 
     def get_distribution(self, name: str) -> Optional[BaseDistribution]:
         matches = (
