@@ -26,10 +26,10 @@ class _DistributionFinder:
 
     FoundResult = Tuple[importlib.metadata.Distribution, Optional[BasePath]]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._found_names: Set[NormalizedName] = set()
 
-    def _find_impl(self, location: str) -> FoundResult:
+    def _find_impl(self, location: str) -> Iterator[FoundResult]:
         """Find distributions in a location.
 
         The extra *source* argument is used by the egg-link finder to specify
@@ -77,7 +77,8 @@ class _DistributionFinder:
                 target_rel = next((line for line in lines if line), "")
             if not target_rel:
                 continue
-            for dist, info_location in self._find_impl(path.joinpath(target_rel)):
+            target_location = str(path.joinpath(target_rel))
+            for dist, info_location in self._find_impl(target_location):
                 yield Distribution(dist, info_location, path)
 
 
