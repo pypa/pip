@@ -188,7 +188,7 @@ class MissingPyProjectBuildRequires(DiagnosticPipError):
                 "The [build-system] table is missing the mandatory `requires` key."
             ),
             note_stmt="This is an issue with the package mentioned above, not pip.",
-            hint_stmt="See PEP 518 for the detailed specification.",
+            hint_stmt=Text("See PEP 518 for the detailed specification."),
         )
 
 
@@ -205,7 +205,7 @@ class InvalidPyProjectBuildRequires(DiagnosticPipError):
                 f"pyproject.toml.\n{reason}"
             ),
             note_stmt="This is an issue with the package mentioned above, not pip.",
-            hint_stmt="See PEP 518 for the detailed specification.",
+            hint_stmt=Text("See PEP 518 for the detailed specification."),
         )
 
 
