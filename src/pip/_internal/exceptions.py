@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 from pip._vendor.requests.models import Request, Response
 from pip._vendor.rich.console import Console, ConsoleOptions, RenderResult
+from pip._vendor.rich.markup import escape
 from pip._vendor.rich.text import Text
 
 if TYPE_CHECKING:
@@ -182,7 +183,7 @@ class MissingPyProjectBuildRequires(DiagnosticPipError):
 
     def __init__(self, *, package: str) -> None:
         super().__init__(
-            message=Text(f"Can not process {package}"),
+            message=f"Can not process {escape(package)}",
             context=Text(
                 "This package has an invalid pyproject.toml file.\n"
                 "The [build-system] table is missing the mandatory `requires` key."
@@ -199,7 +200,7 @@ class InvalidPyProjectBuildRequires(DiagnosticPipError):
 
     def __init__(self, *, package: str, reason: str) -> None:
         super().__init__(
-            message=Text(f"Can not process {package}"),
+            message=f"Can not process {escape(package)}",
             context=Text(
                 "This package has an invalid `build-system.requires` key in "
                 f"pyproject.toml.\n{reason}"
