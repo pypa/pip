@@ -147,7 +147,7 @@ class RichPipStreamHandler(RichHandler):
             highlighter=NullHighlighter(),
         )
 
-    # Our custom override on rich's logger, to make things work as we need them to.
+    # Our custom override on Rich's logger, to make things work as we need them to.
     def emit(self, record: logging.LogRecord) -> None:
         style: Optional[Style] = None
 
