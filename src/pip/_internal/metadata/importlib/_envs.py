@@ -111,6 +111,13 @@ class _DistributionFinder:
             yield legacy.Distribution(dist)
 
     def find_eggs(self, location: str) -> Iterator[BaseDistribution]:
+        """Find eggs in a location.
+
+        This actually uses the old *pkg_resources* backend. We likely want to
+        deprecate this so we can eventually remove the *pkg_resources*
+        dependency entirely. Before that, this be behind a flag because
+        importing *pkg_resources* is slow for those who don't need it.
+        """
         if os.path.isdir(location):
             yield from self._find_eggs_in_dir(location)
         if zipfile.is_zipfile(location):
@@ -143,21 +150,10 @@ class Environment(BaseEnvironment):
     def _iter_distributions(self) -> Iterator[BaseDistribution]:
         finder = _DistributionFinder()
         for location in self._paths:
-            # Setuptools actually "mixes" dist-info, egg-info, and egg-link, and
-            # returns an arbitrary one if multiple are found under a path since
-            # it uses os.listdir(). This is not useful nor easy to implement, so
-            # a deterministic (but unspecified) order is used instead. We put
-            # egg-link last since it is only supported for legacy editables.
             yield from finder.find(location)
             yield from finder.find_linked(location)
-
-            # Compatibility mode: Also find eggs in path. This uses the old
-            # pkg_resources backend, so it's on the way out on day one.
-            # TODO: This should only be enabled behind a flag because importing
-            # pkg_resources is slow.
             for dist in finder.find_eggs(location):
-                # TODO: Enable deprecation message.
-                # _emit_egg_deprecation(dist.location)
+                # _emit_egg_deprecation(dist.location)  # TODO: Enable this.
                 yield dist
 
     def get_distribution(self, name: str) -> Optional[BaseDistribution]:
