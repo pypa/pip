@@ -1,8 +1,6 @@
 import importlib.metadata
 from typing import Optional, Protocol
 
-from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
-
 
 class BasePath(Protocol):
     """A protocol that various path objects conform.
@@ -34,10 +32,10 @@ def get_info_location(d: importlib.metadata.Distribution) -> Optional[BasePath]:
     return getattr(d, "_path", None)
 
 
-def get_dist_normalized_name(dist: importlib.metadata.Distribution) -> NormalizedName:
+def get_dist_name(dist: importlib.metadata.Distribution) -> str:
     """Get the distribution's project name.
 
     The ``name`` attribute is only available in Python 3.10 or later. We are
     targeting exactly that, but Mypy does not know this.
     """
-    return canonicalize_name(dist.name)  # type: ignore[attr-defined]
+    return dist.name  # type: ignore[attr-defined]

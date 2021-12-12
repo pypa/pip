@@ -29,7 +29,7 @@ from pip._internal.metadata.base import (
 from pip._internal.utils.packaging import safe_extra
 from pip._internal.utils.wheel import parse_wheel, read_wheel_metadata_file
 
-from ._compat import BasePath, get_dist_normalized_name
+from ._compat import BasePath, get_dist_name
 
 
 class WheelDistribution(importlib.metadata.Distribution):
@@ -112,8 +112,7 @@ class Distribution(BaseDistribution):
     def from_directory(cls, directory: str) -> BaseDistribution:
         info_location = pathlib.Path(directory)
         dist = importlib.metadata.Distribution.at(info_location)
-        location = info_location.parent
-        return cls(dist, location, info_location)
+        return cls(dist, info_location, info_location.parent)
 
     @classmethod
     def from_wheel(cls, wheel: Wheel, name: str) -> BaseDistribution:
@@ -124,7 +123,7 @@ class Distribution(BaseDistribution):
             raise InvalidWheel(wheel.location, name) from e
         except UnsupportedWheel as e:
             raise UnsupportedWheel(f"{name} has an invalid wheel, {e}")
-        return cls(dist, pathlib.PurePosixPath(wheel.location), dist.info_location)
+        return cls(dist, dist.info_location, pathlib.PurePosixPath(wheel.location))
 
     @property
     def location(self) -> Optional[str]:
@@ -144,16 +143,21 @@ class Distribution(BaseDistribution):
             return None
         return str(self._installed_location)
 
-    @property
-    def canonical_name(self) -> NormalizedName:
-        # Try to get the name from the metadata directory name. This is much
-        # faster than reading metadata.
+    def _get_dist_name_from_location(self) -> Optional[str]:
+        """Try to get the name from the metadata directory name.
+
+        This is much faster than reading metadata.
+        """
         if self._info_location is None:
-            return get_dist_normalized_name(self._dist)
+            return None
         stem, suffix = os.path.splitext(self._info_location.name)
         if suffix not in (".dist-info", ".egg-info"):
-            return get_dist_normalized_name(self._dist)
-        name, _, _ = stem.partition("-")
+            return None
+        return stem.split("-", 1)[0]
+
+    @property
+    def canonical_name(self) -> NormalizedName:
+        name = self._get_dist_name_from_location() or get_dist_name(self._dist)
         return canonicalize_name(name)
 
     @property

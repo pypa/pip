@@ -7,7 +7,7 @@ from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 
 from pip._internal.metadata.base import BaseDistribution, BaseEnvironment
 
-from ._compat import BasePath, get_dist_normalized_name, get_info_location
+from ._compat import BasePath, get_dist_name, get_info_location
 from ._dists import Distribution
 
 
@@ -38,7 +38,7 @@ class _DistributionFinder:
         # To know exact where we found a distribution, we have to feed the paths
         # in one by one, instead of dumping entire list to importlib.metadata.
         for dist in importlib.metadata.distributions(path=[location]):
-            normalized_name = get_dist_normalized_name(dist)
+            normalized_name = canonicalize_name(get_dist_name(dist))
             if normalized_name in self._found_names:
                 continue
             self._found_names.add(normalized_name)
