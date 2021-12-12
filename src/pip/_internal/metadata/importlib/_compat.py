@@ -16,6 +16,7 @@ class BasePath(Protocol):
     """
 
     name: str
+    parent: "BasePath"
 
 
 def get_info_location(d: importlib.metadata.Distribution) -> Optional[BasePath]:

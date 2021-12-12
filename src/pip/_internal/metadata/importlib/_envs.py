@@ -1,7 +1,7 @@
 import importlib.metadata
 import pathlib
 import sys
-from typing import Iterator, List, Optional, Sequence, Set
+from typing import Iterator, List, Optional, Sequence, Set, Tuple
 
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 
@@ -24,12 +24,12 @@ class _DistributionFinder:
     installations as well. It's useful feature, after all.
     """
 
-    Distributions = Iterator[BaseDistribution]
+    FoundResult = Tuple[importlib.metadata.Distribution, Optional[BasePath]]
 
     def __init__(self):
         self._found_names: Set[NormalizedName] = set()
 
-    def _find_impl(self, path: pathlib.Path, source: BasePath) -> Distributions:
+    def _find_impl(self, location: str) -> FoundResult:
         """Find distributions in a location.
 
         The extra *source* argument is used by the egg-link finder to specify
@@ -37,22 +37,27 @@ class _DistributionFinder:
         """
         # To know exact where we found a distribution, we have to feed the paths
         # in one by one, instead of dumping entire list to importlib.metadata.
-        for dist in importlib.metadata.distributions(path=[str(path)]):
+        for dist in importlib.metadata.distributions(path=[location]):
             normalized_name = get_dist_normalized_name(dist)
             if normalized_name in self._found_names:
                 continue
             self._found_names.add(normalized_name)
             info_location = get_info_location(dist)
-            yield Distribution(dist, path, info_location, source)
+            yield dist, info_location
 
-    def find_in(self, path: pathlib.Path) -> Distributions:
+    def find(self, location: str) -> Iterator[BaseDistribution]:
         """Find distributions in a location.
 
         The path can be either a directory, or a ZIP archive.
         """
-        yield from self._find_impl(path, source=path)
+        for dist, info_location in self._find_impl(location):
+            if info_location is None:
+                installed_location: Optional[BasePath] = None
+            else:
+                installed_location = info_location.parent
+            yield Distribution(dist, info_location, installed_location)
 
-    def find_linked(self, path: pathlib.Path) -> Distributions:
+    def find_linked(self, location: str) -> Iterator[BaseDistribution]:
         """Read location in egg-link files and return distributions in there.
 
         The path should be a directory; otherwise this returns nothing. This
@@ -61,6 +66,7 @@ class _DistributionFinder:
         containing directory if relative). Distributions found at that linked
         location are returned.
         """
+        path = pathlib.Path(location)
         if not path.is_dir():
             return
         for child in path.iterdir():
@@ -71,7 +77,8 @@ class _DistributionFinder:
                 target_rel = next((line for line in lines if line), "")
             if not target_rel:
                 continue
-            yield from self._find_impl(path.joinpath(target_rel), source=path)
+            for dist, info_location in self._find_impl(path.joinpath(target_rel)):
+                yield Distribution(dist, info_location, path)
 
 
 class Environment(BaseEnvironment):
@@ -91,14 +98,13 @@ class Environment(BaseEnvironment):
     def _iter_distributions(self) -> Iterator[BaseDistribution]:
         finder = _DistributionFinder()
         for location in self._paths:
-            path = pathlib.Path(location)
             # Setuptools actually "mixes" dist-info, egg-info, and egg-link, and
             # returns an arbitrary one if multiple are found under a path since
             # it uses os.listdir(). This is not useful nor easy to implement, so
             # a deterministic (but unspecified) order is used instead. We put
             # egg-link last since it is only supported for legacy editables.
-            yield from finder.find_in(path)
-            yield from finder.find_linked(path)
+            yield from finder.find(location)
+            yield from finder.find_linked(location)
 
     def get_distribution(self, name: str) -> Optional[BaseDistribution]:
         matches = (

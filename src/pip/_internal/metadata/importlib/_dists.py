@@ -101,12 +101,10 @@ class Distribution(BaseDistribution):
     def __init__(
         self,
         dist: importlib.metadata.Distribution,
-        location: BasePath,
         info_location: Optional[BasePath],
         installed_location: Optional[BasePath],
     ) -> None:
         self._dist = dist
-        self._location = location
         self._info_location = info_location
         self._installed_location = installed_location
 
@@ -130,7 +128,9 @@ class Distribution(BaseDistribution):
 
     @property
     def location(self) -> Optional[str]:
-        return str(self._location)
+        if self._info_location is None:
+            return None
+        return str(self._info_location.parent)
 
     @property
     def info_location(self) -> Optional[str]:
