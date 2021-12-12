@@ -2327,3 +2327,26 @@ def test_new_resolver_do_not_backtrack_on_build_failure(
     )
 
     assert "egg_info" in result.stderr
+
+
+def test_new_resolver_works_when_failing_package_builds_are_disallowed(
+    script: PipTestEnvironment,
+) -> None:
+    create_basic_wheel_for_package(script, "pkg2", "1.0", depends=["pkg1"])
+    create_basic_sdist_for_package(script, "pkg1", "2.0", fails_egg_info=True)
+    create_basic_wheel_for_package(script, "pkg1", "1.0")
+    constraints_file = script.scratch_path / "constraints.txt"
+    constraints_file.write_text("pkg1 != 2.0")
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "-c",
+        constraints_file,
+        "pkg2",
+    )
+
+    script.assert_installed(pkg2="1.0", pkg1="1.0")
