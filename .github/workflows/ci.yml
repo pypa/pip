@@ -223,7 +223,7 @@ jobs:
     name: tests for importlib.metadata backend
     runs-on: ubuntu-latest
     env:
-      _PIP_METADATA_BACKEND_IMPORTLIB: '1'
+      _PIP_METADATA_BACKEND_IMPORTLIB: egg-compat
 
     needs: [pre-commit, packaging, determine-changes]
     if: >-
