@@ -165,16 +165,16 @@ class Command(CommandContextMixIn):
                     status = run_func(*args)
                     assert isinstance(status, int)
                     return status
+                except DiagnosticPipError as exc:
+                    logger.error("[present-diagnostic]", exc)
+                    logger.debug("Exception information:", exc_info=True)
+
+                    return ERROR
                 except PreviousBuildDirError as exc:
                     logger.critical(str(exc))
                     logger.debug("Exception information:", exc_info=True)
 
                     return PREVIOUS_BUILD_DIR_ERROR
-                except DiagnosticPipError as exc:
-                    logger.critical(str(exc))
-                    logger.debug("Exception information:", exc_info=True)
-
-                    return ERROR
                 except (
                     InstallationError,
                     UninstallationError,
