@@ -13,6 +13,8 @@ from typing import (
     Union,
 )
 
+from pip._vendor.rich.markup import escape
+
 from pip._internal.cli.spinners import SpinnerInterface, open_spinner
 from pip._internal.exceptions import InstallationSubprocessError
 from pip._internal.utils.logging import VERBOSE, subprocess_logger
@@ -25,9 +27,6 @@ if TYPE_CHECKING:
     from typing import Literal
 
 CommandArgs = List[Union[str, HiddenText]]
-
-
-LOG_DIVIDER = "----------------------------------------"
 
 
 def make_command(*args: Union[str, HiddenText, CommandArgs]) -> CommandArgs:
@@ -67,41 +66,6 @@ def reveal_command_args(args: Union[List[str], CommandArgs]) -> List[str]:
     Return the arguments in their raw, unredacted form.
     """
     return [arg.secret if isinstance(arg, HiddenText) else arg for arg in args]
-
-
-def make_subprocess_output_error(
-    cmd_args: Union[List[str], CommandArgs],
-    cwd: Optional[str],
-    lines: List[str],
-    exit_status: int,
-) -> str:
-    """
-    Create and return the error message to use to log a subprocess error
-    with command output.
-
-    :param lines: A list of lines, each ending with a newline.
-    """
-    command = format_command_args(cmd_args)
-
-    # We know the joined output value ends in a newline.
-    output = "".join(lines)
-    msg = (
-        # Use a unicode string to avoid "UnicodeEncodeError: 'ascii'
-        # codec can't encode character ..." in Python 2 when a format
-        # argument (e.g. `output`) has a non-ascii character.
-        "Command errored out with exit status {exit_status}:\n"
-        " command: {command_display}\n"
-        "     cwd: {cwd_display}\n"
-        "Complete output ({line_count} lines):\n{output}{divider}"
-    ).format(
-        exit_status=exit_status,
-        command_display=command,
-        cwd_display=cwd,
-        line_count=len(lines),
-        output=output,
-        divider=LOG_DIVIDER,
-    )
-    return msg
 
 
 def call_subprocess(
@@ -239,17 +203,25 @@ def call_subprocess(
             spinner.finish("done")
     if proc_had_error:
         if on_returncode == "raise":
-            if not showing_subprocess and log_failed_cmd:
-                # Then the subprocess streams haven't been logged to the
-                # console yet.
-                msg = make_subprocess_output_error(
-                    cmd_args=cmd,
-                    cwd=cwd,
-                    lines=all_output,
-                    exit_status=proc.returncode,
+            error = InstallationSubprocessError(
+                command_description=command_desc,
+                exit_code=proc.returncode,
+                output_lines=all_output if not showing_subprocess else None,
+            )
+            if log_failed_cmd:
+                subprocess_logger.error("[present-diagnostic]", error)
+                subprocess_logger.verbose(
+                    "[bold magenta]full command[/]: [blue]%s[/]",
+                    escape(format_command_args(cmd)),
+                    extra={"markup": True},
                 )
-                subprocess_logger.error(msg)
-            raise InstallationSubprocessError(proc.returncode, command_desc)
+                subprocess_logger.verbose(
+                    "[bold magenta]cwd[/]: %s",
+                    escape(cwd or "[inherit]"),
+                    extra={"markup": True},
+                )
+
+            raise error
         elif on_returncode == "warn":
             subprocess_logger.warning(
                 'Command "%s" had error code %s in %s',

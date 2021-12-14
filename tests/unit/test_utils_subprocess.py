@@ -1,7 +1,6 @@
 import locale
 import sys
 from logging import DEBUG, ERROR, INFO, WARNING
-from textwrap import dedent
 from typing import List, Optional, Tuple, Type
 
 import pytest
@@ -15,7 +14,6 @@ from pip._internal.utils.subprocess import (
     call_subprocess,
     format_command_args,
     make_command,
-    make_subprocess_output_error,
     subprocess_logger,
 )
 
@@ -38,104 +36,6 @@ from pip._internal.utils.subprocess import (
 def test_format_command_args(args: CommandArgs, expected: str) -> None:
     actual = format_command_args(args)
     assert actual == expected
-
-
-def test_make_subprocess_output_error() -> None:
-    cmd_args = ["test", "has space"]
-    cwd = "/path/to/cwd"
-    lines = ["line1\n", "line2\n", "line3\n"]
-    actual = make_subprocess_output_error(
-        cmd_args=cmd_args,
-        cwd=cwd,
-        lines=lines,
-        exit_status=3,
-    )
-    expected = dedent(
-        """\
-    Command errored out with exit status 3:
-     command: test 'has space'
-         cwd: /path/to/cwd
-    Complete output (3 lines):
-    line1
-    line2
-    line3
-    ----------------------------------------"""
-    )
-    assert actual == expected, f"actual: {actual}"
-
-
-def test_make_subprocess_output_error__non_ascii_command_arg(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """
-    Test a command argument with a non-ascii character.
-    """
-    cmd_args = ["foo", "déf"]
-
-    # We need to monkeypatch so the encoding will be correct on Windows.
-    monkeypatch.setattr(locale, "getpreferredencoding", lambda: "utf-8")
-    actual = make_subprocess_output_error(
-        cmd_args=cmd_args,
-        cwd="/path/to/cwd",
-        lines=[],
-        exit_status=1,
-    )
-    expected = dedent(
-        """\
-    Command errored out with exit status 1:
-     command: foo 'déf'
-         cwd: /path/to/cwd
-    Complete output (0 lines):
-    ----------------------------------------"""
-    )
-    assert actual == expected, f"actual: {actual}"
-
-
-def test_make_subprocess_output_error__non_ascii_cwd_python_3() -> None:
-    """
-    Test a str (text) cwd with a non-ascii character in Python 3.
-    """
-    cmd_args = ["test"]
-    cwd = "/path/to/cwd/déf"
-    actual = make_subprocess_output_error(
-        cmd_args=cmd_args,
-        cwd=cwd,
-        lines=[],
-        exit_status=1,
-    )
-    expected = dedent(
-        """\
-    Command errored out with exit status 1:
-     command: test
-         cwd: /path/to/cwd/déf
-    Complete output (0 lines):
-    ----------------------------------------"""
-    )
-    assert actual == expected, f"actual: {actual}"
-
-
-# This test is mainly important for checking unicode in Python 2.
-def test_make_subprocess_output_error__non_ascii_line() -> None:
-    """
-    Test a line with a non-ascii character.
-    """
-    lines = ["curly-quote: \u2018\n"]
-    actual = make_subprocess_output_error(
-        cmd_args=["test"],
-        cwd="/path/to/cwd",
-        lines=lines,
-        exit_status=1,
-    )
-    expected = dedent(
-        """\
-    Command errored out with exit status 1:
-     command: test
-         cwd: /path/to/cwd
-    Complete output (1 lines):
-    curly-quote: \u2018
-    ----------------------------------------"""
-    )
-    assert actual == expected, f"actual: {actual}"
 
 
 @pytest.mark.parametrize(
@@ -169,8 +69,8 @@ def test_call_subprocess_stdout_only(
     assert out in expected
     captured = capfd.readouterr()
     assert captured.err == ""
-    assert log == ["Running command %s", "out", "err"] or log == [
-        "Running command %s",
+    assert log == ["Running %s", "out", "err"] or log == [
+        "Running %s",
         "err",
         "out",
     ]
@@ -281,7 +181,7 @@ class TestCallSubprocess:
         expected = (
             ["Hello", "world"],
             [
-                ("pip.subprocessor", VERBOSE, "Running command "),
+                ("pip.subprocessor", VERBOSE, "Running "),
                 ("pip.subprocessor", VERBOSE, "Hello"),
                 ("pip.subprocessor", VERBOSE, "world"),
             ],
@@ -413,7 +313,7 @@ class TestCallSubprocess:
         expected = (
             ["Hello", "world"],
             [
-                ("pip.subprocessor", INFO, "Running command "),
+                ("pip.subprocessor", INFO, "Running "),
                 ("pip.subprocessor", INFO, "Hello"),
                 ("pip.subprocessor", INFO, "world"),
             ],
@@ -512,5 +412,5 @@ def test_unicode_decode_error(caplog: pytest.LogCaptureFixture) -> None:
     )
 
     assert len(caplog.records) == 2
-    # First log record is "Running command ..."
+    # First log record is "Running ..."
     assert caplog.record_tuples[1] == ("pip.subprocessor", INFO, "\\xff")
