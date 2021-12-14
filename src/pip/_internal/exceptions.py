@@ -1,4 +1,9 @@
-"""Exceptions used throughout package"""
+"""Exceptions used throughout package.
+
+This module MUST NOT try to import from anything within `pip._internal` to
+operate. This is expected to be importable from any/all files within the
+subpackage and, thus, should not depend on them.
+"""
 
 import configparser
 import re
