@@ -504,6 +504,7 @@ class InstallRequirement:
         Under legacy processing, call setup.py egg-info.
         """
         assert self.source_dir
+        details = self.name or f"from {self.link}"
 
         if self.use_pep517:
             assert self.pep517_backend is not None
@@ -515,11 +516,13 @@ class InstallRequirement:
                 self.metadata_directory = generate_editable_metadata(
                     build_env=self.build_env,
                     backend=self.pep517_backend,
+                    details=details,
                 )
             else:
                 self.metadata_directory = generate_metadata(
                     build_env=self.build_env,
                     backend=self.pep517_backend,
+                    details=details,
                 )
         else:
             self.metadata_directory = generate_metadata_legacy(
@@ -527,7 +530,7 @@ class InstallRequirement:
                 setup_py_path=self.setup_py_path,
                 source_dir=self.unpacked_source_directory,
                 isolated=self.isolated,
-                details=self.name or f"from {self.link}",
+                details=details,
             )
 
         # Act on the newly generated metadata, based on the name and version.
