@@ -6,11 +6,11 @@ from typing import List, Optional, Sequence
 _SETUPTOOLS_SHIM = textwrap.dedent(
     """
     exec(compile('''
-    # This is <pip-setuptools-shim> -- a shim that pip uses to run setup.py
+    # This is <pip-setuptools-caller> -- a caller that pip uses to run setup.py
     #
     # - It imports setuptools before invoking setup.py, to enable projects that directly
     #   import from `distutils.core` to work with newer packaging standards.
-    # - Provides a clearer error message when setuptools is not installed.
+    # - It provides a clear error message when setuptools is not installed.
     # - It sets `sys.argv[0]` to the underlying `setup.py`, when invoking `setup.py` so
     #   setuptools doesn't think the script is `-c`. This avoids the following warning:
     #     manifest_maker: standard file '-c' not found".
@@ -20,10 +20,12 @@ _SETUPTOOLS_SHIM = textwrap.dedent(
     try:
         import setuptools
     except ImportError as error:
-        raise RuntimeError(
-            "setuptools is not available in the build environment, but is required "
-            "to use setup.py-based projects with pip."
-        ) from error
+        print(
+            "ERROR: Can not execute `setup.py` since setuptools is not available in "
+            "the build environment.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     __file__ = {!r}
     sys.argv[0] = __file__
@@ -37,7 +39,7 @@ _SETUPTOOLS_SHIM = textwrap.dedent(
         setup_py_code = "from setuptools import setup; setup()"
 
     exec(compile(setup_py_code, filename, "exec"))
-    ''', "<pip-setuptools-shim>", "exec"))
+    ''', "<pip-setuptools-caller>", "exec"))
     """
 ).rstrip()
 
