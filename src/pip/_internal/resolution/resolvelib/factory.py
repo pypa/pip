@@ -58,6 +58,7 @@ from .candidates import (
     RequiresPythonCandidate,
     as_base_candidate,
 )
+from .causes import BacktrackCauses
 from .found_candidates import FoundCandidates, IndexCandidateInfo
 from .requirements import (
     ExplicitRequirement,
@@ -599,7 +600,7 @@ class Factory:
 
     def get_installation_error(
         self,
-        e: "ResolutionImpossible[Requirement, Candidate]",
+        e: "ResolutionImpossible[Requirement, BacktrackCauses]",
         constraints: Dict[str, Constraint],
     ) -> InstallationError:
 
@@ -609,7 +610,7 @@ class Factory:
         # that is what we report.
         requires_python_causes = [
             cause
-            for cause in e.causes
+            for cause in e.causes.information
             if isinstance(cause.requirement, RequiresPythonRequirement)
             and not cause.requirement.is_satisfied_by(self._python_candidate)
         ]
@@ -625,8 +626,8 @@ class Factory:
 
         # The simplest case is when we have *one* cause that can't be
         # satisfied. We just report that case.
-        if len(e.causes) == 1:
-            req, parent = e.causes[0]
+        if len(e.causes.information) == 1:
+            req, parent = e.causes.information[0]
             if req.name not in constraints:
                 return self._report_single_requirement_conflict(req, parent)
 
@@ -649,7 +650,7 @@ class Factory:
             return str(ireq.comes_from)
 
         triggers = set()
-        for req, parent in e.causes:
+        for req, parent in e.causes.information:
             if parent is None:
                 # This is a root requirement, so we can report it directly
                 trigger = req.format_for_error()
@@ -670,7 +671,7 @@ class Factory:
         msg = "\nThe conflict is caused by:"
 
         relevant_constraints = set()
-        for req, parent in e.causes:
+        for req, parent in e.causes.information:
             if req.name in constraints:
                 relevant_constraints.add(req.name)
             msg = msg + "\n    "

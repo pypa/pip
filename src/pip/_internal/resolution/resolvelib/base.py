@@ -1,8 +1,9 @@
-from typing import FrozenSet, Iterable, Optional, Tuple, Union
+from typing import Any, FrozenSet, Iterable, Optional, Sequence, Tuple, Union
 
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.packaging.version import LegacyVersion, Version
+from pip._vendor.resolvelib.resolvers import RequirementInformation
 
 from pip._internal.models.link import Link, links_equivalent
 from pip._internal.req.req_install import InstallRequirement
@@ -139,3 +140,22 @@ class Candidate:
 
     def format_for_error(self) -> str:
         raise NotImplementedError("Subclass should override")
+
+
+class Causes:
+    @property
+    def names(self) -> set[str]:
+        raise NotImplementedError("Override in subclass")
+
+    @property
+    def information(self) -> Sequence[RequirementInformation[Requirement, Candidate]]:
+        raise NotImplementedError("Override in subclass")
+
+    def __copy__(self) -> "Causes":
+        raise NotImplementedError("Override in subclass")
+
+    def __eq__(self, other: Any) -> bool:
+        raise NotImplementedError("Override in subclass")
+
+    def __bool__(self) -> bool:
+        raise NotImplementedError("Override in subclass")

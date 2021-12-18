@@ -14,6 +14,7 @@ from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver, InstallRequirementProvider
+from pip._internal.resolution.resolvelib.causes import BacktrackCauses
 from pip._internal.resolution.resolvelib.provider import PipProvider
 from pip._internal.resolution.resolvelib.reporter import (
     PipDebuggingReporter,
@@ -95,7 +96,7 @@ class Resolver(BaseResolver):
 
         except ResolutionImpossible as e:
             error = self.factory.get_installation_error(
-                cast("ResolutionImpossible[Requirement, Candidate]", e),
+                cast("ResolutionImpossible[Requirement, BacktrackCauses]", e),
                 collected.constraints,
             )
             raise error from e

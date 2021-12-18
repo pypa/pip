@@ -2,9 +2,11 @@ import collections
 import math
 from typing import (
     TYPE_CHECKING,
+    Any,
     Dict,
     Iterable,
     Iterator,
+    List,
     Mapping,
     Sequence,
     TypeVar,
@@ -13,8 +15,9 @@ from typing import (
 
 from pip._vendor.resolvelib.providers import AbstractProvider
 
-from .base import Candidate, Constraint, Requirement
+from .base import Candidate, Causes, Constraint, Requirement
 from .candidates import REQUIRES_PYTHON_IDENTIFIER
+from .causes import BacktrackCauses
 from .factory import Factory
 
 if TYPE_CHECKING:
@@ -104,13 +107,13 @@ class PipProvider(_ProviderBase):
     def identify(self, requirement_or_candidate: Union[Requirement, Candidate]) -> str:
         return requirement_or_candidate.name
 
-    def get_preference(  # type: ignore
+    def get_preference(
         self,
         identifier: str,
         resolutions: Mapping[str, Candidate],
         candidates: Mapping[str, Iterator[Candidate]],
         information: Mapping[str, Iterable["PreferenceInformation"]],
-        backtrack_causes: Sequence["PreferenceInformation"],
+        backtrack_causes: Causes,
     ) -> "Preference":
         """Produce a sort key for given requirement based on preference.
 
@@ -174,7 +177,7 @@ class PipProvider(_ProviderBase):
         # Prefer the causes of backtracking on the assumption that the problem
         # resolving the dependency tree is related to the failures that caused
         # the backtracking
-        backtrack_cause = self.is_backtrack_cause(identifier, backtrack_causes)
+        backtrack_cause = identifier in backtrack_causes.names
 
         return (
             not requires_python,
@@ -237,12 +240,5 @@ class PipProvider(_ProviderBase):
         return [r for r in candidate.iter_dependencies(with_requires) if r is not None]
 
     @staticmethod
-    def is_backtrack_cause(
-        identifier: str, backtrack_causes: Sequence["PreferenceInformation"]
-    ) -> bool:
-        for backtrack_cause in backtrack_causes:
-            if identifier == backtrack_cause.requirement.name:
-                return True
-            if backtrack_cause.parent and identifier == backtrack_cause.parent.name:
-                return True
-        return False
+    def causes(causes: List[Any]) -> BacktrackCauses:
+        return BacktrackCauses(causes=causes)

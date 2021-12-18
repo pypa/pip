@@ -46,7 +46,7 @@ def test_provider_known_depths(factory: Factory) -> None:
         resolutions={},
         candidates={},
         information={root_requirement_name: root_requirement_information},
-        backtrack_causes=[],
+        backtrack_causes=provider.causes(causes=[]),
     )
     assert provider._known_depths == {root_requirement_name: 1.0}
 
@@ -70,7 +70,7 @@ def test_provider_known_depths(factory: Factory) -> None:
             root_requirement_name: root_requirement_information,
             transative_requirement_name: transative_package_information,
         },
-        backtrack_causes=[],
+        backtrack_causes=provider.causes([]),
     )
     assert provider._known_depths == {
         transative_requirement_name: 2.0,
