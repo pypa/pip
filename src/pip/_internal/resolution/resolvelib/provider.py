@@ -13,8 +13,9 @@ from typing import (
 
 from pip._vendor.resolvelib.providers import AbstractProvider
 
+from pip._internal.resolution.base import REQUIRES_PYTHON_IDENTIFIER
+
 from .base import Candidate, Constraint, Requirement
-from .candidates import REQUIRES_PYTHON_IDENTIFIER
 from .factory import Factory
 
 if TYPE_CHECKING:

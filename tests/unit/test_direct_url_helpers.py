@@ -1,3 +1,4 @@
+import dataclasses
 from functools import partial
 from unittest import mock
 
@@ -22,14 +23,20 @@ def test_as_pep440_requirement_archive() -> None:
         direct_url_as_pep440_direct_reference(direct_url, "pkg")
         == "pkg @ file:///home/user/archive.tgz"
     )
-    direct_url.subdirectory = "subdir"
+    direct_url = dataclasses.replace(direct_url, subdirectory="subdir")
     direct_url.validate()
     assert (
         direct_url_as_pep440_direct_reference(direct_url, "pkg")
         == "pkg @ file:///home/user/archive.tgz#subdirectory=subdir"
     )
     assert isinstance(direct_url.info, ArchiveInfo)
-    direct_url.info.hash = "sha1=1b8c5bc61a86f377fea47b4276c8c8a5842d2220"
+    assert direct_url.info.hash is None
+    direct_url = dataclasses.replace(
+        direct_url,
+        info=dataclasses.replace(
+            direct_url.info, hash="sha1=1b8c5bc61a86f377fea47b4276c8c8a5842d2220"
+        ),
+    )
     direct_url.validate()
     assert (
         direct_url_as_pep440_direct_reference(direct_url, "pkg")
@@ -76,7 +83,7 @@ def test_as_pep440_requirement_vcs() -> None:
         == "pkg @ git+https:///g.c/u/p.git"
         "@1b8c5bc61a86f377fea47b4276c8c8a5842d2220"
     )
-    direct_url.subdirectory = "subdir"
+    direct_url = dataclasses.replace(direct_url, subdirectory="subdir")
     direct_url.validate()
     assert (
         direct_url_as_pep440_direct_reference(direct_url, "pkg")

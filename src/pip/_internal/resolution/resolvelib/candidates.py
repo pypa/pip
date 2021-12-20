@@ -1,7 +1,8 @@
 import logging
 import sys
-from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, Optional, Tuple, Union
 
+from pip._vendor.packaging.requirements import Requirement as PkgRequirement
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.packaging.version import Version
 
@@ -17,7 +18,11 @@ from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
 )
-from pip._internal.req.req_install import InstallRequirement
+from pip._internal.req.req_install import (
+    InstallRequirement,
+    produce_exact_version_requirement,
+)
+from pip._internal.resolution.base import REQUIRES_PYTHON_IDENTIFIER
 from pip._internal.utils.misc import normalize_version_info
 
 from .base import Candidate, CandidateVersion, Requirement, format_name
@@ -32,9 +37,6 @@ BaseCandidate = Union[
     "EditableCandidate",
     "LinkCandidate",
 ]
-
-# Avoid conflicting with the PyPI package "Python".
-REQUIRES_PYTHON_IDENTIFIER = cast(NormalizedName, "<Python from Requires-Python>")
 
 
 def as_base_candidate(candidate: Candidate) -> Optional[BaseCandidate]:
@@ -162,6 +164,9 @@ class _InstallRequirementBackedCandidate(Candidate):
 
     def __str__(self) -> str:
         return f"{self.name} {self.version}"
+
+    def as_serializable_requirement(self) -> PkgRequirement:
+        return produce_exact_version_requirement(self.name, str(self.version))
 
     def __repr__(self) -> str:
         return "{class_name}({link!r})".format(
@@ -376,6 +381,9 @@ class AlreadyInstalledCandidate(Candidate):
     def version(self) -> CandidateVersion:
         return self.dist.version
 
+    def as_serializable_requirement(self) -> PkgRequirement:
+        return self.dist.as_serializable_requirement()
+
     @property
     def is_editable(self) -> bool:
         return self.dist.editable
@@ -458,6 +466,9 @@ class ExtrasCandidate(Candidate):
     def version(self) -> CandidateVersion:
         return self.base.version
 
+    def as_serializable_requirement(self) -> PkgRequirement:
+        return self.base.as_serializable_requirement()
+
     def format_for_error(self) -> str:
         return "{} [{}]".format(
             self.base.format_for_error(), ", ".join(sorted(self.extras))
@@ -539,6 +550,13 @@ class RequiresPythonCandidate(Candidate):
     @property
     def version(self) -> CandidateVersion:
         return self._version
+
+    def as_serializable_requirement(self) -> PkgRequirement:
+        raise NotImplementedError()
+
+    @property
+    def is_editable(self) -> bool:
+        return False
 
     def format_for_error(self) -> str:
         return f"Python {self.version}"

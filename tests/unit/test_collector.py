@@ -2,6 +2,7 @@ import itertools
 import logging
 import os.path
 import re
+import urllib.parse
 import urllib.request
 import uuid
 from textwrap import dedent
@@ -10,13 +11,12 @@ from unittest import mock
 
 import pytest
 from pip._vendor import html5lib, requests
+from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.index.collector import (
     HTMLPage,
     LinkCollector,
-    _clean_link,
-    _clean_url_path,
     _determine_base_url,
     _get_html_page,
     _get_html_response,
@@ -27,11 +27,33 @@ from pip._internal.index.collector import (
 )
 from pip._internal.index.sources import _FlatDirectorySource, _IndexDirectorySource
 from pip._internal.models.candidate import InstallationCandidate
+from pip._internal.models.direct_url import ArchiveInfo, DirectUrl
 from pip._internal.models.index import PyPI
-from pip._internal.models.link import Link
+from pip._internal.models.link import (
+    Link,
+    LinkHash,
+    LinkWithSource,
+    URLDownloadInfo,
+    _clean_url_path,
+)
 from pip._internal.network.session import PipSession
 from tests.lib import TestData, make_test_link_collector
 from tests.lib.path import Path
+
+
+def _clean_link(url: str) -> str:
+    """
+    Make sure a link is fully quoted.
+    For example, if ' ' occurs in the URL, it will be replaced with "%20",
+    and without double-quoting other characters.
+    """
+    # Split the URL into parts according to the general structure
+    # `scheme://netloc/path;parameters?query#fragment`.
+    result = urllib.parse.urlparse(url)
+    # If the netloc is empty, then the URL refers to a local filesystem path.
+    is_local_path = not result.netloc
+    path = _clean_url_path(result.path, is_local_path=is_local_path)
+    return urllib.parse.urlunparse(result._replace(path=path))
 
 
 @pytest.mark.parametrize(
@@ -420,7 +442,7 @@ def test_clean_link(url: str, clean_url: str) -> None:
 
 def _test_parse_links_data_attribute(
     anchor_html: str, attr: str, expected: Optional[str]
-) -> None:
+) -> Link:
     html = (
         "<!DOCTYPE html>"
         '<html><head><meta charset="utf-8"><head>'
@@ -438,6 +460,7 @@ def _test_parse_links_data_attribute(
     (link,) = links
     actual = getattr(link, attr)
     assert actual == expected
+    return link
 
 
 @pytest.mark.parametrize(
@@ -492,6 +515,78 @@ def test_parse_links__requires_python(
 )
 def test_parse_links__yanked_reason(anchor_html: str, expected: Optional[str]) -> None:
     _test_parse_links_data_attribute(anchor_html, "yanked_reason", expected)
+
+
+# Requirement objects do not == each other unless they point to the same instance!
+_pkg1_requirement = Requirement("pkg1==1.0")
+
+
+@pytest.mark.parametrize(
+    "anchor_html, expected, download_info",
+    [
+        # Test not present.
+        (
+            '<a href="/pkg1-1.0.tar.gz"></a>',
+            None,
+            URLDownloadInfo(
+                DirectUrl(
+                    "https://example.com/pkg1-1.0.tar.gz", ArchiveInfo(hash=None)
+                ),
+                None,
+            ),
+        ),
+        # Test with value "true".
+        (
+            '<a href="/pkg1-1.0.tar.gz" data-dist-info-metadata="true"></a>',
+            "true",
+            URLDownloadInfo(
+                DirectUrl(
+                    "https://example.com/pkg1-1.0.tar.gz", ArchiveInfo(hash=None)
+                ),
+                DirectUrl(
+                    url="https://example.com/pkg1-1.0.tar.gz.metadata",
+                    info=ArchiveInfo(hash=None),
+                ),
+            ),
+        ),
+        # Test with a provided hash value.
+        (
+            '<a href="/pkg1-1.0.tar.gz" data-dist-info-metadata="sha256=aa113592bbe"></a>',  # noqa: E501
+            "sha256=aa113592bbe",
+            URLDownloadInfo(
+                DirectUrl(
+                    "https://example.com/pkg1-1.0.tar.gz", ArchiveInfo(hash=None)
+                ),
+                DirectUrl(
+                    url="https://example.com/pkg1-1.0.tar.gz.metadata",
+                    info=ArchiveInfo(hash="sha256=aa113592bbe"),
+                ),
+            ),
+        ),
+        # Test with a provided hash value for both the requirement as well as metadata.
+        (
+            '<a href="/pkg1-1.0.tar.gz#sha512=abc132409cb" data-dist-info-metadata="sha256=aa113592bbe"></a>',  # noqa: E501
+            "sha256=aa113592bbe",
+            URLDownloadInfo(
+                DirectUrl(
+                    "https://example.com/pkg1-1.0.tar.gz",
+                    ArchiveInfo(hash="sha512=abc132409cb"),
+                ),
+                DirectUrl(
+                    url="https://example.com/pkg1-1.0.tar.gz.metadata",
+                    info=ArchiveInfo(hash="sha256=aa113592bbe"),
+                ),
+            ),
+        ),
+    ],
+)
+def test_parse_links__dist_info_metadata(
+    anchor_html: str,
+    expected: Optional[str],
+    download_info: URLDownloadInfo,
+) -> None:
+    link = _test_parse_links_data_attribute(anchor_html, "dist_info_metadata", expected)
+    assert URLDownloadInfo.from_link_with_source(LinkWithSource(link)) == download_info
 
 
 def test_parse_links_caches_same_page_by_url() -> None:
@@ -933,3 +1028,23 @@ def test_link_collector_create_find_links_expansion(
     expected_temp2_dir = os.path.normcase(temp2_dir)
     assert search_scope.find_links == ["~/temp1", expected_temp2_dir]
     assert search_scope.index_urls == ["default_url"]
+
+
+@pytest.mark.parametrize(
+    "url, result",
+    [
+        (
+            "https://pypi.org/pip-18.0.tar.gz#sha256=aa113592bbe",
+            LinkHash("sha256", "aa113592bbe"),
+        ),
+        (
+            "https://pypi.org/pip-18.0.tar.gz#md5=aa113592bbe",
+            LinkHash("md5", "aa113592bbe"),
+        ),
+        ("https://pypi.org/pip-18.0.tar.gz#sha256=gaa113592bbe", None),
+        ("https://pypi.org/pip-18.0.tar.gz", None),
+        ("https://pypi.org/pip-18.0.tar.gz#sha500=aa113592bbe", None),
+    ],
+)
+def test_link_hash_parsing(url: str, result: Optional[LinkHash]) -> None:
+    assert LinkHash.split_hash_name_and_value(url) == result

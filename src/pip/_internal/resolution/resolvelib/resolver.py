@@ -13,7 +13,11 @@ from pip._internal.index.package_finder import PackageFinder
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.req.req_set import RequirementSet
-from pip._internal.resolution.base import BaseResolver, InstallRequirementProvider
+from pip._internal.resolution.base import (
+    BaseResolver,
+    InstallRequirementProvider,
+    RequirementSetWithCandidates,
+)
 from pip._internal.resolution.resolvelib.provider import PipProvider
 from pip._internal.resolution.resolvelib.reporter import (
     PipDebuggingReporter,
@@ -67,13 +71,20 @@ class Resolver(BaseResolver):
             py_version_info=py_version_info,
         )
         self.ignore_dependencies = ignore_dependencies
+        # TODO: for performance, try to decouple extracting sdist metadata from
+        # actually building the sdist. See https://github.com/pypa/pip/issues/8929.
+        # As mentioned in that issue, PEP 658 support on PyPI would address many cases,
+        # but it would drastically improve performance for many existing packages if we
+        # attempted to extract PKG-INFO or .egg-info from non-wheel files, falling back
+        # to the slower setup.py invocation if not found. LazyZipOverHTTP and
+        # MemoryWheel already implement such a hack for wheel files specifically.
         self.dry_run = dry_run
         self.upgrade_strategy = upgrade_strategy
         self._result: Optional[Result] = None
 
     def resolve(
         self, root_reqs: List[InstallRequirement], check_supported_wheels: bool
-    ) -> RequirementSet:
+    ) -> RequirementSetWithCandidates:
         collected = self.factory.collect_root_requirements(root_reqs)
         provider = PipProvider(
             factory=self.factory,
@@ -104,7 +115,9 @@ class Resolver(BaseResolver):
             )
             raise error from e
 
-        req_set = RequirementSet(check_supported_wheels=check_supported_wheels)
+        req_set = RequirementSetWithCandidates(
+            candidates=result, check_supported_wheels=check_supported_wheels
+        )
         for candidate in result.mapping.values():
             ireq = candidate.get_install_requirement()
             if ireq is None:

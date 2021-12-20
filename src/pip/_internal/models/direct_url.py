@@ -1,8 +1,10 @@
 """ PEP 610 """
+import abc
 import json
 import re
 import urllib.parse
-from typing import Any, Dict, Iterable, Optional, Type, TypeVar, Union
+from dataclasses import dataclass
+from typing import Any, ClassVar, Dict, Iterable, Optional, Type, TypeVar
 
 __all__ = [
     "DirectUrl",
@@ -47,8 +49,39 @@ def _get_required(
     return value
 
 
-def _exactly_one_of(infos: Iterable[Optional["InfoType"]]) -> "InfoType":
-    infos = [info for info in infos if info is not None]
+def _filter_none(**kwargs: Any) -> Dict[str, Any]:
+    """Make dict excluding None values."""
+    return {k: v for k, v in kwargs.items() if v is not None}
+
+
+class InfoType(metaclass=abc.ABCMeta):
+    """Superclass for the types of metadata that can be stored within a "direct URL"."""
+
+    name: ClassVar[str]
+
+    @classmethod
+    @abc.abstractmethod
+    def _from_dict(cls: Type[T], d: Optional[Dict[str, Any]]) -> Optional[T]:
+        """Parse an instance of this class from a JSON-serializable dict."""
+
+    @abc.abstractmethod
+    def _to_dict(self) -> Dict[str, Any]:
+        """Produce a JSON-serializable dict which can be parsed with `._from_dict()`."""
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> "InfoType":
+        """Parse exactly one of the known subclasses from the dict `d`."""
+        return _exactly_one_of(
+            [
+                ArchiveInfo._from_dict(_get(d, dict, "archive_info")),
+                DirInfo._from_dict(_get(d, dict, "dir_info")),
+                VcsInfo._from_dict(_get(d, dict, "vcs_info")),
+            ]
+        )
+
+
+def _exactly_one_of(infos: Iterable[Optional[InfoType]]) -> InfoType:
+    infos = list(filter(None, infos))
     if not infos:
         raise DirectUrlValidationError(
             "missing one of archive_info, dir_info, vcs_info"
@@ -61,23 +94,15 @@ def _exactly_one_of(infos: Iterable[Optional["InfoType"]]) -> "InfoType":
     return infos[0]
 
 
-def _filter_none(**kwargs: Any) -> Dict[str, Any]:
-    """Make dict excluding None values."""
-    return {k: v for k, v in kwargs.items() if v is not None}
+@dataclass(frozen=True)
+class VcsInfo(InfoType):
+    vcs: str
+    commit_id: str
+    requested_revision: Optional[str] = None
+    resolved_revision: Optional[str] = None
+    resolved_revision_type: Optional[str] = None
 
-
-class VcsInfo:
-    name = "vcs_info"
-
-    def __init__(
-        self,
-        vcs: str,
-        commit_id: str,
-        requested_revision: Optional[str] = None,
-    ) -> None:
-        self.vcs = vcs
-        self.requested_revision = requested_revision
-        self.commit_id = commit_id
+    name: ClassVar[str] = "vcs_info"
 
     @classmethod
     def _from_dict(cls, d: Optional[Dict[str, Any]]) -> Optional["VcsInfo"]:
@@ -97,14 +122,11 @@ class VcsInfo:
         )
 
 
-class ArchiveInfo:
-    name = "archive_info"
+@dataclass(frozen=True)
+class ArchiveInfo(InfoType):
+    hash: Optional[str] = None
 
-    def __init__(
-        self,
-        hash: Optional[str] = None,
-    ) -> None:
-        self.hash = hash
+    name: ClassVar[str] = "archive_info"
 
     @classmethod
     def _from_dict(cls, d: Optional[Dict[str, Any]]) -> Optional["ArchiveInfo"]:
@@ -116,14 +138,11 @@ class ArchiveInfo:
         return _filter_none(hash=self.hash)
 
 
-class DirInfo:
-    name = "dir_info"
+@dataclass(frozen=True)
+class DirInfo(InfoType):
+    editable: bool = False
 
-    def __init__(
-        self,
-        editable: bool = False,
-    ) -> None:
-        self.editable = editable
+    name: ClassVar[str] = "dir_info"
 
     @classmethod
     def _from_dict(cls, d: Optional[Dict[str, Any]]) -> Optional["DirInfo"]:
@@ -135,19 +154,11 @@ class DirInfo:
         return _filter_none(editable=self.editable or None)
 
 
-InfoType = Union[ArchiveInfo, DirInfo, VcsInfo]
-
-
+@dataclass(frozen=True)
 class DirectUrl:
-    def __init__(
-        self,
-        url: str,
-        info: InfoType,
-        subdirectory: Optional[str] = None,
-    ) -> None:
-        self.url = url
-        self.info = info
-        self.subdirectory = subdirectory
+    url: str
+    info: InfoType
+    subdirectory: Optional[str] = None
 
     def _remove_auth_from_netloc(self, netloc: str) -> str:
         if "@" not in netloc:
@@ -184,13 +195,7 @@ class DirectUrl:
         return DirectUrl(
             url=_get_required(d, str, "url"),
             subdirectory=_get(d, str, "subdirectory"),
-            info=_exactly_one_of(
-                [
-                    ArchiveInfo._from_dict(_get(d, dict, "archive_info")),
-                    DirInfo._from_dict(_get(d, dict, "dir_info")),
-                    VcsInfo._from_dict(_get(d, dict, "vcs_info")),
-                ]
-            ),
+            info=InfoType.from_dict(d),
         )
 
     def to_dict(self) -> Dict[str, Any]:

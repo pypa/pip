@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from optparse import Values
@@ -7,7 +8,10 @@ from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.req_command import RequirementCommand, with_cleanup
 from pip._internal.cli.status_codes import SUCCESS
+from pip._internal.exceptions import CommandError
 from pip._internal.operations.build.build_tracker import get_build_tracker
+from pip._internal.resolution.base import RequirementSetWithCandidates
+from pip._internal.resolution.resolvelib.reporter import ResolutionResult
 from pip._internal.utils.misc import ensure_dir, normalize_path, write_output
 from pip._internal.utils.temp_dir import TempDirectory
 
@@ -66,7 +70,22 @@ class DownloadCommand(RequirementCommand):
             "--dry-run",
             dest="dry_run",
             action="store_true",
-            help="Avoid actually downloading wheels.",
+            help=(
+                "Avoid actually downloading wheels or sdists. "
+                "Intended to be used with --report."
+            ),
+        )
+
+        self.cmd_opts.add_option(
+            "--report",
+            "--resolution-report",
+            dest="json_report_file",
+            metavar="file",
+            default=None,
+            help=(
+                "Print a JSON object representing the resolve into <file>. "
+                "Often used with --dry-run."
+            ),
         )
 
         cmdoptions.add_target_python_options(self.cmd_opts)
@@ -145,5 +164,26 @@ class DownloadCommand(RequirementCommand):
                     downloaded.append(req.name)
             if downloaded:
                 write_output("Successfully downloaded %s", " ".join(downloaded))
+
+        # The rest of this method pertains to generating the ResolutionReport with
+        # --report.
+        if not options.json_report_file:
+            return SUCCESS
+        if not isinstance(requirement_set, RequirementSetWithCandidates):
+            raise CommandError(
+                "The legacy resolver is being used via "
+                "--use-deprecated=legacy-resolver."
+                "The legacy resolver does not retain detailed dependency information, "
+                "so `pip download --report` cannot be used with it. "
+            )
+
+        resolution_result = ResolutionResult.generate_resolve_report(
+            reqs, requirement_set
+        )
+
+        # Write the full report data to the JSON output file.
+        with open(options.json_report_file, "w") as f:
+            json.dump(resolution_result.to_dict(), f, indent=4)
+        write_output(f"JSON report written to '{options.json_report_file}'.")
 
         return SUCCESS

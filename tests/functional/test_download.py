@@ -1,12 +1,22 @@
+import json
 import os.path
 import shutil
 import textwrap
+import uuid
 from hashlib import sha256
-from typing import List
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import pytest
+from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.cli.status_codes import ERROR
+from pip._internal.models.direct_url import (
+    ArchiveInfo,
+    DirectUrl,
+    DirInfo,
+    InfoType,
+    VcsInfo,
+)
 from pip._internal.utils.urls import path_to_url
 from tests.conftest import MockServer, ScriptFactory
 from tests.lib import PipTestEnvironment, TestData, create_really_basic_wheel
@@ -1174,3 +1184,284 @@ def test_download_editable(
     downloads = os.listdir(download_dir)
     assert len(downloads) == 1
     assert downloads[0].endswith(".zip")
+
+
+@pytest.fixture(scope="function")
+def json_report(
+    shared_script: PipTestEnvironment, tmpdir: Path
+) -> Callable[..., Dict[str, Any]]:
+    """Execute `pip download --report` and parse the JSON file it writes out."""
+    download_dir = tmpdir / "report"
+    download_dir.mkdir()
+    downloaded_path = download_dir / "report.json"
+
+    def execute_pip_for_report_json(*args: str) -> Dict[str, Any]:
+        shared_script.pip(
+            "download",
+            "--dry-run",
+            f"--report={downloaded_path}",
+            *args,
+        )
+
+        assert downloaded_path.exists()
+
+        with open(downloaded_path, "r") as f:
+            report = json.load(f)
+
+        return report
+
+    return execute_pip_for_report_json
+
+
+@pytest.mark.network
+@pytest.mark.parametrize(
+    "package_name, package_filename, requirement, url_no_fragment, info",
+    [
+        ("simple", "simple-1.0.tar.gz", "simple==1.0", None, ArchiveInfo(hash=None)),
+        (
+            "simplewheel",
+            "simplewheel-1.0-py2.py3-none-any.whl",
+            "simplewheel==1.0",
+            None,
+            ArchiveInfo(hash=None),
+        ),
+        (
+            "pip-test-package",
+            "git+https://github.com/pypa/pip-test-package.git",
+            "pip-test-package==0.1.1",
+            "https://github.com/pypa/pip-test-package.git",
+            VcsInfo(vcs="git", commit_id="5547fa909e83df8bd743d3978d6667497983a4b7"),
+        ),
+        ("symlinks", "symlinks", "symlinks==0.1.dev0", None, DirInfo(editable=False)),
+        (
+            "pex",
+            "https://files.pythonhosted.org/packages/6f/7f/6b1e56fc291df523a02769ebe9b432f63f294475012c2c1f76d4cbb5321f/pex-2.1.61-py2.py3-none-any.whl#sha256=c09fda0f0477f3894f7a7a464b7e4c03d44734de46caddd25291565eed32a882",  # noqa: E501
+            "pex==2.1.61",
+            "https://files.pythonhosted.org/packages/6f/7f/6b1e56fc291df523a02769ebe9b432f63f294475012c2c1f76d4cbb5321f/pex-2.1.61-py2.py3-none-any.whl",  # noqa: E501
+            ArchiveInfo(
+                hash="sha256=c09fda0f0477f3894f7a7a464b7e4c03d44734de46caddd25291565eed32a882"  # noqa: E501
+            ),
+        ),
+    ],
+)
+def test_download_report_direct_url_top_level(
+    json_report: Callable[..., Dict[str, Any]],
+    shared_data: TestData,
+    package_name: str,
+    package_filename: str,
+    requirement: str,
+    url_no_fragment: Optional[str],
+    info: InfoType,
+) -> None:
+    """Test `pip download --report`'s "download_info" JSON field."""
+    # If we are not referring to an explicit URL in our test parameterization, assume we
+    # are referring to one of our test packages.
+    if "://" in package_filename:
+        simple_pkg = package_filename
+    else:
+        simple_pkg = path_to_url(str(shared_data.packages / package_filename))
+
+    report = json_report("--no-index", simple_pkg)
+
+    assert len(report["input_requirements"]) == 1
+    # Wheel file paths provided as inputs will be converted into an equivalent
+    # Requirement string 'a==x.y@scheme://path/to/wheel' instead of just the wheel path.
+    assert report["input_requirements"][0].endswith(simple_pkg)
+
+    candidate = report["candidates"][package_name]
+    assert requirement == candidate["requirement"]
+    direct_url = DirectUrl.from_dict(candidate["download_info"]["direct_url"])
+    assert direct_url == DirectUrl(
+        url_no_fragment or simple_pkg,
+        info=info,
+    )
+
+
+@pytest.mark.network
+def test_download_report_dependencies(
+    json_report: Callable[..., Dict[str, Any]],
+) -> None:
+    """Test the result of a pinned resolve against PyPI."""
+    report = json_report("cryptography==36.0.1", "cffi==1.15.0", "pycparser==2.21")
+    assert sorted(report["input_requirements"]) == [
+        "cffi==1.15.0",
+        "cryptography==36.0.1",
+        "pycparser==2.21",
+    ]
+
+    cryptography = report["candidates"]["cryptography"]
+    assert cryptography["requirement"] == "cryptography==36.0.1"
+    assert cryptography["requires_python"] == ">=3.6"
+    assert cryptography["dependencies"] == {"cffi": "cffi>=1.12"}
+
+    cffi = report["candidates"]["cffi"]
+    assert cffi["requirement"] == "cffi==1.15.0"
+    assert cffi["requires_python"] is None
+    assert cffi["dependencies"] == {"pycparser": "pycparser"}
+
+    pycparser = report["candidates"]["pycparser"]
+    assert pycparser["requirement"] == "pycparser==2.21"
+    assert pycparser["dependencies"] == {}
+    assert pycparser["requires_python"] == "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,>=2.7"
+
+
+@pytest.mark.network
+@pytest.mark.parametrize(
+    "python_version",
+    [
+        "3.10.0",
+        "3.10.1",
+        "3.7.0",
+        "3.8.0",
+        "3.9.0",
+    ],
+)
+def test_download_report_python_version(
+    json_report: Callable[..., Dict[str, Any]],
+    python_version: str,
+) -> None:
+    """Ensure the --python-version variable is respected in the --report JSON output."""
+    report = json_report(
+        f"--python-version={python_version}", "--only-binary=:all:", "wheel"
+    )
+    assert report["python_version"] == f"=={python_version}"
+
+
+@pytest.fixture(scope="function")
+def index_html_content(tmpdir: Path) -> Callable[..., Path]:
+    """Generate a PyPI package index.html within a temporary local directory."""
+    html_dir = tmpdir / "index_html_content"
+    html_dir.mkdir()
+
+    def generate_index_html_subdir(index_html: str) -> Path:
+        """Create a new subdirectory after a UUID and write an index.html."""
+        new_subdir = html_dir / uuid.uuid4().hex
+        new_subdir.mkdir()
+
+        with open(new_subdir / "index.html", "w") as f:
+            f.write(index_html)
+
+        return new_subdir
+
+    return generate_index_html_subdir
+
+
+@pytest.fixture(scope="function")
+def json_report_for_index_content(
+    shared_data: TestData,
+    index_html_content: Callable[..., Path],
+    json_report: Callable[..., Dict[str, Any]],
+) -> Callable[..., Dict[str, Any]]:
+    """Generate a PyPI package index within a local directory pointing to test data."""
+
+    def generate_index_and_report_for_some_packages(
+        packages: Dict[str, List[Tuple[str, str]]], *args: str
+    ) -> Dict[str, Any]:
+        """
+        Produce a PyPI directory structure pointing to a subset of packages in
+        test data, then execute `pip download --report ... -i ...` pointing to our
+        generated index.
+        """
+        # (1) Generate the content for a PyPI index.html.
+        pkg_links = "\n".join(
+            f'    <a href="{pkg}/index.html">{pkg}</a>' for pkg in packages.keys()
+        )
+        index_html = f"""\
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="pypi:repository-version" content="1.0">
+    <title>Simple index</title>
+  </head>
+  <body>
+{pkg_links}
+  </body>
+</html>"""
+        # (2) Generate the index.html in a new subdirectory of the temp directory.
+        index_html_subdir = index_html_content(index_html)
+
+        # (3) Generate subdirectories for individual packages, each with their own
+        # index.html.
+        for pkg, links in packages.items():
+            pkg_subdir = index_html_subdir / pkg
+            pkg_subdir.mkdir()
+
+            download_links: List[str] = []
+            for relative_path, additional_tag in links:
+                # For each link to be added to the generated index.html for this
+                # package, copy over the corresponding file in `shared_data.packages`.
+                download_links.append(
+                    f'    <a href="{relative_path}" {additional_tag}>{relative_path}</a><br/>'  # noqa: E501
+                )
+                shutil.copy(
+                    shared_data.packages / relative_path, pkg_subdir / relative_path
+                )
+
+            # After collating all the download links and copying over the files, write
+            # an index.html with the generated download links for each copied file.
+            download_links_str = "\n".join(download_links)
+            pkg_index_content = f"""\
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="pypi:repository-version" content="1.0">
+    <title>Links for {pkg}</title>
+  </head>
+  <body>
+    <h1>Links for {pkg}</h1>
+{download_links_str}
+  </body>
+</html>"""
+            with open(pkg_subdir / "index.html", "w") as f:
+                f.write(pkg_index_content)
+
+        return json_report("-i", path_to_url(index_html_subdir), *args)
+
+    return generate_index_and_report_for_some_packages
+
+
+_simple_packages: Dict[str, List[Tuple[str, str]]] = {
+    "simple": [
+        ("simple-1.0.tar.gz", ""),
+        ("simple-2.0.tar.gz", 'data-dist-info-metadata="true"'),
+        ("simple-3.0.tar.gz", 'data-dist-info-metadata="sha256=aabe42af"'),
+    ]
+}
+
+
+@pytest.mark.parametrize(
+    "requirement_to_download, dist_info_metadata",
+    [
+        (
+            "simple==1.0",
+            None,
+        ),
+        (
+            "simple==2.0",
+            ArchiveInfo(hash=None),
+        ),
+        (
+            "simple==3.0",
+            ArchiveInfo(hash="sha256=aabe42af"),
+        ),
+    ],
+)
+def test_download_report_dist_info_metadata(
+    json_report_for_index_content: Callable[..., Dict[str, Any]],
+    requirement_to_download: str,
+    dist_info_metadata: Optional[ArchiveInfo],
+) -> None:
+    """Ensure `pip download --report` reflects PEP 658 metadata."""
+    report = json_report_for_index_content(
+        _simple_packages,
+        requirement_to_download,
+    )
+    project_name = Requirement(requirement_to_download).name
+    direct_url_json = report["candidates"][project_name]["download_info"][
+        "dist_info_metadata"
+    ]
+    if dist_info_metadata is None:
+        assert direct_url_json is None
+    else:
+        direct_url = DirectUrl.from_dict(direct_url_json)
+        assert direct_url.info == dist_info_metadata

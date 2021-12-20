@@ -113,6 +113,9 @@ class Distribution(BaseDistribution):
         )
         return cls(dist)
 
+    def as_serializable_requirement(self) -> Requirement:
+        return self._dist.as_requirement()
+
     @property
     def location(self) -> Optional[str]:
         return self._dist.location

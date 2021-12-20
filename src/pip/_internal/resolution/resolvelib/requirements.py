@@ -1,7 +1,11 @@
+from typing import Optional
+
+from pip._vendor.packaging.requirements import Requirement as PkgRequirement
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.resolution.base import REQUIRES_PYTHON_SERIALIZABLE_IDENTIFIER
 
 from .base import Candidate, CandidateLookup, Requirement, format_name
 
@@ -28,6 +32,9 @@ class ExplicitRequirement(Requirement):
     def name(self) -> str:
         # No need to canonicalize - the candidate did this
         return self.candidate.name
+
+    def as_serializable_requirement(self) -> PkgRequirement:
+        return self.candidate.as_serializable_requirement()
 
     def format_for_error(self) -> str:
         return self.candidate.format_for_error()
@@ -77,6 +84,9 @@ class SpecifierRequirement(Requirement):
 
         return ", ".join(parts[:-1]) + " and " + parts[-1]
 
+    def as_serializable_requirement(self) -> Optional[PkgRequirement]:
+        return self._ireq.req
+
     def get_candidate_lookup(self) -> CandidateLookup:
         return None, self._ireq
 
@@ -120,6 +130,11 @@ class RequiresPythonRequirement(Requirement):
     def format_for_error(self) -> str:
         return str(self)
 
+    def as_serializable_requirement(self) -> PkgRequirement:
+        return PkgRequirement(
+            f"{REQUIRES_PYTHON_SERIALIZABLE_IDENTIFIER}{self.specifier}",
+        )
+
     def get_candidate_lookup(self) -> CandidateLookup:
         if self.specifier.contains(self._candidate.version, prereleases=True):
             return self._candidate, None
@@ -158,6 +173,9 @@ class UnsatisfiableRequirement(Requirement):
 
     def format_for_error(self) -> str:
         return str(self)
+
+    def as_serializable_requirement(self) -> Optional[PkgRequirement]:
+        raise NotImplementedError()
 
     def get_candidate_lookup(self) -> CandidateLookup:
         return None, None

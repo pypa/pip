@@ -1,5 +1,7 @@
+import abc
 from typing import FrozenSet, Iterable, Optional, Tuple, Union
 
+from pip._vendor.packaging.requirements import Requirement as PkgRequirement
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.packaging.version import LegacyVersion, Version
@@ -59,8 +61,8 @@ class Constraint:
         return self.specifier.contains(candidate.version, prereleases=True)
 
 
-class Requirement:
-    @property
+class Requirement(metaclass=abc.ABCMeta):
+    @abc.abstractproperty
     def project_name(self) -> NormalizedName:
         """The "project name" of a requirement.
 
@@ -68,25 +70,29 @@ class Requirement:
         in which case ``name`` would contain the ``[...]`` part, while this
         refers to the name of the project.
         """
-        raise NotImplementedError("Subclass should override")
 
-    @property
+    @abc.abstractproperty
     def name(self) -> str:
         """The name identifying this requirement in the resolver.
 
         This is different from ``project_name`` if this requirement contains
         extras, where ``project_name`` would not contain the ``[...]`` part.
         """
-        raise NotImplementedError("Subclass should override")
 
     def is_satisfied_by(self, candidate: "Candidate") -> bool:
         return False
 
+    @abc.abstractmethod
     def get_candidate_lookup(self) -> CandidateLookup:
-        raise NotImplementedError("Subclass should override")
+        ...
 
+    @abc.abstractmethod
     def format_for_error(self) -> str:
-        raise NotImplementedError("Subclass should override")
+        ...
+
+    @abc.abstractmethod
+    def as_serializable_requirement(self) -> Optional[PkgRequirement]:
+        ...
 
 
 def _match_link(link: Link, candidate: "Candidate") -> bool:
@@ -95,8 +101,8 @@ def _match_link(link: Link, candidate: "Candidate") -> bool:
     return False
 
 
-class Candidate:
-    @property
+class Candidate(metaclass=abc.ABCMeta):
+    @abc.abstractproperty
     def project_name(self) -> NormalizedName:
         """The "project name" of the candidate.
 
@@ -104,38 +110,43 @@ class Candidate:
         in which case ``name`` would contain the ``[...]`` part, while this
         refers to the name of the project.
         """
-        raise NotImplementedError("Override in subclass")
 
-    @property
+    @abc.abstractproperty
     def name(self) -> str:
         """The name identifying this candidate in the resolver.
 
         This is different from ``project_name`` if this candidate contains
         extras, where ``project_name`` would not contain the ``[...]`` part.
         """
-        raise NotImplementedError("Override in subclass")
 
-    @property
+    @abc.abstractproperty
     def version(self) -> CandidateVersion:
-        raise NotImplementedError("Override in subclass")
+        ...
 
-    @property
+    @abc.abstractmethod
+    def as_serializable_requirement(self) -> PkgRequirement:
+        ...
+
+    @abc.abstractproperty
     def is_installed(self) -> bool:
-        raise NotImplementedError("Override in subclass")
+        ...
 
-    @property
+    @abc.abstractproperty
     def is_editable(self) -> bool:
-        raise NotImplementedError("Override in subclass")
+        ...
 
-    @property
+    @abc.abstractproperty
     def source_link(self) -> Optional[Link]:
-        raise NotImplementedError("Override in subclass")
+        ...
 
+    @abc.abstractmethod
     def iter_dependencies(self, with_requires: bool) -> Iterable[Optional[Requirement]]:
-        raise NotImplementedError("Override in subclass")
+        ...
 
+    @abc.abstractmethod
     def get_install_requirement(self) -> Optional[InstallRequirement]:
-        raise NotImplementedError("Override in subclass")
+        ...
 
+    @abc.abstractmethod
     def format_for_error(self) -> str:
-        raise NotImplementedError("Subclass should override")
+        ...

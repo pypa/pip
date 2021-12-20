@@ -120,6 +120,9 @@ class BaseDistribution(Protocol):
     def __str__(self) -> str:
         return f"{self.raw_name} {self.version}"
 
+    def as_serializable_requirement(self) -> Requirement:
+        raise NotImplementedError()
+
     @property
     def location(self) -> Optional[str]:
         """Where the distribution is loaded from.

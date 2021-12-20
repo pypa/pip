@@ -8,10 +8,8 @@ import functools
 import itertools
 import logging
 import os
-import re
 import urllib.parse
 import urllib.request
-import xml.etree.ElementTree
 from html.parser import HTMLParser
 from optparse import Values
 from typing import (
@@ -33,12 +31,12 @@ from pip._vendor.requests import Response
 from pip._vendor.requests.exceptions import RetryError, SSLError
 
 from pip._internal.exceptions import NetworkConnectionError
-from pip._internal.models.link import Link
+from pip._internal.models.link import HTMLElement, Link
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.network.session import PipSession
 from pip._internal.network.utils import raise_for_status
 from pip._internal.utils.filetypes import is_archive_file
-from pip._internal.utils.misc import pairwise, redact_auth_from_url
+from pip._internal.utils.misc import redact_auth_from_url
 from pip._internal.vcs import vcs
 
 from .sources import CandidatesFromPage, LinkSource, build_source
@@ -50,7 +48,6 @@ else:
 
 logger = logging.getLogger(__name__)
 
-HTMLElement = xml.etree.ElementTree.Element
 ResponseHeaders = MutableMapping[str, str]
 
 
@@ -182,94 +179,6 @@ def _determine_base_url(document: HTMLElement, page_url: str) -> str:
     return page_url
 
 
-def _clean_url_path_part(part: str) -> str:
-    """
-    Clean a "part" of a URL path (i.e. after splitting on "@" characters).
-    """
-    # We unquote prior to quoting to make sure nothing is double quoted.
-    return urllib.parse.quote(urllib.parse.unquote(part))
-
-
-def _clean_file_url_path(part: str) -> str:
-    """
-    Clean the first part of a URL path that corresponds to a local
-    filesystem path (i.e. the first part after splitting on "@" characters).
-    """
-    # We unquote prior to quoting to make sure nothing is double quoted.
-    # Also, on Windows the path part might contain a drive letter which
-    # should not be quoted. On Linux where drive letters do not
-    # exist, the colon should be quoted. We rely on urllib.request
-    # to do the right thing here.
-    return urllib.request.pathname2url(urllib.request.url2pathname(part))
-
-
-# percent-encoded:                   /
-_reserved_chars_re = re.compile("(@|%2F)", re.IGNORECASE)
-
-
-def _clean_url_path(path: str, is_local_path: bool) -> str:
-    """
-    Clean the path portion of a URL.
-    """
-    if is_local_path:
-        clean_func = _clean_file_url_path
-    else:
-        clean_func = _clean_url_path_part
-
-    # Split on the reserved characters prior to cleaning so that
-    # revision strings in VCS URLs are properly preserved.
-    parts = _reserved_chars_re.split(path)
-
-    cleaned_parts = []
-    for to_clean, reserved in pairwise(itertools.chain(parts, [""])):
-        cleaned_parts.append(clean_func(to_clean))
-        # Normalize %xx escapes (e.g. %2f -> %2F)
-        cleaned_parts.append(reserved.upper())
-
-    return "".join(cleaned_parts)
-
-
-def _clean_link(url: str) -> str:
-    """
-    Make sure a link is fully quoted.
-    For example, if ' ' occurs in the URL, it will be replaced with "%20",
-    and without double-quoting other characters.
-    """
-    # Split the URL into parts according to the general structure
-    # `scheme://netloc/path;parameters?query#fragment`.
-    result = urllib.parse.urlparse(url)
-    # If the netloc is empty, then the URL refers to a local filesystem path.
-    is_local_path = not result.netloc
-    path = _clean_url_path(result.path, is_local_path=is_local_path)
-    return urllib.parse.urlunparse(result._replace(path=path))
-
-
-def _create_link_from_element(
-    element_attribs: Dict[str, Optional[str]],
-    page_url: str,
-    base_url: str,
-) -> Optional[Link]:
-    """
-    Convert an anchor element's attributes in a simple repository page to a Link.
-    """
-    href = element_attribs.get("href")
-    if not href:
-        return None
-
-    url = _clean_link(urllib.parse.urljoin(base_url, href))
-    pyrequire = element_attribs.get("data-requires-python")
-    yanked_reason = element_attribs.get("data-yanked")
-
-    link = Link(
-        url,
-        comes_from=page_url,
-        requires_python=pyrequire,
-        yanked_reason=yanked_reason,
-    )
-
-    return link
-
-
 class CacheablePageContent:
     def __init__(self, page: "HTMLPage") -> None:
         assert page.cache_link_parsing
@@ -326,7 +235,7 @@ def _parse_links_html5lib(page: "HTMLPage") -> Iterable[Link]:
     url = page.url
     base_url = _determine_base_url(document, url)
     for anchor in document.findall(".//a"):
-        link = _create_link_from_element(
+        link = Link.from_element(
             anchor.attrib,
             page_url=url,
             base_url=base_url,
@@ -353,11 +262,7 @@ def parse_links(page: "HTMLPage", use_deprecated_html5lib: bool) -> Iterable[Lin
     url = page.url
     base_url = parser.base_url or url
     for anchor in parser.anchors:
-        link = _create_link_from_element(
-            anchor,
-            page_url=url,
-            base_url=base_url,
-        )
+        link = Link.from_element(anchor, page_url=url, base_url=base_url)
         if link is None:
             continue
         yield link

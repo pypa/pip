@@ -62,6 +62,21 @@ from pip._internal.vcs import vcs
 logger = logging.getLogger(__name__)
 
 
+def produce_exact_version_specifier(version: str) -> SpecifierSet:
+    if isinstance(parse_version(version), Version):
+        op = "=="
+    else:
+        op = "==="
+
+    return SpecifierSet(f"{op}{version}")
+
+
+def produce_exact_version_requirement(name: str, version: str) -> Requirement:
+    specifier = produce_exact_version_specifier(version)
+
+    return Requirement(f"{name}{specifier}")
+
+
 class InstallRequirement:
     """
     Represents something that may be installed later on, may have information
@@ -350,20 +365,10 @@ class InstallRequirement:
         assert self.metadata is not None
         assert self.source_dir is not None
 
-        # Construct a Requirement object from the generated metadata
-        if isinstance(parse_version(self.metadata["Version"]), Version):
-            op = "=="
-        else:
-            op = "==="
-
-        self.req = Requirement(
-            "".join(
-                [
-                    self.metadata["Name"],
-                    op,
-                    self.metadata["Version"],
-                ]
-            )
+        # Construct a Requirement object from the generated metadata.
+        self.req = produce_exact_version_requirement(
+            self.metadata["Name"],
+            self.metadata["Version"],
         )
 
     def warn_on_mismatching_name(self) -> None:
