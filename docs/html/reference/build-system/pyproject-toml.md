@@ -49,6 +49,14 @@ hook will be called by pip, and dependencies it describes will also be installed
 in the build environment. For example, newer versions of setuptools expose the
 contents of `setup_requires` to pip via this hook.
 
+Build-time requirement specifiers follow {pep}`508`, so it's possible to
+reference packages with URLs. For example:
+
+```toml
+[build-system]
+requires = ["setuptools @ git+https://github.com/pypa/setuptools.git@main"]
+```
+
 ### Metadata Generation
 
 ```{versionadded} 19.0
