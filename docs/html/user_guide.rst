@@ -17,7 +17,7 @@ to your system, which can be run from the command prompt as follows:
 
    ``python -m pip`` executes pip using the Python interpreter you
    specified as python. So ``/usr/bin/python3.7 -m pip`` means
-   you are executing pip for your interpreter located at /usr/bin/python3.7.
+   you are executing pip for your interpreter located at ``/usr/bin/python3.7``.
 
 .. tab:: Windows
 
@@ -629,7 +629,7 @@ Moreover, the "user scheme" can be customized by setting the
 ``PYTHONUSERBASE`` environment variable, which updates the value of
 ``site.USER_BASE``.
 
-To install "SomePackage" into an environment with site.USER_BASE customized to
+To install "SomePackage" into an environment with ``site.USER_BASE`` customized to
 '/myappenv', do the following:
 
 .. tab:: Unix/macOS
