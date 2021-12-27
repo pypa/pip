@@ -335,8 +335,6 @@ We are currently looking for volunteers to take recommendations made by the UX t
 </table>
 
 ```{toctree}
-:maxdepth: 1
-
 about-our-users
 ci-cd
 improving-pip-documentation
