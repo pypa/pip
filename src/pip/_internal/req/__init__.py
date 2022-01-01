@@ -60,15 +60,19 @@ def install_given_reqs(
 
     installed = []
 
+    uninstalled = {}
+
     with indent_log():
         for req_name, requirement in to_install.items():
             if requirement.should_reinstall:
                 logger.info("Attempting uninstall: %s", req_name)
                 with indent_log():
                     uninstalled_pathset = requirement.uninstall(auto_confirm=True)
-            else:
-                uninstalled_pathset = None
+                    uninstalled[req_name] = uninstalled_pathset
 
+    with indent_log():
+        for req_name, requirement in to_install.items():
+            uninstalled_pathset = uninstalled.get(req_name)
             try:
                 requirement.install(
                     install_options,
