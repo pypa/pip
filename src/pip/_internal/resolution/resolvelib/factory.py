@@ -722,7 +722,7 @@ class Factory:
             + "the dependency conflict\n"
         )
 
-        logger.info(msg)
+        logger.critical(msg, extra={"color": "black"})
 
         return DistributionNotFound(
             "ResolutionImpossible: for help visit "

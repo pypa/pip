@@ -167,7 +167,11 @@ class RichPipStreamHandler(RichHandler):
         else:
             message = self.format(record)
             renderable = self.render_message(record, message)
-            if record.levelno is not None:
+            # If a custom color is passed use it, otherwise use default colors.
+            color_attribute = "color"
+            if hasattr(record, color_attribute):
+                style = Style(color=getattr(record, color_attribute))
+            elif record.levelno is not None:
                 if record.levelno >= logging.ERROR:
                     style = Style(color="red")
                 elif record.levelno >= logging.WARNING:

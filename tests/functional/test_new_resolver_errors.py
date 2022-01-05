@@ -67,7 +67,7 @@ def test_new_resolver_conflict_constraints_file(
     assert "ResolutionImpossible" in result.stderr, str(result)
 
     message = "The user requested (constraint) pkg!=1.0"
-    assert message in result.stdout, str(result)
+    assert message in result.stderr, str(result)
 
 
 def test_new_resolver_requires_python_error(script: PipTestEnvironment) -> None:

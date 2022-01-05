@@ -696,8 +696,8 @@ def test_install_distribution_union_with_versions(
     )
     if resolver_variant == "2020-resolver":
         assert "Cannot install localextras[bar]" in result.stderr
-        assert ("localextras[bar] 0.0.1 depends on localextras 0.0.1") in result.stdout
-        assert ("localextras[baz] 0.0.2 depends on localextras 0.0.2") in result.stdout
+        assert ("localextras[bar] 0.0.1 depends on localextras 0.0.1") in result.stderr
+        assert ("localextras[baz] 0.0.2 depends on localextras 0.0.2") in result.stderr
     else:
         assert (
             "Successfully installed LocalExtras-0.0.1 simple-3.0 singlemodule-0.0.1"
