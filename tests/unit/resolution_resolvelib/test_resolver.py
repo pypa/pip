@@ -28,6 +28,7 @@ def resolver(preparer: RequirementPreparer, finder: PackageFinder) -> Resolver:
         ignore_installed=False,
         ignore_requires_python=False,
         force_reinstall=False,
+        dry_run=True,
         upgrade_strategy="to-satisfy-only",
         suppress_build_failures=False,
     )

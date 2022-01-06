@@ -90,6 +90,17 @@ def test_basic_download_should_download_dependencies(
     result.did_not_create(script.site_packages / "openid")
 
 
+@pytest.mark.network
+def test_dry_run_should_not_download_dependencies(
+    script: PipTestEnvironment,
+) -> None:
+    """
+    It should not download dependencies into the scratch path.
+    """
+    result = script.pip("download", "--dry-run", "Paste[openid]==1.7.5.1", "-d", ".")
+    result.did_not_create(Path("scratch") / "Paste-1.7.5.1.tar.gz")
+
+
 def test_download_wheel_archive(script: PipTestEnvironment, data: TestData) -> None:
     """
     It should download a wheel archive path
