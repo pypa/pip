@@ -163,9 +163,9 @@ will avoid performing dependency resolution during deployment.
 
 ## Dealing with dependency conflicts
 
-This section provides practical suggestions to pip users who encounter
-a `ResolutionImpossible` error, where pip cannot install their specified
-packages due to conflicting dependencies.
+This section provides practical suggestions to pip users who encounter a `ResolutionImpossible`
+error, where pip cannot install their specified packages due to conflicting dependencies. Note that
+the {ref}`JSON report` may offer more debugging information.
 
 ### Understanding your error message
 

@@ -1,0 +1,1 @@
+Add ``--dry-run`` and ``--report`` to ``pip download`` to get a JSON resolution report.

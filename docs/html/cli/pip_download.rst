@@ -45,6 +45,12 @@ them. Generic dependencies (e.g. universal wheels, or dependencies with no
 platform, abi, or implementation constraints) will still match an over-
 constrained download requirement.
 
+``pip download --report output.json`` is an experimental feature which writes a :ref:`JSON report` of the
+inputs and outputs of pip's internal resolution process to ``output.json``. This can be useful to
+generate a lockfile, check whether transitive dependencies would introduce a conflict, or download
+packages directly from download URLs without having to traverse PyPI again. The ``--dry-run`` option
+can be used in conjunction to just produce a JSON report without actually downloading any packages,
+which is faster.
 
 
 Options
@@ -224,3 +230,17 @@ Examples
             --implementation cp ^
             --abi cp36m --abi cp36 --abi abi3 --abi none ^
             SomePackage
+
+#. Generate a JSON report of the inputs and outputs of pip's internal resolution process with ``--report`` to ``pip-resolve.json``. See the documentation for :ref:`the JSON report <JSON report>`.
+
+   .. tab:: Unix/macOS
+
+      .. code-block:: shell
+
+         $ python -m pip download --dry-run --report pip-resolve.json SomePackage
+
+   .. tab:: Windows
+
+      .. code-block:: shell
+
+         C:> py -m pip download --dry-run --report pip-resolve.json SomePackage

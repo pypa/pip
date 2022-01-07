@@ -865,6 +865,296 @@ of ability. Some examples that you could consider include:
 * ``distlib`` - Packaging and distribution utilities (including functions for
   interacting with PyPI).
 
+Pip now contains support for an experimental feature to dump the output of its resolve process into a :ref:`JSON report`, which can then be processed using the ``packaging`` library.
+
+.. _`JSON report`:
+
+JSON report
+===========
+
+Pip has exposed an experimental feature to print a JSON report of the dependency resolution process's inputs and outputs with ``pip download --dry-run --report pip-output.json``. This report is intended to be consumed as part of automated pip execution pipelines, but can also be used as a debugging tool.
+
+Example command execution:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: console
+
+      $ pip download --dry-run --report pip-output.json tensorboard
+      Collecting tensorboard
+        Obtaining dependency information from tensorboard 2.7.0
+      Collecting tensorboard-plugin-wit>=1.6.0
+        Obtaining dependency information from tensorboard-plugin-wit 1.8.1
+      Collecting google-auth-oauthlib<0.5,>=0.4.1
+        Obtaining dependency information from google-auth-oauthlib 0.4.6
+      Collecting absl-py>=0.4
+        Obtaining dependency information from absl-py 1.0.0
+      Collecting protobuf>=3.6.0
+        Obtaining dependency information from protobuf 3.19.1
+      Collecting setuptools>=41.0.0
+        Obtaining dependency information from setuptools 60.3.1
+      Collecting wheel>=0.26
+        Obtaining dependency information from wheel 0.37.1
+      Collecting werkzeug>=0.11.15
+        Obtaining dependency information from werkzeug 2.0.2
+      Collecting tensorboard-data-server<0.7.0,>=0.6.0
+        Obtaining dependency information from tensorboard-data-server 0.6.1
+      Collecting markdown>=2.6.8
+        Obtaining dependency information from markdown 3.3.6
+      Collecting grpcio>=1.24.3
+        Using cached grpcio-1.43.0.tar.gz (21.5 MB)
+        Preparing metadata (setup.py) ... done
+      Collecting numpy>=1.12.0
+        Using cached numpy-1.22.0.zip (11.3 MB)
+        Installing build dependencies ... done
+        Getting requirements to build wheel ... done
+        Preparing metadata (pyproject.toml) ... done
+      Collecting requests<3,>=2.21.0
+        Obtaining dependency information from requests 2.27.1
+      Collecting google-auth<3,>=1.6.3
+        Obtaining dependency information from google-auth 2.3.3
+      Collecting six
+        Obtaining dependency information from six 1.16.0
+      Collecting pyasn1-modules>=0.2.1
+        Obtaining dependency information from pyasn1-modules 0.2.8
+      Collecting rsa<5,>=3.1.4
+        Obtaining dependency information from rsa 4.8
+      Collecting cachetools<5.0,>=2.0.0
+        Obtaining dependency information from cachetools 4.2.4
+      Collecting requests-oauthlib>=0.7.0
+        Obtaining dependency information from requests-oauthlib 1.3.0
+      Collecting charset-normalizer~=2.0.0
+        Obtaining dependency information from charset-normalizer 2.0.10
+      Collecting certifi>=2017.4.17
+        Obtaining dependency information from certifi 2021.10.8
+      Collecting idna<4,>=2.5
+        Obtaining dependency information from idna 3.3
+      Collecting urllib3<1.27,>=1.21.1
+        Obtaining dependency information from urllib3 1.26.7
+      Collecting pyasn1<0.5.0,>=0.4.6
+        Obtaining dependency information from pyasn1 0.4.8
+      Collecting oauthlib>=3.0.0
+        Obtaining dependency information from oauthlib 3.1.1
+      Python version: '==3.10.1'
+      Input requirements: 'tensorboard'
+      Resolution: 'tensorboard==2.7.0' 'absl-py==1.0.0' 'google-auth==2.3.3' 'google-auth-oauthlib==0.4.6' 'grpcio==1.43.0' 'markdown==3.3.6' 'numpy==1.22.0' 'protobuf==3.19.1' 'requests==2.27.1' 'tensorboard-data-server==0.6.1' 'tensorboard-plugin-wit==1.8.1' 'werkzeug==2.0.2' 'wheel==0.37.1' 'cachetools==4.2.4' 'certifi==2021.10.8' 'charset-normalizer==2.0.10' 'idna==3.3' 'pyasn1-modules==0.2.8' 'requests-oauthlib==1.3.0' 'rsa==4.8' 'six==1.16.0' 'urllib3==1.26.7' 'oauthlib==3.1.1' 'pyasn1==0.4.8' 'setuptools==60.3.1'
+      JSON report written to 'pip-output.json'.
+
+.. tab:: Windows
+
+   .. code-block:: console
+
+      C:\> pip download --dry-run --report pip-output.json tensorboard
+      Collecting tensorboard
+        Obtaining dependency information from tensorboard 2.7.0
+      Collecting tensorboard-plugin-wit>=1.6.0
+        Obtaining dependency information from tensorboard-plugin-wit 1.8.1
+      Collecting google-auth-oauthlib<0.5,>=0.4.1
+        Obtaining dependency information from google-auth-oauthlib 0.4.6
+      Collecting absl-py>=0.4
+        Obtaining dependency information from absl-py 1.0.0
+      Collecting protobuf>=3.6.0
+        Obtaining dependency information from protobuf 3.19.1
+       Collecting setuptools>=41.0.0
+        Obtaining dependency information from setuptools 60.3.1
+      Collecting wheel>=0.26
+        Obtaining dependency information from wheel 0.37.1
+      Collecting werkzeug>=0.11.15
+        Obtaining dependency information from werkzeug 2.0.2
+      Collecting tensorboard-data-server<0.7.0,>=0.6.0
+        Obtaining dependency information from tensorboard-data-server 0.6.1
+      Collecting markdown>=2.6.8
+        Obtaining dependency information from markdown 3.3.6
+      Collecting grpcio>=1.24.3
+        Using cached grpcio-1.43.0.tar.gz (21.5 MB)
+        Preparing metadata (setup.py) ... done
+      Collecting numpy>=1.12.0
+        Using cached numpy-1.22.0.zip (11.3 MB)
+        Installing build dependencies ... done
+        Getting requirements to build wheel ... done
+        Preparing metadata (pyproject.toml) ... done
+      Collecting requests<3,>=2.21.0
+        Obtaining dependency information from requests 2.27.1
+      Collecting google-auth<3,>=1.6.3
+        Obtaining dependency information from google-auth 2.3.3
+      Collecting six
+        Obtaining dependency information from six 1.16.0
+      Collecting pyasn1-modules>=0.2.1
+        Obtaining dependency information from pyasn1-modules 0.2.8
+      Collecting rsa<5,>=3.1.4
+        Obtaining dependency information from rsa 4.8
+      Collecting cachetools<5.0,>=2.0.0
+        Obtaining dependency information from cachetools 4.2.4
+      Collecting requests-oauthlib>=0.7.0
+        Obtaining dependency information from requests-oauthlib 1.3.0
+      Collecting charset-normalizer~=2.0.0
+        Obtaining dependency information from charset-normalizer 2.0.10
+      Collecting certifi>=2017.4.17
+        Obtaining dependency information from certifi 2021.10.8
+      Collecting idna<4,>=2.5
+        Obtaining dependency information from idna 3.3
+      Collecting urllib3<1.27,>=1.21.1
+        Obtaining dependency information from urllib3 1.26.7
+      Collecting pyasn1<0.5.0,>=0.4.6
+        Obtaining dependency information from pyasn1 0.4.8
+      Collecting oauthlib>=3.0.0
+        Obtaining dependency information from oauthlib 3.1.1
+      Python version: '==3.10.1'
+      Input requirements: 'tensorboard'
+      Resolution: 'tensorboard==2.7.0' 'absl-py==1.0.0' 'google-auth==2.3.3' 'google-auth-oauthlib==0.4.6' 'grpcio==1.43.0' 'markdown==3.3.6' 'numpy==1.22.0' 'protobuf==3.19.1' 'requests==2.27.1' 'tensorboard-data-server==0.6.1' 'tensorboard-plugin-wit==1.8.1' 'werkzeug==2.0.2' 'wheel==0.37.1' 'cachetools==4.2.4' 'certifi==2021.10.8' 'charset-normalizer==2.0.10' 'idna==3.3' 'pyasn1-modules==0.2.8' 'requests-oauthlib==1.3.0' 'rsa==4.8' 'six==1.16.0' 'urllib3==1.26.7' 'oauthlib==3.1.1' 'pyasn1==0.4.8' 'setuptools==60.3.1'
+      JSON report written to 'pip-output.json'.
+
+The contents of ``pip-output.json`` will look like:
+
+.. code-block::
+
+    {
+      "experimental": true,
+      "input_requirements": [
+        "tensorboard"
+      ],
+      "python_version": "==3.10.1",
+      "candidates": {
+        "tensorboard": {
+          "requirement": "tensorboard==2.7.0",
+          "download_info": {
+            "direct_url": {
+              "url": "https://files.pythonhosted.org/packages/2d/eb/80f75ab480cfbd032442f06ec7c15ef88376c5ef7fd6f6bf2e0e03b47e31/tensorboard-2.7.0-py3-none-any.whl",
+              "archive_info": {
+                "hash": "sha256=239f78a4a8dff200ce585a030c787773a8c1184d5c159252f5f85bac4e3c3b38"
+              }
+            },
+            "dist_info_metadata": null
+          },
+          "dependencies": {
+            "tensorboard-plugin-wit": "tensorboard-plugin-wit>=1.6.0",
+            "google-auth-oauthlib": "google-auth-oauthlib<0.5,>=0.4.1",
+            "absl-py": "absl-py>=0.4",
+            "protobuf": "protobuf>=3.6.0",
+            "setuptools": "setuptools>=41.0.0",
+            "wheel": "wheel>=0.26",
+            "werkzeug": "werkzeug>=0.11.15",
+            "tensorboard-data-server": "tensorboard-data-server<0.7.0,>=0.6.0",
+            "markdown": "markdown>=2.6.8",
+            "grpcio": "grpcio>=1.24.3",
+            "numpy": "numpy>=1.12.0",
+            "requests": "requests<3,>=2.21.0",
+            "google-auth": "google-auth<3,>=1.6.3"
+          },
+          "requires_python": ">=3.6"
+        },
+        "absl-py": {
+          "requirement": "absl-py==1.0.0",
+          "download_info": {
+            "direct_url": {
+              "url": "https://files.pythonhosted.org/packages/2c/03/e3e19d3faf430ede32e41221b294e37952e06acc96781c417ac25d4a0324/absl_py-1.0.0-py3-none-any.whl",
+              "archive_info": {
+                "hash": "sha256=84e6dcdc69c947d0c13e5457d056bd43cade4c2393dce00d684aedea77ddc2a3"
+              }
+            },
+            "dist_info_metadata": null
+          },
+          "dependencies": {
+            "six": "six"
+          },
+          "requires_python": ">=3.6"
+        },
+    (...truncated)
+
+The output can be processed with `jq <https://stedolan.github.io/jq/>`_ to produce e.g. a requirements file that pins the hashes of each dependency which provides such a hash:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: console
+
+      $ jq -r <./pip-output.json '.candidates[] | {req: .requirement, hash: .download_info.direct_url.archive_info.hash} | .req + ((.hash | " --hash " + sub("="; ":")) // "")'
+      tensorboard==2.7.0 --hash sha256:239f78a4a8dff200ce585a030c787773a8c1184d5c159252f5f85bac4e3c3b38
+      absl-py==1.0.0 --hash sha256:84e6dcdc69c947d0c13e5457d056bd43cade4c2393dce00d684aedea77ddc2a3
+      google-auth==2.3.3 --hash sha256:a348a50b027679cb7dae98043ac8dbcc1d7951f06d8387496071a1e05a2465c0
+      google-auth-oauthlib==0.4.6 --hash sha256:3f2a6e802eebbb6fb736a370fbf3b055edcb6b52878bf2f26330b5e041316c73
+      grpcio==1.43.0 --hash sha256:735d9a437c262ab039d02defddcb9f8f545d7009ae61c0114e19dda3843febe5
+      markdown==3.3.6 --hash sha256:9923332318f843411e9932237530df53162e29dc7a4e2b91e35764583c46c9a3
+      numpy==1.22.0 --hash sha256:a955e4128ac36797aaffd49ab44ec74a71c11d6938df83b1285492d277db5397
+      protobuf==3.19.1 --hash sha256:e813b1c9006b6399308e917ac5d298f345d95bb31f46f02b60cd92970a9afa17
+      requests==2.27.1 --hash sha256:f22fa1e554c9ddfd16e6e41ac79759e17be9e492b3587efa038054674760e72d
+      tensorboard-data-server==0.6.1 --hash sha256:809fe9887682d35c1f7d1f54f0f40f98bb1f771b14265b453ca051e2ce58fca7
+      tensorboard-plugin-wit==1.8.1 --hash sha256:ff26bdd583d155aa951ee3b152b3d0cffae8005dc697f72b44a8e8c2a77a8cbe
+      werkzeug==2.0.2 --hash sha256:63d3dc1cf60e7b7e35e97fa9861f7397283b75d765afcaefd993d6046899de8f
+      wheel==0.37.1 --hash sha256:4bdcd7d840138086126cd09254dc6195fb4fc6f01c050a1d7236f2630db1d22a
+      cachetools==4.2.4 --hash sha256:92971d3cb7d2a97efff7c7bb1657f21a8f5fb309a37530537c71b1774189f2d1
+      certifi==2021.10.8 --hash sha256:d62a0163eb4c2344ac042ab2bdf75399a71a2d8c7d47eac2e2ee91b9d6339569
+      charset-normalizer==2.0.10 --hash sha256:cb957888737fc0bbcd78e3df769addb41fd1ff8cf950dc9e7ad7793f1bf44455
+      idna==3.3 --hash sha256:84d9dd047ffa80596e0f246e2eab0b391788b0503584e8945f2368256d2735ff
+      pyasn1-modules==0.2.8 --hash sha256:a50b808ffeb97cb3601dd25981f6b016cbb3d31fbf57a8b8a87428e6158d0c74
+      requests-oauthlib==1.3.0 --hash sha256:7f71572defaecd16372f9006f33c2ec8c077c3cfa6f5911a9a90202beb513f3d
+      rsa==4.8 --hash sha256:95c5d300c4e879ee69708c428ba566c59478fd653cc3a22243eeb8ed846950bb
+      six==1.16.0 --hash sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254
+      urllib3==1.26.7 --hash sha256:c4fdf4019605b6e5423637e01bc9fe4daef873709a7973e195ceba0a62bbc844
+      oauthlib==3.1.1 --hash sha256:42bf6354c2ed8c6acb54d971fce6f88193d97297e18602a3a886603f9d7730cc
+      pyasn1==0.4.8 --hash sha256:39c7e2ec30515947ff4e87fb6f456dfc6e84857d34be479c9d4a4ba4bf46aa5d
+      setuptools==60.3.1 --hash sha256:2932bfeb248c648dc411ea9714d5a6de7a33ef1a0db2f0fce644d8172b0479e8
+
+.. tab:: Windows
+
+   .. code-block:: console
+
+      C:\> jq -r <./pip-output.json '.candidates[] | {req: .requirement, hash: .download_info.direct_url.archive_info.hash} | .req + ((.hash | " --hash " + sub("="; ":")) // "")'
+      tensorboard==2.7.0 --hash sha256:239f78a4a8dff200ce585a030c787773a8c1184d5c159252f5f85bac4e3c3b38
+      absl-py==1.0.0 --hash sha256:84e6dcdc69c947d0c13e5457d056bd43cade4c2393dce00d684aedea77ddc2a3
+      google-auth==2.3.3 --hash sha256:a348a50b027679cb7dae98043ac8dbcc1d7951f06d8387496071a1e05a2465c0
+      google-auth-oauthlib==0.4.6 --hash sha256:3f2a6e802eebbb6fb736a370fbf3b055edcb6b52878bf2f26330b5e041316c73
+      grpcio==1.43.0 --hash sha256:735d9a437c262ab039d02defddcb9f8f545d7009ae61c0114e19dda3843febe5
+      markdown==3.3.6 --hash sha256:9923332318f843411e9932237530df53162e29dc7a4e2b91e35764583c46c9a3
+      numpy==1.22.0 --hash sha256:a955e4128ac36797aaffd49ab44ec74a71c11d6938df83b1285492d277db5397
+      protobuf==3.19.1 --hash sha256:e813b1c9006b6399308e917ac5d298f345d95bb31f46f02b60cd92970a9afa17
+      requests==2.27.1 --hash sha256:f22fa1e554c9ddfd16e6e41ac79759e17be9e492b3587efa038054674760e72d
+      tensorboard-data-server==0.6.1 --hash sha256:809fe9887682d35c1f7d1f54f0f40f98bb1f771b14265b453ca051e2ce58fca7
+      tensorboard-plugin-wit==1.8.1 --hash sha256:ff26bdd583d155aa951ee3b152b3d0cffae8005dc697f72b44a8e8c2a77a8cbe
+      werkzeug==2.0.2 --hash sha256:63d3dc1cf60e7b7e35e97fa9861f7397283b75d765afcaefd993d6046899de8f
+      wheel==0.37.1 --hash sha256:4bdcd7d840138086126cd09254dc6195fb4fc6f01c050a1d7236f2630db1d22a
+      cachetools==4.2.4 --hash sha256:92971d3cb7d2a97efff7c7bb1657f21a8f5fb309a37530537c71b1774189f2d1
+      certifi==2021.10.8 --hash sha256:d62a0163eb4c2344ac042ab2bdf75399a71a2d8c7d47eac2e2ee91b9d6339569
+      charset-normalizer==2.0.10 --hash sha256:cb957888737fc0bbcd78e3df769addb41fd1ff8cf950dc9e7ad7793f1bf44455
+      idna==3.3 --hash sha256:84d9dd047ffa80596e0f246e2eab0b391788b0503584e8945f2368256d2735ff
+      pyasn1-modules==0.2.8 --hash sha256:a50b808ffeb97cb3601dd25981f6b016cbb3d31fbf57a8b8a87428e6158d0c74
+      requests-oauthlib==1.3.0 --hash sha256:7f71572defaecd16372f9006f33c2ec8c077c3cfa6f5911a9a90202beb513f3d
+      rsa==4.8 --hash sha256:95c5d300c4e879ee69708c428ba566c59478fd653cc3a22243eeb8ed846950bb
+      six==1.16.0 --hash sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254
+      urllib3==1.26.7 --hash sha256:c4fdf4019605b6e5423637e01bc9fe4daef873709a7973e195ceba0a62bbc844
+      oauthlib==3.1.1 --hash sha256:42bf6354c2ed8c6acb54d971fce6f88193d97297e18602a3a886603f9d7730cc
+      pyasn1==0.4.8 --hash sha256:39c7e2ec30515947ff4e87fb6f456dfc6e84857d34be479c9d4a4ba4bf46aa5d
+      setuptools==60.3.1 --hash sha256:2932bfeb248c648dc411ea9714d5a6de7a33ef1a0db2f0fce644d8172b0479e8
+
+JSON schema
+-----------
+
+The JSON report is described below with fields given fake mypy type annotations corresponding to the output of `json.load() <https://docs.python.org/3/library/json.html#json.load>`_ upon reading the JSON report. The report contains multiple top-level fields:
+
+* ``experimental: bool``: set to ``True`` as the format is not yet stable.
+* ``input_requirements: List[str]``: strings describing the requirements provided to the pip resolver. Can be parsed with `packaging.requirements.Requirement <https://packaging.pypa.io/en/latest/requirements.html>`_.
+* ``python_version: str``: a string describing the python interpreter version the resolve was performed for. Can be parsed with `packaging.specifiers.SpecifierSet <https://packaging.pypa.io/en/latest/specifiers.html>`_. Currently always an exact ``==`` constraint.
+* ``candidates: Dict``: each package that would have been downloaded with ``pip download`` is represented in the ``candidates`` dict. Each key is the ``name`` of a requirement, since each dependency package name is satisfied by exactly one candidate in the final resolve.
+
+Candidates
+----------
+
+Each element of the ``candidates`` dict has the following fields:
+
+* ``requirement: str``: an ``==`` requirement string for the exact version of the candidate that would have been fetched by ``pip download``. Can be parsed with `packaging.requirements.Requirement <https://packaging.pypa.io/en/latest/requirements.html>`_.
+* ``requires_python: Optional[str]``: a constraint on the executing python interpreter version exerted by this candidate. Can be parsed with `packaging.specifiers.SpecifierSet <https://packaging.pypa.io/en/latest/specifiers.html>`_.
+* ``dependencies: List[str]``: all the dependencies required by this candidate, as requirement strings which can be parsed with `packaging.requirements.Requirement <https://packaging.pypa.io/en/latest/requirements.html>`_. Each requirement will have been satisfied by another member of the overall ``candidates`` dict.
+* ``download_info: Dict``: a link where the requirement can be directly downloaded from, along with any metadata.
+
+Download Info
+-------------
+
+The ``download_info`` object has the following fields:
+
+* ``direct_url: Dict``: a deserializable representation of a Direct URL as per :pep:`610` for this package's location, which may be a remote URL or local directory.
+* ``dist_info_metadata: Optional[Dict]``: a deserializable representation of a Direct URL as per :pep:`610` for this package's *metadata*, which may be provided for individual package downloads by a package index provided with ``-i`` which implements :pep:`658`.
+
+  If this field's value is non-``None``, it will only ever provide the ``archive_info`` key of the Direct URL JSON schema from :pep:`610`, and that key's ``hash`` field may be empty if :pep:`658`'s ``<a href="..." data-dist-info-metadata="true">...</a>`` was provided in the anchor tag that was parsed to obtain this candidate's download info, instead of providing a specific checksum value for the candidate's metadata with e.g. ``data-dist-info-metadata="sha256=e8413ab19..."``.
+
 .. _changes-to-the-pip-dependency-resolver-in-20-2-2020:
 
 .. _`Resolver changes 2020`:
