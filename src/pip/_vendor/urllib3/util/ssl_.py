@@ -346,7 +346,7 @@ def create_urllib3_context(
     # 'SSLKEYLOGFILE', if the feature is available (Python 3.8+). Skip empty values.
     if hasattr(context, "keylog_filename"):
         sslkeylogfile = os.environ.get("SSLKEYLOGFILE")
-        if sslkeylogfile:
+        if sslkeylogfile and os.path.isfile(sslkeylogfile):
             context.keylog_filename = sslkeylogfile
 
     return context
