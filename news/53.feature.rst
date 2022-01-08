@@ -1,0 +1,3 @@
+Add ``--report`` to the install command to generate a json report of what was installed.
+In combination with ``--dry-run`` and ``--ignore-installed`` it can be used to resolve
+the requirements.
