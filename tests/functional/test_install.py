@@ -1739,7 +1739,7 @@ def test_install_editable_with_wrong_egg_name(
         "fragments."
     ) in result.stderr
     if resolver_variant == "2020-resolver":
-        assert "has inconsistent" in result.stderr, str(result)
+        assert "has inconsistent" in result.stdout, str(result)
     else:
         assert "Successfully installed pkga" in str(result), str(result)
 

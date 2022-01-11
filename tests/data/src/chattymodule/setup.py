@@ -6,8 +6,10 @@ import sys
 from setuptools import setup
 
 print(f"HELLO FROM CHATTYMODULE {sys.argv[1]}")
-print(os.environ)
 print(sys.argv)
+print(sys.executable)
+print(sys.version)
+
 if "--fail" in sys.argv:
     print("I DIE, I DIE")
     sys.exit(1)
