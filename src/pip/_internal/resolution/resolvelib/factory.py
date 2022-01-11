@@ -191,7 +191,12 @@ class Factory:
                         version=version,
                     )
                 except (InstallationSubprocessError, MetadataInconsistent) as e:
-                    logger.warning("Discarding %s. %s", link, e)
+                    logger.info(
+                        "Discarding [blue underline]%s[/]: [yellow]%s[reset]",
+                        link,
+                        e,
+                        extra={"markup": True},
+                    )
                     self._build_failures[link] = e
                     return None
             base: BaseCandidate = self._editable_candidate_cache[link]
@@ -206,7 +211,12 @@ class Factory:
                         version=version,
                     )
                 except (InstallationSubprocessError, MetadataInconsistent) as e:
-                    logger.warning("Discarding %s. %s", link, e)
+                    logger.info(
+                        "Discarding [blue underline]%s[/]: [yellow]%s[reset]",
+                        link,
+                        e,
+                        extra={"markup": True},
+                    )
                     self._build_failures[link] = e
                     return None
             base = self._link_candidate_cache[link]
