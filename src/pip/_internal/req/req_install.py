@@ -808,7 +808,7 @@ class InstallRequirement:
             )
         except LegacyInstallFailure as exc:
             self.install_succeeded = False
-            raise exc.__cause__
+            raise exc
         except Exception:
             self.install_succeeded = True
             raise
