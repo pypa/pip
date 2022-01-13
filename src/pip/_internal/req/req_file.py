@@ -143,11 +143,9 @@ def parse_requirements(
     parser = RequirementsFileParser(session, line_parser)
 
     for parsed_line in parser.parse(filename, constraint):
-        print("Parsed line", parsed_line)
         parsed_req = handle_line(
             parsed_line, options=options, finder=finder, session=session
         )
-        print("Parsed req", parsed_req)
         if parsed_req is not None:
             yield parsed_req
 
@@ -178,8 +176,6 @@ def handle_requirement_line(
 
     assert line.is_requirement
 
-    print("IS EDITABLE", "YES" if line.is_editable else "NO")
-
     if line.is_editable:
         # For editable requirements, we don't support per-requirement
         # options, so just return the parsed requirement.
@@ -202,7 +198,6 @@ def handle_requirement_line(
 
         line_source = f"line {line.lineno} of {line.filename}"
 
-        print("Creating ParsedRequirement")
         return ParsedRequirement(
             requirement=line.requirement,
             is_editable=line.is_editable,
@@ -304,11 +299,9 @@ def handle_line(
     """
 
     if line.is_requirement:
-        print("IS REQUIREMENT: YES")
         parsed_req = handle_requirement_line(line, options)
         return parsed_req
     else:
-        print("IS REQUIREMENT: NO")
         handle_option_line(
             line.opts,
             line.filename,

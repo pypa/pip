@@ -122,8 +122,6 @@ class Requirement:
         self.specifier: SpecifierSet = SpecifierSet(req.specifier)
         self.marker: TOptional[Marker] = req.marker if req.marker else None
 
-        print("Requirement constructor end")
-
     def __str__(self) -> str:
         parts: List[str] = [self.name]
 

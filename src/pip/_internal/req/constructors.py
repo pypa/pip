@@ -334,8 +334,6 @@ def parse_req_from_line(name: str, line_source: Optional[str]) -> RequirementPar
 
     extras = convert_extras(extras_as_string)
 
-    print(__file__, "req_as_string", req_as_string, extras)
-
     def with_source(text: str) -> str:
         if not line_source:
             return text

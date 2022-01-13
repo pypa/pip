@@ -66,30 +66,6 @@ def unpack_vcs_link(link: Link, location: str) -> None:
     vcs_backend.unpack(location, url=hide_url(link.url))
 
 
-def get_cloud_storage_object_url(link: Link, download_dir: str, hashes: Optional[Hashes] = None) -> str:
-    cs_backend = cloudstorage.get_backend_for_scheme(link.scheme)
-    assert cs_backend is not None
-
-    temp_dir = TempDirectory(kind="unpack", globally_managed=True)
-    # If a download dir is specified, is the file already downloaded there?
-    already_downloaded_path = None
-    if download_dir:
-        already_downloaded_path = _check_download_dir(link, download_dir, hashes)
-
-    if already_downloaded_path:
-        from_path = already_downloaded_path
-        content_type = None
-    else:
-        # let's download to a tmp dir
-        object = cs_backend.obtain(link)
-        if hashes:
-            hashes.check_against_path(object.path)
-
-    return object
-
-    return cs_backend.obtain(download_dir, link)
-
-
 class File:
     def __init__(self, path: str, content_type: Optional[str]) -> None:
         self.path = path

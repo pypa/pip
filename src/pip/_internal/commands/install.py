@@ -301,8 +301,6 @@ class InstallCommand(RequirementCommand):
             globally_managed=True,
         )
 
-        print(args, options, finder, session)
-
         try:
             reqs = self.get_requirements(args, options, finder, session)
 
@@ -340,9 +338,6 @@ class InstallCommand(RequirementCommand):
             requirement_set = resolver.resolve(
                 reqs, check_supported_wheels=not options.target_dir
             )
-
-            print(resolver)
-            exit("No reason")
 
             try:
                 pip_req = requirement_set.get_requirement("pip")

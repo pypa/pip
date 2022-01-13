@@ -368,7 +368,6 @@ class RequirementCommand(IndexGroupCommand):
         Parse command-line arguments into the corresponding requirements.
         """
         requirements: List[InstallRequirement] = []
-        print("get_requirements")
         for filename in options.constraints:
             for parsed_req in parse_requirements(
                 filename,
@@ -377,7 +376,6 @@ class RequirementCommand(IndexGroupCommand):
                 options=options,
                 session=session,
             ):
-                print("parsed_req", __file__, parsed_req)
                 req_to_add = install_req_from_parsed_requirement(
                     parsed_req,
                     isolated=options.isolated_mode,
@@ -385,7 +383,6 @@ class RequirementCommand(IndexGroupCommand):
                 )
                 requirements.append(req_to_add)
 
-        print("for req in args")
         for req in args:
             req_to_add = install_req_from_line(
                 req,
@@ -396,7 +393,6 @@ class RequirementCommand(IndexGroupCommand):
             )
             requirements.append(req_to_add)
 
-        print("for req in editables")
         for req in options.editables:
             req_to_add = install_req_from_editable(
                 req,
@@ -407,12 +403,10 @@ class RequirementCommand(IndexGroupCommand):
             requirements.append(req_to_add)
 
         # NOTE: options.require_hashes may be set if --require-hashes is True
-        print("for filename in requirements")
         for filename in options.requirements:
             for parsed_req in parse_requirements(
                 filename, finder=finder, options=options, session=session
             ):
-                print("install req from parsed requirement")
                 req_to_add = install_req_from_parsed_requirement(
                     parsed_req,
                     isolated=options.isolated_mode,
