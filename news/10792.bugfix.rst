@@ -1,0 +1,2 @@
+Use warnings module for producing warning when run as root and outside a
+virtual environment.

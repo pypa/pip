@@ -8,6 +8,7 @@ PackageFinder machinery and all its vendored dependencies, etc.
 import logging
 import os
 import sys
+import warnings
 from functools import partial
 from optparse import Values
 from typing import Any, List, Optional, Tuple
@@ -177,7 +178,7 @@ def warn_if_run_as_root() -> None:
     if os.getuid() != 0:
         return
 
-    logger.warning(
+    warnings.warn(
         "Running pip as the 'root' user can result in broken permissions and "
         "conflicting behaviour with the system package manager. "
         "It is recommended to use a virtual environment instead: "
