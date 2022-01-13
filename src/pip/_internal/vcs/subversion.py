@@ -28,6 +28,7 @@ _svn_info_xml_url_re = re.compile(r"<url>(.*)</url>")
 
 
 class Subversion(VersionControl):
+    subprocess_cmd = ("svn",)
     name = "svn"
     dirname = ".svn"
     repo_name = "checkout"

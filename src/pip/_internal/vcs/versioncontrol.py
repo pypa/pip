@@ -7,20 +7,15 @@ import sys
 import urllib.parse
 from typing import (
     TYPE_CHECKING,
-    Any,
     Dict,
-    Iterable,
     Iterator,
     List,
-    Mapping,
     Optional,
     Tuple,
     Type,
-    Union,
 )
 
-from pip._internal.cli.spinners import SpinnerInterface
-from pip._internal.exceptions import BadCommand, InstallationError
+from pip._internal.exceptions import InstallationError
 from pip._internal.utils.misc import (
     HiddenText,
     ask_path_exists,
@@ -31,7 +26,7 @@ from pip._internal.utils.misc import (
     is_installable_dir,
     rmtree,
 )
-from pip._internal.utils.subprocess import CommandArgs, call_subprocess, make_command
+from pip._internal.utils.subprocess import CommandArgs, WithSubprocess
 from pip._internal.utils.urls import get_url_scheme
 
 if TYPE_CHECKING:
@@ -266,7 +261,7 @@ class VcsSupport:
 vcs = VcsSupport()
 
 
-class VersionControl:
+class VersionControl(WithSubprocess):
     name = ""
     dirname = ""
     repo_name = ""
@@ -613,60 +608,6 @@ class VersionControl:
         Return the current commit id of the files at the given location.
         """
         raise NotImplementedError
-
-    @classmethod
-    def run_command(
-        cls,
-        cmd: Union[List[str], CommandArgs],
-        show_stdout: bool = True,
-        cwd: Optional[str] = None,
-        on_returncode: 'Literal["raise", "warn", "ignore"]' = "raise",
-        extra_ok_returncodes: Optional[Iterable[int]] = None,
-        command_desc: Optional[str] = None,
-        extra_environ: Optional[Mapping[str, Any]] = None,
-        spinner: Optional[SpinnerInterface] = None,
-        log_failed_cmd: bool = True,
-        stdout_only: bool = False,
-    ) -> str:
-        """
-        Run a VCS subcommand
-        This is simply a wrapper around call_subprocess that adds the VCS
-        command name, and checks that the VCS is available
-        """
-        cmd = make_command(cls.name, *cmd)
-        try:
-            return call_subprocess(
-                cmd,
-                show_stdout,
-                cwd,
-                on_returncode=on_returncode,
-                extra_ok_returncodes=extra_ok_returncodes,
-                command_desc=command_desc,
-                extra_environ=extra_environ,
-                unset_environ=cls.unset_environ,
-                spinner=spinner,
-                log_failed_cmd=log_failed_cmd,
-                stdout_only=stdout_only,
-            )
-        except FileNotFoundError:
-            # errno.ENOENT = no such file or directory
-            # In other words, the VCS executable isn't available
-            raise BadCommand(
-                f"Cannot find command {cls.name!r} - do you have "
-                f"{cls.name!r} installed and in your PATH?"
-            )
-        except PermissionError:
-            # errno.EACCES = Permission denied
-            # This error occurs, for instance, when the command is installed
-            # only for another user. So, the current user don't have
-            # permission to call the other user command.
-            raise BadCommand(
-                f"No permission to execute {cls.name!r} - install it "
-                f"locally, globally (ask admin), or check your PATH. "
-                f"See possible solutions at "
-                f"https://pip.pypa.io/en/latest/reference/pip_freeze/"
-                f"#fixing-permission-denied."
-            )
 
     @classmethod
     def is_repository_directory(cls, path: str) -> bool:

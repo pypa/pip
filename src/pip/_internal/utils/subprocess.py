@@ -11,10 +11,11 @@ from typing import (
     Mapping,
     Optional,
     Union,
+    Tuple,
 )
 
 from pip._internal.cli.spinners import SpinnerInterface, open_spinner
-from pip._internal.exceptions import InstallationSubprocessError
+from pip._internal.exceptions import InstallationSubprocessError, BadCommand
 from pip._internal.utils.logging import VERBOSE, subprocess_logger
 from pip._internal.utils.misc import HiddenText
 
@@ -287,3 +288,66 @@ def runner_with_spinner_message(message: str) -> Callable[..., None]:
             )
 
     return runner
+
+
+class WithSubprocess:
+    @classmethod
+    def run_command(
+        cls,
+        cmd: Union[List[str], CommandArgs],
+        show_stdout: bool = True,
+        cwd: Optional[str] = None,
+        on_returncode: 'Literal["raise", "warn", "ignore"]' = "raise",
+        extra_ok_returncodes: Optional[Iterable[int]] = None,
+        command_desc: Optional[str] = None,
+        extra_environ: Optional[Mapping[str, Any]] = None,
+        spinner: Optional[SpinnerInterface] = None,
+        log_failed_cmd: bool = True,
+        stdout_only: bool = False,
+    ) -> str:
+        """
+        Run a VCS subcommand
+        This is simply a wrapper around call_subprocess that adds the VCS
+        command name, and checks that the VCS is available
+        """
+        cmd = make_command(*list(cls.subprocess_cmd), *cmd)
+
+        if len(cmd) == 0:
+            raise ValueError("Unable to execute empty subprocess command")
+
+        executable = cmd[0]
+
+        try:
+            return call_subprocess(
+                cmd,
+                show_stdout,
+                cwd,
+                on_returncode=on_returncode,
+                extra_ok_returncodes=extra_ok_returncodes,
+                command_desc=command_desc,
+                extra_environ=extra_environ,
+                spinner=spinner,
+                log_failed_cmd=log_failed_cmd,
+                stdout_only=stdout_only,
+            )
+        except FileNotFoundError:
+            # errno.ENOENT = no such file or directory
+            # In other words, the VCS executable isn't available
+            raise BadCommand(
+                f"Cannot find command {executable!r} - do you have "
+                f"{executable!r} installed and in your PATH?"
+            )
+        except PermissionError:
+            # errno.EACCES = Permission denied
+            # This error occurs, for instance, when the command is installed
+            # only for another user. So, the current user don't have
+            # permission to call the other user command.
+            raise BadCommand(
+                f"No permission to execute {executable!r} - install it "
+                f"locally, globally (ask admin), or check your PATH. "
+                f"See possible solutions at "
+                f"https://pip.pypa.io/en/latest/reference/pip_freeze/"
+                f"#fixing-permission-denied."
+            )
+
+    subprocess_cmd: Optional[Tuple[str, ...]] = None

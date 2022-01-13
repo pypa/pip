@@ -199,6 +199,12 @@ class Link(KeyBasedCompareMixin):
         return self.ext == WHEEL_EXTENSION
 
     @property
+    def is_cloud_storage(self) -> bool:
+        from pip._internal.cloudstorage import cloudstorage
+
+        return self.scheme in cloudstorage.all_schemes
+
+    @property
     def is_vcs(self) -> bool:
         from pip._internal.vcs import vcs
 

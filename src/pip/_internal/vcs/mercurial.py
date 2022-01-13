@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class Mercurial(VersionControl):
+    subprocess_cmd = ("hg",)
     name = "hg"
     dirname = ".hg"
     repo_name = "clone"

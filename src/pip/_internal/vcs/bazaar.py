@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class Bazaar(VersionControl):
+    subprocess_cmd = ("bzr",)
     name = "bzr"
     dirname = ".bzr"
     repo_name = "branch"

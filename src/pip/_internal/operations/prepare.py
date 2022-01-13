@@ -27,7 +27,7 @@ from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
-from pip._internal.network.download import BatchDownloader, Downloader
+from pip._internal.network.download import MultiplexDownloader, HTTPDownloader, Downloader
 from pip._internal.network.lazy_wheel import (
     HTTPRangeRequestUnsupported,
     dist_from_wheel_url,
@@ -42,6 +42,7 @@ from pip._internal.utils.misc import display_path, hide_url, is_installable_dir,
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
+from pip._internal.cloudstorage import cloudstorage
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +64,30 @@ def unpack_vcs_link(link: Link, location: str) -> None:
     vcs_backend = vcs.get_backend_for_scheme(link.scheme)
     assert vcs_backend is not None
     vcs_backend.unpack(location, url=hide_url(link.url))
+
+
+def get_cloud_storage_object_url(link: Link, download_dir: str, hashes: Optional[Hashes] = None) -> str:
+    cs_backend = cloudstorage.get_backend_for_scheme(link.scheme)
+    assert cs_backend is not None
+
+    temp_dir = TempDirectory(kind="unpack", globally_managed=True)
+    # If a download dir is specified, is the file already downloaded there?
+    already_downloaded_path = None
+    if download_dir:
+        already_downloaded_path = _check_download_dir(link, download_dir, hashes)
+
+    if already_downloaded_path:
+        from_path = already_downloaded_path
+        content_type = None
+    else:
+        # let's download to a tmp dir
+        object = cs_backend.obtain(link)
+        if hashes:
+            hashes.check_against_path(object.path)
+
+    return object
+
+    return cs_backend.obtain(download_dir, link)
 
 
 class File:
@@ -208,7 +233,7 @@ def unpack_url(
     if link.is_file:
         file = get_file_url(link, download_dir, hashes=hashes)
 
-    # http urls
+    # http and cloud provider urls
     else:
         file = get_http_url(
             link,
@@ -275,8 +300,10 @@ class RequirementPreparer:
         self.build_dir = build_dir
         self.req_tracker = req_tracker
         self._session = session
-        self._download = Downloader(session, progress_bar)
-        self._batch_download = BatchDownloader(session, progress_bar)
+        self._download = MultiplexDownloader(
+            HTTPDownloader(session, progress_bar),
+            *cloudstorage.downloaders
+        )
         self.finder = finder
 
         # Where still-packed archives should be written to. If None, they are
@@ -439,7 +466,7 @@ class RequirementPreparer:
             assert req.link
             links_to_fully_download[req.link] = req
 
-        batch_download = self._batch_download(
+        batch_download = self._download.batch(
             links_to_fully_download.keys(),
             temp_dir,
         )

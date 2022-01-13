@@ -57,6 +57,7 @@ def looks_like_hash(sha: str) -> bool:
 
 
 class Git(VersionControl):
+    subprocess_cmd = ("git",)
     name = "git"
     dirname = ".git"
     repo_name = "clone"

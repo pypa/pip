@@ -25,3 +25,8 @@ def is_archive_file(name: str) -> bool:
     if ext in ARCHIVE_EXTENSIONS:
         return True
     return False
+
+
+def is_wheel_file(name: str) -> bool:
+    """Return True if `name` has a .whl extension"""
+    return splitext(name)[1].lower() == WHEEL_EXTENSION

@@ -4,7 +4,7 @@ import cgi
 import logging
 import mimetypes
 import os
-from typing import Iterable, Optional, Tuple
+from typing import Iterable, Optional, Tuple, Generator
 
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 
@@ -18,6 +18,10 @@ from pip._internal.network.utils import HEADERS, raise_for_status, response_chun
 from pip._internal.utils.misc import format_size, redact_auth_from_url, splitext
 
 logger = logging.getLogger(__name__)
+
+
+class NoSupportedDownloaderFound(Exception):
+    pass
 
 
 def _get_http_response_size(resp: Response) -> Optional[int]:
@@ -119,6 +123,37 @@ def _http_get_download(session: PipSession, link: Link) -> Response:
 
 
 class Downloader:
+    def is_supported(self, link: Link) -> bool:
+        raise NotImplementedError()
+
+    def __call__(self, link: Link, location: str) -> Tuple[str, str]:
+        raise NotImplementedError()
+
+
+class MultiplexDownloader(Downloader):
+    def __init__(self, *downloaders: Downloader):
+        self.downloaders = downloaders
+
+    def is_supported(self, link: Link) -> bool:
+        for downloader in self.downloaders:
+            if downloader.is_supported(link):
+                return True
+
+        return False
+
+    def __call__(self, link: Link, location: str):
+        for downloader in self.downloaders:
+            if downloader.is_supported(link):
+                return downloader(link, location)
+
+        raise NoSupportedDownloaderFound("Unable to detect valid downloader for the given URL: {}".format(link))
+
+    def batch(self, links: Iterable[Link], location: str) -> Generator[Tuple[Link, Tuple[str, str]], None, None]:
+        for link in links:
+            yield link, self(link, location)
+
+
+class HTTPDownloader(Downloader):
     def __init__(
         self,
         session: PipSession,
@@ -126,6 +161,9 @@ class Downloader:
     ) -> None:
         self._session = session
         self._progress_bar = progress_bar
+
+    def is_supported(self, link: Link) -> bool:
+        return link.scheme.lower() in ("http", "https")
 
     def __call__(self, link: Link, location: str) -> Tuple[str, str]:
         """Download the file given by link into location."""
@@ -147,39 +185,3 @@ class Downloader:
                 content_file.write(chunk)
         content_type = resp.headers.get("Content-Type", "")
         return filepath, content_type
-
-
-class BatchDownloader:
-    def __init__(
-        self,
-        session: PipSession,
-        progress_bar: str,
-    ) -> None:
-        self._session = session
-        self._progress_bar = progress_bar
-
-    def __call__(
-        self, links: Iterable[Link], location: str
-    ) -> Iterable[Tuple[Link, Tuple[str, str]]]:
-        """Download the files given by links into location."""
-        for link in links:
-            try:
-                resp = _http_get_download(self._session, link)
-            except NetworkConnectionError as e:
-                assert e.response is not None
-                logger.critical(
-                    "HTTP error %s while getting %s",
-                    e.response.status_code,
-                    link,
-                )
-                raise
-
-            filename = _get_http_response_filename(resp, link)
-            filepath = os.path.join(location, filename)
-
-            chunks = _prepare_download(resp, link, self._progress_bar)
-            with open(filepath, "wb") as content_file:
-                for chunk in chunks:
-                    content_file.write(chunk)
-            content_type = resp.headers.get("Content-Type", "")
-            yield link, (filepath, content_type)
