@@ -4,38 +4,18 @@ import logging
 import os
 import typing
 import urllib.parse
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Dict,
-    Iterator,
-    List,
-    Optional,
-    Type,
-    Tuple
-)
+from typing import Dict, Iterator, List, Optional, Tuple, Type
 
 from pip._internal.models.link import Link
 from pip._internal.network.download import Downloader
+from pip._internal.utils.filetypes import is_archive_file, is_wheel_file
 from pip._internal.utils.misc import rmtree
 from pip._internal.utils.subprocess import WithSubprocess
-from pip._internal.utils.filetypes import is_wheel_file, is_archive_file
-
-if TYPE_CHECKING:
-    # Literal was introduced in Python 3.8.
-    #
-    # TODO: Remove `if TYPE_CHECKING` when dropping support for Python 3.7.
-    from typing import Literal
-
 
 __all__ = ["cloudstorage"]
 
 
 logger = logging.getLogger(__name__)
-
-
-class BucketNotFoundError(Exception):
-    pass
 
 
 class InvalidCloudProviderObjectURL(Exception):
@@ -48,7 +28,12 @@ class CloudStorageObjectRef:
         """
         Extract the bucket file from a cloud storage object URL
         """
-        return urllib.parse.urlsplit(urllib.parse.unquote(url)).hostname
+        bucket = urllib.parse.urlsplit(urllib.parse.unquote(url)).hostname
+        if not bucket:
+            raise InvalidCloudProviderObjectURL(
+                "Unable to extrack bucket name from URL: {}".format(url)
+            )
+        return bucket
 
     @staticmethod
     def get_object_path(url: str) -> str:
@@ -72,7 +57,7 @@ class CloudStorageObjectRef:
         return CloudStorageObjectRef(
             scheme=cls.get_scheme(link.url),
             bucket=cls.get_bucket(link.url),
-            path=cls.get_object_path(link.url)
+            path=cls.get_object_path(link.url),
         )
 
     scheme: str
@@ -87,7 +72,7 @@ class CloudStorageObjectRef:
         self.bucket = bucket
         self.path = path
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "{}://{}/{}".format(self.scheme, self.bucket, self.path)
 
     def get_target(self) -> str:
@@ -98,7 +83,9 @@ class CloudStorageObjectRef:
             if s != "":
                 return s
 
-        raise InvalidCloudProviderObjectURL("Unable to parse target from Cloud Storage object URL: {}".format(self))
+        raise InvalidCloudProviderObjectURL(
+            "Unable to parse target from Cloud Storage object URL: {}".format(self)
+        )
 
 
 class CloudStorageSupport:
@@ -118,13 +105,6 @@ class CloudStorageSupport:
     def downloaders(self) -> List["Downloader"]:
         return list(self._registry.values())
 
-    @property
-    def all_schemes(self) -> List[str]:
-        schemes: List[str] = []
-        for backend in self.backends:
-            schemes.append(backend.scheme)
-        return schemes
-
     def register(self, cls: Type["CloudStorageProvider"]) -> None:
         if not hasattr(cls, "name"):
             logger.warning("Cannot register Cloud Storage Provider %s", cls.__name__)
@@ -136,22 +116,6 @@ class CloudStorageSupport:
     def unregister(self, name: str) -> None:
         if name in self._registry:
             del self._registry[name]
-
-    def get_backend_for_scheme(self, scheme: str) -> Optional["CloudStorageProvider"]:
-        """
-        Return a CloudStorageProvider object or None.
-        """
-        for cs_backend in self._registry.values():
-            if scheme == cs_backend.scheme:
-                return cs_backend
-        return None
-
-    def get_backend(self, name: str) -> Optional["CloudStorageProvider"]:
-        """
-        Return a CloudStorageProvider object or None.
-        """
-        name = name.lower()
-        return self._registry.get(name)
 
 
 cloudstorage = CloudStorageSupport()
@@ -174,7 +138,7 @@ class CloudStorageProvider(WithSubprocess, Downloader):
         target = ref.get_target()
         return is_archive_file(target) or is_wheel_file(target)
 
-    def download(self, ref: CloudStorageObjectRef, dest: str):
+    def download(self, ref: CloudStorageObjectRef, dest: str) -> None:
         raise NotImplementedError()
 
     def is_supported(self, link: Link) -> bool:
@@ -182,7 +146,8 @@ class CloudStorageProvider(WithSubprocess, Downloader):
 
     def __call__(self, link: Link, location: str) -> Tuple[str, Optional[str]]:
         """
-        Ensure the package referenced by link is downloaded and stored in the location provided
+        Ensure the package referenced by link is downloaded and
+        stored in the location provided
 
         :param link: the link to the referenced package
         :param location: the location to store the package in

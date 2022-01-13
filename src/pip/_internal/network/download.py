@@ -4,7 +4,7 @@ import cgi
 import logging
 import mimetypes
 import os
-from typing import Iterable, Optional, Tuple, Generator
+from typing import Generator, Iterable, Optional, Tuple
 
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 
@@ -141,14 +141,18 @@ class MultiplexDownloader(Downloader):
 
         return False
 
-    def __call__(self, link: Link, location: str):
+    def __call__(self, link: Link, location: str) -> Tuple[str, str]:
         for downloader in self.downloaders:
             if downloader.is_supported(link):
                 return downloader(link, location)
 
-        raise NoSupportedDownloaderFound("Unable to detect valid downloader for the given URL: {}".format(link))
+        raise NoSupportedDownloaderFound(
+            "Unable to detect valid downloader for the given URL: {}".format(link)
+        )
 
-    def batch(self, links: Iterable[Link], location: str) -> Generator[Tuple[Link, Tuple[str, str]], None, None]:
+    def batch(
+        self, links: Iterable[Link], location: str
+    ) -> Generator[Tuple[Link, Tuple[str, str]], None, None]:
         for link in links:
             yield link, self(link, location)
 

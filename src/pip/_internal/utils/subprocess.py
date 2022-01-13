@@ -10,12 +10,12 @@ from typing import (
     List,
     Mapping,
     Optional,
-    Union,
     Tuple,
+    Union,
 )
 
 from pip._internal.cli.spinners import SpinnerInterface, open_spinner
-from pip._internal.exceptions import InstallationSubprocessError, BadCommand
+from pip._internal.exceptions import BadCommand, InstallationSubprocessError
 from pip._internal.utils.logging import VERBOSE, subprocess_logger
 from pip._internal.utils.misc import HiddenText
 
@@ -310,7 +310,10 @@ class WithSubprocess:
         This is simply a wrapper around call_subprocess that adds the VCS
         command name, and checks that the VCS is available
         """
-        cmd = make_command(*list(cls.subprocess_cmd), *cmd)
+        if cls.subprocess_cmd:
+            cmd = make_command(*list(cls.subprocess_cmd), *cmd)
+        else:
+            cmd = make_command(*cmd)
 
         if len(cmd) == 0:
             raise ValueError("Unable to execute empty subprocess command")

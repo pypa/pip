@@ -93,18 +93,14 @@ def parse_editable(editable_req: str) -> Tuple[Optional[str], str, Set[str]]:
             url = f"{version_control}+{url}"
             break
 
-    for cloud_storage in cloud_storage_providers:
-        if url.lower().startswith(f"{cloud_storage}:"):
-            url = f"{cloud_storage}+{url}"
-            break
-
     link = Link(url)
 
     if not link.is_vcs and not link.is_cloud_storage:
-        backends = ", ".join([*vcs.all_schemes, *cloud_storage_providers.all_schemes])
+        backends = ", ".join(vcs.all_schemes)
         raise InstallationError(
             f"{editable_req} is not a valid editable requirement. "
-            f"It should either be a path to a local project, a VCS URL, or a cloud storage provider URL "
+            f"It should either be a path to a local project, a VCS URL, "
+            f"or a cloud storage provider URL "
             f"(beginning with {backends})."
         )
 

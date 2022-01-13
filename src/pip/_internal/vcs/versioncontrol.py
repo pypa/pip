@@ -5,15 +5,7 @@ import os
 import shutil
 import sys
 import urllib.parse
-from typing import (
-    TYPE_CHECKING,
-    Dict,
-    Iterator,
-    List,
-    Optional,
-    Tuple,
-    Type,
-)
+from typing import Dict, Iterator, List, Optional, Tuple, Type
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.misc import (
@@ -28,13 +20,6 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.subprocess import CommandArgs, WithSubprocess
 from pip._internal.utils.urls import get_url_scheme
-
-if TYPE_CHECKING:
-    # Literal was introduced in Python 3.8.
-    #
-    # TODO: Remove `if TYPE_CHECKING` when dropping support for Python 3.7.
-    from typing import Literal
-
 
 __all__ = ["vcs"]
 

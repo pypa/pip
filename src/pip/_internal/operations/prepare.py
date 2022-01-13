@@ -12,6 +12,7 @@ from typing import Dict, Iterable, List, Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
 
+from pip._internal.cloudstorage import cloudstorage
 from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.distributions.installed import InstalledDistribution
 from pip._internal.exceptions import (
@@ -27,7 +28,11 @@ from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
-from pip._internal.network.download import MultiplexDownloader, HTTPDownloader, Downloader
+from pip._internal.network.download import (
+    Downloader,
+    HTTPDownloader,
+    MultiplexDownloader,
+)
 from pip._internal.network.lazy_wheel import (
     HTTPRangeRequestUnsupported,
     dist_from_wheel_url,
@@ -42,7 +47,6 @@ from pip._internal.utils.misc import display_path, hide_url, is_installable_dir,
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
-from pip._internal.cloudstorage import cloudstorage
 
 logger = logging.getLogger(__name__)
 
@@ -277,8 +281,7 @@ class RequirementPreparer:
         self.req_tracker = req_tracker
         self._session = session
         self._download = MultiplexDownloader(
-            HTTPDownloader(session, progress_bar),
-            *cloudstorage.downloaders
+            HTTPDownloader(session, progress_bar), *cloudstorage.downloaders
         )
         self.finder = finder
 

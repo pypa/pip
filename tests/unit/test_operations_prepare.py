@@ -9,7 +9,7 @@ import pytest
 
 from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
-from pip._internal.network.download import Downloader
+from pip._internal.network.download import HTTPDownloader
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import _copy_source_tree, unpack_url
 from pip._internal.utils.hashes import Hashes
@@ -33,7 +33,7 @@ def test_unpack_url_with_urllib_response_without_content_type(data: TestData) ->
 
     session = Mock()
     session.get = _fake_session_get
-    download = Downloader(session, progress_bar="on")
+    download = HTTPDownloader(session, progress_bar="on")
 
     uri = path_to_url(data.packages.joinpath("simple-1.0.tar.gz"))
     link = Link(uri)
@@ -78,7 +78,7 @@ def test_download_http_url__no_directory_traversal(
         "content-disposition": 'attachment;filename="../out_dir_file"',
     }
     session.get.return_value = resp
-    download = Downloader(session, progress_bar="on")
+    download = HTTPDownloader(session, progress_bar="on")
 
     download_dir = tmpdir.joinpath("download")
     os.mkdir(download_dir)
