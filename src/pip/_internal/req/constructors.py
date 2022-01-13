@@ -95,7 +95,7 @@ def parse_editable(editable_req: str) -> Tuple[Optional[str], str, Set[str]]:
 
     link = Link(url)
 
-    if not link.is_vcs and not link.is_cloud_storage:
+    if not link.is_vcs:
         backends = ", ".join(vcs.all_schemes)
         raise InstallationError(
             f"{editable_req} is not a valid editable requirement. "

@@ -50,7 +50,7 @@ class CloudStorageObjectRef:
         return urllib.parse.urlsplit(urllib.parse.unquote(url)).scheme
 
     @classmethod
-    def from_link(cls, link: Link):
+    def from_link(cls, link: Link) -> "CloudStorageObjectRef":
         """
         Construct a cloud storage object ref from a `Link` object
         """
@@ -64,7 +64,7 @@ class CloudStorageObjectRef:
     bucket: str
     path: str
 
-    def __init__(self, scheme, bucket, path):
+    def __init__(self, scheme: str, bucket: str, path: str):
         """
         Construct a cloud storage object ref
         """
@@ -144,7 +144,7 @@ class CloudStorageProvider(WithSubprocess, Downloader):
     def is_supported(self, link: Link) -> bool:
         return link.scheme.lower() == self.scheme.lower()
 
-    def __call__(self, link: Link, location: str) -> Tuple[str, Optional[str]]:
+    def __call__(self, link: Link, location: str) -> Tuple[str, str]:
         """
         Ensure the package referenced by link is downloaded and
         stored in the location provided
@@ -159,4 +159,4 @@ class CloudStorageProvider(WithSubprocess, Downloader):
             rmtree(location)
         dest = os.path.join(location, target)
         self.download(ref, dest)
-        return dest, None
+        return dest, ""
