@@ -7,8 +7,8 @@ from pip._vendor.pep517.wrappers import Pep517HookCaller
 
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.exceptions import (
-    MetadataGenerationFailed,
     InstallationSubprocessError,
+    MetadataGenerationFailed,
 )
 from pip._internal.utils.subprocess import runner_with_spinner_message
 from pip._internal.utils.temp_dir import TempDirectory
