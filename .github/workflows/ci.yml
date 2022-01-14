@@ -42,7 +42,7 @@ jobs:
               - "src/pip/_vendor/**"
               - "pyproject.toml"
             tests:
-              # Anything that's touching testable stuff
+              # Anything that's touching code-related stuff
               - ".github/workflows/ci.yml"
               - "src/**"
               - "tests/**"
