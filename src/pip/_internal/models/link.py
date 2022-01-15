@@ -37,7 +37,12 @@ _SUPPORTED_HASHES = ("sha1", "sha224", "sha384", "sha256", "sha512", "md5")
 class LinkHash:
     """Links to content may have embedded hash values. This class parses those.
 
-    `name` must be any member of `_SUPPORTED_HASHES`."""
+    `name` must be any member of `_SUPPORTED_HASHES`.
+
+    This class can be converted to and from `ArchiveInfo`. While ArchiveInfo intends to
+    be JSON-serializable to conform to PEP 610, this class contains the logic for
+    parsing a hash name and value for correctness, and then checking whether that hash
+    conforms to a schema with `.is_hash_allowed()`."""
 
     name: str
     value: str
@@ -52,6 +57,9 @@ class LinkHash:
         )
     )
 
+    def __post_init__(self) -> None:
+        assert self._hash_re.match(f"{self.name}={self.value}")
+
     @classmethod
     @functools.lru_cache(maxsize=None)
     def split_hash_name_and_value(cls, url: str) -> Optional["LinkHash"]:
@@ -65,6 +73,13 @@ class LinkHash:
     def to_archive_info(self) -> ArchiveInfo:
         """Convert to ArchiveInfo to form a DirectUrl instance (see PEP 610)."""
         return ArchiveInfo(hash=f"{self.name}={self.value}")
+
+    @classmethod
+    def from_archive_info(cls, info: ArchiveInfo) -> Optional["LinkHash"]:
+        """Parse an ArchiveInfo hash into a LinkHash instance."""
+        if info.hash is None:
+            return None
+        return cls.split_hash_name_and_value(info.hash)
 
     def is_hash_allowed(self, hashes: Optional[Hashes]) -> bool:
         """

@@ -1048,3 +1048,36 @@ def test_link_collector_create_find_links_expansion(
 )
 def test_link_hash_parsing(url: str, result: Optional[LinkHash]) -> None:
     assert LinkHash.split_hash_name_and_value(url) == result
+
+
+@pytest.mark.parametrize(
+    "archive_info, link_hash",
+    [
+        (
+            ArchiveInfo(hash=None),
+            None,
+        ),
+        (
+            ArchiveInfo(hash="sha256=aabe42af"),
+            LinkHash(name="sha256", value="aabe42af"),
+        ),
+        # Test invalid hash strings, which ArchiveInfo doesn't validate.
+        (
+            # Invalid hash name.
+            ArchiveInfo(hash="sha500=aabe42af"),
+            None,
+        ),
+        (
+            # Invalid hash value.
+            ArchiveInfo(hash="sha256=g42afbe"),
+            None,
+        ),
+    ],
+)
+def test_link_hash_archive_info_fungibility(
+    archive_info: ArchiveInfo,
+    link_hash: Optional[LinkHash],
+) -> None:
+    assert LinkHash.from_archive_info(archive_info) == link_hash
+    if link_hash is not None:
+        assert link_hash.to_archive_info() == archive_info
