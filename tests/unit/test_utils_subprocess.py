@@ -69,8 +69,8 @@ def test_call_subprocess_stdout_only(
     assert out in expected
     captured = capfd.readouterr()
     assert captured.err == ""
-    assert log == ["Running %s", "out", "err"] or log == [
-        "Running %s",
+    assert log == ["Running command %s", "out", "err"] or log == [
+        "Running command %s",
         "err",
         "out",
     ]
@@ -246,14 +246,23 @@ class TestCallSubprocess:
                 spinner=spinner,
             )
         result = None
-        exc_message = str(exc.value)
-        assert exc_message.startswith("Command errored out with exit status 1: ")
-        assert exc_message.endswith("Check the logs for full command output.")
+        exception = exc.value
+        assert exception.reference == "subprocess-exited-with-error"
+        assert "exit code: 1" in exception.message
+        assert exception.note_stmt
+        assert "not a problem with pip" in exception.note_stmt
+        # Check that the process outout is captured, and would be shown.
+        assert exception.context
+        assert "Hello\n" in exception.context
+        assert "fail\n" in exception.context
+        assert "world\n" in exception.context
 
         expected = (
             None,
             [
-                ("pip.subprocessor", ERROR, "Complete output (3 lines):\n"),
+                # pytest's caplog overrides th formatter, which means that we
+                # won't see the message formatted through our formatters.
+                ("pip.subprocessor", ERROR, "[present-diagnostic]"),
             ],
         )
         # The spinner should spin three times in this case since the
@@ -267,33 +276,6 @@ class TestCallSubprocess:
             expected,
             expected_spinner=(3, "error"),
         )
-
-        # Do some further checking on the captured log records to confirm
-        # that the subprocess output was logged.
-        last_record = caplog.record_tuples[-1]
-        last_message = last_record[2]
-        lines = last_message.splitlines()
-
-        # We have to sort before comparing the lines because we can't
-        # guarantee the order in which stdout and stderr will appear.
-        # For example, we observed the stderr lines coming before stdout
-        # in CI for PyPy 2.7 even though stdout happens first chronologically.
-        actual = sorted(lines)
-        # Test the "command" line separately because we can't test an
-        # exact match.
-        command_line = actual.pop(1)
-        assert actual == [
-            "     cwd: None",
-            "----------------------------------------",
-            "Command errored out with exit status 1:",
-            "Complete output (3 lines):",
-            "Hello",
-            "fail",
-            "world",
-        ], f"lines: {actual}"  # Show the full output on failure.
-
-        assert command_line.startswith(" command: ")
-        assert command_line.endswith('print("world"); exit("fail")\'')
 
     def test_info_logging_with_show_stdout_true(
         self, capfd: pytest.CaptureFixture[str], caplog: pytest.LogCaptureFixture
