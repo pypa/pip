@@ -137,7 +137,7 @@ The lifecycle of an issue (bug or support) generally looks like:
 #. waiting for triage (marked with label ``triage``)
 #. confirming issue - some discussion with the user, gathering
    details, trying to reproduce the issue (may be marked with a specific
-   category, ``S: awaiting-respose``, ``S: discussion-needed``, or
+   category, ``S: awaiting-response``, ``S: discussion-needed``, or
    ``S: need-repro``)
 #. confirmed - the issue is pretty consistently reproducible in a
    straightforward way, or a mechanism that could be causing the issue has been

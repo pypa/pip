@@ -1,9 +1,9 @@
 from typing import Iterator
-from zipfile import BadZipfile
 
 from pip._vendor.packaging.version import Version
 from pytest import fixture, mark, raises
 
+from pip._internal.exceptions import InvalidWheel
 from pip._internal.network.lazy_wheel import (
     HTTPRangeRequestUnsupported,
     dist_from_wheel_url,
@@ -62,5 +62,5 @@ def test_dist_from_wheel_url_no_range(
 @mark.network
 def test_dist_from_wheel_url_not_zip(session: PipSession) -> None:
     """Test handling with the given URL does not point to a ZIP."""
-    with raises(BadZipfile):
+    with raises(InvalidWheel):
         dist_from_wheel_url("python", "https://www.python.org/", session)

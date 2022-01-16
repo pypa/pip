@@ -48,7 +48,7 @@ T = TypeVar("T")
 Defaulted = Union[Default, T]
 
 
-def ensure_binary(value: AnyStr) -> bytes:
+def ensure_binary(value: Union[bytes, str]) -> bytes:
     if isinstance(value, bytes):
         return value
     return value.encode()
@@ -163,7 +163,7 @@ def make_entry_points_file(
     )
 
 
-def make_files(files: Dict[str, AnyStr]) -> List[File]:
+def make_files(files: Dict[str, Union[bytes, str]]) -> List[File]:
     return [File(name, ensure_binary(contents)) for name, contents in files.items()]
 
 
@@ -295,7 +295,7 @@ def make_wheel(
     metadata: Defaulted[Optional[AnyStr]] = _default,
     metadata_body: Defaulted[AnyStr] = _default,
     metadata_updates: Defaulted[Dict[str, HeaderValue]] = _default,
-    extra_files: Defaulted[Dict[str, AnyStr]] = _default,
+    extra_files: Defaulted[Dict[str, Union[bytes, str]]] = _default,
     extra_metadata_files: Defaulted[Dict[str, AnyStr]] = _default,
     extra_data_files: Defaulted[Dict[str, AnyStr]] = _default,
     console_scripts: Defaulted[List[str]] = _default,

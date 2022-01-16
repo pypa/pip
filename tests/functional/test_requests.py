@@ -1,11 +1,13 @@
 import pytest
 
+from tests.lib import PipTestEnvironment
+
 
 @pytest.mark.network
-def test_timeout(script):
+def test_timeout(script: PipTestEnvironment) -> None:
     result = script.pip(
         "--timeout",
-        "0.001",
+        "0.0001",
         "install",
         "-vvv",
         "INITools",

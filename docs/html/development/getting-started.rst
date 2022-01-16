@@ -27,8 +27,8 @@ Development Environment
 pip is a command line application written in Python. For developing pip,
 you should `install Python`_ on your computer.
 
-For developing pip, you need to install :pypi:`tox`. Often, you can run
-``python -m pip install tox`` to install and use it.
+For developing pip, you need to install :pypi:`nox`. Often, you can run
+``python -m pip install nox`` to install and use it.
 
 
 Running pip From Source Tree
@@ -42,7 +42,7 @@ You can then invoke your local source tree pip normally.
 
     .. code-block:: shell
 
-        virtualenv .venv # You can also use "python -m venv .venv"
+        python -m venv .venv
         source .venv/bin/activate
         python -m pip install -e .
         python -m pip --version
@@ -51,7 +51,7 @@ You can then invoke your local source tree pip normally.
 
     .. code-block:: shell
 
-        virtualenv .venv # You can also use "py -m venv .venv"
+        py -m venv .venv
         .venv\Scripts\activate
         py -m pip install -e .
         py -m pip --version
@@ -60,7 +60,7 @@ Running Tests
 =============
 
 pip's tests are written using the :pypi:`pytest` test framework and
-:mod:`unittest.mock`. :pypi:`tox` is used to automate the setup and execution
+:mod:`unittest.mock`. :pypi:`nox` is used to automate the setup and execution
 of pip's tests.
 
 It is preferable to run the tests in parallel for better experience during development,
@@ -70,38 +70,39 @@ To run tests:
 
 .. code-block:: console
 
-    $ tox -e py36 -- -n auto
+    $ nox -s test-3.10 -- -n auto
 
 To run tests without parallelization, run:
 
 .. code-block:: console
 
-    $ tox -e py36
+    $ nox -s test-3.10
 
-The example above runs tests against Python 3.6. You can also use other
-versions like ``py39`` and ``pypy3``.
+The example above runs tests against Python 3.10. You can also use other
+versions like ``3.9`` and ``pypy3``.
 
-``tox`` has been configured to forward any additional arguments it is given to
+``nox`` has been configured to forward any additional arguments it is given to
 ``pytest``. This enables the use of pytest's `rich CLI`_. As an example, you
 can select tests using the various ways that pytest provides:
 
 .. code-block:: console
 
     $ # Using file name
-    $ tox -e py36 -- tests/functional/test_install.py
+    $ nox -s test-3.10 -- tests/functional/test_install.py
     $ # Using markers
-    $ tox -e py36 -- -m unit
+    $ nox -s test-3.10 -- -m unit
     $ # Using keywords
-    $ tox -e py36 -- -k "install and not wheel"
+    $ nox -s test-3.10 -- -k "install and not wheel"
 
-Running pip's test suite requires supported version control tools (subversion,
-bazaar, git, and mercurial) to be installed. If you are missing one of the VCS
-tools, you can tell pip to skip those tests:
+Running pip's entire test suite requires supported version control tools
+(subversion, bazaar, git, and mercurial) to be installed. If you are missing
+any of these VCS, those tests should be skipped automatically. You can also
+explicitly tell pytest to skip those tests:
 
 .. code-block:: console
 
-    $ tox -e py36 -- -k "not svn"
-    $ tox -e py36 -- -k "not (svn or git)"
+    $ nox -s test-3.10 -- -k "not svn"
+    $ nox -s test-3.10 -- -k "not (svn or git)"
 
 
 Running Linters
@@ -115,7 +116,7 @@ To use linters locally, run:
 
 .. code-block:: console
 
-    $ tox -e lint
+    $ nox -s lint
 
 .. note::
 
@@ -154,7 +155,7 @@ To build it locally, run:
 
 .. code-block:: console
 
-    $ tox -e docs
+    $ nox -s docs
 
 The built documentation can be found in the ``docs/build`` folder.
 

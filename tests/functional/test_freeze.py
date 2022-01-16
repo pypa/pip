@@ -7,8 +7,10 @@ from doctest import ELLIPSIS, OutputChecker
 import pytest
 from pip._vendor.packaging.utils import canonicalize_name
 
-from pip._internal.models.direct_url import DirectUrl
+from pip._internal.models.direct_url import DirectUrl, DirInfo
 from tests.lib import (
+    PipTestEnvironment,
+    TestData,
     _create_test_package,
     _create_test_package_with_srcdir,
     _git_commit,
@@ -21,11 +23,13 @@ from tests.lib import (
     wheel,
 )
 from tests.lib.direct_url import get_created_direct_url_path
+from tests.lib.path import Path
+from tests.lib.venv import VirtualEnvironment
 
 distribute_re = re.compile("^distribute==[0-9.]+\n", re.MULTILINE)
 
 
-def _check_output(result, expected):
+def _check_output(result: str, expected: str) -> None:
     checker = OutputChecker()
     actual = str(result)
 
@@ -44,7 +48,7 @@ def _check_output(result, expected):
     # with distribute installed.
     actual = distribute_re.sub("", actual)
 
-    def banner(msg):
+    def banner(msg: str) -> str:
         return f"\n========== {msg} ==========\n"
 
     assert checker.check_output(expected, actual, ELLIPSIS), (
@@ -52,7 +56,7 @@ def _check_output(result, expected):
     )
 
 
-def test_basic_freeze(script):
+def test_basic_freeze(script: PipTestEnvironment) -> None:
     """
     Some tests of freeze, first we have to install some stuff.  Note that
     the test is a little crude at the end because Python 2.5+ adds egg
@@ -84,13 +88,13 @@ def test_basic_freeze(script):
     _check_output(result.stdout, expected)
 
 
-def test_freeze_with_pip(script):
+def test_freeze_with_pip(script: PipTestEnvironment) -> None:
     """Test pip shows itself"""
     result = script.pip("freeze", "--all")
     assert "pip==" in result.stdout
 
 
-def test_exclude_and_normalization(script, tmpdir):
+def test_exclude_and_normalization(script: PipTestEnvironment, tmpdir: Path) -> None:
     req_path = wheel.make_wheel(name="Normalizable_Name", version="1.0").save_to_dir(
         tmpdir
     )
@@ -102,7 +106,7 @@ def test_exclude_and_normalization(script, tmpdir):
 
 
 @pytest.mark.usefixtures("with_wheel")
-def test_freeze_multiple_exclude_with_all(script):
+def test_freeze_multiple_exclude_with_all(script: PipTestEnvironment) -> None:
     result = script.pip("freeze", "--all")
     assert "pip==" in result.stdout
     assert "wheel==" in result.stdout
@@ -111,12 +115,12 @@ def test_freeze_multiple_exclude_with_all(script):
     assert "wheel==" not in result.stdout
 
 
-def test_freeze_with_invalid_names(script):
+def test_freeze_with_invalid_names(script: PipTestEnvironment) -> None:
     """
     Test that invalid names produce warnings and are passed over gracefully.
     """
 
-    def fake_install(pkgname, dest):
+    def fake_install(pkgname: str, dest: str) -> None:
         egg_info_path = os.path.join(
             dest,
             "{}-1.0-py{}.{}.egg-info".format(
@@ -167,7 +171,7 @@ def test_freeze_with_invalid_names(script):
 
 
 @pytest.mark.git
-def test_freeze_editable_not_vcs(script):
+def test_freeze_editable_not_vcs(script: PipTestEnvironment) -> None:
     """
     Test an editable install that is not version controlled.
     """
@@ -192,7 +196,9 @@ def test_freeze_editable_not_vcs(script):
 
 
 @pytest.mark.git
-def test_freeze_editable_git_with_no_remote(script, deprecated_python):
+def test_freeze_editable_git_with_no_remote(
+    script: PipTestEnvironment, deprecated_python: bool
+) -> None:
     """
     Test an editable Git install with no remote url.
     """
@@ -217,7 +223,7 @@ def test_freeze_editable_git_with_no_remote(script, deprecated_python):
 
 
 @need_svn
-def test_freeze_svn(script):
+def test_freeze_svn(script: PipTestEnvironment) -> None:
     """Test freezing a svn checkout"""
 
     checkout_path = _create_test_package(script, vcs="svn")
@@ -240,7 +246,7 @@ def test_freeze_svn(script):
     run=True,
     strict=True,
 )
-def test_freeze_exclude_editable(script):
+def test_freeze_exclude_editable(script: PipTestEnvironment) -> None:
     """
     Test excluding editable from freezing list.
     """
@@ -273,7 +279,7 @@ def test_freeze_exclude_editable(script):
 
 
 @pytest.mark.git
-def test_freeze_git_clone(script):
+def test_freeze_git_clone(script: PipTestEnvironment) -> None:
     """
     Test freezing a Git clone.
     """
@@ -331,7 +337,7 @@ def test_freeze_git_clone(script):
 
 
 @pytest.mark.git
-def test_freeze_git_clone_srcdir(script):
+def test_freeze_git_clone_srcdir(script: PipTestEnvironment) -> None:
     """
     Test freezing a Git clone where setup.py is in a subdirectory
     relative the repo root and the source code is in a subdirectory
@@ -366,7 +372,7 @@ def test_freeze_git_clone_srcdir(script):
 
 
 @need_mercurial
-def test_freeze_mercurial_clone_srcdir(script):
+def test_freeze_mercurial_clone_srcdir(script: PipTestEnvironment) -> None:
     """
     Test freezing a Mercurial clone where setup.py is in a subdirectory
     relative to the repo root and the source code is in a subdirectory
@@ -389,7 +395,7 @@ def test_freeze_mercurial_clone_srcdir(script):
 
 
 @pytest.mark.git
-def test_freeze_git_remote(script):
+def test_freeze_git_remote(script: PipTestEnvironment) -> None:
     """
     Test freezing a Git clone.
     """
@@ -472,7 +478,7 @@ def test_freeze_git_remote(script):
 
 
 @need_mercurial
-def test_freeze_mercurial_clone(script):
+def test_freeze_mercurial_clone(script: PipTestEnvironment) -> None:
     """
     Test freezing a Mercurial clone.
 
@@ -506,7 +512,7 @@ def test_freeze_mercurial_clone(script):
 
 
 @need_bzr
-def test_freeze_bazaar_clone(script):
+def test_freeze_bazaar_clone(script: PipTestEnvironment) -> None:
     """
     Test freezing a Bazaar clone.
 
@@ -539,7 +545,9 @@ def test_freeze_bazaar_clone(script):
     "outer_vcs, inner_vcs",
     [("hg", "git"), ("git", "hg")],
 )
-def test_freeze_nested_vcs(script, outer_vcs, inner_vcs):
+def test_freeze_nested_vcs(
+    script: PipTestEnvironment, outer_vcs: str, inner_vcs: str
+) -> None:
     """Test VCS can be correctly freezed when resides inside another VCS repo."""
     # Create Python package.
     pkg_path = _create_test_package(script, vcs=inner_vcs)
@@ -585,8 +593,8 @@ _freeze_req_opts = textwrap.dedent(
 
 
 def test_freeze_with_requirement_option_file_url_egg_not_installed(
-    script, deprecated_python
-):
+    script: PipTestEnvironment, deprecated_python: bool
+) -> None:
     """
     Test "freeze -r requirements.txt" with a local file URL whose egg name
     is not installed.
@@ -612,7 +620,7 @@ def test_freeze_with_requirement_option_file_url_egg_not_installed(
         assert expected_err == result.stderr
 
 
-def test_freeze_with_requirement_option(script):
+def test_freeze_with_requirement_option(script: PipTestEnvironment) -> None:
     """
     Test that new requirements are created correctly with --requirement hints
 
@@ -672,7 +680,7 @@ def test_freeze_with_requirement_option(script):
     ) in result.stderr
 
 
-def test_freeze_with_requirement_option_multiple(script):
+def test_freeze_with_requirement_option_multiple(script: PipTestEnvironment) -> None:
     """
     Test that new requirements are created correctly with multiple
     --requirement hints
@@ -741,7 +749,9 @@ def test_freeze_with_requirement_option_multiple(script):
     assert result.stdout.count("--index-url http://ignore") == 1
 
 
-def test_freeze_with_requirement_option_package_repeated_one_file(script):
+def test_freeze_with_requirement_option_package_repeated_one_file(
+    script: PipTestEnvironment,
+) -> None:
     """
     Test freezing with single requirements file that contains a package
     multiple times
@@ -788,7 +798,9 @@ def test_freeze_with_requirement_option_package_repeated_one_file(script):
     assert result.stderr.count("is not installed") == 1
 
 
-def test_freeze_with_requirement_option_package_repeated_multi_file(script):
+def test_freeze_with_requirement_option_package_repeated_multi_file(
+    script: PipTestEnvironment,
+) -> None:
     """
     Test freezing with multiple requirements file that contain a package
     """
@@ -846,7 +858,9 @@ def test_freeze_with_requirement_option_package_repeated_multi_file(script):
 
 @pytest.mark.network
 @pytest.mark.incompatible_with_test_venv
-def test_freeze_user(script, virtualenv, data):
+def test_freeze_user(
+    script: PipTestEnvironment, virtualenv: VirtualEnvironment, data: TestData
+) -> None:
     """
     Testing freeze with --user, first we have to install some stuff.
     """
@@ -864,7 +878,7 @@ def test_freeze_user(script, virtualenv, data):
 
 
 @pytest.mark.network
-def test_freeze_path(tmpdir, script, data):
+def test_freeze_path(tmpdir: Path, script: PipTestEnvironment, data: TestData) -> None:
     """
     Test freeze with --path.
     """
@@ -882,7 +896,9 @@ def test_freeze_path(tmpdir, script, data):
 
 @pytest.mark.network
 @pytest.mark.incompatible_with_test_venv
-def test_freeze_path_exclude_user(tmpdir, script, data):
+def test_freeze_path_exclude_user(
+    tmpdir: Path, script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Test freeze with --path and make sure packages from --user are not picked
     up.
@@ -908,7 +924,9 @@ def test_freeze_path_exclude_user(tmpdir, script, data):
 
 
 @pytest.mark.network
-def test_freeze_path_multiple(tmpdir, script, data):
+def test_freeze_path_multiple(
+    tmpdir: Path, script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Test freeze with multiple --path arguments.
     """
@@ -940,7 +958,9 @@ def test_freeze_path_multiple(tmpdir, script, data):
 
 
 @pytest.mark.usefixtures("with_wheel")
-def test_freeze_direct_url_archive(script, shared_data):
+def test_freeze_direct_url_archive(
+    script: PipTestEnvironment, shared_data: TestData
+) -> None:
     req = "simple @ " + path_to_url(shared_data.packages / "simple-2.0.tar.gz")
     assert req.startswith("simple @ file://")
     script.pip("install", req)
@@ -948,7 +968,7 @@ def test_freeze_direct_url_archive(script, shared_data):
     assert req in result.stdout
 
 
-def test_freeze_skip_work_dir_pkg(script):
+def test_freeze_skip_work_dir_pkg(script: PipTestEnvironment) -> None:
     """
     Test that freeze should not include package
     present in working directory
@@ -963,7 +983,7 @@ def test_freeze_skip_work_dir_pkg(script):
     assert "simple" not in result.stdout
 
 
-def test_freeze_include_work_dir_pkg(script):
+def test_freeze_include_work_dir_pkg(script: PipTestEnvironment) -> None:
     """
     Test that freeze should include package in working directory
     if working directory is added in PYTHONPATH
@@ -981,7 +1001,8 @@ def test_freeze_include_work_dir_pkg(script):
     assert "simple==1.0" in result.stdout
 
 
-def test_freeze_pep610_editable(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_freeze_pep610_editable(script: PipTestEnvironment) -> None:
     """
     Test that a package installed with a direct_url.json with editable=true
     is correctly frozeon as editable.
@@ -993,6 +1014,7 @@ def test_freeze_pep610_editable(script, with_wheel):
     # patch direct_url.json to simulate an editable install
     with open(direct_url_path) as f:
         direct_url = DirectUrl.from_json(f.read())
+    assert isinstance(direct_url.info, DirInfo)
     direct_url.info.editable = True
     with open(direct_url_path, "w") as f:
         f.write(direct_url.to_json())

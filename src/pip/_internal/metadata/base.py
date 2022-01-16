@@ -1,6 +1,8 @@
+import csv
 import email.message
 import json
 import logging
+import pathlib
 import re
 import zipfile
 from typing import (
@@ -12,6 +14,7 @@ from typing import (
     Iterator,
     List,
     Optional,
+    Tuple,
     Union,
 )
 
@@ -20,13 +23,19 @@ from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName
 from pip._vendor.packaging.version import LegacyVersion, Version
 
+from pip._internal.exceptions import NoneMetadataError
+from pip._internal.locations import site_packages, user_site
 from pip._internal.models.direct_url import (
     DIRECT_URL_METADATA_NAME,
     DirectUrl,
     DirectUrlValidationError,
 )
 from pip._internal.utils.compat import stdlib_pkgs  # TODO: Move definition here.
-from pip._internal.utils.egg_link import egg_link_path_from_sys_path
+from pip._internal.utils.egg_link import (
+    egg_link_path_from_location,
+    egg_link_path_from_sys_path,
+)
+from pip._internal.utils.misc import is_local, normalize_path
 from pip._internal.utils.urls import url_to_path
 
 if TYPE_CHECKING:
@@ -35,6 +44,8 @@ else:
     Protocol = object
 
 DistributionVersion = Union[LegacyVersion, Version]
+
+InfoPath = Union[str, pathlib.PurePosixPath]
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +62,36 @@ class BaseEntryPoint(Protocol):
     @property
     def group(self) -> str:
         raise NotImplementedError()
+
+
+def _convert_installed_files_path(
+    entry: Tuple[str, ...],
+    info: Tuple[str, ...],
+) -> str:
+    """Convert a legacy installed-files.txt path into modern RECORD path.
+
+    The legacy format stores paths relative to the info directory, while the
+    modern format stores paths relative to the package root, e.g. the
+    site-packages directory.
+
+    :param entry: Path parts of the installed-files.txt entry.
+    :param info: Path parts of the egg-info directory relative to package root.
+    :returns: The converted entry.
+
+    For best compatibility with symlinks, this does not use ``abspath()`` or
+    ``Path.resolve()``, but tries to work with path parts:
+
+    1. While ``entry`` starts with ``..``, remove the equal amounts of parts
+       from ``info``; if ``info`` is empty, start appending ``..`` instead.
+    2. Join the two directly.
+    """
+    while entry and entry[0] == "..":
+        if not info or info[-1] == "..":
+            info += ("..",)
+        else:
+            info = info[:-1]
+        entry = entry[1:]
+    return str(pathlib.Path(*info, *entry))
 
 
 class BaseDistribution(Protocol):
@@ -97,8 +138,28 @@ class BaseDistribution(Protocol):
         return None
 
     @property
-    def info_directory(self) -> Optional[str]:
-        """Location of the .[egg|dist]-info directory.
+    def installed_location(self) -> Optional[str]:
+        """The distribution's "installed" location.
+
+        This should generally be a ``site-packages`` directory. This is
+        usually ``dist.location``, except for legacy develop-installed packages,
+        where ``dist.location`` is the source code location, and this is where
+        the ``.egg-link`` file is.
+
+        The returned location is normalized (in particular, with symlinks removed).
+        """
+        egg_link = egg_link_path_from_location(self.raw_name)
+        if egg_link:
+            location = egg_link
+        elif self.location:
+            location = self.location
+        else:
+            return None
+        return normalize_path(location)
+
+    @property
+    def info_location(self) -> Optional[str]:
+        """Location of the .[egg|dist]-info directory or file.
 
         Similarly to ``location``, a string value is not necessarily a
         filesystem path. ``None`` means the distribution is created in-memory.
@@ -113,12 +174,79 @@ class BaseDistribution(Protocol):
         raise NotImplementedError()
 
     @property
+    def installed_by_distutils(self) -> bool:
+        """Whether this distribution is installed with legacy distutils format.
+
+        A distribution installed with "raw" distutils not patched by setuptools
+        uses one single file at ``info_location`` to store metadata. We need to
+        treat this specially on uninstallation.
+        """
+        info_location = self.info_location
+        if not info_location:
+            return False
+        return pathlib.Path(info_location).is_file()
+
+    @property
+    def installed_as_egg(self) -> bool:
+        """Whether this distribution is installed as an egg.
+
+        This usually indicates the distribution was installed by (older versions
+        of) easy_install.
+        """
+        location = self.location
+        if not location:
+            return False
+        return location.endswith(".egg")
+
+    @property
+    def installed_with_setuptools_egg_info(self) -> bool:
+        """Whether this distribution is installed with the ``.egg-info`` format.
+
+        This usually indicates the distribution was installed with setuptools
+        with an old pip version or with ``single-version-externally-managed``.
+
+        Note that this ensure the metadata store is a directory. distutils can
+        also installs an ``.egg-info``, but as a file, not a directory. This
+        property is *False* for that case. Also see ``installed_by_distutils``.
+        """
+        info_location = self.info_location
+        if not info_location:
+            return False
+        if not info_location.endswith(".egg-info"):
+            return False
+        return pathlib.Path(info_location).is_dir()
+
+    @property
+    def installed_with_dist_info(self) -> bool:
+        """Whether this distribution is installed with the "modern format".
+
+        This indicates a "modern" installation, e.g. storing metadata in the
+        ``.dist-info`` directory. This applies to installations made by
+        setuptools (but through pip, not directly), or anything using the
+        standardized build backend interface (PEP 517).
+        """
+        info_location = self.info_location
+        if not info_location:
+            return False
+        if not info_location.endswith(".dist-info"):
+            return False
+        return pathlib.Path(info_location).is_dir()
+
+    @property
     def canonical_name(self) -> NormalizedName:
         raise NotImplementedError()
 
     @property
     def version(self) -> DistributionVersion:
         raise NotImplementedError()
+
+    @property
+    def setuptools_filename(self) -> str:
+        """Convert a project name to its setuptools-compatible filename.
+
+        This is a copy of ``pkg_resources.to_filename()`` for compatibility.
+        """
+        return self.raw_name.replace("-", "_")
 
     @property
     def direct_url(self) -> Optional[DirectUrl]:
@@ -148,7 +276,15 @@ class BaseDistribution(Protocol):
 
     @property
     def installer(self) -> str:
-        raise NotImplementedError()
+        try:
+            installer_text = self.read_text("INSTALLER")
+        except (OSError, ValueError, NoneMetadataError):
+            return ""  # Fail silently if the installer file cannot be read.
+        for line in installer_text.splitlines():
+            cleaned_line = line.strip()
+            if cleaned_line:
+                return cleaned_line
+        return ""
 
     @property
     def editable(self) -> bool:
@@ -156,21 +292,46 @@ class BaseDistribution(Protocol):
 
     @property
     def local(self) -> bool:
-        raise NotImplementedError()
+        """If distribution is installed in the current virtual environment.
+
+        Always True if we're not in a virtualenv.
+        """
+        if self.installed_location is None:
+            return False
+        return is_local(self.installed_location)
 
     @property
     def in_usersite(self) -> bool:
-        raise NotImplementedError()
+        if self.installed_location is None or user_site is None:
+            return False
+        return self.installed_location.startswith(normalize_path(user_site))
 
     @property
     def in_site_packages(self) -> bool:
+        if self.installed_location is None or site_packages is None:
+            return False
+        return self.installed_location.startswith(normalize_path(site_packages))
+
+    def is_file(self, path: InfoPath) -> bool:
+        """Check whether an entry in the info directory is a file."""
         raise NotImplementedError()
 
-    def read_text(self, name: str) -> str:
-        """Read a file in the .dist-info (or .egg-info) directory.
+    def iterdir(self, path: InfoPath) -> Iterator[pathlib.PurePosixPath]:
+        """Iterate through a directory in the info directory.
 
-        Should raise ``FileNotFoundError`` if ``name`` does not exist in the
-        metadata directory.
+        Each item yielded would be a path relative to the info directory.
+
+        :raise FileNotFoundError: If ``name`` does not exist in the directory.
+        :raise NotADirectoryError: If ``name`` does not point to a directory.
+        """
+        raise NotImplementedError()
+
+    def read_text(self, path: InfoPath) -> str:
+        """Read a file in the info directory.
+
+        :raise FileNotFoundError: If ``name`` does not exist in the directory.
+        :raise NoneMetadataError: If ``name`` exists in the info directory, but
+            cannot be read.
         """
         raise NotImplementedError()
 
@@ -179,7 +340,13 @@ class BaseDistribution(Protocol):
 
     @property
     def metadata(self) -> email.message.Message:
-        """Metadata of distribution parsed from e.g. METADATA or PKG-INFO."""
+        """Metadata of distribution parsed from e.g. METADATA or PKG-INFO.
+
+        This should return an empty message if the metadata file is unavailable.
+
+        :raises NoneMetadataError: If the metadata file is available, but does
+            not contain valid metadata.
+        """
         raise NotImplementedError()
 
     @property
@@ -229,6 +396,51 @@ class BaseDistribution(Protocol):
         """
         raise NotImplementedError()
 
+    def _iter_declared_entries_from_record(self) -> Optional[Iterator[str]]:
+        try:
+            text = self.read_text("RECORD")
+        except FileNotFoundError:
+            return None
+        # This extra Path-str cast normalizes entries.
+        return (str(pathlib.Path(row[0])) for row in csv.reader(text.splitlines()))
+
+    def _iter_declared_entries_from_legacy(self) -> Optional[Iterator[str]]:
+        try:
+            text = self.read_text("installed-files.txt")
+        except FileNotFoundError:
+            return None
+        paths = (p for p in text.splitlines(keepends=False) if p)
+        root = self.location
+        info = self.info_location
+        if root is None or info is None:
+            return paths
+        try:
+            info_rel = pathlib.Path(info).relative_to(root)
+        except ValueError:  # info is not relative to root.
+            return paths
+        if not info_rel.parts:  # info *is* root.
+            return paths
+        return (
+            _convert_installed_files_path(pathlib.Path(p).parts, info_rel.parts)
+            for p in paths
+        )
+
+    def iter_declared_entries(self) -> Optional[Iterator[str]]:
+        """Iterate through file entires declared in this distribution.
+
+        For modern .dist-info distributions, this is the files listed in the
+        ``RECORD`` metadata file. For legacy setuptools distributions, this
+        comes from ``installed-files.txt``, with entries normalized to be
+        compatible with the format used by ``RECORD``.
+
+        :return: An iterator for listed entries, or None if the distribution
+            contains neither ``RECORD`` nor ``installed-files.txt``.
+        """
+        return (
+            self._iter_declared_entries_from_record()
+            or self._iter_declared_entries_from_legacy()
+        )
+
 
 class BaseEnvironment:
     """An environment containing distributions to introspect."""
@@ -242,7 +454,11 @@ class BaseEnvironment:
         raise NotImplementedError()
 
     def get_distribution(self, name: str) -> Optional["BaseDistribution"]:
-        """Given a requirement name, return the installed distributions."""
+        """Given a requirement name, return the installed distributions.
+
+        The name may not be normalized. The implementation must canonicalize
+        it for lookup.
+        """
         raise NotImplementedError()
 
     def _iter_distributions(self) -> Iterator["BaseDistribution"]:

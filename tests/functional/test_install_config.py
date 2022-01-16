@@ -5,6 +5,8 @@ import textwrap
 
 import pytest
 
+from tests.conftest import CertFactory, MockServer
+from tests.lib import PipTestEnvironment, TestData
 from tests.lib.server import (
     authorization_response,
     file_response,
@@ -12,9 +14,10 @@ from tests.lib.server import (
     package_page,
     server_running,
 )
+from tests.lib.venv import VirtualEnvironment
 
 
-def test_options_from_env_vars(script):
+def test_options_from_env_vars(script: PipTestEnvironment) -> None:
     """
     Test if ConfigOptionParser reads env vars (e.g. not using PyPI here)
 
@@ -23,11 +26,13 @@ def test_options_from_env_vars(script):
     result = script.pip("install", "-vvv", "INITools", expect_error=True)
     assert "Ignoring indexes:" in result.stdout, str(result)
     msg = "DistributionNotFound: No matching distribution found for INITools"
-    # Case insensitive as the new resolver canonicalises the project name
+    # Case insensitive as the new resolver canonicalizes the project name
     assert msg.lower() in result.stdout.lower(), str(result)
 
 
-def test_command_line_options_override_env_vars(script, virtualenv):
+def test_command_line_options_override_env_vars(
+    script: PipTestEnvironment, virtualenv: VirtualEnvironment
+) -> None:
     """
     Test that command line options override environmental variables.
 
@@ -49,7 +54,9 @@ def test_command_line_options_override_env_vars(script, virtualenv):
 
 
 @pytest.mark.network
-def test_env_vars_override_config_file(script, virtualenv):
+def test_env_vars_override_config_file(
+    script: PipTestEnvironment, virtualenv: VirtualEnvironment
+) -> None:
     """
     Test that environmental variables override settings in config files.
     """
@@ -70,7 +77,7 @@ def test_env_vars_override_config_file(script, virtualenv):
     )
     result = script.pip("install", "-vvv", "INITools", expect_error=True)
     msg = "DistributionNotFound: No matching distribution found for INITools"
-    # Case insensitive as the new resolver canonicalises the project name
+    # Case insensitive as the new resolver canonicalizes the project name
     assert msg.lower() in result.stdout.lower(), str(result)
     script.environ["PIP_NO_INDEX"] = "0"
     virtualenv.clear()
@@ -79,7 +86,9 @@ def test_env_vars_override_config_file(script, virtualenv):
 
 
 @pytest.mark.network
-def test_command_line_append_flags(script, virtualenv, data):
+def test_command_line_append_flags(
+    script: PipTestEnvironment, virtualenv: VirtualEnvironment, data: TestData
+) -> None:
     """
     Test command line flags that append to defaults set by environmental
     variables.
@@ -117,7 +126,9 @@ def test_command_line_append_flags(script, virtualenv, data):
 
 
 @pytest.mark.network
-def test_command_line_appends_correctly(script, data):
+def test_command_line_appends_correctly(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Test multiple appending options set by environmental variables.
 
@@ -140,7 +151,12 @@ def test_command_line_appends_correctly(script, data):
     ), f"stdout: {result.stdout}"
 
 
-def test_config_file_override_stack(script, virtualenv, mock_server, shared_data):
+def test_config_file_override_stack(
+    script: PipTestEnvironment,
+    virtualenv: VirtualEnvironment,
+    mock_server: MockServer,
+    shared_data: TestData,
+) -> None:
     """
     Test config files (global, overriding a global config with a
     local, overriding all with a command line flag).
@@ -204,7 +220,9 @@ def test_config_file_override_stack(script, virtualenv, mock_server, shared_data
     assert requests[3]["PATH_INFO"] == "/files/INITools-0.2.tar.gz"
 
 
-def test_options_from_venv_config(script, virtualenv):
+def test_options_from_venv_config(
+    script: PipTestEnvironment, virtualenv: VirtualEnvironment
+) -> None:
     """
     Test if ConfigOptionParser reads a virtualenv-local config file
 
@@ -218,12 +236,14 @@ def test_options_from_venv_config(script, virtualenv):
     result = script.pip("install", "-vvv", "INITools", expect_error=True)
     assert "Ignoring indexes:" in result.stdout, str(result)
     msg = "DistributionNotFound: No matching distribution found for INITools"
-    # Case insensitive as the new resolver canonicalises the project name
+    # Case insensitive as the new resolver canonicalizes the project name
     assert msg.lower() in result.stdout.lower(), str(result)
 
 
 @pytest.mark.usefixtures("with_wheel")
-def test_install_no_binary_via_config_disables_cached_wheels(script, data):
+def test_install_no_binary_via_config_disables_cached_wheels(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     config_file = tempfile.NamedTemporaryFile(mode="wt", delete=False)
     try:
         script.environ["PIP_CONFIG_FILE"] = config_file.name
@@ -248,7 +268,9 @@ def test_install_no_binary_via_config_disables_cached_wheels(script, data):
     assert "Running setup.py install for upper" in str(res), str(res)
 
 
-def test_prompt_for_authentication(script, data, cert_factory):
+def test_prompt_for_authentication(
+    script: PipTestEnvironment, data: TestData, cert_factory: CertFactory
+) -> None:
     """Test behaviour while installing from a index url
     requiring authentication
     """
@@ -286,7 +308,9 @@ def test_prompt_for_authentication(script, data, cert_factory):
     assert f"User for {server.host}:{server.port}" in result.stdout, str(result)
 
 
-def test_do_not_prompt_for_authentication(script, data, cert_factory):
+def test_do_not_prompt_for_authentication(
+    script: PipTestEnvironment, data: TestData, cert_factory: CertFactory
+) -> None:
     """Test behaviour if --no-input option is given while installing
     from a index url requiring authentication
     """
@@ -327,7 +351,12 @@ def test_do_not_prompt_for_authentication(script, data, cert_factory):
 
 
 @pytest.mark.parametrize("auth_needed", (True, False))
-def test_prompt_for_keyring_if_needed(script, data, cert_factory, auth_needed):
+def test_prompt_for_keyring_if_needed(
+    script: PipTestEnvironment,
+    data: TestData,
+    cert_factory: CertFactory,
+    auth_needed: bool,
+) -> None:
     """Test behaviour while installing from a index url
     requiring authentication and keyring is possible.
     """

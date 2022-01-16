@@ -165,7 +165,11 @@ def pip_self_version_check(session: PipSession, options: optparse.Values) -> Non
         # We cannot tell how the current pip is available in the current
         # command context, so be pragmatic here and suggest the command
         # that's always available. This does not accommodate spaces in
-        # `sys.executable`.
+        # `sys.executable` on purpose as it is not possible to do it
+        # correctly without knowing the user's shell. Thus,
+        # it won't be done until possible through the standard library.
+        # Do not be tempted to use the undocumented subprocess.list2cmdline.
+        # It is considered an internal implementation detail for a reason.
         pip_cmd = f"{sys.executable} -m pip"
         logger.warning(
             "You are using pip version %s; however, version %s is "

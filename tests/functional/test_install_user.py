@@ -7,25 +7,24 @@ from os.path import curdir, isdir, isfile
 import pytest
 
 from tests.lib import pyversion  # noqa: F401
-from tests.lib import need_svn
+from tests.lib import PipTestEnvironment, TestData, need_svn
 from tests.lib.local_repos import local_checkout
+from tests.lib.path import Path
+from tests.lib.venv import VirtualEnvironment
 
 
-def _patch_dist_in_site_packages(virtualenv):
+def _patch_dist_in_site_packages(virtualenv: VirtualEnvironment) -> None:
     # Since the tests are run from a virtualenv, and to avoid the "Will not
     # install to the usersite because it will lack sys.path precedence..."
-    # error: Monkey patch `pip._internal.req.req_install.dist_in_site_packages`
-    # and `pip._internal.utils.misc.dist_in_site_packages`
-    # so it's possible to install a conflicting distribution in the user site.
+    # error: Monkey patch the Distribution class so it's possible to install a
+    # conflicting distribution in the user site.
     virtualenv.sitecustomize = textwrap.dedent(
         """
         def dist_in_site_packages(dist):
             return False
 
-        from pip._internal.req import req_install
-        from pip._internal.utils import misc
-        req_install.dist_in_site_packages = dist_in_site_packages
-        misc.dist_in_site_packages = dist_in_site_packages
+        from pip._internal.metadata.base import BaseDistribution
+        BaseDistribution.in_site_packages = property(dist_in_site_packages)
     """
     )
 
@@ -33,7 +32,9 @@ def _patch_dist_in_site_packages(virtualenv):
 class Tests_UserSite:
     @pytest.mark.network
     @pytest.mark.incompatible_with_test_venv
-    def test_reset_env_system_site_packages_usersite(self, script):
+    def test_reset_env_system_site_packages_usersite(
+        self, script: PipTestEnvironment
+    ) -> None:
         """
         Check user site works as expected.
         """
@@ -51,7 +52,9 @@ class Tests_UserSite:
     @pytest.mark.network
     @need_svn
     @pytest.mark.incompatible_with_test_venv
-    def test_install_subversion_usersite_editable_with_distribute(self, script, tmpdir):
+    def test_install_subversion_usersite_editable_with_distribute(
+        self, script: PipTestEnvironment, tmpdir: Path
+    ) -> None:
         """
         Test installing current directory ('.') into usersite after installing
         distribute
@@ -70,7 +73,9 @@ class Tests_UserSite:
 
     @pytest.mark.incompatible_with_test_venv
     @pytest.mark.usefixtures("with_wheel")
-    def test_install_from_current_directory_into_usersite(self, script, data):
+    def test_install_from_current_directory_into_usersite(
+        self, script: PipTestEnvironment, data: TestData
+    ) -> None:
         """
         Test installing current directory ('.') into usersite
         """
@@ -89,7 +94,9 @@ class Tests_UserSite:
         dist_info_folder = script.user_site / "FSPkg-0.1.dev0.dist-info"
         result.did_create(dist_info_folder)
 
-    def test_install_user_venv_nositepkgs_fails(self, virtualenv, script, data):
+    def test_install_user_venv_nositepkgs_fails(
+        self, virtualenv: VirtualEnvironment, script: PipTestEnvironment, data: TestData
+    ) -> None:
         """
         user install in virtualenv (with no system packages) fails with message
         """
@@ -111,7 +118,9 @@ class Tests_UserSite:
 
     @pytest.mark.network
     @pytest.mark.incompatible_with_test_venv
-    def test_install_user_conflict_in_usersite(self, script):
+    def test_install_user_conflict_in_usersite(
+        self, script: PipTestEnvironment
+    ) -> None:
         """
         Test user install with conflict in usersite updates usersite.
         """
@@ -135,7 +144,9 @@ class Tests_UserSite:
 
     @pytest.mark.network
     @pytest.mark.incompatible_with_test_venv
-    def test_install_user_conflict_in_globalsite(self, virtualenv, script):
+    def test_install_user_conflict_in_globalsite(
+        self, virtualenv: VirtualEnvironment, script: PipTestEnvironment
+    ) -> None:
         """
         Test user install with conflict in global site ignores site and
         installs to usersite
@@ -165,7 +176,9 @@ class Tests_UserSite:
 
     @pytest.mark.network
     @pytest.mark.incompatible_with_test_venv
-    def test_upgrade_user_conflict_in_globalsite(self, virtualenv, script):
+    def test_upgrade_user_conflict_in_globalsite(
+        self, virtualenv: VirtualEnvironment, script: PipTestEnvironment
+    ) -> None:
         """
         Test user install/upgrade with conflict in global site ignores site and
         installs to usersite
@@ -196,7 +209,9 @@ class Tests_UserSite:
 
     @pytest.mark.network
     @pytest.mark.incompatible_with_test_venv
-    def test_install_user_conflict_in_globalsite_and_usersite(self, virtualenv, script):
+    def test_install_user_conflict_in_globalsite_and_usersite(
+        self, virtualenv: VirtualEnvironment, script: PipTestEnvironment
+    ) -> None:
         """
         Test user install with conflict in globalsite and usersite ignores
         global site and updates usersite.
@@ -233,7 +248,9 @@ class Tests_UserSite:
 
     @pytest.mark.network
     @pytest.mark.incompatible_with_test_venv
-    def test_install_user_in_global_virtualenv_with_conflict_fails(self, script):
+    def test_install_user_in_global_virtualenv_with_conflict_fails(
+        self, script: PipTestEnvironment
+    ) -> None:
         """
         Test user install in --system-site-packages virtualenv with conflict in
         site fails.

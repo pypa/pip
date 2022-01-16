@@ -1,6 +1,7 @@
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
 
+import functools
 import logging
 import os
 import shutil
@@ -9,19 +10,22 @@ import uuid
 import zipfile
 from typing import Any, Collection, Dict, Iterable, List, Optional, Sequence, Union
 
-from pip._vendor import pkg_resources
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
-from pip._vendor.pep517.wrappers import HookMissing, Pep517HookCaller
-from pip._vendor.pkg_resources import Distribution
+from pip._vendor.pep517.wrappers import Pep517HookCaller
 
 from pip._internal.build_env import BuildEnvironment, NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_scheme
+from pip._internal.metadata import (
+    BaseDistribution,
+    get_default_environment,
+    get_directory_distribution,
+)
 from pip._internal.models.link import Link
 from pip._internal.operations.build.metadata import generate_metadata
 from pip._internal.operations.build.metadata_editable import generate_editable_metadata
@@ -46,44 +50,16 @@ from pip._internal.utils.misc import (
     ask_path_exists,
     backup_dir,
     display_path,
-    dist_in_site_packages,
-    dist_in_usersite,
-    get_distribution,
     hide_url,
     redact_auth_from_url,
 )
-from pip._internal.utils.packaging import get_metadata
+from pip._internal.utils.packaging import safe_extra
+from pip._internal.utils.subprocess import runner_with_spinner_message
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
 
 logger = logging.getLogger(__name__)
-
-
-def _get_dist(metadata_directory: str) -> Distribution:
-    """Return a pkg_resources.Distribution for the provided
-    metadata directory.
-    """
-    dist_dir = metadata_directory.rstrip(os.sep)
-
-    # Build a PathMetadata object, from path to metadata. :wink:
-    base_dir, dist_dir_name = os.path.split(dist_dir)
-    metadata = pkg_resources.PathMetadata(base_dir, dist_dir)
-
-    # Determine the correct Distribution object type.
-    if dist_dir.endswith(".egg-info"):
-        dist_cls = pkg_resources.Distribution
-        dist_name = os.path.splitext(dist_dir_name)[0]
-    else:
-        assert dist_dir.endswith(".dist-info")
-        dist_cls = pkg_resources.DistInfoDistribution
-        dist_name = os.path.splitext(dist_dir_name)[0].split("-")[0]
-
-    return dist_cls(
-        base_dir,
-        project_name=dist_name,
-        metadata=metadata,
-    )
 
 
 class InstallRequirement:
@@ -143,16 +119,15 @@ class InstallRequirement:
         if extras:
             self.extras = extras
         elif req:
-            self.extras = {pkg_resources.safe_extra(extra) for extra in req.extras}
+            self.extras = {safe_extra(extra) for extra in req.extras}
         else:
             self.extras = set()
         if markers is None and req:
             markers = req.marker
         self.markers = markers
 
-        # This holds the pkg_resources.Distribution object if this requirement
-        # is already available:
-        self.satisfied_by: Optional[Distribution] = None
+        # This holds the Distribution object if this requirement is already installed.
+        self.satisfied_by: Optional[BaseDistribution] = None
         # Whether the installation process should try to uninstall an existing
         # distribution before installing this requirement.
         self.should_reinstall = False
@@ -195,11 +170,6 @@ class InstallRequirement:
         # Setting an explicit value before loading pyproject.toml is supported,
         # but after loading this flag should be treated as read only.
         self.use_pep517 = use_pep517
-
-        # supports_pyproject_editable will be set to True or False when we try
-        # to prepare editable metadata or build an editable wheel. None means
-        # "we don't know yet".
-        self.supports_pyproject_editable: Optional[bool] = None
 
         # This requirement needs more preparation before it can be built
         self.needs_more_preparation = False
@@ -245,7 +215,19 @@ class InstallRequirement:
     def name(self) -> Optional[str]:
         if self.req is None:
             return None
-        return pkg_resources.safe_name(self.req.name)
+        return self.req.name
+
+    @functools.lru_cache()  # use cached_property in python 3.8+
+    def supports_pyproject_editable(self) -> bool:
+        if not self.use_pep517:
+            return False
+        assert self.pep517_backend
+        with self.build_env:
+            runner = runner_with_spinner_message(
+                "Checking if build backend supports build_editable"
+            )
+            with self.pep517_backend.subprocess_runner(runner):
+                return "build_editable" in self.pep517_backend._supported_features()
 
     @property
     def specifier(self) -> SpecifierSet:
@@ -406,32 +388,24 @@ class InstallRequirement:
         """
         if self.req is None:
             return
-        existing_dist = get_distribution(self.req.name)
+        existing_dist = get_default_environment().get_distribution(self.req.name)
         if not existing_dist:
             return
 
-        # pkg_resouces may contain a different copy of packaging.version from
-        # pip in if the downstream distributor does a poor job debundling pip.
-        # We avoid existing_dist.parsed_version and let SpecifierSet.contains
-        # parses the version instead.
-        existing_version = existing_dist.version
-        version_compatible = (
-            existing_version is not None
-            and self.req.specifier.contains(existing_version, prereleases=True)
+        version_compatible = self.req.specifier.contains(
+            existing_dist.version,
+            prereleases=True,
         )
         if not version_compatible:
             self.satisfied_by = None
             if use_user_site:
-                if dist_in_usersite(existing_dist):
+                if existing_dist.in_usersite:
                     self.should_reinstall = True
-                elif running_under_virtualenv() and dist_in_site_packages(
-                    existing_dist
-                ):
+                elif running_under_virtualenv() and existing_dist.in_site_packages:
                     raise InstallationError(
-                        "Will not install to the user site because it will "
-                        "lack sys.path precedence to {} in {}".format(
-                            existing_dist.project_name, existing_dist.location
-                        )
+                        f"Will not install to the user site because it will "
+                        f"lack sys.path precedence to {existing_dist.raw_name} "
+                        f"in {existing_dist.location}"
                     )
             else:
                 self.should_reinstall = True
@@ -503,93 +477,59 @@ class InstallRequirement:
             backend_path=backend_path,
         )
 
-    def _generate_editable_metadata(self) -> str:
-        """Invokes metadata generator functions, with the required arguments."""
-        if self.use_pep517:
-            assert self.pep517_backend is not None
-            try:
-                metadata_directory = generate_editable_metadata(
-                    build_env=self.build_env,
-                    backend=self.pep517_backend,
-                )
-            except HookMissing as e:
-                self.supports_pyproject_editable = False
-                if not os.path.exists(self.setup_py_path) and not os.path.exists(
-                    self.setup_cfg_path
-                ):
-                    raise InstallationError(
-                        f"Project {self} has a 'pyproject.toml' and its build "
-                        f"backend is missing the {e} hook. Since it does not "
-                        f"have a 'setup.py' nor a 'setup.cfg', "
-                        f"it cannot be installed in editable mode. "
-                        f"Consider using a build backend that supports PEP 660."
-                    )
-                # At this point we have determined that the build_editable hook
-                # is missing, and there is a setup.py or setup.cfg
-                # so we fallback to the legacy metadata generation
-                logger.info(
-                    "Build backend does not support editables, "
-                    "falling back to setup.py egg_info."
-                )
-            else:
-                self.supports_pyproject_editable = True
-                return metadata_directory
-        elif not os.path.exists(self.setup_py_path) and not os.path.exists(
-            self.setup_cfg_path
+    def isolated_editable_sanity_check(self) -> None:
+        """Check that an editable requirement if valid for use with PEP 517/518.
+
+        This verifies that an editable that has a pyproject.toml either supports PEP 660
+        or as a setup.py or a setup.cfg
+        """
+        if (
+            self.editable
+            and self.use_pep517
+            and not self.supports_pyproject_editable()
+            and not os.path.isfile(self.setup_py_path)
+            and not os.path.isfile(self.setup_cfg_path)
         ):
             raise InstallationError(
-                f"File 'setup.py' or 'setup.cfg' not found "
-                f"for legacy project {self}. "
-                f"It cannot be installed in editable mode."
+                f"Project {self} has a 'pyproject.toml' and its build "
+                f"backend is missing the 'build_editable' hook. Since it does not "
+                f"have a 'setup.py' nor a 'setup.cfg', "
+                f"it cannot be installed in editable mode. "
+                f"Consider using a build backend that supports PEP 660."
             )
-
-        return generate_metadata_legacy(
-            build_env=self.build_env,
-            setup_py_path=self.setup_py_path,
-            source_dir=self.unpacked_source_directory,
-            isolated=self.isolated,
-            details=self.name or f"from {self.link}",
-        )
-
-    def _generate_metadata(self) -> str:
-        """Invokes metadata generator functions, with the required arguments."""
-        if self.use_pep517:
-            assert self.pep517_backend is not None
-            try:
-                return generate_metadata(
-                    build_env=self.build_env,
-                    backend=self.pep517_backend,
-                )
-            except HookMissing as e:
-                raise InstallationError(
-                    f"Project {self} has a pyproject.toml but its build "
-                    f"backend is missing the required {e} hook."
-                )
-        elif not os.path.exists(self.setup_py_path):
-            raise InstallationError(
-                f"File 'setup.py' not found for legacy project {self}."
-            )
-
-        return generate_metadata_legacy(
-            build_env=self.build_env,
-            setup_py_path=self.setup_py_path,
-            source_dir=self.unpacked_source_directory,
-            isolated=self.isolated,
-            details=self.name or f"from {self.link}",
-        )
 
     def prepare_metadata(self) -> None:
         """Ensure that project metadata is available.
 
-        Under PEP 517, call the backend hook to prepare the metadata.
+        Under PEP 517 and PEP 660, call the backend hook to prepare the metadata.
         Under legacy processing, call setup.py egg-info.
         """
         assert self.source_dir
 
-        if self.editable and self.permit_editable_wheels:
-            self.metadata_directory = self._generate_editable_metadata()
+        if self.use_pep517:
+            assert self.pep517_backend is not None
+            if (
+                self.editable
+                and self.permit_editable_wheels
+                and self.supports_pyproject_editable()
+            ):
+                self.metadata_directory = generate_editable_metadata(
+                    build_env=self.build_env,
+                    backend=self.pep517_backend,
+                )
+            else:
+                self.metadata_directory = generate_metadata(
+                    build_env=self.build_env,
+                    backend=self.pep517_backend,
+                )
         else:
-            self.metadata_directory = self._generate_metadata()
+            self.metadata_directory = generate_metadata_legacy(
+                build_env=self.build_env,
+                setup_py_path=self.setup_py_path,
+                source_dir=self.unpacked_source_directory,
+                isolated=self.isolated,
+                details=self.name or f"from {self.link}",
+            )
 
         # Act on the newly generated metadata, based on the name and version.
         if not self.name:
@@ -602,12 +542,12 @@ class InstallRequirement:
     @property
     def metadata(self) -> Any:
         if not hasattr(self, "_metadata"):
-            self._metadata = get_metadata(self.get_dist())
+            self._metadata = self.get_dist().metadata
 
         return self._metadata
 
-    def get_dist(self) -> Distribution:
-        return _get_dist(self.metadata_directory)
+    def get_dist(self) -> BaseDistribution:
+        return get_directory_distribution(self.metadata_directory)
 
     def assert_source_matches_version(self) -> None:
         assert self.source_dir
@@ -686,7 +626,7 @@ class InstallRequirement:
 
         """
         assert self.req
-        dist = get_distribution(self.req.name)
+        dist = get_default_environment().get_distribution(self.req.name)
         if not dist:
             logger.warning("Skipping %s as it is not installed.", self.name)
             return None

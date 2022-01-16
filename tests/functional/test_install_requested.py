@@ -1,14 +1,20 @@
 import pytest
 
+from tests.lib import PipTestEnvironment, TestData, TestPipResult
 
-def _assert_requested_present(script, result, name, version):
+
+def _assert_requested_present(
+    script: PipTestEnvironment, result: TestPipResult, name: str, version: str
+) -> None:
     dist_info = script.site_packages / name + "-" + version + ".dist-info"
     requested = dist_info / "REQUESTED"
     assert dist_info in result.files_created
     assert requested in result.files_created
 
 
-def _assert_requested_absent(script, result, name, version):
+def _assert_requested_absent(
+    script: PipTestEnvironment, result: TestPipResult, name: str, version: str
+) -> None:
     dist_info = script.site_packages / name + "-" + version + ".dist-info"
     requested = dist_info / "REQUESTED"
     assert dist_info in result.files_created
@@ -16,7 +22,7 @@ def _assert_requested_absent(script, result, name, version):
 
 
 @pytest.mark.usefixtures("with_wheel")
-def test_install_requested_basic(script, data):
+def test_install_requested_basic(script: PipTestEnvironment, data: TestData) -> None:
     result = script.pip(
         "install", "--no-index", "-f", data.find_links, "require_simple"
     )
@@ -26,7 +32,9 @@ def test_install_requested_basic(script, data):
 
 
 @pytest.mark.usefixtures("with_wheel")
-def test_install_requested_requirements(script, data):
+def test_install_requested_requirements(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     script.scratch_path.joinpath("requirements.txt").write_text("require_simple\n")
     result = script.pip(
         "install",
@@ -41,7 +49,9 @@ def test_install_requested_requirements(script, data):
 
 
 @pytest.mark.usefixtures("with_wheel")
-def test_install_requested_dep_in_requirements(script, data):
+def test_install_requested_dep_in_requirements(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     script.scratch_path.joinpath("requirements.txt").write_text(
         "require_simple\nsimple<3\n"
     )
@@ -59,7 +69,9 @@ def test_install_requested_dep_in_requirements(script, data):
 
 
 @pytest.mark.usefixtures("with_wheel")
-def test_install_requested_reqs_and_constraints(script, data):
+def test_install_requested_reqs_and_constraints(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     script.scratch_path.joinpath("requirements.txt").write_text("require_simple\n")
     script.scratch_path.joinpath("constraints.txt").write_text("simple<3\n")
     result = script.pip(
@@ -78,7 +90,9 @@ def test_install_requested_reqs_and_constraints(script, data):
 
 
 @pytest.mark.usefixtures("with_wheel")
-def test_install_requested_in_reqs_and_constraints(script, data):
+def test_install_requested_in_reqs_and_constraints(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     script.scratch_path.joinpath("requirements.txt").write_text(
         "require_simple\nsimple\n"
     )

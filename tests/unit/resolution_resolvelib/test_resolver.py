@@ -115,7 +115,7 @@ def test_new_resolver_get_installation_order(
                 ("three", "four"),
                 ("four", "five"),
             ],
-            {None: 0, "one": 1, "two": 1, "three": 2, "four": 3, "five": 4},
+            {None: 0, "five": 5, "four": 4, "one": 4, "three": 2, "two": 1},
         ),
         (
             "linear",

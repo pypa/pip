@@ -1,0 +1,37 @@
+This patch mainly handles tweaking imports into a form that can be transformed
+to import from the vendored namespace.
+
+diff --git a/src/pip/_vendor/pygments/cmdline.py b/src/pip/_vendor/pygments/cmdline.py
+index d9a0fdc8b..db6de0cd3 100644
+--- a/src/pip/_vendor/pygments/cmdline.py
++++ b/src/pip/_vendor/pygments/cmdline.py
+@@ -410,11 +410,11 @@ def is_only_option(opt):
+         outfile = UnclosingTextIOWrapper(outfile, encoding=fmter.encoding)
+         fmter.encoding = None
+         try:
+-            import colorama.initialise
++            import colorama.initialise as colorama_initialise
+         except ImportError:
+             pass
+         else:
+-            outfile = colorama.initialise.wrap_stream(
++            outfile = colorama_initialise.wrap_stream(
+                 outfile, convert=None, strip=None, autoreset=False, wrap=True)
+
+     # When using the LaTeX formatter and the option `escapeinside` is
+diff --git a/src/pip/_vendor/pygments/__main__.py b/src/pip/_vendor/pygments/__main__.py
+index c6e2517df..76255b525 100644
+--- a/src/pip/_vendor/pygments/__main__.py
++++ b/src/pip/_vendor/pygments/__main__.py
+@@ -9,9 +9,9 @@
+ """
+
+ import sys
+-import pygments.cmdline
++from pygments.cmdline import main
+
+ try:
+-    sys.exit(pygments.cmdline.main(sys.argv))
++    sys.exit(main(sys.argv))
+ except KeyboardInterrupt:
+     sys.exit(1)

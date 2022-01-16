@@ -65,11 +65,8 @@ def should_update_common_wheels() -> bool:
 
 # -----------------------------------------------------------------------------
 # Development Commands
-#   These are currently prototypes to evaluate whether we want to switch over
-#   completely to nox for all our automation. Contributors should prefer using
-#   `tox -e ...` until this note is removed.
 # -----------------------------------------------------------------------------
-@nox.session(python=["3.6", "3.7", "3.8", "3.9", "3.10", "pypy3"])
+@nox.session(python=["3.7", "3.8", "3.9", "3.10", "pypy3"])
 def test(session: nox.Session) -> None:
     # Get the common wheels.
     if should_update_common_wheels():
@@ -113,7 +110,14 @@ def test(session: nox.Session) -> None:
     # Run the tests
     #   LC_CTYPE is set to get UTF-8 output inside of the subprocesses that our
     #   tests use.
-    session.run("pytest", *arguments, env={"LC_CTYPE": "en_US.UTF-8"})
+    session.run(
+        "pytest",
+        *arguments,
+        env={
+            "LC_CTYPE": "en_US.UTF-8",
+            "SETUPTOOLS_USE_DISTUTILS": "stdlib",
+        },
+    )
 
 
 @nox.session
@@ -171,10 +175,10 @@ def lint(session: nox.Session) -> None:
 
 @nox.session
 def vendoring(session: nox.Session) -> None:
-    session.install("vendoring~=1.0.0")
+    session.install("vendoring~=1.2.0")
 
     if "--upgrade" not in session.posargs:
-        session.run("vendoring", "sync", ".", "-v")
+        session.run("vendoring", "sync", "-v")
         return
 
     def pinned_requirements(path: Path) -> Iterator[Tuple[str, str]]:
@@ -221,6 +225,21 @@ def vendoring(session: nox.Session) -> None:
 
         # Commit the changes
         release.commit_file(session, ".", message=message)
+
+
+@nox.session
+def coverage(session: nox.Session) -> None:
+    if not os.path.exists("./.coverage-output"):
+        os.mkdir("./.coverage-output")
+    session.run(
+        "pytest",
+        "--cov=pip",
+        "--cov-config=./setup.cfg",
+        env={
+            "COVERAGE_OUTPUT_DIR": "./.coverage-output",
+            "COVERAGE_PROCESS_START": "./setup.cfg",
+        },
+    )
 
 
 # -----------------------------------------------------------------------------

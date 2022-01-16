@@ -1,12 +1,14 @@
-from tests.lib import create_test_package_with_setup
+from typing import Iterable
+
+from tests.lib import PipTestEnvironment, create_test_package_with_setup
 
 
-def assert_contains_expected_lines(string, expected_lines):
+def assert_contains_expected_lines(string: str, expected_lines: Iterable[str]) -> None:
     for expected_line in expected_lines:
         assert (expected_line + "\n") in string
 
 
-def test_check_install_canonicalization(script):
+def test_check_install_canonicalization(script: PipTestEnvironment) -> None:
     pkga_path = create_test_package_with_setup(
         script,
         name="pkgA",
@@ -65,7 +67,9 @@ def test_check_install_canonicalization(script):
     assert result.returncode == 0
 
 
-def test_check_install_does_not_warn_for_out_of_graph_issues(script):
+def test_check_install_does_not_warn_for_out_of_graph_issues(
+    script: PipTestEnvironment,
+) -> None:
     pkg_broken_path = create_test_package_with_setup(
         script,
         name="broken",

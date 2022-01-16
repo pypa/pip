@@ -8,3 +8,4 @@ contact_links:
     about: Chat with devs
   - name: "(maintainers only) Blank issue"
     url: https://github.com/pypa/pip/issues/new
+    about: For maintainers only.

@@ -177,13 +177,15 @@ isolated_mode: Callable[..., Option] = partial(
 
 require_virtualenv: Callable[..., Option] = partial(
     Option,
-    # Run only if inside a virtualenv, bail if not.
     "--require-virtualenv",
     "--require-venv",
     dest="require_venv",
     action="store_true",
     default=False,
-    help=SUPPRESS_HELP,
+    help=(
+        "Allow pip to only run in a virtual environment; "
+        "exit with an error otherwise."
+    ),
 )
 
 verbose: Callable[..., Option] = partial(

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Type, Union
 
 if TYPE_CHECKING:
-    from typing_extensions import Literal  # pragma: no cover
+    from pip._vendor.typing_extensions import Literal  # pragma: no cover
 
 from .api import PlatformDirsABC
 from .version import __version__, __version_info__

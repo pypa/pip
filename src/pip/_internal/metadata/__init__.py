@@ -38,6 +38,17 @@ def get_environment(paths: Optional[List[str]]) -> BaseEnvironment:
     return Environment.from_paths(paths)
 
 
+def get_directory_distribution(directory: str) -> BaseDistribution:
+    """Get the distribution metadata representation in the specified directory.
+
+    This returns a Distribution instance from the chosen backend based on
+    the given on-disk ``.dist-info`` directory.
+    """
+    from .pkg_resources import Distribution
+
+    return Distribution.from_directory(directory)
+
+
 def get_wheel_distribution(wheel: Wheel, canonical_name: str) -> BaseDistribution:
     """Get the representation of the specified wheel's distribution metadata.
 

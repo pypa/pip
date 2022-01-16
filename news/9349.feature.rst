@@ -1,1 +1,0 @@
-Add a ``--debug`` flag, to enable a mode that doesn't log errors and propagates them to the top level instead. This is primarily to aid with debugging pip's crashes.

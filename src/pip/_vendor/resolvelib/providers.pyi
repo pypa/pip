@@ -12,7 +12,7 @@ from typing import (
 
 from .reporters import BaseReporter
 from .resolvers import RequirementInformation
-from .structs import KT, RT, CT, Matches
+from .structs import CT, KT, RT, Matches
 
 class Preference(Protocol):
     def __lt__(self, __other: Any) -> bool: ...

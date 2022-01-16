@@ -1,9 +1,11 @@
 import os
 
-from tests.lib import assert_all_changes
+from tests.lib import PipTestEnvironment, assert_all_changes
 
 
-def check_installed_version(script, package, expected):
+def check_installed_version(
+    script: PipTestEnvironment, package: str, expected: str
+) -> None:
     result = script.pip("show", package)
     lines = result.stdout.splitlines()
     version = None
@@ -14,7 +16,9 @@ def check_installed_version(script, package, expected):
     assert version == expected, f"version {version} != {expected}"
 
 
-def check_force_reinstall(script, specifier, expected):
+def check_force_reinstall(
+    script: PipTestEnvironment, specifier: str, expected: str
+) -> None:
     """
     Args:
       specifier: the requirement specifier to force-reinstall.
@@ -39,7 +43,7 @@ def check_force_reinstall(script, specifier, expected):
     assert_all_changes(result, result3, [script.venv / "build", "cache"])
 
 
-def test_force_reinstall_with_no_version_specifier(script):
+def test_force_reinstall_with_no_version_specifier(script: PipTestEnvironment) -> None:
     """
     Check --force-reinstall when there is no version specifier and the
     installed version is not the newest version.
@@ -47,7 +51,9 @@ def test_force_reinstall_with_no_version_specifier(script):
     check_force_reinstall(script, "simplewheel", "2.0")
 
 
-def test_force_reinstall_with_same_version_specifier(script):
+def test_force_reinstall_with_same_version_specifier(
+    script: PipTestEnvironment,
+) -> None:
     """
     Check --force-reinstall when the version specifier equals the installed
     version and the installed version is not the newest version.
