@@ -1,10 +1,11 @@
 """
 Contains functional tests of the Git class.
 """
+import logging
 import os
 import pathlib
 from typing import List, Optional, Tuple
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -305,7 +306,7 @@ def _initialize_clonetest_server(
     repo_path.mkdir()
     script.run("git", "init", cwd=str(repo_path))
     repo_file = repo_path / "file.txt"
-    repo_file.write_text(u".")
+    repo_file.write_text(".")
     script.run("git", "add", "file.txt", cwd=str(repo_path))
     script.run("git", "commit", "-m", "initial commit", cwd=str(repo_path))
 
@@ -317,6 +318,34 @@ def _initialize_clonetest_server(
         )
 
     return repo_file
+
+
+@pytest.mark.parametrize(
+    "version_out, expected_message",
+    (
+        ("git version -2.25.1", "Can't parse git version: git version -2.25.1"),
+        ("git version 2.a.1", "Can't parse git version: git version 2.a.1"),
+        ("git ver. 2.25.1", "Can't parse git version: git ver. 2.25.1"),
+    ),
+)
+@patch("pip._internal.vcs.versioncontrol.VersionControl.run_command")
+def test_git_parse_fail_warning(
+    mock_run_command: Mock,
+    caplog: pytest.LogCaptureFixture,
+    version_out: str,
+    expected_message: str,
+) -> None:
+    """Test invalid git version logs adds an explicit warning log."""
+    mock_run_command.return_value = version_out
+
+    caplog.set_level(logging.WARNING)
+
+    git_tuple = Git().get_git_version()
+    # Returns an empty tuple if it is an invalid git version
+    assert git_tuple == ()
+
+    # Check for warning log
+    assert expected_message in caplog.text.strip()
 
 
 @pytest.mark.skipif(Git().get_git_version() < (2, 17), reason="git too old")
@@ -347,7 +376,7 @@ def test_partial_clone(script: PipTestEnvironment, tmp_path: pathlib.Path) -> No
     )
 
     # Write some additional stuff to git pull
-    repo_file.write_text(u"..")
+    repo_file.write_text("..")
     script.run("git", "commit", "-am", "second commit", cwd=str(repo_path))
 
     # Make sure git pull works - with server supporting filtering
@@ -391,7 +420,7 @@ def test_partial_clone_without_server_support(
     )
 
     # Write some additional stuff to git pull
-    repo_file.write_text(u"..")
+    repo_file.write_text("..")
     script.run("git", "commit", "-am", "second commit", cwd=str(repo_path))
 
     # Make sure git pull works - even though server doesn't support filtering
@@ -424,7 +453,7 @@ def test_clone_without_partial_clone_support(
             verbosity=0,
         )
 
-    repo_file.write_text(u"...")
+    repo_file.write_text("...")
     script.run("git", "commit", "-am", "third commit", cwd=str(repo_path))
 
     # Should work fine w/o attempting to use `--filter` args
