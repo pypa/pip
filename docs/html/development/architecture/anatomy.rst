@@ -24,7 +24,7 @@ The ``README``, license, ``pyproject.toml``, ``setup.py``, and so on are in the 
 * ``README.rst``
 * ``setup.cfg``
 * ``setup.py``
-* ``noxfile.py`` -- ``pip`` uses Nox, an automation tool, configured by this `noxfile.py`_ file. ``noxfile.py`` describes a few environments ``pip`` uses during development for simplifying how tests are run (complicated situation there). Example: ``nox -s lint``, ``nox -s test-3.10``. We can run tests for different versions of Python by changing “3.10” to “3.7” or similar.
+* ``noxfile.py`` -- ``pip`` uses Nox, an automation tool, configured by this file. ``noxfile.py`` describes a few environments ``pip`` uses during development for simplifying how tests are run (complicated situation there). Example: ``nox -s lint``, ``nox -s test-3.10``. We can run tests for different versions of Python by changing “3.10” to “3.7” or similar.
 * ``.gitattributes``
 * ``.gitignore``
 * ``.mailmap``
