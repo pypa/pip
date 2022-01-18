@@ -107,7 +107,7 @@ def update_version_file(version: str, filepath: str) -> None:
 def create_git_tag(session: Session, tag_name: str, *, message: str) -> None:
     session.run(
         # fmt: off
-        "git", "tag", "-m", message, tag_name,
+        "git", "tag", "-s", "-m", message, tag_name,
         # fmt: on
         external=True,
         silent=True,
