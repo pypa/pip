@@ -105,9 +105,12 @@ def update_version_file(version: str, filepath: str) -> None:
 
 
 def create_git_tag(session: Session, tag_name: str, *, message: str) -> None:
+    # Check if the user has configured a signing key
+    no_sign = subprocess.run(["git", "config", "--get", "user.signingkey"]).returncode
+
     session.run(
         # fmt: off
-        "git", "tag", "-s", "-m", message, tag_name,
+        "git", "tag", "-m", message, tag_name, "--no-sign" if no_sign else "--sign",
         # fmt: on
         external=True,
         silent=True,
