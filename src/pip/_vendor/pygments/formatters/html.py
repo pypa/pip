@@ -349,6 +349,12 @@ class HtmlFormatter(Formatter):
 
         .. versionadded:: 2.4
 
+    `debug_token_types`
+        Add ``title`` attributes to all token ``<span>`` tags that show the
+        name of the token.
+
+        .. versionadded:: 2.10
+
 
     **Subclassing the HTML formatter**
 
@@ -419,6 +425,7 @@ class HtmlFormatter(Formatter):
         self.filename = self._decodeifneeded(options.get('filename', ''))
         self.wrapcode = get_bool_opt(options, 'wrapcode', False)
         self.span_element_openers = {}
+        self.debug_token_types = get_bool_opt(options, 'debug_token_types', False)
 
         if self.tagsfile:
             if not ctags:
@@ -765,7 +772,8 @@ class HtmlFormatter(Formatter):
         for t, line in inner:
             if t:
                 i += 1
-                yield 1, '<a id="%s-%d" name="%s-%d"></a>' % (s, i, s, i) + line
+                href = "" if self.linenos else ' href="#%s-%d"' % (s, i)
+                yield 1, '<a id="%s-%d" name="%s-%d"%s></a>' % (s, i, s, i, href) + line
             else:
                 yield 0, line
 
@@ -835,12 +843,20 @@ class HtmlFormatter(Formatter):
             try:
                 cspan = self.span_element_openers[ttype]
             except KeyError:
+                title = ' title="%s"' % '.'.join(ttype) if self.debug_token_types else ''
                 if nocls:
                     css_style = self._get_css_inline_styles(ttype)
-                    cspan = css_style and '<span style="%s">' % self.class2style[css_style][0] or ''
+                    if css_style:
+                        css_style = self.class2style[css_style][0]
+                        cspan = '<span style="%s"%s>' % (css_style, title)
+                    else:
+                        cspan = ''
                 else:
                     css_class = self._get_css_classes(ttype)
-                    cspan = css_class and '<span class="%s">' % css_class or ''
+                    if css_class:
+                        cspan = '<span class="%s"%s>' % (css_class, title)
+                    else:
+                        cspan = ''
                 self.span_element_openers[ttype] = cspan
 
             parts = self._translate_parts(value)

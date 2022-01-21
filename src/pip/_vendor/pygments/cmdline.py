@@ -135,6 +135,50 @@ def _print_list(what):
             print("    %s" % docstring_headline(cls))
 
 
+def _print_list_as_json(requested_items):
+    import json
+    result = {}
+    if 'lexer' in requested_items:
+        info = {}
+        for fullname, names, filenames, mimetypes in get_all_lexers():
+            info[fullname] = {
+                'aliases': names,
+                'filenames': filenames,
+                'mimetypes': mimetypes
+            }
+        result['lexers'] = info
+
+    if 'formatter' in requested_items:
+        info = {}
+        for cls in get_all_formatters():
+            doc = docstring_headline(cls)
+            info[cls.name] = {
+                'aliases': cls.aliases,
+                'filenames': cls.filenames,
+                'doc': doc
+            }
+        result['formatters'] = info
+
+    if 'filter' in requested_items:
+        info = {}
+        for name in get_all_filters():
+            cls = find_filter_class(name)
+            info[name] = {
+                'doc': docstring_headline(cls)
+            }
+        result['filters'] = info
+
+    if 'style' in requested_items:
+        info = {}
+        for name in get_all_styles():
+            cls = get_style_by_name(name)
+            info[name] = {
+                'doc': docstring_headline(cls)
+            }
+        result['styles'] = info
+
+    json.dump(result, sys.stdout)
+
 def main_inner(parser, argns):
     if argns.help:
         parser.print_help()
@@ -150,11 +194,21 @@ def main_inner(parser, argns):
 
     # handle ``pygmentize -L``
     if argns.L is not None:
-        if not is_only_option('L'):
+        arg_set = set()
+        for k, v in vars(argns).items():
+            if v:
+                arg_set.add(k)
+
+        arg_set.discard('L')
+        arg_set.discard('json')
+
+        if arg_set:
             parser.print_help(sys.stderr)
             return 2
+
         # print version
-        main(['', '-V'])
+        if not argns.json:
+            main(['', '-V'])
         allowed_types = {'lexer', 'formatter', 'filter', 'style'}
         largs = [arg.rstrip('s') for arg in argns.L]
         if any(arg not in allowed_types for arg in largs):
@@ -162,8 +216,11 @@ def main_inner(parser, argns):
             return 0
         if not largs:
             largs = allowed_types
-        for arg in largs:
-            _print_list(arg)
+        if not argns.json:
+            for arg in largs:
+                _print_list(arg)
+        else:
+            _print_list_as_json(largs)
         return 0
 
     # handle ``pygmentize -H``
@@ -533,6 +590,10 @@ def main(args=sys.argv):
         'specify your own class name with a colon (`-l ./lexer.py:MyLexer`). '
         'Users should be very careful not to use this option with untrusted '
         'files, because it will import and run them.')
+    flags.add_argument('--json', help='Output as JSON. This can '
+        'be only used in conjunction with -L.',
+        default=False,
+        action='store_true')
 
     special_modes_group = parser.add_argument_group(
         'Special modes - do not do any highlighting')

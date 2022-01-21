@@ -8,8 +8,6 @@
     :license: BSD, see LICENSE for details.
 """
 
-import sys
-
 from pip._vendor.pygments.formatter import Formatter
 from pip._vendor.pygments.token import Keyword, Name, Comment, String, Error, \
     Number, Operator, Generic, Token, Whitespace
