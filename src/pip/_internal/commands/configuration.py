@@ -13,6 +13,7 @@ from pip._internal.configuration import (
     kinds,
 )
 from pip._internal.exceptions import PipError
+from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import get_prog, write_output
 
@@ -225,6 +226,10 @@ class ConfigurationCommand(Command):
 
         try:
             subprocess.check_call([editor, fname])
+        except FileNotFoundError as e:
+            if WINDOWS:
+                e.filename = editor
+            raise e
         except subprocess.CalledProcessError as e:
             raise PipError(
                 "Editor Subprocess exited with exit code {}".format(e.returncode)
