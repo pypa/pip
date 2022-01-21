@@ -250,6 +250,8 @@ class TestFailure(AssertionError):
 
 
 class TestPipResult:
+    __test__ = False
+
     def __init__(self, impl: ProcResult, verbose: bool = False) -> None:
         self._impl = impl
 
