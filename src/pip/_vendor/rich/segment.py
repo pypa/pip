@@ -12,10 +12,16 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
+    Type,
     Union,
 )
 
-from .cells import cell_len, get_character_cell_size, set_cell_size
+from .cells import (
+    _is_single_cell_widths,
+    cell_len,
+    get_character_cell_size,
+    set_cell_size,
+)
 from .repr import Result, rich_repr
 from .style import Style
 
@@ -97,19 +103,14 @@ class Segment(NamedTuple):
 
         text, style, control = segment
         _Segment = Segment
-        if cut >= segment.cell_length:
-            return segment, _Segment("", style, control)
 
-        if len(text) == segment.cell_length:
-            # Fast path with all 1 cell characters
-            return (
-                _Segment(text[:cut], style, control),
-                _Segment(text[cut:], style, control),
-            )
+        cell_length = segment.cell_length
+        if cut >= cell_length:
+            return segment, _Segment("", style, control)
 
         cell_size = get_character_cell_size
 
-        pos = int((cut / segment.cell_length) * len(text))
+        pos = int((cut / cell_length) * len(text))
 
         before = text[:pos]
         cell_pos = cell_len(before)
@@ -143,6 +144,17 @@ class Segment(NamedTuple):
         Returns:
             Tuple[Segment, Segment]: Two segments.
         """
+        text, style, control = self
+
+        if _is_single_cell_widths(text):
+            # Fast path with all 1 cell characters
+            if cut >= len(text):
+                return self, Segment("", style, control)
+            return (
+                Segment(text[:cut], style, control),
+                Segment(text[cut:], style, control),
+            )
+
         return self._split_cells(self, cut)
 
     @classmethod
@@ -341,7 +353,8 @@ class Segment(NamedTuple):
         Returns:
             int: The length of the line.
         """
-        return sum(segment.cell_length for segment in line)
+        _cell_len = cell_len
+        return sum(_cell_len(segment.text) for segment in line)
 
     @classmethod
     def get_shape(cls, lines: List[List["Segment"]]) -> Tuple[int, int]:
@@ -372,32 +385,115 @@ class Segment(NamedTuple):
             lines (List[List[Segment]]): A list of lines.
             width (int): Desired width.
             height (int, optional): Desired height or None for no change.
-            style (Style, optional): Style of any padding added. Defaults to None.
+            style (Style, optional): Style of any padding added.
             new_lines (bool, optional): Padded lines should include "\n". Defaults to False.
 
         Returns:
-            List[List[Segment]]: New list of lines that fits width x height.
+            List[List[Segment]]: New list of lines.
         """
-        if height is None:
-            height = len(lines)
-        shaped_lines: List[List[Segment]] = []
-        pad_line = (
-            [Segment(" " * width, style), Segment("\n")]
-            if new_lines
-            else [Segment(" " * width, style)]
+        _height = height or len(lines)
+
+        blank = (
+            [cls(" " * width + "\n", style)] if new_lines else [cls(" " * width, style)]
         )
 
-        append = shaped_lines.append
         adjust_line_length = cls.adjust_line_length
-        line: Optional[List[Segment]]
-        iter_lines = iter(lines)
-        for _ in range(height):
-            line = next(iter_lines, None)
-            if line is None:
-                append(pad_line)
-            else:
-                append(adjust_line_length(line, width, style=style))
+        shaped_lines = lines[:_height]
+        shaped_lines[:] = [
+            adjust_line_length(line, width, style=style) for line in lines
+        ]
+        if len(shaped_lines) < _height:
+            shaped_lines.extend([blank] * (_height - len(shaped_lines)))
         return shaped_lines
+
+    @classmethod
+    def align_top(
+        cls: Type["Segment"],
+        lines: List[List["Segment"]],
+        width: int,
+        height: int,
+        style: Style,
+        new_lines: bool = False,
+    ) -> List[List["Segment"]]:
+        """Aligns lines to top (adds extra lines to bottom as required).
+
+        Args:
+            lines (List[List[Segment]]): A list of lines.
+            width (int): Desired width.
+            height (int, optional): Desired height or None for no change.
+            style (Style): Style of any padding added.
+            new_lines (bool, optional): Padded lines should include "\n". Defaults to False.
+
+        Returns:
+            List[List[Segment]]: New list of lines.
+        """
+        extra_lines = height - len(lines)
+        if not extra_lines:
+            return lines[:]
+        lines = lines[:height]
+        blank = cls(" " * width + "\n", style) if new_lines else cls(" " * width, style)
+        lines = lines + [[blank]] * extra_lines
+        return lines
+
+    @classmethod
+    def align_bottom(
+        cls: Type["Segment"],
+        lines: List[List["Segment"]],
+        width: int,
+        height: int,
+        style: Style,
+        new_lines: bool = False,
+    ) -> List[List["Segment"]]:
+        """Aligns render to bottom (adds extra lines above as required).
+
+        Args:
+            lines (List[List[Segment]]): A list of lines.
+            width (int): Desired width.
+            height (int, optional): Desired height or None for no change.
+            style (Style): Style of any padding added. Defaults to None.
+            new_lines (bool, optional): Padded lines should include "\n". Defaults to False.
+
+        Returns:
+            List[List[Segment]]: New list of lines.
+        """
+        extra_lines = height - len(lines)
+        if not extra_lines:
+            return lines[:]
+        lines = lines[:height]
+        blank = cls(" " * width + "\n", style) if new_lines else cls(" " * width, style)
+        lines = [[blank]] * extra_lines + lines
+        return lines
+
+    @classmethod
+    def align_middle(
+        cls: Type["Segment"],
+        lines: List[List["Segment"]],
+        width: int,
+        height: int,
+        style: Style,
+        new_lines: bool = False,
+    ) -> List[List["Segment"]]:
+        """Aligns lines to middle (adds extra lines to above and below as required).
+
+        Args:
+            lines (List[List[Segment]]): A list of lines.
+            width (int): Desired width.
+            height (int, optional): Desired height or None for no change.
+            style (Style): Style of any padding added.
+            new_lines (bool, optional): Padded lines should include "\n". Defaults to False.
+
+        Returns:
+            List[List[Segment]]: New list of lines.
+        """
+        extra_lines = height - len(lines)
+        if not extra_lines:
+            return lines[:]
+        lines = lines[:height]
+        blank = cls(" " * width + "\n", style) if new_lines else cls(" " * width, style)
+        top_lines = extra_lines // 2
+        bottom_lines = extra_lines - top_lines
+        lines = [[blank]] * top_lines + lines + [[blank]] * bottom_lines
+        return lines
 
     @classmethod
     def simplify(cls, segments: Iterable["Segment"]) -> Iterable["Segment"]:
@@ -492,6 +588,7 @@ class Segment(NamedTuple):
         """
         split_segments: List["Segment"] = []
         add_segment = split_segments.append
+
         iter_cuts = iter(cuts)
 
         while True:
