@@ -12,7 +12,7 @@ pyparsing==3.0.7
 requests==2.27.1
     certifi==2021.10.8
     chardet==4.0.0
-    idna==3.2
+    idna==3.3
     urllib3==1.26.8
 rich==10.14.0
     pygments==2.10.0
