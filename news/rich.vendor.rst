@@ -1,1 +1,1 @@
-Upgrade rich to 11.0.0
+Add rich 11.0.0 as a vendored dependency.
