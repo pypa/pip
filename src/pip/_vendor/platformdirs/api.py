@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import os
 import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional, Union
 
 if sys.version_info >= (3, 8):  # pragma: no branch
     from typing import Literal  # pragma: no cover
@@ -15,9 +16,9 @@ class PlatformDirsABC(ABC):
 
     def __init__(
         self,
-        appname: Optional[str] = None,
-        appauthor: Union[str, None, "Literal[False]"] = None,
-        version: Optional[str] = None,
+        appname: str | None = None,
+        appauthor: str | None | Literal[False] = None,
+        version: str | None = None,
         roaming: bool = False,
         multipath: bool = False,
         opinion: bool = True,
