@@ -164,6 +164,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
+      - uses: szenius/set-timezone@v1.0
         with:
           python-version: ${{ matrix.python }}
 
@@ -181,7 +182,6 @@ jobs:
           )
           $acl.AddAccessRule($rule)
           Set-Acl "R:\Temp" $acl
-
       - run: pip install nox 'virtualenv<20'
         env:
           TEMP: "R:\\Temp"
@@ -195,6 +195,18 @@ jobs:
           --verbose --numprocesses auto --showlocals
         env:
           TEMP: "R:\\Temp"
+
+      - name: Run unit tests that can be affected by timezones
+        if: matrix.group == 1
+        run: >-
+          nox -s test-${{ matrix.python }} --
+          -m unit
+          --verbose --numprocesses auto --showlocals
+          -k "test_logging.py or test_base_command.py"
+        env:
+          TEMP: "R:\\Temp"
+        with:
+          timezoneWindows: "Singapore Standard Time"
 
       - name: Run integration tests (group 1)
         if: matrix.group == 1
