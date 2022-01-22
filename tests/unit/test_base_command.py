@@ -1,5 +1,6 @@
 import logging
 import os
+from datetime import datetime
 from optparse import Values
 from typing import Callable, Iterator, List, NoReturn, Optional
 from unittest.mock import Mock, patch
@@ -13,10 +14,15 @@ from pip._internal.utils.logging import BrokenStdoutLoggingError
 from pip._internal.utils.temp_dir import TempDirectory
 from tests.lib.path import Path
 
+FIXED_TIME_VALUE = 1547704837.040001
+FIXED_TIME_FORMAT = datetime.fromtimestamp(FIXED_TIME_VALUE).strftime(
+    "%Y-%m-%dT%H:%M:%S,%f"
+)[:-3]
+
 
 @pytest.fixture
 def fixed_time(utc: None) -> Iterator[None]:
-    with patch("time.time", lambda: 1547704837.040001):
+    with patch("time.time", lambda: FIXED_TIME_VALUE):
         yield
 
 
@@ -109,7 +115,7 @@ def test_log_command_success(fixed_time: None, tmpdir: Path) -> None:
     log_path = tmpdir.joinpath("log")
     cmd.main(["fake", "--log", log_path])
     with open(log_path) as f:
-        assert f.read().rstrip() == "2019-01-17T06:00:37,040 fake"
+        assert f.read().rstrip() == f"{FIXED_TIME_FORMAT} fake"
 
 
 def test_log_command_error(fixed_time: None, tmpdir: Path) -> None:
@@ -118,7 +124,7 @@ def test_log_command_error(fixed_time: None, tmpdir: Path) -> None:
     log_path = tmpdir.joinpath("log")
     cmd.main(["fake", "--log", log_path])
     with open(log_path) as f:
-        assert f.read().startswith("2019-01-17T06:00:37,040 fake")
+        assert f.read().startswith(f"{FIXED_TIME_FORMAT} fake")
 
 
 def test_log_file_command_error(fixed_time: None, tmpdir: Path) -> None:
@@ -127,7 +133,7 @@ def test_log_file_command_error(fixed_time: None, tmpdir: Path) -> None:
     log_file_path = tmpdir.joinpath("log_file")
     cmd.main(["fake", "--log-file", log_file_path])
     with open(log_file_path) as f:
-        assert f.read().startswith("2019-01-17T06:00:37,040 fake")
+        assert f.read().startswith(f"{FIXED_TIME_FORMAT} fake")
 
 
 def test_log_unicode_messages(fixed_time: None, tmpdir: Path) -> None:
