@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from threading import Thread
 from unittest.mock import patch
 
@@ -18,11 +19,14 @@ logger = logging.getLogger(__name__)
 class TestIndentingFormatter:
     """Test ``pip._internal.utils.logging.IndentingFormatter``."""
 
+    def convert_utc_timestamp_to_local(self, timestamp: float) -> float:
+        return datetime.utcfromtimestamp(timestamp).replace(tzinfo=None).timestamp()
+
     def make_record(self, msg: str, level_name: str) -> logging.LogRecord:
         level_number = getattr(logging, level_name)
         attrs = dict(
             msg=msg,
-            created=1547704837.040001,
+            created=self.convert_utc_timestamp_to_local(1547704837.040001),
             msecs=40,
             levelname=level_name,
             levelno=level_number,
@@ -136,7 +140,6 @@ class TestColorizedStreamHandler:
     def test_broken_pipe_in_stderr_flush(self) -> None:
         """
         Test sys.stderr.flush() raising BrokenPipeError.
-
         This error should _not_ trigger an error in the logging framework.
         """
         record = self._make_log_record()
@@ -159,7 +162,6 @@ class TestColorizedStreamHandler:
     def test_broken_pipe_in_stdout_write(self) -> None:
         """
         Test sys.stdout.write() raising BrokenPipeError.
-
         This error _should_ trigger an error in the logging framework.
         """
         record = self._make_log_record()
@@ -174,7 +176,6 @@ class TestColorizedStreamHandler:
     def test_broken_pipe_in_stdout_flush(self) -> None:
         """
         Test sys.stdout.flush() raising BrokenPipeError.
-
         This error _should_ trigger an error in the logging framework.
         """
         record = self._make_log_record()
