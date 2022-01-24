@@ -2172,6 +2172,24 @@ def test_install_yanked_file_and_print_warning(
     assert "Successfully installed simple-3.0\n" in result.stdout, str(result)
 
 
+def test_error_all_yanked_files_and_no_pin(script, data):
+    """
+    Test raising an error if there are only "yanked" files available and no pin
+    """
+    result = script.pip(
+        "install",
+        "simple",
+        "--index-url",
+        data.index_url("yanked_all"),
+        expect_error=True,
+    )
+    # Make sure an error is raised
+    assert (
+        result.returncode == 1
+        and "ERROR: No matching distribution found for simple\n" in result.stderr
+    ), str(result)
+
+
 @pytest.mark.parametrize(
     "install_args",
     [
