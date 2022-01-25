@@ -2172,7 +2172,9 @@ def test_install_yanked_file_and_print_warning(
     assert "Successfully installed simple-3.0\n" in result.stdout, str(result)
 
 
-def test_error_all_yanked_files_and_no_pin(script, data):
+def test_error_all_yanked_files_and_no_pin(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Test raising an error if there are only "yanked" files available and no pin
     """
