@@ -3,6 +3,8 @@ import textwrap
 from typing import List, Optional, Sequence
 
 # Shim to wrap setup.py invocation with setuptools
+# Note that __file__ is handled via two {!r} *and* %r, to ensure that paths on
+# Windows are correctly handled (it should be "C:\\Users" not "C:\Users").
 _SETUPTOOLS_SHIM = textwrap.dedent(
     """
     exec(compile('''
@@ -27,7 +29,7 @@ _SETUPTOOLS_SHIM = textwrap.dedent(
         )
         sys.exit(1)
 
-    __file__ = {!r}
+    __file__ = %r
     sys.argv[0] = __file__
 
     if os.path.exists(__file__):
@@ -39,7 +41,7 @@ _SETUPTOOLS_SHIM = textwrap.dedent(
         setup_py_code = "from setuptools import setup; setup()"
 
     exec(compile(setup_py_code, filename, "exec"))
-    ''', "<pip-setuptools-caller>", "exec"))
+    ''' % ({!r},), "<pip-setuptools-caller>", "exec"))
     """
 ).rstrip()
 

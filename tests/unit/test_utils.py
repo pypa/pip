@@ -948,7 +948,7 @@ def test_make_setuptools_shim_args() -> None:
     shim = args[3]
     # Spot-check key aspects of the command string.
     assert "import setuptools" in shim
-    assert "__file__ = '/dir/path/setup.py'" in args[3]
+    assert "'/dir/path/setup.py'" in args[3]
     assert "sys.argv[0] = __file__" in args[3]
 
 
