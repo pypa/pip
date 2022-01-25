@@ -229,7 +229,7 @@ class ConfigurationCommand(Command):
         except FileNotFoundError as e:
             if WINDOWS:
                 e.filename = editor
-            raise e
+            raise
         except subprocess.CalledProcessError as e:
             raise PipError(
                 "Editor Subprocess exited with exit code {}".format(e.returncode)
