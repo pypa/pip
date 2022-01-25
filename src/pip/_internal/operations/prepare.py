@@ -59,10 +59,10 @@ def _get_prepared_distribution(
     return abstract_dist.get_metadata_distribution()
 
 
-def unpack_vcs_link(link: Link, location: str) -> None:
+def unpack_vcs_link(link: Link, location: str, verbosity: int) -> None:
     vcs_backend = vcs.get_backend_for_scheme(link.scheme)
     assert vcs_backend is not None
-    vcs_backend.unpack(location, url=hide_url(link.url))
+    vcs_backend.unpack(location, url=hide_url(link.url), verbosity=verbosity)
 
 
 class File:
@@ -175,6 +175,7 @@ def unpack_url(
     link: Link,
     location: str,
     download: Downloader,
+    verbosity: int,
     download_dir: Optional[str] = None,
     hashes: Optional[Hashes] = None,
 ) -> Optional[File]:
@@ -187,7 +188,7 @@ def unpack_url(
     """
     # non-editable vcs urls
     if link.is_vcs:
-        unpack_vcs_link(link, location)
+        unpack_vcs_link(link, location, verbosity=verbosity)
         return None
 
     # Once out-of-tree-builds are no longer supported, could potentially
@@ -267,6 +268,7 @@ class RequirementPreparer:
         require_hashes: bool,
         use_user_site: bool,
         lazy_wheel: bool,
+        verbosity: int,
         in_tree_build: bool,
     ) -> None:
         super().__init__()
@@ -294,6 +296,9 @@ class RequirementPreparer:
 
         # Should wheels be downloaded lazily?
         self.use_lazy_wheel = lazy_wheel
+
+        # How verbose should underlying tooling be?
+        self.verbosity = verbosity
 
         # Should in-tree builds be used for local paths?
         self.in_tree_build = in_tree_build
@@ -525,7 +530,12 @@ class RequirementPreparer:
         elif link.url not in self._downloaded:
             try:
                 local_file = unpack_url(
-                    link, req.source_dir, self._download, self.download_dir, hashes
+                    link,
+                    req.source_dir,
+                    self._download,
+                    self.verbosity,
+                    self.download_dir,
+                    hashes,
                 )
             except NetworkConnectionError as exc:
                 raise InstallationError(

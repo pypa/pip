@@ -253,9 +253,17 @@ class Git(VersionControl):
 
         return cls.get_revision(dest) == name
 
-    def fetch_new(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
+    def fetch_new(
+        self, dest: str, url: HiddenText, rev_options: RevOptions, verbosity: int
+    ) -> None:
         rev_display = rev_options.to_display()
         logger.info("Cloning %s%s to %s", url, rev_display, display_path(dest))
+        if verbosity <= 0:
+            flags: Tuple[str, ...] = ("--quiet",)
+        elif verbosity == 1:
+            flags = ()
+        else:
+            flags = ("--verbose", "--progress")
         if self.get_git_version() >= (2, 17):
             # Git added support for partial clone in 2.17
             # https://git-scm.com/docs/partial-clone
@@ -264,13 +272,13 @@ class Git(VersionControl):
                 make_command(
                     "clone",
                     "--filter=blob:none",
-                    "-q",
+                    *flags,
                     url,
                     dest,
                 )
             )
         else:
-            self.run_command(make_command("clone", "-q", url, dest))
+            self.run_command(make_command("clone", *flags, url, dest))
 
         if rev_options.rev:
             # Then a specific revision was requested.

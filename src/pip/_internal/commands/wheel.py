@@ -128,6 +128,7 @@ class WheelCommand(RequirementCommand):
             finder=finder,
             download_dir=options.wheel_dir,
             use_user_site=False,
+            verbosity=self.verbosity,
         )
 
         resolver = self.make_resolver(

@@ -292,7 +292,10 @@ def test_resolve_commit_not_on_branch(
     # check we can fetch our commit
     rev_options = Git.make_rev_options(commit)
     Git().fetch_new(
-        str(clone_path), HiddenText(repo_path.as_uri(), redacted="*"), rev_options
+        str(clone_path),
+        HiddenText(repo_path.as_uri(), redacted="*"),
+        rev_options,
+        verbosity=0,
     )
 
 
@@ -333,12 +336,14 @@ def test_partial_clone(script: PipTestEnvironment, tmp_path: pathlib.Path) -> No
         str(clone_path1),
         HiddenText(repo_path.as_uri(), redacted="*"),
         Git.make_rev_options(),
+        verbosity=0,
     )
     # Check that we can clone to commit
     Git().fetch_new(
         str(clone_path2),
         HiddenText(repo_path.as_uri(), redacted="*"),
         Git.make_rev_options(commit),
+        verbosity=0,
     )
 
     # Write some additional stuff to git pull
@@ -375,12 +380,14 @@ def test_partial_clone_without_server_support(
         str(clone_path1),
         HiddenText(repo_path.as_uri(), redacted="*"),
         Git.make_rev_options(),
+        verbosity=0,
     )
     # Check that we can clone to commit
     Git().fetch_new(
         str(clone_path2),
         HiddenText(repo_path.as_uri(), redacted="*"),
         Git.make_rev_options(commit),
+        verbosity=0,
     )
 
     # Write some additional stuff to git pull
@@ -414,6 +421,7 @@ def test_clone_without_partial_clone_support(
             str(clone_path),
             HiddenText(repo_path.as_uri(), redacted="*"),
             Git.make_rev_options(),
+            verbosity=0,
         )
 
     repo_file.write_text(u"...")

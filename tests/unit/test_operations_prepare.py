@@ -44,6 +44,7 @@ def test_unpack_url_with_urllib_response_without_content_type(data: TestData) ->
             temp_dir,
             download=download,
             download_dir=None,
+            verbosity=0,
         )
         assert set(os.listdir(temp_dir)) == {
             "PKG-INFO",
@@ -188,7 +189,7 @@ class Test_unpack_url:
 
     def test_unpack_url_no_download(self, tmpdir: Path, data: TestData) -> None:
         self.prep(tmpdir, data)
-        unpack_url(self.dist_url, self.build_dir, self.no_download)
+        unpack_url(self.dist_url, self.build_dir, self.no_download, verbosity=0)
         assert os.path.isdir(os.path.join(self.build_dir, "simple"))
         assert not os.path.isfile(os.path.join(self.download_dir, self.dist_file))
 
@@ -205,6 +206,7 @@ class Test_unpack_url:
                 self.build_dir,
                 download=self.no_download,
                 hashes=Hashes({"md5": ["bogus"]}),
+                verbosity=0,
             )
 
     def test_unpack_url_thats_a_dir(self, tmpdir: Path, data: TestData) -> None:
@@ -216,6 +218,7 @@ class Test_unpack_url:
             self.build_dir,
             download=self.no_download,
             download_dir=self.download_dir,
+            verbosity=0,
         )
         assert os.path.isdir(os.path.join(self.build_dir, "fspkg"))
 
@@ -241,7 +244,13 @@ def test_unpack_url_excludes_expected_dirs(tmpdir: Path, exclude_dir: str) -> No
     dst_included_dir = dst_dir.joinpath("subdir", exclude_dir)
 
     src_link = Link(path_to_url(src_dir))
-    unpack_url(src_link, dst_dir, Mock(side_effect=AssertionError), download_dir=None)
+    unpack_url(
+        src_link,
+        dst_dir,
+        Mock(side_effect=AssertionError),
+        download_dir=None,
+        verbosity=0,
+    )
     assert not os.path.isdir(dst_excluded_dir)
     assert not os.path.isfile(dst_excluded_file)
     assert os.path.isfile(dst_included_file)

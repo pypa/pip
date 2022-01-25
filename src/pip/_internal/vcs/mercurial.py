@@ -1,7 +1,7 @@
 import configparser
 import logging
 import os
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import HiddenText, display_path
@@ -33,7 +33,9 @@ class Mercurial(VersionControl):
     def get_base_rev_args(rev: str) -> List[str]:
         return [rev]
 
-    def fetch_new(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
+    def fetch_new(
+        self, dest: str, url: HiddenText, rev_options: RevOptions, verbosity: int
+    ) -> None:
         rev_display = rev_options.to_display()
         logger.info(
             "Cloning hg %s%s to %s",
@@ -41,9 +43,17 @@ class Mercurial(VersionControl):
             rev_display,
             display_path(dest),
         )
-        self.run_command(make_command("clone", "--noupdate", "-q", url, dest))
+        if verbosity <= 0:
+            flags: Tuple[str, ...] = ("--quiet",)
+        elif verbosity == 1:
+            flags = ()
+        elif verbosity == 2:
+            flags = ("--verbose",)
+        else:
+            flags = ("--verbose", "--debug")
+        self.run_command(make_command("clone", "--noupdate", *flags, url, dest))
         self.run_command(
-            make_command("update", "-q", rev_options.to_args()),
+            make_command("update", *flags, rev_options.to_args()),
             cwd=dest,
         )
 

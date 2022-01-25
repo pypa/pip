@@ -277,7 +277,9 @@ class Subversion(VersionControl):
 
         return []
 
-    def fetch_new(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
+    def fetch_new(
+        self, dest: str, url: HiddenText, rev_options: RevOptions, verbosity: int
+    ) -> None:
         rev_display = rev_options.to_display()
         logger.info(
             "Checking out %s%s to %s",
@@ -285,9 +287,13 @@ class Subversion(VersionControl):
             rev_display,
             display_path(dest),
         )
+        if verbosity <= 0:
+            flag = "--quiet"
+        else:
+            flag = ""
         cmd_args = make_command(
             "checkout",
-            "-q",
+            flag,
             self.get_remote_call_options(),
             rev_options.to_args(),
             url,
