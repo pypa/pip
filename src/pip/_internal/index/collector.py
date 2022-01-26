@@ -426,7 +426,8 @@ class HTMLLinkParser(HTMLParser):
         raise ValueError(
             "HTML doctype missing or incorrect. Expected <!DOCTYPE html>.\n\n"
             "If you believe this error to be incorrect, try passing the "
-            "command line option --use-deprecated=html5lib."
+            "command line option --use-deprecated=html5lib and please leave "
+            "a comment on the pip issue at https://github.com/pypa/pip/issues/10825."
         )
 
 
