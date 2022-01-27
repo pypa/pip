@@ -234,10 +234,9 @@ class PipProvider(_ProviderBase):
 
     def get_dependencies(self, candidate: Candidate) -> Sequence[Requirement]:
         install_req = candidate.get_install_requirement()
-        if install_req:
+        with_requires = not self._ignore_dependencies
+        if install_req and with_requires:
             with_requires = not install_req.ignore_dependencies
-        else:
-            with_requires = not self._ignore_dependencies
         return [r for r in candidate.iter_dependencies(with_requires) if r is not None]
 
     @staticmethod

@@ -117,6 +117,7 @@ def _make_install_req_from_dist(
             install_options=template.install_options,
             global_options=template.global_options,
             hashes=template.hash_options,
+            ignore_dependencies=template.ignore_dependencies,
         ),
     )
     ireq.satisfied_by = dist

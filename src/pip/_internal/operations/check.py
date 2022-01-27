@@ -100,7 +100,9 @@ def check_install_conflicts(to_install: List[InstallRequirement]) -> ConflictDet
     # Start from the current state
     package_set, _ = create_package_set_from_installed()
     # Install packages
-    would_be_installed = _simulate_installation_of(to_install, package_set)
+    would_be_installed = _simulate_installation_of(
+        list(filter(lambda x: not x.ignore_dependencies, to_install)), package_set
+    )
 
     # Only warn about directly-dependent packages; create a whitelist of them
     whitelist = _create_whitelist(would_be_installed, package_set)

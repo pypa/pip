@@ -403,7 +403,7 @@ def install_req_from_line(
         install_options=options.get("install_options", []) if options else [],
         global_options=options.get("global_options", []) if options else [],
         hash_options=options.get("hashes", {}) if options else {},
-        ignore_dependencies=options.get("ignore_dependencies", False)
+        ignore_dependencies=options.get("ignore_dependencies", ignore_dependencies)
         if options
         else ignore_dependencies,
         constraint=constraint,
