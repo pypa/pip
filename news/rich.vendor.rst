@@ -1,1 +1,1 @@
-Add rich 10.14.0 as a vendored dependency.
+Add rich 11.0.0 as a vendored dependency.

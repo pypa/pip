@@ -590,19 +590,24 @@ class RegexLexer(Lexer, metaclass=RegexLexerMeta):
     #: Defaults to MULTILINE.
     flags = re.MULTILINE
 
+    #: At all time there is a stack of states. Initially, the stack contains
+    #: a single state 'root'. The top of the stack is called "the current state".
+    #:
     #: Dict of ``{'state': [(regex, tokentype, new_state), ...], ...}``
     #:
-    #: The initial state is 'root'.
     #: ``new_state`` can be omitted to signify no state transition.
-    #: If it is a string, the state is pushed on the stack and changed.
-    #: If it is a tuple of strings, all states are pushed on the stack and
-    #: the current state will be the topmost.
-    #: It can also be ``combined('state1', 'state2', ...)``
+    #: If ``new_state`` is a string, it is pushed on the stack. This ensure
+    #: the new current state is ``new_state``.
+    #: If ``new_state`` is a tuple of strings, all of those strings are pushed
+    #: on the stack and the current state will be the last element of the list.
+    #: ``new_state`` can also be ``combined('state1', 'state2', ...)``
     #: to signify a new, anonymous state combined from the rules of two
     #: or more existing ones.
     #: Furthermore, it can be '#pop' to signify going back one step in
     #: the state stack, or '#push' to push the current state on the stack
-    #: again.
+    #: again. Note that if you push while in a combined state, the combined
+    #: state itself is pushed, and not only the state in which the rule is
+    #: defined.
     #:
     #: The tuple can also be replaced with ``include('state')``, in which
     #: case the rules from the state named by the string are included in the

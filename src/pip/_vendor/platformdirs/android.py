@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import re
 import sys
@@ -80,9 +82,9 @@ def _android_folder() -> str:
     """:return: base folder for the Android OS"""
     try:
         # First try to get path to android app via pyjnius
-        from jnius import autoclass  # noqa: SC200
+        from jnius import autoclass
 
-        Context = autoclass("android.content.Context")  # noqa: SC200
+        Context = autoclass("android.content.Context")  # noqa: N806
         result: str = Context.getFilesDir().getParentFile().getAbsolutePath()
     except Exception:
         # if fails find an android folder looking path on the sys.path
@@ -101,10 +103,10 @@ def _android_documents_folder() -> str:
     """:return: documents folder for the Android OS"""
     # Get directories with pyjnius
     try:
-        from jnius import autoclass  # noqa: SC200
+        from jnius import autoclass
 
-        Context = autoclass("android.content.Context")  # noqa: SC200
-        Environment = autoclass("android.os.Environment")
+        Context = autoclass("android.content.Context")  # noqa: N806
+        Environment = autoclass("android.os.Environment")  # noqa: N806
         documents_dir: str = Context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS).getAbsolutePath()
     except Exception:
         documents_dir = "/storage/emulated/0/Documents"

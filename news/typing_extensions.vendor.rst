@@ -1,1 +1,1 @@
-Add typing_extensions 3.10.0.2 as a vendored dependency.
+Add typing_extensions 4.0.1 as a vendored dependency.
