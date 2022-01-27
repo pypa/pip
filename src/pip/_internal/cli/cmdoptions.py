@@ -10,9 +10,9 @@ pass on state. To be consistent, all options will follow this design.
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
 
+import logging
 import os
 import textwrap
-import warnings
 from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup, OptionParser, Values
 from textwrap import dedent
@@ -29,6 +29,8 @@ from pip._internal.models.index import PyPI
 from pip._internal.models.target_python import TargetPython
 from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.misc import strtobool
+
+logger = logging.getLogger(__name__)
 
 
 def raise_option_error(parser: OptionParser, option: Option, msg: str) -> None:
@@ -76,10 +78,9 @@ def check_install_build_global(
     if any(map(getname, names)):
         control = options.format_control
         control.disallow_binaries()
-        warnings.warn(
+        logger.warning(
             "Disabling all use of wheels due to the use of --build-option "
             "/ --global-option / --install-option.",
-            stacklevel=2,
         )
 
 

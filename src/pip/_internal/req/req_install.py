@@ -19,7 +19,7 @@ from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.pep517.wrappers import Pep517HookCaller
 
 from pip._internal.build_env import BuildEnvironment, NoOpBuildEnvironment
-from pip._internal.exceptions import InstallationError
+from pip._internal.exceptions import InstallationError, LegacyInstallFailure
 from pip._internal.locations import get_scheme
 from pip._internal.metadata import (
     BaseDistribution,
@@ -35,7 +35,6 @@ from pip._internal.operations.build.metadata_legacy import (
 from pip._internal.operations.install.editable_legacy import (
     install_editable as install_editable_legacy,
 )
-from pip._internal.operations.install.legacy import LegacyInstallFailure
 from pip._internal.operations.install.legacy import install as install_legacy
 from pip._internal.operations.install.wheel import install_wheel
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
@@ -505,6 +504,7 @@ class InstallRequirement:
         Under legacy processing, call setup.py egg-info.
         """
         assert self.source_dir
+        details = self.name or f"from {self.link}"
 
         if self.use_pep517:
             assert self.pep517_backend is not None
@@ -516,11 +516,13 @@ class InstallRequirement:
                 self.metadata_directory = generate_editable_metadata(
                     build_env=self.build_env,
                     backend=self.pep517_backend,
+                    details=details,
                 )
             else:
                 self.metadata_directory = generate_metadata(
                     build_env=self.build_env,
                     backend=self.pep517_backend,
+                    details=details,
                 )
         else:
             self.metadata_directory = generate_metadata_legacy(
@@ -528,7 +530,7 @@ class InstallRequirement:
                 setup_py_path=self.setup_py_path,
                 source_dir=self.unpacked_source_directory,
                 isolated=self.isolated,
-                details=self.name or f"from {self.link}",
+                details=details,
             )
 
         # Act on the newly generated metadata, based on the name and version.
@@ -806,7 +808,7 @@ class InstallRequirement:
             )
         except LegacyInstallFailure as exc:
             self.install_succeeded = False
-            raise exc.__cause__
+            raise exc
         except Exception:
             self.install_succeeded = True
             raise

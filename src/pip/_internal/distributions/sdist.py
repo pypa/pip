@@ -54,7 +54,7 @@ class SourceDistribution(AbstractDistribution):
 
         self.req.build_env = BuildEnvironment()
         self.req.build_env.install_requirements(
-            finder, pyproject_requires, "overlay", "Installing build dependencies"
+            finder, pyproject_requires, "overlay", kind="build dependencies"
         )
         conflicting, missing = self.req.build_env.check_requirements(
             self.req.requirements_to_check
@@ -106,7 +106,7 @@ class SourceDistribution(AbstractDistribution):
         if conflicting:
             self._raise_conflicts("the backend dependencies", conflicting)
         self.req.build_env.install_requirements(
-            finder, missing, "normal", "Installing backend dependencies"
+            finder, missing, "normal", kind="backend dependencies"
         )
 
     def _raise_conflicts(

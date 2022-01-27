@@ -1362,7 +1362,7 @@ def test_new_resolver_skip_inconsistent_metadata(script: PipTestEnvironment) -> 
 
     assert (
         " inconsistent version: filename has '3', but metadata has '2'"
-    ) in result.stderr, str(result)
+    ) in result.stdout, str(result)
     script.assert_installed(a="1")
 
 

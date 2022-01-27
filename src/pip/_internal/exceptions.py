@@ -1,4 +1,9 @@
-"""Exceptions used throughout package"""
+"""Exceptions used throughout package.
+
+This module MUST NOT try to import from anything within `pip._internal` to
+operate. This is expected to be importable from any/all files within the
+subpackage and, thus, should not depend on them.
+"""
 
 import configparser
 import re
@@ -347,18 +352,78 @@ class MetadataInconsistent(InstallationError):
         return template.format(self.ireq, self.field, self.f_val, self.m_val)
 
 
-class InstallationSubprocessError(InstallationError):
-    """A subprocess call failed during installation."""
+class LegacyInstallFailure(DiagnosticPipError):
+    """Error occurred while executing `setup.py install`"""
 
-    def __init__(self, returncode: int, description: str) -> None:
-        self.returncode = returncode
-        self.description = description
+    reference = "legacy-install-failure"
+
+    def __init__(self, package_details: str) -> None:
+        super().__init__(
+            message="Encountered error while trying to install package.",
+            context=package_details,
+            hint_stmt="See above for output from the failure.",
+            note_stmt="This is an issue with the package mentioned above, not pip.",
+        )
+
+
+class InstallationSubprocessError(DiagnosticPipError, InstallationError):
+    """A subprocess call failed."""
+
+    reference = "subprocess-exited-with-error"
+
+    def __init__(
+        self,
+        *,
+        command_description: str,
+        exit_code: int,
+        output_lines: Optional[List[str]],
+    ) -> None:
+        if output_lines is None:
+            output_prompt = Text("See above for output.")
+        else:
+            output_prompt = (
+                Text.from_markup(f"[red][{len(output_lines)} lines of output][/]\n")
+                + Text("".join(output_lines))
+                + Text.from_markup(R"[red]\[end of output][/]")
+            )
+
+        super().__init__(
+            message=(
+                f"[green]{escape(command_description)}[/] did not run successfully.\n"
+                f"exit code: {exit_code}"
+            ),
+            context=output_prompt,
+            hint_stmt=None,
+            note_stmt=(
+                "This error originates from a subprocess, and is likely not a "
+                "problem with pip."
+            ),
+        )
+
+        self.command_description = command_description
+        self.exit_code = exit_code
 
     def __str__(self) -> str:
-        return (
-            "Command errored out with exit status {}: {} "
-            "Check the logs for full command output."
-        ).format(self.returncode, self.description)
+        return f"{self.command_description} exited with {self.exit_code}"
+
+
+class MetadataGenerationFailed(InstallationSubprocessError, InstallationError):
+    reference = "metadata-generation-failed"
+
+    def __init__(
+        self,
+        *,
+        package_details: str,
+    ) -> None:
+        super(InstallationSubprocessError, self).__init__(
+            message="Encountered error while generating package metadata.",
+            context=escape(package_details),
+            hint_stmt="See above for details.",
+            note_stmt="This is an issue with the package mentioned above, not pip.",
+        )
+
+    def __str__(self) -> str:
+        return "metadata generation failed"
 
 
 class HashErrors(InstallationError):

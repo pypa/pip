@@ -91,7 +91,12 @@ class Git(VersionControl):
         return not is_tag_or_branch
 
     def get_git_version(self) -> Tuple[int, ...]:
-        version = self.run_command(["version"], show_stdout=False, stdout_only=True)
+        version = self.run_command(
+            ["version"],
+            command_desc="git version",
+            show_stdout=False,
+            stdout_only=True,
+        )
         match = GIT_VERSION_REGEX.match(version)
         if not match:
             logger.warning("Can't parse git version: %s", version)

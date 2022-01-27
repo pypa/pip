@@ -36,7 +36,7 @@ def test_backend(tmpdir: Path, data: TestData) -> None:
     req.load_pyproject_toml()
     env = BuildEnvironment()
     finder = make_test_finder(find_links=[data.backends])
-    env.install_requirements(finder, ["dummy_backend"], "normal", "Installing")
+    env.install_requirements(finder, ["dummy_backend"], "normal", kind="Installing")
     conflicting, missing = env.check_requirements(["dummy_backend"])
     assert not conflicting and not missing
     assert hasattr(req.pep517_backend, "build_wheel")
@@ -83,7 +83,7 @@ def test_backend_path_and_dep(tmpdir: Path, data: TestData) -> None:
     req.load_pyproject_toml()
     env = BuildEnvironment()
     finder = make_test_finder(find_links=[data.backends])
-    env.install_requirements(finder, ["dummy_backend"], "normal", "Installing")
+    env.install_requirements(finder, ["dummy_backend"], "normal", kind="Installing")
 
     assert hasattr(req.pep517_backend, "build_wheel")
     with env:
@@ -300,6 +300,7 @@ def test_pep517_and_build_options(
         "-f",
         common_wheels,
         project_dir,
+        allow_stderr_warning=True,
     )
     assert "Ignoring --build-option when building" in result.stderr
     assert "using PEP 517" in result.stderr
@@ -320,6 +321,7 @@ def test_pep517_and_global_options(
         "-f",
         common_wheels,
         project_dir,
+        allow_stderr_warning=True,
     )
     assert "Ignoring --global-option when building" in result.stderr
     assert "using PEP 517" in result.stderr

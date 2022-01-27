@@ -152,7 +152,7 @@ class RichPipStreamHandler(RichHandler):
         style: Optional[Style] = None
 
         # If we are given a diagnostic error to present, present it with indentation.
-        if record.msg == "[present-diagnostic]" and len(record.args) == 1:
+        if record.msg == "[present-diagnostic] %s" and len(record.args) == 1:
             diagnostic_error: DiagnosticPipError = record.args[0]  # type: ignore[index]
             assert isinstance(diagnostic_error, DiagnosticPipError)
 

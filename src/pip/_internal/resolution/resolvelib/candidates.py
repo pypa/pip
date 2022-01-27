@@ -5,7 +5,11 @@ from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, Optional, Tuple, Uni
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.packaging.version import Version
 
-from pip._internal.exceptions import HashError, MetadataInconsistent
+from pip._internal.exceptions import (
+    HashError,
+    InstallationSubprocessError,
+    MetadataInconsistent,
+)
 from pip._internal.metadata import BaseDistribution
 from pip._internal.models.link import Link, links_equivalent
 from pip._internal.models.wheel import Wheel
@@ -227,6 +231,11 @@ class _InstallRequirementBackedCandidate(Candidate):
             # offending line to the user.
             e.req = self._ireq
             raise
+        except InstallationSubprocessError as exc:
+            # The output has been presented already, so don't duplicate it.
+            exc.context = "See above for output."
+            raise
+
         self._check_metadata_consistency(dist)
         return dist
 
