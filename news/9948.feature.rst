@@ -1,0 +1,1 @@
+Add a per-requirement ``--no-deps`` option.
