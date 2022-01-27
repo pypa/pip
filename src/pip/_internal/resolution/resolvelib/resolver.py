@@ -47,6 +47,7 @@ class Resolver(BaseResolver):
         ignore_requires_python: bool,
         force_reinstall: bool,
         upgrade_strategy: str,
+        suppress_build_failures: bool,
         py_version_info: Optional[Tuple[int, ...]] = None,
     ):
         super().__init__()
@@ -61,6 +62,7 @@ class Resolver(BaseResolver):
             force_reinstall=force_reinstall,
             ignore_installed=ignore_installed,
             ignore_requires_python=ignore_requires_python,
+            suppress_build_failures=suppress_build_failures,
             py_version_info=py_version_info,
         )
         self.ignore_dependencies = ignore_dependencies
