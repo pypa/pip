@@ -72,6 +72,7 @@ SUPPORTED_OPTIONS_REQ: List[Callable[..., optparse.Option]] = [
     cmdoptions.install_options,
     cmdoptions.global_options,
     cmdoptions.hash,
+    cmdoptions.no_deps,
 ]
 
 # the 'dest' string values
@@ -189,6 +190,8 @@ def handle_requirement_line(
         if options:
             # Disable wheels if the user has specified build options
             cmdoptions.check_install_build_global(options, line.opts)
+            if line.opts.ignore_dependencies:
+                options.ignore_dependencies = True
 
         # get the options that apply to requirements
         req_options = {}

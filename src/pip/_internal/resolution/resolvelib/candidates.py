@@ -68,6 +68,7 @@ def make_install_req_from_link(
             install_options=template.install_options,
             global_options=template.global_options,
             hashes=template.hash_options,
+            ignore_dependencies=template.ignore_dependencies,
         ),
     )
     ireq.original_link = template.original_link
@@ -91,6 +92,7 @@ def make_install_req_from_editable(
             install_options=template.install_options,
             global_options=template.global_options,
             hashes=template.hash_options,
+            ignore_dependencies=template.ignore_dependencies,
         ),
     )
 

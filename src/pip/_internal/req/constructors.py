@@ -224,6 +224,9 @@ def install_req_from_editable(
         install_options=options.get("install_options", []) if options else [],
         global_options=options.get("global_options", []) if options else [],
         hash_options=options.get("hashes", {}) if options else {},
+        ignore_dependencies=options.get("ignore_dependencies", False)
+        if options
+        else False,
         extras=parts.extras,
     )
 
@@ -380,6 +383,7 @@ def install_req_from_line(
     constraint: bool = False,
     line_source: Optional[str] = None,
     user_supplied: bool = False,
+    ignore_dependencies: bool = False,
 ) -> InstallRequirement:
     """Creates an InstallRequirement from a name, which might be a
     requirement, directory containing 'setup.py', filename, or URL.
@@ -399,6 +403,9 @@ def install_req_from_line(
         install_options=options.get("install_options", []) if options else [],
         global_options=options.get("global_options", []) if options else [],
         hash_options=options.get("hashes", {}) if options else {},
+        ignore_dependencies=options.get("ignore_dependencies", False)
+        if options
+        else ignore_dependencies,
         constraint=constraint,
         extras=parts.extras,
         user_supplied=user_supplied,
@@ -409,6 +416,7 @@ def install_req_from_req_string(
     req_string: str,
     comes_from: Optional[InstallRequirement] = None,
     isolated: bool = False,
+    ignore_dependencies: bool = False,
     use_pep517: Optional[bool] = None,
     user_supplied: bool = False,
 ) -> InstallRequirement:
@@ -438,6 +446,7 @@ def install_req_from_req_string(
         req,
         comes_from,
         isolated=isolated,
+        ignore_dependencies=ignore_dependencies,
         use_pep517=use_pep517,
         user_supplied=user_supplied,
     )
@@ -456,6 +465,7 @@ def install_req_from_parsed_requirement(
             use_pep517=use_pep517,
             constraint=parsed_req.constraint,
             isolated=isolated,
+            options=parsed_req.options,
             user_supplied=user_supplied,
         )
 
@@ -486,5 +496,6 @@ def install_req_from_link_and_ireq(
         isolated=ireq.isolated,
         install_options=ireq.install_options,
         global_options=ireq.global_options,
+        ignore_dependencies=ireq.ignore_dependencies,
         hash_options=ireq.hash_options,
     )

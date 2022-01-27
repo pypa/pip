@@ -345,6 +345,7 @@ class RequirementCommand(IndexGroupCommand):
         """
         make_install_req = partial(
             install_req_from_req_string,
+            ignore_dependencies=options.ignore_dependencies,
             isolated=options.isolated_mode,
             use_pep517=use_pep517,
         )
@@ -419,6 +420,7 @@ class RequirementCommand(IndexGroupCommand):
                 isolated=options.isolated_mode,
                 use_pep517=options.use_pep517,
                 user_supplied=True,
+                ignore_dependencies=options.ignore_dependencies,
             )
             requirements.append(req_to_add)
 
