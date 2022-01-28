@@ -245,7 +245,7 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python }}
-      - uses: szenius/set-timezone@v1.0
+      - uses: pradyunsg/set-timezone@v1.0
         with:
           timezoneWindows: ${{ matrix.timezone }}
 
