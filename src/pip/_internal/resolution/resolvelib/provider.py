@@ -13,8 +13,10 @@ from typing import (
 
 from pip._vendor.resolvelib.providers import AbstractProvider
 
+from pip._internal.req import InstallRequirement
+
 from .base import Candidate, Constraint, Requirement
-from .candidates import REQUIRES_PYTHON_IDENTIFIER
+from .candidates import REQUIRES_PYTHON_IDENTIFIER, AlreadyInstalledCandidate
 from .factory import Factory
 
 if TYPE_CHECKING:
@@ -233,10 +235,15 @@ class PipProvider(_ProviderBase):
         return requirement.is_satisfied_by(candidate)
 
     def get_dependencies(self, candidate: Candidate) -> Sequence[Requirement]:
-        install_req = candidate.get_install_requirement()
+        ireq = candidate.get_install_requirement()
         with_requires = not self._ignore_dependencies
-        if install_req and with_requires:
-            with_requires = not install_req.ignore_dependencies
+        if ireq and with_requires:
+            if ireq.comes_from and isinstance(ireq.comes_from, InstallRequirement):
+                with_requires = not ireq.comes_from.ignore_dependencies
+            else:
+                with_requires = not ireq.ignore_dependencies
+        elif isinstance(candidate, AlreadyInstalledCandidate):
+            with_requires = not candidate._ireq.ignore_dependencies
         return [r for r in candidate.iter_dependencies(with_requires) if r is not None]
 
     @staticmethod
