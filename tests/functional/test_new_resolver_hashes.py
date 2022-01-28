@@ -26,6 +26,7 @@ def _create_find_links(script: PipTestEnvironment) -> _FindLinks:
     index_html = script.scratch_path / "index.html"
     index_html.write_text(
         """
+        <!DOCTYPE html>
         <a href="{sdist_url}#sha256={sdist_hash}">{sdist_path.stem}</a>
         <a href="{wheel_url}#sha256={wheel_hash}">{wheel_path.stem}</a>
         """.format(

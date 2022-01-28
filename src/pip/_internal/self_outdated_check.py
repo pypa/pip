@@ -141,6 +141,9 @@ def pip_self_version_check(session: PipSession, options: optparse.Values) -> Non
             finder = PackageFinder.create(
                 link_collector=link_collector,
                 selection_prefs=selection_prefs,
+                use_deprecated_html5lib=(
+                    "html5lib" in options.deprecated_features_enabled
+                ),
             )
             best_candidate = finder.find_best_candidate("pip").best_candidate
             if best_candidate is None:
