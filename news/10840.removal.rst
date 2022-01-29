@@ -1,0 +1,3 @@
+Disable location mismatch warnings on Python versions prior to 3.10 since we
+have completed the transition and no longer need to rely on reports from older
+Python versions.
