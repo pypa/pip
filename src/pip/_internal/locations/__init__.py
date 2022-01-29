@@ -38,29 +38,34 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 
-if os.environ.get("_PIP_LOCATIONS_NO_WARN_ON_MISMATCH"):
-    _MISMATCH_LEVEL = logging.DEBUG
-else:
-    _MISMATCH_LEVEL = logging.WARNING
 
 _PLATLIBDIR: str = getattr(sys, "platlibdir", "lib")
 
+_USE_SYSCONFIG_DEFAULT = sys.version_info >= (3, 10)
+
 
 def _should_use_sysconfig() -> bool:
-    """
-    This function determines the value of _USE_SYSCONFIG.
+    """This function determines the value of _USE_SYSCONFIG.
+
     By default, pip uses sysconfig on Python 3.10+.
     But Python distributors can override this decision by setting:
         sysconfig._PIP_USE_SYSCONFIG = True / False
     Rationale in https://github.com/pypa/pip/issues/10647
+
+    This is a function for testability, but should be constant during any one
+    run.
     """
-    if hasattr(sysconfig, "_PIP_USE_SYSCONFIG"):
-        return bool(sysconfig._PIP_USE_SYSCONFIG)  # type: ignore [attr-defined]
-    return sys.version_info >= (3, 10)
+    return bool(getattr(sysconfig, "_PIP_USE_SYSCONFIG", _USE_SYSCONFIG_DEFAULT))
 
 
-# This is a function for testability, but should be constant during any one run.
 _USE_SYSCONFIG = _should_use_sysconfig()
+
+# Be noisy about incompatibilities if this platforms "should" be using
+# sysconfig, but is explicitly opting out and using distutils instead.
+if _USE_SYSCONFIG_DEFAULT and not _USE_SYSCONFIG:
+    _MISMATCH_LEVEL = logging.WARNING
+else:
+    _MISMATCH_LEVEL = logging.DEBUG
 
 
 def _looks_like_bpo_44860() -> bool:
