@@ -238,7 +238,10 @@ jobs:
           # - 3.9
           - "3.10"
         timezone:
-          - "Singapore Standard Time"
+          # Microsoft Time Zones:
+          #  https://docs.microsoft.com/en-us/windows-hardware/manufacture/desktop/default-time-zones
+          - "New Zealand Standard Time"
+          - "Pacific Standard Time"
 
     steps:
       - uses: actions/checkout@v2
