@@ -146,7 +146,7 @@ jobs:
           --durations=5
 
   tests-windows:
-    name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group }}
+    name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group }} / ${{ matrix.timezone }}
     runs-on: ${{ matrix.os }}-latest
 
     needs: [pre-commit, packaging, determine-changes]
@@ -165,12 +165,30 @@ jobs:
           # - 3.9
           - "3.10"
         group: [1, 2]
+        timezone:
+          # Microsoft Time Zones:
+          #  https://docs.microsoft.com/en-us/windows-hardware/manufacture/desktop/default-time-zones
+          - "UTC"
+          - "New Zealand Standard Time"
+          - "Pacific Standard Time"
+        exclude:
+          - timezone: "New Zealand Standard Time"
+            group: 2
+          - timezone: "Pacific Standard Time"
+            group: 2
+          - timezone: "New Zealand Standard Time"
+            python: 3.7
+          - timezone: "Pacific Standard Time"
+            python: 3.7
 
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python }}
+      - uses: pradyunsg/set-timezone@v1.0
+        with:
+          timezoneWindows: ${{ matrix.timezone }}
 
       # We use a RAMDisk on Windows, since filesystem IO is a big slowdown
       # for our tests.
@@ -202,7 +220,7 @@ jobs:
           TEMP: "R:\\Temp"
 
       - name: Run integration tests (group 1)
-        if: matrix.group == 1
+        if: matrix.group == 1 && matrix.timezone == 'UTC'
         run: >-
           nox -s test-${{ matrix.python }} --
           -m integration -k "not test_install"
@@ -211,70 +229,10 @@ jobs:
           TEMP: "R:\\Temp"
 
       - name: Run integration tests (group 2)
-        if: matrix.group == 2
+        if: matrix.group == 2 && matrix.timezone == 'UTC'
         run: >-
           nox -s test-${{ matrix.python }} --
           -m integration -k "test_install"
-          --verbose --numprocesses auto --showlocals
-        env:
-          TEMP: "R:\\Temp"
-
-  tests-windows-non-utc:
-    name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.timezone }}
-    runs-on: ${{ matrix.os }}-latest
-
-    needs: [pre-commit, packaging, determine-changes]
-    if: >-
-      needs.determine-changes.outputs.tests == 'true' ||
-      github.event_name != 'pull_request'
-    strategy:
-      fail-fast: true
-      matrix:
-        os: [Windows]
-        python:
-          # Commented out, since tests already run in UTC
-          # - 3.7
-          # - 3.8
-          # - 3.9
-          - "3.10"
-        timezone:
-          # Microsoft Time Zones:
-          #  https://docs.microsoft.com/en-us/windows-hardware/manufacture/desktop/default-time-zones
-          - "New Zealand Standard Time"
-          - "Pacific Standard Time"
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python }}
-      - uses: pradyunsg/set-timezone@v1.0
-        with:
-          timezoneWindows: ${{ matrix.timezone }}
-
-      # We use a RAMDisk on Windows, since filesystem IO is a big slowdown
-      # for our tests.
-      - name: Create a RAMDisk
-        run: ./tools/ci/New-RAMDisk.ps1 -Drive R -Size 1GB
-
-      - name: Setup RAMDisk permissions
-        run: |
-          mkdir R:\Temp
-          $acl = Get-Acl "R:\Temp"
-          $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
-              "Everyone", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow"
-          )
-          $acl.AddAccessRule($rule)
-          Set-Acl "R:\Temp" $acl
-      - run: pip install nox 'virtualenv<20'
-        env:
-          TEMP: "R:\\Temp"
-
-      # Main check
-      - name: Run unit tests
-        run: >-
-          nox -s test-${{ matrix.python }} --
-          -m unit
           --verbose --numprocesses auto --showlocals
         env:
           TEMP: "R:\\Temp"
