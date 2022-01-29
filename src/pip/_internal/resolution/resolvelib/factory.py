@@ -299,7 +299,7 @@ class Factory:
             icans = list(result.iter_applicable())
 
             # PEP 592: Yanked releases are ignored unless the specifier
-            # explicitely pins a version (via '==' or '===') that can be
+            # explicitly pins a version (via '==' or '===') that can be
             # solely satisfied by a yanked release.
             all_yanked = all(ican.link.is_yanked for ican in icans)
 

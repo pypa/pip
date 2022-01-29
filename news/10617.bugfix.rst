@@ -1,2 +1,2 @@
 Prevent pip from installing yanked releases unless
-explicitely pinned via the ``==`` or ``===`` operators.
+explicitly pinned via the ``==`` or ``===`` operators.
