@@ -1,3 +1,0 @@
-Disable location mismatch warnings on Python versions prior to 3.10.
-
-These warnings were helping identify potential issues as part of the sysconfig -> distutils transition, and we no longer need to rely on reports from older Python versions for information on the transition.

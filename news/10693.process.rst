@@ -1,1 +1,0 @@
-Completely replace :pypi:`tox` in our development workflow, with :pypi:`nox`.

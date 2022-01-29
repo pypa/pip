@@ -1,1 +1,0 @@
-Docs reflect the new method of accessing VCS packages

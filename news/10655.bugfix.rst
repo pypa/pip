@@ -1,1 +1,0 @@
-Stop backtracking on build failures, by instead surfacing them to the user and aborting immediately. This behaviour provides more immediate feedback when a package cannot be built due to missing build dependencies or platform incompatibility.
