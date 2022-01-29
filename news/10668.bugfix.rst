@@ -1,0 +1,1 @@
+Silence ``Value for <location> does not match`` warning caused by an erroneous patch in Slackware-distributed Python 3.9.
