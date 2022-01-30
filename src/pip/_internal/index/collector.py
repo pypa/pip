@@ -401,7 +401,7 @@ class HTMLLinkParser(HTMLParser):
         self.anchors: List[Dict[str, Optional[str]]] = []
 
     def handle_decl(self, decl: str) -> None:
-        if decl != "DOCTYPE html":
+        if decl.lower() != "doctype html":
             self._raise_error()
         self._seen_decl = True
 

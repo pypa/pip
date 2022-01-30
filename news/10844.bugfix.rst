@@ -1,0 +1,1 @@
+Accept lowercase ``<!doctype html>`` on index pages.
