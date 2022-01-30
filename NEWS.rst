@@ -25,7 +25,7 @@ Bug Fixes
 ---------
 
 - Accept lowercase ``<!doctype html>`` on index pages. (`#10844 <https://github.com/pypa/pip/issues/10844>`_)
-- Properly handle links parsed by html5lib, when using ```--use-deprecated=html5lib``. (`#10846 <https://github.com/pypa/pip/issues/10846>`_)
+- Properly handle links parsed by html5lib, when using ``--use-deprecated=html5lib``. (`#10846 <https://github.com/pypa/pip/issues/10846>`_)
 
 
 22.0 (2022-01-29)
