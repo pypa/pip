@@ -1,1 +1,0 @@
-Properly handle links parsed by html5lib, when using ```--use-deprecated=html5lib``.
