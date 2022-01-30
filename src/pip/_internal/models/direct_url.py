@@ -89,6 +89,12 @@ class VcsInfo:
             requested_revision=_get(d, str, "requested_revision"),
         )
 
+    def __repr__(self) -> str:
+        return (
+            f"VcsInfo(vcs={self.vcs!r}, commit_id={self.commit_id!r}, "
+            f"requested_revision={self.requested_revision!r})"
+        )
+
     def _to_dict(self) -> Dict[str, Any]:
         return _filter_none(
             vcs=self.vcs,
@@ -112,6 +118,9 @@ class ArchiveInfo:
             return None
         return cls(hash=_get(d, str, "hash"))
 
+    def __repr__(self) -> str:
+        return f"ArchiveInfo(hash={self.hash!r})"
+
     def _to_dict(self) -> Dict[str, Any]:
         return _filter_none(hash=self.hash)
 
@@ -131,6 +140,9 @@ class DirInfo:
             return None
         return cls(editable=_get_required(d, bool, "editable", default=False))
 
+    def __repr__(self) -> str:
+        return f"DirInfo(editable={self.editable!r})"
+
     def _to_dict(self) -> Dict[str, Any]:
         return _filter_none(editable=self.editable or None)
 
@@ -148,6 +160,12 @@ class DirectUrl:
         self.url = url
         self.info = info
         self.subdirectory = subdirectory
+
+    def __repr__(self) -> str:
+        return (
+            f"DirectUrl(url={self.url!r}, info={self.info!r}, "
+            f"subdirectory={self.subdirectory!r})"
+        )
 
     def _remove_auth_from_netloc(self, netloc: str) -> str:
         if "@" not in netloc:
