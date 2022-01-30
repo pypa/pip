@@ -1,3 +1,0 @@
-When a package is requested by the user for upgrade, correctly identify that
-the extra-ed variant of that same package depended by another user-requested
-package is requesting the same package, and upgrade it accordingly.

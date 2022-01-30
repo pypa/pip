@@ -1,2 +1,0 @@
-Make it possible to deselect tests requiring cryptography package on systems
-where it cannot be installed.

@@ -1,5 +1,0 @@
-Changed ``PackageFinder`` to parse HTML documents using the stdlib
-:class:`html.parser.HTMLParser` class instead of the ``html5lib`` package. For
-now, the deprecated ``html5lib`` code remains and can be used with the
-``--use-deprecated=html5lib`` command line option, but it will be removed in a
-future pip release.

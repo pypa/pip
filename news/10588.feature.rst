@@ -1,1 +1,0 @@
-Documents the ``--require-virtualenv`` flag for ``pip install``.
