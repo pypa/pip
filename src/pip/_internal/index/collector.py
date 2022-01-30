@@ -343,7 +343,8 @@ def parse_links(page: "HTMLPage", use_deprecated_html5lib: bool) -> Iterable[Lin
     Parse an HTML document, and yield its anchor elements as Link objects.
     """
     if use_deprecated_html5lib:
-        return _parse_links_html5lib(page)
+        yield from _parse_links_html5lib(page)
+        return
 
     parser = HTMLLinkParser()
     encoding = page.encoding or "utf-8"

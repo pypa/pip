@@ -539,6 +539,18 @@ def test_parse_links_caches_same_page_by_url() -> None:
     assert "pkg2" in parsed_links_3[0].url
 
 
+def test_parse_link_handles_deprecated_usage_properly() -> None:
+    html = b'<a href="/pkg1-1.0.tar.gz"><a href="/pkg1-2.0.tar.gz">'
+    url = "https://example.com/simple/"
+    page = HTMLPage(html, encoding=None, url=url)
+
+    parsed_links = list(parse_links(page, use_deprecated_html5lib=True))
+
+    assert len(parsed_links) == 2
+    assert "pkg1-1.0" in parsed_links[0].url
+    assert "pkg1-2.0" in parsed_links[1].url
+
+
 @mock.patch("pip._internal.index.collector.raise_for_status")
 def test_request_http_error(
     mock_raise_for_status: mock.Mock, caplog: pytest.LogCaptureFixture
