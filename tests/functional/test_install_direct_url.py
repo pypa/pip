@@ -63,3 +63,14 @@ def test_install_vcs_constraint_direct_file_url(script: PipTestEnvironment) -> N
     constraints_file.write_text(f"git+{url}#egg=testpkg")
     result = script.pip("install", "testpkg", "-c", constraints_file)
     assert get_created_direct_url(result, "testpkg")
+
+
+@pytest.mark.network
+@pytest.mark.usefixtures("with_wheel")
+def test_reinstall_vcs_does_not_modify(script: PipTestEnvironment) -> None:
+    url = "pip-test-package @ git+https://github.com/pypa/pip-test-package@master"
+    script.pip("install", "--no-cache-dir", url)
+
+    result = script.pip("install", url)
+    assert "Preparing " in result.stdout, str(result)  # Should build.
+    assert "Installing " not in result.stdout, str(result)  # But not install.
