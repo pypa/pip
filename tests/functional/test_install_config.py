@@ -16,6 +16,8 @@ from tests.lib.server import (
 )
 from tests.lib.venv import VirtualEnvironment
 
+TEST_PYPI_INITOOLS = "https://test.pypi.org/simple/initools/"
+
 
 def test_options_from_env_vars(script: PipTestEnvironment) -> None:
     """
@@ -94,7 +96,7 @@ def test_command_line_append_flags(
     variables.
 
     """
-    script.environ["PIP_FIND_LINKS"] = "https://test.pypi.org"
+    script.environ["PIP_FIND_LINKS"] = TEST_PYPI_INITOOLS
     result = script.pip(
         "install",
         "-vvv",
@@ -133,7 +135,7 @@ def test_command_line_appends_correctly(
     Test multiple appending options set by environmental variables.
 
     """
-    script.environ["PIP_FIND_LINKS"] = f"https://test.pypi.org {data.find_links}"
+    script.environ["PIP_FIND_LINKS"] = f"{TEST_PYPI_INITOOLS} {data.find_links}"
     result = script.pip(
         "install",
         "-vvv",

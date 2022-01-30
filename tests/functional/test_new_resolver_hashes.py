@@ -36,7 +36,7 @@ def _create_find_links(script: PipTestEnvironment) -> _FindLinks:
             wheel_url=path_to_url(wheel_path),
             wheel_hash=wheel_hash,
             wheel_path=wheel_path,
-        )
+        ).strip()
     )
 
     return _FindLinks(index_html, sdist_hash, wheel_hash)

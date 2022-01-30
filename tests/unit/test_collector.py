@@ -540,15 +540,32 @@ def test_parse_links_caches_same_page_by_url() -> None:
 
 
 def test_parse_link_handles_deprecated_usage_properly() -> None:
-    html = b'<a href="/pkg1-1.0.tar.gz"><a href="/pkg1-2.0.tar.gz">'
+    html = b'<a href="/pkg1-1.0.tar.gz"></a><a href="/pkg1-2.0.tar.gz"></a>'
     url = "https://example.com/simple/"
-    page = HTMLPage(html, encoding=None, url=url)
+    page = HTMLPage(html, encoding=None, url=url, cache_link_parsing=False)
 
     parsed_links = list(parse_links(page, use_deprecated_html5lib=True))
 
     assert len(parsed_links) == 2
     assert "pkg1-1.0" in parsed_links[0].url
     assert "pkg1-2.0" in parsed_links[1].url
+
+
+@mock.patch("pip._internal.index.collector.deprecated")
+def test_parse_links_presents_deprecation_warning_on_non_html5_page(
+    mock_deprecated: mock.Mock,
+) -> None:
+    html = b'<a href="/pkg1-1.0.tar.gz"></a><a href="/pkg1-2.0.tar.gz"></a>'
+    url = "https://example.com/simple/"
+    page = HTMLPage(html, encoding=None, url=url, cache_link_parsing=False)
+
+    parsed_links = list(parse_links(page, use_deprecated_html5lib=False))
+
+    assert len(parsed_links) == 2, parsed_links
+    assert "pkg1-1.0" in parsed_links[0].url
+    assert "pkg1-2.0" in parsed_links[1].url
+
+    mock_deprecated.assert_called_once()
 
 
 @mock.patch("pip._internal.index.collector.raise_for_status")

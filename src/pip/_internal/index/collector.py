@@ -38,6 +38,7 @@ from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.network.session import PipSession
 from pip._internal.network.utils import raise_for_status
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import pairwise, redact_auth_from_url
 from pip._internal.vcs import vcs
@@ -342,12 +343,34 @@ def parse_links(page: "HTMLPage", use_deprecated_html5lib: bool) -> Iterable[Lin
     """
     Parse an HTML document, and yield its anchor elements as Link objects.
     """
+    encoding = page.encoding or "utf-8"
+
+    # Check if the page starts with a valid doctype, to decide whether to use
+    # http.parser or (deprecated) html5lib for parsing -- unless explicitly
+    # requested to use html5lib.
+    if not use_deprecated_html5lib:
+        expected_doctype = "<!doctype html>".encode(encoding)
+        actual_start = page.content[: len(expected_doctype)]
+        if actual_start.decode(encoding).lower() != "<!doctype html>":
+            deprecated(
+                reason=(
+                    f"The HTML index page being used ({page.url}) is not a proper "
+                    "HTML 5 document. This is in violation of PEP 503 which requires "
+                    "these pages to be well-formed HTML 5 documents. Please reach out "
+                    "to the owners of this index page, and ask them to update this "
+                    "index page to a valid HTML 5 document."
+                ),
+                replacement=None,
+                gone_in="22.2",
+                issue=10825,
+            )
+            use_deprecated_html5lib = True
+
     if use_deprecated_html5lib:
         yield from _parse_links_html5lib(page)
         return
 
     parser = HTMLLinkParser()
-    encoding = page.encoding or "utf-8"
     parser.feed(page.content.decode(encoding))
 
     url = page.url
