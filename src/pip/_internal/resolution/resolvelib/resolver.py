@@ -185,10 +185,7 @@ class Resolver(BaseResolver):
             return []
 
         graph = self._result.graph
-        weights = get_topological_weights(
-            graph,
-            expected_node_count=len(self._result.mapping) + 1,
-        )
+        weights = get_topological_weights(graph, expected_node_count=len(graph))
 
         sorted_items = sorted(
             req_set.requirements.items(),
