@@ -13,3 +13,7 @@ for testing url quoting with indexes
 simple
 ------
 contains index page for "simple" pkg
+
+indent
+------
+For testing indented HTML pages

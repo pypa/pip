@@ -74,3 +74,14 @@ def test_file_index_url_quoting(script: PipTestEnvironment, data: TestData) -> N
     result = script.pip("install", "-vvv", "--index-url", index_url, "simple")
     result.did_create(script.site_packages / "simple")
     result.did_create(script.site_packages / "simple-1.0.dist-info")
+
+
+@pytest.mark.usefixtures("with_wheel")
+def test_file_index_indent(script: PipTestEnvironment, data: TestData) -> None:
+    """
+    Test url quoting of file index url with a space
+    """
+    index_url = data.index_url(urllib.parse.quote("indent"))
+    result = script.pip("install", "-vvv", "--index-url", index_url, "simple")
+    result.did_create(script.site_packages / "simple")
+    result.did_create(script.site_packages / "simple-1.0.dist-info")
