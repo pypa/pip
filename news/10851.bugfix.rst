@@ -1,0 +1,1 @@
+Improve handling of graph size in topological sort, preventing an ``AssertionError`` from being raised.
