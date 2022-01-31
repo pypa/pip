@@ -98,7 +98,7 @@ jobs:
       - run: git diff --exit-code
 
   tests:
-    name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group }} / ${{ matrix.timezone }}
+    name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group }}
     runs-on: ${{ matrix.os }}-latest
 
     needs: [pre-commit, packaging, determine-changes]
@@ -116,37 +116,30 @@ jobs:
           - "3.9"
           - "3.10"
         group:
-          - "Unit"
-          - "Integration 1"
-          - "Integration 2"
-        timezone:
-          - "UTC"
+          - "All"
         exclude:
           # Since Windows tests are expensively slow exclude some:
           - os: "Windows"
-            python: "3.8"
-          - os: "Windows"
-            python: "3.9"
+            group: "All"
         include:
-          # Check Unit tests against additional Microsoft Time Zones:
-          #  https://docs.microsoft.com/en-us/windows-hardware/manufacture/desktop/default-time-zones
           - os: "Windows"
-            python: "3.10"
-            group: "Unit"
-            timezone: "New Zealand Standard Time"
+            group: "Unit & Integration 1"
+            python: "3.7"
           - os: "Windows"
+            group: "Integration 2"
+            python: "3.7"
+          - os: "Windows"
+            group: "Unit & Integration 1"
             python: "3.10"
-            group: "Unit"
-            timezone: "Pacific Standard Time"
+          - os: "Windows"
+            group: "Integration 2"
+            python: "3.10"
 
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python }}
-      - uses: pradyunsg/set-timezone@v1.0
-        with:
-          timezoneWindows: ${{ matrix.timezone }}
 
       - name: Ubuntu - Install dependencies
         if: matrix.os == 'Ubuntu'
@@ -220,21 +213,21 @@ jobs:
 
       # Main check
       - name: Run unit tests
-        if: matrix.group == 'Unit'
+        if: matrix.group == 'Unit & Integration 1' || matrix.group == 'All'
         run: >-
           nox -s test-${{ matrix.python }} --
           -m unit
           --verbose --numprocesses auto --showlocals
 
       - name: Run integration tests (group 1)
-        if: matrix.group == 'Integration 1'
+        if: matrix.group == 'Unit & Integration 1' || matrix.group == 'All'
         run: >-
           nox -s test-${{ matrix.python }} --
           -m integration -k "not test_install"
           --verbose --numprocesses auto --showlocals
 
       - name: Run integration tests (group 2)
-        if: matrix.group == 'Integration 2'
+        if: matrix.group == 'Integration 2' || matrix.group == 'All'
         run: >-
           nox -s test-${{ matrix.python }} --
           -m integration -k "test_install"
