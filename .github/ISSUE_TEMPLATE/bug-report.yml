@@ -61,13 +61,12 @@ body:
       description: >-
         Provide the output of the steps above, including the commands
         themselves and pip's output/traceback etc. If you're familiar with
-        Markdown, this block will have triple backticks added automatically
-        around it -- you don't have to add them.
+        Markdown, DO NOT add backticks. They're added automatically.
 
-        If you want to present output from multiple commands, please present
-        that as a shell session (commands you run get prefixed with `$ `).
-        Please also ensure that the "How to reproduce" section contains matching
-        instructions for reproducing this.
+        If you want to present output from multiple commands, please prefix
+        the line containing the command with `$ `. Please also ensure that
+        the "How to reproduce" section contains matching instructions for
+        reproducing this.
       render: sh-session
 
   - type: checkboxes
