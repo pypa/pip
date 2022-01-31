@@ -273,7 +273,12 @@ def get_topological_weights(
 
     # Sanity checks
     assert weights[None] == 0
-    assert len(weights) == expected_node_count
+
+    assert len(weights) == expected_node_count, (
+        len(weights),
+        expected_node_count,
+        weights,
+    )
 
     return weights
 
