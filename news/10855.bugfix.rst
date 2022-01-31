@@ -1,0 +1,1 @@
+Accept HTML files with whitespace before the doctype declaration.
