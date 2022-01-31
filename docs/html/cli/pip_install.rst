@@ -205,8 +205,11 @@ Per-requirement Overrides
 -------------------------
 
 Since version 7.0 pip supports controlling the command line options given to
-``setup.py`` via requirements files. This disables the use of wheels (cached or
-otherwise) for that package, as ``setup.py`` does not exist for wheels.
+``setup.py`` via requirements files.
+
+.. warning::
+
+   This disables the use of wheels (cached or otherwise).
 
 The ``--global-option`` and ``--install-option`` options are used to pass
 options to ``setup.py``. For example:
