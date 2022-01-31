@@ -350,7 +350,16 @@ def parse_links(page: "HTMLPage", use_deprecated_html5lib: bool) -> Iterable[Lin
     # requested to use html5lib.
     if not use_deprecated_html5lib:
         expected_doctype = "<!doctype html>".encode(encoding)
-        actual_start = page.content.lstrip()[: len(expected_doctype)]
+
+        char: int
+        offset: int = 0
+        for char in page.content:
+            if chr(char).isspace():
+                offset += 1
+            else:
+                break
+
+        actual_start = page.content[offset : offset + len(expected_doctype)]
         if actual_start.decode(encoding).lower() != "<!doctype html>":
             deprecated(
                 reason=(
