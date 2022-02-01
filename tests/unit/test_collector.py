@@ -551,21 +551,42 @@ def test_parse_link_handles_deprecated_usage_properly() -> None:
     assert "pkg1-2.0" in parsed_links[1].url
 
 
-@mock.patch("pip._internal.index.collector.deprecated")
-def test_parse_links_presents_deprecation_warning_on_non_html5_page(
-    mock_deprecated: mock.Mock,
+def test_parse_links_presents_warning_on_missing_doctype(
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     html = b'<a href="/pkg1-1.0.tar.gz"></a><a href="/pkg1-2.0.tar.gz"></a>'
     url = "https://example.com/simple/"
     page = HTMLPage(html, encoding=None, url=url, cache_link_parsing=False)
 
-    parsed_links = list(parse_links(page, use_deprecated_html5lib=False))
+    with caplog.at_level(logging.WARN):
+        parsed_links = list(parse_links(page, use_deprecated_html5lib=False))
 
     assert len(parsed_links) == 2, parsed_links
     assert "pkg1-1.0" in parsed_links[0].url
     assert "pkg1-2.0" in parsed_links[1].url
 
-    mock_deprecated.assert_called_once()
+    assert len(caplog.records) == 1
+
+
+def test_parse_links_presents_warning_on_html4_doctype(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    html = (
+        b'<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" '
+        b'"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">'
+        b'<a href="/pkg1-1.0.tar.gz"></a><a href="/pkg1-2.0.tar.gz"></a>'
+    )
+    url = "https://example.com/simple/"
+    page = HTMLPage(html, encoding=None, url=url, cache_link_parsing=False)
+
+    with caplog.at_level(logging.WARN):
+        parsed_links = list(parse_links(page, use_deprecated_html5lib=False))
+
+    assert len(parsed_links) == 2, parsed_links
+    assert "pkg1-1.0" in parsed_links[0].url
+    assert "pkg1-2.0" in parsed_links[1].url
+
+    assert len(caplog.records) == 1
 
 
 @mock.patch("pip._internal.index.collector.raise_for_status")
