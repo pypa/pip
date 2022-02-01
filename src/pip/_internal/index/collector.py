@@ -16,7 +16,6 @@ from html.parser import HTMLParser
 from optparse import Values
 from typing import (
     TYPE_CHECKING,
-    Any,
     Callable,
     Dict,
     Iterable,
@@ -33,7 +32,11 @@ from pip._vendor import html5lib, requests
 from pip._vendor.requests import Response
 from pip._vendor.requests.exceptions import RetryError, SSLError
 
-from pip._internal.exceptions import NetworkConnectionError
+from pip._internal.exceptions import (
+    BadHTMLDoctypeDeclaration,
+    MissingHTMLDoctypeDeclaration,
+    NetworkConnectionError,
+)
 from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.network.session import PipSession
@@ -418,20 +421,34 @@ class HTMLLinkParser(HTMLParser):
     elements' attributes.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        self._seen_decl = False
+    def __init__(self, url: str) -> None:
+        super().__init__(convert_charrefs=True)
+        self._dealt_with_doctype_issues = False
+
+        self.url: str = url
         self.base_url: Optional[str] = None
         self.anchors: List[Dict[str, Optional[str]]] = []
 
     def handle_decl(self, decl: str) -> None:
-        if decl.lower() != "doctype html":
-            self._raise_error()
-        self._seen_decl = True
+        self._dealt_with_doctype_issues = True
+        match = re.match(
+            r"""doctype\s+html\s*(?:SYSTEM\s+(["'])about:legacy-compat\1)?\s*$""",
+            decl,
+            re.IGNORECASE,
+        )
+        if match is None:
+            logger.warning(
+                "[present-diagnostic] %s",
+                BadHTMLDoctypeDeclaration(url=self.url),
+            )
 
     def handle_starttag(self, tag: str, attrs: List[Tuple[str, Optional[str]]]) -> None:
-        if not self._seen_decl:
-            self._raise_error()
+        if not self._dealt_with_doctype_issues:
+            logger.warning(
+                "[present-diagnostic] %s",
+                MissingHTMLDoctypeDeclaration(url=self.url),
+            )
+            self._dealt_with_doctype_issues = True
 
         if tag == "base" and self.base_url is None:
             href = self.get_href(attrs)
@@ -445,14 +462,6 @@ class HTMLLinkParser(HTMLParser):
             if name == "href":
                 return value
         return None
-
-    def _raise_error(self) -> None:
-        raise ValueError(
-            "HTML doctype missing or incorrect. Expected <!DOCTYPE html>.\n\n"
-            "If you believe this error to be incorrect, try passing the "
-            "command line option --use-deprecated=html5lib and please leave "
-            "a comment on the pip issue at https://github.com/pypa/pip/issues/10825."
-        )
 
 
 def _handle_get_page_fail(
