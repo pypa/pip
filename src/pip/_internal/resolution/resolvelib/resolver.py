@@ -185,9 +185,7 @@ class Resolver(BaseResolver):
             return []
 
         graph = self._result.graph
-        weights = get_topological_weights(
-            graph, requirement_keys=set(req_set.requirements.keys())
-        )
+        weights = get_topological_weights(graph, set(req_set.requirements.keys()))
 
         sorted_items = sorted(
             req_set.requirements.items(),
@@ -278,8 +276,10 @@ def get_topological_weights(
     # `None` is guaranteed to be the root node by resolvelib.
     visit(None)
 
-    # Sanity check
-    assert len(weights) == len(requirement_keys)
+    # Sanity check: all requirement keys should be in the weights,
+    # and no other keys should be in the weights.
+    difference = set(weights.keys()).difference(requirement_keys)
+    assert not difference, difference
 
     return weights
 
