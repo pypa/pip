@@ -10,7 +10,7 @@ import traceback
 from optparse import Values
 from typing import Any, Callable, List, Optional, Tuple
 
-from pip._vendor.rich.traceback import install
+from pip._vendor.rich import traceback as rich_traceback
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.command_context import CommandContextMixIn
@@ -217,7 +217,7 @@ class Command(CommandContextMixIn):
                 run = intercepts_unhandled_exc(self.run)
             else:
                 run = self.run
-                install(show_locals=True)
+                rich_traceback.install(show_locals=True)
             return run(options, args)
         finally:
             self.handle_pip_version_check(options)
