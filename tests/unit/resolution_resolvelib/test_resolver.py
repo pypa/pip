@@ -260,6 +260,32 @@ def test_new_resolver_get_installation_order(
             {"one", "two", "three", "four", "five"},
             {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
         ),
+        (
+            "linear AND four -> three (cycle) AND restricted 1-2-3",
+            [
+                (None, "one"),
+                ("one", "two"),
+                ("two", "three"),
+                ("three", "four"),
+                ("four", "five"),
+                ("four", "three"),
+            ],
+            {"one", "two", "three"},
+            {"one": 1, "two": 2, "three": 3},
+        ),
+        (
+            "linear AND four -> three (cycle) AND restricted 4-5",
+            [
+                (None, "one"),
+                ("one", "two"),
+                ("two", "three"),
+                ("three", "four"),
+                ("four", "five"),
+                ("four", "three"),
+            ],
+            {"four", "five"},
+            {"four": 4, "five": 5},
+        ),
     ],
 )
 def test_new_resolver_topological_weights(
