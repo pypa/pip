@@ -175,6 +175,9 @@ def test_show_verbose_installer(script: PipTestEnvironment, data: TestData) -> N
 
 
 def test_show_verbose_project_urls(script: PipTestEnvironment) -> None:
+    """
+    Test that project urls can be listed
+    """
     result = script.pip("show", "pip", "--verbose")
     lines = result.stdout.splitlines()
     assert "Name: pip" in lines
