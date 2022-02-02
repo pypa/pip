@@ -195,9 +195,9 @@ class BadHTMLDoctypeDeclaration(DiagnosticPipError):
             note_stmt="This is an issue with the page at the URL mentioned above.",
             hint_stmt=(
                 "You might need to reach out to the owner of that package index, "
-                "to get this fixed."
+                "to get this fixed. "
+                "See https://github.com/pypa/pip/issues/10825 for context."
             ),
-            link="https://github.com/pypa/pip/issues/10825",
         )
 
 
