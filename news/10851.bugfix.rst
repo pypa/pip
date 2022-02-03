@@ -1,3 +1,0 @@
-Only calculate topological installation order, for packages that are going to be installed/upgraded.
-
-This fixes an `AssertionError` that occured when determining installation order, for a very specific combination of upgrading-already-installed-package + change of dependencies + fetching some packages from a package index. This combination was especially common in Read the Docs' builds.

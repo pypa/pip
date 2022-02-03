@@ -1,1 +1,0 @@
-Clarify that using per-requirement overrides disables the usage of wheels.
