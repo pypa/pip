@@ -385,6 +385,7 @@ Mariatta
 Mark Kohler
 Mark Williams
 Markus Hametner
+Martey Dodoo
 Martin Häcker
 Martin Pavlasek
 Masaki
@@ -392,6 +393,7 @@ Masklinn
 Matej Stuchlik
 Mathew Jennings
 Mathieu Bridon
+Matt Bacchi
 Matt Good
 Matt Maker
 Matt Robenolt
@@ -512,6 +514,7 @@ Preet Thakkar
 Preston Holmes
 Przemek Wrzos
 Pulkit Goyal
+q0w
 Qiangning Hong
 Quentin Lee
 Quentin Pradet
