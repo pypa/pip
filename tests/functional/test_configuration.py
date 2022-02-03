@@ -140,3 +140,10 @@ class TestBasicLoading(ConfigurationMixin):
         global_config_file = get_configuration_files()[kinds.GLOBAL][0]
         result = script.pip("config", "debug")
         assert f"{global_config_file}, exists:" in result.stdout
+
+    def test_editor_does_not_exist(self, script: PipTestEnvironment) -> None:
+        """Ensure that FileNotFoundError sets filename correctly"""
+        result = script.pip(
+            "config", "edit", "--editor", "notrealeditor", expect_error=True
+        )
+        assert "notrealeditor" in result.stderr
