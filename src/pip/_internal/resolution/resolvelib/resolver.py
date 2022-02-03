@@ -185,10 +185,7 @@ class Resolver(BaseResolver):
             return []
 
         graph = self._result.graph
-        weights = get_topological_weights(
-            graph,
-            expected_node_count=len(self._result.mapping) + 1,
-        )
+        weights = get_topological_weights(graph, set(req_set.requirements.keys()))
 
         sorted_items = sorted(
             req_set.requirements.items(),
@@ -199,7 +196,7 @@ class Resolver(BaseResolver):
 
 
 def get_topological_weights(
-    graph: "DirectedGraph[Optional[str]]", expected_node_count: int
+    graph: "DirectedGraph[Optional[str]]", requirement_keys: Set[str]
 ) -> Dict[Optional[str], int]:
     """Assign weights to each node based on how "deep" they are.
 
@@ -222,6 +219,9 @@ def get_topological_weights(
     don't get stuck in a cycle.
 
     When assigning weight, the longer path (i.e. larger length) is preferred.
+
+    We are only interested in the weights of packages that are in the
+    requirement_keys.
     """
     path: Set[Optional[str]] = set()
     weights: Dict[Optional[str], int] = {}
@@ -236,6 +236,9 @@ def get_topological_weights(
         for child in graph.iter_children(node):
             visit(child)
         path.remove(node)
+
+        if node not in requirement_keys:
+            return
 
         last_known_parent_count = weights.get(node, 0)
         weights[node] = max(last_known_parent_count, len(path))
@@ -262,6 +265,8 @@ def get_topological_weights(
         # Calculate the weight for the leaves.
         weight = len(graph) - 1
         for leaf in leaves:
+            if leaf not in requirement_keys:
+                continue
             weights[leaf] = weight
         # Remove the leaves from the graph, making it simpler.
         for leaf in leaves:
@@ -271,9 +276,10 @@ def get_topological_weights(
     # `None` is guaranteed to be the root node by resolvelib.
     visit(None)
 
-    # Sanity checks
-    assert weights[None] == 0
-    assert len(weights) == expected_node_count
+    # Sanity check: all requirement keys should be in the weights,
+    # and no other keys should be in the weights.
+    difference = set(weights.keys()).difference(requirement_keys)
+    assert not difference, difference
 
     return weights
 
