@@ -5,13 +5,7 @@ import tomli_w
 
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.req import InstallRequirement
-from tests.lib import (
-    PipTestEnvironment,
-    TestData,
-    create_test_package_with_setup,
-    make_test_finder,
-    path_to_url,
-)
+from tests.lib import PipTestEnvironment, TestData, make_test_finder, path_to_url
 from tests.lib.path import Path
 
 
@@ -196,8 +190,7 @@ def test_validate_conflicting_pep517_backend_requirements(
     project_dir = make_project(
         tmpdir, requires=["simplewheel==1.0"], backend="test_backend"
     )
-    pkg_path = create_test_package_with_setup(script, name="simplewheel", version="2.0")
-    script.pip("install", "--no-index", pkg_path)
+    script.pip("install", "simplewheel==2.0", "--no-index", "-f", data.packages)
     result = script.pip(
         "install",
         "--no-index",
