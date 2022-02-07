@@ -43,7 +43,7 @@ class SourceDistribution(AbstractDistribution):
             self.req.isolated_editable_sanity_check()
             # Install the dynamic build requirements.
             self._install_build_reqs(finder)
-        else:
+        elif self.req.use_pep517:
             pyproject_requires = self.req.pyproject_requires
             assert pyproject_requires is not None
             conflicting, missing = self.req.build_env.check_requirements(
