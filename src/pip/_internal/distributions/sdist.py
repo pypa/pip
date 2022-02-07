@@ -140,6 +140,6 @@ class SourceDistribution(AbstractDistribution):
             "Some build dependencies for {requirement} are missing: {missing}."
         )
         error_message = format_string.format(
-            requirement=self.req, missing=", ".join(missing)
+            requirement=self.req, missing=", ".join(map(repr, sorted(missing)))
         )
         raise InstallationError(error_message)

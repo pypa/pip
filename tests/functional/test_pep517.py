@@ -5,7 +5,13 @@ import tomli_w
 
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.req import InstallRequirement
-from tests.lib import PipTestEnvironment, TestData, make_test_finder, path_to_url
+from tests.lib import (
+    PipTestEnvironment,
+    TestData,
+    create_test_package_with_setup,
+    make_test_finder,
+    path_to_url,
+)
 from tests.lib.path import Path
 
 
@@ -156,6 +162,57 @@ def test_conflicting_pep517_backend_requirements(
         "Some build dependencies for {url} conflict with the backend "
         "dependencies: simplewheel==1.0 is incompatible with "
         "simplewheel==2.0.".format(url=path_to_url(project_dir))
+    )
+    assert result.returncode != 0 and msg in result.stderr, str(result)
+
+
+def test_validate_missing_pep517_backend_requirements(
+    script: PipTestEnvironment, tmpdir: Path, data: TestData
+) -> None:
+    project_dir = make_project(
+        tmpdir, requires=["test_backend", "simplewheel==1.0"], backend="test_backend"
+    )
+    result = script.pip(
+        "install",
+        "--no-index",
+        "-f",
+        data.backends,
+        "-f",
+        data.packages,
+        "--no-build-isolation",
+        project_dir,
+        expect_error=True,
+    )
+    msg = (
+        "Some build dependencies for {url} are missing: "
+        "'simplewheel==1.0', 'test_backend'.".format(url=path_to_url(project_dir))
+    )
+    assert result.returncode != 0 and msg in result.stderr, str(result)
+
+
+def test_validate_conflicting_pep517_backend_requirements(
+    script: PipTestEnvironment, tmpdir: Path, data: TestData
+) -> None:
+    project_dir = make_project(
+        tmpdir, requires=["simplewheel==1.0"], backend="test_backend"
+    )
+    pkg_path = create_test_package_with_setup(script, name="simplewheel", version="2.0")
+    script.pip("install", "--no-index", pkg_path)
+    result = script.pip(
+        "install",
+        "--no-index",
+        "-f",
+        data.backends,
+        "-f",
+        data.packages,
+        "--no-build-isolation",
+        project_dir,
+        expect_error=True,
+    )
+    msg = (
+        "Some build dependencies for {url} conflict with the backend "
+        "dependencies: simplewheel==2.0 is incompatible with "
+        "simplewheel==1.0.".format(url=path_to_url(project_dir))
     )
     assert result.returncode != 0 and msg in result.stderr, str(result)
 
