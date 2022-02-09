@@ -1,3 +1,4 @@
+import platform
 import sysconfig
 from typing import Any, Callable, Dict, List, Tuple
 from unittest.mock import patch
@@ -57,52 +58,102 @@ class Testcompatibility_tags:
 
 
 class TestManylinux2010Tags:
-    @pytest.mark.parametrize(
-        "manylinux2010,manylinux1",
-        [
-            ("manylinux2010_x86_64", "manylinux1_x86_64"),
-            ("manylinux2010_i686", "manylinux1_i686"),
-        ],
-    )
-    def test_manylinux2010_implies_manylinux1(
-        self, manylinux2010: str, manylinux1: str
-    ) -> None:
+    def test_manylinux2010(self) -> None:
         """
         Specifying manylinux2010 implies manylinux1.
         """
-        groups: Dict[Tuple[str, str], List[str]] = {}
-        supported = compatibility_tags.get_supported(platforms=[manylinux2010])
-        for tag in supported:
-            groups.setdefault((tag.interpreter, tag.abi), []).append(tag.platform)
+        with patch("sysconfig.get_platform", lambda: "linux_x86_64"), patch(
+            "platform.machine", lambda: "x86_64"
+        ), patch("os.confstr", lambda x: "glibc 2.12"):
+            groups: Dict[Tuple[str, str], List[str]] = {}
+            arch = platform.machine()
+            expected = [
+                "manylinux_2_12_" + arch,
+                "manylinux2010_" + arch,
+                "manylinux_2_11_" + arch,
+                "manylinux_2_10_" + arch,
+                "manylinux_2_9_" + arch,
+                "manylinux_2_8_" + arch,
+                "manylinux_2_7_" + arch,
+                "manylinux_2_6_" + arch,
+                "manylinux_2_5_" + arch,
+                "manylinux1_" + arch,
+                "linux_" + arch,
+            ]
+            supported = compatibility_tags.get_supported(platforms=expected)
+            for tag in supported:
+                groups.setdefault((tag.interpreter, tag.abi), []).append(tag.platform)
 
         for arches in groups.values():
-            if arches == ["any"]:
+            if "any" in arches:
                 continue
-            assert arches[:2] == [manylinux2010, manylinux1]
+            assert arches == expected
+
+    def test_manylinux2010_i686(self) -> None:
+        with patch("sysconfig.get_platform", lambda: "linux_i686"), patch(
+            "platform.machine", lambda: "i686"
+        ), patch("os.confstr", lambda x: "glibc 2.12"), patch(
+            "pip._vendor.packaging._manylinux._is_linux_i686", lambda: True
+        ):
+            groups: Dict[Tuple[str, str], List[str]] = {}
+            arch = platform.machine()
+            expected = [
+                "manylinux_2_12_" + arch,
+                "manylinux2010_" + arch,
+                "manylinux_2_11_" + arch,
+                "manylinux_2_10_" + arch,
+                "manylinux_2_9_" + arch,
+                "manylinux_2_8_" + arch,
+                "manylinux_2_7_" + arch,
+                "manylinux_2_6_" + arch,
+                "manylinux_2_5_" + arch,
+                "manylinux1_" + arch,
+                "linux_" + arch,
+            ]
+            supported = compatibility_tags.get_supported(platforms=expected)
+            for tag in supported:
+                groups.setdefault((tag.interpreter, tag.abi), []).append(tag.platform)
+
+        for arches in groups.values():
+            if "any" in arches:
+                continue
+            assert arches == expected
 
 
 class TestManylinux2014Tags:
-    @pytest.mark.parametrize(
-        "manylinuxA,manylinuxB",
-        [
-            ("manylinux2014_x86_64", ["manylinux2010_x86_64", "manylinux1_x86_64"]),
-            ("manylinux2014_i686", ["manylinux2010_i686", "manylinux1_i686"]),
-        ],
-    )
-    def test_manylinuxA_implies_manylinuxB(
-        self, manylinuxA: str, manylinuxB: List[str]
-    ) -> None:
+    def test_manylinux2014(self) -> None:
         """
         Specifying manylinux2014 implies manylinux2010/manylinux1.
         """
-        groups: Dict[Tuple[str, str], List[str]] = {}
-        supported = compatibility_tags.get_supported(platforms=[manylinuxA])
-        for tag in supported:
-            groups.setdefault((tag.interpreter, tag.abi), []).append(tag.platform)
+        with patch("sysconfig.get_platform", lambda: "linux_x86_64"), patch(
+            "platform.machine", lambda: "x86_64"
+        ), patch("os.confstr", lambda x: "glibc 2.17"):
+            groups: Dict[Tuple[str, str], List[str]] = {}
+            arch = platform.machine()
+            expected = [
+                "manylinux_2_17_" + arch,
+                "manylinux2014_" + arch,
+                "manylinux_2_16_" + arch,
+                "manylinux_2_15_" + arch,
+                "manylinux_2_14_" + arch,
+                "manylinux_2_13_" + arch,
+                "manylinux_2_12_" + arch,
+                "manylinux2010_" + arch,
+                "manylinux_2_11_" + arch,
+                "manylinux_2_10_" + arch,
+                "manylinux_2_9_" + arch,
+                "manylinux_2_8_" + arch,
+                "manylinux_2_7_" + arch,
+                "manylinux_2_6_" + arch,
+                "manylinux_2_5_" + arch,
+                "manylinux1_" + arch,
+                "linux_" + arch,
+            ]
+            supported = compatibility_tags.get_supported(platforms=expected)
+            for tag in supported:
+                groups.setdefault((tag.interpreter, tag.abi), []).append(tag.platform)
 
-        expected_arches = [manylinuxA]
-        expected_arches.extend(manylinuxB)
         for arches in groups.values():
-            if arches == ["any"]:
+            if "any" in arches:
                 continue
-            assert arches[:3] == expected_arches
+            assert arches == expected
