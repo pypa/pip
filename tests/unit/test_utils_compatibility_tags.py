@@ -4,6 +4,7 @@ from typing import Any, Callable, Dict, List, Tuple
 from unittest.mock import patch
 
 import pytest
+from pip._vendor.packaging import tags
 
 from pip._internal.utils import compatibility_tags
 
@@ -56,6 +57,9 @@ class Testcompatibility_tags:
             assert "-" not in tag.abi
             assert "-" not in tag.platform
 
+    def teardown_method(self) -> None:
+        tags._manylinux._get_glibc_version.cache_clear()
+
 
 class TestManylinux2010Tags:
     def test_manylinux2010(self) -> None:
@@ -64,7 +68,7 @@ class TestManylinux2010Tags:
         """
         with patch("sysconfig.get_platform", lambda: "linux_x86_64"), patch(
             "platform.machine", lambda: "x86_64"
-        ), patch("os.confstr", lambda x: "glibc 2.12"):
+        ), patch("os.confstr", lambda x: "glibc 2.12", create=True):
             groups: Dict[Tuple[str, str], List[str]] = {}
             arch = platform.machine()
             expected = [
@@ -92,7 +96,7 @@ class TestManylinux2010Tags:
     def test_manylinux2010_i686(self) -> None:
         with patch("sysconfig.get_platform", lambda: "linux_i686"), patch(
             "platform.machine", lambda: "i686"
-        ), patch("os.confstr", lambda x: "glibc 2.12"), patch(
+        ), patch("os.confstr", lambda x: "glibc 2.12", create=True), patch(
             "pip._vendor.packaging._manylinux._is_linux_i686", lambda: True
         ):
             groups: Dict[Tuple[str, str], List[str]] = {}
@@ -119,6 +123,9 @@ class TestManylinux2010Tags:
                 continue
             assert arches == expected
 
+    def teardown_method(self) -> None:
+        tags._manylinux._get_glibc_version.cache_clear()
+
 
 class TestManylinux2014Tags:
     def test_manylinux2014(self) -> None:
@@ -127,7 +134,7 @@ class TestManylinux2014Tags:
         """
         with patch("sysconfig.get_platform", lambda: "linux_x86_64"), patch(
             "platform.machine", lambda: "x86_64"
-        ), patch("os.confstr", lambda x: "glibc 2.17"):
+        ), patch("os.confstr", lambda x: "glibc 2.17", create=True):
             groups: Dict[Tuple[str, str], List[str]] = {}
             arch = platform.machine()
             expected = [
@@ -157,3 +164,6 @@ class TestManylinux2014Tags:
             if "any" in arches:
                 continue
             assert arches == expected
+
+    def teardown_method(self) -> None:
+        tags._manylinux._get_glibc_version.cache_clear()
