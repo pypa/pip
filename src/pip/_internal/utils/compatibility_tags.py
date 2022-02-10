@@ -7,12 +7,13 @@ from typing import List, Optional, Tuple
 from pip._vendor.packaging.tags import (
     PythonVersion,
     Tag,
+    _linux_platforms,
     compatible_tags,
     cpython_tags,
     generic_tags,
     interpreter_name,
     interpreter_version,
-    platform_tags,
+    mac_platforms,
 )
 
 _osx_arch_pat = re.compile(r"(.+)_(\d+)_(\d+)_(.+)")
@@ -21,6 +22,37 @@ _osx_arch_pat = re.compile(r"(.+)_(\d+)_(\d+)_(.+)")
 def version_info_to_nodot(version_info: Tuple[int, ...]) -> str:
     # Only use up to the first two numbers.
     return "".join(map(str, version_info[:2]))
+
+
+def _mac_platforms(arch: str) -> List[str]:
+    match = _osx_arch_pat.match(arch)
+    if match:
+        name, major, minor, actual_arch = match.groups()
+        mac_version = (int(major), int(minor))
+        arches = [
+            # Since we have always only checked that the platform starts
+            # with "macosx", for backwards-compatibility we extract the
+            # actual prefix provided by the user in case they provided
+            # something like "macosxcustom_". It may be good to remove
+            # this as undocumented or deprecate it in the future.
+            "{}_{}".format(name, arch[len("macosx_") :])
+            for arch in mac_platforms(mac_version, actual_arch)
+        ]
+    else:
+        # arch pattern didn't match (?!)
+        arches = [arch]
+    return arches
+
+
+def _get_custom_platforms(arch: str) -> List[str]:
+    arch_prefix, arch_sep, arch_suffix = arch.partition("_")
+    if arch.startswith("macosx"):
+        arches = _mac_platforms(arch)
+    elif "linux" in arch_prefix:
+        arches = list(_linux_platforms())
+    else:
+        arches = [arch]
+    return arches
 
 
 def _expand_allowed_platforms(platforms: Optional[List[str]]) -> Optional[List[str]]:
@@ -33,7 +65,7 @@ def _expand_allowed_platforms(platforms: Optional[List[str]]) -> Optional[List[s
     for p in platforms:
         if p in seen:
             continue
-        additions = [c for c in platform_tags() if c not in seen]
+        additions = [c for c in _get_custom_platforms(p) if c not in seen]
         seen.update(additions)
         result.extend(additions)
 
