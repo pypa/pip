@@ -111,7 +111,7 @@ The options which can be applied to individual requirements are:
 
 - {ref}`--install-option <install_--install-option>`
 - {ref}`--global-option <install_--global-option>`
-- `--hash` (for {ref}`Hash-Checking mode`)
+- `--hash` (for {ref}`Hash-checking mode`)
 
 ## Referring to other requirements files
 
