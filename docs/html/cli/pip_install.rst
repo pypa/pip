@@ -154,50 +154,10 @@ Requirements File Format
 
 This section has been moved to :doc:`../reference/requirements-file-format`.
 
-.. _`Requirement Specifiers`:
-
 Requirement Specifiers
 ----------------------
 
-pip supports installing from a package index using a :term:`requirement
-specifier <pypug:Requirement Specifier>`. Generally speaking, a requirement
-specifier is composed of a project name followed by optional :term:`version
-specifiers <pypug:Version Specifier>`.  :pep:`508` contains a full specification
-of the format of a requirement. Since version 18.1 pip supports the
-``url_req``-form specification.
-
-Some examples:
-
- ::
-
-  SomeProject
-  SomeProject == 1.3
-  SomeProject >=1.2,<2.0
-  SomeProject[foo, bar]
-  SomeProject~=1.4.2
-
-Since version 6.0, pip also supports specifiers containing `environment markers
-<https://www.python.org/dev/peps/pep-0508/#environment-markers>`__ like so:
-
- ::
-
-  SomeProject ==5.4 ; python_version < '3.8'
-  SomeProject; sys_platform == 'win32'
-
-Since version 19.3, pip also supports `direct references
-<https://www.python.org/dev/peps/pep-0440/#direct-references>`__ like so:
-
- ::
-
-  SomeProject @ file:///somewhere/...
-
-Environment markers are supported in the command line and in requirements files.
-
-.. note::
-
-   Use quotes around specifiers in the shell when using ``>``, ``<``, or when
-   using environment markers. Don't use quotes in requirement files. [1]_
-
+This section has been moved to :doc:`../reference/requirement-specifiers`.
 
 .. _`Per-requirement Overrides`:
 
@@ -833,11 +793,6 @@ Examples
       .. code-block:: shell
 
          py -m pip install SomePackage1 SomePackage2 --no-binary SomePackage1
-
-----
-
-.. [1] This is true with the exception that pip v7.0 and v7.0.1 required quotes
-       around specifiers containing environment markers in requirement files.
 
 .. _extras: https://www.python.org/dev/peps/pep-0508/#extras
 .. _PyPI: https://pypi.org/
