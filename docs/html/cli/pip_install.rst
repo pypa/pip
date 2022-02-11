@@ -434,73 +434,15 @@ hash originates remotely, it is not a useful guard against tampering and thus
 does not satisfy the ``--require-hashes`` demand that every package have a
 local hash.
 
-
-Local project installs
+Local Project Installs
 ----------------------
 
-pip supports installing local project in both regular mode and editable mode.
-You can install local projects by specifying the project path to pip:
+This is now covered in :doc:`../topics/local-project-installs`.
 
-.. tab:: Unix/macOS
+Editable installs
+-----------------
 
-   .. code-block:: shell
-
-      python -m pip install path/to/SomeProject
-
-.. tab:: Windows
-
-   .. code-block:: shell
-
-      py -m pip install path/to/SomeProject
-
-.. note::
-
-   Depending on the build backend used by the project, this may generate
-   secondary build artifacts in the project directory, such as the
-   ``.egg-info`` and ``build`` directories in the case of the setuptools
-   backend.
-
-   Pip has a legacy behaviour that copies the entire project directory to a
-   temporary location and installs from there. This approach was the cause of
-   several performance and correctness issues, so it is now disabled by
-   default, and it is planned that pip 22.1 will remove it.
-
-   To opt in to the legacy behavior, specify the
-   ``--use-deprecated=out-of-tree-build`` option in pip's command line.
-
-
-.. _`editable-installs`:
-
-"Editable" Installs
-^^^^^^^^^^^^^^^^^^^
-
-"Editable" installs are fundamentally `"setuptools develop mode"
-<https://setuptools.readthedocs.io/en/latest/userguide/development_mode.html>`_
-installs.
-
-You can install local projects or VCS projects in "editable" mode:
-
-.. tab:: Unix/macOS
-
-   .. code-block:: shell
-
-      python -m pip install -e path/to/SomeProject
-      python -m pip install -e git+http://repo/my_project.git#egg=SomeProject
-
-.. tab:: Windows
-
-   .. code-block:: shell
-
-      py -m pip install -e path/to/SomeProject
-      py -m pip install -e git+http://repo/my_project.git#egg=SomeProject
-
-
-(See the :doc:`../topics/vcs-support` section above for more information on VCS-related syntax.)
-
-For local projects, the "SomeProject.egg-info" directory is created relative to
-the project path.  This is one advantage over just using ``setup.py develop``,
-which creates the "egg-info" directly relative the current working directory.
-
+This is now covered in :doc:`../topics/local-project-installs`.
 
 Build System Interface
 ----------------------
