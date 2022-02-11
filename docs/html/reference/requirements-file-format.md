@@ -103,11 +103,17 @@ and two {ref}`--find-links <install_--find-links>` locations:
 
 ### Per-requirement options
 
+```{versionadded} 7.0
+
+```
+
 The options which can be applied to individual requirements are:
 
 - {ref}`--install-option <install_--install-option>`
 - {ref}`--global-option <install_--global-option>`
 - `--hash` (for {ref}`Hash-Checking mode`)
+
+## Referring to other requirements files
 
 If you wish, you can refer to other requirements files, like this:
 
@@ -144,3 +150,35 @@ You can now store sensitive data (tokens, keys, etc.) in environment variables
 and only specify the variable name for your requirements, letting pip lookup
 the value at runtime. This approach aligns with the commonly used
 [12-factor configuration pattern](https://12factor.net/config).
+
+
+## Influencing the build system
+
+```{danger}
+This disables the use of wheels (cached or otherwise). This could mean that builds will be slower, less deterministic, less reliable and may not behave correctly upon installation.
+
+This mechanism is only preserved for backwards compatibility and should be considered deprecated. A future release of pip may drop these options.
+```
+
+The `--global-option` and `--install-option` options are used to pass options to `setup.py`.
+
+```{attention}
+These options are highly coupled with how pip invokes setuptools using the {doc}`../reference/build-system/setup-py` build system interface. It is not compatible with newer {doc}`../reference/build-system/pyproject-toml` build system interface.
+
+This is will not work with other build-backends or newer setup.cfg-only projects.
+```
+
+If you have a declaration like:
+
+    FooProject >= 1.2 --global-option="--no-user-cfg" \
+                      --install-option="--prefix='/usr/local'" \
+                      --install-option="--no-compile"
+
+The above translates roughly into running FooProject's `setup.py` script as:
+
+    python setup.py --no-user-cfg install --prefix='/usr/local' --no-compile
+
+Note that the only way of giving more than one option to `setup.py` is through multiple `--global-option` and `--install-option` options, as shown in the example above. The value of each option is passed as a single argument to the `setup.py` script. Therefore, a line such as the following is invalid and would result in an installation error.
+
+    # Invalid. Please use '--install-option' twice as shown above.
+    FooProject >= 1.2 --install-option="--prefix=/usr/local --no-compile"
