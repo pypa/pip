@@ -169,6 +169,9 @@ class Distribution(BaseDistribution):
         return self._dist.read_text(str(path)) is not None
 
     def iter_distutils_script_names(self) -> Iterator[str]:
+        # A distutils installation is always "flat" (not in e.g. egg form), so
+        # if this distribution's info location is NOT a pathlib.Path (but e.g.
+        # zipfile.Path), it can never contain any distutils scripts.
         if not isinstance(self._info_location, pathlib.Path):
             return
         for child in self._info_location.joinpath("scripts").iterdir():
