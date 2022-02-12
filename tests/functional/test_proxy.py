@@ -31,5 +31,5 @@ def test_download_over_http_proxy(script: PipTestEnvironment) -> None:
             "-d",
             "pip_downloads",
             "INITools==0.1",
-            )
+        )
         result.did_create(Path("scratch") / "pip_downloads" / "INITools-0.1.tar.gz")
