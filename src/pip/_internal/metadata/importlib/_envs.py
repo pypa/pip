@@ -35,13 +35,9 @@ class _DistributionFinder:
         self._found_names: Set[NormalizedName] = set()
 
     def _find_impl(self, location: str) -> Iterator[FoundResult]:
-        """Find distributions in a location.
-
-        The extra *source* argument is used by the egg-link finder to specify
-        where the egg-link file is found.
-        """
-        # To know exact where we found a distribution, we have to feed the paths
-        # in one by one, instead of dumping entire list to importlib.metadata.
+        """Find distributions in a location."""
+        # To know exactly where we find a distribution, we have to feed in the
+        # paths one by one, instead of dumping the list to importlib.metadata.
         for dist in importlib.metadata.distributions(path=[location]):
             normalized_name = canonicalize_name(get_dist_name(dist))
             if normalized_name in self._found_names:
@@ -115,8 +111,9 @@ class _DistributionFinder:
 
         This actually uses the old *pkg_resources* backend. We likely want to
         deprecate this so we can eventually remove the *pkg_resources*
-        dependency entirely. Before that, this be behind a flag because
-        importing *pkg_resources* is slow for those who don't need it.
+        dependency entirely. Before that, this should first emit a deprecation
+        warning for some versions when using the fallback since importing
+        *pkg_resources* is slow for those who don't need it.
         """
         if os.path.isdir(location):
             yield from self._find_eggs_in_dir(location)
