@@ -511,10 +511,10 @@ class BaseEnvironment:
     ) -> Iterator[BaseDistribution]:
         """Return a list of installed distributions.
 
-        This is based on ``iter_all_distributions()``, but applies some
-        configurabilities. Note that ``iter_installed_distributions()`` without
-        arguments is *not* equal to ``iter_all_distributions()``, since some of
-        the configurations exclude packages by default.
+        This is based on ``iter_all_distributions()`` with additional filtering
+        options. Note that ``iter_installed_distributions()`` without arguments
+        is *not* equal to ``iter_all_distributions()``, since some of the
+        configurations exclude packages by default.
 
         :param local_only: If True (default), only return installations
         local to the current virtualenv, if in a virtualenv.
