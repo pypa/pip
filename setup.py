@@ -72,6 +72,16 @@ setup(
             "w64-arm.exe",
         ],
     },
+    extras_require={
+        "dev": [
+            "freezegun",
+            "pytest",
+            "scripttest",
+            "virtualenv",
+            "werkzeug",
+            "wheel",
+        ]
+    },
     entry_points={
         "console_scripts": [
             "pip=pip._internal.cli.main:main",

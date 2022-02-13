@@ -8,6 +8,19 @@ Pip's internals
 We have an in-progress guide to the
 :ref:`architecture-pip-internals`. It might be helpful as you dive in.
 
+Creating development environment
+================================
+
+In order to create a development environment you should install the
+dev extra in editable mode:
+
+```
+pip install -e ".[dev]"
+```
+
+It's bet to do it while you activated a virtualenv where you
+develop `pip`.
+
 Submitting Pull Requests
 ========================
 
