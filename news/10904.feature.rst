@@ -1,0 +1,3 @@
+When you specify multiple indexes with common domains and schemes, basic authentication for each of
+the indexes can be different - compliant with RFC 7617. Previous versions of pip reused basic
+authentication credentials for all urls within the same domain.

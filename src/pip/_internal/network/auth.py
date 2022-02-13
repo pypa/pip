@@ -5,7 +5,7 @@ providing credentials in the context of network requests.
 """
 
 import urllib.parse
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
 from pip._vendor.requests.models import Request, Response
@@ -76,7 +76,7 @@ class MultiDomainBasicAuth(AuthBase):
     ) -> None:
         self.prompting = prompting
         self.index_urls = index_urls
-        self.passwords: Dict[str, AuthInfo] = {}
+        self.passwords: List[Tuple[str, AuthInfo]] = []
         # When the user is prompted to enter credentials and keyring is
         # available, we will offer to save them. If the user accepts,
         # this value is set to the credentials they entered. After the
@@ -163,6 +163,49 @@ class MultiDomainBasicAuth(AuthBase):
 
         return username, password
 
+    def _get_matching_credentials(self, original_url: str) -> Optional[AuthInfo]:
+        """
+        Find matching credentials based on the longest matching prefix found.
+
+        According to https://datatracker.ietf.org/doc/html/rfc7617#section-2.2
+        the authentication scope is defined by removing the last part after
+        the last "/" of the resource - but in case of `pip` the end of path is always
+        "/project", so we can treat the `original_url` as full `authentication scope'
+        for the request. The RFC specifies that prefix matching of the scope is
+        also within the protection scope specified by the realm value, so we can
+        safely assume that if we find any match, the longest matching prefix is
+        the right authentication information we should use.
+
+        The specification does not decide which of the matching scopes should be
+        used if there are more of them. Our decision is to choose the longest
+        matching one. In case exactly the same prefix will be added several times,
+        the authentication information from the first one is used.
+
+        According to the RFC, the authentication scope includes both scheme and netloc,
+        Both have to match in order to share the authentication scope.
+
+        :param original_url: original URL of the request
+        :return: Stored Authentication info matching the authentication scope or
+                 None if not found
+        """
+        max_matched_prefix_length = 0
+        matched_auth_info = None
+        no_auth_url = remove_auth_from_url(original_url)
+        parsed_original = urllib.parse.urlparse(no_auth_url)
+        for prefix, auth_info in self.passwords:
+            parsed_stored = urllib.parse.urlparse(prefix)
+            if (
+                parsed_stored.netloc != parsed_original.netloc
+                or parsed_stored.scheme != parsed_original.scheme
+            ):
+                # only consider match when both scheme and netloc match
+                continue
+            if no_auth_url.startswith(prefix):
+                if len(prefix) > max_matched_prefix_length:
+                    matched_auth_info = auth_info
+                    max_matched_prefix_length = len(prefix)
+        return matched_auth_info
+
     def _get_url_and_credentials(
         self, original_url: str
     ) -> Tuple[str, Optional[str], Optional[str]]:
@@ -184,12 +227,14 @@ class MultiDomainBasicAuth(AuthBase):
         # Do this if either the username or the password is missing.
         # This accounts for the situation in which the user has specified
         # the username in the index url, but the password comes from keyring.
-        if (username is None or password is None) and netloc in self.passwords:
-            un, pw = self.passwords[netloc]
-            # It is possible that the cached credentials are for a different username,
-            # in which case the cache should be ignored.
-            if username is None or username == un:
-                username, password = un, pw
+        if username is None or password is None:
+            matched_credentials = self._get_matching_credentials(original_url)
+            if matched_credentials:
+                un, pw = matched_credentials
+                # It is possible that the cached credentials are for a
+                # different username, in which case the cache should be ignored.
+                if username is None or username == un:
+                    username, password = un, pw
 
         if username is not None or password is not None:
             # Convert the username and password if they're None, so that
@@ -200,7 +245,7 @@ class MultiDomainBasicAuth(AuthBase):
             password = password or ""
 
             # Store any acquired credentials.
-            self.passwords[netloc] = (username, password)
+            self.passwords.append((remove_auth_from_url(url), (username, password)))
 
         assert (
             # Credentials were found
@@ -273,7 +318,9 @@ class MultiDomainBasicAuth(AuthBase):
         # Store the new username and password to use for future requests
         self._credentials_to_save = None
         if username is not None and password is not None:
-            self.passwords[parsed.netloc] = (username, password)
+            self.passwords.append(
+                (remove_auth_from_url(resp.url), (username, password))
+            )
 
             # Prompt to save the password to keyring
             if save and self._should_save_password_to_keyring():

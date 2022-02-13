@@ -1,10 +1,12 @@
 import functools
 from typing import Any, List, Optional, Tuple
+from unittest.mock import Mock, PropertyMock
 
 import pytest
 
 import pip._internal.network.auth
 from pip._internal.network.auth import MultiDomainBasicAuth
+from src.pip._vendor.requests import PreparedRequest
 from tests.lib.requests_mocks import MockConnection, MockRequest, MockResponse
 
 
@@ -50,40 +52,143 @@ def test_get_credentials_parses_correctly(
         (username is None and password is None)
         or
         # Credentials were found and "cached" appropriately
-        auth.passwords["example.com"] == (username, password)
+        (url, (username, password)) in auth.passwords
     )
+
+
+def test_handle_prompt_for_password_successful() -> None:
+    auth = MultiDomainBasicAuth()
+    resp = Mock()
+    resp.status_code = 401
+    resp.url = "http://example.com"
+    resp.raw = Mock()
+    resp.content = PropertyMock()
+    resp.content = ""
+    resp.request = PreparedRequest()
+    resp.request.headers = {}
+    auth._prompt_for_password = Mock()  # type: ignore[assignment]
+    auth._prompt_for_password.return_value = ("user", "password", True)
+    auth.handle_401(resp)
+    auth._prompt_for_password.assert_called_with("example.com")
+    expected = ("http://example.com", ("user", "password"))
+    assert len(auth.passwords) == 1
+    assert auth.passwords[0] == expected
+
+
+def test_handle_prompt_for_password_unsuccessful() -> None:
+    auth = MultiDomainBasicAuth()
+    resp = Mock()
+    resp.status_code = 401
+    resp.url = "http://example.com"
+    resp.raw = Mock()
+    resp.content = PropertyMock()
+    resp.content = ""
+    resp.request = PreparedRequest()
+    resp.request.headers = {}
+    auth._prompt_for_password = Mock()  # type: ignore[assignment]
+    auth._prompt_for_password.return_value = (None, None, False)
+    auth.handle_401(resp)
+    auth._prompt_for_password.assert_called_with("example.com")
+    assert len(auth.passwords) == 0
 
 
 def test_get_credentials_not_to_uses_cached_credentials() -> None:
     auth = MultiDomainBasicAuth()
-    auth.passwords["example.com"] = ("user", "pass")
+    auth.passwords.append(("http://example.com", ("user", "pass")))
 
     got = auth._get_url_and_credentials("http://foo:bar@example.com/path")
     expected = ("http://example.com/path", "foo", "bar")
     assert got == expected
 
 
-def test_get_credentials_not_to_uses_cached_credentials_only_username() -> None:
+def test_get_credentials_not_to_use_cached_credentials_only_username() -> None:
     auth = MultiDomainBasicAuth()
-    auth.passwords["example.com"] = ("user", "pass")
+    auth.passwords.append(("https://example.com", ("user", "pass")))
 
-    got = auth._get_url_and_credentials("http://foo@example.com/path")
-    expected = ("http://example.com/path", "foo", "")
+    got = auth._get_url_and_credentials("https://foo@example.com/path")
+    expected = ("https://example.com/path", "foo", "")
+    assert got == expected
+
+
+def test_multi_domain_credentials_match() -> None:
+    auth = MultiDomainBasicAuth()
+    auth.passwords.append(("http://example.com", ("user", "pass")))
+    auth.passwords.append(("http://example.com/path", ("user", "pass2")))
+
+    got = auth._get_url_and_credentials("http://user@example.com/path")
+    expected = ("http://example.com/path", "user", "pass2")
+    assert got == expected
+
+
+def test_multi_domain_credentials_longest_match() -> None:
+    auth = MultiDomainBasicAuth()
+    auth.passwords.append(("http://example.com", ("user", "pass")))
+    auth.passwords.append(("http://example.com/path", ("user", "pass2")))
+    auth.passwords.append(("http://example.com/path/subpath", ("user", "pass3")))
+
+    got = auth._get_url_and_credentials("http://user@example.com/path")
+    expected = ("http://example.com/path", "user", "pass2")
+    assert got == expected
+
+
+def test_multi_domain_credentials_partial_match_only() -> None:
+    auth = MultiDomainBasicAuth()
+    auth.passwords.append(("http://example.com/path1", ("user", "pass")))
+
+    got = auth._get_url_and_credentials("http://example.com/path2")
+    expected = ("http://example.com/path2", None, None)
     assert got == expected
 
 
 def test_get_credentials_uses_cached_credentials() -> None:
     auth = MultiDomainBasicAuth()
-    auth.passwords["example.com"] = ("user", "pass")
+    auth.passwords.append(("https://example.com", ("user", "pass")))
+
+    got = auth._get_url_and_credentials("https://example.com/path")
+    expected = ("https://example.com/path", "user", "pass")
+    assert got == expected
+
+
+def test_get_credentials_not_uses_cached_credentials_different_scheme_http() -> None:
+    auth = MultiDomainBasicAuth()
+    auth.passwords.append(("http://example.com", ("user", "pass")))
+
+    got = auth._get_url_and_credentials("https://example.com/path")
+    expected = ("https://example.com/path", None, None)
+    assert got == expected
+
+
+def test_get_credentials_not_uses_cached_credentials_different_scheme_https() -> None:
+    auth = MultiDomainBasicAuth()
+    auth.passwords.append(("https://example.com", ("user", "pass")))
 
     got = auth._get_url_and_credentials("http://example.com/path")
-    expected = ("http://example.com/path", "user", "pass")
+    expected = ("http://example.com/path", None, None)
     assert got == expected
 
 
 def test_get_credentials_uses_cached_credentials_only_username() -> None:
     auth = MultiDomainBasicAuth()
-    auth.passwords["example.com"] = ("user", "pass")
+    auth.passwords.append(("http://example.com", ("user", "pass")))
+
+    got = auth._get_url_and_credentials("http://user@example.com/path")
+    expected = ("http://example.com/path", "user", "pass")
+    assert got == expected
+
+
+def test_get_credentials_uses_cached_credentials_wrong_username() -> None:
+    auth = MultiDomainBasicAuth()
+    auth.passwords.append(("http://example.com", ("user", "pass")))
+
+    got = auth._get_url_and_credentials("http://user2@example.com/path")
+    expected = ("http://example.com/path", "user2", "")
+    assert got == expected
+
+
+def test_get_credentials_added_multiple_times() -> None:
+    auth = MultiDomainBasicAuth()
+    auth.passwords.append(("http://example.com", ("user", "pass")))
+    auth.passwords.append(("http://example.com", ("user", "pass2")))
 
     got = auth._get_url_and_credentials("http://user@example.com/path")
     expected = ("http://example.com/path", "user", "pass")

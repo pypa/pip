@@ -432,7 +432,7 @@ def test_prioritize_url_credentials_over_netrc(
     server.mock.side_effect = [
         package_page(
             {
-                "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",
+                "simple-3.0.tar.gz": "/simple/files/simple-3.0.tar.gz",
             }
         ),
         authorization_response(str(data.packages / "simple-3.0.tar.gz")),

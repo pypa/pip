@@ -16,6 +16,54 @@ token as the "username" and do not provide a password:
 https://0123456789abcdef@pypi.company.com/simple
 ```
 
+When you specify several indexes, each of them can come with its own
+authentication information. When the domains and schemes of multiple
+indexes partially overlap, you can specify different authentication for each of them
+For example you can have:
+
+```
+PIP_INDEX_URL=https://build:password1@pkgs.dev.azure.com/feed1
+PIP_EXTRA_INDEX_URL=https://build:password2@pkgs.dev.azure.com/feed2
+```
+
+If you specify multiple identical index URLs with different authentication information,
+authentication from the first index will be used.
+
+```{versionchanged} 22.1
+The basic authentication is now compliant with RFC 7617
+```
+
+In compliance with [RFC7617](https://datatracker.ietf.org/doc/html/rfc7617#section-2.2) if the indexes
+overlap, the authentication information from the prefix-match will be reused for the longer index if
+the longer index does not contain the authentication information. In case multiple indexes are
+prefix-matching, the authentication of the first of the longest matching prefixes is used.
+
+For example in this case, build:password authentication will be used when authenticating with the extra
+index URL.
+
+```
+PIP_INDEX_URL=https://build:password@pkgs.dev.azure.com/
+PIP_EXTRA_INDEX_URL=https://pkgs.dev.azure.com/feed1
+```
+
+```{note}
+Prior to version 22.1 reusing of basic authentication between URLs was not RFC7617 compliant.
+This could lead to the situation that custom-built indexes could receive the authentication
+provided for the index path, to download files outside fof the security domain of the path.
+
+For example if your index at https://username:password@pypi.company.com/simple served files from
+https://pypi.company.com/file.tar.gz - the username and password provided for the "/simple" path
+was also used to authenticate download of the `file.tar.gz`. This is not RFC7617 compliant and as of
+version 22.1 it will not work automatically. If you encounter a problem where your files are being
+served from different security domain than your index and authentication is not used for them, you
+should (ideally) fix it on your server side or (as temporary workaround)
+specify your file download location as extra index url:
+
+PIP_EXTRA_INDEX_URL=https://username:password@pypi.company.com/
+
+```
+
+
 ### Percent-encoding special characters
 
 ```{versionadded} 10.0
