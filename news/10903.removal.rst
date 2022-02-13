@@ -1,0 +1,1 @@
+Drop the doctype check for the simple index protocol.
