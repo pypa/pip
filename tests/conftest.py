@@ -71,6 +71,12 @@ def pytest_addoption(parser: Parser) -> None:
         default=False,
         help="run 'pip search' tests",
     )
+    parser.addoption(
+        "--proxy",
+        action="store",
+        default=None,
+        help="use given proxy in session network tests",
+    )
 
 
 def pytest_collection_modifyitems(config: Config, items: List[pytest.Item]) -> None:
@@ -624,3 +630,8 @@ def utc() -> Iterator[None]:
         tzset()
         yield
     tzset()
+
+
+@pytest.fixture
+def proxy(request: pytest.FixtureRequest):
+    return request.config.getoption("proxy")
