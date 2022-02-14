@@ -633,5 +633,5 @@ def utc() -> Iterator[None]:
 
 
 @pytest.fixture
-def proxy(request: pytest.FixtureRequest):
+def proxy(request: pytest.FixtureRequest) -> str:
     return request.config.getoption("proxy")

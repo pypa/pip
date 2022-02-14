@@ -1,14 +1,14 @@
 import logging
 from typing import Any, List
+from urllib.request import getproxies
+from urllib.parse import urlparse
 
 import pytest
+from pip._vendor import requests
 
 from pip import __version__
 from pip._internal.models.link import Link
 from pip._internal.network.session import CI_ENVIRONMENT_VARIABLES, PipSession
-from pip._vendor import requests
-from urllib.request import getproxies
-from urllib.parse import urlparse
 from tests.lib.path import Path
 
 
@@ -247,7 +247,7 @@ class TestPipSession:
         assert "is not a trusted or secure host" in actual_message
 
     @pytest.mark.network
-    def test_proxy(self, proxy) -> None:
+    def test_proxy(self, proxy: str) -> None:
         """
         Test proxy.
         """
@@ -261,7 +261,11 @@ class TestPipSession:
 
         if proxy:
             # set proxy scheme to session.proxies
-            session.proxies = {"http": f"{proxy}", "https": f"{proxy}", "ftp": f"{proxy}"}
+            session.proxies = {
+                "http": f"{proxy}",
+                "https": f"{proxy}",
+                "ftp": f"{proxy}"
+            }
 
         connection_error = None
         try:
@@ -269,5 +273,5 @@ class TestPipSession:
         except requests.exceptions.ConnectionError as e:
             connection_error = e
 
-        assert connection_error is None, f"Invalid proxy {proxy} or session.proxies: {session.proxies} " \
-                                         f"is not correctly passed to session.request."
+        assert connection_error is None, (
+            f"Invalid proxy {proxy} or session.proxies: {session.proxies} is not correctly passed to session.request.")
