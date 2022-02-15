@@ -1,7 +1,8 @@
 import logging
 from typing import Any, List
-from urllib.request import getproxies
+
 from urllib.parse import urlparse
+from urllib.request import getproxies
 
 import pytest
 from pip._vendor import requests
@@ -264,7 +265,7 @@ class TestPipSession:
             session.proxies = {
                 "http": f"{proxy}",
                 "https": f"{proxy}",
-                "ftp": f"{proxy}"
+                "ftp": f"{proxy}",
             }
 
         connection_error = None
@@ -273,5 +274,6 @@ class TestPipSession:
         except requests.exceptions.ConnectionError as e:
             connection_error = e
 
-        assert connection_error is None, (
-            f"Invalid proxy {proxy} or session.proxies: {session.proxies} is not correctly passed to session.request.")
+        assert (
+            connection_error is None
+        ), f"Invalid proxy {proxy} or session.proxies: {session.proxies} is not correctly passed to session.request."
