@@ -15,6 +15,7 @@ class SelectionPreferences:
         "format_control",
         "prefer_binary",
         "ignore_requires_python",
+        "priority_index",
     ]
 
     # Don't include an allow_yanked default value to make sure each call
@@ -28,6 +29,7 @@ class SelectionPreferences:
         format_control: Optional[FormatControl] = None,
         prefer_binary: bool = False,
         ignore_requires_python: Optional[bool] = None,
+        priority_index: Optional[str] = None,
     ) -> None:
         """Create a SelectionPreferences object.
 
@@ -40,6 +42,7 @@ class SelectionPreferences:
             dist over a new source dist.
         :param ignore_requires_python: Whether to ignore incompatible
             "Requires-Python" values in links. Defaults to False.
+        :param priority_index: An optional URL of an index which is given higher priority.
         """
         if ignore_requires_python is None:
             ignore_requires_python = False
@@ -49,3 +52,4 @@ class SelectionPreferences:
         self.format_control = format_control
         self.prefer_binary = prefer_binary
         self.ignore_requires_python = ignore_requires_python
+        self.priority_index = priority_index

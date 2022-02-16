@@ -316,12 +316,15 @@ class CandidatePreferences:
         self,
         prefer_binary: bool = False,
         allow_all_prereleases: bool = False,
+        priority_index: Optional[str] = None,
     ) -> None:
         """
         :param allow_all_prereleases: Whether to allow all pre-releases.
+        :param priority_index: An optional URL of an index which is given higher priority.
         """
         self.allow_all_prereleases = allow_all_prereleases
         self.prefer_binary = prefer_binary
+        self.priority_index = priority_index
 
 
 class BestCandidateResult:
@@ -380,6 +383,7 @@ class CandidateEvaluator:
         allow_all_prereleases: bool = False,
         specifier: Optional[specifiers.BaseSpecifier] = None,
         hashes: Optional[Hashes] = None,
+        priority_index: Optional[str] = None,
     ) -> "CandidateEvaluator":
         """Create a CandidateEvaluator object.
 
@@ -390,6 +394,7 @@ class CandidateEvaluator:
             (e.g. `packaging.specifiers.SpecifierSet`) to filter applicable
             versions.
         :param hashes: An optional collection of allowed hashes.
+        :param priority_index: An optional URL of an index which is given higher priority.
         """
         if target_python is None:
             target_python = TargetPython()
@@ -405,6 +410,7 @@ class CandidateEvaluator:
             prefer_binary=prefer_binary,
             allow_all_prereleases=allow_all_prereleases,
             hashes=hashes,
+            priority_index=priority_index,
         )
 
     def __init__(
@@ -415,10 +421,12 @@ class CandidateEvaluator:
         prefer_binary: bool = False,
         allow_all_prereleases: bool = False,
         hashes: Optional[Hashes] = None,
+        priority_index: Optional[str] = None,
     ) -> None:
         """
         :param supported_tags: The PEP 425 tags supported by the target
             Python in order of preference (most preferred first).
+        :param priority_index: An optional URL of an index which is given higher priority.
         """
         self._allow_all_prereleases = allow_all_prereleases
         self._hashes = hashes
@@ -426,6 +434,7 @@ class CandidateEvaluator:
         self._project_name = project_name
         self._specifier = specifier
         self._supported_tags = supported_tags
+        self._priority_index = priority_index
         # Since the index of the tag in the _supported_tags list is used
         # as a priority, precompute a map from tag to index/priority to be
         # used in wheel.find_most_preferred_tag.
@@ -528,9 +537,15 @@ class CandidateEvaluator:
             pri = -(support_num)
         has_allowed_hash = int(link.is_hash_allowed(self._hashes))
         yank_value = -1 * int(link.is_yanked)  # -1 for yanked.
+        index_priority = (
+            int(candidate.link.comes_from.startswith(self._priority_index))
+            if self._priority_index
+            else 0
+        )
         return (
             has_allowed_hash,
             yank_value,
+            index_priority,
             binary_preference,
             candidate.version,
             pri,
@@ -639,6 +654,7 @@ class PackageFinder:
         candidate_prefs = CandidatePreferences(
             prefer_binary=selection_prefs.prefer_binary,
             allow_all_prereleases=selection_prefs.allow_all_prereleases,
+            priority_index=selection_prefs.priority_index,
         )
 
         return cls(
@@ -848,6 +864,7 @@ class PackageFinder:
             allow_all_prereleases=candidate_prefs.allow_all_prereleases,
             specifier=specifier,
             hashes=hashes,
+            priority_index=candidate_prefs.priority_index,
         )
 
     @functools.lru_cache(maxsize=None)

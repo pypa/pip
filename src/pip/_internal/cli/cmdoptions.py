@@ -416,6 +416,16 @@ def constraints() -> Option:
     )
 
 
+priority_index: Callable[..., Option] = partial(
+    Option,
+    "--priority-index",
+    dest="priority_index",
+    default=None,
+    metavar="URL",
+    help="Prefer distributions from this index/link over other packages."
+)
+
+
 def requirements() -> Option:
     return Option(
         "-r",
