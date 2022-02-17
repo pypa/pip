@@ -249,10 +249,6 @@ class TestPipSession:
 
     @pytest.mark.network
     def test_proxy(self, proxy: str) -> None:
-        """
-        Test proxy.
-        """
-
         session = PipSession(trusted_hosts=[])
 
         if not proxy:
