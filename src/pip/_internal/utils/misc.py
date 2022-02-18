@@ -556,9 +556,9 @@ def protect_pip_from_modification_on_windows(modifying_pip: bool) -> None:
         python -m pip ...
     """
     pip_names = [
-        "pip.exe",
-        "pip{}.exe".format(sys.version_info[0]),
-        "pip{}.{}.exe".format(*sys.version_info[:2]),
+        "pip",
+        "pip{}".format(sys.version_info[0]),
+        "pip{}.{}".format(*sys.version_info[:2]),
     ]
 
     # See https://github.com/pypa/pip/issues/1299 for more discussion
