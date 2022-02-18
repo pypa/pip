@@ -59,19 +59,18 @@ For more information and examples, see the :ref:`pip install` reference.
 
 .. _PyPI: https://pypi.org/
 
-
-Basic Authentication Credentials
-================================
-
-This is now covered in :doc:`topics/authentication`.
-
-netrc Support
--------------
+.. _`0-basic-authentication-credentials`:
+.. rubric:: Basic Authentication Credentials
 
 This is now covered in :doc:`topics/authentication`.
 
-Keyring Support
----------------
+.. _`0-netrc-support`:
+.. rubric:: netrc Support
+
+This is now covered in :doc:`topics/authentication`.
+
+.. _`0-keyring-support`:
+.. rubric:: Keyring Support
 
 This is now covered in :doc:`topics/authentication`.
 
@@ -451,33 +450,25 @@ packages.
 
 For more information and examples, see the :ref:`pip search` reference.
 
-.. _`Configuration`:
-
-
-Configuration
-=============
+.. _`0-configuration`:
+.. rubric:: Configuration
 
 This is now covered in :doc:`topics/configuration`.
 
-.. _config-file:
-
-Config file
------------
+.. _`0-config-file`:
+.. rubric:: Config file
 
 This is now covered in :doc:`topics/configuration`.
 
-Environment Variables
----------------------
+.. _`0-environment-variables`:
+.. rubric:: Environment Variables
 
 This is now covered in :doc:`topics/configuration`.
 
-.. _config-precedence:
-
-Config Precedence
------------------
+.. _`0-config-precedence`:
+.. rubric:: Config Precedence
 
 This is now covered in :doc:`topics/configuration`.
-
 
 Command Completion
 ==================
@@ -780,18 +771,14 @@ is the latest version:
       [...]
       Successfully installed SomePackage
 
-.. _`Repeatability`:
-
-
-Ensuring Repeatability
-======================
+.. _`0-repeatability`:
+.. _`0-ensuring-repeatability`:
+.. rubric:: Ensuring Repeatability
 
 This is now covered in :doc:`../topics/repeatable-installs`.
 
-.. _`Fixing conflicting dependencies`:
-
-Fixing conflicting dependencies
-===============================
+.. _`0-fixing-conflicting-dependencies`:
+.. rubric:: Fixing conflicting dependencies
 
 This is now covered in :doc:`../topics/dependency-resolution`.
 
