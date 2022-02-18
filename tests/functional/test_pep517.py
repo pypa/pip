@@ -160,6 +160,56 @@ def test_conflicting_pep517_backend_requirements(
     assert result.returncode != 0 and msg in result.stderr, str(result)
 
 
+def test_validate_missing_pep517_backend_requirements(
+    script: PipTestEnvironment, tmpdir: Path, data: TestData
+) -> None:
+    project_dir = make_project(
+        tmpdir, requires=["test_backend", "simplewheel==1.0"], backend="test_backend"
+    )
+    result = script.pip(
+        "install",
+        "--no-index",
+        "-f",
+        data.backends,
+        "-f",
+        data.packages,
+        "--no-build-isolation",
+        project_dir,
+        expect_error=True,
+    )
+    msg = (
+        "Some build dependencies for {url} are missing: "
+        "'simplewheel==1.0', 'test_backend'.".format(url=path_to_url(project_dir))
+    )
+    assert result.returncode != 0 and msg in result.stderr, str(result)
+
+
+def test_validate_conflicting_pep517_backend_requirements(
+    script: PipTestEnvironment, tmpdir: Path, data: TestData
+) -> None:
+    project_dir = make_project(
+        tmpdir, requires=["simplewheel==1.0"], backend="test_backend"
+    )
+    script.pip("install", "simplewheel==2.0", "--no-index", "-f", data.packages)
+    result = script.pip(
+        "install",
+        "--no-index",
+        "-f",
+        data.backends,
+        "-f",
+        data.packages,
+        "--no-build-isolation",
+        project_dir,
+        expect_error=True,
+    )
+    msg = (
+        "Some build dependencies for {url} conflict with the backend "
+        "dependencies: simplewheel==2.0 is incompatible with "
+        "simplewheel==1.0.".format(url=path_to_url(project_dir))
+    )
+    assert result.returncode != 0 and msg in result.stderr, str(result)
+
+
 def test_pep517_backend_requirements_already_satisfied(
     script: PipTestEnvironment, tmpdir: Path, data: TestData
 ) -> None:

@@ -20,7 +20,7 @@ from pip._vendor.packaging.version import Version
 from pip import __file__ as pip_location
 from pip._internal.cli.spinners import open_spinner
 from pip._internal.locations import get_platlib, get_prefixed_libs, get_purelib
-from pip._internal.metadata import get_environment
+from pip._internal.metadata import get_default_environment, get_environment
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 
@@ -168,7 +168,11 @@ class BuildEnvironment:
         missing = set()
         conflicting = set()
         if reqs:
-            env = get_environment(self._lib_dirs)
+            env = (
+                get_environment(self._lib_dirs)
+                if hasattr(self, "_lib_dirs")
+                else get_default_environment()
+            )
             for req_str in reqs:
                 req = Requirement(req_str)
                 dist = env.get_distribution(req.name)
