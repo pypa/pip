@@ -310,3 +310,40 @@ Common issues
    #. In these situations you will want to make sure that we know how they got
       their Python and pip. Knowing the relevant package manager commands can
       help, e.g. ``dpkg -S``.
+
+For issues caused by changes by redistributors
+==============================================
+
+Certain issues are caused by patches that redistributors of Python/pip
+make to Python/pip.
+
+Certain redistributors have shared preferred wording to redirect users
+to their issue trackers.
+
+Fedora, RHEL, CentOS (and probably other derivatives – Rocky, Scientific, CloudLinux)::
+
+    This issue looks like it's caused by changes that Fedora or Red Hat
+    made in their pip packaging. Please file a Fedora bug at
+    https://bugzilla.redhat.com/enter_bug.cgi?product=Fedora&component=python-pip
+
+    cc @encukou @hroncok
+
+Debian::
+
+    This issue looks like it's caused by changes that Debian made in
+    their pip packaging. Please file a bug with Debian, with
+    `reportbug python3-pip` [Docs](https://www.debian.org/Bugs/Reporting).
+    You can link to this issue in your bug report.
+
+    In the meantime, you may be able to work-around your issue by upgrading
+    pip inside your virtualenv: `python -m pip install -U pip`
+
+Ubuntu::
+
+    This issue looks like it's caused by changes that Ubuntu made in
+    their pip packaging. Please file a bug with Ubuntu, with
+    `ubuntu-bug python3-pip` [Docs](https://help.ubuntu.com/community/ReportingBugs).
+    You can link to this issue in your bug report.
+
+    In the meantime, you may be able to work-around your issue by upgrading
+    pip inside your virtualenv: `python -m pip install -U pip`
