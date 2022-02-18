@@ -251,7 +251,7 @@ class TestCallSubprocess:
         assert "exit code: 1" in exception.message
         assert exception.note_stmt
         assert "not a problem with pip" in exception.note_stmt
-        # Check that the process outout is captured, and would be shown.
+        # Check that the process output is captured, and would be shown.
         assert exception.context
         assert "Hello\n" in exception.context
         assert "fail\n" in exception.context
