@@ -1,6 +1,5 @@
 import logging
-from typing import Any, List
-
+from typing import Any, List, Optional
 from urllib.parse import urlparse
 from urllib.request import getproxies
 
@@ -248,7 +247,7 @@ class TestPipSession:
         assert "is not a trusted or secure host" in actual_message
 
     @pytest.mark.network
-    def test_proxy(self, proxy: str) -> None:
+    def test_proxy(self, proxy: Optional[str]) -> None:
         session = PipSession(trusted_hosts=[])
 
         if not proxy:
@@ -270,6 +269,7 @@ class TestPipSession:
         except requests.exceptions.ConnectionError as e:
             connection_error = e
 
-        assert (
-            connection_error is None
-        ), f"Invalid proxy {proxy} or session.proxies: {session.proxies} is not correctly passed to session.request."
+        assert connection_error is None, (
+            f"Invalid proxy {proxy} or session.proxies: "
+            f"{session.proxies} is not correctly passed to session.request."
+        )
