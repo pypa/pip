@@ -38,7 +38,7 @@ _LEGACY_MANYLINUX_MAP = {
 
 
 @functools.lru_cache()
-def _get_glibc_version() -> Tuple[int, int]:
+def _get_glibc_version() -> Optional[Tuple[int, int]]:
     _, curr_glibc_ver = libc_ver()
     return parse_glibc_version(curr_glibc_ver)
 
@@ -46,6 +46,8 @@ def _get_glibc_version() -> Tuple[int, int]:
 # From PEP 513, PEP 600
 def _is_manylinux_compatible(arch: str, version: _GLibCVersion) -> bool:
     sys_glibc = _get_glibc_version()
+    if not sys_glibc:
+        return False
     if sys_glibc < version:
         return False
     # Check for presence of _manylinux module.
