@@ -188,7 +188,7 @@ def _musllinux_platforms(arch: str) -> List[str]:
     else:
         return []
 
-    _, _, arch_suffix = arch.partition("_")
+    *_, arch_suffix = arch.partition("_")
     *curr_musl_str, curr_arch = arch_suffix.split("_", 2)
     curr_musl = _MuslVersion(*map(int, curr_musl_str))
 
