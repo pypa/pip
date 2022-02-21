@@ -1,8 +1,11 @@
 """Generate and work with PEP 425 Compatibility Tags.
 """
 import collections
+import contextlib
 import functools
 import re
+import subprocess
+import sys
 from typing import Dict, List, NamedTuple, Optional, Tuple
 
 from pip._vendor.packaging.tags import (
@@ -17,12 +20,18 @@ from pip._vendor.packaging.tags import (
 )
 
 from pip._internal.utils.glibc import libc_ver, parse_glibc_version
+from pip._internal.utils.musl import _parse_ld_musl_from_elf, _parse_musl_version
 
 _osx_arch_pat = re.compile(r"(.+)_(\d+)_(\d+)_(.+)")
 _LAST_GLIBC_MINOR: Dict[int, int] = collections.defaultdict(lambda: 50)
 
 
 class _GLibCVersion(NamedTuple):
+    major: int
+    minor: int
+
+
+class _MuslVersion(NamedTuple):
     major: int
     minor: int
 
@@ -35,6 +44,30 @@ _LEGACY_MANYLINUX_MAP = {
     # CentOS 5 w/ glibc 2.5 (PEP 513)
     (2, 5): "manylinux1",
 }
+
+
+@functools.lru_cache()
+def _get_musl_version(executable: str) -> Optional[Tuple[int, int]]:
+    """Detect currently-running musl runtime version.
+
+    This is done by checking the specified executable's dynamic linking
+    information, and invoking the loader to parse its output for a version
+    string. If the loader is musl, the output would be something like::
+
+        musl libc (x86_64)
+        Version 1.2.2
+        Dynamic Program Loader
+    """
+    with contextlib.ExitStack() as stack:
+        try:
+            f = stack.enter_context(open(executable, "rb"))
+        except OSError:
+            return None
+        ld = _parse_ld_musl_from_elf(f)
+    if not ld:
+        return None
+    proc = subprocess.run([ld], stderr=subprocess.PIPE, universal_newlines=True)
+    return _parse_musl_version(proc.stderr)
 
 
 @functools.lru_cache()
@@ -148,11 +181,32 @@ def _manylinux_platforms(arch: str) -> List[str]:
     return arches
 
 
+def _musllinux_platforms(arch: str) -> List[str]:
+    sys_musl = _get_musl_version(sys.executable)
+    if sys_musl:
+        sys_musl = _MuslVersion(*sys_musl)
+    else:
+        return []
+
+    _, _, arch_suffix = arch.partition("_")
+    *curr_musl_str, curr_arch = arch_suffix.split("_", 2)
+    curr_musl = _MuslVersion(*map(int, curr_musl_str))
+
+    arches = []
+    for minor in range(curr_musl.minor, -1, -1):
+        if sys_musl.minor < minor:
+            continue
+        arches.append(f"musllinux_{sys_musl.major}_{minor}_{curr_arch}")
+    return arches
+
+
 def _get_custom_platforms(arch: str) -> List[str]:
     if arch.startswith("macosx"):
         arches = _mac_platforms(arch)
     elif arch.startswith("manylinux"):
         arches = _manylinux_platforms(arch)
+    elif arch.startswith("musllinux"):
+        arches = _musllinux_platforms(arch)
     else:
         arches = [arch]
     return arches

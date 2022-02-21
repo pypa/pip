@@ -167,3 +167,40 @@ class TestManylinux2014Tags:
             if arches == ["any"]:
                 continue
             assert arches[:3] == expected_arches
+
+
+class TestMusllinuxTags:
+    @pytest.mark.parametrize(
+        "manylinux,expected",
+        [
+            (
+                "musllinux_1_4_x86_64",
+                [
+                    "musllinux_1_2_x86_64",
+                    "musllinux_1_1_x86_64",
+                    "musllinux_1_0_x86_64",
+                ],
+            ),
+            (
+                "musllinux_1_4_i686",
+                ["musllinux_1_2_i686", "musllinux_1_1_i686", "musllinux_1_0_i686"],
+            ),
+        ],
+    )
+    def test_musllinux(
+        self, monkeypatch: pytest.MonkeyPatch, manylinux: str, expected: List[str]
+    ) -> None:
+        monkeypatch.setattr(
+            compatibility_tags,
+            "_get_musl_version",
+            lambda *_: compatibility_tags._MuslVersion(1, 2),
+        )
+        groups: Dict[Tuple[str, str], List[str]] = {}
+        supported = compatibility_tags.get_supported(platforms=[manylinux])
+        for tag in supported:
+            groups.setdefault((tag.interpreter, tag.abi), []).append(tag.platform)
+
+        for arches in groups.values():
+            if "any" in arches:
+                continue
+            assert arches == expected
