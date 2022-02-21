@@ -1,3 +1,4 @@
+import sys
 import sysconfig
 from typing import Any, Callable, Dict, List, Tuple
 from unittest.mock import patch
@@ -57,6 +58,7 @@ class Testcompatibility_tags:
 
 
 class TestManylinuxTags:
+    @pytest.mark.skipif(sys.platform != "linux", reason="Linux-only test")
     @pytest.mark.parametrize(
         "manylinuxA,manylinuxB",
         [
