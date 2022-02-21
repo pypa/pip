@@ -2,6 +2,7 @@
 # mypy: strict-optional=False
 
 import os
+import re
 import sys
 from typing import Optional, Tuple
 
@@ -86,3 +87,10 @@ def libc_ver() -> Tuple[str, str]:
         return ("", "")
     else:
         return ("glibc", glibc_version)
+
+
+def parse_glibc_version(version: str) -> Tuple[int, int]:
+    m = re.match(r"(?P<major>[0-9]+)\.(?P<minor>[0-9]+)", version)
+    if not m:
+        return -1, -1
+    return int(m.group("major")), int(m.group("minor"))
