@@ -1,12 +1,24 @@
 import os
 import sys
 import sysconfig
-from typing import Any, Callable, Dict, List, Tuple
+import types
+from typing import Any, Callable, Dict, List, Optional, Tuple
 from unittest.mock import patch
 
 import pytest
 
 from pip._internal.utils import compatibility_tags
+
+ManylinuxModule = Callable[[pytest.MonkeyPatch], types.ModuleType]
+
+
+@pytest.fixture
+def manylinux_module(monkeypatch: pytest.MonkeyPatch) -> types.ModuleType:
+    monkeypatch.setattr(compatibility_tags, "_get_glibc_version", lambda *args: (2, 20))
+    module_name = "_manylinux"
+    module = types.ModuleType(module_name)
+    monkeypatch.setitem(sys.modules, module_name, module)
+    return module
 
 
 @pytest.mark.parametrize(
@@ -59,6 +71,9 @@ class Testcompatibility_tags:
 
 
 class TestManylinuxTags:
+    def teardown_method(self) -> None:
+        compatibility_tags._get_glibc_version.cache_clear()
+
     @pytest.mark.parametrize(
         "manylinux,expected,glibc_ver",
         [
@@ -155,8 +170,95 @@ class TestManylinuxTags:
                 continue
             assert arches == expected
 
-    def teardown_method(self) -> None:
-        compatibility_tags._get_glibc_version.cache_clear()
+    @pytest.mark.skipif(sys.platform == "linux", reason="Non-linux test")
+    def test_manylinux_on_non_linux(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        platforms = compatibility_tags._manylinux_platforms("manylinux_2_30_i686")
+        assert not platforms
+
+
+class TestManylinuxCompatibleTags:
+    @pytest.mark.parametrize(
+        "machine, major, minor, tf", [("x86_64", 2, 20, False), ("s390x", 2, 22, True)]
+    )
+    def test_use_manylinux_compatible(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        manylinux_module: ManylinuxModule,
+        machine: str,
+        major: int,
+        minor: int,
+        tf: bool,
+    ) -> None:
+        def manylinux_compatible(tag_major: int, tag_minor: int, tag_arch: str) -> bool:
+            if tag_major == 2 and tag_minor == 22:
+                return tag_arch == "s390x"
+            return False
+
+        monkeypatch.setattr(
+            compatibility_tags,
+            "_get_glibc_version",
+            lambda: (major, minor),
+        )
+        monkeypatch.setattr(sys, "platform", "linux")
+        monkeypatch.setattr(
+            manylinux_module,
+            "manylinux_compatible",
+            manylinux_compatible,
+            raising=False,
+        )
+        groups: Dict[Tuple[str, str], List[str]] = {}
+        manylinux = f"manylinux_{major}_{minor}_{machine}"
+        supported = compatibility_tags.get_supported(platforms=[manylinux])
+        for tag in supported:
+            groups.setdefault((tag.interpreter, tag.abi), []).append(tag.platform)
+
+        if tf:
+            expected = [f"manylinux_2_22_{machine}"]
+        else:
+            expected = ["linux_x86_64"]
+        for arches in groups.values():
+            if "any" in arches:
+                continue
+            assert arches == expected
+
+    def test_linux_use_manylinux_compatible_none(
+        self, monkeypatch: pytest.MonkeyPatch, manylinux_module: ManylinuxModule
+    ) -> None:
+        def manylinux_compatible(
+            tag_major: int, tag_minor: int, tag_arch: str
+        ) -> Optional[bool]:
+            if tag_major == 2 and tag_minor < 25:
+                return False
+            return None
+
+        monkeypatch.setattr(compatibility_tags, "_get_glibc_version", lambda: (2, 30))
+        monkeypatch.setattr(sys, "platform", "linux")
+        monkeypatch.setattr(
+            manylinux_module,
+            "manylinux_compatible",
+            manylinux_compatible,
+            raising=False,
+        )
+
+        groups: Dict[Tuple[str, str], List[str]] = {}
+        supported = compatibility_tags.get_supported(
+            platforms=["manylinux_2_30_x86_64"]
+        )
+        for tag in supported:
+            groups.setdefault((tag.interpreter, tag.abi), []).append(tag.platform)
+
+        expected = [
+            "manylinux_2_30_x86_64",
+            "manylinux_2_29_x86_64",
+            "manylinux_2_28_x86_64",
+            "manylinux_2_27_x86_64",
+            "manylinux_2_26_x86_64",
+            "manylinux_2_25_x86_64",
+        ]
+        for arches in groups.values():
+            if "any" in arches:
+                continue
+            assert arches == expected
 
 
 class TestManylinux2010Tags:
