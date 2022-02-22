@@ -1,4 +1,5 @@
 import os
+import sys
 import sysconfig
 from typing import Any, Callable, Dict, List, Tuple
 from unittest.mock import patch
@@ -140,6 +141,7 @@ class TestManylinuxTags:
         expected: List[str],
         glibc_ver: str,
     ) -> None:
+        monkeypatch.setattr(sys, "platform", "linux")
         monkeypatch.setattr(
             os, "confstr", lambda x: f"glibc {glibc_ver}", raising=False
         )
@@ -211,35 +213,33 @@ class TestManylinux2014Tags:
 
 class TestMusllinuxTags:
     @pytest.mark.parametrize(
-        "manylinux,expected",
+        "manylinux,musl_ver",
         [
-            (
-                "musllinux_1_4_x86_64",
-                [
-                    "musllinux_1_2_x86_64",
-                    "musllinux_1_1_x86_64",
-                    "musllinux_1_0_x86_64",
-                ],
-            ),
-            (
-                "musllinux_1_4_i686",
-                ["musllinux_1_2_i686", "musllinux_1_1_i686", "musllinux_1_0_i686"],
-            ),
+            ("musllinux_1_4_x86_64", (1, 4)),
+            ("musllinux_1_4_i686", (1, 2)),
         ],
     )
     def test_musllinux(
-        self, monkeypatch: pytest.MonkeyPatch, manylinux: str, expected: List[str]
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        manylinux: str,
+        musl_ver: Tuple[int, int],
     ) -> None:
         monkeypatch.setattr(
             compatibility_tags,
             "_get_musl_version",
-            lambda *_: compatibility_tags._MuslVersion(1, 2),
+            lambda *_: compatibility_tags._MuslVersion(*musl_ver),
         )
         groups: Dict[Tuple[str, str], List[str]] = {}
         supported = compatibility_tags.get_supported(platforms=[manylinux])
         for tag in supported:
             groups.setdefault((tag.interpreter, tag.abi), []).append(tag.platform)
 
+        *_, arch = manylinux.split("_", 3)
+        expected = [
+            f"musllinux_{musl_ver[0]}_{minor}_{arch}"
+            for minor in range(musl_ver[1], -1, -1)
+        ]
         for arches in groups.values():
             if "any" in arches:
                 continue
