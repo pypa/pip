@@ -1,1 +1,1 @@
-Support ``PEP600/656`` compatible manylinux and musllinux wheels.
+Support glibc-based manylinux and musllinux platform tags.
