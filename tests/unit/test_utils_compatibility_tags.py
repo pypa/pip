@@ -96,6 +96,18 @@ class TestManylinuxTags:
                     "manylinux1_x86_64",
                 ],
             ),
+            (
+                "manylinux_2_5_x86_64",
+                [
+                    "manylinux1_x86_64",
+                ],
+            ),
+            (
+                "manylinux_2_17_armv7l",
+                [
+                    "manylinux2014_armv7l",
+                ],
+            ),
         ],
     )
     def test_manylinuxA_implies_manylinuxB(
