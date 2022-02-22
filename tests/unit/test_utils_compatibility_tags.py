@@ -199,7 +199,7 @@ class TestManylinuxCompatibleTags:
             "_get_glibc_version",
             lambda: (major, minor),
         )
-        monkeypatch.setattr(sys, "platform", "linux")
+        monkeypatch.setattr(sysconfig, "get_platform", lambda: f"linux_{machine}")
         monkeypatch.setattr(
             manylinux_module,
             "manylinux_compatible",
@@ -232,7 +232,7 @@ class TestManylinuxCompatibleTags:
             return None
 
         monkeypatch.setattr(compatibility_tags, "_get_glibc_version", lambda: (2, 30))
-        monkeypatch.setattr(sys, "platform", "linux")
+        monkeypatch.setattr(sysconfig, "get_platform", lambda: "linux_x86_64")
         monkeypatch.setattr(
             manylinux_module,
             "manylinux_compatible",
