@@ -1,4 +1,4 @@
-import sys
+import os
 import sysconfig
 from typing import Any, Callable, Dict, List, Tuple
 from unittest.mock import patch
@@ -58,13 +58,13 @@ class Testcompatibility_tags:
 
 
 class TestManylinuxTags:
-    @pytest.mark.skipif(sys.platform != "linux", reason="Linux-only test")
     @pytest.mark.parametrize(
-        "manylinuxA,manylinuxB",
+        "manylinux,expected,glibc_ver",
         [
             (
                 "manylinux_2_12_x86_64",
                 [
+                    "manylinux_2_12_x86_64",
                     "manylinux2010_x86_64",
                     "manylinux_2_11_x86_64",
                     "manylinux_2_10_x86_64",
@@ -75,10 +75,12 @@ class TestManylinuxTags:
                     "manylinux_2_5_x86_64",
                     "manylinux1_x86_64",
                 ],
+                "2.12",
             ),
             (
                 "manylinux_2_17_x86_64",
                 [
+                    "manylinux_2_17_x86_64",
                     "manylinux2014_x86_64",
                     "manylinux_2_16_x86_64",
                     "manylinux_2_15_x86_64",
@@ -95,35 +97,61 @@ class TestManylinuxTags:
                     "manylinux_2_5_x86_64",
                     "manylinux1_x86_64",
                 ],
+                "2.17",
             ),
             (
                 "manylinux_2_5_x86_64",
                 [
+                    "manylinux_2_5_x86_64",
                     "manylinux1_x86_64",
                 ],
+                "2.5",
             ),
             (
                 "manylinux_2_17_armv7l",
                 [
+                    "manylinux_2_17_armv7l",
                     "manylinux2014_armv7l",
                 ],
+                "2.17",
+            ),
+            (
+                "manylinux_2_17_x86_64",
+                [
+                    "manylinux_2_12_x86_64",
+                    "manylinux2010_x86_64",
+                    "manylinux_2_11_x86_64",
+                    "manylinux_2_10_x86_64",
+                    "manylinux_2_9_x86_64",
+                    "manylinux_2_8_x86_64",
+                    "manylinux_2_7_x86_64",
+                    "manylinux_2_6_x86_64",
+                    "manylinux_2_5_x86_64",
+                    "manylinux1_x86_64",
+                ],
+                "2.12",
             ),
         ],
     )
-    def test_manylinuxA_implies_manylinuxB(
-        self, manylinuxA: str, manylinuxB: str
+    def test_manylinux(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        manylinux: str,
+        expected: List[str],
+        glibc_ver: str,
     ) -> None:
+        monkeypatch.setattr(
+            os, "confstr", lambda x: f"glibc {glibc_ver}", raising=False
+        )
         groups: Dict[Tuple[str, str], List[str]] = {}
-        supported = compatibility_tags.get_supported(platforms=[manylinuxA])
+        supported = compatibility_tags.get_supported(platforms=[manylinux])
         for tag in supported:
             groups.setdefault((tag.interpreter, tag.abi), []).append(tag.platform)
 
-        expected_arches = [manylinuxA]
-        expected_arches.extend(manylinuxB)
         for arches in groups.values():
             if "any" in arches:
                 continue
-            assert arches == expected_arches
+            assert arches == expected
 
     def teardown_method(self) -> None:
         compatibility_tags._get_glibc_version.cache_clear()
