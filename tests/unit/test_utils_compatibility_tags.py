@@ -170,13 +170,9 @@ class TestManylinuxTags:
                 continue
             assert arches == expected
 
-    @pytest.mark.skipif(sys.platform == "linux", reason="Non-linux test")
-    def test_manylinux_on_non_linux(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        platforms = compatibility_tags._manylinux_platforms("manylinux_2_30_i686")
-        assert not platforms
-
 
 class TestManylinuxCompatibleTags:
+    @pytest.mark.skipif(sys.platform != "linux", reason="Linux-only test")
     @pytest.mark.parametrize(
         "machine, major, minor, tf", [("x86_64", 2, 20, False), ("s390x", 2, 22, True)]
     )
@@ -215,12 +211,13 @@ class TestManylinuxCompatibleTags:
         if tf:
             expected = [f"manylinux_2_22_{machine}"]
         else:
-            expected = ["linux_x86_64"]
+            expected = [f"linux_{machine}"]
         for arches in groups.values():
             if "any" in arches:
                 continue
             assert arches == expected
 
+    @pytest.mark.skipif(sys.platform != "linux", reason="Linux-only test")
     def test_linux_use_manylinux_compatible_none(
         self, monkeypatch: pytest.MonkeyPatch, manylinux_module: ManylinuxModule
     ) -> None:
