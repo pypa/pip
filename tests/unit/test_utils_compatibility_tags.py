@@ -172,7 +172,6 @@ class TestManylinuxTags:
 
 
 class TestManylinuxCompatibleTags:
-    @pytest.mark.skipif(sys.platform != "linux", reason="Linux-only test")
     @pytest.mark.parametrize(
         "machine, major, minor, tf", [("x86_64", 2, 20, False), ("s390x", 2, 22, True)]
     )
@@ -195,7 +194,6 @@ class TestManylinuxCompatibleTags:
             "_get_glibc_version",
             lambda: (major, minor),
         )
-        monkeypatch.setattr(sysconfig, "get_platform", lambda: f"linux_{machine}")
         monkeypatch.setattr(
             manylinux_module,
             "manylinux_compatible",
@@ -217,7 +215,6 @@ class TestManylinuxCompatibleTags:
                 continue
             assert arches == expected
 
-    @pytest.mark.skipif(sys.platform != "linux", reason="Linux-only test")
     def test_linux_use_manylinux_compatible_none(
         self, monkeypatch: pytest.MonkeyPatch, manylinux_module: ManylinuxModule
     ) -> None:
