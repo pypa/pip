@@ -211,7 +211,7 @@ class TestManylinuxCompatibleTags:
         if tf:
             expected = [f"manylinux_2_22_{machine}"]
         else:
-            expected = [f"linux_{machine}"]
+            expected = [f"manylinux_{major}_{minor}_{machine}"]
         for arches in groups.values():
             if "any" in arches:
                 continue
@@ -312,7 +312,7 @@ class TestManylinux2014Tags:
 
 class TestMusllinuxTags:
     @pytest.mark.parametrize(
-        "manylinux,musl_ver",
+        "musllinux,musl_ver",
         [
             ("musllinux_1_4_x86_64", (1, 4)),
             ("musllinux_1_4_i686", (1, 2)),
@@ -321,20 +321,20 @@ class TestMusllinuxTags:
     def test_musllinux(
         self,
         monkeypatch: pytest.MonkeyPatch,
-        manylinux: str,
+        musllinux: str,
         musl_ver: Tuple[int, int],
     ) -> None:
         monkeypatch.setattr(
             compatibility_tags,
             "_get_musl_version",
-            lambda *_: compatibility_tags._MuslVersion(*musl_ver),
+            lambda _: musl_ver,
         )
         groups: Dict[Tuple[str, str], List[str]] = {}
-        supported = compatibility_tags.get_supported(platforms=[manylinux])
+        supported = compatibility_tags.get_supported(platforms=[musllinux])
         for tag in supported:
             groups.setdefault((tag.interpreter, tag.abi), []).append(tag.platform)
 
-        *_, arch = manylinux.split("_", 3)
+        *_, arch = musllinux.split("_", 3)
         expected = [
             f"musllinux_{musl_ver[0]}_{minor}_{arch}"
             for minor in range(musl_ver[1], -1, -1)

@@ -79,8 +79,7 @@ def _get_glibc_version() -> Optional[Tuple[int, int]]:
 # From PEP 513, PEP 600
 def _is_manylinux_compatible(arch: str, version: _GLibCVersion) -> bool:
     sys_glibc = _get_glibc_version()
-    if not sys_glibc:
-        return False
+    assert sys_glibc is not None
     if sys_glibc < version:
         return False
     # Check for presence of _manylinux module.
@@ -135,7 +134,9 @@ def _manylinux_platforms(arch: str) -> List[str]:
     arch_prefix, arch_sep, arch_suffix = arch.partition("_")
 
     if arch_prefix == "manylinux":
-        arches = []
+        if not _get_glibc_version():
+            return arches
+        arch_list = []
         *curr_glibc_str, curr_arch = arch_suffix.split("_", 2)
         curr_glibc = _GLibCVersion(*map(int, curr_glibc_str))
         too_old_glibc2 = _GLibCVersion(2, 16)
@@ -156,12 +157,15 @@ def _manylinux_platforms(arch: str) -> List[str]:
                 glibc_version = _GLibCVersion(glibc_max.major, glibc_minor)
                 tag = "manylinux_{}_{}".format(*glibc_version)
                 if _is_manylinux_compatible(curr_arch, glibc_version):
-                    arches.append(tag + arch_sep + curr_arch)
+                    arch_list.append(tag + arch_sep + curr_arch)
                 # Handle the legacy manylinux1, manylinux2010, manylinux2014 tags.
                 if glibc_version in _LEGACY_MANYLINUX_MAP:
                     legacy_tag = _LEGACY_MANYLINUX_MAP[glibc_version]
                     if _is_manylinux_compatible(curr_arch, glibc_version):
-                        arches.append(legacy_tag + arch_sep + curr_arch)
+                        arch_list.append(legacy_tag + arch_sep + curr_arch)
+
+        if arch_list:
+            arches = arch_list
 
     elif arch_prefix == "manylinux2014":
         # manylinux1/manylinux2010 wheels run on most manylinux2014 systems
@@ -182,21 +186,24 @@ def _manylinux_platforms(arch: str) -> List[str]:
 
 
 def _musllinux_platforms(arch: str) -> List[str]:
+    arches = [arch]
     sys_musl = _get_musl_version(sys.executable)
     if sys_musl:
         sys_musl = _MuslVersion(*sys_musl)
     else:
-        return []
+        return arches
 
     *_, arch_suffix = arch.partition("_")
     *curr_musl_str, curr_arch = arch_suffix.split("_", 2)
     curr_musl = _MuslVersion(*map(int, curr_musl_str))
 
-    arches = []
+    arch_list = []
     for minor in range(curr_musl.minor, -1, -1):
         if sys_musl.minor < minor:
             continue
-        arches.append(f"musllinux_{sys_musl.major}_{minor}_{curr_arch}")
+        arch_list.append(f"musllinux_{sys_musl.major}_{minor}_{curr_arch}")
+    if arch_list:
+        arches = arch_list
     return arches
 
 
