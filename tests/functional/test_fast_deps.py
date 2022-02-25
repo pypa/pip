@@ -62,7 +62,7 @@ def test_download_from_pypi(
 def test_build_wheel_with_deps(data: TestData, script: PipTestEnvironment) -> None:
     result = pip(script, "wheel", data.packages / "requiresPaste")
     created = [basename(f) for f in result.files_created]
-    assert fnmatch.filter(created, "requiresPaste-3.1.4-*.whl")
+    assert fnmatch.filter(created, "requirespaste-3.1.4-*.whl")
     assert fnmatch.filter(created, "Paste-3.4.2-*.whl")
     assert fnmatch.filter(created, "six-*.whl")
 
