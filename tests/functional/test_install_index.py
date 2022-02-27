@@ -1,4 +1,5 @@
 import os
+import shutil
 import textwrap
 import urllib.parse
 
@@ -22,6 +23,21 @@ def test_find_links_relative_path(script: PipTestEnvironment, data: TestData) ->
     initools_folder = script.site_packages / "parent"
     result.did_create(dist_info_folder)
     result.did_create(initools_folder)
+
+
+def test_find_links_no_doctype(script: PipTestEnvironment, data: TestData) -> None:
+    shutil.copy(data.packages / "simple-1.0.tar.gz", script.scratch_path)
+    html = script.scratch_path.joinpath("index.html")
+    html.write_text('<a href="simple-1.0.tar.gz"></a>')
+    result = script.pip(
+        "install",
+        "simple==1.0",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        expect_stderr=True,
+    )
+    assert not result.stderr
 
 
 @pytest.mark.usefixtures("with_wheel")
