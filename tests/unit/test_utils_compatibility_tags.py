@@ -1,4 +1,5 @@
 import os
+import platform
 import sys
 import sysconfig
 import types
@@ -6,6 +7,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from unittest.mock import patch
 
 import pytest
+from pip._vendor.packaging.tags import _manylinux, _musllinux
 
 from pip._internal.utils import compatibility_tags
 
@@ -14,7 +16,7 @@ ManylinuxModule = Callable[[pytest.MonkeyPatch], types.ModuleType]
 
 @pytest.fixture
 def manylinux_module(monkeypatch: pytest.MonkeyPatch) -> types.ModuleType:
-    monkeypatch.setattr(compatibility_tags, "_get_glibc_version", lambda *args: (2, 20))
+    monkeypatch.setattr(_manylinux, "_get_glibc_version", lambda *args: (2, 20))
     module_name = "_manylinux"
     module = types.ModuleType(module_name)
     monkeypatch.setitem(sys.modules, module_name, module)
@@ -72,7 +74,7 @@ class Testcompatibility_tags:
 
 class TestManylinuxTags:
     def teardown_method(self) -> None:
-        compatibility_tags._get_glibc_version.cache_clear()
+        _manylinux._get_glibc_version.cache_clear()
 
     @pytest.mark.parametrize(
         "manylinux,expected,glibc_ver",
@@ -124,10 +126,10 @@ class TestManylinuxTags:
                 "2.5",
             ),
             (
-                "manylinux_2_17_armv7l",
+                "manylinux_2_17_s390x",
                 [
-                    "manylinux_2_17_armv7l",
-                    "manylinux2014_armv7l",
+                    "manylinux_2_17_s390x",
+                    "manylinux2014_s390x",
                 ],
                 "2.17",
             ),
@@ -156,7 +158,9 @@ class TestManylinuxTags:
         expected: List[str],
         glibc_ver: str,
     ) -> None:
-        monkeypatch.setattr(sys, "platform", "linux")
+        *_, arch = manylinux.split("_", 3)
+        monkeypatch.setattr(sysconfig, "get_platform", lambda: f"linux_{arch}")
+        monkeypatch.setattr(platform, "machine", lambda: arch)
         monkeypatch.setattr(
             os, "confstr", lambda x: f"glibc {glibc_ver}", raising=False
         )
@@ -190,7 +194,7 @@ class TestManylinuxCompatibleTags:
             return False
 
         monkeypatch.setattr(
-            compatibility_tags,
+            _manylinux,
             "_get_glibc_version",
             lambda: (major, minor),
         )
@@ -225,7 +229,7 @@ class TestManylinuxCompatibleTags:
                 return False
             return None
 
-        monkeypatch.setattr(compatibility_tags, "_get_glibc_version", lambda: (2, 30))
+        monkeypatch.setattr(_manylinux, "_get_glibc_version", lambda: (2, 30))
         monkeypatch.setattr(sysconfig, "get_platform", lambda: "linux_x86_64")
         monkeypatch.setattr(
             manylinux_module,
@@ -309,29 +313,30 @@ class TestManylinux2014Tags:
 
 class TestMusllinuxTags:
     @pytest.mark.parametrize(
-        "musllinux,musl_ver",
+        "musllinux,arch,musl_ver",
         [
-            ("musllinux_1_4_x86_64", (1, 4)),
-            ("musllinux_1_4_i686", (1, 2)),
+            ("musllinux_1_4", "x86_64", (1, 4)),
+            ("musllinux_1_4", "i686", (1, 2)),
         ],
     )
     def test_musllinux(
         self,
         monkeypatch: pytest.MonkeyPatch,
         musllinux: str,
+        arch: str,
         musl_ver: Tuple[int, int],
     ) -> None:
         monkeypatch.setattr(
-            compatibility_tags,
+            _musllinux,
             "_get_musl_version",
-            lambda _: musl_ver,
+            lambda _: _musllinux._MuslVersion(*musl_ver),
         )
+        monkeypatch.setattr(sysconfig, "get_platform", lambda: f"linux_{arch}")
         groups: Dict[Tuple[str, str], List[str]] = {}
-        supported = compatibility_tags.get_supported(platforms=[musllinux])
+        supported = compatibility_tags.get_supported(platforms=[f"{musllinux}_{arch}"])
         for tag in supported:
             groups.setdefault((tag.interpreter, tag.abi), []).append(tag.platform)
 
-        *_, arch = musllinux.split("_", 3)
         expected = [
             f"musllinux_{musl_ver[0]}_{minor}_{arch}"
             for minor in range(musl_ver[1], -1, -1)
