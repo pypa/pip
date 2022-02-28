@@ -159,6 +159,7 @@ class TestManylinuxTags:
         glibc_ver: str,
     ) -> None:
         *_, arch = manylinux.split("_", 3)
+        monkeypatch.setattr(platform, "system", lambda: "Linux")
         monkeypatch.setattr(sysconfig, "get_platform", lambda: f"linux_{arch}")
         monkeypatch.setattr(platform, "machine", lambda: arch)
         monkeypatch.setattr(
@@ -193,6 +194,7 @@ class TestManylinuxCompatibleTags:
                 return tag_arch == "s390x"
             return False
 
+        monkeypatch.setattr(platform, "system", lambda: "Linux")
         monkeypatch.setattr(
             _manylinux,
             "_get_glibc_version",
@@ -229,6 +231,7 @@ class TestManylinuxCompatibleTags:
                 return False
             return None
 
+        monkeypatch.setattr(platform, "system", lambda: "Linux")
         monkeypatch.setattr(_manylinux, "_get_glibc_version", lambda: (2, 30))
         monkeypatch.setattr(sysconfig, "get_platform", lambda: "linux_x86_64")
         monkeypatch.setattr(
@@ -327,10 +330,16 @@ class TestMusllinuxTags:
         musl_ver: Tuple[int, int],
     ) -> None:
         monkeypatch.setattr(
+            _manylinux,
+            "_get_glibc_version",
+            lambda: (-1, -1),
+        )
+        monkeypatch.setattr(
             _musllinux,
             "_get_musl_version",
             lambda _: _musllinux._MuslVersion(*musl_ver),
         )
+        monkeypatch.setattr(platform, "system", lambda: "Linux")
         monkeypatch.setattr(sysconfig, "get_platform", lambda: f"linux_{arch}")
         groups: Dict[Tuple[str, str], List[str]] = {}
         supported = compatibility_tags.get_supported(platforms=[f"{musllinux}_{arch}"])
