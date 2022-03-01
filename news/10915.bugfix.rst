@@ -1,0 +1,1 @@
+Suppress the progress bar, when running with ``--log`` and ``--quiet``.

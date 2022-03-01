@@ -573,6 +573,18 @@ def test_install_quiet(script: PipTestEnvironment, data: TestData) -> None:
     assert result.stderr == ""
 
 
+def test_install_quiet_log(script: PipTestEnvironment, data: TestData) -> None:
+    """
+    Test suppressing the progress bar with --quiet and --log.
+    """
+    logfile = script.scratch_path / "log"
+    result = script.pip(
+        "install", "-qqq", "--find-links", data.find_links, "--log", logfile, "mypy"
+    )
+    assert result.stdout == ""
+    assert result.stderr == ""
+
+
 def test_hashed_install_success(
     script: PipTestEnvironment, data: TestData, tmpdir: Path
 ) -> None:
