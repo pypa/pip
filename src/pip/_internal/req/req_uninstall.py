@@ -527,7 +527,7 @@ class UninstallPathSet:
             # above, so this only covers the setuptools-style editable.
             with open(develop_egg_link) as fh:
                 link_pointer = os.path.normcase(fh.readline().strip())
-            assert link_pointer == dist_location, (
+            assert os.path.samefile(link_pointer, dist_location), (
                 f"Egg-link {link_pointer} does not match installed location of "
                 f"{dist.raw_name} (at {dist_location})"
             )

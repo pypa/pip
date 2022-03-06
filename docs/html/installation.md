@@ -14,7 +14,7 @@ If your Python environment does not have pip installed, there are 2 mechanisms
 to install pip supported directly by pip's maintainers:
 
 - [`ensurepip`](#ensurepip)
-- [`get-pip.py`](#get-pip-py)
+- [`get-pip.py`](#get-pippy)
 
 ### `ensurepip`
 
@@ -81,8 +81,9 @@ pip is tested to work on the latest patch version of the Python interpreter,
 for each of the minor versions listed above. Previous patch versions are
 supported on a best effort approach.
 
-pip's maintainers do not provide support for users on older versions of Python,
-and these users should request for support from the relevant provider
-(eg: Linux distro community, cloud provider support channels, etc).
+Other operating systems and Python versions are not supported by pip's
+maintainers.
+
+Users who are on unsupported platforms should be aware that if they hit issues, they may have to resolve them for themselves. If they received pip from a source which provides support for their platform, they should request pip support from that source.
 
 [^python]: The `ensurepip` module was added to the Python standard library in Python 3.4.
