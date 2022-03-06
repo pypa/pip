@@ -772,7 +772,6 @@ if PY3:
             value = None
             tb = None
 
-
 else:
 
     def exec_(_code_, _globs_=None, _locs_=None):
@@ -785,7 +784,7 @@ else:
             del frame
         elif _locs_ is None:
             _locs_ = _globs_
-        exec ("""exec _code_ in _globs_, _locs_""")
+        exec("""exec _code_ in _globs_, _locs_""")
 
     exec_(
         """def reraise(tp, value, tb=None):

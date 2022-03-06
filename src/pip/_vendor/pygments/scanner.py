@@ -49,6 +49,7 @@ class Scanner:
     def eos(self):
         """`True` if the scanner reached the end of text."""
         return self.pos >= self.data_length
+
     eos = property(eos, eos.__doc__)
 
     def check(self, pattern):
@@ -94,11 +95,7 @@ class Scanner:
 
     def get_char(self):
         """Scan exactly one char."""
-        self.scan('.')
+        self.scan(".")
 
     def __repr__(self):
-        return '<%s %d/%d>' % (
-            self.__class__.__name__,
-            self.pos,
-            self.data_length
-        )
+        return "<%s %d/%d>" % (self.__class__.__name__, self.pos, self.data_length)

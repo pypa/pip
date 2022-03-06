@@ -10,6 +10,7 @@ When any of these things occur, we emit a DataLossWarning
 """
 
 from __future__ import absolute_import, division, unicode_literals
+
 # pylint:disable=protected-access
 
 import warnings
@@ -72,15 +73,15 @@ def testSerializer(element):
                 # Full tree case
                 rv.append("#document")
                 if element.docinfo.internalDTD:
-                    if not (element.docinfo.public_id or
-                            element.docinfo.system_url):
+                    if not (element.docinfo.public_id or element.docinfo.system_url):
                         dtd_str = "<!DOCTYPE %s>" % element.docinfo.root_name
                     else:
                         dtd_str = """<!DOCTYPE %s "%s" "%s">""" % (
                             element.docinfo.root_name,
                             element.docinfo.public_id,
-                            element.docinfo.system_url)
-                    rv.append("|%s%s" % (' ' * (indent + 2), dtd_str))
+                            element.docinfo.system_url,
+                        )
+                    rv.append("|%s%s" % (" " * (indent + 2), dtd_str))
                 next_element = element.getroot()
                 while next_element.getprevious() is not None:
                     next_element = next_element.getprevious()
@@ -90,16 +91,16 @@ def testSerializer(element):
             elif isinstance(element, str) or isinstance(element, bytes):
                 # Text in a fragment
                 assert isinstance(element, str) or sys.version_info[0] == 2
-                rv.append("|%s\"%s\"" % (' ' * indent, element))
+                rv.append('|%s"%s"' % (" " * indent, element))
             else:
                 # Fragment case
                 rv.append("#document-fragment")
                 for next_element in element:
                     serializeElement(next_element, indent + 2)
         elif element.tag == comment_type:
-            rv.append("|%s<!-- %s -->" % (' ' * indent, element.text))
+            rv.append("|%s<!-- %s -->" % (" " * indent, element.text))
             if hasattr(element, "tail") and element.tail:
-                rv.append("|%s\"%s\"" % (' ' * indent, element.tail))
+                rv.append('|%s"%s"' % (" " * indent, element.tail))
         else:
             assert isinstance(element, etree._Element)
             nsmatch = etree_builders.tag_regexp.match(element.tag)
@@ -107,11 +108,14 @@ def testSerializer(element):
                 ns = nsmatch.group(1)
                 tag = nsmatch.group(2)
                 prefix = constants.prefixes[ns]
-                rv.append("|%s<%s %s>" % (' ' * indent, prefix,
-                                          infosetFilter.fromXmlName(tag)))
+                rv.append(
+                    "|%s<%s %s>"
+                    % (" " * indent, prefix, infosetFilter.fromXmlName(tag))
+                )
             else:
-                rv.append("|%s<%s>" % (' ' * indent,
-                                       infosetFilter.fromXmlName(element.tag)))
+                rv.append(
+                    "|%s<%s>" % (" " * indent, infosetFilter.fromXmlName(element.tag))
+                )
 
             if hasattr(element, "attrib"):
                 attributes = []
@@ -127,15 +131,16 @@ def testSerializer(element):
                     attributes.append((attr_string, value))
 
                 for name, value in sorted(attributes):
-                    rv.append('|%s%s="%s"' % (' ' * (indent + 2), name, value))
+                    rv.append('|%s%s="%s"' % (" " * (indent + 2), name, value))
 
             if element.text:
-                rv.append("|%s\"%s\"" % (' ' * (indent + 2), element.text))
+                rv.append('|%s"%s"' % (" " * (indent + 2), element.text))
             indent += 2
             for child in element:
                 serializeElement(child, indent)
             if hasattr(element, "tail") and element.tail:
-                rv.append("|%s\"%s\"" % (' ' * (indent - 2), element.tail))
+                rv.append('|%s"%s"' % (" " * (indent - 2), element.tail))
+
     serializeElement(element, 0)
 
     return "\n".join(rv)
@@ -163,8 +168,12 @@ def tostring(element):
             if not element.attrib:
                 rv.append("<%s>" % (element.tag,))
             else:
-                attr = " ".join(["%s=\"%s\"" % (name, value)
-                                 for name, value in element.attrib.items()])
+                attr = " ".join(
+                    [
+                        '%s="%s"' % (name, value)
+                        for name, value in element.attrib.items()
+                    ]
+                )
                 rv.append("<%s %s>" % (element.tag, attr))
             if element.text:
                 rv.append(element.text)
@@ -192,7 +201,9 @@ class TreeBuilder(base.TreeBuilder):
 
     def __init__(self, namespaceHTMLElements, fullTree=False):
         builder = etree_builders.getETreeModule(etree, fullTree=fullTree)
-        infosetFilter = self.infosetFilter = _ihatexml.InfosetFilter(preventDoubleDashComments=True)
+        infosetFilter = self.infosetFilter = _ihatexml.InfosetFilter(
+            preventDoubleDashComments=True
+        )
         self.namespaceHTMLElements = namespaceHTMLElements
 
         class Attributes(MutableMapping):
@@ -235,8 +246,7 @@ class TreeBuilder(base.TreeBuilder):
 
             def _setName(self, name):
                 self._name = infosetFilter.coerceElement(name)
-                self._element.tag = self._getETreeTag(
-                    self._name, self._namespace)
+                self._element.tag = self._getETreeTag(self._name, self._namespace)
 
             def _getName(self):
                 return infosetFilter.fromXmlName(self._name)
@@ -329,9 +339,14 @@ class TreeBuilder(base.TreeBuilder):
         self.initial_comments.append(data)
 
     def insertCommentMain(self, data, parent=None):
-        if (parent == self.document and
-                self.document._elementTree.getroot()[-1].tag == comment_type):
-            warnings.warn("lxml cannot represent adjacent comments beyond the root elements", DataLossWarning)
+        if (
+            parent == self.document
+            and self.document._elementTree.getroot()[-1].tag == comment_type
+        ):
+            warnings.warn(
+                "lxml cannot represent adjacent comments beyond the root elements",
+                DataLossWarning,
+            )
         super(TreeBuilder, self).insertComment(data, parent)
 
     def insertRoot(self, token):
@@ -343,15 +358,18 @@ class TreeBuilder(base.TreeBuilder):
         if self.doctype:
             assert self.doctype.name
             docStr += "<!DOCTYPE %s" % self.doctype.name
-            if (self.doctype.publicId is not None or
-                    self.doctype.systemId is not None):
-                docStr += (' PUBLIC "%s" ' %
-                           (self.infosetFilter.coercePubid(self.doctype.publicId or "")))
+            if self.doctype.publicId is not None or self.doctype.systemId is not None:
+                docStr += ' PUBLIC "%s" ' % (
+                    self.infosetFilter.coercePubid(self.doctype.publicId or "")
+                )
                 if self.doctype.systemId:
                     sysid = self.doctype.systemId
                     if sysid.find("'") >= 0 and sysid.find('"') >= 0:
-                        warnings.warn("DOCTYPE system cannot contain single and double quotes", DataLossWarning)
-                        sysid = sysid.replace("'", 'U00027')
+                        warnings.warn(
+                            "DOCTYPE system cannot contain single and double quotes",
+                            DataLossWarning,
+                        )
+                        sysid = sysid.replace("'", "U00027")
                     if sysid.find("'") >= 0:
                         docStr += '"%s"' % sysid
                     else:
@@ -360,7 +378,10 @@ class TreeBuilder(base.TreeBuilder):
                     docStr += "''"
             docStr += ">"
             if self.doctype.name != token["name"]:
-                warnings.warn("lxml cannot represent doctype with a different name to the root element", DataLossWarning)
+                warnings.warn(
+                    "lxml cannot represent doctype with a different name to the root element",
+                    DataLossWarning,
+                )
         docStr += "<THIS_SHOULD_NEVER_APPEAR_PUBLICLY/>"
         root = etree.fromstring(docStr)
 

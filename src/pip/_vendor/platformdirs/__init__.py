@@ -47,7 +47,9 @@ def user_data_dir(
     :param roaming: See `roaming <platformdirs.api.PlatformDirsABC.version>`.
     :returns: data directory tied to the user
     """
-    return PlatformDirs(appname=appname, appauthor=appauthor, version=version, roaming=roaming).user_data_dir
+    return PlatformDirs(
+        appname=appname, appauthor=appauthor, version=version, roaming=roaming
+    ).user_data_dir
 
 
 def site_data_dir(
@@ -63,7 +65,9 @@ def site_data_dir(
     :param multipath: See `roaming <platformdirs.api.PlatformDirsABC.multipath>`.
     :returns: data directory shared by users
     """
-    return PlatformDirs(appname=appname, appauthor=appauthor, version=version, multipath=multipath).site_data_dir
+    return PlatformDirs(
+        appname=appname, appauthor=appauthor, version=version, multipath=multipath
+    ).site_data_dir
 
 
 def user_config_dir(
@@ -79,7 +83,9 @@ def user_config_dir(
     :param roaming: See `roaming <platformdirs.api.PlatformDirsABC.version>`.
     :returns: config directory tied to the user
     """
-    return PlatformDirs(appname=appname, appauthor=appauthor, version=version, roaming=roaming).user_config_dir
+    return PlatformDirs(
+        appname=appname, appauthor=appauthor, version=version, roaming=roaming
+    ).user_config_dir
 
 
 def site_config_dir(
@@ -95,7 +101,9 @@ def site_config_dir(
     :param multipath: See `roaming <platformdirs.api.PlatformDirsABC.multipath>`.
     :returns: config directory shared by the users
     """
-    return PlatformDirs(appname=appname, appauthor=appauthor, version=version, multipath=multipath).site_config_dir
+    return PlatformDirs(
+        appname=appname, appauthor=appauthor, version=version, multipath=multipath
+    ).site_config_dir
 
 
 def user_cache_dir(
@@ -111,7 +119,9 @@ def user_cache_dir(
     :param opinion: See `roaming <platformdirs.api.PlatformDirsABC.opinion>`.
     :returns: cache directory tied to the user
     """
-    return PlatformDirs(appname=appname, appauthor=appauthor, version=version, opinion=opinion).user_cache_dir
+    return PlatformDirs(
+        appname=appname, appauthor=appauthor, version=version, opinion=opinion
+    ).user_cache_dir
 
 
 def user_state_dir(
@@ -127,7 +137,9 @@ def user_state_dir(
     :param roaming: See `roaming <platformdirs.api.PlatformDirsABC.version>`.
     :returns: state directory tied to the user
     """
-    return PlatformDirs(appname=appname, appauthor=appauthor, version=version, roaming=roaming).user_state_dir
+    return PlatformDirs(
+        appname=appname, appauthor=appauthor, version=version, roaming=roaming
+    ).user_state_dir
 
 
 def user_log_dir(
@@ -143,7 +155,9 @@ def user_log_dir(
     :param opinion: See `roaming <platformdirs.api.PlatformDirsABC.opinion>`.
     :returns: log directory tied to the user
     """
-    return PlatformDirs(appname=appname, appauthor=appauthor, version=version, opinion=opinion).user_log_dir
+    return PlatformDirs(
+        appname=appname, appauthor=appauthor, version=version, opinion=opinion
+    ).user_log_dir
 
 
 def user_documents_dir() -> str:
@@ -166,7 +180,9 @@ def user_runtime_dir(
     :param opinion: See `opinion <platformdirs.api.PlatformDirsABC.opinion>`.
     :returns: runtime directory tied to the user
     """
-    return PlatformDirs(appname=appname, appauthor=appauthor, version=version, opinion=opinion).user_runtime_dir
+    return PlatformDirs(
+        appname=appname, appauthor=appauthor, version=version, opinion=opinion
+    ).user_runtime_dir
 
 
 def user_data_path(
@@ -182,7 +198,9 @@ def user_data_path(
     :param roaming: See `roaming <platformdirs.api.PlatformDirsABC.version>`.
     :returns: data path tied to the user
     """
-    return PlatformDirs(appname=appname, appauthor=appauthor, version=version, roaming=roaming).user_data_path
+    return PlatformDirs(
+        appname=appname, appauthor=appauthor, version=version, roaming=roaming
+    ).user_data_path
 
 
 def site_data_path(
@@ -198,7 +216,9 @@ def site_data_path(
     :param multipath: See `multipath <platformdirs.api.PlatformDirsABC.multipath>`.
     :returns: data path shared by users
     """
-    return PlatformDirs(appname=appname, appauthor=appauthor, version=version, multipath=multipath).site_data_path
+    return PlatformDirs(
+        appname=appname, appauthor=appauthor, version=version, multipath=multipath
+    ).site_data_path
 
 
 def user_config_path(
@@ -214,7 +234,9 @@ def user_config_path(
     :param roaming: See `roaming <platformdirs.api.PlatformDirsABC.version>`.
     :returns: config path tied to the user
     """
-    return PlatformDirs(appname=appname, appauthor=appauthor, version=version, roaming=roaming).user_config_path
+    return PlatformDirs(
+        appname=appname, appauthor=appauthor, version=version, roaming=roaming
+    ).user_config_path
 
 
 def site_config_path(
@@ -230,7 +252,9 @@ def site_config_path(
     :param multipath: See `roaming <platformdirs.api.PlatformDirsABC.multipath>`.
     :returns: config path shared by the users
     """
-    return PlatformDirs(appname=appname, appauthor=appauthor, version=version, multipath=multipath).site_config_path
+    return PlatformDirs(
+        appname=appname, appauthor=appauthor, version=version, multipath=multipath
+    ).site_config_path
 
 
 def user_cache_path(
@@ -246,7 +270,9 @@ def user_cache_path(
     :param opinion: See `roaming <platformdirs.api.PlatformDirsABC.opinion>`.
     :returns: cache path tied to the user
     """
-    return PlatformDirs(appname=appname, appauthor=appauthor, version=version, opinion=opinion).user_cache_path
+    return PlatformDirs(
+        appname=appname, appauthor=appauthor, version=version, opinion=opinion
+    ).user_cache_path
 
 
 def user_state_path(
@@ -262,7 +288,9 @@ def user_state_path(
     :param roaming: See `roaming <platformdirs.api.PlatformDirsABC.version>`.
     :returns: state path tied to the user
     """
-    return PlatformDirs(appname=appname, appauthor=appauthor, version=version, roaming=roaming).user_state_path
+    return PlatformDirs(
+        appname=appname, appauthor=appauthor, version=version, roaming=roaming
+    ).user_state_path
 
 
 def user_log_path(
@@ -278,7 +306,9 @@ def user_log_path(
     :param opinion: See `roaming <platformdirs.api.PlatformDirsABC.opinion>`.
     :returns: log path tied to the user
     """
-    return PlatformDirs(appname=appname, appauthor=appauthor, version=version, opinion=opinion).user_log_path
+    return PlatformDirs(
+        appname=appname, appauthor=appauthor, version=version, opinion=opinion
+    ).user_log_path
 
 
 def user_documents_path() -> Path:
@@ -301,7 +331,9 @@ def user_runtime_path(
     :param opinion: See `opinion <platformdirs.api.PlatformDirsABC.opinion>`.
     :returns: runtime path tied to the user
     """
-    return PlatformDirs(appname=appname, appauthor=appauthor, version=version, opinion=opinion).user_runtime_path
+    return PlatformDirs(
+        appname=appname, appauthor=appauthor, version=version, opinion=opinion
+    ).user_runtime_path
 
 
 __all__ = [

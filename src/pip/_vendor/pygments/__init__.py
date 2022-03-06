@@ -26,10 +26,10 @@
 """
 from io import StringIO, BytesIO
 
-__version__ = '2.11.2'
-__docformat__ = 'restructuredtext'
+__version__ = "2.11.2"
+__docformat__ = "restructuredtext"
 
-__all__ = ['lex', 'format', 'highlight']
+__all__ = ["lex", "format", "highlight"]
 
 
 def lex(code, lexer):
@@ -39,11 +39,11 @@ def lex(code, lexer):
     try:
         return lexer.get_tokens(code)
     except TypeError as err:
-        if (isinstance(err.args[0], str) and
-            ('unbound method get_tokens' in err.args[0] or
-             'missing 1 required positional argument' in err.args[0])):
-            raise TypeError('lex() argument must be a lexer instance, '
-                            'not a class')
+        if isinstance(err.args[0], str) and (
+            "unbound method get_tokens" in err.args[0]
+            or "missing 1 required positional argument" in err.args[0]
+        ):
+            raise TypeError("lex() argument must be a lexer instance, " "not a class")
         raise
 
 
@@ -57,17 +57,21 @@ def format(tokens, formatter, outfile=None):  # pylint: disable=redefined-builti
     """
     try:
         if not outfile:
-            realoutfile = getattr(formatter, 'encoding', None) and BytesIO() or StringIO()
+            realoutfile = (
+                getattr(formatter, "encoding", None) and BytesIO() or StringIO()
+            )
             formatter.format(tokens, realoutfile)
             return realoutfile.getvalue()
         else:
             formatter.format(tokens, outfile)
     except TypeError as err:
-        if (isinstance(err.args[0], str) and
-            ('unbound method format' in err.args[0] or
-             'missing 1 required positional argument' in err.args[0])):
-            raise TypeError('format() argument must be a formatter instance, '
-                            'not a class')
+        if isinstance(err.args[0], str) and (
+            "unbound method format" in err.args[0]
+            or "missing 1 required positional argument" in err.args[0]
+        ):
+            raise TypeError(
+                "format() argument must be a formatter instance, " "not a class"
+            )
         raise
 
 
@@ -80,4 +84,3 @@ def highlight(code, lexer, formatter, outfile=None):
     it is returned as a string.
     """
     return format(lex(code, lexer), formatter, outfile)
-

@@ -18,25 +18,26 @@ from collections import deque
 from datetime import timedelta
 from math import ceil
 from sys import stderr
+
 try:
     from time import monotonic
 except ImportError:
     from time import time as monotonic
 
 
-__version__ = '1.6'
+__version__ = "1.6"
 
-HIDE_CURSOR = '\x1b[?25l'
-SHOW_CURSOR = '\x1b[?25h'
+HIDE_CURSOR = "\x1b[?25l"
+SHOW_CURSOR = "\x1b[?25h"
 
 
 class Infinite(object):
     file = stderr
-    sma_window = 10         # Simple Moving Average window
+    sma_window = 10  # Simple Moving Average window
     check_tty = True
     hide_cursor = True
 
-    def __init__(self, message='', **kwargs):
+    def __init__(self, message="", **kwargs):
         self.index = 0
         self.start_ts = monotonic()
         self.avg = 0
@@ -52,16 +53,16 @@ class Infinite(object):
 
         if self.file and self.is_tty():
             if self.hide_cursor:
-                print(HIDE_CURSOR, end='', file=self.file)
+                print(HIDE_CURSOR, end="", file=self.file)
                 self._hidden_cursor = True
-        self.writeln('')
+        self.writeln("")
 
     def __del__(self):
         if self._hidden_cursor:
-            print(SHOW_CURSOR, end='', file=self.file)
+            print(SHOW_CURSOR, end="", file=self.file)
 
     def __getitem__(self, key):
-        if key.startswith('_'):
+        if key.startswith("_"):
             return None
         return getattr(self, key, None)
 
@@ -79,8 +80,7 @@ class Infinite(object):
             self._xput.append(dt / n)
             now = monotonic()
             # update when we're still filling _xput, then after every second
-            if (xput_len < self.sma_window or
-                    now - self._avg_update_ts > 1):
+            if xput_len < self.sma_window or now - self._avg_update_ts > 1:
                 self.avg = sum(self._xput) / len(self._xput)
                 self._avg_update_ts = now
 
@@ -95,17 +95,17 @@ class Infinite(object):
             width = len(line)
             if width < self._max_width:
                 # Add padding to cover previous contents
-                line += ' ' * (self._max_width - width)
+                line += " " * (self._max_width - width)
             else:
                 self._max_width = width
-            print('\r' + line, end='', file=self.file)
+            print("\r" + line, end="", file=self.file)
             self.file.flush()
 
     def finish(self):
         if self.file and self.is_tty():
             print(file=self.file)
             if self._hidden_cursor:
-                print(SHOW_CURSOR, end='', file=self.file)
+                print(SHOW_CURSOR, end="", file=self.file)
                 self._hidden_cursor = False
 
     def is_tty(self):
@@ -143,7 +143,7 @@ class Infinite(object):
 class Progress(Infinite):
     def __init__(self, *args, **kwargs):
         super(Progress, self).__init__(*args, **kwargs)
-        self.max = kwargs.get('max', 100)
+        self.max = kwargs.get("max", 100)
 
     @property
     def eta(self):

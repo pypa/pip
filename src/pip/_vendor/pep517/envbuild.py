@@ -18,15 +18,15 @@ log = logging.getLogger(__name__)
 
 def _load_pyproject(source_dir):
     with io.open(
-            os.path.join(source_dir, 'pyproject.toml'),
-            'rb',
-            ) as f:
+        os.path.join(source_dir, "pyproject.toml"),
+        "rb",
+    ) as f:
         pyproject_data = toml_load(f)
-    buildsys = pyproject_data['build-system']
+    buildsys = pyproject_data["build-system"]
     return (
-        buildsys['requires'],
-        buildsys['build-backend'],
-        buildsys.get('backend-path'),
+        buildsys["requires"],
+        buildsys["build-backend"],
+        buildsys.get("backend-path"),
     )
 
 
@@ -35,6 +35,7 @@ class BuildEnvironment(object):
 
     Based on code I wrote for pip, which is MIT licensed.
     """
+
     # Copyright (c) 2008-2016 The pip developers (see AUTHORS.txt file)
     #
     # Permission is hereby granted, free of charge, to any person obtaining
@@ -62,34 +63,35 @@ class BuildEnvironment(object):
         self._cleanup = cleanup
 
     def __enter__(self):
-        self.path = mkdtemp(prefix='pep517-build-env-')
-        log.info('Temporary build environment: %s', self.path)
+        self.path = mkdtemp(prefix="pep517-build-env-")
+        log.info("Temporary build environment: %s", self.path)
 
-        self.save_path = os.environ.get('PATH', None)
-        self.save_pythonpath = os.environ.get('PYTHONPATH', None)
+        self.save_path = os.environ.get("PATH", None)
+        self.save_pythonpath = os.environ.get("PYTHONPATH", None)
 
-        install_scheme = 'nt' if (os.name == 'nt') else 'posix_prefix'
-        install_dirs = get_paths(install_scheme, vars={
-            'base': self.path,
-            'platbase': self.path,
-        })
+        install_scheme = "nt" if (os.name == "nt") else "posix_prefix"
+        install_dirs = get_paths(
+            install_scheme,
+            vars={
+                "base": self.path,
+                "platbase": self.path,
+            },
+        )
 
-        scripts = install_dirs['scripts']
+        scripts = install_dirs["scripts"]
         if self.save_path:
-            os.environ['PATH'] = scripts + os.pathsep + self.save_path
+            os.environ["PATH"] = scripts + os.pathsep + self.save_path
         else:
-            os.environ['PATH'] = scripts + os.pathsep + os.defpath
+            os.environ["PATH"] = scripts + os.pathsep + os.defpath
 
-        if install_dirs['purelib'] == install_dirs['platlib']:
-            lib_dirs = install_dirs['purelib']
+        if install_dirs["purelib"] == install_dirs["platlib"]:
+            lib_dirs = install_dirs["purelib"]
         else:
-            lib_dirs = install_dirs['purelib'] + os.pathsep + \
-                install_dirs['platlib']
+            lib_dirs = install_dirs["purelib"] + os.pathsep + install_dirs["platlib"]
         if self.save_pythonpath:
-            os.environ['PYTHONPATH'] = lib_dirs + os.pathsep + \
-                self.save_pythonpath
+            os.environ["PYTHONPATH"] = lib_dirs + os.pathsep + self.save_pythonpath
         else:
-            os.environ['PYTHONPATH'] = lib_dirs
+            os.environ["PYTHONPATH"] = lib_dirs
 
         return self
 
@@ -97,10 +99,16 @@ class BuildEnvironment(object):
         """Install dependencies into this env by calling pip in a subprocess"""
         if not reqs:
             return
-        log.info('Calling pip to install %s', reqs)
+        log.info("Calling pip to install %s", reqs)
         cmd = [
-            sys.executable, '-m', 'pip', 'install', '--ignore-installed',
-            '--prefix', self.path] + list(reqs)
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "--ignore-installed",
+            "--prefix",
+            self.path,
+        ] + list(reqs)
         check_call(
             cmd,
             stdout=LoggerWrapper(log, logging.INFO),
@@ -109,22 +117,20 @@ class BuildEnvironment(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         needs_cleanup = (
-            self._cleanup and
-            self.path is not None and
-            os.path.isdir(self.path)
+            self._cleanup and self.path is not None and os.path.isdir(self.path)
         )
         if needs_cleanup:
             shutil.rmtree(self.path)
 
         if self.save_path is None:
-            os.environ.pop('PATH', None)
+            os.environ.pop("PATH", None)
         else:
-            os.environ['PATH'] = self.save_path
+            os.environ["PATH"] = self.save_path
 
         if self.save_pythonpath is None:
-            os.environ.pop('PYTHONPATH', None)
+            os.environ.pop("PYTHONPATH", None)
         else:
-            os.environ['PYTHONPATH'] = self.save_pythonpath
+            os.environ["PYTHONPATH"] = self.save_pythonpath
 
 
 def build_wheel(source_dir, wheel_dir, config_settings=None):

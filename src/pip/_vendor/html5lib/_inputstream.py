@@ -27,22 +27,56 @@ if _utils.supports_lone_surrogates:
     # eval. Not using this indirection would introduce an illegal
     # unicode literal on platforms not supporting such lone
     # surrogates.
-    assert invalid_unicode_no_surrogate[-1] == "]" and invalid_unicode_no_surrogate.count("]") == 1
-    invalid_unicode_re = re.compile(invalid_unicode_no_surrogate[:-1] +
-                                    eval('"\\uD800-\\uDFFF"') +  # pylint:disable=eval-used
-                                    "]")
+    assert (
+        invalid_unicode_no_surrogate[-1] == "]"
+        and invalid_unicode_no_surrogate.count("]") == 1
+    )
+    invalid_unicode_re = re.compile(
+        invalid_unicode_no_surrogate[:-1]
+        + eval('"\\uD800-\\uDFFF"')
+        + "]"  # pylint:disable=eval-used
+    )
 else:
     invalid_unicode_re = re.compile(invalid_unicode_no_surrogate)
 
-non_bmp_invalid_codepoints = {0x1FFFE, 0x1FFFF, 0x2FFFE, 0x2FFFF, 0x3FFFE,
-                              0x3FFFF, 0x4FFFE, 0x4FFFF, 0x5FFFE, 0x5FFFF,
-                              0x6FFFE, 0x6FFFF, 0x7FFFE, 0x7FFFF, 0x8FFFE,
-                              0x8FFFF, 0x9FFFE, 0x9FFFF, 0xAFFFE, 0xAFFFF,
-                              0xBFFFE, 0xBFFFF, 0xCFFFE, 0xCFFFF, 0xDFFFE,
-                              0xDFFFF, 0xEFFFE, 0xEFFFF, 0xFFFFE, 0xFFFFF,
-                              0x10FFFE, 0x10FFFF}
+non_bmp_invalid_codepoints = {
+    0x1FFFE,
+    0x1FFFF,
+    0x2FFFE,
+    0x2FFFF,
+    0x3FFFE,
+    0x3FFFF,
+    0x4FFFE,
+    0x4FFFF,
+    0x5FFFE,
+    0x5FFFF,
+    0x6FFFE,
+    0x6FFFF,
+    0x7FFFE,
+    0x7FFFF,
+    0x8FFFE,
+    0x8FFFF,
+    0x9FFFE,
+    0x9FFFF,
+    0xAFFFE,
+    0xAFFFF,
+    0xBFFFE,
+    0xBFFFF,
+    0xCFFFE,
+    0xCFFFF,
+    0xDFFFE,
+    0xDFFFF,
+    0xEFFFE,
+    0xEFFFF,
+    0xFFFFE,
+    0xFFFFF,
+    0x10FFFE,
+    0x10FFFF,
+}
 
-ascii_punctuation_re = re.compile("[\u0009-\u000D\u0020-\u002F\u003A-\u0040\u005C\u005B-\u0060\u007B-\u007E]")
+ascii_punctuation_re = re.compile(
+    "[\u0009-\u000D\u0020-\u002F\u003A-\u0040\u005C\u005B-\u0060\u007B-\u007E]"
+)
 
 # Cache for charsUntil()
 charsUntilRegEx = {}
@@ -62,7 +96,7 @@ class BufferedStream(object):
 
     def tell(self):
         pos = 0
-        for chunk in self.buffer[:self.position[0]]:
+        for chunk in self.buffer[: self.position[0]]:
             pos += len(chunk)
         pos += self.position[1]
         return pos
@@ -79,8 +113,9 @@ class BufferedStream(object):
     def read(self, bytes):
         if not self.buffer:
             return self._readStream(bytes)
-        elif (self.position[0] == len(self.buffer) and
-              self.position[1] == len(self.buffer[-1])):
+        elif self.position[0] == len(self.buffer) and self.position[1] == len(
+            self.buffer[-1]
+        ):
             return self._readStream(bytes)
         else:
             return self._readFromBuffer(bytes)
@@ -111,7 +146,7 @@ class BufferedStream(object):
                 bytesToRead = len(bufferedData) - bufferOffset
                 self.position = [bufferIndex, len(bufferedData)]
                 bufferIndex += 1
-            rv.append(bufferedData[bufferOffset:bufferOffset + bytesToRead])
+            rv.append(bufferedData[bufferOffset : bufferOffset + bytesToRead])
             remainingBytes -= bytesToRead
 
             bufferOffset = 0
@@ -125,10 +160,15 @@ class BufferedStream(object):
 def HTMLInputStream(source, **kwargs):
     # Work around Python bug #20007: read(0) closes the connection.
     # http://bugs.python.org/issue20007
-    if (isinstance(source, http_client.HTTPResponse) or
+    if (
+        isinstance(source, http_client.HTTPResponse)
+        or
         # Also check for addinfourl wrapping HTTPResponse
-        (isinstance(source, urllib.response.addbase) and
-         isinstance(source.fp, http_client.HTTPResponse))):
+        (
+            isinstance(source, urllib.response.addbase)
+            and isinstance(source.fp, http_client.HTTPResponse)
+        )
+    ):
         isUnicode = False
     elif hasattr(source, "read"):
         isUnicode = isinstance(source.read(0), text_type)
@@ -138,7 +178,9 @@ def HTMLInputStream(source, **kwargs):
     if isUnicode:
         encodings = [x for x in kwargs if x.endswith("_encoding")]
         if encodings:
-            raise TypeError("Cannot set an encoding with a unicode input, set %r" % encodings)
+            raise TypeError(
+                "Cannot set an encoding with a unicode input, set %r" % encodings
+            )
 
         return HTMLUnicodeInputStream(source, **kwargs)
     else:
@@ -208,7 +250,7 @@ class HTMLUnicodeInputStream(object):
 
         """
         # Already a file object
-        if hasattr(source, 'read'):
+        if hasattr(source, "read"):
             stream = source
         else:
             stream = StringIO(source)
@@ -217,9 +259,9 @@ class HTMLUnicodeInputStream(object):
 
     def _position(self, offset):
         chunk = self.chunk
-        nLines = chunk.count('\n', 0, offset)
+        nLines = chunk.count("\n", 0, offset)
         positionLine = self.prevNumLines + nLines
-        lastLinePos = chunk.rfind('\n', 0, offset)
+        lastLinePos = chunk.rfind("\n", 0, offset)
         if lastLinePos == -1:
             positionColumn = self.prevNumCols + offset
         else:
@@ -232,8 +274,8 @@ class HTMLUnicodeInputStream(object):
         return (line + 1, col)
 
     def char(self):
-        """ Read one character from the stream or queue if available. Return
-            EOF when EOF is reached.
+        """Read one character from the stream or queue if available. Return
+        EOF when EOF is reached.
         """
         # Read a new chunk from the input stream if necessary
         if self.chunkOffset >= self.chunkSize:
@@ -298,21 +340,20 @@ class HTMLUnicodeInputStream(object):
             codepoint = ord(match.group())
             pos = match.start()
             # Pretty sure there should be endianness issues here
-            if _utils.isSurrogatePair(data[pos:pos + 2]):
+            if _utils.isSurrogatePair(data[pos : pos + 2]):
                 # We have a surrogate pair!
-                char_val = _utils.surrogatePairToCodepoint(data[pos:pos + 2])
+                char_val = _utils.surrogatePairToCodepoint(data[pos : pos + 2])
                 if char_val in non_bmp_invalid_codepoints:
                     self.errors.append("invalid-codepoint")
                 skip = True
-            elif (codepoint >= 0xD800 and codepoint <= 0xDFFF and
-                  pos == len(data) - 1):
+            elif codepoint >= 0xD800 and codepoint <= 0xDFFF and pos == len(data) - 1:
                 self.errors.append("invalid-codepoint")
             else:
                 skip = False
                 self.errors.append("invalid-codepoint")
 
     def charsUntil(self, characters, opposite=False):
-        """ Returns a string of characters from the stream up to but not
+        """Returns a string of characters from the stream up to but not
         including any character in 'characters' or EOF. 'characters' must be
         a container that supports the 'in' method and iteration over its
         characters.
@@ -324,11 +365,13 @@ class HTMLUnicodeInputStream(object):
         except KeyError:
             if __debug__:
                 for c in characters:
-                    assert(ord(c) < 128)
+                    assert ord(c) < 128
             regex = "".join(["\\x%02x" % ord(c) for c in characters])
             if not opposite:
                 regex = "^%s" % regex
-            chars = charsUntilRegEx[(characters, opposite)] = re.compile("[%s]+" % regex)
+            chars = charsUntilRegEx[(characters, opposite)] = re.compile(
+                "[%s]+" % regex
+            )
 
         rv = []
 
@@ -345,12 +388,12 @@ class HTMLUnicodeInputStream(object):
                 # If not the whole chunk matched, return everything
                 # up to the part that didn't match
                 if end != self.chunkSize:
-                    rv.append(self.chunk[self.chunkOffset:end])
+                    rv.append(self.chunk[self.chunkOffset : end])
                     self.chunkOffset = end
                     break
             # If the whole remainder of the chunk matched,
             # use it all and read the next chunk
-            rv.append(self.chunk[self.chunkOffset:])
+            rv.append(self.chunk[self.chunkOffset :])
             if not self.readChunk():
                 # Reached EOF
                 break
@@ -383,9 +426,16 @@ class HTMLBinaryInputStream(HTMLUnicodeInputStream):
 
     """
 
-    def __init__(self, source, override_encoding=None, transport_encoding=None,
-                 same_origin_parent_encoding=None, likely_encoding=None,
-                 default_encoding="windows-1252", useChardet=True):
+    def __init__(
+        self,
+        source,
+        override_encoding=None,
+        transport_encoding=None,
+        same_origin_parent_encoding=None,
+        likely_encoding=None,
+        default_encoding="windows-1252",
+        useChardet=True,
+    ):
         """Initialises the HTMLInputStream.
 
         HTMLInputStream(source, [encoding]) -> Normalized stream from source
@@ -426,7 +476,9 @@ class HTMLBinaryInputStream(HTMLUnicodeInputStream):
         self.reset()
 
     def reset(self):
-        self.dataStream = self.charEncoding[0].codec_info.streamreader(self.rawStream, 'replace')
+        self.dataStream = self.charEncoding[0].codec_info.streamreader(
+            self.rawStream, "replace"
+        )
         HTMLUnicodeInputStream.reset(self)
 
     def openStream(self, source):
@@ -436,7 +488,7 @@ class HTMLBinaryInputStream(HTMLUnicodeInputStream):
 
         """
         # Already a file object
-        if hasattr(source, 'read'):
+        if hasattr(source, "read"):
             stream = source
         else:
             stream = BytesIO(source)
@@ -472,7 +524,9 @@ class HTMLBinaryInputStream(HTMLUnicodeInputStream):
 
         # Parent document encoding
         charEncoding = lookupEncoding(self.same_origin_parent_encoding), "tentative"
-        if charEncoding[0] is not None and not charEncoding[0].name.startswith("utf-16"):
+        if charEncoding[0] is not None and not charEncoding[0].name.startswith(
+            "utf-16"
+        ):
             return charEncoding
 
         # "likely" encoding
@@ -497,7 +551,7 @@ class HTMLBinaryInputStream(HTMLUnicodeInputStream):
                     buffers.append(buffer)
                     detector.feed(buffer)
                 detector.close()
-                encoding = lookupEncoding(detector.result['encoding'])
+                encoding = lookupEncoding(detector.result["encoding"])
                 self.rawStream.seek(0)
                 if encoding is not None:
                     return encoding, "tentative"
@@ -524,16 +578,20 @@ class HTMLBinaryInputStream(HTMLUnicodeInputStream):
             self.rawStream.seek(0)
             self.charEncoding = (newEncoding, "certain")
             self.reset()
-            raise _ReparseException("Encoding changed from %s to %s" % (self.charEncoding[0], newEncoding))
+            raise _ReparseException(
+                "Encoding changed from %s to %s" % (self.charEncoding[0], newEncoding)
+            )
 
     def detectBOM(self):
         """Attempts to detect at BOM at the start of the stream. If
         an encoding can be determined from the BOM return the name of the
         encoding otherwise return None"""
         bomDict = {
-            codecs.BOM_UTF8: 'utf-8',
-            codecs.BOM_UTF16_LE: 'utf-16le', codecs.BOM_UTF16_BE: 'utf-16be',
-            codecs.BOM_UTF32_LE: 'utf-32le', codecs.BOM_UTF32_BE: 'utf-32be'
+            codecs.BOM_UTF8: "utf-8",
+            codecs.BOM_UTF16_LE: "utf-16le",
+            codecs.BOM_UTF16_BE: "utf-16be",
+            codecs.BOM_UTF32_LE: "utf-32le",
+            codecs.BOM_UTF32_BE: "utf-32be",
         }
 
         # Go to beginning of file and read in 4 bytes
@@ -541,11 +599,11 @@ class HTMLBinaryInputStream(HTMLUnicodeInputStream):
         assert isinstance(string, bytes)
 
         # Try detecting the BOM using bytes from the string
-        encoding = bomDict.get(string[:3])         # UTF-8
+        encoding = bomDict.get(string[:3])  # UTF-8
         seek = 3
         if not encoding:
             # Need to detect UTF-32 before UTF-16
-            encoding = bomDict.get(string)         # UTF-32
+            encoding = bomDict.get(string)  # UTF-32
             seek = 4
             if not encoding:
                 encoding = bomDict.get(string[:2])  # UTF-16
@@ -561,8 +619,7 @@ class HTMLBinaryInputStream(HTMLUnicodeInputStream):
             return None
 
     def detectEncodingMeta(self):
-        """Report the encoding declared by the meta element
-        """
+        """Report the encoding declared by the meta element"""
         buffer = self.rawStream.read(self.numBytesMeta)
         assert isinstance(buffer, bytes)
         parser = EncodingParser(buffer)
@@ -579,6 +636,7 @@ class EncodingBytes(bytes):
     """String-like object with an associated position and various extra methods
     If the position is ever greater than the string length then an exception is
     raised"""
+
     def __new__(self, value):
         assert isinstance(value, bytes)
         return bytes.__new__(self, value.lower())
@@ -596,7 +654,7 @@ class EncodingBytes(bytes):
             raise StopIteration
         elif p < 0:
             raise TypeError
-        return self[p:p + 1]
+        return self[p : p + 1]
 
     def next(self):
         # Py2 compat
@@ -609,7 +667,7 @@ class EncodingBytes(bytes):
         elif p < 0:
             raise TypeError
         self._position = p = p - 1
-        return self[p:p + 1]
+        return self[p : p + 1]
 
     def setPosition(self, position):
         if self._position >= len(self):
@@ -627,15 +685,15 @@ class EncodingBytes(bytes):
     position = property(getPosition, setPosition)
 
     def getCurrentByte(self):
-        return self[self.position:self.position + 1]
+        return self[self.position : self.position + 1]
 
     currentByte = property(getCurrentByte)
 
     def skip(self, chars=spaceCharactersBytes):
         """Skip past a list of characters"""
-        p = self.position               # use property for the error-checking
+        p = self.position  # use property for the error-checking
         while p < len(self):
-            c = self[p:p + 1]
+            c = self[p : p + 1]
             if c not in chars:
                 self._position = p
                 return c
@@ -646,7 +704,7 @@ class EncodingBytes(bytes):
     def skipUntil(self, chars):
         p = self.position
         while p < len(self):
-            c = self[p:p + 1]
+            c = self[p : p + 1]
             if c in chars:
                 self._position = p
                 return c
@@ -691,7 +749,8 @@ class EncodingParser(object):
             (b"</", self.handlePossibleEndTag),
             (b"<!", self.handleOther),
             (b"<?", self.handleOther),
-            (b"<", self.handlePossibleStartTag))
+            (b"<", self.handlePossibleStartTag),
+        )
         for _ in self.data:
             keepParsing = True
             try:
@@ -884,7 +943,7 @@ class ContentAttrParser(object):
                 self.data.position += 1
                 oldPosition = self.data.position
                 if self.data.jumpTo(quoteMark):
-                    return self.data[oldPosition:self.data.position]
+                    return self.data[oldPosition : self.data.position]
                 else:
                     return None
             else:
@@ -892,7 +951,7 @@ class ContentAttrParser(object):
                 oldPosition = self.data.position
                 try:
                     self.data.skipUntil(spaceCharactersBytes)
-                    return self.data[oldPosition:self.data.position]
+                    return self.data[oldPosition : self.data.position]
                 except StopIteration:
                     # Return the whole remaining value
                     return self.data[oldPosition:]

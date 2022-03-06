@@ -31,7 +31,11 @@ _RetValT = typing.TypeVar("_RetValT")
 
 
 class AsyncRetrying(BaseRetrying):
-    def __init__(self, sleep: typing.Callable[[float], typing.Awaitable] = sleep, **kwargs: typing.Any) -> None:
+    def __init__(
+        self,
+        sleep: typing.Callable[[float], typing.Awaitable] = sleep,
+        **kwargs: typing.Any,
+    ) -> None:
         super().__init__(**kwargs)
         self.sleep = sleep
 

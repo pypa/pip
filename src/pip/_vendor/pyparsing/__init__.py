@@ -105,14 +105,17 @@ class version_info(NamedTuple):
 
     @property
     def __version__(self):
-        return "{}.{}.{}".format(self.major, self.minor, self.micro) + (
-            "{}{}{}".format(
-                "r" if self.releaselevel[0] == "c" else "",
-                self.releaselevel[0],
-                self.serial,
-            ),
-            "",
-        )[self.releaselevel == "final"]
+        return (
+            "{}.{}.{}".format(self.major, self.minor, self.micro)
+            + (
+                "{}{}{}".format(
+                    "r" if self.releaselevel[0] == "c" else "",
+                    self.releaselevel[0],
+                    self.serial,
+                ),
+                "",
+            )[self.releaselevel == "final"]
+        )
 
     def __str__(self):
         return "{} {} / {}".format(__name__, self.__version__, __version_time__)

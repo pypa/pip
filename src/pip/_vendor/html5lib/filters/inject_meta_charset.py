@@ -5,6 +5,7 @@ from . import base
 
 class Filter(base.Filter):
     """Injects ``<meta charset=ENCODING>`` tag into head of document"""
+
     def __init__(self, source, encoding):
         """Creates a Filter
 
@@ -18,7 +19,7 @@ class Filter(base.Filter):
 
     def __iter__(self):
         state = "pre_head"
-        meta_found = (self.encoding is None)
+        meta_found = self.encoding is None
         pending = []
 
         for token in base.Filter.__iter__(self):
@@ -34,23 +35,30 @@ class Filter(base.Filter):
                     for (namespace, name), value in token["data"].items():
                         if namespace is not None:
                             continue
-                        elif name.lower() == 'charset':
+                        elif name.lower() == "charset":
                             token["data"][(namespace, name)] = self.encoding
                             meta_found = True
                             break
-                        elif name == 'http-equiv' and value.lower() == 'content-type':
+                        elif name == "http-equiv" and value.lower() == "content-type":
                             has_http_equiv_content_type = True
                     else:
-                        if has_http_equiv_content_type and (None, "content") in token["data"]:
-                            token["data"][(None, "content")] = 'text/html; charset=%s' % self.encoding
+                        if (
+                            has_http_equiv_content_type
+                            and (None, "content") in token["data"]
+                        ):
+                            token["data"][(None, "content")] = (
+                                "text/html; charset=%s" % self.encoding
+                            )
                             meta_found = True
 
                 elif token["name"].lower() == "head" and not meta_found:
                     # insert meta into empty head
-                    yield {"type": "StartTag", "name": "head",
-                           "data": token["data"]}
-                    yield {"type": "EmptyTag", "name": "meta",
-                           "data": {(None, "charset"): self.encoding}}
+                    yield {"type": "StartTag", "name": "head", "data": token["data"]}
+                    yield {
+                        "type": "EmptyTag",
+                        "name": "meta",
+                        "data": {(None, "charset"): self.encoding},
+                    }
                     yield {"type": "EndTag", "name": "head"}
                     meta_found = True
                     continue
@@ -60,8 +68,11 @@ class Filter(base.Filter):
                     # insert meta into head (if necessary) and flush pending queue
                     yield pending.pop(0)
                     if not meta_found:
-                        yield {"type": "EmptyTag", "name": "meta",
-                               "data": {(None, "charset"): self.encoding}}
+                        yield {
+                            "type": "EmptyTag",
+                            "name": "meta",
+                            "data": {(None, "charset"): self.encoding},
+                        }
                     while pending:
                         yield pending.pop(0)
                     meta_found = True

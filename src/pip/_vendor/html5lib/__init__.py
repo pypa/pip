@@ -27,8 +27,14 @@ from .treebuilders import getTreeBuilder
 from .treewalkers import getTreeWalker
 from .serializer import serialize
 
-__all__ = ["HTMLParser", "parse", "parseFragment", "getTreeBuilder",
-           "getTreeWalker", "serialize"]
+__all__ = [
+    "HTMLParser",
+    "parse",
+    "parseFragment",
+    "getTreeBuilder",
+    "getTreeWalker",
+    "serialize",
+]
 
 # this has to be at the top level, see how setup.py parses this
 #: Distribution version number.

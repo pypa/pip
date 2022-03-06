@@ -61,12 +61,16 @@ class wait_none(wait_fixed):
 class wait_random(wait_base):
     """Wait strategy that waits a random amount of time between min/max."""
 
-    def __init__(self, min: typing.Union[int, float] = 0, max: typing.Union[int, float] = 1) -> None:  # noqa
+    def __init__(
+        self, min: typing.Union[int, float] = 0, max: typing.Union[int, float] = 1
+    ) -> None:  # noqa
         self.wait_random_min = min
         self.wait_random_max = max
 
     def __call__(self, retry_state: "RetryCallState") -> float:
-        return self.wait_random_min + (random.random() * (self.wait_random_max - self.wait_random_min))
+        return self.wait_random_min + (
+            random.random() * (self.wait_random_max - self.wait_random_min)
+        )
 
 
 class wait_combine(wait_base):

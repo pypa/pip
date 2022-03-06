@@ -34,10 +34,10 @@
     :copyright: Copyright 2006-2021 by the Pygments team, see AUTHORS.
     :license: BSD, see LICENSE for details.
 """
-LEXER_ENTRY_POINT = 'pygments.lexers'
-FORMATTER_ENTRY_POINT = 'pygments.formatters'
-STYLE_ENTRY_POINT = 'pygments.styles'
-FILTER_ENTRY_POINT = 'pygments.filters'
+LEXER_ENTRY_POINT = "pygments.lexers"
+FORMATTER_ENTRY_POINT = "pygments.formatters"
+STYLE_ENTRY_POINT = "pygments.styles"
+FILTER_ENTRY_POINT = "pygments.filters"
 
 
 def iter_entry_points(group_name):

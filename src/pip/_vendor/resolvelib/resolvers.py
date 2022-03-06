@@ -68,8 +68,7 @@ class Criterion(object):
 
     def __repr__(self):
         requirements = ", ".join(
-            "({!r}, via={!r})".format(req, parent)
-            for req, parent in self.information
+            "({!r}, via={!r})".format(req, parent) for req, parent in self.information
         )
         return "Criterion({})".format(requirements)
 
@@ -274,8 +273,7 @@ class Resolution(object):
             broken_state = self._states.pop()
             name, candidate = broken_state.mapping.popitem()
             incompatibilities_from_broken = [
-                (k, list(v.incompatibilities))
-                for k, v in broken_state.criteria.items()
+                (k, list(v.incompatibilities)) for k, v in broken_state.criteria.items()
             ]
 
             # Also mark the newly known incompatibility.

@@ -7,7 +7,9 @@ from pathlib import Path
 
 from .api import PlatformDirsABC
 
-if sys.platform.startswith("linux"):  # pragma: no branch # no op check, only to please the type checker
+if sys.platform.startswith(
+    "linux"
+):  # pragma: no branch # no op check, only to please the type checker
     from os import getuid
 else:
 
@@ -55,7 +57,9 @@ class Unix(PlatformDirsABC):
         path_list = path.split(os.pathsep)
         if not self.multipath:
             path_list = path_list[0:1]
-        path_list = [self._append_app_name_and_version(os.path.expanduser(p)) for p in path_list]
+        path_list = [
+            self._append_app_name_and_version(os.path.expanduser(p)) for p in path_list
+        ]
         return os.pathsep.join(path_list)
 
     @property

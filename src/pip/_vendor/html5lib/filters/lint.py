@@ -6,6 +6,7 @@ from . import base
 from ..constants import namespaces, voidElements
 
 from ..constants import spaceCharacters
+
 spaceCharacters = "".join(spaceCharacters)
 
 
@@ -15,6 +16,7 @@ class Filter(base.Filter):
     If it finds any errors, it'll raise an ``AssertionError``.
 
     """
+
     def __init__(self, source, require_matching_tags=True):
         """Creates a Filter
 
@@ -38,7 +40,9 @@ class Filter(base.Filter):
                 assert isinstance(name, text_type)
                 assert name != ""
                 assert isinstance(token["data"], dict)
-                if (not namespace or namespace == namespaces["html"]) and name in voidElements:
+                if (
+                    not namespace or namespace == namespaces["html"]
+                ) and name in voidElements:
                     assert type == "EmptyTag"
                 else:
                     assert type == "StartTag"
@@ -58,8 +62,12 @@ class Filter(base.Filter):
                 assert namespace != ""
                 assert isinstance(name, text_type)
                 assert name != ""
-                if (not namespace or namespace == namespaces["html"]) and name in voidElements:
-                    assert False, "Void element reported as EndTag token: %(tag)s" % {"tag": name}
+                if (
+                    not namespace or namespace == namespaces["html"]
+                ) and name in voidElements:
+                    assert False, "Void element reported as EndTag token: %(tag)s" % {
+                        "tag": name
+                    }
                 elif self.require_matching_tags:
                     start = open_elements.pop()
                     assert start == (namespace, name)

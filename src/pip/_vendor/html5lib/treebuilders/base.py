@@ -11,17 +11,26 @@ Marker = None
 listElementsMap = {
     None: (frozenset(scopingElements), False),
     "button": (frozenset(scopingElements | {(namespaces["html"], "button")}), False),
-    "list": (frozenset(scopingElements | {(namespaces["html"], "ol"),
-                                          (namespaces["html"], "ul")}), False),
-    "table": (frozenset([(namespaces["html"], "html"),
-                         (namespaces["html"], "table")]), False),
-    "select": (frozenset([(namespaces["html"], "optgroup"),
-                          (namespaces["html"], "option")]), True)
+    "list": (
+        frozenset(
+            scopingElements | {(namespaces["html"], "ol"), (namespaces["html"], "ul")}
+        ),
+        False,
+    ),
+    "table": (
+        frozenset([(namespaces["html"], "html"), (namespaces["html"], "table")]),
+        False,
+    ),
+    "select": (
+        frozenset([(namespaces["html"], "optgroup"), (namespaces["html"], "option")]),
+        True,
+    ),
 }
 
 
 class Node(object):
     """Represents an item in the tree"""
+
     def __init__(self, name):
         """Creates a Node
 
@@ -43,9 +52,9 @@ class Node(object):
         self._flags = []
 
     def __str__(self):
-        attributesStr = " ".join(["%s=\"%s\"" % (name, value)
-                                  for name, value in
-                                  self.attributes.items()])
+        attributesStr = " ".join(
+            ['%s="%s"' % (name, value) for name, value in self.attributes.items()]
+        )
         if attributesStr:
             return "<%s %s>" % (self.name, attributesStr)
         else:
@@ -114,8 +123,7 @@ class Node(object):
         raise NotImplementedError
 
     def hasContent(self):
-        """Return true if the node has children or text, false otherwise
-        """
+        """Return true if the node has children or text, false otherwise"""
         raise NotImplementedError
 
 
@@ -152,6 +160,7 @@ class TreeBuilder(object):
     * doctypeClass - the class to use for doctypes
 
     """
+
     # pylint:disable=not-callable
 
     # Document class
@@ -210,7 +219,7 @@ class TreeBuilder(object):
                 return True
             elif not exactNode and node.nameTuple == target:
                 return True
-            elif (invert ^ (node.nameTuple in listElements)):
+            elif invert ^ (node.nameTuple in listElements):
                 return False
 
         assert False  # We should never reach this point
@@ -249,10 +258,14 @@ class TreeBuilder(object):
             clone = entry.cloneNode()  # Mainly to get a new copy of the attributes
 
             # Step 9
-            element = self.insertElement({"type": "StartTag",
-                                          "name": clone.name,
-                                          "namespace": clone.namespace,
-                                          "data": clone.attributes})
+            element = self.insertElement(
+                {
+                    "type": "StartTag",
+                    "name": clone.name,
+                    "namespace": clone.namespace,
+                    "data": clone.attributes,
+                }
+            )
 
             # Step 10
             self.activeFormattingElements[i] = element
@@ -351,9 +364,10 @@ class TreeBuilder(object):
         if parent is None:
             parent = self.openElements[-1]
 
-        if (not self.insertFromTable or (self.insertFromTable and
-                                         self.openElements[-1].name
-                                         not in tableInsertModeElements)):
+        if not self.insertFromTable or (
+            self.insertFromTable
+            and self.openElements[-1].name not in tableInsertModeElements
+        ):
             parent.insertText(data)
         else:
             # We should be in the InTable mode. This means we want to do
@@ -381,8 +395,7 @@ class TreeBuilder(object):
                 fosterParent = lastTable.parent
                 insertBefore = lastTable
             else:
-                fosterParent = self.openElements[
-                    self.openElements.index(lastTable) - 1]
+                fosterParent = self.openElements[self.openElements.index(lastTable) - 1]
         else:
             fosterParent = self.openElements[0]
         return fosterParent, insertBefore
@@ -390,8 +403,10 @@ class TreeBuilder(object):
     def generateImpliedEndTags(self, exclude=None):
         name = self.openElements[-1].name
         # XXX td, th and tr are not actually needed
-        if (name in frozenset(("dd", "dt", "li", "option", "optgroup", "p", "rp", "rt")) and
-                name != exclude):
+        if (
+            name in frozenset(("dd", "dt", "li", "option", "optgroup", "p", "rp", "rt"))
+            and name != exclude
+        ):
             self.openElements.pop()
             # XXX This is not entirely what the specification says. We should
             # investigate it more closely.

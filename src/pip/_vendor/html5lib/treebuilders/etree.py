@@ -1,4 +1,5 @@
 from __future__ import absolute_import, division, unicode_literals
+
 # pylint:disable=protected-access
 
 from pip._vendor.six import text_type
@@ -24,8 +25,7 @@ def getETreeBuilder(ElementTreeImplementation, fullTree=False):
         def __init__(self, name, namespace=None):
             self._name = name
             self._namespace = namespace
-            self._element = ElementTree.Element(self._getETreeTag(name,
-                                                                  namespace))
+            self._element = ElementTree.Element(self._getETreeTag(name, namespace))
             if namespace is None:
                 self.nameTuple = namespaces["html"], self._name
             else:
@@ -108,7 +108,7 @@ def getETreeBuilder(ElementTreeImplementation, fullTree=False):
             node.parent = None
 
         def insertText(self, data, insertBefore=None):
-            if not(len(self._element)):
+            if not (len(self._element)):
                 if not self._element.text:
                     self._element.text = ""
                 self._element.text += data
@@ -201,29 +201,32 @@ def getETreeBuilder(ElementTreeImplementation, fullTree=False):
         rv = []
 
         def serializeElement(element, indent=0):
-            if not(hasattr(element, "tag")):
+            if not (hasattr(element, "tag")):
                 element = element.getroot()
             if element.tag == "<!DOCTYPE>":
                 if element.get("publicId") or element.get("systemId"):
                     publicId = element.get("publicId") or ""
                     systemId = element.get("systemId") or ""
-                    rv.append("""<!DOCTYPE %s "%s" "%s">""" %
-                              (element.text, publicId, systemId))
+                    rv.append(
+                        """<!DOCTYPE %s "%s" "%s">"""
+                        % (element.text, publicId, systemId)
+                    )
                 else:
                     rv.append("<!DOCTYPE %s>" % (element.text,))
             elif element.tag == "DOCUMENT_ROOT":
                 rv.append("#document")
                 if element.text is not None:
-                    rv.append("|%s\"%s\"" % (' ' * (indent + 2), element.text))
+                    rv.append('|%s"%s"' % (" " * (indent + 2), element.text))
                 if element.tail is not None:
                     raise TypeError("Document node cannot have tail")
                 if hasattr(element, "attrib") and len(element.attrib):
                     raise TypeError("Document node cannot have attributes")
             elif element.tag == ElementTreeCommentType:
-                rv.append("|%s<!-- %s -->" % (' ' * indent, element.text))
+                rv.append("|%s<!-- %s -->" % (" " * indent, element.text))
             else:
-                assert isinstance(element.tag, text_type), \
-                    "Expected unicode, got %s, %s" % (type(element.tag), element.tag)
+                assert isinstance(
+                    element.tag, text_type
+                ), "Expected unicode, got %s, %s" % (type(element.tag), element.tag)
                 nsmatch = tag_regexp.match(element.tag)
 
                 if nsmatch is None:
@@ -232,7 +235,7 @@ def getETreeBuilder(ElementTreeImplementation, fullTree=False):
                     ns, name = nsmatch.groups()
                     prefix = constants.prefixes[ns]
                     name = "%s %s" % (prefix, name)
-                rv.append("|%s<%s>" % (' ' * indent, name))
+                rv.append("|%s<%s>" % (" " * indent, name))
 
                 if hasattr(element, "attrib"):
                     attributes = []
@@ -247,14 +250,15 @@ def getETreeBuilder(ElementTreeImplementation, fullTree=False):
                         attributes.append((attr_string, value))
 
                     for name, value in sorted(attributes):
-                        rv.append('|%s%s="%s"' % (' ' * (indent + 2), name, value))
+                        rv.append('|%s%s="%s"' % (" " * (indent + 2), name, value))
                 if element.text:
-                    rv.append("|%s\"%s\"" % (' ' * (indent + 2), element.text))
+                    rv.append('|%s"%s"' % (" " * (indent + 2), element.text))
             indent += 2
             for child in element:
                 serializeElement(child, indent)
             if element.tail:
-                rv.append("|%s\"%s\"" % (' ' * (indent - 2), element.tail))
+                rv.append('|%s"%s"' % (" " * (indent - 2), element.tail))
+
         serializeElement(element, 0)
 
         return "\n".join(rv)
@@ -272,8 +276,10 @@ def getETreeBuilder(ElementTreeImplementation, fullTree=False):
                 if element.get("publicId") or element.get("systemId"):
                     publicId = element.get("publicId") or ""
                     systemId = element.get("systemId") or ""
-                    rv.append("""<!DOCTYPE %s PUBLIC "%s" "%s">""" %
-                              (element.text, publicId, systemId))
+                    rv.append(
+                        """<!DOCTYPE %s PUBLIC "%s" "%s">"""
+                        % (element.text, publicId, systemId)
+                    )
                 else:
                     rv.append("<!DOCTYPE %s>" % (element.text,))
             elif element.tag == "DOCUMENT_ROOT":
@@ -294,9 +300,12 @@ def getETreeBuilder(ElementTreeImplementation, fullTree=False):
                 if not element.attrib:
                     rv.append("<%s>" % (filter.fromXmlName(element.tag),))
                 else:
-                    attr = " ".join(["%s=\"%s\"" % (
-                        filter.fromXmlName(name), value)
-                        for name, value in element.attrib.items()])
+                    attr = " ".join(
+                        [
+                            '%s="%s"' % (filter.fromXmlName(name), value)
+                            for name, value in element.attrib.items()
+                        ]
+                    )
                     rv.append("<%s %s>" % (element.tag, attr))
                 if element.text:
                     rv.append(element.text)
@@ -330,7 +339,8 @@ def getETreeBuilder(ElementTreeImplementation, fullTree=False):
             else:
                 if self.defaultNamespace is not None:
                     return self.document._element.find(
-                        "{%s}html" % self.defaultNamespace)
+                        "{%s}html" % self.defaultNamespace
+                    )
                 else:
                     return self.document._element.find("html")
 

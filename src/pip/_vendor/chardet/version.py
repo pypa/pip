@@ -6,4 +6,4 @@ from within setup.py and from chardet subpackages.
 """
 
 __version__ = "4.0.0"
-VERSION = __version__.split('.')
+VERSION = __version__.split(".")

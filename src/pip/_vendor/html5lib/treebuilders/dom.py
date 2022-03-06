@@ -58,8 +58,11 @@ def getDomBuilder(DomImplementation):
             base.Node.__init__(self, element.nodeName)
             self.element = element
 
-        namespace = property(lambda self: hasattr(self.element, "namespaceURI") and
-                             self.element.namespaceURI or None)
+        namespace = property(
+            lambda self: hasattr(self.element, "namespaceURI")
+            and self.element.namespaceURI
+            or None
+        )
 
         def appendChild(self, node):
             node.parent = self
@@ -96,14 +99,13 @@ def getDomBuilder(DomImplementation):
                 for name, value in list(attributes.items()):
                     if isinstance(name, tuple):
                         if name[0] is not None:
-                            qualifiedName = (name[0] + ":" + name[1])
+                            qualifiedName = name[0] + ":" + name[1]
                         else:
                             qualifiedName = name[1]
-                        self.element.setAttributeNS(name[2], qualifiedName,
-                                                    value)
+                        self.element.setAttributeNS(name[2], qualifiedName, value)
                     else:
-                        self.element.setAttribute(
-                            name, value)
+                        self.element.setAttribute(name, value)
+
         attributes = property(getAttributes, setAttributes)
 
         def cloneNode(self):
@@ -168,7 +170,7 @@ def getDomBuilder(DomImplementation):
                 base.TreeBuilder.insertText(self, data, parent)
             else:
                 # HACK: allow text nodes as children of the document node
-                if hasattr(self.dom, '_child_node_types'):
+                if hasattr(self.dom, "_child_node_types"):
                     # pylint:disable=protected-access
                     if Node.TEXT_NODE not in self.dom._child_node_types:
                         self.dom._child_node_types = list(self.dom._child_node_types)
@@ -188,28 +190,34 @@ def getDomBuilder(DomImplementation):
                     if element.publicId or element.systemId:
                         publicId = element.publicId or ""
                         systemId = element.systemId or ""
-                        rv.append("""|%s<!DOCTYPE %s "%s" "%s">""" %
-                                  (' ' * indent, element.name, publicId, systemId))
+                        rv.append(
+                            """|%s<!DOCTYPE %s "%s" "%s">"""
+                            % (" " * indent, element.name, publicId, systemId)
+                        )
                     else:
-                        rv.append("|%s<!DOCTYPE %s>" % (' ' * indent, element.name))
+                        rv.append("|%s<!DOCTYPE %s>" % (" " * indent, element.name))
                 else:
-                    rv.append("|%s<!DOCTYPE >" % (' ' * indent,))
+                    rv.append("|%s<!DOCTYPE >" % (" " * indent,))
             elif element.nodeType == Node.DOCUMENT_NODE:
                 rv.append("#document")
             elif element.nodeType == Node.DOCUMENT_FRAGMENT_NODE:
                 rv.append("#document-fragment")
             elif element.nodeType == Node.COMMENT_NODE:
-                rv.append("|%s<!-- %s -->" % (' ' * indent, element.nodeValue))
+                rv.append("|%s<!-- %s -->" % (" " * indent, element.nodeValue))
             elif element.nodeType == Node.TEXT_NODE:
-                rv.append("|%s\"%s\"" % (' ' * indent, element.nodeValue))
+                rv.append('|%s"%s"' % (" " * indent, element.nodeValue))
             else:
-                if (hasattr(element, "namespaceURI") and
-                        element.namespaceURI is not None):
-                    name = "%s %s" % (constants.prefixes[element.namespaceURI],
-                                      element.nodeName)
+                if (
+                    hasattr(element, "namespaceURI")
+                    and element.namespaceURI is not None
+                ):
+                    name = "%s %s" % (
+                        constants.prefixes[element.namespaceURI],
+                        element.nodeName,
+                    )
                 else:
                     name = element.nodeName
-                rv.append("|%s<%s>" % (' ' * indent, name))
+                rv.append("|%s<%s>" % (" " * indent, name))
                 if element.hasAttributes():
                     attributes = []
                     for i in range(len(element.attributes)):
@@ -224,10 +232,11 @@ def getDomBuilder(DomImplementation):
                         attributes.append((name, value))
 
                     for name, value in sorted(attributes):
-                        rv.append('|%s%s="%s"' % (' ' * (indent + 2), name, value))
+                        rv.append('|%s%s="%s"' % (" " * (indent + 2), name, value))
             indent += 2
             for child in element.childNodes:
                 serializeElement(child, indent)
+
         serializeElement(element, 0)
 
         return "\n".join(rv)

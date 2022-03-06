@@ -29,6 +29,7 @@ def getETreeBuilder(ElementTreeImplementation):
         4. A flag "text", "tail" or None to indicate if the current node is a
            text node; either the text or tail of the current element (1)
         """
+
         def getNodeDetails(self, node):
             if isinstance(node, tuple):  # It might be the root Element
                 elt, _, _, flag = node
@@ -37,15 +38,19 @@ def getETreeBuilder(ElementTreeImplementation):
                 else:
                     node = elt
 
-            if not(hasattr(node, "tag")):
+            if not (hasattr(node, "tag")):
                 node = node.getroot()
 
             if node.tag in ("DOCUMENT_ROOT", "DOCUMENT_FRAGMENT"):
                 return (base.DOCUMENT,)
 
             elif node.tag == "<!DOCTYPE>":
-                return (base.DOCTYPE, node.text,
-                        node.get("publicId"), node.get("systemId"))
+                return (
+                    base.DOCTYPE,
+                    node.text,
+                    node.get("publicId"),
+                    node.get("systemId"),
+                )
 
             elif node.tag == ElementTreeCommentType:
                 return base.COMMENT, node.text
@@ -66,8 +71,7 @@ def getETreeBuilder(ElementTreeImplementation):
                         attrs[(match.group(1), match.group(2))] = value
                     else:
                         attrs[(None, name)] = value
-                return (base.ELEMENT, namespace, tag,
-                        attrs, len(node) or node.text)
+                return (base.ELEMENT, namespace, tag, attrs, len(node) or node.text)
 
         def getFirstChild(self, node):
             if isinstance(node, tuple):

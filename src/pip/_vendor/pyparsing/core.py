@@ -3826,7 +3826,9 @@ class And(ParseExpression):
                 seen.add(id(cur))
                 if isinstance(cur, IndentedBlock):
                     prev.add_parse_action(
-                        lambda s, l, t, cur_=cur: setattr(cur_, "parent_anchor", col(l, s))
+                        lambda s, l, t, cur_=cur: setattr(
+                            cur_, "parent_anchor", col(l, s)
+                        )
                     )
                     break
                 subs = cur.recurse()

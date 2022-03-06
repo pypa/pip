@@ -10,8 +10,10 @@ try:
     import importlib.resources as resources
 
     def _in_proc_script_path():
-        return resources.path(__package__, '_in_process.py')
+        return resources.path(__package__, "_in_process.py")
+
 except ImportError:
+
     @contextmanager
     def _in_proc_script_path():
-        yield pjoin(dirname(abspath(__file__)), '_in_process.py')
+        yield pjoin(dirname(abspath(__file__)), "_in_process.py")

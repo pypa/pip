@@ -21,7 +21,7 @@ from .enums import InputState
 from .version import __version__, VERSION
 
 
-__all__ = ['UniversalDetector', 'detect', 'detect_all', '__version__', 'VERSION']
+__all__ = ["UniversalDetector", "detect", "detect_all", "__version__", "VERSION"]
 
 
 def detect(byte_str):
@@ -33,8 +33,10 @@ def detect(byte_str):
     """
     if not isinstance(byte_str, bytearray):
         if not isinstance(byte_str, bytes):
-            raise TypeError('Expected object of type bytes or bytearray, got: '
-                            '{}'.format(type(byte_str)))
+            raise TypeError(
+                "Expected object of type bytes or bytearray, got: "
+                "{}".format(type(byte_str))
+            )
         else:
             byte_str = bytearray(byte_str)
     detector = UniversalDetector()
@@ -51,8 +53,10 @@ def detect_all(byte_str):
     """
     if not isinstance(byte_str, bytearray):
         if not isinstance(byte_str, bytes):
-            raise TypeError('Expected object of type bytes or bytearray, got: '
-                            '{}'.format(type(byte_str)))
+            raise TypeError(
+                "Expected object of type bytes or bytearray, got: "
+                "{}".format(type(byte_str))
+            )
         else:
             byte_str = bytearray(byte_str)
 
@@ -68,16 +72,19 @@ def detect_all(byte_str):
                 lower_charset_name = prober.charset_name.lower()
                 # Use Windows encoding name instead of ISO-8859 if we saw any
                 # extra Windows-specific bytes
-                if lower_charset_name.startswith('iso-8859'):
+                if lower_charset_name.startswith("iso-8859"):
                     if detector._has_win_bytes:
-                        charset_name = detector.ISO_WIN_MAP.get(lower_charset_name,
-                                                            charset_name)
-                results.append({
-                    'encoding': charset_name,
-                    'confidence': prober.get_confidence(),
-                    'language': prober.language,
-                })
+                        charset_name = detector.ISO_WIN_MAP.get(
+                            lower_charset_name, charset_name
+                        )
+                results.append(
+                    {
+                        "encoding": charset_name,
+                        "confidence": prober.get_confidence(),
+                        "language": prober.language,
+                    }
+                )
         if len(results) > 0:
-            return sorted(results, key=lambda result: -result['confidence'])
+            return sorted(results, key=lambda result: -result["confidence"])
 
     return [detector.result]

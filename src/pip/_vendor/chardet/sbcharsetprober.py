@@ -32,14 +32,18 @@ from .charsetprober import CharSetProber
 from .enums import CharacterCategory, ProbingState, SequenceLikelihood
 
 
-SingleByteCharSetModel = namedtuple('SingleByteCharSetModel',
-                                    ['charset_name',
-                                     'language',
-                                     'char_to_order_map',
-                                     'language_model',
-                                     'typical_positive_ratio',
-                                     'keep_ascii_letters',
-                                     'alphabet'])
+SingleByteCharSetModel = namedtuple(
+    "SingleByteCharSetModel",
+    [
+        "charset_name",
+        "language",
+        "char_to_order_map",
+        "language_model",
+        "typical_positive_ratio",
+        "keep_ascii_letters",
+        "alphabet",
+    ],
+)
 
 
 class SingleByteCharSetProber(CharSetProber):
@@ -122,14 +126,17 @@ class SingleByteCharSetProber(CharSetProber):
             if self._total_seqs > self.SB_ENOUGH_REL_THRESHOLD:
                 confidence = self.get_confidence()
                 if confidence > self.POSITIVE_SHORTCUT_THRESHOLD:
-                    self.logger.debug('%s confidence = %s, we have a winner',
-                                      charset_name, confidence)
+                    self.logger.debug(
+                        "%s confidence = %s, we have a winner", charset_name, confidence
+                    )
                     self._state = ProbingState.FOUND_IT
                 elif confidence < self.NEGATIVE_SHORTCUT_THRESHOLD:
-                    self.logger.debug('%s confidence = %s, below negative '
-                                      'shortcut threshhold %s', charset_name,
-                                      confidence,
-                                      self.NEGATIVE_SHORTCUT_THRESHOLD)
+                    self.logger.debug(
+                        "%s confidence = %s, below negative " "shortcut threshhold %s",
+                        charset_name,
+                        confidence,
+                        self.NEGATIVE_SHORTCUT_THRESHOLD,
+                    )
                     self._state = ProbingState.NOT_ME
 
         return self.state
@@ -137,8 +144,11 @@ class SingleByteCharSetProber(CharSetProber):
     def get_confidence(self):
         r = 0.01
         if self._total_seqs > 0:
-            r = ((1.0 * self._seq_counters[SequenceLikelihood.POSITIVE]) /
-                 self._total_seqs / self._model.typical_positive_ratio)
+            r = (
+                (1.0 * self._seq_counters[SequenceLikelihood.POSITIVE])
+                / self._total_seqs
+                / self._model.typical_positive_ratio
+            )
             r = r * self._freq_char / self._total_char
             if r >= 1.0:
                 r = 0.99

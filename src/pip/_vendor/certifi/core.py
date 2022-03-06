@@ -19,8 +19,10 @@ try:
     # pip does not work since requests calls where() unconditionally on import.
     _PIP_STANDALONE_CERT = os.environ.get("_PIP_STANDALONE_CERT")
     if _PIP_STANDALONE_CERT:
+
         def where():
             return _PIP_STANDALONE_CERT
+
         raise _PipPatchedCertificate()
 
     from importlib.resources import path as get_path, read_text

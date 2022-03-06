@@ -13,7 +13,7 @@ import codecs
 from pip._vendor.pygments.util import get_bool_opt
 from pip._vendor.pygments.styles import get_style_by_name
 
-__all__ = ['Formatter']
+__all__ = ["Formatter"]
 
 
 def _lookup_style(style):
@@ -63,17 +63,17 @@ class Formatter:
     unicodeoutput = True
 
     def __init__(self, **options):
-        self.style = _lookup_style(options.get('style', 'default'))
-        self.full = get_bool_opt(options, 'full', False)
-        self.title = options.get('title', '')
-        self.encoding = options.get('encoding', None) or None
-        if self.encoding in ('guess', 'chardet'):
+        self.style = _lookup_style(options.get("style", "default"))
+        self.full = get_bool_opt(options, "full", False)
+        self.title = options.get("title", "")
+        self.encoding = options.get("encoding", None) or None
+        if self.encoding in ("guess", "chardet"):
             # can happen for e.g. pygmentize -O encoding=guess
-            self.encoding = 'utf-8'
-        self.encoding = options.get('outencoding') or self.encoding
+            self.encoding = "utf-8"
+        self.encoding = options.get("outencoding") or self.encoding
         self.options = options
 
-    def get_style_defs(self, arg=''):
+    def get_style_defs(self, arg=""):
         """
         Return the style definitions for the current style as a string.
 
@@ -81,7 +81,7 @@ class Formatter:
         formatter used. Note that ``arg`` can also be a list or tuple
         for some formatters like the html formatter.
         """
-        return ''
+        return ""
 
     def format(self, tokensource, outfile):
         """

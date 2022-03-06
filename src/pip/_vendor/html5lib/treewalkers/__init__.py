@@ -46,15 +46,19 @@ def getTreeWalker(treeType, implementation=None, **kwargs):
     if treeType not in treeWalkerCache:
         if treeType == "dom":
             from . import dom
+
             treeWalkerCache[treeType] = dom.TreeWalker
         elif treeType == "genshi":
             from . import genshi
+
             treeWalkerCache[treeType] = genshi.TreeWalker
         elif treeType == "lxml":
             from . import etree_lxml
+
             treeWalkerCache[treeType] = etree_lxml.TreeWalker
         elif treeType == "etree":
             from . import etree
+
             if implementation is None:
                 implementation = default_etree
             # XXX: NEVER cache here, caching is done in the etree submodule
@@ -91,7 +95,10 @@ def pprint(walker):
         type = token["type"]
         if type in ("StartTag", "EmptyTag"):
             # tag name
-            if token["namespace"] and token["namespace"] != constants.namespaces["html"]:
+            if (
+                token["namespace"]
+                and token["namespace"] != constants.namespaces["html"]
+            ):
                 if token["namespace"] in constants.prefixes:
                     ns = constants.prefixes[token["namespace"]]
                 else:
@@ -112,7 +119,7 @@ def pprint(walker):
                     name = "%s %s" % (ns, localname)
                 else:
                     name = localname
-                output.append("%s%s=\"%s\"" % (" " * indent, name, value))
+                output.append('%s%s="%s"' % (" " * indent, name, value))
             # self-closing
             if type == "EmptyTag":
                 indent -= 2
@@ -126,27 +133,32 @@ def pprint(walker):
         elif type == "Doctype":
             if token["name"]:
                 if token["publicId"]:
-                    output.append("""%s<!DOCTYPE %s "%s" "%s">""" %
-                                  (" " * indent,
-                                   token["name"],
-                                   token["publicId"],
-                                   token["systemId"] if token["systemId"] else ""))
+                    output.append(
+                        """%s<!DOCTYPE %s "%s" "%s">"""
+                        % (
+                            " " * indent,
+                            token["name"],
+                            token["publicId"],
+                            token["systemId"] if token["systemId"] else "",
+                        )
+                    )
                 elif token["systemId"]:
-                    output.append("""%s<!DOCTYPE %s "" "%s">""" %
-                                  (" " * indent,
-                                   token["name"],
-                                   token["systemId"]))
+                    output.append(
+                        """%s<!DOCTYPE %s "" "%s">"""
+                        % (" " * indent, token["name"], token["systemId"])
+                    )
                 else:
-                    output.append("%s<!DOCTYPE %s>" % (" " * indent,
-                                                       token["name"]))
+                    output.append("%s<!DOCTYPE %s>" % (" " * indent, token["name"]))
             else:
                 output.append("%s<!DOCTYPE >" % (" " * indent,))
 
         elif type == "Characters":
-            output.append("%s\"%s\"" % (" " * indent, token["data"]))
+            output.append('%s"%s"' % (" " * indent, token["data"]))
 
         elif type == "SpaceCharacters":
-            assert False, "concatenateCharacterTokens should have got rid of all Space tokens"
+            assert (
+                False
+            ), "concatenateCharacterTokens should have got rid of all Space tokens"
 
         else:
             raise ValueError("Unknown token type, %s" % type)

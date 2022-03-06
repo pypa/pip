@@ -27,15 +27,14 @@ PERMANENT_REDIRECT_STATUSES = (301, 308)
 def parse_uri(uri):
     """Parses a URI using the regex given in Appendix B of RFC 3986.
 
-        (scheme, authority, path, query, fragment) = parse_uri(uri)
+    (scheme, authority, path, query, fragment) = parse_uri(uri)
     """
     groups = URI.match(uri).groups()
     return (groups[1], groups[3], groups[4], groups[6], groups[8])
 
 
 class CacheController(object):
-    """An interface to see if request should cached or not.
-    """
+    """An interface to see if request should cached or not."""
 
     def __init__(
         self, cache=None, cache_etags=True, serializer=None, status_codes=None

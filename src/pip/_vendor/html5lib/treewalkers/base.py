@@ -3,8 +3,17 @@ from __future__ import absolute_import, division, unicode_literals
 from xml.dom import Node
 from ..constants import namespaces, voidElements, spaceCharacters
 
-__all__ = ["DOCUMENT", "DOCTYPE", "TEXT", "ELEMENT", "COMMENT", "ENTITY", "UNKNOWN",
-           "TreeWalker", "NonRecursiveTreeWalker"]
+__all__ = [
+    "DOCUMENT",
+    "DOCTYPE",
+    "TEXT",
+    "ELEMENT",
+    "COMMENT",
+    "ENTITY",
+    "UNKNOWN",
+    "TreeWalker",
+    "NonRecursiveTreeWalker",
+]
 
 DOCUMENT = Node.DOCUMENT_NODE
 DOCTYPE = Node.DOCUMENT_TYPE_NODE
@@ -24,6 +33,7 @@ class TreeWalker(object):
     token.
 
     """
+
     def __init__(self, tree):
         """Creates a TreeWalker
 
@@ -60,9 +70,7 @@ class TreeWalker(object):
         :returns: EmptyTag token
 
         """
-        yield {"type": "EmptyTag", "name": name,
-               "namespace": namespace,
-               "data": attrs}
+        yield {"type": "EmptyTag", "name": name, "namespace": namespace, "data": attrs}
         if hasChildren:
             yield self.error("Void element has children")
 
@@ -78,10 +86,7 @@ class TreeWalker(object):
         :returns: StartTag token
 
         """
-        return {"type": "StartTag",
-                "name": name,
-                "namespace": namespace,
-                "data": attrs}
+        return {"type": "StartTag", "name": name, "namespace": namespace, "data": attrs}
 
     def endTag(self, namespace, name):
         """Generates an EndTag token
@@ -93,9 +98,7 @@ class TreeWalker(object):
         :returns: EndTag token
 
         """
-        return {"type": "EndTag",
-                "name": name,
-                "namespace": namespace}
+        return {"type": "EndTag", "name": name, "namespace": namespace}
 
     def text(self, data):
         """Generates SpaceCharacters and Characters tokens
@@ -124,12 +127,12 @@ class TreeWalker(object):
         """
         data = data
         middle = data.lstrip(spaceCharacters)
-        left = data[:len(data) - len(middle)]
+        left = data[: len(data) - len(middle)]
         if left:
             yield {"type": "SpaceCharacters", "data": left}
         data = middle
         middle = data.rstrip(spaceCharacters)
-        right = data[len(middle):]
+        right = data[len(middle) :]
         if middle:
             yield {"type": "Characters", "data": middle}
         if right:
@@ -157,10 +160,12 @@ class TreeWalker(object):
         :returns: the Doctype token
 
         """
-        return {"type": "Doctype",
-                "name": name,
-                "publicId": publicId,
-                "systemId": systemId}
+        return {
+            "type": "Doctype",
+            "name": name,
+            "publicId": publicId,
+            "systemId": systemId,
+        }
 
     def entity(self, name):
         """Generates an Entity token
@@ -206,9 +211,12 @@ class NonRecursiveTreeWalker(TreeWalker):
 
             elif type == ELEMENT:
                 namespace, name, attributes, hasChildren = details
-                if (not namespace or namespace == namespaces["html"]) and name in voidElements:
-                    for token in self.emptyTag(namespace, name, attributes,
-                                               hasChildren):
+                if (
+                    not namespace or namespace == namespaces["html"]
+                ) and name in voidElements:
+                    for token in self.emptyTag(
+                        namespace, name, attributes, hasChildren
+                    ):
                         yield token
                     hasChildren = False
                 else:
@@ -239,7 +247,9 @@ class NonRecursiveTreeWalker(TreeWalker):
                     type, details = details[0], details[1:]
                     if type == ELEMENT:
                         namespace, name, attributes, hasChildren = details
-                        if (namespace and namespace != namespaces["html"]) or name not in voidElements:
+                        if (
+                            namespace and namespace != namespaces["html"]
+                        ) or name not in voidElements:
                             yield self.endTag(namespace, name)
                     if self.tree is currentNode:
                         currentNode = None

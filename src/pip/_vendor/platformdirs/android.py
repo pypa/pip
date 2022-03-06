@@ -107,7 +107,9 @@ def _android_documents_folder() -> str:
 
         Context = autoclass("android.content.Context")  # noqa: N806
         Environment = autoclass("android.os.Environment")  # noqa: N806
-        documents_dir: str = Context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS).getAbsolutePath()
+        documents_dir: str = Context.getExternalFilesDir(
+            Environment.DIRECTORY_DOCUMENTS
+        ).getAbsolutePath()
     except Exception:
         documents_dir = "/storage/emulated/0/Documents"
 

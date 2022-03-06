@@ -11,13 +11,13 @@ from . import compat
 from .in_process import _in_proc_script_path
 
 __all__ = [
-    'BackendUnavailable',
-    'BackendInvalid',
-    'HookMissing',
-    'UnsupportedOperation',
-    'default_subprocess_runner',
-    'quiet_subprocess_runner',
-    'Pep517HookCaller',
+    "BackendUnavailable",
+    "BackendInvalid",
+    "HookMissing",
+    "UnsupportedOperation",
+    "default_subprocess_runner",
+    "quiet_subprocess_runner",
+    "Pep517HookCaller",
 ]
 
 
@@ -32,12 +32,14 @@ def tempdir():
 
 class BackendUnavailable(Exception):
     """Will be raised if the backend cannot be imported in the hook process."""
+
     def __init__(self, traceback):
         self.traceback = traceback
 
 
 class BackendInvalid(Exception):
     """Will be raised if the backend is invalid."""
+
     def __init__(self, backend_name, backend_path, message):
         self.backend_name = backend_name
         self.backend_path = backend_path
@@ -46,6 +48,7 @@ class BackendInvalid(Exception):
 
 class HookMissing(Exception):
     """Will be raised on missing hooks."""
+
     def __init__(self, hook_name):
         super(HookMissing, self).__init__(hook_name)
         self.hook_name = hook_name
@@ -53,6 +56,7 @@ class HookMissing(Exception):
 
 class UnsupportedOperation(Exception):
     """May be raised by build_sdist if the backend indicates that it can't."""
+
     def __init__(self, traceback):
         self.traceback = traceback
 
@@ -119,13 +123,14 @@ class Pep517HookCaller(object):
     - extra_environ: a dict mapping environment variable names to values
       which must be set for the subprocess execution.
     """
+
     def __init__(
-            self,
-            source_dir,
-            build_backend,
-            backend_path=None,
-            runner=None,
-            python_executable=None,
+        self,
+        source_dir,
+        build_backend,
+        backend_path=None,
+        runner=None,
+        python_executable=None,
     ):
         if runner is None:
             runner = default_subprocess_runner
@@ -133,9 +138,7 @@ class Pep517HookCaller(object):
         self.source_dir = abspath(source_dir)
         self.build_backend = build_backend
         if backend_path:
-            backend_path = [
-                norm_and_check(self.source_dir, p) for p in backend_path
-            ]
+            backend_path = [norm_and_check(self.source_dir, p) for p in backend_path]
         self.backend_path = backend_path
         self._subprocess_runner = runner
         if not python_executable:
@@ -156,7 +159,7 @@ class Pep517HookCaller(object):
 
     def _supported_features(self):
         """Return the list of optional features supported by the backend."""
-        return self._call_hook('_supported_features', {})
+        return self._call_hook("_supported_features", {})
 
     def get_requires_for_build_wheel(self, config_settings=None):
         """Identify packages required for building a wheel
@@ -169,13 +172,13 @@ class Pep517HookCaller(object):
         It returns the result of calling the equivalently named hook in a
         subprocess.
         """
-        return self._call_hook('get_requires_for_build_wheel', {
-            'config_settings': config_settings
-        })
+        return self._call_hook(
+            "get_requires_for_build_wheel", {"config_settings": config_settings}
+        )
 
     def prepare_metadata_for_build_wheel(
-            self, metadata_directory, config_settings=None,
-            _allow_fallback=True):
+        self, metadata_directory, config_settings=None, _allow_fallback=True
+    ):
         """Prepare a ``*.dist-info`` folder with metadata for this project.
 
         Returns the name of the newly created folder.
@@ -185,15 +188,18 @@ class Pep517HookCaller(object):
         and the dist-info extracted from that (unless _allow_fallback is
         False).
         """
-        return self._call_hook('prepare_metadata_for_build_wheel', {
-            'metadata_directory': abspath(metadata_directory),
-            'config_settings': config_settings,
-            '_allow_fallback': _allow_fallback,
-        })
+        return self._call_hook(
+            "prepare_metadata_for_build_wheel",
+            {
+                "metadata_directory": abspath(metadata_directory),
+                "config_settings": config_settings,
+                "_allow_fallback": _allow_fallback,
+            },
+        )
 
     def build_wheel(
-            self, wheel_directory, config_settings=None,
-            metadata_directory=None):
+        self, wheel_directory, config_settings=None, metadata_directory=None
+    ):
         """Build a wheel from this project.
 
         Returns the name of the newly created file.
@@ -205,11 +211,14 @@ class Pep517HookCaller(object):
         """
         if metadata_directory is not None:
             metadata_directory = abspath(metadata_directory)
-        return self._call_hook('build_wheel', {
-            'wheel_directory': abspath(wheel_directory),
-            'config_settings': config_settings,
-            'metadata_directory': metadata_directory,
-        })
+        return self._call_hook(
+            "build_wheel",
+            {
+                "wheel_directory": abspath(wheel_directory),
+                "config_settings": config_settings,
+                "metadata_directory": metadata_directory,
+            },
+        )
 
     def get_requires_for_build_editable(self, config_settings=None):
         """Identify packages required for building an editable wheel
@@ -222,13 +231,13 @@ class Pep517HookCaller(object):
         It returns the result of calling the equivalently named hook in a
         subprocess.
         """
-        return self._call_hook('get_requires_for_build_editable', {
-            'config_settings': config_settings
-        })
+        return self._call_hook(
+            "get_requires_for_build_editable", {"config_settings": config_settings}
+        )
 
     def prepare_metadata_for_build_editable(
-            self, metadata_directory, config_settings=None,
-            _allow_fallback=True):
+        self, metadata_directory, config_settings=None, _allow_fallback=True
+    ):
         """Prepare a ``*.dist-info`` folder with metadata for this project.
 
         Returns the name of the newly created folder.
@@ -238,15 +247,18 @@ class Pep517HookCaller(object):
         wheel, and the dist-info extracted from that (unless _allow_fallback is
         False).
         """
-        return self._call_hook('prepare_metadata_for_build_editable', {
-            'metadata_directory': abspath(metadata_directory),
-            'config_settings': config_settings,
-            '_allow_fallback': _allow_fallback,
-        })
+        return self._call_hook(
+            "prepare_metadata_for_build_editable",
+            {
+                "metadata_directory": abspath(metadata_directory),
+                "config_settings": config_settings,
+                "_allow_fallback": _allow_fallback,
+            },
+        )
 
     def build_editable(
-            self, wheel_directory, config_settings=None,
-            metadata_directory=None):
+        self, wheel_directory, config_settings=None, metadata_directory=None
+    ):
         """Build an editable wheel from this project.
 
         Returns the name of the newly created file.
@@ -258,11 +270,14 @@ class Pep517HookCaller(object):
         """
         if metadata_directory is not None:
             metadata_directory = abspath(metadata_directory)
-        return self._call_hook('build_editable', {
-            'wheel_directory': abspath(wheel_directory),
-            'config_settings': config_settings,
-            'metadata_directory': metadata_directory,
-        })
+        return self._call_hook(
+            "build_editable",
+            {
+                "wheel_directory": abspath(wheel_directory),
+                "config_settings": config_settings,
+                "metadata_directory": metadata_directory,
+            },
+        )
 
     def get_requires_for_build_sdist(self, config_settings=None):
         """Identify packages required for building a wheel
@@ -275,9 +290,9 @@ class Pep517HookCaller(object):
         It returns the result of calling the equivalently named hook in a
         subprocess.
         """
-        return self._call_hook('get_requires_for_build_sdist', {
-            'config_settings': config_settings
-        })
+        return self._call_hook(
+            "get_requires_for_build_sdist", {"config_settings": config_settings}
+        )
 
     def build_sdist(self, sdist_directory, config_settings=None):
         """Build an sdist from this project.
@@ -286,10 +301,13 @@ class Pep517HookCaller(object):
 
         This calls the 'build_sdist' backend hook in a subprocess.
         """
-        return self._call_hook('build_sdist', {
-            'sdist_directory': abspath(sdist_directory),
-            'config_settings': config_settings,
-        })
+        return self._call_hook(
+            "build_sdist",
+            {
+                "sdist_directory": abspath(sdist_directory),
+                "config_settings": config_settings,
+            },
+        )
 
     def _call_hook(self, hook_name, kwargs):
         # On Python 2, pytoml returns Unicode values (which is correct) but the
@@ -300,21 +318,20 @@ class Pep517HookCaller(object):
         # any case).
         # For backend_path, we use sys.getfilesystemencoding.
         if sys.version_info[0] == 2:
-            build_backend = self.build_backend.encode('ASCII')
+            build_backend = self.build_backend.encode("ASCII")
         else:
             build_backend = self.build_backend
-        extra_environ = {'PEP517_BUILD_BACKEND': build_backend}
+        extra_environ = {"PEP517_BUILD_BACKEND": build_backend}
 
         if self.backend_path:
             backend_path = os.pathsep.join(self.backend_path)
             if sys.version_info[0] == 2:
                 backend_path = backend_path.encode(sys.getfilesystemencoding())
-            extra_environ['PEP517_BACKEND_PATH'] = backend_path
+            extra_environ["PEP517_BACKEND_PATH"] = backend_path
 
         with tempdir() as td:
-            hook_input = {'kwargs': kwargs}
-            compat.write_json(hook_input, pjoin(td, 'input.json'),
-                              indent=2)
+            hook_input = {"kwargs": kwargs}
+            compat.write_json(hook_input, pjoin(td, "input.json"), indent=2)
 
             # Run the hook in a subprocess
             with _in_proc_script_path() as script:
@@ -322,23 +339,23 @@ class Pep517HookCaller(object):
                 self._subprocess_runner(
                     [python, abspath(str(script)), hook_name, td],
                     cwd=self.source_dir,
-                    extra_environ=extra_environ
+                    extra_environ=extra_environ,
                 )
 
-            data = compat.read_json(pjoin(td, 'output.json'))
-            if data.get('unsupported'):
-                raise UnsupportedOperation(data.get('traceback', ''))
-            if data.get('no_backend'):
-                raise BackendUnavailable(data.get('traceback', ''))
-            if data.get('backend_invalid'):
+            data = compat.read_json(pjoin(td, "output.json"))
+            if data.get("unsupported"):
+                raise UnsupportedOperation(data.get("traceback", ""))
+            if data.get("no_backend"):
+                raise BackendUnavailable(data.get("traceback", ""))
+            if data.get("backend_invalid"):
                 raise BackendInvalid(
                     backend_name=self.build_backend,
                     backend_path=self.backend_path,
-                    message=data.get('backend_error', '')
+                    message=data.get("backend_error", ""),
                 )
-            if data.get('hook_missing'):
-                raise HookMissing(data.get('missing_hook_name') or hook_name)
-            return data['return_val']
+            if data.get("hook_missing"):
+                raise HookMissing(data.get("missing_hook_name") or hook_name)
+            return data["return_val"]
 
 
 class LoggerWrapper(threading.Thread):

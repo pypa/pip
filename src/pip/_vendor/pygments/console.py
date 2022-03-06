@@ -21,10 +21,17 @@ codes["underline"] = esc + "04m"
 codes["blink"] = esc + "05m"
 codes["overline"] = esc + "06m"
 
-dark_colors = ["black", "red", "green", "yellow", "blue",
-               "magenta", "cyan", "gray"]
-light_colors = ["brightblack", "brightred", "brightgreen", "brightyellow", "brightblue",
-                "brightmagenta", "brightcyan", "white"]
+dark_colors = ["black", "red", "green", "yellow", "blue", "magenta", "cyan", "gray"]
+light_colors = [
+    "brightblack",
+    "brightred",
+    "brightgreen",
+    "brightyellow",
+    "brightblue",
+    "brightmagenta",
+    "brightcyan",
+    "white",
+]
 
 x = 30
 for d, l in zip(dark_colors, light_colors):
@@ -55,16 +62,16 @@ def ansiformat(attr, text):
         +color+     blinking color
     """
     result = []
-    if attr[:1] == attr[-1:] == '+':
-        result.append(codes['blink'])
+    if attr[:1] == attr[-1:] == "+":
+        result.append(codes["blink"])
         attr = attr[1:-1]
-    if attr[:1] == attr[-1:] == '*':
-        result.append(codes['bold'])
+    if attr[:1] == attr[-1:] == "*":
+        result.append(codes["bold"])
         attr = attr[1:-1]
-    if attr[:1] == attr[-1:] == '_':
-        result.append(codes['underline'])
+    if attr[:1] == attr[-1:] == "_":
+        result.append(codes["underline"])
         attr = attr[1:-1]
     result.append(codes[attr])
     result.append(text)
-    result.append(codes['reset'])
-    return ''.join(result)
+    result.append(codes["reset"])
+    return "".join(result)

@@ -12,22 +12,22 @@ from xml.sax.saxutils import escape
 
 _quoteAttributeSpecChars = "".join(spaceCharacters) + "\"'=<>`"
 _quoteAttributeSpec = re.compile("[" + _quoteAttributeSpecChars + "]")
-_quoteAttributeLegacy = re.compile("[" + _quoteAttributeSpecChars +
-                                   "\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n"
-                                   "\x0b\x0c\r\x0e\x0f\x10\x11\x12\x13\x14\x15"
-                                   "\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f"
-                                   "\x20\x2f\x60\xa0\u1680\u180e\u180f\u2000"
-                                   "\u2001\u2002\u2003\u2004\u2005\u2006\u2007"
-                                   "\u2008\u2009\u200a\u2028\u2029\u202f\u205f"
-                                   "\u3000]")
+_quoteAttributeLegacy = re.compile(
+    "[" + _quoteAttributeSpecChars + "\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n"
+    "\x0b\x0c\r\x0e\x0f\x10\x11\x12\x13\x14\x15"
+    "\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f"
+    "\x20\x2f\x60\xa0\u1680\u180e\u180f\u2000"
+    "\u2001\u2002\u2003\u2004\u2005\u2006\u2007"
+    "\u2008\u2009\u200a\u2028\u2029\u202f\u205f"
+    "\u3000]"
+)
 
 
 _encode_entity_map = {}
 _is_ucs4 = len("\U0010FFFF") == 1
 for k, v in list(entities.items()):
     # skip multi-character entities
-    if ((_is_ucs4 and len(v) > 1) or
-            (not _is_ucs4 and len(v) > 2)):
+    if (_is_ucs4 and len(v) > 1) or (not _is_ucs4 and len(v) > 2):
         continue
     if v != "&":
         if len(v) == 2:
@@ -44,13 +44,15 @@ def htmlentityreplace_errors(exc):
         res = []
         codepoints = []
         skip = False
-        for i, c in enumerate(exc.object[exc.start:exc.end]):
+        for i, c in enumerate(exc.object[exc.start : exc.end]):
             if skip:
                 skip = False
                 continue
             index = i + exc.start
-            if _utils.isSurrogatePair(exc.object[index:min([exc.end, index + 2])]):
-                codepoint = _utils.surrogatePairToCodepoint(exc.object[index:index + 2])
+            if _utils.isSurrogatePair(exc.object[index : min([exc.end, index + 2])]):
+                codepoint = _utils.surrogatePairToCodepoint(
+                    exc.object[index : index + 2]
+                )
                 skip = True
             else:
                 codepoint = ord(c)
@@ -125,12 +127,22 @@ class HTMLSerializer(object):
     strip_whitespace = False
     sanitize = False
 
-    options = ("quote_attr_values", "quote_char", "use_best_quote_char",
-               "omit_optional_tags", "minimize_boolean_attributes",
-               "use_trailing_solidus", "space_before_trailing_solidus",
-               "escape_lt_in_attrs", "escape_rcdata", "resolve_entities",
-               "alphabetical_attributes", "inject_meta_charset",
-               "strip_whitespace", "sanitize")
+    options = (
+        "quote_attr_values",
+        "quote_char",
+        "use_best_quote_char",
+        "omit_optional_tags",
+        "minimize_boolean_attributes",
+        "use_trailing_solidus",
+        "space_before_trailing_solidus",
+        "escape_lt_in_attrs",
+        "escape_rcdata",
+        "resolve_entities",
+        "alphabetical_attributes",
+        "inject_meta_charset",
+        "strip_whitespace",
+        "sanitize",
+    )
 
     def __init__(self, **kwargs):
         """Initialize HTMLSerializer
@@ -213,8 +225,11 @@ class HTMLSerializer(object):
         """
         unexpected_args = frozenset(kwargs) - frozenset(self.options)
         if len(unexpected_args) > 0:
-            raise TypeError("__init__() got an unexpected keyword argument '%s'" % next(iter(unexpected_args)))
-        if 'quote_char' in kwargs:
+            raise TypeError(
+                "__init__() got an unexpected keyword argument '%s'"
+                % next(iter(unexpected_args))
+            )
+        if "quote_char" in kwargs:
             self.use_best_quote_char = False
         for attr in self.options:
             setattr(self, attr, kwargs.get(attr, getattr(self, attr)))
@@ -222,14 +237,14 @@ class HTMLSerializer(object):
         self.strict = False
 
     def encode(self, string):
-        assert(isinstance(string, text_type))
+        assert isinstance(string, text_type)
         if self.encoding:
             return string.encode(self.encoding, "htmlentityreplace")
         else:
             return string
 
     def encodeStrict(self, string):
-        assert(isinstance(string, text_type))
+        assert isinstance(string, text_type)
         if self.encoding:
             return string.encode(self.encoding, "strict")
         else:
@@ -243,23 +258,28 @@ class HTMLSerializer(object):
 
         if encoding and self.inject_meta_charset:
             from .filters.inject_meta_charset import Filter
+
             treewalker = Filter(treewalker, encoding)
         # Alphabetical attributes is here under the assumption that none of
         # the later filters add or change order of attributes; it needs to be
         # before the sanitizer so escaped elements come out correctly
         if self.alphabetical_attributes:
             from .filters.alphabeticalattributes import Filter
+
             treewalker = Filter(treewalker)
         # WhitespaceFilter should be used before OptionalTagFilter
         # for maximum efficiently of this latter filter
         if self.strip_whitespace:
             from .filters.whitespace import Filter
+
             treewalker = Filter(treewalker)
         if self.sanitize:
             from .filters.sanitizer import Filter
+
             treewalker = Filter(treewalker)
         if self.omit_optional_tags:
             from .filters.optionaltags import Filter
+
             treewalker = Filter(treewalker)
 
         for token in treewalker:
@@ -274,7 +294,9 @@ class HTMLSerializer(object):
                 if token["systemId"]:
                     if token["systemId"].find('"') >= 0:
                         if token["systemId"].find("'") >= 0:
-                            self.serializeError("System identifier contains both single and double quote characters")
+                            self.serializeError(
+                                "System identifier contains both single and double quote characters"
+                            )
                         quote_char = "'"
                     else:
                         quote_char = '"'
@@ -302,12 +324,13 @@ class HTMLSerializer(object):
                     # TODO: Add namespace support here
                     k = attr_name
                     v = attr_value
-                    yield self.encodeStrict(' ')
+                    yield self.encodeStrict(" ")
 
                     yield self.encodeStrict(k)
-                    if not self.minimize_boolean_attributes or \
-                        (k not in booleanAttributes.get(name, tuple()) and
-                         k not in booleanAttributes.get("", tuple())):
+                    if not self.minimize_boolean_attributes or (
+                        k not in booleanAttributes.get(name, tuple())
+                        and k not in booleanAttributes.get("", tuple())
+                    ):
                         yield self.encodeStrict("=")
                         if self.quote_attr_values == "always" or len(v) == 0:
                             quote_attr = True
@@ -316,8 +339,10 @@ class HTMLSerializer(object):
                         elif self.quote_attr_values == "legacy":
                             quote_attr = _quoteAttributeLegacy.search(v) is not None
                         else:
-                            raise ValueError("quote_attr_values must be one of: "
-                                             "'always', 'spec', or 'legacy'")
+                            raise ValueError(
+                                "quote_attr_values must be one of: "
+                                "'always', 'spec', or 'legacy'"
+                            )
                         v = v.replace("&", "&amp;")
                         if self.escape_lt_in_attrs:
                             v = v.replace("<", "&lt;")
@@ -406,4 +431,5 @@ class HTMLSerializer(object):
 
 class SerializeError(Exception):
     """Error in serialized tree"""
+
     pass

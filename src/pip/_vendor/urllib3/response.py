@@ -552,7 +552,7 @@ class HTTPResponse(io.IOBase):
 
         return data
 
-    def stream(self, amt=2 ** 16, decode_content=None):
+    def stream(self, amt=2**16, decode_content=None):
         """
         A generator wrapper for the read() method. A call will block until
         ``amt`` bytes have been read from the connection or until the

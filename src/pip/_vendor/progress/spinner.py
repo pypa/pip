@@ -19,27 +19,27 @@ from . import Infinite
 
 
 class Spinner(Infinite):
-    phases = ('-', '\\', '|', '/')
+    phases = ("-", "\\", "|", "/")
     hide_cursor = True
 
     def update(self):
         i = self.index % len(self.phases)
         message = self.message % self
-        line = ''.join([message, self.phases[i]])
+        line = "".join([message, self.phases[i]])
         self.writeln(line)
 
 
 class PieSpinner(Spinner):
-    phases = ['◷', '◶', '◵', '◴']
+    phases = ["◷", "◶", "◵", "◴"]
 
 
 class MoonSpinner(Spinner):
-    phases = ['◑', '◒', '◐', '◓']
+    phases = ["◑", "◒", "◐", "◓"]
 
 
 class LineSpinner(Spinner):
-    phases = ['⎺', '⎻', '⎼', '⎽', '⎼', '⎻']
+    phases = ["⎺", "⎻", "⎼", "⎽", "⎼", "⎻"]
 
 
 class PixelSpinner(Spinner):
-    phases = ['⣾', '⣷', '⣯', '⣟', '⡿', '⢿', '⣻', '⣽']
+    phases = ["⣾", "⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽"]
