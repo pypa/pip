@@ -3,9 +3,10 @@ import sys
 from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, Optional, Tuple, Union, cast
 
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
-from pip._vendor.packaging.version import Version
+from pip._vendor.packaging.version import InvalidVersion, Version
 
 from pip._internal.exceptions import (
+    BadVersionInWheelError,
     HashError,
     InstallationSubprocessError,
     MetadataInconsistent,
@@ -273,7 +274,10 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
             assert name == wheel_name, f"{name!r} != {wheel_name!r} for wheel"
             # Version may not be present for PEP 508 direct URLs
             if version is not None:
-                wheel_version = Version(wheel.version)
+                try:
+                    wheel_version = Version(wheel.version)
+                except InvalidVersion:
+                    raise BadVersionInWheelError(name=wheel.name, version=wheel.version)
                 assert version == wheel_version, "{!r} != {!r} for wheel {}".format(
                     version, wheel_version, name
                 )

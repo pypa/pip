@@ -215,6 +215,21 @@ class InvalidPyProjectBuildRequires(DiagnosticPipError):
         )
 
 
+class BadVersionInWheelError(DiagnosticPipError):
+    reference = "wheel-with-invalid-version"
+
+    def __init__(self, *, name: str, version: str) -> None:
+        super().__init__(
+            message=f"Got invalid version {escape(version)} for wheel",
+            context=(
+                f"wheel: {escape(name)}\n"
+                "The version provided is not a valid Python package version."
+            ),
+            note_stmt="This is an issue with the package mentioned above, not pip.",
+            hint_stmt=Text("See PEP 440 for the detailed specification."),
+        )
+
+
 class NoneMetadataError(PipError):
     """Raised when accessing a Distribution's "METADATA" or "PKG-INFO".
 
