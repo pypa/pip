@@ -152,8 +152,9 @@ class RichPipStreamHandler(RichHandler):
         style: Optional[Style] = None
 
         # If we are given a diagnostic error to present, present it with indentation.
-        if record.msg == "[present-diagnostic] %s" and len(record.args) == 1:
-            diagnostic_error: DiagnosticPipError = record.args[0]  # type: ignore[index]
+        msg = "[present-diagnostic] %s"
+        if record.msg == msg and len(record.args) == 1:  # type: ignore[arg-type]
+            diagnostic_error: DiagnosticPipError = record.args[0]  # type: ignore
             assert isinstance(diagnostic_error, DiagnosticPipError)
 
             renderable: ConsoleRenderable = IndentedRenderable(
@@ -193,7 +194,7 @@ class RichPipStreamHandler(RichHandler):
 
 
 class BetterRotatingFileHandler(logging.handlers.RotatingFileHandler):
-    def _open(self) -> IO[Any]:
+    def _open(self) -> IO[Any]:  # type: ignore[override]
         ensure_dir(os.path.dirname(self.baseFilename))
         return super()._open()
 

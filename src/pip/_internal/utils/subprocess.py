@@ -121,7 +121,7 @@ def call_subprocess(
     else:
         # Then log the subprocess output using VERBOSE.  This also ensures
         # it will be logged to the log file (aka user_log), if enabled.
-        log_subprocess = subprocess_logger.verbose
+        log_subprocess = subprocess_logger.verbose  # type: ignore[assignment]
         used_level = VERBOSE
 
     # Whether the subprocess will be visible in the console.

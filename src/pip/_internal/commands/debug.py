@@ -47,7 +47,7 @@ def create_vendor_txt_map() -> Dict[str, str]:
         ]
 
     # Transform into "module" -> version dict.
-    return dict(line.split("==", 1) for line in lines)  # type: ignore
+    return dict(line.split("==", 1) for line in lines)
 
 
 def get_module_from_module_name(module_name: str) -> ModuleType:
@@ -67,7 +67,7 @@ def get_vendor_version_from_module(module_name: str) -> Optional[str]:
 
     if not version:
         # Try to find version in debundled module info.
-        env = get_environment([os.path.dirname(module.__file__)])
+        env = get_environment([os.path.dirname(module.__file__)])  # type: ignore
         dist = env.get_distribution(module_name)
         if dist:
             version = str(dist.version)
