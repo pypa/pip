@@ -3,7 +3,7 @@ from pip._internal.req.constructors import install_req_from_line
 
 
 class TestSearchScope:
-    def test_get_formatted_locations_basic_auth(self):
+    def test_get_formatted_locations_basic_auth(self) -> None:
         """
         Test that basic authentication credentials defined in URL
         is not included in formatted output.
@@ -24,15 +24,15 @@ class TestSearchScope:
         assert "links-user:****@page.domain.com" in result
         assert "links-pass" not in result
 
-    def test_get_index_urls_locations(self):
+    def test_get_index_urls_locations(self) -> None:
         """Check that the canonical name is on all indexes"""
         search_scope = SearchScope(
             find_links=[],
             index_urls=["file://index1/", "file://index2"],
         )
-        actual = search_scope.get_index_urls_locations(
-            install_req_from_line("Complex_Name").name
-        )
+        req = install_req_from_line("Complex_Name")
+        assert req.name is not None
+        actual = search_scope.get_index_urls_locations(req.name)
         assert actual == [
             "file://index1/complex-name/",
             "file://index2/complex-name/",

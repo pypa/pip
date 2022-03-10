@@ -14,8 +14,8 @@ from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution, get_environment
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.session import PipSession
-from pip._internal.utils.misc import stdlib_pkgs, tabulate, write_output
-from pip._internal.utils.parallel import map_multithread
+from pip._internal.utils.compat import stdlib_pkgs
+from pip._internal.utils.misc import tabulate, write_output
 
 if TYPE_CHECKING:
     from pip._internal.metadata.base import DistributionVersion
@@ -149,6 +149,7 @@ class ListCommand(IndexGroupCommand):
         return PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=selection_prefs,
+            use_deprecated_html5lib="html5lib" in options.deprecated_features_enabled,
         )
 
     def run(self, options: Values, args: List[str]) -> int:
@@ -253,7 +254,7 @@ class ListCommand(IndexGroupCommand):
                 dist.latest_filetype = typ
                 return dist
 
-            for dist in map_multithread(latest_info, packages):
+            for dist in map(latest_info, packages):
                 if dist is not None:
                     yield dist
 
@@ -302,19 +303,22 @@ def format_for_columns(
     Convert the package data into something usable
     by output_package_listing_columns.
     """
-    running_outdated = options.outdated
-    # Adjust the header for the `pip list --outdated` case.
-    if running_outdated:
-        header = ["Package", "Version", "Latest", "Type"]
-    else:
-        header = ["Package", "Version"]
+    header = ["Package", "Version"]
 
-    data = []
-    if options.verbose >= 1 or any(x.editable for x in pkgs):
+    running_outdated = options.outdated
+    if running_outdated:
+        header.extend(["Latest", "Type"])
+
+    has_editables = any(x.editable for x in pkgs)
+    if has_editables:
+        header.append("Editable project location")
+
+    if options.verbose >= 1:
         header.append("Location")
     if options.verbose >= 1:
         header.append("Installer")
 
+    data = []
     for proj in pkgs:
         # if we're working on the 'outdated' list, separate out the
         # latest_version and type
@@ -324,7 +328,10 @@ def format_for_columns(
             row.append(str(proj.latest_version))
             row.append(proj.latest_filetype)
 
-        if options.verbose >= 1 or proj.editable:
+        if has_editables:
+            row.append(proj.editable_project_location or "")
+
+        if options.verbose >= 1:
             row.append(proj.location or "")
         if options.verbose >= 1:
             row.append(proj.installer)
@@ -347,5 +354,8 @@ def format_for_json(packages: "_ProcessedDists", options: Values) -> str:
         if options.outdated:
             info["latest_version"] = str(dist.latest_version)
             info["latest_filetype"] = dist.latest_filetype
+        editable_project_location = dist.editable_project_location
+        if editable_project_location:
+            info["editable_project_location"] = editable_project_location
         data.append(info)
     return json.dumps(data)

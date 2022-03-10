@@ -1,10 +1,17 @@
 import pathlib
 import sys
 
-from tests.lib import create_basic_wheel_for_package, create_test_package_with_setup
+from tests.lib import (
+    PipTestEnvironment,
+    create_basic_wheel_for_package,
+    create_test_package_with_setup,
+)
+from tests.lib.path import Path
 
 
-def test_new_resolver_conflict_requirements_file(tmpdir, script):
+def test_new_resolver_conflict_requirements_file(
+    tmpdir: Path, script: PipTestEnvironment
+) -> None:
     create_basic_wheel_for_package(script, "base", "1.0")
     create_basic_wheel_for_package(script, "base", "2.0")
     create_basic_wheel_for_package(
@@ -38,11 +45,13 @@ def test_new_resolver_conflict_requirements_file(tmpdir, script):
     assert message in result.stderr, str(result)
 
 
-def test_new_resolver_conflict_constraints_file(tmpdir, script):
+def test_new_resolver_conflict_constraints_file(
+    tmpdir: Path, script: PipTestEnvironment
+) -> None:
     create_basic_wheel_for_package(script, "pkg", "1.0")
 
-    constrats_file = tmpdir.joinpath("constraints.txt")
-    constrats_file.write_text("pkg!=1.0")
+    constraints_file = tmpdir.joinpath("constraints.txt")
+    constraints_file.write_text("pkg!=1.0")
 
     result = script.pip(
         "install",
@@ -51,7 +60,7 @@ def test_new_resolver_conflict_constraints_file(tmpdir, script):
         "--find-links",
         script.scratch_path,
         "-c",
-        constrats_file,
+        constraints_file,
         "pkg==1.0",
         expect_error=True,
     )
@@ -62,7 +71,7 @@ def test_new_resolver_conflict_constraints_file(tmpdir, script):
     assert message in result.stdout, str(result)
 
 
-def test_new_resolver_requires_python_error(script):
+def test_new_resolver_requires_python_error(script: PipTestEnvironment) -> None:
     compatible_python = ">={0.major}.{0.minor}".format(sys.version_info)
     incompatible_python = "<{0.major}.{0.minor}".format(sys.version_info)
 
@@ -88,7 +97,9 @@ def test_new_resolver_requires_python_error(script):
     assert compatible_python not in result.stderr, str(result)
 
 
-def test_new_resolver_checks_requires_python_before_dependencies(script):
+def test_new_resolver_checks_requires_python_before_dependencies(
+    script: PipTestEnvironment,
+) -> None:
     incompatible_python = "<{0.major}.{0.minor}".format(sys.version_info)
 
     pkg_dep = create_basic_wheel_for_package(

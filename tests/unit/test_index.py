@@ -1,7 +1,9 @@
 import logging
+from typing import FrozenSet, List, Optional, Set, Tuple
 
 import pytest
 from pip._vendor.packaging.specifiers import SpecifierSet
+from pip._vendor.packaging.tags import Tag
 
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import (
@@ -35,14 +37,16 @@ from tests.lib.index import make_mock_candidate
         ("invalid", True),
     ],
 )
-def test_check_link_requires_python(requires_python, expected):
+def test_check_link_requires_python(requires_python: str, expected: bool) -> None:
     version_info = (3, 6, 5)
     link = Link("https://example.com", requires_python=requires_python)
     actual = _check_link_requires_python(link, version_info)
     assert actual == expected
 
 
-def check_caplog(caplog, expected_level, expected_message):
+def check_caplog(
+    caplog: pytest.LogCaptureFixture, expected_level: str, expected_message: str
+) -> None:
     assert len(caplog.records) == 1
     record = caplog.records[0]
     assert record.levelname == expected_level
@@ -53,7 +57,7 @@ def check_caplog(caplog, expected_level, expected_message):
     "ignore_requires_python, expected",
     [
         (
-            None,
+            False,
             (
                 False,
                 "VERBOSE",
@@ -73,10 +77,10 @@ def check_caplog(caplog, expected_level, expected_message):
     ],
 )
 def test_check_link_requires_python__incompatible_python(
-    caplog,
-    ignore_requires_python,
-    expected,
-):
+    caplog: pytest.LogCaptureFixture,
+    ignore_requires_python: bool,
+    expected: Tuple[bool, str, str],
+) -> None:
     """
     Test an incompatible Python.
     """
@@ -93,7 +97,9 @@ def test_check_link_requires_python__incompatible_python(
     check_caplog(caplog, expected_level, expected_message)
 
 
-def test_check_link_requires_python__invalid_requires(caplog):
+def test_check_link_requires_python__invalid_requires(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """
     Test the log message for an invalid Requires-Python.
     """
@@ -112,24 +118,24 @@ class TestLinkEvaluator:
     @pytest.mark.parametrize(
         "py_version_info,ignore_requires_python,expected",
         [
-            ((3, 6, 5), None, (True, "1.12")),
+            ((3, 6, 5), False, (True, "1.12")),
             # Test an incompatible Python.
-            ((3, 6, 4), None, (False, "1.12 Requires-Python == 3.6.5")),
+            ((3, 6, 4), False, (False, "1.12 Requires-Python == 3.6.5")),
             # Test an incompatible Python with ignore_requires_python=True.
             ((3, 6, 4), True, (True, "1.12")),
         ],
     )
     def test_evaluate_link(
         self,
-        py_version_info,
-        ignore_requires_python,
-        expected,
-    ):
+        py_version_info: Tuple[int, int, int],
+        ignore_requires_python: bool,
+        expected: Tuple[bool, Optional[str]],
+    ) -> None:
         target_python = TargetPython(py_version_info=py_version_info)
         evaluator = LinkEvaluator(
             project_name="twine",
             canonical_name="twine",
-            formats={"source"},
+            formats=frozenset(["source"]),
             target_python=target_python,
             allow_yanked=True,
             ignore_requires_python=ignore_requires_python,
@@ -161,15 +167,15 @@ class TestLinkEvaluator:
     )
     def test_evaluate_link__allow_yanked(
         self,
-        yanked_reason,
-        allow_yanked,
-        expected,
-    ):
+        yanked_reason: str,
+        allow_yanked: bool,
+        expected: Tuple[bool, str],
+    ) -> None:
         target_python = TargetPython(py_version_info=(3, 6, 4))
         evaluator = LinkEvaluator(
             project_name="twine",
             canonical_name="twine",
-            formats={"source"},
+            formats=frozenset(["source"]),
             target_python=target_python,
             allow_yanked=allow_yanked,
         )
@@ -180,7 +186,7 @@ class TestLinkEvaluator:
         actual = evaluator.evaluate_link(link)
         assert actual == expected
 
-    def test_evaluate_link__incompatible_wheel(self):
+    def test_evaluate_link__incompatible_wheel(self) -> None:
         """
         Test an incompatible wheel.
         """
@@ -190,7 +196,7 @@ class TestLinkEvaluator:
         evaluator = LinkEvaluator(
             project_name="sample",
             canonical_name="sample",
-            formats={"binary"},
+            formats=frozenset(["binary"]),
             target_python=target_python,
             allow_yanked=True,
         )
@@ -207,13 +213,12 @@ class TestLinkEvaluator:
 @pytest.mark.parametrize(
     "hex_digest, expected_versions",
     [
-        (None, ["1.0", "1.1", "1.2"]),
         (64 * "a", ["1.0", "1.1"]),
         (64 * "b", ["1.0", "1.2"]),
         (64 * "c", ["1.0", "1.1", "1.2"]),
     ],
 )
-def test_filter_unallowed_hashes(hex_digest, expected_versions):
+def test_filter_unallowed_hashes(hex_digest: str, expected_versions: List[str]) -> None:
     candidates = [
         make_mock_candidate("1.0"),
         make_mock_candidate("1.1", hex_digest=(64 * "a")),
@@ -235,7 +240,7 @@ def test_filter_unallowed_hashes(hex_digest, expected_versions):
     assert actual is not candidates
 
 
-def test_filter_unallowed_hashes__no_hashes(caplog):
+def test_filter_unallowed_hashes__no_hashes(caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.DEBUG)
 
     candidates = [
@@ -259,7 +264,9 @@ def test_filter_unallowed_hashes__no_hashes(caplog):
     check_caplog(caplog, "DEBUG", expected_message)
 
 
-def test_filter_unallowed_hashes__log_message_with_match(caplog):
+def test_filter_unallowed_hashes__log_message_with_match(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     caplog.set_level(logging.DEBUG)
 
     # Test 1 match, 2 non-matches, 3 no hashes so all 3 values will be
@@ -298,7 +305,9 @@ def test_filter_unallowed_hashes__log_message_with_match(caplog):
     check_caplog(caplog, "DEBUG", expected_message)
 
 
-def test_filter_unallowed_hashes__log_message_with_no_match(caplog):
+def test_filter_unallowed_hashes__log_message_with_no_match(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     caplog.set_level(logging.DEBUG)
 
     candidates = [
@@ -334,9 +343,9 @@ class TestCandidateEvaluator:
             (True, True),
         ],
     )
-    def test_create(self, allow_all_prereleases, prefer_binary):
+    def test_create(self, allow_all_prereleases: bool, prefer_binary: bool) -> None:
         target_python = TargetPython()
-        target_python._valid_tags = [("py36", "none", "any")]
+        target_python._valid_tags = [Tag("py36", "none", "any")]
         specifier = SpecifierSet()
         evaluator = CandidateEvaluator.create(
             project_name="my-project",
@@ -348,9 +357,9 @@ class TestCandidateEvaluator:
         assert evaluator._allow_all_prereleases == allow_all_prereleases
         assert evaluator._prefer_binary == prefer_binary
         assert evaluator._specifier is specifier
-        assert evaluator._supported_tags == [("py36", "none", "any")]
+        assert evaluator._supported_tags == [Tag("py36", "none", "any")]
 
-    def test_create__target_python_none(self):
+    def test_create__target_python_none(self) -> None:
         """
         Test passing target_python=None.
         """
@@ -358,7 +367,7 @@ class TestCandidateEvaluator:
         expected_tags = get_supported()
         assert evaluator._supported_tags == expected_tags
 
-    def test_create__specifier_none(self):
+    def test_create__specifier_none(self) -> None:
         """
         Test passing specifier=None.
         """
@@ -366,7 +375,7 @@ class TestCandidateEvaluator:
         expected_specifier = SpecifierSet()
         assert evaluator._specifier == expected_specifier
 
-    def test_get_applicable_candidates(self):
+    def test_get_applicable_candidates(self) -> None:
         specifier = SpecifierSet("<= 1.11")
         versions = ["1.10", "1.11", "1.12"]
         candidates = [make_mock_candidate(version) for version in versions]
@@ -394,9 +403,9 @@ class TestCandidateEvaluator:
     )
     def test_get_applicable_candidates__hashes(
         self,
-        specifier,
-        expected_versions,
-    ):
+        specifier: SpecifierSet,
+        expected_versions: List[str],
+    ) -> None:
         """
         Test a non-None hashes value.
         """
@@ -418,7 +427,7 @@ class TestCandidateEvaluator:
         actual_versions = [str(c.version) for c in actual]
         assert actual_versions == expected_versions
 
-    def test_compute_best_candidate(self):
+    def test_compute_best_candidate(self) -> None:
         specifier = SpecifierSet("<= 1.11")
         versions = ["1.10", "1.11", "1.12"]
         candidates = [make_mock_candidate(version) for version in versions]
@@ -438,7 +447,7 @@ class TestCandidateEvaluator:
 
         assert result.best_candidate is expected_applicable[1]
 
-    def test_compute_best_candidate__none_best(self):
+    def test_compute_best_candidate__none_best(self) -> None:
         """
         Test returning a None best candidate.
         """
@@ -466,7 +475,7 @@ class TestCandidateEvaluator:
             (64 * "b", 0),
         ],
     )
-    def test_sort_key__hash(self, hex_digest, expected):
+    def test_sort_key__hash(self, hex_digest: Optional[str], expected: int) -> None:
         """
         Test the effect of the link's hash on _sort_key()'s return value.
         """
@@ -490,7 +499,9 @@ class TestCandidateEvaluator:
             ("bad metadata", -1),
         ],
     )
-    def test_sort_key__is_yanked(self, yanked_reason, expected):
+    def test_sort_key__is_yanked(
+        self, yanked_reason: Optional[str], expected: int
+    ) -> None:
         """
         Test the effect of is_yanked on _sort_key()'s return value.
         """
@@ -501,7 +512,7 @@ class TestCandidateEvaluator:
         actual = sort_value[1]
         assert actual == expected
 
-    def test_sort_best_candidate__no_candidates(self):
+    def test_sort_best_candidate__no_candidates(self) -> None:
         """
         Test passing an empty list.
         """
@@ -511,8 +522,8 @@ class TestCandidateEvaluator:
 
     def test_sort_best_candidate__best_yanked_but_not_all(
         self,
-        caplog,
-    ):
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
         """
         Test the best candidates being yanked, but not all.
         """
@@ -546,9 +557,9 @@ class TestPackageFinder:
     )
     def test_create__candidate_prefs(
         self,
-        allow_all_prereleases,
-        prefer_binary,
-    ):
+        allow_all_prereleases: bool,
+        prefer_binary: bool,
+    ) -> None:
         """
         Test that the _candidate_prefs attribute is set correctly.
         """
@@ -564,12 +575,13 @@ class TestPackageFinder:
         finder = PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=selection_prefs,
+            use_deprecated_html5lib=False,
         )
         candidate_prefs = finder._candidate_prefs
         assert candidate_prefs.allow_all_prereleases == allow_all_prereleases
         assert candidate_prefs.prefer_binary == prefer_binary
 
-    def test_create__link_collector(self):
+    def test_create__link_collector(self) -> None:
         """
         Test that the _link_collector attribute is set correctly.
         """
@@ -580,11 +592,12 @@ class TestPackageFinder:
         finder = PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=SelectionPreferences(allow_yanked=True),
+            use_deprecated_html5lib=False,
         )
 
         assert finder._link_collector is link_collector
 
-    def test_create__target_python(self):
+    def test_create__target_python(self) -> None:
         """
         Test that the _target_python attribute is set correctly.
         """
@@ -597,6 +610,7 @@ class TestPackageFinder:
             link_collector=link_collector,
             selection_prefs=SelectionPreferences(allow_yanked=True),
             target_python=target_python,
+            use_deprecated_html5lib=False,
         )
         actual_target_python = finder._target_python
         # The target_python attribute should be set as is.
@@ -604,7 +618,7 @@ class TestPackageFinder:
         # Check that the attributes weren't reset.
         assert actual_target_python.py_version_info == (3, 7, 3)
 
-    def test_create__target_python_none(self):
+    def test_create__target_python_none(self) -> None:
         """
         Test passing target_python=None.
         """
@@ -616,6 +630,7 @@ class TestPackageFinder:
             link_collector=link_collector,
             selection_prefs=SelectionPreferences(allow_yanked=True),
             target_python=None,
+            use_deprecated_html5lib=False,
         )
         # Spot-check the default TargetPython object.
         actual_target_python = finder._target_python
@@ -623,7 +638,7 @@ class TestPackageFinder:
         assert actual_target_python.py_version_info == CURRENT_PY_VERSION_INFO
 
     @pytest.mark.parametrize("allow_yanked", [False, True])
-    def test_create__allow_yanked(self, allow_yanked):
+    def test_create__allow_yanked(self, allow_yanked: bool) -> None:
         """
         Test that the _allow_yanked attribute is set correctly.
         """
@@ -635,11 +650,12 @@ class TestPackageFinder:
         finder = PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=selection_prefs,
+            use_deprecated_html5lib=False,
         )
         assert finder._allow_yanked == allow_yanked
 
     @pytest.mark.parametrize("ignore_requires_python", [False, True])
-    def test_create__ignore_requires_python(self, ignore_requires_python):
+    def test_create__ignore_requires_python(self, ignore_requires_python: bool) -> None:
         """
         Test that the _ignore_requires_python attribute is set correctly.
         """
@@ -654,10 +670,11 @@ class TestPackageFinder:
         finder = PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=selection_prefs,
+            use_deprecated_html5lib=False,
         )
         assert finder._ignore_requires_python == ignore_requires_python
 
-    def test_create__format_control(self):
+    def test_create__format_control(self) -> None:
         """
         Test that the format_control attribute is set correctly.
         """
@@ -673,6 +690,7 @@ class TestPackageFinder:
         finder = PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=selection_prefs,
+            use_deprecated_html5lib=False,
         )
         actual_format_control = finder.format_control
         assert actual_format_control is format_control
@@ -693,11 +711,11 @@ class TestPackageFinder:
     )
     def test_make_link_evaluator(
         self,
-        allow_yanked,
-        ignore_requires_python,
-        only_binary,
-        expected_formats,
-    ):
+        allow_yanked: bool,
+        ignore_requires_python: bool,
+        only_binary: Set[str],
+        expected_formats: FrozenSet[str],
+    ) -> None:
         # Create a test TargetPython that we can check for.
         target_python = TargetPython(py_version_info=(3, 7))
         format_control = FormatControl(set(), only_binary)
@@ -713,6 +731,7 @@ class TestPackageFinder:
             allow_yanked=allow_yanked,
             format_control=format_control,
             ignore_requires_python=ignore_requires_python,
+            use_deprecated_html5lib=False,
         )
 
         # Pass a project_name that will be different from canonical_name.
@@ -743,11 +762,11 @@ class TestPackageFinder:
     )
     def test_make_candidate_evaluator(
         self,
-        allow_all_prereleases,
-        prefer_binary,
-    ):
+        allow_all_prereleases: bool,
+        prefer_binary: bool,
+    ) -> None:
         target_python = TargetPython()
-        target_python._valid_tags = [("py36", "none", "any")]
+        target_python._valid_tags = [Tag("py36", "none", "any")]
         candidate_prefs = CandidatePreferences(
             prefer_binary=prefer_binary,
             allow_all_prereleases=allow_all_prereleases,
@@ -761,6 +780,7 @@ class TestPackageFinder:
             target_python=target_python,
             allow_yanked=True,
             candidate_prefs=candidate_prefs,
+            use_deprecated_html5lib=False,
         )
 
         specifier = SpecifierSet()
@@ -776,7 +796,7 @@ class TestPackageFinder:
         assert evaluator._prefer_binary == prefer_binary
         assert evaluator._project_name == "my-project"
         assert evaluator._specifier is specifier
-        assert evaluator._supported_tags == [("py36", "none", "any")]
+        assert evaluator._supported_tags == [Tag("py36", "none", "any")]
 
 
 @pytest.mark.parametrize(
@@ -804,7 +824,9 @@ class TestPackageFinder:
         ("zope.interface-", "zope-interface", 14),
     ],
 )
-def test_find_name_version_sep(fragment, canonical_name, expected):
+def test_find_name_version_sep(
+    fragment: str, canonical_name: str, expected: int
+) -> None:
     index = _find_name_version_sep(fragment, canonical_name)
     assert index == expected
 
@@ -819,7 +841,7 @@ def test_find_name_version_sep(fragment, canonical_name, expected):
         ("zope.interface", "zope-interface"),
     ],
 )
-def test_find_name_version_sep_failure(fragment, canonical_name):
+def test_find_name_version_sep_failure(fragment: str, canonical_name: str) -> None:
     with pytest.raises(ValueError) as ctx:
         _find_name_version_sep(fragment, canonical_name)
     message = f"{fragment} does not match {canonical_name}"
@@ -855,6 +877,8 @@ def test_find_name_version_sep_failure(fragment, canonical_name):
         ("zope.interface", "zope-interface", None),
     ],
 )
-def test_extract_version_from_fragment(fragment, canonical_name, expected):
+def test_extract_version_from_fragment(
+    fragment: str, canonical_name: str, expected: Optional[str]
+) -> None:
     version = _extract_version_from_fragment(fragment, canonical_name)
     assert version == expected

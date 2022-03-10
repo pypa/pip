@@ -31,7 +31,12 @@ from pip._internal.utils.misc import (
     is_installable_dir,
     rmtree,
 )
-from pip._internal.utils.subprocess import CommandArgs, call_subprocess, make_command
+from pip._internal.utils.subprocess import (
+    CommandArgs,
+    call_subprocess,
+    format_command_args,
+    make_command,
+)
 from pip._internal.utils.urls import get_url_scheme
 
 if TYPE_CHECKING:
@@ -458,7 +463,9 @@ class VersionControl:
         """
         return cls.normalize_url(url1) == cls.normalize_url(url2)
 
-    def fetch_new(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
+    def fetch_new(
+        self, dest: str, url: HiddenText, rev_options: RevOptions, verbosity: int
+    ) -> None:
         """
         Fetch a revision from a repository, in the case that this is the
         first fetch from the repository.
@@ -466,6 +473,7 @@ class VersionControl:
         Args:
           dest: the directory to fetch the repository to.
           rev_options: a RevOptions object.
+          verbosity: verbosity level.
         """
         raise NotImplementedError
 
@@ -498,18 +506,19 @@ class VersionControl:
         """
         raise NotImplementedError
 
-    def obtain(self, dest: str, url: HiddenText) -> None:
+    def obtain(self, dest: str, url: HiddenText, verbosity: int) -> None:
         """
         Install or update in editable mode the package represented by this
         VersionControl object.
 
         :param dest: the repository directory in which to install or update.
         :param url: the repository URL starting with a vcs prefix.
+        :param verbosity: verbosity level.
         """
         url, rev_options = self.get_url_rev_options(url)
 
         if not os.path.exists(dest):
-            self.fetch_new(dest, url, rev_options)
+            self.fetch_new(dest, url, rev_options, verbosity=verbosity)
             return
 
         rev_display = rev_options.to_display()
@@ -565,14 +574,14 @@ class VersionControl:
         if response == "w":
             logger.warning("Deleting %s", display_path(dest))
             rmtree(dest)
-            self.fetch_new(dest, url, rev_options)
+            self.fetch_new(dest, url, rev_options, verbosity=verbosity)
             return
 
         if response == "b":
             dest_dir = backup_dir(dest)
             logger.warning("Backing up %s to %s", display_path(dest), dest_dir)
             shutil.move(dest, dest_dir)
-            self.fetch_new(dest, url, rev_options)
+            self.fetch_new(dest, url, rev_options, verbosity=verbosity)
             return
 
         # Do nothing if the response is "i".
@@ -586,16 +595,17 @@ class VersionControl:
             )
             self.switch(dest, url, rev_options)
 
-    def unpack(self, location: str, url: HiddenText) -> None:
+    def unpack(self, location: str, url: HiddenText, verbosity: int) -> None:
         """
         Clean up current location and download the url repository
         (and vcs infos) into location
 
         :param url: the repository URL starting with a vcs prefix.
+        :param verbosity: verbosity level.
         """
         if os.path.exists(location):
             rmtree(location)
-        self.obtain(location, url=url)
+        self.obtain(location, url=url, verbosity=verbosity)
 
     @classmethod
     def get_remote_url(cls, location: str) -> str:
@@ -634,6 +644,8 @@ class VersionControl:
         command name, and checks that the VCS is available
         """
         cmd = make_command(cls.name, *cmd)
+        if command_desc is None:
+            command_desc = format_command_args(cmd)
         try:
             return call_subprocess(
                 cmd,

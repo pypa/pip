@@ -5,7 +5,12 @@ import logging
 import os
 
 from pip._internal.build_env import BuildEnvironment
-from pip._internal.exceptions import InstallationError
+from pip._internal.cli.spinners import open_spinner
+from pip._internal.exceptions import (
+    InstallationError,
+    InstallationSubprocessError,
+    MetadataGenerationFailed,
+)
 from pip._internal.utils.setuptools_build import make_setuptools_egg_info_args
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory
@@ -54,11 +59,16 @@ def generate_metadata(
     )
 
     with build_env:
-        call_subprocess(
-            args,
-            cwd=source_dir,
-            command_desc="python setup.py egg_info",
-        )
+        with open_spinner("Preparing metadata (setup.py)") as spinner:
+            try:
+                call_subprocess(
+                    args,
+                    cwd=source_dir,
+                    command_desc="python setup.py egg_info",
+                    spinner=spinner,
+                )
+            except InstallationSubprocessError as error:
+                raise MetadataGenerationFailed(package_details=details) from error
 
     # Return the .egg-info directory.
     return _find_egg_info(egg_info_dir)

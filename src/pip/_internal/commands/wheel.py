@@ -65,7 +65,6 @@ class WheelCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.src())
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
         self.cmd_opts.add_option(cmdoptions.no_deps())
-        self.cmd_opts.add_option(cmdoptions.build_dir())
         self.cmd_opts.add_option(cmdoptions.progress_bar())
 
         self.cmd_opts.add_option(
@@ -129,6 +128,7 @@ class WheelCommand(RequirementCommand):
             finder=finder,
             download_dir=options.wheel_dir,
             use_user_site=False,
+            verbosity=self.verbosity,
         )
 
         resolver = self.make_resolver(

@@ -2,8 +2,10 @@
 import csv
 import logging
 import os
+import pathlib
 import textwrap
 from email import message_from_string
+from typing import Dict, List, Optional, Tuple, cast
 from unittest.mock import patch
 
 import pytest
@@ -19,14 +21,18 @@ from pip._internal.models.direct_url import (
 from pip._internal.models.scheme import Scheme
 from pip._internal.operations.build.wheel_legacy import get_legacy_build_wheel_path
 from pip._internal.operations.install import wheel
+from pip._internal.operations.install.wheel import InstalledCSVRow, RecordPath
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import hash_file
 from pip._internal.utils.unpacking import unpack_file
-from tests.lib import DATA_DIR, assert_paths_equal
+from tests.lib import DATA_DIR, TestData, assert_paths_equal
+from tests.lib.path import Path
 from tests.lib.wheel import make_wheel
 
 
-def call_get_legacy_build_wheel_path(caplog, names):
+def call_get_legacy_build_wheel_path(
+    caplog: pytest.LogCaptureFixture, names: List[str]
+) -> Optional[str]:
     wheel_path = get_legacy_build_wheel_path(
         names=names,
         temp_dir="/tmp/abcd",
@@ -37,13 +43,16 @@ def call_get_legacy_build_wheel_path(caplog, names):
     return wheel_path
 
 
-def test_get_legacy_build_wheel_path(caplog):
+def test_get_legacy_build_wheel_path(caplog: pytest.LogCaptureFixture) -> None:
     actual = call_get_legacy_build_wheel_path(caplog, names=["name"])
+    assert actual is not None
     assert_paths_equal(actual, "/tmp/abcd/name")
     assert not caplog.records
 
 
-def test_get_legacy_build_wheel_path__no_names(caplog):
+def test_get_legacy_build_wheel_path__no_names(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     caplog.set_level(logging.INFO)
     actual = call_get_legacy_build_wheel_path(caplog, names=[])
     assert actual is None
@@ -57,13 +66,16 @@ def test_get_legacy_build_wheel_path__no_names(caplog):
     ]
 
 
-def test_get_legacy_build_wheel_path__multiple_names(caplog):
+def test_get_legacy_build_wheel_path__multiple_names(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     caplog.set_level(logging.INFO)
     # Deliberately pass the names in non-sorted order.
     actual = call_get_legacy_build_wheel_path(
         caplog,
         names=["name2", "name1"],
     )
+    assert actual is not None
     assert_paths_equal(actual, "/tmp/abcd/name1")
     assert len(caplog.records) == 1
     record = caplog.records[0]
@@ -84,7 +96,7 @@ def test_get_legacy_build_wheel_path__multiple_names(caplog):
         "進入點 = 套件.模組:函式",
     ],
 )
-def test_get_entrypoints(tmp_path, console_scripts):
+def test_get_entrypoints(tmp_path: pathlib.Path, console_scripts: str) -> None:
     entry_points_text = """
         [console_scripts]
         {}
@@ -103,13 +115,11 @@ def test_get_entrypoints(tmp_path, console_scripts):
         },
     ).as_distribution("simple")
 
-    assert wheel.get_entrypoints(distribution) == (
-        dict([console_scripts.split(" = ")]),
-        {},
-    )
+    entry_point, entry_point_value = console_scripts.split(" = ")
+    assert wheel.get_entrypoints(distribution) == ({entry_point: entry_point_value}, {})
 
 
-def test_get_entrypoints_no_entrypoints(tmp_path):
+def test_get_entrypoints_no_entrypoints(tmp_path: pathlib.Path) -> None:
     distribution = make_wheel("simple", "0.1.0").as_distribution("simple")
 
     console, gui = wheel.get_entrypoints(distribution)
@@ -155,20 +165,20 @@ def test_get_entrypoints_no_entrypoints(tmp_path):
         ),
     ],
 )
-def test_normalized_outrows(outrows, expected):
+def test_normalized_outrows(
+    outrows: List[Tuple[RecordPath, str, str]], expected: List[Tuple[str, str, str]]
+) -> None:
     actual = wheel._normalized_outrows(outrows)
     assert actual == expected
 
 
-def call_get_csv_rows_for_installed(tmpdir, text):
+def call_get_csv_rows_for_installed(tmpdir: Path, text: str) -> List[InstalledCSVRow]:
     path = tmpdir.joinpath("temp.txt")
     path.write_text(text)
 
     # Test that an installed file appearing in RECORD has its filename
     # updated in the new RECORD file.
-    installed = {"a": "z"}
-    changed = set()
-    generated = []
+    installed = cast(Dict[RecordPath, RecordPath], {"a": "z"})
     lib_dir = "/lib/dir"
 
     with open(path, **wheel.csv_io_kwargs("r")) as f:
@@ -176,14 +186,16 @@ def call_get_csv_rows_for_installed(tmpdir, text):
     outrows = wheel.get_csv_rows_for_installed(
         record_rows,
         installed=installed,
-        changed=changed,
-        generated=generated,
+        changed=set(),
+        generated=[],
         lib_dir=lib_dir,
     )
     return outrows
 
 
-def test_get_csv_rows_for_installed(tmpdir, caplog):
+def test_get_csv_rows_for_installed(
+    tmpdir: Path, caplog: pytest.LogCaptureFixture
+) -> None:
     text = textwrap.dedent(
         """\
     a,b,c
@@ -201,7 +213,9 @@ def test_get_csv_rows_for_installed(tmpdir, caplog):
     assert len(caplog.records) == 0
 
 
-def test_get_csv_rows_for_installed__long_lines(tmpdir, caplog):
+def test_get_csv_rows_for_installed__long_lines(
+    tmpdir: Path, caplog: pytest.LogCaptureFixture
+) -> None:
     text = textwrap.dedent(
         """\
     a,b,c,d
@@ -210,20 +224,17 @@ def test_get_csv_rows_for_installed__long_lines(tmpdir, caplog):
     """
     )
     outrows = call_get_csv_rows_for_installed(tmpdir, text)
-
-    expected = [
+    assert outrows == [
         ("z", "b", "c"),
         ("e", "f", "g"),
         ("h", "i", "j"),
     ]
-    assert outrows == expected
 
     messages = [rec.message for rec in caplog.records]
-    expected = [
+    assert messages == [
         "RECORD line has more than three elements: ['a', 'b', 'c', 'd']",
         "RECORD line has more than three elements: ['h', 'i', 'j', 'k']",
     ]
-    assert messages == expected
 
 
 @pytest.mark.parametrize(
@@ -237,12 +248,21 @@ def test_get_csv_rows_for_installed__long_lines(tmpdir, caplog):
         ("root-is-purelib: True", True),
     ],
 )
-def test_wheel_root_is_purelib(text, expected):
+def test_wheel_root_is_purelib(text: str, expected: bool) -> None:
     assert wheel.wheel_root_is_purelib(message_from_string(text)) == expected
 
 
+def test_dist_from_broken_wheel_fails(data: TestData) -> None:
+    from pip._internal.exceptions import InvalidWheel
+    from pip._internal.metadata import FilesystemWheel, get_wheel_distribution
+
+    package = data.packages.joinpath("corruptwheel-1.0-py2.py3-none-any.whl")
+    with pytest.raises(InvalidWheel):
+        get_wheel_distribution(FilesystemWheel(package), "brokenwheel")
+
+
 class TestWheelFile:
-    def test_unpack_wheel_no_flatten(self, tmpdir):
+    def test_unpack_wheel_no_flatten(self, tmpdir: Path) -> None:
         filepath = os.path.join(DATA_DIR, "packages", "meta-1.0-py2.py3-none-any.whl")
         unpack_file(filepath, tmpdir)
         assert os.path.isdir(os.path.join(tmpdir, "meta-1.0.dist-info"))
@@ -253,7 +273,7 @@ class TestInstallUnpackedWheel:
     Tests for moving files from wheel src to scheme paths
     """
 
-    def prep(self, data, tmpdir):
+    def prep(self, data: TestData, tmpdir: str) -> None:
         # Since Path implements __add__, os.path.join returns a Path object.
         # Passing Path objects to interfaces expecting str (like
         # `compileall.compile_file`) can cause failures, so we normalize it
@@ -321,11 +341,11 @@ class TestInstallUnpackedWheel:
             self.scheme.purelib, "sample-1.2.0.dist-info"
         )
 
-    def assert_permission(self, path, mode):
+    def assert_permission(self, path: str, mode: int) -> None:
         target_mode = os.stat(path).st_mode & 0o777
         assert (target_mode & mode) == mode, oct(target_mode)
 
-    def assert_installed(self, expected_permission):
+    def assert_installed(self, expected_permission: int) -> None:
         # lib
         assert os.path.isdir(os.path.join(self.scheme.purelib, "sample"))
         # dist-info
@@ -340,7 +360,7 @@ class TestInstallUnpackedWheel:
         pkg_data = os.path.join(self.scheme.purelib, "sample", "package_data.dat")
         assert os.path.isfile(pkg_data)
 
-    def test_std_install(self, data, tmpdir):
+    def test_std_install(self, data: TestData, tmpdir: Path) -> None:
         self.prep(data, tmpdir)
         wheel.install_wheel(
             self.name,
@@ -352,8 +372,8 @@ class TestInstallUnpackedWheel:
 
     @pytest.mark.parametrize("user_mask, expected_permission", [(0o27, 0o640)])
     def test_std_install_with_custom_umask(
-        self, data, tmpdir, user_mask, expected_permission
-    ):
+        self, data: TestData, tmpdir: Path, user_mask: int, expected_permission: int
+    ) -> None:
         """Test that the files created after install honor the permissions
         set when the user sets a custom umask"""
 
@@ -370,7 +390,7 @@ class TestInstallUnpackedWheel:
         finally:
             os.umask(prev_umask)
 
-    def test_std_install_requested(self, data, tmpdir):
+    def test_std_install_requested(self, data: TestData, tmpdir: Path) -> None:
         self.prep(data, tmpdir)
         wheel.install_wheel(
             self.name,
@@ -383,7 +403,7 @@ class TestInstallUnpackedWheel:
         requested_path = os.path.join(self.dest_dist_info, "REQUESTED")
         assert os.path.isfile(requested_path)
 
-    def test_std_install_with_direct_url(self, data, tmpdir):
+    def test_std_install_with_direct_url(self, data: TestData, tmpdir: Path) -> None:
         """Test that install_wheel creates direct_url.json metadata when
         provided with a direct_url argument. Also test that the RECORDS
         file contains an entry for direct_url.json in that case.
@@ -404,15 +424,15 @@ class TestInstallUnpackedWheel:
         )
         direct_url_path = os.path.join(self.dest_dist_info, DIRECT_URL_METADATA_NAME)
         self.assert_permission(direct_url_path, 0o644)
-        with open(direct_url_path, "rb") as f:
+        with open(direct_url_path, "rb") as f1:
             expected_direct_url_json = direct_url.to_json()
-            direct_url_json = f.read().decode("utf-8")
+            direct_url_json = f1.read().decode("utf-8")
             assert direct_url_json == expected_direct_url_json
         # check that the direc_url file is part of RECORDS
-        with open(os.path.join(self.dest_dist_info, "RECORD")) as f:
-            assert DIRECT_URL_METADATA_NAME in f.read()
+        with open(os.path.join(self.dest_dist_info, "RECORD")) as f2:
+            assert DIRECT_URL_METADATA_NAME in f2.read()
 
-    def test_install_prefix(self, data, tmpdir):
+    def test_install_prefix(self, data: TestData, tmpdir: Path) -> None:
         prefix = os.path.join(os.path.sep, "some", "path")
         self.prep(data, tmpdir)
         scheme = get_scheme(
@@ -434,7 +454,7 @@ class TestInstallUnpackedWheel:
         assert os.path.exists(os.path.join(tmpdir, "some", "path", bin_dir))
         assert os.path.exists(os.path.join(tmpdir, "some", "path", "my_data"))
 
-    def test_dist_info_contains_empty_dir(self, data, tmpdir):
+    def test_dist_info_contains_empty_dir(self, data: TestData, tmpdir: Path) -> None:
         """
         Test that empty dirs are not installed
         """
@@ -450,7 +470,9 @@ class TestInstallUnpackedWheel:
         assert not os.path.isdir(os.path.join(self.dest_dist_info, "empty_dir"))
 
     @pytest.mark.parametrize("path", ["/tmp/example", "../example", "./../example"])
-    def test_wheel_install_rejects_bad_paths(self, data, tmpdir, path):
+    def test_wheel_install_rejects_bad_paths(
+        self, data: TestData, tmpdir: Path, path: str
+    ) -> None:
         self.prep(data, tmpdir)
         wheel_path = make_wheel(
             "simple", "0.1.0", extra_files={path: "example contents\n"}
@@ -470,7 +492,9 @@ class TestInstallUnpackedWheel:
     @pytest.mark.xfail(strict=True)
     @pytest.mark.parametrize("entrypoint", ["hello = hello", "hello = hello:"])
     @pytest.mark.parametrize("entrypoint_type", ["console_scripts", "gui_scripts"])
-    def test_invalid_entrypoints_fail(self, data, tmpdir, entrypoint, entrypoint_type):
+    def test_invalid_entrypoints_fail(
+        self, data: TestData, tmpdir: Path, entrypoint: str, entrypoint_type: str
+    ) -> None:
         self.prep(data, tmpdir)
         wheel_path = make_wheel(
             "simple", "0.1.0", entry_points={entrypoint_type: [entrypoint]}
@@ -495,22 +519,22 @@ class TestMessageAboutScriptsNotOnPATH:
         "which may not be expanded by all applications."
     )
 
-    def _template(self, paths, scripts):
+    def _template(self, paths: List[str], scripts: List[str]) -> Optional[str]:
         with patch.dict("os.environ", {"PATH": os.pathsep.join(paths)}):
             return wheel.message_about_scripts_not_on_PATH(scripts)
 
-    def test_no_script(self):
+    def test_no_script(self) -> None:
         retval = self._template(paths=["/a/b", "/c/d/bin"], scripts=[])
         assert retval is None
 
-    def test_single_script__single_dir_not_on_PATH(self):
+    def test_single_script__single_dir_not_on_PATH(self) -> None:
         retval = self._template(paths=["/a/b", "/c/d/bin"], scripts=["/c/d/foo"])
         assert retval is not None
         assert "--no-warn-script-location" in retval
         assert "foo is installed in '/c/d'" in retval
         assert self.tilde_warning_msg not in retval
 
-    def test_two_script__single_dir_not_on_PATH(self):
+    def test_two_script__single_dir_not_on_PATH(self) -> None:
         retval = self._template(
             paths=["/a/b", "/c/d/bin"], scripts=["/c/d/foo", "/c/d/baz"]
         )
@@ -519,7 +543,7 @@ class TestMessageAboutScriptsNotOnPATH:
         assert "baz and foo are installed in '/c/d'" in retval
         assert self.tilde_warning_msg not in retval
 
-    def test_multi_script__multi_dir_not_on_PATH(self):
+    def test_multi_script__multi_dir_not_on_PATH(self) -> None:
         retval = self._template(
             paths=["/a/b", "/c/d/bin"],
             scripts=["/c/d/foo", "/c/d/bar", "/c/d/baz", "/a/b/c/spam"],
@@ -530,7 +554,7 @@ class TestMessageAboutScriptsNotOnPATH:
         assert "spam is installed in '/a/b/c'" in retval
         assert self.tilde_warning_msg not in retval
 
-    def test_multi_script_all__multi_dir_not_on_PATH(self):
+    def test_multi_script_all__multi_dir_not_on_PATH(self) -> None:
         retval = self._template(
             paths=["/a/b", "/c/d/bin"],
             scripts=["/c/d/foo", "/c/d/bar", "/c/d/baz", "/a/b/c/spam", "/a/b/c/eggs"],
@@ -541,30 +565,30 @@ class TestMessageAboutScriptsNotOnPATH:
         assert "eggs and spam are installed in '/a/b/c'" in retval
         assert self.tilde_warning_msg not in retval
 
-    def test_two_script__single_dir_on_PATH(self):
+    def test_two_script__single_dir_on_PATH(self) -> None:
         retval = self._template(
             paths=["/a/b", "/c/d/bin"], scripts=["/a/b/foo", "/a/b/baz"]
         )
         assert retval is None
 
-    def test_multi_script__multi_dir_on_PATH(self):
+    def test_multi_script__multi_dir_on_PATH(self) -> None:
         retval = self._template(
             paths=["/a/b", "/c/d/bin"],
             scripts=["/a/b/foo", "/a/b/bar", "/a/b/baz", "/c/d/bin/spam"],
         )
         assert retval is None
 
-    def test_multi_script__single_dir_on_PATH(self):
+    def test_multi_script__single_dir_on_PATH(self) -> None:
         retval = self._template(
             paths=["/a/b", "/c/d/bin"], scripts=["/a/b/foo", "/a/b/bar", "/a/b/baz"]
         )
         assert retval is None
 
-    def test_single_script__single_dir_on_PATH(self):
+    def test_single_script__single_dir_on_PATH(self) -> None:
         retval = self._template(paths=["/a/b", "/c/d/bin"], scripts=["/a/b/foo"])
         assert retval is None
 
-    def test_PATH_check_case_insensitive_on_windows(self):
+    def test_PATH_check_case_insensitive_on_windows(self) -> None:
         retval = self._template(paths=["C:\\A\\b"], scripts=["c:\\a\\b\\c", "C:/A/b/d"])
         if WINDOWS:
             assert retval is None
@@ -572,13 +596,15 @@ class TestMessageAboutScriptsNotOnPATH:
             assert retval is not None
             assert self.tilde_warning_msg not in retval
 
-    def test_trailing_ossep_removal(self):
+    def test_trailing_ossep_removal(self) -> None:
         retval = self._template(
             paths=[os.path.join("a", "b", "")], scripts=[os.path.join("a", "b", "c")]
         )
         assert retval is None
 
-    def test_missing_PATH_env_treated_as_empty_PATH_env(self, monkeypatch):
+    def test_missing_PATH_env_treated_as_empty_PATH_env(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         scripts = ["a/b/foo"]
 
         monkeypatch.delenv("PATH")
@@ -589,11 +615,11 @@ class TestMessageAboutScriptsNotOnPATH:
 
         assert retval_missing == retval_empty
 
-    def test_no_script_tilde_in_path(self):
+    def test_no_script_tilde_in_path(self) -> None:
         retval = self._template(paths=["/a/b", "/c/d/bin", "~/e", "/f/g~g"], scripts=[])
         assert retval is None
 
-    def test_multi_script_all_tilde__multi_dir_not_on_PATH(self):
+    def test_multi_script_all_tilde__multi_dir_not_on_PATH(self) -> None:
         retval = self._template(
             paths=["/a/b", "/c/d/bin", "~e/f"],
             scripts=[
@@ -612,7 +638,7 @@ class TestMessageAboutScriptsNotOnPATH:
         assert "tilde is installed in '/e/f'" in retval
         assert self.tilde_warning_msg in retval
 
-    def test_multi_script_all_tilde_not_at_start__multi_dir_not_on_PATH(self):
+    def test_multi_script_all_tilde_not_at_start__multi_dir_not_on_PATH(self) -> None:
         retval = self._template(
             paths=["/e/f~f", "/c/d/bin"],
             scripts=[
@@ -631,7 +657,7 @@ class TestMessageAboutScriptsNotOnPATH:
 
 
 class TestWheelHashCalculators:
-    def prep(self, tmpdir):
+    def prep(self, tmpdir: Path) -> None:
         self.test_file = tmpdir.joinpath("hash.file")
         # Want this big enough to trigger the internal read loops.
         self.test_file_len = 2 * 1024 * 1024
@@ -644,13 +670,13 @@ class TestWheelHashCalculators:
             "sha256=VkfwXsGJWJR9ModO63iPo5agXQurfBtx8RLOt-mzHu4"
         )
 
-    def test_hash_file(self, tmpdir):
+    def test_hash_file(self, tmpdir: Path) -> None:
         self.prep(tmpdir)
         h, length = hash_file(self.test_file)
         assert length == self.test_file_len
         assert h.hexdigest() == self.test_file_hash
 
-    def test_rehash(self, tmpdir):
+    def test_rehash(self, tmpdir: Path) -> None:
         self.prep(tmpdir)
         h, length = wheel.rehash(self.test_file)
         assert length == str(self.test_file_len)

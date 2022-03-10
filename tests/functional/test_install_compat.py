@@ -7,11 +7,11 @@ import os
 import pytest
 
 from tests.lib import pyversion  # noqa: F401
-from tests.lib import assert_all_changes
+from tests.lib import PipTestEnvironment, TestData, assert_all_changes
 
 
 @pytest.mark.network
-def test_debian_egg_name_workaround(script):
+def test_debian_egg_name_workaround(script: PipTestEnvironment) -> None:
     """
     We can uninstall packages installed with the pyversion removed from the
     egg-info metadata directory name.
@@ -50,7 +50,9 @@ def test_debian_egg_name_workaround(script):
     assert_all_changes(result, result2, [script.venv / "build", "cache"])
 
 
-def test_setup_py_with_dos_line_endings(script, data):
+def test_setup_py_with_dos_line_endings(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     It doesn't choke on a setup.py file that uses DOS line endings (\\r\\n).
 

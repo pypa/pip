@@ -5,8 +5,8 @@ import re
 import urllib.request
 import uuid
 from textwrap import dedent
+from typing import List, Optional, Tuple
 from unittest import mock
-from unittest.mock import Mock, patch
 
 import pytest
 from pip._vendor import html5lib, requests
@@ -26,10 +26,12 @@ from pip._internal.index.collector import (
     parse_links,
 )
 from pip._internal.index.sources import _FlatDirectorySource, _IndexDirectorySource
+from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
 from pip._internal.network.session import PipSession
-from tests.lib import make_test_link_collector
+from tests.lib import TestData, make_test_link_collector
+from tests.lib.path import Path
 
 
 @pytest.mark.parametrize(
@@ -39,7 +41,7 @@ from tests.lib import make_test_link_collector
         "file:///opt/data/pip-18.0.tar.gz",
     ],
 )
-def test_get_html_response_archive_to_naive_scheme(url):
+def test_get_html_response_archive_to_naive_scheme(url: str) -> None:
     """
     `_get_html_response()` should error on an archive-like URL if the scheme
     does not allow "poking" without getting data.
@@ -57,8 +59,8 @@ def test_get_html_response_archive_to_naive_scheme(url):
 )
 @mock.patch("pip._internal.index.collector.raise_for_status")
 def test_get_html_response_archive_to_http_scheme(
-    mock_raise_for_status, url, content_type
-):
+    mock_raise_for_status: mock.Mock, url: str, content_type: str
+) -> None:
     """
     `_get_html_response()` should send a HEAD request on an archive-like URL
     if the scheme supports it, and raise `_NotHTML` if the response isn't HTML.
@@ -90,7 +92,9 @@ def test_get_html_response_archive_to_http_scheme(
         ("file:///opt/data/pip-18.0.tar.gz"),
     ],
 )
-def test_get_html_page_invalid_content_type_archive(caplog, url):
+def test_get_html_page_invalid_content_type_archive(
+    caplog: pytest.LogCaptureFixture, url: str
+) -> None:
     """`_get_html_page()` should warn if an archive URL is not HTML
     and therefore cannot be used for a HEAD request.
     """
@@ -116,7 +120,9 @@ def test_get_html_page_invalid_content_type_archive(caplog, url):
     ],
 )
 @mock.patch("pip._internal.index.collector.raise_for_status")
-def test_get_html_response_archive_to_http_scheme_is_html(mock_raise_for_status, url):
+def test_get_html_response_archive_to_http_scheme_is_html(
+    mock_raise_for_status: mock.Mock, url: str
+) -> None:
     """
     `_get_html_response()` should work with archive-like URLs if the HEAD
     request is responded with text/html.
@@ -158,7 +164,7 @@ def test_get_html_response_archive_to_http_scheme_is_html(mock_raise_for_status,
     ],
 )
 @mock.patch("pip._internal.index.collector.raise_for_status")
-def test_get_html_response_no_head(mock_raise_for_status, url):
+def test_get_html_response_no_head(mock_raise_for_status: mock.Mock, url: str) -> None:
     """
     `_get_html_response()` shouldn't send a HEAD request if the URL does not
     look like an archive, only the GET request that retrieves data.
@@ -192,7 +198,9 @@ def test_get_html_response_no_head(mock_raise_for_status, url):
 
 
 @mock.patch("pip._internal.index.collector.raise_for_status")
-def test_get_html_response_dont_log_clear_text_password(mock_raise_for_status, caplog):
+def test_get_html_response_dont_log_clear_text_password(
+    mock_raise_for_status: mock.Mock, caplog: pytest.LogCaptureFixture
+) -> None:
     """
     `_get_html_response()` should redact the password from the index URL
     in its DEBUG log message.
@@ -243,7 +251,7 @@ def test_get_html_response_dont_log_clear_text_password(mock_raise_for_status, c
         ),
     ],
 )
-def test_determine_base_url(html, url, expected):
+def test_determine_base_url(html: bytes, url: str, expected: str) -> None:
     document = html5lib.parse(
         html,
         transport_encoding=None,
@@ -288,7 +296,7 @@ def test_determine_base_url(html, url, expected):
     ],
 )
 @pytest.mark.parametrize("is_local_path", [True, False])
-def test_clean_url_path(path, expected, is_local_path):
+def test_clean_url_path(path: str, expected: str, is_local_path: bool) -> None:
     assert _clean_url_path(path, is_local_path=is_local_path) == expected
 
 
@@ -310,7 +318,7 @@ def test_clean_url_path(path, expected, is_local_path):
         ),
     ],
 )
-def test_clean_url_path_with_local_path(path, expected):
+def test_clean_url_path_with_local_path(path: str, expected: str) -> None:
     actual = _clean_url_path(path, is_local_path=True)
     assert actual == expected
 
@@ -406,12 +414,18 @@ def test_clean_url_path_with_local_path(path, expected):
         ),
     ],
 )
-def test_clean_link(url, clean_url):
+def test_clean_link(url: str, clean_url: str) -> None:
     assert _clean_link(url) == clean_url
 
 
-def _test_parse_links_data_attribute(anchor_html, attr, expected):
-    html = f'<html><head><meta charset="utf-8"><head><body>{anchor_html}</body></html>'
+def _test_parse_links_data_attribute(
+    anchor_html: str, attr: str, expected: Optional[str]
+) -> None:
+    html = (
+        "<!DOCTYPE html>"
+        '<html><head><meta charset="utf-8"><head>'
+        "<body>{}</body></html>"
+    ).format(anchor_html)
     html_bytes = html.encode("utf-8")
     page = HTMLPage(
         html_bytes,
@@ -420,7 +434,7 @@ def _test_parse_links_data_attribute(anchor_html, attr, expected):
         # the page content isn't cached.
         url=f"https://example.com/simple-{uuid.uuid4()}/",
     )
-    links = list(parse_links(page))
+    links = list(parse_links(page, use_deprecated_html5lib=False))
     (link,) = links
     actual = getattr(link, attr)
     assert actual == expected
@@ -445,7 +459,9 @@ def _test_parse_links_data_attribute(anchor_html, attr, expected):
         ),
     ],
 )
-def test_parse_links__requires_python(anchor_html, expected):
+def test_parse_links__requires_python(
+    anchor_html: str, expected: Optional[str]
+) -> None:
     _test_parse_links_data_attribute(anchor_html, "requires_python", expected)
 
 
@@ -455,7 +471,7 @@ def test_parse_links__requires_python(anchor_html, expected):
         # Test not present.
         ('<a href="/pkg1-1.0.tar.gz"></a>', None),
         # Test present with no value.
-        ('<a href="/pkg2-1.0.tar.gz" data-yanked></a>', ""),
+        ('<a href="/pkg2-1.0.tar.gz" data-yanked></a>', None),
         # Test the empty string.
         ('<a href="/pkg3-1.0.tar.gz" data-yanked=""></a>', ""),
         # Test a non-empty string.
@@ -474,12 +490,13 @@ def test_parse_links__requires_python(anchor_html, expected):
         ),
     ],
 )
-def test_parse_links__yanked_reason(anchor_html, expected):
+def test_parse_links__yanked_reason(anchor_html: str, expected: Optional[str]) -> None:
     _test_parse_links_data_attribute(anchor_html, "yanked_reason", expected)
 
 
-def test_parse_links_caches_same_page_by_url():
+def test_parse_links_caches_same_page_by_url() -> None:
     html = (
+        "<!DOCTYPE html>"
         '<html><head><meta charset="utf-8"><head>'
         '<body><a href="/pkg1-1.0.tar.gz"></a></body></html>'
     )
@@ -509,42 +526,56 @@ def test_parse_links_caches_same_page_by_url():
         cache_link_parsing=False,
     )
 
-    parsed_links_1 = list(parse_links(page_1))
+    parsed_links_1 = list(parse_links(page_1, use_deprecated_html5lib=False))
     assert len(parsed_links_1) == 1
     assert "pkg1" in parsed_links_1[0].url
 
-    parsed_links_2 = list(parse_links(page_2))
+    parsed_links_2 = list(parse_links(page_2, use_deprecated_html5lib=False))
     assert parsed_links_2 == parsed_links_1
 
-    parsed_links_3 = list(parse_links(page_3))
+    parsed_links_3 = list(parse_links(page_3, use_deprecated_html5lib=False))
     assert len(parsed_links_3) == 1
     assert parsed_links_3 != parsed_links_1
     assert "pkg2" in parsed_links_3[0].url
 
 
+def test_parse_link_handles_deprecated_usage_properly() -> None:
+    html = b'<a href="/pkg1-1.0.tar.gz"></a><a href="/pkg1-2.0.tar.gz"></a>'
+    url = "https://example.com/simple/"
+    page = HTMLPage(html, encoding=None, url=url, cache_link_parsing=False)
+
+    parsed_links = list(parse_links(page, use_deprecated_html5lib=True))
+
+    assert len(parsed_links) == 2
+    assert "pkg1-1.0" in parsed_links[0].url
+    assert "pkg1-2.0" in parsed_links[1].url
+
+
 @mock.patch("pip._internal.index.collector.raise_for_status")
-def test_request_http_error(mock_raise_for_status, caplog):
+def test_request_http_error(
+    mock_raise_for_status: mock.Mock, caplog: pytest.LogCaptureFixture
+) -> None:
     caplog.set_level(logging.DEBUG)
     link = Link("http://localhost")
-    session = Mock(PipSession)
-    session.get.return_value = Mock()
+    session = mock.Mock(PipSession)
+    session.get.return_value = mock.Mock()
     mock_raise_for_status.side_effect = NetworkConnectionError("Http error")
     assert _get_html_page(link, session=session) is None
     assert "Could not fetch URL http://localhost: Http error - skipping" in caplog.text
 
 
-def test_request_retries(caplog):
+def test_request_retries(caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.DEBUG)
     link = Link("http://localhost")
-    session = Mock(PipSession)
+    session = mock.Mock(PipSession)
     session.get.side_effect = requests.exceptions.RetryError("Retry error")
     assert _get_html_page(link, session=session) is None
     assert "Could not fetch URL http://localhost: Retry error - skipping" in caplog.text
 
 
-def test_make_html_page():
+def test_make_html_page() -> None:
     headers = {"Content-Type": "text/html; charset=UTF-8"}
-    response = Mock(
+    response = mock.Mock(
         content=b"<content>",
         url="https://example.com/index.html",
         headers=headers,
@@ -563,7 +594,9 @@ def test_make_html_page():
         ("git+https://github.com/pypa/pip.git", "git"),
     ],
 )
-def test_get_html_page_invalid_scheme(caplog, url, vcs_scheme):
+def test_get_html_page_invalid_scheme(
+    caplog: pytest.LogCaptureFixture, url: str, vcs_scheme: str
+) -> None:
     """`_get_html_page()` should error if an invalid scheme is given.
 
     Only file:, http:, https:, and ftp: are allowed.
@@ -591,8 +624,10 @@ def test_get_html_page_invalid_scheme(caplog, url, vcs_scheme):
 )
 @mock.patch("pip._internal.index.collector.raise_for_status")
 def test_get_html_page_invalid_content_type(
-    mock_raise_for_status, caplog, content_type
-):
+    mock_raise_for_status: mock.Mock,
+    caplog: pytest.LogCaptureFixture,
+    content_type: str,
+) -> None:
     """`_get_html_page()` should warn if an invalid content-type is given.
     Only text/html is allowed.
     """
@@ -617,7 +652,7 @@ def test_get_html_page_invalid_content_type(
     ) in caplog.record_tuples
 
 
-def make_fake_html_response(url):
+def make_fake_html_response(url: str) -> mock.Mock:
     """
     Create a fake requests.Response object.
     """
@@ -630,10 +665,10 @@ def make_fake_html_response(url):
     """
     )
     content = html.encode("utf-8")
-    return Mock(content=content, url=url, headers={})
+    return mock.Mock(content=content, url=url, headers={})
 
 
-def test_get_html_page_directory_append_index(tmpdir):
+def test_get_html_page_directory_append_index(tmpdir: Path) -> None:
     """`_get_html_page()` should append "index.html" to a directory URL."""
     dirpath = tmpdir / "something"
     dirpath.mkdir()
@@ -652,18 +687,19 @@ def test_get_html_page_directory_append_index(tmpdir):
             mock.call(expected_url, session=session),
         ], f"actual calls: {mock_func.mock_calls}"
 
+        assert actual is not None
         assert actual.content == fake_response.content
         assert actual.encoding is None
         assert actual.url == expected_url
 
 
-def test_collect_sources__file_expand_dir(data):
+def test_collect_sources__file_expand_dir(data: TestData) -> None:
     """
     Test that a file:// dir from --find-links becomes _FlatDirectorySource
     """
     collector = LinkCollector.create(
-        session=Mock(is_secure_origin=None),  # Shouldn't be used.
-        options=Mock(
+        session=mock.Mock(is_secure_origin=None),  # Shouldn't be used.
+        options=mock.Mock(
             index_url="ignored-by-no-index",
             extra_index_urls=[],
             no_index=True,
@@ -671,8 +707,9 @@ def test_collect_sources__file_expand_dir(data):
         ),
     )
     sources = collector.collect_sources(
-        project_name=None,  # Shouldn't be used.
-        candidates_from_page=None,  # Shouldn't be used.
+        # Shouldn't be used.
+        project_name=None,  # type: ignore[arg-type]
+        candidates_from_page=None,  # type: ignore[arg-type]
     )
     assert (
         not sources.index_urls
@@ -684,14 +721,14 @@ def test_collect_sources__file_expand_dir(data):
     )
 
 
-def test_collect_sources__file_not_find_link(data):
+def test_collect_sources__file_not_find_link(data: TestData) -> None:
     """
     Test that a file:// dir from --index-url doesn't become _FlatDirectorySource
     run
     """
     collector = LinkCollector.create(
-        session=Mock(is_secure_origin=None),  # Shouldn't be used.
-        options=Mock(
+        session=mock.Mock(is_secure_origin=None),  # Shouldn't be used.
+        options=mock.Mock(
             index_url=data.index_url("empty_with_pkg"),
             extra_index_urls=[],
             no_index=False,
@@ -700,7 +737,8 @@ def test_collect_sources__file_not_find_link(data):
     )
     sources = collector.collect_sources(
         project_name="",
-        candidates_from_page=None,  # Shouldn't be used.
+        # Shouldn't be used.
+        candidates_from_page=None,  # type: ignore[arg-type]
     )
     assert (
         not sources.find_links
@@ -709,13 +747,13 @@ def test_collect_sources__file_not_find_link(data):
     ), "Directory specified as index should be treated as a page"
 
 
-def test_collect_sources__non_existing_path():
+def test_collect_sources__non_existing_path() -> None:
     """
     Test that a non-existing path is ignored.
     """
     collector = LinkCollector.create(
-        session=Mock(is_secure_origin=None),  # Shouldn't be used.
-        options=Mock(
+        session=mock.Mock(is_secure_origin=None),  # Shouldn't be used.
+        options=mock.Mock(
             index_url="ignored-by-no-index",
             extra_index_urls=[],
             no_index=True,
@@ -723,15 +761,16 @@ def test_collect_sources__non_existing_path():
         ),
     )
     sources = collector.collect_sources(
-        project_name=None,  # Shouldn't be used.
-        candidates_from_page=None,  # Shouldn't be used.
+        # Shouldn't be used.
+        project_name=None,  # type: ignore[arg-type]
+        candidates_from_page=None,  # type: ignore[arg-type]
     )
     assert not sources.index_urls and sources.find_links == [
         None
     ], "Nothing should have been found"
 
 
-def check_links_include(links, names):
+def check_links_include(links: List[Link], names: List[str]) -> None:
     """
     Assert that the given list of Link objects includes, for each of the
     given names, a link whose URL has a base name matching that name.
@@ -743,8 +782,8 @@ def check_links_include(links, names):
 
 
 class TestLinkCollector:
-    @patch("pip._internal.index.collector._get_html_response")
-    def test_fetch_page(self, mock_get_html_response):
+    @mock.patch("pip._internal.index.collector._get_html_response")
+    def test_fetch_page(self, mock_get_html_response: mock.Mock) -> None:
         url = "https://pypi.org/simple/twine/"
 
         fake_response = make_fake_html_response(url)
@@ -754,6 +793,7 @@ class TestLinkCollector:
         link_collector = make_test_link_collector()
         actual = link_collector.fetch_page(location)
 
+        assert actual is not None
         assert actual.content == fake_response.content
         assert actual.encoding is None
         assert actual.url == url
@@ -766,7 +806,9 @@ class TestLinkCollector:
             session=link_collector.session,
         )
 
-    def test_collect_sources(self, caplog, data):
+    def test_collect_sources(
+        self, caplog: pytest.LogCaptureFixture, data: TestData
+    ) -> None:
         caplog.set_level(logging.DEBUG)
 
         link_collector = make_test_link_collector(
@@ -777,7 +819,9 @@ class TestLinkCollector:
         )
         collected_sources = link_collector.collect_sources(
             "twine",
-            candidates_from_page=lambda link: [link],
+            candidates_from_page=lambda link: [
+                InstallationCandidate("twine", "1.0", link)
+            ],
         )
 
         files_it = itertools.chain.from_iterable(
@@ -799,9 +843,9 @@ class TestLinkCollector:
         assert len(files) > 20
         check_links_include(files, names=["simple-1.0.tar.gz"])
 
-        assert pages == [Link("https://pypi.org/simple/twine/")]
+        assert [page.link for page in pages] == [Link("https://pypi.org/simple/twine/")]
         # Check that index URLs are marked as *un*cacheable.
-        assert not pages[0].cache_link_parsing
+        assert not pages[0].link.cache_link_parsing
 
         expected_message = dedent(
             """\
@@ -826,17 +870,17 @@ class TestLinkCollector:
     ],
 )
 def test_link_collector_create(
-    find_links,
-    no_index,
-    suppress_no_index,
-    expected,
-):
+    find_links: List[str],
+    no_index: bool,
+    suppress_no_index: bool,
+    expected: Tuple[List[str], List[str]],
+) -> None:
     """
     :param expected: the expected (find_links, index_urls) values.
     """
     expected_find_links, expected_index_urls = expected
     session = PipSession()
-    options = Mock(
+    options = mock.Mock(
         find_links=find_links,
         index_url="default_url",
         extra_index_urls=["url1", "url2"],
@@ -855,16 +899,15 @@ def test_link_collector_create(
     assert search_scope.index_urls == expected_index_urls
 
 
-@patch("os.path.expanduser")
+@mock.patch("os.path.expanduser")
 def test_link_collector_create_find_links_expansion(
-    mock_expanduser,
-    tmpdir,
-):
+    mock_expanduser: mock.Mock, tmpdir: Path
+) -> None:
     """
     Test "~" expansion in --find-links paths.
     """
     # This is a mock version of expanduser() that expands "~" to the tmpdir.
-    def expand_path(path):
+    def expand_path(path: str) -> str:
         if path.startswith("~/"):
             path = os.path.join(tmpdir, path[2:])
         return path
@@ -872,7 +915,7 @@ def test_link_collector_create_find_links_expansion(
     mock_expanduser.side_effect = expand_path
 
     session = PipSession()
-    options = Mock(
+    options = mock.Mock(
         find_links=["~/temp1", "~/temp2"],
         index_url="default_url",
         extra_index_urls=[],

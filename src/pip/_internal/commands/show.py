@@ -1,8 +1,6 @@
-import csv
 import logging
-import pathlib
 from optparse import Values
-from typing import Iterator, List, NamedTuple, Optional, Tuple
+from typing import Iterator, List, NamedTuple, Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -69,33 +67,6 @@ class _PackageInfo(NamedTuple):
     files: Optional[List[str]]
 
 
-def _convert_legacy_entry(entry: Tuple[str, ...], info: Tuple[str, ...]) -> str:
-    """Convert a legacy installed-files.txt path into modern RECORD path.
-
-    The legacy format stores paths relative to the info directory, while the
-    modern format stores paths relative to the package root, e.g. the
-    site-packages directory.
-
-    :param entry: Path parts of the installed-files.txt entry.
-    :param info: Path parts of the egg-info directory relative to package root.
-    :returns: The converted entry.
-
-    For best compatibility with symlinks, this does not use ``abspath()`` or
-    ``Path.resolve()``, but tries to work with path parts:
-
-    1. While ``entry`` starts with ``..``, remove the equal amounts of parts
-       from ``info``; if ``info`` is empty, start appending ``..`` instead.
-    2. Join the two directly.
-    """
-    while entry and entry[0] == "..":
-        if not info or info[-1] == "..":
-            info += ("..",)
-        else:
-            info = info[:-1]
-        entry = entry[1:]
-    return str(pathlib.Path(*info, *entry))
-
-
 def search_packages_info(query: List[str]) -> Iterator[_PackageInfo]:
     """
     Gather details from installed distributions. Print distribution name,
@@ -113,40 +84,12 @@ def search_packages_info(query: List[str]) -> Iterator[_PackageInfo]:
     if missing:
         logger.warning("Package(s) not found: %s", ", ".join(missing))
 
-    def _get_requiring_packages(current_dist: BaseDistribution) -> List[str]:
-        return [
+    def _get_requiring_packages(current_dist: BaseDistribution) -> Iterator[str]:
+        return (
             dist.metadata["Name"] or "UNKNOWN"
             for dist in installed.values()
             if current_dist.canonical_name
             in {canonicalize_name(d.name) for d in dist.iter_dependencies()}
-        ]
-
-    def _files_from_record(dist: BaseDistribution) -> Optional[Iterator[str]]:
-        try:
-            text = dist.read_text("RECORD")
-        except FileNotFoundError:
-            return None
-        # This extra Path-str cast normalizes entries.
-        return (str(pathlib.Path(row[0])) for row in csv.reader(text.splitlines()))
-
-    def _files_from_legacy(dist: BaseDistribution) -> Optional[Iterator[str]]:
-        try:
-            text = dist.read_text("installed-files.txt")
-        except FileNotFoundError:
-            return None
-        paths = (p for p in text.splitlines(keepends=False) if p)
-        root = dist.location
-        info = dist.info_directory
-        if root is None or info is None:
-            return paths
-        try:
-            info_rel = pathlib.Path(info).relative_to(root)
-        except ValueError:  # info is not relative to root.
-            return paths
-        if not info_rel.parts:  # info *is* root.
-            return paths
-        return (
-            _convert_legacy_entry(pathlib.Path(p).parts, info_rel.parts) for p in paths
         )
 
     for query_name in query_names:
@@ -155,13 +98,16 @@ def search_packages_info(query: List[str]) -> Iterator[_PackageInfo]:
         except KeyError:
             continue
 
+        requires = sorted((req.name for req in dist.iter_dependencies()), key=str.lower)
+        required_by = sorted(_get_requiring_packages(dist), key=str.lower)
+
         try:
             entry_points_text = dist.read_text("entry_points.txt")
             entry_points = entry_points_text.splitlines(keepends=False)
         except FileNotFoundError:
             entry_points = []
 
-        files_iter = _files_from_record(dist) or _files_from_legacy(dist)
+        files_iter = dist.iter_declared_entries()
         if files_iter is None:
             files: Optional[List[str]] = None
         else:
@@ -173,8 +119,8 @@ def search_packages_info(query: List[str]) -> Iterator[_PackageInfo]:
             name=dist.raw_name,
             version=str(dist.version),
             location=dist.location or "",
-            requires=[req.name for req in dist.iter_dependencies()],
-            required_by=_get_requiring_packages(dist),
+            requires=requires,
+            required_by=required_by,
             installer=dist.installer,
             metadata_version=dist.metadata_version or "",
             classifiers=metadata.get_all("Classifier", []),

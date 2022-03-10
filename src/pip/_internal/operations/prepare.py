@@ -35,7 +35,6 @@ from pip._internal.network.lazy_wheel import (
 from pip._internal.network.session import PipSession
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.req.req_tracker import RequirementTracker
-from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.logging import indent_log
@@ -60,10 +59,10 @@ def _get_prepared_distribution(
     return abstract_dist.get_metadata_distribution()
 
 
-def unpack_vcs_link(link: Link, location: str) -> None:
+def unpack_vcs_link(link: Link, location: str, verbosity: int) -> None:
     vcs_backend = vcs.get_backend_for_scheme(link.scheme)
     assert vcs_backend is not None
-    vcs_backend.unpack(location, url=hide_url(link.url))
+    vcs_backend.unpack(location, url=hide_url(link.url), verbosity=verbosity)
 
 
 class File:
@@ -176,6 +175,7 @@ def unpack_url(
     link: Link,
     location: str,
     download: Downloader,
+    verbosity: int,
     download_dir: Optional[str] = None,
     hashes: Optional[Hashes] = None,
 ) -> Optional[File]:
@@ -188,7 +188,7 @@ def unpack_url(
     """
     # non-editable vcs urls
     if link.is_vcs:
-        unpack_vcs_link(link, location)
+        unpack_vcs_link(link, location, verbosity=verbosity)
         return None
 
     # Once out-of-tree-builds are no longer supported, could potentially
@@ -197,19 +197,9 @@ def unpack_url(
     #
     # As further cleanup, _copy_source_tree and accompanying tests can
     # be removed.
+    #
+    # TODO when use-deprecated=out-of-tree-build is removed
     if link.is_existing_dir():
-        deprecated(
-            reason=(
-                "pip copied the source tree into a temporary directory "
-                "before building it. This is changing so that packages "
-                "are built in-place "
-                'within the original source tree ("in-tree build").'
-            ),
-            replacement=None,
-            gone_in="21.3",
-            feature_flag="in-tree-build",
-            issue=7555,
-        )
         if os.path.isdir(location):
             rmtree(location)
         _copy_source_tree(link.file_path, location)
@@ -278,6 +268,7 @@ class RequirementPreparer:
         require_hashes: bool,
         use_user_site: bool,
         lazy_wheel: bool,
+        verbosity: int,
         in_tree_build: bool,
     ) -> None:
         super().__init__()
@@ -305,6 +296,9 @@ class RequirementPreparer:
 
         # Should wheels be downloaded lazily?
         self.use_lazy_wheel = lazy_wheel
+
+        # How verbose should underlying tooling be?
+        self.verbosity = verbosity
 
         # Should in-tree builds be used for local paths?
         self.in_tree_build = in_tree_build
@@ -359,6 +353,7 @@ class RequirementPreparer:
         # installation.
         # FIXME: this won't upgrade when there's an existing
         # package unpacked in `req.source_dir`
+        # TODO: this check is now probably dead code
         if is_installable_dir(req.source_dir):
             raise PreviousBuildDirError(
                 "pip can't proceed with requirements '{}' due to a"
@@ -535,7 +530,12 @@ class RequirementPreparer:
         elif link.url not in self._downloaded:
             try:
                 local_file = unpack_url(
-                    link, req.source_dir, self._download, self.download_dir, hashes
+                    link,
+                    req.source_dir,
+                    self._download,
+                    self.verbosity,
+                    self.download_dir,
+                    hashes,
                 )
             except NetworkConnectionError as exc:
                 raise InstallationError(

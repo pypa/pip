@@ -1,6 +1,7 @@
 # Caching
 
 ```{versionadded} 6.0
+
 ```
 
 pip provides an on-by-default caching, designed to reduce the amount of time
@@ -26,6 +27,8 @@ While this cache attempts to minimize network activity, it does not prevent
 network access altogether. If you want a local install solution that
 circumvents accessing PyPI, see {ref}`Installing from local packages`.
 
+(wheel-caching)=
+
 ### Locally built wheels
 
 pip attempts to use wheels from its local wheel cache whenever possible.
@@ -37,6 +40,10 @@ When no wheels are found for a source distribution, pip will attempt to build a
 wheel using the package's build system. If the build is successful, this wheel
 is added to the cache and used in subsequent installs for the same package
 version.
+
+Wheels built from source distributions provided to pip as a direct path (such
+as `pip install .`) are not cached across runs, though they may be reused within
+the same `pip` execution.
 
 ```{versionchanged} 20.0
 pip now caches wheels when building from an immutable Git reference
@@ -79,7 +86,7 @@ implementation detail and may change between any two versions of pip.
 
 ## Disabling caching
 
-pip's caching behaviour is disabled by passing the ``--no-cache-dir`` option.
+pip's caching behaviour is disabled by passing the `--no-cache-dir` option.
 
 It is, however, recommended to **NOT** disable pip's caching. Doing so can
 significantly slow down pip (due to repeated operations and package builds)

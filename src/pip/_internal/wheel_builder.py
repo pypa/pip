@@ -16,6 +16,7 @@ from pip._internal.metadata import FilesystemWheel, get_wheel_distribution
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.operations.build.wheel import build_wheel_pep517
+from pip._internal.operations.build.wheel_editable import build_wheel_editable
 from pip._internal.operations.build.wheel_legacy import build_wheel_legacy
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.logging import indent_log
@@ -66,8 +67,12 @@ def _should_build(
     # From this point, this concerns the pip install command only
     # (need_wheel=False).
 
-    if req.editable or not req.source_dir:
+    if not req.source_dir:
         return False
+
+    if req.editable:
+        # we only build PEP 660 editable requirements
+        return req.supports_pyproject_editable()
 
     if req.use_pep517:
         return True
@@ -194,16 +199,19 @@ def _build_one(
     verify: bool,
     build_options: List[str],
     global_options: List[str],
+    editable: bool,
 ) -> Optional[str]:
     """Build one wheel.
 
     :return: The filename of the built wheel, or None if the build failed.
     """
+    artifact = "editable" if editable else "wheel"
     try:
         ensure_dir(output_dir)
     except OSError as e:
         logger.warning(
-            "Building wheel for %s failed: %s",
+            "Building %s for %s failed: %s",
+            artifact,
             req.name,
             e,
         )
@@ -212,13 +220,13 @@ def _build_one(
     # Install build deps into temporary directory (PEP 518)
     with req.build_env:
         wheel_path = _build_one_inside_env(
-            req, output_dir, build_options, global_options
+            req, output_dir, build_options, global_options, editable
         )
     if wheel_path and verify:
         try:
             _verify_one(req, wheel_path)
         except (InvalidWheelFilename, UnsupportedWheel) as e:
-            logger.warning("Built wheel for %s is invalid: %s", req.name, e)
+            logger.warning("Built %s for %s is invalid: %s", artifact, req.name, e)
             return None
     return wheel_path
 
@@ -228,6 +236,7 @@ def _build_one_inside_env(
     output_dir: str,
     build_options: List[str],
     global_options: List[str],
+    editable: bool,
 ) -> Optional[str]:
     with TempDirectory(kind="wheel") as temp_dir:
         assert req.name
@@ -242,12 +251,20 @@ def _build_one_inside_env(
                 logger.warning(
                     "Ignoring --build-option when building %s using PEP 517", req.name
                 )
-            wheel_path = build_wheel_pep517(
-                name=req.name,
-                backend=req.pep517_backend,
-                metadata_directory=req.metadata_directory,
-                tempd=temp_dir.path,
-            )
+            if editable:
+                wheel_path = build_wheel_editable(
+                    name=req.name,
+                    backend=req.pep517_backend,
+                    metadata_directory=req.metadata_directory,
+                    tempd=temp_dir.path,
+                )
+            else:
+                wheel_path = build_wheel_pep517(
+                    name=req.name,
+                    backend=req.pep517_backend,
+                    metadata_directory=req.metadata_directory,
+                    tempd=temp_dir.path,
+                )
         else:
             wheel_path = build_wheel_legacy(
                 name=req.name,
@@ -293,7 +310,9 @@ def _clean_one_legacy(req: InstallRequirement, global_options: List[str]) -> boo
 
     logger.info("Running setup.py clean for %s", req.name)
     try:
-        call_subprocess(clean_args, cwd=req.source_dir)
+        call_subprocess(
+            clean_args, command_desc="python setup.py clean", cwd=req.source_dir
+        )
         return True
     except Exception:
         logger.error("Failed cleaning build dir for %s", req.name)
@@ -324,9 +343,15 @@ def build(
     with indent_log():
         build_successes, build_failures = [], []
         for req in requirements:
+            assert req.name
             cache_dir = _get_cache_dir(req, wheel_cache)
             wheel_file = _build_one(
-                req, cache_dir, verify, build_options, global_options
+                req,
+                cache_dir,
+                verify,
+                build_options,
+                global_options,
+                req.editable and req.permit_editable_wheels,
             )
             if wheel_file:
                 # Update the link for this.

@@ -5,7 +5,11 @@ from typing import Any, List, Optional
 from pip._vendor import tomli
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 
-from pip._internal.exceptions import InstallationError
+from pip._internal.exceptions import (
+    InstallationError,
+    InvalidPyProjectBuildRequires,
+    MissingPyProjectBuildRequires,
+)
 
 
 def _is_list_of_str(obj: Any) -> bool:
@@ -48,9 +52,15 @@ def load_pyproject_toml(
     has_pyproject = os.path.isfile(pyproject_toml)
     has_setup = os.path.isfile(setup_py)
 
+    if not has_pyproject and not has_setup:
+        raise InstallationError(
+            f"{req_name} does not appear to be a Python project: "
+            f"neither 'setup.py' nor 'pyproject.toml' found."
+        )
+
     if has_pyproject:
         with open(pyproject_toml, encoding="utf-8") as f:
-            pp_toml = tomli.load(f)
+            pp_toml = tomli.loads(f.read())
         build_system = pp_toml.get("build-system")
     else:
         build_system = None
@@ -113,47 +123,28 @@ def load_pyproject_toml(
 
     # Ensure that the build-system section in pyproject.toml conforms
     # to PEP 518.
-    error_template = (
-        "{package} has a pyproject.toml file that does not comply "
-        "with PEP 518: {reason}"
-    )
 
     # Specifying the build-system table but not the requires key is invalid
     if "requires" not in build_system:
-        raise InstallationError(
-            error_template.format(
-                package=req_name,
-                reason=(
-                    "it has a 'build-system' table but not "
-                    "'build-system.requires' which is mandatory in the table"
-                ),
-            )
-        )
+        raise MissingPyProjectBuildRequires(package=req_name)
 
     # Error out if requires is not a list of strings
     requires = build_system["requires"]
     if not _is_list_of_str(requires):
-        raise InstallationError(
-            error_template.format(
-                package=req_name,
-                reason="'build-system.requires' is not a list of strings.",
-            )
+        raise InvalidPyProjectBuildRequires(
+            package=req_name,
+            reason="It is not a list of strings.",
         )
 
     # Each requirement must be valid as per PEP 508
     for requirement in requires:
         try:
             Requirement(requirement)
-        except InvalidRequirement:
-            raise InstallationError(
-                error_template.format(
-                    package=req_name,
-                    reason=(
-                        "'build-system.requires' contains an invalid "
-                        "requirement: {!r}".format(requirement)
-                    ),
-                )
-            )
+        except InvalidRequirement as error:
+            raise InvalidPyProjectBuildRequires(
+                package=req_name,
+                reason=f"It contains an invalid requirement: {requirement!r}",
+            ) from error
 
     backend = build_system.get("build-backend")
     backend_path = build_system.get("backend-path", [])

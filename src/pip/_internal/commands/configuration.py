@@ -225,6 +225,10 @@ class ConfigurationCommand(Command):
 
         try:
             subprocess.check_call([editor, fname])
+        except FileNotFoundError as e:
+            if not e.filename:
+                e.filename = editor
+            raise
         except subprocess.CalledProcessError as e:
             raise PipError(
                 "Editor Subprocess exited with exit code {}".format(e.returncode)

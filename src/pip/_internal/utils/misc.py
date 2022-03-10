@@ -20,7 +20,6 @@ from typing import (
     Any,
     BinaryIO,
     Callable,
-    Container,
     ContextManager,
     Iterable,
     Iterator,
@@ -33,17 +32,13 @@ from typing import (
     cast,
 )
 
-from pip._vendor.pkg_resources import Distribution
 from pip._vendor.tenacity import retry, stop_after_delay, wait_fixed
 
 from pip import __version__
 from pip._internal.exceptions import CommandError
-from pip._internal.locations import get_major_minor_version, site_packages, user_site
-from pip._internal.utils.compat import WINDOWS, stdlib_pkgs
-from pip._internal.utils.virtualenv import (
-    running_under_virtualenv,
-    virtualenv_no_global,
-)
+from pip._internal.locations import get_major_minor_version
+from pip._internal.utils.compat import WINDOWS
+from pip._internal.utils.virtualenv import running_under_virtualenv
 
 __all__ = [
     "rmtree",
@@ -329,139 +324,6 @@ def is_local(path: str) -> bool:
     if not running_under_virtualenv():
         return True
     return path.startswith(normalize_path(sys.prefix))
-
-
-def dist_is_local(dist: Distribution) -> bool:
-    """
-    Return True if given Distribution object is installed locally
-    (i.e. within current virtualenv).
-
-    Always True if we're not in a virtualenv.
-
-    """
-    return is_local(dist_location(dist))
-
-
-def dist_in_usersite(dist: Distribution) -> bool:
-    """
-    Return True if given Distribution is installed in user site.
-    """
-    return dist_location(dist).startswith(normalize_path(user_site))
-
-
-def dist_in_site_packages(dist: Distribution) -> bool:
-    """
-    Return True if given Distribution is installed in
-    sysconfig.get_python_lib().
-    """
-    return dist_location(dist).startswith(normalize_path(site_packages))
-
-
-def dist_is_editable(dist: Distribution) -> bool:
-    """
-    Return True if given Distribution is an editable install.
-    """
-    for path_item in sys.path:
-        egg_link = os.path.join(path_item, dist.project_name + ".egg-link")
-        if os.path.isfile(egg_link):
-            return True
-    return False
-
-
-def get_installed_distributions(
-    local_only: bool = True,
-    skip: Container[str] = stdlib_pkgs,
-    include_editables: bool = True,
-    editables_only: bool = False,
-    user_only: bool = False,
-    paths: Optional[List[str]] = None,
-) -> List[Distribution]:
-    """Return a list of installed Distribution objects.
-
-    Left for compatibility until direct pkg_resources uses are refactored out.
-    """
-    from pip._internal.metadata import get_default_environment, get_environment
-    from pip._internal.metadata.pkg_resources import Distribution as _Dist
-
-    if paths is None:
-        env = get_default_environment()
-    else:
-        env = get_environment(paths)
-    dists = env.iter_installed_distributions(
-        local_only=local_only,
-        skip=skip,
-        include_editables=include_editables,
-        editables_only=editables_only,
-        user_only=user_only,
-    )
-    return [cast(_Dist, dist)._dist for dist in dists]
-
-
-def get_distribution(req_name: str) -> Optional[Distribution]:
-    """Given a requirement name, return the installed Distribution object.
-
-    This searches from *all* distributions available in the environment, to
-    match the behavior of ``pkg_resources.get_distribution()``.
-
-    Left for compatibility until direct pkg_resources uses are refactored out.
-    """
-    from pip._internal.metadata import get_default_environment
-    from pip._internal.metadata.pkg_resources import Distribution as _Dist
-
-    dist = get_default_environment().get_distribution(req_name)
-    if dist is None:
-        return None
-    return cast(_Dist, dist)._dist
-
-
-def egg_link_path(dist: Distribution) -> Optional[str]:
-    """
-    Return the path for the .egg-link file if it exists, otherwise, None.
-
-    There's 3 scenarios:
-    1) not in a virtualenv
-       try to find in site.USER_SITE, then site_packages
-    2) in a no-global virtualenv
-       try to find in site_packages
-    3) in a yes-global virtualenv
-       try to find in site_packages, then site.USER_SITE
-       (don't look in global location)
-
-    For #1 and #3, there could be odd cases, where there's an egg-link in 2
-    locations.
-
-    This method will just return the first one found.
-    """
-    sites = []
-    if running_under_virtualenv():
-        sites.append(site_packages)
-        if not virtualenv_no_global() and user_site:
-            sites.append(user_site)
-    else:
-        if user_site:
-            sites.append(user_site)
-        sites.append(site_packages)
-
-    for site in sites:
-        egglink = os.path.join(site, dist.project_name) + ".egg-link"
-        if os.path.isfile(egglink):
-            return egglink
-    return None
-
-
-def dist_location(dist: Distribution) -> str:
-    """
-    Get the site-packages location of this distribution. Generally
-    this is dist.location, except in the case of develop-installed
-    packages, where dist.location is the source code location, and we
-    want to know where the egg-link file is.
-
-    The returned location is normalized (in particular, with symlinks removed).
-    """
-    egg_link = egg_link_path(dist)
-    if egg_link:
-        return normalize_path(egg_link)
-    return normalize_path(dist.location)
 
 
 def write_output(msg: Any, *args: Any) -> None:

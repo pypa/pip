@@ -1,3 +1,5 @@
+from typing import Optional, Tuple
+
 import pytest
 
 from pip._internal.cli.cmdoptions import _convert_python_version
@@ -22,6 +24,8 @@ from pip._internal.cli.cmdoptions import _convert_python_version
         ("3.7.3.1", ((), "at most three version parts are allowed")),
     ],
 )
-def test_convert_python_version(value, expected):
+def test_convert_python_version(
+    value: str, expected: Tuple[Optional[Tuple[int, ...]], Optional[str]]
+) -> None:
     actual = _convert_python_version(value)
     assert actual == expected, f"actual: {actual!r}"

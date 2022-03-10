@@ -37,7 +37,6 @@ from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import build_netloc
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.utils.unpacking import SUPPORTED_EXTENSIONS
-from pip._internal.utils.urls import url_to_path
 
 __all__ = ["FormatControl", "BestCandidateResult", "PackageFinder"]
 
@@ -580,6 +579,7 @@ class PackageFinder:
         link_collector: LinkCollector,
         target_python: TargetPython,
         allow_yanked: bool,
+        use_deprecated_html5lib: bool,
         format_control: Optional[FormatControl] = None,
         candidate_prefs: Optional[CandidatePreferences] = None,
         ignore_requires_python: Optional[bool] = None,
@@ -604,6 +604,7 @@ class PackageFinder:
         self._ignore_requires_python = ignore_requires_python
         self._link_collector = link_collector
         self._target_python = target_python
+        self._use_deprecated_html5lib = use_deprecated_html5lib
 
         self.format_control = format_control
 
@@ -620,6 +621,8 @@ class PackageFinder:
         link_collector: LinkCollector,
         selection_prefs: SelectionPreferences,
         target_python: Optional[TargetPython] = None,
+        *,
+        use_deprecated_html5lib: bool,
     ) -> "PackageFinder":
         """Create a PackageFinder.
 
@@ -644,6 +647,7 @@ class PackageFinder:
             allow_yanked=selection_prefs.allow_yanked,
             format_control=selection_prefs.format_control,
             ignore_requires_python=selection_prefs.ignore_requires_python,
+            use_deprecated_html5lib=use_deprecated_html5lib,
         )
 
     @property
@@ -769,7 +773,7 @@ class PackageFinder:
         if html_page is None:
             return []
 
-        page_links = list(parse_links(html_page))
+        page_links = list(parse_links(html_page, self._use_deprecated_html5lib))
 
         with indent_log():
             package_links = self.evaluate_links(
@@ -819,7 +823,14 @@ class PackageFinder:
         )
 
         if logger.isEnabledFor(logging.DEBUG) and file_candidates:
-            paths = [url_to_path(c.link.url) for c in file_candidates]
+            paths = []
+            for candidate in file_candidates:
+                assert candidate.link.url  # we need to have a URL
+                try:
+                    paths.append(candidate.link.file_path)
+                except Exception:
+                    paths.append(candidate.link.url)  # it's not a local file
+
             logger.debug("Local files found: %s", ", ".join(paths))
 
         # This is an intentional priority ordering
@@ -884,7 +895,7 @@ class PackageFinder:
 
         installed_version: Optional[_BaseVersion] = None
         if req.satisfied_by is not None:
-            installed_version = parse_version(req.satisfied_by.version)
+            installed_version = req.satisfied_by.version
 
         def _format_versions(cand_iter: Iterable[InstallationCandidate]) -> str:
             # This repeated parse_version and str() conversion is needed to

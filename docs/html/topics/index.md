@@ -14,6 +14,8 @@ authentication
 caching
 configuration
 dependency-resolution
+local-project-installs
 repeatable-installs
+secure-installs
 vcs-support
 ```

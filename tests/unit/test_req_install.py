@@ -10,12 +10,13 @@ from pip._internal.req.constructors import (
     install_req_from_req_string,
 )
 from pip._internal.req.req_install import InstallRequirement
+from tests.lib.path import Path
 
 
 class TestInstallRequirementBuildDirectory:
     # no need to test symlinks on Windows
     @pytest.mark.skipif("sys.platform == 'win32'")
-    def test_tmp_build_directory(self):
+    def test_tmp_build_directory(self) -> None:
         # when req is None, we can produce a temporary directory
         # Make sure we're handling it correctly with real path.
         requirement = InstallRequirement(None, None)
@@ -36,7 +37,7 @@ class TestInstallRequirementBuildDirectory:
         os.rmdir(tmp_dir)
         assert not os.path.exists(tmp_dir)
 
-    def test_forward_slash_results_in_a_link(self, tmpdir):
+    def test_forward_slash_results_in_a_link(self, tmpdir: Path) -> None:
         install_dir = tmpdir / "foo" / "bar"
 
         # Just create a file for letting the logic work
@@ -53,7 +54,7 @@ class TestInstallRequirementBuildDirectory:
 
 
 class TestInstallRequirementFrom:
-    def test_install_req_from_string_invalid_requirement(self):
+    def test_install_req_from_string_invalid_requirement(self) -> None:
         """
         Requirement strings that cannot be parsed by
         packaging.requirements.Requirement raise an InstallationError.
@@ -63,7 +64,7 @@ class TestInstallRequirementFrom:
 
         assert str(excinfo.value) == ("Invalid requirement: 'http:/this/is/invalid'")
 
-    def test_install_req_from_string_without_comes_from(self):
+    def test_install_req_from_string_without_comes_from(self) -> None:
         """
         Test to make sure that install_req_from_string succeeds
         when called with URL (PEP 508) but without comes_from.
@@ -77,12 +78,14 @@ class TestInstallRequirementFrom:
         install_req = install_req_from_req_string(install_str)
 
         assert isinstance(install_req, InstallRequirement)
+        assert install_req.link is not None
         assert install_req.link.url == wheel_url
+        assert install_req.req is not None
         assert install_req.req.url == wheel_url
         assert install_req.comes_from is None
         assert install_req.is_wheel
 
-    def test_install_req_from_string_with_comes_from_without_link(self):
+    def test_install_req_from_string_with_comes_from_without_link(self) -> None:
         """
         Test to make sure that install_req_from_string succeeds
         when called with URL (PEP 508) and comes_from
@@ -102,7 +105,10 @@ class TestInstallRequirementFrom:
         install_req = install_req_from_req_string(install_str, comes_from=comes_from)
 
         assert isinstance(install_req, InstallRequirement)
+        assert isinstance(install_req.comes_from, InstallRequirement)
         assert install_req.comes_from.link is None
+        assert install_req.link is not None
         assert install_req.link.url == wheel_url
+        assert install_req.req is not None
         assert install_req.req.url == wheel_url
         assert install_req.is_wheel

@@ -8,7 +8,7 @@ from tests.lib import path_to_url
 from tests.lib.path import Path
 
 
-def _create_svn_initools_repo(initools_dir):
+def _create_svn_initools_repo(initools_dir: str) -> None:
     """
     Create the SVN INITools repo.
     """
@@ -55,10 +55,10 @@ def local_checkout(
     else:
         vcs_backend = vcs.get_backend(vcs_name)
         assert vcs_backend is not None
-        vcs_backend.obtain(repo_url_path, url=hide_url(remote_repo))
+        vcs_backend.obtain(repo_url_path, url=hide_url(remote_repo), verbosity=0)
 
     return "{}+{}".format(vcs_name, path_to_url(repo_url_path))
 
 
-def local_repo(remote_repo, temp_path):
+def local_repo(remote_repo: str, temp_path: Path) -> str:
     return local_checkout(remote_repo, temp_path).split("+", 1)[1]

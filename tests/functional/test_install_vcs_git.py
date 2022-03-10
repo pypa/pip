@@ -1,8 +1,11 @@
+from typing import Optional
+
 import pytest
 
 from pip._internal.utils.urls import path_to_url
 from tests.lib import pyversion  # noqa: F401
 from tests.lib import (
+    PipTestEnvironment,
     _change_test_package_version,
     _create_test_package,
     _test_path_to_file_url,
@@ -13,16 +16,17 @@ from tests.lib.git_submodule_helpers import (
     _pull_in_submodule_changes_to_module,
 )
 from tests.lib.local_repos import local_checkout
+from tests.lib.path import Path
 
 
-def _get_editable_repo_dir(script, package_name):
+def _get_editable_repo_dir(script: PipTestEnvironment, package_name: str) -> Path:
     """
     Return the repository directory for an editable install.
     """
     return script.venv_path / "src" / package_name
 
 
-def _get_editable_branch(script, package_name):
+def _get_editable_branch(script: PipTestEnvironment, package_name: str) -> str:
     """
     Return the current branch of an editable install.
     """
@@ -31,14 +35,22 @@ def _get_editable_branch(script, package_name):
     return result.stdout.strip()
 
 
-def _get_branch_remote(script, package_name, branch):
+def _get_branch_remote(
+    script: PipTestEnvironment, package_name: str, branch: str
+) -> str:
     """ """
     repo_dir = _get_editable_repo_dir(script, package_name)
     result = script.run("git", "config", f"branch.{branch}.remote", cwd=repo_dir)
     return result.stdout.strip()
 
 
-def _github_checkout(url_path, temp_dir, rev=None, egg=None, scheme=None):
+def _github_checkout(
+    url_path: str,
+    temp_dir: Path,
+    rev: Optional[str] = None,
+    egg: Optional[str] = None,
+    scheme: Optional[str] = None,
+) -> str:
     """
     Call local_checkout() with a GitHub URL, and return the resulting URL.
 
@@ -62,7 +74,9 @@ def _github_checkout(url_path, temp_dir, rev=None, egg=None, scheme=None):
     return local_url
 
 
-def _make_version_pkg_url(path, rev=None, name="version_pkg"):
+def _make_version_pkg_url(
+    path: Path, rev: Optional[str] = None, name: str = "version_pkg"
+) -> str:
     """
     Return a "git+file://" URL to the version_pkg test package.
 
@@ -78,7 +92,12 @@ def _make_version_pkg_url(path, rev=None, name="version_pkg"):
     return url
 
 
-def _install_version_pkg_only(script, path, rev=None, expect_stderr=False):
+def _install_version_pkg_only(
+    script: PipTestEnvironment,
+    path: Path,
+    rev: Optional[str] = None,
+    expect_stderr: bool = False,
+) -> None:
     """
     Install the version_pkg package in editable mode (without returning
     the version).
@@ -92,7 +111,12 @@ def _install_version_pkg_only(script, path, rev=None, expect_stderr=False):
     script.pip("install", "-e", version_pkg_url, expect_stderr=expect_stderr)
 
 
-def _install_version_pkg(script, path, rev=None, expect_stderr=False):
+def _install_version_pkg(
+    script: PipTestEnvironment,
+    path: Path,
+    rev: Optional[str] = None,
+    expect_stderr: bool = False,
+) -> str:
     """
     Install the version_pkg package in editable mode, and return the version
     installed.
@@ -114,7 +138,7 @@ def _install_version_pkg(script, path, rev=None, expect_stderr=False):
     return version
 
 
-def test_git_install_again_after_changes(script):
+def test_git_install_again_after_changes(script: PipTestEnvironment) -> None:
     """
     Test installing a repository a second time without specifying a revision,
     and after updates to the remote repository.
@@ -132,7 +156,9 @@ def test_git_install_again_after_changes(script):
     assert version == "some different version"
 
 
-def test_git_install_branch_again_after_branch_changes(script):
+def test_git_install_branch_again_after_branch_changes(
+    script: PipTestEnvironment,
+) -> None:
     """
     Test installing a branch again after the branch is updated in the remote
     repository.
@@ -147,7 +173,9 @@ def test_git_install_branch_again_after_branch_changes(script):
 
 
 @pytest.mark.network
-def test_install_editable_from_git_with_https(script, tmpdir):
+def test_install_editable_from_git_with_https(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
     """
     Test cloning from Git with https.
     """
@@ -158,7 +186,8 @@ def test_install_editable_from_git_with_https(script, tmpdir):
 
 
 @pytest.mark.network
-def test_install_noneditable_git(script, tmpdir, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_noneditable_git(script: PipTestEnvironment) -> None:
     """
     Test installing from a non-editable git URL with a given tag.
     """
@@ -172,7 +201,7 @@ def test_install_noneditable_git(script, tmpdir, with_wheel):
     result.did_create(dist_info_folder)
 
 
-def test_git_with_sha1_revisions(script):
+def test_git_with_sha1_revisions(script: PipTestEnvironment) -> None:
     """
     Git backend should be able to install from SHA1 revisions
     """
@@ -188,7 +217,7 @@ def test_git_with_sha1_revisions(script):
     assert "0.1" == version
 
 
-def test_git_with_short_sha1_revisions(script):
+def test_git_with_short_sha1_revisions(script: PipTestEnvironment) -> None:
     """
     Git backend should be able to install from SHA1 revisions
     """
@@ -204,7 +233,7 @@ def test_git_with_short_sha1_revisions(script):
     assert "0.1" == version
 
 
-def test_git_with_branch_name_as_revision(script):
+def test_git_with_branch_name_as_revision(script: PipTestEnvironment) -> None:
     """
     Git backend should be able to install from branch names
     """
@@ -216,7 +245,7 @@ def test_git_with_branch_name_as_revision(script):
     assert "some different version" == version
 
 
-def test_git_with_tag_name_as_revision(script):
+def test_git_with_tag_name_as_revision(script: PipTestEnvironment) -> None:
     """
     Git backend should be able to install from tag names
     """
@@ -227,14 +256,14 @@ def test_git_with_tag_name_as_revision(script):
     assert "0.1" == version
 
 
-def _add_ref(script, path, ref):
+def _add_ref(script: PipTestEnvironment, path: Path, ref: str) -> None:
     """
     Add a new ref to a repository at the given path.
     """
     script.run("git", "update-ref", ref, "HEAD", cwd=path)
 
 
-def test_git_install_ref(script):
+def test_git_install_ref(script: PipTestEnvironment) -> None:
     """
     The Git backend should be able to install a ref with the first install.
     """
@@ -250,7 +279,7 @@ def test_git_install_ref(script):
     assert "0.1" == version
 
 
-def test_git_install_then_install_ref(script):
+def test_git_install_then_install_ref(script: PipTestEnvironment) -> None:
     """
     The Git backend should be able to install a ref after a package has
     already been installed.
@@ -286,7 +315,9 @@ def test_git_install_then_install_ref(script):
         ),
     ],
 )
-def test_install_git_logs_commit_sha(script, rev, expected_sha, tmpdir):
+def test_install_git_logs_commit_sha(
+    script: PipTestEnvironment, rev: str, expected_sha: str, tmpdir: Path
+) -> None:
     """
     Test installing from a git repository logs a commit SHA.
     """
@@ -299,7 +330,7 @@ def test_install_git_logs_commit_sha(script, rev, expected_sha, tmpdir):
 
 
 @pytest.mark.network
-def test_git_with_tag_name_and_update(script, tmpdir):
+def test_git_with_tag_name_and_update(script: PipTestEnvironment, tmpdir: Path) -> None:
     """
     Test cloning a git repository and updating to a different version.
     """
@@ -316,12 +347,15 @@ def test_git_with_tag_name_and_update(script, tmpdir):
         "--global-option=--version",
         "-e",
         new_local_url,
+        allow_stderr_warning=True,
     )
     assert "0.1.2" in result.stdout
 
 
 @pytest.mark.network
-def test_git_branch_should_not_be_changed(script, tmpdir):
+def test_git_branch_should_not_be_changed(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
     """
     Editable installations should not change branch
     related to issue #32 and #161
@@ -334,7 +368,9 @@ def test_git_branch_should_not_be_changed(script, tmpdir):
 
 
 @pytest.mark.network
-def test_git_with_non_editable_unpacking(script, tmpdir):
+def test_git_with_non_editable_unpacking(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
     """
     Test cloning a git repository from a non-editable URL with a given tag.
     """
@@ -345,12 +381,19 @@ def test_git_with_non_editable_unpacking(script, tmpdir):
         rev="0.1.2",
         egg="pip-test-package",
     )
-    result = script.pip("install", "--global-option=--version", local_url)
+    result = script.pip(
+        "install",
+        "--global-option=--version",
+        local_url,
+        allow_stderr_warning=True,
+    )
     assert "0.1.2" in result.stdout
 
 
 @pytest.mark.network
-def test_git_with_editable_where_egg_contains_dev_string(script, tmpdir):
+def test_git_with_editable_where_egg_contains_dev_string(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
     """
     Test cloning a git repository from an editable url which contains "dev"
     string
@@ -367,7 +410,9 @@ def test_git_with_editable_where_egg_contains_dev_string(script, tmpdir):
 
 
 @pytest.mark.network
-def test_git_with_non_editable_where_egg_contains_dev_string(script, tmpdir):
+def test_git_with_non_editable_where_egg_contains_dev_string(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
     """
     Test cloning a git repository from a non-editable url which contains "dev"
     string
@@ -384,7 +429,7 @@ def test_git_with_non_editable_where_egg_contains_dev_string(script, tmpdir):
     result.did_create(devserver_folder)
 
 
-def test_git_with_ambiguous_revs(script):
+def test_git_with_ambiguous_revs(script: PipTestEnvironment) -> None:
     """
     Test git with two "names" (tag/branch) pointing to the same commit
     """
@@ -398,7 +443,7 @@ def test_git_with_ambiguous_revs(script):
     result.assert_installed("version-pkg", with_files=[".git"])
 
 
-def test_editable__no_revision(script):
+def test_editable__no_revision(script: PipTestEnvironment) -> None:
     """
     Test a basic install in editable mode specifying no revision.
     """
@@ -412,7 +457,7 @@ def test_editable__no_revision(script):
     assert remote == "origin"
 
 
-def test_editable__branch_with_sha_same_as_default(script):
+def test_editable__branch_with_sha_same_as_default(script: PipTestEnvironment) -> None:
     """
     Test installing in editable mode a branch whose sha matches the sha
     of the default branch, but is different from the default branch.
@@ -429,7 +474,9 @@ def test_editable__branch_with_sha_same_as_default(script):
     assert remote == "origin"
 
 
-def test_editable__branch_with_sha_different_from_default(script):
+def test_editable__branch_with_sha_different_from_default(
+    script: PipTestEnvironment,
+) -> None:
     """
     Test installing in editable mode a branch whose sha is different from
     the sha of the default branch.
@@ -450,7 +497,7 @@ def test_editable__branch_with_sha_different_from_default(script):
     assert remote == "origin"
 
 
-def test_editable__non_master_default_branch(script):
+def test_editable__non_master_default_branch(script: PipTestEnvironment) -> None:
     """
     Test the branch you get after an editable install from a remote repo
     with a non-master default branch.
@@ -465,7 +512,9 @@ def test_editable__non_master_default_branch(script):
     assert branch == "release"
 
 
-def test_reinstalling_works_with_editable_non_master_branch(script):
+def test_reinstalling_works_with_editable_non_master_branch(
+    script: PipTestEnvironment,
+) -> None:
     """
     Reinstalling an editable installation should not assume that the "master"
     branch exists. See https://github.com/pypa/pip/issues/4448.
@@ -485,7 +534,7 @@ def test_reinstalling_works_with_editable_non_master_branch(script):
 
 # TODO(pnasrat) fix all helpers to do right things with paths on windows.
 @pytest.mark.skipif("sys.platform == 'win32'")
-def test_check_submodule_addition(script):
+def test_check_submodule_addition(script: PipTestEnvironment) -> None:
     """
     Submodules are pulled in on install and updated on upgrade.
     """
@@ -516,7 +565,8 @@ def test_check_submodule_addition(script):
     update_result.did_create(script.venv / "src/version-pkg/testpkg/static/testfile2")
 
 
-def test_install_git_branch_not_cached(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_git_branch_not_cached(script: PipTestEnvironment) -> None:
     """
     Installing git urls with a branch revision does not cause wheel caching.
     """
@@ -531,7 +581,8 @@ def test_install_git_branch_not_cached(script, with_wheel):
     assert f"Successfully built {PKG}" in result.stdout, result.stdout
 
 
-def test_install_git_sha_cached(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_git_sha_cached(script: PipTestEnvironment) -> None:
     """
     Installing git urls with a sha revision does cause wheel caching.
     """

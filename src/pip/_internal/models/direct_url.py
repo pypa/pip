@@ -215,3 +215,6 @@ class DirectUrl:
 
     def to_json(self) -> str:
         return json.dumps(self.to_dict(), sort_keys=True)
+
+    def is_local_editable(self) -> bool:
+        return isinstance(self.info, DirInfo) and self.info.editable

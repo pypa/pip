@@ -156,7 +156,7 @@ how to inspect:
 
 During deployment, you can create a lockfile stating the exact package and
 version number for for each dependency of that package. You can create this
-with `pip-tools <https://github.com/jazzband/pip-tools/>`\_\_.
+with [pip-tools](https://github.com/jazzband/pip-tools/).
 
 This means the "work" is done once during development process, and thus
 will avoid performing dependency resolution during deployment.
@@ -277,10 +277,10 @@ your _dependency_ by:
 - Requesting that the package maintainers loosen _their_ dependencies
 - Forking the package and loosening the dependencies yourself
 
-:::{warning}
+```{warning}
 If you choose to fork the package yourself, you are _opting out_ of
 any support provided by the package maintainers. Proceed at your own risk!
-:::
+```
 
 #### All requirements are appropriate, but a solution does not exist
 

@@ -20,7 +20,7 @@ from pip._vendor.packaging.version import Version
 from pip import __file__ as pip_location
 from pip._internal.cli.spinners import open_spinner
 from pip._internal.locations import get_platlib, get_prefixed_libs, get_purelib
-from pip._internal.metadata import get_environment
+from pip._internal.metadata import get_default_environment, get_environment
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 
@@ -93,7 +93,9 @@ class BuildEnvironment:
         self._site_dir = os.path.join(temp_dir.path, "site")
         if not os.path.exists(self._site_dir):
             os.mkdir(self._site_dir)
-        with open(os.path.join(self._site_dir, "sitecustomize.py"), "w") as fp:
+        with open(
+            os.path.join(self._site_dir, "sitecustomize.py"), "w", encoding="utf-8"
+        ) as fp:
             fp.write(
                 textwrap.dedent(
                     """
@@ -166,7 +168,11 @@ class BuildEnvironment:
         missing = set()
         conflicting = set()
         if reqs:
-            env = get_environment(self._lib_dirs)
+            env = (
+                get_environment(self._lib_dirs)
+                if hasattr(self, "_lib_dirs")
+                else get_default_environment()
+            )
             for req_str in reqs:
                 req = Requirement(req_str)
                 dist = env.get_distribution(req.name)
@@ -187,7 +193,8 @@ class BuildEnvironment:
         finder: "PackageFinder",
         requirements: Iterable[str],
         prefix_as_string: str,
-        message: str,
+        *,
+        kind: str,
     ) -> None:
         prefix = self._prefixes[prefix_as_string]
         assert not prefix.setup
@@ -195,20 +202,13 @@ class BuildEnvironment:
         if not requirements:
             return
         with contextlib.ExitStack() as ctx:
-            # TODO: Remove this block when dropping 3.6 support. Python 3.6
-            # lacks importlib.resources and pep517 has issues loading files in
-            # a zip, so we fallback to the "old" method by adding the current
-            # pip directory to the child process's sys.path.
-            if sys.version_info < (3, 7):
-                pip_runnable = os.path.dirname(pip_location)
-            else:
-                pip_runnable = ctx.enter_context(_create_standalone_pip())
+            pip_runnable = ctx.enter_context(_create_standalone_pip())
             self._install_requirements(
                 pip_runnable,
                 finder,
                 requirements,
                 prefix,
-                message,
+                kind=kind,
             )
 
     @staticmethod
@@ -217,7 +217,8 @@ class BuildEnvironment:
         finder: "PackageFinder",
         requirements: Iterable[str],
         prefix: _Prefix,
-        message: str,
+        *,
+        kind: str,
     ) -> None:
         args: List[str] = [
             sys.executable,
@@ -259,8 +260,13 @@ class BuildEnvironment:
         args.append("--")
         args.extend(requirements)
         extra_environ = {"_PIP_STANDALONE_CERT": where()}
-        with open_spinner(message) as spinner:
-            call_subprocess(args, spinner=spinner, extra_environ=extra_environ)
+        with open_spinner(f"Installing {kind}") as spinner:
+            call_subprocess(
+                args,
+                command_desc=f"pip subprocess to install {kind}",
+                spinner=spinner,
+                extra_environ=extra_environ,
+            )
 
 
 class NoOpBuildEnvironment(BuildEnvironment):
@@ -288,6 +294,7 @@ class NoOpBuildEnvironment(BuildEnvironment):
         finder: "PackageFinder",
         requirements: Iterable[str],
         prefix_as_string: str,
-        message: str,
+        *,
+        kind: str,
     ) -> None:
         raise NotImplementedError()

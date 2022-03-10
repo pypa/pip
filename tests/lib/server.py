@@ -1,5 +1,4 @@
 import os
-import signal
 import ssl
 import threading
 from base64 import b64encode
@@ -11,10 +10,10 @@ from unittest.mock import Mock
 from werkzeug.serving import BaseWSGIServer, WSGIRequestHandler
 from werkzeug.serving import make_server as _make_server
 
-from .compat import nullcontext
+from .compat import blocked_signals
 
 if TYPE_CHECKING:
-    from wsgi import StartResponse, WSGIApplication, WSGIEnvironment
+    from _typeshed.wsgi import StartResponse, WSGIApplication, WSGIEnvironment
 
 Body = Iterable[bytes]
 
@@ -23,32 +22,8 @@ class MockServer(BaseWSGIServer):
     mock: Mock = Mock()
 
 
-# Applies on Python 2 and Windows.
-if not hasattr(signal, "pthread_sigmask"):
-    # We're not relying on this behavior anywhere currently, it's just best
-    # practice.
-    blocked_signals = nullcontext
-else:
-
-    @contextmanager
-    def blocked_signals():
-        """Block all signals for e.g. starting a worker thread."""
-        # valid_signals() was added in Python 3.8 (and not using it results
-        # in a warning on pthread_sigmask() call)
-        try:
-            mask = signal.valid_signals()
-        except AttributeError:
-            mask = set(range(1, signal.NSIG))
-
-        old_mask = signal.pthread_sigmask(signal.SIG_SETMASK, mask)
-        try:
-            yield
-        finally:
-            signal.pthread_sigmask(signal.SIG_SETMASK, old_mask)
-
-
 class _RequestHandler(WSGIRequestHandler):
-    def make_environ(self):
+    def make_environ(self) -> Dict[str, Any]:
         environ = super().make_environ()
 
         # From pallets/werkzeug#1469, will probably be in release after
@@ -176,7 +151,7 @@ def html5_page(text: str) -> str:
 
 
 def index_page(spec: Dict[str, str]) -> "WSGIApplication":
-    def link(name, value):
+    def link(name: str, value: str) -> str:
         return '<a href="{}">{}</a>'.format(value, name)
 
     links = "".join(link(*kv) for kv in spec.items())
@@ -184,7 +159,7 @@ def index_page(spec: Dict[str, str]) -> "WSGIApplication":
 
 
 def package_page(spec: Dict[str, str]) -> "WSGIApplication":
-    def link(name, value):
+    def link(name: str, value: str) -> str:
         return '<a href="{}">{}</a>'.format(value, name)
 
     links = "".join(link(*kv) for kv in spec.items())

@@ -1,10 +1,14 @@
 import json
 import os
 import textwrap
+from typing import Any, Callable
 
 import pytest
 
 from tests.lib import (
+    PipTestEnvironment,
+    ResolverVariant,
+    TestData,
     _create_test_package_with_subdirectory,
     create_basic_sdist_for_package,
     create_basic_wheel_for_package,
@@ -17,16 +21,18 @@ from tests.lib.path import Path
 
 
 class ArgRecordingSdist:
-    def __init__(self, sdist_path, args_path):
+    def __init__(self, sdist_path: Path, args_path: Path) -> None:
         self.sdist_path = sdist_path
         self._args_path = args_path
 
-    def args(self):
+    def args(self) -> Any:
         return json.loads(self._args_path.read_text())
 
 
 @pytest.fixture()
-def arg_recording_sdist_maker(script):
+def arg_recording_sdist_maker(
+    script: PipTestEnvironment,
+) -> Callable[[str], ArgRecordingSdist]:
     arg_writing_setup_py = textwrap.dedent(
         """
         import io
@@ -57,7 +63,8 @@ def arg_recording_sdist_maker(script):
 
 
 @pytest.mark.network
-def test_requirements_file(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_requirements_file(script: PipTestEnvironment) -> None:
     """
     Test installing from a requirements file.
 
@@ -80,7 +87,7 @@ def test_requirements_file(script, with_wheel):
     assert result.files_created[script.site_packages / fn].dir
 
 
-def test_schema_check_in_requirements_file(script):
+def test_schema_check_in_requirements_file(script: PipTestEnvironment) -> None:
     """
     Test installing from a requirements file with an invalid vcs schema..
 
@@ -107,7 +114,10 @@ def test_schema_check_in_requirements_file(script):
         ("embedded_rel_path", True),
     ],
 )
-def test_relative_requirements_file(script, data, test_type, editable, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_relative_requirements_file(
+    script: PipTestEnvironment, data: TestData, test_type: str, editable: bool
+) -> None:
     """
     Test installing from a requirements file with a relative path. For path
     URLs, use an egg= definition.
@@ -118,8 +128,8 @@ def test_relative_requirements_file(script, data, test_type, editable, with_whee
     package_folder = script.site_packages / "fspkg"
 
     # Compute relative install path to FSPkg from scratch path.
-    full_rel_path = Path(
-        os.path.relpath(data.packages.joinpath("FSPkg"), script.scratch_path)
+    full_rel_path = os.path.relpath(
+        data.packages.joinpath("FSPkg"), script.scratch_path
     )
     full_rel_url = "file:" + full_rel_path + "#egg=FSPkg"
     embedded_rel_path = script.scratch_path.joinpath(full_rel_path)
@@ -152,7 +162,8 @@ def test_relative_requirements_file(script, data, test_type, editable, with_whee
 @pytest.mark.xfail
 @pytest.mark.network
 @need_svn
-def test_multiple_requirements_files(script, tmpdir, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_multiple_requirements_files(script: PipTestEnvironment, tmpdir: Path) -> None:
     """
     Test installing from multiple nested requirements files.
 
@@ -179,7 +190,9 @@ def test_multiple_requirements_files(script, tmpdir, with_wheel):
     result.did_create(script.venv / "src" / "initools")
 
 
-def test_package_in_constraints_and_dependencies(script, data):
+def test_package_in_constraints_and_dependencies(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     script.scratch_path.joinpath("constraints.txt").write_text(
         "TopoRequires2==0.0.1\nTopoRequires==0.0.1"
     )
@@ -195,7 +208,7 @@ def test_package_in_constraints_and_dependencies(script, data):
     assert "installed TopoRequires-0.0.1" in result.stdout
 
 
-def test_multiple_constraints_files(script, data):
+def test_multiple_constraints_files(script: PipTestEnvironment, data: TestData) -> None:
     script.scratch_path.joinpath("outer.txt").write_text("-c inner.txt")
     script.scratch_path.joinpath("inner.txt").write_text("Upper==1.0")
     result = script.pip(
@@ -210,8 +223,10 @@ def test_multiple_constraints_files(script, data):
     assert "installed Upper-1.0" in result.stdout
 
 
-@pytest.mark.xfail(reason="Unclear what this guarantee is for.")
-def test_respect_order_in_requirements_file(script, data):
+# FIXME: Unclear what this guarantee is for.
+def test_respect_order_in_requirements_file(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     script.scratch_path.joinpath("frameworks-req.txt").write_text(
         textwrap.dedent(
             """\
@@ -244,7 +259,9 @@ def test_respect_order_in_requirements_file(script, data):
     ), 'Third download should be "simple" but was "{}"'.format(downloaded[2])
 
 
-def test_install_local_editable_with_extras(script, data):
+def test_install_local_editable_with_extras(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     to_install = data.packages.joinpath("LocalExtras")
     res = script.pip_install_local(
         "-e", to_install + "[bar]", allow_stderr_warning=True
@@ -254,7 +271,7 @@ def test_install_local_editable_with_extras(script, data):
     res.did_create(script.site_packages / "simple")
 
 
-def test_install_collected_dependencies_first(script):
+def test_install_collected_dependencies_first(script: PipTestEnvironment) -> None:
     result = script.pip_install_local(
         "toporequires2",
     )
@@ -263,7 +280,7 @@ def test_install_collected_dependencies_first(script):
 
 
 @pytest.mark.network
-def test_install_local_editable_with_subdirectory(script):
+def test_install_local_editable_with_subdirectory(script: PipTestEnvironment) -> None:
     version_pkg_path = _create_test_package_with_subdirectory(script, "version_subdir")
     result = script.pip(
         "install",
@@ -277,7 +294,7 @@ def test_install_local_editable_with_subdirectory(script):
 
 
 @pytest.mark.network
-def test_install_local_with_subdirectory(script):
+def test_install_local_with_subdirectory(script: PipTestEnvironment) -> None:
     version_pkg_path = _create_test_package_with_subdirectory(script, "version_subdir")
     result = script.pip(
         "install",
@@ -290,7 +307,10 @@ def test_install_local_with_subdirectory(script):
 
 
 @pytest.mark.incompatible_with_test_venv
-def test_wheel_user_with_prefix_in_pydistutils_cfg(script, data, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_wheel_user_with_prefix_in_pydistutils_cfg(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     if os.name == "posix":
         user_filename = ".pydistutils.cfg"
     else:
@@ -315,8 +335,9 @@ def test_wheel_user_with_prefix_in_pydistutils_cfg(script, data, with_wheel):
 
 
 def test_install_option_in_requirements_file_overrides_cli(
-    script, arg_recording_sdist_maker
-):
+    script: PipTestEnvironment,
+    arg_recording_sdist_maker: Callable[[str], ArgRecordingSdist],
+) -> None:
     simple_sdist = arg_recording_sdist_maker("simple")
 
     reqs_file = script.scratch_path.joinpath("reqs.txt")
@@ -330,13 +351,16 @@ def test_install_option_in_requirements_file_overrides_cli(
         "-r",
         str(reqs_file),
         "--install-option=-O1",
+        allow_stderr_warning=True,
     )
     simple_args = simple_sdist.args()
     assert "install" in simple_args
     assert simple_args.index("-O1") < simple_args.index("-O0")
 
 
-def test_constraints_not_installed_by_default(script, data):
+def test_constraints_not_installed_by_default(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     script.scratch_path.joinpath("c.txt").write_text("requiresupper")
     result = script.pip(
         "install",
@@ -350,7 +374,9 @@ def test_constraints_not_installed_by_default(script, data):
     assert "requiresupper" not in result.stdout
 
 
-def test_constraints_only_causes_error(script, data):
+def test_constraints_only_causes_error(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     script.scratch_path.joinpath("c.txt").write_text("requiresupper")
     result = script.pip(
         "install",
@@ -365,10 +391,10 @@ def test_constraints_only_causes_error(script, data):
 
 
 def test_constraints_local_editable_install_causes_error(
-    script,
-    data,
-    resolver_variant,
-):
+    script: PipTestEnvironment,
+    data: TestData,
+    resolver_variant: ResolverVariant,
+) -> None:
     script.scratch_path.joinpath("constraints.txt").write_text("singlemodule==0.0.0")
     to_install = data.src.joinpath("singlemodule")
     result = script.pip(
@@ -390,7 +416,9 @@ def test_constraints_local_editable_install_causes_error(
 
 
 @pytest.mark.network
-def test_constraints_local_editable_install_pep518(script, data):
+def test_constraints_local_editable_install_pep518(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     to_install = data.src.joinpath("pep518-3.0")
 
     script.pip("download", "setuptools", "wheel", "-d", data.packages)
@@ -398,10 +426,10 @@ def test_constraints_local_editable_install_pep518(script, data):
 
 
 def test_constraints_local_install_causes_error(
-    script,
-    data,
-    resolver_variant,
-):
+    script: PipTestEnvironment,
+    data: TestData,
+    resolver_variant: ResolverVariant,
+) -> None:
     script.scratch_path.joinpath("constraints.txt").write_text("singlemodule==0.0.0")
     to_install = data.src.joinpath("singlemodule")
     result = script.pip(
@@ -422,10 +450,10 @@ def test_constraints_local_install_causes_error(
 
 
 def test_constraints_constrain_to_local_editable(
-    script,
-    data,
-    resolver_variant,
-):
+    script: PipTestEnvironment,
+    data: TestData,
+    resolver_variant: ResolverVariant,
+) -> None:
     to_install = data.src.joinpath("singlemodule")
     script.scratch_path.joinpath("constraints.txt").write_text(
         "-e {url}#egg=singlemodule".format(url=path_to_url(to_install))
@@ -447,7 +475,9 @@ def test_constraints_constrain_to_local_editable(
         assert "Running setup.py develop for singlemodule" in result.stdout
 
 
-def test_constraints_constrain_to_local(script, data, resolver_variant):
+def test_constraints_constrain_to_local(
+    script: PipTestEnvironment, data: TestData, resolver_variant: ResolverVariant
+) -> None:
     to_install = data.src.joinpath("singlemodule")
     script.scratch_path.joinpath("constraints.txt").write_text(
         "{url}#egg=singlemodule".format(url=path_to_url(to_install))
@@ -465,7 +495,9 @@ def test_constraints_constrain_to_local(script, data, resolver_variant):
     assert "Running setup.py install for singlemodule" in result.stdout
 
 
-def test_constrained_to_url_install_same_url(script, data):
+def test_constrained_to_url_install_same_url(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     to_install = data.src.joinpath("singlemodule")
     constraints = path_to_url(to_install) + "#egg=singlemodule"
     script.scratch_path.joinpath("constraints.txt").write_text(constraints)
@@ -482,7 +514,10 @@ def test_constrained_to_url_install_same_url(script, data):
     assert "Running setup.py install for singlemodule" in result.stdout, str(result)
 
 
-def test_double_install_spurious_hash_mismatch(script, tmpdir, data, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_double_install_spurious_hash_mismatch(
+    script: PipTestEnvironment, tmpdir: Path, data: TestData
+) -> None:
     """Make sure installing the same hashed sdist twice doesn't throw hash
     mismatch errors.
 
@@ -521,7 +556,9 @@ def test_double_install_spurious_hash_mismatch(script, tmpdir, data, with_wheel)
         assert "Successfully installed simple-1.0" in str(result)
 
 
-def test_install_with_extras_from_constraints(script, data, resolver_variant):
+def test_install_with_extras_from_constraints(
+    script: PipTestEnvironment, data: TestData, resolver_variant: ResolverVariant
+) -> None:
     to_install = data.packages.joinpath("LocalExtras")
     script.scratch_path.joinpath("constraints.txt").write_text(
         "{url}#egg=LocalExtras[bar]".format(url=path_to_url(to_install))
@@ -539,12 +576,12 @@ def test_install_with_extras_from_constraints(script, data, resolver_variant):
         result.did_create(script.site_packages / "simple")
 
 
-def test_install_with_extras_from_install(script):
+def test_install_with_extras_from_install(script: PipTestEnvironment) -> None:
     create_basic_wheel_for_package(
         script,
         name="LocalExtras",
         version="0.0.1",
-        extras={"bar": "simple", "baz": ["singlemodule"]},
+        extras={"bar": ["simple"], "baz": ["singlemodule"]},
     )
     script.scratch_path.joinpath("constraints.txt").write_text("LocalExtras")
     result = script.pip_install_local(
@@ -557,7 +594,9 @@ def test_install_with_extras_from_install(script):
     result.did_create(script.site_packages / "singlemodule.py")
 
 
-def test_install_with_extras_joined(script, data, resolver_variant):
+def test_install_with_extras_joined(
+    script: PipTestEnvironment, data: TestData, resolver_variant: ResolverVariant
+) -> None:
     to_install = data.packages.joinpath("LocalExtras")
     script.scratch_path.joinpath("constraints.txt").write_text(
         "{url}#egg=LocalExtras[bar]".format(url=path_to_url(to_install))
@@ -576,7 +615,9 @@ def test_install_with_extras_joined(script, data, resolver_variant):
         result.did_create(script.site_packages / "singlemodule.py")
 
 
-def test_install_with_extras_editable_joined(script, data, resolver_variant):
+def test_install_with_extras_editable_joined(
+    script: PipTestEnvironment, data: TestData, resolver_variant: ResolverVariant
+) -> None:
     to_install = data.packages.joinpath("LocalExtras")
     script.scratch_path.joinpath("constraints.txt").write_text(
         "-e {url}#egg=LocalExtras[bar]".format(url=path_to_url(to_install))
@@ -595,7 +636,9 @@ def test_install_with_extras_editable_joined(script, data, resolver_variant):
         result.did_create(script.site_packages / "singlemodule.py")
 
 
-def test_install_distribution_full_union(script, data):
+def test_install_distribution_full_union(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     to_install = data.packages.joinpath("LocalExtras")
     result = script.pip_install_local(
         to_install, to_install + "[bar]", to_install + "[baz]"
@@ -605,7 +648,9 @@ def test_install_distribution_full_union(script, data):
     result.did_create(script.site_packages / "singlemodule.py")
 
 
-def test_install_distribution_duplicate_extras(script, data):
+def test_install_distribution_duplicate_extras(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     to_install = data.packages.joinpath("LocalExtras")
     package_name = to_install + "[bar]"
     with pytest.raises(AssertionError):
@@ -615,10 +660,10 @@ def test_install_distribution_duplicate_extras(script, data):
 
 
 def test_install_distribution_union_with_constraints(
-    script,
-    data,
-    resolver_variant,
-):
+    script: PipTestEnvironment,
+    data: TestData,
+    resolver_variant: ResolverVariant,
+) -> None:
     to_install = data.packages.joinpath("LocalExtras")
     script.scratch_path.joinpath("constraints.txt").write_text(f"{to_install}[bar]")
     result = script.pip_install_local(
@@ -637,10 +682,10 @@ def test_install_distribution_union_with_constraints(
 
 
 def test_install_distribution_union_with_versions(
-    script,
-    data,
-    resolver_variant,
-):
+    script: PipTestEnvironment,
+    data: TestData,
+    resolver_variant: ResolverVariant,
+) -> None:
     to_install_001 = data.packages.joinpath("LocalExtras")
     to_install_002 = data.packages.joinpath("LocalExtras-0.0.2")
     result = script.pip_install_local(
@@ -659,7 +704,9 @@ def test_install_distribution_union_with_versions(
 
 
 @pytest.mark.xfail
-def test_install_distribution_union_conflicting_extras(script, data):
+def test_install_distribution_union_conflicting_extras(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     # LocalExtras requires simple==1.0, LocalExtras[bar] requires simple==2.0;
     # without a resolver, pip does not detect the conflict between simple==1.0
     # and simple==2.0. Once a resolver is added, this conflict should be
@@ -672,7 +719,7 @@ def test_install_distribution_union_conflicting_extras(script, data):
     assert "Conflict" in result.stderr
 
 
-def test_install_unsupported_wheel_link_with_marker(script):
+def test_install_unsupported_wheel_link_with_marker(script: PipTestEnvironment) -> None:
     script.scratch_path.joinpath("with-marker.txt").write_text(
         textwrap.dedent(
             """\
@@ -692,7 +739,9 @@ def test_install_unsupported_wheel_link_with_marker(script):
     assert len(result.files_created) == 0
 
 
-def test_install_unsupported_wheel_file(script, data):
+def test_install_unsupported_wheel_file(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     # Trying to install a local wheel with an incompatible version/type
     # should fail.
     path = data.packages.joinpath("simple.dist-0.1-py1-none-invalid.whl")
@@ -711,7 +760,10 @@ def test_install_unsupported_wheel_file(script, data):
     assert len(result.files_created) == 0
 
 
-def test_install_options_local_to_package(script, arg_recording_sdist_maker):
+def test_install_options_local_to_package(
+    script: PipTestEnvironment,
+    arg_recording_sdist_maker: Callable[[str], ArgRecordingSdist],
+) -> None:
     """Make sure --install-options does not leak across packages.
 
     A requirements.txt file can have per-package --install-options; these
@@ -739,6 +791,7 @@ def test_install_options_local_to_package(script, arg_recording_sdist_maker):
         str(simple1_sdist.sdist_path.parent),
         "-r",
         reqs_file,
+        allow_stderr_warning=True,
     )
 
     simple1_args = simple1_sdist.args()
@@ -749,7 +802,7 @@ def test_install_options_local_to_package(script, arg_recording_sdist_maker):
     assert "-O0" not in simple2_args
 
 
-def test_location_related_install_option_fails(script):
+def test_location_related_install_option_fails(script: PipTestEnvironment) -> None:
     simple_sdist = create_basic_sdist_for_package(script, "simple", "0.1.0")
     reqs_file = script.scratch_path.joinpath("reqs.txt")
     reqs_file.write_text("simple --install-option='--home=/tmp'")

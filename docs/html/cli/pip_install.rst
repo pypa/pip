@@ -154,88 +154,15 @@ Requirements File Format
 
 This section has been moved to :doc:`../reference/requirements-file-format`.
 
-.. _`Requirement Specifiers`:
-
 Requirement Specifiers
 ----------------------
 
-pip supports installing from a package index using a :term:`requirement
-specifier <pypug:Requirement Specifier>`. Generally speaking, a requirement
-specifier is composed of a project name followed by optional :term:`version
-specifiers <pypug:Version Specifier>`.  :pep:`508` contains a full specification
-of the format of a requirement. Since version 18.1 pip supports the
-``url_req``-form specification.
-
-Some examples:
-
- ::
-
-  SomeProject
-  SomeProject == 1.3
-  SomeProject >=1.2,<2.0
-  SomeProject[foo, bar]
-  SomeProject~=1.4.2
-
-Since version 6.0, pip also supports specifiers containing `environment markers
-<https://www.python.org/dev/peps/pep-0508/#environment-markers>`__ like so:
-
- ::
-
-  SomeProject ==5.4 ; python_version < '3.8'
-  SomeProject; sys_platform == 'win32'
-
-Since version 19.1, pip also supports `direct references
-<https://www.python.org/dev/peps/pep-0440/#direct-references>`__ like so:
-
- ::
-
-  SomeProject @ file:///somewhere/...
-
-Environment markers are supported in the command line and in requirements files.
-
-.. note::
-
-   Use quotes around specifiers in the shell when using ``>``, ``<``, or when
-   using environment markers. Don't use quotes in requirement files. [1]_
-
-
-.. _`Per-requirement Overrides`:
+This section has been moved to :doc:`../reference/requirement-specifiers`.
 
 Per-requirement Overrides
 -------------------------
 
-Since version 7.0 pip supports controlling the command line options given to
-``setup.py`` via requirements files. This disables the use of wheels (cached or
-otherwise) for that package, as ``setup.py`` does not exist for wheels.
-
-The ``--global-option`` and ``--install-option`` options are used to pass
-options to ``setup.py``. For example:
-
- ::
-
-    FooProject >= 1.2 --global-option="--no-user-cfg" \
-                      --install-option="--prefix='/usr/local'" \
-                      --install-option="--no-compile"
-
-The above translates roughly into running FooProject's ``setup.py``
-script as:
-
- ::
-
-   python setup.py --no-user-cfg install --prefix='/usr/local' --no-compile
-
-Note that the only way of giving more than one option to ``setup.py``
-is through multiple ``--global-option`` and ``--install-option``
-options, as shown in the example above. The value of each option is
-passed as a single argument to the ``setup.py`` script. Therefore, a
-line such as the following is invalid and would result in an
-installation error.
-
-::
-
-   # Invalid. Please use '--install-option' twice as shown above.
-   FooProject >= 1.2 --install-option="--prefix=/usr/local --no-compile"
-
+This is now covered in :doc:`../reference/requirements-file-format`.
 
 .. _`Pre Release Versions`:
 
@@ -312,308 +239,25 @@ Wheel Cache
 
 This is now covered in :doc:`../topics/caching`.
 
-.. _`hash-checking mode`:
-
-Hash-Checking Mode
+Hash checking mode
 ------------------
 
-Since version 8.0, pip can check downloaded package archives against local
-hashes to protect against remote tampering. To verify a package against one or
-more hashes, add them to the end of the line::
+This is now covered in :doc:`../topics/secure-installs`.
 
-    FooProject == 1.2 --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824 \
-                      --hash=sha256:486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65260e9cb8a7
-
-(The ability to use multiple hashes is important when a package has both
-binary and source distributions or when it offers binary distributions for a
-variety of platforms.)
-
-The recommended hash algorithm at the moment is sha256, but stronger ones are
-allowed, including all those supported by ``hashlib``. However, weaker ones
-such as md5, sha1, and sha224 are excluded to avoid giving a false sense of
-security.
-
-Hash verification is an all-or-nothing proposition. Specifying a ``--hash``
-against any requirement not only checks that hash but also activates a global
-*hash-checking mode*, which imposes several other security restrictions:
-
-* Hashes are required for all requirements. This is because a partially-hashed
-  requirements file is of little use and thus likely an error: a malicious
-  actor could slip bad code into the installation via one of the unhashed
-  requirements. Note that hashes embedded in URL-style requirements via the
-  ``#md5=...`` syntax suffice to satisfy this rule (regardless of hash
-  strength, for legacy reasons), though you should use a stronger
-  hash like sha256 whenever possible.
-* Hashes are required for all dependencies. An error results if there is a
-  dependency that is not spelled out and hashed in the requirements file.
-* Requirements that take the form of project names (rather than URLs or local
-  filesystem paths) must be pinned to a specific version using ``==``. This
-  prevents a surprising hash mismatch upon the release of a new version
-  that matches the requirement specifier.
-* ``--egg`` is disallowed, because it delegates installation of dependencies
-  to setuptools, giving up pip's ability to enforce any of the above.
-
-.. _`--require-hashes`:
-
-Hash-checking mode can be forced on with the ``--require-hashes`` command-line
-option:
-
-.. tab:: Unix/macOS
-
-   .. code-block:: console
-
-      $ python -m pip install --require-hashes -r requirements.txt
-      ...
-      Hashes are required in --require-hashes mode (implicitly on when a hash is
-      specified for any package). These requirements were missing hashes,
-      leaving them open to tampering. These are the hashes the downloaded
-      archives actually had. You can add lines like these to your requirements
-      files to prevent tampering.
-         pyelasticsearch==1.0 --hash=sha256:44ddfb1225054d7d6b1d02e9338e7d4809be94edbe9929a2ec0807d38df993fa
-         more-itertools==2.2 --hash=sha256:93e62e05c7ad3da1a233def6731e8285156701e3419a5fe279017c429ec67ce0
-
-.. tab:: Windows
-
-   .. code-block:: console
-
-      C:\> py -m pip install --require-hashes -r requirements.txt
-      ...
-      Hashes are required in --require-hashes mode (implicitly on when a hash is
-      specified for any package). These requirements were missing hashes,
-      leaving them open to tampering. These are the hashes the downloaded
-      archives actually had. You can add lines like these to your requirements
-      files to prevent tampering.
-         pyelasticsearch==1.0 --hash=sha256:44ddfb1225054d7d6b1d02e9338e7d4809be94edbe9929a2ec0807d38df993fa
-         more-itertools==2.2 --hash=sha256:93e62e05c7ad3da1a233def6731e8285156701e3419a5fe279017c429ec67ce0
-
-
-This can be useful in deploy scripts, to ensure that the author of the
-requirements file provided hashes. It is also a convenient way to bootstrap
-your list of hashes, since it shows the hashes of the packages it fetched. It
-fetches only the preferred archive for each package, so you may still need to
-add hashes for alternatives archives using :ref:`pip hash`: for instance if
-there is both a binary and a source distribution.
-
-The :ref:`wheel cache <Wheel cache>` is disabled in hash-checking mode to
-prevent spurious hash mismatch errors. These would otherwise occur while
-installing sdists that had already been automatically built into cached wheels:
-those wheels would be selected for installation, but their hashes would not
-match the sdist ones from the requirements file. A further complication is that
-locally built wheels are nondeterministic: contemporary modification times make
-their way into the archive, making hashes unpredictable across machines and
-cache flushes. Compilation of C code adds further nondeterminism, as many
-compilers include random-seeded values in their output. However, wheels fetched
-from index servers are the same every time. They land in pip's HTTP cache, not
-its wheel cache, and are used normally in hash-checking mode. The only downside
-of having the wheel cache disabled is thus extra build time for sdists, and
-this can be solved by making sure pre-built wheels are available from the index
-server.
-
-Hash-checking mode also works with :ref:`pip download` and :ref:`pip wheel`.
-See :doc:`../topics/repeatable-installs` for a comparison of hash-checking mode
-with other repeatability strategies.
-
-.. warning::
-
-   Beware of the ``setup_requires`` keyword arg in :file:`setup.py`. The
-   (rare) packages that use it will cause those dependencies to be downloaded
-   by setuptools directly, skipping pip's hash-checking. If you need to use
-   such a package, see :ref:`Controlling
-   setup_requires<controlling-setup-requires>`.
-
-.. warning::
-
-   Be careful not to nullify all your security work when you install your
-   actual project by using setuptools directly: for example, by calling
-   ``python setup.py install``, ``python setup.py develop``, or
-   ``easy_install``. Setuptools will happily go out and download, unchecked,
-   anything you missed in your requirements file—and it’s easy to miss things
-   as your project evolves. To be safe, install your project using pip and
-   :ref:`--no-deps <install_--no-deps>`.
-
-   Instead of ``python setup.py develop``, use...
-
-   .. tab:: Unix/macOS
-
-      .. code-block:: shell
-
-         python -m pip install --no-deps -e .
-
-   .. tab:: Windows
-
-      .. code-block:: shell
-
-         py -m pip install --no-deps -e .
-
-
-   Instead of ``python setup.py install``, use...
-
-   .. tab:: Unix/macOS
-
-      .. code-block:: shell
-
-         python -m pip install --no-deps .
-
-   .. tab:: Windows
-
-      .. code-block:: shell
-
-         py -m pip install --no-deps .
-
-Hashes from PyPI
-^^^^^^^^^^^^^^^^
-
-PyPI provides an MD5 hash in the fragment portion of each package download URL,
-like ``#md5=123...``, which pip checks as a protection against download
-corruption. Other hash algorithms that have guaranteed support from ``hashlib``
-are also supported here: sha1, sha224, sha384, sha256, and sha512. Since this
-hash originates remotely, it is not a useful guard against tampering and thus
-does not satisfy the ``--require-hashes`` demand that every package have a
-local hash.
-
-
-Local project installs
+Local Project Installs
 ----------------------
 
-pip supports installing local project in both regular mode and editable mode.
-You can install local projects by specifying the project path to pip:
+This is now covered in :doc:`../topics/local-project-installs`.
 
-.. tab:: Unix/macOS
+Editable installs
+-----------------
 
-   .. code-block:: shell
-
-      python -m pip install path/to/SomeProject
-
-.. tab:: Windows
-
-   .. code-block:: shell
-
-      py -m pip install path/to/SomeProject
-
-During regular installation, pip will copy the entire project directory to a
-temporary location and install from there. The exception is that pip will
-exclude .tox and .nox directories present in the top level of the project from
-being copied. This approach is the cause of several performance and correctness
-issues, so it is planned that pip 21.3 will change to install directly from the
-local project directory. Depending on the build backend used by the project,
-this may generate secondary build artifacts in the project directory, such as
-the ``.egg-info`` and ``build`` directories in the case of the setuptools
-backend.
-
-To opt in to the future behavior, specify the ``--use-feature=in-tree-build``
-option in pip's command line.
-
-
-.. _`editable-installs`:
-
-"Editable" Installs
-^^^^^^^^^^^^^^^^^^^
-
-"Editable" installs are fundamentally `"setuptools develop mode"
-<https://setuptools.readthedocs.io/en/latest/userguide/development_mode.html>`_
-installs.
-
-You can install local projects or VCS projects in "editable" mode:
-
-.. tab:: Unix/macOS
-
-   .. code-block:: shell
-
-      python -m pip install -e path/to/SomeProject
-      python -m pip install -e git+http://repo/my_project.git#egg=SomeProject
-
-.. tab:: Windows
-
-   .. code-block:: shell
-
-      py -m pip install -e path/to/SomeProject
-      py -m pip install -e git+http://repo/my_project.git#egg=SomeProject
-
-
-(See the :doc:`../topics/vcs-support` section above for more information on VCS-related syntax.)
-
-For local projects, the "SomeProject.egg-info" directory is created relative to
-the project path.  This is one advantage over just using ``setup.py develop``,
-which creates the "egg-info" directly relative the current working directory.
-
-
-.. _`controlling-setup-requires`:
-
-Controlling setup_requires
---------------------------
-
-Setuptools offers the ``setup_requires`` `setup() keyword
-<https://setuptools.readthedocs.io/en/latest/userguide/keywords.html>`_
-for specifying dependencies that need to be present in order for the
-``setup.py`` script to run.  Internally, Setuptools uses ``easy_install``
-to fulfill these dependencies.
-
-pip has no way to control how these dependencies are located.  None of the
-package index options have an effect.
-
-The solution is to configure a "system" or "personal" `Distutils configuration
-file
-<https://docs.python.org/3/install/index.html#distutils-configuration-files>`_ to
-manage the fulfillment.
-
-For example, to have the dependency located at an alternate index, add this:
-
-::
-
-  [easy_install]
-  index_url = https://my.index-mirror.com
-
-To have the dependency located from a local directory and not crawl PyPI, add this:
-
-::
-
-  [easy_install]
-  allow_hosts = ''
-  find_links = file:///path/to/local/archives/
-
+This is now covered in :doc:`../topics/local-project-installs`.
 
 Build System Interface
 ----------------------
 
-In order for pip to install a package from source, ``setup.py`` must implement
-the following commands::
-
-    setup.py egg_info [--egg-base XXX]
-    setup.py install --record XXX [--single-version-externally-managed] [--root XXX] [--compile|--no-compile] [--install-headers XXX]
-
-The ``egg_info`` command should create egg metadata for the package, as
-described in the setuptools documentation at
-https://setuptools.readthedocs.io/en/latest/userguide/commands.html#egg-info-create-egg-metadata-and-set-build-tags
-
-The ``install`` command should implement the complete process of installing the
-package to the target directory XXX.
-
-To install a package in "editable" mode (``pip install -e``), ``setup.py`` must
-implement the following command::
-
-    setup.py develop --no-deps
-
-This should implement the complete process of installing the package in
-"editable" mode.
-
-All packages will be attempted to built into wheels::
-
-    setup.py bdist_wheel -d XXX
-
-One further ``setup.py`` command is invoked by ``pip install``::
-
-    setup.py clean
-
-This command is invoked to clean up temporary commands from the build. (TODO:
-Investigate in more detail when this command is required).
-
-No other build system commands are invoked by the ``pip install`` command.
-
-Installing a package from a wheel does not invoke the build system at all.
-
-.. _PyPI: https://pypi.org/
-.. _setuptools extras: https://setuptools.readthedocs.io/en/latest/userguide/dependency_management.html#optional-dependencies
-
+This is now covered in :doc:`../reference/build-system/index`.
 
 
 .. _`pip install Options`:
@@ -743,7 +387,7 @@ Examples
          py -m pip install -e git+https://git.repo/some_pkg.git@feature#egg=SomePackage  # from 'feature' branch
          py -m pip install -e "git+https://git.repo/some_repo.git#egg=subdir&subdirectory=subdir_path" # install a python package from a repo subdirectory
 
-#. Install a package with `setuptools extras`_.
+#. Install a package with `extras`_.
 
    .. tab:: Unix/macOS
 
@@ -902,7 +546,5 @@ Examples
 
          py -m pip install SomePackage1 SomePackage2 --no-binary SomePackage1
 
-----
-
-.. [1] This is true with the exception that pip v7.0 and v7.0.1 required quotes
-       around specifiers containing environment markers in requirement files.
+.. _extras: https://www.python.org/dev/peps/pep-0508/#extras
+.. _PyPI: https://pypi.org/

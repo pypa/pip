@@ -5,7 +5,11 @@ from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, Optional, Tuple, Uni
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.packaging.version import Version
 
-from pip._internal.exceptions import HashError, MetadataInconsistent
+from pip._internal.exceptions import (
+    HashError,
+    InstallationSubprocessError,
+    MetadataInconsistent,
+)
 from pip._internal.metadata import BaseDistribution
 from pip._internal.models.link import Link, links_equivalent
 from pip._internal.models.wheel import Wheel
@@ -82,6 +86,7 @@ def make_install_req_from_editable(
         use_pep517=template.use_pep517,
         isolated=template.isolated,
         constraint=template.constraint,
+        permit_editable_wheels=template.permit_editable_wheels,
         options=dict(
             install_options=template.install_options,
             global_options=template.global_options,
@@ -93,8 +98,6 @@ def make_install_req_from_editable(
 def _make_install_req_from_dist(
     dist: BaseDistribution, template: InstallRequirement
 ) -> InstallRequirement:
-    from pip._internal.metadata.pkg_resources import Distribution as _Dist
-
     if template.req:
         line = str(template.req)
     elif template.link:
@@ -114,7 +117,7 @@ def _make_install_req_from_dist(
             hashes=template.hash_options,
         ),
     )
-    ireq.satisfied_by = cast(_Dist, dist)._dist
+    ireq.satisfied_by = dist
     return ireq
 
 
@@ -228,6 +231,11 @@ class _InstallRequirementBackedCandidate(Candidate):
             # offending line to the user.
             e.req = self._ireq
             raise
+        except InstallationSubprocessError as exc:
+            # The output has been presented already, so don't duplicate it.
+            exc.context = "See above for output."
+            raise
+
         self._check_metadata_consistency(dist)
         return dist
 

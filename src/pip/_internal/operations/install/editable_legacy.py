@@ -42,5 +42,6 @@ def install_editable(
         with build_env:
             call_subprocess(
                 args,
+                command_desc="python setup.py develop",
                 cwd=unpacked_source_directory,
             )

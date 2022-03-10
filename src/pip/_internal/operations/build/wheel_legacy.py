@@ -4,11 +4,7 @@ from typing import List, Optional
 
 from pip._internal.cli.spinners import open_spinner
 from pip._internal.utils.setuptools_build import make_setuptools_bdist_wheel_args
-from pip._internal.utils.subprocess import (
-    LOG_DIVIDER,
-    call_subprocess,
-    format_command_args,
-)
+from pip._internal.utils.subprocess import call_subprocess, format_command_args
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +24,7 @@ def format_command_result(
     else:
         if not command_output.endswith("\n"):
             command_output += "\n"
-        text += f"Command output:\n{command_output}{LOG_DIVIDER}"
+        text += f"Command output:\n{command_output}"
 
     return text
 
@@ -86,6 +82,7 @@ def build_wheel_legacy(
         try:
             output = call_subprocess(
                 wheel_args,
+                command_desc="python setup.py bdist_wheel",
                 cwd=source_dir,
                 spinner=spinner,
             )

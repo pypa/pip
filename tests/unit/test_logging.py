@@ -6,8 +6,8 @@ import pytest
 
 from pip._internal.utils.logging import (
     BrokenStdoutLoggingError,
-    ColorizedStreamHandler,
     IndentingFormatter,
+    RichPipStreamHandler,
     indent_log,
 )
 from pip._internal.utils.misc import captured_stderr, captured_stdout
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class TestIndentingFormatter:
     """Test ``pip._internal.utils.logging.IndentingFormatter``."""
 
-    def make_record(self, msg, level_name):
+    def make_record(self, msg: str, level_name: str) -> logging.LogRecord:
         level_number = getattr(logging, level_name)
         attrs = dict(
             msg=msg,
@@ -41,7 +41,7 @@ class TestIndentingFormatter:
             ("CRITICAL", "ERROR: hello\nworld"),
         ],
     )
-    def test_format(self, level_name, expected, utc):
+    def test_format(self, level_name: str, expected: str, utc: None) -> None:
         """
         Args:
           level_name: a logging level name (e.g. "WARNING").
@@ -61,7 +61,9 @@ class TestIndentingFormatter:
             ),
         ],
     )
-    def test_format_with_timestamp(self, level_name, expected, utc):
+    def test_format_with_timestamp(
+        self, level_name: str, expected: str, utc: None
+    ) -> None:
         record = self.make_record("hello\nworld", level_name=level_name)
         f = IndentingFormatter(fmt="%(message)s", add_timestamp=True)
         assert f.format(record) == expected
@@ -74,7 +76,7 @@ class TestIndentingFormatter:
             ("CRITICAL", "DEPRECATION: hello\nworld"),
         ],
     )
-    def test_format_deprecated(self, level_name, expected, utc):
+    def test_format_deprecated(self, level_name: str, expected: str, utc: None) -> None:
         """
         Test that logged deprecation warnings coming from deprecated()
         don't get another prefix.
@@ -86,7 +88,7 @@ class TestIndentingFormatter:
         f = IndentingFormatter(fmt="%(message)s")
         assert f.format(record) == expected
 
-    def test_thread_safety_base(self, utc):
+    def test_thread_safety_base(self, utc: None) -> None:
         record = self.make_record(
             "DEPRECATION: hello\nworld",
             level_name="WARNING",
@@ -94,7 +96,7 @@ class TestIndentingFormatter:
         f = IndentingFormatter(fmt="%(message)s")
         results = []
 
-        def thread_function():
+        def thread_function() -> None:
             results.append(f.format(record))
 
         thread_function()
@@ -103,7 +105,7 @@ class TestIndentingFormatter:
         thread.join()
         assert results[0] == results[1]
 
-    def test_thread_safety_indent_log(self, utc):
+    def test_thread_safety_indent_log(self, utc: None) -> None:
         record = self.make_record(
             "DEPRECATION: hello\nworld",
             level_name="WARNING",
@@ -111,7 +113,7 @@ class TestIndentingFormatter:
         f = IndentingFormatter(fmt="%(message)s")
         results = []
 
-        def thread_function():
+        def thread_function() -> None:
             with indent_log():
                 results.append(f.format(record))
 
@@ -123,7 +125,7 @@ class TestIndentingFormatter:
 
 
 class TestColorizedStreamHandler:
-    def _make_log_record(self):
+    def _make_log_record(self) -> logging.LogRecord:
         attrs = {
             "msg": "my error",
         }
@@ -131,7 +133,7 @@ class TestColorizedStreamHandler:
 
         return record
 
-    def test_broken_pipe_in_stderr_flush(self):
+    def test_broken_pipe_in_stderr_flush(self) -> None:
         """
         Test sys.stderr.flush() raising BrokenPipeError.
 
@@ -140,7 +142,7 @@ class TestColorizedStreamHandler:
         record = self._make_log_record()
 
         with captured_stderr() as stderr:
-            handler = ColorizedStreamHandler(stream=stderr)
+            handler = RichPipStreamHandler(stream=stderr, no_color=True)
             with patch("sys.stderr.flush") as mock_flush:
                 mock_flush.side_effect = BrokenPipeError()
                 # The emit() call raises no exception.
@@ -154,7 +156,7 @@ class TestColorizedStreamHandler:
         assert "BrokenPipeError" in err_text
         assert "Message: 'my error'" in err_text
 
-    def test_broken_pipe_in_stdout_write(self):
+    def test_broken_pipe_in_stdout_write(self) -> None:
         """
         Test sys.stdout.write() raising BrokenPipeError.
 
@@ -163,13 +165,13 @@ class TestColorizedStreamHandler:
         record = self._make_log_record()
 
         with captured_stdout() as stdout:
-            handler = ColorizedStreamHandler(stream=stdout)
+            handler = RichPipStreamHandler(stream=stdout, no_color=True)
             with patch("sys.stdout.write") as mock_write:
                 mock_write.side_effect = BrokenPipeError()
                 with pytest.raises(BrokenStdoutLoggingError):
                     handler.emit(record)
 
-    def test_broken_pipe_in_stdout_flush(self):
+    def test_broken_pipe_in_stdout_flush(self) -> None:
         """
         Test sys.stdout.flush() raising BrokenPipeError.
 
@@ -178,7 +180,7 @@ class TestColorizedStreamHandler:
         record = self._make_log_record()
 
         with captured_stdout() as stdout:
-            handler = ColorizedStreamHandler(stream=stdout)
+            handler = RichPipStreamHandler(stream=stdout, no_color=True)
             with patch("sys.stdout.flush") as mock_flush:
                 mock_flush.side_effect = BrokenPipeError()
                 with pytest.raises(BrokenStdoutLoggingError):

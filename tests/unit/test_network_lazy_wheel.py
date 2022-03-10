@@ -1,14 +1,16 @@
-from zipfile import BadZipfile
+from typing import Iterator
 
 from pip._vendor.packaging.version import Version
 from pytest import fixture, mark, raises
 
+from pip._internal.exceptions import InvalidWheel
 from pip._internal.network.lazy_wheel import (
     HTTPRangeRequestUnsupported,
     dist_from_wheel_url,
 )
 from pip._internal.network.session import PipSession
-from tests.lib.server import file_response
+from tests.lib import TestData
+from tests.lib.server import MockServer, file_response
 
 MYPY_0_782_WHL = (
     "https://files.pythonhosted.org/packages/9d/65/"
@@ -24,12 +26,12 @@ MYPY_0_782_REQS = {
 
 
 @fixture
-def session():
+def session() -> PipSession:
     return PipSession()
 
 
 @fixture
-def mypy_whl_no_range(mock_server, shared_data):
+def mypy_whl_no_range(mock_server: MockServer, shared_data: TestData) -> Iterator[str]:
     mypy_whl = shared_data.packages / "mypy-0.782-py3-none-any.whl"
     mock_server.set_responses([file_response(mypy_whl)])
     mock_server.start()
@@ -39,7 +41,7 @@ def mypy_whl_no_range(mock_server, shared_data):
 
 
 @mark.network
-def test_dist_from_wheel_url(session):
+def test_dist_from_wheel_url(session: PipSession) -> None:
     """Test if the acquired distribution contain correct information."""
     dist = dist_from_wheel_url("mypy", MYPY_0_782_WHL, session)
     assert dist.canonical_name == "mypy"
@@ -49,14 +51,16 @@ def test_dist_from_wheel_url(session):
     assert {str(d) for d in dist.iter_dependencies(extras)} == MYPY_0_782_REQS
 
 
-def test_dist_from_wheel_url_no_range(session, mypy_whl_no_range):
+def test_dist_from_wheel_url_no_range(
+    session: PipSession, mypy_whl_no_range: str
+) -> None:
     """Test handling when HTTP range requests are not supported."""
     with raises(HTTPRangeRequestUnsupported):
         dist_from_wheel_url("mypy", mypy_whl_no_range, session)
 
 
 @mark.network
-def test_dist_from_wheel_url_not_zip(session):
+def test_dist_from_wheel_url_not_zip(session: PipSession) -> None:
     """Test handling with the given URL does not point to a ZIP."""
-    with raises(BadZipfile):
+    with raises(InvalidWheel):
         dist_from_wheel_url("python", "https://www.python.org/", session)

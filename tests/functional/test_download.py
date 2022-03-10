@@ -2,17 +2,19 @@ import os.path
 import shutil
 import textwrap
 from hashlib import sha256
+from typing import List
 
 import pytest
 
 from pip._internal.cli.status_codes import ERROR
 from pip._internal.utils.urls import path_to_url
-from tests.lib import create_really_basic_wheel
+from tests.conftest import MockServer, ScriptFactory
+from tests.lib import PipTestEnvironment, TestData, create_really_basic_wheel
 from tests.lib.path import Path
 from tests.lib.server import file_response
 
 
-def fake_wheel(data, wheel_path):
+def fake_wheel(data: TestData, wheel_path: str) -> None:
     wheel_name = os.path.basename(wheel_path)
     name, version, rest = wheel_name.split("-", 2)
     wheel_data = create_really_basic_wheel(name, version)
@@ -20,7 +22,7 @@ def fake_wheel(data, wheel_path):
 
 
 @pytest.mark.network
-def test_download_if_requested(script):
+def test_download_if_requested(script: PipTestEnvironment) -> None:
     """
     It should download (in the scratch path) and not install if requested.
     """
@@ -30,7 +32,7 @@ def test_download_if_requested(script):
 
 
 @pytest.mark.network
-def test_basic_download_setuptools(script):
+def test_basic_download_setuptools(script: PipTestEnvironment) -> None:
     """
     It should download (in the scratch path) and not install if requested.
     """
@@ -39,7 +41,7 @@ def test_basic_download_setuptools(script):
     assert any(path.startswith(setuptools_prefix) for path in result.files_created)
 
 
-def test_download_wheel(script, data):
+def test_download_wheel(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test using "pip download" to download a *.whl archive.
     """
@@ -51,7 +53,7 @@ def test_download_wheel(script, data):
 
 
 @pytest.mark.network
-def test_single_download_from_requirements_file(script):
+def test_single_download_from_requirements_file(script: PipTestEnvironment) -> None:
     """
     It should support download (in the scratch path) from PyPI from a
     requirements file
@@ -75,7 +77,9 @@ def test_single_download_from_requirements_file(script):
 
 
 @pytest.mark.network
-def test_basic_download_should_download_dependencies(script):
+def test_basic_download_should_download_dependencies(
+    script: PipTestEnvironment,
+) -> None:
     """
     It should download dependencies (in the scratch path)
     """
@@ -86,7 +90,7 @@ def test_basic_download_should_download_dependencies(script):
     result.did_not_create(script.site_packages / "openid")
 
 
-def test_download_wheel_archive(script, data):
+def test_download_wheel_archive(script: PipTestEnvironment, data: TestData) -> None:
     """
     It should download a wheel archive path
     """
@@ -96,7 +100,9 @@ def test_download_wheel_archive(script, data):
     result.did_create(Path("scratch") / wheel_filename)
 
 
-def test_download_should_download_wheel_deps(script, data):
+def test_download_should_download_wheel_deps(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     It should download dependencies for wheels(in the scratch path)
     """
@@ -111,7 +117,7 @@ def test_download_should_download_wheel_deps(script, data):
 
 
 @pytest.mark.network
-def test_download_should_skip_existing_files(script):
+def test_download_should_skip_existing_files(script: PipTestEnvironment) -> None:
     """
     It should not download files already existing in the scratch dir
     """
@@ -159,7 +165,7 @@ def test_download_should_skip_existing_files(script):
 
 
 @pytest.mark.network
-def test_download_vcs_link(script):
+def test_download_vcs_link(script: PipTestEnvironment) -> None:
     """
     It should allow -d flag for vcs links, regression test for issue #798.
     """
@@ -170,7 +176,9 @@ def test_download_vcs_link(script):
     result.did_not_create(script.site_packages / "piptestpackage")
 
 
-def test_only_binary_set_then_download_specific_platform(script, data):
+def test_only_binary_set_then_download_specific_platform(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Confirm that specifying an interpreter/platform constraint
     is allowed when ``--only-binary=:all:`` is set.
@@ -192,7 +200,9 @@ def test_only_binary_set_then_download_specific_platform(script, data):
     result.did_create(Path("scratch") / "fake-1.0-py2.py3-none-any.whl")
 
 
-def test_no_deps_set_then_download_specific_platform(script, data):
+def test_no_deps_set_then_download_specific_platform(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Confirm that specifying an interpreter/platform constraint
     is allowed when ``--no-deps`` is set.
@@ -214,7 +224,9 @@ def test_no_deps_set_then_download_specific_platform(script, data):
     result.did_create(Path("scratch") / "fake-1.0-py2.py3-none-any.whl")
 
 
-def test_download_specific_platform_fails(script, data):
+def test_download_specific_platform_fails(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Confirm that specifying an interpreter/platform constraint
     enforces that ``--no-deps`` or ``--only-binary=:all:`` is set.
@@ -236,7 +248,9 @@ def test_download_specific_platform_fails(script, data):
     assert "--only-binary=:all:" in result.stderr
 
 
-def test_no_binary_set_then_download_specific_platform_fails(script, data):
+def test_no_binary_set_then_download_specific_platform_fails(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Confirm that specifying an interpreter/platform constraint
     enforces that ``--only-binary=:all:`` is set without ``--no-binary``.
@@ -260,7 +274,7 @@ def test_no_binary_set_then_download_specific_platform_fails(script, data):
     assert "--only-binary=:all:" in result.stderr
 
 
-def test_download_specify_platform(script, data):
+def test_download_specify_platform(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test using "pip download --platform" to download a .whl archive
     supported for a specific platform
@@ -395,7 +409,9 @@ class TestDownloadPlatformManylinuxes:
             "manylinux2014_x86_64",
         ],
     )
-    def test_download_universal(self, platform, script, data):
+    def test_download_universal(
+        self, platform: str, script: PipTestEnvironment, data: TestData
+    ) -> None:
         """
         Universal wheels are returned even for specific platforms.
         """
@@ -427,11 +443,11 @@ class TestDownloadPlatformManylinuxes:
     )
     def test_download_compatible_manylinuxes(
         self,
-        wheel_abi,
-        platform,
-        script,
-        data,
-    ):
+        wheel_abi: str,
+        platform: str,
+        script: PipTestEnvironment,
+        data: TestData,
+    ) -> None:
         """
         Earlier manylinuxes are compatible with later manylinuxes.
         """
@@ -451,7 +467,9 @@ class TestDownloadPlatformManylinuxes:
         )
         result.did_create(Path("scratch") / wheel)
 
-    def test_explicit_platform_only(self, data, script):
+    def test_explicit_platform_only(
+        self, data: TestData, script: PipTestEnvironment
+    ) -> None:
         """
         When specifying the platform, manylinux1 needs to be the
         explicit platform--it won't ever be added to the compatible
@@ -472,7 +490,7 @@ class TestDownloadPlatformManylinuxes:
         )
 
 
-def test_download__python_version(script, data):
+def test_download__python_version(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test using "pip download --python-version" to download a .whl archive
     supported for a specific interpreter
@@ -592,7 +610,9 @@ def test_download__python_version(script, data):
     result.did_create(Path("scratch") / "fake-2.0-py3-none-any.whl")
 
 
-def make_wheel_with_python_requires(script, package_name, python_requires):
+def make_wheel_with_python_requires(
+    script: PipTestEnvironment, package_name: str, python_requires: str
+) -> Path:
     """
     Create a wheel using the given python_requires.
 
@@ -622,11 +642,10 @@ def make_wheel_with_python_requires(script, package_name, python_requires):
     return package_dir / "dist" / file_name
 
 
+@pytest.mark.usefixtures("with_wheel")
 def test_download__python_version_used_for_python_requires(
-    script,
-    data,
-    with_wheel,
-):
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Test that --python-version is used for the Requires-Python check.
     """
@@ -637,7 +656,7 @@ def test_download__python_version_used_for_python_requires(
     )
     wheel_dir = os.path.dirname(wheel_path)
 
-    def make_args(python_version):
+    def make_args(python_version: str) -> List[str]:
         return [
             "download",
             "--no-index",
@@ -664,10 +683,10 @@ def test_download__python_version_used_for_python_requires(
     script.pip(*args)  # no exception
 
 
+@pytest.mark.usefixtures("with_wheel")
 def test_download_ignore_requires_python_dont_fail_with_wrong_python(
-    script,
-    with_wheel,
-):
+    script: PipTestEnvironment,
+) -> None:
     """
     Test that --ignore-requires-python ignores Requires-Python check.
     """
@@ -692,7 +711,7 @@ def test_download_ignore_requires_python_dont_fail_with_wrong_python(
     result.did_create(Path("scratch") / "mypackage-1.0-py2.py3-none-any.whl")
 
 
-def test_download_specify_abi(script, data):
+def test_download_specify_abi(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test using "pip download --abi" to download a .whl archive
     supported for a specific abi
@@ -809,7 +828,9 @@ def test_download_specify_abi(script, data):
     result.did_create(Path("scratch") / "fake-1.0-fk2-otherabi-fake_platform.whl")
 
 
-def test_download_specify_implementation(script, data):
+def test_download_specify_implementation(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Test using "pip download --abi" to download a .whl archive
     supported for a specific abi
@@ -864,7 +885,9 @@ def test_download_specify_implementation(script, data):
     )
 
 
-def test_download_exit_status_code_when_no_requirements(script):
+def test_download_exit_status_code_when_no_requirements(
+    script: PipTestEnvironment,
+) -> None:
     """
     Test download exit status code when no requirements specified
     """
@@ -873,7 +896,9 @@ def test_download_exit_status_code_when_no_requirements(script):
     assert result.returncode == ERROR
 
 
-def test_download_exit_status_code_when_blank_requirements_file(script):
+def test_download_exit_status_code_when_blank_requirements_file(
+    script: PipTestEnvironment,
+) -> None:
     """
     Test download exit status code when blank requirements file specified
     """
@@ -881,7 +906,9 @@ def test_download_exit_status_code_when_blank_requirements_file(script):
     script.pip("download", "-r", "blank.txt")
 
 
-def test_download_prefer_binary_when_tarball_higher_than_wheel(script, data):
+def test_download_prefer_binary_when_tarball_higher_than_wheel(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     fake_wheel(data, "source-0.8-py2.py3-none-any.whl")
     result = script.pip(
         "download",
@@ -897,7 +924,9 @@ def test_download_prefer_binary_when_tarball_higher_than_wheel(script, data):
     result.did_not_create(Path("scratch") / "source-1.0.tar.gz")
 
 
-def test_prefer_binary_tarball_higher_than_wheel_req_file(script, data):
+def test_prefer_binary_tarball_higher_than_wheel_req_file(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     fake_wheel(data, "source-0.8-py2.py3-none-any.whl")
     script.scratch_path.joinpath("test-req.txt").write_text(
         textwrap.dedent(
@@ -922,7 +951,9 @@ def test_prefer_binary_tarball_higher_than_wheel_req_file(script, data):
     result.did_not_create(Path("scratch") / "source-1.0.tar.gz")
 
 
-def test_download_prefer_binary_when_wheel_doesnt_satisfy_req(script, data):
+def test_download_prefer_binary_when_wheel_doesnt_satisfy_req(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     fake_wheel(data, "source-0.8-py2.py3-none-any.whl")
     script.scratch_path.joinpath("test-req.txt").write_text(
         textwrap.dedent(
@@ -947,7 +978,9 @@ def test_download_prefer_binary_when_wheel_doesnt_satisfy_req(script, data):
     result.did_not_create(Path("scratch") / "source-0.8-py2.py3-none-any.whl")
 
 
-def test_prefer_binary_when_wheel_doesnt_satisfy_req_req_file(script, data):
+def test_prefer_binary_when_wheel_doesnt_satisfy_req_req_file(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     fake_wheel(data, "source-0.8-py2.py3-none-any.whl")
     script.scratch_path.joinpath("test-req.txt").write_text(
         textwrap.dedent(
@@ -972,7 +1005,9 @@ def test_prefer_binary_when_wheel_doesnt_satisfy_req_req_file(script, data):
     result.did_not_create(Path("scratch") / "source-0.8-py2.py3-none-any.whl")
 
 
-def test_download_prefer_binary_when_only_tarball_exists(script, data):
+def test_download_prefer_binary_when_only_tarball_exists(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     result = script.pip(
         "download",
         "--prefer-binary",
@@ -986,7 +1021,9 @@ def test_download_prefer_binary_when_only_tarball_exists(script, data):
     result.did_create(Path("scratch") / "source-1.0.tar.gz")
 
 
-def test_prefer_binary_when_only_tarball_exists_req_file(script, data):
+def test_prefer_binary_when_only_tarball_exists_req_file(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     script.scratch_path.joinpath("test-req.txt").write_text(
         textwrap.dedent(
             """
@@ -1009,13 +1046,17 @@ def test_prefer_binary_when_only_tarball_exists_req_file(script, data):
 
 
 @pytest.fixture(scope="session")
-def shared_script(tmpdir_factory, script_factory):
+def shared_script(
+    tmpdir_factory: pytest.TempdirFactory, script_factory: ScriptFactory
+) -> PipTestEnvironment:
     tmpdir = Path(str(tmpdir_factory.mktemp("download_shared_script")))
     script = script_factory(tmpdir.joinpath("workspace"))
     return script
 
 
-def test_download_file_url(shared_script, shared_data, tmpdir):
+def test_download_file_url(
+    shared_script: PipTestEnvironment, shared_data: TestData, tmpdir: Path
+) -> None:
     download_dir = tmpdir / "download"
     download_dir.mkdir()
     downloaded_path = download_dir / "simple-1.0.tar.gz"
@@ -1034,7 +1075,9 @@ def test_download_file_url(shared_script, shared_data, tmpdir):
     assert simple_pkg.read_bytes() == downloaded_path.read_bytes()
 
 
-def test_download_file_url_existing_ok_download(shared_script, shared_data, tmpdir):
+def test_download_file_url_existing_ok_download(
+    shared_script: PipTestEnvironment, shared_data: TestData, tmpdir: Path
+) -> None:
     download_dir = tmpdir / "download"
     download_dir.mkdir()
     downloaded_path = download_dir / "simple-1.0.tar.gz"
@@ -1051,7 +1094,9 @@ def test_download_file_url_existing_ok_download(shared_script, shared_data, tmpd
     assert downloaded_path_bytes == downloaded_path.read_bytes()
 
 
-def test_download_file_url_existing_bad_download(shared_script, shared_data, tmpdir):
+def test_download_file_url_existing_bad_download(
+    shared_script: PipTestEnvironment, shared_data: TestData, tmpdir: Path
+) -> None:
     download_dir = tmpdir / "download"
     download_dir.mkdir()
     downloaded_path = download_dir / "simple-1.0.tar.gz"
@@ -1068,7 +1113,12 @@ def test_download_file_url_existing_bad_download(shared_script, shared_data, tmp
     assert simple_pkg_bytes == downloaded_path.read_bytes()
 
 
-def test_download_http_url_bad_hash(shared_script, shared_data, tmpdir, mock_server):
+def test_download_http_url_bad_hash(
+    shared_script: PipTestEnvironment,
+    shared_data: TestData,
+    tmpdir: Path,
+    mock_server: MockServer,
+) -> None:
     """
     If already-downloaded file has bad checksum, re-download.
     """
@@ -1097,7 +1147,9 @@ def test_download_http_url_bad_hash(shared_script, shared_data, tmpdir, mock_ser
     assert requests[0]["HTTP_ACCEPT_ENCODING"] == "identity"
 
 
-def test_download_editable(script, data, tmpdir):
+def test_download_editable(
+    script: PipTestEnvironment, data: TestData, tmpdir: Path
+) -> None:
     """
     Test 'pip download' of editables in requirement file.
     """
