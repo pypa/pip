@@ -609,7 +609,7 @@ class PackageFinder:
         self.format_control = format_control
 
         # These are boring links that have already been logged somehow.
-        self._logged_links = set()  # type: Set[Tuple[Link, str]]
+        self._logged_links: Set[Tuple[Link, str]] = set()
 
     # Don't include an allow_yanked default value to make sure each call
     # site considers whether yanked releases are allowed. This also causes
