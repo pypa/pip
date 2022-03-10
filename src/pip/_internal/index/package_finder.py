@@ -222,9 +222,8 @@ class LinkEvaluator:
             ignore_requires_python=self._ignore_requires_python,
         )
         if not supports_python:
-            # Return None for the reason text to suppress calling
-            # _log_skipped_link().
-            return (False, None)
+            reason = f"{version} Requires-Python {link.requires_python}"
+            return (False, reason)
 
         logger.debug("Found link %s, version: %s", link, version)
 
@@ -610,7 +609,7 @@ class PackageFinder:
         self.format_control = format_control
 
         # These are boring links that have already been logged somehow.
-        self._logged_links: Set[Link] = set()
+        self._logged_links: Set[Tuple[Link, str]] = set()
 
     # Don't include an allow_yanked default value to make sure each call
     # site considers whether yanked releases are allowed. This also causes
@@ -690,6 +689,11 @@ class PackageFinder:
     def set_prefer_binary(self) -> None:
         self._candidate_prefs.prefer_binary = True
 
+    def skipped_links_requires_python(self) -> List[str]:
+        return sorted(
+            {reason for _, reason in self._logged_links if "Requires-Python" in reason}
+        )
+
     def make_link_evaluator(self, project_name: str) -> LinkEvaluator:
         canonical_name = canonicalize_name(project_name)
         formats = self.format_control.get_allowed_formats(canonical_name)
@@ -720,11 +724,11 @@ class PackageFinder:
         return no_eggs + eggs
 
     def _log_skipped_link(self, link: Link, reason: str) -> None:
-        if link not in self._logged_links:
+        if (link, reason) not in self._logged_links:
             # Put the link at the end so the reason is more visible and because
             # the link string is usually very long.
             logger.debug("Skipping link: %s: %s", reason, link)
-            self._logged_links.add(link)
+            self._logged_links.add((link, reason))
 
     def get_install_candidate(
         self, link_evaluator: LinkEvaluator, link: Link
@@ -735,8 +739,7 @@ class PackageFinder:
         """
         is_candidate, result = link_evaluator.evaluate_link(link)
         if not is_candidate:
-            if result:
-                self._log_skipped_link(link, reason=result)
+            self._log_skipped_link(link, result)
             return None
 
         return InstallationCandidate(

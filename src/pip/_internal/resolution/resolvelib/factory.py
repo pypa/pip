@@ -617,8 +617,15 @@ class Factory:
             req_disp = f"{req} (from {parent.name})"
 
         cands = self._finder.find_all_candidates(req.project_name)
+        skips = self._finder.skipped_links_requires_python()
         versions = [str(v) for v in sorted({c.version for c in cands})]
 
+        if skips:
+            logger.critical(
+                "Ignored the following versions that require a different python "
+                "version: %s",
+                "; ".join(skips) or "none",
+            )
         logger.critical(
             "Could not find a version that satisfies the requirement %s "
             "(from versions: %s)",
