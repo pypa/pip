@@ -19,6 +19,7 @@ from pip._internal.req.constructors import (
     install_req_from_line,
 )
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.misc import normalize_version_info
 
 from .base import Candidate, CandidateVersion, Requirement, format_name
@@ -268,19 +269,58 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
             link = cache_entry.link
         ireq = make_install_req_from_link(link, template)
         assert ireq.link == link
-        if ireq.link.is_wheel and not ireq.link.is_file:
+        if ireq.link.is_wheel:
             wheel = Wheel(ireq.link.filename)
             wheel_name = canonicalize_name(wheel.name)
-            assert name == wheel_name, f"{name!r} != {wheel_name!r} for wheel"
+
+            # Validate the name
+            if not ireq.link.is_file:
+                assert name == wheel_name, f"{name!r} != {wheel_name!r} for wheel"
+            elif name != wheel_name:
+                deprecated(
+                    reason=(
+                        f"Got an name mismatch in wheel ({name} != {wheel_name}) "
+                        f"for {wheel.filename}, which is not permitted "
+                        "as per the wheel specification."
+                    ),
+                    replacement=None,
+                    gone_in="22.3",
+                )
+
             # Version may not be present for PEP 508 direct URLs
             if version is not None:
                 try:
                     wheel_version = Version(wheel.version)
                 except InvalidVersion:
-                    raise BadVersionInWheelError(name=wheel.name, version=wheel.version)
-                assert version == wheel_version, "{!r} != {!r} for wheel {}".format(
-                    version, wheel_version, name
-                )
+                    if not ireq.link.is_file:
+                        raise BadVersionInWheelError(
+                            name=wheel.name, version=wheel.version
+                        )
+                    else:
+                        deprecated(
+                            reason=(
+                                f"Got an invalid version in wheel ({wheel.version}) "
+                                f"for {wheel.filename}, which is not permitted in "
+                                "wheels (see PEP 440 for version specification)."
+                            ),
+                            replacement=None,
+                            gone_in="22.3",
+                        )
+
+                if not ireq.link.is_file:
+                    assert version == wheel_version, "{!r} != {!r} for wheel {}".format(
+                        version, wheel_version, name
+                    )
+                elif version != wheel_version:
+                    deprecated(
+                        reason=(
+                            "Got an version mismatch in wheel "
+                            f"({version} != {wheel_version}) for {wheel.filename}, "
+                            "which is not permitted as per the wheel specification."
+                        ),
+                        replacement=None,
+                        gone_in="22.3",
+                    )
 
         if (
             cache_entry is not None

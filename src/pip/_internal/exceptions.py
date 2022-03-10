@@ -220,7 +220,7 @@ class BadVersionInWheelError(DiagnosticPipError):
 
     def __init__(self, *, name: str, version: str) -> None:
         super().__init__(
-            message=f"Got invalid version {escape(version)} for wheel",
+            message=f"Got an invalid version {escape(version)} for wheel",
             context=(
                 f"wheel: {escape(name)}\n"
                 "The version provided is not a valid Python package version."
