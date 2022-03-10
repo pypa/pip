@@ -762,3 +762,23 @@ def test_wheel_with_unknown_subdir_in_data_dir_has_reasonable_error(
 
     result = script.pip("install", "--no-index", str(wheel_path), expect_error=True)
     assert "simple-0.1.0.data/unknown/hello.txt" in result.stderr
+
+
+def test_wheel_with_invalid_version_has_reasonable_error(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
+    make_wheel(
+        name="futurewheel",
+        version="0.3.0.f038176.11",
+    ).save_to_dir(tmpdir)
+
+    result = script.pip(
+        "install",
+        "--no-index",
+        "--find-links",
+        str(tmpdir),
+        "futurewheel==0.3.0.f038176.11",
+        expect_error=True,
+    )
+    assert "Got an invalid version" in result.stderr
+    assert "PEP 440" in result.stderr
