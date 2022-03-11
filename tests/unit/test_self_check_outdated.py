@@ -131,8 +131,8 @@ def test_pip_self_version_check(
     monkeypatch.setattr(logger, "debug", mock.Mock())
 
     fake_state = mock.Mock(
-        state={"last_check": stored_time, "pypi_version": installed_ver},
-        save=mock.Mock(),
+        get=mock.Mock(return_value=None),
+        set=mock.Mock(),
     )
     monkeypatch.setattr(self_outdated_check, "SelfCheckState", lambda **kw: fake_state)
 
@@ -146,16 +146,16 @@ def test_pip_self_version_check(
     ):
         pip_self_version_check(PipSession(), _options())
 
-    # See that we saved the correct version
+    # See that we set the correct version
     if check_if_upgrade_required:
-        assert fake_state.save.call_args_list == [
+        assert fake_state.set.call_args_list == [
             mock.call(new_ver, datetime.datetime(1970, 1, 9, 10, 00, 00)),
         ]
     elif installed_ver:
         # Make sure no Exceptions
-        assert not cast(mock.Mock, logger.debug).call_args_list
-        # See that save was not called
-        assert fake_state.save.call_args_list == []
+        assert not cast(mock.Mock, logger.warning).call_args_list
+        # See that set was not called
+        assert fake_state.set.call_args_list == []
 
     # Ensure we warn the user or not
     if check_warn_logs:
@@ -188,8 +188,8 @@ def _get_statefile_path(cache_dir: str, key: str) -> str:
 
 def test_self_check_state_no_cache_dir() -> None:
     state = SelfCheckState(cache_dir="")
-    assert state.state == {}
-    assert state.statefile_path is None
+    assert state._state == {}
+    assert state._statefile_path is None
 
 
 def test_self_check_state_key_uses_sys_prefix(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -225,8 +225,8 @@ def test_self_check_state_reads_expected_statefile(
     monkeypatch.setattr(sys, "prefix", key)
     state = self_outdated_check.SelfCheckState(str(cache_dir))
 
-    assert state.state["last_check"] == last_check
-    assert state.state["pypi_version"] == pypi_version
+    assert state._state["last_check"] == last_check
+    assert state._state["pypi_version"] == pypi_version
 
 
 def test_self_check_state_writes_expected_statefile(
@@ -238,20 +238,20 @@ def test_self_check_state_writes_expected_statefile(
     statefile_path = _get_statefile_path(str(cache_dir), key)
 
     last_check = datetime.datetime.strptime(
-        "1970-01-02T11:00:00Z", self_outdated_check.SELFCHECK_DATE_FMT
+        "1970-01-02T11:00:00Z", self_outdated_check._DATE_FMT
     )
     pypi_version = "1.0"
 
     monkeypatch.setattr(sys, "prefix", key)
     state = self_outdated_check.SelfCheckState(str(cache_dir))
 
-    state.save(pypi_version, last_check)
+    state.set(pypi_version, last_check)
     with open(statefile_path) as f:
         saved = json.load(f)
 
     expected = {
         "key": key,
-        "last_check": last_check.strftime(self_outdated_check.SELFCHECK_DATE_FMT),
+        "last_check": last_check.strftime(self_outdated_check._DATE_FMT),
         "pypi_version": pypi_version,
     }
     assert expected == saved
