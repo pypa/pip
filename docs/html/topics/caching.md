@@ -50,6 +50,43 @@ pip now caches wheels when building from an immutable Git reference
 (i.e. a commit hash).
 ```
 
+## Where is the cache stored
+
+```{caution}
+The exact filesystem structure of pip's cache's contents is considered to be
+an implementation detail and may change between any two versions of pip.
+```
+
+### `pip cache dir`
+
+```{versionadded} 20.1
+
+```
+
+You can use `pip cache dir` to get the cache directory that pip is currently configured to use.
+
+### Default paths
+
+````{tab} Unix
+```
+~/.cache/pip
+```
+
+pip will also respect `XDG_CACHE_HOME`.
+````
+
+````{tab} MacOS
+```
+~/Library/Caches/pip
+```
+````
+
+````{tab} Windows
+```
+%LocalAppData%\pip\Cache
+```
+````
+
 ## Avoiding caching
 
 pip tries to use its cache whenever possible, and it is designed do the right
