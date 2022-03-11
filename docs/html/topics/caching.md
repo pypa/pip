@@ -118,8 +118,23 @@ It is also a good idea to remove the offending cached wheel using the
 
 The {ref}`pip cache` command can be used to manage pip's cache.
 
-The exact filesystem structure of pip's cache is considered to be an
-implementation detail and may change between any two versions of pip.
+### General overview
+
+`pip cache info` provides an overview of the contents of pip's cache, such as the total size and location of various parts of it.
+
+### Removing a single package
+
+`pip cache remove setuptools` removes all wheel files related to setuptools from pip's cache.
+
+### Removing the cache
+
+`pip cache purge` will clear all wheel files from pip's cache.
+
+### Listing cached files
+
+`pip cache list` will list all wheel files from pip's cache.
+
+`pip cache list setuptools` will list all setuptools-related wheel files from pip's cache.
 
 ## Disabling caching
 
