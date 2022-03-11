@@ -21,7 +21,6 @@ from pip._vendor.rich.logging import RichHandler
 from pip._vendor.rich.segment import Segment
 from pip._vendor.rich.style import Style
 
-from pip._internal.exceptions import DiagnosticPipError
 from pip._internal.utils._log import VERBOSE, getLogger
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
@@ -154,12 +153,14 @@ class RichPipStreamHandler(RichHandler):
 
         # If we are given a diagnostic error to present, present it with indentation.
         assert isinstance(record.args, tuple)
-        if record.msg == "[present-diagnostic] %s" and len(record.args) == 1:
-            diagnostic_error = record.args[0]
-            assert isinstance(diagnostic_error, DiagnosticPipError)
+        if record.msg == "[present-rich] %s" and len(record.args) == 1:
+            rich_renderable = record.args[0]
+            assert isinstance(
+                rich_renderable, ConsoleRenderable
+            ), f"{rich_renderable} is not rich-console-renderable"
 
             renderable: ConsoleRenderable = IndentedRenderable(
-                diagnostic_error, indent=get_indentation()
+                rich_renderable, indent=get_indentation()
             )
         else:
             message = self.format(record)
