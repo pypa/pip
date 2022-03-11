@@ -197,11 +197,16 @@ def pip_self_version_check(session: PipSession, options: optparse.Values) -> Non
             state.set(remote_version_str, current_time)
 
         remote_version = parse_version(remote_version_str)
+        logger.debug("Remote version of pip: %s", remote_version)
+        logger.debug("Local version of pip:  %s", local_version)
+
+        pip_installed_by_pip = was_installed_by_pip("pip")
+        logger.debug("Was installed by pip:  %s", pip_installed_by_pip)
 
         local_version_is_older = (
             local_version < remote_version
             and local_version.base_version != remote_version.base_version
-            and was_installed_by_pip("pip")
+            and pip_installed_by_pip
         )
         if not local_version_is_older:
             return
