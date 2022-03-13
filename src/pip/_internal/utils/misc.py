@@ -557,8 +557,8 @@ def protect_pip_from_modification_on_windows(modifying_pip: bool) -> None:
     """
     pip_names = [
         "pip",
-        "pip{}".format(sys.version_info[0]),
-        "pip{}.{}".format(*sys.version_info[:2]),
+        f"pip{sys.version_info.major}",
+        f"pip{sys.version_info.major}.{sys.version_info.minor}",
     ]
 
     # See https://github.com/pypa/pip/issues/1299 for more discussion
