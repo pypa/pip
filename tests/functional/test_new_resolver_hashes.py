@@ -223,9 +223,11 @@ def test_new_resolver_hash_intersect_empty_from_constraint(
         expect_error=True,
     )
 
-    assert (
-        "THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS FILE."
-    ) in result.stderr, str(result)
+    message = (
+        "Hashes are required in --require-hashes mode, but they are missing "
+        "from some requirements."
+    )
+    assert message in result.stderr, str(result)
 
 
 @pytest.mark.parametrize("constrain_by_hash", [False, True])

@@ -305,9 +305,10 @@ class Factory:
 
             pinned = is_pinned(specifier)
 
-            assert template.req, "Candidates found on index must be PEP 508"
-            template.req.specifier = specifier
-            template.hash_options = hashes.allowed
+            if not template.is_pinned:
+                assert template.req, "Candidates found on index must be PEP 508"
+                template.req.specifier = specifier
+                template.hash_options = hashes.allowed
 
             # PackageFinder returns earlier versions first, so we reverse.
             for ican in reversed(icans):
