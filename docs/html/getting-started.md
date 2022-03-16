@@ -81,10 +81,8 @@ Successfully installed sampleproject
 
 ```{pip-cli}
 $ pip install --upgrade sampleproject
-Uninstalling sampleproject:
    [...]
-Proceed (y/n)? y
-Successfully uninstalled sampleproject
+Successfully installed sampleproject
 ```
 
 ### Uninstall a package
@@ -93,7 +91,7 @@ Successfully uninstalled sampleproject
 $ pip uninstall sampleproject
 Uninstalling sampleproject:
    [...]
-Proceed (y/n)? y
+Proceed (Y/n)? y
 Successfully uninstalled sampleproject
 ```
 
