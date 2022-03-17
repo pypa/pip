@@ -449,6 +449,8 @@ class PipSession(requests.Session):
     def request(self, method: str, url: str, *args: Any, **kwargs: Any) -> Response:
         # Allow setting a default timeout on a session
         kwargs.setdefault("timeout", self.timeout)
+        # Allow setting a default proxies on a session
+        kwargs.setdefault("proxies", self.proxies)
 
         # Dispatch the actual request
         return super().request(method, url, *args, **kwargs)

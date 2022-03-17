@@ -50,6 +50,43 @@ pip now caches wheels when building from an immutable Git reference
 (i.e. a commit hash).
 ```
 
+## Where is the cache stored
+
+```{caution}
+The exact filesystem structure of pip's cache's contents is considered to be
+an implementation detail and may change between any two versions of pip.
+```
+
+### `pip cache dir`
+
+```{versionadded} 20.1
+
+```
+
+You can use `pip cache dir` to get the cache directory that pip is currently configured to use.
+
+### Default paths
+
+````{tab} Unix
+```
+~/.cache/pip
+```
+
+pip will also respect `XDG_CACHE_HOME`.
+````
+
+````{tab} MacOS
+```
+~/Library/Caches/pip
+```
+````
+
+````{tab} Windows
+```
+%LocalAppData%\pip\Cache
+```
+````
+
 ## Avoiding caching
 
 pip tries to use its cache whenever possible, and it is designed do the right
@@ -81,8 +118,23 @@ It is also a good idea to remove the offending cached wheel using the
 
 The {ref}`pip cache` command can be used to manage pip's cache.
 
-The exact filesystem structure of pip's cache is considered to be an
-implementation detail and may change between any two versions of pip.
+### General overview
+
+`pip cache info` provides an overview of the contents of pip's cache, such as the total size and location of various parts of it.
+
+### Removing a single package
+
+`pip cache remove setuptools` removes all wheel files related to setuptools from pip's cache.
+
+### Removing the cache
+
+`pip cache purge` will clear all wheel files from pip's cache.
+
+### Listing cached files
+
+`pip cache list` will list all wheel files from pip's cache.
+
+`pip cache list setuptools` will list all setuptools-related wheel files from pip's cache.
 
 ## Disabling caching
 

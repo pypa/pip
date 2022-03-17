@@ -84,7 +84,7 @@ in many corporate environments requires an outbound HTTP proxy server.
 pip can be configured to connect through a proxy server in various ways:
 
 * using the ``--proxy`` command-line option to specify a proxy in the form
-  ``[user:passwd@]proxy.server:port``
+  ``scheme://[user:passwd@]proxy.server:port``
 * using ``proxy`` in a :ref:`config-file`
 * by setting the standard environment-variables ``http_proxy``, ``https_proxy``
   and ``no_proxy``.
