@@ -26,10 +26,8 @@ class WheelCommand(RequirementCommand):
     recompiling your software during every install. For more details, see the
     wheel docs: https://wheel.readthedocs.io/en/latest/
 
-    Requirements: setuptools>=0.8, and wheel.
-
-    'pip wheel' uses the bdist_wheel setuptools extension from the wheel
-    package to build individual wheels.
+    'pip wheel' uses the build system interface as described here:
+    https://pip.pypa.io/en/stable/reference/build-system/
 
     """
 
