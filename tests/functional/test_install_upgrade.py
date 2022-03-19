@@ -362,7 +362,7 @@ def test_upgrade_vcs_req_with_dist_found(script: PipTestEnvironment) -> None:
     # test path urls/git.
     req = "{url}#egg=pretend".format(
         url=(
-            "git+git://github.com/alex/pretend@e7f26ad7dbcb4a02a4995aade4"
+            "git+https://github.com/alex/pretend@e7f26ad7dbcb4a02a4995aade4"
             "743aad47656b27"
         ),
     )

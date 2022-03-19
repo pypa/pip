@@ -860,7 +860,7 @@ def test_install_using_install_option_and_editable(
     """
     folder = "script_folder"
     script.scratch_path.joinpath(folder).mkdir()
-    url = local_checkout("git+git://github.com/pypa/pip-test-package", tmpdir)
+    url = local_checkout("git+https://github.com/pypa/pip-test-package", tmpdir)
     result = script.pip(
         "install",
         "-e",
