@@ -403,7 +403,7 @@ def test_git_with_editable_where_egg_contains_dev_string(
         url_path,
         tmpdir,
         egg="django-devserver",
-        scheme="git",
+        scheme="https",
     )
     result = script.pip("install", "-e", local_url)
     result.assert_installed("django-devserver", with_files=[".git"])
@@ -422,7 +422,7 @@ def test_git_with_non_editable_where_egg_contains_dev_string(
         url_path,
         tmpdir,
         egg="django-devserver",
-        scheme="git",
+        scheme="https",
     )
     result = script.pip("install", local_url)
     devserver_folder = script.site_packages / "devserver"
