@@ -1,2 +1,2 @@
-The wheel command does now reference the build interface section instead od stating the legacy
+The wheel command does now reference the build interface section instead of stating the legacy
 setuptools behavior as the default.
