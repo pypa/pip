@@ -816,3 +816,23 @@ def test_location_related_install_option_fails(script: PipTestEnvironment) -> No
         expect_error=True,
     )
     assert "['--home'] from simple" in result.stderr
+
+
+def test_install_options_no_deps(script: PipTestEnvironment) -> None:
+    create_basic_wheel_for_package(script, "A", "0.1.0", depends=["B==0.1.0"])
+    create_basic_wheel_for_package(script, "B", "0.1.0")
+
+    requirements_txt = script.scratch_path / "requirements.txt"
+    requirements_txt.write_text("A --no-deps")
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--find-links",
+        script.scratch_path,
+        "-r",
+        requirements_txt,
+        "--only-binary=:all:",
+    )
+    script.assert_installed(A="0.1.0")
+    script.assert_not_installed("B")

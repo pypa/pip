@@ -255,6 +255,13 @@ class InstallRequirement:
             return True
 
     @property
+    def has_ignore_dependencies(self) -> bool:
+        if isinstance(self.comes_from, InstallRequirement):
+            return self.comes_from.ignore_dependencies
+        else:
+            return self.ignore_dependencies
+
+    @property
     def has_hash_options(self) -> bool:
         """Return whether any known-good hashes are specified as options.
 

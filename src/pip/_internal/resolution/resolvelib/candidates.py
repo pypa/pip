@@ -37,6 +37,16 @@ BaseCandidate = Union[
 REQUIRES_PYTHON_IDENTIFIER = cast(NormalizedName, "<Python from Requires-Python>")
 
 
+def has_ignore_dependencies(candidate: Candidate) -> bool:
+    ireq = candidate.get_install_requirement()
+    if ireq:
+        return ireq.has_ignore_dependencies
+    elif isinstance(candidate, AlreadyInstalledCandidate):
+        return candidate._ireq.has_ignore_dependencies
+    else:
+        return False
+
+
 def as_base_candidate(candidate: Candidate) -> Optional[BaseCandidate]:
     """The runtime version of BaseCandidate."""
     base_candidate_classes = (
