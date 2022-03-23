@@ -318,7 +318,7 @@ class Factory:
                     self._make_candidate_from_link,
                     link=ican.link,
                     extras=extras,
-                    template=template,
+                    template=install_req_from_link_and_ireq(ican.link, template),
                     name=name,
                     version=ican.version,
                 )
