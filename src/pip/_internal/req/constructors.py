@@ -383,7 +383,6 @@ def install_req_from_line(
     constraint: bool = False,
     line_source: Optional[str] = None,
     user_supplied: bool = False,
-    ignore_dependencies: bool = False,
 ) -> InstallRequirement:
     """Creates an InstallRequirement from a name, which might be a
     requirement, directory containing 'setup.py', filename, or URL.
@@ -403,9 +402,9 @@ def install_req_from_line(
         install_options=options.get("install_options", []) if options else [],
         global_options=options.get("global_options", []) if options else [],
         hash_options=options.get("hashes", {}) if options else {},
-        ignore_dependencies=options.get("ignore_dependencies", ignore_dependencies)
+        ignore_dependencies=options.get("ignore_dependencies", False)
         if options
-        else ignore_dependencies,
+        else False,
         constraint=constraint,
         extras=parts.extras,
         user_supplied=user_supplied,

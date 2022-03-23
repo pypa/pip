@@ -420,7 +420,6 @@ class RequirementCommand(IndexGroupCommand):
                 isolated=options.isolated_mode,
                 use_pep517=options.use_pep517,
                 user_supplied=True,
-                ignore_dependencies=options.ignore_dependencies,
             )
             requirements.append(req_to_add)
 
