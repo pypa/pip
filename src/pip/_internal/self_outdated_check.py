@@ -173,7 +173,7 @@ def pip_self_version_check(session: PipSession, options: optparse.Values) -> Non
         # it won't be done until possible through the standard library.
         # Do not be tempted to use the undocumented subprocess.list2cmdline.
         # It is considered an internal implementation detail for a reason.
-        pip_cmd = f"{sys.executable} -m pip"
+        pip_cmd = f'"{sys.executable}" -m pip'
         logger.warning(
             "You are using pip version %s; however, version %s is "
             "available.\nYou should consider upgrading via the "
