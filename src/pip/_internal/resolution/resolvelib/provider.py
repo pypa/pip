@@ -14,7 +14,7 @@ from typing import (
 from pip._vendor.resolvelib.providers import AbstractProvider
 
 from .base import Candidate, Constraint, Requirement
-from .candidates import REQUIRES_PYTHON_IDENTIFIER, has_ignore_dependencies
+from .candidates import REQUIRES_PYTHON_IDENTIFIER
 from .factory import Factory
 
 if TYPE_CHECKING:
@@ -233,9 +233,7 @@ class PipProvider(_ProviderBase):
         return requirement.is_satisfied_by(candidate)
 
     def get_dependencies(self, candidate: Candidate) -> Sequence[Requirement]:
-        with_requires = not (
-            self._ignore_dependencies or has_ignore_dependencies(candidate)
-        )
+        with_requires = not (self._ignore_dependencies or candidate.ignore_dependencies)
         return [r for r in candidate.iter_dependencies(with_requires) if r is not None]
 
     @staticmethod
