@@ -839,3 +839,15 @@ def test_install_options_no_deps(script: PipTestEnvironment) -> None:
     )
     script.assert_installed(A="0.1.0")
     script.assert_not_installed("B", "C")
+
+    # AlreadyInstalledCandidate should not install dependencies
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--find-links",
+        script.scratch_path,
+        "-r",
+        requirements_txt,
+        "--only-binary=:all:",
+    )
+    script.assert_not_installed("B", "C")
