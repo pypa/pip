@@ -141,7 +141,7 @@ class InstallRequirement:
         self.hash_options = hash_options if hash_options else {}
         self.ignore_dependencies = ignore_dependencies
         if isinstance(self.comes_from, InstallRequirement):
-            self.ignore_dependencies = self.comes_from.ignore_dependencies
+            self.ignore_dependencies |= self.comes_from.ignore_dependencies
         # Set to True after successful preparation of this requirement
         self.prepared = False
         # User supplied requirement are explicitly requested for installation
