@@ -35,6 +35,13 @@ class IndexCommand(IndexGroupCommand):
         self.cmd_opts.add_option(cmdoptions.pre())
         self.cmd_opts.add_option(cmdoptions.no_binary())
         self.cmd_opts.add_option(cmdoptions.only_binary())
+        self.cmd_opts.add_option(
+            "--latest",
+            dest="latest",
+            action="store_true",
+            default=False,
+            help="Print only the latest version of the given package.",
+        )
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
@@ -130,6 +137,11 @@ class IndexCommand(IndexGroupCommand):
                 raise DistributionNotFound(
                     "No matching distribution found for {}".format(query)
                 )
+
+            if options.latest:
+                # Print only the last version in the list.
+                write_output(str(max(versions)))
+                return
 
             formatted_versions = [str(ver) for ver in sorted(versions, reverse=True)]
             latest = formatted_versions[0]
