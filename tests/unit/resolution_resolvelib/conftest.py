@@ -13,7 +13,7 @@ from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.constructors import install_req_from_line
-from pip._internal.req.req_tracker import get_requirement_tracker
+from pip._internal.req.req_tracker import get_build_tracker
 from pip._internal.resolution.resolvelib.factory import Factory
 from pip._internal.resolution.resolvelib.provider import PipProvider
 from pip._internal.utils.temp_dir import TempDirectory, global_tempdir_manager
@@ -38,7 +38,7 @@ def preparer(finder: PackageFinder) -> Iterator[RequirementPreparer]:
 
     with global_tempdir_manager():
         with TempDirectory() as tmp:
-            with get_requirement_tracker() as tracker:
+            with get_build_tracker() as tracker:
                 preparer = RequirementCommand.make_requirement_preparer(
                     tmp,
                     options=o[0],

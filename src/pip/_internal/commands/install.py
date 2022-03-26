@@ -24,7 +24,7 @@ from pip._internal.models.format_control import FormatControl
 from pip._internal.operations.check import ConflictDetails, check_install_conflicts
 from pip._internal.req import install_given_reqs
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.req.req_tracker import get_requirement_tracker
+from pip._internal.req.req_tracker import get_build_tracker
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.distutils_args import parse_distutils_args
 from pip._internal.utils.filesystem import test_writable_dir
@@ -293,7 +293,7 @@ class InstallCommand(RequirementCommand):
         )
         wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
-        req_tracker = self.enter_context(get_requirement_tracker())
+        req_tracker = self.enter_context(get_build_tracker())
 
         directory = TempDirectory(
             delete=not options.no_clean,

@@ -10,7 +10,7 @@ from pip._internal.cli.req_command import RequirementCommand, with_cleanup
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.exceptions import CommandError
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.req.req_tracker import get_requirement_tracker
+from pip._internal.req.req_tracker import get_build_tracker
 from pip._internal.utils.misc import ensure_dir, normalize_path
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.wheel_builder import build, should_build_for_wheel_command
@@ -108,7 +108,7 @@ class WheelCommand(RequirementCommand):
         options.wheel_dir = normalize_path(options.wheel_dir)
         ensure_dir(options.wheel_dir)
 
-        req_tracker = self.enter_context(get_requirement_tracker())
+        req_tracker = self.enter_context(get_build_tracker())
 
         directory = TempDirectory(
             delete=not options.no_clean,

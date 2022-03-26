@@ -39,7 +39,7 @@ def update_env_context_manager(**changes: str) -> Iterator[None]:
 
 
 @contextlib.contextmanager
-def get_requirement_tracker() -> Iterator["BuildTracker"]:
+def get_build_tracker() -> Iterator["BuildTracker"]:
     root = os.environ.get("PIP_REQ_TRACKER")
     with contextlib.ExitStack() as ctx:
         if root is None:

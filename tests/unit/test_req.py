@@ -39,7 +39,7 @@ from pip._internal.req.req_file import (
     get_line_parser,
     handle_requirement_line,
 )
-from pip._internal.req.req_tracker import get_requirement_tracker
+from pip._internal.req.req_tracker import get_build_tracker
 from pip._internal.resolution.legacy.resolver import Resolver
 from pip._internal.utils.urls import path_to_url
 from tests.lib import TestData, make_test_finder, requirements_file
@@ -85,7 +85,7 @@ class TestRequirementSet:
         )
         session = PipSession()
 
-        with get_requirement_tracker() as tracker:
+        with get_build_tracker() as tracker:
             preparer = RequirementPreparer(
                 build_dir=os.path.join(self.tempdir, "build"),
                 src_dir=os.path.join(self.tempdir, "src"),
