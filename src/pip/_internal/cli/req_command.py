@@ -31,7 +31,7 @@ from pip._internal.req.constructors import (
 )
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.req.req_tracker import RequirementTracker
+from pip._internal.req.req_tracker import BuildTracker
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.self_outdated_check import pip_self_version_check
 from pip._internal.utils.deprecation import deprecated
@@ -257,7 +257,7 @@ class RequirementCommand(IndexGroupCommand):
         cls,
         temp_build_dir: TempDirectory,
         options: Values,
-        req_tracker: RequirementTracker,
+        req_tracker: BuildTracker,
         session: PipSession,
         finder: PackageFinder,
         use_user_site: bool,

@@ -34,7 +34,7 @@ from pip._internal.network.lazy_wheel import (
 )
 from pip._internal.network.session import PipSession
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.req.req_tracker import RequirementTracker
+from pip._internal.req.req_tracker import BuildTracker
 from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.logging import indent_log
@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 
 def _get_prepared_distribution(
     req: InstallRequirement,
-    req_tracker: RequirementTracker,
+    req_tracker: BuildTracker,
     finder: PackageFinder,
     build_isolation: bool,
 ) -> BaseDistribution:
@@ -261,7 +261,7 @@ class RequirementPreparer:
         download_dir: Optional[str],
         src_dir: str,
         build_isolation: bool,
-        req_tracker: RequirementTracker,
+        req_tracker: BuildTracker,
         session: PipSession,
         progress_bar: str,
         finder: PackageFinder,
