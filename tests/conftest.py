@@ -271,7 +271,7 @@ def isolate(tmpdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PIP_DISABLE_PIP_VERSION_CHECK", "true")
 
     # Make sure tests don't share a requirements tracker.
-    monkeypatch.delenv("PIP_REQ_TRACKER", False)
+    monkeypatch.delenv("PIP_BUILD_TRACKER", False)
 
     # FIXME: Windows...
     os.makedirs(os.path.join(home_dir, ".config", "git"))
