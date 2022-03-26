@@ -33,8 +33,8 @@ from pip._internal.network.lazy_wheel import (
     dist_from_wheel_url,
 )
 from pip._internal.network.session import PipSession
+from pip._internal.operations.build.build_tracker import BuildTracker
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.logging import indent_log
@@ -48,13 +48,13 @@ logger = logging.getLogger(__name__)
 
 def _get_prepared_distribution(
     req: InstallRequirement,
-    req_tracker: RequirementTracker,
+    build_tracker: BuildTracker,
     finder: PackageFinder,
     build_isolation: bool,
 ) -> BaseDistribution:
     """Prepare a distribution for installation."""
     abstract_dist = make_distribution_for_install_requirement(req)
-    with req_tracker.track(req):
+    with build_tracker.track(req):
         abstract_dist.prepare_distribution_metadata(finder, build_isolation)
     return abstract_dist.get_metadata_distribution()
 
@@ -261,7 +261,7 @@ class RequirementPreparer:
         download_dir: Optional[str],
         src_dir: str,
         build_isolation: bool,
-        req_tracker: RequirementTracker,
+        build_tracker: BuildTracker,
         session: PipSession,
         progress_bar: str,
         finder: PackageFinder,
@@ -275,7 +275,7 @@ class RequirementPreparer:
 
         self.src_dir = src_dir
         self.build_dir = build_dir
-        self.req_tracker = req_tracker
+        self.build_tracker = build_tracker
         self._session = session
         self._download = Downloader(session, progress_bar)
         self._batch_download = BatchDownloader(session, progress_bar)
@@ -555,7 +555,7 @@ class RequirementPreparer:
 
         dist = _get_prepared_distribution(
             req,
-            self.req_tracker,
+            self.build_tracker,
             self.finder,
             self.build_isolation,
         )
@@ -608,7 +608,7 @@ class RequirementPreparer:
 
             dist = _get_prepared_distribution(
                 req,
-                self.req_tracker,
+                self.build_tracker,
                 self.finder,
                 self.build_isolation,
             )

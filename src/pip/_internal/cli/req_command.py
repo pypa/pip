@@ -22,6 +22,7 @@ from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
+from pip._internal.operations.build.build_tracker import BuildTracker
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.constructors import (
     install_req_from_editable,
@@ -31,7 +32,6 @@ from pip._internal.req.constructors import (
 )
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.self_outdated_check import pip_self_version_check
 from pip._internal.utils.deprecation import deprecated
@@ -257,7 +257,7 @@ class RequirementCommand(IndexGroupCommand):
         cls,
         temp_build_dir: TempDirectory,
         options: Values,
-        req_tracker: RequirementTracker,
+        build_tracker: BuildTracker,
         session: PipSession,
         finder: PackageFinder,
         use_user_site: bool,
@@ -314,7 +314,7 @@ class RequirementCommand(IndexGroupCommand):
             src_dir=options.src_dir,
             download_dir=download_dir,
             build_isolation=options.build_isolation,
-            req_tracker=req_tracker,
+            build_tracker=build_tracker,
             session=session,
             progress_bar=options.progress_bar,
             finder=finder,
