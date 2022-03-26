@@ -95,7 +95,7 @@ class DownloadCommand(RequirementCommand):
             ignore_requires_python=options.ignore_requires_python,
         )
 
-        req_tracker = self.enter_context(get_build_tracker())
+        build_tracker = self.enter_context(get_build_tracker())
 
         directory = TempDirectory(
             delete=not options.no_clean,
@@ -108,7 +108,7 @@ class DownloadCommand(RequirementCommand):
         preparer = self.make_requirement_preparer(
             temp_build_dir=directory,
             options=options,
-            req_tracker=req_tracker,
+            build_tracker=build_tracker,
             session=session,
             finder=finder,
             download_dir=options.download_dir,

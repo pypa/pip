@@ -293,7 +293,7 @@ class InstallCommand(RequirementCommand):
         )
         wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
-        req_tracker = self.enter_context(get_build_tracker())
+        build_tracker = self.enter_context(get_build_tracker())
 
         directory = TempDirectory(
             delete=not options.no_clean,
@@ -315,7 +315,7 @@ class InstallCommand(RequirementCommand):
             preparer = self.make_requirement_preparer(
                 temp_build_dir=directory,
                 options=options,
-                req_tracker=req_tracker,
+                build_tracker=build_tracker,
                 session=session,
                 finder=finder,
                 use_user_site=options.use_user_site,

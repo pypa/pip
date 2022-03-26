@@ -42,7 +42,7 @@ def preparer(finder: PackageFinder) -> Iterator[RequirementPreparer]:
                 preparer = RequirementCommand.make_requirement_preparer(
                     tmp,
                     options=o[0],
-                    req_tracker=tracker,
+                    build_tracker=tracker,
                     session=session,
                     finder=finder,
                     use_user_site=False,
