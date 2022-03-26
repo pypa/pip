@@ -33,8 +33,8 @@ from pip._internal.network.lazy_wheel import (
     dist_from_wheel_url,
 )
 from pip._internal.network.session import PipSession
+from pip._internal.operations.build.build_tracker import BuildTracker
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.req.req_tracker import BuildTracker
 from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.logging import indent_log
