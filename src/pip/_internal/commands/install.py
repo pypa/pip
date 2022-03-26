@@ -222,12 +222,12 @@ class InstallCommand(RequirementCommand):
             default=True,
             help="Do not warn about broken dependencies",
         )
-
         self.cmd_opts.add_option(cmdoptions.no_binary())
         self.cmd_opts.add_option(cmdoptions.only_binary())
         self.cmd_opts.add_option(cmdoptions.prefer_binary())
         self.cmd_opts.add_option(cmdoptions.require_hashes())
         self.cmd_opts.add_option(cmdoptions.progress_bar())
+        self.cmd_opts.add_option(cmdoptions.warn_about_root_user())
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
@@ -464,8 +464,8 @@ class InstallCommand(RequirementCommand):
             self._handle_target_dir(
                 options.target_dir, target_temp_dir, options.upgrade
             )
-
-        warn_if_run_as_root()
+        if options.warn_about_root_user:
+            warn_if_run_as_root()
         return SUCCESS
 
     def _handle_target_dir(
