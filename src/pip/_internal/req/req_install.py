@@ -140,8 +140,11 @@ class InstallRequirement:
         self.global_options = global_options if global_options else []
         self.hash_options = hash_options if hash_options else {}
         self.ignore_dependencies = ignore_dependencies
-        if isinstance(self.comes_from, InstallRequirement):
-            self.ignore_dependencies |= self.comes_from.ignore_dependencies
+        if (
+            isinstance(comes_from, InstallRequirement)
+            and comes_from.ignore_dependencies
+        ):
+            self.ignore_dependencies = True
         # Set to True after successful preparation of this requirement
         self.prepared = False
         # User supplied requirement are explicitly requested for installation
