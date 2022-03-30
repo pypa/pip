@@ -779,8 +779,7 @@ def _handle_no_use_pep517(
     # If user doesn't wish to use pep517, we check if setuptools is installed
     # and raise error if it is not.
     if not importlib.util.find_spec("setuptools"):
-        msg = """It is not possible to use --no-use-pep517 without setuptools
-        installed."""
+        msg = "It is not possible to use --no-use-pep517 without setuptools installed."
         raise_option_error(parser, option=option, msg=msg)
 
     # Otherwise, --no-use-pep517 was passed via the command-line.
