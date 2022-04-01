@@ -2,7 +2,6 @@ import distutils
 import glob
 import os
 import re
-import shutil
 import ssl
 import sys
 import textwrap
@@ -30,7 +29,6 @@ from tests.lib import (
     pyversion,
     requirements_file,
 )
-from tests.lib.filesystem import make_socket_file
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 from tests.lib.server import (
@@ -649,26 +647,6 @@ def test_hashed_install_failure_later_flag(
 
 
 @pytest.mark.usefixtures("with_wheel")
-def test_install_from_local_directory_with_symlinks_to_directories(
-    script: PipTestEnvironment, data: TestData
-) -> None:
-    """
-    Test installing from a local directory containing symlinks to directories.
-    """
-    to_install = data.packages.joinpath("symlinks")
-    result = script.pip(
-        "install",
-        "--use-deprecated=out-of-tree-build",
-        to_install,
-        allow_stderr_warning=True,  # TODO: set to False when removing out-of-tree-build
-    )
-    pkg_folder = script.site_packages / "symlinks"
-    dist_info_folder = script.site_packages / "symlinks-0.1.dev0.dist-info"
-    result.did_create(pkg_folder)
-    result.did_create(dist_info_folder)
-
-
-@pytest.mark.usefixtures("with_wheel")
 def test_install_from_local_directory_with_in_tree_build(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -686,38 +664,6 @@ def test_install_from_local_directory_with_in_tree_build(
     result.did_create(fspkg_folder)
     result.did_create(dist_info_folder)
     assert in_tree_build_dir.exists()
-
-
-@pytest.mark.skipif("sys.platform == 'win32'")
-@pytest.mark.usefixtures("with_wheel")
-def test_install_from_local_directory_with_socket_file(
-    script: PipTestEnvironment, data: TestData, tmpdir: Path
-) -> None:
-    """
-    Test installing from a local directory containing a socket file.
-    """
-    # TODO: remove this test when removing out-of-tree-build support,
-    # it is only meant to test the copy of socket files
-    dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
-    package_folder = script.site_packages / "fspkg"
-    to_copy = data.packages.joinpath("FSPkg")
-    to_install = tmpdir.joinpath("src")
-
-    shutil.copytree(to_copy, to_install)
-    # Socket file, should be ignored.
-    socket_file_path = os.path.join(to_install, "example")
-    make_socket_file(socket_file_path)
-
-    result = script.pip(
-        "install",
-        "--use-deprecated=out-of-tree-build",
-        "--verbose",
-        to_install,
-        allow_stderr_warning=True,  # because of the out-of-tree deprecation warning
-    )
-    result.did_create(package_folder)
-    result.did_create(dist_info_folder)
-    assert str(socket_file_path) in result.stderr
 
 
 def test_install_from_local_directory_with_no_setup_py(

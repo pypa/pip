@@ -51,15 +51,17 @@ There are two advantages over using `setup.py develop` directly:
 ## Build artifacts
 
 ```{versionchanged} 21.3
-The project being installed is no longer copied to a temporary directory before invoking the build system.
+The project being installed is no longer copied to a temporary directory before invoking the build system, by default. A `--use-deprecated=out-of-tree-build` option is provided as a temporary fallback to aid user migrations.
 ```
 
-This behaviour change has several consequences:
+```{versionchanged} 22.1
+The `--use-deprecated=out-of-tree-build` option has been removed.
+```
+
+When provided with a project that's in a local directory, pip will invoke the build system "in place". This behaviour has several consequences:
 
 - Local project builds will now be significantly faster, for certain kinds of projects and on systems with slow I/O (eg: via network attached storage or overly aggressive antivirus software).
 - Certain build backends (eg: `setuptools`) will litter the project directory with secondary build artifacts (eg: `.egg-info` directories).
 - Certain build backends (eg: `setuptools`) may not be able to perform with parallel builds anymore, since they previously relied on the fact that pip invoked them in a separate directory for each build.
-
-A `--use-deprecated=out-of-tree-build` option is available, until pip 22.1, as a mechanism to aid users with transitioning to the newer model of in-tree-builds.
 
 [^1]: Specifically, the current machine's filesystem.
