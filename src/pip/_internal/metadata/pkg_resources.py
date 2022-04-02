@@ -4,7 +4,7 @@ import logging
 import os
 import pathlib
 import zipfile
-from typing import Collection, Iterable, Iterator, List, Mapping, NamedTuple, Optional
+from typing import Collection, Generator, Iterable, List, Mapping, NamedTuple, Optional
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.requirements import Requirement
@@ -149,7 +149,7 @@ class Distribution(BaseDistribution):
     def is_file(self, path: InfoPath) -> bool:
         return self._dist.has_metadata(str(path))
 
-    def iterdir(self, path: InfoPath) -> Iterator[pathlib.PurePosixPath]:
+    def iterdir(self, path: InfoPath) -> Generator[pathlib.PurePosixPath, None, None]:
         name = str(path)
         if not self._dist.has_metadata(name):
             raise FileNotFoundError(name)
@@ -251,6 +251,6 @@ class Environment(BaseEnvironment):
             return None
         return self._search_distribution(name)
 
-    def _iter_distributions(self) -> Iterator[BaseDistribution]:
+    def _iter_distributions(self) -> Generator[BaseDistribution, None, None]:
         for dist in self._ws:
             yield Distribution(dist)

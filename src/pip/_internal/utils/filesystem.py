@@ -7,7 +7,7 @@ import stat
 import sys
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
-from typing import Any, BinaryIO, Iterator, List, Union, cast
+from typing import Any, BinaryIO, Generator, List, Union, cast
 
 from pip._vendor.tenacity import retry, stop_after_delay, wait_fixed
 
@@ -70,7 +70,7 @@ def is_socket(path: str) -> bool:
 
 
 @contextmanager
-def adjacent_tmp_file(path: str, **kwargs: Any) -> Iterator[BinaryIO]:
+def adjacent_tmp_file(path: str, **kwargs: Any) -> Generator[BinaryIO, None, None]:
     """Return a file-like object pointing to a tmp file next to path.
 
     The file is created securely and is ensured to be written to disk

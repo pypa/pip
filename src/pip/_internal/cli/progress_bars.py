@@ -1,5 +1,5 @@
 import functools
-from typing import Callable, Iterator, Optional, Tuple
+from typing import Callable, Generator, Iterable, Iterator, Optional, Tuple
 
 from pip._vendor.rich.progress import (
     BarColumn,
@@ -16,15 +16,15 @@ from pip._vendor.rich.progress import (
 
 from pip._internal.utils.logging import get_indentation
 
-DownloadProgressRenderer = Callable[[Iterator[bytes]], Iterator[bytes]]
+DownloadProgressRenderer = Callable[[Iterable[bytes]], Iterator[bytes]]
 
 
 def _rich_progress_bar(
-    iterable: Iterator[bytes],
+    iterable: Iterable[bytes],
     *,
     bar_type: str,
     size: int,
-) -> Iterator[bytes]:
+) -> Generator[bytes, None, None]:
     assert bar_type == "on", "This should only be used in the default mode."
 
     if not size:

@@ -4,7 +4,7 @@ import os
 import pathlib
 import sys
 import sysconfig
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.compat import WINDOWS
@@ -169,7 +169,7 @@ def _looks_like_msys2_mingw_scheme() -> bool:
     )
 
 
-def _fix_abiflags(parts: Tuple[str]) -> Iterator[str]:
+def _fix_abiflags(parts: Tuple[str]) -> Generator[str, None, None]:
     ldversion = sysconfig.get_config_var("LDVERSION")
     abiflags = getattr(sys, "abiflags", None)
 

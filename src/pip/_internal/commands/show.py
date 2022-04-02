@@ -1,6 +1,6 @@
 import logging
 from optparse import Values
-from typing import Iterator, List, NamedTuple, Optional
+from typing import Generator, Iterable, Iterator, List, NamedTuple, Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -67,7 +67,7 @@ class _PackageInfo(NamedTuple):
     files: Optional[List[str]]
 
 
-def search_packages_info(query: List[str]) -> Iterator[_PackageInfo]:
+def search_packages_info(query: List[str]) -> Generator[_PackageInfo, None, None]:
     """
     Gather details from installed distributions. Print distribution name,
     version, location, and installed files. Installed files requires a
@@ -135,7 +135,7 @@ def search_packages_info(query: List[str]) -> Iterator[_PackageInfo]:
 
 
 def print_results(
-    distributions: Iterator[_PackageInfo],
+    distributions: Iterable[_PackageInfo],
     list_files: bool,
     verbose: bool,
 ) -> bool:
