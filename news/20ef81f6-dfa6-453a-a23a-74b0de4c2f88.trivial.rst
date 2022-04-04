@@ -1,0 +1,1 @@
+Replace ``Iterator[T]`` with ``Generator[T,None, None]``.
