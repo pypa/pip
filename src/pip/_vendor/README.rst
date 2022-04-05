@@ -16,7 +16,7 @@ Vendoring Policy
   pure Python.
 * Any modifications made to libraries **MUST** be noted in
   ``pip/_vendor/README.rst`` and their corresponding patches **MUST** be
-  included ``tools/automation/vendoring/patches``.
+  included ``tools/vendoring/patches``.
 * Vendored libraries should have corresponding ``vendored()`` entries in
   ``pip/_vendor/__init__.py``.
 
@@ -100,7 +100,8 @@ Modifications
 
 * ``setuptools`` is completely stripped to only keep ``pkg_resources``.
 * ``pkg_resources`` has been modified to import its dependencies from
-  ``pip._vendor``.
+  ``pip._vendor``, and to use the vendored copy of ``platformdirs``
+  rather than ``appdirs``.
 * ``packaging`` has been modified to import its dependencies from
   ``pip._vendor``.
 * ``html5lib`` has been modified to import six from ``pip._vendor``, to prefer
@@ -111,14 +112,14 @@ Modifications
 * ``requests`` has been modified to import its other dependencies from
   ``pip._vendor`` and to *not* load ``simplejson`` (all platforms) and
   ``pyopenssl`` (Windows).
-
+* ``platformdirs`` has been modified to import its submodules from ``pip._vendor.platformdirs``.
 
 Automatic Vendoring
 ===================
 
-Vendoring is automated via the ``vendoring`` tool from the content of
+Vendoring is automated via the `vendoring <https://pypi.org/project/vendoring/>`_ tool from the content of
 ``pip/_vendor/vendor.txt`` and the different patches in
-``tools/automation/vendoring/patches``.
+``tools/vendoring/patches``.
 Launch it via ``vendoring sync . -v`` (requires ``vendoring>=0.2.2``).
 
 

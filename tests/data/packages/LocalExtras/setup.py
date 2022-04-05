@@ -11,15 +11,15 @@ def path_to_url(path):
     path = os.path.normpath(os.path.abspath(path))
     drive, path = os.path.splitdrive(path)
     filepath = path.split(os.path.sep)
-    url = '/'.join(filepath)
+    url = "/".join(filepath)
     if drive:
-        return 'file:///' + drive + url
-    return 'file://' + url
+        return "file:///" + drive + url
+    return "file://" + url
 
 
 setup(
-    name='LocalExtras',
-    version='0.0.1',
+    name="LocalExtras",
+    version="0.0.1",
     packages=find_packages(),
-    extras_require={'bar': ['simple'], 'baz': ['singlemodule']}
+    extras_require={"bar": ["simple"], "baz": ["singlemodule"]},
 )

@@ -4,12 +4,14 @@ Contains interface (MultiDomainBasicAuth) and associated glue code for
 providing credentials in the context of network requests.
 """
 
-import logging
 import urllib.parse
+from typing import Any, Dict, List, Optional, Tuple
 
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
+from pip._vendor.requests.models import Request, Response
 from pip._vendor.requests.utils import get_netrc_auth
 
+from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import (
     ask,
     ask_input,
@@ -17,32 +19,25 @@ from pip._internal.utils.misc import (
     remove_auth_from_url,
     split_auth_netloc_from_url,
 )
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.vcs.versioncontrol import AuthInfo
 
-if MYPY_CHECK_RUNNING:
-    from typing import Any, Dict, List, Optional, Tuple
+logger = getLogger(__name__)
 
-    from pip._vendor.requests.models import Request, Response
-
-    from pip._internal.vcs.versioncontrol import AuthInfo
-
-    Credentials = Tuple[str, str, str]
-
-logger = logging.getLogger(__name__)
+Credentials = Tuple[str, str, str]
 
 try:
     import keyring
 except ImportError:
-    keyring = None
+    keyring = None  # type: ignore[assignment]
 except Exception as exc:
     logger.warning(
-        "Keyring is skipped due to an exception: %s", str(exc),
+        "Keyring is skipped due to an exception: %s",
+        str(exc),
     )
-    keyring = None
+    keyring = None  # type: ignore[assignment]
 
 
-def get_keyring_auth(url, username):
-    # type: (str, str) -> Optional[AuthInfo]
+def get_keyring_auth(url: Optional[str], username: Optional[str]) -> Optional[AuthInfo]:
     """Return the tuple auth for a given url from keyring."""
     global keyring
     if not url or not keyring:
@@ -68,28 +63,28 @@ def get_keyring_auth(url, username):
 
     except Exception as exc:
         logger.warning(
-            "Keyring is skipped due to an exception: %s", str(exc),
+            "Keyring is skipped due to an exception: %s",
+            str(exc),
         )
-        keyring = None
+        keyring = None  # type: ignore[assignment]
     return None
 
 
 class MultiDomainBasicAuth(AuthBase):
-
-    def __init__(self, prompting=True, index_urls=None):
-        # type: (bool, Optional[List[str]]) -> None
+    def __init__(
+        self, prompting: bool = True, index_urls: Optional[List[str]] = None
+    ) -> None:
         self.prompting = prompting
         self.index_urls = index_urls
-        self.passwords = {}  # type: Dict[str, AuthInfo]
+        self.passwords: Dict[str, AuthInfo] = {}
         # When the user is prompted to enter credentials and keyring is
         # available, we will offer to save them. If the user accepts,
         # this value is set to the credentials they entered. After the
         # request authenticates, the caller should call
         # ``save_credentials`` to save these.
-        self._credentials_to_save = None  # type: Optional[Credentials]
+        self._credentials_to_save: Optional[Credentials] = None
 
-    def _get_index_url(self, url):
-        # type: (str) -> Optional[str]
+    def _get_index_url(self, url: str) -> Optional[str]:
         """Return the original index URL matching the requested URL.
 
         Cached or dynamically generated credentials may work against
@@ -111,9 +106,12 @@ class MultiDomainBasicAuth(AuthBase):
                 return u
         return None
 
-    def _get_new_credentials(self, original_url, allow_netrc=True,
-                             allow_keyring=True):
-        # type: (str, bool, bool) -> AuthInfo
+    def _get_new_credentials(
+        self,
+        original_url: str,
+        allow_netrc: bool = True,
+        allow_keyring: bool = False,
+    ) -> AuthInfo:
         """Find and return credentials for the specified URL."""
         # Split the credentials and netloc from the url.
         url, netloc, url_user_password = split_auth_netloc_from_url(
@@ -152,18 +150,21 @@ class MultiDomainBasicAuth(AuthBase):
         # If we don't have a password and keyring is available, use it.
         if allow_keyring:
             # The index url is more specific than the netloc, so try it first
+            # fmt: off
             kr_auth = (
                 get_keyring_auth(index_url, username) or
                 get_keyring_auth(netloc, username)
             )
+            # fmt: on
             if kr_auth:
                 logger.debug("Found credentials in keyring for %s", netloc)
                 return kr_auth
 
         return username, password
 
-    def _get_url_and_credentials(self, original_url):
-        # type: (str) -> Tuple[str, Optional[str], Optional[str]]
+    def _get_url_and_credentials(
+        self, original_url: str
+    ) -> Tuple[str, Optional[str], Optional[str]]:
         """Return the credentials to use for the provided URL.
 
         If allowed, netrc and keyring may be used to obtain the
@@ -175,13 +176,19 @@ class MultiDomainBasicAuth(AuthBase):
         """
         url, netloc, _ = split_auth_netloc_from_url(original_url)
 
-        # Use any stored credentials that we have for this netloc
-        username, password = self.passwords.get(netloc, (None, None))
+        # Try to get credentials from original url
+        username, password = self._get_new_credentials(original_url)
 
-        if username is None and password is None:
-            # No stored credentials. Acquire new credentials without prompting
-            # the user. (e.g. from netrc, keyring, or the URL itself)
-            username, password = self._get_new_credentials(original_url)
+        # If credentials not found, use any stored credentials for this netloc.
+        # Do this if either the username or the password is missing.
+        # This accounts for the situation in which the user has specified
+        # the username in the index url, but the password comes from keyring.
+        if (username is None or password is None) and netloc in self.passwords:
+            un, pw = self.passwords[netloc]
+            # It is possible that the cached credentials are for a different username,
+            # in which case the cache should be ignored.
+            if username is None or username == un:
+                username, password = un, pw
 
         if username is not None or password is not None:
             # Convert the username and password if they're None, so that
@@ -196,15 +203,14 @@ class MultiDomainBasicAuth(AuthBase):
 
         assert (
             # Credentials were found
-            (username is not None and password is not None) or
+            (username is not None and password is not None)
             # Credentials were not found
-            (username is None and password is None)
+            or (username is None and password is None)
         ), f"Could not load credentials from url: {original_url}"
 
         return url, username, password
 
-    def __call__(self, req):
-        # type: (Request) -> Request
+    def __call__(self, req: Request) -> Request:
         # Get credentials for this request
         url, username, password = self._get_url_and_credentials(req.url)
 
@@ -221,8 +227,9 @@ class MultiDomainBasicAuth(AuthBase):
         return req
 
     # Factored out to allow for easy patching in tests
-    def _prompt_for_password(self, netloc):
-        # type: (str) -> Tuple[Optional[str], Optional[str], bool]
+    def _prompt_for_password(
+        self, netloc: str
+    ) -> Tuple[Optional[str], Optional[str], bool]:
         username = ask_input(f"User for {netloc}: ")
         if not username:
             return None, None, False
@@ -233,14 +240,12 @@ class MultiDomainBasicAuth(AuthBase):
         return username, password, True
 
     # Factored out to allow for easy patching in tests
-    def _should_save_password_to_keyring(self):
-        # type: () -> bool
+    def _should_save_password_to_keyring(self) -> bool:
         if not keyring:
             return False
         return ask("Save credentials to keyring [y/N]: ", ["y", "n"]) == "y"
 
-    def handle_401(self, resp, **kwargs):
-        # type: (Response, **Any) -> Response
+    def handle_401(self, resp: Response, **kwargs: Any) -> Response:
         # We only care about 401 responses, anything else we want to just
         #   pass through the actual response
         if resp.status_code != 401:
@@ -252,8 +257,17 @@ class MultiDomainBasicAuth(AuthBase):
 
         parsed = urllib.parse.urlparse(resp.url)
 
+        # Query the keyring for credentials:
+        username, password = self._get_new_credentials(
+            resp.url,
+            allow_netrc=False,
+            allow_keyring=True,
+        )
+
         # Prompt the user for a new username and password
-        username, password, save = self._prompt_for_password(parsed.netloc)
+        save = False
+        if not username and not password:
+            username, password, save = self._prompt_for_password(parsed.netloc)
 
         # Store the new username and password to use for future requests
         self._credentials_to_save = None
@@ -285,16 +299,15 @@ class MultiDomainBasicAuth(AuthBase):
 
         return new_resp
 
-    def warn_on_401(self, resp, **kwargs):
-        # type: (Response, **Any) -> None
+    def warn_on_401(self, resp: Response, **kwargs: Any) -> None:
         """Response callback to warn about incorrect credentials."""
         if resp.status_code == 401:
             logger.warning(
-                '401 Error, Credentials not correct for %s', resp.request.url,
+                "401 Error, Credentials not correct for %s",
+                resp.request.url,
             )
 
-    def save_credentials(self, resp, **kwargs):
-        # type: (Response, **Any) -> None
+    def save_credentials(self, resp: Response, **kwargs: Any) -> None:
         """Response callback to save credentials on success."""
         assert keyring is not None, "should never reach here without keyring"
         if not keyring:
@@ -304,7 +317,7 @@ class MultiDomainBasicAuth(AuthBase):
         self._credentials_to_save = None
         if creds and resp.status_code < 400:
             try:
-                logger.info('Saving credentials to keyring')
+                logger.info("Saving credentials to keyring")
                 keyring.set_password(*creds)
             except Exception:
-                logger.exception('Failed to save credentials')
+                logger.exception("Failed to save credentials")

@@ -28,8 +28,8 @@ like this:
 .. code-block:: python
 
     try:
-        import urllib3.contrib.pyopenssl
-        urllib3.contrib.pyopenssl.inject_into_urllib3()
+        import pip._vendor.urllib3.contrib.pyopenssl as pyopenssl
+        pyopenssl.inject_into_urllib3()
     except ImportError:
         pass
 
@@ -76,6 +76,7 @@ import sys
 
 from .. import util
 from ..packages import six
+from ..util.ssl_ import PROTOCOL_TLS_CLIENT
 
 __all__ = ["inject_into_urllib3", "extract_from_urllib3"]
 
@@ -85,6 +86,7 @@ HAS_SNI = True
 # Map from urllib3 to PyOpenSSL compatible parameter-values.
 _openssl_versions = {
     util.PROTOCOL_TLS: OpenSSL.SSL.SSLv23_METHOD,
+    PROTOCOL_TLS_CLIENT: OpenSSL.SSL.SSLv23_METHOD,
     ssl.PROTOCOL_TLSv1: OpenSSL.SSL.TLSv1_METHOD,
 }
 

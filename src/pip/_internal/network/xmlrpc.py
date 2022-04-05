@@ -3,44 +3,50 @@
 
 import logging
 import urllib.parse
-
-# NOTE: XMLRPC Client is not annotated in typeshed as on 2017-07-17, which is
-#       why we ignore the type on this import
-from pip._vendor.six.moves import xmlrpc_client  # type: ignore
+import xmlrpc.client
+from typing import TYPE_CHECKING, Tuple
 
 from pip._internal.exceptions import NetworkConnectionError
+from pip._internal.network.session import PipSession
 from pip._internal.network.utils import raise_for_status
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
-    from typing import Dict
-
-    from pip._internal.network.session import PipSession
-
+if TYPE_CHECKING:
+    from xmlrpc.client import _HostType, _Marshallable
 
 logger = logging.getLogger(__name__)
 
 
-class PipXmlrpcTransport(xmlrpc_client.Transport):
+class PipXmlrpcTransport(xmlrpc.client.Transport):
     """Provide a `xmlrpclib.Transport` implementation via a `PipSession`
     object.
     """
 
-    def __init__(self, index_url, session, use_datetime=False):
-        # type: (str, PipSession, bool) -> None
+    def __init__(
+        self, index_url: str, session: PipSession, use_datetime: bool = False
+    ) -> None:
         super().__init__(use_datetime)
         index_parts = urllib.parse.urlparse(index_url)
         self._scheme = index_parts.scheme
         self._session = session
 
-    def request(self, host, handler, request_body, verbose=False):
-        # type: (str, str, Dict[str, str], bool) -> None
+    def request(
+        self,
+        host: "_HostType",
+        handler: str,
+        request_body: bytes,
+        verbose: bool = False,
+    ) -> Tuple["_Marshallable", ...]:
+        assert isinstance(host, str)
         parts = (self._scheme, host, handler, None, None, None)
         url = urllib.parse.urlunparse(parts)
         try:
-            headers = {'Content-Type': 'text/xml'}
-            response = self._session.post(url, data=request_body,
-                                          headers=headers, stream=True)
+            headers = {"Content-Type": "text/xml"}
+            response = self._session.post(
+                url,
+                data=request_body,
+                headers=headers,
+                stream=True,
+            )
             raise_for_status(response)
             self.verbose = verbose
             return self.parse_response(response.raw)
@@ -48,6 +54,7 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
             assert exc.response
             logger.critical(
                 "HTTP error %s while getting %s",
-                exc.response.status_code, url,
+                exc.response.status_code,
+                url,
             )
             raise

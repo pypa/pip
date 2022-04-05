@@ -3,13 +3,19 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.towncrier]
+# For finding the __version__
 package = "pip"
 package_dir = "src"
+# For writing into the correct file
 filename = "NEWS.rst"
+# For finding the news fragments
 directory = "news/"
-title_format = "{version} ({project_date})"
+
+# For rendering properly for this project
 issue_format = "`#{issue} <https://github.com/pypa/pip/issues/{issue}>`_"
-template = "tools/automation/news/template.rst"
+template = "tools/news/template.rst"
+
+# Grouping of entries, within our changelog
 type = [
   { name = "Process",                   directory = "process", showcontent = true },
   { name = "Deprecations and Removals", directory = "removal", showcontent = true },
@@ -26,13 +32,14 @@ requirements = "src/pip/_vendor/vendor.txt"
 namespace = "pip._vendor"
 
 protected-files = ["__init__.py", "README.rst", "vendor.txt"]
-patches-dir = "tools/automation/vendoring/patches"
+patches-dir = "tools/vendoring/patches"
 
 [tool.vendoring.transformations]
 substitute = [
   # pkg_resource's vendored packages are directly vendored in pip.
   { match='pkg_resources\.extern', replace="pip._vendor" },
   { match='from \.extern', replace="from pip._vendor" },
+  { match='''\('pygments\.lexers\.''', replace="('pip._vendor.pygments.lexers." },
 ]
 drop = [
   # contains unnecessary scripts
@@ -44,18 +51,21 @@ drop = [
   "setuptools",
   "pkg_resources/_vendor/",
   "pkg_resources/extern/",
+  # trim vendored pygments styles and lexers
+  "pygments/styles/[!_]*.py",
+  '^pygments/lexers/(?!python|__init__|_mapping).*\.py$',
+  # trim rich's markdown support
+  "rich/markdown.py",
 ]
 
 [tool.vendoring.typing-stubs]
 six = ["six.__init__", "six.moves.__init__", "six.moves.configparser"]
-appdirs = []
-contextlib2 = []
+distro = []
 
 [tool.vendoring.license.directories]
 setuptools = "pkg_resources"
-msgpack-python = "msgpack"
 
 [tool.vendoring.license.fallback-urls]
-pytoml = "https://github.com/avakar/pytoml/raw/master/LICENSE"
-resolvelib = "https://github.com/sarugaku/resolvelib/raw/master/LICENSE"
+CacheControl = "https://raw.githubusercontent.com/ionrock/cachecontrol/v0.12.6/LICENSE.txt"
+distlib = "https://bitbucket.org/pypa/distlib/raw/master/LICENSE.txt"
 webencodings = "https://github.com/SimonSapin/python-webencodings/raw/master/LICENSE"

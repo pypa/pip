@@ -1,23 +1,19 @@
 import logging
 import os
 import shutil
+from optparse import Values
+from typing import List
 
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.req_command import RequirementCommand, with_cleanup
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.exceptions import CommandError
-from pip._internal.req.req_tracker import get_requirement_tracker
+from pip._internal.operations.build.build_tracker import get_build_tracker
+from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.misc import ensure_dir, normalize_path
 from pip._internal.utils.temp_dir import TempDirectory
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.wheel_builder import build, should_build_for_wheel_command
-
-if MYPY_CHECK_RUNNING:
-    from optparse import Values
-    from typing import List
-
-    from pip._internal.req.req_install import InstallRequirement
 
 logger = logging.getLogger(__name__)
 
@@ -30,10 +26,8 @@ class WheelCommand(RequirementCommand):
     recompiling your software during every install. For more details, see the
     wheel docs: https://wheel.readthedocs.io/en/latest/
 
-    Requirements: setuptools>=0.8, and wheel.
-
-    'pip wheel' uses the bdist_wheel setuptools extension from the wheel
-    package to build individual wheels.
+    'pip wheel' uses the build system interface as described here:
+    https://pip.pypa.io/en/stable/reference/build-system/
 
     """
 
@@ -44,27 +38,22 @@ class WheelCommand(RequirementCommand):
       %prog [options] [-e] <local project path> ...
       %prog [options] <archive url/path> ..."""
 
-    def add_options(self):
-        # type: () -> None
+    def add_options(self) -> None:
 
         self.cmd_opts.add_option(
-            '-w', '--wheel-dir',
-            dest='wheel_dir',
-            metavar='dir',
+            "-w",
+            "--wheel-dir",
+            dest="wheel_dir",
+            metavar="dir",
             default=os.curdir,
-            help=("Build wheels into <dir>, where the default is the "
-                  "current working directory."),
+            help=(
+                "Build wheels into <dir>, where the default is the "
+                "current working directory."
+            ),
         )
         self.cmd_opts.add_option(cmdoptions.no_binary())
         self.cmd_opts.add_option(cmdoptions.only_binary())
         self.cmd_opts.add_option(cmdoptions.prefer_binary())
-        self.cmd_opts.add_option(
-            '--build-option',
-            dest='build_options',
-            metavar='options',
-            action='append',
-            help="Extra arguments to be supplied to 'setup.py bdist_wheel'.",
-        )
         self.cmd_opts.add_option(cmdoptions.no_build_isolation())
         self.cmd_opts.add_option(cmdoptions.use_pep517())
         self.cmd_opts.add_option(cmdoptions.no_use_pep517())
@@ -74,31 +63,27 @@ class WheelCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.src())
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
         self.cmd_opts.add_option(cmdoptions.no_deps())
-        self.cmd_opts.add_option(cmdoptions.build_dir())
         self.cmd_opts.add_option(cmdoptions.progress_bar())
 
         self.cmd_opts.add_option(
-            '--no-verify',
-            dest='no_verify',
-            action='store_true',
+            "--no-verify",
+            dest="no_verify",
+            action="store_true",
             default=False,
             help="Don't verify if built wheel is valid.",
         )
 
-        self.cmd_opts.add_option(
-            '--global-option',
-            dest='global_options',
-            action='append',
-            metavar='options',
-            help="Extra global options to be supplied to the setup.py "
-            "call before the 'bdist_wheel' command.")
+        self.cmd_opts.add_option(cmdoptions.build_options())
+        self.cmd_opts.add_option(cmdoptions.global_options())
 
         self.cmd_opts.add_option(
-            '--pre',
-            action='store_true',
+            "--pre",
+            action="store_true",
             default=False,
-            help=("Include pre-release and development versions. By default, "
-                  "pip only finds stable versions."),
+            help=(
+                "Include pre-release and development versions. By default, "
+                "pip only finds stable versions."
+            ),
         )
 
         self.cmd_opts.add_option(cmdoptions.require_hashes())
@@ -112,8 +97,7 @@ class WheelCommand(RequirementCommand):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     @with_cleanup
-    def run(self, options, args):
-        # type: (Values, List[str]) -> int
+    def run(self, options: Values, args: List[str]) -> int:
         cmdoptions.check_install_build_global(options)
 
         session = self.get_default_session(options)
@@ -124,7 +108,7 @@ class WheelCommand(RequirementCommand):
         options.wheel_dir = normalize_path(options.wheel_dir)
         ensure_dir(options.wheel_dir)
 
-        req_tracker = self.enter_context(get_requirement_tracker())
+        build_tracker = self.enter_context(get_build_tracker())
 
         directory = TempDirectory(
             delete=not options.no_clean,
@@ -137,11 +121,12 @@ class WheelCommand(RequirementCommand):
         preparer = self.make_requirement_preparer(
             temp_build_dir=directory,
             options=options,
-            req_tracker=req_tracker,
+            build_tracker=build_tracker,
             session=session,
             finder=finder,
             download_dir=options.wheel_dir,
             use_user_site=False,
+            verbosity=self.verbosity,
         )
 
         resolver = self.make_resolver(
@@ -155,11 +140,9 @@ class WheelCommand(RequirementCommand):
 
         self.trace_basic_info(finder)
 
-        requirement_set = resolver.resolve(
-            reqs, check_supported_wheels=True
-        )
+        requirement_set = resolver.resolve(reqs, check_supported_wheels=True)
 
-        reqs_to_build = []  # type: List[InstallRequirement]
+        reqs_to_build: List[InstallRequirement] = []
         for req in requirement_set.requirements.values():
             if req.is_wheel:
                 preparer.save_linked_requirement(req)
@@ -183,12 +166,11 @@ class WheelCommand(RequirementCommand):
             except OSError as e:
                 logger.warning(
                     "Building wheel for %s failed: %s",
-                    req.name, e,
+                    req.name,
+                    e,
                 )
                 build_failures.append(req)
         if len(build_failures) != 0:
-            raise CommandError(
-                "Failed to build one or more wheels"
-            )
+            raise CommandError("Failed to build one or more wheels")
 
         return SUCCESS

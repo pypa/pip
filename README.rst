@@ -21,7 +21,7 @@ We release updates regularly, with a new version every 3 months. Find more detai
 
 In pip 20.3, we've `made a big improvement to the heart of pip`_; `learn more`_. We want your input, so `sign up for our user experience research studies`_ to help us do it right.
 
-**Note**: pip 21.0, in January 2021, will remove Python 2 support, per pip's `Python 2 support policy`_. Please migrate to Python 3.
+**Note**: pip 21.0, in January 2021, removed Python 2 support, per pip's `Python 2 support policy`_. Please migrate to Python 3.
 
 If you find bugs, need help, or want to talk to the developers, please use our mailing lists or chat rooms:
 
@@ -44,7 +44,7 @@ rooms, and mailing lists is expected to follow the `PSF Code of Conduct`_.
 
 .. _package installer: https://packaging.python.org/guides/tool-recommendations/
 .. _Python Package Index: https://pypi.org
-.. _Installation: https://pip.pypa.io/en/stable/installing.html
+.. _Installation: https://pip.pypa.io/en/stable/installation/
 .. _Usage: https://pip.pypa.io/en/stable/
 .. _Release notes: https://pip.pypa.io/en/stable/news.html
 .. _Release process: https://pip.pypa.io/en/latest/development/release-process/
@@ -57,6 +57,6 @@ rooms, and mailing lists is expected to follow the `PSF Code of Conduct`_.
 .. _Issue tracking: https://github.com/pypa/pip/issues
 .. _Discourse channel: https://discuss.python.org/c/packaging
 .. _Development mailing list: https://mail.python.org/mailman3/lists/distutils-sig.python.org/
-.. _User IRC: https://webchat.freenode.net/?channels=%23pypa
-.. _Development IRC: https://webchat.freenode.net/?channels=%23pypa-dev
+.. _User IRC: https://kiwiirc.com/nextclient/#ircs://irc.libera.chat:+6697/pypa
+.. _Development IRC: https://kiwiirc.com/nextclient/#ircs://irc.libera.chat:+6697/pypa-dev
 .. _PSF Code of Conduct: https://github.com/pypa/.github/blob/main/CODE_OF_CONDUCT.md

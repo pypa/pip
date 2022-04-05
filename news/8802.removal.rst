@@ -1,1 +1,0 @@
-Modernise the codebase after Python 2.

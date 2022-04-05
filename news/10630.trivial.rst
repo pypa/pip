@@ -1,0 +1,1 @@
+Replace the git protocol with https in tests.

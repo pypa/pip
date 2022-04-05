@@ -9,6 +9,576 @@
 
 .. towncrier release notes start
 
+22.0.4 (2022-03-06)
+===================
+
+Deprecations and Removals
+-------------------------
+
+- Drop the doctype check, that presented a warning for index pages that use non-compliant HTML 5. (`#10903 <https://github.com/pypa/pip/issues/10903>`_)
+
+Vendored Libraries
+------------------
+
+- Downgrade distlib to 0.3.3.
+
+
+22.0.3 (2022-02-03)
+===================
+
+Features
+--------
+
+- Print the exception via ``rich.traceback``, when running with ``--debug``. (`#10791 <https://github.com/pypa/pip/issues/10791>`_)
+
+Bug Fixes
+---------
+
+- Only calculate topological installation order, for packages that are going to be installed/upgraded.
+
+  This fixes an `AssertionError` that occured when determining installation order, for a very specific combination of upgrading-already-installed-package + change of dependencies + fetching some packages from a package index. This combination was especially common in Read the Docs' builds. (`#10851 <https://github.com/pypa/pip/issues/10851>`_)
+- Use ``html.parser`` by default, instead of falling back to ``html5lib`` when ``--use-deprecated=html5lib`` is not passed. (`#10869 <https://github.com/pypa/pip/issues/10869>`_)
+
+Improved Documentation
+----------------------
+
+- Clarify that using per-requirement overrides disables the usage of wheels. (`#9674 <https://github.com/pypa/pip/issues/9674>`_)
+
+
+22.0.2 (2022-01-30)
+===================
+
+Deprecations and Removals
+-------------------------
+
+- Instead of failing on index pages that use non-compliant HTML 5, print a deprecation warning and fall back to ``html5lib``-based parsing for now. This simplifies the migration for non-compliant index pages, by letting such indexes function with a warning. (`#10847 <https://github.com/pypa/pip/issues/10847>`_)
+
+
+22.0.1 (2022-01-30)
+===================
+
+Bug Fixes
+---------
+
+- Accept lowercase ``<!doctype html>`` on index pages. (`#10844 <https://github.com/pypa/pip/issues/10844>`_)
+- Properly handle links parsed by html5lib, when using ``--use-deprecated=html5lib``. (`#10846 <https://github.com/pypa/pip/issues/10846>`_)
+
+
+22.0 (2022-01-29)
+=================
+
+Process
+-------
+
+- Completely replace :pypi:`tox` in our development workflow, with :pypi:`nox`.
+
+Deprecations and Removals
+-------------------------
+
+- Deprecate alternative progress bar styles, leaving only ``on`` and ``off`` as available choices. (`#10462 <https://github.com/pypa/pip/issues/10462>`_)
+- Drop support for Python 3.6. (`#10641 <https://github.com/pypa/pip/issues/10641>`_)
+- Disable location mismatch warnings on Python versions prior to 3.10.
+
+  These warnings were helping identify potential issues as part of the sysconfig -> distutils transition, and we no longer need to rely on reports from older Python versions for information on the transition. (`#10840 <https://github.com/pypa/pip/issues/10840>`_)
+
+Features
+--------
+
+- Changed ``PackageFinder`` to parse HTML documents using the stdlib :class:`html.parser.HTMLParser` class instead of the ``html5lib`` package.
+
+  For now, the deprecated ``html5lib`` code remains and can be used with the ``--use-deprecated=html5lib`` command line option. However, it will be removed in a future pip release. (`#10291 <https://github.com/pypa/pip/issues/10291>`_)
+- Utilise ``rich`` for presenting pip's default download progress bar. (`#10462 <https://github.com/pypa/pip/issues/10462>`_)
+- Present a better error message when an invalid wheel file is encountered, providing more context where the invalid wheel file is. (`#10535 <https://github.com/pypa/pip/issues/10535>`_)
+- Documents the ``--require-virtualenv`` flag for ``pip install``. (`#10588 <https://github.com/pypa/pip/issues/10588>`_)
+- ``pip install <tab>`` autocompletes paths. (`#10646 <https://github.com/pypa/pip/issues/10646>`_)
+- Allow Python distributors to opt-out from or opt-in to the ``sysconfig`` installation scheme backend by setting ``sysconfig._PIP_USE_SYSCONFIG`` to ``True`` or ``False``. (`#10647 <https://github.com/pypa/pip/issues/10647>`_)
+- Make it possible to deselect tests requiring cryptography package on systems where it cannot be installed. (`#10686 <https://github.com/pypa/pip/issues/10686>`_)
+- Start using Rich for presenting error messages in a consistent format. (`#10703 <https://github.com/pypa/pip/issues/10703>`_)
+- Improve presentation of errors from subprocesses. (`#10705 <https://github.com/pypa/pip/issues/10705>`_)
+- Forward pip's verbosity configuration to VCS tools to control their output accordingly. (`#8819 <https://github.com/pypa/pip/issues/8819>`_)
+
+Bug Fixes
+---------
+
+- Optimize installation order calculation to improve performance when installing requirements that form a complex dependency graph with a large amount of edges. (`#10557 <https://github.com/pypa/pip/issues/10557>`_)
+- When a package is requested by the user for upgrade, correctly identify that the extra-ed variant of that same package depended by another user-requested package is requesting the same package, and upgrade it accordingly. (`#10613 <https://github.com/pypa/pip/issues/10613>`_)
+- Prevent pip from installing yanked releases unless explicitly pinned via the ``==`` or ``===`` operators. (`#10617 <https://github.com/pypa/pip/issues/10617>`_)
+- Stop backtracking on build failures, by instead surfacing them to the user and aborting immediately. This behaviour provides more immediate feedback when a package cannot be built due to missing build dependencies or platform incompatibility. (`#10655 <https://github.com/pypa/pip/issues/10655>`_)
+- Silence ``Value for <location> does not match`` warning caused by an erroneous patch in Slackware-distributed Python 3.9. (`#10668 <https://github.com/pypa/pip/issues/10668>`_)
+- Fix an issue where pip did not consider dependencies with and without extras to be equal (`#9644 <https://github.com/pypa/pip/issues/9644>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade CacheControl to 0.12.10
+- Upgrade certifi to 2021.10.8
+- Upgrade distlib to 0.3.4
+- Upgrade idna to 3.3
+- Upgrade msgpack to 1.0.3
+- Upgrade packaging to 21.3
+- Upgrade platformdirs to 2.4.1
+- Add pygments 2.11.2 as a vendored dependency.
+- Tree-trim unused portions of vendored pygments, to reduce the distribution size.
+- Upgrade pyparsing to 3.0.7
+- Upgrade Requests to 2.27.1
+- Upgrade resolvelib to 0.8.1
+- Add rich 11.0.0 as a vendored dependency.
+- Tree-trim unused portions of vendored rich, to reduce the distribution size.
+- Add typing_extensions 4.0.1 as a vendored dependency.
+- Upgrade urllib3 to 1.26.8
+
+
+21.3.1 (2021-10-22)
+===================
+
+
+Bug Fixes
+---------
+
+
+- Always refuse installing or building projects that have no ``pyproject.toml`` nor
+  ``setup.py``. (`#10531 <https://github.com/pypa/pip/issues/10531>`_)
+- Tweak running-as-root detection, to check ``os.getuid`` if it exists, on Unix-y and non-Linux/non-MacOS machines. (`#10565 <https://github.com/pypa/pip/issues/10565>`_)
+- When installing projects with a ``pyproject.toml`` in editable mode, and the build
+  backend does not support :pep:`660`, prepare metadata using
+  ``prepare_metadata_for_build_wheel`` instead of ``setup.py egg_info``. Also, refuse
+  installing projects that only have a ``setup.cfg`` and no ``setup.py`` nor
+  ``pyproject.toml``. These restore the pre-21.3 behaviour. (`#10573 <https://github.com/pypa/pip/issues/10573>`_)
+- Restore compatibility of where configuration files are loaded from on MacOS (back to ``Library/Application Support/pip``, instead of ``Preferences/pip``). (`#10585 <https://github.com/pypa/pip/issues/10585>`_)
+
+Vendored Libraries
+------------------
+
+
+- Upgrade pep517 to 0.12.0
+
+
+21.3 (2021-10-11)
+=================
+
+Deprecations and Removals
+-------------------------
+
+- Improve deprecation warning regarding the copying of source trees when installing from a local directory. (`#10128 <https://github.com/pypa/pip/issues/10128>`_)
+- Suppress location mismatch warnings when pip is invoked from a Python source
+  tree, so ``ensurepip`` does not emit warnings on CPython ``make install``. (`#10270 <https://github.com/pypa/pip/issues/10270>`_)
+- On Python 3.10 or later, the installation scheme backend has been changed to use
+  ``sysconfig``. This is to anticipate the deprecation of ``distutils`` in Python
+  3.10, and its scheduled removal in 3.12. For compatibility considerations, pip
+  installations running on Python 3.9 or lower will continue to use ``distutils``. (`#10358 <https://github.com/pypa/pip/issues/10358>`_)
+- Remove the ``--build-dir`` option and aliases, one last time. (`#10485 <https://github.com/pypa/pip/issues/10485>`_)
+- In-tree builds are now the default. ``--use-feature=in-tree-build`` is now
+  ignored. ``--use-deprecated=out-of-tree-build`` may be used temporarily to ease
+  the transition. (`#10495 <https://github.com/pypa/pip/issues/10495>`_)
+- Un-deprecate source distribution re-installation behaviour. (`#8711 <https://github.com/pypa/pip/issues/8711>`_)
+
+Features
+--------
+
+- Replace vendored appdirs with platformdirs. (`#10202 <https://github.com/pypa/pip/issues/10202>`_)
+- Support `PEP 610 <https://www.python.org/dev/peps/pep-0610/>`_ to detect
+  editable installs in ``pip freeze`` and  ``pip list``. The ``pip list`` column output
+  has a new ``Editable project location`` column, and the JSON output has a new
+  ``editable_project_location`` field. (`#10249 <https://github.com/pypa/pip/issues/10249>`_)
+- ``pip freeze`` will now always fallback to reporting the editable project
+  location when it encounters a VCS error while analyzing an editable
+  requirement. Before, it sometimes reported the requirement as non-editable. (`#10410 <https://github.com/pypa/pip/issues/10410>`_)
+- ``pip show`` now sorts ``Requires`` and ``Required-By`` alphabetically. (`#10422 <https://github.com/pypa/pip/issues/10422>`_)
+- Do not raise error when there are no files to remove with ``pip cache purge/remove``.
+  Instead log a warning and continue (to log that we removed 0 files). (`#10459 <https://github.com/pypa/pip/issues/10459>`_)
+- When backtracking during dependency resolution, prefer the dependencies which are involved in the most recent conflict. This can significantly reduce the amount of backtracking required. (`#10479 <https://github.com/pypa/pip/issues/10479>`_)
+- Cache requirement objects, to improve performance reducing reparses of requirement strings. (`#10550 <https://github.com/pypa/pip/issues/10550>`_)
+- Support editable installs for projects that have a ``pyproject.toml`` and use a
+  build backend that supports :pep:`660`. (`#8212 <https://github.com/pypa/pip/issues/8212>`_)
+- When a revision is specified in a Git URL, use git's partial clone feature to speed up source retrieval. (`#9086 <https://github.com/pypa/pip/issues/9086>`_)
+- Add a ``--debug`` flag, to enable a mode that doesn't log errors and propagates them to the top level instead. This is primarily to aid with debugging pip's crashes. (`#9349 <https://github.com/pypa/pip/issues/9349>`_)
+- If a host is explicitly specified as trusted by the user (via the --trusted-host option), cache HTTP responses from it in addition to HTTPS ones. (`#9498 <https://github.com/pypa/pip/issues/9498>`_)
+
+Bug Fixes
+---------
+
+- Present a better error message, when a ``file:`` URL is not found. (`#10263 <https://github.com/pypa/pip/issues/10263>`_)
+- Fix the auth credential cache to allow for the case in which
+  the index url contains the username, but the password comes
+  from an external source, such as keyring. (`#10269 <https://github.com/pypa/pip/issues/10269>`_)
+- Fix double unescape of HTML ``data-requires-python`` and ``data-yanked`` attributes. (`#10378 <https://github.com/pypa/pip/issues/10378>`_)
+- New resolver: Fixes depth ordering of packages during resolution, e.g. a dependency 2 levels deep will be ordered before a dependency 3 levels deep. (`#10482 <https://github.com/pypa/pip/issues/10482>`_)
+- Correctly indent metadata preparation messages in pip output. (`#10524 <https://github.com/pypa/pip/issues/10524>`_)
+
+Vendored Libraries
+------------------
+
+- Remove appdirs as a vendored dependency.
+- Upgrade distlib to 0.3.3
+- Upgrade distro to 1.6.0
+- Patch pkg_resources to use platformdirs rather than appdirs.
+- Add platformdirs as a vendored dependency.
+- Upgrade progress to 1.6
+- Upgrade resolvelib to 0.8.0
+- Upgrade urllib3 to 1.26.7
+
+Improved Documentation
+----------------------
+
+- Update links of setuptools as setuptools moved these documents. The Simple Repository link now points to PyPUG as that is the canonical place of packaging specification, and setuptools's ``easy_install`` is deprecated. (`#10430 <https://github.com/pypa/pip/issues/10430>`_)
+- Create a "Build System Interface" reference section, for documenting how pip interacts with build systems. (`#10497 <https://github.com/pypa/pip/issues/10497>`_)
+
+
+21.2.4 (2021-08-12)
+===================
+
+Bug Fixes
+---------
+
+- Fix 3.6.0 compatibility in link comparison logic. (`#10280 <https://github.com/pypa/pip/issues/10280>`_)
+
+
+21.2.3 (2021-08-06)
+===================
+
+Bug Fixes
+---------
+
+- Modify the ``sysconfig.get_preferred_scheme`` function check to be
+  compatible with CPython 3.10’s alphareleases. (`#10252 <https://github.com/pypa/pip/issues/10252>`_)
+
+
+21.2.2 (2021-07-31)
+===================
+
+Bug Fixes
+---------
+
+- New resolver: When a package is specified with extras in constraints, and with
+  extras in non-constraint requirements, the resolver now correctly identifies the
+  constraint's existence and avoids backtracking. (`#10233 <https://github.com/pypa/pip/issues/10233>`_)
+
+
+21.2.1 (2021-07-25)
+===================
+
+Process
+-------
+
+- The source distribution re-installation feature removal has been delayed to 21.3.
+
+
+21.2 (2021-07-24)
+=================
+
+Process
+-------
+
+- ``pip freeze``, ``pip list``, and ``pip show`` no longer normalize underscore
+  (``_``) in distribution names to dash (``-``). This is a side effect of the
+  migration to ``importlib.metadata``, since the underscore-dash normalization
+  behavior is non-standard and specific to setuptools. This should not affect
+  other parts of pip (for example, when feeding the ``pip freeze`` result back
+  into ``pip install``) since pip internally performs standard PEP 503
+  normalization independently to setuptools.
+
+Deprecations and Removals
+-------------------------
+
+- Git version parsing is now done with regular expression to prepare for the
+  pending upstream removal of non-PEP-440 version parsing logic. (`#10117 <https://github.com/pypa/pip/issues/10117>`_)
+- Re-enable the "Value for ... does not match" location warnings to field a new
+  round of feedback for the ``distutils``-``sysconfig`` transition. (`#10151 <https://github.com/pypa/pip/issues/10151>`_)
+- Remove deprecated ``--find-links`` option in ``pip freeze`` (`#9069 <https://github.com/pypa/pip/issues/9069>`_)
+
+Features
+--------
+
+- New resolver: Loosen URL comparison logic when checking for direct URL reference
+  equivalency. The logic includes the following notable characteristics:
+
+  * The authentication part of the URL is explicitly ignored.
+  * Most of the fragment part, including ``egg=``, is explicitly ignored. Only
+    ``subdirectory=`` and hash values (e.g. ``sha256=``) are kept.
+  * The query part of the URL is parsed to allow ordering differences. (`#10002 <https://github.com/pypa/pip/issues/10002>`_)
+- Support TOML v1.0.0 syntax in ``pyproject.toml``. (`#10034 <https://github.com/pypa/pip/issues/10034>`_)
+- Added a warning message for errors caused due to Long Paths being disabled on Windows. (`#10045 <https://github.com/pypa/pip/issues/10045>`_)
+- Change the encoding of log file from default text encoding to UTF-8. (`#10071 <https://github.com/pypa/pip/issues/10071>`_)
+- Log the resolved commit SHA when installing a package from a Git repository. (`#10149 <https://github.com/pypa/pip/issues/10149>`_)
+- Add a warning when passing an invalid requirement to ``pip uninstall``. (`#4958 <https://github.com/pypa/pip/issues/4958>`_)
+- Add new subcommand ``pip index`` used to interact with indexes, and implement
+  ``pip index version`` to list available versions of a package. (`#7975 <https://github.com/pypa/pip/issues/7975>`_)
+- When pip is asked to uninstall a project without the dist-info/RECORD file
+  it will no longer traceback with FileNotFoundError,
+  but it will provide a better error message instead, such as::
+
+      ERROR: Cannot uninstall foobar 0.1, RECORD file not found. You might be able to recover from this via: 'pip install --force-reinstall --no-deps foobar==0.1'.
+
+  When dist-info/INSTALLER is present and contains some useful information, the info is included in the error message instead::
+
+      ERROR: Cannot uninstall foobar 0.1, RECORD file not found. Hint: The package was installed by rpm.
+
+  (`#8954 <https://github.com/pypa/pip/issues/8954>`_)
+- Add an additional level of verbosity. ``--verbose`` (and the shorthand ``-v``) now
+  contains significantly less output, and users that need complete full debug-level output
+  should pass it twice (``--verbose --verbose`` or ``-vv``). (`#9450 <https://github.com/pypa/pip/issues/9450>`_)
+- New resolver: The order of dependencies resolution has been tweaked to traverse
+  the dependency graph in a more breadth-first approach. (`#9455 <https://github.com/pypa/pip/issues/9455>`_)
+- Make "yes" the default choice in ``pip uninstall``'s prompt. (`#9686 <https://github.com/pypa/pip/issues/9686>`_)
+- Add a special error message when users forget the ``-r`` flag when installing. (`#9915 <https://github.com/pypa/pip/issues/9915>`_)
+- New resolver: A distribution's ``Requires-Python`` metadata is now checked
+  before its Python dependencies. This makes the resolver fail quicker when
+  there's an interpreter version conflict. (`#9925 <https://github.com/pypa/pip/issues/9925>`_)
+- Suppress "not on PATH" warning when ``--prefix`` is given. (`#9931 <https://github.com/pypa/pip/issues/9931>`_)
+- Include ``rustc`` version in pip's ``User-Agent``, when the system has ``rustc``. (`#9987 <https://github.com/pypa/pip/issues/9987>`_)
+
+Bug Fixes
+---------
+
+- Update vendored six to 1.16.0 and urllib3 to 1.26.5 (`#10043 <https://github.com/pypa/pip/issues/10043>`_)
+- Correctly allow PEP 517 projects to be detected without warnings in ``pip freeze``. (`#10080 <https://github.com/pypa/pip/issues/10080>`_)
+- Strip leading slash from a ``file://`` URL built from an path with the Windows
+  drive notation. This fixes bugs where the ``file://`` URL cannot be correctly
+  used as requirement, constraint, or index URLs on Windows. (`#10115 <https://github.com/pypa/pip/issues/10115>`_)
+- New resolver: URL comparison logic now treats ``file://localhost/`` and
+  ``file:///`` as equivalent to conform to RFC 8089. (`#10162 <https://github.com/pypa/pip/issues/10162>`_)
+- Prefer credentials from the URL over the previously-obtained credentials from URLs of the same domain, so it is possible to use different credentials on the same index server for different ``--extra-index-url`` options. (`#3931 <https://github.com/pypa/pip/issues/3931>`_)
+- Fix extraction of files with utf-8 encoded paths from tars. (`#7667 <https://github.com/pypa/pip/issues/7667>`_)
+- Skip distutils configuration parsing on encoding errors. (`#8931 <https://github.com/pypa/pip/issues/8931>`_)
+- New resolver: Detect an unnamed requirement is user-specified (by building its
+  metadata for the project name) so it can be correctly ordered in the resolver. (`#9204 <https://github.com/pypa/pip/issues/9204>`_)
+- Fix :ref:`pip freeze` to output packages :ref:`installed from git <vcs support>`
+  in the correct ``git+protocol://git.example.com/MyProject#egg=MyProject`` format
+  rather than the old and no longer supported ``git+git@`` format. (`#9822 <https://github.com/pypa/pip/issues/9822>`_)
+- Fix warnings about install scheme selection for Python framework builds
+  distributed by Apple's Command Line Tools. (`#9844 <https://github.com/pypa/pip/issues/9844>`_)
+- Relax interpreter detection to quelch a location mismatch warning where PyPy
+  is deliberately breaking backwards compatibility. (`#9845 <https://github.com/pypa/pip/issues/9845>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade certifi to 2021.05.30.
+- Upgrade idna to 3.2.
+- Upgrade packaging to 21.0
+- Upgrade requests to 2.26.0.
+- Upgrade resolvelib to 0.7.1.
+- Upgrade urllib3 to 1.26.6.
+
+
+21.1.3 (2021-06-26)
+===================
+
+Bug Fixes
+---------
+
+- Remove unused optional ``tornado`` import in vendored ``tenacity`` to prevent old versions of Tornado from breaking pip. (`#10020 <https://github.com/pypa/pip/issues/10020>`_)
+- Require ``setup.cfg``-only projects to be built via PEP 517, by requiring an explicit dependency on setuptools declared in pyproject.toml. (`#10031 <https://github.com/pypa/pip/issues/10031>`_)
+
+
+21.1.2 (2021-05-23)
+===================
+
+Bug Fixes
+---------
+
+- New resolver: Correctly exclude an already installed package if its version is
+  known to be incompatible to stop the dependency resolution process with a clear
+  error message. (`#9841 <https://github.com/pypa/pip/issues/9841>`_)
+- Allow ZIP to archive files with timestamps earlier than 1980. (`#9910 <https://github.com/pypa/pip/issues/9910>`_)
+- Emit clearer error message when a project root does not contain either
+  ``pyproject.toml``, ``setup.py`` or ``setup.cfg``. (`#9944 <https://github.com/pypa/pip/issues/9944>`_)
+- Fix detection of existing standalone pip instance for PEP 517 builds. (`#9953 <https://github.com/pypa/pip/issues/9953>`_)
+
+
+21.1.1 (2021-04-30)
+===================
+
+Deprecations and Removals
+-------------------------
+
+- Temporarily set the new "Value for ... does not match" location warnings level
+  to *DEBUG*, to hide them from casual users. This prepares pip 21.1 for CPython
+  inclusion, while pip maintainers digest the first intake of location mismatch
+  issues for the ``distutils``-``sysconfig`` transition. (`#9912 <https://github.com/pypa/pip/issues/9912>`_)
+
+Bug Fixes
+---------
+
+- This change fixes a bug on Python <=3.6.1 with a Typing feature added in 3.6.2 (`#9831 <https://github.com/pypa/pip/issues/9831>`_)
+- Fix compatibility between distutils and sysconfig when the project name is unknown outside of a virtual environment. (`#9838 <https://github.com/pypa/pip/issues/9838>`_)
+- Fix Python 3.6 compatibility when a PEP 517 build requirement itself needs to be
+  built in an isolated environment. (`#9878 <https://github.com/pypa/pip/issues/9878>`_)
+
+
+21.1 (2021-04-24)
+=================
+
+Process
+-------
+
+- Start installation scheme migration from ``distutils`` to ``sysconfig``. A
+  warning is implemented to detect differences between the two implementations to
+  encourage user reports, so we can avoid breakages before they happen.
+
+Features
+--------
+
+- Add the ability for the new resolver to process URL constraints. (`#8253 <https://github.com/pypa/pip/issues/8253>`_)
+- Add a feature ``--use-feature=in-tree-build`` to build local projects in-place
+  when installing. This is expected to become the default behavior in pip 21.3;
+  see `Installing from local packages <https://pip.pypa.io/en/stable/user_guide/#installing-from-local-packages>`_
+  for more information. (`#9091 <https://github.com/pypa/pip/issues/9091>`_)
+- Bring back the "(from versions: ...)" message, that was shown on resolution failures. (`#9139 <https://github.com/pypa/pip/issues/9139>`_)
+- Add support for editable installs for project with only setup.cfg files. (`#9547 <https://github.com/pypa/pip/issues/9547>`_)
+- Improve performance when picking the best file from indexes during ``pip install``. (`#9748 <https://github.com/pypa/pip/issues/9748>`_)
+- Warn instead of erroring out when doing a PEP 517 build in presence of
+  ``--build-option``. Warn when doing a PEP 517 build in presence of
+  ``--global-option``. (`#9774 <https://github.com/pypa/pip/issues/9774>`_)
+
+Bug Fixes
+---------
+
+- Fixed ``--target`` to work with ``--editable`` installs. (`#4390 <https://github.com/pypa/pip/issues/4390>`_)
+- Add a warning, discouraging the usage of pip as root, outside a virtual environment. (`#6409 <https://github.com/pypa/pip/issues/6409>`_)
+- Ignore ``.dist-info`` directories if the stem is not a valid Python distribution
+  name, so they don't show up in e.g. ``pip freeze``. (`#7269 <https://github.com/pypa/pip/issues/7269>`_)
+- Only query the keyring for URLs that actually trigger error 401.
+  This prevents an unnecessary keyring unlock prompt on every pip install
+  invocation (even with default index URL which is not password protected). (`#8090 <https://github.com/pypa/pip/issues/8090>`_)
+- Prevent packages already-installed alongside with pip to be injected into an
+  isolated build environment during build-time dependency population. (`#8214 <https://github.com/pypa/pip/issues/8214>`_)
+- Fix ``pip freeze`` permission denied error in order to display an understandable error message and offer solutions. (`#8418 <https://github.com/pypa/pip/issues/8418>`_)
+- Correctly uninstall script files (from setuptools' ``scripts`` argument), when installed with ``--user``. (`#8733 <https://github.com/pypa/pip/issues/8733>`_)
+- New resolver: When a requirement is requested both via a direct URL
+  (``req @ URL``) and via version specifier with extras (``req[extra]``), the
+  resolver will now be able to use the URL to correctly resolve the requirement
+  with extras. (`#8785 <https://github.com/pypa/pip/issues/8785>`_)
+- New resolver: Show relevant entries from user-supplied constraint files in the
+  error message to improve debuggability. (`#9300 <https://github.com/pypa/pip/issues/9300>`_)
+- Avoid parsing version to make the version check more robust against lousily
+  debundled downstream distributions. (`#9348 <https://github.com/pypa/pip/issues/9348>`_)
+- ``--user`` is no longer suggested incorrectly when pip fails with a permission
+  error in a virtual environment. (`#9409 <https://github.com/pypa/pip/issues/9409>`_)
+- Fix incorrect reporting on ``Requires-Python`` conflicts. (`#9541 <https://github.com/pypa/pip/issues/9541>`_)
+- Make wheel compatibility tag preferences more important than the build tag (`#9565 <https://github.com/pypa/pip/issues/9565>`_)
+- Fix pip to work with warnings converted to errors. (`#9779 <https://github.com/pypa/pip/issues/9779>`_)
+- **SECURITY**: Stop splitting on unicode separators in git references,
+  which could be maliciously used to install a different revision on the
+  repository. (`#9827 <https://github.com/pypa/pip/issues/9827>`_)
+
+Vendored Libraries
+------------------
+
+- Update urllib3 to 1.26.4 to fix CVE-2021-28363
+- Remove contextlib2.
+- Upgrade idna to 3.1
+- Upgrade pep517 to 0.10.0
+- Upgrade vendored resolvelib to 0.7.0.
+- Upgrade tenacity to 7.0.0
+
+Improved Documentation
+----------------------
+
+- Update "setuptools extras" link to match upstream. (`#4822829F-6A45-4202-87BA-A80482DF6D4E <https://github.com/pypa/pip/issues/4822829F-6A45-4202-87BA-A80482DF6D4E>`_)
+- Improve SSL Certificate Verification docs and ``--cert`` help text. (`#6720 <https://github.com/pypa/pip/issues/6720>`_)
+- Add a section in the documentation to suggest solutions to the ``pip freeze`` permission denied issue. (`#8418 <https://github.com/pypa/pip/issues/8418>`_)
+- Add warning about ``--extra-index-url`` and dependency confusion (`#9647 <https://github.com/pypa/pip/issues/9647>`_)
+- Describe ``--upgrade-strategy`` and direct requirements explicitly; add a brief
+  example. (`#9692 <https://github.com/pypa/pip/issues/9692>`_)
+
+
+21.0.1 (2021-01-30)
+===================
+
+Bug Fixes
+---------
+
+- commands: debug: Use packaging.version.parse to compare between versions. (`#9461 <https://github.com/pypa/pip/issues/9461>`_)
+- New resolver: Download and prepare a distribution only at the last possible
+  moment to avoid unnecessary network access when the same version is already
+  installed locally. (`#9516 <https://github.com/pypa/pip/issues/9516>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade packaging to 20.9
+
+
+21.0 (2021-01-23)
+=================
+
+Deprecations and Removals
+-------------------------
+
+- Drop support for Python 2. (`#6148 <https://github.com/pypa/pip/issues/6148>`_)
+- Remove support for legacy wheel cache entries that were created with pip
+  versions older than 20.0. (`#7502 <https://github.com/pypa/pip/issues/7502>`_)
+- Remove support for VCS pseudo URLs editable requirements. It was emitting
+  deprecation warning since version 20.0. (`#7554 <https://github.com/pypa/pip/issues/7554>`_)
+- Modernise the codebase after Python 2. (`#8802 <https://github.com/pypa/pip/issues/8802>`_)
+- Drop support for Python 3.5. (`#9189 <https://github.com/pypa/pip/issues/9189>`_)
+- Remove the VCS export feature that was used only with editable VCS
+  requirements and had correctness issues. (`#9338 <https://github.com/pypa/pip/issues/9338>`_)
+
+Features
+--------
+
+- Add ``--ignore-requires-python`` support to pip download. (`#1884 <https://github.com/pypa/pip/issues/1884>`_)
+- New resolver: Error message shown when a wheel contains inconsistent metadata
+  is made more helpful by including both values from the file name and internal
+  metadata. (`#9186 <https://github.com/pypa/pip/issues/9186>`_)
+
+Bug Fixes
+---------
+
+- Fix a regression that made ``pip wheel`` do a VCS export instead of a VCS clone
+  for editable requirements. This broke VCS requirements that need the VCS
+  information to build correctly. (`#9273 <https://github.com/pypa/pip/issues/9273>`_)
+- Fix ``pip download`` of editable VCS requirements that need VCS information
+  to build correctly. (`#9337 <https://github.com/pypa/pip/issues/9337>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade msgpack to 1.0.2.
+- Upgrade requests to 2.25.1.
+
+Improved Documentation
+----------------------
+
+- Render the unreleased pip version change notes on the news page in docs. (`#9172 <https://github.com/pypa/pip/issues/9172>`_)
+- Fix broken email link in docs feedback banners. (`#9343 <https://github.com/pypa/pip/issues/9343>`_)
+
+
+20.3.4 (2021-01-23)
+===================
+
+Features
+--------
+
+- ``pip wheel`` now verifies the built wheel contains valid metadata, and can be
+  installed by a subsequent ``pip install``. This can be disabled with
+  ``--no-verify``. (`#9206 <https://github.com/pypa/pip/issues/9206>`_)
+- Improve presentation of XMLRPC errors in pip search. (`#9315 <https://github.com/pypa/pip/issues/9315>`_)
+
+Bug Fixes
+---------
+
+- Fixed hanging VCS subprocess calls when the VCS outputs a large amount of data
+  on stderr. Restored logging of VCS errors that was inadvertently removed in pip
+  20.2. (`#8876 <https://github.com/pypa/pip/issues/8876>`_)
+- Fix error when an existing incompatibility is unable to be applied to a backtracked state. (`#9180 <https://github.com/pypa/pip/issues/9180>`_)
+- New resolver: Discard a faulty distribution, instead of quitting outright.
+  This implementation is taken from 20.2.2, with a fix that always makes the
+  resolver iterate through candidates from indexes lazily, to avoid downloading
+  candidates we do not need. (`#9203 <https://github.com/pypa/pip/issues/9203>`_)
+- New resolver: Discard a source distribution if it fails to generate metadata,
+  instead of quitting outright. This implementation is taken from 20.2.2, with a
+  fix that always makes the resolver iterate through candidates from indexes
+  lazily, to avoid downloading candidates we do not need. (`#9246 <https://github.com/pypa/pip/issues/9246>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade resolvelib to 0.5.4.
+
+
 20.3.3 (2020-12-15)
 ===================
 
@@ -142,7 +712,7 @@ Features
 - When installing a git URL that refers to a commit that is not available locally
   after git clone, attempt to fetch it from the remote. (`#8815 <https://github.com/pypa/pip/issues/8815>`_)
 - Include http subdirectory in ``pip cache info`` and ``pip cache purge`` commands. (`#8892 <https://github.com/pypa/pip/issues/8892>`_)
-- Cache package listings on index packages so they are guarenteed to stay stable
+- Cache package listings on index packages so they are guaranteed to stay stable
   during a pip command session. This also improves performance when a index page
   is accessed multiple times during the command session. (`#8905 <https://github.com/pypa/pip/issues/8905>`_)
 - New resolver: Tweak resolution logic to improve user experience when
@@ -214,7 +784,7 @@ Features
   and considered good enough. (`#8023 <https://github.com/pypa/pip/issues/8023>`_)
 - Improve error message friendliness when an environment has packages with
   corrupted metadata. (`#8676 <https://github.com/pypa/pip/issues/8676>`_)
-- Cache package listings on index packages so they are guarenteed to stay stable
+- Cache package listings on index packages so they are guaranteed to stay stable
   during a pip command session. This also improves performance when a index page
   is accessed multiple times during the command session. (`#8905 <https://github.com/pypa/pip/issues/8905>`_)
 - New resolver: Tweak resolution logic to improve user experience when

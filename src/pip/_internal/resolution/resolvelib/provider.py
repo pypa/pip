@@ -1,14 +1,31 @@
+import collections
+import math
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    Iterable,
+    Iterator,
+    Mapping,
+    Sequence,
+    TypeVar,
+    Union,
+)
+
 from pip._vendor.resolvelib.providers import AbstractProvider
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from .base import Candidate, Constraint, Requirement
+from .candidates import REQUIRES_PYTHON_IDENTIFIER
+from .factory import Factory
 
-from .base import Constraint
+if TYPE_CHECKING:
+    from pip._vendor.resolvelib.providers import Preference
+    from pip._vendor.resolvelib.resolvers import RequirementInformation
 
-if MYPY_CHECK_RUNNING:
-    from typing import Any, Dict, Iterable, Optional, Sequence, Set, Tuple, Union
+    PreferenceInformation = RequirementInformation[Requirement, Candidate]
 
-    from .base import Candidate, Requirement
-    from .factory import Factory
+    _ProviderBase = AbstractProvider[Requirement, Candidate, str]
+else:
+    _ProviderBase = AbstractProvider
 
 # Notes on the relationship between the provider, the factory, and the
 # candidate and requirement classes.
@@ -29,7 +46,36 @@ if MYPY_CHECK_RUNNING:
 # services to those objects (access to pip's finder and preparer).
 
 
-class PipProvider(AbstractProvider):
+D = TypeVar("D")
+V = TypeVar("V")
+
+
+def _get_with_identifier(
+    mapping: Mapping[str, V],
+    identifier: str,
+    default: D,
+) -> Union[D, V]:
+    """Get item from a package name lookup mapping with a resolver identifier.
+
+    This extra logic is needed when the target mapping is keyed by package
+    name, which cannot be directly looked up with an identifier (which may
+    contain requested extras). Additional logic is added to also look up a value
+    by "cleaning up" the extras from the identifier.
+    """
+    if identifier in mapping:
+        return mapping[identifier]
+    # HACK: Theoretically we should check whether this identifier is a valid
+    # "NAME[EXTRAS]" format, and parse out the name part with packaging or
+    # some regular expression. But since pip's resolver only spits out three
+    # kinds of identifiers: normalized PEP 503 names, normalized names plus
+    # extras, and Requires-Python, we can cheat a bit here.
+    name, open_bracket, _ = identifier.partition("[")
+    if open_bracket and name in mapping:
+        return mapping[name]
+    return default
+
+
+class PipProvider(_ProviderBase):
     """Pip's provider implementation for resolvelib.
 
     :params constraints: A mapping of constraints specified by the user. Keys
@@ -42,30 +88,30 @@ class PipProvider(AbstractProvider):
 
     def __init__(
         self,
-        factory,  # type: Factory
-        constraints,  # type: Dict[str, Constraint]
-        ignore_dependencies,  # type: bool
-        upgrade_strategy,  # type: str
-        user_requested,  # type: Set[str]
-    ):
-        # type: (...) -> None
+        factory: Factory,
+        constraints: Dict[str, Constraint],
+        ignore_dependencies: bool,
+        upgrade_strategy: str,
+        user_requested: Dict[str, int],
+    ) -> None:
         self._factory = factory
         self._constraints = constraints
         self._ignore_dependencies = ignore_dependencies
         self._upgrade_strategy = upgrade_strategy
         self._user_requested = user_requested
+        self._known_depths: Dict[str, float] = collections.defaultdict(lambda: math.inf)
 
-    def identify(self, dependency):
-        # type: (Union[Requirement, Candidate]) -> str
-        return dependency.name
+    def identify(self, requirement_or_candidate: Union[Requirement, Candidate]) -> str:
+        return requirement_or_candidate.name
 
-    def get_preference(
+    def get_preference(  # type: ignore
         self,
-        resolution,  # type: Optional[Candidate]
-        candidates,  # type: Sequence[Candidate]
-        information  # type: Sequence[Tuple[Requirement, Candidate]]
-    ):
-        # type: (...) -> Any
+        identifier: str,
+        resolutions: Mapping[str, Candidate],
+        candidates: Mapping[str, Iterator[Candidate]],
+        information: Mapping[str, Iterable["PreferenceInformation"]],
+        backtrack_causes: Sequence["PreferenceInformation"],
+    ) -> "Preference":
         """Produce a sort key for given requirement based on preference.
 
         The lower the return value is, the more preferred this group of
@@ -73,50 +119,47 @@ class PipProvider(AbstractProvider):
 
         Currently pip considers the followings in order:
 
-        * Prefer if any of the known requirements points to an explicit URL.
-        * If equal, prefer if any requirements contain ``===`` and ``==``.
-        * If equal, prefer if requirements include version constraints, e.g.
-          ``>=`` and ``<``.
-        * If equal, prefer user-specified (non-transitive) requirements.
+        * Prefer if any of the known requirements is "direct", e.g. points to an
+          explicit URL.
+        * If equal, prefer if any requirement is "pinned", i.e. contains
+          operator ``===`` or ``==``.
+        * If equal, calculate an approximate "depth" and resolve requirements
+          closer to the user-specified requirements first.
+        * Order user-specified requirements by the order they are specified.
+        * If equal, prefers "non-free" requirements, i.e. contains at least one
+          operator, such as ``>=`` or ``<``.
         * If equal, order alphabetically for consistency (helps debuggability).
         """
+        lookups = (r.get_candidate_lookup() for r, _ in information[identifier])
+        candidate, ireqs = zip(*lookups)
+        operators = [
+            specifier.operator
+            for specifier_set in (ireq.specifier for ireq in ireqs if ireq)
+            for specifier in specifier_set
+        ]
 
-        def _get_restrictive_rating(requirements):
-            # type: (Iterable[Requirement]) -> int
-            """Rate how restrictive a set of requirements are.
+        direct = candidate is not None
+        pinned = any(op[:2] == "==" for op in operators)
+        unfree = bool(operators)
 
-            ``Requirement.get_candidate_lookup()`` returns a 2-tuple for
-            lookup. The first element is ``Optional[Candidate]`` and the
-            second ``Optional[InstallRequirement]``.
+        try:
+            requested_order: Union[int, float] = self._user_requested[identifier]
+        except KeyError:
+            requested_order = math.inf
+            parent_depths = (
+                self._known_depths[parent.name] if parent is not None else 0.0
+                for _, parent in information[identifier]
+            )
+            inferred_depth = min(d for d in parent_depths) + 1.0
+        else:
+            inferred_depth = 1.0
+        self._known_depths[identifier] = inferred_depth
 
-            * If the requirement is an explicit one, the explicitly-required
-              candidate is returned as the first element.
-            * If the requirement is based on a PEP 508 specifier, the backing
-              ``InstallRequirement`` is returned as the second element.
+        requested_order = self._user_requested.get(identifier, math.inf)
 
-            We use the first element to check whether there is an explicit
-            requirement, and the second for equality operator.
-            """
-            lookups = (r.get_candidate_lookup() for r in requirements)
-            cands, ireqs = zip(*lookups)
-            if any(cand is not None for cand in cands):
-                return 0
-            spec_sets = (ireq.specifier for ireq in ireqs if ireq)
-            operators = [
-                specifier.operator
-                for spec_set in spec_sets
-                for specifier in spec_set
-            ]
-            if any(op in ("==", "===") for op in operators):
-                return 1
-            if operators:
-                return 2
-            # A "bare" requirement without any version requirements.
-            return 3
-
-        restrictive = _get_restrictive_rating(req for req, _ in information)
-        transitive = all(parent is not None for _, parent in information)
-        key = next(iter(candidates)).name if candidates else ""
+        # Requires-Python has only one candidate and the check is basically
+        # free, so we always do it first to avoid needless work if it fails.
+        requires_python = identifier == REQUIRES_PYTHON_IDENTIFIER
 
         # HACK: Setuptools have a very long and solid backward compatibility
         # track record, and extremely few projects would request a narrow,
@@ -124,20 +167,34 @@ class PipProvider(AbstractProvider):
         # (Most projects specify it only to request for an installer feature,
         # which does not work, but that's another topic.) Intentionally
         # delaying Setuptools helps reduce branches the resolver has to check.
-        # This serves as a temporary fix for issues like "apache-airlfow[all]"
+        # This serves as a temporary fix for issues like "apache-airflow[all]"
         # while we work on "proper" branch pruning techniques.
-        delay_this = (key == "setuptools")
+        delay_this = identifier == "setuptools"
 
-        return (delay_this, restrictive, transitive, key)
+        # Prefer the causes of backtracking on the assumption that the problem
+        # resolving the dependency tree is related to the failures that caused
+        # the backtracking
+        backtrack_cause = self.is_backtrack_cause(identifier, backtrack_causes)
 
-    def find_matches(self, requirements):
-        # type: (Sequence[Requirement]) -> Iterable[Candidate]
-        if not requirements:
-            return []
-        name = requirements[0].project_name
+        return (
+            not requires_python,
+            delay_this,
+            not direct,
+            not pinned,
+            not backtrack_cause,
+            inferred_depth,
+            requested_order,
+            not unfree,
+            identifier,
+        )
 
-        def _eligible_for_upgrade(name):
-            # type: (str) -> bool
+    def find_matches(
+        self,
+        identifier: str,
+        requirements: Mapping[str, Iterator[Requirement]],
+        incompatibilities: Mapping[str, Iterator[Candidate]],
+    ) -> Iterable[Candidate]:
+        def _eligible_for_upgrade(identifier: str) -> bool:
             """Are upgrades allowed for this project?
 
             This checks the upgrade strategy, and whether the project was one
@@ -151,24 +208,41 @@ class PipProvider(AbstractProvider):
             if self._upgrade_strategy == "eager":
                 return True
             elif self._upgrade_strategy == "only-if-needed":
-                return (name in self._user_requested)
+                user_order = _get_with_identifier(
+                    self._user_requested,
+                    identifier,
+                    default=None,
+                )
+                return user_order is not None
             return False
 
+        constraint = _get_with_identifier(
+            self._constraints,
+            identifier,
+            default=Constraint.empty(),
+        )
         return self._factory.find_candidates(
-            requirements,
-            constraint=self._constraints.get(name, Constraint.empty()),
-            prefers_installed=(not _eligible_for_upgrade(name)),
+            identifier=identifier,
+            requirements=requirements,
+            constraint=constraint,
+            prefers_installed=(not _eligible_for_upgrade(identifier)),
+            incompatibilities=incompatibilities,
         )
 
-    def is_satisfied_by(self, requirement, candidate):
-        # type: (Requirement, Candidate) -> bool
+    def is_satisfied_by(self, requirement: Requirement, candidate: Candidate) -> bool:
         return requirement.is_satisfied_by(candidate)
 
-    def get_dependencies(self, candidate):
-        # type: (Candidate) -> Sequence[Requirement]
+    def get_dependencies(self, candidate: Candidate) -> Sequence[Requirement]:
         with_requires = not self._ignore_dependencies
-        return [
-            r
-            for r in candidate.iter_dependencies(with_requires)
-            if r is not None
-        ]
+        return [r for r in candidate.iter_dependencies(with_requires) if r is not None]
+
+    @staticmethod
+    def is_backtrack_cause(
+        identifier: str, backtrack_causes: Sequence["PreferenceInformation"]
+    ) -> bool:
+        for backtrack_cause in backtrack_causes:
+            if identifier == backtrack_cause.requirement.name:
+                return True
+            if backtrack_cause.parent and identifier == backtrack_cause.parent.name:
+                return True
+        return False

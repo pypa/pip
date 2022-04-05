@@ -1,11 +1,11 @@
-# Ref: https://help.github.com/en/github/building-a-strong-community/configuring-issue-templates-for-your-repository#configuring-the-template-chooser
-blank_issues_enabled: true  # default
+# Documentation for this file can be found at:
+# https://help.github.com/en/github/building-a-strong-community/configuring-issue-templates-for-your-repository
+
+blank_issues_enabled: false
 contact_links:
-- name: 💬 Discourse
-  url: https://discuss.python.org/c/packaging
-  about: |
-    Please ask typical Q&A here: general ideas for Python packaging,
-    questions about structuring projects and so on
-- name: '💬 IRC: #pypa @ Freenode'
-  url: https://webchat.freenode.net/#pypa
-  about: Chat with devs
+  - name: "💬 IRC: #pypa"
+    url: https://kiwiirc.com/nextclient/#ircs://irc.libera.chat:+6697/pypa
+    about: Chat with devs
+  - name: "(maintainers only) Blank issue"
+    url: https://github.com/pypa/pip/issues/new
+    about: For maintainers only.

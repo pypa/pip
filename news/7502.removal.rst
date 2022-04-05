@@ -1,2 +1,0 @@
-Remove support for legacy wheel cache entries that were created with pip
-versions older than 20.0.

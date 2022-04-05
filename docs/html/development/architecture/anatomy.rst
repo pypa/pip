@@ -30,7 +30,6 @@ The ``README``, license, ``pyproject.toml``, ``setup.py``, and so on are in the 
 * ``.gitignore``
 * ``.mailmap``
 * ``.readthedocs.yml``
-* ``.travis.yml``
 * ``docs/`` *[documentation, built with Sphinx]*
 
   * ``html/`` *[sources to HTML documentation avail. online]*
@@ -47,14 +46,12 @@ The ``README``, license, ``pyproject.toml``, ``setup.py``, and so on are in the 
 
   * ``__init__.py``
   * ``conftest.py``
-  * ``data/`` *[test data for running tests -- pesudo package index in it!  Lots of small packages that are invalid or are valid. Test fixtures.  Used by functional tests]*
+  * ``data/`` *[test data for running tests -- pseudo package index in it!  Lots of small packages that are invalid or are valid. Test fixtures.  Used by functional tests]*
   * ``functional/`` *[functional tests of pip’s CLI -- end-to-end, invoke pip in subprocess & check results of execution against desired result. This also is what makes test suite slow]*
   * ``lib/`` *[helpers for tests]*
   * ``unit/`` *[unit tests -- fast and small and nice!]*
-  * ``yaml/`` *[resolver tests! They’re written in YAML. This folder just contains .yaml files -- actual code for reading/running them is in lib/yaml.py . This is fine!]*
 
-* ``tools`` *[misc development workflow tools, like requirements files & Travis CI files & helpers for tox]*
-* ``.azure-pipelines``
+* ``tools`` *[misc development workflow tools, like requirements files & CI files & helpers for tox]*
 * ``.github``
 * ``.tox``
 
@@ -105,5 +102,5 @@ Within ``src/``:
 
 .. _`tracking issue`: https://github.com/pypa/pip/issues/6831
 .. _GitHub repository: https://github.com/pypa/pip/
-.. _tox.ini: https://github.com/pypa/pip/blob/master/tox.ini
+.. _tox.ini: https://github.com/pypa/pip/blob/main/tox.ini
 .. _improving the pip dependency resolver: https://github.com/pypa/pip/issues/988

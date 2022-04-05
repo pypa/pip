@@ -1,3 +1,0 @@
-Fixed hanging VCS subprocess calls when the VCS outputs a large amount of data
-on stderr. Restored logging of VCS errors that was inadvertently removed in pip
-20.2.

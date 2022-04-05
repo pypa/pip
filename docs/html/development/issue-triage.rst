@@ -137,7 +137,7 @@ The lifecycle of an issue (bug or support) generally looks like:
 #. waiting for triage (marked with label ``triage``)
 #. confirming issue - some discussion with the user, gathering
    details, trying to reproduce the issue (may be marked with a specific
-   category, ``S: awaiting-respose``, ``S: discussion-needed``, or
+   category, ``S: awaiting-response``, ``S: discussion-needed``, or
    ``S: need-repro``)
 #. confirmed - the issue is pretty consistently reproducible in a
    straightforward way, or a mechanism that could be causing the issue has been
@@ -229,7 +229,7 @@ Examples:
   (`link <https://github.com/pypa/pip/issues/6498#issuecomment-513501112>`__)
 - get-pip on system with no ``/usr/lib64``
   (`link <https://github.com/pypa/pip/issues/5379#issuecomment-515270576>`__)
-- reproducing with ``pip`` from master branch
+- reproducing with ``pip`` from current development branch
   (`link <https://github.com/pypa/pip/issues/6707#issue-467770959>`__)
 
 
@@ -285,7 +285,7 @@ An issue may be considered resolved and closed when:
     - already tracked by another issue
 
   - A project-specific issue has been identified and the issue no
-    longer occurs as of the latest commit on the master branch.
+    longer occurs as of the latest commit on the main branch.
 
 - An enhancement or feature request no longer has a proponent and the maintainers
   don't think it's worth keeping open.

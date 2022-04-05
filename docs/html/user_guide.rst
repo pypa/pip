@@ -53,7 +53,7 @@ Specifiers`
 
       py -m pip install SomePackage            # latest version
       py -m pip install SomePackage==1.0.4     # specific version
-      py -m pip install 'SomePackage>=1.0.4'     # minimum version
+      py -m pip install 'SomePackage>=1.0.4'   # minimum version
 
 For more information and examples, see the :ref:`pip install` reference.
 
@@ -63,72 +63,17 @@ For more information and examples, see the :ref:`pip install` reference.
 Basic Authentication Credentials
 ================================
 
-pip supports basic authentication credentials. Basically, in the URL there is
-a username and password separated by ``:``.
-
-``https://[username[:password]@]pypi.company.com/simple``
-
-Certain special characters are not valid in the authentication part of URLs.
-If the user or password part of your login credentials contain any of the
-special characters
-`here <https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters>`_
-then they must be percent-encoded. For example, for a
-user with username "user" and password "he//o" accessing a repository at
-pypi.company.com, the index URL with credentials would look like:
-
-``https://user:he%2F%2Fo@pypi.company.com``
-
-Support for percent-encoded authentication in index URLs was added in pip 10.0.0
-(in `#3236 <https://github.com/pypa/pip/issues/3236>`_). Users that must use authentication
-for their Python repository on systems with older pip versions should make the latest
-get-pip.py available in their environment to bootstrap pip to a recent-enough version.
-
-For indexes that only require single-part authentication tokens, provide the token
-as the "username" and do not provide a password, for example -
-
-``https://0123456789abcdef@pypi.company.com``
-
+This is now covered in :doc:`topics/authentication`.
 
 netrc Support
 -------------
 
-If no credentials are part of the URL, pip will attempt to get authentication credentials
-for the URL’s hostname from the user’s .netrc file. This behaviour comes from the underlying
-use of `requests`_ which in turn delegates it to the `Python standard library`_.
-
-The .netrc file contains login and initialization information used by the auto-login process.
-It resides in the user's home directory. The .netrc file format is simple. You specify lines
-with a machine name and follow that with lines for the login and password that are
-associated with that machine. Machine name is the hostname in your URL.
-
-An example .netrc for the host example.com with a user named 'daniel', using the password
-'qwerty' would look like:
-
-.. code-block:: shell
-
-   machine example.com
-   login daniel
-   password qwerty
-
-As mentioned in the `standard library docs <https://docs.python.org/3/library/netrc.html>`_,
-only ASCII characters are allowed. Whitespace and non-printable characters are not allowed in passwords.
-
+This is now covered in :doc:`topics/authentication`.
 
 Keyring Support
 ---------------
 
-pip also supports credentials stored in your keyring using the `keyring`_
-library. Note that ``keyring`` will need to be installed separately, as pip
-does not come with it included.
-
-.. code-block:: shell
-
-   pip install keyring
-   echo your-password | keyring set pypi.company.com your-username
-   pip install your-package --extra-index-url https://pypi.company.com/
-
-.. _keyring: https://pypi.org/project/keyring/
-
+This is now covered in :doc:`topics/authentication`.
 
 Using a Proxy Server
 ====================
@@ -139,7 +84,7 @@ in many corporate environments requires an outbound HTTP proxy server.
 pip can be configured to connect through a proxy server in various ways:
 
 * using the ``--proxy`` command-line option to specify a proxy in the form
-  ``[user:passwd@]proxy.server:port``
+  ``scheme://[user:passwd@]proxy.server:port``
 * using ``proxy`` in a :ref:`config-file`
 * by setting the standard environment-variables ``http_proxy``, ``https_proxy``
   and ``no_proxy``.
@@ -168,7 +113,7 @@ installed using :ref:`pip install` like so:
 
       py -m pip install -r requirements.txt
 
-Details on the format of the files are here: :ref:`Requirements File Format`.
+Details on the format of the files are here: :ref:`requirements-file-format`.
 
 Logically, a Requirements file is just a list of :ref:`pip install` arguments
 placed in a file. Note that you should not rely on the items in the file being
@@ -177,7 +122,7 @@ installed by pip in any particular order.
 In practice, there are 4 common uses of Requirements files:
 
 1. Requirements files are used to hold the result from :ref:`pip freeze` for the
-   purpose of achieving :ref:`repeatable installations <Repeatability>`.  In
+   purpose of achieving :doc:`topics/repeatable-installs`.  In
    this case, your requirement file contains a pinned version of everything that
    was installed when ``pip freeze`` was run.
 
@@ -235,12 +180,12 @@ In practice, there are 4 common uses of Requirements files:
 
 It's important to be clear that pip determines package dependencies using
 `install_requires metadata
-<https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-dependencies>`_,
+<https://setuptools.readthedocs.io/en/latest/userguide/dependency_management.html>`_,
 not by discovering ``requirements.txt`` files embedded in projects.
 
 See also:
 
-* :ref:`Requirements File Format`
+* :ref:`requirements-file-format`
 * :ref:`pip freeze`
 * `"setup.py vs requirements.txt" (an article by Donald Stufft)
   <https://caremad.io/2013/07/setup-vs-requirement/>`_
@@ -254,9 +199,11 @@ Constraints Files
 
 Constraints files are requirements files that only control which version of a
 requirement is installed, not whether it is installed or not. Their syntax and
-contents is nearly identical to :ref:`Requirements Files`. There is one key
-difference: Including a package in a constraints file does not trigger
-installation of the package.
+contents is a subset of :ref:`Requirements Files`, with several kinds of syntax
+not allowed: constraints must have a name, they cannot be editable, and they
+cannot specify extras. In terms of semantics, there is one key difference:
+Including a package in a constraints file does not trigger installation of the
+package.
 
 Use a constraints file like so:
 
@@ -324,6 +271,26 @@ To install directly from a wheel archive:
 
       py -m pip install SomePackage-1.0-py2.py3-none-any.whl
 
+To include optional dependencies provided in the ``provides_extras``
+metadata in the wheel, you must add quotes around the install target
+name:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install './somepackage-1.0-py2.py3-none-any.whl[my-extras]'
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install './somepackage-1.0-py2.py3-none-any.whl[my-extras]'
+
+.. note::
+
+    In the future, the ``path[extras]`` syntax may become deprecated. It is
+    recommended to use PEP 508 syntax wherever possible.
 
 For the cases where wheels are not available, pip offers :ref:`pip wheel` as a
 convenience, to build wheels for all your requirements and dependencies.
@@ -490,242 +457,26 @@ For more information and examples, see the :ref:`pip search` reference.
 Configuration
 =============
 
+This is now covered in :doc:`topics/configuration`.
+
 .. _config-file:
 
 Config file
 -----------
 
-pip allows you to set all command line option defaults in a standard ini
-style config file.
-
-The names and locations of the configuration files vary slightly across
-platforms. You may have per-user, per-virtualenv or global (shared amongst
-all users) configuration:
-
-**Per-user**:
-
-* On Unix the default configuration file is: :file:`$HOME/.config/pip/pip.conf`
-  which respects the ``XDG_CONFIG_HOME`` environment variable.
-* On macOS the configuration file is
-  :file:`$HOME/Library/Application Support/pip/pip.conf`
-  if directory ``$HOME/Library/Application Support/pip`` exists
-  else :file:`$HOME/.config/pip/pip.conf`.
-* On Windows the configuration file is :file:`%APPDATA%\\pip\\pip.ini`.
-
-There is also a legacy per-user configuration file which is also respected.
-To find its location:
-
-* On Unix and macOS the configuration file is: :file:`$HOME/.pip/pip.conf`
-* On Windows the configuration file is: :file:`%HOME%\\pip\\pip.ini`
-
-You can set a custom path location for this config file using the environment
-variable ``PIP_CONFIG_FILE``.
-
-**Inside a virtualenv**:
-
-* On Unix and macOS the file is :file:`$VIRTUAL_ENV/pip.conf`
-* On Windows the file is: :file:`%VIRTUAL_ENV%\\pip.ini`
-
-**Global**:
-
-* On Unix the file may be located in :file:`/etc/pip.conf`. Alternatively
-  it may be in a "pip" subdirectory of any of the paths set in the
-  environment variable ``XDG_CONFIG_DIRS`` (if it exists), for example
-  :file:`/etc/xdg/pip/pip.conf`.
-* On macOS the file is: :file:`/Library/Application Support/pip/pip.conf`
-* On Windows XP the file is:
-  :file:`C:\\Documents and Settings\\All Users\\Application Data\\pip\\pip.ini`
-* On Windows 7 and later the file is hidden, but writeable at
-  :file:`C:\\ProgramData\\pip\\pip.ini`
-* Global configuration is not supported on Windows Vista.
-
-The global configuration file is shared by all Python installations.
-
-If multiple configuration files are found by pip then they are combined in
-the following order:
-
-1. The global file is read
-2. The per-user file is read
-3. The virtualenv-specific file is read
-
-Each file read overrides any values read from previous files, so if the
-global timeout is specified in both the global file and the per-user file
-then the latter value will be used.
-
-The names of the settings are derived from the long command line option, e.g.
-if you want to use a different package index (``--index-url``) and set the
-HTTP timeout (``--default-timeout``) to 60 seconds your config file would
-look like this:
-
-.. code-block:: ini
-
-    [global]
-    timeout = 60
-    index-url = https://download.zope.org/ppix
-
-Each subcommand can be configured optionally in its own section so that every
-global setting with the same name will be overridden; e.g. decreasing the
-``timeout`` to ``10`` seconds when running the ``freeze``
-(:ref:`pip freeze`) command and using
-``60`` seconds for all other commands is possible with:
-
-.. code-block:: ini
-
-    [global]
-    timeout = 60
-
-    [freeze]
-    timeout = 10
-
-
-Boolean options like ``--ignore-installed`` or ``--no-dependencies`` can be
-set like this:
-
-.. code-block:: ini
-
-    [install]
-    ignore-installed = true
-    no-dependencies = yes
-
-To enable the boolean options ``--no-compile``, ``--no-warn-script-location``
-and ``--no-cache-dir``, falsy values have to be used:
-
-.. code-block:: ini
-
-    [global]
-    no-cache-dir = false
-
-    [install]
-    no-compile = no
-    no-warn-script-location = false
-
-For options which can be repeated like ``--verbose`` and ``--quiet``,
-a non-negative integer can be used to represent the level to be specified:
-
-.. code-block:: ini
-
-    [global]
-    quiet = 0
-    verbose = 2
-
-It is possible to append values to a section within a configuration file such as the pip.ini file.
-This is applicable to appending options like ``--find-links`` or ``--trusted-host``,
-which can be written on multiple lines:
-
-.. code-block:: ini
-
-    [global]
-    find-links =
-        http://download.example.com
-
-    [install]
-    find-links =
-        http://mirror1.example.com
-        http://mirror2.example.com
-
-    trusted-host =
-        mirror1.example.com
-        mirror2.example.com
-
-This enables users to add additional values in the order of entry for such command line arguments.
-
+This is now covered in :doc:`topics/configuration`.
 
 Environment Variables
 ---------------------
 
-pip's command line options can be set with environment variables using the
-format ``PIP_<UPPER_LONG_NAME>`` . Dashes (``-``) have to be replaced with
-underscores (``_``).
-
-For example, to set the default timeout:
-
-.. tab:: Unix/macOS
-
-   .. code-block:: shell
-
-      export PIP_DEFAULT_TIMEOUT=60
-
-.. tab:: Windows
-
-   .. code-block:: shell
-
-      set PIP_DEFAULT_TIMEOUT=60
-
-This is the same as passing the option to pip directly:
-
-.. tab:: Unix/macOS
-
-   .. code-block:: shell
-
-      python -m pip --default-timeout=60 [...]
-
-.. tab:: Windows
-
-   .. code-block:: shell
-
-      py -m pip --default-timeout=60 [...]
-
-For command line options which can be repeated, use a space to separate
-multiple values. For example:
-
-.. tab:: Unix/macOS
-
-   .. code-block:: shell
-
-      export PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
-
-.. tab:: Windows
-
-   .. code-block:: shell
-
-      set PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
-
-is the same as calling:
-
-.. tab:: Unix/macOS
-
-   .. code-block:: shell
-
-      python -m pip install --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
-
-.. tab:: Windows
-
-   .. code-block:: shell
-
-      py -m pip install --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
-
-Options that do not take a value, but can be repeated (such as ``--verbose``)
-can be specified using the number of repetitions, so::
-
-    export PIP_VERBOSE=3
-
-is the same as calling::
-
-    pip install -vvv
-
-.. note::
-
-   Environment variables set to be empty string will not be treated as false.
-   Please use ``no``, ``false`` or ``0`` instead.
-
+This is now covered in :doc:`topics/configuration`.
 
 .. _config-precedence:
 
 Config Precedence
 -----------------
 
-Command line options have precedence over environment variables, which have
-precedence over the config file.
-
-Within the config file, command specific sections have precedence over the
-global section.
-
-Examples:
-
-- ``--host=foo`` overrides ``PIP_HOST=foo``
-- ``PIP_HOST=foo`` overrides a config file with ``[global] host = foo``
-- A command specific section in the config file ``[<command>] host = bar``
-  overrides the option with same name in the ``[global]`` config file section
+This is now covered in :doc:`topics/configuration`.
 
 
 Command Completion
@@ -824,6 +575,21 @@ strategies supported:
 
 The default strategy is ``only-if-needed``. This was changed in pip 10.0 due to
 the breaking nature of ``eager`` when upgrading conflicting dependencies.
+
+It is important to note that ``--upgrade`` affects *direct requirements* (e.g.
+those specified on the command-line or via a requirements file) while
+``--upgrade-strategy`` affects *indirect requirements* (dependencies of direct
+requirements).
+
+As an example, say ``SomePackage`` has a dependency, ``SomeDependency``, and
+both of them are already installed but are not the latest available versions:
+
+- ``pip install SomePackage``: will not upgrade the existing ``SomePackage`` or
+  ``SomeDependency``.
+- ``pip install --upgrade SomePackage``: will upgrade ``SomePackage``, but not
+  ``SomeDependency`` (unless a minimum requirement is not met).
+- ``pip install --upgrade SomePackage --upgrade-strategy=eager``: upgrades both
+  ``SomePackage`` and ``SomeDependency``.
 
 As an historic note, an earlier "fix" for getting the ``only-if-needed``
 behaviour was:
@@ -1016,522 +782,14 @@ is the latest version:
 Ensuring Repeatability
 ======================
 
-pip can achieve various levels of repeatability:
-
-Pinned Version Numbers
-----------------------
-
-Pinning the versions of your dependencies in the requirements file
-protects you from bugs or incompatibilities in newly released versions::
-
-    SomePackage == 1.2.3
-    DependencyOfSomePackage == 4.5.6
-
-Using :ref:`pip freeze` to generate the requirements file will ensure that not
-only the top-level dependencies are included but their sub-dependencies as
-well, and so on. Perform the installation using :ref:`--no-deps
-<install_--no-deps>` for an extra dose of insurance against installing
-anything not explicitly listed.
-
-This strategy is easy to implement and works across OSes and architectures.
-However, it trusts PyPI and the certificate authority chain. It
-also relies on indices and find-links locations not allowing
-packages to change without a version increase. (PyPI does protect
-against this.)
-
-Hash-checking Mode
-------------------
-
-Beyond pinning version numbers, you can add hashes against which to verify
-downloaded packages::
-
-    FooProject == 1.2 --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824
-
-This protects against a compromise of PyPI or the HTTPS
-certificate chain. It also guards against a package changing
-without its version number changing (on indexes that allow this).
-This approach is a good fit for automated server deployments.
-
-Hash-checking mode is a labor-saving alternative to running a private index
-server containing approved packages: it removes the need to upload packages,
-maintain ACLs, and keep an audit trail (which a VCS gives you on the
-requirements file for free). It can also substitute for a vendor library,
-providing easier upgrades and less VCS noise. It does not, of course,
-provide the availability benefits of a private index or a vendor library.
-
-For more, see
-:ref:`pip install\'s discussion of hash-checking mode <hash-checking mode>`.
-
-.. _`Installation Bundle`:
-
-Installation Bundles
---------------------
-
-Using :ref:`pip wheel`, you can bundle up all of a project's dependencies, with
-any compilation done, into a single archive. This allows installation when
-index servers are unavailable and avoids time-consuming recompilation. Create
-an archive like this::
-
-    $ tempdir=$(mktemp -d /tmp/wheelhouse-XXXXX)
-    $ python -m pip wheel -r requirements.txt --wheel-dir=$tempdir
-    $ cwd=`pwd`
-    $ (cd "$tempdir"; tar -cjvf "$cwd/bundled.tar.bz2" *)
-
-You can then install from the archive like this::
-
-    $ tempdir=$(mktemp -d /tmp/wheelhouse-XXXXX)
-    $ (cd $tempdir; tar -xvf /path/to/bundled.tar.bz2)
-    $ python -m pip install --force-reinstall --ignore-installed --upgrade --no-index --no-deps $tempdir/*
-
-Note that compiled packages are typically OS- and architecture-specific, so
-these archives are not necessarily portable across machines.
-
-Hash-checking mode can be used along with this method to ensure that future
-archives are built with identical packages.
-
-.. warning::
-
-    Finally, beware of the ``setup_requires`` keyword arg in :file:`setup.py`.
-    The (rare) packages that use it will cause those dependencies to be
-    downloaded by setuptools directly, skipping pip's protections. If you need
-    to use such a package, see :ref:`Controlling
-    setup_requires<controlling-setup-requires>`.
+This is now covered in :doc:`../topics/repeatable-installs`.
 
 .. _`Fixing conflicting dependencies`:
 
 Fixing conflicting dependencies
 ===============================
 
-The purpose of this section of documentation is to provide practical suggestions to
-pip users who encounter an error where pip cannot install their
-specified packages due to conflicting dependencies (a
-``ResolutionImpossible`` error).
-
-This documentation is specific to the new resolver, which is the
-default behavior in pip 20.3 and later. If you are using pip 20.2, you
-can invoke the new resolver by using the flag
-``--use-feature=2020-resolver``.
-
-Understanding your error message
---------------------------------
-
-When you get a ``ResolutionImpossible`` error, you might see something
-like this:
-
-.. tab:: Unix/macOS
-
-   .. code-block:: shell
-
-      python -m pip install package_coffee==0.44.1 package_tea==4.3.0
-
-.. tab:: Windows
-
-   .. code-block:: shell
-
-      py -m pip install package_coffee==0.44.1 package_tea==4.3.0
-
-::
-
-   Due to conflicting dependencies pip cannot install
-   package_coffee and package_tea:
-   - package_coffee depends on package_water<3.0.0,>=2.4.2
-   - package_tea depends on package_water==2.3.1
-
-In this example, pip cannot install the packages you have requested,
-because they each depend on different versions of the same package
-(``package_water``):
-
-- ``package_coffee`` version ``0.44.1`` depends on a version of
-  ``package_water`` that is less than ``3.0.0`` but greater than or equal to
-  ``2.4.2``
-- ``package_tea`` version ``4.3.0`` depends on version ``2.3.1`` of
-  ``package_water``
-
-Sometimes these messages are straightforward to read, because they use
-commonly understood comparison operators to specify the required version
-(e.g. ``<`` or ``>``).
-
-However, Python packaging also supports some more complex ways for
-specifying package versions (e.g. ``~=`` or ``*``):
-
-+----------+---------------------------------+--------------------------------+
-| Operator | Description                     | Example                        |
-+==========+=================================+================================+
-|  ``>``   | Any version greater than        | ``>3.1``: any version          |
-|          | the specified version.          | greater than ``3.1``.          |
-+----------+---------------------------------+--------------------------------+
-|  ``<``   | Any version less than           | ``<3.1``: any version          |
-|          | the specified version.          | less than ``3.1``.             |
-+----------+---------------------------------+--------------------------------+
-|  ``<=``  | Any version less than or        | ``<=3.1``: any version         |
-|          | equal to the specified version. | less than or equal to ``3.1``. |
-+----------+---------------------------------+--------------------------------+
-|  ``>=``  | Any version greater than or     | ``>=3.1``:                     |
-|          | equal to the specified version. | version ``3.1`` and greater.   |
-+----------+---------------------------------+--------------------------------+
-|  ``==``  | Exactly the specified version.  | ``==3.1``: only ``3.1``.       |
-+----------+---------------------------------+--------------------------------+
-|  ``!=``  | Any version not equal           | ``!=3.1``: any version         |
-|          | to the specified version.       | other than ``3.1``.            |
-+----------+---------------------------------+--------------------------------+
-|  ``~=``  | Any compatible release.         | ``~=3.1``: version ``3.1``     |
-|          | Compatible releases are         | or later, but not              |
-|          | releases that are within the    | version ``4.0`` or later.      |
-|          | same major or minor version,    | ``~=3.1.2``: version ``3.1.2`` |
-|          | assuming the package author     | or later, but not              |
-|          | is using semantic versioning.   | version ``3.2.0`` or later.    |
-+----------+---------------------------------+--------------------------------+
-|  ``*``   | Can be used at the end of       | ``==3.1.*``: any version       |
-|          | a version number to represent   | that starts with ``3.1``.      |
-|          | *all*,                          | Equivalent to ``~=3.1.0``.     |
-+----------+---------------------------------+--------------------------------+
-
-The detailed specification of supported comparison operators can be
-found in :pep:`440`.
-
-Possible solutions
-------------------
-
-The solution to your error will depend on your individual use case. Here
-are some things to try:
-
-1. Audit your top level requirements
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-As a first step it is useful to audit your project and remove any
-unnecessary or out of date requirements (e.g. from your ``setup.py`` or
-``requirements.txt`` files). Removing these can significantly reduce the
-complexity of your dependency tree, thereby reducing opportunities for
-conflicts to occur.
-
-2. Loosen your top level requirements
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Sometimes the packages that you have asked pip to install are
-incompatible because you have been too strict when you specified the
-package version.
-
-In our first example both ``package_coffee`` and ``package_tea`` have been
-*pinned* to use specific versions
-(``package_coffee==0.44.1b0 package_tea==4.3.0``).
-
-To find a version of both ``package_coffee`` and ``package_tea`` that depend on
-the same version of ``package_water``, you might consider:
-
--  Loosening the range of packages that you are prepared to install
-   (e.g. ``pip install "package_coffee>0.44.*" "package_tea>4.0.0"``)
--  Asking pip to install *any* version of ``package_coffee`` and ``package_tea``
-   by removing the version specifiers altogether (e.g.
-   ``python -m pip install package_coffee package_tea``)
-
-In the second case, pip will automatically find a version of both
-``package_coffee`` and ``package_tea`` that depend on the same version of
-``package_water``, installing:
-
--  ``package_coffee 0.46.0b0``, which depends on ``package_water 2.6.1``
--  ``package_tea 4.3.0`` which *also* depends on ``package_water 2.6.1``
-
-If you want to prioritize one package over another, you can add version
-specifiers to *only* the more important package:
-
-.. tab:: Unix/macOS
-
-   .. code-block:: shell
-
-      python -m pip install package_coffee==0.44.1b0 package_tea
-
-.. tab:: Windows
-
-   .. code-block:: shell
-
-      py -m pip install package_coffee==0.44.1b0 package_tea
-
-This will result in:
-
-- ``package_coffee 0.44.1b0``, which depends on ``package_water 2.6.1``
-- ``package_tea 4.1.3`` which also depends on ``package_water 2.6.1``
-
-Now that you have resolved the issue, you can repin the compatible
-package versions as required.
-
-3. Loosen the requirements of your dependencies
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Assuming that you cannot resolve the conflict by loosening the version
-of the package you require (as above), you can try to fix the issue on
-your *dependency* by:
-
--  Requesting that the package maintainers loosen *their* dependencies
--  Forking the package and loosening the dependencies yourself
-
-.. warning::
-
-   If you choose to fork the package yourself, you are *opting out* of
-   any support provided by the package maintainers. Proceed at your own risk!
-
-4. All requirements are loose, but a solution does not exist
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Sometimes it's simply impossible to find a combination of package
-versions that do not conflict. Welcome to `dependency hell`_.
-
-In this situation, you could consider:
-
--  Using an alternative package, if that is acceptable for your project.
-   See `Awesome Python`_ for similar packages.
--  Refactoring your project to reduce the number of dependencies (for
-   example, by breaking up a monolithic code base into smaller pieces)
-
-.. _`Getting help`:
-
-Getting help
-------------
-
-If none of the suggestions above work for you, we recommend that you ask
-for help on:
-
--  `Python user Discourse`_
--  `Python user forums`_
--  `Python developers Slack channel`_
--  `Python IRC`_
--  `Stack Overflow`_
-
-See `"How do I ask a good question?"`_ for tips on asking for help.
-
-Unfortunately, **the pip team cannot provide support for individual
-dependency conflict errors**. Please *only* open a ticket on the `pip
-issue tracker`_ if you believe that your problem has exposed a bug in pip.
-
-.. _dependency hell: https://en.wikipedia.org/wiki/Dependency_hell
-.. _Awesome Python: https://python.libhunt.com/
-.. _Python user Discourse: https://discuss.python.org/c/users/7
-.. _Python user forums: https://www.python.org/community/forums/
-.. _Python developers Slack channel: https://pythondev.slack.com/
-.. _Python IRC: https://www.python.org/community/irc/
-.. _Stack Overflow: https://stackoverflow.com/questions/tagged/python
-.. _"How do I ask a good question?": https://stackoverflow.com/help/how-to-ask
-.. _pip issue tracker: https://github.com/pypa/pip/issues
-
-.. _`Dependency resolution backtracking`:
-
-Dependency resolution backtracking
-==================================
-
-Or more commonly known as *"Why does pip download multiple versions of
-the same package over and over again during an install?"*.
-
-The purpose of this section is to provide explanation of why
-backtracking happens, and practical suggestions to pip users who
-encounter it during a ``pip install``.
-
-What is backtracking?
----------------------
-
-Backtracking is not a bug, or an unexpected behaviour. It is part of the
-way pip's dependency resolution process works.
-
-During a pip install (e.g. ``pip install tea``), pip needs to work out
-the package's dependencies (e.g. ``spoon``, ``hot-water``, ``cup`` etc.), the
-versions of each of these packages it needs to install. For each package
-pip needs to decide which version is a good candidate to install.
-
-A "good candidate" means a version of each package that is compatible with all
-the other package versions being installed at the same time.
-
-In the case where a package has a lot of versions, arriving at a good
-candidate can take a lot of time. (The amount of time depends on the
-package size, the number of versions pip must try, and other concerns.)
-
-How does backtracking work?
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-When doing a pip install, pip starts by making assumptions about the
-packages it needs to install. During the install process it needs to check these
-assumptions as it goes along.
-
-When pip finds that an assumption is incorrect, it has to try another approach
-(backtrack), which means discarding some of the work that has already been done,
-and going back to choose another path.
-
-For example; The user requests ``pip install tea``. ```tea`` has dependencies of
-``cup``, ``hot-water``, ``spoon`` amongst others.
-
-pip starts by installing a version of ``cup``. If it finds out it isn’t
-compatible (with the other package versions) it needs to “go back”
-(backtrack) and download an older version.
-
-It then tries to install that version. If it is successful, it will continue
-onto the next package. If not it will continue to backtrack until it finds a
-compatible version.
-
-This backtrack behaviour can end in 2 ways - either 1) it will
-successfully find a set of packages it can install (good news!), or 2) it will
-eventually display a `resolution impossible <https://pip.pypa.io/en/latest/user_guide/#id35>`__ error
-message (not so good).
-
-If pip starts backtracking during dependency resolution, it does not
-know how long it will backtrack, and how much computation would be
-needed. For the user this means it can take a long time to complete.
-
-Why does backtracking occur?
-----------------------------
-
-With the release of the new resolver (:ref:`Resolver changes 2020`), pip is now
-more strict in the package versions it installs when a user runs a
-``pip install`` command.
-
-Pip needs to backtrack because initially, it doesn't have all the information it
-needs to work out the correct set of packages. This is because package indexes
-don't provide full package dependency information before you have downloaded
-the package.
-
-This new resolver behaviour means that pip works harder to find out which
-version of a package is a good candidate to install. It reduces the risk that
-installing a new package will accidentally break an existing installed package,
-and so reduces the risk that your environment gets messed up.
-
-What does this behaviour look like?
------------------------------------
-
-Right now backtracking behaviour looks like this:
-
-::
-
-   $ pip install tea==1.9.8
-   Collecting tea==1.9.8
-     Downloading tea-1.9.8-py2.py3-none-any.whl (346 kB)
-        |████████████████████████████████| 346 kB 10.4 MB/s
-   Collecting spoon==2.27.0
-     Downloading spoon-2.27.0-py2.py3-none-any.whl (312 kB)
-        |████████████████████████████████| 312 kB 19.2 MB/s
-   Collecting hot-water>=0.1.9
-   Downloading hot-water-0.1.13-py3-none-any.whl (9.3 kB)
-   Collecting cup>=1.6.0
-     Downloading cup-3.22.0-py2.py3-none-any.whl (397 kB)
-        |████████████████████████████████| 397 kB 28.2 MB/s
-   INFO: pip is looking at multiple versions of this package to determine
-   which version is compatible with other requirements.
-   This could take a while.
-     Downloading cup-3.21.0-py2.py3-none-any.whl (395 kB)
-        |████████████████████████████████| 395 kB 27.0 MB/s
-     Downloading cup-3.20.0-py2.py3-none-any.whl (394 kB)
-        |████████████████████████████████| 394 kB 24.4 MB/s
-     Downloading cup-3.19.1-py2.py3-none-any.whl (394 kB)
-        |████████████████████████████████| 394 kB 21.3 MB/s
-     Downloading cup-3.19.0-py2.py3-none-any.whl (394 kB)
-        |████████████████████████████████| 394 kB 26.2 MB/s
-     Downloading cup-3.18.0-py2.py3-none-any.whl (393 kB)
-        |████████████████████████████████| 393 kB 22.1 MB/s
-     Downloading cup-3.17.0-py2.py3-none-any.whl (382 kB)
-        |████████████████████████████████| 382 kB 23.8 MB/s
-     Downloading cup-3.16.0-py2.py3-none-any.whl (376 kB)
-        |████████████████████████████████| 376 kB 27.5 MB/s
-     Downloading cup-3.15.1-py2.py3-none-any.whl (385 kB)
-        |████████████████████████████████| 385 kB 30.4 MB/s
-   INFO: pip is looking at multiple versions of this package to determine
-   which version is compatible with other requirements.
-   This could take a while.
-     Downloading cup-3.15.0-py2.py3-none-any.whl (378 kB)
-        |████████████████████████████████| 378 kB 21.4 MB/s
-     Downloading cup-3.14.0-py2.py3-none-any.whl (372 kB)
-        |████████████████████████████████| 372 kB 21.1 MB/s
-     Downloading cup-3.13.1-py2.py3-none-any.whl (381 kB)
-        |████████████████████████████████| 381 kB 21.8 MB/s
-   This is taking longer than usual. You might need to provide the
-   dependency resolver with stricter constraints to reduce runtime.
-   If you want to abort this run, you can press Ctrl + C to do so.
-     Downloading cup-3.13.0-py2.py3-none-any.whl (374 kB)
-
-In the above sample output, pip had to download multiple versions of
-package ``cup`` - cup-3.22.0 to cup-3.13.0 - to find a version that will be
-compatible with the other packages - ``spoon``, ``hot-water``, etc.
-
-These multiple ``Downloading cup-version`` lines show pip backtracking.
-
-Possible ways to reduce backtracking occurring
-----------------------------------------------
-
-It's important to mention backtracking behaviour is expected during a
-``pip install`` process. What pip is trying to do is complicated - it is
-working through potentially millions of package versions to identify the
-compatible versions.
-
-There is no guaranteed solution to backtracking but you can reduce it -
-here are a number of ways.
-
-.. _1-allow-pip-to-complete-its-backtracking:
-
-1. Allow pip to complete its backtracking
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-In most cases, pip will complete the backtracking process successfully.
-It is possible this could take a very long time to complete - this may
-not be your preferred option.
-
-However, there is a possibility pip will not be able to find a set of
-compatible versions.
-
-If you'd prefer not to wait, you can interrupt pip (ctrl and c) and use
-:ref:`Constraints Files`: to reduce the number of package versions it tries.
-
-.. _2-reduce-the-versions-of-the-backtracking-package:
-
-2. Reduce the number of versions pip will try to backtrack through
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-If pip is backtracking more than you'd like, the next option is to
-constrain the number of package versions it tries.
-
-A first good candidate for this constraining is the package(s) it is
-backtracking on (e.g. in the above example - ``cup``).
-
-You could try:
-
-``pip install tea "cup > 3.13"``
-
-This will reduce the number of versions of ``cup`` it tries, and
-possibly reduce the time pip takes to install.
-
-There is a possibility that if you're wrong (in this case an older
-version would have worked) then you missed the chance to use it. This
-can be trial and error.
-
-.. _3-use-constraint-files-or-lockfiles:
-
-3. Use constraint files or lockfiles
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-This option is a progression of 2 above. It requires users to know how
-to inspect:
-
--  the packages they're trying to install
--  the package release frequency and compatibility policies
--  their release notes and changelogs from past versions
-
-During deployment, you can create a lockfile stating the exact package and
-version number for for each dependency of that package. You can create this
-with `pip-tools <https://github.com/jazzband/pip-tools/>`__.
-
-This means the "work" is done once during development process, and so
-will save users this work during deployment.
-
-The pip team is not available to provide support in helping you create a
-suitable constraints file.
-
-.. _4-be-more-strict-on-package-dependencies-during-development:
-
-4. Be more strict on package dependencies during development
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-For package maintainers during software development, give pip some help by
-creating constraint files for the dependency tree. This will reduce the
-number of versions it will try.
-
-Getting help
-------------
-
-If none of the suggestions above work for you, we recommend that you ask
-for help. :ref:`Getting help`.
+This is now covered in :doc:`../topics/dependency-resolution`.
 
 .. _`Using pip from your program`:
 
@@ -1699,7 +957,7 @@ errors. Specifically:
 Per our :ref:`Python 2 Support` policy, pip 20.3 users who are using
 Python 2 will use the legacy resolver by default. Python 2 users
 should upgrade to Python 3 as soon as possible, since in pip 21.0 in
-January 2021, pip will drop support for Python 2 altogether.
+January 2021, pip dropped support for Python 2 altogether.
 
 
 How to upgrade and migrate
@@ -1750,9 +1008,9 @@ How to upgrade and migrate
 
 4. **Troubleshoot and try these workarounds if necessary.**
 
-   -  If pip is taking longer to install packages, read
-      :ref:`Dependency resolution backtracking` for ways to reduce the
-      time pip spends backtracking due to dependency conflicts.
+   -  If pip is taking longer to install packages, read :doc:`Dependency
+      resolution backtracking <topics/dependency-resolution>` for ways to
+      reduce the time pip spends backtracking due to dependency conflicts.
    -  If you don't want pip to actually resolve dependencies, use the
       ``--no-deps`` option. This is useful when you have a set of package
       versions that work together in reality, even though their metadata says
@@ -1782,7 +1040,7 @@ Setups to test with special attention
 
 *    Continuous integration/continuous deployment setups
 
-*    Installing from any kind of version control systems (i.e., Git, Subversion, Mercurial, or CVS), per :ref:`VCS Support`
+*    Installing from any kind of version control systems (i.e., Git, Subversion, Mercurial, or CVS), per :doc:`topics/vcs-support`
 
 *    Installing from source code held in local directories
 
@@ -1857,9 +1115,11 @@ We plan for the resolver changeover to proceed as follows, using
      environments, pip defaults to the old resolver, and the new one is
      available using the flag ``--use-feature=2020-resolver``.
 
-*    pip 21.0: pip uses new resolver, and the old resolver is no longer
-     available. Python 2 support is removed per our :ref:`Python 2
-     Support` policy.
+*    pip 21.0: pip uses new resolver by default, and the old resolver is
+     no longer supported. It will be removed after a currently undecided
+     amount of time, as the removal is dependent on pip's volunteer
+     maintainers' availability. Python 2 support is removed per our
+     :ref:`Python 2 Support` policy.
 
 Since this work will not change user-visible behavior described in the
 pip documentation, this change is not covered by the :ref:`Deprecation
@@ -1885,6 +1145,4 @@ announcements on the `low-traffic packaging announcements list`_ and
 .. _low-traffic packaging announcements list: https://mail.python.org/mailman3/lists/pypi-announce.python.org/
 .. _our survey on upgrades that create conflicts: https://docs.google.com/forms/d/e/1FAIpQLSeBkbhuIlSofXqCyhi3kGkLmtrpPOEBwr6iJA6SzHdxWKfqdA/viewform
 .. _the official Python blog: https://blog.python.org/
-.. _requests: https://requests.readthedocs.io/en/master/user/authentication/#netrc-authentication
-.. _Python standard library: https://docs.python.org/3/library/netrc.html
 .. _Python Windows launcher: https://docs.python.org/3/using/windows.html#launcher

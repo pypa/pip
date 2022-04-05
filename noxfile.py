@@ -1,20 +1,20 @@
 """Automation using nox.
 """
 
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 import glob
 import os
 import shutil
 import sys
 from pathlib import Path
+from typing import Iterator, List, Tuple
 
 import nox
 
+# fmt: off
 sys.path.append(".")
-from tools.automation import release  # isort:skip  # noqa
+from tools import release  # isort:skip  # noqa
 sys.path.pop()
+# fmt: on
 
 nox.options.reuse_existing_virtualenvs = True
 nox.options.sessions = ["lint"]
@@ -24,16 +24,16 @@ LOCATIONS = {
     "protected-pip": "tools/tox_pip.py",
 }
 REQUIREMENTS = {
-    "docs": "tools/requirements/docs.txt",
-    "tests": "tools/requirements/tests.txt",
-    "common-wheels": "tools/requirements/tests-common_wheels.txt",
+    "docs": "docs/requirements.txt",
+    "tests": "tests/requirements.txt",
+    "common-wheels": "tests/requirements-common_wheels.txt",
 }
 
 AUTHORS_FILE = "AUTHORS.txt"
 VERSION_FILE = "src/pip/__init__.py"
 
 
-def run_with_protected_pip(session, *arguments):
+def run_with_protected_pip(session: nox.Session, *arguments: str) -> None:
     """Do a session.run("pip", *arguments), using a "protected" pip.
 
     This invokes a wrapper script, that forwards calls to original virtualenv
@@ -43,11 +43,10 @@ def run_with_protected_pip(session, *arguments):
     env = {"VIRTUAL_ENV": session.virtualenv.location}
 
     command = ("python", LOCATIONS["protected-pip"]) + arguments
-    kwargs = {"env": env, "silent": True}
-    session.run(*command, **kwargs)
+    session.run(*command, env=env, silent=True)
 
 
-def should_update_common_wheels():
+def should_update_common_wheels() -> bool:
     # If the cache hasn't been created, create it.
     if not os.path.exists(LOCATIONS["common-wheels"]):
         return True
@@ -66,36 +65,35 @@ def should_update_common_wheels():
 
 # -----------------------------------------------------------------------------
 # Development Commands
-#   These are currently prototypes to evaluate whether we want to switch over
-#   completely to nox for all our automation. Contributors should prefer using
-#   `tox -e ...` until this note is removed.
 # -----------------------------------------------------------------------------
-@nox.session(python=["3.6", "3.7", "3.8", "3.9", "pypy3"])
-def test(session):
+@nox.session(python=["3.7", "3.8", "3.9", "3.10", "pypy3"])
+def test(session: nox.Session) -> None:
     # Get the common wheels.
     if should_update_common_wheels():
+        # fmt: off
         run_with_protected_pip(
             session,
             "wheel",
             "-w", LOCATIONS["common-wheels"],
             "-r", REQUIREMENTS["common-wheels"],
         )
+        # fmt: on
     else:
-        msg = (
-            "Re-using existing common-wheels at {}."
-            .format(LOCATIONS["common-wheels"])
-        )
+        msg = f"Re-using existing common-wheels at {LOCATIONS['common-wheels']}."
         session.log(msg)
 
     # Build source distribution
     sdist_dir = os.path.join(session.virtualenv.location, "sdist")
     if os.path.exists(sdist_dir):
         shutil.rmtree(sdist_dir, ignore_errors=True)
+
+    # fmt: off
     session.run(
-        "python", "setup.py", "sdist",
-        "--formats=zip", "--dist-dir", sdist_dir,
+        "python", "setup.py", "sdist", "--formats=zip", "--dist-dir", sdist_dir,
         silent=True,
     )
+    # fmt: on
+
     generated_files = os.listdir(sdist_dir)
     assert len(generated_files) == 1
     generated_sdist = os.path.join(sdist_dir, generated_files[0])
@@ -112,19 +110,27 @@ def test(session):
     # Run the tests
     #   LC_CTYPE is set to get UTF-8 output inside of the subprocesses that our
     #   tests use.
-    session.run("pytest", *arguments, env={"LC_CTYPE": "en_US.UTF-8"})
+    session.run(
+        "pytest",
+        *arguments,
+        env={
+            "LC_CTYPE": "en_US.UTF-8",
+            "SETUPTOOLS_USE_DISTUTILS": "stdlib",
+        },
+    )
 
 
 @nox.session
-def docs(session):
+def docs(session: nox.Session) -> None:
     session.install("-e", ".")
     session.install("-r", REQUIREMENTS["docs"])
 
-    def get_sphinx_build_command(kind):
+    def get_sphinx_build_command(kind: str) -> List[str]:
         # Having the conf.py in the docs/html is weird but needed because we
         # can not use a different configuration directory vs source directory
         # on RTD currently. So, we'll pass "-c docs/html" here.
         # See https://github.com/rtfd/readthedocs.org/issues/1543.
+        # fmt: off
         return [
             "sphinx-build",
             "-W",
@@ -134,13 +140,29 @@ def docs(session):
             "docs/" + kind,
             "docs/build/" + kind,
         ]
+        # fmt: on
 
     session.run(*get_sphinx_build_command("html"))
     session.run(*get_sphinx_build_command("man"))
 
 
+@nox.session(name="docs-live")
+def docs_live(session: nox.Session) -> None:
+    session.install("-e", ".")
+    session.install("-r", REQUIREMENTS["docs"], "sphinx-autobuild")
+
+    session.run(
+        "sphinx-autobuild",
+        "-d=docs/build/doctrees/livehtml",
+        "-b=dirhtml",
+        "docs/html",
+        "docs/build/livehtml",
+        *session.posargs,
+    )
+
+
 @nox.session
-def lint(session):
+def lint(session: nox.Session) -> None:
     session.install("pre-commit")
 
     if session.posargs:
@@ -149,25 +171,25 @@ def lint(session):
         args = ["--all-files", "--show-diff-on-failure"]
 
     session.run("pre-commit", "run", *args)
-    session.run(
-        "pre-commit", "run", "-c", ".pre-commit-config-slow.yaml", *args
-    )
 
 
 @nox.session
-def vendoring(session):
-    session.install("vendoring>=0.3.0")
+def vendoring(session: nox.Session) -> None:
+    session.install("vendoring~=1.2.0")
 
     if "--upgrade" not in session.posargs:
-        session.run("vendoring", "sync", ".", "-v")
+        session.run("vendoring", "sync", "-v")
         return
 
-    def pinned_requirements(path):
-        for line in path.read_text().splitlines():
-            one, two = line.split("==", 1)
+    def pinned_requirements(path: Path) -> Iterator[Tuple[str, str]]:
+        for line in path.read_text().splitlines(keepends=False):
+            one, sep, two = line.partition("==")
+            if not sep:
+                continue
             name = one.strip()
-            version = two.split("#")[0].strip()
-            yield name, version
+            version = two.split("#", 1)[0].strip()
+            if name and version:
+                yield name, version
 
     vendor_txt = Path("src/pip/_vendor/vendor.txt")
     for name, old_version in pinned_requirements(vendor_txt):
@@ -205,11 +227,26 @@ def vendoring(session):
         release.commit_file(session, ".", message=message)
 
 
+@nox.session
+def coverage(session: nox.Session) -> None:
+    if not os.path.exists("./.coverage-output"):
+        os.mkdir("./.coverage-output")
+    session.run(
+        "pytest",
+        "--cov=pip",
+        "--cov-config=./setup.cfg",
+        env={
+            "COVERAGE_OUTPUT_DIR": "./.coverage-output",
+            "COVERAGE_PROCESS_START": "./setup.cfg",
+        },
+    )
+
+
 # -----------------------------------------------------------------------------
 # Release Commands
 # -----------------------------------------------------------------------------
 @nox.session(name="prepare-release")
-def prepare_release(session):
+def prepare_release(session: nox.Session) -> None:
     version = release.get_version_from_arguments(session)
     if not version:
         session.error("Usage: nox -s prepare-release -- <version>")
@@ -221,9 +258,7 @@ def prepare_release(session):
     session.log(f"# Updating {AUTHORS_FILE}")
     release.generate_authors(AUTHORS_FILE)
     if release.modified_files_in_git():
-        release.commit_file(
-            session, AUTHORS_FILE, message=f"Update {AUTHORS_FILE}",
-        )
+        release.commit_file(session, AUTHORS_FILE, message=f"Update {AUTHORS_FILE}")
     else:
         session.log(f"# No changes to {AUTHORS_FILE}")
 
@@ -244,7 +279,7 @@ def prepare_release(session):
 
 
 @nox.session(name="build-release")
-def build_release(session):
+def build_release(session: nox.Session) -> None:
     version = release.get_version_from_arguments(session)
     if not version:
         session.error("Usage: nox -s build-release -- YY.N[.P]")
@@ -269,13 +304,13 @@ def build_release(session):
 
         tmp_dist_paths = (build_dir / p for p in tmp_dists)
         session.log(f"# Copying dists from {build_dir}")
-        os.makedirs('dist', exist_ok=True)
+        os.makedirs("dist", exist_ok=True)
         for dist, final in zip(tmp_dist_paths, tmp_dists):
             session.log(f"# Copying {dist} to {final}")
             shutil.copy(dist, final)
 
 
-def build_dists(session):
+def build_dists(session: nox.Session) -> List[str]:
     """Return dists with valid metadata."""
     session.log(
         "# Check if there's any Git-untracked files before building the wheel",
@@ -283,7 +318,7 @@ def build_dists(session):
 
     has_forbidden_git_untracked_files = any(
         # Don't report the environment this session is running in
-        not untracked_file.startswith('.nox/build-release/')
+        not untracked_file.startswith(".nox/build-release/")
         for untracked_file in release.get_git_untracked_files()
     )
     if has_forbidden_git_untracked_files:
@@ -303,7 +338,7 @@ def build_dists(session):
 
 
 @nox.session(name="upload-release")
-def upload_release(session):
+def upload_release(session: nox.Session) -> None:
     version = release.get_version_from_arguments(session)
     if not version:
         session.error("Usage: nox -s upload-release -- YY.N[.P]")
@@ -322,15 +357,13 @@ def upload_release(session):
             f"Remove dist/ and run 'nox -s build-release -- {version}'"
         )
     # Sanity check: Make sure the files are correctly named.
-    distfile_names = map(os.path.basename, distribution_files)
+    distfile_names = (os.path.basename(fn) for fn in distribution_files)
     expected_distribution_files = [
-        f"pip-{version}-py2.py3-none-any.whl",
+        f"pip-{version}-py3-none-any.whl",
         f"pip-{version}.tar.gz",
     ]
     if sorted(distfile_names) != sorted(expected_distribution_files):
-        session.error(
-            f"Distribution files do not seem to be for {version} release."
-        )
+        session.error(f"Distribution files do not seem to be for {version} release.")
 
     session.log("# Upload distributions")
     session.run("twine", "upload", *distribution_files)

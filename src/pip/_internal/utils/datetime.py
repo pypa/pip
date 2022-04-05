@@ -4,8 +4,7 @@
 import datetime
 
 
-def today_is_later_than(year, month, day):
-    # type: (int, int, int) -> bool
+def today_is_later_than(year: int, month: int, day: int) -> bool:
     today = datetime.date.today()
     given = datetime.date(year, month, day)
 

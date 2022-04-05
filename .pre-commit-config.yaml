@@ -2,7 +2,7 @@ exclude: 'src/pip/_vendor/'
 
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v3.2.0
+  rev: v3.4.0
   hooks:
   - id: check-builtin-literals
   - id: check-added-large-files
@@ -17,66 +17,44 @@ repos:
     exclude: .patch
 
 - repo: https://github.com/psf/black
-  rev: 20.8b1
+  rev: 21.7b0
   hooks:
   - id: black
-    exclude: |
-      (?x)
-        ^docs/|
-        ^src/pip/_internal/cli|
-        ^src/pip/_internal/commands|
-        ^src/pip/_internal/distributions|
-        ^src/pip/_internal/index|
-        ^src/pip/_internal/models|
-        ^src/pip/_internal/network|
-        ^src/pip/_internal/operations|
-        ^src/pip/_internal/req|
-        ^src/pip/_internal/resolution|
-        ^src/pip/_internal/utils|
-        ^src/pip/_internal/vcs|
-        ^src/pip/_internal/\w+\.py$|
-        ^src/pip/__main__.py$|
-        ^tools/|
-        # Tests
-        ^tests/conftest.py|
-        ^tests/yaml|
-        ^tests/lib|
-        ^tests/data|
-        ^tests/unit|
-        ^tests/functional/(?!test_install)|
-        ^tests/functional/test_install|
-        # Files in the root of the repository
-        ^setup.py|
-        ^noxfile.py|
-        # A blank ignore, to avoid merge conflicts later.
-        ^$
-
 
 - repo: https://gitlab.com/pycqa/flake8
-  rev: 3.8.3
+  rev: 3.8.4
   hooks:
   - id: flake8
     additional_dependencies: [
         'flake8-bugbear==20.1.4',
         'flake8-logging-format==0.6.0',
+        'flake8-implicit-str-concat==0.2.0',
     ]
     exclude: tests/data
 
 - repo: https://github.com/PyCQA/isort
-  rev: 5.5.3
+  rev: 5.7.0
   hooks:
   - id: isort
     files: \.py$
 
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v0.790
+  rev: v0.910
   hooks:
   - id: mypy
-    exclude: docs|tests
-    args: ["--pretty"]
+    exclude: tests/data
+    args: ["--pretty", "--show-error-codes"]
+    additional_dependencies: [
+        'keyring==23.0.1',
+        'nox==2021.6.12',
+        'pytest==6.2.5',
+        'types-docutils==0.1.8',
+        'types-setuptools==57.0.2',
+        'types-six==0.1.9',
+    ]
 
 - repo: https://github.com/pre-commit/pygrep-hooks
-  rev: v1.6.0
+  rev: v1.7.0
   hooks:
   - id: python-no-log-warn
   - id: python-no-eval
@@ -93,3 +71,9 @@ repos:
     entry: NEWS fragment files must be named *.(process|removal|feature|bugfix|vendor|doc|trivial).rst
     exclude: ^news/(.gitignore|.*\.(process|removal|feature|bugfix|vendor|doc|trivial).rst)
     files: ^news/
+
+- repo: https://github.com/mgedmin/check-manifest
+  rev: '0.46'
+  hooks:
+  - id: check-manifest
+    stages: [manual]

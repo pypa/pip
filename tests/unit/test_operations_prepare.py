@@ -2,9 +2,10 @@ import os
 import shutil
 from shutil import rmtree
 from tempfile import mkdtemp
+from typing import Any, Dict
+from unittest.mock import Mock, patch
 
 import pytest
-from mock import Mock, patch
 
 from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
@@ -13,18 +14,19 @@ from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import _copy_source_tree, unpack_url
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.urls import path_to_url
+from tests.lib import TestData
 from tests.lib.filesystem import get_filelist, make_socket_file, make_unreadable_file
 from tests.lib.path import Path
 from tests.lib.requests_mocks import MockResponse
 
 
-def test_unpack_url_with_urllib_response_without_content_type(data):
+def test_unpack_url_with_urllib_response_without_content_type(data: TestData) -> None:
     """
     It should download and unpack files even if no Content-Type header exists
     """
     _real_session = PipSession()
 
-    def _fake_session_get(*args, **kwargs):
+    def _fake_session_get(*args: Any, **kwargs: Any) -> Dict[str, str]:
         resp = _real_session.get(*args, **kwargs)
         del resp.headers["Content-Type"]
         return resp
@@ -42,23 +44,29 @@ def test_unpack_url_with_urllib_response_without_content_type(data):
             temp_dir,
             download=download,
             download_dir=None,
+            verbosity=0,
         )
         assert set(os.listdir(temp_dir)) == {
-            'PKG-INFO', 'setup.cfg', 'setup.py', 'simple', 'simple.egg-info'
+            "PKG-INFO",
+            "setup.cfg",
+            "setup.py",
+            "simple",
+            "simple.egg-info",
         }
     finally:
         rmtree(temp_dir)
 
 
 @patch("pip._internal.network.download.raise_for_status")
-def test_download_http_url__no_directory_traversal(mock_raise_for_status,
-                                                   tmpdir):
+def test_download_http_url__no_directory_traversal(
+    mock_raise_for_status: Mock, tmpdir: Path
+) -> None:
     """
     Test that directory traversal doesn't happen on download when the
     Content-Disposition header contains a filename with a ".." path part.
     """
-    mock_url = 'http://www.example.com/whatever.tgz'
-    contents = b'downloaded'
+    mock_url = "http://www.example.com/whatever.tgz"
+    contents = b"downloaded"
     link = Link(mock_url)
 
     session = Mock()
@@ -67,23 +75,23 @@ def test_download_http_url__no_directory_traversal(mock_raise_for_status,
     resp.headers = {
         # Set the content-type to a random value to prevent
         # mimetypes.guess_extension from guessing the extension.
-        'content-type': 'random',
-        'content-disposition': 'attachment;filename="../out_dir_file"'
+        "content-type": "random",
+        "content-disposition": 'attachment;filename="../out_dir_file"',
     }
     session.get.return_value = resp
     download = Downloader(session, progress_bar="on")
 
-    download_dir = tmpdir.joinpath('download')
+    download_dir = tmpdir.joinpath("download")
     os.mkdir(download_dir)
     file_path, content_type = download(link, download_dir)
     # The file should be downloaded to download_dir.
     actual = os.listdir(download_dir)
-    assert actual == ['out_dir_file']
+    assert actual == ["out_dir_file"]
     mock_raise_for_status.assert_called_once_with(resp)
 
 
 @pytest.fixture
-def clean_project(tmpdir_factory, data):
+def clean_project(tmpdir_factory: pytest.TempdirFactory, data: TestData) -> Path:
     tmpdir = Path(str(tmpdir_factory.mktemp("clean_project")))
     new_project_dir = tmpdir.joinpath("FSPkg")
     path = data.packages.joinpath("FSPkg")
@@ -91,7 +99,7 @@ def clean_project(tmpdir_factory, data):
     return new_project_dir
 
 
-def test_copy_source_tree(clean_project, tmpdir):
+def test_copy_source_tree(clean_project: Path, tmpdir: Path) -> None:
     target = tmpdir.joinpath("target")
     expected_files = get_filelist(clean_project)
     assert len(expected_files) == 3
@@ -102,8 +110,10 @@ def test_copy_source_tree(clean_project, tmpdir):
     assert expected_files == copied_files
 
 
-@pytest.mark.skipif("sys.platform == 'win32' or sys.version_info < (3,)")
-def test_copy_source_tree_with_socket(clean_project, tmpdir, caplog):
+@pytest.mark.skipif("sys.platform == 'win32'")
+def test_copy_source_tree_with_socket(
+    clean_project: Path, tmpdir: Path, caplog: pytest.LogCaptureFixture
+) -> None:
     target = tmpdir.joinpath("target")
     expected_files = get_filelist(clean_project)
     socket_path = str(clean_project.joinpath("aaa"))
@@ -117,14 +127,14 @@ def test_copy_source_tree_with_socket(clean_project, tmpdir, caplog):
     # Warning should have been logged.
     assert len(caplog.records) == 1
     record = caplog.records[0]
-    assert record.levelname == 'WARNING'
+    assert record.levelname == "WARNING"
     assert socket_path in record.message
 
 
-@pytest.mark.skipif("sys.platform == 'win32' or sys.version_info < (3,)")
+@pytest.mark.skipif("sys.platform == 'win32'")
 def test_copy_source_tree_with_socket_fails_with_no_socket_error(
-    clean_project, tmpdir
-):
+    clean_project: Path, tmpdir: Path
+) -> None:
     target = tmpdir.joinpath("target")
     expected_files = get_filelist(clean_project)
     make_socket_file(clean_project.joinpath("aaa"))
@@ -143,7 +153,9 @@ def test_copy_source_tree_with_socket_fails_with_no_socket_error(
     assert expected_files == copied_files
 
 
-def test_copy_source_tree_with_unreadable_dir_fails(clean_project, tmpdir):
+def test_copy_source_tree_with_unreadable_dir_fails(
+    clean_project: Path, tmpdir: Path
+) -> None:
     target = tmpdir.joinpath("target")
     expected_files = get_filelist(clean_project)
     unreadable_file = clean_project.joinpath("bbb")
@@ -162,10 +174,9 @@ def test_copy_source_tree_with_unreadable_dir_fails(clean_project, tmpdir):
 
 
 class Test_unpack_url:
-
-    def prep(self, tmpdir, data):
-        self.build_dir = tmpdir.joinpath('build')
-        self.download_dir = tmpdir.joinpath('download')
+    def prep(self, tmpdir: Path, data: TestData) -> None:
+        self.build_dir = tmpdir.joinpath("build")
+        self.download_dir = tmpdir.joinpath("download")
         os.mkdir(self.build_dir)
         os.mkdir(self.download_dir)
         self.dist_file = "simple-1.0.tar.gz"
@@ -176,48 +187,50 @@ class Test_unpack_url:
         self.dist_url2 = Link(path_to_url(self.dist_path2))
         self.no_download = Mock(side_effect=AssertionError)
 
-    def test_unpack_url_no_download(self, tmpdir, data):
+    def test_unpack_url_no_download(self, tmpdir: Path, data: TestData) -> None:
         self.prep(tmpdir, data)
-        unpack_url(self.dist_url, self.build_dir, self.no_download)
-        assert os.path.isdir(os.path.join(self.build_dir, 'simple'))
-        assert not os.path.isfile(
-            os.path.join(self.download_dir, self.dist_file))
+        unpack_url(self.dist_url, self.build_dir, self.no_download, verbosity=0)
+        assert os.path.isdir(os.path.join(self.build_dir, "simple"))
+        assert not os.path.isfile(os.path.join(self.download_dir, self.dist_file))
 
-    def test_unpack_url_bad_hash(self, tmpdir, data,
-                                 monkeypatch):
+    def test_unpack_url_bad_hash(self, tmpdir: Path, data: TestData) -> None:
         """
         Test when the file url hash fragment is wrong
         """
         self.prep(tmpdir, data)
-        url = f'{self.dist_url.url}#md5=bogus'
+        url = f"{self.dist_url.url}#md5=bogus"
         dist_url = Link(url)
         with pytest.raises(HashMismatch):
-            unpack_url(dist_url,
-                       self.build_dir,
-                       download=self.no_download,
-                       hashes=Hashes({'md5': ['bogus']}))
+            unpack_url(
+                dist_url,
+                self.build_dir,
+                download=self.no_download,
+                hashes=Hashes({"md5": ["bogus"]}),
+                verbosity=0,
+            )
 
-    def test_unpack_url_thats_a_dir(self, tmpdir, data):
+    def test_unpack_url_thats_a_dir(self, tmpdir: Path, data: TestData) -> None:
         self.prep(tmpdir, data)
         dist_path = data.packages.joinpath("FSPkg")
         dist_url = Link(path_to_url(dist_path))
-        unpack_url(dist_url, self.build_dir,
-                   download=self.no_download,
-                   download_dir=self.download_dir)
-        assert os.path.isdir(os.path.join(self.build_dir, 'fspkg'))
+        unpack_url(
+            dist_url,
+            self.build_dir,
+            download=self.no_download,
+            download_dir=self.download_dir,
+            verbosity=0,
+        )
+        assert os.path.isdir(os.path.join(self.build_dir, "fspkg"))
 
 
-@pytest.mark.parametrize('exclude_dir', [
-    '.nox',
-    '.tox'
-])
-def test_unpack_url_excludes_expected_dirs(tmpdir, exclude_dir):
-    src_dir = tmpdir / 'src'
-    dst_dir = tmpdir / 'dst'
-    src_included_file = src_dir.joinpath('file.txt')
+@pytest.mark.parametrize("exclude_dir", [".nox", ".tox"])
+def test_unpack_url_excludes_expected_dirs(tmpdir: Path, exclude_dir: str) -> None:
+    src_dir = tmpdir / "src"
+    dst_dir = tmpdir / "dst"
+    src_included_file = src_dir.joinpath("file.txt")
     src_excluded_dir = src_dir.joinpath(exclude_dir)
-    src_excluded_file = src_dir.joinpath(exclude_dir, 'file.txt')
-    src_included_dir = src_dir.joinpath('subdir', exclude_dir)
+    src_excluded_file = src_dir.joinpath(exclude_dir, "file.txt")
+    src_included_dir = src_dir.joinpath("subdir", exclude_dir)
 
     # set up source directory
     src_excluded_dir.mkdir(parents=True)
@@ -225,17 +238,18 @@ def test_unpack_url_excludes_expected_dirs(tmpdir, exclude_dir):
     src_included_file.touch()
     src_excluded_file.touch()
 
-    dst_included_file = dst_dir.joinpath('file.txt')
+    dst_included_file = dst_dir.joinpath("file.txt")
     dst_excluded_dir = dst_dir.joinpath(exclude_dir)
-    dst_excluded_file = dst_dir.joinpath(exclude_dir, 'file.txt')
-    dst_included_dir = dst_dir.joinpath('subdir', exclude_dir)
+    dst_excluded_file = dst_dir.joinpath(exclude_dir, "file.txt")
+    dst_included_dir = dst_dir.joinpath("subdir", exclude_dir)
 
     src_link = Link(path_to_url(src_dir))
     unpack_url(
         src_link,
         dst_dir,
         Mock(side_effect=AssertionError),
-        download_dir=None
+        download_dir=None,
+        verbosity=0,
     )
     assert not os.path.isdir(dst_excluded_dir)
     assert not os.path.isfile(dst_excluded_file)
