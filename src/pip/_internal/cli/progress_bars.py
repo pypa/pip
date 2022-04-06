@@ -86,7 +86,7 @@ class InterruptibleMixin:
         Save the original SIGINT handler for later.
         """
         # https://github.com/python/mypy/issues/5887
-        super().__init__(*args, **kwargs)  # type: ignore
+        super().__init__(*args, **kwargs)
 
         self.original_handler = signal(SIGINT, self.handle_sigint)
 
@@ -134,8 +134,7 @@ class BlueEmojiBar(IncrementalBar):
 
 class DownloadProgressMixin:
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        # https://github.com/python/mypy/issues/5887
-        super().__init__(*args, **kwargs)  # type: ignore
+        super().__init__(*args, **kwargs)
         self.message: str = (" " * (get_indentation() + 2)) + self.message
 
     @property
@@ -176,8 +175,7 @@ class WindowsMixin:
         if WINDOWS and self.hide_cursor:  # type: ignore
             self.hide_cursor = False
 
-        # https://github.com/python/mypy/issues/5887
-        super().__init__(*args, **kwargs)  # type: ignore
+        super().__init__(*args, **kwargs)
 
         # Check if we are running on Windows and we have the colorama module,
         # if we do then wrap our file with it.
