@@ -1,1 +1,1 @@
-Prioritize url credentials over netrc.
+Prioritize URL credentials over netrc.

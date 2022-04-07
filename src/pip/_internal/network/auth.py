@@ -109,6 +109,7 @@ class MultiDomainBasicAuth(AuthBase):
     def _get_new_credentials(
         self,
         original_url: str,
+        *,
         allow_netrc: bool = False,
         allow_keyring: bool = False,
     ) -> AuthInfo:
