@@ -441,7 +441,9 @@ def test_prioritize_url_credentials_over_netrc(
     url = f"https://USERNAME:PASSWORD@{server.host}:{server.port}/simple"
 
     netrc = script.scratch_path / ".netrc"
-    netrc.write_text(f"machine {server.host} login username password password")
+    netrc.write_text(
+        f"machine {server.host} login wrongusername password wrongpassword"
+    )
     with server_running(server):
         script.environ["NETRC"] = netrc
         script.pip(
