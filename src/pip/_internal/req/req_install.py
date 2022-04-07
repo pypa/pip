@@ -91,7 +91,6 @@ class InstallRequirement:
         self.constraint = constraint
         self.editable = editable
         self.permit_editable_wheels = permit_editable_wheels
-        self.legacy_install_reason: Optional[int] = None
 
         # source_dir is the local directory where the linked requirement is
         # located, or unpacked. In case unpacking is needed, creating and
@@ -788,6 +787,14 @@ class InstallRequirement:
         global_options = list(global_options) + self.global_options
         install_options = list(install_options) + self.install_options
 
+        deprecated(
+            reason=(
+                "Using 'setup.py install' for performing a package installation "
+                "is deprecated."
+            ),
+            replacement="correctly building a wheel for this package",
+            gone_in="23.0",
+        )
         try:
             success = install_legacy(
                 install_options=install_options,
@@ -813,19 +820,6 @@ class InstallRequirement:
             raise
 
         self.install_succeeded = success
-
-        if success and self.legacy_install_reason == 8368:
-            deprecated(
-                reason=(
-                    "{} was installed using the legacy 'setup.py install' "
-                    "method, because a wheel could not be built for it.".format(
-                        self.name
-                    )
-                ),
-                replacement="to fix the wheel build issue reported above",
-                gone_in=None,
-                issue=8368,
-            )
 
 
 def check_invalid_constraint_type(req: InstallRequirement) -> str:

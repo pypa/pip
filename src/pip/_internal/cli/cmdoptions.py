@@ -969,6 +969,7 @@ use_deprecated_feature: Callable[..., Option] = partial(
         "out-of-tree-build",
         "backtrack-on-build-failures",
         "html5lib",
+        "legacy-setup-py-install",
     ],
     help=("Enable deprecated functionality, that will be removed in the future."),
 )

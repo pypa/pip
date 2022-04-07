@@ -243,6 +243,9 @@ class InstallCommand(RequirementCommand):
             raise CommandError("Can not combine '--user' and '--target'")
 
         cmdoptions.check_install_build_global(options)
+        should_fallback_to_legacy_install = (
+            "legacy-setup-py-install" in options.deprecated_features_enabled
+        )
         upgrade_strategy = "to-satisfy-only"
         if options.upgrade:
             upgrade_strategy = options.upgrade_strategy
@@ -366,25 +369,25 @@ class InstallCommand(RequirementCommand):
                 global_options=[],
             )
 
-            # If we're using PEP 517, we cannot do a legacy setup.py install
-            # so we fail here.
-            pep517_build_failure_names: List[str] = [
-                r.name for r in build_failures if r.use_pep517  # type: ignore
-            ]
-            if pep517_build_failure_names:
-                raise InstallationError(
-                    "Could not build wheels for {}, which is required to "
-                    "install pyproject.toml-based projects".format(
-                        ", ".join(pep517_build_failure_names)
+            if build_failures:
+                if not should_fallback_to_legacy_install:
+                    raise InstallationError(
+                        "Could not build wheels for {}, which is required to "
+                        "install pyproject.toml-based projects".format(
+                            ", ".join([r.name for r in build_failures])  # type: ignore
+                        )
                     )
-                )
 
-            # For now, we just warn about failures building legacy
-            # requirements, as we'll fall through to a setup.py install for
-            # those.
-            for r in build_failures:
-                if not r.use_pep517:
-                    r.legacy_install_reason = 8368
+                pep517_build_failures = [r for r in build_failures if r.use_pep517]
+                if pep517_build_failures:
+                    raise InstallationError(
+                        "Could not build wheels for {}, which is required to "
+                        "install pyproject.toml-based projects".format(
+                            ", ".join(
+                                [r.name for r in pep517_build_failures]  # type: ignore
+                            )
+                        )
+                    )
 
             to_install = resolver.get_installation_order(requirement_set)
 
