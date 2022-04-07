@@ -858,6 +858,15 @@ disable_pip_version_check: Callable[..., Option] = partial(
     "of pip is available for download. Implied with --no-index.",
 )
 
+warn_about_root_user: Callable[..., Option] = partial(
+    Option,
+    "--no-warn-when-using-as-a-root-user",
+    dest="warn_about_root_user",
+    default=True,
+    action="store_false",
+    help="Do not warn when used as a root user",
+)
+
 
 def _handle_merge_hash(
     option: Option, opt_str: str, value: str, parser: OptionParser
