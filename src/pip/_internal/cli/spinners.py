@@ -5,8 +5,6 @@ import sys
 import time
 from typing import IO, Iterator
 
-from pip._vendor.progress import HIDE_CURSOR, SHOW_CURSOR
-
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.logging import get_indentation
 
@@ -136,6 +134,10 @@ def open_spinner(message: str) -> Iterator[SpinnerInterface]:
         raise
     else:
         spinner.finish("done")
+
+
+HIDE_CURSOR = "\x1b[?25l"
+SHOW_CURSOR = "\x1b[?25h"
 
 
 @contextlib.contextmanager
