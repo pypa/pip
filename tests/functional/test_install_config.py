@@ -369,18 +369,34 @@ def auth_needed(request: pytest.FixtureRequest) -> bool:
 
 @pytest.fixture(
     params=(
-        False,
-        True,
+        (False, False, False),
+        (False, True, False),
+        (True, True, False),
+        (True, False, True),
     ),
-    ids=("default", "no_input"),
+    ids=(
+        "default-default",
+        "default-force_keyring",
+        "no_input-force_keyring",
+        "no_input-default",
+    ),
 )
-def flags(request: pytest.FixtureRequest) -> typing.List[str]:
-    no_input = request.param  # type: ignore[attr-defined]
+def flags(request: pytest.FixtureRequest, auth_needed: bool) -> typing.List[str]:
+    (
+        no_input,
+        force_keyring,
+        xfail,
+    ) = request.param  # type: ignore[attr-defined]
 
     flags = []
     if no_input:
         flags.append("--no-input")
-
+    if force_keyring:
+        flags.append(
+            "--force-keyring",
+        )
+    if auth_needed and xfail:
+        request.applymarker(pytest.mark.xfail())
     return flags
 
 
