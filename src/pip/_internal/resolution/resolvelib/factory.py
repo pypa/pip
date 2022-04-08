@@ -1,4 +1,5 @@
 import contextlib
+import copy
 import functools
 import logging
 from typing import (
@@ -255,7 +256,7 @@ class Factory:
         # "template". Here we just choose the first requirement to represent
         # all of them.
         # Hopefully the Project model can correct this mismatch in the future.
-        template = ireqs[0]
+        template = copy.deepcopy(ireqs[0])
         assert template.req, "Candidates found on index must be PEP 508"
         name = canonicalize_name(template.req.name)
 
