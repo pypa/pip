@@ -1,0 +1,1 @@
+remove --install-scripts from doc as is now an invalid option
