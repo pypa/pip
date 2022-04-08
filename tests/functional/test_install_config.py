@@ -3,6 +3,7 @@ import ssl
 import sys
 import tempfile
 import textwrap
+import typing
 
 import pytest
 
@@ -361,16 +362,38 @@ def test_do_not_prompt_for_authentication(
     assert "ERROR: HTTP error 401" in result.stderr
 
 
+@pytest.fixture(params=(True, False), ids=("auth_needed", "auth_not_needed"))
+def auth_needed(request: pytest.FixtureRequest) -> bool:
+    return request.param  # type: ignore[attr-defined]
+
+
+@pytest.fixture(
+    params=(
+        False,
+        True,
+    ),
+    ids=("default", "no_input"),
+)
+def flags(request: pytest.FixtureRequest) -> typing.List[str]:
+    no_input = request.param  # type: ignore[attr-defined]
+
+    flags = []
+    if no_input:
+        flags.append("--no-input")
+
+    return flags
+
+
 @pytest.mark.skipif(
     sys.platform == "linux" and sys.version_info < (3, 8),
     reason="Custom SSL certification not running well in CI",
 )
-@pytest.mark.parametrize("auth_needed", (True, False))
 def test_prompt_for_keyring_if_needed(
     script: PipTestEnvironment,
     data: TestData,
     cert_factory: CertFactory,
     auth_needed: bool,
+    flags: typing.List[str],
 ) -> None:
     """Test behaviour while installing from a index url
     requiring authentication and keyring is possible.
@@ -421,6 +444,7 @@ def test_prompt_for_keyring_if_needed(
             cert_path,
             "--client-cert",
             cert_path,
+            *flags,
             "simple",
         )
 

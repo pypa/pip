@@ -1,4 +1,5 @@
 import functools
+import os
 import sys
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
@@ -360,7 +361,7 @@ class KeyringSubprocessResult(KeyringModuleV1):
                 self.returncode = 1
             else:
                 # Passwords are returned encoded with a newline appended
-                self.stdout = password.encode("utf-8") + b"\n"
+                self.stdout = (password + os.linesep).encode("utf-8")
 
         if cmd[1] == "set":
             assert stdin is None
@@ -369,7 +370,7 @@ class KeyringSubprocessResult(KeyringModuleV1):
             assert input is not None
 
             # Input from stdin is encoded
-            self.set_password(cmd[2], cmd[3], input.decode("utf-8").strip("\n"))
+            self.set_password(cmd[2], cmd[3], input.decode("utf-8").strip(os.linesep))
 
         return self
 
