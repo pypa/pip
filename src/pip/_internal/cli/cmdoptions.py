@@ -244,6 +244,19 @@ no_input: Callable[..., Option] = partial(
     help="Disable prompting for input.",
 )
 
+force_keyring: Callable[..., Option] = partial(
+    Option,
+    "--force-keyring",
+    dest="force_keyring",
+    action="store_true",
+    default=False,
+    help=(
+        "Always query the keyring, regardless of pip's --no-input option. Note"
+        " that this may cause problems if the keyring expects to be able to"
+        " prompt the user interactively and no interactive user is available."
+    ),
+)
+
 proxy: Callable[..., Option] = partial(
     Option,
     "--proxy",
@@ -1019,6 +1032,7 @@ general_group: Dict[str, Any] = {
         quiet,
         log,
         no_input,
+        force_keyring,
         proxy,
         retries,
         timeout,

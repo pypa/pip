@@ -151,6 +151,10 @@ class SessionCommandMixin(CommandContextMixIn):
 
         # Determine if we can prompt the user for authentication or not
         session.auth.prompting = not options.no_input
+        # We won't use keyring when --no-input is passed unless
+        # --force-keyring is passed as well because it might require
+        # user interaction
+        session.auth.use_keyring = session.auth.prompting or options.force_keyring
 
         return session
 
