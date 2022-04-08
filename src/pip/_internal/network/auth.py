@@ -72,10 +72,14 @@ def get_keyring_auth(url: Optional[str], username: Optional[str]) -> Optional[Au
 
 class MultiDomainBasicAuth(AuthBase):
     def __init__(
-        self, prompting: bool = True, index_urls: Optional[List[str]] = None
+        self,
+        prompting: bool = True,
+        index_urls: Optional[List[str]] = None,
+        prompting_keyring: bool = True,
     ) -> None:
         self.prompting = prompting
         self.index_urls = index_urls
+        self.prompting_keyring = prompting_keyring
         self.passwords: Dict[str, AuthInfo] = {}
         # When the user is prompted to enter credentials and keyring is
         # available, we will offer to save them. If the user accepts,
@@ -230,7 +234,7 @@ class MultiDomainBasicAuth(AuthBase):
     def _prompt_for_password(
         self, netloc: str
     ) -> Tuple[Optional[str], Optional[str], bool]:
-        username = ask_input(f"User for {netloc}: ")
+        username = ask_input(f"User for {netloc}: ") if self.prompting else None
         if not username:
             return None, None, False
         auth = get_keyring_auth(netloc, username)
@@ -241,7 +245,7 @@ class MultiDomainBasicAuth(AuthBase):
 
     # Factored out to allow for easy patching in tests
     def _should_save_password_to_keyring(self) -> bool:
-        if not keyring:
+        if not self.prompting or not keyring:
             return False
         return ask("Save credentials to keyring [y/N]: ", ["y", "n"]) == "y"
 
@@ -251,18 +255,24 @@ class MultiDomainBasicAuth(AuthBase):
         if resp.status_code != 401:
             return resp
 
+        username, password = None, None
+
+        # Query the keyring for credentials:
+        # Keyring backends might prompt the user interactively in some way.
+        # Therefor we only query keyring when --no-input is used if the user
+        # promised the configured backend will not prompt them.
+        if self.prompting or not self.prompting_keyring:
+            username, password = self._get_new_credentials(
+                resp.url,
+                allow_netrc=False,
+                allow_keyring=True,
+            )
+
         # We are not able to prompt the user so simply return the response
-        if not self.prompting:
+        if not self.prompting and not username and not password:
             return resp
 
         parsed = urllib.parse.urlparse(resp.url)
-
-        # Query the keyring for credentials:
-        username, password = self._get_new_credentials(
-            resp.url,
-            allow_netrc=False,
-            allow_keyring=True,
-        )
 
         # Prompt the user for a new username and password
         save = False

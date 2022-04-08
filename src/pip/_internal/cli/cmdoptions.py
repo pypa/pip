@@ -266,6 +266,23 @@ no_input: Callable[..., Option] = partial(
     help="Disable prompting for input.",
 )
 
+keyring_does_not_prompt: Callable[..., Option] = partial(
+    Option,
+    # Promise keyring is configured with a backend which does not prompt
+    "--keyring-does-not-prompt",
+    dest="keyring_does_not_prompt",
+    action="store_true",
+    default=False,
+    help=(
+        "Useful when pip is used indirectly by tools, such as pipx, which pass"
+        " --no-input. Use this to promise keyring is configured with a backend"
+        " which does not prompt. It is recommended to configure this via"
+        " PIP_KEYRING_DOES_NOT_PROMPT or via a config file. Setting this to"
+        " true with an incompatible keyring backend can cause the process to"
+        " hang indefinitely."
+    ),
+)
+
 proxy: Callable[..., Option] = partial(
     Option,
     "--proxy",
@@ -999,6 +1016,7 @@ general_group: Dict[str, Any] = {
         quiet,
         log,
         no_input,
+        keyring_does_not_prompt,
         proxy,
         retries,
         timeout,

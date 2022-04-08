@@ -116,6 +116,9 @@ class SessionCommandMixin(CommandContextMixIn):
 
         # Determine if we can prompt the user for authentication or not
         session.auth.prompting = not options.no_input
+        # Determine if the user promises to have configured keyring with a
+        # backend that does not prompt
+        session.auth.prompting_keyring = not options.keyring_does_not_prompt
 
         return session
 
