@@ -1,1 +1,1 @@
-Remove --install-scripts from doc as is now an invalid option.
+Remove ``--install-scripts`` from doc as is now an invalid option.
