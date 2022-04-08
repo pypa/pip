@@ -1,5 +1,5 @@
 import importlib.metadata
-from typing import Optional, Protocol
+from typing import Any, Optional, Protocol, cast
 
 
 class BasePath(Protocol):
@@ -38,4 +38,4 @@ def get_dist_name(dist: importlib.metadata.Distribution) -> str:
     The ``name`` attribute is only available in Python 3.10 or later. We are
     targeting exactly that, but Mypy does not know this.
     """
-    return dist.name  # type: ignore[attr-defined]
+    return cast(Any, dist).name
