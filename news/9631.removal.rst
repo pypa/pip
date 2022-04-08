@@ -1,0 +1,2 @@
+Usage of the old resolver via --use-deprecated=legacy-resolver is no longer
+available.
