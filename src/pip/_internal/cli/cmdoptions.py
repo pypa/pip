@@ -21,7 +21,6 @@ from typing import Any, Callable, Dict, Optional, Tuple
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cli.parser import ConfigOptionParser
-from pip._internal.cli.progress_bars import BAR_TYPES
 from pip._internal.exceptions import CommandError
 from pip._internal.locations import USER_CACHE_DIR, get_src_prefix
 from pip._internal.models.format_control import FormatControl
@@ -236,13 +235,9 @@ progress_bar: Callable[..., Option] = partial(
     "--progress-bar",
     dest="progress_bar",
     type="choice",
-    choices=list(BAR_TYPES.keys()),
+    choices=["on", "off"],
     default="on",
-    help=(
-        "Specify type of progress to be displayed ["
-        + "|".join(BAR_TYPES.keys())
-        + "] (default: %default)"
-    ),
+    help="Specify whether the progress bar should be used [on, off] (default: on)",
 )
 
 log: Callable[..., Option] = partial(
