@@ -957,7 +957,7 @@ use_new_feature: Callable[..., Option] = partial(
     metavar="feature",
     action="append",
     default=[],
-    choices=["2020-resolver", "fast-deps", "in-tree-build"],
+    choices=["2020-resolver", "fast-deps"],
     help="Enable new functionality, that may be backward incompatible.",
 )
 
@@ -970,7 +970,6 @@ use_deprecated_feature: Callable[..., Option] = partial(
     default=[],
     choices=[
         "legacy-resolver",
-        "out-of-tree-build",
         "backtrack-on-build-failures",
         "html5lib",
     ],

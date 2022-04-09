@@ -288,20 +288,6 @@ class RequirementCommand(IndexGroupCommand):
                     "fast-deps has no effect when used with the legacy resolver."
                 )
 
-        in_tree_build = "out-of-tree-build" not in options.deprecated_features_enabled
-        if "in-tree-build" in options.features_enabled:
-            deprecated(
-                reason="In-tree builds are now the default.",
-                replacement="to remove the --use-feature=in-tree-build flag",
-                gone_in="22.1",
-            )
-        if "out-of-tree-build" in options.deprecated_features_enabled:
-            deprecated(
-                reason="Out-of-tree builds are deprecated.",
-                replacement=None,
-                gone_in="22.1",
-            )
-
         return RequirementPreparer(
             build_dir=temp_build_dir_path,
             src_dir=options.src_dir,
@@ -315,7 +301,6 @@ class RequirementCommand(IndexGroupCommand):
             use_user_site=use_user_site,
             lazy_wheel=lazy_wheel,
             verbosity=verbosity,
-            in_tree_build=in_tree_build,
         )
 
     @classmethod

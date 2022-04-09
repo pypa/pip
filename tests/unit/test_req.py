@@ -99,7 +99,6 @@ class TestRequirementSet:
                 use_user_site=False,
                 lazy_wheel=False,
                 verbosity=0,
-                in_tree_build=False,
             )
             yield Resolver(
                 preparer=preparer,
