@@ -34,6 +34,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution, get_default_environment
+from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.operations.prepare import RequirementPreparer
@@ -57,6 +58,7 @@ from .candidates import (
     LinkCandidate,
     RequiresPythonCandidate,
     as_base_candidate,
+    make_install_req_from_link,
 )
 from .found_candidates import FoundCandidates, IndexCandidateInfo
 from .requirements import (
@@ -290,6 +292,20 @@ class Factory:
                 return None
             return candidate
 
+        def make_index_cand(ican: InstallationCandidate) -> Optional[Candidate]:
+            modified = make_install_req_from_link(ican.link, template)
+            if not modified.is_pinned:
+                assert modified.req, "Candidates found on index must be PEP 508"
+                modified.req.specifier = specifier
+                modified.hash_options = hashes.allowed
+            return self._make_candidate_from_link(
+                link=ican.link,
+                extras=extras,
+                template=modified,
+                name=name,
+                version=ican.version,
+            )
+
         def iter_index_candidate_infos() -> Iterator[IndexCandidateInfo]:
             result = self._finder.find_best_candidate(
                 project_name=name,
@@ -305,24 +321,11 @@ class Factory:
 
             pinned = is_pinned(specifier)
 
-            if not template.is_pinned:
-                assert template.req, "Candidates found on index must be PEP 508"
-                template.req.specifier = specifier
-                template.hash_options = hashes.allowed
-
             # PackageFinder returns earlier versions first, so we reverse.
             for ican in reversed(icans):
                 if not (all_yanked and pinned) and ican.link.is_yanked:
                     continue
-                func = functools.partial(
-                    self._make_candidate_from_link,
-                    link=ican.link,
-                    extras=extras,
-                    template=template,
-                    name=name,
-                    version=ican.version,
-                )
-                yield ican.version, func
+                yield ican.version, functools.partial(make_index_cand, ican)
 
         return FoundCandidates(
             iter_index_candidate_infos,
