@@ -21,6 +21,7 @@ from typing import (
     BinaryIO,
     Callable,
     ContextManager,
+    Generator,
     Iterable,
     Iterator,
     List,
@@ -264,7 +265,9 @@ def is_installable_dir(path: str) -> bool:
     return False
 
 
-def read_chunks(file: BinaryIO, size: int = io.DEFAULT_BUFFER_SIZE) -> Iterator[bytes]:
+def read_chunks(
+    file: BinaryIO, size: int = io.DEFAULT_BUFFER_SIZE
+) -> Generator[bytes, None, None]:
     """Yield pieces of data from a file-like object until EOF."""
     while True:
         chunk = file.read(size)
@@ -346,7 +349,7 @@ class StreamWrapper(StringIO):
 
 
 @contextlib.contextmanager
-def captured_output(stream_name: str) -> Iterator[StreamWrapper]:
+def captured_output(stream_name: str) -> Generator[StreamWrapper, None, None]:
     """Return a context manager used by captured_stdout/stdin/stderr
     that temporarily replaces the sys stream *stream_name* with a StringIO.
 

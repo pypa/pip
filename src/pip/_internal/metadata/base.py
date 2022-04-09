@@ -10,6 +10,7 @@ from typing import (
     TYPE_CHECKING,
     Collection,
     Container,
+    Generator,
     Iterable,
     Iterator,
     List,
@@ -470,7 +471,7 @@ class BaseEnvironment:
         """
         raise NotImplementedError()
 
-    def iter_distributions(self) -> Iterator["BaseDistribution"]:
+    def iter_distributions(self) -> Generator["BaseDistribution", None, None]:
         """Iterate through installed distributions."""
         for dist in self._iter_distributions():
             # Make sure the distribution actually comes from a valid Python
