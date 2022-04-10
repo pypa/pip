@@ -1211,6 +1211,7 @@ def create_basic_sdist_for_package(
     *,
     fails_egg_info: bool = False,
     fails_bdist_wheel: bool = False,
+    depends: Optional[List[str]] = None,
 ) -> pathlib.Path:
     files = {
         "setup.py": f"""\
@@ -1226,7 +1227,8 @@ def create_basic_sdist_for_package(
             if fails_bdist_wheel and "bdist_wheel" in sys.argv:
                 raise Exception("Simulated failure for building a wheel.")
 
-            setup(name={name!r}, version={version!r})
+            setup(name={name!r}, version={version!r},
+                install_requires={depends or []!r})
         """,
     }
 

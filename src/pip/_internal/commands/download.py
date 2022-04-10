@@ -122,6 +122,7 @@ class DownloadCommand(RequirementCommand):
             finder=finder,
             options=options,
             ignore_requires_python=options.ignore_requires_python,
+            use_pep517=options.use_pep517,
             py_version_info=options.python_version,
         )
 
