@@ -12,6 +12,7 @@ from typing import Dict, Iterable, List, Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
 
+from pip._internal.cli.progress_bars import BarType
 from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.distributions.installed import InstalledDistribution
 from pip._internal.exceptions import (
@@ -201,7 +202,7 @@ class RequirementPreparer:
         build_isolation: bool,
         build_tracker: BuildTracker,
         session: PipSession,
-        progress_bar: str,
+        progress_bar: BarType,
         finder: PackageFinder,
         require_hashes: bool,
         use_user_site: bool,

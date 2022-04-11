@@ -8,7 +8,7 @@ from typing import Iterable, Optional, Tuple
 
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 
-from pip._internal.cli.progress_bars import get_download_progress_renderer
+from pip._internal.cli.progress_bars import BarType, get_download_progress_renderer
 from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
@@ -30,7 +30,7 @@ def _get_http_response_size(resp: Response) -> Optional[int]:
 def _prepare_download(
     resp: Response,
     link: Link,
-    progress_bar: str,
+    progress_bar: BarType,
 ) -> Iterable[bytes]:
     total_length = _get_http_response_size(resp)
 
@@ -122,7 +122,7 @@ class Downloader:
     def __init__(
         self,
         session: PipSession,
-        progress_bar: str,
+        progress_bar: BarType,
     ) -> None:
         self._session = session
         self._progress_bar = progress_bar
@@ -153,7 +153,7 @@ class BatchDownloader:
     def __init__(
         self,
         session: PipSession,
-        progress_bar: str,
+        progress_bar: BarType,
     ) -> None:
         self._session = session
         self._progress_bar = progress_bar
