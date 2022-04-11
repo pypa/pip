@@ -1,5 +1,14 @@
 import functools
-from typing import Callable, Generator, Iterable, Iterator, Optional, Tuple
+from typing import (
+    Callable,
+    Generator,
+    Iterable,
+    Iterator,
+    Literal,
+    Optional,
+    Tuple,
+    Union,
+)
 
 from pip._vendor.rich.progress import (
     BarColumn,
@@ -17,15 +26,17 @@ from pip._vendor.rich.progress import (
 from pip._internal.utils.logging import get_indentation
 
 DownloadProgressRenderer = Callable[[Iterable[bytes]], Iterator[bytes]]
+RichBarType = Literal["auto", "on"]
+BarType = Union[RichBarType, Literal["off"]]
 
 
 def _rich_progress_bar(
     iterable: Iterable[bytes],
     *,
-    bar_type: str,
+    bar_type: RichBarType,
     size: int,
 ) -> Generator[bytes, None, None]:
-    assert bar_type == "on", "This should only be used in the default mode."
+    assert bar_type in {"auto", "on"}, "This should only be used in the default mode."
 
     if not size:
         total = float("inf")
@@ -56,13 +67,13 @@ def _rich_progress_bar(
 
 
 def get_download_progress_renderer(
-    *, bar_type: str, size: Optional[int] = None
+    *, bar_type: BarType, size: Optional[int] = None
 ) -> DownloadProgressRenderer:
     """Get an object that can be used to render the download progress.
 
     Returns a callable, that takes an iterable to "wrap".
     """
-    if bar_type == "on":
+    if bar_type in {"auto", "on"}:
         return functools.partial(_rich_progress_bar, bar_type=bar_type, size=size)
     else:
         return iter  # no-op, when passed an iterator
