@@ -1,14 +1,11 @@
 import functools
-from typing import (
-    Callable,
-    Generator,
-    Iterable,
-    Iterator,
-    Literal,
-    Optional,
-    Tuple,
-    Union,
-)
+import sys
+from typing import Callable, Generator, Iterable, Iterator, Optional, Tuple, Union
+
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from pip._vendor.typing_extensions import Literal
 
 from pip._vendor.rich.progress import (
     BarColumn,
