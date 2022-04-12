@@ -3,7 +3,6 @@ from typing import List
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import SUCCESS
-from pip._internal.exceptions import CommandError
 
 
 class HelpCommand(Command):
@@ -14,11 +13,7 @@ class HelpCommand(Command):
     ignore_require_venv = True
 
     def run(self, options: Values, args: List[str]) -> int:
-        from pip._internal.commands import (
-            commands_dict,
-            create_command,
-            get_similar_commands,
-        )
+        from pip._internal.commands import check_subcommand, create_command
 
         try:
             # 'pip help' with no args is handled by pip.__init__.parseopt()
@@ -26,15 +21,7 @@ class HelpCommand(Command):
         except IndexError:
             return SUCCESS
 
-        if cmd_name not in commands_dict:
-            guess = get_similar_commands(cmd_name)
-
-            msg = [f'unknown command "{cmd_name}"']
-            if guess:
-                msg.append(f'maybe you meant "{guess}"')
-
-            raise CommandError(" - ".join(msg))
-
+        check_subcommand(cmd_name)
         command = create_command(cmd_name)
         command.parser.print_help()
 
