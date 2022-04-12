@@ -3,7 +3,7 @@ from unittest.mock import Mock
 import pytest
 
 from pip._internal.cli.status_codes import ERROR, SUCCESS
-from pip._internal.commands import commands_dict, create_command
+from pip._internal.commands import create_command, subcommands_set
 from pip._internal.exceptions import CommandError
 from tests.conftest import InMemoryPip
 from tests.lib import PipTestEnvironment
@@ -110,7 +110,7 @@ def test_help_commands_equally_functional(in_memory_pip: InMemoryPip) -> None:
     assert sum(ret) == 0, "exit codes of: " + msg
     assert all(len(o) > 0 for o in out)
 
-    for name in commands_dict:
+    for name in subcommands_set:
         assert (
             in_memory_pip.pip("help", name).stdout
             == in_memory_pip.pip(name, "--help").stdout

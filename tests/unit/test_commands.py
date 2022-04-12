@@ -9,7 +9,12 @@ from pip._internal.cli.req_command import (
     RequirementCommand,
     SessionCommandMixin,
 )
-from pip._internal.commands import commands_dict, create_command
+from pip._internal.commands import (
+    aliases_dict,
+    commands_dict,
+    create_command,
+    subcommands_set,
+)
 
 # These are the expected names of the commands whose classes inherit from
 # IndexGroupCommand.
@@ -36,12 +41,16 @@ def test_commands_dict__order() -> None:
     assert names[-1] == "help"
 
 
-@pytest.mark.parametrize("name", list(commands_dict))
+@pytest.mark.parametrize('name', subcommands_set)
 def test_create_command(name: str) -> None:
     """Test creating an instance of each available command."""
     command = create_command(name)
     assert command.name == name
-    assert command.summary == commands_dict[name].summary
+    try:
+        summary = commands_dict[name].summary
+    except KeyError:
+        summary = commands_dict[aliases_dict[name]].summary
+    assert command.summary == summary
 
 
 def test_session_commands() -> None:
