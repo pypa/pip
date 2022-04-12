@@ -421,7 +421,11 @@ def test_clean_link(url: str, clean_url: str) -> None:
 def _test_parse_links_data_attribute(
     anchor_html: str, attr: str, expected: Optional[str]
 ) -> None:
-    html = f'<html><head><meta charset="utf-8"><head><body>{anchor_html}</body></html>'
+    html = (
+        "<!DOCTYPE html>"
+        '<html><head><meta charset="utf-8"><head>'
+        "<body>{}</body></html>"
+    ).format(anchor_html)
     html_bytes = html.encode("utf-8")
     page = HTMLPage(
         html_bytes,
@@ -430,7 +434,7 @@ def _test_parse_links_data_attribute(
         # the page content isn't cached.
         url=f"https://example.com/simple-{uuid.uuid4()}/",
     )
-    links = list(parse_links(page))
+    links = list(parse_links(page, use_deprecated_html5lib=False))
     (link,) = links
     actual = getattr(link, attr)
     assert actual == expected
@@ -467,7 +471,7 @@ def test_parse_links__requires_python(
         # Test not present.
         ('<a href="/pkg1-1.0.tar.gz"></a>', None),
         # Test present with no value.
-        ('<a href="/pkg2-1.0.tar.gz" data-yanked></a>', ""),
+        ('<a href="/pkg2-1.0.tar.gz" data-yanked></a>', None),
         # Test the empty string.
         ('<a href="/pkg3-1.0.tar.gz" data-yanked=""></a>', ""),
         # Test a non-empty string.
@@ -492,6 +496,7 @@ def test_parse_links__yanked_reason(anchor_html: str, expected: Optional[str]) -
 
 def test_parse_links_caches_same_page_by_url() -> None:
     html = (
+        "<!DOCTYPE html>"
         '<html><head><meta charset="utf-8"><head>'
         '<body><a href="/pkg1-1.0.tar.gz"></a></body></html>'
     )
@@ -521,17 +526,29 @@ def test_parse_links_caches_same_page_by_url() -> None:
         cache_link_parsing=False,
     )
 
-    parsed_links_1 = list(parse_links(page_1))
+    parsed_links_1 = list(parse_links(page_1, use_deprecated_html5lib=False))
     assert len(parsed_links_1) == 1
     assert "pkg1" in parsed_links_1[0].url
 
-    parsed_links_2 = list(parse_links(page_2))
+    parsed_links_2 = list(parse_links(page_2, use_deprecated_html5lib=False))
     assert parsed_links_2 == parsed_links_1
 
-    parsed_links_3 = list(parse_links(page_3))
+    parsed_links_3 = list(parse_links(page_3, use_deprecated_html5lib=False))
     assert len(parsed_links_3) == 1
     assert parsed_links_3 != parsed_links_1
     assert "pkg2" in parsed_links_3[0].url
+
+
+def test_parse_link_handles_deprecated_usage_properly() -> None:
+    html = b'<a href="/pkg1-1.0.tar.gz"></a><a href="/pkg1-2.0.tar.gz"></a>'
+    url = "https://example.com/simple/"
+    page = HTMLPage(html, encoding=None, url=url, cache_link_parsing=False)
+
+    parsed_links = list(parse_links(page, use_deprecated_html5lib=True))
+
+    assert len(parsed_links) == 2
+    assert "pkg1-1.0" in parsed_links[0].url
+    assert "pkg1-2.0" in parsed_links[1].url
 
 
 @mock.patch("pip._internal.index.collector.raise_for_status")

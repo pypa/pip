@@ -11,6 +11,7 @@ from pip._internal.index.package_finder import (
     CandidatePreferences,
     FormatControl,
     LinkEvaluator,
+    LinkType,
     PackageFinder,
     _check_link_requires_python,
     _extract_version_from_fragment,
@@ -116,20 +117,36 @@ def test_check_link_requires_python__invalid_requires(
 
 class TestLinkEvaluator:
     @pytest.mark.parametrize(
-        "py_version_info,ignore_requires_python,expected",
+        "py_version_info, ignore_requires_python, expected",
         [
-            ((3, 6, 5), False, (True, "1.12")),
-            # Test an incompatible Python.
-            ((3, 6, 4), False, (False, None)),
-            # Test an incompatible Python with ignore_requires_python=True.
-            ((3, 6, 4), True, (True, "1.12")),
+            pytest.param(
+                (3, 6, 5),
+                False,
+                (LinkType.candidate, "1.12"),
+                id="compatible",
+            ),
+            pytest.param(
+                (3, 6, 4),
+                False,
+                (
+                    LinkType.requires_python_mismatch,
+                    "1.12 Requires-Python == 3.6.5",
+                ),
+                id="requires-python-mismatch",
+            ),
+            pytest.param(
+                (3, 6, 4),
+                True,
+                (LinkType.candidate, "1.12"),
+                id="requires-python-mismatch-ignored",
+            ),
         ],
     )
     def test_evaluate_link(
         self,
         py_version_info: Tuple[int, int, int],
         ignore_requires_python: bool,
-        expected: Tuple[bool, Optional[str]],
+        expected: Tuple[LinkType, str],
     ) -> None:
         target_python = TargetPython(py_version_info=py_version_info)
         evaluator = LinkEvaluator(
@@ -150,18 +167,29 @@ class TestLinkEvaluator:
     @pytest.mark.parametrize(
         "yanked_reason, allow_yanked, expected",
         [
-            (None, True, (True, "1.12")),
-            (None, False, (True, "1.12")),
-            ("", True, (True, "1.12")),
-            ("", False, (False, "yanked for reason: <none given>")),
-            ("bad metadata", True, (True, "1.12")),
-            ("bad metadata", False, (False, "yanked for reason: bad metadata")),
+            (None, True, (LinkType.candidate, "1.12")),
+            (None, False, (LinkType.candidate, "1.12")),
+            ("", True, (LinkType.candidate, "1.12")),
+            (
+                "",
+                False,
+                (LinkType.yanked, "yanked for reason: <none given>"),
+            ),
+            ("bad metadata", True, (LinkType.candidate, "1.12")),
+            (
+                "bad metadata",
+                False,
+                (LinkType.yanked, "yanked for reason: bad metadata"),
+            ),
             # Test a unicode string with a non-ascii character.
-            ("curly quote: \u2018", True, (True, "1.12")),
+            ("curly quote: \u2018", True, (LinkType.candidate, "1.12")),
             (
                 "curly quote: \u2018",
                 False,
-                (False, "yanked for reason: curly quote: \u2018"),
+                (
+                    LinkType.yanked,
+                    "yanked for reason: curly quote: \u2018",
+                ),
             ),
         ],
     )
@@ -169,7 +197,7 @@ class TestLinkEvaluator:
         self,
         yanked_reason: str,
         allow_yanked: bool,
-        expected: Tuple[bool, str],
+        expected: Tuple[LinkType, str],
     ) -> None:
         target_python = TargetPython(py_version_info=(3, 6, 4))
         evaluator = LinkEvaluator(
@@ -203,7 +231,7 @@ class TestLinkEvaluator:
         link = Link("https://example.com/sample-1.0-py2.py3-none-any.whl")
         actual = evaluator.evaluate_link(link)
         expected = (
-            False,
+            LinkType.platform_mismatch,
             "none of the wheel's tags (py2-none-any, py3-none-any) are compatible "
             "(run pip debug --verbose to show compatible tags)",
         )
@@ -575,6 +603,7 @@ class TestPackageFinder:
         finder = PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=selection_prefs,
+            use_deprecated_html5lib=False,
         )
         candidate_prefs = finder._candidate_prefs
         assert candidate_prefs.allow_all_prereleases == allow_all_prereleases
@@ -591,6 +620,7 @@ class TestPackageFinder:
         finder = PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=SelectionPreferences(allow_yanked=True),
+            use_deprecated_html5lib=False,
         )
 
         assert finder._link_collector is link_collector
@@ -608,6 +638,7 @@ class TestPackageFinder:
             link_collector=link_collector,
             selection_prefs=SelectionPreferences(allow_yanked=True),
             target_python=target_python,
+            use_deprecated_html5lib=False,
         )
         actual_target_python = finder._target_python
         # The target_python attribute should be set as is.
@@ -627,6 +658,7 @@ class TestPackageFinder:
             link_collector=link_collector,
             selection_prefs=SelectionPreferences(allow_yanked=True),
             target_python=None,
+            use_deprecated_html5lib=False,
         )
         # Spot-check the default TargetPython object.
         actual_target_python = finder._target_python
@@ -646,6 +678,7 @@ class TestPackageFinder:
         finder = PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=selection_prefs,
+            use_deprecated_html5lib=False,
         )
         assert finder._allow_yanked == allow_yanked
 
@@ -665,6 +698,7 @@ class TestPackageFinder:
         finder = PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=selection_prefs,
+            use_deprecated_html5lib=False,
         )
         assert finder._ignore_requires_python == ignore_requires_python
 
@@ -684,6 +718,7 @@ class TestPackageFinder:
         finder = PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=selection_prefs,
+            use_deprecated_html5lib=False,
         )
         actual_format_control = finder.format_control
         assert actual_format_control is format_control
@@ -724,6 +759,7 @@ class TestPackageFinder:
             allow_yanked=allow_yanked,
             format_control=format_control,
             ignore_requires_python=ignore_requires_python,
+            use_deprecated_html5lib=False,
         )
 
         # Pass a project_name that will be different from canonical_name.
@@ -772,6 +808,7 @@ class TestPackageFinder:
             target_python=target_python,
             allow_yanked=True,
             candidate_prefs=candidate_prefs,
+            use_deprecated_html5lib=False,
         )
 
         specifier = SpecifierSet()

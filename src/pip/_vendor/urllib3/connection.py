@@ -51,7 +51,6 @@ from .exceptions import (
     SubjectAltNameWarning,
     SystemTimeWarning,
 )
-from .packages.ssl_match_hostname import CertificateError, match_hostname
 from .util import SKIP_HEADER, SKIPPABLE_HEADERS, connection
 from .util.ssl_ import (
     assert_fingerprint,
@@ -61,6 +60,7 @@ from .util.ssl_ import (
     resolve_ssl_version,
     ssl_wrap_socket,
 )
+from .util.ssl_match_hostname import CertificateError, match_hostname
 
 log = logging.getLogger(__name__)
 

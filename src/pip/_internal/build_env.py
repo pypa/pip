@@ -11,7 +11,7 @@ import zipfile
 from collections import OrderedDict
 from sysconfig import get_paths
 from types import TracebackType
-from typing import TYPE_CHECKING, Iterable, Iterator, List, Optional, Set, Tuple, Type
+from typing import TYPE_CHECKING, Generator, Iterable, List, Optional, Set, Tuple, Type
 
 from pip._vendor.certifi import where
 from pip._vendor.packaging.requirements import Requirement
@@ -20,7 +20,7 @@ from pip._vendor.packaging.version import Version
 from pip import __file__ as pip_location
 from pip._internal.cli.spinners import open_spinner
 from pip._internal.locations import get_platlib, get_prefixed_libs, get_purelib
-from pip._internal.metadata import get_environment
+from pip._internal.metadata import get_default_environment, get_environment
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 
@@ -42,7 +42,7 @@ class _Prefix:
 
 
 @contextlib.contextmanager
-def _create_standalone_pip() -> Iterator[str]:
+def _create_standalone_pip() -> Generator[str, None, None]:
     """Create a "standalone pip" zip file.
 
     The zip file's content is identical to the currently-running pip.
@@ -168,7 +168,11 @@ class BuildEnvironment:
         missing = set()
         conflicting = set()
         if reqs:
-            env = get_environment(self._lib_dirs)
+            env = (
+                get_environment(self._lib_dirs)
+                if hasattr(self, "_lib_dirs")
+                else get_default_environment()
+            )
             for req_str in reqs:
                 req = Requirement(req_str)
                 dist = env.get_distribution(req.name)
@@ -189,7 +193,8 @@ class BuildEnvironment:
         finder: "PackageFinder",
         requirements: Iterable[str],
         prefix_as_string: str,
-        message: str,
+        *,
+        kind: str,
     ) -> None:
         prefix = self._prefixes[prefix_as_string]
         assert not prefix.setup
@@ -203,7 +208,7 @@ class BuildEnvironment:
                 finder,
                 requirements,
                 prefix,
-                message,
+                kind=kind,
             )
 
     @staticmethod
@@ -212,7 +217,8 @@ class BuildEnvironment:
         finder: "PackageFinder",
         requirements: Iterable[str],
         prefix: _Prefix,
-        message: str,
+        *,
+        kind: str,
     ) -> None:
         args: List[str] = [
             sys.executable,
@@ -254,8 +260,13 @@ class BuildEnvironment:
         args.append("--")
         args.extend(requirements)
         extra_environ = {"_PIP_STANDALONE_CERT": where()}
-        with open_spinner(message) as spinner:
-            call_subprocess(args, spinner=spinner, extra_environ=extra_environ)
+        with open_spinner(f"Installing {kind}") as spinner:
+            call_subprocess(
+                args,
+                command_desc=f"pip subprocess to install {kind}",
+                spinner=spinner,
+                extra_environ=extra_environ,
+            )
 
 
 class NoOpBuildEnvironment(BuildEnvironment):
@@ -283,6 +294,7 @@ class NoOpBuildEnvironment(BuildEnvironment):
         finder: "PackageFinder",
         requirements: Iterable[str],
         prefix_as_string: str,
-        message: str,
+        *,
+        kind: str,
     ) -> None:
         raise NotImplementedError()

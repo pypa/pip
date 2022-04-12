@@ -1,7 +1,6 @@
 import inspect
 import os
 import platform
-import shutil
 import sys
 import threading
 from abc import ABC, abstractmethod
@@ -12,8 +11,9 @@ from getpass import getpass
 from html import escape
 from inspect import isclass
 from itertools import islice
+from threading import RLock
 from time import monotonic
-from types import FrameType, TracebackType, ModuleType
+from types import FrameType, ModuleType, TracebackType
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -25,7 +25,6 @@ from typing import (
     Mapping,
     NamedTuple,
     Optional,
-    Set,
     TextIO,
     Tuple,
     Type,
@@ -212,6 +211,19 @@ class ConsoleOptions:
         options.min_width = options.max_width = max(0, width)
         return options
 
+    def update_height(self, height: int) -> "ConsoleOptions":
+        """Update the height, and return a copy.
+
+        Args:
+            height (int): New height
+
+        Returns:
+            ~ConsoleOptions: New Console options instance.
+        """
+        options = self.copy()
+        options.max_height = options.height = height
+        return options
+
     def update_dimensions(self, width: int, height: int) -> "ConsoleOptions":
         """Update the width and height, and return a copy.
 
@@ -224,8 +236,7 @@ class ConsoleOptions:
         """
         options = self.copy()
         options.min_width = options.max_width = max(0, width)
-        options.height = height
-        options.max_height = height
+        options.height = options.max_height = height
         return options
 
 
@@ -247,11 +258,12 @@ class ConsoleRenderable(Protocol):
         ...
 
 
+# A type that may be rendered by Console.
 RenderableType = Union[ConsoleRenderable, RichCast, str]
-"""A type that may be rendered by Console."""
 
+
+# The result of calling a __rich_console__ method.
 RenderResult = Iterable[Union[RenderableType, Segment]]
-"""The result of calling a __rich_console__ method."""
 
 
 _null_highlighter = NullHighlighter()
@@ -464,9 +476,6 @@ class Group:
         yield from self.renderables
 
 
-RenderGroup = Group  # TODO: deprecate at some point
-
-
 def group(fit: bool = True) -> Callable[..., Callable[..., Group]]:
     """A decorator that turns an iterable of renderables in to a group.
 
@@ -477,7 +486,7 @@ def group(fit: bool = True) -> Callable[..., Callable[..., Group]]:
     def decorator(
         method: Callable[..., Iterable[RenderableType]]
     ) -> Callable[..., Group]:
-        """Convert a method that returns an iterable of renderables in to a RenderGroup."""
+        """Convert a method that returns an iterable of renderables in to a Group."""
 
         @wraps(method)
         def _replace(*args: Any, **kwargs: Any) -> Group:
@@ -487,9 +496,6 @@ def group(fit: bool = True) -> Callable[..., Callable[..., Group]]:
         return _replace
 
     return decorator
-
-
-render_group = group
 
 
 def _is_jupyter() -> bool:  # pragma: no cover
@@ -813,12 +819,13 @@ class Console:
         Args:
             hook (RenderHook): Render hook instance.
         """
-
-        self._render_hooks.append(hook)
+        with self._lock:
+            self._render_hooks.append(hook)
 
     def pop_render_hook(self) -> None:
         """Pop the last renderhook from the stack."""
-        self._render_hooks.pop()
+        with self._lock:
+            self._render_hooks.pop()
 
     def __enter__(self) -> "Console":
         """Own context manager to enter buffer context."""
@@ -1495,9 +1502,8 @@ class Console:
             control_codes (str): Control codes, such as those that may move the cursor.
         """
         if not self.is_dumb_terminal:
-            for _control in control:
-                self._buffer.append(_control.segment)
-            self._check_buffer()
+            with self:
+                self._buffer.extend(_control.segment for _control in control)
 
     def out(
         self,
@@ -1579,7 +1585,7 @@ class Console:
             if overflow is None:
                 overflow = "ignore"
             crop = False
-
+        render_hooks = self._render_hooks[:]
         with self:
             renderables = self._collect_renderables(
                 objects,
@@ -1590,7 +1596,7 @@ class Console:
                 markup=markup,
                 highlight=highlight,
             )
-            for hook in self._render_hooks:
+            for hook in render_hooks:
                 renderables = hook.process_renderables(renderables)
             render_options = self.options.update(
                 justify=justify,
@@ -1847,6 +1853,8 @@ class Console:
         if not objects:
             objects = (NewLine(),)
 
+        render_hooks = self._render_hooks[:]
+
         with self:
             renderables = self._collect_renderables(
                 objects,
@@ -1881,7 +1889,7 @@ class Console:
                     link_path=link_path,
                 )
             ]
-            for hook in self._render_hooks:
+            for hook in render_hooks:
                 renderables = hook.process_renderables(renderables)
             new_segments: List[Segment] = []
             extend = new_segments.extend

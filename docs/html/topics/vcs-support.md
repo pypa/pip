@@ -35,7 +35,7 @@ a tag name:
 
 ```none
 MyProject @ git+https://git.example.com/MyProject.git@master
-MyProject @ it+https://git.example.com/MyProject.git@v1.0
+MyProject @ git+https://git.example.com/MyProject.git@v1.0
 MyProject @ git+https://git.example.com/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709
 MyProject @ git+https://git.example.com/MyProject.git@refs/pull/123/head
 ```

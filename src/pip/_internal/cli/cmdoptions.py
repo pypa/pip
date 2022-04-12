@@ -10,9 +10,9 @@ pass on state. To be consistent, all options will follow this design.
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
 
+import logging
 import os
 import textwrap
-import warnings
 from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup, OptionParser, Values
 from textwrap import dedent
@@ -21,7 +21,6 @@ from typing import Any, Callable, Dict, Optional, Tuple
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cli.parser import ConfigOptionParser
-from pip._internal.cli.progress_bars import BAR_TYPES
 from pip._internal.exceptions import CommandError
 from pip._internal.locations import USER_CACHE_DIR, get_src_prefix
 from pip._internal.models.format_control import FormatControl
@@ -29,6 +28,8 @@ from pip._internal.models.index import PyPI
 from pip._internal.models.target_python import TargetPython
 from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.misc import strtobool
+
+logger = logging.getLogger(__name__)
 
 
 def raise_option_error(parser: OptionParser, option: Option, msg: str) -> None:
@@ -76,10 +77,9 @@ def check_install_build_global(
     if any(map(getname, names)):
         control = options.format_control
         control.disallow_binaries()
-        warnings.warn(
+        logger.warning(
             "Disabling all use of wheels due to the use of --build-option "
             "/ --global-option / --install-option.",
-            stacklevel=2,
         )
 
 
@@ -235,13 +235,9 @@ progress_bar: Callable[..., Option] = partial(
     "--progress-bar",
     dest="progress_bar",
     type="choice",
-    choices=list(BAR_TYPES.keys()),
+    choices=["on", "off"],
     default="on",
-    help=(
-        "Specify type of progress to be displayed ["
-        + "|".join(BAR_TYPES.keys())
-        + "] (default: %default)"
-    ),
+    help="Specify whether the progress bar should be used [on, off] (default: on)",
 )
 
 log: Callable[..., Option] = partial(
@@ -271,7 +267,7 @@ proxy: Callable[..., Option] = partial(
     dest="proxy",
     type="str",
     default="",
-    help="Specify a proxy in the form [user:passwd@]proxy.server:port.",
+    help="Specify a proxy in the form scheme://[user:passwd@]proxy.server:port.",
 )
 
 retries: Callable[..., Option] = partial(
@@ -857,6 +853,15 @@ disable_pip_version_check: Callable[..., Option] = partial(
     "of pip is available for download. Implied with --no-index.",
 )
 
+warn_about_root_user: Callable[..., Option] = partial(
+    Option,
+    "--no-warn-when-using-as-a-root-user",
+    dest="warn_about_root_user",
+    default=True,
+    action="store_false",
+    help="Do not warn when used as a root user",
+)
+
 
 def _handle_merge_hash(
     option: Option, opt_str: str, value: str, parser: OptionParser
@@ -952,7 +957,7 @@ use_new_feature: Callable[..., Option] = partial(
     metavar="feature",
     action="append",
     default=[],
-    choices=["2020-resolver", "fast-deps", "in-tree-build"],
+    choices=["2020-resolver", "fast-deps"],
     help="Enable new functionality, that may be backward incompatible.",
 )
 
@@ -963,7 +968,11 @@ use_deprecated_feature: Callable[..., Option] = partial(
     metavar="feature",
     action="append",
     default=[],
-    choices=["legacy-resolver", "out-of-tree-build"],
+    choices=[
+        "legacy-resolver",
+        "backtrack-on-build-failures",
+        "html5lib",
+    ],
     help=("Enable deprecated functionality, that will be removed in the future."),
 )
 

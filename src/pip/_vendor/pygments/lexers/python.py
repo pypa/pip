@@ -9,9 +9,10 @@
 """
 
 import re
+import keyword
 
 from pip._vendor.pygments.lexer import Lexer, RegexLexer, include, bygroups, using, \
-    default, words, combined, do_insertions
+    default, words, combined, do_insertions, this
 from pip._vendor.pygments.util import get_bool_opt, shebang_matches
 from pip._vendor.pygments.token import Text, Comment, Operator, Keyword, Name, String, \
     Number, Punctuation, Generic, Other, Error
@@ -110,6 +111,7 @@ class PythonLexer(RegexLexer):
             (r'\\\n', Text),
             (r'\\', Text),
             include('keywords'),
+            include('soft-keywords'),
             (r'(def)((?:\s|\\\s)+)', bygroups(Keyword, Text), 'funcname'),
             (r'(class)((?:\s|\\\s)+)', bygroups(Keyword, Text), 'classname'),
             (r'(from)((?:\s|\\\s)+)', bygroups(Keyword.Namespace, Text),
@@ -207,10 +209,24 @@ class PythonLexer(RegexLexer):
              Keyword),
             (words(('True', 'False', 'None'), suffix=r'\b'), Keyword.Constant),
         ],
+        'soft-keywords': [
+            # `match`, `case` and `_` soft keywords
+            (r'(^[ \t]*)'              # at beginning of line + possible indentation
+             r'(match|case)\b'         # a possible keyword
+             r'(?![ \t]*(?:'           # not followed by...
+             r'[:,;=^&|@~)\]}]|(?:' +  # characters and keywords that mean this isn't 
+             r'|'.join(keyword.kwlist) + r')\b))',                 # pattern matching
+             bygroups(Text, Keyword), 'soft-keywords-inner'),
+        ],
+        'soft-keywords-inner': [
+            # optional `_` keyword
+            (r'(\s+)([^\n_]*)(_\b)', bygroups(Text, using(this), Keyword)),
+            default('#pop')
+        ],
         'builtins': [
             (words((
                 '__import__', 'abs', 'all', 'any', 'bin', 'bool', 'bytearray',
-                'bytes', 'chr', 'classmethod', 'compile', 'complex',
+                'breakpoint', 'bytes', 'chr', 'classmethod', 'compile', 'complex',
                 'delattr', 'dict', 'dir', 'divmod', 'enumerate', 'eval', 'filter',
                 'float', 'format', 'frozenset', 'getattr', 'globals', 'hasattr',
                 'hash', 'hex', 'id', 'input', 'int', 'isinstance', 'issubclass',
@@ -739,7 +755,7 @@ class PythonTracebackLexer(RegexLexer):
             # Either `PEP 657 <https://www.python.org/dev/peps/pep-0657/>`
             # error locations in Python 3.11+, or single-caret markers
             # for syntax errors before that.
-            (r'^( {4,})(\^+)(\n)',
+            (r'^( {4,})([~^]+)(\n)',
              bygroups(Text, Punctuation.Marker, Text),
              '#pop'),
             default('#pop'),

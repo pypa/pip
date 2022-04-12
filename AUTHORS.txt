@@ -18,6 +18,7 @@ Alan Yee
 Albert Tugushev
 Albert-Guan
 albertg
+Alberto Sottile
 Aleks Bunin
 Alethea Flowers
 Alex Gaynor
@@ -124,6 +125,7 @@ Chris Brinker
 Chris Hunt
 Chris Jerdonek
 Chris McDonough
+Chris Pawley
 Chris Wolfe
 Christian Clauss
 Christian Heimes
@@ -155,6 +157,7 @@ Damian Shaw
 Dan Black
 Dan Savilonis
 Dan Sully
+Dane Hillard
 daniel
 Daniel Collins
 Daniel Hahler
@@ -195,6 +198,7 @@ DiegoCaraballo
 Dimitri Merejkowsky
 Dirk Stolle
 Dmitry Gladkov
+Dmitry Volodin
 Domen Kožar
 Dominic Davis-Foster
 Donald Stufft
@@ -248,6 +252,7 @@ gizmoguy1
 gkdoc
 Gopinath M
 GOTO Hayato
+gousaiyang
 gpiks
 Greg Roodt
 Greg Ward
@@ -290,6 +295,7 @@ Jakub Wilk
 James Cleveland
 James Curtin
 James Firth
+James Gerity
 James Polley
 Jan Pokorný
 Jannis Leidel
@@ -358,6 +364,7 @@ Laurent Bristiel
 Laurent LAPORTE
 Laurie O
 Laurie Opperman
+layday
 Leon Sasson
 Lev Givon
 Lincoln de Sousa
@@ -365,6 +372,7 @@ Lipis
 Loren Carvalho
 Lucas Cimon
 Ludovic Gasc
+Lukas Juhrich
 Luke Macken
 Luo Jiebin
 luojiebin
@@ -377,6 +385,7 @@ Mariatta
 Mark Kohler
 Mark Williams
 Markus Hametner
+Martey Dodoo
 Martin Häcker
 Martin Pavlasek
 Masaki
@@ -384,6 +393,7 @@ Masklinn
 Matej Stuchlik
 Mathew Jennings
 Mathieu Bridon
+Matt Bacchi
 Matt Good
 Matt Maker
 Matt Robenolt
@@ -395,6 +405,7 @@ Matthew Trumbell
 Matthew Willson
 Matthias Bussonnier
 mattip
+Maurits van Rees
 Max W Chase
 Maxim Kurnikov
 Maxime Rouyrre
@@ -409,6 +420,7 @@ Michael E. Karpeles
 Michael Klich
 Michael Williamson
 michaelpacer
+Michał Górny
 Mickaël Schoentgen
 Miguel Araujo Perez
 Mihir Singh
@@ -420,7 +432,10 @@ Miro Hrončok
 Monica Baluna
 montefra
 Monty Taylor
+Nadav Wexler
 Nate Coraor
+Nate Prewitt
+Nathan Houghton
 Nathaniel J. Smith
 Nehal J Wani
 Neil Botelho
@@ -472,6 +487,7 @@ Paulus Schoutsen
 Pavel Safronov
 Pavithra Eswaramoorthy
 Pawel Jasinski
+Paweł Szramowski
 Pekka Klärck
 Peter Gessler
 Peter Lisák
@@ -498,6 +514,7 @@ Preet Thakkar
 Preston Holmes
 Przemek Wrzos
 Pulkit Goyal
+q0w
 Qiangning Hong
 Quentin Lee
 Quentin Pradet
@@ -602,6 +619,7 @@ toonarmycaptain
 Toshio Kuratomi
 toxinu
 Travis Swicegood
+Tushar Sadhwani
 Tzu-ping Chung
 Valentin Haenel
 Victor Stinner

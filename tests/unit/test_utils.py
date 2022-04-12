@@ -943,10 +943,13 @@ def test_make_setuptools_shim_args() -> None:
     )
 
     assert args[1:3] == ["-u", "-c"]
-    # Spot-check key aspects of the command string.
-    assert "sys.argv[0] = '/dir/path/setup.py'" in args[3]
-    assert "__file__='/dir/path/setup.py'" in args[3]
     assert args[4:] == ["--some", "--option", "--no-user-cfg"]
+
+    shim = args[3]
+    # Spot-check key aspects of the command string.
+    assert "import setuptools" in shim
+    assert "'/dir/path/setup.py'" in args[3]
+    assert "sys.argv[0] = __file__" in args[3]
 
 
 @pytest.mark.parametrize("global_options", [None, [], ["--some", "--option"]])

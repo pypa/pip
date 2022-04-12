@@ -70,6 +70,12 @@ def pytest_addoption(parser: Parser) -> None:
         default=False,
         help="run 'pip search' tests",
     )
+    parser.addoption(
+        "--proxy",
+        action="store",
+        default=None,
+        help="use given proxy in session network tests",
+    )
 
 
 def pytest_collection_modifyitems(config: Config, items: List[pytest.Item]) -> None:
@@ -265,7 +271,7 @@ def isolate(tmpdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PIP_DISABLE_PIP_VERSION_CHECK", "true")
 
     # Make sure tests don't share a requirements tracker.
-    monkeypatch.delenv("PIP_REQ_TRACKER", False)
+    monkeypatch.delenv("PIP_BUILD_TRACKER", False)
 
     # FIXME: Windows...
     os.makedirs(os.path.join(home_dir, ".config", "git"))
@@ -628,3 +634,8 @@ def utc() -> Iterator[None]:
         tzset()
         yield
     tzset()
+
+
+@pytest.fixture
+def proxy(request: pytest.FixtureRequest) -> str:
+    return request.config.getoption("proxy")

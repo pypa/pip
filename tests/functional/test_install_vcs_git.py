@@ -347,6 +347,7 @@ def test_git_with_tag_name_and_update(script: PipTestEnvironment, tmpdir: Path) 
         "--global-option=--version",
         "-e",
         new_local_url,
+        allow_stderr_warning=True,
     )
     assert "0.1.2" in result.stdout
 
@@ -380,7 +381,12 @@ def test_git_with_non_editable_unpacking(
         rev="0.1.2",
         egg="pip-test-package",
     )
-    result = script.pip("install", "--global-option=--version", local_url)
+    result = script.pip(
+        "install",
+        "--global-option=--version",
+        local_url,
+        allow_stderr_warning=True,
+    )
     assert "0.1.2" in result.stdout
 
 
@@ -397,7 +403,7 @@ def test_git_with_editable_where_egg_contains_dev_string(
         url_path,
         tmpdir,
         egg="django-devserver",
-        scheme="git",
+        scheme="https",
     )
     result = script.pip("install", "-e", local_url)
     result.assert_installed("django-devserver", with_files=[".git"])
@@ -416,7 +422,7 @@ def test_git_with_non_editable_where_egg_contains_dev_string(
         url_path,
         tmpdir,
         egg="django-devserver",
-        scheme="git",
+        scheme="https",
     )
     result = script.pip("install", local_url)
     devserver_folder = script.site_packages / "devserver"

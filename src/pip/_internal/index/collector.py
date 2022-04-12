@@ -12,15 +12,19 @@ import re
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
+from html.parser import HTMLParser
 from optparse import Values
 from typing import (
+    TYPE_CHECKING,
     Callable,
+    Dict,
     Iterable,
     List,
     MutableMapping,
     NamedTuple,
     Optional,
     Sequence,
+    Tuple,
     Union,
 )
 
@@ -38,6 +42,11 @@ from pip._internal.utils.misc import pairwise, redact_auth_from_url
 from pip._internal.vcs import vcs
 
 from .sources import CandidatesFromPage, LinkSource, build_source
+
+if TYPE_CHECKING:
+    from typing import Protocol
+else:
+    Protocol = object
 
 logger = logging.getLogger(__name__)
 
@@ -163,6 +172,8 @@ def _determine_base_url(document: HTMLElement, page_url: str) -> str:
     :param document: An HTML document representation. The current
         implementation expects the result of ``html5lib.parse()``.
     :param page_url: The URL of the HTML document.
+
+    TODO: Remove when `html5lib` is dropped.
     """
     for base in document.findall(".//base"):
         href = base.get("href")
@@ -234,20 +245,20 @@ def _clean_link(url: str) -> str:
 
 
 def _create_link_from_element(
-    anchor: HTMLElement,
+    element_attribs: Dict[str, Optional[str]],
     page_url: str,
     base_url: str,
 ) -> Optional[Link]:
     """
-    Convert an anchor element in a simple repository page to a Link.
+    Convert an anchor element's attributes in a simple repository page to a Link.
     """
-    href = anchor.get("href")
+    href = element_attribs.get("href")
     if not href:
         return None
 
     url = _clean_link(urllib.parse.urljoin(base_url, href))
-    pyrequire = anchor.get("data-requires-python")
-    yanked_reason = anchor.get("data-yanked")
+    pyrequire = element_attribs.get("data-requires-python")
+    yanked_reason = element_attribs.get("data-yanked")
 
     link = Link(
         url,
@@ -271,9 +282,14 @@ class CacheablePageContent:
         return hash(self.page.url)
 
 
-def with_cached_html_pages(
-    fn: Callable[["HTMLPage"], Iterable[Link]],
-) -> Callable[["HTMLPage"], List[Link]]:
+class ParseLinks(Protocol):
+    def __call__(
+        self, page: "HTMLPage", use_deprecated_html5lib: bool
+    ) -> Iterable[Link]:
+        ...
+
+
+def with_cached_html_pages(fn: ParseLinks) -> ParseLinks:
     """
     Given a function that parses an Iterable[Link] from an HTMLPage, cache the
     function's result (keyed by CacheablePageContent), unless the HTMLPage
@@ -281,22 +297,25 @@ def with_cached_html_pages(
     """
 
     @functools.lru_cache(maxsize=None)
-    def wrapper(cacheable_page: CacheablePageContent) -> List[Link]:
-        return list(fn(cacheable_page.page))
+    def wrapper(
+        cacheable_page: CacheablePageContent, use_deprecated_html5lib: bool
+    ) -> List[Link]:
+        return list(fn(cacheable_page.page, use_deprecated_html5lib))
 
     @functools.wraps(fn)
-    def wrapper_wrapper(page: "HTMLPage") -> List[Link]:
+    def wrapper_wrapper(page: "HTMLPage", use_deprecated_html5lib: bool) -> List[Link]:
         if page.cache_link_parsing:
-            return wrapper(CacheablePageContent(page))
-        return list(fn(page))
+            return wrapper(CacheablePageContent(page), use_deprecated_html5lib)
+        return list(fn(page, use_deprecated_html5lib))
 
     return wrapper_wrapper
 
 
-@with_cached_html_pages
-def parse_links(page: "HTMLPage") -> Iterable[Link]:
+def _parse_links_html5lib(page: "HTMLPage") -> Iterable[Link]:
     """
     Parse an HTML document, and yield its anchor elements as Link objects.
+
+    TODO: Remove when `html5lib` is dropped.
     """
     document = html5lib.parse(
         page.content,
@@ -307,6 +326,33 @@ def parse_links(page: "HTMLPage") -> Iterable[Link]:
     url = page.url
     base_url = _determine_base_url(document, url)
     for anchor in document.findall(".//a"):
+        link = _create_link_from_element(
+            anchor.attrib,
+            page_url=url,
+            base_url=base_url,
+        )
+        if link is None:
+            continue
+        yield link
+
+
+@with_cached_html_pages
+def parse_links(page: "HTMLPage", use_deprecated_html5lib: bool) -> Iterable[Link]:
+    """
+    Parse an HTML document, and yield its anchor elements as Link objects.
+    """
+
+    if use_deprecated_html5lib:
+        yield from _parse_links_html5lib(page)
+        return
+
+    parser = HTMLLinkParser(page.url)
+    encoding = page.encoding or "utf-8"
+    parser.feed(page.content.decode(encoding))
+
+    url = page.url
+    base_url = parser.base_url or url
+    for anchor in parser.anchors:
         link = _create_link_from_element(
             anchor,
             page_url=url,
@@ -341,6 +387,34 @@ class HTMLPage:
 
     def __str__(self) -> str:
         return redact_auth_from_url(self.url)
+
+
+class HTMLLinkParser(HTMLParser):
+    """
+    HTMLParser that keeps the first base HREF and a list of all anchor
+    elements' attributes.
+    """
+
+    def __init__(self, url: str) -> None:
+        super().__init__(convert_charrefs=True)
+
+        self.url: str = url
+        self.base_url: Optional[str] = None
+        self.anchors: List[Dict[str, Optional[str]]] = []
+
+    def handle_starttag(self, tag: str, attrs: List[Tuple[str, Optional[str]]]) -> None:
+        if tag == "base" and self.base_url is None:
+            href = self.get_href(attrs)
+            if href is not None:
+                self.base_url = href
+        elif tag == "a":
+            self.anchors.append(dict(attrs))
+
+    def get_href(self, attrs: List[Tuple[str, Optional[str]]]) -> Optional[str]:
+        for name, value in attrs:
+            if name == "href":
+                return value
+        return None
 
 
 def _handle_get_page_fail(

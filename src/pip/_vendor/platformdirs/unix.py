@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import os
 import sys
 from configparser import ConfigParser
 from pathlib import Path
-from typing import Optional
 
 from .api import PlatformDirsABC
 
@@ -154,7 +155,7 @@ class Unix(PlatformDirsABC):
         return Path(directory)
 
 
-def _get_user_dirs_folder(key: str) -> Optional[str]:
+def _get_user_dirs_folder(key: str) -> str | None:
     """Return directory from user-dirs.dirs config file. See https://freedesktop.org/wiki/Software/xdg-user-dirs/"""
     user_dirs_config_path = os.path.join(Unix().user_config_dir, "user-dirs.dirs")
     if os.path.exists(user_dirs_config_path):

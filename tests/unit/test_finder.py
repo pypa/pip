@@ -14,6 +14,7 @@ from pip._internal.index.package_finder import (
     InstallationCandidate,
     Link,
     LinkEvaluator,
+    LinkType,
 )
 from pip._internal.models.target_python import TargetPython
 from pip._internal.req.constructors import install_req_from_line
@@ -79,7 +80,10 @@ def test_incorrect_case_file_index(data: TestData) -> None:
 
 
 @pytest.mark.network
-def test_finder_detects_latest_already_satisfied_find_links(data: TestData) -> None:
+@pytest.mark.parametrize("use_deprecated_html5lib", [False, True])
+def test_finder_detects_latest_already_satisfied_find_links(
+    data: TestData, use_deprecated_html5lib: bool
+) -> None:
     """Test PackageFinder detects latest already satisfied using find-links"""
     req = install_req_from_line("simple", None)
     # the latest simple in local pkgs is 3.0
@@ -89,14 +93,19 @@ def test_finder_detects_latest_already_satisfied_find_links(data: TestData) -> N
         version=parse_version(latest_version),
     )
     req.satisfied_by = satisfied_by
-    finder = make_test_finder(find_links=[data.find_links])
+    finder = make_test_finder(
+        find_links=[data.find_links], use_deprecated_html5lib=use_deprecated_html5lib
+    )
 
     with pytest.raises(BestVersionAlreadyInstalled):
         finder.find_requirement(req, True)
 
 
 @pytest.mark.network
-def test_finder_detects_latest_already_satisfied_pypi_links() -> None:
+@pytest.mark.parametrize("use_deprecated_html5lib", [False, True])
+def test_finder_detects_latest_already_satisfied_pypi_links(
+    use_deprecated_html5lib: bool,
+) -> None:
     """Test PackageFinder detects latest already satisfied using pypi links"""
     req = install_req_from_line("initools", None)
     # the latest initools on PyPI is 0.3.1
@@ -106,7 +115,10 @@ def test_finder_detects_latest_already_satisfied_pypi_links() -> None:
         version=parse_version(latest_version),
     )
     req.satisfied_by = satisfied_by
-    finder = make_test_finder(index_urls=["http://pypi.org/simple/"])
+    finder = make_test_finder(
+        index_urls=["http://pypi.org/simple/"],
+        use_deprecated_html5lib=use_deprecated_html5lib,
+    )
 
     with pytest.raises(BestVersionAlreadyInstalled):
         finder.find_requirement(req, True)
@@ -490,26 +502,36 @@ class TestLinkEvaluator:
         link = Link(url)
         evaluator = self.make_test_link_evaluator(formats=["source", "binary"])
         actual = evaluator.evaluate_link(link)
-        assert actual == (True, expected_version)
+        assert actual == (LinkType.candidate, expected_version)
 
     @pytest.mark.parametrize(
-        "url, expected_msg",
+        "url, link_type, fail_reason",
         [
             # TODO: Uncomment this test case when #1217 is fixed.
             # 'http:/yo/pytest-xdist-1.0.tar.gz',
-            ("http:/yo/pytest2-1.0.tar.gz", "Missing project version for pytest"),
+            (
+                "http:/yo/pytest2-1.0.tar.gz",
+                LinkType.format_invalid,
+                "Missing project version for pytest",
+            ),
             (
                 "http:/yo/pytest_xdist-1.0-py2.py3-none-any.whl",
+                LinkType.different_project,
                 "wrong project name (not pytest)",
             ),
         ],
     )
-    def test_evaluate_link__substring_fails(self, url: str, expected_msg: str) -> None:
+    def test_evaluate_link__substring_fails(
+        self,
+        url: str,
+        link_type: LinkType,
+        fail_reason: str,
+    ) -> None:
         """Test that 'pytest<something> archives won't match for 'pytest'."""
         link = Link(url)
         evaluator = self.make_test_link_evaluator(formats=["source", "binary"])
         actual = evaluator.evaluate_link(link)
-        assert actual == (False, expected_msg)
+        assert actual == (link_type, fail_reason)
 
 
 def test_process_project_url(data: TestData) -> None:

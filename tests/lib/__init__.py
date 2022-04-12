@@ -141,6 +141,7 @@ def make_test_finder(
     allow_all_prereleases: bool = False,
     session: Optional[PipSession] = None,
     target_python: Optional[TargetPython] = None,
+    use_deprecated_html5lib: bool = False,
 ) -> PackageFinder:
     """
     Create a PackageFinder for testing purposes.
@@ -159,6 +160,7 @@ def make_test_finder(
         link_collector=link_collector,
         selection_prefs=selection_prefs,
         target_python=target_python,
+        use_deprecated_html5lib=use_deprecated_html5lib,
     )
 
 
@@ -250,6 +252,8 @@ class TestFailure(AssertionError):
 
 
 class TestPipResult:
+    __test__ = False
+
     def __init__(self, impl: ProcResult, verbose: bool = False) -> None:
         self._impl = impl
 
@@ -662,7 +666,7 @@ class PipTestEnvironment(TestFileEnvironment):
         if expect_error and not allow_error:
             if result.returncode == 0:
                 __tracebackhide__ = True
-                raise AssertionError("Script passed unexpectedly.")
+                raise AssertionError(f"Script passed unexpectedly:\n{result}")
 
         _check_stderr(
             result.stderr,
@@ -1181,22 +1185,36 @@ def create_basic_sdist_for_package(
     name: str,
     version: str,
     extra_files: Optional[Dict[str, str]] = None,
+    *,
+    fails_egg_info: bool = False,
+    fails_bdist_wheel: bool = False,
 ) -> Path:
     files = {
-        "setup.py": """
+        "setup.py": f"""\
+            import sys
             from setuptools import find_packages, setup
+
+            fails_bdist_wheel = {fails_bdist_wheel!r}
+            fails_egg_info = {fails_egg_info!r}
+
+            if fails_egg_info and "egg_info" in sys.argv:
+                raise Exception("Simulated failure for generating metadata.")
+
+            if fails_bdist_wheel and "bdist_wheel" in sys.argv:
+                raise Exception("Simulated failure for building a wheel.")
+
             setup(name={name!r}, version={version!r})
         """,
     }
 
     # Some useful shorthands
-    archive_name = "{name}-{version}.tar.gz".format(name=name, version=version)
+    archive_name = f"{name}-{version}.tar.gz"
 
     # Replace key-values with formatted values
     for key, value in list(files.items()):
         del files[key]
         key = key.format(name=name)
-        files[key] = textwrap.dedent(value).format(name=name, version=version).strip()
+        files[key] = textwrap.dedent(value)
 
     # Add new files after formatting
     if extra_files:

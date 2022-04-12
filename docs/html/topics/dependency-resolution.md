@@ -277,10 +277,10 @@ your _dependency_ by:
 - Requesting that the package maintainers loosen _their_ dependencies
 - Forking the package and loosening the dependencies yourself
 
-:::{warning}
+```{warning}
 If you choose to fork the package yourself, you are _opting out_ of
 any support provided by the package maintainers. Proceed at your own risk!
-:::
+```
 
 #### All requirements are appropriate, but a solution does not exist
 

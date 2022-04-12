@@ -170,7 +170,7 @@ def test_download_vcs_link(script: PipTestEnvironment) -> None:
     It should allow -d flag for vcs links, regression test for issue #798.
     """
     result = script.pip(
-        "download", "-d", ".", "git+git://github.com/pypa/pip-test-package.git"
+        "download", "-d", ".", "git+https://github.com/pypa/pip-test-package.git"
     )
     result.did_create(Path("scratch") / "pip-test-package-0.1.1.zip")
     result.did_not_create(script.site_packages / "piptestpackage")

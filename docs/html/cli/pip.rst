@@ -71,7 +71,7 @@ when decision is needed.
     Rename the file or checkout to ``{name}{'.bak' * n}``, where n is some number
     of ``.bak`` extensions, such that the file didn't exist at some point.
     So the most recent backup will be the one with the largest number after ``.bak``.
-*(a)abort*
+*(a)bort*
     Abort pip and return non-zero exit status.
 
 

@@ -43,7 +43,16 @@ class SourceDistribution(AbstractDistribution):
             self.req.isolated_editable_sanity_check()
             # Install the dynamic build requirements.
             self._install_build_reqs(finder)
-
+        elif self.req.use_pep517:
+            pyproject_requires = self.req.pyproject_requires
+            assert pyproject_requires is not None
+            conflicting, missing = self.req.build_env.check_requirements(
+                pyproject_requires
+            )
+            if conflicting:
+                self._raise_conflicts("the backend dependencies", conflicting)
+            if missing:
+                self._raise_missing_reqs(missing)
         self.req.prepare_metadata()
 
     def _prepare_build_backend(self, finder: PackageFinder) -> None:
@@ -54,7 +63,7 @@ class SourceDistribution(AbstractDistribution):
 
         self.req.build_env = BuildEnvironment()
         self.req.build_env.install_requirements(
-            finder, pyproject_requires, "overlay", "Installing build dependencies"
+            finder, pyproject_requires, "overlay", kind="build dependencies"
         )
         conflicting, missing = self.req.build_env.check_requirements(
             self.req.requirements_to_check
@@ -106,7 +115,7 @@ class SourceDistribution(AbstractDistribution):
         if conflicting:
             self._raise_conflicts("the backend dependencies", conflicting)
         self.req.build_env.install_requirements(
-            finder, missing, "normal", "Installing backend dependencies"
+            finder, missing, "normal", kind="backend dependencies"
         )
 
     def _raise_conflicts(
@@ -123,5 +132,14 @@ class SourceDistribution(AbstractDistribution):
                 f"{installed} is incompatible with {wanted}"
                 for installed, wanted in sorted(conflicting_reqs)
             ),
+        )
+        raise InstallationError(error_message)
+
+    def _raise_missing_reqs(self, missing: Set[str]) -> None:
+        format_string = (
+            "Some build dependencies for {requirement} are missing: {missing}."
+        )
+        error_message = format_string.format(
+            requirement=self.req, missing=", ".join(map(repr, sorted(missing)))
         )
         raise InstallationError(error_message)

@@ -2,7 +2,6 @@ import distutils
 import glob
 import os
 import re
-import shutil
 import ssl
 import sys
 import textwrap
@@ -30,7 +29,6 @@ from tests.lib import (
     pyversion,
     requirements_file,
 )
-from tests.lib.filesystem import make_socket_file
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 from tests.lib.server import (
@@ -649,26 +647,6 @@ def test_hashed_install_failure_later_flag(
 
 
 @pytest.mark.usefixtures("with_wheel")
-def test_install_from_local_directory_with_symlinks_to_directories(
-    script: PipTestEnvironment, data: TestData
-) -> None:
-    """
-    Test installing from a local directory containing symlinks to directories.
-    """
-    to_install = data.packages.joinpath("symlinks")
-    result = script.pip(
-        "install",
-        "--use-deprecated=out-of-tree-build",
-        to_install,
-        allow_stderr_warning=True,  # TODO: set to False when removing out-of-tree-build
-    )
-    pkg_folder = script.site_packages / "symlinks"
-    dist_info_folder = script.site_packages / "symlinks-0.1.dev0.dist-info"
-    result.did_create(pkg_folder)
-    result.did_create(dist_info_folder)
-
-
-@pytest.mark.usefixtures("with_wheel")
 def test_install_from_local_directory_with_in_tree_build(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -686,38 +664,6 @@ def test_install_from_local_directory_with_in_tree_build(
     result.did_create(fspkg_folder)
     result.did_create(dist_info_folder)
     assert in_tree_build_dir.exists()
-
-
-@pytest.mark.skipif("sys.platform == 'win32'")
-@pytest.mark.usefixtures("with_wheel")
-def test_install_from_local_directory_with_socket_file(
-    script: PipTestEnvironment, data: TestData, tmpdir: Path
-) -> None:
-    """
-    Test installing from a local directory containing a socket file.
-    """
-    # TODO: remove this test when removing out-of-tree-build support,
-    # it is only meant to test the copy of socket files
-    dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
-    package_folder = script.site_packages / "fspkg"
-    to_copy = data.packages.joinpath("FSPkg")
-    to_install = tmpdir.joinpath("src")
-
-    shutil.copytree(to_copy, to_install)
-    # Socket file, should be ignored.
-    socket_file_path = os.path.join(to_install, "example")
-    make_socket_file(socket_file_path)
-
-    result = script.pip(
-        "install",
-        "--use-deprecated=out-of-tree-build",
-        "--verbose",
-        to_install,
-        allow_stderr_warning=True,  # because of the out-of-tree deprecation warning
-    )
-    result.did_create(package_folder)
-    result.did_create(dist_info_folder)
-    assert str(socket_file_path) in result.stderr
 
 
 def test_install_from_local_directory_with_no_setup_py(
@@ -860,7 +806,7 @@ def test_install_using_install_option_and_editable(
     """
     folder = "script_folder"
     script.scratch_path.joinpath(folder).mkdir()
-    url = local_checkout("git+git://github.com/pypa/pip-test-package", tmpdir)
+    url = local_checkout("git+https://github.com/pypa/pip-test-package", tmpdir)
     result = script.pip(
         "install",
         "-e",
@@ -1739,7 +1685,7 @@ def test_install_editable_with_wrong_egg_name(
         "fragments."
     ) in result.stderr
     if resolver_variant == "2020-resolver":
-        assert "has inconsistent" in result.stderr, str(result)
+        assert "has inconsistent" in result.stdout, str(result)
     else:
         assert "Successfully installed pkga" in str(result), str(result)
 
@@ -2170,6 +2116,26 @@ def test_install_yanked_file_and_print_warning(
     assert expected_warning in result.stderr, str(result)
     # Make sure a "yanked" release is installed
     assert "Successfully installed simple-3.0\n" in result.stdout, str(result)
+
+
+def test_error_all_yanked_files_and_no_pin(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """
+    Test raising an error if there are only "yanked" files available and no pin
+    """
+    result = script.pip(
+        "install",
+        "simple",
+        "--index-url",
+        data.index_url("yanked_all"),
+        expect_error=True,
+    )
+    # Make sure an error is raised
+    assert (
+        result.returncode == 1
+        and "ERROR: No matching distribution found for simple\n" in result.stderr
+    ), str(result)
 
 
 @pytest.mark.parametrize(

@@ -26,6 +26,7 @@ def _create_find_links(script: PipTestEnvironment) -> _FindLinks:
     index_html = script.scratch_path / "index.html"
     index_html.write_text(
         """
+        <!DOCTYPE html>
         <a href="{sdist_url}#sha256={sdist_hash}">{sdist_path.stem}</a>
         <a href="{wheel_url}#sha256={wheel_hash}">{wheel_path.stem}</a>
         """.format(
@@ -35,7 +36,7 @@ def _create_find_links(script: PipTestEnvironment) -> _FindLinks:
             wheel_url=path_to_url(wheel_path),
             wheel_hash=wheel_hash,
             wheel_path=wheel_path,
-        )
+        ).strip()
     )
 
     return _FindLinks(index_html, sdist_hash, wheel_hash)
@@ -372,3 +373,34 @@ def test_new_resolver_hash_with_extras(script: PipTestEnvironment) -> None:
         child="0.1.0",
         extra="0.1.0",
     )
+
+
+def test_new_resolver_hash_with_pin(script: PipTestEnvironment) -> None:
+    find_links = _create_find_links(script)
+
+    requirements_txt = script.scratch_path / "requirements.txt"
+    requirements_txt.write_text("base")
+
+    constraints_txt = script.scratch_path / "constraints.txt"
+    constraints_txt.write_text(
+        """
+        base==0.1.0 --hash=sha256:{sdist_hash} --hash=sha256:{wheel_hash}
+        """.format(
+            sdist_hash=find_links.sdist_hash,
+            wheel_hash=find_links.wheel_hash,
+        )
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        find_links.index_html,
+        "--requirement",
+        requirements_txt,
+        "--constraint",
+        constraints_txt,
+    )
+
+    script.assert_installed(base="0.1.0")

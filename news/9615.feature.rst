@@ -1,0 +1,1 @@
+Explains why specified version cannot be retrieved when *Requires-Python* is not satisfied.

@@ -110,7 +110,14 @@ def test(session: nox.Session) -> None:
     # Run the tests
     #   LC_CTYPE is set to get UTF-8 output inside of the subprocesses that our
     #   tests use.
-    session.run("pytest", *arguments, env={"LC_CTYPE": "en_US.UTF-8"})
+    session.run(
+        "pytest",
+        *arguments,
+        env={
+            "LC_CTYPE": "en_US.UTF-8",
+            "SETUPTOOLS_USE_DISTUTILS": "stdlib",
+        },
+    )
 
 
 @nox.session

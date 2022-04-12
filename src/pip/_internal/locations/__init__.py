@@ -4,7 +4,7 @@ import os
 import pathlib
 import sys
 import sysconfig
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.compat import WINDOWS
@@ -38,29 +38,34 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 
-if os.environ.get("_PIP_LOCATIONS_NO_WARN_ON_MISMATCH"):
-    _MISMATCH_LEVEL = logging.DEBUG
-else:
-    _MISMATCH_LEVEL = logging.WARNING
 
 _PLATLIBDIR: str = getattr(sys, "platlibdir", "lib")
 
+_USE_SYSCONFIG_DEFAULT = sys.version_info >= (3, 10)
+
 
 def _should_use_sysconfig() -> bool:
-    """
-    This function determines the value of _USE_SYSCONFIG.
+    """This function determines the value of _USE_SYSCONFIG.
+
     By default, pip uses sysconfig on Python 3.10+.
     But Python distributors can override this decision by setting:
         sysconfig._PIP_USE_SYSCONFIG = True / False
     Rationale in https://github.com/pypa/pip/issues/10647
+
+    This is a function for testability, but should be constant during any one
+    run.
     """
-    if hasattr(sysconfig, "_PIP_USE_SYSCONFIG"):
-        return bool(sysconfig._PIP_USE_SYSCONFIG)  # type: ignore [attr-defined]
-    return sys.version_info >= (3, 10)
+    return bool(getattr(sysconfig, "_PIP_USE_SYSCONFIG", _USE_SYSCONFIG_DEFAULT))
 
 
-# This is a function for testability, but should be constant during any one run.
 _USE_SYSCONFIG = _should_use_sysconfig()
+
+# Be noisy about incompatibilities if this platforms "should" be using
+# sysconfig, but is explicitly opting out and using distutils instead.
+if _USE_SYSCONFIG_DEFAULT and not _USE_SYSCONFIG:
+    _MISMATCH_LEVEL = logging.WARNING
+else:
+    _MISMATCH_LEVEL = logging.DEBUG
 
 
 def _looks_like_bpo_44860() -> bool:
@@ -68,7 +73,7 @@ def _looks_like_bpo_44860() -> bool:
 
     See <https://bugs.python.org/issue44860>.
     """
-    from distutils.command.install import INSTALL_SCHEMES  # type: ignore
+    from distutils.command.install import INSTALL_SCHEMES
 
     try:
         unix_user_platlib = INSTALL_SCHEMES["unix_user"]["platlib"]
@@ -93,7 +98,7 @@ def _looks_like_red_hat_lib() -> bool:
 
     This is the only way I can see to tell a Red Hat-patched Python.
     """
-    from distutils.command.install import INSTALL_SCHEMES  # type: ignore
+    from distutils.command.install import INSTALL_SCHEMES
 
     return all(
         k in INSTALL_SCHEMES
@@ -105,7 +110,7 @@ def _looks_like_red_hat_lib() -> bool:
 @functools.lru_cache(maxsize=None)
 def _looks_like_debian_scheme() -> bool:
     """Debian adds two additional schemes."""
-    from distutils.command.install import INSTALL_SCHEMES  # type: ignore
+    from distutils.command.install import INSTALL_SCHEMES
 
     return "deb_system" in INSTALL_SCHEMES and "unix_local" in INSTALL_SCHEMES
 
@@ -164,9 +169,9 @@ def _looks_like_msys2_mingw_scheme() -> bool:
     )
 
 
-def _fix_abiflags(parts: Tuple[str]) -> Iterator[str]:
+def _fix_abiflags(parts: Tuple[str]) -> Generator[str, None, None]:
     ldversion = sysconfig.get_config_var("LDVERSION")
-    abiflags: str = getattr(sys, "abiflags", None)
+    abiflags = getattr(sys, "abiflags", None)
 
     # LDVERSION does not end with sys.abiflags. Just return the path unchanged.
     if not ldversion or not abiflags or not ldversion.endswith(abiflags):

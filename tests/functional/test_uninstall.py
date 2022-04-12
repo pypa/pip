@@ -405,7 +405,7 @@ def _test_uninstall_editable_with_source_outside_venv(
     result = script.run(
         "git",
         "clone",
-        local_repo("git+git://github.com/pypa/pip-test-package", tmpdir),
+        local_repo("git+https://github.com/pypa/pip-test-package", tmpdir),
         temp_pkg_dir,
         expect_stderr=True,
     )

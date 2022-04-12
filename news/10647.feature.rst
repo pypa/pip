@@ -1,3 +1,0 @@
-Allow Python distributors to opt-out from or opt-in to the ``sysconfig``
-installation scheme backend by setting ``sysconfig._PIP_USE_SYSCONFIG``
-to ``True`` or ``False``.

@@ -19,7 +19,7 @@ from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.pep517.wrappers import Pep517HookCaller
 
 from pip._internal.build_env import BuildEnvironment, NoOpBuildEnvironment
-from pip._internal.exceptions import InstallationError
+from pip._internal.exceptions import InstallationError, LegacyInstallFailure
 from pip._internal.locations import get_scheme
 from pip._internal.metadata import (
     BaseDistribution,
@@ -35,7 +35,6 @@ from pip._internal.operations.build.metadata_legacy import (
 from pip._internal.operations.install.editable_legacy import (
     install_editable as install_editable_legacy,
 )
-from pip._internal.operations.install.legacy import LegacyInstallFailure
 from pip._internal.operations.install.legacy import install as install_legacy
 from pip._internal.operations.install.wheel import install_wheel
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
@@ -53,7 +52,7 @@ from pip._internal.utils.misc import (
     hide_url,
     redact_auth_from_url,
 )
-from pip._internal.utils.packaging import safe_extra
+from pip._internal.utils.packaging import is_pinned, safe_extra
 from pip._internal.utils.subprocess import runner_with_spinner_message
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 from pip._internal.utils.virtualenv import running_under_virtualenv
@@ -239,8 +238,7 @@ class InstallRequirement:
 
         For example, some-package==1.2 is pinned; some-package>1.2 is not.
         """
-        specifiers = self.specifier
-        return len(specifiers) == 1 and next(iter(specifiers)).operator in {"==", "==="}
+        return is_pinned(self.specifier)
 
     def match_markers(self, extras_requested: Optional[Iterable[str]] = None) -> bool:
         if not extras_requested:
@@ -505,6 +503,7 @@ class InstallRequirement:
         Under legacy processing, call setup.py egg-info.
         """
         assert self.source_dir
+        details = self.name or f"from {self.link}"
 
         if self.use_pep517:
             assert self.pep517_backend is not None
@@ -516,11 +515,13 @@ class InstallRequirement:
                 self.metadata_directory = generate_editable_metadata(
                     build_env=self.build_env,
                     backend=self.pep517_backend,
+                    details=details,
                 )
             else:
                 self.metadata_directory = generate_metadata(
                     build_env=self.build_env,
                     backend=self.pep517_backend,
+                    details=details,
                 )
         else:
             self.metadata_directory = generate_metadata_legacy(
@@ -528,7 +529,7 @@ class InstallRequirement:
                 setup_py_path=self.setup_py_path,
                 source_dir=self.unpacked_source_directory,
                 isolated=self.isolated,
-                details=self.name or f"from {self.link}",
+                details=details,
             )
 
         # Act on the newly generated metadata, based on the name and version.
@@ -607,7 +608,7 @@ class InstallRequirement:
         # So here, if it's neither a path nor a valid VCS URL, it's a bug.
         assert vcs_backend, f"Unsupported VCS URL {self.link.url}"
         hidden_url = hide_url(self.link.url)
-        vcs_backend.obtain(self.source_dir, url=hidden_url)
+        vcs_backend.obtain(self.source_dir, url=hidden_url, verbosity=0)
 
     # Top-level Actions
     def uninstall(
@@ -806,7 +807,7 @@ class InstallRequirement:
             )
         except LegacyInstallFailure as exc:
             self.install_succeeded = False
-            raise exc.__cause__
+            raise exc
         except Exception:
             self.install_succeeded = True
             raise

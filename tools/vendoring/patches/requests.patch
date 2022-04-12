@@ -81,12 +81,14 @@ index 409b7b028..9e2937167 100644
 
  import sys
 
-@@ -28,10 +25,14 @@ is_py2 = (_ver[0] == 2)
+@@ -28,12 +28,14 @@ is_py2 = (_ver[0] == 2)
  #: Python 3.x?
  is_py3 = (_ver[0] == 3)
 
+-has_simplejson = False
 -try:
 -    import simplejson as json
+-    has_simplejson = True
 -except ImportError:
 -    import json
 +# Note: We've patched out simplejson support in pip because it prevents
@@ -100,6 +102,18 @@ index 409b7b028..9e2937167 100644
 
  # ---------
  # Specifics
+@@ -68,10 +70,7 @@ elif is_py3:
+     # Keep OrderedDict for backwards compatibility.
+     from collections import OrderedDict
+     from collections.abc import Callable, Mapping, MutableMapping
+-    if has_simplejson:
+-        from simplejson import JSONDecodeError
+-    else:
+-        from json import JSONDecodeError
++    from json import JSONDecodeError
+
+     builtin_str = str
+     str = str
 
 diff --git a/src/pip/_vendor/requests/help.py b/src/pip/_vendor/requests/help.py
 index 3a843404c..745f0d7b3 100644

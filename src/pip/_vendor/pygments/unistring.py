@@ -11,8 +11,6 @@
     :license: BSD, see LICENSE for details.
 """
 
-import sys
-
 Cc = '\x00-\x1f\x7f-\x9f'
 
 Cf = '\xad\u0600-\u0605\u061c\u06dd\u070f\u08e2\u180e\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u206f\ufeff\ufff9-\ufffb\U000110bd\U000110cd\U0001bca0-\U0001bca3\U0001d173-\U0001d17a\U000e0001\U000e0020-\U000e007f'

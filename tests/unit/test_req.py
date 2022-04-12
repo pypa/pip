@@ -23,6 +23,7 @@ from pip._internal.exceptions import (
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata.pkg_resources import Distribution
 from pip._internal.network.session import PipSession
+from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import InstallRequirement, RequirementSet
 from pip._internal.req.constructors import (
@@ -39,7 +40,6 @@ from pip._internal.req.req_file import (
     get_line_parser,
     handle_requirement_line,
 )
-from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.resolution.legacy.resolver import Resolver
 from pip._internal.utils.urls import path_to_url
 from tests.lib import TestData, make_test_finder, requirements_file
@@ -85,20 +85,20 @@ class TestRequirementSet:
         )
         session = PipSession()
 
-        with get_requirement_tracker() as tracker:
+        with get_build_tracker() as tracker:
             preparer = RequirementPreparer(
                 build_dir=os.path.join(self.tempdir, "build"),
                 src_dir=os.path.join(self.tempdir, "src"),
                 download_dir=None,
                 build_isolation=True,
-                req_tracker=tracker,
+                build_tracker=tracker,
                 session=session,
                 progress_bar="on",
                 finder=finder,
                 require_hashes=require_hashes,
                 use_user_site=False,
                 lazy_wheel=False,
-                in_tree_build=False,
+                verbosity=0,
             )
             yield Resolver(
                 preparer=preparer,

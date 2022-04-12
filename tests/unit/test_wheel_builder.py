@@ -222,7 +222,6 @@ def test_format_command_result__DEBUG(
         "Command output:",
         "output line 1",
         "output line 2",
-        "----------------------------------------",
     ]
 
 

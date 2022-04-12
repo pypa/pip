@@ -23,8 +23,6 @@
 #    black-on-while, so colors like "white background" need to be converted
 #    to "white background, black foreground", etc...
 
-import sys
-
 from pip._vendor.pygments.formatter import Formatter
 from pip._vendor.pygments.console import codes
 from pip._vendor.pygments.style import ansicolors
@@ -281,7 +279,7 @@ class Terminal256Formatter(Formatter):
 
                 except KeyError:
                     # ottype = ttype
-                    ttype = ttype[:-1]
+                    ttype = ttype.parent
                     # outfile.write( '!' + str(ottype) + '->' + str(ttype) + '!' )
 
             if not_found:

@@ -45,7 +45,7 @@ from pip._internal.req.req_install import (
 from pip._internal.resolution.base import InstallRequirementProvider
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
-from pip._internal.utils.packaging import get_requirement
+from pip._internal.utils.packaging import get_requirement, is_pinned
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 from .base import Candidate, CandidateVersion, Constraint, Requirement
@@ -97,6 +97,7 @@ class Factory:
         force_reinstall: bool,
         ignore_installed: bool,
         ignore_requires_python: bool,
+        suppress_build_failures: bool,
         py_version_info: Optional[Tuple[int, ...]] = None,
     ) -> None:
         self._finder = finder
@@ -107,6 +108,7 @@ class Factory:
         self._use_user_site = use_user_site
         self._force_reinstall = force_reinstall
         self._ignore_requires_python = ignore_requires_python
+        self._suppress_build_failures = suppress_build_failures
 
         self._build_failures: Cache[InstallationError] = {}
         self._link_candidate_cache: Cache[LinkCandidate] = {}
@@ -190,10 +192,22 @@ class Factory:
                         name=name,
                         version=version,
                     )
-                except (InstallationSubprocessError, MetadataInconsistent) as e:
-                    logger.warning("Discarding %s. %s", link, e)
+                except MetadataInconsistent as e:
+                    logger.info(
+                        "Discarding [blue underline]%s[/]: [yellow]%s[reset]",
+                        link,
+                        e,
+                        extra={"markup": True},
+                    )
                     self._build_failures[link] = e
                     return None
+                except InstallationSubprocessError as e:
+                    if not self._suppress_build_failures:
+                        raise
+                    logger.warning("Discarding %s due to build failure: %s", link, e)
+                    self._build_failures[link] = e
+                    return None
+
             base: BaseCandidate = self._editable_candidate_cache[link]
         else:
             if link not in self._link_candidate_cache:
@@ -205,8 +219,19 @@ class Factory:
                         name=name,
                         version=version,
                     )
-                except (InstallationSubprocessError, MetadataInconsistent) as e:
-                    logger.warning("Discarding %s. %s", link, e)
+                except MetadataInconsistent as e:
+                    logger.info(
+                        "Discarding [blue underline]%s[/]: [yellow]%s[reset]",
+                        link,
+                        e,
+                        extra={"markup": True},
+                    )
+                    self._build_failures[link] = e
+                    return None
+                except InstallationSubprocessError as e:
+                    if not self._suppress_build_failures:
+                        raise
+                    logger.warning("Discarding %s due to build failure: %s", link, e)
                     self._build_failures[link] = e
                     return None
             base = self._link_candidate_cache[link]
@@ -273,14 +298,21 @@ class Factory:
             )
             icans = list(result.iter_applicable())
 
-            # PEP 592: Yanked releases must be ignored unless only yanked
-            # releases can satisfy the version range. So if this is false,
-            # all yanked icans need to be skipped.
+            # PEP 592: Yanked releases are ignored unless the specifier
+            # explicitly pins a version (via '==' or '===') that can be
+            # solely satisfied by a yanked release.
             all_yanked = all(ican.link.is_yanked for ican in icans)
+
+            pinned = is_pinned(specifier)
+
+            if not template.is_pinned:
+                assert template.req, "Candidates found on index must be PEP 508"
+                template.req.specifier = specifier
+                template.hash_options = hashes.allowed
 
             # PackageFinder returns earlier versions first, so we reverse.
             for ican in reversed(icans):
-                if not all_yanked and ican.link.is_yanked:
+                if not (all_yanked and pinned) and ican.link.is_yanked:
                     continue
                 func = functools.partial(
                     self._make_candidate_from_link,
@@ -579,8 +611,15 @@ class Factory:
             req_disp = f"{req} (from {parent.name})"
 
         cands = self._finder.find_all_candidates(req.project_name)
+        skipped_by_requires_python = self._finder.requires_python_skipped_reasons()
         versions = [str(v) for v in sorted({c.version for c in cands})]
 
+        if skipped_by_requires_python:
+            logger.critical(
+                "Ignored the following versions that require a different python "
+                "version: %s",
+                "; ".join(skipped_by_requires_python) or "none",
+            )
         logger.critical(
             "Could not find a version that satisfies the requirement %s "
             "(from versions: %s)",

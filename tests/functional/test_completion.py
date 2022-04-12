@@ -237,10 +237,10 @@ def test_completion_not_files_after_option(
 ) -> None:
     """
     Test not getting completion files after options which not applicable
-    (e.g. ``pip install``)
+    (e.g. ``pip wheel``)
     """
     res, env = autocomplete(
-        words=("pip install r"),
+        words=("pip wheel r"),
         cword="2",
         cwd=data.completion_paths,
     )
@@ -254,6 +254,24 @@ def test_completion_not_files_after_option(
     assert not any(
         os.path.join(out, "") in res.stdout for out in ("replay", "resources")
     ), "autocomplete function completed <dir> when it should not complete"
+
+
+def test_pip_install_complete_files(
+    autocomplete: DoAutocomplete, data: TestData
+) -> None:
+    """``pip install`` autocompletes wheel and sdist files."""
+    res, env = autocomplete(
+        words=("pip install r"),
+        cword="2",
+        cwd=data.completion_paths,
+    )
+    assert all(
+        out in res.stdout
+        for out in (
+            "requirements.txt",
+            "resources",
+        )
+    ), "autocomplete function could not complete <path>"
 
 
 @pytest.mark.parametrize("cl_opts", ["-U", "--user", "-h"])

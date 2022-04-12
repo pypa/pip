@@ -1,1 +1,0 @@
-Present a better error message when an invalid wheel file is encountered, providing more context where the invalid wheel file is.

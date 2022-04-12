@@ -7,19 +7,14 @@ from distutils.util import change_root
 from typing import List, Optional, Sequence
 
 from pip._internal.build_env import BuildEnvironment
-from pip._internal.exceptions import InstallationError
+from pip._internal.exceptions import InstallationError, LegacyInstallFailure
 from pip._internal.models.scheme import Scheme
-from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import ensure_dir
 from pip._internal.utils.setuptools_build import make_setuptools_install_args
 from pip._internal.utils.subprocess import runner_with_spinner_message
 from pip._internal.utils.temp_dir import TempDirectory
 
 logger = logging.getLogger(__name__)
-
-
-class LegacyInstallFailure(Exception):
-    pass
 
 
 def write_installed_files_from_setuptools_record(
@@ -98,7 +93,7 @@ def install(
             runner = runner_with_spinner_message(
                 f"Running setup.py install for {req_name}"
             )
-            with indent_log(), build_env:
+            with build_env:
                 runner(
                     cmd=install_args,
                     cwd=unpacked_source_directory,
@@ -111,7 +106,7 @@ def install(
 
         except Exception as e:
             # Signal to the caller that we didn't install the new package
-            raise LegacyInstallFailure from e
+            raise LegacyInstallFailure(package_details=req_name) from e
 
         # At this point, we have successfully installed the requirement.
 

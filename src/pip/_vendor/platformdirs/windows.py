@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import ctypes
 import os
 from functools import lru_cache
-from typing import Callable, Optional
+from typing import Callable
 
 from .api import PlatformDirsABC
 
@@ -27,7 +29,7 @@ class Windows(PlatformDirsABC):
         path = os.path.normpath(get_win_folder(const))
         return self._append_parts(path)
 
-    def _append_parts(self, path: str, *, opinion_value: Optional[str] = None) -> str:
+    def _append_parts(self, path: str, *, opinion_value: str | None = None) -> str:
         params = []
         if self.appname:
             if self.appauthor is not False:

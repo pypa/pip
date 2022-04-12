@@ -6,6 +6,7 @@ include pyproject.toml
 
 include src/pip/_vendor/README.rst
 include src/pip/_vendor/vendor.txt
+include src/pip/_vendor/pyparsing/diagram/template.jinja2
 recursive-include  src/pip/_vendor *LICENSE*
 recursive-include  src/pip/_vendor *COPYING*
 

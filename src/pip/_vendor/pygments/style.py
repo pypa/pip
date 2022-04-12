@@ -189,3 +189,9 @@ class Style(metaclass=StyleMeta):
 
     #: Style definitions for individual token types.
     styles = {}
+
+    # Attribute for lexers defined within Pygments. If set
+    # to True, the style is not shown in the style gallery
+    # on the website. This is intended for language-specific
+    # styles.
+    web_style_gallery_exclude = False
