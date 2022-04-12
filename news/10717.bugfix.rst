@@ -1,1 +1,1 @@
-Fallback to pep517 if setup.py is present and setuptools cannot be imported
+Fallback to PEP 517 if ``setup.py`` is present in a project, but ``setuptools`` cannot be imported
