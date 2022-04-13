@@ -12,16 +12,11 @@ from pip._vendor.packaging.tags import (
     interpreter_name,
     interpreter_version,
     mac_platforms,
-    platform_tags,
 )
 
-_osx_arch_pat = re.compile(r"(.+)_(\d+)_(\d+)_(.+)")
+from pip._internal.utils.packaging import filter_manylinux_tags, filter_musllinux_tags
 
-_LEGACY_MANYLINUX_MAP = {
-    "manylinux2014": (2, 17),
-    "manylinux2010": (2, 12),
-    "manylinux1": (2, 5),
-}
+_osx_arch_pat = re.compile(r"(.+)_(\d+)_(\d+)_(.+)")
 
 
 def version_info_to_nodot(version_info: Tuple[int, ...]) -> str:
@@ -54,22 +49,9 @@ def _manylinux_platforms(arch: str) -> List[str]:
     arch_prefix, arch_sep, arch_suffix = arch.partition("_")
 
     if arch_prefix == "manylinux":
-        arch_list = []
         curr_glibc_major, curr_glibc_minor, curr_arch = arch_suffix.split("_", 2)
         curr_glibc = (int(curr_glibc_major), int(curr_glibc_minor))
-        for tag in filter(lambda t: t.startswith("manylinux"), platform_tags()):
-            tag_prefix, _, tag_suffix = tag.partition("_")
-            if tag_prefix in _LEGACY_MANYLINUX_MAP:
-                tag_glibc = _LEGACY_MANYLINUX_MAP[tag_prefix]
-                tag_arch = tag_suffix
-            else:
-                tag_glibc_major, tag_glibc_minor, tag_arch = tag_suffix.split("_", 2)
-                tag_glibc = (int(tag_glibc_major), int(tag_glibc_minor))
-
-            if curr_arch == tag_arch and tag_glibc <= curr_glibc:
-                arch_list.append(tag)
-        if arch_list:
-            arches = arch_list
+        arches = list(filter_manylinux_tags(curr_glibc, curr_arch)) or arches
 
     elif arch_prefix == "manylinux2014":
         # manylinux1/manylinux2010 wheels run on most manylinux2014 systems
@@ -96,14 +78,7 @@ def _musllinux_platforms(arch: str) -> List[str]:
     curr_musl_major, curr_musl_minor, curr_arch = arch_suffix.split("_", 2)
     curr_musl = (int(curr_musl_major), int(curr_musl_minor))
 
-    arch_list = []
-    for tag in filter(lambda t: t.startswith("musllinux"), platform_tags()):
-        tag_musl_major, tag_musl_minor, tag_arch = arch_suffix.split("_", 2)
-        tag_musl = (int(tag_musl_major), int(tag_musl_minor))
-        if tag_arch == curr_arch and tag_musl <= curr_musl:
-            arch_list.append(tag)
-    if arch_list:
-        arches = arch_list
+    arches = list(filter_musllinux_tags(curr_musl, curr_arch)) or arches
     return arches
 
 
