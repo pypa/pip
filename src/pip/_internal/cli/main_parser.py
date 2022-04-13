@@ -35,10 +35,10 @@ def create_main_parser() -> ConfigOptionParser:
     parser.main = True  # type: ignore
 
     # create command listing for description
-    description = ['']
+    description = [""]
     for name, info in commands_dict.items():
-        names = ', '.join(aliases_of_commands[name])
-        description.append('{:27} {.summary}'.format(names, info))
+        names = ", ".join(aliases_of_commands[name])
+        description.append("{:27} {.summary}".format(names, info))
     parser.description = "\n".join(description)
 
     return parser

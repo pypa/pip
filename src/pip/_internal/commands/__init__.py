@@ -103,19 +103,21 @@ commands_dict: Dict[str, CommandInfo] = {
 
 
 aliases_dict = {
-    'add': 'install',
-    'i': 'install',
-    'remove': 'uninstall',
-    'u': 'uninstall'
+    "add": "install",
+    "i": "install",
+    "remove": "uninstall",
+    "u": "uninstall",
 }  # type: Dict[str, str]
 
 aliases_of_commands = {
-    name: [name] for name in commands_dict}  # type: Dict[str, List[str]]
+    name: [name] for name in commands_dict
+}  # type: Dict[str, List[str]]
 for alias, name in aliases_dict.items():
     aliases_of_commands[name].append(alias)
 
-subcommands_set = {cmd for aliases in aliases_of_commands.values()
-                   for cmd in aliases}  # type: Set[str]
+subcommands_set = {
+    cmd for aliases in aliases_of_commands.values() for cmd in aliases
+}  # type: Set[str]
 
 
 def create_command(name: str, **kwargs: Any) -> Command:

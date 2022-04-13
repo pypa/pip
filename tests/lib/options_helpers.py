@@ -34,10 +34,10 @@ class AddFakeCommandMixin:
             "fake summary",
         )
 
-    aliases_of_commands['fake'] = ['fake']
-    subcommands_set.add('fake')
+    aliases_of_commands["fake"] = ["fake"]
+    subcommands_set.add("fake")
 
     def teardown(self) -> None:
         commands_dict.pop("fake")
-        aliases_of_commands.pop('fake')
-        subcommands_set.remove('fake')
+        aliases_of_commands.pop("fake")
+        subcommands_set.remove("fake")

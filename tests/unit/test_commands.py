@@ -41,7 +41,7 @@ def test_commands_dict__order() -> None:
     assert names[-1] == "help"
 
 
-@pytest.mark.parametrize('name', subcommands_set)
+@pytest.mark.parametrize("name", subcommands_set)
 def test_create_command(name: str) -> None:
     """Test creating an instance of each available command."""
     command = create_command(name)
