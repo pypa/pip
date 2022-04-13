@@ -666,7 +666,7 @@ class PipTestEnvironment(TestFileEnvironment):
         if expect_error and not allow_error:
             if result.returncode == 0:
                 __tracebackhide__ = True
-                raise AssertionError("Script passed unexpectedly.")
+                raise AssertionError(f"Script passed unexpectedly:\n{result}")
 
         _check_stderr(
             result.stderr,

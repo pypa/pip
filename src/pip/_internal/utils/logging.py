@@ -6,8 +6,9 @@ import os
 import sys
 import threading
 from dataclasses import dataclass
+from io import TextIOWrapper
 from logging import Filter
-from typing import IO, Any, ClassVar, Iterator, List, Optional, TextIO, Type
+from typing import Any, ClassVar, Generator, List, Optional, TextIO, Type
 
 from pip._vendor.rich.console import (
     Console,
@@ -50,7 +51,7 @@ def _is_broken_pipe_error(exc_class: Type[BaseException], exc: BaseException) ->
 
 
 @contextlib.contextmanager
-def indent_log(num: int = 2) -> Iterator[None]:
+def indent_log(num: int = 2) -> Generator[None, None, None]:
     """
     A context manager which will cause the log output to be indented for any
     log messages emitted inside it.
@@ -152,8 +153,9 @@ class RichPipStreamHandler(RichHandler):
         style: Optional[Style] = None
 
         # If we are given a diagnostic error to present, present it with indentation.
+        assert isinstance(record.args, tuple)
         if record.msg == "[present-diagnostic] %s" and len(record.args) == 1:
-            diagnostic_error: DiagnosticPipError = record.args[0]  # type: ignore[index]
+            diagnostic_error = record.args[0]
             assert isinstance(diagnostic_error, DiagnosticPipError)
 
             renderable: ConsoleRenderable = IndentedRenderable(
@@ -193,7 +195,7 @@ class RichPipStreamHandler(RichHandler):
 
 
 class BetterRotatingFileHandler(logging.handlers.RotatingFileHandler):
-    def _open(self) -> IO[Any]:
+    def _open(self) -> TextIOWrapper:
         ensure_dir(os.path.dirname(self.baseFilename))
         return super()._open()
 

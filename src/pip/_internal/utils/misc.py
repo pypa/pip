@@ -21,6 +21,7 @@ from typing import (
     BinaryIO,
     Callable,
     ContextManager,
+    Generator,
     Iterable,
     Iterator,
     List,
@@ -264,7 +265,9 @@ def is_installable_dir(path: str) -> bool:
     return False
 
 
-def read_chunks(file: BinaryIO, size: int = io.DEFAULT_BUFFER_SIZE) -> Iterator[bytes]:
+def read_chunks(
+    file: BinaryIO, size: int = io.DEFAULT_BUFFER_SIZE
+) -> Generator[bytes, None, None]:
     """Yield pieces of data from a file-like object until EOF."""
     while True:
         chunk = file.read(size)
@@ -346,7 +349,7 @@ class StreamWrapper(StringIO):
 
 
 @contextlib.contextmanager
-def captured_output(stream_name: str) -> Iterator[StreamWrapper]:
+def captured_output(stream_name: str) -> Generator[StreamWrapper, None, None]:
     """Return a context manager used by captured_stdout/stdin/stderr
     that temporarily replaces the sys stream *stream_name* with a StringIO.
 
@@ -556,9 +559,9 @@ def protect_pip_from_modification_on_windows(modifying_pip: bool) -> None:
         python -m pip ...
     """
     pip_names = [
-        "pip.exe",
-        "pip{}.exe".format(sys.version_info[0]),
-        "pip{}.{}.exe".format(*sys.version_info[:2]),
+        "pip",
+        f"pip{sys.version_info.major}",
+        f"pip{sys.version_info.major}.{sys.version_info.minor}",
     ]
 
     # See https://github.com/pypa/pip/issues/1299 for more discussion

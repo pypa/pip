@@ -22,7 +22,6 @@ from typing import Any, Callable, Dict, Optional, Tuple
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cli.parser import ConfigOptionParser
-from pip._internal.cli.progress_bars import BAR_TYPES
 from pip._internal.exceptions import CommandError
 from pip._internal.locations import USER_CACHE_DIR, get_src_prefix
 from pip._internal.models.format_control import FormatControl
@@ -237,13 +236,9 @@ progress_bar: Callable[..., Option] = partial(
     "--progress-bar",
     dest="progress_bar",
     type="choice",
-    choices=list(BAR_TYPES.keys()),
+    choices=["on", "off"],
     default="on",
-    help=(
-        "Specify type of progress to be displayed ["
-        + "|".join(BAR_TYPES.keys())
-        + "] (default: %default)"
-    ),
+    help="Specify whether the progress bar should be used [on, off] (default: on)",
 )
 
 log: Callable[..., Option] = partial(
@@ -273,7 +268,7 @@ proxy: Callable[..., Option] = partial(
     dest="proxy",
     type="str",
     default="",
-    help="Specify a proxy in the form [user:passwd@]proxy.server:port.",
+    help="Specify a proxy in the form scheme://[user:passwd@]proxy.server:port.",
 )
 
 retries: Callable[..., Option] = partial(
@@ -865,6 +860,15 @@ disable_pip_version_check: Callable[..., Option] = partial(
     "of pip is available for download. Implied with --no-index.",
 )
 
+warn_about_root_user: Callable[..., Option] = partial(
+    Option,
+    "--no-warn-when-using-as-a-root-user",
+    dest="warn_about_root_user",
+    default=True,
+    action="store_false",
+    help="Do not warn when used as a root user",
+)
+
 
 def _handle_merge_hash(
     option: Option, opt_str: str, value: str, parser: OptionParser
@@ -960,7 +964,7 @@ use_new_feature: Callable[..., Option] = partial(
     metavar="feature",
     action="append",
     default=[],
-    choices=["2020-resolver", "fast-deps", "in-tree-build"],
+    choices=["2020-resolver", "fast-deps"],
     help="Enable new functionality, that may be backward incompatible.",
 )
 
@@ -973,7 +977,6 @@ use_deprecated_feature: Callable[..., Option] = partial(
     default=[],
     choices=[
         "legacy-resolver",
-        "out-of-tree-build",
         "backtrack-on-build-failures",
         "html5lib",
     ],

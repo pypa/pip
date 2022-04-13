@@ -116,7 +116,7 @@ def call_subprocess(
     # replaced by INFO.
     if show_stdout:
         # Then log the subprocess output at INFO level.
-        log_subprocess = subprocess_logger.info
+        log_subprocess: Callable[..., None] = subprocess_logger.info
         used_level = logging.INFO
     else:
         # Then log the subprocess output using VERBOSE.  This also ensures

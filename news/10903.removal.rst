@@ -1,1 +1,0 @@
-Drop the doctype check, that presented a warning for index pages that use non-compliant HTML 5.

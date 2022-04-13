@@ -45,7 +45,7 @@ from pip._internal.req.req_install import (
 from pip._internal.resolution.base import InstallRequirementProvider
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
-from pip._internal.utils.packaging import get_requirement
+from pip._internal.utils.packaging import get_requirement, is_pinned
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 from .base import Candidate, CandidateVersion, Constraint, Requirement
@@ -303,18 +303,12 @@ class Factory:
             # solely satisfied by a yanked release.
             all_yanked = all(ican.link.is_yanked for ican in icans)
 
-            def is_pinned(specifier: SpecifierSet) -> bool:
-                for sp in specifier:
-                    if sp.operator == "===":
-                        return True
-                    if sp.operator != "==":
-                        continue
-                    if sp.version.endswith(".*"):
-                        continue
-                    return True
-                return False
-
             pinned = is_pinned(specifier)
+
+            if not template.is_pinned:
+                assert template.req, "Candidates found on index must be PEP 508"
+                template.req.specifier = specifier
+                template.hash_options = hashes.allowed
 
             # PackageFinder returns earlier versions first, so we reverse.
             for ican in reversed(icans):
@@ -617,8 +611,15 @@ class Factory:
             req_disp = f"{req} (from {parent.name})"
 
         cands = self._finder.find_all_candidates(req.project_name)
+        skipped_by_requires_python = self._finder.requires_python_skipped_reasons()
         versions = [str(v) for v in sorted({c.version for c in cands})]
 
+        if skipped_by_requires_python:
+            logger.critical(
+                "Ignored the following versions that require a different python "
+                "version: %s",
+                "; ".join(skipped_by_requires_python) or "none",
+            )
         logger.critical(
             "Could not find a version that satisfies the requirement %s "
             "(from versions: %s)",

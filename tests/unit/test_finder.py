@@ -14,6 +14,7 @@ from pip._internal.index.package_finder import (
     InstallationCandidate,
     Link,
     LinkEvaluator,
+    LinkType,
 )
 from pip._internal.models.target_python import TargetPython
 from pip._internal.req.constructors import install_req_from_line
@@ -501,26 +502,36 @@ class TestLinkEvaluator:
         link = Link(url)
         evaluator = self.make_test_link_evaluator(formats=["source", "binary"])
         actual = evaluator.evaluate_link(link)
-        assert actual == (True, expected_version)
+        assert actual == (LinkType.candidate, expected_version)
 
     @pytest.mark.parametrize(
-        "url, expected_msg",
+        "url, link_type, fail_reason",
         [
             # TODO: Uncomment this test case when #1217 is fixed.
             # 'http:/yo/pytest-xdist-1.0.tar.gz',
-            ("http:/yo/pytest2-1.0.tar.gz", "Missing project version for pytest"),
+            (
+                "http:/yo/pytest2-1.0.tar.gz",
+                LinkType.format_invalid,
+                "Missing project version for pytest",
+            ),
             (
                 "http:/yo/pytest_xdist-1.0-py2.py3-none-any.whl",
+                LinkType.different_project,
                 "wrong project name (not pytest)",
             ),
         ],
     )
-    def test_evaluate_link__substring_fails(self, url: str, expected_msg: str) -> None:
+    def test_evaluate_link__substring_fails(
+        self,
+        url: str,
+        link_type: LinkType,
+        fail_reason: str,
+    ) -> None:
         """Test that 'pytest<something> archives won't match for 'pytest'."""
         link = Link(url)
         evaluator = self.make_test_link_evaluator(formats=["source", "binary"])
         actual = evaluator.evaluate_link(link)
-        assert actual == (False, expected_msg)
+        assert actual == (link_type, fail_reason)
 
 
 def test_process_project_url(data: TestData) -> None:

@@ -24,24 +24,23 @@ The ``README``, license, ``pyproject.toml``, ``setup.py``, and so on are in the 
 * ``README.rst``
 * ``setup.cfg``
 * ``setup.py``
-* ``tox.ini`` -- ``pip`` uses Tox, an automation tool, configured by this `tox.ini`_ file. ``tox.ini`` describes a few environments ``pip`` uses during development for simplifying how tests are run (complicated situation there). Example: ``tox -e -py36``. We can run tests for different versions of Python by changing “36” to “27” or similar.
-* ``.coveragerc``
+* ``noxfile.py`` -- ``pip`` uses Nox, an automation tool, configured by this file. ``noxfile.py`` describes a few environments ``pip`` uses during development for simplifying how tests are run (complicated situation there). Example: ``nox -s lint``, ``nox -s test-3.10``. We can run tests for different versions of Python by changing “3.10” to “3.7” or similar.
 * ``.gitattributes``
 * ``.gitignore``
 * ``.mailmap``
-* ``.readthedocs.yml``
 * ``docs/`` *[documentation, built with Sphinx]*
 
   * ``html/`` *[sources to HTML documentation avail. online]*
   * ``man/`` has man pages the distros can use by running ``man pip``
   * ``pip_sphinxext.py`` *[an extension -- pip-specific plugins to Sphinx that do not apply to other packages]*
+  * ``requirements.txt``
 
 * ``news/`` *[pip stores news fragments… Every time pip makes a user-facing change, a file is added to this directory (usually a short note referring to a GitHub issue) with the right extension & name so it gets included in changelog…. So every release the maintainers will be deleting old files in this directory? Yes - we use the towncrier automation to generate a NEWS file, and auto-delete old stuff. There’s more about this in the contributor documentation!]*
 
   * ``template.rst`` *[template for changelog -- this is a file towncrier uses…. Is this jinja? I don’t know, check towncrier docs]*
 
 * ``src/`` *[source; see below]*
-* ``tasks/`` *[invoke is a PyPI library which uses files in this directory to define automation commands that are used in pip’s development processes -- not discussing further right now. For instance, automating the release.]*
+* ``tools/`` *[misc development workflow tools, like requirements files & CI files & helpers. For instance, automating the release.]*
 * ``tests/`` -- contains tests you can run. There are instructions in :doc:`../getting-started`.
 
   * ``__init__.py``
@@ -51,10 +50,7 @@ The ``README``, license, ``pyproject.toml``, ``setup.py``, and so on are in the 
   * ``lib/`` *[helpers for tests]*
   * ``unit/`` *[unit tests -- fast and small and nice!]*
 
-* ``tools`` *[misc development workflow tools, like requirements files & CI files & helpers for tox]*
 * ``.github``
-* ``.tox``
-
 
 
 src directory
@@ -67,24 +63,23 @@ dependencies (code from other packages).
 
 Within ``src/``:
 
-* ``pip.egg-info/`` *[ignore the contents for now]*
 * ``pip/``
 
   * ``__init__.py``
   * ``__main__.py``
-  * ``__pycache__/`` *[not discussing contents right now]*
   * ``_internal/`` *[where all the pip code lives that’s written by pip maintainers -- underscore means private. pip is not a library -- it’s a command line tool! A very important distinction! People who want to install stuff with pip should not use the internals -- they should use the CLI. There’s a note on this in the docs.]*
 
     * ``__init__.py``
-    * ``build_env.py`` [not discussing now]
+    * ``build_env.py``
     * ``cache.py`` *[has all the info for how to handle caching within pip -- cache-handling stuff. Uses cachecontrol from PyPI, vendored into pip]*
     * ``cli/`` *[subpackage containing helpers & additional code for managing the command line interface. Uses argparse from stdlib]*
     * ``commands/`` *[literally - each file is the name of the command on the pip CLI. Each has a class that defines what’s needed to set it up, what happens]*
     * ``configuration.py``
     * ``download.py``
     * ``exceptions.py``
-    * ``index.py``
-    * ``locations.py``
+    * ``index/``
+    * ``locations/``
+    * ``main.py`` *[legacy entry point]*
     * ``models/`` *[in-process refactoring! Goal: improve how pip internally models representations it has for data -- data representation. General overall cleanup. Data reps are spread throughout codebase….link is defined in a class in 1 file, and then another file imports Link from that file. Sometimes cyclic dependency?!?! To prevent future situations like this, etc., Pradyun started moving these into a models directory.]*
     * ``operations/`` -- a bit of a weird directory….. ``Freeze.py`` used to be in there. Freeze is an operation -- there was an operations.freeze. Then “prepare” got added (the operation of preparing a pkg). Then “check” got added for checking the state of an env.] [what’s a command vs an operation? Command is on CLI; an operation would be an internal bit of code that actually does some subset of the operation the command says. ``install`` command uses bits of ``check`` and ``prepare``, for instance. In the long run, Pradyun’s goal: ``prepare.py`` goes away (gets refactored into other files) such that ``operations`` is just ``check`` and ``freeze``..... … Pradyun plans to refactor this. [how does this compare to ``utils``?]
 
@@ -102,5 +97,4 @@ Within ``src/``:
 
 .. _`tracking issue`: https://github.com/pypa/pip/issues/6831
 .. _GitHub repository: https://github.com/pypa/pip/
-.. _tox.ini: https://github.com/pypa/pip/blob/main/tox.ini
 .. _improving the pip dependency resolver: https://github.com/pypa/pip/issues/988

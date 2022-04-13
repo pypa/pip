@@ -9,6 +9,20 @@
 
 .. towncrier release notes start
 
+22.0.4 (2022-03-06)
+===================
+
+Deprecations and Removals
+-------------------------
+
+- Drop the doctype check, that presented a warning for index pages that use non-compliant HTML 5. (`#10903 <https://github.com/pypa/pip/issues/10903>`_)
+
+Vendored Libraries
+------------------
+
+- Downgrade distlib to 0.3.3.
+
+
 22.0.3 (2022-02-03)
 ===================
 

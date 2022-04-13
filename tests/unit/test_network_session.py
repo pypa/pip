@@ -1,7 +1,10 @@
 import logging
-from typing import Any, List
+from typing import Any, List, Optional
+from urllib.parse import urlparse
+from urllib.request import getproxies
 
 import pytest
+from pip._vendor import requests
 
 from pip import __version__
 from pip._internal.models.link import Link
@@ -242,3 +245,31 @@ class TestPipSession:
         actual_level, actual_message = log_records[0]
         assert actual_level == "WARNING"
         assert "is not a trusted or secure host" in actual_message
+
+    @pytest.mark.network
+    def test_proxy(self, proxy: Optional[str]) -> None:
+        session = PipSession(trusted_hosts=[])
+
+        if not proxy:
+            # if user didn't pass --proxy then try to get it from the system.
+            env_proxy = getproxies().get("http", None)
+            proxy = urlparse(env_proxy).netloc if env_proxy else None
+
+        if proxy:
+            # set proxy scheme to session.proxies
+            session.proxies = {
+                "http": f"{proxy}",
+                "https": f"{proxy}",
+                "ftp": f"{proxy}",
+            }
+
+        connection_error = None
+        try:
+            session.request("GET", "https://pypi.org", timeout=1)
+        except requests.exceptions.ConnectionError as e:
+            connection_error = e
+
+        assert connection_error is None, (
+            f"Invalid proxy {proxy} or session.proxies: "
+            f"{session.proxies} is not correctly passed to session.request."
+        )

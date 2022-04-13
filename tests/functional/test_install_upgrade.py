@@ -1,5 +1,6 @@
 import itertools
 import os
+import sys
 import textwrap
 
 import pytest
@@ -361,7 +362,7 @@ def test_upgrade_vcs_req_with_dist_found(script: PipTestEnvironment) -> None:
     # test path urls/git.
     req = "{url}#egg=pretend".format(
         url=(
-            "git+git://github.com/alex/pretend@e7f26ad7dbcb4a02a4995aade4"
+            "git+https://github.com/alex/pretend@e7f26ad7dbcb4a02a4995aade4"
             "743aad47656b27"
         ),
     )
@@ -411,3 +412,14 @@ def test_install_find_existing_package_canonicalize(
     )
     satisfied_message = f"Requirement already satisfied: {req2}"
     assert satisfied_message in result.stdout, str(result)
+
+
+@pytest.mark.network
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows-only test")
+def test_modifying_pip_presents_error(script: PipTestEnvironment) -> None:
+    result = script.pip(
+        "install", "pip", "--force-reinstall", use_module=False, expect_error=True
+    )
+
+    assert "python.exe" in result.stderr or "python.EXE" in result.stderr, str(result)
+    assert " -m " in result.stderr, str(result)
