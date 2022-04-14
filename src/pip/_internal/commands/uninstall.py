@@ -54,7 +54,7 @@ class UninstallCommand(Command, SessionCommandMixin):
             action="store_true",
             help="Don't ask for confirmation of uninstall deletions.",
         )
-        self.cmd_opts.add_option(cmdoptions.warn_about_root_user())
+        self.cmd_opts.add_option(cmdoptions.root_user_action())
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options: Values, args: List[str]) -> int:
@@ -101,6 +101,6 @@ class UninstallCommand(Command, SessionCommandMixin):
             )
             if uninstall_pathset:
                 uninstall_pathset.commit()
-        if options.warn_about_root_user:
+        if options.root_user_action == "warn":
             warn_if_run_as_root()
         return SUCCESS
