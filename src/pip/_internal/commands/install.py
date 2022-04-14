@@ -227,7 +227,7 @@ class InstallCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.prefer_binary())
         self.cmd_opts.add_option(cmdoptions.require_hashes())
         self.cmd_opts.add_option(cmdoptions.progress_bar())
-        self.cmd_opts.add_option(cmdoptions.warn_about_root_user())
+        self.cmd_opts.add_option(cmdoptions.root_user_action())
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
@@ -464,7 +464,7 @@ class InstallCommand(RequirementCommand):
             self._handle_target_dir(
                 options.target_dir, target_temp_dir, options.upgrade
             )
-        if options.warn_about_root_user:
+        if options.root_user_action == "warn":
             warn_if_run_as_root()
         return SUCCESS
 

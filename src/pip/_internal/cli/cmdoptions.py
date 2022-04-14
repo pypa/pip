@@ -853,13 +853,13 @@ disable_pip_version_check: Callable[..., Option] = partial(
     "of pip is available for download. Implied with --no-index.",
 )
 
-warn_about_root_user: Callable[..., Option] = partial(
+root_user_action: Callable[..., Option] = partial(
     Option,
-    "--no-warn-when-using-as-a-root-user",
-    dest="warn_about_root_user",
-    default=True,
-    action="store_false",
-    help="Do not warn when used as a root user",
+    "--root-user-action",
+    dest="root_user_action",
+    default="warn",
+    choices=["warn", "ignore"],
+    help="Action if pip is run as a root user. By default, a warning message is shown.",
 )
 
 
