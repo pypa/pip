@@ -1,6 +1,13 @@
-from typing import List, Optional
+import functools
+import os
+from typing import TYPE_CHECKING, List, Optional, Type, cast
 
 from .base import BaseDistribution, BaseEnvironment, FilesystemWheel, MemoryWheel, Wheel
+
+if TYPE_CHECKING:
+    from typing import Protocol
+else:
+    Protocol = object
 
 __all__ = [
     "BaseDistribution",
@@ -11,7 +18,24 @@ __all__ = [
     "get_default_environment",
     "get_environment",
     "get_wheel_distribution",
+    "select_backend",
 ]
+
+
+class Backend(Protocol):
+    Distribution: Type[BaseDistribution]
+    Environment: Type[BaseEnvironment]
+
+
+@functools.lru_cache(maxsize=None)
+def select_backend() -> Backend:
+    if os.environ.get("_PIP_METADATA_BACKEND_IMPORTLIB"):
+        from . import importlib
+
+        return cast(Backend, importlib)
+    from . import pkg_resources
+
+    return cast(Backend, pkg_resources)
 
 
 def get_default_environment() -> BaseEnvironment:
@@ -21,9 +45,7 @@ def get_default_environment() -> BaseEnvironment:
     Environment instance should be built from ``sys.path`` and may use caching
     to share instance state accorss calls.
     """
-    from .pkg_resources import Environment
-
-    return Environment.default()
+    return select_backend().Environment.default()
 
 
 def get_environment(paths: Optional[List[str]]) -> BaseEnvironment:
@@ -33,9 +55,7 @@ def get_environment(paths: Optional[List[str]]) -> BaseEnvironment:
     given import paths. The backend must build a fresh instance representing
     the state of installed distributions when this function is called.
     """
-    from .pkg_resources import Environment
-
-    return Environment.from_paths(paths)
+    return select_backend().Environment.from_paths(paths)
 
 
 def get_directory_distribution(directory: str) -> BaseDistribution:
@@ -44,9 +64,7 @@ def get_directory_distribution(directory: str) -> BaseDistribution:
     This returns a Distribution instance from the chosen backend based on
     the given on-disk ``.dist-info`` directory.
     """
-    from .pkg_resources import Distribution
-
-    return Distribution.from_directory(directory)
+    return select_backend().Distribution.from_directory(directory)
 
 
 def get_wheel_distribution(wheel: Wheel, canonical_name: str) -> BaseDistribution:
@@ -57,6 +75,4 @@ def get_wheel_distribution(wheel: Wheel, canonical_name: str) -> BaseDistributio
 
     :param canonical_name: Normalized project name of the given wheel.
     """
-    from .pkg_resources import Distribution
-
-    return Distribution.from_wheel(wheel, canonical_name)
+    return select_backend().Distribution.from_wheel(wheel, canonical_name)

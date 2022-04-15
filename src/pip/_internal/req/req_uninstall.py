@@ -558,10 +558,10 @@ class UninstallPathSet:
 
         # find distutils scripts= scripts
         try:
-            for script in dist.iterdir("scripts"):
-                paths_to_remove.add(os.path.join(bin_dir, script.name))
+            for script in dist.iter_distutils_script_names():
+                paths_to_remove.add(os.path.join(bin_dir, script))
                 if WINDOWS:
-                    paths_to_remove.add(os.path.join(bin_dir, f"{script.name}.bat"))
+                    paths_to_remove.add(os.path.join(bin_dir, f"{script}.bat"))
         except (FileNotFoundError, NotADirectoryError):
             pass
 
