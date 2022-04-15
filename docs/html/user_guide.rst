@@ -496,6 +496,10 @@ To setup for fish::
 
     python -m pip completion --fish > ~/.config/fish/completions/pip.fish
 
+To setup for powershell::
+
+   python -m pip completion --powershell | Out-File -Encoding default -Append $PROFILE
+
 Alternatively, you can use the result of the ``completion`` command directly
 with the eval function of your shell, e.g. by adding the following to your
 startup file::
