@@ -5,12 +5,14 @@ import hashlib
 import json
 import logging
 import os
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 from pip._vendor.packaging.tags import Tag, interpreter_name, interpreter_version
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import InvalidWheelFilename
+from pip._internal.models.direct_url import DirectUrl
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
@@ -204,6 +206,10 @@ class CacheEntry:
     ):
         self.link = link
         self.persistent = persistent
+        self.origin: Optional[DirectUrl] = None
+        origin_direct_url_path = Path(self.link.file_path).parent / "origin.json"
+        if origin_direct_url_path.exists():
+            self.origin = DirectUrl.from_json(origin_direct_url_path.read_text())
 
 
 class WheelCache(Cache):

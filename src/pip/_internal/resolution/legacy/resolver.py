@@ -33,6 +33,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution
+from pip._internal.models import direct_url
 from pip._internal.models.link import Link
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.req_install import (
@@ -289,17 +290,11 @@ class Resolver(BaseResolver):
         Note that req.link may still be None - if the requirement is already
         installed and not needed to be upgraded based on the return value of
         _is_upgrade_allowed().
-
-        If preparer.require_hashes is True, don't use the wheel cache, because
-        cached wheels, always built locally, have different hashes than the
-        files downloaded from the index server and thus throw false hash
-        mismatches. Furthermore, cached wheels at present have undeterministic
-        contents due to file modification times.
         """
         if req.link is None:
             req.link = self._find_requirement_link(req)
 
-        if self.wheel_cache is None or self.preparer.require_hashes:
+        if self.wheel_cache is None:
             return
         cache_entry = self.wheel_cache.get_cache_entry(
             link=req.link,
@@ -310,6 +305,10 @@ class Resolver(BaseResolver):
             logger.debug("Using cached wheel link: %s", cache_entry.link)
             if req.link is req.original_link and cache_entry.persistent:
                 req.original_link_is_in_wheel_cache = True
+                if cache_entry.origin is not None and isinstance(
+                    cache_entry.origin.info, direct_url.ArchiveInfo
+                ):
+                    req.archive_hash = cache_entry.origin.info.hash
             req.link = cache_entry.link
 
     def _get_dist_for(self, req: InstallRequirement) -> BaseDistribution:

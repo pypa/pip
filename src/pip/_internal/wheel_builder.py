@@ -5,6 +5,7 @@ import logging
 import os.path
 import re
 import shutil
+from pathlib import Path
 from typing import Any, Callable, Iterable, List, Optional, Tuple
 
 from pip._vendor.packaging.utils import canonicalize_name, canonicalize_version
@@ -13,12 +14,14 @@ from pip._vendor.packaging.version import InvalidVersion, Version
 from pip._internal.cache import WheelCache
 from pip._internal.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip._internal.metadata import FilesystemWheel, get_wheel_distribution
+from pip._internal.models import direct_url
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.operations.build.wheel import build_wheel_pep517
 from pip._internal.operations.build.wheel_editable import build_wheel_editable
 from pip._internal.operations.build.wheel_legacy import build_wheel_legacy
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.direct_url_helpers import direct_url_from_link
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import ensure_dir, hash_file, is_wheel_installed
 from pip._internal.utils.setuptools_build import make_setuptools_clean_args
@@ -344,6 +347,7 @@ def build(
         build_successes, build_failures = [], []
         for req in requirements:
             assert req.name
+            assert req.link
             cache_dir = _get_cache_dir(req, wheel_cache)
             wheel_file = _build_one(
                 req,
@@ -354,6 +358,16 @@ def build(
                 req.editable and req.permit_editable_wheels,
             )
             if wheel_file:
+                # Store the origin URL of this cache entry
+                # TODO move this to cache.py / refactor
+                origin_direct_url = direct_url_from_link(req.link, req.source_dir)
+                if isinstance(origin_direct_url.info, direct_url.ArchiveInfo):
+                    # Record the hash of the file that was downloaded.
+                    assert req.archive_hash
+                    origin_direct_url.info.hash = req.archive_hash
+                    Path(cache_dir).joinpath("origin.json").write_text(
+                        origin_direct_url.to_json()
+                    )
                 # Update the link for this.
                 req.link = Link(path_to_url(wheel_file))
                 req.local_file_path = req.link.file_path

@@ -11,6 +11,7 @@ from pip._internal.exceptions import (
     MetadataInconsistent,
 )
 from pip._internal.metadata import BaseDistribution
+from pip._internal.models import direct_url
 from pip._internal.models.link import Link, links_equivalent
 from pip._internal.models.wheel import Wheel
 from pip._internal.req.constructors import (
@@ -284,6 +285,10 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
             and template.link is template.original_link
         ):
             ireq.original_link_is_in_wheel_cache = True
+            if cache_entry.origin is not None and isinstance(
+                cache_entry.origin.info, direct_url.ArchiveInfo
+            ):
+                ireq.archive_hash = cache_entry.origin.info.hash
 
         super().__init__(
             link=link,

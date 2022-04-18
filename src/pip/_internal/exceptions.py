@@ -8,7 +8,7 @@ subpackage and, thus, should not depend on them.
 import configparser
 import re
 from itertools import chain, groupby, repeat
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Dict, List, Mapping, Optional, Union
 
 from pip._vendor.requests.models import Request, Response
 from pip._vendor.rich.console import Console, ConsoleOptions, RenderResult
@@ -16,11 +16,12 @@ from pip._vendor.rich.markup import escape
 from pip._vendor.rich.text import Text
 
 if TYPE_CHECKING:
-    from hashlib import _Hash
-    from typing import Literal
+    from typing import Literal, Protocol
 
     from pip._internal.metadata import BaseDistribution
     from pip._internal.req.req_install import InstallRequirement
+else:
+    Protocol = object
 
 
 #
@@ -570,6 +571,11 @@ class HashUnpinned(HashError):
     )
 
 
+class SupportsHexDigest(Protocol):
+    def hexdigest(self) -> str:
+        ...
+
+
 class HashMismatch(HashError):
     """
     Distribution file hash values don't match.
@@ -588,7 +594,9 @@ class HashMismatch(HashError):
         "someone may have tampered with them."
     )
 
-    def __init__(self, allowed: Dict[str, List[str]], gots: Dict[str, "_Hash"]) -> None:
+    def __init__(
+        self, allowed: Dict[str, List[str]], gots: Mapping[str, SupportsHexDigest]
+    ) -> None:
         """
         :param allowed: A dict of algorithm names pointing to lists of allowed
             hex digests

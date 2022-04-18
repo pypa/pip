@@ -37,7 +37,12 @@ from pip._internal.operations.build.build_tracker import BuildTracker
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import display_path, hide_url, is_installable_dir
+from pip._internal.utils.misc import (
+    display_path,
+    hash_file,
+    hide_url,
+    is_installable_dir,
+)
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
@@ -98,7 +103,10 @@ def get_http_url(
 
 
 def get_file_url(
-    link: Link, download_dir: Optional[str] = None, hashes: Optional[Hashes] = None
+    link: Link,
+    download_dir: Optional[str] = None,
+    hashes: Optional[Hashes] = None,
+    archive_hash: Optional[str] = None,
 ) -> File:
     """Get file and optionally check its hash."""
     # If a download dir is specified, is the file already there and valid?
@@ -117,7 +125,13 @@ def get_file_url(
     # hash in `hashes` matching: a URL-based or an option-based
     # one; no internet-sourced hash will be in `hashes`.
     if hashes:
-        hashes.check_against_path(from_path)
+        if archive_hash:
+            # When we get a wheel from the cache, we don't check the file hash but
+            # rather compare expected hash against the hash of the original archive
+            # that was downloaded to build the cached wheel.
+            hashes.check_against_hash(archive_hash)
+        else:
+            hashes.check_against_path(from_path)
     return File(from_path, None)
 
 
@@ -128,6 +142,7 @@ def unpack_url(
     verbosity: int,
     download_dir: Optional[str] = None,
     hashes: Optional[Hashes] = None,
+    archive_hash: Optional[str] = None,
 ) -> Optional[File]:
     """Unpack link into location, downloading if required.
 
@@ -145,7 +160,9 @@ def unpack_url(
 
     # file urls
     if link.is_file:
-        file = get_file_url(link, download_dir, hashes=hashes)
+        file = get_file_url(
+            link, download_dir, hashes=hashes, archive_hash=archive_hash
+        )
 
     # http urls
     else:
@@ -470,6 +487,7 @@ class RequirementPreparer:
                     self.verbosity,
                     self.download_dir,
                     hashes,
+                    req.archive_hash,
                 )
             except NetworkConnectionError as exc:
                 raise InstallationError(
@@ -486,6 +504,12 @@ class RequirementPreparer:
         # preserve the file path on the requirement.
         if local_file:
             req.local_file_path = local_file.path
+            # Also compute and preserve the hash of the file we downloaded.
+            # Note: as an optimization we may use link.hash if it is a sha256,
+            # as we verify elsewhere that it matches the downloaded content.
+            # TODO Should we use hashes.FAVORITE_HASH type ?
+            hash = hash_file(local_file.path)[0].hexdigest()
+            req.archive_hash = f"sha256={hash}"
 
         dist = _get_prepared_distribution(
             req,

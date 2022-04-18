@@ -1,12 +1,15 @@
 import hashlib
-from typing import TYPE_CHECKING, BinaryIO, Dict, Iterable, List
+from typing import TYPE_CHECKING, BinaryIO, Dict, Iterable, List, Mapping
 
-from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError
+from pip._internal.exceptions import (
+    HashMismatch,
+    HashMissing,
+    InstallationError,
+    SupportsHexDigest,
+)
 from pip._internal.utils.misc import read_chunks
 
 if TYPE_CHECKING:
-    from hashlib import _Hash
-
     # NoReturn introduced in 3.6.2; imported only for type checking to maintain
     # pip compatibility with older patch versions of Python 3.6
     from typing import NoReturn
@@ -20,6 +23,11 @@ FAVORITE_HASH = "sha256"
 # Names of hashlib algorithms allowed by the --hash option and ``pip hash``
 # Currently, those are the ones at least as collision-resistant as sha256.
 STRONG_HASHES = ["sha256", "sha384", "sha512"]
+
+
+class HexDigestStr(str, SupportsHexDigest):
+    def hexdigest(self) -> str:
+        return self
 
 
 class Hashes:
@@ -94,7 +102,7 @@ class Hashes:
                 return
         self._raise(gots)
 
-    def _raise(self, gots: Dict[str, "_Hash"]) -> "NoReturn":
+    def _raise(self, gots: Mapping[str, SupportsHexDigest]) -> "NoReturn":
         raise HashMismatch(self._allowed, gots)
 
     def check_against_file(self, file: BinaryIO) -> None:
@@ -108,6 +116,11 @@ class Hashes:
     def check_against_path(self, path: str) -> None:
         with open(path, "rb") as file:
             return self.check_against_file(file)
+
+    def check_against_hash(self, hash: str) -> None:
+        alg, value = hash.split("=", 1)
+        if value not in self._allowed.get(alg, []):
+            self._raise({alg: HexDigestStr(value)})
 
     def __bool__(self) -> bool:
         """Return whether I know any known-good hashes."""
@@ -144,5 +157,5 @@ class MissingHashes(Hashes):
         # empty list, it will never match, so an error will always raise.
         super().__init__(hashes={FAVORITE_HASH: []})
 
-    def _raise(self, gots: Dict[str, "_Hash"]) -> "NoReturn":
+    def _raise(self, gots: Mapping[str, SupportsHexDigest]) -> "NoReturn":
         raise HashMissing(gots[FAVORITE_HASH].hexdigest())

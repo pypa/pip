@@ -108,6 +108,12 @@ class InstallRequirement:
             # PEP 508 URL requirement
             link = Link(req.url)
         self.link = self.original_link = link
+
+        # The locally computed hash of the (source) archive we downloaded. If no
+        # download occured because a corresponding wheel was found in the local wheel
+        # cache, this is the hash that was recorded in the cache entry.
+        self.archive_hash: Optional[str] = None
+
         self.original_link_is_in_wheel_cache = False
 
         # Path to any downloaded or already-existing package.

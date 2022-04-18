@@ -536,15 +536,8 @@ class Factory:
     def get_wheel_cache_entry(
         self, link: Link, name: Optional[str]
     ) -> Optional[CacheEntry]:
-        """Look up the link in the wheel cache.
-
-        If ``preparer.require_hashes`` is True, don't use the wheel cache,
-        because cached wheels, always built locally, have different hashes
-        than the files downloaded from the index server and thus throw false
-        hash mismatches. Furthermore, cached wheels at present have
-        nondeterministic contents due to file modification times.
-        """
-        if self._wheel_cache is None or self.preparer.require_hashes:
+        """Look up the link in the wheel cache."""
+        if self._wheel_cache is None:
             return None
         return self._wheel_cache.get_cache_entry(
             link=link,
