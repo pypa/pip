@@ -219,11 +219,12 @@ jobs:
         env:
           TEMP: "R:\\Temp"
 
+  # TODO: Remove this when we add Python 3.11 to CI.
   tests-importlib-metadata:
     name: tests for importlib.metadata backend
     runs-on: ubuntu-latest
     env:
-      _PIP_METADATA_BACKEND_IMPORTLIB: egg-compat
+      _PIP_USE_IMPORTLIB_METADATA: 'true'
 
     needs: [pre-commit, packaging, determine-changes]
     if: >-
@@ -241,7 +242,6 @@ jobs:
 
       - run: pip install nox 'virtualenv<20'
 
-      # Main check
       - name: Run unit tests
         run: >-
           nox -s test-3.10 --
