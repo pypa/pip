@@ -143,21 +143,21 @@ class Resolver(BaseResolver):
         if installed_dist.editable:
             return ireq
 
-        # Reinstall if the direct URLs don't match.
-        if not link_matches_direct_url(cand_link, dist_direct_url):
-            return ireq
+        # Now we know both the installed distribution and incoming candidate
+        # are based on direct URLs, and neither are editable. Don't reinstall
+        # if the direct URLs match.
+        if link_matches_direct_url(cand_link, dist_direct_url):
+            return None
 
-        # If VCS, only reinstall if the resolved revisions don't match.
+        # One exception for VCS. Try to resolve the requested reference to see
+        # if it matches the commit ID recorded in the installed distribution.
+        # Reinstall only if the resolved commit IDs don't match.
         cand_vcs = vcs.get_backend_for_scheme(cand_link.scheme)
         dist_direct_info = dist_direct_url.info
         if cand_vcs and ireq.source_dir and isinstance(dist_direct_info, VcsInfo):
             candidate_rev = cand_vcs.get_revision(ireq.source_dir)
             if candidate_rev != dist_direct_info.commit_id:
                 return ireq
-
-        # Now we know both the installed distribution and incoming candidate
-        # are based on direct URLs, neither are editable nor VCS, and point to
-        # equivalent targets. They are probably the same, don't reinstall.
         return None
 
     def resolve(
