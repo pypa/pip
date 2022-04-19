@@ -190,6 +190,7 @@ class InstallCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.use_pep517())
         self.cmd_opts.add_option(cmdoptions.no_use_pep517())
 
+        self.cmd_opts.add_option(cmdoptions.config_settings())
         self.cmd_opts.add_option(cmdoptions.install_options())
         self.cmd_opts.add_option(cmdoptions.global_options())
 

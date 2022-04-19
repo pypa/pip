@@ -794,6 +794,31 @@ no_use_pep517: Any = partial(
     help=SUPPRESS_HELP,
 )
 
+
+def _handle_config_settings(
+    option: Option, opt_str: str, value: str, parser: OptionParser
+) -> None:
+    key, sep, val = value.partition("=")
+    if sep != "=":
+        parser.error(f"Arguments to {opt_str} must be of the form KEY=VAL")  # noqa
+    dest = getattr(parser.values, option.dest)
+    if dest is None:
+        dest = {}
+        setattr(parser.values, option.dest, dest)
+    dest[key] = val
+
+
+config_settings: Callable[..., Option] = partial(
+    Option,
+    "--config-settings",
+    dest="config_settings",
+    type=str,
+    action="callback",
+    callback=_handle_config_settings,
+    metavar="settings",
+    help="Config settings to be passed to the PEP 517 build backend.",
+)
+
 install_options: Callable[..., Option] = partial(
     Option,
     "--install-option",

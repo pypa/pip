@@ -73,6 +73,7 @@ class WheelCommand(RequirementCommand):
             help="Don't verify if built wheel is valid.",
         )
 
+        self.cmd_opts.add_option(cmdoptions.config_settings())
         self.cmd_opts.add_option(cmdoptions.build_options())
         self.cmd_opts.add_option(cmdoptions.global_options())
 
