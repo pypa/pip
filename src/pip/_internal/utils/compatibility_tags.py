@@ -1,7 +1,7 @@
 """Generate and work with PEP 425 Compatibility Tags.
 """
 import re
-from typing import List, Optional, Tuple
+from typing import Generator, List, Optional, Tuple
 
 from pip._vendor.packaging.tags import (
     PythonVersion,
@@ -12,11 +12,16 @@ from pip._vendor.packaging.tags import (
     interpreter_name,
     interpreter_version,
     mac_platforms,
+    platform_tags,
 )
 
-from pip._internal.utils.packaging import filter_manylinux_tags, filter_musllinux_tags
-
 _osx_arch_pat = re.compile(r"(.+)_(\d+)_(\d+)_(.+)")
+
+_LEGACY_MANYLINUX_MAP = {
+    "manylinux2014": (2, 17),
+    "manylinux2010": (2, 12),
+    "manylinux1": (2, 5),
+}
 
 
 def version_info_to_nodot(version_info: Tuple[int, ...]) -> str:
@@ -44,6 +49,22 @@ def _mac_platforms(arch: str) -> List[str]:
     return arches
 
 
+def filter_libc_tags(libc: Tuple[int, int], arch: str) -> Generator[str, None, None]:
+    for tag in filter(
+        lambda t: t.startswith(("manylinux", "musllinux")), platform_tags()
+    ):
+        tag_prefix, _, tag_suffix = tag.partition("_")
+        if tag_prefix in _LEGACY_MANYLINUX_MAP:
+            tag_libc = _LEGACY_MANYLINUX_MAP[tag_prefix]
+            tag_arch = tag_suffix
+        else:
+            tag_libc_major, tag_libc_minor, tag_arch = tag_suffix.split("_", 2)
+            tag_libc = (int(tag_libc_major), int(tag_libc_minor))
+
+        if arch == tag_arch and tag_libc <= libc:
+            yield tag
+
+
 def _manylinux_platforms(arch: str) -> List[str]:
     arches = [arch]
     arch_prefix, arch_sep, arch_suffix = arch.partition("_")
@@ -51,7 +72,7 @@ def _manylinux_platforms(arch: str) -> List[str]:
     if arch_prefix == "manylinux":
         curr_glibc_major, curr_glibc_minor, curr_arch = arch_suffix.split("_", 2)
         curr_glibc = (int(curr_glibc_major), int(curr_glibc_minor))
-        arches = list(filter_manylinux_tags(curr_glibc, curr_arch)) or arches
+        arches = list(filter_libc_tags(curr_glibc, curr_arch)) or arches
 
     elif arch_prefix == "manylinux2014":
         # manylinux1/manylinux2010 wheels run on most manylinux2014 systems
@@ -78,7 +99,7 @@ def _musllinux_platforms(arch: str) -> List[str]:
     curr_musl_major, curr_musl_minor, curr_arch = arch_suffix.split("_", 2)
     curr_musl = (int(curr_musl_major), int(curr_musl_minor))
 
-    arches = list(filter_musllinux_tags(curr_musl, curr_arch)) or arches
+    arches = list(filter_libc_tags(curr_musl, curr_arch)) or arches
     return arches
 
 

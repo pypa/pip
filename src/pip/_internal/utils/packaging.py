@@ -1,22 +1,15 @@
 import functools
 import logging
 import re
-from typing import Generator, NewType, Optional, Tuple, cast
+from typing import NewType, Optional, Tuple, cast
 
 from pip._vendor.packaging import specifiers, version
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.specifiers import SpecifierSet
-from pip._vendor.packaging.tags import platform_tags
 
 NormalizedExtra = NewType("NormalizedExtra", str)
 
 logger = logging.getLogger(__name__)
-
-_LEGACY_MANYLINUX_MAP = {
-    "manylinux2014": (2, 17),
-    "manylinux2010": (2, 12),
-    "manylinux1": (2, 5),
-}
 
 
 def check_requires_python(
@@ -75,30 +68,3 @@ def is_pinned(specifier: SpecifierSet) -> bool:
             continue
         return True
     return False
-
-
-def filter_manylinux_tags(
-    glibc: Tuple[int, int], arch: str
-) -> Generator[str, None, None]:
-    for tag in filter(lambda t: t.startswith("manylinux"), platform_tags()):
-        tag_prefix, _, tag_suffix = tag.partition("_")
-        if tag_prefix in _LEGACY_MANYLINUX_MAP:
-            tag_glibc = _LEGACY_MANYLINUX_MAP[tag_prefix]
-            tag_arch = tag_suffix
-        else:
-            tag_glibc_major, tag_glibc_minor, tag_arch = tag_suffix.split("_", 2)
-            tag_glibc = (int(tag_glibc_major), int(tag_glibc_minor))
-
-        if arch == tag_arch and tag_glibc <= glibc:
-            yield tag
-
-
-def filter_musllinux_tags(
-    musl: Tuple[int, int], arch: str
-) -> Generator[str, None, None]:
-    for tag in filter(lambda t: t.startswith("musllinux"), platform_tags()):
-        *_, tag_suffix = tag.partition("_")
-        tag_musl_major, tag_musl_minor, tag_arch = tag_suffix.split("_", 2)
-        tag_musl = (int(tag_musl_major), int(tag_musl_minor))
-        if tag_arch == arch and tag_musl <= musl:
-            yield tag
