@@ -1,0 +1,2 @@
+When pip rewrites the shebang line in a script during wheel installation,
+update the hash and size in the corresponding ``RECORD`` file entry.

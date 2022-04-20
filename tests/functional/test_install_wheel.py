@@ -1,5 +1,7 @@
+import base64
 import csv
 import distutils
+import hashlib
 import os
 import shutil
 from pathlib import Path
@@ -361,6 +363,44 @@ def test_wheel_record_lines_have_hash_for_data_files(
     assert records["info.txt"] == [
         "sha256=Ln0sA6lQeuJl7PW1NWiFpTOTogKdJBOUmXJloaJa78Y",
         "1",
+    ]
+
+
+def test_wheel_record_lines_have_updated_hash_for_scripts(
+    script: PipTestEnvironment,
+) -> None:
+    """
+    pip rewrites "#!python" shebang lines in scripts when it installs them;
+    make sure it updates the RECORD file correspondingly.
+    """
+    package = make_wheel(
+        "simple",
+        "0.1.0",
+        extra_data_files={
+            "scripts/dostuff": "#!python\n",
+        },
+    ).save_to_dir(script.scratch_path)
+    script.pip("install", package)
+    record_file = script.site_packages_path / "simple-0.1.0.dist-info" / "RECORD"
+    record_text = record_file.read_text()
+    record_rows = list(csv.reader(record_text.splitlines()))
+    records = {r[0]: r[1:] for r in record_rows}
+
+    script_path = script.bin_path / "dostuff"
+    script_contents = script_path.read_bytes()
+    assert not script_contents.startswith(b"#!python\n")
+
+    script_digest = hashlib.sha256(script_contents).digest()
+    script_digest_b64 = (
+        base64.urlsafe_b64encode(script_digest).decode("US-ASCII").rstrip("=")
+    )
+
+    script_record_path = os.path.relpath(
+        script_path, script.site_packages_path
+    ).replace(os.path.sep, "/")
+    assert records[script_record_path] == [
+        f"sha256={script_digest_b64}",
+        str(len(script_contents)),
     ]
 
 
