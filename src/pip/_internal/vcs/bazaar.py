@@ -48,7 +48,7 @@ class Bazaar(VersionControl):
         elif verbosity == 1:
             flags = ()
         else:
-            flags = ("-{'v'*verbosity}",)
+            flags = (f"-{'v'*verbosity}",)
         cmd_args = make_command("branch", *flags, rev_options.to_args(), url, dest)
         self.run_command(cmd_args)
 
