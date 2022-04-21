@@ -46,6 +46,7 @@ from pip._internal.utils.direct_url_helpers import (
 )
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.misc import (
+    ConfiguredPep517HookCaller,
     ask_path_exists,
     backup_dir,
     display_path,
@@ -471,7 +472,8 @@ class InstallRequirement:
         requires, backend, check, backend_path = pyproject_toml_data
         self.requirements_to_check = check
         self.pyproject_requires = requires
-        self.pep517_backend = Pep517HookCaller(
+        self.pep517_backend = ConfiguredPep517HookCaller(
+            self,
             self.unpacked_source_directory,
             backend,
             backend_path=backend_path,
