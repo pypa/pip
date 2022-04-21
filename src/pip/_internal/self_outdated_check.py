@@ -4,7 +4,11 @@ import json
 import logging
 import optparse
 import os.path
+import platform
+import shutil
+import subprocess
 import sys
+from pathlib import Path
 from typing import Any, Dict
 
 from pip._vendor.packaging.version import parse as parse_version
@@ -96,6 +100,102 @@ def was_installed_by_pip(pkg: str) -> bool:
     return dist is not None and "pip" == dist.installer
 
 
+def get_py_executable() -> str:
+    """Get path to launch a Python executable.
+
+    First test if python/python3/pythonX.Y on PATH matches the current
+    interpreter, and use that if possible. Then try to get the correct
+    pylauncher command to launch a process of the current python
+    version, fallback to sys.executable
+    """
+
+    if not sys.executable:
+        # docs (python 3.10) says that sys.executable can be can be None or an
+        # empty string if this value cannot be determined, although this is
+        # very rare. In this case, there is nothing much we can do
+        return "python3"
+
+    # windows paths are case-insensitive, pathlib takes that into account
+    sys_executable_path = Path(sys.executable)
+
+    major, minor, *_ = sys.version_info
+
+    # first handle common case: test if path to python/python3/pythonX.Y
+    # matches sys.executable
+    for py in ("python", "python3", f"python{major}.{minor}"):
+        which = shutil.which(py)
+        if which is None:
+            continue
+
+        try:
+            # resolve() removes symlinks, normalises paths and makes them
+            # absolute
+            if Path(which).resolve() == sys_executable_path.resolve():
+                return py
+
+        except RuntimeError:
+            # happens when resolve() encounters an infinite loop
+            pass
+
+    # version in the format used by pylauncher
+    pylauncher_version = f"-{major}.{minor}-{64 if sys.maxsize > 2**32 else 32}"
+
+    # checks that pylauncher is usable, also makes sure pylauncher recognises
+    # the current python version and has the correct path of the current
+    # executable.
+    try:
+        proc = subprocess.run(
+            ["py", "--list-paths"],
+            capture_output=True,
+            timeout=1,
+            text=True,
+            check=True,
+        )
+
+    except (
+        subprocess.CalledProcessError,
+        subprocess.TimeoutExpired,
+        FileNotFoundError,
+    ):
+        pass
+
+    else:
+        for line in proc.stdout.splitlines():
+            # this is not failsafe, in the future pylauncher might change
+            # the format of the output. In that case, this implementation
+            # would start falling back to sys.executable which is better than
+            # throwing unhandled exceptions to users
+            try:
+                line_ver, line_path = line.strip().split(maxsplit=1)
+            except ValueError:
+                # got less values to unpack
+                continue
+
+            # strip invalid characters in line_path
+            invalid_chars = "/\0"  # \0 is NUL
+            if platform.system() == "Windows":
+                invalid_chars += '<>:"\\|?*'
+
+            line_path = line_path.strip(invalid_chars)
+            try:
+                if (
+                    line_ver == pylauncher_version
+                    and Path(line_path).resolve() == sys_executable_path.resolve()
+                ):
+                    return f"py {line_ver}"
+            except RuntimeError:
+                # happens when resolve() encounters an infinite loop
+                pass
+
+    # Returning sys.executable is reliable, but this does not accommodate for
+    # spaces in the path string. Currently it is not possible to workaround
+    # without knowing the user's shell.
+    # Thus, it won't be done until possible through the standard library.
+    # Do not be tempted to use the undocumented subprocess.list2cmdline, it is
+    # considered an internal implementation detail for a reason.
+    return sys.executable
+
+
 def pip_self_version_check(session: PipSession, options: optparse.Values) -> None:
     """Check for an update for pip.
 
@@ -165,15 +265,7 @@ def pip_self_version_check(session: PipSession, options: optparse.Values) -> Non
         if not local_version_is_older:
             return
 
-        # We cannot tell how the current pip is available in the current
-        # command context, so be pragmatic here and suggest the command
-        # that's always available. This does not accommodate spaces in
-        # `sys.executable` on purpose as it is not possible to do it
-        # correctly without knowing the user's shell. Thus,
-        # it won't be done until possible through the standard library.
-        # Do not be tempted to use the undocumented subprocess.list2cmdline.
-        # It is considered an internal implementation detail for a reason.
-        pip_cmd = f"{sys.executable} -m pip"
+        pip_cmd = f"{get_py_executable()} -m pip"
         logger.warning(
             "You are using pip version %s; however, version %s is "
             "available.\nYou should consider upgrading via the "
