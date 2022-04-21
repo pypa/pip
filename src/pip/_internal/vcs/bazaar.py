@@ -44,11 +44,11 @@ class Bazaar(VersionControl):
             display_path(dest),
         )
         if verbosity <= 0:
-            flags: Tuple[str, ...] = ("--quiet",)
+            flags = ["--quiet"]
         elif verbosity == 1:
-            flags = ()
+            flags = []
         else:
-            flags = (f"-{'v'*verbosity}",)
+            flags = [f"-{'v'*verbosity}"]
         cmd_args = make_command("branch", *flags, rev_options.to_args(), url, dest)
         self.run_command(cmd_args)
 
