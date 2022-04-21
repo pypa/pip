@@ -288,9 +288,9 @@ class Subversion(VersionControl):
             display_path(dest),
         )
         if verbosity <= 0:
-            flags: Tuple[str, ...] = ("--quiet",)
+            flags = ["--quiet"]
         else:
-            flags = ()
+            flags = []
         cmd_args = make_command(
             "checkout",
             *flags,
