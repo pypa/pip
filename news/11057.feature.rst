@@ -1,0 +1,2 @@
+Try to suggest python/python3/pythonX.Y/pylauncher command in pip warning
+before falling back to sys.executable
