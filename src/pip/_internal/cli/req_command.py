@@ -325,6 +325,7 @@ class RequirementCommand(IndexGroupCommand):
             install_req_from_req_string,
             isolated=options.isolated_mode,
             use_pep517=use_pep517,
+            config_settings=options.config_settings,
         )
         suppress_build_failures = cls.determine_build_failure_suppression(options)
         resolver_variant = cls.determine_resolver_variant(options)
@@ -397,6 +398,7 @@ class RequirementCommand(IndexGroupCommand):
                 isolated=options.isolated_mode,
                 use_pep517=options.use_pep517,
                 user_supplied=True,
+                config_settings=options.config_settings,
             )
             requirements.append(req_to_add)
 
@@ -406,6 +408,7 @@ class RequirementCommand(IndexGroupCommand):
                 user_supplied=True,
                 isolated=options.isolated_mode,
                 use_pep517=options.use_pep517,
+                config_settings=options.config_settings,
             )
             requirements.append(req_to_add)
 
