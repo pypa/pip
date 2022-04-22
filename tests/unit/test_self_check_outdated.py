@@ -1,5 +1,6 @@
 import datetime
 import json
+import logging
 import sys
 from optparse import Values
 from typing import Optional
@@ -95,7 +96,7 @@ def test_core_logic(
     version_that_should_be_checked = stored_version or remote_version
 
     # WHEN
-    with caplog.at_level("DEBUG"):
+    with caplog.at_level(logging.DEBUG):
         return_value = self_outdated_check._self_version_check_logic(
             state=mock_state,
             current_time=fake_time,
