@@ -6,7 +6,7 @@ html5lib==1.1
 msgpack==1.0.3
 packaging==21.3
 pep517==0.12.0
-platformdirs==2.4.1
+platformdirs==2.5.2
 pyparsing==3.0.8
 requests==2.27.1
     certifi==2021.10.08
