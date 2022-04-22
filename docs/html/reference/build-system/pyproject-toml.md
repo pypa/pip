@@ -106,6 +106,16 @@ This is considered a stopgap solution until setuptools adds support for
 regular {ref}`deprecation policy <Deprecation Policy>`.
 ```
 
+### Backend Configuration
+
+Build backends have the ability to accept configuration settings, which can
+change the way the build is handled. These settings take the form of a
+series of `key=value` pairs. The user can supply configuration settings
+using the `--config-settings` command line option (which can be supplied
+multiple times, in order to specify multiple settings).
+
+The supplied configuration settings are passed to every backend hook call.
+
 ## Build output
 
 It is the responsibility of the build backend to ensure that the output is

@@ -816,7 +816,9 @@ config_settings: Callable[..., Option] = partial(
     action="callback",
     callback=_handle_config_settings,
     metavar="settings",
-    help="Config settings to be passed to the PEP 517 build backend.",
+    help="Configuration settings to be passed to the PEP 517 build backend. "
+    "Settings take the form KEY=VALUE. Use multiple --config-settings options "
+    "to pass multiple keys to the backend.",
 )
 
 install_options: Callable[..., Option] = partial(
