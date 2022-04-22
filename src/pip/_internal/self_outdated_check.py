@@ -193,11 +193,12 @@ def _self_version_check_logic(
 
     pip_installed_by_pip = was_installed_by_pip("pip")
     logger.debug("Was pip installed by pip? %s", pip_installed_by_pip)
+    if not pip_installed_by_pip:
+        return None  # Only suggest upgrade if pip is installed by pip.
 
     local_version_is_older = (
         local_version < remote_version
         and local_version.base_version != remote_version.base_version
-        and pip_installed_by_pip
     )
     if local_version_is_older:
         return UpgradePrompt(old=str(local_version), new=remote_version_str)
