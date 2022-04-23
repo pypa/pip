@@ -174,6 +174,17 @@ def test_show_verbose_installer(script: PipTestEnvironment, data: TestData) -> N
     assert "Installer: pip" in lines
 
 
+def test_show_verbose_project_urls(script: PipTestEnvironment) -> None:
+    """
+    Test that project urls can be listed
+    """
+    result = script.pip("show", "pip", "--verbose")
+    lines = result.stdout.splitlines()
+    assert "Name: pip" in lines
+    assert re.search(r"Project-URLs:\n(  .+\n)+", result.stdout)
+    assert "Source, https://github.com/pypa/pip" in result.stdout
+
+
 def test_show_verbose(script: PipTestEnvironment) -> None:
     """
     Test end to end test for verbose show command.
@@ -184,6 +195,7 @@ def test_show_verbose(script: PipTestEnvironment) -> None:
     assert any(line.startswith("Installer: ") for line in lines)
     assert "Entry-points:" in lines
     assert "Classifiers:" in lines
+    assert "Project-URLs:" in lines
 
 
 def test_all_fields(script: PipTestEnvironment) -> None:
