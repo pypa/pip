@@ -27,37 +27,3 @@ index c43146279..4cded53f6 100644
 +        pyopenssl.inject_into_urllib3()
      except ImportError:
          pass
-
-diff --git a/src/pip/_vendor/urllib3/response.py b/src/pip/_vendor/urllib3/response.py
-index 38693f4fc..776e49dd2 100644
---- a/src/pip/_vendor/urllib3/response.py
-+++ b/src/pip/_vendor/urllib3/response.py
-@@ -7,10 +7,7 @@ from contextlib import contextmanager
- from socket import error as SocketError
- from socket import timeout as SocketTimeout
- 
--try:
--    import brotli
--except ImportError:
--    brotli = None
-+brotli = None
- 
- from ._collections import HTTPHeaderDict
- from .connection import BaseSSLError, HTTPException
-diff --git a/src/pip/_vendor/urllib3/util/request.py b/src/pip/_vendor/urllib3/util/request.py
-index 25103383e..330766ef4 100644
---- a/src/pip/_vendor/urllib3/util/request.py
-+++ b/src/pip/_vendor/urllib3/util/request.py
-@@ -13,12 +13,6 @@ SKIP_HEADER = "@@@SKIP_HEADER@@@"
- SKIPPABLE_HEADERS = frozenset(["accept-encoding", "host", "user-agent"])
- 
- ACCEPT_ENCODING = "gzip,deflate"
--try:
--    import brotli as _unused_module_brotli  # noqa: F401
--except ImportError:
--    pass
--else:
--    ACCEPT_ENCODING += ",br"
- 
- _FAILEDTELL = object()
- 
