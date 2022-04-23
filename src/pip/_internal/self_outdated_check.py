@@ -20,7 +20,11 @@ from pip._internal.metadata import get_default_environment
 from pip._internal.metadata.base import DistributionVersion
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.session import PipSession
-from pip._internal.utils.entrypoints import get_best_invocation_for_this_pip
+from pip._internal.utils.compat import WINDOWS
+from pip._internal.utils.entrypoints import (
+    get_best_invocation_for_this_pip,
+    get_best_invocation_for_this_python,
+)
 from pip._internal.utils.filesystem import adjacent_tmp_file, check_path_owner, replace
 from pip._internal.utils.misc import ensure_dir
 
@@ -120,7 +124,10 @@ class UpgradePrompt:
     new: str
 
     def __rich__(self) -> Group:
-        pip_cmd = get_best_invocation_for_this_pip()
+        if WINDOWS:
+            pip_cmd = f"{get_best_invocation_for_this_python()} -m pip"
+        else:
+            pip_cmd = get_best_invocation_for_this_pip()
 
         notice = "[bold][[reset][blue]notice[reset][bold]][reset]"
         return Group(
