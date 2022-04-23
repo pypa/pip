@@ -13,7 +13,7 @@ _EXECUTABLE_NAMES = [
     f"pip{sys.version_info.major}.{sys.version_info.minor}",
 ]
 if WINDOWS:
-    _allowed_extensions = {"", ".exe", ".EXE"}
+    _allowed_extensions = {"", ".exe"}
     _EXECUTABLE_NAMES = [
         "".join(parts)
         for parts in itertools.product(_EXECUTABLE_NAMES, _allowed_extensions)
@@ -50,10 +50,15 @@ def get_best_invocation_for_this_pip() -> str:
 
     # Try to use pip[X[.Y]] names, if those executables for this environment are
     # the first on PATH with that name.
-    exe_are_in_PATH = binary_prefix in os.environ.get("PATH", "").split(os.pathsep)
+    path_parts = os.path.normcase(os.environ.get("PATH", "")).split(os.pathsep)
+    exe_are_in_PATH = os.path.normcase(binary_prefix) in path_parts
     if exe_are_in_PATH:
         for exe_name in _EXECUTABLE_NAMES:
-            if shutil.which(exe_name) == os.path.join(binary_prefix, exe_name):
+            found_executable = shutil.which(exe_name)
+            if found_executable and os.path.samefile(
+                found_executable,
+                os.path.join(binary_prefix, exe_name),
+            ):
                 return exe_name
 
     # Use the `-m` invocation, if there's no "nice" invocation.
