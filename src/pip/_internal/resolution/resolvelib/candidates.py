@@ -93,6 +93,7 @@ def make_install_req_from_editable(
             global_options=template.global_options,
             hashes=template.hash_options,
         ),
+        config_settings=template.config_settings,
     )
 
 

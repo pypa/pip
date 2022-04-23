@@ -1,16 +1,18 @@
 import json
+from typing import Tuple
 from zipfile import ZipFile
 
 from tests.lib import PipTestEnvironment
+from tests.lib.path import Path
 
 PYPROJECT_TOML = """\
 [build-system]
 requires = []
-build-backend = "example:main"
+build-backend = "dummy_backend:main"
 backend-path = ["backend"]
 """
 
-BACKEND_SRC = '''\
+BACKEND_SRC = '''
 import csv
 import json
 import os.path
@@ -21,14 +23,14 @@ import io
 
 WHEEL = """\
 Wheel-Version: 1.0
-Generator: example 1.0
+Generator: dummy_backend 1.0
 Root-Is-Purelib: true
 Tag: py3-none-any
 """
 
 METADATA = """\
 Metadata-Version: 2.1
-Name: {name}
+Name: {project}
 Version: {version}
 Summary: A dummy package
 Author: None
@@ -46,7 +48,7 @@ def make_wheel(z, project, version, files):
         record.append((name, f"sha256={hash}", len(data)))
     distinfo = f"{project}-{version}.dist-info"
     add_file(f"{distinfo}/WHEEL", WHEEL)
-    add_file(f"{distinfo}/METADATA", METADATA.format(name=project, version=version))
+    add_file(f"{distinfo}/METADATA", METADATA.format(project=project, version=version))
     for name, data in files:
         add_file(name, data)
     record_name = f"{distinfo}/RECORD"
@@ -68,7 +70,6 @@ class Backend:
     ):
         if config_settings is None:
             config_settings = {}
-        print("CONFIG SETTINGS IN BACKEND", config_settings)
         w = os.path.join(wheel_directory, "foo-1.0-py3-none-any.whl")
         with open(w, "wb") as f:
             with ZipFile(f, "w") as z:
@@ -78,26 +79,61 @@ class Backend:
                 )
         return "foo-1.0-py3-none-any.whl"
 
+    build_editable = build_wheel
+
 main = Backend()
 '''
 
 
+def make_project(path: Path) -> Tuple[str, str, Path]:
+    name = "foo"
+    version = "1.0"
+    project_dir = path / name
+    backend = project_dir / "backend"
+    backend.mkdir(parents=True)
+    (project_dir / "pyproject.toml").write_text(PYPROJECT_TOML)
+    (backend / "dummy_backend.py").write_text(BACKEND_SRC)
+    return name, version, project_dir
+
+
 def test_backend_sees_config(script: PipTestEnvironment) -> None:
-    example = script.scratch_path / "example"
-    example.mkdir(parents=True)
-    backend = example / "backend"
-    backend.mkdir()
-    (example / "pyproject.toml").write_text(PYPROJECT_TOML)
-    (backend / "example.py").write_text(BACKEND_SRC)
+    name, version, project_dir = make_project(script.scratch_path)
     script.pip(
         "wheel",
         "--config-settings",
         "FOO=Hello",
-        "./example",
+        project_dir,
     )
-    wheel_file_name = "foo-1.0-py3-none-any.whl"
+    wheel_file_name = f"{name}-{version}-py3-none-any.whl"
     wheel_file_path = script.cwd / wheel_file_name
     with open(wheel_file_path, "rb") as f:
         with ZipFile(f) as z:
             output = z.read("config.json")
             assert json.loads(output) == {"FOO": "Hello"}
+
+
+def test_install_sees_config(script: PipTestEnvironment) -> None:
+    _, _, project_dir = make_project(script.scratch_path)
+    script.pip(
+        "install",
+        "--config-settings",
+        "FOO=Hello",
+        project_dir,
+    )
+    config = script.site_packages_path / "config.json"
+    with open(config, "rb") as f:
+        assert json.load(f) == {"FOO": "Hello"}
+
+
+def test_install_editable_sees_config(script: PipTestEnvironment) -> None:
+    _, _, project_dir = make_project(script.scratch_path)
+    script.pip(
+        "install",
+        "--config-settings",
+        "FOO=Hello",
+        "--editable",
+        project_dir,
+    )
+    config = script.site_packages_path / "config.json"
+    with open(config, "rb") as f:
+        assert json.load(f) == {"FOO": "Hello"}
