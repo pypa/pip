@@ -10,6 +10,7 @@ pass on state. To be consistent, all options will follow this design.
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
 
+import importlib.util
 import logging
 import os
 import textwrap
@@ -768,6 +769,12 @@ def _handle_no_use_pep517(
         of the PIP_USE_PEP517 environment variable or the "use-pep517"
         config file option instead.
         """
+        raise_option_error(parser, option=option, msg=msg)
+
+    # If user doesn't wish to use pep517, we check if setuptools is installed
+    # and raise error if it is not.
+    if not importlib.util.find_spec("setuptools"):
+        msg = "It is not possible to use --no-use-pep517 without setuptools installed."
         raise_option_error(parser, option=option, msg=msg)
 
     # Otherwise, --no-use-pep517 was passed via the command-line.
