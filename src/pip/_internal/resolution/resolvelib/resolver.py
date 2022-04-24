@@ -10,13 +10,11 @@ from pip._vendor.resolvelib.structs import DirectedGraph
 
 from pip._internal.cache import WheelCache
 from pip._internal.index.package_finder import PackageFinder
-from pip._internal.models.direct_url import VcsInfo
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver, InstallRequirementProvider
-from pip._internal.utils.direct_url_helpers import link_matches_direct_url
-from pip._internal.vcs.versioncontrol import vcs
+from pip._internal.utils.direct_url_helpers import direct_url_from_link
 
 from .base import Candidate, Requirement
 from .factory import Factory
@@ -146,19 +144,13 @@ class Resolver(BaseResolver):
         # Now we know both the installed distribution and incoming candidate
         # are based on direct URLs, and neither are editable. Don't reinstall
         # if the direct URLs match.
-        if link_matches_direct_url(cand_link, dist_direct_url):
+        cand_direct_url = direct_url_from_link(
+            cand_link, ireq.source_dir, ireq.original_link_is_in_wheel_cache
+        )
+        if cand_direct_url.equivalent(dist_direct_url):
             return None
 
-        # One exception for VCS. Try to resolve the requested reference to see
-        # if it matches the commit ID recorded in the installed distribution.
-        # Reinstall only if the resolved commit IDs don't match.
-        cand_vcs = vcs.get_backend_for_scheme(cand_link.scheme)
-        dist_direct_info = dist_direct_url.info
-        if cand_vcs and ireq.source_dir and isinstance(dist_direct_info, VcsInfo):
-            candidate_rev = cand_vcs.get_revision(ireq.source_dir)
-            if candidate_rev != dist_direct_info.commit_id:
-                return ireq
-        return None
+        return ireq
 
     def resolve(
         self, root_reqs: List[InstallRequirement], check_supported_wheels: bool

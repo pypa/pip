@@ -1,14 +1,11 @@
 from functools import partial
 from unittest import mock
 
-import pytest
-
 from pip._internal.models.direct_url import ArchiveInfo, DirectUrl, DirInfo, VcsInfo
 from pip._internal.models.link import Link
 from pip._internal.utils.direct_url_helpers import (
     direct_url_as_pep440_direct_reference,
     direct_url_from_link,
-    link_matches_direct_url,
 )
 from pip._internal.utils.urls import path_to_url
 from tests.lib import PipTestEnvironment
@@ -173,30 +170,3 @@ def test_from_link_hide_user_password() -> None:
         link_is_in_wheel_cache=True,
     )
     assert direct_url.to_dict()["url"] == "ssh://git@g.c/u/p.git"
-
-
-@pytest.mark.parametrize(
-    "link, direct_url",
-    [
-        pytest.param(
-            Link("git+https://user:password@g.c/u/p.git@commit_id"),
-            DirectUrl(
-                "https://user:password@g.c/u/p.git",
-                VcsInfo("git", "commit_id", requested_revision="revision"),
-            ),
-            id="vcs",
-        ),
-        pytest.param(
-            Link("https://g.c/archive.tgz#hash=12345"),
-            DirectUrl("https://g.c/archive.tgz", ArchiveInfo("hash=12345")),
-            id="archive",
-        ),
-        pytest.param(
-            Link("file:///home/user/project"),
-            DirectUrl("file:///home/user/project", DirInfo(editable=False)),
-            id="dir",
-        ),
-    ],
-)
-def test_link_matches_direct_url(link: Link, direct_url: DirectUrl) -> None:
-    assert link_matches_direct_url(link, direct_url)
