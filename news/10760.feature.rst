@@ -1,1 +1,2 @@
-Support glibc-based manylinux and musllinux platform tags.
+Support :pep:`660` and :pep:`656` to install and download
+manylinux and musllinux compatible wheels when ``--platform`` is specified.
