@@ -1,5 +1,5 @@
 import logging
-from typing import Iterable
+from typing import Dict, Iterable, Optional, Set
 from unittest.mock import Mock, patch
 
 import pytest
@@ -16,6 +16,7 @@ from pip._internal.index.package_finder import (
     LinkEvaluator,
     LinkType,
 )
+from pip._internal.models.format_control import FormatControl
 from pip._internal.models.target_python import TargetPython
 from pip._internal.req.constructors import install_req_from_line
 from tests.lib import TestData, make_test_finder
@@ -480,12 +481,17 @@ def test_finder_installs_pre_releases_with_version_spec() -> None:
 
 
 class TestLinkEvaluator:
-    def make_test_link_evaluator(self, formats: Iterable[str]) -> LinkEvaluator:
+    def make_test_link_evaluator(
+        self,
+        formats: Iterable[str],
+        index_formats: Optional[Dict[str, Set[str]]] = None,
+    ) -> LinkEvaluator:
         target_python = TargetPython()
         return LinkEvaluator(
             project_name="pytest",
             canonical_name="pytest",
             formats=frozenset(formats),
+            index_formats=index_formats,
             target_python=target_python,
             allow_yanked=True,
         )
@@ -532,6 +538,68 @@ class TestLinkEvaluator:
         evaluator = self.make_test_link_evaluator(formats=["source", "binary"])
         actual = evaluator.evaluate_link(link)
         assert actual == (link_type, fail_reason)
+
+    @pytest.mark.parametrize(
+        "url, no_binary, only_binary, link_type, string_data",
+        [
+            (
+                "http:/a/pytest-1.0.tar.gz",
+                set(),
+                {":index:https://bad.stuff"},
+                LinkType.format_unsupported,
+                "No sources permitted from index https://bad.stuff",
+            ),
+            (
+                "http:/b/pytest-1.0-py2.py3-none-any.whl",
+                {":index:https://bad.stuff"},
+                set(),
+                LinkType.format_unsupported,
+                "No binaries permitted from index https://bad.stuff",
+            ),
+            (
+                "http:/a/pytest-1.0.tar.gz",
+                {":index:https://bad.stuff"},
+                set(),
+                LinkType.candidate,
+                "1.0",
+            ),
+            (
+                "http:/b/pytest-1.0-py2.py3-none-any.whl",
+                set(),
+                {":index:https://bad.stuff"},
+                LinkType.candidate,
+                "1.0",
+            ),
+        ],
+    )
+    def test_evaluate_link__index_formats_handling(
+        self,
+        url: str,
+        no_binary: Set[str],
+        only_binary: Set[str],
+        link_type: LinkType,
+        string_data: str,
+    ) -> None:
+        """Test index-specific --no-binary and --only-binary handling"""
+        link = Link(url, comes_from=f'https://bad.stuff/simple{url.split(":")[1]}')
+        index_formats = FormatControl(no_binary, only_binary).get_index_formats()
+        evaluator = self.make_test_link_evaluator(
+            formats=["source", "binary"], index_formats=index_formats
+        )
+        actual = evaluator.evaluate_link(link)
+        assert actual == (link_type, string_data)
+
+
+def test_make_link_evaluator__uses_index_formats(data: TestData) -> None:
+    project_name = "simple"
+    index_url = data.index_url("simple")
+    finder = make_test_finder(index_urls=[index_url])
+    finder.format_control.no_binary = {":index:https://a.b.c"}
+    link_evaluator = finder.make_link_evaluator(project_name)
+    assert link_evaluator._index_formats == {
+        "no_binary": {"https://a.b.c"},
+        "only_binary": set(),
+    }
 
 
 def test_process_project_url(data: TestData) -> None:

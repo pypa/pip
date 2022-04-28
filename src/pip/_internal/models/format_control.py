@@ -1,4 +1,4 @@
-from typing import FrozenSet, Optional, Set
+from typing import Dict, FrozenSet, Optional, Set
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -56,7 +56,8 @@ class FormatControl:
             if name == ":none:":
                 target.clear()
                 continue
-            name = canonicalize_name(name)
+            if not name.startswith(":index:"):
+                name = canonicalize_name(name)
             other.discard(name)
             target.add(name)
 
@@ -77,4 +78,15 @@ class FormatControl:
             ":all:",
             self.no_binary,
             self.only_binary,
+        )
+
+    def get_index_formats(self) -> Dict[str, Set[str]]:
+        """Returns indexes specified within no_binary or only_binary attributes."""
+
+        def get_indexes(opt: Set[str]) -> Set[str]:
+            return set(x[7:] for x in opt if x.startswith(":index:"))
+
+        return dict(
+            no_binary=get_indexes(self.no_binary),
+            only_binary=get_indexes(self.only_binary),
         )
