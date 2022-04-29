@@ -69,6 +69,7 @@ def make_install_req_from_link(
             global_options=template.global_options,
             hashes=template.hash_options,
         ),
+        config_settings=template.config_settings,
     )
     ireq.original_link = template.original_link
     ireq.link = link
@@ -92,6 +93,7 @@ def make_install_req_from_editable(
             global_options=template.global_options,
             hashes=template.hash_options,
         ),
+        config_settings=template.config_settings,
     )
 
 
@@ -116,6 +118,7 @@ def _make_install_req_from_dist(
             global_options=template.global_options,
             hashes=template.hash_options,
         ),
+        config_settings=template.config_settings,
     )
     ireq.satisfied_by = dist
     return ireq
