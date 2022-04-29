@@ -21,7 +21,7 @@ nox.options.sessions = ["lint"]
 
 LOCATIONS = {
     "common-wheels": "tests/data/common_wheels",
-    "protected-pip": "tools/tox_pip.py",
+    "protected-pip": "tools/protected_pip.py",
 }
 REQUIREMENTS = {
     "docs": "docs/requirements.txt",
