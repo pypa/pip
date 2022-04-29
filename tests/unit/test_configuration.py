@@ -185,12 +185,8 @@ class TestConfigurationModification(ConfigurationMixin):
     def test_no_specific_given_modification(self) -> None:
         self.configuration.load()
 
-        try:
+        with pytest.raises(ConfigurationError):
             self.configuration.set_value("test.hello", "10")
-        except ConfigurationError:
-            pass
-        else:
-            assert False, "Should have raised an error."
 
     def test_site_modification(self) -> None:
         self.configuration.load_only = kinds.SITE
@@ -241,3 +237,16 @@ class TestConfigurationModification(ConfigurationMixin):
         # get the path to user config file
         assert mymock.call_count == 1
         assert mymock.call_args[0][0] == (get_configuration_files()[kinds.GLOBAL][-1])
+
+    def test_normalization(self) -> None:
+        # underscores and dashes can be used interchangeably.
+        # internally, underscores get converted into dashes before reading/writing file
+        self.configuration.load_only = kinds.GLOBAL
+        self.configuration.load()
+        self.configuration.set_value("global.index-url", "example.org")
+        assert self.configuration.get_value("global.index_url") == "example.org"
+        assert self.configuration.get_value("global.index-url") == "example.org"
+        self.configuration.unset_value("global.index-url")
+        pat = r"^No such key - global\.index-url$"
+        with pytest.raises(ConfigurationError, match=pat):
+            self.configuration.get_value("global.index-url")
