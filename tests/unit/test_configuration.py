@@ -243,7 +243,7 @@ class TestConfigurationModification(ConfigurationMixin):
         # internally, underscores get converted into dashes before reading/writing file
         self.configuration.load_only = kinds.GLOBAL
         self.configuration.load()
-        self.configuration.set_value("global.index-url", "example.org")
+        self.configuration.set_value("global.index_url", "example.org")
         assert self.configuration.get_value("global.index_url") == "example.org"
         assert self.configuration.get_value("global.index-url") == "example.org"
         self.configuration.unset_value("global.index-url")
