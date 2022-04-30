@@ -1,6 +1,7 @@
 """Tests for all things related to the configuration
 """
 
+import re
 from unittest.mock import MagicMock
 
 import pytest
@@ -86,6 +87,25 @@ class TestConfigurationLoading(ConfigurationMixin):
         assert config_file in str(err.value) or repr(config_file) in str(  # file name
             err.value
         )
+
+    def test_no_such_key_error_message_no_command(self) -> None:
+        self.configuration.load_only = kinds.GLOBAL
+        self.configuration.load()
+        expected_msg = (
+            "Key does not contain dot separated section and key. "
+            "Perhaps you wanted to use 'global.index-url' instead?"
+        )
+        pat = f"^{re.escape(expected_msg)}$"
+        with pytest.raises(ConfigurationError, match=pat):
+            self.configuration.get_value("index-url")
+
+    def test_no_such_key_error_message_missing_option(self) -> None:
+        self.configuration.load_only = kinds.GLOBAL
+        self.configuration.load()
+        expected_msg = "No such key - global.index-url"
+        pat = f"^{re.escape(expected_msg)}$"
+        with pytest.raises(ConfigurationError, match=pat):
+            self.configuration.get_value("global.index-url")
 
 
 class TestConfigurationPrecedence(ConfigurationMixin):

@@ -147,6 +147,9 @@ class Configuration:
         try:
             return self._dictionary[key]
         except KeyError:
+            # disassembling triggers a more useful error message than simply
+            # "No such key" in the case that the key isn't in the form command.option
+            _disassemble_key(key)
             raise ConfigurationError(f"No such key - {orig_key}")
 
     def set_value(self, key: str, value: Any) -> None:
