@@ -208,6 +208,7 @@ DrFeathers
 Dustin Ingram
 Dwayne Bailey
 Ed Morley
+Edgar Ramírez
 Ee Durbin
 Eitan Adler
 ekristina
@@ -242,10 +243,12 @@ Frost Ming
 Gabriel Curio
 Gabriel de Perthuis
 Garry Polley
+gavin
 gdanielson
 Geoffrey Sneddon
 George Song
 Georgi Valkov
+Georgy Pchelkin
 ghost
 Giftlin Rajaiah
 gizmoguy1
@@ -266,6 +269,7 @@ Hari Charan
 Harsh Vardhan
 harupy
 Harutaka Kawamura
+Henrich Hartzer
 Henry Schreiner
 Herbert Pfennig
 Hsiaoming Yang
@@ -299,6 +303,7 @@ James Gerity
 James Polley
 Jan Pokorný
 Jannis Leidel
+Jarek Potiuk
 jarondl
 Jason R. Coombs
 Jay Graves
@@ -313,6 +318,7 @@ Jesse Rittner
 Jiashuo Li
 Jim Fisher
 Jim Garrison
+Jiun Bae
 Jivan Amara
 Joe Michelini
 John Paton
@@ -339,7 +345,9 @@ Jussi Kukkonen
 jwg4
 Jyrki Pulliainen
 Kai Chen
+Kai Mueller
 Kamal Bin Mustafa
+kasium
 kaustav haldar
 keanemind
 Keith Maxwell
@@ -386,6 +394,7 @@ Mark Kohler
 Mark Williams
 Markus Hametner
 Martey Dodoo
+Martin Fischer
 Martin Häcker
 Martin Pavlasek
 Masaki
@@ -433,6 +442,7 @@ Monica Baluna
 montefra
 Monty Taylor
 Nadav Wexler
+Nahuel Ambrosini
 Nate Coraor
 Nate Prewitt
 Nathan Houghton
@@ -539,11 +549,13 @@ Roey Berman
 Rohan Jain
 Roman Bogorodskiy
 Romuald Brunet
+ronaudinho
 Ronny Pfannschmidt
 Rory McCann
 Ross Brattain
 Roy Wellington Ⅳ
 Ruairidh MacLeod
+Russell Keith-Magee
 Ryan Wooden
 ryneeverett
 Sachi King
@@ -560,6 +572,7 @@ SeongSoo Cho
 Sergey Vasilyev
 Seth Woodworth
 shireenrao
+Shivansh-007
 Shlomi Fish
 Shovan Maity
 Simeon Visser
@@ -593,6 +606,7 @@ Sylvain
 Takayuki SHIMIZUKAWA
 Taneli Hukkinen
 tbeswick
+Thiago
 Thijs Triemstra
 Thomas Fenzl
 Thomas Grainger
@@ -612,6 +626,7 @@ Tom V
 Tomas Hrnciar
 Tomas Orsava
 Tomer Chachamu
+Tomáš Hrnčiar
 Tony Beswick
 Tony Zhaocheng Tan
 TonyBeswick
@@ -652,6 +667,7 @@ Yeray Diaz Diaz
 Yoval P
 Yu Jian
 Yuan Jing Vincent Yan
+Yusuke Hayashi
 Zearin
 Zhiping Deng
 ziebam
