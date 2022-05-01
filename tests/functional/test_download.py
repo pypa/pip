@@ -1181,12 +1181,25 @@ def test_download_use_pep517_propagation(
     on the command line, but to their dependencies too.
     """
 
-    # Remove setuptools to ensure that metadata retrieval fails unless PEP 517
-    # is used.
-    script.pip("uninstall", "-y", "setuptools")
-
     create_basic_sdist_for_package(script, "fake_proj", "1.0", depends=["fake_dep"])
-    create_basic_sdist_for_package(script, "fake_dep", "1.0")
+
+    # If --use-pep517 is in effect, then setup.py should be running in an isolated
+    # environment that doesn't have pip in it.
+    create_basic_sdist_for_package(
+        script,
+        "fake_dep",
+        "1.0",
+        setup_py_prelude=textwrap.dedent(
+            """\
+            try:
+                import pip
+            except ImportError:
+                pass
+            else:
+                raise Exception(f"not running in isolation")
+            """
+        ),
+    )
 
     download_dir = tmpdir / "download_dir"
     script.pip(

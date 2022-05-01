@@ -1212,11 +1212,15 @@ def create_basic_sdist_for_package(
     fails_egg_info: bool = False,
     fails_bdist_wheel: bool = False,
     depends: Optional[List[str]] = None,
+    setup_py_prelude: str = "",
 ) -> pathlib.Path:
     files = {
-        "setup.py": f"""\
+        "setup.py": textwrap.dedent(
+            """\
             import sys
             from setuptools import find_packages, setup
+
+            {setup_py_prelude}
 
             fails_bdist_wheel = {fails_bdist_wheel!r}
             fails_egg_info = {fails_egg_info!r}
@@ -1228,18 +1232,20 @@ def create_basic_sdist_for_package(
                 raise Exception("Simulated failure for building a wheel.")
 
             setup(name={name!r}, version={version!r},
-                install_requires={depends or []!r})
-        """,
+                install_requires={depends!r})
+        """
+        ).format(
+            name=name,
+            version=version,
+            depends=depends or [],
+            setup_py_prelude=setup_py_prelude,
+            fails_bdist_wheel=fails_bdist_wheel,
+            fails_egg_info=fails_egg_info,
+        ),
     }
 
     # Some useful shorthands
     archive_name = f"{name}-{version}.tar.gz"
-
-    # Replace key-values with formatted values
-    for key, value in list(files.items()):
-        del files[key]
-        key = key.format(name=name)
-        files[key] = textwrap.dedent(value)
 
     # Add new files after formatting
     if extra_files:
