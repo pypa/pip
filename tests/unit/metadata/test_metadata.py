@@ -6,8 +6,14 @@ from unittest import mock
 import pytest
 from pip._vendor.packaging.utils import NormalizedName
 
-from pip._internal.metadata import BaseDistribution, get_directory_distribution
+from pip._internal.metadata import (
+    BaseDistribution,
+    get_directory_distribution,
+    get_wheel_distribution,
+)
+from pip._internal.metadata.base import FilesystemWheel
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, ArchiveInfo
+from tests.lib.wheel import make_wheel
 
 
 @mock.patch.object(BaseDistribution, "read_text", side_effect=FileNotFoundError)
@@ -82,3 +88,17 @@ def test_dist_get_direct_url_valid_metadata(mock_read_text: mock.Mock) -> None:
     mock_read_text.assert_called_once_with(DIRECT_URL_METADATA_NAME)
     assert direct_url.url == "https://e.c/p.tgz"
     assert isinstance(direct_url.info, ArchiveInfo)
+
+
+def test_json_metadata(tmp_path: Path) -> None:
+    """Basic test of BaseDistribution json_metadata.
+
+    More tests are available in the original pkg_metadata project where this
+    function comes from, and which we may vendor in the future.
+    """
+    wheel_path = make_wheel(name="pkga", version="1.0.1").save_to_dir(tmp_path)
+    wheel = FilesystemWheel(wheel_path)
+    dist = get_wheel_distribution(wheel, "pkga")
+    json_metadata = dist.json_metadata
+    assert json_metadata["name"] == "pkga"
+    assert json_metadata["version"] == "1.0.1"
