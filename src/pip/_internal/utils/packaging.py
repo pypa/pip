@@ -5,7 +5,6 @@ from typing import NewType, Optional, Tuple, cast
 
 from pip._vendor.packaging import specifiers, version
 from pip._vendor.packaging.requirements import Requirement
-from pip._vendor.packaging.specifiers import SpecifierSet
 
 NormalizedExtra = NewType("NormalizedExtra", str)
 
@@ -56,15 +55,3 @@ def safe_extra(extra: str) -> NormalizedExtra:
     the same to either ``canonicalize_name`` or ``_egg_link_name``.
     """
     return cast(NormalizedExtra, re.sub("[^A-Za-z0-9.-]+", "_", extra).lower())
-
-
-def is_pinned(specifier: SpecifierSet) -> bool:
-    for sp in specifier:
-        if sp.operator == "===":
-            return True
-        if sp.operator != "==":
-            continue
-        if sp.version.endswith(".*"):
-            continue
-        return True
-    return False

@@ -373,34 +373,3 @@ def test_new_resolver_hash_with_extras(script: PipTestEnvironment) -> None:
         child="0.1.0",
         extra="0.1.0",
     )
-
-
-def test_new_resolver_hash_with_pin(script: PipTestEnvironment) -> None:
-    find_links = _create_find_links(script)
-
-    requirements_txt = script.scratch_path / "requirements.txt"
-    requirements_txt.write_text("base")
-
-    constraints_txt = script.scratch_path / "constraints.txt"
-    constraints_txt.write_text(
-        """
-        base==0.1.0 --hash=sha256:{sdist_hash} --hash=sha256:{wheel_hash}
-        """.format(
-            sdist_hash=find_links.sdist_hash,
-            wheel_hash=find_links.wheel_hash,
-        )
-    )
-
-    script.pip(
-        "install",
-        "--no-cache-dir",
-        "--no-index",
-        "--find-links",
-        find_links.index_html,
-        "--requirement",
-        requirements_txt,
-        "--constraint",
-        constraints_txt,
-    )
-
-    script.assert_installed(base="0.1.0")

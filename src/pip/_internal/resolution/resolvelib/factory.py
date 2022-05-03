@@ -45,7 +45,7 @@ from pip._internal.req.req_install import (
 from pip._internal.resolution.base import InstallRequirementProvider
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
-from pip._internal.utils.packaging import get_requirement, is_pinned
+from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 from .base import Candidate, CandidateVersion, Constraint, Requirement
@@ -303,12 +303,18 @@ class Factory:
             # solely satisfied by a yanked release.
             all_yanked = all(ican.link.is_yanked for ican in icans)
 
-            pinned = is_pinned(specifier)
+            def is_pinned(specifier: SpecifierSet) -> bool:
+                for sp in specifier:
+                    if sp.operator == "===":
+                        return True
+                    if sp.operator != "==":
+                        continue
+                    if sp.version.endswith(".*"):
+                        continue
+                    return True
+                return False
 
-            if not template.is_pinned:
-                assert template.req, "Candidates found on index must be PEP 508"
-                template.req.specifier = specifier
-                template.hash_options = hashes.allowed
+            pinned = is_pinned(specifier)
 
             # PackageFinder returns earlier versions first, so we reverse.
             for ican in reversed(icans):
