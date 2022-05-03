@@ -79,6 +79,11 @@ class VcsInfo:
         self.requested_revision = requested_revision
         self.commit_id = commit_id
 
+    def equivalent(self, other: "InfoType") -> bool:
+        if not isinstance(other, VcsInfo):
+            return False
+        return self.vcs == other.vcs and self.commit_id == other.commit_id
+
     @classmethod
     def _from_dict(cls, d: Optional[Dict[str, Any]]) -> Optional["VcsInfo"]:
         if d is None:
@@ -112,6 +117,11 @@ class ArchiveInfo:
     ) -> None:
         self.hash = hash
 
+    def equivalent(self, other: "InfoType") -> bool:
+        if not isinstance(other, ArchiveInfo):
+            return False
+        return self.hash == other.hash
+
     @classmethod
     def _from_dict(cls, d: Optional[Dict[str, Any]]) -> Optional["ArchiveInfo"]:
         if d is None:
@@ -133,6 +143,11 @@ class DirInfo:
         editable: bool = False,
     ) -> None:
         self.editable = editable
+
+    def equivalent(self, other: "InfoType") -> bool:
+        if not isinstance(other, DirInfo):
+            return False
+        return self.editable == other.editable
 
     @classmethod
     def _from_dict(cls, d: Optional[Dict[str, Any]]) -> Optional["DirInfo"]:
@@ -160,6 +175,19 @@ class DirectUrl:
         self.url = url
         self.info = info
         self.subdirectory = subdirectory
+
+    def equivalent(self, other: "DirectUrl") -> bool:
+        """Whether two direct URL objects are equivalent.
+
+        This is different from ``__eq__`` in that two non-equal infos can be
+        "logically the same", e.g. two different Git branches cab be equivalent
+        if they resolve to the same commit.
+        """
+        return (
+            self.url == other.url
+            and self.info.equivalent(other.info)
+            and self.subdirectory == other.subdirectory
+        )
 
     def __repr__(self) -> str:
         return (

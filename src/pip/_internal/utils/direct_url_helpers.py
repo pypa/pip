@@ -1,7 +1,7 @@
-from typing import List, Optional
+from typing import Optional
 
 from pip._internal.models.direct_url import ArchiveInfo, DirectUrl, DirInfo, VcsInfo
-from pip._internal.models.link import Link, links_equivalent
+from pip._internal.models.link import Link
 from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs import vcs
 
@@ -85,44 +85,3 @@ def direct_url_from_link(
             info=ArchiveInfo(hash=hash),
             subdirectory=link.subdirectory_fragment,
         )
-
-
-def _link_from_direct_url(direct_url: DirectUrl) -> Link:
-    """Create a link from given direct URL construct.
-
-    This function is designed specifically for ``link_matches_direct_url``, and
-    does NOT losslessly reconstruct the original link that produced the
-    DirectUrl. Namely:
-
-    * The auth part is ignored (since it does not affect link equivalency).
-    * Only "subdirectory" and hash fragment parts are considered, and the
-      ordering of the kept parts are not considered (since only their values
-      affect link equivalency).
-
-    .. seealso:: ``pip._internal.models.link.links_equivalent()``
-    """
-    url = direct_url.url
-    hash_frag: Optional[str] = None
-
-    direct_url_info = direct_url.info
-    if isinstance(direct_url_info, VcsInfo):
-        url = f"{direct_url_info.vcs}+{url}@{direct_url_info.commit_id}"
-    elif isinstance(direct_url_info, ArchiveInfo):
-        hash_frag = direct_url_info.hash
-    elif not isinstance(direct_url_info, DirInfo):
-        raise ValueError(f"Unsupported direct URL format: {direct_url_info!r}")
-
-    fragment_parts: List[str] = []
-    if direct_url.subdirectory is not None:
-        fragment_parts.append(f"subdirectory={direct_url.subdirectory}")
-    if hash_frag:
-        fragment_parts.append(hash_frag)
-    if fragment_parts:
-        fragment = "&".join(fragment_parts)
-        url = f"{url}#{fragment}"
-
-    return Link(url)
-
-
-def link_matches_direct_url(link: Link, direct_url: DirectUrl) -> bool:
-    return links_equivalent(link, _link_from_direct_url(direct_url))
