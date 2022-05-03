@@ -1,1 +1,0 @@
-Fix pip install issues using a proxy due to an inconsistency in how Requests is currently handling variable precedence in session.
