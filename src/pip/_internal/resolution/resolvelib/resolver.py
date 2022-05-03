@@ -143,9 +143,14 @@ class Resolver(BaseResolver):
 
         # Now we know both the installed distribution and incoming candidate
         # are based on direct URLs, and neither are editable. Don't reinstall
-        # if the direct URLs match.
+        # if the direct URLs match. Note that there's a special case for VCS: a
+        # "unresolved" reference (e.g. branch) needs to be fully resolved for
+        # comparison, so an updated remote branch can trigger reinstallation.
+        # This is handled by the 'equivalent' implementation.
         cand_direct_url = direct_url_from_link(
-            cand_link, ireq.source_dir, ireq.original_link_is_in_wheel_cache
+            cand_link,
+            ireq.source_dir,
+            ireq.original_link_is_in_wheel_cache,
         )
         if cand_direct_url.equivalent(dist_direct_url):
             return None
