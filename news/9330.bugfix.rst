@@ -1,1 +1,1 @@
-``pip config`` normalizes names, converting underscores into dashes
+``pip config`` now normalizes names by converting underscores into dashes.
