@@ -1,2 +1,0 @@
-The wheel command now references the build interface section instead of stating the legacy
-setuptools behavior as the default.

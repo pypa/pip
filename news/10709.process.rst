@@ -1,3 +1,0 @@
-Start migration of distribution metadata implementation from ``pkg_resources``
-to ``importlib.metadata``. The new implementation is currently not exposed in
-any user-facing way, but included in the code base for easier development.
