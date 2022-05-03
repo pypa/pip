@@ -9,7 +9,7 @@
 
 .. towncrier release notes start
 
-21.1b1 (2022-04-30)
+22.1b1 (2022-04-30)
 ===================
 
 Process
