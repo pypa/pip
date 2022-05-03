@@ -424,7 +424,10 @@ def _handle_get_page_fail(
 ) -> None:
     if meth is None:
         meth = logger.debug
-    meth("Could not fetch URL %s: %s - skipping", link, reason)
+    url = str(link)
+    if logger.getEffectiveLevel() > logging.DEBUG:
+        url = link.show_url
+    meth("Could not fetch URL %s: %s - skipping", url, reason)
 
 
 def _make_html_page(response: Response, cache_link_parsing: bool = True) -> HTMLPage:
