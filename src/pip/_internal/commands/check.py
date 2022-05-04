@@ -4,8 +4,10 @@ from typing import List
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
+from pip._internal.metadata import get_default_environment
 from pip._internal.operations.check import (
     check_package_set,
+    check_unsupported,
     create_package_set_from_installed,
 )
 from pip._internal.utils.misc import write_output
@@ -23,6 +25,9 @@ class CheckCommand(Command):
 
         package_set, parsing_probs = create_package_set_from_installed()
         missing, conflicting = check_package_set(package_set)
+        unsupported = check_unsupported(
+            get_default_environment().iter_installed_distributions()
+        )
 
         for project_name in missing:
             version = package_set[project_name].version
@@ -45,8 +50,13 @@ class CheckCommand(Command):
                     dep_name,
                     dep_version,
                 )
-
-        if missing or conflicting or parsing_probs:
+        for package in unsupported:
+            write_output(
+                "%s %s is not supported on this platform",
+                package.canonical_name,
+                package.version,
+            )
+        if missing or conflicting or unsupported or parsing_probs:
             return ERROR
         else:
             write_output("No broken requirements found.")

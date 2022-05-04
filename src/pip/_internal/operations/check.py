@@ -2,15 +2,30 @@
 """
 
 import logging
-from typing import Callable, Dict, List, NamedTuple, Optional, Set, Tuple
+from contextlib import suppress
+from email.parser import Parser
+from functools import reduce
+from typing import (
+    Callable,
+    Dict,
+    FrozenSet,
+    Iterable,
+    List,
+    NamedTuple,
+    Optional,
+    Set,
+    Tuple,
+)
 
 from pip._vendor.packaging.requirements import Requirement
+from pip._vendor.packaging.tags import Tag, parse_tag
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 
 from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.metadata import get_default_environment
-from pip._internal.metadata.base import DistributionVersion
+from pip._internal.metadata.base import BaseDistribution, DistributionVersion
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.compatibility_tags import get_supported
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +126,24 @@ def check_install_conflicts(to_install: List[InstallRequirement]) -> ConflictDet
             package_set, should_ignore=lambda name: name not in whitelist
         ),
     )
+
+
+def check_unsupported(
+    packages: Iterable[BaseDistribution],
+) -> List[BaseDistribution]:
+    unsupported = []
+    tags = get_supported()
+    for p in packages:
+        with suppress(FileNotFoundError):
+            wheel_file = p.read_text("WHEEL")
+            wheel_tags: FrozenSet[Tag] = reduce(
+                frozenset.union,
+                map(parse_tag, Parser().parsestr(wheel_file).get_all("Tag", [])),
+                frozenset(),
+            )
+            if wheel_tags.isdisjoint(tags):
+                unsupported.append(p)
+    return unsupported
 
 
 def _simulate_installation_of(
