@@ -1,6 +1,7 @@
 """Tests for all things related to the configuration
 """
 
+import re
 from unittest.mock import MagicMock
 
 import pytest
@@ -86,6 +87,25 @@ class TestConfigurationLoading(ConfigurationMixin):
         assert config_file in str(err.value) or repr(config_file) in str(  # file name
             err.value
         )
+
+    def test_no_such_key_error_message_no_command(self) -> None:
+        self.configuration.load_only = kinds.GLOBAL
+        self.configuration.load()
+        expected_msg = (
+            "Key does not contain dot separated section and key. "
+            "Perhaps you wanted to use 'global.index-url' instead?"
+        )
+        pat = f"^{re.escape(expected_msg)}$"
+        with pytest.raises(ConfigurationError, match=pat):
+            self.configuration.get_value("index-url")
+
+    def test_no_such_key_error_message_missing_option(self) -> None:
+        self.configuration.load_only = kinds.GLOBAL
+        self.configuration.load()
+        expected_msg = "No such key - global.index-url"
+        pat = f"^{re.escape(expected_msg)}$"
+        with pytest.raises(ConfigurationError, match=pat):
+            self.configuration.get_value("global.index-url")
 
 
 class TestConfigurationPrecedence(ConfigurationMixin):
@@ -185,12 +205,8 @@ class TestConfigurationModification(ConfigurationMixin):
     def test_no_specific_given_modification(self) -> None:
         self.configuration.load()
 
-        try:
+        with pytest.raises(ConfigurationError):
             self.configuration.set_value("test.hello", "10")
-        except ConfigurationError:
-            pass
-        else:
-            assert False, "Should have raised an error."
 
     def test_site_modification(self) -> None:
         self.configuration.load_only = kinds.SITE
@@ -241,3 +257,16 @@ class TestConfigurationModification(ConfigurationMixin):
         # get the path to user config file
         assert mymock.call_count == 1
         assert mymock.call_args[0][0] == (get_configuration_files()[kinds.GLOBAL][-1])
+
+    def test_normalization(self) -> None:
+        # underscores and dashes can be used interchangeably.
+        # internally, underscores get converted into dashes before reading/writing file
+        self.configuration.load_only = kinds.GLOBAL
+        self.configuration.load()
+        self.configuration.set_value("global.index_url", "example.org")
+        assert self.configuration.get_value("global.index_url") == "example.org"
+        assert self.configuration.get_value("global.index-url") == "example.org"
+        self.configuration.unset_value("global.index-url")
+        pat = r"^No such key - global\.index-url$"
+        with pytest.raises(ConfigurationError, match=pat):
+            self.configuration.get_value("global.index-url")
