@@ -1,28 +1,11 @@
-.. _`pip debug`:
+:orphan:
 
-pip debug
------------
+.. meta::
 
-.. contents::
+  :http-equiv=refresh: 3; url=../../cli/pip_debug/
 
-Usage
-*****
+This page has moved
+===================
 
-.. pip-command-usage:: debug
-
-
-.. warning::
-    This command is only meant for debugging.
-    Its options and outputs are provisional and may change without notice.
-
-
-Description
-***********
-
-.. pip-command-description:: debug
-
-
-Options
-*******
-
-.. pip-command-options:: debug
+You should be redirected automatically in 3 seconds. If that didn't
+work, here's a link: :doc:`../cli/pip_debug`

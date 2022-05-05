@@ -2,33 +2,35 @@
 User Guide
 ==========
 
-.. contents::
 
 Running pip
-***********
+===========
 
 pip is a command line program. When you install pip, a ``pip`` command is added
-to your system, which can be run from the command prompt as follows::
+to your system, which can be run from the command prompt as follows:
 
-  $ pip <pip arguments>
+.. tab:: Unix/macOS
 
-If you cannot run the ``pip`` command directly (possibly because the location
-where it was installed isn't on your operating system's ``PATH``) then you can
-run pip via the Python interpreter::
+   .. code-block:: shell
 
-  $ python -m pip <pip arguments>
+      python -m pip <pip arguments>
 
-On Windows, the ``py`` launcher can be used::
+   ``python -m pip`` executes pip using the Python interpreter you
+   specified as python. So ``/usr/bin/python3.7 -m pip`` means
+   you are executing pip for your interpreter located at ``/usr/bin/python3.7``.
 
-  $ py -m pip <pip arguments>
+.. tab:: Windows
 
-Even though pip is available from your Python installation as an importable
-module, via ``import pip``, it is *not supported* to use pip in this way. For
-more details, see :ref:`Using pip from your program`.
+   .. code-block:: shell
+
+      py -m pip <pip arguments>
+
+   ``py -m pip`` executes pip using the latest Python interpreter you
+   have installed. For more details, read the `Python Windows launcher`_ docs.
 
 
 Installing Packages
-*******************
+===================
 
 pip supports installing from `PyPI`_, version control, local projects, and
 directly from distribution files.
@@ -37,12 +39,21 @@ directly from distribution files.
 The most common scenario is to install from `PyPI`_ using :ref:`Requirement
 Specifiers`
 
-  ::
+.. tab:: Unix/macOS
 
-  $ pip install SomePackage            # latest version
-  $ pip install SomePackage==1.0.4     # specific version
-  $ pip install 'SomePackage>=1.0.4'     # minimum version
+   .. code-block:: shell
 
+      python -m pip install SomePackage            # latest version
+      python -m pip install SomePackage==1.0.4     # specific version
+      python -m pip install 'SomePackage>=1.0.4'     # minimum version
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install SomePackage            # latest version
+      py -m pip install SomePackage==1.0.4     # specific version
+      py -m pip install 'SomePackage>=1.0.4'   # minimum version
 
 For more information and examples, see the :ref:`pip install` reference.
 
@@ -50,36 +61,22 @@ For more information and examples, see the :ref:`pip install` reference.
 
 
 Basic Authentication Credentials
-********************************
+================================
 
-pip supports basic authentication credentials. Basically, in the url there is
-a username and password separated by ``:``.
+This is now covered in :doc:`topics/authentication`.
 
-``https://[username[:password]@]pypi.company.com/simple``
+netrc Support
+-------------
 
-Certain special characters are not valid in the authentication part of URLs.
-If the user or password part of your login credentials contain any of the
-special characters
-`here <https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters>`_
-then they must be percent-encoded. For example, for a
-user with username "user" and password "he//o" accessing a repository at
-pypi.company.com, the index URL with credentials would look like:
+This is now covered in :doc:`topics/authentication`.
 
-``https://user:he%2F%2Fo@pypi.company.com``
+Keyring Support
+---------------
 
-Support for percent-encoded authentication in index URLs was added in pip 10.0.0
-(in `#3236 <https://github.com/pypa/pip/issues/3236>`_). Users that must use authentication
-for their Python repository on systems with older pip versions should make the latest
-get-pip.py available in their environment to bootstrap pip to a recent-enough version.
-
-For indexes that only require single-part authentication tokens, provide the token
-as the "username" and do not provide a password, for example -
-
-``https://0123456789abcdef@pypi.company.com``
-
+This is now covered in :doc:`topics/authentication`.
 
 Using a Proxy Server
-********************
+====================
 
 When installing packages from `PyPI`_, pip requires internet access, which
 in many corporate environments requires an outbound HTTP proxy server.
@@ -87,7 +84,7 @@ in many corporate environments requires an outbound HTTP proxy server.
 pip can be configured to connect through a proxy server in various ways:
 
 * using the ``--proxy`` command-line option to specify a proxy in the form
-  ``[user:passwd@]proxy.server:port``
+  ``scheme://[user:passwd@]proxy.server:port``
 * using ``proxy`` in a :ref:`config-file`
 * by setting the standard environment-variables ``http_proxy``, ``https_proxy``
   and ``no_proxy``.
@@ -97,18 +94,26 @@ pip can be configured to connect through a proxy server in various ways:
 
 .. _`Requirements Files`:
 
+
 Requirements Files
-******************
+==================
 
 "Requirements files" are files containing a list of items to be
 installed using :ref:`pip install` like so:
 
- ::
+.. tab:: Unix/macOS
 
-   pip install -r requirements.txt
+   .. code-block:: shell
 
+      python -m pip install -r requirements.txt
 
-Details on the format of the files are here: :ref:`Requirements File Format`.
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install -r requirements.txt
+
+Details on the format of the files are here: :ref:`requirements-file-format`.
 
 Logically, a Requirements file is just a list of :ref:`pip install` arguments
 placed in a file. Note that you should not rely on the items in the file being
@@ -117,17 +122,26 @@ installed by pip in any particular order.
 In practice, there are 4 common uses of Requirements files:
 
 1. Requirements files are used to hold the result from :ref:`pip freeze` for the
-   purpose of achieving :ref:`repeatable installations <Repeatability>`.  In
+   purpose of achieving :doc:`topics/repeatable-installs`.  In
    this case, your requirement file contains a pinned version of everything that
    was installed when ``pip freeze`` was run.
 
-   ::
+   .. tab:: Unix/macOS
 
-     pip freeze > requirements.txt
-     pip install -r requirements.txt
+      .. code-block:: shell
+
+         python -m pip freeze > requirements.txt
+         python -m pip install -r requirements.txt
+
+   .. tab:: Windows
+
+      .. code-block:: shell
+
+         py -m pip freeze > requirements.txt
+         py -m pip install -r requirements.txt
 
 2. Requirements files are used to force pip to properly resolve dependencies.
-   As it is now, pip `doesn't have true dependency resolution
+   pip 20.2 and earlier `doesn't have true dependency resolution
    <https://github.com/pypa/pip/issues/988>`_, but instead simply uses the first
    specification it finds for a project. E.g. if ``pkg1`` requires
    ``pkg3>=1.0`` and ``pkg2`` requires ``pkg3>=1.0,<=2.0``, and if ``pkg1`` is
@@ -166,12 +180,12 @@ In practice, there are 4 common uses of Requirements files:
 
 It's important to be clear that pip determines package dependencies using
 `install_requires metadata
-<https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-dependencies>`_,
+<https://setuptools.readthedocs.io/en/latest/userguide/dependency_management.html>`_,
 not by discovering ``requirements.txt`` files embedded in projects.
 
 See also:
 
-* :ref:`Requirements File Format`
+* :ref:`requirements-file-format`
 * :ref:`pip freeze`
 * `"setup.py vs requirements.txt" (an article by Donald Stufft)
   <https://caremad.io/2013/07/setup-vs-requirement/>`_
@@ -179,20 +193,31 @@ See also:
 
 .. _`Constraints Files`:
 
+
 Constraints Files
-*****************
+=================
 
 Constraints files are requirements files that only control which version of a
 requirement is installed, not whether it is installed or not. Their syntax and
-contents is nearly identical to :ref:`Requirements Files`. There is one key
-difference: Including a package in a constraints file does not trigger
-installation of the package.
+contents is a subset of :ref:`Requirements Files`, with several kinds of syntax
+not allowed: constraints must have a name, they cannot be editable, and they
+cannot specify extras. In terms of semantics, there is one key difference:
+Including a package in a constraints file does not trigger installation of the
+package.
 
 Use a constraints file like so:
 
- ::
+.. tab:: Unix/macOS
 
-   pip install -c constraints.txt
+   .. code-block:: shell
+
+      python -m pip install -c constraints.txt
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install -c constraints.txt
 
 Constraints files are used for exactly the same reason as requirements files
 when you don't know exactly what things you want to install. For instance, say
@@ -209,18 +234,23 @@ organisation and use that everywhere. If the thing being installed requires
 "helloworld" to be installed, your fixed version specified in your constraints
 file will be used.
 
-Constraints file support was added in pip 7.1.
+Constraints file support was added in pip 7.1. In :ref:`Resolver
+changes 2020` we did a fairly comprehensive overhaul, removing several
+undocumented and unsupported quirks from the previous implementation,
+and stripped constraints files down to being purely a way to specify
+global (version) limits for packages.
 
 .. _`Installing from Wheels`:
 
+
 Installing from Wheels
-**********************
+======================
 
 "Wheel" is a built, archive format that can greatly speed installation compared
 to building and installing from source archives. For more information, see the
 `Wheel docs <https://wheel.readthedocs.io>`_ , :pep:`427`, and :pep:`425`.
 
-Pip prefers Wheels where they are available. To disable this, use the
+pip prefers Wheels where they are available. To disable this, use the
 :ref:`--no-binary <install_--no-binary>` flag for :ref:`pip install`.
 
 If no satisfactory wheels are found, pip will default to finding source
@@ -229,10 +259,38 @@ archives.
 
 To install directly from a wheel archive:
 
-::
+.. tab:: Unix/macOS
 
- pip install SomePackage-1.0-py2.py3-none-any.whl
+   .. code-block:: shell
 
+      python -m pip install SomePackage-1.0-py2.py3-none-any.whl
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install SomePackage-1.0-py2.py3-none-any.whl
+
+To include optional dependencies provided in the ``provides_extras``
+metadata in the wheel, you must add quotes around the install target
+name:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install './somepackage-1.0-py2.py3-none-any.whl[my-extras]'
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install './somepackage-1.0-py2.py3-none-any.whl[my-extras]'
+
+.. note::
+
+    In the future, the ``path[extras]`` syntax may become deprecated. It is
+    recommended to use PEP 508 syntax wherever possible.
 
 For the cases where wheels are not available, pip offers :ref:`pip wheel` as a
 convenience, to build wheels for all your requirements and dependencies.
@@ -244,27 +302,53 @@ convenience, to build wheels for all your requirements and dependencies.
 To build wheels for your requirements and all their dependencies to a local
 directory:
 
-::
+.. tab:: Unix/macOS
 
- pip install wheel
- pip wheel --wheel-dir=/local/wheels -r requirements.txt
+   .. code-block:: shell
+
+      python -m pip install wheel
+      python -m pip wheel --wheel-dir=/local/wheels -r requirements.txt
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install wheel
+      py -m pip wheel --wheel-dir=/local/wheels -r requirements.txt
 
 And *then* to install those requirements just using your local directory of
 wheels (and not from PyPI):
 
-::
+.. tab:: Unix/macOS
 
- pip install --no-index --find-links=/local/wheels -r requirements.txt
+   .. code-block:: shell
+
+      python -m pip install --no-index --find-links=/local/wheels -r requirements.txt
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --no-index --find-links=/local/wheels -r requirements.txt
 
 
 Uninstalling Packages
-*********************
+=====================
 
 pip is able to uninstall most packages like so:
 
-::
+.. tab:: Unix/macOS
 
- $ pip uninstall SomePackage
+   .. code-block:: shell
+
+      python -m pip uninstall SomePackage
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip uninstall SomePackage
+
 
 pip also performs an automatic uninstall of an old version of a package
 before upgrading to a newer version.
@@ -273,50 +357,94 @@ For more information and examples, see the :ref:`pip uninstall` reference.
 
 
 Listing Packages
-****************
+================
 
 To list installed packages:
 
-::
+.. tab:: Unix/macOS
 
-  $ pip list
-  docutils (0.9.1)
-  Jinja2 (2.6)
-  Pygments (1.5)
-  Sphinx (1.1.2)
+   .. code-block:: console
+
+      $ python -m pip list
+      docutils (0.9.1)
+      Jinja2 (2.6)
+      Pygments (1.5)
+      Sphinx (1.1.2)
+
+.. tab:: Windows
+
+   .. code-block:: console
+
+      C:\> py -m pip list
+      docutils (0.9.1)
+      Jinja2 (2.6)
+      Pygments (1.5)
+      Sphinx (1.1.2)
+
 
 To list outdated packages, and show the latest version available:
 
-::
+.. tab:: Unix/macOS
 
-  $ pip list --outdated
-  docutils (Current: 0.9.1 Latest: 0.10)
-  Sphinx (Current: 1.1.2 Latest: 1.1.3)
+   .. code-block:: console
 
+      $ python -m pip list --outdated
+      docutils (Current: 0.9.1 Latest: 0.10)
+      Sphinx (Current: 1.1.2 Latest: 1.1.3)
+
+.. tab:: Windows
+
+   .. code-block:: console
+
+      C:\> py -m pip list --outdated
+      docutils (Current: 0.9.1 Latest: 0.10)
+      Sphinx (Current: 1.1.2 Latest: 1.1.3)
 
 To show details about an installed package:
 
-::
+.. tab:: Unix/macOS
 
-  $ pip show sphinx
-  ---
-  Name: Sphinx
-  Version: 1.1.3
-  Location: /my/env/lib/pythonx.x/site-packages
-  Requires: Pygments, Jinja2, docutils
+   .. code-block:: console
 
+      $ python -m pip show sphinx
+      ---
+      Name: Sphinx
+      Version: 1.1.3
+      Location: /my/env/lib/pythonx.x/site-packages
+      Requires: Pygments, Jinja2, docutils
+
+.. tab:: Windows
+
+   .. code-block:: console
+
+      C:\> py -m pip show sphinx
+      ---
+      Name: Sphinx
+      Version: 1.1.3
+      Location: /my/env/lib/pythonx.x/site-packages
+      Requires: Pygments, Jinja2, docutils
 
 For more information and examples, see the :ref:`pip list` and :ref:`pip show`
 reference pages.
 
 
 Searching for Packages
-**********************
+======================
 
 pip can search `PyPI`_ for packages using the ``pip search``
-command::
+command:
 
-    $ pip search "query"
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip search "query"
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip search "query"
 
 The query will be used to search the names and summaries of all
 packages.
@@ -325,193 +453,52 @@ For more information and examples, see the :ref:`pip search` reference.
 
 .. _`Configuration`:
 
+
 Configuration
-*************
+=============
+
+This is now covered in :doc:`topics/configuration`.
 
 .. _config-file:
 
 Config file
-------------
+-----------
 
-pip allows you to set all command line option defaults in a standard ini
-style config file.
-
-The names and locations of the configuration files vary slightly across
-platforms. You may have per-user, per-virtualenv or site-wide (shared amongst
-all users) configuration:
-
-**Per-user**:
-
-* On Unix the default configuration file is: :file:`$HOME/.config/pip/pip.conf`
-  which respects the ``XDG_CONFIG_HOME`` environment variable.
-* On macOS the configuration file is
-  :file:`$HOME/Library/Application Support/pip/pip.conf`
-  if directory ``$HOME/Library/Application Support/pip`` exists
-  else :file:`$HOME/.config/pip/pip.conf`.
-* On Windows the configuration file is :file:`%APPDATA%\\pip\\pip.ini`.
-
-There are also a legacy per-user configuration file which is also respected,
-these are located at:
-
-* On Unix and macOS the configuration file is: :file:`$HOME/.pip/pip.conf`
-* On Windows the configuration file is: :file:`%HOME%\\pip\\pip.ini`
-
-You can set a custom path location for this config file using the environment
-variable ``PIP_CONFIG_FILE``.
-
-**Inside a virtualenv**:
-
-* On Unix and macOS the file is :file:`$VIRTUAL_ENV/pip.conf`
-* On Windows the file is: :file:`%VIRTUAL_ENV%\\pip.ini`
-
-**Site-wide**:
-
-* On Unix the file may be located in :file:`/etc/pip.conf`. Alternatively
-  it may be in a "pip" subdirectory of any of the paths set in the
-  environment variable ``XDG_CONFIG_DIRS`` (if it exists), for example
-  :file:`/etc/xdg/pip/pip.conf`.
-* On macOS the file is: :file:`/Library/Application Support/pip/pip.conf`
-* On Windows XP the file is:
-  :file:`C:\\Documents and Settings\\All Users\\Application Data\\pip\\pip.ini`
-* On Windows 7 and later the file is hidden, but writeable at
-  :file:`C:\\ProgramData\\pip\\pip.ini`
-* Site-wide configuration is not supported on Windows Vista
-
-If multiple configuration files are found by pip then they are combined in
-the following order:
-
-1. The site-wide file is read
-2. The per-user file is read
-3. The virtualenv-specific file is read
-
-Each file read overrides any values read from previous files, so if the
-global timeout is specified in both the site-wide file and the per-user file
-then the latter value will be used.
-
-The names of the settings are derived from the long command line option, e.g.
-if you want to use a different package index (``--index-url``) and set the
-HTTP timeout (``--default-timeout``) to 60 seconds your config file would
-look like this:
-
-.. code-block:: ini
-
-    [global]
-    timeout = 60
-    index-url = https://download.zope.org/ppix
-
-Each subcommand can be configured optionally in its own section so that every
-global setting with the same name will be overridden; e.g. decreasing the
-``timeout`` to ``10`` seconds when running the ``freeze``
-(:ref:`pip freeze`) command and using
-``60`` seconds for all other commands is possible with:
-
-.. code-block:: ini
-
-    [global]
-    timeout = 60
-
-    [freeze]
-    timeout = 10
-
-
-Boolean options like ``--ignore-installed`` or ``--no-dependencies`` can be
-set like this:
-
-.. code-block:: ini
-
-    [install]
-    ignore-installed = true
-    no-dependencies = yes
-
-To enable the boolean options ``--no-compile``, ``--no-warn-script-location``
-and ``--no-cache-dir``, falsy values have to be used:
-
-.. code-block:: ini
-
-    [global]
-    no-cache-dir = false
-
-    [install]
-    no-compile = no
-    no-warn-script-location = false
-
-Appending options like ``--find-links`` can be written on multiple lines:
-
-.. code-block:: ini
-
-    [global]
-    find-links =
-        http://download.example.com
-
-    [install]
-    find-links =
-        http://mirror1.example.com
-        http://mirror2.example.com
-
+This is now covered in :doc:`topics/configuration`.
 
 Environment Variables
 ---------------------
 
-pip's command line options can be set with environment variables using the
-format ``PIP_<UPPER_LONG_NAME>`` . Dashes (``-``) have to be replaced with
-underscores (``_``).
+This is now covered in :doc:`topics/configuration`.
 
-For example, to set the default timeout::
-
-    export PIP_DEFAULT_TIMEOUT=60
-
-This is the same as passing the option to pip directly::
-
-    pip --default-timeout=60 [...]
-
-For command line options which can be repeated, use a space to separate
-multiple values. For example::
-
-    export PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
-
-is the same as calling::
-
-    pip install --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
-
-.. note::
-
-   Environment variables set to be empty string will not be treated as false.
-   Please use ``no``, ``false`` or ``0`` instead.
-
+.. _config-precedence:
 
 Config Precedence
 -----------------
 
-Command line options have precedence over environment variables, which have
-precedence over the config file.
-
-Within the config file, command specific sections have precedence over the
-global section.
-
-Examples:
-
-- ``--host=foo`` overrides ``PIP_HOST=foo``
-- ``PIP_HOST=foo`` overrides a config file with ``[global] host = foo``
-- A command specific section in the config file ``[<command>] host = bar``
-  overrides the option with same name in the ``[global]`` config file section
+This is now covered in :doc:`topics/configuration`.
 
 
 Command Completion
-******************
+==================
 
 pip comes with support for command line completion in bash, zsh and fish.
 
 To setup for bash::
 
-    $ pip completion --bash >> ~/.profile
+    python -m pip completion --bash >> ~/.profile
 
 To setup for zsh::
 
-    $ pip completion --zsh >> ~/.zprofile
+    python -m pip completion --zsh >> ~/.zprofile
 
 To setup for fish::
 
-$ pip completion --fish > ~/.config/fish/completions/pip.fish
+    python -m pip completion --fish > ~/.config/fish/completions/pip.fish
+
+To setup for powershell::
+
+   python -m pip completion --powershell | Out-File -Encoding default -Append $PROFILE
 
 Alternatively, you can use the result of the ``completion`` command directly
 with the eval function of your shell, e.g. by adding the following to your
@@ -523,34 +510,63 @@ startup file::
 
 .. _`Installing from local packages`:
 
+
 Installing from local packages
-******************************
+==============================
 
 In some cases, you may want to install from local packages only, with no traffic
 to PyPI.
 
-First, download the archives that fulfill your requirements::
+First, download the archives that fulfill your requirements:
 
-$ pip download --destination-directory DIR -r requirements.txt
+.. tab:: Unix/macOS
 
+   .. code-block:: shell
+
+      python -m pip download --destination-directory DIR -r requirements.txt
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip download --destination-directory DIR -r requirements.txt
 
 Note that ``pip download`` will look in your wheel cache first, before
 trying to download from PyPI.  If you've never installed your requirements
 before, you won't have a wheel cache for those items.  In that case, if some of
 your requirements don't come as wheels from PyPI, and you want wheels, then run
-this instead::
+this instead:
 
-$ pip wheel --wheel-dir DIR -r requirements.txt
+.. tab:: Unix/macOS
 
+   .. code-block:: shell
+
+      python -m pip wheel --wheel-dir DIR -r requirements.txt
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip wheel --wheel-dir DIR -r requirements.txt
 
 Then, to install from local only, you'll be using :ref:`--find-links
-<install_--find-links>` and :ref:`--no-index <install_--no-index>` like so::
+<install_--find-links>` and :ref:`--no-index <install_--no-index>` like so:
 
-$ pip install --no-index --find-links=DIR -r requirements.txt
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install --no-index --find-links=DIR -r requirements.txt
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --no-index --find-links=DIR -r requirements.txt
 
 
 "Only if needed" Recursive Upgrade
-**********************************
+==================================
 
 ``pip install --upgrade`` now has a ``--upgrade-strategy`` option which
 controls how pip handles upgrading of dependencies. There are 2 upgrade
@@ -564,18 +580,45 @@ strategies supported:
 The default strategy is ``only-if-needed``. This was changed in pip 10.0 due to
 the breaking nature of ``eager`` when upgrading conflicting dependencies.
 
-As an historic note, an earlier "fix" for getting the ``only-if-needed``
-behaviour was::
+It is important to note that ``--upgrade`` affects *direct requirements* (e.g.
+those specified on the command-line or via a requirements file) while
+``--upgrade-strategy`` affects *indirect requirements* (dependencies of direct
+requirements).
 
-  pip install --upgrade --no-deps SomePackage
-  pip install SomePackage
+As an example, say ``SomePackage`` has a dependency, ``SomeDependency``, and
+both of them are already installed but are not the latest available versions:
+
+- ``pip install SomePackage``: will not upgrade the existing ``SomePackage`` or
+  ``SomeDependency``.
+- ``pip install --upgrade SomePackage``: will upgrade ``SomePackage``, but not
+  ``SomeDependency`` (unless a minimum requirement is not met).
+- ``pip install --upgrade SomePackage --upgrade-strategy=eager``: upgrades both
+  ``SomePackage`` and ``SomeDependency``.
+
+As an historic note, an earlier "fix" for getting the ``only-if-needed``
+behaviour was:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install --upgrade --no-deps SomePackage
+      python -m pip install SomePackage
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --upgrade --no-deps SomePackage
+      py -m pip install SomePackage
+
 
 A proposal for an ``upgrade-all`` command is being considered as a safer
 alternative to the behaviour of eager upgrading.
 
 
 User Installs
-*************
+=============
 
 With Python 2.6 came the `"user scheme" for installation
 <https://docs.python.org/3/install/index.html#alternate-installation-the-user-scheme>`_,
@@ -590,12 +633,22 @@ Moreover, the "user scheme" can be customized by setting the
 ``PYTHONUSERBASE`` environment variable, which updates the value of
 ``site.USER_BASE``.
 
-To install "SomePackage" into an environment with site.USER_BASE customized to
-'/myappenv', do the following::
+To install "SomePackage" into an environment with ``site.USER_BASE`` customized to
+'/myappenv', do the following:
 
-    export PYTHONUSERBASE=/myappenv
-    pip install --user SomePackage
+.. tab:: Unix/macOS
 
+   .. code-block:: shell
+
+      export PYTHONUSERBASE=/myappenv
+      python -m pip install --user SomePackage
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      set PYTHONUSERBASE=c:/myappenv
+      py -m pip install --user SomePackage
 
 ``pip install --user`` follows four rules:
 
@@ -617,145 +670,135 @@ To install "SomePackage" into an environment with site.USER_BASE customized to
 
 To make the rules clearer, here are some examples:
 
+From within a ``--no-site-packages`` virtualenv (i.e. the default kind):
 
-From within a ``--no-site-packages`` virtualenv (i.e. the default kind)::
+.. tab:: Unix/macOS
 
-  $ pip install --user SomePackage
-  Can not perform a '--user' install. User site-packages are not visible in this virtualenv.
+   .. code-block:: console
+
+      $ python -m pip install --user SomePackage
+      Can not perform a '--user' install. User site-packages are not visible in this virtualenv.
+
+.. tab:: Windows
+
+   .. code-block:: console
+
+      C:\> py -m pip install --user SomePackage
+      Can not perform a '--user' install. User site-packages are not visible in this virtualenv.
 
 
 From within a ``--system-site-packages`` virtualenv where ``SomePackage==0.3``
-is already installed in the virtualenv::
+is already installed in the virtualenv:
 
-  $ pip install --user SomePackage==0.4
-  Will not install to the user site because it will lack sys.path precedence
+.. tab:: Unix/macOS
 
+   .. code-block:: console
 
-From within a real python, where ``SomePackage`` is *not* installed globally::
+      $ python -m pip install --user SomePackage==0.4
+      Will not install to the user site because it will lack sys.path precedence
 
-  $ pip install --user SomePackage
-  [...]
-  Successfully installed SomePackage
+.. tab:: Windows
 
+   .. code-block:: console
+
+      C:\> py -m pip install --user SomePackage==0.4
+      Will not install to the user site because it will lack sys.path precedence
+
+From within a real python, where ``SomePackage`` is *not* installed globally:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: console
+
+      $ python -m pip install --user SomePackage
+      [...]
+      Successfully installed SomePackage
+
+.. tab:: Windows
+
+   .. code-block:: console
+
+      C:\> py -m pip install --user SomePackage
+      [...]
+      Successfully installed SomePackage
 
 From within a real python, where ``SomePackage`` *is* installed globally, but
-is *not* the latest version::
+is *not* the latest version:
 
-  $ pip install --user SomePackage
-  [...]
-  Requirement already satisfied (use --upgrade to upgrade)
+.. tab:: Unix/macOS
 
-  $ pip install --user --upgrade SomePackage
-  [...]
-  Successfully installed SomePackage
+   .. code-block:: console
 
+      $ python -m pip install --user SomePackage
+      [...]
+      Requirement already satisfied (use --upgrade to upgrade)
+      $ python -m pip install --user --upgrade SomePackage
+      [...]
+      Successfully installed SomePackage
+
+.. tab:: Windows
+
+   .. code-block:: console
+
+      C:\> py -m pip install --user SomePackage
+      [...]
+      Requirement already satisfied (use --upgrade to upgrade)
+      C:\> py -m pip install --user --upgrade SomePackage
+      [...]
+      Successfully installed SomePackage
 
 From within a real python, where ``SomePackage`` *is* installed globally, and
-is the latest version::
+is the latest version:
 
-  $ pip install --user SomePackage
-  [...]
-  Requirement already satisfied (use --upgrade to upgrade)
+.. tab:: Unix/macOS
 
-  $ pip install --user --upgrade SomePackage
-  [...]
-  Requirement already up-to-date: SomePackage
+   .. code-block:: console
 
-  # force the install
-  $ pip install --user --ignore-installed SomePackage
-  [...]
-  Successfully installed SomePackage
+      $ python -m pip install --user SomePackage
+      [...]
+      Requirement already satisfied (use --upgrade to upgrade)
+      $ python -m pip install --user --upgrade SomePackage
+      [...]
+      Requirement already up-to-date: SomePackage
+      # force the install
+      $ python -m pip install --user --ignore-installed SomePackage
+      [...]
+      Successfully installed SomePackage
 
+.. tab:: Windows
+
+   .. code-block:: console
+
+      C:\> py -m pip install --user SomePackage
+      [...]
+      Requirement already satisfied (use --upgrade to upgrade)
+      C:\> py -m pip install --user --upgrade SomePackage
+      [...]
+      Requirement already up-to-date: SomePackage
+      # force the install
+      C:\> py -m pip install --user --ignore-installed SomePackage
+      [...]
+      Successfully installed SomePackage
 
 .. _`Repeatability`:
 
+
 Ensuring Repeatability
-**********************
+======================
 
-pip can achieve various levels of repeatability:
+This is now covered in :doc:`../topics/repeatable-installs`.
 
-Pinned Version Numbers
-----------------------
+.. _`Fixing conflicting dependencies`:
 
-Pinning the versions of your dependencies in the requirements file
-protects you from bugs or incompatibilities in newly released versions::
+Fixing conflicting dependencies
+===============================
 
-    SomePackage == 1.2.3
-    DependencyOfSomePackage == 4.5.6
-
-Using :ref:`pip freeze` to generate the requirements file will ensure that not
-only the top-level dependencies are included but their sub-dependencies as
-well, and so on. Perform the installation using :ref:`--no-deps
-<install_--no-deps>` for an extra dose of insurance against installing
-anything not explicitly listed.
-
-This strategy is easy to implement and works across OSes and architectures.
-However, it trusts PyPI and the certificate authority chain. It
-also relies on indices and find-links locations not allowing
-packages to change without a version increase. (PyPI does protect
-against this.)
-
-Hash-checking Mode
-------------------
-
-Beyond pinning version numbers, you can add hashes against which to verify
-downloaded packages::
-
-    FooProject == 1.2 --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824
-
-This protects against a compromise of PyPI or the HTTPS
-certificate chain. It also guards against a package changing
-without its version number changing (on indexes that allow this).
-This approach is a good fit for automated server deployments.
-
-Hash-checking mode is a labor-saving alternative to running a private index
-server containing approved packages: it removes the need to upload packages,
-maintain ACLs, and keep an audit trail (which a VCS gives you on the
-requirements file for free). It can also substitute for a vendor library,
-providing easier upgrades and less VCS noise. It does not, of course,
-provide the availability benefits of a private index or a vendor library.
-
-For more, see
-:ref:`pip install\'s discussion of hash-checking mode <hash-checking mode>`.
-
-.. _`Installation Bundle`:
-
-Installation Bundles
---------------------
-
-Using :ref:`pip wheel`, you can bundle up all of a project's dependencies, with
-any compilation done, into a single archive. This allows installation when
-index servers are unavailable and avoids time-consuming recompilation. Create
-an archive like this::
-
-    $ tempdir=$(mktemp -d /tmp/wheelhouse-XXXXX)
-    $ pip wheel -r requirements.txt --wheel-dir=$tempdir
-    $ cwd=`pwd`
-    $ (cd "$tempdir"; tar -cjvf "$cwd/bundled.tar.bz2" *)
-
-You can then install from the archive like this::
-
-    $ tempdir=$(mktemp -d /tmp/wheelhouse-XXXXX)
-    $ (cd $tempdir; tar -xvf /path/to/bundled.tar.bz2)
-    $ pip install --force-reinstall --ignore-installed --upgrade --no-index --no-deps $tempdir/*
-
-Note that compiled packages are typically OS- and architecture-specific, so
-these archives are not necessarily portable across machines.
-
-Hash-checking mode can be used along with this method to ensure that future
-archives are built with identical packages.
-
-.. warning::
-    Finally, beware of the ``setup_requires`` keyword arg in :file:`setup.py`.
-    The (rare) packages that use it will cause those dependencies to be
-    downloaded by setuptools directly, skipping pip's protections. If you need
-    to use such a package, see :ref:`Controlling
-    setup_requires<controlling-setup-requires>`.
+This is now covered in :doc:`../topics/dependency-resolution`.
 
 .. _`Using pip from your program`:
 
 Using pip from your program
-***************************
+===========================
 
 As noted previously, pip is a command line program. While it is implemented in
 Python, and so is available from your Python code via ``import pip``, you must
@@ -803,8 +846,8 @@ This is easily done using the standard ``subprocess`` module::
 
   subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'my_package'])
 
-If you want to process the output further, use one of the other APIs in the
-module::
+If you want to process the output further, use one of the other APIs in the module.
+We are using `freeze`_ here which outputs installed packages in requirements format.::
 
   reqs = subprocess.check_output([sys.executable, '-m', 'pip', 'freeze'])
 
@@ -821,3 +864,289 @@ of ability. Some examples that you could consider include:
 
 * ``distlib`` - Packaging and distribution utilities (including functions for
   interacting with PyPI).
+
+.. _changes-to-the-pip-dependency-resolver-in-20-2-2020:
+
+.. _`Resolver changes 2020`:
+
+Changes to the pip dependency resolver in 20.3 (2020)
+=====================================================
+
+pip 20.3 has a new dependency resolver, on by default for Python 3
+users. (pip 20.1 and 20.2 included pre-release versions of the new
+dependency resolver, hidden behind optional user flags.) Read below
+for a migration guide, how to invoke the legacy resolver, and the
+deprecation timeline. We also made a `two-minute video explanation`_
+you can watch.
+
+We will continue to improve the pip dependency resolver in response to
+testers' feedback. Please give us feedback through the `resolver
+testing survey`_.
+
+.. _`Migration guide for 2020 resolver changes`:
+
+Watch out for
+-------------
+
+The big change in this release is to the pip dependency resolver
+within pip.
+
+Computers need to know the right order to install pieces of software
+("to install ``x``, you need to install ``y`` first"). So, when Python
+programmers share software as packages, they have to precisely describe
+those installation prerequisites, and pip needs to navigate tricky
+situations where it's getting conflicting instructions. This new
+dependency resolver will make pip better at handling that tricky
+logic, and make pip easier for you to use and troubleshoot.
+
+The most significant changes to the resolver are:
+
+* It will **reduce inconsistency**: it will *no longer install a
+  combination of packages that is mutually inconsistent*. In older
+  versions of pip, it is possible for pip to install a package which
+  does not satisfy the declared requirements of another installed
+  package. For example, in pip 20.0, ``pip install "six<1.12"
+  "virtualenv==20.0.2"`` does the wrong thing, “successfully” installing
+  ``six==1.11``, even though ``virtualenv==20.0.2`` requires
+  ``six>=1.12.0,<2`` (`defined here
+  <https://github.com/pypa/virtualenv/blob/20.0.2/setup.cfg#L42-L50>`__).
+  The new resolver, instead, outright rejects installing anything if it
+  gets that input.
+
+* It will be **stricter** - if you ask pip to install two packages with
+  incompatible requirements, it will refuse (rather than installing a
+  broken combination, like it did in previous versions).
+
+So, if you have been using workarounds to force pip to deal with
+incompatible or inconsistent requirements combinations, now's a good
+time to fix the underlying problem in the packages, because pip will
+be stricter from here on out.
+
+This also means that, when you run a ``pip install`` command, pip only
+considers the packages you are installing in that command, and **may
+break already-installed packages**. It will not guarantee that your
+environment will be consistent all the time. If you ``pip install x``
+and then ``pip install y``, it's possible that the version of ``y``
+you get will be different than it would be if you had run ``pip
+install x y`` in a single command. We are considering changing this
+behavior (per :issue:`7744`) and would like your thoughts on what
+pip's behavior should be; please answer `our survey on upgrades that
+create conflicts`_.
+
+We are also changing our support for :ref:`Constraints Files`,
+editable installs, and related functionality. We did a fairly
+comprehensive overhaul and stripped constraints files down to being
+purely a way to specify global (version) limits for packages, and so
+some combinations that used to be allowed will now cause
+errors. Specifically:
+
+* Constraints don't override the existing requirements; they simply
+  constrain what versions are visible as input to the resolver (see
+  :issue:`9020`)
+* Providing an editable requirement (``-e .``) does not cause pip to
+  ignore version specifiers or constraints (see :issue:`8076`), and if
+  you have a conflict between a pinned requirement and a local
+  directory then pip will indicate that it cannot find a version
+  satisfying both (see :issue:`8307`)
+* Hash-checking mode requires that all requirements are specified as a
+  ``==`` match on a version and may not work well in combination with
+  constraints (see :issue:`9020` and :issue:`8792`)
+* If necessary to satisfy constraints, pip will happily reinstall
+  packages, upgrading or downgrading, without needing any additional
+  command-line options (see :issue:`8115` and :doc:`development/architecture/upgrade-options`)
+* Unnamed requirements are not allowed as constraints (see :issue:`6628` and :issue:`8210`)
+* Links are not allowed as constraints (see :issue:`8253`)
+* Constraints cannot have extras (see :issue:`6628`)
+
+Per our :ref:`Python 2 Support` policy, pip 20.3 users who are using
+Python 2 will use the legacy resolver by default. Python 2 users
+should upgrade to Python 3 as soon as possible, since in pip 21.0 in
+January 2021, pip dropped support for Python 2 altogether.
+
+
+How to upgrade and migrate
+--------------------------
+
+1. **Install pip 20.3** with ``python -m pip install --upgrade pip``.
+
+2. **Validate your current environment** by running ``pip check``. This
+   will report if you have any inconsistencies in your set of installed
+   packages. Having a clean installation will make it much less likely
+   that you will hit issues with the new resolver (and may
+   address hidden problems in your current environment!). If you run
+   ``pip check`` and run into stuff you can’t figure out, please `ask
+   for help in our issue tracker or chat <https://pip.pypa.io/>`__.
+
+3. **Test the new version of pip**.
+
+   While we have tried to make sure that pip’s test suite covers as
+   many cases as we can, we are very aware that there are people using
+   pip with many different workflows and build processes, and we will
+   not be able to cover all of those without your help.
+
+   -  If you use pip to install your software, try out the new resolver
+      and let us know if it works for you with ``pip install``. Try:
+
+      - installing several packages simultaneously
+      - re-creating an environment using a ``requirements.txt`` file
+      - using ``pip install --force-reinstall`` to check whether
+        it does what you think it should
+      - using constraints files
+      - the "Setups to test with special attention" and "Examples to try" below
+
+   -  If you have a build pipeline that depends on pip installing your
+      dependencies for you, check that the new resolver does what you
+      need.
+
+   -  Run your project’s CI (test suite, build process, etc.) using the
+      new resolver, and let us know of any issues.
+   -  If you have encountered resolver issues with pip in the past,
+      check whether the new resolver fixes them, and read :ref:`Fixing
+      conflicting dependencies`. Also, let us know if the new resolver
+      has issues with any workarounds you put in to address the
+      current resolver’s limitations. We’ll need to ensure that people
+      can transition off such workarounds smoothly.
+   -  If you develop or support a tool that wraps pip or uses it to
+      deliver part of your functionality, please test your integration
+      with pip 20.3.
+
+4. **Troubleshoot and try these workarounds if necessary.**
+
+   -  If pip is taking longer to install packages, read :doc:`Dependency
+      resolution backtracking <topics/dependency-resolution>` for ways to
+      reduce the time pip spends backtracking due to dependency conflicts.
+   -  If you don't want pip to actually resolve dependencies, use the
+      ``--no-deps`` option. This is useful when you have a set of package
+      versions that work together in reality, even though their metadata says
+      that they conflict. For guidance on a long-term fix, read
+      :ref:`Fixing conflicting dependencies`.
+   -  If you run into resolution errors and need a workaround while you're
+      fixing their root causes, you can choose the old resolver behavior using
+      the flag ``--use-deprecated=legacy-resolver``. This will work until we
+      release pip 21.0 (see
+      :ref:`Deprecation timeline for 2020 resolver changes`).
+
+5. **Please report bugs** through the `resolver testing survey`_.
+
+
+Setups to test with special attention
+-------------------------------------
+
+*    Requirements files with 100+ packages
+
+*    Installation workflows that involve multiple requirements files
+
+*    Requirements files that include hashes (:ref:`hash-checking mode`)
+     or pinned dependencies (perhaps as output from ``pip-compile`` within
+     ``pip-tools``)
+
+*    Using :ref:`Constraints Files`
+
+*    Continuous integration/continuous deployment setups
+
+*    Installing from any kind of version control systems (i.e., Git, Subversion, Mercurial, or CVS), per :doc:`topics/vcs-support`
+
+*    Installing from source code held in local directories
+
+Examples to try
+^^^^^^^^^^^^^^^
+
+Install:
+
+* `tensorflow`_
+* ``hacking``
+* ``pycodestyle``
+* ``pandas``
+* ``tablib``
+* ``elasticsearch`` and ``requests`` together
+* ``six`` and ``cherrypy`` together
+* ``pip install flake8-import-order==0.17.1 flake8==3.5.0 --use-feature=2020-resolver``
+* ``pip install tornado==5.0 sprockets.http==1.5.0 --use-feature=2020-resolver``
+
+Try:
+
+* ``pip install``
+* ``pip uninstall``
+* ``pip check``
+* ``pip cache``
+
+
+Tell us about
+-------------
+
+Specific things we'd love to get feedback on:
+
+*    Cases where the new resolver produces the wrong result,
+     obviously. We hope there won't be too many of these, but we'd like
+     to trap such bugs before we remove the legacy resolver.
+
+*    Cases where the resolver produced an error when you believe it
+     should have been able to work out what to do.
+
+*    Cases where the resolver gives an error because there's a problem
+     with your requirements, but you need better information to work out
+     what's wrong.
+
+*    If you have workarounds to address issues with the current resolver,
+     does the new resolver let you remove those workarounds? Tell us!
+
+Please let us know through the `resolver testing survey`_.
+
+.. _`Deprecation timeline for 2020 resolver changes`:
+
+Deprecation timeline
+--------------------
+
+We plan for the resolver changeover to proceed as follows, using
+:ref:`Feature Flags` and following our :ref:`Release Cadence`:
+
+*    pip 20.1: an alpha version of the new resolver was available,
+     opt-in, using the optional flag
+     ``--unstable-feature=resolver``. pip defaulted to legacy
+     behavior.
+
+*    pip 20.2: a beta of the new resolver was available, opt-in, using
+     the flag ``--use-feature=2020-resolver``. pip defaulted to legacy
+     behavior. Users of pip 20.2 who want pip to default to using the
+     new resolver can run ``pip config set global.use-feature
+     2020-resolver`` (for more on that and the alternate
+     ``PIP_USE_FEATURE`` environment variable option, see `issue
+     8661`_).
+
+*    pip 20.3: pip defaults to the new resolver in Python 3 environments,
+     but a user can opt-out and choose the old resolver behavior,
+     using the flag ``--use-deprecated=legacy-resolver``. In Python 2
+     environments, pip defaults to the old resolver, and the new one is
+     available using the flag ``--use-feature=2020-resolver``.
+
+*    pip 21.0: pip uses new resolver by default, and the old resolver is
+     no longer supported. It will be removed after a currently undecided
+     amount of time, as the removal is dependent on pip's volunteer
+     maintainers' availability. Python 2 support is removed per our
+     :ref:`Python 2 Support` policy.
+
+Since this work will not change user-visible behavior described in the
+pip documentation, this change is not covered by the :ref:`Deprecation
+Policy`.
+
+Context and followup
+--------------------
+
+As discussed in `our announcement on the PSF blog`_, the pip team are
+in the process of developing a new "dependency resolver" (the part of
+pip that works out what to install based on your requirements).
+
+We're tracking our rollout in :issue:`6536` and you can watch for
+announcements on the `low-traffic packaging announcements list`_ and
+`the official Python blog`_.
+
+.. _freeze: https://pip.pypa.io/en/latest/reference/pip_freeze/
+.. _resolver testing survey: https://tools.simplysecure.org/survey/index.php?r=survey/index&sid=989272&lang=en
+.. _issue 8661: https://github.com/pypa/pip/issues/8661
+.. _our announcement on the PSF blog: http://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
+.. _two-minute video explanation: https://www.youtube.com/watch?v=B4GQCBBsuNU
+.. _tensorflow: https://pypi.org/project/tensorflow/
+.. _low-traffic packaging announcements list: https://mail.python.org/mailman3/lists/pypi-announce.python.org/
+.. _our survey on upgrades that create conflicts: https://docs.google.com/forms/d/e/1FAIpQLSeBkbhuIlSofXqCyhi3kGkLmtrpPOEBwr6iJA6SzHdxWKfqdA/viewform
+.. _the official Python blog: https://blog.python.org/
+.. _Python Windows launcher: https://docs.python.org/3/using/windows.html#launcher

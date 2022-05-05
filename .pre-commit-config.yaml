@@ -2,7 +2,7 @@ exclude: 'src/pip/_vendor/'
 
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v2.3.0
+  rev: v4.2.0
   hooks:
   - id: check-builtin-literals
   - id: check-added-large-files
@@ -12,42 +12,69 @@ repos:
   - id: debug-statements
   - id: end-of-file-fixer
     exclude: WHEEL
-  - id: flake8
-    exclude: tests/data
   - id: forbid-new-submodules
   - id: trailing-whitespace
     exclude: .patch
 
-- repo: https://github.com/timothycrosley/isort
-  rev: 4.3.21
+- repo: https://github.com/psf/black
+  rev: 22.3.0
+  hooks:
+  - id: black
+
+- repo: https://github.com/PyCQA/flake8
+  rev: 4.0.1
+  hooks:
+  - id: flake8
+    additional_dependencies: [
+        'flake8-bugbear==22.3.23',
+        'flake8-logging-format==0.6.0',
+        'flake8-implicit-str-concat==0.3.0',
+    ]
+    exclude: tests/data
+
+- repo: https://github.com/PyCQA/isort
+  rev: 5.10.1
   hooks:
   - id: isort
     files: \.py$
 
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v0.750
+  rev: v0.942
   hooks:
   - id: mypy
-    exclude: docs|tests
-    args: []
-  - id: mypy
-    name: mypy, for Py2
-    exclude: noxfile.py|tools/automation/release|docs|tests
-    args: ["-2"]
+    exclude: tests/data
+    args: ["--pretty", "--show-error-codes"]
+    additional_dependencies: [
+        'keyring==23.0.1',
+        'nox==2021.6.12',
+        'pytest==7.1.1',
+        'types-docutils==0.18.3',
+        'types-setuptools==57.4.14',
+        'types-freezegun==1.1.9',
+        'types-six==1.16.15',
+    ]
 
 - repo: https://github.com/pre-commit/pygrep-hooks
-  rev: v1.4.1
+  rev: v1.9.0
   hooks:
   - id: python-no-log-warn
   - id: python-no-eval
   - id: rst-backticks
-    # Validate existing ReST files and NEWS fragments.
-    files: .*\.rst$|^news/.*
+    files: .*\.rst$
     types: [file]
-    # The errors flagged in NEWS.rst are old.
-    exclude: NEWS.rst
+    exclude: NEWS.rst  # The errors flagged in NEWS.rst are old.
+
+- repo: local
+  hooks:
+  - id: news-fragment-filenames
+    name: NEWS fragment
+    language: fail
+    entry: NEWS fragment files must be named *.(process|removal|feature|bugfix|vendor|doc|trivial).rst
+    exclude: ^news/(.gitignore|.*\.(process|removal|feature|bugfix|vendor|doc|trivial).rst)
+    files: ^news/
 
 - repo: https://github.com/mgedmin/check-manifest
-  rev: '0.39'
+  rev: '0.48'
   hooks:
   - id: check-manifest
+    stages: [manual]

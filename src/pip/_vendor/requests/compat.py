@@ -47,8 +47,8 @@ if is_py2:
     import cookielib
     from Cookie import Morsel
     from StringIO import StringIO
+    # Keep OrderedDict for backwards compatibility.
     from collections import Callable, Mapping, MutableMapping, OrderedDict
-
 
     builtin_str = str
     bytes = str
@@ -56,6 +56,7 @@ if is_py2:
     basestring = basestring
     numeric_types = (int, long, float)
     integer_types = (int, long)
+    JSONDecodeError = ValueError
 
 elif is_py3:
     from urllib.parse import urlparse, urlunparse, urljoin, urlsplit, urlencode, quote, unquote, quote_plus, unquote_plus, urldefrag
@@ -63,8 +64,10 @@ elif is_py3:
     from http import cookiejar as cookielib
     from http.cookies import Morsel
     from io import StringIO
+    # Keep OrderedDict for backwards compatibility.
     from collections import OrderedDict
     from collections.abc import Callable, Mapping, MutableMapping
+    from json import JSONDecodeError
 
     builtin_str = str
     str = str

@@ -1,47 +1,11 @@
+:orphan:
 
-.. _`pip freeze`:
+.. meta::
 
-pip freeze
------------
+  :http-equiv=refresh: 3; url=../../cli/pip_freeze/
 
-.. contents::
+This page has moved
+===================
 
-Usage
-*****
-
-.. pip-command-usage:: freeze
-
-
-Description
-***********
-
-.. pip-command-description:: freeze
-
-
-Options
-*******
-
-.. pip-command-options:: freeze
-
-
-Examples
-********
-
-#. Generate output suitable for a requirements file.
-
-    ::
-
-     $ pip freeze
-     docutils==0.11
-     Jinja2==2.7.2
-     MarkupSafe==0.19
-     Pygments==1.6
-     Sphinx==1.2.2
-
-
-#. Generate a requirements file and then install from it in another environment.
-
-    ::
-
-     $ env1/bin/pip freeze > requirements.txt
-     $ env2/bin/pip install -r requirements.txt
+You should be redirected automatically in 3 seconds. If that didn't
+work, here's a link: :doc:`../cli/pip_freeze`

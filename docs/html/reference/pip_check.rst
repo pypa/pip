@@ -1,48 +1,11 @@
-.. _`pip check`:
+:orphan:
 
-pip check
----------
+.. meta::
 
-.. contents::
+  :http-equiv=refresh: 3; url=../../cli/pip_check/
 
-Usage
-*****
+This page has moved
+===================
 
-.. pip-command-usage:: check
-
-
-Description
-***********
-
-.. pip-command-description:: check
-
-
-Examples
-********
-
-#. If all dependencies are compatible:
-
-    ::
-
-     $ pip check
-     No broken requirements found.
-     $ echo $?
-     0
-
-#. If a package is missing:
-
-    ::
-
-     $ pip check
-     pyramid 1.5.2 requires WebOb, which is not installed.
-     $ echo $?
-     1
-
-#. If a package has the wrong version:
-
-    ::
-
-     $ pip check
-     pyramid 1.5.2 has requirement WebOb>=1.3.1, but you have WebOb 0.8.
-     $ echo $?
-     1
+You should be redirected automatically in 3 seconds. If that didn't
+work, here's a link: :doc:`../cli/pip_check`

@@ -2,15 +2,16 @@
 Contributing
 ============
 
-.. todo
-   Create a "guide" to pip's internals and link to it from here saying
-   "you might want to take a look at the guide"
+Pip's internals
+===============
 
+We have an in-progress guide to the
+:ref:`architecture-pip-internals`. It might be helpful as you dive in.
 
 Submitting Pull Requests
 ========================
 
-Submit pull requests against the ``master`` branch, providing a good
+Submit pull requests against the ``main`` branch, providing a good
 description of what you're doing and why. You must have legal permission to
 distribute any code you contribute to pip and it must be available under the
 MIT License.
@@ -20,7 +21,7 @@ Provide tests that cover your changes and run the tests locally first. pip
 operating systems. Any pull request must consider and work on all these
 platforms.
 
-Pull Requests should be small to facilitate easier review. Keep them
+Pull requests should be small to facilitate easier review. Keep them
 self-contained, and limited in scope. `Studies have shown`_ that review quality
 falls off as patch size grows. Sometimes this will result in many small PRs to
 land a single large feature. In particular, pull requests must not be treated
@@ -30,17 +31,20 @@ can be reviewed and merged individually.
 
 Additionally, avoid including "cosmetic" changes to code that
 is unrelated to your change, as these make reviewing the PR more difficult.
-Examples include re-flowing text in comments or documentation, or addition or
-removal of blank lines or whitespace within lines. Such changes can be made
+Examples include re-flowing text in comments or documentation, or adding or
+removing blank lines or whitespace within lines. Such changes can be made
 separately, as a "formatting cleanup" PR, if needed.
+
 
 Automated Testing
 =================
 
-All pull requests and merges to 'master' branch are tested using `Travis CI`_
-and `Appveyor CI`_ based on our `.travis.yml`_ and `.appveyor.yml`_ files.
+All pull requests and merges to 'main' branch are tested using `GitHub
+Actions`_ based on our `.github/workflows`_ files. More details about pip's
+Continuous Integration can be found in the `CI Documentation`_
 
-You can find the status and results to the CI runs for your PR on GitHub's Web
+
+You can find the status and results to the CI runs for your PR on GitHub's web
 UI for the pull request. You can also find links to the CI services' pages for
 the specific builds in the form of "Details" links, in case the CI run fails
 and you wish to view the output.
@@ -49,6 +53,9 @@ To trigger CI to run again for a pull request, you can close and open the pull
 request or submit another change to the pull request. If needed, project
 maintainers can manually trigger a restart of a job/build.
 
+To understand the broader software architecture around dependency
+resolution in pip, and how we automatically test this functionality,
+see `Testing the next-gen pip dependency resolver`_.
 
 NEWS Entries
 ============
@@ -62,23 +69,26 @@ such, but it is preferred to have a dedicated issue (for example, in case the
 PR ends up rejected due to code quality reasons).
 
 Once you have an issue or pull request, you take the number and you create a
-file inside of the ``news/`` directory named after that issue number with an
-extension of ``removal``, ``feature``, ``bugfix``, or ``doc``. Thus if your
-issue or PR number is ``1234`` and this change is fixing a bug, then you would
-create a file ``news/1234.bugfix``. PRs can span multiple categories by creating
-multiple files (for instance, if you added a feature and deprecated/removed the
-old feature at the same time, you would create ``news/NNNN.feature`` and
-``news/NNNN.removal``). Likewise if a PR touches multiple issues/PRs you may
-create a file for each of them with the exact same contents and Towncrier will
-deduplicate them.
+file inside of the ``news/`` directory, named after that issue number with a
+"type" of ``removal``, ``feature``, ``bugfix``, or ``doc`` associated with it.
+
+If your issue or PR number is ``1234`` and this change is fixing a bug,
+then you would create a file ``news/1234.bugfix.rst``. PRs can span multiple
+categories by creating multiple files (for instance, if you added a feature and
+deprecated/removed the old feature at the same time, you would create
+``news/NNNN.feature.rst`` and ``news/NNNN.removal.rst``).
+
+If a PR touches multiple issues/PRs, you may create a file for each of them
+with the exact same contents and Towncrier will deduplicate them.
 
 Contents of a NEWS entry
 ------------------------
 
-The contents of this file are reStructuredText formatted text that will be used
-as the content of the news file entry. You do not need to reference the issue
-or PR numbers here as towncrier will automatically add a reference to all of
-the affected issues when rendering the news file.
+The contents of this file are reStructuredText formatted text that
+will be used as the content of the news file entry. You do not need to
+reference the issue or PR numbers in the entry, since ``towncrier``
+will automatically add a reference to all of the affected issues when
+rendering the NEWS file. There must be a newline at the end of the file.
 
 In order to maintain a consistent style in the ``NEWS.rst`` file, it is
 preferred to keep the news entry to the point, in sentence case, shorter than
@@ -98,30 +108,30 @@ A trivial change is anything that does not warrant an entry in the news file.
 Some examples are: Code refactors that don't change anything as far as the
 public is concerned, typo fixes, white space modification, etc. To mark a PR
 as trivial a contributor simply needs to add a randomly named, empty file to
-the ``news/`` directory with the extension of ``.trivial``. If you are on a
+the ``news/`` directory with the extension of ``.trivial.rst``. If you are on a
 POSIX like operating system, one can be added by running
-``touch news/$(uuidgen).trivial``. On Windows, the same result can be achieved
-in Powershell using ``New-Item "news/$([guid]::NewGuid()).trivial"``. Core
-committers may also add a "trivial" label to the PR which will accomplish the
-same thing.
+``touch news/$(uuidgen).trivial.rst``. On Windows, the same result can be
+achieved in Powershell using ``New-Item "news/$([guid]::NewGuid()).trivial.rst"``.
+Core committers may also add a "trivial" label to the PR which will accomplish
+the same thing.
 
 Upgrading, removing, or adding a new vendored library gets a special mention
-using a ``news/<library>.vendor`` file. This is in addition to any features,
+using a ``news/<library>.vendor.rst`` file. This is in addition to any features,
 bugfixes, or other kinds of news that pulling in this library may have. This
 uses the library name as the key so that updating the same library twice doesn't
 produce two news file entries.
 
 Changes to the processes, policies, or other non code related changed that are
-otherwise notable can be done using a ``news/<name>.process`` file. This is not
-typically used, but can be used for things like changing version schemes,
+otherwise notable can be done using a ``news/<name>.process.rst`` file. This is
+not typically used, but can be used for things like changing version schemes,
 updating deprecation policy, etc.
 
 
 Updating your branch
 ====================
 
-As you work, you might need to update your local master branch up-to-date with
-the ``master`` branch in the main pip repository, which moves forward as the
+As you work, you might need to update your local main branch up-to-date with
+the ``main`` branch in the main pip repository, which moves forward as the
 maintainers merge pull requests. Most people working on the project use the
 following workflow.
 
@@ -149,24 +159,24 @@ First, fetch the latest changes from the main pip repository, ``upstream``:
 
     git fetch upstream
 
-Then, check out your local ``master`` branch, and rebase the changes on top of
+Then, check out your local ``main`` branch, and rebase the changes on top of
 it:
 
 .. code-block:: console
 
-    git checkout master
-    git rebase upstream/master
+    git checkout main
+    git rebase upstream/main
 
 At this point, you might have to `resolve merge conflicts`_. Once this is done,
-push the updates you have just made to your local ``master`` branch to your
+push the updates you have just made to your local ``main`` branch to your
 ``origin`` repository on GitHub:
 
 .. code-block:: console
 
-    git checkout master
-    git push origin master
+    git checkout main
+    git push origin main
 
-Now your local ``master`` branch and the ``master`` branch in your ``origin``
+Now your local ``main`` branch and the ``main`` branch in your ``origin``
 repo have been updated with the most recent changes from the main pip
 repository.
 
@@ -176,10 +186,10 @@ To keep your branches updated, the process is similar:
 
     git checkout awesome-feature
     git fetch upstream
-    git rebase upstream/master
+    git rebase upstream/main
 
 Now your branch has been updated with the latest changes from the
-``master`` branch on the upstream pip repository.
+``main`` branch on the upstream pip repository.
 
 It's good practice to back up your branches by pushing them to your
 ``origin`` on GitHub as you are working on them. To push a branch,
@@ -219,8 +229,10 @@ If you get an error message like this:
 
 Try force-pushing your branch with ``push -f``.
 
-The ``master`` branch in the main pip repository gets updated frequently, so
+The ``main`` branch in the main pip repository gets updated frequently, so
 you might have to update your branch at least once while you are working on it.
+
+Thank you for your contribution!
 
 
 Becoming a maintainer
@@ -228,13 +240,15 @@ Becoming a maintainer
 
 If you want to become an official maintainer, start by helping out.
 
-As a first step, we welcome you to triage issues on pip's issue tracker. pip
-maintainers provide triage abilities to contributors once they have been around
-for some time and contributed positively to the project. This is optional and highly
+As a first step, we welcome you to triage issues on pip's issue
+tracker. pip maintainers provide triage abilities to contributors once
+they have been around for some time (probably at least 2-3 months) and
+contributed positively to the project. This is optional and highly
 recommended for becoming a pip maintainer.
 
-Later, when you think you're ready, get in touch with one of the maintainers
-and they will initiate a vote among the existing maintainers.
+Later, when you think you're ready (probably at least 5 months after
+starting to triage), get in touch with one of the maintainers and they
+will initiate a vote among the existing maintainers.
 
 .. note::
 
@@ -249,8 +263,8 @@ and they will initiate a vote among the existing maintainers.
 
 .. _`Studies have shown`: https://www.kessler.de/prd/smartbear/BestPracticesForPeerCodeReview.pdf
 .. _`resolve merge conflicts`: https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line
-.. _`Travis CI`: https://travis-ci.org/
-.. _`Appveyor CI`: https://www.appveyor.com/
-.. _`.travis.yml`: https://github.com/pypa/pip/blob/master/.travis.yml
-.. _`.appveyor.yml`: https://github.com/pypa/pip/blob/master/.appveyor.yml
+.. _`GitHub Actions`: https://github.com/features/actions
+.. _`.github/workflows`: https://github.com/pypa/pip/blob/main/.github/workflows
+.. _`CI Documentation`: https://pip.pypa.io/en/latest/development/ci/
 .. _`towncrier`: https://pypi.org/project/towncrier/
+.. _`Testing the next-gen pip dependency resolver`: https://pradyunsg.me/blog/2020/03/27/pip-resolver-testing/

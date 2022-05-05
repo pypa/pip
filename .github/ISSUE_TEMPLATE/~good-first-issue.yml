@@ -1,0 +1,38 @@
+name: Good first issue
+description: If you're a pip maintainer, use this to create a "good first issue" for new contributors.
+labels: "good first issue"
+
+body:
+  - type: textarea
+    attributes:
+      label: Description
+      description: >-
+        A clear and concise description of what the task is.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: What needs to be done
+      description: >-
+        Describe what the contributor would need to do, describing the change.
+        See https://github.com/pypa/pip/issues/7661 for example.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Guidance for potential contributors
+      description: >-
+        Usually, you don't have to modify the content here.
+      value: >-
+        This issue is a good starting point for first time contributors -- the
+        process of fixing this should be a good introduction to pip's
+        development workflow. If there is not a corresponding pull request for
+        this issue, it is up for grabs. For directions for getting set up, see our
+        [Getting Started Guide](https://pip.pypa.io/en/latest/development/getting-started/).
+        If you are working on this issue and have questions, feel free to ask
+        them here. If you've contributed code to pip before, we encourage you to
+        pick up an issue without this label.
+    validations:
+      required: true

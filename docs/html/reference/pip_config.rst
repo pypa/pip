@@ -1,22 +1,11 @@
+:orphan:
 
-.. _`pip config`:
+.. meta::
 
-pip config
-------------
+  :http-equiv=refresh: 3; url=../../cli/pip_config/
 
-.. contents::
+This page has moved
+===================
 
-Usage
-*****
-
-.. pip-command-usage:: config
-
-Description
-***********
-
-.. pip-command-description:: config
-
-Options
-*******
-
-.. pip-command-options:: config
+You should be redirected automatically in 3 seconds. If that didn't
+work, here's a link: :doc:`../cli/pip_config`

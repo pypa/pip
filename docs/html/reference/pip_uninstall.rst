@@ -1,36 +1,11 @@
-.. _`pip uninstall`:
+:orphan:
 
-pip uninstall
--------------
+.. meta::
 
-.. contents::
+  :http-equiv=refresh: 3; url=../../cli/pip_uninstall/
 
-Usage
-*****
+This page has moved
+===================
 
-.. pip-command-usage:: uninstall
-
-Description
-***********
-
-.. pip-command-description:: uninstall
-
-Options
-*******
-
-.. pip-command-options:: uninstall
-
-
-Examples
-********
-
-#. Uninstall a package.
-
-  ::
-
-    $ pip uninstall simplejson
-    Uninstalling simplejson:
-      /home/me/env/lib/python2.7/site-packages/simplejson
-      /home/me/env/lib/python2.7/site-packages/simplejson-2.2.1-py2.7.egg-info
-    Proceed (y/n)? y
-      Successfully uninstalled simplejson
+You should be redirected automatically in 3 seconds. If that didn't
+work, here's a link: :doc:`../cli/pip_uninstall`

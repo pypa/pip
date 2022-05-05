@@ -1,0 +1,12 @@
+cryptography
+freezegun
+pytest
+pytest-cov
+pytest-rerunfailures
+pytest-xdist
+scripttest
+setuptools
+virtualenv < 20.0
+werkzeug
+wheel
+tomli-w

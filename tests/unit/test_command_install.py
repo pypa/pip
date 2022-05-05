@@ -1,119 +1,160 @@
 import errno
+from unittest import mock
 
 import pytest
-from mock import patch
 from pip._vendor.packaging.requirements import Requirement
 
+from pip._internal.commands import install
 from pip._internal.commands.install import (
-    create_env_error_message,
+    create_os_error_message,
     decide_user_install,
-    warn_deprecated_install_options,
+    reject_location_related_install_options,
 )
+from pip._internal.exceptions import CommandError
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.req.req_set import RequirementSet
 
 
 class TestDecideUserInstall:
-    @patch('site.ENABLE_USER_SITE', True)
-    @patch('pip._internal.commands.install.site_packages_writable')
-    def test_prefix_and_target(self, sp_writable):
+    @mock.patch("site.ENABLE_USER_SITE", True)
+    @mock.patch("pip._internal.commands.install.site_packages_writable")
+    def test_prefix_and_target(self, sp_writable: mock.Mock) -> None:
         sp_writable.return_value = False
 
-        assert decide_user_install(
-            use_user_site=None, prefix_path='foo'
-        ) is False
+        assert decide_user_install(use_user_site=None, prefix_path="foo") is False
 
-        assert decide_user_install(
-            use_user_site=None, target_dir='bar'
-        ) is False
+        assert decide_user_install(use_user_site=None, target_dir="bar") is False
 
     @pytest.mark.parametrize(
-        "enable_user_site,site_packages_writable,result", [
+        "enable_user_site,site_packages_writable,result",
+        [
             (True, True, False),
             (True, False, True),
             (False, True, False),
             (False, False, False),
-        ])
+        ],
+    )
     def test_most_cases(
-        self, enable_user_site, site_packages_writable, result, monkeypatch,
-    ):
-        monkeypatch.setattr('site.ENABLE_USER_SITE', enable_user_site)
+        self,
+        enable_user_site: bool,
+        site_packages_writable: bool,
+        result: bool,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setattr("site.ENABLE_USER_SITE", enable_user_site)
         monkeypatch.setattr(
-            'pip._internal.commands.install.site_packages_writable',
-            lambda **kw: site_packages_writable
+            "pip._internal.commands.install.site_packages_writable",
+            lambda **kw: site_packages_writable,
         )
         assert decide_user_install(use_user_site=None) is result
 
 
-def test_deprecation_notice_for_pip_install_options(recwarn):
+def test_rejection_for_pip_install_options() -> None:
     install_options = ["--prefix=/hello"]
-    req_set = RequirementSet()
-    warn_deprecated_install_options(req_set, install_options)
+    with pytest.raises(CommandError) as e:
+        reject_location_related_install_options([], install_options)
 
-    assert len(recwarn) == 1
-    message = recwarn[0].message.args[0]
-    assert "['--prefix'] from command line" in message
+    assert "['--prefix'] from command line" in str(e.value)
 
 
-def test_deprecation_notice_for_requirement_options(recwarn):
-    install_options = []
-    req_set = RequirementSet()
-
-    bad_named_req_options = {"install_options": ["--home=/wow"]}
+def test_rejection_for_location_requirement_options() -> None:
+    bad_named_req_options = ["--home=/wow"]
     bad_named_req = InstallRequirement(
-        Requirement("hello"), "requirements.txt", options=bad_named_req_options
+        Requirement("hello"), "requirements.txt", install_options=bad_named_req_options
     )
-    req_set.add_named_requirement(bad_named_req)
 
-    bad_unnamed_req_options = {"install_options": ["--install-lib=/lib"]}
+    bad_unnamed_req_options = ["--install-lib=/lib"]
     bad_unnamed_req = InstallRequirement(
-        None, "requirements2.txt", options=bad_unnamed_req_options
+        None, "requirements2.txt", install_options=bad_unnamed_req_options
     )
-    req_set.add_unnamed_requirement(bad_unnamed_req)
 
-    warn_deprecated_install_options(req_set, install_options)
-
-    assert len(recwarn) == 1
-    message = recwarn[0].message.args[0]
+    with pytest.raises(CommandError) as e:
+        reject_location_related_install_options(
+            [bad_named_req, bad_unnamed_req], options=[]
+        )
 
     assert (
         "['--install-lib'] from <InstallRequirement> (from requirements2.txt)"
-        in message
+        in str(e.value)
     )
-    assert "['--home'] from hello (from requirements.txt)" in message
+    assert "['--home'] from hello (from requirements.txt)" in str(e.value)
 
 
-@pytest.mark.parametrize('error, show_traceback, using_user_site, expected', [
-    # show_traceback = True, using_user_site = True
-    (EnvironmentError("Illegal byte sequence"), True, True, 'Could not install'
-        ' packages due to an EnvironmentError.\n'),
-    (EnvironmentError(errno.EACCES, "No file permission"), True, True, 'Could'
-        ' not install packages due to an EnvironmentError.\nCheck the'
-        ' permissions.\n'),
-    # show_traceback = True, using_user_site = False
-    (EnvironmentError("Illegal byte sequence"), True, False, 'Could not'
-        ' install packages due to an EnvironmentError.\n'),
-    (EnvironmentError(errno.EACCES, "No file permission"), True, False, 'Could'
-        ' not install packages due to an EnvironmentError.\nConsider using the'
-        ' `--user` option or check the permissions.\n'),
-    # show_traceback = False, using_user_site = True
-    (EnvironmentError("Illegal byte sequence"), False, True, 'Could not'
-        ' install packages due to an EnvironmentError: Illegal byte'
-        ' sequence\n'),
-    (EnvironmentError(errno.EACCES, "No file permission"), False, True, 'Could'
-        ' not install packages due to an EnvironmentError: [Errno 13] No file'
-        ' permission\nCheck the permissions.\n'),
-    # show_traceback = False, using_user_site = False
-    (EnvironmentError("Illegal byte sequence"), False, False, 'Could not'
-        ' install packages due to an EnvironmentError: Illegal byte sequence'
-        '\n'),
-    (EnvironmentError(errno.EACCES, "No file permission"), False, False,
-        'Could not install packages due to an EnvironmentError: [Errno 13] No'
-        ' file permission\nConsider using the `--user` option or check the'
-        ' permissions.\n'),
-])
-def test_create_env_error_message(
-    error, show_traceback, using_user_site, expected
-):
-    msg = create_env_error_message(error, show_traceback, using_user_site)
+@pytest.mark.parametrize(
+    "error, show_traceback, using_user_site, expected",
+    [
+        # show_traceback = True, using_user_site = True
+        (
+            OSError("Illegal byte sequence"),
+            True,
+            True,
+            "Could not install packages due to an OSError.\n",
+        ),
+        (
+            OSError(errno.EACCES, "No file permission"),
+            True,
+            True,
+            "Could"
+            " not install packages due to an OSError.\nCheck the"
+            " permissions.\n",
+        ),
+        # show_traceback = True, using_user_site = False
+        (
+            OSError("Illegal byte sequence"),
+            True,
+            False,
+            "Could not install packages due to an OSError.\n",
+        ),
+        (
+            OSError(errno.EACCES, "No file permission"),
+            True,
+            False,
+            "Could"
+            " not install packages due to an OSError.\nConsider using the"
+            " `--user` option or check the permissions.\n",
+        ),
+        # show_traceback = False, using_user_site = True
+        (
+            OSError("Illegal byte sequence"),
+            False,
+            True,
+            "Could not"
+            " install packages due to an OSError: Illegal byte"
+            " sequence\n",
+        ),
+        (
+            OSError(errno.EACCES, "No file permission"),
+            False,
+            True,
+            "Could"
+            " not install packages due to an OSError: [Errno 13] No file"
+            " permission\nCheck the permissions.\n",
+        ),
+        # show_traceback = False, using_user_site = False
+        (
+            OSError("Illegal byte sequence"),
+            False,
+            False,
+            "Could not"
+            " install packages due to an OSError: Illegal byte sequence"
+            "\n",
+        ),
+        (
+            OSError(errno.EACCES, "No file permission"),
+            False,
+            False,
+            "Could not install packages due to an OSError: [Errno 13] No"
+            " file permission\nConsider using the `--user` option or check the"
+            " permissions.\n",
+        ),
+    ],
+)
+def test_create_os_error_message(
+    monkeypatch: pytest.MonkeyPatch,
+    error: OSError,
+    show_traceback: bool,
+    using_user_site: bool,
+    expected: str,
+) -> None:
+    monkeypatch.setattr(install, "running_under_virtualenv", lambda: False)
+    msg = create_os_error_message(error, show_traceback, using_user_site)
     assert msg == expected

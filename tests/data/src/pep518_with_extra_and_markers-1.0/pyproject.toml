@@ -1,7 +1,8 @@
 [build-system]
-requires=[
-	"requires_simple_extra[extra]",
-	"simplewheel==1.0; python_version < '3'",
-	"simplewheel==2.0; python_version >= '3'",
-	"setuptools", "wheel",
+requires = [
+    "requires_simple_extra[extra]",
+    "simplewheel==1.0; python_version < '3'",
+    "simplewheel==2.0; python_version >= '3'",
+    "setuptools",
+    "wheel",
 ]

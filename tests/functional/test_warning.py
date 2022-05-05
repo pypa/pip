@@ -1,69 +1,68 @@
-import platform
+import sys
 import textwrap
 
 import pytest
 
-from tests.lib import skip_if_not_python2, skip_if_python2
+from tests.lib import PipTestEnvironment
+from tests.lib.path import Path
 
 
 @pytest.fixture
-def warnings_demo(tmpdir):
-    demo = tmpdir.joinpath('warnings_demo.py')
-    demo.write_text(textwrap.dedent('''
+def warnings_demo(tmpdir: Path) -> Path:
+    demo = tmpdir.joinpath("warnings_demo.py")
+    demo.write_text(
+        textwrap.dedent(
+            """
         from logging import basicConfig
         from pip._internal.utils import deprecation
 
         deprecation.install_warning_logger()
         basicConfig()
 
-        deprecation.deprecated("deprecated!", replacement=None, gone_in=None)
-    '''))
+        deprecation.deprecated(reason="deprecated!", replacement=None, gone_in=None)
+    """
+        )
+    )
     return demo
 
 
-def test_deprecation_warnings_are_correct(script, warnings_demo):
-    result = script.run('python', warnings_demo, expect_stderr=True)
-    expected = 'WARNING:pip._internal.deprecations:DEPRECATION: deprecated!\n'
+def test_deprecation_warnings_are_correct(
+    script: PipTestEnvironment, warnings_demo: Path
+) -> None:
+    result = script.run("python", warnings_demo, expect_stderr=True)
+    expected = "WARNING:pip._internal.deprecations:DEPRECATION: deprecated!\n"
     assert result.stderr == expected
 
 
-def test_deprecation_warnings_can_be_silenced(script, warnings_demo):
-    script.environ['PYTHONWARNINGS'] = 'ignore'
-    result = script.run('python', warnings_demo)
-    assert result.stderr == ''
+def test_deprecation_warnings_can_be_silenced(
+    script: PipTestEnvironment, warnings_demo: Path
+) -> None:
+    script.environ["PYTHONWARNINGS"] = "ignore"
+    result = script.run("python", warnings_demo)
+    assert result.stderr == ""
 
 
 DEPRECATION_TEXT = "drop support for Python 2.7"
 CPYTHON_DEPRECATION_TEXT = "January 1st, 2020"
 
 
-@skip_if_python2
-def test_version_warning_is_not_shown_if_python_version_is_not_2(script):
+def test_version_warning_is_not_shown_if_python_version_is_not_2(
+    script: PipTestEnvironment,
+) -> None:
     result = script.pip("debug", allow_stderr_warning=True)
     assert DEPRECATION_TEXT not in result.stderr, str(result)
     assert CPYTHON_DEPRECATION_TEXT not in result.stderr, str(result)
 
 
-@skip_if_python2
-def test_flag_does_nothing_if_python_version_is_not_2(script):
+def test_flag_does_nothing_if_python_version_is_not_2(
+    script: PipTestEnvironment,
+) -> None:
     script.pip("list", "--no-python-version-warning")
 
 
-@skip_if_not_python2
-def test_version_warning_is_shown_if_python_version_is_2(script):
-    result = script.pip("debug", allow_stderr_warning=True)
-    assert DEPRECATION_TEXT in result.stderr, str(result)
-    if platform.python_implementation() == 'CPython':
-        assert CPYTHON_DEPRECATION_TEXT in result.stderr, str(result)
-    else:
-        assert CPYTHON_DEPRECATION_TEXT not in result.stderr, str(result)
-
-
-@skip_if_not_python2
-def test_version_warning_is_not_shown_when_flag_is_passed(script):
-    result = script.pip(
-        "debug", "--no-python-version-warning", allow_stderr_warning=True
-    )
-    assert DEPRECATION_TEXT not in result.stderr, str(result)
-    assert CPYTHON_DEPRECATION_TEXT not in result.stderr, str(result)
-    assert "--no-python-version-warning" not in result.stderr
+@pytest.mark.skipif(
+    sys.version_info >= (3, 10), reason="distutils is deprecated in 3.10+"
+)
+def test_pip_works_with_warnings_as_errors(script: PipTestEnvironment) -> None:
+    script.environ["PYTHONWARNINGS"] = "error"
+    script.pip("--version")

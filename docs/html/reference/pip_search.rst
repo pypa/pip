@@ -1,34 +1,11 @@
-.. _`pip search`:
+:orphan:
 
-pip search
-----------
+.. meta::
 
-.. contents::
+  :http-equiv=refresh: 3; url=../../cli/pip_search/
 
-Usage
-*****
+This page has moved
+===================
 
-.. pip-command-usage:: search
-
-
-Description
-***********
-
-.. pip-command-description:: search
-
-Options
-*******
-
-.. pip-command-options:: search
-
-
-Examples
-********
-
-#. Search for "peppercorn"
-
-    ::
-
-     $ pip search peppercorn
-     pepperedform    - Helpers for using peppercorn with formprocess.
-     peppercorn      - A library for converting a token stream into [...]
+You should be redirected automatically in 3 seconds. If that didn't
+work, here's a link: :doc:`../cli/pip_search`

@@ -1,9 +1,9 @@
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 import logging
+from optparse import Values
+from typing import List
 
 from pip._internal.cli.base_command import Command
+from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.operations.check import (
     check_package_set,
     create_package_set_from_installed,
@@ -19,7 +19,8 @@ class CheckCommand(Command):
     usage = """
       %prog [options]"""
 
-    def run(self, options, args):
+    def run(self, options: Values, args: List[str]) -> int:
+
         package_set, parsing_probs = create_package_set_from_installed()
         missing, conflicting = check_package_set(package_set)
 
@@ -28,7 +29,9 @@ class CheckCommand(Command):
             for dependency in missing[project_name]:
                 write_output(
                     "%s %s requires %s, which is not installed.",
-                    project_name, version, dependency[0],
+                    project_name,
+                    version,
+                    dependency[0],
                 )
 
         for project_name in conflicting:
@@ -36,10 +39,15 @@ class CheckCommand(Command):
             for dep_name, dep_version, req in conflicting[project_name]:
                 write_output(
                     "%s %s has requirement %s, but you have %s %s.",
-                    project_name, version, req, dep_name, dep_version,
+                    project_name,
+                    version,
+                    req,
+                    dep_name,
+                    dep_version,
                 )
 
         if missing or conflicting or parsing_probs:
-            return 1
+            return ERROR
         else:
             write_output("No broken requirements found.")
+            return SUCCESS

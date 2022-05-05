@@ -1,0 +1,19 @@
+name: Autolabel merge conflicts
+
+permissions:
+  issues: write
+  pull-requests: write
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  label-merge-conflicts:
+    if: github.repository_owner == 'pypa'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: pradyunsg/auto-label-merge-conflicts@v3
+        with:
+          CONFLICT_LABEL_NAME: "needs rebase or merge"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
