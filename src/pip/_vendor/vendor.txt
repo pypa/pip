@@ -13,6 +13,7 @@ requests==2.27.1
     chardet==4.0.0
     idna==3.3
     urllib3==1.26.9
+requests_kerberos==0.14.0
 rich==12.2.0
     pygments==2.11.2
     typing_extensions==4.2.0
@@ -22,4 +23,3 @@ six==1.16.0
 tenacity==8.0.1
 tomli==2.0.1
 webencodings==0.5.1
-requests_kerberos==0.11.0

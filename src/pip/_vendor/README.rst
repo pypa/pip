@@ -113,7 +113,7 @@ Modifications
   ``pip._vendor`` and to *not* load ``simplejson`` (all platforms) and
   ``pyopenssl`` (Windows).
 * ``platformdirs`` has been modified to import its submodules from ``pip._vendor.platformdirs``.
-* ``requests_kerberos`` has been modified to import its dependencies from ``pip._vendor``
+* ``requests_kerberos`` has been modified to import some of its dependencies from ``pip._vendor``
 
 Automatic Vendoring
 ===================

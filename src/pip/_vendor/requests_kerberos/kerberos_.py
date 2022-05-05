@@ -1,15 +1,24 @@
-try:
-    import kerberos
-except ImportError:
-    import winkerberos as kerberos
-import re
+import base64
 import logging
+import re
+import warnings
+
+import spnego
+import spnego.channel_bindings
+import spnego.exceptions
+
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.exceptions import UnsupportedAlgorithm
 
 from pip._vendor.requests.auth import AuthBase
 from pip._vendor.requests.models import Response
-from pip._vendor.requests.compat import urlparse, StringIO
 from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._vendor.requests.cookies import cookiejar_from_dict
+from pip._vendor.requests.packages.urllib3 import HTTPResponse
+
+from urllib.parse import urlparse
 
 from .exceptions import MutualAuthenticationError, KerberosExchangeError
 
@@ -29,6 +38,14 @@ log = logging.getLogger(__name__)
 REQUIRED = 1
 OPTIONAL = 2
 DISABLED = 3
+
+
+class NoCertificateRetrievedWarning(Warning):
+    pass
+
+class UnknownSignatureAlgorithmOID(Warning):
+    pass
+
 
 class SanitizedResponse(Response):
     """The :class:`Response <Response>` object, which contains a server's
@@ -66,18 +83,84 @@ def _negotiate_value(response):
     else:
         # There's no need to re-compile this EVERY time it is called. Compile
         # it once and you won't have the performance hit of the compilation.
-        regex = re.compile('(?:.*,)*\s*Negotiate\s*([^,]*),?', re.I)
+        regex = re.compile(r'Negotiate\s*([^,]*)', re.I)
         _negotiate_value.regex = regex
 
-    authreq = response.headers.get('www-authenticate', None)
+    if response.status_code == 407:
+        authreq = response.headers.get('proxy-authenticate', None)
+    else:
+        authreq = response.headers.get('www-authenticate', None)
 
     if authreq:
         match_obj = regex.search(authreq)
         if match_obj:
-            return match_obj.group(1)
+            return base64.b64decode(match_obj.group(1))
 
     return None
 
+
+def _get_certificate_hash(certificate_der):
+    # https://tools.ietf.org/html/rfc5929#section-4.1
+    cert = x509.load_der_x509_certificate(certificate_der, default_backend())
+
+    try:
+        hash_algorithm = cert.signature_hash_algorithm
+    except UnsupportedAlgorithm as ex:
+        warnings.warn("Failed to get signature algorithm from certificate, "
+                      "unable to pass channel bindings: %s" % str(ex), UnknownSignatureAlgorithmOID)
+        return None
+
+    # if the cert signature algorithm is either md5 or sha1 then use sha256
+    # otherwise use the signature algorithm
+    if hash_algorithm.name in ['md5', 'sha1']:
+        digest = hashes.Hash(hashes.SHA256(), default_backend())
+    else:
+        digest = hashes.Hash(hash_algorithm, default_backend())
+
+    digest.update(certificate_der)
+    certificate_hash = digest.finalize()
+
+    return certificate_hash
+
+
+def _get_channel_bindings_application_data(response):
+    """
+    https://tools.ietf.org/html/rfc5929 4. The 'tls-server-end-point' Channel Binding Type
+
+    Gets the application_data value for the 'tls-server-end-point' CBT Type.
+    This is ultimately the SHA256 hash of the certificate of the HTTPS endpoint
+    appended onto tls-server-end-point. This value is then passed along to the
+    kerberos library to bind to the auth response. If the socket is not an SSL
+    socket or the raw HTTP object is not a urllib3 HTTPResponse then None will
+    be returned and the Kerberos auth will use GSS_C_NO_CHANNEL_BINDINGS
+
+    :param response: The original 401 response from the server
+    :return: byte string used on the application_data.value field on the CBT struct
+    """
+
+    application_data = None
+    raw_response = response.raw
+
+    if isinstance(raw_response, HTTPResponse):
+        try:
+            socket = raw_response._fp.fp.raw._sock
+        except AttributeError:
+            warnings.warn("Failed to get raw socket for CBT; has urllib3 impl changed",
+                          NoCertificateRetrievedWarning)
+        else:
+            try:
+                server_certificate = socket.getpeercert(True)
+            except AttributeError:
+                pass
+            else:
+                certificate_hash = _get_certificate_hash(server_certificate)
+                application_data = b'tls-server-end-point:' + certificate_hash
+    else:
+        warnings.warn(
+            "Requests is running with a non urllib3 backend, cannot retrieve server certificate for CBT",
+            NoCertificateRetrievedWarning)
+
+    return application_data
 
 class HTTPKerberosAuth(AuthBase):
     """Attaches HTTP GSSAPI/Kerberos Authentication to the given Request
@@ -85,8 +168,9 @@ class HTTPKerberosAuth(AuthBase):
     def __init__(
             self, mutual_authentication=REQUIRED,
             service="HTTP", delegate=False, force_preemptive=False,
-            principal=None, hostname_override=None, sanitize_mutual_error_response=True):
-        self.context = {}
+            principal=None, hostname_override=None,
+            sanitize_mutual_error_response=True, send_cbt=True):
+        self._context = {}
         self.mutual_authentication = mutual_authentication
         self.delegate = delegate
         self.pos = None
@@ -95,6 +179,12 @@ class HTTPKerberosAuth(AuthBase):
         self.principal = principal
         self.hostname_override = hostname_override
         self.sanitize_mutual_error_response = sanitize_mutual_error_response
+        self.auth_done = False
+
+        # Set the CBT values populated after the first response
+        self.send_cbt = send_cbt
+        self.cbt_binding_tried = False
+        self.cbt_struct = None
 
     def generate_request_header(self, response, host, is_preemptive=False):
         """
@@ -106,60 +196,51 @@ class HTTPKerberosAuth(AuthBase):
         """
 
         # Flags used by kerberos module.
-        gssflags = kerberos.GSS_C_MUTUAL_FLAG | kerberos.GSS_C_SEQUENCE_FLAG
+        gssflags = spnego.ContextReq.sequence_detect
         if self.delegate:
-            gssflags |= kerberos.GSS_C_DELEG_FLAG
+            gssflags |= spnego.ContextReq.delegate
+        if self.mutual_authentication != DISABLED:
+            gssflags |= spnego.ContextReq.mutual_auth
 
         try:
-            kerb_stage = "authGSSClientInit()"
+            kerb_stage = "ctx init"
             # contexts still need to be stored by host, but hostname_override
             # allows use of an arbitrary hostname for the kerberos exchange
             # (eg, in cases of aliased hosts, internal vs external, CNAMEs
             # w/ name-based HTTP hosting)
             kerb_host = self.hostname_override if self.hostname_override is not None else host
-            kerb_spn = "{0}@{1}".format(self.service, kerb_host)
 
-            result, self.context[host] = kerberos.authGSSClientInit(kerb_spn,
-                gssflags=gssflags, principal=self.principal)
-
-            if result < 1:
-                raise EnvironmentError(result, kerb_stage)
+            self._context[host] = ctx = spnego.client(
+                username=self.principal,
+                hostname=kerb_host,
+                service=self.service,
+                channel_bindings=self.cbt_struct,
+                context_req=gssflags,
+                protocol="kerberos",
+            )
 
             # if we have a previous response from the server, use it to continue
             # the auth process, otherwise use an empty value
-            negotiate_resp_value = '' if is_preemptive else _negotiate_value(response)
+            negotiate_resp_value = None if is_preemptive else _negotiate_value(response)
 
-            kerb_stage = "authGSSClientStep()"
-            result = kerberos.authGSSClientStep(self.context[host],
-                                                negotiate_resp_value)
+            kerb_stage = "ctx step"
+            gss_response = ctx.step(in_token=negotiate_resp_value)
 
-            if result < 0:
-                raise EnvironmentError(result, kerb_stage)
+            return "Negotiate {0}".format(base64.b64encode(gss_response).decode())
 
-            kerb_stage = "authGSSClientResponse()"
-            gss_response = kerberos.authGSSClientResponse(self.context[host])
-
-            return "Negotiate {0}".format(gss_response)
-
-        except kerberos.GSSError as error:
+        except spnego.exceptions.SpnegoError as error:
             log.exception(
                 "generate_request_header(): {0} failed:".format(kerb_stage))
             log.exception(error)
-            raise KerberosExchangeError("%s failed: %s" % (kerb_stage, str(error.args)))
-
-        except EnvironmentError as error:
-            # ensure we raised this for translation to KerberosExchangeError
-            # by comparing errno to result, re-raise if not
-            if error.errno != result:
-                raise
-            message = "{0} failed, result: {1}".format(kerb_stage, result)
-            log.error("generate_request_header(): {0}".format(message))
-            raise KerberosExchangeError(message)
+            raise KerberosExchangeError("%s failed: %s" % (kerb_stage, str(error))) from error
 
     def authenticate_user(self, response, **kwargs):
         """Handles user authentication with gssapi/kerberos"""
 
         host = urlparse(response.url).hostname
+        if response.status_code == 407:
+            if 'proxies' in kwargs and urlparse(response.url).scheme in kwargs['proxies']:
+                host = urlparse(kwargs['proxies'][urlparse(response.url).scheme]).hostname
 
         try:
             auth_header = self.generate_request_header(response, host)
@@ -167,9 +248,14 @@ class HTTPKerberosAuth(AuthBase):
             # GSS Failure, return existing response
             return response
 
-        log.debug("authenticate_user(): Authorization header: {0}".format(
-            auth_header))
-        response.request.headers['Authorization'] = auth_header
+        if response.status_code == 407:
+            log.debug("authenticate_user(): Proxy-Authorization header: {0}".format(
+                auth_header))
+            response.request.headers['Proxy-Authorization'] = auth_header
+        else:
+            log.debug("authenticate_user(): Authorization header: {0}".format(
+                auth_header))
+            response.request.headers['Authorization'] = auth_header
 
         # Consume the content so we can reuse the connection for the next
         # request.
@@ -195,6 +281,19 @@ class HTTPKerberosAuth(AuthBase):
             log.debug("handle_401(): returning {0}".format(response))
             return response
 
+    def handle_407(self, response, **kwargs):
+        """Handles 407's, attempts to use gssapi/kerberos authentication"""
+
+        log.debug("handle_407(): Handling: 407")
+        if _negotiate_value(response) is not None:
+            _r = self.authenticate_user(response, **kwargs)
+            log.debug("handle_407(): returning {0}".format(_r))
+            return _r
+        else:
+            log.debug("handle_407(): Kerberos is not supported")
+            log.debug("handle_407(): returning {0}".format(response))
+            return response
+
     def handle_other(self, response):
         """Handles all responses with the exception of 401s.
 
@@ -202,7 +301,7 @@ class HTTPKerberosAuth(AuthBase):
 
         log.debug("handle_other(): Handling: %d" % response.status_code)
 
-        if self.mutual_authentication in (REQUIRED, OPTIONAL):
+        if self.mutual_authentication in (REQUIRED, OPTIONAL) and not self.auth_done:
 
             is_http_error = response.status_code >= 400
 
@@ -218,6 +317,7 @@ class HTTPKerberosAuth(AuthBase):
 
                 # Authentication successful
                 log.debug("handle_other(): returning {0}".format(response))
+                self.auth_done = True
                 return response
 
             elif is_http_error or self.mutual_authentication == OPTIONAL:
@@ -232,7 +332,7 @@ class HTTPKerberosAuth(AuthBase):
                     return response
             else:
                 # Unable to attempt mutual authentication when mutual auth is
-                # required, raise an exception so the user doesnt use an
+                # required, raise an exception so the user doesn't use an
                 # untrusted response.
                 log.error("handle_other(): Mutual authentication failed")
                 raise MutualAuthenticationError("Unable to authenticate "
@@ -248,21 +348,18 @@ class HTTPKerberosAuth(AuthBase):
         Returns True on success, False on failure.
         """
 
+        response_token = _negotiate_value(response)
         log.debug("authenticate_server(): Authenticate header: {0}".format(
-            _negotiate_value(response)))
+            base64.b64encode(response_token).decode()
+            if response_token
+            else ""))
 
         host = urlparse(response.url).hostname
 
         try:
-            result = kerberos.authGSSClientStep(self.context[host],
-                                                _negotiate_value(response))
-        except kerberos.GSSError:
-            log.exception("authenticate_server(): authGSSClientStep() failed:")
-            return False
-
-        if result < 1:
-            log.error("authenticate_server(): authGSSClientStep() failed: "
-                      "{0}".format(result))
+            self._context[host].step(in_token=response_token)
+        except spnego.exceptions.SpnegoError:
+            log.exception("authenticate_server(): ctx step() failed:")
             return False
 
         log.debug("authenticate_server(): returning {0}".format(response))
@@ -271,6 +368,19 @@ class HTTPKerberosAuth(AuthBase):
     def handle_response(self, response, **kwargs):
         """Takes the given response and tries kerberos-auth, as needed."""
         num_401s = kwargs.pop('num_401s', 0)
+        num_407s = kwargs.pop('num_407s', 0)
+
+        # Check if we have already tried to get the CBT data value
+        if not self.cbt_binding_tried and self.send_cbt:
+            # If we haven't tried, try getting it now
+            cbt_application_data = _get_channel_bindings_application_data(response)
+            if cbt_application_data:
+                self.cbt_struct = spnego.channel_bindings.GssChannelBindings(
+                    application_data=cbt_application_data,
+                )
+
+            # Regardless of the result, set tried to True so we don't waste time next time
+            self.cbt_binding_tried = True
 
         if self.pos is not None:
             # Rewind the file position indicator of the body to where
@@ -290,6 +400,19 @@ class HTTPKerberosAuth(AuthBase):
             # Authentication has failed. Return the 401 response.
             log.debug("handle_response(): returning 401 %s", response)
             return response
+        elif response.status_code == 407 and num_407s < 2:
+            # 407 Unauthorized. Handle it, and if it still comes back as 407,
+            # that means authentication failed.
+            _r = self.handle_407(response, **kwargs)
+            log.debug("handle_response(): returning %s", _r)
+            log.debug("handle_response() has seen %d 407 responses", num_407s)
+            num_407s += 1
+            return self.handle_response(_r, num_407s=num_407s, **kwargs)
+        elif response.status_code == 407 and num_407s >= 2:
+            # Still receiving 407 responses after attempting to handle them.
+            # Authentication has failed. Return the 407 response.
+            log.debug("handle_response(): returning 407 %s", response)
+            return response
         else:
             _r = self.handle_other(response)
             log.debug("handle_response(): returning %s", _r)
@@ -300,7 +423,7 @@ class HTTPKerberosAuth(AuthBase):
         response.request.deregister_hook('response', self.handle_response)
 
     def __call__(self, request):
-        if self.force_preemptive:
+        if self.force_preemptive and not self.auth_done:
             # add Authorization header before we receive a 401
             # by the 401 handler
             host = urlparse(request.url).hostname
