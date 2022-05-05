@@ -225,6 +225,26 @@ overridden by using ``--cert`` option or by using ``PIP_CERT``,
 ``REQUESTS_CA_BUNDLE``, or ``CURL_CA_BUNDLE`` environment variables.
 
 
+.. _`Kerberos Authentication`:
+
+Kerberos Authentication
+++++++++++++++++++++++++++++
+
+Starting with vXX.X, pip supports using a Kerberos ticket to authenticate
+with servers. To use Kerberos one must:
+
+- Install ``spegno`` and ``cryptography`` into the same environment as ``pip``.
+- Run ``pip`` with the flag ``--enable-kerberos``, this can be globally set using ``pip config set global.--enable-kerberos true``.
+
+Bugs reported with pip in relation to Kerberos will likely not
+be addressed directly by pip's maintainers. Pull Requests to fix Kerberos
+only bugs will be considered, and merged (subject to normal review processes).
+Note that there may be delays due to the lack of developer resources for
+reviewing such pull requests.
+
+
+
+
 .. _`Caching`:
 
 Caching
