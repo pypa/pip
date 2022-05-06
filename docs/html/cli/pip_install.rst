@@ -237,8 +237,9 @@ with servers. To use Kerberos one must:
 - Run ``pip`` with the flag ``--enable-kerberos``. Your system administrator
   can also set this in the config files or an environment variable, see
   :ref:`Configuration`.
+- Have a valid Kerberos ticket.
 
-It is likely that you will also want to use ``--no-input`` at the same time.
+Note that setting this flag *enforces* the connection uses Kerberos.
 
 Bugs reported with pip in relation to Kerberos will likely not
 be addressed directly by pip's maintainers. Pull Requests to fix Kerberos
