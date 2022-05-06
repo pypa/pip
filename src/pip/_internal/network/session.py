@@ -292,11 +292,11 @@ class PipSession(requests.Session):
 
         if enable_kerberos:
             try:
-                from pip._vendor.requests_kerberos import REQUIRED, HTTPKerberosAuth
+                from requests_kerberos import REQUIRED, HTTPKerberosAuth
             except ImportError:
                 logger.critical(
-                    "Are you sure you `psegno` and `cryptography` are "
-                    "available in the same environment as pip?"
+                    "Are you sure you `requests_kerberos` and its dependencies "
+                    "are available in the same environment as pip?"
                 )
                 raise
             if prompting:
