@@ -1,1 +1,0 @@
-from requests_kerberos import *
