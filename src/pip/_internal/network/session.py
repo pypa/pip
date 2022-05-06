@@ -28,7 +28,7 @@ from pip._vendor.urllib3.exceptions import InsecureRequestWarning
 from pip import __version__
 from pip._internal.metadata import get_default_environment
 from pip._internal.models.link import Link
-from pip._internal.network.auth import MultiDomainBasicAuth
+from pip._internal.network.auth import MultiAuth, MultiDomainBasicAuth
 from pip._internal.network.cache import SafeFileCache
 
 # Import ssl from compat so the initial import occurs in only one place.
@@ -300,9 +300,11 @@ class PipSession(requests.Session):
                 )
                 raise
             if prompting:
-                self.auth = [no_prompt, HTTPKerberosAuth(REQUIRED), prompt]
+                auths = [no_prompt, HTTPKerberosAuth(REQUIRED), prompt]
             elif prompting:
-                self.auth = [no_prompt, HTTPKerberosAuth(REQUIRED)]
+                auths = [no_prompt, HTTPKerberosAuth(REQUIRED)]
+
+            self.auth = MultiAuth(auths)
 
         # Create our urllib3.Retry instance which will allow us to customize
         # how we handle retries.

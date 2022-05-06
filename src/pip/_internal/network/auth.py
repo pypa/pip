@@ -325,7 +325,7 @@ class MultiDomainBasicAuth(AuthBase):
 
 
 class MultiAuth(AuthBase):
-    def __init__(self, initial_auth=None, *auths):
+    def __init__(self, initial_auth: AuthBase = None, *auths: AuthBase):
         if initial_auth is None:
             self.initial_auth = MultiDomainBasicAuth(prompting=False)
         else:
@@ -333,21 +333,21 @@ class MultiAuth(AuthBase):
 
         self.auths = auths
 
-    def __call__(self, req):
+    def __call__(self, req: Request) -> Request:
         req = self.initial_auth(req)
         self._register_hook(req, 0)  # register hook after auth itself
         return req
 
-    def _register_hook(self, req, i):
+    def _register_hook(self, req: Request, i: int) -> None:
         if i >= len(self.auths):
             return
 
-        def hook(resp, **kwargs):
+        def hook(resp: Response, **kwargs: Any) -> None:
             self.handle_response(resp, i, **kwargs)
 
         req.register_hook("response", hook)
 
-    def handle_response(self, resp, i, **kwargs):
+    def handle_response(self, resp: Response, i: int, **kwargs: Any) -> Response:
         if resp.status_code != 401:  # authorization required
             return resp
 
