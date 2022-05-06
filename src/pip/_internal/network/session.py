@@ -266,7 +266,6 @@ class PipSession(requests.Session):
         cache: Optional[str] = None,
         trusted_hosts: Sequence[str] = (),
         index_urls: Optional[List[str]] = None,
-        prompting: bool = False,
         enable_kerberos: bool = False,
         **kwargs: Any,
     ) -> None:
@@ -288,8 +287,6 @@ class PipSession(requests.Session):
         prompt.passwords = no_prompt.passwords  # share same dict of passwords
 
         # Attach our Authentication handler to the session
-        self.auth = prompt if prompting else no_prompt
-
         if enable_kerberos:
             try:
                 from requests_kerberos import REQUIRED, HTTPKerberosAuth
@@ -300,6 +297,8 @@ class PipSession(requests.Session):
                 )
                 raise
             self.auth = HTTPKerberosAuth(REQUIRED)
+        else:
+            self.auth = MultiDomainBasicAuth(index_urls=index_urls)
 
         # Create our urllib3.Retry instance which will allow us to customize
         # how we handle retries.
