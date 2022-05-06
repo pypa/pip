@@ -301,7 +301,7 @@ class PipSession(requests.Session):
                 raise
             if prompting:
                 auths = [no_prompt, HTTPKerberosAuth(REQUIRED), prompt]
-            elif prompting:
+            else:
                 auths = [no_prompt, HTTPKerberosAuth(REQUIRED)]
 
             self.auth = MultiAuth(*auths)
