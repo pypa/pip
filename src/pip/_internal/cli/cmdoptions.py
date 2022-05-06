@@ -262,6 +262,16 @@ no_input: Callable[..., Option] = partial(
     help="Disable prompting for input.",
 )
 
+enable_kerberos: Callable[..., Option] = partial(
+    Option,
+    # Enable kerberos
+    "--enable-kerberos",
+    dest="enable_kerberos",
+    action="store_true",
+    default=False,
+    help="Enable Kerberos authentication.",
+)
+
 proxy: Callable[..., Option] = partial(
     Option,
     "--proxy",
@@ -1027,6 +1037,7 @@ general_group: Dict[str, Any] = {
         quiet,
         log,
         no_input,
+        enable_kerberos,
         proxy,
         retries,
         timeout,

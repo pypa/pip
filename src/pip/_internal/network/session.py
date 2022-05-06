@@ -266,6 +266,8 @@ class PipSession(requests.Session):
         cache: Optional[str] = None,
         trusted_hosts: Sequence[str] = (),
         index_urls: Optional[List[str]] = None,
+        prompting: bool = False,
+        enable_kerberos: bool = False,
         **kwargs: Any,
     ) -> None:
         """
@@ -281,8 +283,23 @@ class PipSession(requests.Session):
         # Attach our User Agent to the request
         self.headers["User-Agent"] = user_agent()
 
+        no_prompt = MultiDomainBasicAuth(prompting=False, index_urls=index_urls)
+        prompt = MultiDomainBasicAuth(prompting=True, index_urls=index_urls)
+        prompt.passwords = no_prompt.passwords  # share same dict of passwords
+
         # Attach our Authentication handler to the session
-        self.auth = MultiDomainBasicAuth(index_urls=index_urls)
+        self.auth = prompt if prompting else no_prompt
+
+        if enable_kerberos:
+            try:
+                from pip._vendor.requests_kerberos import HTTPKerberosAuth, REQUIRED
+            except ImportError:
+                logger.critical("Are you sure you `psegno` and `cryptography` are available in the same environment as pip?")
+                raise
+            if prompting:
+                self.auth = [no_prompt, HTTPKerberosAuth(REQUIRED), prompt]
+            elif prompting:
+                self.auth = [no_prompt, HTTPKerberosAuth(REQUIRED)]
 
         # Create our urllib3.Retry instance which will allow us to customize
         # how we handle retries.

@@ -322,3 +322,44 @@ class MultiDomainBasicAuth(AuthBase):
                 keyring.set_password(*creds)
             except Exception:
                 logger.exception("Failed to save credentials")
+
+
+class MultiAuth(AuthBase):
+    def __init__(self, initial_auth=None, *auths):
+        if initial_auth is None:
+            self.initial_auth = MultiDomainBasicAuth(prompting=False)
+        else:
+            self.initial_auth = initial_auth
+
+        self.auths = auths
+
+    def __call__(self, req):
+        req = self.initial_auth(req)
+        self._register_hook(req, 0)  # register hook after auth itself
+        return req
+
+    def _register_hook(self, req, i):
+        if i >= len(self.auths):
+            return
+
+        def hook(resp, **kwargs):
+            self.handle_response(resp, i, **kwargs)
+
+        req.register_hook("response", hook)
+
+    def handle_response(self, resp, i, **kwargs):
+        if resp.status_code != 401:  # authorization required
+            return resp
+
+        # clear response
+        resp.content
+        resp.raw.release_conn()
+
+        req = self.auths[i](resp.request)  # deletegate to ith auth
+        logger.info('registering hook {}'.format(i + 1))
+        self._register_hook(req, i + 1)  # register hook after auth itself
+
+        new_resp = resp.connection.send(req, **kwargs)
+        new_resp.history.append(resp)
+
+        return new_resp

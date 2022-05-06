@@ -93,6 +93,8 @@ class SessionCommandMixin(CommandContextMixIn):
             retries=retries if retries is not None else options.retries,
             trusted_hosts=options.trusted_hosts,
             index_urls=self._get_index_urls(options),
+            prompting=not options.no_input,
+            enable_kerberos=options.enable_kerberos,
         )
 
         # Handle custom ca-bundles from the user
@@ -113,9 +115,6 @@ class SessionCommandMixin(CommandContextMixIn):
                 "http": options.proxy,
                 "https": options.proxy,
             }
-
-        # Determine if we can prompt the user for authentication or not
-        session.auth.prompting = not options.no_input
 
         return session
 
