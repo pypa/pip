@@ -234,11 +234,11 @@ Starting with vXX.X, pip supports using a Kerberos ticket to authenticate
 with servers. To use Kerberos one must:
 
 - Install ``spegno`` and ``cryptography`` into the same environment as ``pip``.
-- Run ``pip`` with the flag ``--enable-kerberos``.
+- Run ``pip`` with the flag ``--enable-kerberos``. Your system administrator
+  can also set this in the config files or an environment variable, see
+  :ref:`Configuration`.
 
-
-Your system administrator can also set this in the config files or an environment variable,
-see :ref:`Configuration`.
+It is likely that you will also want to use `--no-input` at the same time.
 
 Bugs reported with pip in relation to Kerberos will likely not
 be addressed directly by pip's maintainers. Pull Requests to fix Kerberos
