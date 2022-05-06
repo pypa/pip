@@ -1,12 +1,15 @@
 """
 requests Kerberos/GSSAPI authentication library
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Requests is an HTTP library, written in Python, for human beings. This library
 adds optional Kerberos/GSSAPI authentication support and supports mutual
 authentication. Basic GET usage:
-    >>> import pip._vendor.requests
-    >>> from pip._vendor.requests_kerberos import HTTPKerberosAuth
+
+    >>> import requests
+    >>> from requests_kerberos import HTTPKerberosAuth
     >>> r = requests.get("http://example.org", auth=HTTPKerberosAuth())
+
 The entire `requests.api` should be supported.
 """
 import logging
