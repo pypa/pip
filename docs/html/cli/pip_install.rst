@@ -228,7 +228,7 @@ overridden by using ``--cert`` option or by using ``PIP_CERT``,
 .. _`Kerberos Authentication`:
 
 Kerberos Authentication
-++++++++++++++++++++++++++++
+-----------------------
 
 Starting with vXX.X, pip supports using a Kerberos ticket to authenticate
 with servers. To use Kerberos one must:
