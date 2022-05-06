@@ -497,4 +497,5 @@ def install_req_from_link_and_ireq(
         global_options=ireq.global_options,
         hash_options=ireq.hash_options,
         config_settings=ireq.config_settings,
+        user_supplied=ireq.user_supplied,
     )
