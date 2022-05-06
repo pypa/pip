@@ -49,6 +49,14 @@ hook will be called by pip, and dependencies it describes will also be installed
 in the build environment. For example, newer versions of setuptools expose the
 contents of `setup_requires` to pip via this hook.
 
+Build-time requirement specifiers follow {pep}`508`, so it's possible to
+reference packages with URLs. For example:
+
+```toml
+[build-system]
+requires = ["setuptools @ git+https://github.com/pypa/setuptools.git@main"]
+```
+
 ### Metadata Generation
 
 ```{versionadded} 19.0
@@ -97,6 +105,16 @@ This is considered a stopgap solution until setuptools adds support for
 {pep}`660`, at which point this functionality will be removed; following pip's
 regular {ref}`deprecation policy <Deprecation Policy>`.
 ```
+
+### Backend Configuration
+
+Build backends have the ability to accept configuration settings, which can
+change the way the build is handled. These settings take the form of a
+series of `key=value` pairs. The user can supply configuration settings
+using the `--config-settings` command line option (which can be supplied
+multiple times, in order to specify multiple settings).
+
+The supplied configuration settings are passed to every backend hook call.
 
 ## Build output
 

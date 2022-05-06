@@ -4,7 +4,7 @@ import os
 import pathlib
 import sys
 import sysconfig
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.compat import WINDOWS
@@ -73,7 +73,7 @@ def _looks_like_bpo_44860() -> bool:
 
     See <https://bugs.python.org/issue44860>.
     """
-    from distutils.command.install import INSTALL_SCHEMES  # type: ignore
+    from distutils.command.install import INSTALL_SCHEMES
 
     try:
         unix_user_platlib = INSTALL_SCHEMES["unix_user"]["platlib"]
@@ -98,7 +98,7 @@ def _looks_like_red_hat_lib() -> bool:
 
     This is the only way I can see to tell a Red Hat-patched Python.
     """
-    from distutils.command.install import INSTALL_SCHEMES  # type: ignore
+    from distutils.command.install import INSTALL_SCHEMES
 
     return all(
         k in INSTALL_SCHEMES
@@ -110,7 +110,7 @@ def _looks_like_red_hat_lib() -> bool:
 @functools.lru_cache(maxsize=None)
 def _looks_like_debian_scheme() -> bool:
     """Debian adds two additional schemes."""
-    from distutils.command.install import INSTALL_SCHEMES  # type: ignore
+    from distutils.command.install import INSTALL_SCHEMES
 
     return "deb_system" in INSTALL_SCHEMES and "unix_local" in INSTALL_SCHEMES
 
@@ -169,9 +169,9 @@ def _looks_like_msys2_mingw_scheme() -> bool:
     )
 
 
-def _fix_abiflags(parts: Tuple[str]) -> Iterator[str]:
+def _fix_abiflags(parts: Tuple[str]) -> Generator[str, None, None]:
     ldversion = sysconfig.get_config_var("LDVERSION")
-    abiflags: str = getattr(sys, "abiflags", None)
+    abiflags = getattr(sys, "abiflags", None)
 
     # LDVERSION does not end with sys.abiflags. Just return the path unchanged.
     if not ldversion or not abiflags or not ldversion.endswith(abiflags):

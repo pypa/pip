@@ -4,7 +4,7 @@ import sys
 import textwrap
 from os.path import join, normpath
 from tempfile import mkdtemp
-from typing import Any
+from typing import Any, Iterator
 from unittest.mock import Mock
 
 import pytest
@@ -615,11 +615,13 @@ def test_uninstall_setuptools_develop_install(
     script.assert_installed(FSPkg="0.1.dev0")
     # Uninstall both develop and install
     uninstall = script.pip("uninstall", "FSPkg", "-y")
-    assert any(filename.endswith(".egg") for filename in uninstall.files_deleted.keys())
+    assert any(filename.endswith(".egg") for filename in uninstall.files_deleted), str(
+        uninstall
+    )
     uninstall2 = script.pip("uninstall", "FSPkg", "-y")
     assert (
         join(script.site_packages, "FSPkg.egg-link") in uninstall2.files_deleted
-    ), list(uninstall2.files_deleted.keys())
+    ), str(uninstall2)
     script.assert_not_installed("FSPkg")
 
 
@@ -649,6 +651,17 @@ def test_uninstall_editable_and_pip_install(
     script.assert_not_installed("FSPkg")
 
 
+@pytest.fixture()
+def move_easy_install_pth(script: PipTestEnvironment) -> Iterator[None]:
+    """Move easy-install.pth out of the way for testing easy_install."""
+    easy_install_pth = join(script.site_packages_path, "easy-install.pth")
+    pip_test_pth = join(script.site_packages_path, "pip-test.pth")
+    os.rename(easy_install_pth, pip_test_pth)
+    yield
+    os.rename(pip_test_pth, easy_install_pth)
+
+
+@pytest.mark.usefixtures("move_easy_install_pth")
 def test_uninstall_editable_and_pip_install_easy_install_remove(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -659,16 +672,12 @@ def test_uninstall_editable_and_pip_install_easy_install_remove(
     # This becomes the default behavior in setuptools 25.
     script.environ["SETUPTOOLS_SYS_PATH_TECHNIQUE"] = "raw"
 
-    # Rename easy-install.pth to pip-test.pth
-    easy_install_pth = join(script.site_packages_path, "easy-install.pth")
-    pip_test_pth = join(script.site_packages_path, "pip-test.pth")
-    os.rename(easy_install_pth, pip_test_pth)
-
     # Install FSPkg
     pkg_path = data.packages.joinpath("FSPkg")
     script.pip("install", "-e", ".", expect_stderr=True, cwd=pkg_path)
 
     # Rename easy-install.pth to pip-test-fspkg.pth
+    easy_install_pth = join(script.site_packages_path, "easy-install.pth")
     pip_test_fspkg_pth = join(script.site_packages_path, "pip-test-fspkg.pth")
     os.rename(easy_install_pth, pip_test_fspkg_pth)
 
@@ -688,9 +697,6 @@ def test_uninstall_editable_and_pip_install_easy_install_remove(
 
     # Confirm that FSPkg is uninstalled
     script.assert_not_installed("FSPkg")
-
-    # Rename pip-test.pth back to easy-install.pth
-    os.rename(pip_test_pth, easy_install_pth)
 
 
 def test_uninstall_ignores_missing_packages(

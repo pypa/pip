@@ -10,6 +10,7 @@ pass on state. To be consistent, all options will follow this design.
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
 
+import importlib.util
 import logging
 import os
 import textwrap
@@ -21,7 +22,6 @@ from typing import Any, Callable, Dict, Optional, Tuple
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cli.parser import ConfigOptionParser
-from pip._internal.cli.progress_bars import BAR_TYPES
 from pip._internal.exceptions import CommandError
 from pip._internal.locations import USER_CACHE_DIR, get_src_prefix
 from pip._internal.models.format_control import FormatControl
@@ -236,13 +236,9 @@ progress_bar: Callable[..., Option] = partial(
     "--progress-bar",
     dest="progress_bar",
     type="choice",
-    choices=list(BAR_TYPES.keys()),
+    choices=["on", "off"],
     default="on",
-    help=(
-        "Specify type of progress to be displayed ["
-        + "|".join(BAR_TYPES.keys())
-        + "] (default: %default)"
-    ),
+    help="Specify whether the progress bar should be used [on, off] (default: on)",
 )
 
 log: Callable[..., Option] = partial(
@@ -775,6 +771,12 @@ def _handle_no_use_pep517(
         """
         raise_option_error(parser, option=option, msg=msg)
 
+    # If user doesn't wish to use pep517, we check if setuptools is installed
+    # and raise error if it is not.
+    if not importlib.util.find_spec("setuptools"):
+        msg = "It is not possible to use --no-use-pep517 without setuptools installed."
+        raise_option_error(parser, option=option, msg=msg)
+
     # Otherwise, --no-use-pep517 was passed via the command-line.
     parser.values.use_pep517 = False
 
@@ -797,6 +799,33 @@ no_use_pep517: Any = partial(
     callback=_handle_no_use_pep517,
     default=None,
     help=SUPPRESS_HELP,
+)
+
+
+def _handle_config_settings(
+    option: Option, opt_str: str, value: str, parser: OptionParser
+) -> None:
+    key, sep, val = value.partition("=")
+    if sep != "=":
+        parser.error(f"Arguments to {opt_str} must be of the form KEY=VAL")  # noqa
+    dest = getattr(parser.values, option.dest)
+    if dest is None:
+        dest = {}
+        setattr(parser.values, option.dest, dest)
+    dest[key] = val
+
+
+config_settings: Callable[..., Option] = partial(
+    Option,
+    "--config-settings",
+    dest="config_settings",
+    type=str,
+    action="callback",
+    callback=_handle_config_settings,
+    metavar="settings",
+    help="Configuration settings to be passed to the PEP 517 build backend. "
+    "Settings take the form KEY=VALUE. Use multiple --config-settings options "
+    "to pass multiple keys to the backend.",
 )
 
 install_options: Callable[..., Option] = partial(
@@ -856,6 +885,15 @@ disable_pip_version_check: Callable[..., Option] = partial(
     default=False,
     help="Don't periodically check PyPI to determine whether a new version "
     "of pip is available for download. Implied with --no-index.",
+)
+
+root_user_action: Callable[..., Option] = partial(
+    Option,
+    "--root-user-action",
+    dest="root_user_action",
+    default="warn",
+    choices=["warn", "ignore"],
+    help="Action if pip is run as a root user. By default, a warning message is shown.",
 )
 
 
@@ -953,7 +991,7 @@ use_new_feature: Callable[..., Option] = partial(
     metavar="feature",
     action="append",
     default=[],
-    choices=["2020-resolver", "fast-deps", "in-tree-build"],
+    choices=["2020-resolver", "fast-deps"],
     help="Enable new functionality, that may be backward incompatible.",
 )
 
@@ -966,7 +1004,6 @@ use_deprecated_feature: Callable[..., Option] = partial(
     default=[],
     choices=[
         "legacy-resolver",
-        "out-of-tree-build",
         "backtrack-on-build-failures",
         "html5lib",
     ],

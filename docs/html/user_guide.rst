@@ -17,7 +17,7 @@ to your system, which can be run from the command prompt as follows:
 
    ``python -m pip`` executes pip using the Python interpreter you
    specified as python. So ``/usr/bin/python3.7 -m pip`` means
-   you are executing pip for your interpreter located at /usr/bin/python3.7.
+   you are executing pip for your interpreter located at ``/usr/bin/python3.7``.
 
 .. tab:: Windows
 
@@ -496,6 +496,10 @@ To setup for fish::
 
     python -m pip completion --fish > ~/.config/fish/completions/pip.fish
 
+To setup for powershell::
+
+   python -m pip completion --powershell | Out-File -Encoding default -Append $PROFILE
+
 Alternatively, you can use the result of the ``completion`` command directly
 with the eval function of your shell, e.g. by adding the following to your
 startup file::
@@ -629,7 +633,7 @@ Moreover, the "user scheme" can be customized by setting the
 ``PYTHONUSERBASE`` environment variable, which updates the value of
 ``site.USER_BASE``.
 
-To install "SomePackage" into an environment with site.USER_BASE customized to
+To install "SomePackage" into an environment with ``site.USER_BASE`` customized to
 '/myappenv', do the following:
 
 .. tab:: Unix/macOS

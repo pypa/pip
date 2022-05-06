@@ -6,8 +6,9 @@ import os
 import sys
 import threading
 from dataclasses import dataclass
+from io import TextIOWrapper
 from logging import Filter
-from typing import IO, Any, ClassVar, Iterator, List, Optional, TextIO, Type
+from typing import Any, ClassVar, Generator, List, Optional, TextIO, Type
 
 from pip._vendor.rich.console import (
     Console,
@@ -20,7 +21,6 @@ from pip._vendor.rich.logging import RichHandler
 from pip._vendor.rich.segment import Segment
 from pip._vendor.rich.style import Style
 
-from pip._internal.exceptions import DiagnosticPipError
 from pip._internal.utils._log import VERBOSE, getLogger
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
@@ -50,7 +50,7 @@ def _is_broken_pipe_error(exc_class: Type[BaseException], exc: BaseException) ->
 
 
 @contextlib.contextmanager
-def indent_log(num: int = 2) -> Iterator[None]:
+def indent_log(num: int = 2) -> Generator[None, None, None]:
     """
     A context manager which will cause the log output to be indented for any
     log messages emitted inside it.
@@ -152,12 +152,15 @@ class RichPipStreamHandler(RichHandler):
         style: Optional[Style] = None
 
         # If we are given a diagnostic error to present, present it with indentation.
-        if record.msg == "[present-diagnostic] %s" and len(record.args) == 1:
-            diagnostic_error: DiagnosticPipError = record.args[0]  # type: ignore[index]
-            assert isinstance(diagnostic_error, DiagnosticPipError)
+        assert isinstance(record.args, tuple)
+        if record.msg == "[present-rich] %s" and len(record.args) == 1:
+            rich_renderable = record.args[0]
+            assert isinstance(
+                rich_renderable, ConsoleRenderable
+            ), f"{rich_renderable} is not rich-console-renderable"
 
             renderable: ConsoleRenderable = IndentedRenderable(
-                diagnostic_error, indent=get_indentation()
+                rich_renderable, indent=get_indentation()
             )
         else:
             message = self.format(record)
@@ -193,7 +196,7 @@ class RichPipStreamHandler(RichHandler):
 
 
 class BetterRotatingFileHandler(logging.handlers.RotatingFileHandler):
-    def _open(self) -> IO[Any]:
+    def _open(self) -> TextIOWrapper:
         ensure_dir(os.path.dirname(self.baseFilename))
         return super()._open()
 

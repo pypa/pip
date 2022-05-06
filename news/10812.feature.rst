@@ -1,2 +1,0 @@
-Improve error message when ``pip config edit`` is provided an editor that
-doesn't exist.

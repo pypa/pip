@@ -22,6 +22,7 @@ from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
+from pip._internal.operations.build.build_tracker import BuildTracker
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.constructors import (
     install_req_from_editable,
@@ -31,7 +32,6 @@ from pip._internal.req.constructors import (
 )
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.self_outdated_check import pip_self_version_check
 from pip._internal.utils.deprecation import deprecated
@@ -257,7 +257,7 @@ class RequirementCommand(IndexGroupCommand):
         cls,
         temp_build_dir: TempDirectory,
         options: Values,
-        req_tracker: RequirementTracker,
+        build_tracker: BuildTracker,
         session: PipSession,
         finder: PackageFinder,
         use_user_site: bool,
@@ -288,33 +288,12 @@ class RequirementCommand(IndexGroupCommand):
                     "fast-deps has no effect when used with the legacy resolver."
                 )
 
-        in_tree_build = "out-of-tree-build" not in options.deprecated_features_enabled
-        if "in-tree-build" in options.features_enabled:
-            deprecated(
-                reason="In-tree builds are now the default.",
-                replacement="to remove the --use-feature=in-tree-build flag",
-                gone_in="22.1",
-            )
-        if "out-of-tree-build" in options.deprecated_features_enabled:
-            deprecated(
-                reason="Out-of-tree builds are deprecated.",
-                replacement=None,
-                gone_in="22.1",
-            )
-
-        if options.progress_bar not in {"on", "off"}:
-            deprecated(
-                reason="Custom progress bar styles are deprecated",
-                replacement="to use the default progress bar style.",
-                gone_in="22.1",
-            )
-
         return RequirementPreparer(
             build_dir=temp_build_dir_path,
             src_dir=options.src_dir,
             download_dir=download_dir,
             build_isolation=options.build_isolation,
-            req_tracker=req_tracker,
+            build_tracker=build_tracker,
             session=session,
             progress_bar=options.progress_bar,
             finder=finder,
@@ -322,7 +301,6 @@ class RequirementCommand(IndexGroupCommand):
             use_user_site=use_user_site,
             lazy_wheel=lazy_wheel,
             verbosity=verbosity,
-            in_tree_build=in_tree_build,
         )
 
     @classmethod
@@ -348,6 +326,7 @@ class RequirementCommand(IndexGroupCommand):
             ignore_dependencies=options.ignore_dependencies,
             isolated=options.isolated_mode,
             use_pep517=use_pep517,
+            config_settings=getattr(options, "config_settings", None),
         )
         suppress_build_failures = cls.determine_build_failure_suppression(options)
         resolver_variant = cls.determine_resolver_variant(options)
@@ -420,6 +399,7 @@ class RequirementCommand(IndexGroupCommand):
                 isolated=options.isolated_mode,
                 use_pep517=options.use_pep517,
                 user_supplied=True,
+                config_settings=getattr(options, "config_settings", None),
             )
             requirements.append(req_to_add)
 
@@ -429,6 +409,7 @@ class RequirementCommand(IndexGroupCommand):
                 user_supplied=True,
                 isolated=options.isolated_mode,
                 use_pep517=options.use_pep517,
+                config_settings=getattr(options, "config_settings", None),
             )
             requirements.append(req_to_add)
 

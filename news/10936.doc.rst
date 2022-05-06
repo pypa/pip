@@ -1,1 +1,0 @@
-Capitalise Y as the default for "Proceed (y/n)?" when uninstalling.

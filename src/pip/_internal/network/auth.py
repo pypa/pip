@@ -109,7 +109,8 @@ class MultiDomainBasicAuth(AuthBase):
     def _get_new_credentials(
         self,
         original_url: str,
-        allow_netrc: bool = True,
+        *,
+        allow_netrc: bool = False,
         allow_keyring: bool = False,
     ) -> AuthInfo:
         """Find and return credentials for the specified URL."""
@@ -260,7 +261,7 @@ class MultiDomainBasicAuth(AuthBase):
         # Query the keyring for credentials:
         username, password = self._get_new_credentials(
             resp.url,
-            allow_netrc=False,
+            allow_netrc=True,
             allow_keyring=True,
         )
 

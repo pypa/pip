@@ -218,3 +218,38 @@ jobs:
           --verbose --numprocesses auto --showlocals
         env:
           TEMP: "R:\\Temp"
+
+  tests-importlib-metadata:
+    name: tests for importlib.metadata backend
+    runs-on: ubuntu-latest
+    env:
+      _PIP_METADATA_BACKEND_IMPORTLIB: egg-compat
+
+    needs: [pre-commit, packaging, determine-changes]
+    if: >-
+      needs.determine-changes.outputs.tests == 'true' ||
+      github.event_name != 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+
+      - name: Install Ubuntu dependencies
+        run: sudo apt-get install bzr
+
+      - run: pip install nox 'virtualenv<20'
+
+      # Main check
+      - name: Run unit tests
+        run: >-
+          nox -s test-3.10 --
+          -m unit
+          --verbose --numprocesses auto --showlocals
+      - name: Run integration tests
+        run: >-
+          nox -s test-3.10 --
+          -m integration
+          --verbose --numprocesses auto --showlocals
+          --durations=5

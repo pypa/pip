@@ -11,7 +11,7 @@ import zipfile
 from collections import OrderedDict
 from sysconfig import get_paths
 from types import TracebackType
-from typing import TYPE_CHECKING, Iterable, Iterator, List, Optional, Set, Tuple, Type
+from typing import TYPE_CHECKING, Generator, Iterable, List, Optional, Set, Tuple, Type
 
 from pip._vendor.certifi import where
 from pip._vendor.packaging.requirements import Requirement
@@ -42,7 +42,7 @@ class _Prefix:
 
 
 @contextlib.contextmanager
-def _create_standalone_pip() -> Iterator[str]:
+def _create_standalone_pip() -> Generator[str, None, None]:
     """Create a "standalone pip" zip file.
 
     The zip file's content is identical to the currently-running pip.
@@ -175,6 +175,8 @@ class BuildEnvironment:
             )
             for req_str in reqs:
                 req = Requirement(req_str)
+                if req.marker is not None and not req.marker.evaluate():
+                    continue  # FIXME: Consider extras?
                 dist = env.get_distribution(req.name)
                 if not dist:
                     missing.add(req_str)

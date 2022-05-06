@@ -70,6 +70,7 @@ def make_install_req_from_link(
             hashes=template.hash_options,
             ignore_dependencies=template.ignore_dependencies,
         ),
+        config_settings=template.config_settings,
     )
     ireq.original_link = template.original_link
     ireq.link = link
@@ -94,6 +95,7 @@ def make_install_req_from_editable(
             hashes=template.hash_options,
             ignore_dependencies=template.ignore_dependencies,
         ),
+        config_settings=template.config_settings,
     )
 
 
@@ -119,6 +121,7 @@ def _make_install_req_from_dist(
             hashes=template.hash_options,
             ignore_dependencies=template.ignore_dependencies,
         ),
+        config_settings=template.config_settings,
     )
     ireq.satisfied_by = dist
     return ireq

@@ -165,6 +165,25 @@ def test_build_env_requirements_check(script: PipTestEnvironment) -> None:
         """,
     )
 
+    run_with_build_env(
+        script,
+        """
+        build_env.install_requirements(
+            finder,
+            ["bar==3.0"],
+            "normal",
+            kind="installing bar in normal",
+        )
+        r = build_env.check_requirements(
+            [
+                "bar==2.0; python_version < '3.0'",
+                "bar==3.0; python_version >= '3.0'",
+            ],
+        )
+        assert r == (set(), set()), repr(r)
+        """,
+    )
+
 
 def test_build_env_overlay_prefix_has_priority(script: PipTestEnvironment) -> None:
     create_basic_wheel_for_package(script, "pkg", "2.0")

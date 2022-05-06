@@ -207,6 +207,7 @@ def install_req_from_editable(
     constraint: bool = False,
     user_supplied: bool = False,
     permit_editable_wheels: bool = False,
+    config_settings: Optional[Dict[str, str]] = None,
 ) -> InstallRequirement:
 
     parts = parse_req_from_editable(editable_req)
@@ -224,6 +225,7 @@ def install_req_from_editable(
         install_options=options.get("install_options", []) if options else [],
         global_options=options.get("global_options", []) if options else [],
         hash_options=options.get("hashes", {}) if options else {},
+        config_settings=config_settings,
         ignore_dependencies=options.get("ignore_dependencies", False)
         if options
         else False,
@@ -383,6 +385,7 @@ def install_req_from_line(
     constraint: bool = False,
     line_source: Optional[str] = None,
     user_supplied: bool = False,
+    config_settings: Optional[Dict[str, str]] = None,
 ) -> InstallRequirement:
     """Creates an InstallRequirement from a name, which might be a
     requirement, directory containing 'setup.py', filename, or URL.
@@ -402,6 +405,7 @@ def install_req_from_line(
         install_options=options.get("install_options", []) if options else [],
         global_options=options.get("global_options", []) if options else [],
         hash_options=options.get("hashes", {}) if options else {},
+        config_settings=config_settings,
         ignore_dependencies=options.get("ignore_dependencies", False)
         if options
         else False,
@@ -418,6 +422,7 @@ def install_req_from_req_string(
     ignore_dependencies: bool = False,
     use_pep517: Optional[bool] = None,
     user_supplied: bool = False,
+    config_settings: Optional[Dict[str, str]] = None,
 ) -> InstallRequirement:
     try:
         req = get_requirement(req_string)
@@ -448,6 +453,7 @@ def install_req_from_req_string(
         ignore_dependencies=ignore_dependencies,
         use_pep517=use_pep517,
         user_supplied=user_supplied,
+        config_settings=config_settings,
     )
 
 
@@ -456,6 +462,7 @@ def install_req_from_parsed_requirement(
     isolated: bool = False,
     use_pep517: Optional[bool] = None,
     user_supplied: bool = False,
+    config_settings: Optional[Dict[str, str]] = None,
 ) -> InstallRequirement:
     if parsed_req.is_editable:
         req = install_req_from_editable(
@@ -466,6 +473,7 @@ def install_req_from_parsed_requirement(
             isolated=isolated,
             options=parsed_req.options,
             user_supplied=user_supplied,
+            config_settings=config_settings,
         )
 
     else:
@@ -478,6 +486,7 @@ def install_req_from_parsed_requirement(
             constraint=parsed_req.constraint,
             line_source=parsed_req.line_source,
             user_supplied=user_supplied,
+            config_settings=config_settings,
         )
     return req
 
@@ -497,4 +506,5 @@ def install_req_from_link_and_ireq(
         global_options=ireq.global_options,
         ignore_dependencies=ireq.ignore_dependencies,
         hash_options=ireq.hash_options,
+        config_settings=ireq.config_settings,
     )
