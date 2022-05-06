@@ -304,7 +304,7 @@ class PipSession(requests.Session):
             elif prompting:
                 auths = [no_prompt, HTTPKerberosAuth(REQUIRED)]
 
-            self.auth = MultiAuth(auths)
+            self.auth = MultiAuth(*auths)
 
         # Create our urllib3.Retry instance which will allow us to customize
         # how we handle retries.
