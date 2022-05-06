@@ -238,7 +238,7 @@ with servers. To use Kerberos one must:
   can also set this in the config files or an environment variable, see
   :ref:`Configuration`.
 
-It is likely that you will also want to use `--no-input` at the same time.
+It is likely that you will also want to use ``--no-input`` at the same time.
 
 Bugs reported with pip in relation to Kerberos will likely not
 be addressed directly by pip's maintainers. Pull Requests to fix Kerberos

@@ -355,8 +355,8 @@ class MultiAuth(AuthBase):
         resp.content
         resp.raw.release_conn()
 
-        req = self.auths[i](resp.request)  # deletegate to ith auth
-        logger.info('registering hook {}'.format(i + 1))
+        req = self.auths[i](resp.request)  # delegate to ith auth
+        logger.info("registering hook %d", i + 1)
         self._register_hook(req, i + 1)  # register hook after auth itself
 
         new_resp = resp.connection.send(req, **kwargs)
