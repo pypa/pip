@@ -682,6 +682,9 @@ def test_list_json(simple_script: PipTestEnvironment) -> None:
     data = json.loads(result.stdout)
     assert subdict_in_list({"name": "simple", "version": "1.0"}, data)
     assert subdict_in_list({"name": "simple2", "version": "3.0"}, data)
+    for item in data:
+        assert item["metadata"]["name"] == item["name"]
+        assert item["metadata"]["version"] == item["version"]
 
 
 def test_list_path(tmpdir: Path, script: PipTestEnvironment, data: TestData) -> None:

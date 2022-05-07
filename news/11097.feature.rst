@@ -1,0 +1,1 @@
+Add a ``metadata`` field to the ``pip list`` JSON output.

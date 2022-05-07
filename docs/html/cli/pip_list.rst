@@ -104,19 +104,31 @@ Examples
 
 #. Use json formatting
 
+   The ``metadata`` field is the distribution metadata, converted to JSON using the
+   transformation described in `PEP 566
+   <https://peps.python.org/pep-0566/#json-compatible-metadata>`_.
+
    .. tab:: Unix/macOS
 
       .. code-block:: console
 
          $ python -m pip list --format=json
-         [{'name': 'colorama', 'version': '0.3.7'}, {'name': 'docopt', 'version': '0.6.2'}, ...
+         [
+            {'name': 'colorama', 'version': '0.3.7', 'metadata': {...}},
+            {'name': 'docopt', 'version': '0.6.2', 'metadata': {...}},
+            ...
+         ]
 
    .. tab:: Windows
 
       .. code-block:: console
 
          C:\> py -m pip list --format=json
-         [{'name': 'colorama', 'version': '0.3.7'}, {'name': 'docopt', 'version': '0.6.2'}, ...
+         [
+            {'name': 'colorama', 'version': '0.3.7', 'metadata': {...}},
+            {'name': 'docopt', 'version': '0.6.2', 'metadata': {...}},
+            ...
+         ]
 
 #. Use freeze formatting
 

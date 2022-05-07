@@ -1,7 +1,17 @@
 import json
 import logging
 from optparse import Values
-from typing import TYPE_CHECKING, Generator, List, Optional, Sequence, Tuple, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Generator,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    cast,
+)
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -344,7 +354,7 @@ def format_for_columns(
 def format_for_json(packages: "_ProcessedDists", options: Values) -> str:
     data = []
     for dist in packages:
-        info = {
+        info: Dict[str, Any] = {
             "name": dist.raw_name,
             "version": str(dist.version),
         }
@@ -357,5 +367,6 @@ def format_for_json(packages: "_ProcessedDists", options: Values) -> str:
         editable_project_location = dist.editable_project_location
         if editable_project_location:
             info["editable_project_location"] = editable_project_location
+        info["metadata"] = dist.metadata_dict
         data.append(info)
     return json.dumps(data)
