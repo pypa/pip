@@ -25,7 +25,9 @@ from pip._internal.metadata import (
     BaseDistribution,
     get_default_environment,
     get_directory_distribution,
+    get_wheel_distribution,
 )
+from pip._internal.metadata.base import FilesystemWheel
 from pip._internal.models.direct_url import DirectUrl
 from pip._internal.models.link import Link
 from pip._internal.operations.build.metadata import generate_metadata
@@ -558,7 +560,16 @@ class InstallRequirement:
         return self._metadata
 
     def get_dist(self) -> BaseDistribution:
-        return get_directory_distribution(self.metadata_directory)
+        if self.metadata_directory:
+            return get_directory_distribution(self.metadata_directory)
+        elif self.local_file_path and self.is_wheel:
+            return get_wheel_distribution(
+                FilesystemWheel(self.local_file_path), canonicalize_name(self.name)
+            )
+        raise AssertionError(
+            f"InstallRequirement {self} has no metadata directory and no wheel: "
+            f"can't make a distribution."
+        )
 
     def assert_source_matches_version(self) -> None:
         assert self.source_dir
