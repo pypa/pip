@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+from typing import Any, Dict
 
 import pytest
 
@@ -33,6 +34,22 @@ def simple_script(
         "simple2==3.0",
     )
     return script
+
+
+def subdict_in(subdict: Dict[Any, Any], d: Dict[Any, Any]) -> bool:
+    """Return true if all keys of subdict are in d and the correponding values match."""
+    return all(k in d and d[k] == v for k, v in subdict.items())
+
+
+def subdict_in_list(subdict: Dict[Any, Any], items: Any) -> bool:
+    """
+    Return true if at least one of the dictionaries in items contains all the keys
+    of subdict and the corresponding values match.
+    """
+    for item in items:
+        if subdict_in(subdict, item):
+            return True
+    return False
 
 
 def test_basic_list(simple_script: PipTestEnvironment) -> None:
@@ -97,7 +114,9 @@ def test_local_flag(simple_script: PipTestEnvironment) -> None:
 
     """
     result = simple_script.pip("list", "--local", "--format=json")
-    assert {"name": "simple", "version": "1.0"} in json.loads(result.stdout)
+    assert subdict_in_list(
+        {"name": "simple", "version": "1.0"}, json.loads(result.stdout)
+    )
 
 
 def test_local_columns_flag(simple_script: PipTestEnvironment) -> None:
@@ -139,8 +158,12 @@ def test_user_flag(script: PipTestEnvironment, data: TestData) -> None:
     script.pip("install", "-f", data.find_links, "--no-index", "simple==1.0")
     script.pip("install", "-f", data.find_links, "--no-index", "--user", "simple2==2.0")
     result = script.pip("list", "--user", "--format=json")
-    assert {"name": "simple", "version": "1.0"} not in json.loads(result.stdout)
-    assert {"name": "simple2", "version": "2.0"} in json.loads(result.stdout)
+    assert not subdict_in_list(
+        {"name": "simple", "version": "1.0"}, json.loads(result.stdout)
+    )
+    assert subdict_in_list(
+        {"name": "simple2", "version": "2.0"}, json.loads(result.stdout)
+    )
 
 
 @pytest.mark.network
@@ -191,13 +214,19 @@ def test_uptodate_flag(script: PipTestEnvironment, data: TestData) -> None:
     for item in json_output:
         if "editable_project_location" in item:
             item["editable_project_location"] = "<location>"
-    assert {"name": "simple", "version": "1.0"} not in json_output  # 3.0 is latest
-    assert {
-        "name": "pip-test-package",
-        "version": "0.1.1",
-        "editable_project_location": "<location>",
-    } in json_output  # editables included
-    assert {"name": "simple2", "version": "3.0"} in json_output
+    assert not subdict_in_list(
+        {"name": "simple", "version": "1.0"},
+        json_output,
+    )  # 3.0 is latest
+    assert subdict_in_list(
+        {
+            "name": "pip-test-package",
+            "version": "0.1.1",
+            "editable_project_location": "<location>",
+        },
+        json_output,
+    )  # editables included
+    assert subdict_in_list({"name": "simple2", "version": "3.0"}, json_output)
 
 
 @pytest.mark.network
@@ -267,30 +296,33 @@ def test_outdated_flag(script: PipTestEnvironment, data: TestData) -> None:
     for item in json_output:
         if "editable_project_location" in item:
             item["editable_project_location"] = "<location>"
-    assert {
-        "name": "simple",
-        "version": "1.0",
-        "latest_version": "3.0",
-        "latest_filetype": "sdist",
-    } in json_output
-    assert (
+    assert subdict_in_list(
+        {
+            "name": "simple",
+            "version": "1.0",
+            "latest_version": "3.0",
+            "latest_filetype": "sdist",
+        },
+        json_output,
+    )
+    assert subdict_in_list(
         dict(
             name="simplewheel",
             version="1.0",
             latest_version="2.0",
             latest_filetype="wheel",
-        )
-        in json_output
+        ),
+        json_output,
     )
-    assert (
+    assert subdict_in_list(
         dict(
             name="pip-test-package",
             version="0.1",
             latest_version="0.1.1",
             latest_filetype="sdist",
             editable_project_location="<location>",
-        )
-        in json_output
+        ),
+        json_output,
     )
     assert "simple2" not in {p["name"] for p in json_output}
 
@@ -358,7 +390,9 @@ def test_editables_flag(pip_test_package_script: PipTestEnvironment) -> None:
     """
     result = pip_test_package_script.pip("list", "--editable", "--format=json")
     result2 = pip_test_package_script.pip("list", "--editable")
-    assert {"name": "simple", "version": "1.0"} not in json.loads(result.stdout)
+    assert not subdict_in_list(
+        {"name": "simple", "version": "1.0"}, json.loads(result.stdout)
+    )
     assert os.path.join("src", "pip-test-package") in result2.stdout
 
 
@@ -368,7 +402,9 @@ def test_exclude_editable_flag(pip_test_package_script: PipTestEnvironment) -> N
     Test the behavior of --editables flag in the list command
     """
     result = pip_test_package_script.pip("list", "--exclude-editable", "--format=json")
-    assert {"name": "simple", "version": "1.0"} in json.loads(result.stdout)
+    assert subdict_in_list(
+        {"name": "simple", "version": "1.0"}, json.loads(result.stdout)
+    )
     assert "pip-test-package" not in {p["name"] for p in json.loads(result.stdout)}
 
 
@@ -516,7 +552,9 @@ def test_outdated_pre(script: PipTestEnvironment, data: TestData) -> None:
         wheelhouse_path,
         "--format=json",
     )
-    assert {"name": "simple", "version": "1.0"} in json.loads(result.stdout)
+    assert subdict_in_list(
+        {"name": "simple", "version": "1.0"}, json.loads(result.stdout)
+    )
     result = script.pip(
         "list",
         "--no-index",
@@ -525,12 +563,15 @@ def test_outdated_pre(script: PipTestEnvironment, data: TestData) -> None:
         "--outdated",
         "--format=json",
     )
-    assert {
-        "name": "simple",
-        "version": "1.0",
-        "latest_version": "1.1",
-        "latest_filetype": "wheel",
-    } in json.loads(result.stdout)
+    assert subdict_in_list(
+        {
+            "name": "simple",
+            "version": "1.0",
+            "latest_version": "1.1",
+            "latest_filetype": "wheel",
+        },
+        json.loads(result.stdout),
+    )
     result_pre = script.pip(
         "list",
         "--no-index",
@@ -540,12 +581,15 @@ def test_outdated_pre(script: PipTestEnvironment, data: TestData) -> None:
         "--pre",
         "--format=json",
     )
-    assert {
-        "name": "simple",
-        "version": "1.0",
-        "latest_version": "2.0.dev0",
-        "latest_filetype": "wheel",
-    } in json.loads(result_pre.stdout)
+    assert subdict_in_list(
+        {
+            "name": "simple",
+            "version": "1.0",
+            "latest_version": "2.0.dev0",
+            "latest_filetype": "wheel",
+        },
+        json.loads(result_pre.stdout),
+    )
 
 
 def test_outdated_formats(script: PipTestEnvironment, data: TestData) -> None:
@@ -598,14 +642,16 @@ def test_outdated_formats(script: PipTestEnvironment, data: TestData) -> None:
         "--format=json",
     )
     data = json.loads(result.stdout)
-    assert data == [
+    assert len(data) == 1  # type: ignore
+    assert subdict_in_list(
         {
             "name": "simple",
             "version": "1.0",
             "latest_version": "1.1",
             "latest_filetype": "wheel",
-        }
-    ]
+        },
+        data,
+    )
 
 
 def test_not_required_flag(script: PipTestEnvironment, data: TestData) -> None:
@@ -634,8 +680,8 @@ def test_list_json(simple_script: PipTestEnvironment) -> None:
     """
     result = simple_script.pip("list", "--format=json")
     data = json.loads(result.stdout)
-    assert {"name": "simple", "version": "1.0"} in data
-    assert {"name": "simple2", "version": "3.0"} in data
+    assert subdict_in_list({"name": "simple", "version": "1.0"}, data)
+    assert subdict_in_list({"name": "simple2", "version": "3.0"}, data)
 
 
 def test_list_path(tmpdir: Path, script: PipTestEnvironment, data: TestData) -> None:
@@ -644,12 +690,12 @@ def test_list_path(tmpdir: Path, script: PipTestEnvironment, data: TestData) -> 
     """
     result = script.pip("list", "--path", tmpdir, "--format=json")
     json_result = json.loads(result.stdout)
-    assert {"name": "simple", "version": "2.0"} not in json_result
+    assert not subdict_in_list({"name": "simple", "version": "2.0"}, json_result)
 
     script.pip_install_local("--target", tmpdir, "simple==2.0")
     result = script.pip("list", "--path", tmpdir, "--format=json")
     json_result = json.loads(result.stdout)
-    assert {"name": "simple", "version": "2.0"} in json_result
+    assert subdict_in_list({"name": "simple", "version": "2.0"}, json_result)
 
 
 @pytest.mark.incompatible_with_test_venv
@@ -665,11 +711,11 @@ def test_list_path_exclude_user(
 
     result = script.pip("list", "--user", "--format=json")
     json_result = json.loads(result.stdout)
-    assert {"name": "simple2", "version": "3.0"} in json_result
+    assert subdict_in_list({"name": "simple2", "version": "3.0"}, json_result)
 
     result = script.pip("list", "--path", tmpdir, "--format=json")
     json_result = json.loads(result.stdout)
-    assert {"name": "simple", "version": "1.0"} in json_result
+    assert subdict_in_list({"name": "simple", "version": "1.0"}, json_result)
 
 
 def test_list_path_multiple(
@@ -688,12 +734,12 @@ def test_list_path_multiple(
 
     result = script.pip("list", "--path", path1, "--format=json")
     json_result = json.loads(result.stdout)
-    assert {"name": "simple", "version": "2.0"} in json_result
+    assert subdict_in_list({"name": "simple", "version": "2.0"}, json_result)
 
     result = script.pip("list", "--path", path1, "--path", path2, "--format=json")
     json_result = json.loads(result.stdout)
-    assert {"name": "simple", "version": "2.0"} in json_result
-    assert {"name": "simple2", "version": "3.0"} in json_result
+    assert subdict_in_list({"name": "simple", "version": "2.0"}, json_result)
+    assert subdict_in_list({"name": "simple2", "version": "3.0"}, json_result)
 
 
 def test_list_skip_work_dir_pkg(script: PipTestEnvironment) -> None:
@@ -708,7 +754,7 @@ def test_list_skip_work_dir_pkg(script: PipTestEnvironment) -> None:
     # List should not include package simple when run from package directory
     result = script.pip("list", "--format=json", cwd=pkg_path)
     json_result = json.loads(result.stdout)
-    assert {"name": "simple", "version": "1.0"} not in json_result
+    assert not subdict_in_list({"name": "simple", "version": "1.0"}, json_result)
 
 
 def test_list_include_work_dir_pkg(script: PipTestEnvironment) -> None:
@@ -727,7 +773,7 @@ def test_list_include_work_dir_pkg(script: PipTestEnvironment) -> None:
     # when the package directory is in PYTHONPATH
     result = script.pip("list", "--format=json", cwd=pkg_path)
     json_result = json.loads(result.stdout)
-    assert {"name": "simple", "version": "1.0"} in json_result
+    assert subdict_in_list({"name": "simple", "version": "1.0"}, json_result)
 
 
 @pytest.mark.usefixtures("with_wheel")
