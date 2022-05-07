@@ -86,6 +86,17 @@ class InstallCommand(RequirementCommand):
 
         self.cmd_opts.add_option(cmdoptions.editable())
         self.cmd_opts.add_option(
+            "--dry-run",
+            action="store_true",
+            dest="dry_run",
+            default=False,
+            help=(
+                "Don't actually install anything, just print what would be. "
+                "Can be used in combination with --ignore-installed "
+                "to 'resolve' the requirements."
+            ),
+        )
+        self.cmd_opts.add_option(
             "-t",
             "--target",
             dest="target_dir",
@@ -341,6 +352,17 @@ class InstallCommand(RequirementCommand):
             requirement_set = resolver.resolve(
                 reqs, check_supported_wheels=not options.target_dir
             )
+
+            if options.dry_run:
+                items = [
+                    f"{item.name}-{item.metadata['version']}"
+                    for item in sorted(
+                        requirement_set.all_requirements, key=lambda x: str(x.name)
+                    )
+                ]
+                if items:
+                    write_output("Would install %s", " ".join(items))
+                return SUCCESS
 
             try:
                 pip_req = requirement_set.get_requirement("pip")
