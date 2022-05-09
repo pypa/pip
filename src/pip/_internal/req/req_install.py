@@ -53,7 +53,7 @@ from pip._internal.utils.misc import (
     hide_url,
     redact_auth_from_url,
 )
-from pip._internal.utils.packaging import is_pinned, safe_extra
+from pip._internal.utils.packaging import safe_extra
 from pip._internal.utils.subprocess import runner_with_spinner_message
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 from pip._internal.utils.virtualenv import running_under_virtualenv
@@ -241,7 +241,8 @@ class InstallRequirement:
 
         For example, some-package==1.2 is pinned; some-package>1.2 is not.
         """
-        return is_pinned(self.specifier)
+        specifiers = self.specifier
+        return len(specifiers) == 1 and next(iter(specifiers)).operator in {"==", "==="}
 
     def match_markers(self, extras_requested: Optional[Iterable[str]] = None) -> bool:
         if not extras_requested:
