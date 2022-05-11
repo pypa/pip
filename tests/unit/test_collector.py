@@ -11,13 +11,12 @@ from unittest import mock
 
 import pytest
 from pip._vendor import requests
+from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.index.collector import (
     IndexContent,
     LinkCollector,
-    _clean_link,
-    _clean_url_path,
     _get_index_content,
     _get_simple_response,
     _make_index_content,
@@ -28,7 +27,12 @@ from pip._internal.index.collector import (
 from pip._internal.index.sources import _FlatDirectorySource, _IndexDirectorySource
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.index import PyPI
-from pip._internal.models.link import Link
+from pip._internal.models.link import (
+    Link,
+    LinkHash,
+    _clean_url_path,
+    _ensure_quoted_url,
+)
 from pip._internal.network.session import PipSession
 from tests.lib import TestData, make_test_link_collector
 
@@ -402,13 +406,13 @@ def test_clean_url_path_with_local_path(path: str, expected: str) -> None:
         ),
     ],
 )
-def test_clean_link(url: str, clean_url: str) -> None:
-    assert _clean_link(url) == clean_url
+def test_ensure_quoted_url(url: str, clean_url: str) -> None:
+    assert _ensure_quoted_url(url) == clean_url
 
 
 def _test_parse_links_data_attribute(
     anchor_html: str, attr: str, expected: Optional[str]
-) -> None:
+) -> Link:
     html = (
         "<!DOCTYPE html>"
         '<html><head><meta charset="utf-8"><head>'
@@ -427,6 +431,7 @@ def _test_parse_links_data_attribute(
     (link,) = links
     actual = getattr(link, attr)
     assert actual == expected
+    return link
 
 
 @pytest.mark.parametrize(
@@ -532,6 +537,48 @@ def test_parse_links_json() -> None:
 )
 def test_parse_links__yanked_reason(anchor_html: str, expected: Optional[str]) -> None:
     _test_parse_links_data_attribute(anchor_html, "yanked_reason", expected)
+
+
+# Requirement objects do not == each other unless they point to the same instance!
+_pkg1_requirement = Requirement("pkg1==1.0")
+
+
+@pytest.mark.parametrize(
+    "anchor_html, expected, link_hash",
+    [
+        # Test not present.
+        (
+            '<a href="/pkg1-1.0.tar.gz"></a>',
+            None,
+            None,
+        ),
+        # Test with value "true".
+        (
+            '<a href="/pkg1-1.0.tar.gz" data-dist-info-metadata="true"></a>',
+            "true",
+            None,
+        ),
+        # Test with a provided hash value.
+        (
+            '<a href="/pkg1-1.0.tar.gz" data-dist-info-metadata="sha256=aa113592bbe"></a>',  # noqa: E501
+            "sha256=aa113592bbe",
+            None,
+        ),
+        # Test with a provided hash value for both the requirement as well as metadata.
+        (
+            '<a href="/pkg1-1.0.tar.gz#sha512=abc132409cb" data-dist-info-metadata="sha256=aa113592bbe"></a>',  # noqa: E501
+            "sha256=aa113592bbe",
+            LinkHash("sha512", "abc132409cb"),
+        ),
+    ],
+)
+def test_parse_links__dist_info_metadata(
+    anchor_html: str,
+    expected: Optional[str],
+    link_hash: Optional[LinkHash],
+) -> None:
+    link = _test_parse_links_data_attribute(anchor_html, "dist_info_metadata", expected)
+    assert link.link_hash == link_hash
 
 
 def test_parse_links_caches_same_page_by_url() -> None:
@@ -963,3 +1010,23 @@ def test_link_collector_create_find_links_expansion(
     expected_temp2_dir = os.path.normcase(temp2_dir)
     assert search_scope.find_links == ["~/temp1", expected_temp2_dir]
     assert search_scope.index_urls == ["default_url"]
+
+
+@pytest.mark.parametrize(
+    "url, result",
+    [
+        (
+            "https://pypi.org/pip-18.0.tar.gz#sha256=aa113592bbe",
+            LinkHash("sha256", "aa113592bbe"),
+        ),
+        (
+            "https://pypi.org/pip-18.0.tar.gz#md5=aa113592bbe",
+            LinkHash("md5", "aa113592bbe"),
+        ),
+        ("https://pypi.org/pip-18.0.tar.gz", None),
+        # We don't recognize the "sha500" algorithm, so we discard it.
+        ("https://pypi.org/pip-18.0.tar.gz#sha500=aa113592bbe", None),
+    ],
+)
+def test_link_hash_parsing(url: str, result: Optional[LinkHash]) -> None:
+    assert LinkHash.split_hash_name_and_value(url) == result

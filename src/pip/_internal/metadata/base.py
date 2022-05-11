@@ -114,6 +114,21 @@ class BaseDistribution(Protocol):
         raise NotImplementedError()
 
     @classmethod
+    def from_metadata_file(
+        cls,
+        metadata_path: str,
+        filename: str,
+        project_name: str,
+    ) -> "BaseDistribution":
+        """Load the distribution from the contents of a METADATA file.
+
+        :param metadata: The path to a METADATA file.
+        :param filename: File name for the dist with this metadata.
+        :param project_name: Name of the project this dist represents.
+        """
+        raise NotImplementedError()
+
+    @classmethod
     def from_wheel(cls, wheel: "Wheel", name: str) -> "BaseDistribution":
         """Load the distribution from a given wheel.
 

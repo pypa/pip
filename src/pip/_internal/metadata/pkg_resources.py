@@ -93,6 +93,25 @@ class Distribution(BaseDistribution):
         return cls(dist)
 
     @classmethod
+    def from_metadata_file(
+        cls,
+        metadata_path: str,
+        filename: str,
+        project_name: str,
+    ) -> BaseDistribution:
+        with open(metadata_path, "rb") as f:
+            metadata = f.read()
+        metadata_text = {
+            "METADATA": metadata,
+        }
+        dist = pkg_resources.DistInfoDistribution(
+            location=filename,
+            metadata=WheelMetadata(metadata_text, filename),
+            project_name=project_name,
+        )
+        return cls(dist)
+
+    @classmethod
     def from_wheel(cls, wheel: Wheel, name: str) -> BaseDistribution:
         try:
             with wheel.as_zipfile() as zf:

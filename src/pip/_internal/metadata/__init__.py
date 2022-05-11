@@ -103,3 +103,24 @@ def get_wheel_distribution(wheel: Wheel, canonical_name: str) -> BaseDistributio
     :param canonical_name: Normalized project name of the given wheel.
     """
     return select_backend().Distribution.from_wheel(wheel, canonical_name)
+
+
+def get_metadata_distribution(
+    metadata_path: str,
+    filename: str,
+    canonical_name: str,
+) -> BaseDistribution:
+    """Get the representation of the specified METADATA file.
+
+    This returns a Distribution instance from the chosen backend based on the contents
+    of the file at ``metadata_path``.
+
+    :param metadata_path: Path to the METADATA file.
+    :param filename: Filename for the dist this metadata represents.
+    :param canonical_name: Normalized project name of the given dist.
+    """
+    return select_backend().Distribution.from_metadata_file(
+        metadata_path,
+        filename,
+        canonical_name,
+    )
