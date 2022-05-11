@@ -9,6 +9,25 @@
 
 .. towncrier release notes start
 
+22.1 (2022-05-11)
+=================
+
+Process
+-------
+
+- Enable the ``importlib.metadata`` metadata implementation by default on
+  Python 3.11 (or later). The environment variable ``_PIP_USE_IMPORTLIB_METADATA``
+  can still be used to enable the implementation on 3.10 and earlier, or disable
+  it on 3.11 (by setting it to ``0`` or ``false``).
+
+Bug Fixes
+---------
+
+- Revert `#9243 <https://github.com/pypa/pip/issues/9243>`_ since it introduced a regression in certain edge cases. (`#10962 <https://github.com/pypa/pip/issues/10962>`_)
+- Fix missing ``REQUESTED`` metadata when using URL constraints. (`#11079 <https://github.com/pypa/pip/issues/11079>`_)
+- ``pip config`` now normalizes names by converting underscores into dashes. (`#9330 <https://github.com/pypa/pip/issues/9330>`_)
+
+
 22.1b1 (2022-04-30)
 ===================
 

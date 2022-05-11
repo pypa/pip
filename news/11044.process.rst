@@ -1,4 +1,0 @@
-Enable the ``importlib.metadata`` metadata implementation by default on
-Python 3.11 (or later). The environment variable ``_PIP_USE_IMPORTLIB_METADATA``
-can still be used to enable the implementation on 3.10 and earlier, or disable
-it on 3.11 (by setting it to ``0`` or ``false``).
