@@ -1,1 +1,0 @@
-Revert `#9243 <https://github.com/pypa/pip/issues/9243>`_ since it introduced a regression in certain edge cases.
