@@ -58,6 +58,11 @@ class LinkHash:
     value: str
 
     _hash_re = re.compile(
+        # NB: we do not validate that the second group (.*) is a valid hex
+        # digest. Instead, we simply keep that string in this class, and then check it
+        # against Hashes when hash-checking is needed. This is easier to debug than
+        # proactively discarding an invalid hex digest, as we handle incorrect hashes
+        # and malformed hashes in the same place.
         r"({choices})=(.*)".format(
             choices="|".join(re.escape(hash_name) for hash_name in _SUPPORTED_HASHES)
         ),
