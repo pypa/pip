@@ -178,6 +178,7 @@ def test_build_env_requirements_check(script: PipTestEnvironment) -> None:
             [
                 "bar==2.0; python_version < '3.0'",
                 "bar==3.0; python_version >= '3.0'",
+                "foo==4.0; extra == 'dev'",
             ],
         )
         assert r == (set(), set()), repr(r)
