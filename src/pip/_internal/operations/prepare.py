@@ -50,11 +50,14 @@ def _get_prepared_distribution(
     build_tracker: BuildTracker,
     finder: PackageFinder,
     build_isolation: bool,
+    check_build_deps: bool,
 ) -> BaseDistribution:
     """Prepare a distribution for installation."""
     abstract_dist = make_distribution_for_install_requirement(req)
     with build_tracker.track(req):
-        abstract_dist.prepare_distribution_metadata(finder, build_isolation)
+        abstract_dist.prepare_distribution_metadata(
+            finder, build_isolation, check_build_deps
+        )
     return abstract_dist.get_metadata_distribution()
 
 
@@ -199,6 +202,7 @@ class RequirementPreparer:
         download_dir: Optional[str],
         src_dir: str,
         build_isolation: bool,
+        check_build_deps: bool,
         build_tracker: BuildTracker,
         session: PipSession,
         progress_bar: str,
@@ -224,6 +228,9 @@ class RequirementPreparer:
 
         # Is build isolation allowed?
         self.build_isolation = build_isolation
+
+        # Should check build dependencies?
+        self.check_build_deps = check_build_deps
 
         # Should hash-checking be required?
         self.require_hashes = require_hashes
@@ -492,6 +499,7 @@ class RequirementPreparer:
             self.build_tracker,
             self.finder,
             self.build_isolation,
+            self.check_build_deps,
         )
         return dist
 
@@ -545,6 +553,7 @@ class RequirementPreparer:
                 self.build_tracker,
                 self.finder,
                 self.build_isolation,
+                self.check_build_deps,
             )
 
             req.check_if_exists(self.use_user_site)

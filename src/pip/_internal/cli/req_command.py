@@ -293,6 +293,7 @@ class RequirementCommand(IndexGroupCommand):
             src_dir=options.src_dir,
             download_dir=download_dir,
             build_isolation=options.build_isolation,
+            check_build_deps=options.check_build_deps,
             build_tracker=build_tracker,
             session=session,
             progress_bar=options.progress_bar,

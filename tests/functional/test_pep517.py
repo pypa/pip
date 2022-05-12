@@ -160,6 +160,26 @@ def test_conflicting_pep517_backend_requirements(
     assert result.returncode != 0 and msg in result.stderr, str(result)
 
 
+def test_no_check_build_deps(
+    script: PipTestEnvironment, tmpdir: Path, data: TestData
+) -> None:
+    project_dir = make_project(
+        tmpdir, requires=["simplewheel==2.0"], backend="test_backend"
+    )
+    script.pip(
+        "install",
+        "simplewheel==1.0",
+        "test_backend",
+        "--no-index",
+        "-f",
+        data.packages,
+        "-f",
+        data.backends,
+    )
+    result = script.pip("install", "--no-build-isolation", project_dir)
+    result.assert_installed("project", editable=False)
+
+
 def test_validate_missing_pep517_backend_requirements(
     script: PipTestEnvironment, tmpdir: Path, data: TestData
 ) -> None:
@@ -174,6 +194,7 @@ def test_validate_missing_pep517_backend_requirements(
         "-f",
         data.packages,
         "--no-build-isolation",
+        "--check-build-dependencies",
         project_dir,
         expect_error=True,
     )
@@ -199,6 +220,7 @@ def test_validate_conflicting_pep517_backend_requirements(
         "-f",
         data.packages,
         "--no-build-isolation",
+        "--check-build-dependencies",
         project_dir,
         expect_error=True,
     )

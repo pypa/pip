@@ -749,6 +749,15 @@ no_build_isolation: Callable[..., Option] = partial(
     "if this option is used.",
 )
 
+check_build_deps: Callable[..., Option] = partial(
+    Option,
+    "--check-build-dependencies",
+    dest="check_build_deps",
+    action="store_true",
+    default=False,
+    help="Check the build dependencies when PEP517 is used.",
+)
+
 
 def _handle_no_use_pep517(
     option: Option, opt: str, value: str, parser: OptionParser
