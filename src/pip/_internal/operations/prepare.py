@@ -377,9 +377,15 @@ class RequirementPreparer:
             self._download,
             hashes=metadata_link.as_hashes(),
         )
+        # The file will be downloaded under the same name as it's listed in the index,
+        # which will end with .metadata. To make importlib.metadata.PathDistribution
+        # work, we need to keep it in the same directory, but rename it to METADATA.
+        containing_dir = os.path.dirname(metadata_file.path)
+        new_metadata_path = os.path.join(containing_dir, "METADATA")
+        os.rename(metadata_file.path, new_metadata_path)
         assert req.req is not None
         return get_metadata_distribution(
-            metadata_file.path,
+            new_metadata_path,
             req.link.filename,
             req.req.name,
         )
