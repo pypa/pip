@@ -190,149 +190,151 @@ Below is a compiled list of all research outputs and recommendations made by the
 
 We are currently looking for volunteers to take recommendations made by the UX team and move them into pip's issue tracker. This will ensure that the research conducted in 2020 is leveraged by the pip development team.
 
-<table>
-  <thead>
-    <tr>
-      <th>Title</th>
-      <th>Category</th>
-      <th>Description</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>
-        <a href="../2020-research-outputs/about-our-users">About our users</a>
-      </td>
-      <td>
-        Who uses pip
-      </td>
-      <td>
-        High-level summary of who uses pip. Includes recommendations for supporting languages other than English, supporting users with disabilities, and improving pip's output
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="../2020-research-outputs/personas">Pip personas</a>
-      </td>
-      <td>
-        Who uses pip
-      </td>
-      <td>
-        Defines and explores three Python user personas
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="../2020-research-outputs/mental-models">Mental models of pip</a>
-      </td>
-      <td>
-        Who uses pip
-      </td>
-      <td>
-        Explores users' general knowledge of package management, what pip is, and what pip does during an install process.
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="../2020-research-outputs/users-and-security">Behaviours and attitudes towards code security and integrity</a>
-      </td>
-      <td>
-        Who uses pip
-      </td>
-      <td>
-        Explores pip users behaviour and attitudes towards security and makes recommendations on how to improve pips security experience
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="../2020-research-outputs/ci-cd">Usage of pip in automated and interactive environments</a>
-      </td>
-      <td>
-        Who uses pip
-      </td>
-      <td>
-        Assessment of use of pip in automated environments (i.e. continuous integration, continuous deployment) vs manual input from the command line
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="../2020-research-outputs/improving-pips-documentation">Improving pip's documentation</a>
-      </td>
-      <td>
-        Documentation
-      </td>
-      <td>
-        Summarises how pip users get pip help, and make recommendations on how to improve pip's documentation
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="../2020-research-outputs/pip-logo">Pip's identity: In search of a logo</a>
-      </td>
-      <td>
-        Pip community
-      </td>
-      <td>
-        Summarises community ideas for a new pip logo as input for a design brief
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="../2020-research-outputs/prioritizing-features">Prioritizing features (buy a feature)</a>
-      </td>
-      <td>
-        How pip works
-      </td>
-      <td>
-        Summarises which features are most important to pip's users
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="../2020-research-outputs/pip-search">Pip Search</a>
-      </td>
-      <td>
-        How pip works
-      </td>
-      <td>
-        Summarises current use of pip search and makes recommendations on how to move forward with pip search, given that PyPI XMLRPC search has been disabled
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="../2020-research-outputs/pip-force-reinstall">Pip Force reinstall</a>
-      </td>
-      <td>
-        How pip works
-      </td>
-      <td>
-        Looks at at current use of `pip --force-reinstall` and whether the current behavior matches users expectations
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="../2020-research-outputs/pip-upgrade-conflict">Dependency conflict resolution when upgrading packages</a>
-      </td>
-      <td>
-        2020 dependency resolver
-      </td>
-      <td>
-        Recommends whether pip should take into account packages that are already installed when a user asks pip to upgrade a package
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="../2020-research-outputs/override-conflicting-dependencies">Providing an override to install packages with conflicting dependencies</a>
-      </td>
-      <td>
-        2020 dependency resolver
-      </td>
-      <td>
-        Recommends weather or not to provide an override for users to install packages with conflicts (the new pip resolver blocks this behaviour by default)
-      </td>
-    </tr>
-  </tbody>
-</table>
+<div class="wy-table-responsive">
+  <table class="colwidths-auto docutils align-default">
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Category</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <a href="../2020-research-outputs/about-our-users">About our users</a>
+        </td>
+        <td>
+          Who uses pip
+        </td>
+        <td>
+          High-level summary of who uses pip. Includes recommendations for supporting languages other than English, supporting users with disabilities, and improving pip's output
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <a href="../2020-research-outputs/personas">Pip personas</a>
+        </td>
+        <td>
+          Who uses pip
+        </td>
+        <td>
+          Defines and explores three Python user personas
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <a href="../2020-research-outputs/mental-models">Mental models of pip</a>
+        </td>
+        <td>
+          Who uses pip
+        </td>
+        <td>
+          Explores users' general knowledge of package management, what pip is, and what pip does during an install process.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <a href="../2020-research-outputs/users-and-security">Behaviours and attitudes towards code security and integrity</a>
+        </td>
+        <td>
+          Who uses pip
+        </td>
+        <td>
+          Explores pip users behaviour and attitudes towards security and makes recommendations on how to improve pips security experience
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <a href="../2020-research-outputs/ci-cd">Usage of pip in automated and interactive environments</a>
+        </td>
+        <td>
+          Who uses pip
+        </td>
+        <td>
+          Assessment of use of pip in automated environments (i.e. continuous integration, continuous deployment) vs manual input from the command line
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <a href="../2020-research-outputs/improving-pips-documentation">Improving pip's documentation</a>
+        </td>
+        <td>
+          Documentation
+        </td>
+        <td>
+          Summarises how pip users get pip help, and make recommendations on how to improve pip's documentation
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <a href="../2020-research-outputs/pip-logo">Pip's identity: In search of a logo</a>
+        </td>
+        <td>
+          Pip community
+        </td>
+        <td>
+          Summarises community ideas for a new pip logo as input for a design brief
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <a href="../2020-research-outputs/prioritizing-features">Prioritizing features (buy a feature)</a>
+        </td>
+        <td>
+          How pip works
+        </td>
+        <td>
+          Summarises which features are most important to pip's users
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <a href="../2020-research-outputs/pip-search">Pip Search</a>
+        </td>
+        <td>
+          How pip works
+        </td>
+        <td>
+          Summarises current use of pip search and makes recommendations on how to move forward with pip search, given that PyPI XMLRPC search has been disabled
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <a href="../2020-research-outputs/pip-force-reinstall">Pip Force reinstall</a>
+        </td>
+        <td>
+          How pip works
+        </td>
+        <td>
+          Looks at at current use of `pip --force-reinstall` and whether the current behavior matches users expectations
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <a href="../2020-research-outputs/pip-upgrade-conflict">Dependency conflict resolution when upgrading packages</a>
+        </td>
+        <td>
+          2020 dependency resolver
+        </td>
+        <td>
+          Recommends whether pip should take into account packages that are already installed when a user asks pip to upgrade a package
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <a href="../2020-research-outputs/override-conflicting-dependencies">Providing an override to install packages with conflicting dependencies</a>
+        </td>
+        <td>
+          2020 dependency resolver
+        </td>
+        <td>
+          Recommends weather or not to provide an override for users to install packages with conflicts (the new pip resolver blocks this behaviour by default)
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
 ```{toctree}
 about-our-users
