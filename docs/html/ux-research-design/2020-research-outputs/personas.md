@@ -2,6 +2,8 @@
 
 ## Problem
 
+We want to develop personas for pip's user to facilate faster user-centered decision making for the pip development team.
+
 [Skip to recommendations](#recommendations)
 
 ## Research
@@ -33,7 +35,8 @@ During the research we've met different user types in the Python community. The 
 
 "I spend a lot of my time creating Python software packages and libraries for other people to use in the software they make. I might make Python packages and libraries and then publish them on pypi.org or other software repositories."
 
-## Summary
+
+## Results
 
 During our research we found that these user types did fit with participants' sense of their usage of Python. Participants did not identify significantly different Python user types when asked.
 
@@ -46,8 +49,6 @@ Most (86%) participants identified as being a Python software user. This ranged 
 75% identified as a Python software maker - as with Python software user, this ranged from writing basic scripts, code, to being a professional software developer.
 
 Only 40% identified as a Python software maintainer - the activities of a maintainer were seen as only available to someone who had many years of Python experience, was heavily involved in a particular package or application, or did it as part of their job.
-
-## Results
 
 ### I am a Python software user
 
