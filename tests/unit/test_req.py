@@ -123,7 +123,7 @@ class TestRequirementSet:
         reqset = RequirementSet()
         req = install_req_from_line("simple")
         req.user_supplied = True
-        reqset.add_requirement(req)
+        reqset.add_named_requirement(req)
         finder = make_test_finder(find_links=[data.find_links])
         with self._basic_resolver(finder) as resolver:
             with pytest.raises(
@@ -144,7 +144,7 @@ class TestRequirementSet:
         reqset = RequirementSet()
         req = install_req_from_editable(data.packages.joinpath("LocalEnvironMarker"))
         req.user_supplied = True
-        reqset.add_requirement(req)
+        reqset.add_unnamed_requirement(req)
         finder = make_test_finder(find_links=[data.find_links])
         with self._basic_resolver(finder) as resolver:
             reqset = resolver.resolve(reqset.all_requirements, True)
@@ -155,7 +155,9 @@ class TestRequirementSet:
         are missing.
         """
         reqset = RequirementSet()
-        reqset.add_requirement(get_processed_req_from_line("simple==1.0", lineno=1))
+        reqset.add_named_requirement(
+            get_processed_req_from_line("simple==1.0", lineno=1)
+        )
 
         finder = make_test_finder(find_links=[data.find_links])
 
@@ -194,14 +196,14 @@ class TestRequirementSet:
 
         """
         reqset = RequirementSet()
-        reqset.add_requirement(
+        reqset.add_unnamed_requirement(
             get_processed_req_from_line(
                 "git+git://github.com/pypa/pip-test-package --hash=sha256:123",
                 lineno=1,
             )
         )
         dir_path = data.packages.joinpath("FSPkg")
-        reqset.add_requirement(
+        reqset.add_unnamed_requirement(
             get_processed_req_from_line(
                 f"file://{dir_path}",
                 lineno=2,
@@ -235,7 +237,7 @@ class TestRequirementSet:
         """
         reqset = RequirementSet()
         # Test that there must be exactly 1 specifier:
-        reqset.add_requirement(
+        reqset.add_named_requirement(
             get_processed_req_from_line(
                 "simple --hash=sha256:a90427ae31f5d1d0d7ec06ee97d9fcf2d0fc9a786985"
                 "250c1c83fd68df5911dd",
@@ -243,7 +245,7 @@ class TestRequirementSet:
             )
         )
         # Test that the operator must be ==:
-        reqset.add_requirement(
+        reqset.add_named_requirement(
             get_processed_req_from_line(
                 "simple2>1.0 --hash=sha256:3ad45e1e9aa48b4462af0"
                 "123f6a7e44a9115db1ef945d4d92c123dfe21815a06",
@@ -267,7 +269,7 @@ class TestRequirementSet:
         """A hash mismatch should raise an error."""
         file_url = path_to_url((data.packages / "simple-1.0.tar.gz").resolve())
         reqset = RequirementSet()
-        reqset.add_requirement(
+        reqset.add_unnamed_requirement(
             get_processed_req_from_line(
                 f"{file_url} --hash=sha256:badbad",
                 lineno=1,
@@ -292,7 +294,7 @@ class TestRequirementSet:
         dependencies get complained about when --require-hashes is on."""
         reqset = RequirementSet()
         finder = make_test_finder(find_links=[data.find_links])
-        reqset.add_requirement(
+        reqset.add_named_requirement(
             get_processed_req_from_line(
                 "TopoRequires2==0.0.1 "  # requires TopoRequires
                 "--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd"
@@ -322,7 +324,7 @@ class TestRequirementSet:
 
         """
         reqset = RequirementSet()
-        reqset.add_requirement(
+        reqset.add_named_requirement(
             get_processed_req_from_line(
                 "TopoRequires2==0.0.1 "  # requires TopoRequires
                 "--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd"
@@ -330,7 +332,7 @@ class TestRequirementSet:
                 lineno=1,
             )
         )
-        reqset.add_requirement(
+        reqset.add_named_requirement(
             get_processed_req_from_line(
                 "TopoRequires==0.0.1 "
                 "--hash=sha256:d6dd1e22e60df512fdcf3640ced3039b3b02a56ab2cee81ebcb"
@@ -381,32 +383,6 @@ class TestInstallRequirement:
         assert req.link.is_wheel
         assert req.link.scheme == "https"
         assert req.link.url == url
-
-    def test_unsupported_wheel_link_requirement_raises(self) -> None:
-        reqset = RequirementSet()
-        req = install_req_from_line(
-            "https://whatever.com/peppercorn-0.4-py2.py3-bogus-any.whl",
-        )
-        assert req.link is not None
-        assert req.link.is_wheel
-        assert req.link.scheme == "https"
-
-        with pytest.raises(InstallationError):
-            reqset.add_requirement(req)
-
-    def test_unsupported_wheel_local_file_requirement_raises(
-        self, data: TestData
-    ) -> None:
-        reqset = RequirementSet()
-        req = install_req_from_line(
-            data.packages.joinpath("simple.dist-0.1-py1-none-invalid.whl"),
-        )
-        assert req.link is not None
-        assert req.link.is_wheel
-        assert req.link.scheme == "file"
-
-        with pytest.raises(InstallationError):
-            reqset.add_requirement(req)
 
     def test_str(self) -> None:
         req = install_req_from_line("simple==0.1")
@@ -656,19 +632,6 @@ def test_parse_editable_local_extras(
         "file:///some/path/foo",
         {"bar", "baz"},
     )
-
-
-def test_exclusive_environment_markers() -> None:
-    """Make sure RequirementSet accepts several excluding env markers"""
-    eq36 = install_req_from_line("Django>=1.6.10,<1.7 ; python_version == '3.6'")
-    eq36.user_supplied = True
-    ne36 = install_req_from_line("Django>=1.6.10,<1.8 ; python_version != '3.6'")
-    ne36.user_supplied = True
-
-    req_set = RequirementSet()
-    req_set.add_requirement(eq36)
-    req_set.add_requirement(ne36)
-    assert req_set.has_requirement("Django")
 
 
 def test_mismatched_versions(caplog: pytest.LogCaptureFixture) -> None:
