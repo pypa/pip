@@ -91,6 +91,7 @@ class TestRequirementSet:
                 src_dir=os.path.join(self.tempdir, "src"),
                 download_dir=None,
                 build_isolation=True,
+                check_build_deps=False,
                 build_tracker=tracker,
                 session=session,
                 progress_bar="on",
