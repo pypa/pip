@@ -1414,7 +1414,6 @@ def download_generated_index(
     def run_for_generated_index(
         packages: Dict[str, List[Package]],
         args: List[str],
-        fast_deps: bool = False,
         allow_error: bool = False,
     ) -> Tuple[TestPipResult, Path]:
         """
@@ -1422,26 +1421,15 @@ def download_generated_index(
         execute `pip download -i ...` pointing to our generated index.
         """
         index_dir = index_for_packages(packages)
-        pip_args = []
-        if fast_deps:
-            pip_args.append("--use-feature=fast-deps")
-        pip_args.extend(
-            [
-                "download",
-                "-d",
-                str(download_dir),
-                "-i",
-                path_to_url(str(index_dir)),
-            ]
-        )
-        pip_args.extend(args)
-        result = script.pip(
-            *pip_args,
-            # We need allow_stderr_warning=True if fast_deps=True, since that will print
-            # a warning to stderr.
-            allow_stderr_warning=fast_deps,
-            allow_error=allow_error,
-        )
+        pip_args = [
+            "download",
+            "-d",
+            str(download_dir),
+            "-i",
+            path_to_url(str(index_dir)),
+            *args,
+        ]
+        result = script.pip(*pip_args, allow_error=allow_error)
         return (result, download_dir)
 
     return run_for_generated_index
@@ -1477,12 +1465,11 @@ def test_download_metadata(
     requirement_to_download: str,
     expected_outputs: List[str],
 ) -> None:
-    """Verify that when using --use-feature=fast-deps, if a data-dist-info-metadata
-    attribute is present, then it is used instead of the actual dist's METADATA."""
+    """Verify that if a data-dist-info-metadata attribute is present, then it is used
+    instead of the actual dist's METADATA."""
     _, download_dir = download_generated_index(
         _simple_packages,
         [requirement_to_download],
-        fast_deps=True,
     )
     assert sorted(os.listdir(download_dir)) == expected_outputs
 
@@ -1506,7 +1493,6 @@ def test_incorrect_metadata_hash(
     result, _ = download_generated_index(
         _simple_packages,
         [requirement_to_download],
-        fast_deps=True,
         allow_error=True,
     )
     assert result.returncode != 0
@@ -1530,7 +1516,6 @@ def test_metadata_not_found(
     result, _ = download_generated_index(
         _simple_packages,
         [requirement_to_download],
-        fast_deps=True,
         allow_error=True,
     )
     assert result.returncode != 0

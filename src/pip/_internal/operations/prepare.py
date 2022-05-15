@@ -350,19 +350,15 @@ class RequirementPreparer:
         self,
         req: InstallRequirement,
     ) -> Optional[BaseDistribution]:
-        # --use-feature=fast-deps must be provided.
-        if not self.use_lazy_wheel:
-            return None
         if self.require_hashes:
             logger.debug(
                 "Metadata-only fetching is not used as hash checking is required",
             )
             return None
         # Try PEP 658 metadata first, then fall back to lazy wheel if unavailable.
-        pep_658_dist = self._fetch_metadata_using_pep_658(req)
-        if pep_658_dist is not None:
-            return pep_658_dist
-        return self._fetch_metadata_using_lazy_wheel(req.link)
+        return self._fetch_metadata_using_pep_658(
+            req
+        ) or self._fetch_metadata_using_lazy_wheel(req.link)
 
     def _fetch_metadata_using_pep_658(
         self,
@@ -372,6 +368,12 @@ class RequirementPreparer:
         metadata_link = req.link.metadata_link()
         if metadata_link is None:
             return None
+        assert req.req is not None
+        logger.info(
+            "Obtaining dependency information for %s from %s",
+            req.req,
+            metadata_link,
+        )
         metadata_file = get_http_url(
             metadata_link,
             self._download,
@@ -383,7 +385,6 @@ class RequirementPreparer:
         containing_dir = os.path.dirname(metadata_file.path)
         new_metadata_path = os.path.join(containing_dir, "METADATA")
         os.rename(metadata_file.path, new_metadata_path)
-        assert req.req is not None
         return get_metadata_distribution(
             new_metadata_path,
             req.link.filename,
@@ -395,9 +396,12 @@ class RequirementPreparer:
         link: Link,
     ) -> Optional[BaseDistribution]:
         """Fetch metadata using lazy wheel, if possible."""
+        # --use-feature=fast-deps must be provided.
+        if not self.use_lazy_wheel:
+            return None
         if link.is_file or not link.is_wheel:
             logger.debug(
-                "Lazy wheel is not used as %r does not points to a remote wheel",
+                "Lazy wheel is not used as %r does not point to a remote wheel",
                 link,
             )
             return None
