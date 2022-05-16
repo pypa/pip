@@ -185,7 +185,7 @@ class BuildEnvironment:
                     installed_req_str = f"{req.name}=={dist.version}"
                 else:
                     installed_req_str = f"{req.name}==={dist.version}"
-                if dist.version not in req.specifier:
+                if not req.specifier.contains(dist.version, prereleases=True):
                     conflicting.add((installed_req_str, req_str))
                 # FIXME: Consider direct URL?
         return conflicting, missing

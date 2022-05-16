@@ -5,7 +5,13 @@ import tomli_w
 
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.req import InstallRequirement
-from tests.lib import PipTestEnvironment, TestData, make_test_finder, path_to_url
+from tests.lib import (
+    PipTestEnvironment,
+    TestData,
+    create_basic_wheel_for_package,
+    make_test_finder,
+    path_to_url,
+)
 from tests.lib.path import Path
 
 
@@ -208,6 +214,25 @@ def test_validate_conflicting_pep517_backend_requirements(
         "simplewheel==1.0.".format(url=path_to_url(project_dir))
     )
     assert result.returncode != 0 and msg in result.stderr, str(result)
+
+
+def test_pep517_backend_requirements_satisfied_by_prerelease(
+    script: PipTestEnvironment,
+    data: TestData,
+) -> None:
+    create_basic_wheel_for_package(script, "myreq", "1.0a1")
+    script.pip("install", "myreq==1.0a1", "--no-index", "-f", script.scratch_path)
+    script.pip("install", "test_backend", "--no-index", "-f", data.backends)
+
+    project_dir = make_project(
+        script.temp_path,
+        requires=["test_backend", "myreq"],
+        backend="test_backend",
+    )
+    project_dir.joinpath("backend_reqs.txt").write_text("myreq")
+
+    result = script.pip("install", "--no-index", "--no-build-isolation", project_dir)
+    assert "Installing backend dependencies:" not in result.stdout
 
 
 def test_pep517_backend_requirements_already_satisfied(
