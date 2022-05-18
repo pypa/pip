@@ -106,6 +106,7 @@ if DEBUNDLED:
     vendored("requests.packages.urllib3.util.timeout")
     vendored("requests.packages.urllib3.util.url")
     vendored("resolvelib")
+    vendored("rich")
     vendored("tenacity")
     vendored("tomli")
     vendored("urllib3")
