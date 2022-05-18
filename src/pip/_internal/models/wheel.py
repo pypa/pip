@@ -58,7 +58,10 @@ class Wheel:
         :raises ValueError: If none of the wheel's file tags match one of
             the supported tags.
         """
-        return min(tags.index(tag) for tag in self.file_tags if tag in tags)
+        try:
+            return next(i for i, t in enumerate(tags) if t in self.file_tags)
+        except StopIteration:
+            raise ValueError()
 
     def find_most_preferred_tag(
         self, tags: List[Tag], tag_to_priority: Dict[Tag, int]
