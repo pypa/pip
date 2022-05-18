@@ -426,6 +426,17 @@ priority_index: Callable[..., Option] = partial(
 )
 
 
+def environment_markers() -> Option:
+    return Option(
+        "--environment-markers",
+        dest="environment_markers",
+        default=None,
+        metavar="file",
+        help="JSON file containing environment markers to use when evaluating "
+        "package dependencies. If not specified the default markers are used."
+    )
+
+
 def requirements() -> Option:
     return Option(
         "-r",
@@ -662,6 +673,7 @@ def add_target_python_options(cmd_opts: OptionGroup) -> None:
     cmd_opts.add_option(python_version())
     cmd_opts.add_option(implementation())
     cmd_opts.add_option(abis())
+    cmd_opts.add_option(environment_markers())
 
 
 def make_target_python(options: Values) -> TargetPython:

@@ -5,12 +5,14 @@ needing download / PackageFinder capability don't unnecessarily import the
 PackageFinder machinery and all its vendored dependencies, etc.
 """
 
+import json
 import logging
 import os
 import sys
+from contextlib import contextmanager
 from functools import partial
 from optparse import Values
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
@@ -505,3 +507,26 @@ class RequirementCommand(IndexGroupCommand):
             target_python=target_python,
             use_deprecated_html5lib="html5lib" in options.deprecated_features_enabled,
         )
+
+    def _patch_environment_markers(self, environment_markers: Optional[str]) -> None:
+        """
+        Set the environment markers to use during the resolution when they are specified.
+
+        :param environment_markers: A JSON file with the environment markers to use or None to use
+            the default markers.
+        """
+        @contextmanager
+        def patched_packaging_env(env_markers: Dict[str, str]):
+          """Monkey patch pip._vendor.packaging.markers.default_environment"""
+          import pip._vendor.packaging.markers  # delay this import until it needs to be patched
+          old_env = pip._vendor.packaging.markers.default_environment
+          pip._vendor.packaging.markers.default_environment = env_markers.copy
+          try:
+            yield
+          finally:
+            pip._vendor.packaging.markers.default_environment = old_env
+
+        if environment_markers is not None:
+          with open(environment_markers) as fh:
+             env_markers = json.load(fh)
+          self.enter_context(patched_packaging_env(env_markers))

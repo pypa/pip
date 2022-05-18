@@ -125,6 +125,8 @@ class DownloadCommand(RequirementCommand):
             py_version_info=options.python_version,
         )
 
+        self._patch_environment_markers(options.environment_markers)
+
         self.trace_basic_info(finder)
 
         requirement_set = resolver.resolve(reqs, check_supported_wheels=True)
