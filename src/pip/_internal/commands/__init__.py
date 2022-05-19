@@ -28,6 +28,11 @@ commands_dict: Dict[str, CommandInfo] = {
         "DownloadCommand",
         "Download packages.",
     ),
+    "resolve": CommandInfo(
+        "pip._internal.commands.resolve",
+        "ResolveCommand",
+        "Resolver requirements.",
+    ),
     "uninstall": CommandInfo(
         "pip._internal.commands.uninstall",
         "UninstallCommand",
@@ -97,11 +102,6 @@ commands_dict: Dict[str, CommandInfo] = {
         "pip._internal.commands.help",
         "HelpCommand",
         "Show help for commands.",
-    ),
-    "resolve": CommandInfo(
-        "pip._internal.commands.resolve",
-        "ResolveCommand",
-        "Resolver requirements.",
     ),
 }
 
