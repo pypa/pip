@@ -9,6 +9,19 @@
 
 .. towncrier release notes start
 
+22.1.1 (2022-05-20)
+===================
+
+Bug Fixes
+---------
+
+- Properly filter out optional dependencies (i.e. extras) when checking build environment distributions. (`#11112 <https://github.com/pypa/pip/issues/11112>`_)
+- Change the build environment dependency checking to be opt-in. (`#11116 <https://github.com/pypa/pip/issues/11116>`_)
+- Allow using a pre-release version to satisfy a build requirement. This helps
+  manually populated build environments to more accurately detect build-time
+  requirement conflicts. (`#11123 <https://github.com/pypa/pip/issues/11123>`_)
+
+
 22.1 (2022-05-11)
 =================
 

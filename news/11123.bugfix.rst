@@ -1,3 +1,0 @@
-Allow using a pre-release version to satisfy a build requirement. This helps
-manually populated build environments to more accurately detect build-time
-requirement conflicts.

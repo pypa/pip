@@ -1,1 +1,0 @@
-Properly filter out optional dependencies (i.e. extras) when checking build environment distributions.

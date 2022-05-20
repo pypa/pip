@@ -1,1 +1,0 @@
-Change the build environment dependency checking to be opt-in.
