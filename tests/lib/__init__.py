@@ -682,7 +682,7 @@ class PipTestEnvironment(TestFileEnvironment):
             kwargs["allow_stderr_warning"] = True
         if use_module:
             exe = "python"
-            args = ("-m", "pip") + args
+            args = ("-m", "pip", "--disable-pip-version-check") + args
         else:
             exe = "pip"
         return self.run(exe, *args, **kwargs)
