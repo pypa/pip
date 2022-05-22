@@ -14,7 +14,9 @@ from pip._vendor.rich.console import (
     Console,
     ConsoleOptions,
     ConsoleRenderable,
+    RenderableType,
     RenderResult,
+    RichCast,
 )
 from pip._vendor.rich.highlighter import NullHighlighter
 from pip._vendor.rich.logging import RichHandler
@@ -121,7 +123,7 @@ class IndentingFormatter(logging.Formatter):
 
 @dataclass
 class IndentedRenderable:
-    renderable: ConsoleRenderable
+    renderable: RenderableType
     indent: int
 
     def __rich_console__(
@@ -156,10 +158,10 @@ class RichPipStreamHandler(RichHandler):
         if record.msg == "[present-rich] %s" and len(record.args) == 1:
             rich_renderable = record.args[0]
             assert isinstance(
-                rich_renderable, ConsoleRenderable
+                rich_renderable, (ConsoleRenderable, RichCast, str)
             ), f"{rich_renderable} is not rich-console-renderable"
 
-            renderable: ConsoleRenderable = IndentedRenderable(
+            renderable: RenderableType = IndentedRenderable(
                 rich_renderable, indent=get_indentation()
             )
         else:
