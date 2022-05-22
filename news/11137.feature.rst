@@ -1,0 +1,3 @@
+Record in wheel cache entries the URL of the original artifiact that was downloaded
+to build the cached wheels. The record is named ``origin.json`` and uses the PEP 610
+Direct URL format.

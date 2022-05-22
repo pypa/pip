@@ -287,6 +287,8 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
             and template.link is template.original_link
         ):
             ireq.original_link_is_in_wheel_cache = True
+            if cache_entry.origin is not None:
+                ireq.download_info = cache_entry.origin
 
         super().__init__(
             link=link,
