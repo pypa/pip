@@ -26,6 +26,7 @@ from pip._internal.metadata import (
     get_default_environment,
     get_directory_distribution,
 )
+from pip._internal.models.direct_url import DirectUrl
 from pip._internal.models.link import Link
 from pip._internal.operations.build.metadata import generate_metadata
 from pip._internal.operations.build.metadata_editable import generate_editable_metadata
@@ -111,6 +112,10 @@ class InstallRequirement:
             link = Link(req.url)
         self.link = self.original_link = link
         self.original_link_is_in_wheel_cache = False
+
+        # Information about the location of the artifact that was downloaded . This
+        # property is guaranteed to be set in resolver results.
+        self.download_info: Optional[DirectUrl] = None
 
         # Path to any downloaded or already-existing package.
         self.local_file_path: Optional[str] = None
@@ -762,6 +767,7 @@ class InstallRequirement:
         if self.is_wheel:
             assert self.local_file_path
             direct_url = None
+            # TODO this can be refactored to direct_url = self.download_info
             if self.editable:
                 direct_url = direct_url_for_editable(self.unpacked_source_directory)
             elif self.original_link:

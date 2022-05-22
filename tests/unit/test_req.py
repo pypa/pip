@@ -22,6 +22,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import select_backend
+from pip._internal.models.direct_url import ArchiveInfo, DirInfo, VcsInfo
 from pip._internal.network.session import PipSession
 from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.operations.prepare import RequirementPreparer
@@ -341,6 +342,115 @@ class TestRequirementSet:
                 lineno=2,
             )
         )
+
+    def test_download_info_find_links(self, data: TestData) -> None:
+        """Test that download_info is set for requirements via find_links."""
+        finder = make_test_finder(find_links=[data.find_links])
+        with self._basic_resolver(finder) as resolver:
+            ireq = get_processed_req_from_line("simple")
+            reqset = resolver.resolve([ireq], True)
+            assert len(reqset.all_requirements) == 1
+            req = reqset.all_requirements[0]
+            assert req.download_info
+            assert isinstance(req.download_info.info, ArchiveInfo)
+            assert req.download_info.info.hash
+
+    @pytest.mark.network
+    def test_download_info_index_url(self) -> None:
+        """Test that download_info is set for requirements via index."""
+        finder = make_test_finder(index_urls=["https://pypi.org/simple"])
+        with self._basic_resolver(finder) as resolver:
+            ireq = get_processed_req_from_line("initools")
+            reqset = resolver.resolve([ireq], True)
+            assert len(reqset.all_requirements) == 1
+            req = reqset.all_requirements[0]
+            assert req.download_info
+            assert isinstance(req.download_info.info, ArchiveInfo)
+            assert req.download_info.info.hash
+
+    @pytest.mark.network
+    def test_download_info_web_archive(self) -> None:
+        """Test that download_info is set for requirements from a web archive."""
+        finder = make_test_finder()
+        with self._basic_resolver(finder) as resolver:
+            ireq = get_processed_req_from_line(
+                "pip-test-package @ "
+                "https://github.com/pypa/pip-test-package/tarball/0.1.1"
+            )
+            reqset = resolver.resolve([ireq], True)
+            assert len(reqset.all_requirements) == 1
+            req = reqset.all_requirements[0]
+            assert req.download_info
+            assert (
+                req.download_info.url
+                == "https://github.com/pypa/pip-test-package/tarball/0.1.1"
+            )
+            assert isinstance(req.download_info.info, ArchiveInfo)
+            assert (
+                req.download_info.info.hash == "sha256="
+                "ad977496000576e1b6c41f6449a9897087ce9da6db4f15b603fe8372af4bf3c6"
+            )
+
+    def test_download_info_local_wheel(self, data: TestData) -> None:
+        """Test that download_info is set for requirements from a local wheel."""
+        finder = make_test_finder()
+        with self._basic_resolver(finder) as resolver:
+            ireq = get_processed_req_from_line(
+                f"{data.packages}/simplewheel-1.0-py2.py3-none-any.whl"
+            )
+            reqset = resolver.resolve([ireq], True)
+            assert len(reqset.all_requirements) == 1
+            req = reqset.all_requirements[0]
+            assert req.download_info
+            assert req.download_info.url.startswith("file://")
+            assert isinstance(req.download_info.info, ArchiveInfo)
+            assert (
+                req.download_info.info.hash == "sha256="
+                "e63aa139caee941ec7f33f057a5b987708c2128238357cf905429846a2008718"
+            )
+
+    def test_download_info_local_dir(self, data: TestData) -> None:
+        """Test that download_info is set for requirements from a local dir."""
+        finder = make_test_finder()
+        with self._basic_resolver(finder) as resolver:
+            ireq_url = path_to_url(data.packages / "FSPkg")
+            ireq = get_processed_req_from_line(f"FSPkg @ {ireq_url}")
+            reqset = resolver.resolve([ireq], True)
+            assert len(reqset.all_requirements) == 1
+            req = reqset.all_requirements[0]
+            assert req.download_info
+            assert req.download_info.url.startswith("file://")
+            assert isinstance(req.download_info.info, DirInfo)
+
+    def test_download_info_local_editable_dir(self, data: TestData) -> None:
+        """Test that download_info is set for requirements from a local editable dir."""
+        finder = make_test_finder()
+        with self._basic_resolver(finder) as resolver:
+            ireq_url = path_to_url(data.packages / "FSPkg")
+            ireq = get_processed_req_from_line(f"-e {ireq_url}#egg=FSPkg")
+            reqset = resolver.resolve([ireq], True)
+            assert len(reqset.all_requirements) == 1
+            req = reqset.all_requirements[0]
+            assert req.download_info
+            assert req.download_info.url.startswith("file://")
+            assert isinstance(req.download_info.info, DirInfo)
+            assert req.download_info.info.editable
+
+    @pytest.mark.network
+    def test_download_info_vcs(self) -> None:
+        """Test that download_info is set for requirements from git."""
+        finder = make_test_finder()
+        with self._basic_resolver(finder) as resolver:
+            ireq = get_processed_req_from_line(
+                "pip-test-package @ git+https://github.com/pypa/pip-test-package"
+            )
+            reqset = resolver.resolve([ireq], True)
+            assert len(reqset.all_requirements) == 1
+            req = reqset.all_requirements[0]
+            assert req.download_info
+            assert isinstance(req.download_info.info, VcsInfo)
+            assert req.download_info.url == "https://github.com/pypa/pip-test-package"
+            assert req.download_info.info.vcs == "git"
 
 
 class TestInstallRequirement:
