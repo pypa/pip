@@ -49,4 +49,4 @@ lists or chat rooms:
 [irc-pypa]: https://kiwiirc.com/nextclient/#ircs://irc.libera.chat:+6697/pypa
 [irc-pypa-dev]: https://kiwiirc.com/nextclient/#ircs://irc.libera.chat:+6697/pypa-dev
 
-If you find any security issues , please report to [security@python.org](mailto:security@python.org)
+If you find any security issues, please report to [security@python.org](mailto:security@python.org)
