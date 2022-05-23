@@ -70,6 +70,7 @@ class SafeFileCache(SeparateBodyBaseCache):
         path = self._get_cache_path(key)
         with suppressed_cache_errors():
             os.remove(path)
+        with suppressed_cache_errors():
             os.remove(path + ".body")
 
     def get_body(self, key: str) -> Optional[BinaryIO]:
