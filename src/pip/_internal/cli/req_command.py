@@ -123,7 +123,7 @@ class SessionCommandMixin(CommandContextMixIn):
             ssl_context = None
 
         session = PipSession(
-            cache=os.path.join(cache_dir, "http") if cache_dir else None,
+            cache=os.path.join(cache_dir, "http-v2") if cache_dir else None,
             retries=retries if retries is not None else options.retries,
             trusted_hosts=options.trusted_hosts,
             index_urls=self._get_index_urls(options),

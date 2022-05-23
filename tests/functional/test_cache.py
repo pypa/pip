@@ -20,7 +20,7 @@ def cache_dir(script: PipTestEnvironment) -> str:
 
 @pytest.fixture
 def http_cache_dir(cache_dir: str) -> str:
-    return os.path.normcase(os.path.join(cache_dir, "http"))
+    return os.path.normcase(os.path.join(cache_dir, "http-v2"))
 
 
 @pytest.fixture
@@ -211,7 +211,7 @@ def test_cache_info(
 ) -> None:
     result = script.pip("cache", "info")
 
-    assert f"Package index page cache location: {http_cache_dir}" in result.stdout
+    assert f"Package index page cache location (new): {http_cache_dir}" in result.stdout
     assert f"Locally built wheels location: {wheel_cache_dir}" in result.stdout
     num_wheels = len(wheel_cache_files)
     assert f"Number of locally built wheels: {num_wheels}" in result.stdout

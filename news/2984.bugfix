@@ -1,0 +1,1 @@
+pip uses less memory when caching large packages. As a result, there is a new on-disk cache format stored in a new directory ($PIP_CACHE_DIR/http-v2).
