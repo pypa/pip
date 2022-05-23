@@ -332,6 +332,117 @@ wheels (and not from PyPI):
       py -m pip install --no-index --find-links=/local/wheels -r requirements.txt
 
 
+
+
+Pip Download
+============
+
+Usage
+=====
+
+``pip download`` with the ``--platform``, ``--python-version``,
+``--implementation``, and ``--abi`` options provides the ability to fetch
+dependencies for an interpreter and system other than the ones that pip is
+running on. ``--only-binary=:all:`` or ``--no-deps`` is required when using any
+of these options. It is important to note that these options all default to the
+current system/interpreter, and not to the most restrictive constraints (e.g.
+platform any, abi none, etc). To avoid fetching dependencies that happen to
+match the constraint of the current interpreter (but not your target one), it
+is recommended to specify all of these options if you are specifying one of
+them. Generic dependencies (e.g. universal wheels, or dependencies with no
+platform, abi, or implementation constraints) will still match an over-
+constrained download requirement.
+
+
+   .. tab:: Unix/macOS
+
+         python -m pip download [options] <requirement specifier> [package-index-options] ...
+         python -m pip download [options] -r <requirements file> [package-index-options] ...
+         python -m pip download [options] <vcs project url> ...
+         python -m pip download [options] <local project path> ...
+         python -m pip download [options] <archive url/path> ...
+
+   .. tab:: Windows
+
+         py -m pip download [options] <requirement specifier> [package-index-options] ...
+         py -m pip download [options] -r <requirements file> [package-index-options] ...
+         py -m pip download [options] <vcs project url> ...
+         py -m pip download [options] <local project path> ...
+         py -m pip download [options] <archive url/path> ...
+
+
+Options
+=======
+
+.. pip-command-options:: download
+
+.. pip-index-options:: download
+
+
+Examples of implementation , platform , python-version
+======================================================
+
+#. --implementation:
+
+cp: CPython
+ip: IronPython
+pp: PyPy
+jy: Jython
+
+
+#. --platform:
+
+win32
+linux_i386
+linux_x86_64
+
+#. --python-version:
+
+27
+3
+33
+36
+37
+
+Examples
+========
+
+#. Download a package and its dependencies with linux specific constraints.
+   Force the interpreter to be any minor version of py3k, and only accept
+   ``cp34m`` or ``none`` as the abi.
+
+   .. tab:: Unix/macOS
+
+      .. code-block:: shell
+
+         python -m pip download \
+            --only-binary=:all: \
+            --platform linux_x86_64 \
+            --python-version 3 \
+            --implementation cp \
+            --abi cp34m \
+            SomePackage
+
+   .. tab:: Windows
+
+      .. code-block:: shell
+
+         py -m pip download ^
+            --only-binary=:all: ^
+            --platform linux_x86_64 ^
+            --python-version 3 ^
+            --implementation cp ^
+            --abi cp34m ^
+            SomePackage
+
+
+References
+==========
+
+PEP                         : https://peps.python.org/pep-0427/#file-name-convention
+Platform Compatibility Tags : https://packaging.python.org/en/latest/specifications/platform-compatibility-tags/
+
+
 Uninstalling Packages
 =====================
 
