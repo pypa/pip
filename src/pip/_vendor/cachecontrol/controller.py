@@ -407,7 +407,17 @@ class CacheController(object):
         """
         cache_url = self.cache_url(request.url)
 
-        cached_response = self.serializer.loads(request, self.cache.get(cache_url))
+        # NOTE: This is a hot-patch for
+        # https://github.com/ionrock/cachecontrol/issues/276 until it's fixed
+        # upstream.
+        if isinstance(self.cache, SeparateBodyBaseCache):
+            body_file = self.cache.get_body(cache_url)
+        else:
+            body_file = None
+
+        cached_response = self.serializer.loads(
+            request, self.cache.get(cache_url), body_file
+        )
 
         if not cached_response:
             # we didn't have a cached response
