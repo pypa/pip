@@ -79,8 +79,5 @@ class SafeFileCache(SeparateBodyBaseCache):
             return open(path, "rb")
 
     def set_body(self, key: str, body: Optional[bytes]) -> None:
-        if body is None:
-            # Workaround for https://github.com/ionrock/cachecontrol/issues/276
-            return
         path = self._get_cache_path(key) + ".body"
         self._write(path, body)

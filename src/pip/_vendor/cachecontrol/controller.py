@@ -122,6 +122,26 @@ class CacheController(object):
 
         return retval
 
+    def _load_from_cache(self, request):
+        """
+        Load a cached response, or return None if it's not available.
+        """
+        cache_url = request.url
+        cache_data = self.cache.get(cache_url)
+        if cache_data is None:
+            logger.debug("No cache entry available")
+            return None
+
+        if isinstance(self.cache, SeparateBodyBaseCache):
+            body_file = self.cache.get_body(cache_url)
+        else:
+            body_file = None
+
+        result = self.serializer.loads(request, cache_data, body_file)
+        if result is None:
+            logger.warning("Cache entry deserialization failed, entry ignored")
+        return result
+
     def cached_request(self, request):
         """
         Return a cached response if it exists in the cache, otherwise
@@ -140,21 +160,9 @@ class CacheController(object):
             logger.debug('Request header has "max_age" as 0, cache bypassed')
             return False
 
-        # Request allows serving from the cache, let's see if we find something
-        cache_data = self.cache.get(cache_url)
-        if cache_data is None:
-            logger.debug("No cache entry available")
-            return False
-
-        if isinstance(self.cache, SeparateBodyBaseCache):
-            body_file = self.cache.get_body(cache_url)
-        else:
-            body_file = None
-
-        # Check whether it can be deserialized
-        resp = self.serializer.loads(request, cache_data, body_file)
+        # Check whether we can load the response from the cache:
+        resp = self._load_from_cache(request)
         if not resp:
-            logger.warning("Cache entry deserialization failed, entry ignored")
             return False
 
         # If we have a cached permanent redirect, return it immediately. We
@@ -240,8 +248,7 @@ class CacheController(object):
         return False
 
     def conditional_headers(self, request):
-        cache_url = self.cache_url(request.url)
-        resp = self.serializer.loads(request, self.cache.get(cache_url))
+        resp = self._load_from_cache(request)
         new_headers = {}
 
         if resp:
@@ -267,7 +274,10 @@ class CacheController(object):
                 self.serializer.dumps(request, response, b""),
                 expires=expires_time,
             )
-            self.cache.set_body(cache_url, body)
+            # body is None can happen when, for example, we're only updating
+            # headers, as is the case in update_cached_response().
+            if body is not None:
+                self.cache.set_body(cache_url, body)
         else:
             self.cache.set(
                 cache_url,
@@ -406,18 +416,7 @@ class CacheController(object):
         gotten a 304 as the response.
         """
         cache_url = self.cache_url(request.url)
-
-        # NOTE: This is a hot-patch for
-        # https://github.com/ionrock/cachecontrol/issues/276 until it's fixed
-        # upstream.
-        if isinstance(self.cache, SeparateBodyBaseCache):
-            body_file = self.cache.get_body(cache_url)
-        else:
-            body_file = None
-
-        cached_response = self.serializer.loads(
-            request, self.cache.get(cache_url), body_file
-        )
+        cached_response = self._load_from_cache(request)
 
         if not cached_response:
             # we didn't have a cached response
