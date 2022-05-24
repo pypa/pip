@@ -35,7 +35,9 @@ class TestSafeFileCache:
         cache = SafeFileCache(os.fspath(cache_tmpdir))
         assert cache.get_body("test key") is None
         cache.set_body("test key", b"a test string")
-        assert cache.get_body("test key").read() == b"a test string"
+        body = cache.get_body("test key")
+        assert body is not None
+        assert body.read() == b"a test string"
         cache.delete("test key")
         assert cache.get_body("test key") is None
 
