@@ -78,6 +78,6 @@ class SafeFileCache(SeparateBodyBaseCache):
         with suppressed_cache_errors():
             return open(path, "rb")
 
-    def set_body(self, key: str, body: Optional[bytes]) -> None:
+    def set_body(self, key: str, body: bytes) -> None:
         path = self._get_cache_path(key) + ".body"
         self._write(path, body)
