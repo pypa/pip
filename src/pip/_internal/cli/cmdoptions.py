@@ -422,7 +422,8 @@ priority_index: Callable[..., Option] = partial(
     dest="priority_index",
     default=None,
     metavar="URL",
-    help="Prefer distributions from this index/link over other packages."
+    help="Prefer distributions from this index/link over other packages. "
+    "The URL specified also needs to be passed to --extra-index-url or --find-links."
 )
 
 
