@@ -134,6 +134,10 @@ class DownloadCommand(RequirementCommand):
         for req in requirement_set.requirements.values():
             if req.satisfied_by is None:
                 assert req.name is not None
+                if options.priority_index and options.only_non_priority:
+                  link = req.link
+                  if link.comes_from.startswith(options.priority_index):
+                    continue
                 preparer.save_linked_requirement(req)
                 downloaded.append(req.name)
         if downloaded:
