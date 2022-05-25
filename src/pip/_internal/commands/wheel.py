@@ -147,6 +147,10 @@ class WheelCommand(RequirementCommand):
         reqs_to_build: List[InstallRequirement] = []
         for req in requirement_set.requirements.values():
             if req.is_wheel:
+                if options.priority_index and options.only_non_priority:
+                  link = req.link
+                  if link.comes_from.startswith(options.priority_index):
+                    continue
                 preparer.save_linked_requirement(req)
             elif should_build_for_wheel_command(req):
                 reqs_to_build.append(req)
