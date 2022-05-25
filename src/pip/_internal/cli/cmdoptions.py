@@ -427,6 +427,17 @@ priority_index: Callable[..., Option] = partial(
 )
 
 
+only_non_priority: Callable[..., Option] = partial(
+    Option,
+    "--only-non-priority",
+    dest="only_non_priority",
+    action="store_true",
+    default=False,
+    help="Only show/download/store distributions from non-priority sources. "
+    "Distributions from the URL specified in --priority-index are supressed."
+)
+
+
 def environment_markers() -> Option:
     return Option(
         "--environment-markers",
@@ -1038,5 +1049,6 @@ index_group: Dict[str, Any] = {
         no_index,
         find_links,
         priority_index,
+        only_non_priority,
     ],
 }
