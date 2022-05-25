@@ -103,6 +103,10 @@ class ResolveCommand(RequirementCommand):
         for candidate in resolver._result.mapping.values():
             if candidate.get_install_requirement() is None:
               continue
+            if options.priority_index and options.only_non_priority:
+              link = candidate.source_link
+              if link.comes_from.startswith(options.priority_index):
+                continue
             pkgs[candidate.name] = candidate.version
             sys.stdout.write(f"{candidate.name}=={candidate.version}\n")
         return SUCCESS
