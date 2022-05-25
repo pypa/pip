@@ -1036,5 +1036,6 @@ index_group: Dict[str, Any] = {
         extra_index_url,
         no_index,
         find_links,
+        priority_index,
     ],
 }
