@@ -259,9 +259,9 @@ class MultiDomainBasicAuth(AuthBase):
 
         # Query the keyring for credentials:
         username, password = self._get_new_credentials(
-            resp.url,
-            allow_netrc=False,
-            allow_keyring=True,
+            resp.url: str,
+            allow_netrc: bool = False,
+            allow_keyring bool = True,
         )
 
         # Prompt the user for a new username and password
