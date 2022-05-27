@@ -40,7 +40,7 @@ from pip._internal.utils.misc import is_local, normalize_path
 from pip._internal.utils.packaging import safe_extra
 from pip._internal.utils.urls import url_to_path
 
-from .json import msg_to_json
+from ._json import msg_to_json
 
 if TYPE_CHECKING:
     from typing import Protocol
