@@ -10,7 +10,7 @@ import os
 import sys
 from functools import partial
 from optparse import Values
-from typing import Any, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
@@ -42,7 +42,31 @@ from pip._internal.utils.temp_dir import (
 )
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
+if TYPE_CHECKING:
+    from ssl import SSLContext
+
 logger = logging.getLogger(__name__)
+
+
+def _create_truststore_ssl_context() -> Optional["SSLContext"]:
+    if sys.version_info < (3, 10):
+        raise CommandError("The truststore feature is only available for Python 3.10+")
+
+    try:
+        import ssl
+    except ImportError:
+        logger.warning("Disabling truststore since ssl support is missing")
+        return None
+
+    try:
+        import truststore
+    except ImportError:
+        raise CommandError(
+            "To use the truststore feature, 'truststore' must be installed into "
+            "pip's current environment."
+        )
+
+    return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 
 
 class SessionCommandMixin(CommandContextMixIn):
@@ -84,15 +108,27 @@ class SessionCommandMixin(CommandContextMixIn):
         options: Values,
         retries: Optional[int] = None,
         timeout: Optional[int] = None,
+        fallback_to_certifi: bool = False,
     ) -> PipSession:
-        assert not options.cache_dir or os.path.isabs(options.cache_dir)
+        cache_dir = options.cache_dir
+        assert not cache_dir or os.path.isabs(cache_dir)
+
+        if "truststore" in options.features_enabled:
+            try:
+                ssl_context = _create_truststore_ssl_context()
+            except Exception:
+                if not fallback_to_certifi:
+                    raise
+                ssl_context = None
+        else:
+            ssl_context = None
+
         session = PipSession(
-            cache=(
-                os.path.join(options.cache_dir, "http") if options.cache_dir else None
-            ),
+            cache=os.path.join(cache_dir, "http") if cache_dir else None,
             retries=retries if retries is not None else options.retries,
             trusted_hosts=options.trusted_hosts,
             index_urls=self._get_index_urls(options),
+            ssl_context=ssl_context,
         )
 
         # Handle custom ca-bundles from the user
@@ -142,7 +178,14 @@ class IndexGroupCommand(Command, SessionCommandMixin):
 
         # Otherwise, check if we're using the latest version of pip available.
         session = self._build_session(
-            options, retries=0, timeout=min(5, options.timeout)
+            options,
+            retries=0,
+            timeout=min(5, options.timeout),
+            # This is set to ensure the function does not fail when truststore is
+            # specified in use-feature but cannot be loaded. This usually raises a
+            # CommandError and shows a nice user-facing error, but this function is not
+            # called in that try-except block.
+            fallback_to_certifi=True,
         )
         with session:
             pip_self_version_check(session, options)

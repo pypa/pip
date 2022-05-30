@@ -1000,7 +1000,7 @@ use_new_feature: Callable[..., Option] = partial(
     metavar="feature",
     action="append",
     default=[],
-    choices=["2020-resolver", "fast-deps"],
+    choices=["2020-resolver", "fast-deps", "truststore"],
     help="Enable new functionality, that may be backward incompatible.",
 )
 
