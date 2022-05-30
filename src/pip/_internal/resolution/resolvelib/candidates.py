@@ -291,7 +291,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
                 # Legacy cache entry that does not have origin.json.
                 # download_info may miss the archive_info.hash field.
                 ireq.download_info = direct_url_from_link(
-                    source_link, link_is_in_wheel_cache=True
+                    source_link, link_is_in_wheel_cache=cache_entry.persistent
                 )
 
         super().__init__(
