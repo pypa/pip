@@ -505,20 +505,21 @@ class RequirementPreparer:
             # prepare_editable_requirement).
             assert not req.editable
             req.download_info = direct_url_from_link(link, req.source_dir)
-
-        # For use in later processing,
-        # preserve the file path on the requirement.
-        if local_file:
-            req.local_file_path = local_file.path
             # Make sure we have a hash in download_info. If we got it as part of the
             # URL, it will have been verified and we can rely on it. Otherwise we
             # compute it from the downloaded file.
             if (
                 isinstance(req.download_info.info, ArchiveInfo)
                 and not req.download_info.info.hash
+                and local_file
             ):
                 hash = hash_file(local_file.path)[0].hexdigest()
                 req.download_info.info.hash = f"sha256={hash}"
+
+        # For use in later processing,
+        # preserve the file path on the requirement.
+        if local_file:
+            req.local_file_path = local_file.path
 
         dist = _get_prepared_distribution(
             req,
