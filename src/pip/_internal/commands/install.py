@@ -354,14 +354,15 @@ class InstallCommand(RequirementCommand):
             )
 
             if options.dry_run:
-                items = [
-                    f"{item.name}-{item.metadata['version']}"
-                    for item in sorted(
-                        requirement_set.all_requirements, key=lambda x: str(x.name)
+                would_install_items = sorted(
+                    (r.metadata["name"], r.metadata["version"])
+                    for r in requirement_set.all_requirements
+                )
+                if would_install_items:
+                    write_output(
+                        "Would install %s",
+                        " ".join("-".join(item) for item in would_install_items),
                     )
-                ]
-                if items:
-                    write_output("Would install %s", " ".join(items))
                 return SUCCESS
 
             try:
