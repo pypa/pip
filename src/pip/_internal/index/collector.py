@@ -2,8 +2,8 @@
 The main purpose of this module is to expose LinkCollector.collect_sources().
 """
 
-import cgi
 import collections
+import email.message
 import functools
 import itertools
 import logging
@@ -155,9 +155,11 @@ def _get_html_response(url: str, session: PipSession) -> Response:
 def _get_encoding_from_headers(headers: ResponseHeaders) -> Optional[str]:
     """Determine if we have any encoding information in our headers."""
     if headers and "Content-Type" in headers:
-        content_type, params = cgi.parse_header(headers["Content-Type"])
-        if "charset" in params:
-            return params["charset"]
+        m = email.message.Message()
+        m["content-type"] = headers["Content-Type"]
+        charset = m.get_param("charset")
+        if charset:
+            return str(charset)
     return None
 
 

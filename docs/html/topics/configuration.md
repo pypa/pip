@@ -213,9 +213,9 @@ Use `no`, `false` or `0` instead.
 
 ## Precedence / Override order
 
-Command line options have override environment variables, which override the
+Command line options override environment variables, which override the
 values in a configuration file. Within the configuration file, values in
-command-specific sections over values in the global section.
+command-specific sections override values in the global section.
 
 Examples:
 
