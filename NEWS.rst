@@ -9,6 +9,16 @@
 
 .. towncrier release notes start
 
+22.1.2 (2022-05-31)
+===================
+
+Bug Fixes
+---------
+
+- Revert `#10979 <https://github.com/pypa/pip/issues/10979>`_ since it introduced a regression in certain edge cases. (`#10979 <https://github.com/pypa/pip/issues/10979>`_)
+- Fix an incorrect assertion in the logging logic, that prevented the upgrade prompt from being presented. (`#11136 <https://github.com/pypa/pip/issues/11136>`_)
+
+
 22.1.1 (2022-05-20)
 ===================
 

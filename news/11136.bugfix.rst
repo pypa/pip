@@ -1,1 +1,0 @@
-Fix an incorrect assertion in the logging logic, that prevented the upgrade prompt from being presented.
