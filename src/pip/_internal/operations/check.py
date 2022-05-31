@@ -9,6 +9,7 @@ from typing import (
     Callable,
     Dict,
     FrozenSet,
+    Generator,
     Iterable,
     List,
     NamedTuple,
@@ -25,7 +26,6 @@ from pip._internal.distributions import make_distribution_for_install_requiremen
 from pip._internal.metadata import get_default_environment
 from pip._internal.metadata.base import BaseDistribution, DistributionVersion
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.utils.compatibility_tags import get_supported
 
 logger = logging.getLogger(__name__)
 
@@ -130,9 +130,8 @@ def check_install_conflicts(to_install: List[InstallRequirement]) -> ConflictDet
 
 def check_unsupported(
     packages: Iterable[BaseDistribution],
-) -> List[BaseDistribution]:
-    unsupported = []
-    tags = get_supported()
+    supported_tags: Iterable[Tag],
+) -> Generator[BaseDistribution, None, None]:
     for p in packages:
         with suppress(FileNotFoundError):
             wheel_file = p.read_text("WHEEL")
@@ -141,9 +140,8 @@ def check_unsupported(
                 map(parse_tag, Parser().parsestr(wheel_file).get_all("Tag", [])),
                 frozenset(),
             )
-            if wheel_tags.isdisjoint(tags):
-                unsupported.append(p)
-    return unsupported
+            if wheel_tags.isdisjoint(supported_tags):
+                yield p
 
 
 def _simulate_installation_of(
