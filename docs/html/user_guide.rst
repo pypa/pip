@@ -1221,7 +1221,7 @@ Using system trust stores instead of certifi will likely solve this issue.
 Follow up
 ---------
 
-If you encounter an TLS/SSL error when using the ``truststore`` feature you should open an issue
+If you encounter a TLS/SSL error when using the ``truststore`` feature you should open an issue
 on the `truststore GitHub issue tracker`_ instead of pip's issue tracker. The maintainers of truststore
 will help diagnose and fix the issue.
 
