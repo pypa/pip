@@ -354,6 +354,12 @@ def build(
                 req.editable and req.permit_editable_wheels,
             )
             if wheel_file:
+                # Record the download origin in the cache
+                if req.download_info is not None:
+                    # download_info is guaranteed to be set because when we build an
+                    # InstallRequirement it has been through the preparer before, but
+                    # let's be cautious.
+                    wheel_cache.record_download_origin(cache_dir, req.download_info)
                 # Update the link for this.
                 req.link = Link(path_to_url(wheel_file))
                 req.local_file_path = req.link.file_path

@@ -45,6 +45,7 @@ from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver, InstallRequirementProvider
 from pip._internal.utils import compatibility_tags
 from pip._internal.utils.compatibility_tags import get_supported
+from pip._internal.utils.direct_url_helpers import direct_url_from_link
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import normalize_version_info
 from pip._internal.utils.packaging import check_requires_python
@@ -431,6 +432,14 @@ class Resolver(BaseResolver):
             logger.debug("Using cached wheel link: %s", cache_entry.link)
             if req.link is req.original_link and cache_entry.persistent:
                 req.original_link_is_in_wheel_cache = True
+            if cache_entry.origin is not None:
+                req.download_info = cache_entry.origin
+            else:
+                # Legacy cache entry that does not have origin.json.
+                # download_info may miss the archive_info.hash field.
+                req.download_info = direct_url_from_link(
+                    req.link, link_is_in_wheel_cache=cache_entry.persistent
+                )
             req.link = cache_entry.link
 
     def _get_dist_for(self, req: InstallRequirement) -> BaseDistribution:

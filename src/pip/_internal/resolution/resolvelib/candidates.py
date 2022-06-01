@@ -18,6 +18,7 @@ from pip._internal.req.constructors import (
     install_req_from_line,
 )
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.direct_url_helpers import direct_url_from_link
 from pip._internal.utils.misc import normalize_version_info
 
 from .base import Candidate, CandidateVersion, Requirement, format_name
@@ -281,12 +282,17 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
                     version, wheel_version, name
                 )
 
-        if (
-            cache_entry is not None
-            and cache_entry.persistent
-            and template.link is template.original_link
-        ):
-            ireq.original_link_is_in_wheel_cache = True
+        if cache_entry is not None:
+            if cache_entry.persistent and template.link is template.original_link:
+                ireq.original_link_is_in_wheel_cache = True
+            if cache_entry.origin is not None:
+                ireq.download_info = cache_entry.origin
+            else:
+                # Legacy cache entry that does not have origin.json.
+                # download_info may miss the archive_info.hash field.
+                ireq.download_info = direct_url_from_link(
+                    source_link, link_is_in_wheel_cache=cache_entry.persistent
+                )
 
         super().__init__(
             link=link,

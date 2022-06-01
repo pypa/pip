@@ -1550,9 +1550,9 @@ def test_install_builds_wheels(script: PipTestEnvironment, data: TestData) -> No
     )
     # Must have installed it all
     assert expected in str(res), str(res)
-    wheels = []
+    wheels: List[str] = []
     for _, _, files in os.walk(wheels_cache):
-        wheels.extend(files)
+        wheels.extend(f for f in files if f.endswith(".whl"))
     # and built wheels for upper and wheelbroken
     assert "Building wheel for upper" in str(res), str(res)
     assert "Building wheel for wheelb" in str(res), str(res)

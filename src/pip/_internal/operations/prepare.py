@@ -25,6 +25,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution
+from pip._internal.models.direct_url import ArchiveInfo
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.network.download import BatchDownloader, Downloader
@@ -35,9 +36,18 @@ from pip._internal.network.lazy_wheel import (
 from pip._internal.network.session import PipSession
 from pip._internal.operations.build.build_tracker import BuildTracker
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.direct_url_helpers import (
+    direct_url_for_editable,
+    direct_url_from_link,
+)
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import display_path, hide_url, is_installable_dir
+from pip._internal.utils.misc import (
+    display_path,
+    hash_file,
+    hide_url,
+    is_installable_dir,
+)
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
@@ -489,6 +499,23 @@ class RequirementPreparer:
                 hashes.check_against_path(file_path)
             local_file = File(file_path, content_type=None)
 
+        # If download_info is set, we got it from the wheel cache.
+        if req.download_info is None:
+            # Editables don't go through this function (see
+            # prepare_editable_requirement).
+            assert not req.editable
+            req.download_info = direct_url_from_link(link, req.source_dir)
+            # Make sure we have a hash in download_info. If we got it as part of the
+            # URL, it will have been verified and we can rely on it. Otherwise we
+            # compute it from the downloaded file.
+            if (
+                isinstance(req.download_info.info, ArchiveInfo)
+                and not req.download_info.info.hash
+                and local_file
+            ):
+                hash = hash_file(local_file.path)[0].hexdigest()
+                req.download_info.info.hash = f"sha256={hash}"
+
         # For use in later processing,
         # preserve the file path on the requirement.
         if local_file:
@@ -547,6 +574,8 @@ class RequirementPreparer:
                 )
             req.ensure_has_source_dir(self.src_dir)
             req.update_editable()
+            assert req.source_dir
+            req.download_info = direct_url_for_editable(req.unpacked_source_directory)
 
             dist = _get_prepared_distribution(
                 req,
