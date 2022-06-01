@@ -309,3 +309,21 @@ def test_check_include_work_dir_pkg(script: PipTestEnvironment) -> None:
     expected_lines = ("simple 1.0 requires missing, which is not installed.",)
     assert matches_expected_lines(result.stdout, expected_lines)
     assert result.returncode == 1
+
+
+def test_check_ignore_packages(script: PipTestEnvironment) -> None:
+    package_a_path = create_test_package_with_setup(
+        script,
+        name="package_A",
+        version="1.0",
+        install_requires=["missing>=1.0"],
+    )
+
+    # Without dependency
+    result = script.pip("install", "--no-index", package_a_path, "--no-deps")
+    assert "Successfully installed package-A-1.0" in result.stdout, str(result)
+
+    result = script.pip("check", "--ignore-packages=package-a")
+    expected_lines = ("No broken requirements found.",)
+    assert matches_expected_lines(result.stdout, expected_lines)
+    assert result.returncode == 0
