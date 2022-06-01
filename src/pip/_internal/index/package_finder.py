@@ -792,11 +792,11 @@ class PackageFinder:
             "Fetching project page and analyzing links: %s",
             project_url,
         )
-        html_page = self._link_collector.fetch_page(project_url)
-        if html_page is None:
+        index_response = self._link_collector.fetch_response(project_url)
+        if index_response is None:
             return []
 
-        page_links = list(parse_links(html_page, self._use_deprecated_html5lib))
+        page_links = list(parse_links(index_response, self._use_deprecated_html5lib))
 
         with indent_log():
             package_links = self.evaluate_links(
