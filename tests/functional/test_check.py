@@ -323,7 +323,7 @@ def test_check_ignore_packages(script: PipTestEnvironment) -> None:
     result = script.pip("install", "--no-index", package_a_path, "--no-deps")
     assert "Successfully installed package-A-1.0" in result.stdout, str(result)
 
-    result = script.pip("check", "--ignore-packages=package-a")
+    result = script.pip("check", "--ignore-packages=missing")
     expected_lines = ("No broken requirements found.",)
     assert matches_expected_lines(result.stdout, expected_lines)
     assert result.returncode == 0

@@ -1,5 +1,5 @@
 import logging
-from optparse import Values
+from optparse import Option, OptionParser, Values
 from typing import Callable, List, Optional
 
 from pip._internal.cli.base_command import Command
@@ -13,6 +13,13 @@ from pip._internal.utils.misc import write_output
 logger = logging.getLogger(__name__)
 
 
+def _handle_ignore_packages(
+    option: Option, opt_str: str, value: str, parser: OptionParser
+) -> None:
+    assert option.dest is not None
+    setattr(parser.values, option.dest, set(value.split(",")))
+
+
 class CheckCommand(Command):
     """Verify installed packages have compatible dependencies."""
 
@@ -22,10 +29,11 @@ class CheckCommand(Command):
     def add_options(self) -> None:
         self.cmd_opts.add_option(
             "--ignore-packages",
-            action="append",
-            metavar="PACKAGE",
+            action="callback",
+            callback=_handle_ignore_packages,
+            metavar="package",
+            type="str",
             dest="ignore_packages",
-            default=[],
             help="Ignore packages.",
         )
         self.parser.insert_option_group(0, self.cmd_opts)

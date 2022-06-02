@@ -71,6 +71,9 @@ def check_package_set(
         for req in package_detail.dependencies:
             name = canonicalize_name(req.name)
 
+            if should_ignore and should_ignore(name):
+                continue
+
             # Check if it's missing
             if name not in package_set:
                 missed = True
