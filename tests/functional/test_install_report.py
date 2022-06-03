@@ -85,6 +85,7 @@ def test_install_report_index(script: PipTestEnvironment, tmp_path: Path) -> Non
         paste_report["download_info"]["archive_info"]["hash"]
         == "sha256=11645842ba8ec986ae8cfbe4c6cacff5c35f0f4527abf4f5581ae8b4ad49c0b6"
     )
+    assert "requires_dist" in paste_report["metadata"]
 
 
 @pytest.mark.network
