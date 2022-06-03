@@ -356,9 +356,7 @@ class InstallCommand(RequirementCommand):
             if options.dry_run:
                 would_install_items = sorted(
                     (r.metadata["name"], r.metadata["version"])
-                    # Use get_installation_order because it does some important
-                    # filtering with the legacy resolver.
-                    for r in resolver.get_installation_order(requirement_set)
+                    for r in requirement_set.requirements_to_install
                 )
                 if would_install_items:
                     write_output(
