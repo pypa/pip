@@ -1,5 +1,7 @@
 from typing import Any, Dict, Sequence
 
+from pip._vendor.packaging.markers import default_environment
+
 from pip._internal.req.req_install import InstallRequirement
 
 
@@ -35,5 +37,6 @@ class InstallationReport:
             "install": {
                 ireq.get_dist().metadata["Name"]: self._install_req_to_dict(ireq)
                 for ireq in self._install_requirements
-            }
+            },
+            "environment": default_environment(),
         }
