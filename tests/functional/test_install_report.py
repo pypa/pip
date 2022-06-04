@@ -74,9 +74,9 @@ def test_install_report_index(script: PipTestEnvironment, tmp_path: Path) -> Non
     )
     report = json.loads(report_path.read_text())
     assert len(report["install"]) == 2
-    assert report["install"]["Paste"]["requested"] is True
+    assert report["install"]["paste"]["requested"] is True
     assert report["install"]["python-openid"]["requested"] is False
-    paste_report = report["install"]["Paste"]
+    paste_report = report["install"]["paste"]
     assert paste_report["download_info"]["url"].startswith(
         "https://files.pythonhosted.org/"
     )
