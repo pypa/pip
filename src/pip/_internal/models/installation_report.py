@@ -30,6 +30,9 @@ class InstallationReport:
             # https://www.python.org/dev/peps/pep-0566/#json-compatible-metadata
             "metadata": ireq.get_dist().metadata_dict,
         }
+        if ireq.user_supplied and ireq.extras:
+            # For top level requirements, the list of requested extras, if any.
+            res["requested_extras"] = list(sorted(ireq.extras))
         return res
 
     def to_dict(self) -> Dict[str, Any]:
