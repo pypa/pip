@@ -546,10 +546,12 @@ class LinkCollector:
 
         # Make sure find_links is a list before passing to create().
         find_links = options.find_links or []
+        scoped_index_urls = options.scoped_index_urls or []
 
         search_scope = SearchScope.create(
             find_links=find_links,
             index_urls=index_urls,
+            scoped_index_urls=scoped_index_urls,
         )
         link_collector = LinkCollector(
             session=session,

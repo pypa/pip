@@ -371,6 +371,18 @@ no_index: Callable[..., Option] = partial(
 )
 
 
+def scoped_index_url() -> Option:
+    return Option(
+        "--scoped-index-url",
+        dest="scoped_index_urls",
+        metavar="URL",
+        action="append",
+        default=[],
+        help="Index URLs for specific package name prefixes, eg 'company-name-:URL'"
+        "URL follows the same rules as --index-url.",
+    )
+
+
 def find_links() -> Option:
     return Option(
         "-f",
@@ -1059,6 +1071,7 @@ index_group: Dict[str, Any] = {
         index_url,
         extra_index_url,
         no_index,
+        scoped_index_url,
         find_links,
     ],
 }

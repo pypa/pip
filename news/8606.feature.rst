@@ -1,0 +1,5 @@
+Added ``--scoped-index-url`` command line option
+
+It allows pip users to ensure that the specified package names (or prefixes of package names) are downloaded exclusively from the specified indexes.
+
+Example syntax: ``pip install companyname-package-name==1.0.0 --scoped-index-url companyname:http://url/of/private/index``

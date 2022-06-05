@@ -3,7 +3,7 @@ import logging
 import os
 import posixpath
 import urllib.parse
-from typing import List
+from typing import Dict, List, Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -20,13 +20,14 @@ class SearchScope:
     Encapsulates the locations that pip is configured to search.
     """
 
-    __slots__ = ["find_links", "index_urls"]
+    __slots__ = ["find_links", "index_urls", "scoped_indexes"]
 
     @classmethod
     def create(
         cls,
         find_links: List[str],
         index_urls: List[str],
+        scoped_index_urls: List[str],
     ) -> "SearchScope":
         """
         Create a SearchScope object after normalizing the `find_links`.
@@ -44,10 +45,16 @@ class SearchScope:
                     link = new_link
             built_find_links.append(link)
 
+        built_scoped_indexes: Dict[str, str] = {}
+        for si in scoped_index_urls:
+            delimiter = si.index(":")
+            project_name_prefix, scoped_index_url = si[0:delimiter], si[delimiter + 1:]
+            built_scoped_indexes[project_name_prefix] = scoped_index_url
+
         # If we don't have TLS enabled, then WARN if anyplace we're looking
         # relies on TLS.
         if not has_tls():
-            for link in itertools.chain(index_urls, built_find_links):
+            for link in itertools.chain(index_urls, built_find_links, built_scoped_indexes.values()):
                 parsed = urllib.parse.urlparse(link)
                 if parsed.scheme == "https":
                     logger.warning(
@@ -60,15 +67,18 @@ class SearchScope:
         return cls(
             find_links=built_find_links,
             index_urls=index_urls,
+            scoped_indexes=built_scoped_indexes
         )
 
     def __init__(
         self,
         find_links: List[str],
         index_urls: List[str],
+        scoped_indexes: Dict[str, str],
     ) -> None:
         self.find_links = find_links
         self.index_urls = index_urls
+        self.scoped_indexes = scoped_indexes
 
     def get_formatted_locations(self) -> str:
         lines = []
@@ -126,4 +136,12 @@ class SearchScope:
                 loc = loc + "/"
             return loc
 
-        return [mkurl_pypi_url(url) for url in self.index_urls]
+        matching_scoped_index = self._get_matching_scoped_index(project_name)
+        index_urls = [matching_scoped_index] if matching_scoped_index else self.index_urls
+        return [mkurl_pypi_url(url) for url in index_urls]
+
+    def _get_matching_scoped_index(self, project_name: str) -> Optional[str]:
+        for project_name_prefix, index_url in self.scoped_indexes.items():
+            if project_name.startswith(project_name_prefix):
+                return index_url
+        return None
