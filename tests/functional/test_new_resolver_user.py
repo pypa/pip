@@ -260,7 +260,7 @@ def test_new_resolver_install_user_conflict_in_global_and_user_sites(
     base_2_dist_info = script.user_site / "base-2.0.0.dist-info"
 
     result.did_create(base_1_dist_info)
-    assert base_2_dist_info in result.files_deleted, str(result)
+    assert base_2_dist_info in result.files_deleted
 
     site_packages_content = set(os.listdir(script.site_packages_path))
     assert "base-2.0.0.dist-info" in site_packages_content

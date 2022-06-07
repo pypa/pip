@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 
 import pytest
 
@@ -13,16 +14,15 @@ from tests.lib import (
     wheel,
 )
 from tests.lib.direct_url import get_created_direct_url_path
-from tests.lib.path import Path
 
 
 @pytest.fixture(scope="session")
 def simple_script(
-    tmpdir_factory: pytest.TempdirFactory,
+    tmpdir_factory: pytest.TempPathFactory,
     script_factory: ScriptFactory,
     shared_data: TestData,
 ) -> PipTestEnvironment:
-    tmpdir = Path(str(tmpdir_factory.mktemp("pip_test_package")))
+    tmpdir = tmpdir_factory.mktemp("pip_test_package")
     script = script_factory(tmpdir.joinpath("workspace"))
     script.pip(
         "install",
@@ -336,11 +336,11 @@ def test_outdated_columns_flag(script: PipTestEnvironment, data: TestData) -> No
 
 @pytest.fixture(scope="session")
 def pip_test_package_script(
-    tmpdir_factory: pytest.TempdirFactory,
+    tmpdir_factory: pytest.TempPathFactory,
     script_factory: ScriptFactory,
     shared_data: TestData,
 ) -> PipTestEnvironment:
-    tmpdir = Path(str(tmpdir_factory.mktemp("pip_test_package")))
+    tmpdir = tmpdir_factory.mktemp("pip_test_package")
     script = script_factory(tmpdir.joinpath("workspace"))
     script.pip("install", "-f", shared_data.find_links, "--no-index", "simple==1.0")
     script.pip(

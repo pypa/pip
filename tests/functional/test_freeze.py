@@ -3,6 +3,7 @@ import re
 import sys
 import textwrap
 from doctest import ELLIPSIS, OutputChecker
+from pathlib import Path
 
 import pytest
 from pip._vendor.packaging.utils import canonicalize_name
@@ -19,11 +20,9 @@ from tests.lib import (
     need_bzr,
     need_mercurial,
     need_svn,
-    path_to_url,
     wheel,
 )
 from tests.lib.direct_url import get_created_direct_url_path
-from tests.lib.path import Path
 from tests.lib.venv import VirtualEnvironment
 
 distribute_re = re.compile("^distribute==[0-9.]+\n", re.MULTILINE)
@@ -150,7 +149,7 @@ def test_freeze_with_invalid_names(script: PipTestEnvironment) -> None:
         "trailingdot.",
     )
     for pkgname in valid_pkgnames + invalid_pkgnames:
-        fake_install(pkgname, script.site_packages_path)
+        fake_install(pkgname, os.fspath(script.site_packages_path))
 
     result = script.pip("freeze", expect_stderr=True)
 
@@ -256,7 +255,7 @@ def test_freeze_exclude_editable(script: PipTestEnvironment) -> None:
     result = script.run(
         "git",
         "clone",
-        pkg_version,
+        os.fspath(pkg_version),
         "pip-test-package",
         expect_stderr=True,
     )
@@ -289,7 +288,7 @@ def test_freeze_git_clone(script: PipTestEnvironment) -> None:
     result = script.run(
         "git",
         "clone",
-        pkg_version,
+        os.fspath(pkg_version),
         "pip-test-package",
         expect_stderr=True,
     )
@@ -349,7 +348,7 @@ def test_freeze_git_clone_srcdir(script: PipTestEnvironment) -> None:
     result = script.run(
         "git",
         "clone",
-        pkg_version,
+        os.fspath(pkg_version),
         "pip-test-package",
         expect_stderr=True,
     )
@@ -381,7 +380,7 @@ def test_freeze_mercurial_clone_srcdir(script: PipTestEnvironment) -> None:
     # Returns path to a generated package called "version_pkg"
     pkg_version = _create_test_package_with_srcdir(script, vcs="hg")
 
-    result = script.run("hg", "clone", pkg_version, "pip-test-package")
+    result = script.run("hg", "clone", os.fspath(pkg_version), "pip-test-package")
     repo_dir = script.scratch_path / "pip-test-package"
     result = script.run("python", "setup.py", "develop", cwd=repo_dir / "subdir")
     result = script.pip("freeze")
@@ -405,7 +404,7 @@ def test_freeze_git_remote(script: PipTestEnvironment) -> None:
     result = script.run(
         "git",
         "clone",
-        pkg_version,
+        os.fspath(pkg_version),
         "pip-test-package",
         expect_stderr=True,
     )
@@ -427,7 +426,7 @@ def test_freeze_git_remote(script: PipTestEnvironment) -> None:
             ...
         """
         )
-        .format(remote=path_to_url(origin_remote))
+        .format(remote=origin_remote.as_uri())
         .strip()
     )
     _check_output(result.stdout, expected)
@@ -441,13 +440,13 @@ def test_freeze_git_remote(script: PipTestEnvironment) -> None:
             ...
         """
         )
-        .format(remote=path_to_url(origin_remote))
+        .format(remote=origin_remote.as_uri())
         .strip()
     )
     _check_output(result.stdout, expected)
     # When the remote is a local path, it must exist.
     # If it doesn't, it gets flagged as invalid.
-    other_remote = pkg_version + "-other"
+    other_remote = f"{pkg_version}-other"
     script.run("git", "remote", "set-url", "other", other_remote, cwd=repo_dir)
     result = script.pip("freeze", expect_stderr=True)
     expected = os.path.normcase(
@@ -462,7 +461,7 @@ def test_freeze_git_remote(script: PipTestEnvironment) -> None:
     _check_output(os.path.normcase(result.stdout), expected)
     # when there are more than one origin, priority is given to the
     # remote named origin
-    script.run("git", "remote", "add", "origin", origin_remote, cwd=repo_dir)
+    script.run("git", "remote", "add", "origin", os.fspath(origin_remote), cwd=repo_dir)
     result = script.pip("freeze", expect_stderr=True)
     expected = (
         textwrap.dedent(
@@ -471,7 +470,7 @@ def test_freeze_git_remote(script: PipTestEnvironment) -> None:
             ...
         """
         )
-        .format(remote=path_to_url(origin_remote))
+        .format(remote=origin_remote.as_uri())
         .strip()
     )
     _check_output(result.stdout, expected)
@@ -489,7 +488,7 @@ def test_freeze_mercurial_clone(script: PipTestEnvironment) -> None:
     result = script.run(
         "hg",
         "clone",
-        pkg_version,
+        os.fspath(pkg_version),
         "pip-test-package",
         expect_stderr=True,
     )
@@ -522,7 +521,7 @@ def test_freeze_bazaar_clone(script: PipTestEnvironment) -> None:
     except OSError as e:
         pytest.fail(f"Invoking `bzr` failed: {e}")
 
-    result = script.run("bzr", "checkout", checkout_path, "bzr-package")
+    result = script.run("bzr", "checkout", os.fspath(checkout_path), "bzr-package")
     result = script.run(
         "python",
         "setup.py",
@@ -562,7 +561,13 @@ def test_freeze_nested_vcs(
     # Clone Python package into inner directory and install it.
     src_path = root_path.joinpath("src")
     src_path.mkdir()
-    script.run(inner_vcs, "clone", pkg_path, src_path, expect_stderr=True)
+    script.run(
+        inner_vcs,
+        "clone",
+        os.fspath(pkg_path),
+        os.fspath(src_path),
+        expect_stderr=True,
+    )
     script.pip("install", "-e", src_path, expect_stderr=True)
 
     # Check the freeze output recognizes the inner VCS.
@@ -600,7 +605,7 @@ def test_freeze_with_requirement_option_file_url_egg_not_installed(
     is not installed.
     """
 
-    url = path_to_url("my-package.tar.gz") + "#egg=Does.Not-Exist"
+    url = "file:///my-package.tar.gz#egg=Does.Not-Exist"
     requirements_path = script.scratch_path.joinpath("requirements.txt")
     requirements_path.write_text(url + "\n")
 
@@ -961,8 +966,7 @@ def test_freeze_path_multiple(
 def test_freeze_direct_url_archive(
     script: PipTestEnvironment, shared_data: TestData
 ) -> None:
-    req = "simple @ " + path_to_url(shared_data.packages / "simple-2.0.tar.gz")
-    assert req.startswith("simple @ file://")
+    req = "simple @ " + shared_data.packages.joinpath("simple-2.0.tar.gz").as_uri()
     script.pip("install", req)
     result = script.pip("freeze")
     assert req in result.stdout

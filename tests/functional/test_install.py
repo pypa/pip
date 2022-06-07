@@ -1,11 +1,11 @@
 import distutils
-import glob
 import os
 import re
 import ssl
 import sys
 import textwrap
 from os.path import curdir, join, pardir
+from pathlib import Path
 from typing import Dict, List, Tuple
 
 import pytest
@@ -25,12 +25,10 @@ from tests.lib import (
     need_bzr,
     need_mercurial,
     need_svn,
-    path_to_url,
     pyversion,
     requirements_file,
 )
 from tests.lib.local_repos import local_checkout
-from tests.lib.path import Path
 from tests.lib.server import (
     file_response,
     make_mock_server,
@@ -81,14 +79,14 @@ def test_pep518_build_env_uses_same_pip(
         fp.write("raise ImportError")
     script.run(
         "python",
-        pip_src / "src/pip",
+        os.fspath(pip_src / "src/pip"),
         "install",
         "--no-index",
         "-f",
-        common_wheels,
+        os.fspath(common_wheels),
         "-f",
-        data.packages,
-        data.src.joinpath("pep518-3.0"),
+        os.fspath(data.packages),
+        os.fspath(data.src.joinpath("pep518-3.0")),
         expect_stderr=deprecated_python,
     )
 
@@ -108,7 +106,7 @@ def test_pep518_refuses_conflicting_requires(
             "Some build dependencies for {url} conflict "
             "with PEP 517/518 supported "
             "requirements: setuptools==1.0 is incompatible with "
-            "setuptools>=40.8.0.".format(url=path_to_url(project_dir))
+            "setuptools>=40.8.0.".format(url=project_dir.as_uri())
         )
         in result.stderr
     ), str(result)
@@ -258,7 +256,7 @@ def test_pep518_forkbombs(
     assert (
         "{1} is already being built: {0} from {1}".format(
             package,
-            path_to_url(package_source),
+            package_source.as_uri(),
         )
         in result.stderr
     ), str(result)
@@ -280,7 +278,7 @@ def test_pip_second_command_line_interface_works(
     script.pip_install_local("-f", common_wheels, pip_src)
     args = [f"pip{pyversion}"]
     args.extend(["install", "INITools==0.2"])
-    args.extend(["-f", data.packages])
+    args.extend(["-f", os.fspath(data.packages)])
     result = script.run(*args)
     dist_info_folder = script.site_packages / "INITools-0.2.dist-info"
     initools_folder = script.site_packages / "initools"
@@ -359,7 +357,7 @@ def _test_install_editable_from_git(script: PipTestEnvironment) -> None:
     args = [
         "install",
         "-e",
-        "git+{url}#egg=testpackage".format(url=path_to_url(pkg_path)),
+        f"git+{pkg_path.as_uri()}#egg=testpackage",
     ]
     result = script.pip(*args)
     result.assert_installed("testpackage", with_files=[".git"])
@@ -436,7 +434,7 @@ def test_install_editable_uninstalls_existing_from_path(
 def test_basic_install_editable_from_hg(script: PipTestEnvironment) -> None:
     """Test cloning and hg+file install from Mercurial."""
     pkg_path = _create_test_package(script, name="testpackage", vcs="hg")
-    url = "hg+{}#egg=testpackage".format(path_to_url(pkg_path))
+    url = f"hg+{pkg_path.as_uri()}#egg=testpackage"
     assert url.startswith("hg+file")
     args = ["install", "-e", url]
     result = script.pip(*args)
@@ -452,7 +450,7 @@ def test_vcs_url_final_slash_normalization(script: PipTestEnvironment) -> None:
     args = [
         "install",
         "-e",
-        "hg+{url}/#egg=testpackage".format(url=path_to_url(pkg_path)),
+        f"hg+{pkg_path.as_uri()}/#egg=testpackage",
     ]
     result = script.pip(*args)
     result.assert_installed("testpackage", with_files=[".hg"])
@@ -465,7 +463,7 @@ def test_install_editable_from_bazaar(script: PipTestEnvironment) -> None:
     args = [
         "install",
         "-e",
-        "bzr+{url}/#egg=testpackage".format(url=path_to_url(pkg_path)),
+        f"bzr+{pkg_path.as_uri()}/#egg=testpackage",
     ]
     result = script.pip(*args)
     result.assert_installed("testpackage", with_files=[".bzr"])
@@ -505,7 +503,7 @@ def test_basic_install_from_local_directory(
     if resolver:
         args.append(resolver)
     to_install = data.packages.joinpath("FSPkg")
-    args.append(to_install)
+    args.append(os.fspath(to_install))
     result = script.pip(*args)
     fspkg_folder = script.site_packages / "fspkg"
     dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
@@ -539,13 +537,13 @@ def test_basic_install_relative_directory(
     full_rel_path = Path(
         os.path.relpath(data.packages.joinpath("FSPkg"), script.scratch_path)
     )
-    full_rel_url = "file:" + full_rel_path.replace(os.path.sep, "/") + "#egg=FSPkg"
+    full_rel_url = f"file:{full_rel_path.as_posix()}#egg=FSPkg"
     embedded_rel_path = script.scratch_path.joinpath(full_rel_path)
 
     req_path = {
-        "rel_path": full_rel_path,
+        "rel_path": os.fspath(full_rel_path),
         "rel_url": full_rel_url,
-        "embedded_rel_path": embedded_rel_path,
+        "embedded_rel_path": os.fspath(embedded_rel_path),
     }[test_type]
 
     # Install as either editable or not.
@@ -555,7 +553,7 @@ def test_basic_install_relative_directory(
         result.did_create(package_folder)
     else:
         # Editable install.
-        result = script.pip("install", "-e" + req_path, cwd=script.scratch_path)
+        result = script.pip("install", "-e", req_path, cwd=script.scratch_path)
         result.did_create(egg_link_file)
 
 
@@ -584,7 +582,7 @@ def test_hashed_install_success(
     scenes).
 
     """
-    file_url = path_to_url((data.packages / "simple-1.0.tar.gz").resolve())
+    file_url = data.packages.joinpath("simple-1.0.tar.gz").resolve().as_uri()
     with requirements_file(
         "simple2==1.0 --hash=sha256:9336af72ca661e6336eb87bc7de3e8844d853e"
         "3848c2b9bbd2e8bf01db88c2c7\n"
@@ -654,11 +652,10 @@ def test_install_from_local_directory_with_in_tree_build(
     Test installing from a local directory with default in tree build.
     """
     to_install = data.packages.joinpath("FSPkg")
-    args = ["install", to_install]
 
     in_tree_build_dir = to_install / "build"
     assert not in_tree_build_dir.exists()
-    result = script.pip(*args)
+    result = script.pip("install", to_install)
     fspkg_folder = script.site_packages / "fspkg"
     dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
     result.did_create(fspkg_folder)
@@ -815,8 +812,7 @@ def test_install_using_install_option_and_editable(
         expect_stderr=True,
     )
     script_file = (
-        script.venv / "src" / "pip-test-package" / folder / "pip-test-package"
-        + script.exe
+        script.venv / "src/pip-test-package" / folder / f"pip-test-package{script.exe}"
     )
     result.did_create(script_file)
 
@@ -835,7 +831,7 @@ def test_install_global_option_using_editable(
         "install",
         "--global-option=--version",
         "-e",
-        "{url}@0.2.5#egg=anyjson".format(url=local_checkout(url, tmpdir)),
+        f"{local_checkout(url, tmpdir)}@0.2.5#egg=anyjson",
         expect_stderr=True,
     )
     assert "Successfully installed anyjson" in result.stdout
@@ -1101,7 +1097,7 @@ def test_install_package_with_root(script: PipTestEnvironment, data: TestData) -
         "--no-index",
         "simple==1.0",
     )
-    normal_install_path = (
+    normal_install_path = os.fspath(
         script.base_path / script.site_packages / "simple-1.0.dist-info"
     )
     # use distutils to change the root exactly how the --root option does it
@@ -1399,7 +1395,7 @@ def test_compiles_pyc(script: PipTestEnvironment) -> None:
     #   any of them
     exists = [
         os.path.exists(script.site_packages_path / "initools/__init__.pyc"),
-        *glob.glob(script.site_packages_path / "initools/__pycache__/__init__*.pyc"),
+        *script.site_packages_path.glob("initools/__pycache__/__init__*.pyc"),
     ]
 
     assert any(exists)
@@ -1417,7 +1413,7 @@ def test_no_compiles_pyc(script: PipTestEnvironment) -> None:
     #   any of them
     exists = [
         os.path.exists(script.site_packages_path / "initools/__init__.pyc"),
-        *glob.glob(script.site_packages_path / "initools/__pycache__/__init__*.pyc"),
+        *script.site_packages_path.glob("initools/__pycache__/__init__*.pyc"),
     ]
 
     assert not any(exists)
@@ -1461,7 +1457,7 @@ def test_install_upgrade_editable_depending_on_other_editable(
 def test_install_subprocess_output_handling(
     script: PipTestEnvironment, data: TestData
 ) -> None:
-    args = ["install", data.src.joinpath("chattymodule")]
+    args = ["install", os.fspath(data.src.joinpath("chattymodule"))]
 
     # Regular install should not show output from the chatty setup.py
     result = script.pip(*args)
@@ -1489,8 +1485,7 @@ def test_install_subprocess_output_handling(
 def test_install_log(script: PipTestEnvironment, data: TestData, tmpdir: Path) -> None:
     # test that verbose logs go to "--log" file
     f = tmpdir.joinpath("log.txt")
-    args = [f"--log={f}", "install", data.src.joinpath("chattymodule")]
-    result = script.pip(*args)
+    result = script.pip(f"--log={f}", "install", data.src.joinpath("chattymodule"))
     assert 0 == result.stdout.count("HELLO FROM CHATTYMODULE")
     with open(f) as fp:
         # one from egg_info, one from install
@@ -1498,8 +1493,7 @@ def test_install_log(script: PipTestEnvironment, data: TestData, tmpdir: Path) -
 
 
 def test_install_topological_sort(script: PipTestEnvironment, data: TestData) -> None:
-    args = ["install", "TopoRequires4", "--no-index", "-f", data.packages]
-    res = str(script.pip(*args))
+    res = str(script.pip("install", "TopoRequires4", "--no-index", "-f", data.packages))
     order1 = "TopoRequires, TopoRequires2, TopoRequires3, TopoRequires4"
     order2 = "TopoRequires, TopoRequires3, TopoRequires2, TopoRequires4"
     assert order1 in res or order2 in res, res
@@ -1987,8 +1981,7 @@ def test_target_install_ignores_distutils_config_install_prefix(
     script: PipTestEnvironment,
 ) -> None:
     prefix = script.scratch_path / "prefix"
-    distutils_config = Path(
-        os.path.expanduser("~"),
+    distutils_config = Path.home().joinpath(
         "pydistutils.cfg" if sys.platform == "win32" else ".pydistutils.cfg",
     )
     distutils_config.write_text(
@@ -2164,7 +2157,7 @@ def test_install_sends_client_cert(
                 "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",
             }
         ),
-        file_response(str(data.packages / "simple-3.0.tar.gz")),
+        file_response(data.packages / "simple-3.0.tar.gz"),
     ]
 
     url = f"https://{server.host}:{server.port}/simple"

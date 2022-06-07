@@ -6,11 +6,10 @@ from tests.lib import (
     create_basic_wheel_for_package,
     create_test_package_with_setup,
 )
-from tests.lib.path import Path
 
 
 def test_new_resolver_conflict_requirements_file(
-    tmpdir: Path, script: PipTestEnvironment
+    tmpdir: pathlib.Path, script: PipTestEnvironment
 ) -> None:
     create_basic_wheel_for_package(script, "base", "1.0")
     create_basic_wheel_for_package(script, "base", "2.0")
@@ -46,7 +45,7 @@ def test_new_resolver_conflict_requirements_file(
 
 
 def test_new_resolver_conflict_constraints_file(
-    tmpdir: Path, script: PipTestEnvironment
+    tmpdir: pathlib.Path, script: PipTestEnvironment
 ) -> None:
     create_basic_wheel_for_package(script, "pkg", "1.0")
 

@@ -4,9 +4,9 @@ import csv
 from email import message_from_string
 from email.message import Message
 from functools import partial
+from pathlib import Path
 from zipfile import ZipFile
 
-from tests.lib.path import Path
 from tests.lib.wheel import (
     File,
     _default,

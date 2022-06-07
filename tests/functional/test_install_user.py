@@ -3,13 +3,13 @@ tests specific to "pip install --user"
 """
 import textwrap
 from os.path import curdir, isdir, isfile
+from pathlib import Path
 
 import pytest
 
 from tests.lib import pyversion  # noqa: F401
 from tests.lib import PipTestEnvironment, TestData, need_svn
 from tests.lib.local_repos import local_checkout
-from tests.lib.path import Path
 from tests.lib.venv import VirtualEnvironment
 
 

@@ -1,6 +1,7 @@
 """Tests for the ``pip hash`` command"""
+from pathlib import Path
+
 from tests.lib import PipTestEnvironment
-from tests.lib.path import Path
 
 
 def test_basic_hash(script: PipTestEnvironment, tmpdir: Path) -> None:

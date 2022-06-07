@@ -1,5 +1,6 @@
 import os
 import shutil
+from pathlib import Path
 from shutil import rmtree
 from tempfile import mkdtemp
 from typing import Any, Dict
@@ -13,9 +14,7 @@ from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import unpack_url
 from pip._internal.utils.hashes import Hashes
-from pip._internal.utils.urls import path_to_url
 from tests.lib import TestData
-from tests.lib.path import Path
 from tests.lib.requests_mocks import MockResponse
 
 
@@ -34,7 +33,7 @@ def test_unpack_url_with_urllib_response_without_content_type(data: TestData) ->
     session.get = _fake_session_get
     download = Downloader(session, progress_bar="on")
 
-    uri = path_to_url(data.packages.joinpath("simple-1.0.tar.gz"))
+    uri = data.packages.joinpath("simple-1.0.tar.gz").as_uri()
     link = Link(uri)
     temp_dir = mkdtemp()
     try:
@@ -80,7 +79,7 @@ def test_download_http_url__no_directory_traversal(
     session.get.return_value = resp
     download = Downloader(session, progress_bar="on")
 
-    download_dir = tmpdir.joinpath("download")
+    download_dir = os.fspath(tmpdir.joinpath("download"))
     os.mkdir(download_dir)
     file_path, content_type = download(link, download_dir)
     # The file should be downloaded to download_dir.
@@ -90,8 +89,8 @@ def test_download_http_url__no_directory_traversal(
 
 
 @pytest.fixture
-def clean_project(tmpdir_factory: pytest.TempdirFactory, data: TestData) -> Path:
-    tmpdir = Path(str(tmpdir_factory.mktemp("clean_project")))
+def clean_project(tmpdir_factory: pytest.TempPathFactory, data: TestData) -> Path:
+    tmpdir = tmpdir_factory.mktemp("clean_project")
     new_project_dir = tmpdir.joinpath("FSPkg")
     path = data.packages.joinpath("FSPkg")
     shutil.copytree(path, new_project_dir)
@@ -100,7 +99,7 @@ def clean_project(tmpdir_factory: pytest.TempdirFactory, data: TestData) -> Path
 
 class Test_unpack_url:
     def prep(self, tmpdir: Path, data: TestData) -> None:
-        self.build_dir = tmpdir.joinpath("build")
+        self.build_dir = os.fspath(tmpdir.joinpath("build"))
         self.download_dir = tmpdir.joinpath("download")
         os.mkdir(self.build_dir)
         os.mkdir(self.download_dir)
@@ -108,8 +107,8 @@ class Test_unpack_url:
         self.dist_file2 = "simple-2.0.tar.gz"
         self.dist_path = data.packages.joinpath(self.dist_file)
         self.dist_path2 = data.packages.joinpath(self.dist_file2)
-        self.dist_url = Link(path_to_url(self.dist_path))
-        self.dist_url2 = Link(path_to_url(self.dist_path2))
+        self.dist_url = Link(self.dist_path.as_uri())
+        self.dist_url2 = Link(self.dist_path2.as_uri())
         self.no_download = Mock(side_effect=AssertionError)
 
     def test_unpack_url_no_download(self, tmpdir: Path, data: TestData) -> None:

@@ -1,8 +1,10 @@
 import datetime
 import json
 import logging
+import os
 import sys
 from optparse import Values
+from pathlib import Path
 from typing import Optional
 from unittest.mock import ANY, Mock, patch
 
@@ -11,7 +13,6 @@ from freezegun import freeze_time
 from pip._vendor.packaging.version import Version
 
 from pip._internal import self_outdated_check
-from tests.lib.path import Path
 
 
 @pytest.mark.parametrize(
@@ -151,7 +152,7 @@ class TestSelfCheckState:
         state = self_outdated_check.SelfCheckState(cache_dir=str(cache_dir))
 
         # THEN
-        assert state._statefile_path == expected_path
+        assert state._statefile_path == os.fspath(expected_path)
         assert state._state == {"foo": "bar"}
 
     def test_writes_expected_statefile(self, tmpdir: Path) -> None:
@@ -169,7 +170,7 @@ class TestSelfCheckState:
         state.set("1.0.0", datetime.datetime(2000, 1, 1, 0, 0, 0))
 
         # THEN
-        assert state._statefile_path == expected_path
+        assert state._statefile_path == os.fspath(expected_path)
 
         contents = expected_path.read_text()
         assert json.loads(contents) == {

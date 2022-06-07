@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from pip._vendor.packaging.tags import Tag
 
@@ -6,7 +7,6 @@ from pip._internal.cache import WheelCache, _hash_dict
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
 from pip._internal.utils.misc import ensure_dir
-from tests.lib.path import Path
 
 
 def test_falsey_path_none() -> None:
@@ -29,7 +29,7 @@ def test_wheel_name_filter(tmpdir: Path) -> None:
     Test the wheel cache filters on wheel name when several wheels
     for different package are stored under the same cache directory.
     """
-    wc = WheelCache(tmpdir, FormatControl())
+    wc = WheelCache(os.fspath(tmpdir), FormatControl())
     link = Link("https://g.c/package.tar.gz")
     cache_path = wc.get_path_for_link(link)
     ensure_dir(cache_path)
@@ -53,7 +53,7 @@ def test_cache_hash() -> None:
 
 
 def test_get_cache_entry(tmpdir: Path) -> None:
-    wc = WheelCache(tmpdir, FormatControl())
+    wc = WheelCache(os.fspath(tmpdir), FormatControl())
     persi_link = Link("https://g.c/o/r/persi")
     persi_path = wc.get_path_for_link(persi_link)
     ensure_dir(persi_path)

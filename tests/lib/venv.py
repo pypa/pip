@@ -4,11 +4,10 @@ import subprocess
 import sys
 import textwrap
 import venv as _venv
-from typing import TYPE_CHECKING, Optional
+from pathlib import Path
+from typing import TYPE_CHECKING, Optional, Union
 
 import virtualenv as _virtualenv
-
-from .path import Path
 
 if TYPE_CHECKING:
     # Literal was introduced in Python 3.8.
@@ -27,11 +26,11 @@ class VirtualEnvironment:
 
     def __init__(
         self,
-        location: str,
+        location: Path,
         template: Optional["VirtualEnvironment"] = None,
         venv_type: Optional[VirtualEnvironmentType] = None,
     ):
-        self.location = Path(location)
+        self.location = location
         assert template is None or venv_type is None
         self._venv_type: VirtualEnvironmentType
         if template is not None:
@@ -171,7 +170,7 @@ class VirtualEnvironment:
     def clear(self) -> None:
         self._create(clear=True)
 
-    def move(self, location: str) -> None:
+    def move(self, location: Union[Path, str]) -> None:
         shutil.move(self.location, location)
         self.location = Path(location)
         self._update_paths()

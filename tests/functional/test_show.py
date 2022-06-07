@@ -67,7 +67,7 @@ def test_show_with_files_from_legacy(
     # 'setup.py install' plus installed-files.txt, which we manually generate.
     source_dir = tmp_path.joinpath("unpacked-sdist")
     setuptools_record = tmp_path.joinpath("installed-record.txt")
-    untar_file(data.packages.joinpath("simple-1.0.tar.gz"), str(source_dir))
+    untar_file(os.fspath(data.packages.joinpath("simple-1.0.tar.gz")), str(source_dir))
     script.run(
         "python",
         "setup.py",

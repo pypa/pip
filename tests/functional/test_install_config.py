@@ -289,7 +289,7 @@ def test_prompt_for_authentication(
                 "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",
             }
         ),
-        authorization_response(str(data.packages / "simple-3.0.tar.gz")),
+        authorization_response(data.packages / "simple-3.0.tar.gz"),
     ]
 
     url = f"https://{server.host}:{server.port}/simple"
@@ -330,7 +330,7 @@ def test_do_not_prompt_for_authentication(
                 "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",
             }
         ),
-        authorization_response(str(data.packages / "simple-3.0.tar.gz")),
+        authorization_response(data.packages / "simple-3.0.tar.gz"),
     ]
 
     url = f"https://{server.host}:{server.port}/simple"
@@ -377,8 +377,8 @@ def test_prompt_for_keyring_if_needed(
                 "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",
             }
         ),
-        response(str(data.packages / "simple-3.0.tar.gz")),
-        response(str(data.packages / "simple-3.0.tar.gz")),
+        response(data.packages / "simple-3.0.tar.gz"),
+        response(data.packages / "simple-3.0.tar.gz"),
     ]
 
     url = f"https://{server.host}:{server.port}/simple"
