@@ -71,7 +71,7 @@ def get_download_progress_renderer(
 
     Returns a callable, that takes an iterable to "wrap".
     """
-    if bar_type == "on":
+    if bar_type == "on" or bar_type == "forced":
         return functools.partial(_rich_progress_bar, bar_type=bar_type, size=size)
     else:
         return iter  # no-op, when passed an iterator
