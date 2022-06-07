@@ -1152,7 +1152,7 @@ announcements on the `low-traffic packaging announcements list`_ and
 .. _Python Windows launcher: https://docs.python.org/3/using/windows.html#launcher
 
 Using system trust stores for verifying HTTPS
-============================================================
+=============================================
 
 pip 22.2 added **experimental** support for using system trust stores to verify HTTPS certificates
 instead of certifi. Using system trust stores has advantages over certifi like automatically supporting
