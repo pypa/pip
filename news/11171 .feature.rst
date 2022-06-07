@@ -1,0 +1,1 @@
+Add ability to force progress bars to be used, for allowing progress bars to be shown in subprocesses.
