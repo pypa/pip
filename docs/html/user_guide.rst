@@ -1151,7 +1151,7 @@ announcements on the `low-traffic packaging announcements list`_ and
 .. _the official Python blog: https://blog.python.org/
 .. _Python Windows launcher: https://docs.python.org/3/using/windows.html#launcher
 
-Using system trust stores for verifying HTTPS in 22.2 (2022)
+Using system trust stores for verifying HTTPS
 ============================================================
 
 pip 22.2 added **experimental** support for using system trust stores to verify HTTPS certificates
