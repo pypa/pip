@@ -161,6 +161,8 @@ with [pip-tools](https://github.com/jazzband/pip-tools/).
 This means the "work" is done once during development process, and thus
 will avoid performing dependency resolution during deployment.
 
+(Fixing conflicting dependencies)=
+
 ## Dealing with dependency conflicts
 
 This section provides practical suggestions to pip users who encounter

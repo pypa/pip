@@ -25,8 +25,8 @@ Description
 .. pip-command-description:: wheel
 
 
-Build System Interface
-----------------------
+.. _`1-build-system-interface`:
+.. rubric:: Build System Interface
 
 This is now covered in :doc:`../reference/build-system/index`.
 

@@ -1,3 +1,5 @@
+(configuration)=
+
 # Configuration
 
 pip allows a user to change its behaviour via 3 mechanisms:
@@ -8,6 +10,8 @@ pip allows a user to change its behaviour via 3 mechanisms:
 
 This page explains how the configuration files and environment variables work,
 and how they are related to pip's various command line options.
+
+(config-file)=
 
 ## Configuration Files
 
@@ -83,6 +87,8 @@ Additionally, the environment variable `PIP_CONFIG_FILE` can be used to specify
 a configuration file that's loaded first, and whose values are overridden by
 the values set in the aforementioned files. Setting this to {any}`os.devnull`
 disables the loading of _all_ configuration files.
+
+(config-precedence)=
 
 ### Loading order
 

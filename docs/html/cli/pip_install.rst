@@ -148,19 +148,18 @@ profile:
 3. For whatever reason, they don't or won't declare their build dependencies using
    ``setup_requires``.
 
-
-Requirements File Format
-------------------------
+.. _`0-requirements-file-format`:
+.. rubric:: Requirements File Format
 
 This section has been moved to :doc:`../reference/requirements-file-format`.
 
-Requirement Specifiers
-----------------------
+.. _`0-requirement-specifiers`:
+.. rubric:: Requirement Specifiers
 
 This section has been moved to :doc:`../reference/requirement-specifiers`.
 
-Per-requirement Overrides
--------------------------
+.. _`0-per-requirement-overrides`:
+.. rubric:: Per-requirement Overrides
 
 This is now covered in :doc:`../reference/requirements-file-format`.
 
@@ -183,11 +182,8 @@ that enables installation of pre-releases and development releases.
 
 .. _pre-releases: https://www.python.org/dev/peps/pep-0440/#handling-of-pre-releases
 
-
-.. _`VCS Support`:
-
-VCS Support
------------
+.. _`0-vcs-support`:
+.. rubric:: VCS Support
 
 This is now covered in :doc:`../topics/vcs-support`.
 
@@ -224,44 +220,37 @@ store. The default bundled CA certificate store certificate store may be
 overridden by using ``--cert`` option or by using ``PIP_CERT``,
 ``REQUESTS_CA_BUNDLE``, or ``CURL_CA_BUNDLE`` environment variables.
 
-
-.. _`Caching`:
-
-Caching
--------
+.. _`0-caching`:
+.. rubric:: Caching
 
 This is now covered in :doc:`../topics/caching`.
 
-.. _`Wheel cache`:
-
-Wheel Cache
-^^^^^^^^^^^
+.. _`0-wheel-cache`:
+.. rubric:: Wheel Cache
 
 This is now covered in :doc:`../topics/caching`.
 
-Hash checking mode
-------------------
+.. _`0-hash-checking-mode`:
+.. rubric:: Hash checking mode
 
 This is now covered in :doc:`../topics/secure-installs`.
 
-Local Project Installs
-----------------------
+.. _`0-local-project-installs`:
+.. rubric:: Local Project Installs
 
 This is now covered in :doc:`../topics/local-project-installs`.
 
-Editable installs
------------------
+.. _`0-editable-installs`:
+.. rubric:: Editable installs
 
 This is now covered in :doc:`../topics/local-project-installs`.
 
-Build System Interface
-----------------------
+.. _`0-build-system-interface`:
+.. rubric:: Build System Interface
 
 This is now covered in :doc:`../reference/build-system/index`.
 
-
 .. _`pip install Options`:
-
 
 Options
 =======

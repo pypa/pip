@@ -1,3 +1,4 @@
+(vcs support)=
 # VCS Support
 
 pip supports installing from various version control systems (VCS).
