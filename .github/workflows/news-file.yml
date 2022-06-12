@@ -17,7 +17,7 @@ jobs:
           fetch-depth: 0
 
       - name: Check news entry
-        if: "!contains(github.event.pull_request.labels.*.name, 'trivial')"
+        if: "!contains(github.event.pull_request.labels.*.name, 'skip news')"
         run: |
           if ! pipx run towncrier check --compare-with origin/${{ github.base_ref }}; then
             echo "Please see https://pip.pypa.io/dev/news-entry-failure for guidance."
