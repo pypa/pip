@@ -324,7 +324,7 @@ def scoped_global_tempdir_manager(request: pytest.FixtureRequest) -> Iterator[No
 def pip_src(tmpdir_factory: pytest.TempPathFactory) -> Path:
     def not_code_files_and_folders(path: str, names: List[str]) -> Iterable[str]:
         # In the root directory...
-        if path == SRC_DIR:
+        if os.path.samefile(path, SRC_DIR):
             # ignore all folders except "src"
             folders = {
                 name for name in names if os.path.isdir(os.path.join(path, name))
