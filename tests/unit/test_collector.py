@@ -1,9 +1,9 @@
 import itertools
 import logging
-import os.path
+import os
 import re
-import urllib.request
 import uuid
+from pathlib import Path
 from textwrap import dedent
 from typing import List, Optional, Tuple
 from unittest import mock
@@ -31,7 +31,6 @@ from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
 from pip._internal.network.session import PipSession
 from tests.lib import TestData, make_test_link_collector
-from tests.lib.path import Path
 
 
 @pytest.mark.parametrize(
@@ -672,9 +671,7 @@ def test_get_html_page_directory_append_index(tmpdir: Path) -> None:
     """`_get_html_page()` should append "index.html" to a directory URL."""
     dirpath = tmpdir / "something"
     dirpath.mkdir()
-    dir_url = "file:///{}".format(
-        urllib.request.pathname2url(dirpath).lstrip("/"),
-    )
+    dir_url = dirpath.as_uri()
     expected_url = "{}/index.html".format(dir_url.rstrip("/"))
 
     session = mock.Mock(PipSession)

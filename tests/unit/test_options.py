@@ -12,7 +12,6 @@ from pip._internal.commands import create_command
 from pip._internal.commands.configuration import ConfigurationCommand
 from pip._internal.exceptions import PipError
 from tests.lib.options_helpers import AddFakeCommandMixin
-from tests.lib.path import Path
 
 
 @contextmanager
@@ -33,7 +32,7 @@ def assert_option_error(
     assert expected in stderr
 
 
-def assert_is_default_cache_dir(value: Path) -> None:
+def assert_is_default_cache_dir(value: str) -> None:
     # This path looks different on different platforms, but the path always
     # has the substring "pip".
     assert "pip" in value

@@ -1,5 +1,6 @@
 import email.message
 import logging
+import os
 from typing import List, Optional, Type, TypeVar, cast
 from unittest import mock
 
@@ -110,7 +111,7 @@ class TestAddRequirement:
         requirement_set = RequirementSet(check_supported_wheels=True)
 
         install_req = install_req_from_line(
-            data.packages.joinpath("simple.dist-0.1-py1-none-invalid.whl"),
+            os.fspath(data.packages.joinpath("simple.dist-0.1-py1-none-invalid.whl")),
         )
         assert install_req.link is not None
         assert install_req.link.is_wheel

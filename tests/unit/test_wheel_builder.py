@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Optional, cast
 from unittest import mock
 
@@ -173,7 +174,7 @@ def test_should_cache(req: ReqMock, expected: bool) -> None:
 
 
 def test_should_cache_git_sha(script: PipTestEnvironment) -> None:
-    repo_path = _create_test_package(script, name="mypkg")
+    repo_path = os.fspath(_create_test_package(script, name="mypkg"))
     commit = script.run("git", "rev-parse", "HEAD", cwd=repo_path).stdout.strip()
 
     # a link referencing a sha should be cached

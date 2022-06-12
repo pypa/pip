@@ -1,14 +1,13 @@
 import csv
 import distutils
-import glob
 import os
 import shutil
+from pathlib import Path
 from typing import Any
 
 import pytest
 
 from tests.lib import PipTestEnvironment, TestData, create_basic_wheel_for_package
-from tests.lib.path import Path
 from tests.lib.wheel import WheelBuilder, make_wheel
 
 
@@ -283,7 +282,7 @@ def test_install_wheel_with_prefix(
         "--find-links",
         tmpdir,
     )
-    lib = distutils.sysconfig.get_python_lib(prefix=Path("scratch") / "prefix")
+    lib = distutils.sysconfig.get_python_lib(prefix=os.path.join("scratch", "prefix"))
     result.did_create(lib)
 
 
@@ -583,7 +582,7 @@ def test_wheel_compiles_pyc(
     #   any of them
     exists = [
         os.path.exists(script.site_packages_path / "simpledist/__init__.pyc"),
-        *glob.glob(script.site_packages_path / "simpledist/__pycache__/__init__*.pyc"),
+        *script.site_packages_path.glob("simpledist/__pycache__/__init__*.pyc"),
     ]
     assert any(exists)
 
@@ -607,7 +606,7 @@ def test_wheel_no_compiles_pyc(
     #   any of them
     exists = [
         os.path.exists(script.site_packages_path / "simpledist/__init__.pyc"),
-        *glob.glob(script.site_packages_path / "simpledist/__pycache__/__init__*.pyc"),
+        *script.site_packages_path.glob("simpledist/__pycache__/__init__*.pyc"),
     ]
 
     assert not any(exists)

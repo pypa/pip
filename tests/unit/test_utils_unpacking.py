@@ -7,6 +7,7 @@ import tarfile
 import tempfile
 import time
 import zipfile
+from pathlib import Path
 from typing import List, Tuple
 
 import pytest
@@ -14,7 +15,6 @@ import pytest
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.unpacking import is_within_directory, untar_file, unzip_file
 from tests.lib import TestData
-from tests.lib.path import Path
 
 
 class TestUnpackArchives:
@@ -106,7 +106,7 @@ class TestUnpackArchives:
         Test unpacking a *.tgz, and setting execute permissions
         """
         test_file = data.packages.joinpath("test_tar.tgz")
-        untar_file(test_file, self.tempdir)
+        untar_file(os.fspath(test_file), self.tempdir)
         self.confirm_files()
         # Check the timestamp of an extracted file
         file_txt_path = os.path.join(self.tempdir, "file.txt")
@@ -118,7 +118,7 @@ class TestUnpackArchives:
         Test unpacking a *.zip, and setting execute permissions
         """
         test_file = data.packages.joinpath("test_zip.zip")
-        unzip_file(test_file, self.tempdir)
+        unzip_file(os.fspath(test_file), self.tempdir)
         self.confirm_files()
 
     def test_unpack_zip_failure(self) -> None:
@@ -182,7 +182,7 @@ def test_unpack_tar_unicode(tmpdir: Path) -> None:
     output_dir = tmpdir / "output"
     output_dir.mkdir()
 
-    untar_file(test_tar, str(output_dir))
+    untar_file(os.fspath(test_tar), str(output_dir))
 
     output_dir_name = str(output_dir)
     contents = os.listdir(output_dir_name)

@@ -1,9 +1,9 @@
 import os
+from pathlib import Path
 
 import pytest
 
 from pip._internal.utils.compat import get_path_uid
-from tests.lib.path import Path
 
 
 def test_get_path_uid() -> None:
@@ -25,7 +25,7 @@ def test_get_path_uid_symlink(tmpdir: Path) -> None:
     f = tmpdir / "symlink" / "somefile"
     f.parent.mkdir()
     f.write_text("content")
-    fs = f + "_link"
+    fs = f"{f}_link"
     os.symlink(f, fs)
     with pytest.raises(OSError):
         get_path_uid(fs)
@@ -40,7 +40,7 @@ def test_get_path_uid_symlink_without_NOFOLLOW(
     f = tmpdir / "symlink" / "somefile"
     f.parent.mkdir()
     f.write_text("content")
-    fs = f + "_link"
+    fs = f"{f}_link"
     os.symlink(f, fs)
     with pytest.raises(OSError):
         get_path_uid(fs)

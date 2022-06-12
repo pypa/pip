@@ -2,6 +2,7 @@ import itertools
 import os
 import stat
 import tempfile
+from pathlib import Path
 from typing import Any, Iterator, Optional, Union
 
 import pytest
@@ -16,7 +17,6 @@ from pip._internal.utils.temp_dir import (
     global_tempdir_manager,
     tempdir_registry,
 )
-from tests.lib.path import Path
 
 
 # No need to test symlinked directories on Windows
@@ -249,8 +249,9 @@ def test_tempdir_registry(
 def test_temp_dir_does_not_delete_explicit_paths_by_default(
     tmpdir: Path, delete: Optional[_Default], exists: bool
 ) -> None:
-    path = tmpdir / "example"
-    path.mkdir()
+    p = tmpdir / "example"
+    p.mkdir()
+    path = os.fspath(p)
 
     with tempdir_registry() as registry:
         registry.set_delete(deleted_kind, True)

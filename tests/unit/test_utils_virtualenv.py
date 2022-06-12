@@ -1,12 +1,13 @@
 import logging
+import os
 import site
 import sys
+from pathlib import Path
 from typing import List, Optional
 
 import pytest
 
 from pip._internal.utils import virtualenv
-from tests.lib.path import Path
 
 
 @pytest.mark.parametrize(
@@ -59,7 +60,7 @@ def test_virtualenv_no_global_with_regular_virtualenv(
 ) -> None:
     monkeypatch.setattr(virtualenv, "_running_under_venv", lambda: False)
 
-    monkeypatch.setattr(site, "__file__", tmpdir / "site.py")
+    monkeypatch.setattr(site, "__file__", os.fspath(tmpdir / "site.py"))
     monkeypatch.setattr(
         virtualenv,
         "_running_under_regular_virtualenv",

@@ -1,4 +1,5 @@
 from functools import partial
+from pathlib import Path
 from unittest import mock
 
 from pip._internal.models.direct_url import ArchiveInfo, DirectUrl, DirInfo, VcsInfo
@@ -7,9 +8,7 @@ from pip._internal.utils.direct_url_helpers import (
     direct_url_as_pep440_direct_reference,
     direct_url_from_link,
 )
-from pip._internal.utils.urls import path_to_url
 from tests.lib import PipTestEnvironment
-from tests.lib.path import Path
 
 
 def test_as_pep440_requirement_archive() -> None:
@@ -151,7 +150,7 @@ def test_from_link_archive() -> None:
 
 
 def test_from_link_dir(tmpdir: Path) -> None:
-    dir_url = path_to_url(tmpdir)
+    dir_url = tmpdir.as_uri()
     direct_url = direct_url_from_link(Link(dir_url))
     assert direct_url.url == dir_url
     assert isinstance(direct_url.info, DirInfo)

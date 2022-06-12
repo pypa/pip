@@ -2,13 +2,13 @@
 import os
 import re
 import sys
+from pathlib import Path
 
 import pytest
 
 from pip._internal.cli.status_codes import ERROR
 from tests.lib import pyversion  # noqa: F401
 from tests.lib import PipTestEnvironment, TestData
-from tests.lib.path import Path
 
 pytestmark = pytest.mark.usefixtures("with_wheel")
 

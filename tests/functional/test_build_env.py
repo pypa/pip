@@ -1,3 +1,4 @@
+import os
 from textwrap import dedent
 from typing import Optional
 
@@ -69,11 +70,11 @@ def run_with_build_env(
             "    ",
         )
     )
-    args = ["python", build_env_script]
+    args = ["python", os.fspath(build_env_script)]
     if test_script_contents is not None:
         test_script = script.scratch_path / "test.py"
         test_script.write_text(dedent(test_script_contents))
-        args.append(test_script)
+        args.append(os.fspath(test_script))
     return script.run(*args)
 
 
@@ -89,7 +90,7 @@ def test_build_env_allow_empty_requirements_install() -> None:
 def test_build_env_allow_only_one_install(script: PipTestEnvironment) -> None:
     create_basic_wheel_for_package(script, "foo", "1.0")
     create_basic_wheel_for_package(script, "bar", "1.0")
-    finder = make_test_finder(find_links=[script.scratch_path])
+    finder = make_test_finder(find_links=[os.fspath(script.scratch_path)])
     build_env = BuildEnvironment()
     for prefix in ("normal", "overlay"):
         build_env.install_requirements(

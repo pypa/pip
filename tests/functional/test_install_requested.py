@@ -6,7 +6,7 @@ from tests.lib import PipTestEnvironment, TestData, TestPipResult
 def _assert_requested_present(
     script: PipTestEnvironment, result: TestPipResult, name: str, version: str
 ) -> None:
-    dist_info = script.site_packages / name + "-" + version + ".dist-info"
+    dist_info = script.site_packages / f"{name}-{version}.dist-info"
     requested = dist_info / "REQUESTED"
     assert dist_info in result.files_created
     assert requested in result.files_created
@@ -15,7 +15,7 @@ def _assert_requested_present(
 def _assert_requested_absent(
     script: PipTestEnvironment, result: TestPipResult, name: str, version: str
 ) -> None:
-    dist_info = script.site_packages / name + "-" + version + ".dist-info"
+    dist_info = script.site_packages / f"{name}-{version}.dist-info"
     requested = dist_info / "REQUESTED"
     assert dist_info in result.files_created
     assert requested not in result.files_created

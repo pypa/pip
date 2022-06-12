@@ -1,14 +1,13 @@
+from pathlib import Path
 from typing import Optional
 
 import pytest
 
-from pip._internal.utils.urls import path_to_url
 from tests.lib import pyversion  # noqa: F401
 from tests.lib import (
     PipTestEnvironment,
     _change_test_package_version,
     _create_test_package,
-    _test_path_to_file_url,
 )
 from tests.lib.git_submodule_helpers import (
     _change_test_package_submodule,
@@ -16,7 +15,6 @@ from tests.lib.git_submodule_helpers import (
     _pull_in_submodule_changes_to_module,
 )
 from tests.lib.local_repos import local_checkout
-from tests.lib.path import Path
 
 
 def _get_editable_repo_dir(script: PipTestEnvironment, package_name: str) -> Path:
@@ -46,7 +44,7 @@ def _get_branch_remote(
 
 def _github_checkout(
     url_path: str,
-    temp_dir: Path,
+    tmpdir: Path,
     rev: Optional[str] = None,
     egg: Optional[str] = None,
     scheme: Optional[str] = None,
@@ -65,7 +63,7 @@ def _github_checkout(
     if scheme is None:
         scheme = "https"
     url = f"git+{scheme}://github.com/{url_path}"
-    local_url = local_checkout(url, temp_dir)
+    local_url = local_checkout(url, tmpdir)
     if rev is not None:
         local_url += f"@{rev}"
     if egg is not None:
@@ -85,7 +83,7 @@ def _make_version_pkg_url(
         containing the version_pkg package.
       rev: an optional revision to install like a branch name, tag, or SHA.
     """
-    file_url = _test_path_to_file_url(path)
+    file_url = path.as_uri()
     url_rev = "" if rev is None else f"@{rev}"
     url = f"git+{file_url}{url_rev}#egg={name}"
 
@@ -543,7 +541,7 @@ def test_check_submodule_addition(script: PipTestEnvironment) -> None:
     )
 
     install_result = script.pip(
-        "install", "-e", "git+" + path_to_url(module_path) + "#egg=version_pkg"
+        "install", "-e", f"git+{module_path.as_uri()}#egg=version_pkg"
     )
     install_result.did_create(script.venv / "src/version-pkg/testpkg/static/testfile")
 
@@ -558,7 +556,7 @@ def test_check_submodule_addition(script: PipTestEnvironment) -> None:
     update_result = script.pip(
         "install",
         "-e",
-        "git+" + path_to_url(module_path) + "#egg=version_pkg",
+        f"git+{module_path.as_uri()}#egg=version_pkg",
         "--upgrade",
     )
 

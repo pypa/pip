@@ -1,9 +1,9 @@
 import json
+from pathlib import Path
 from typing import Tuple
 from zipfile import ZipFile
 
 from tests.lib import PipTestEnvironment
-from tests.lib.path import Path
 
 PYPROJECT_TOML = """\
 [build-system]

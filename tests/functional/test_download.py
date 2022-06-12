@@ -1,16 +1,15 @@
-import os.path
+import os
 import shutil
 import textwrap
 from hashlib import sha256
+from pathlib import Path
 from typing import List
 
 import pytest
 
 from pip._internal.cli.status_codes import ERROR
-from pip._internal.utils.urls import path_to_url
 from tests.conftest import MockServer, ScriptFactory
 from tests.lib import PipTestEnvironment, TestData, create_really_basic_wheel
-from tests.lib.path import Path
 from tests.lib.server import file_response
 
 
@@ -38,7 +37,7 @@ def test_basic_download_setuptools(script: PipTestEnvironment) -> None:
     """
     result = script.pip("download", "setuptools")
     setuptools_prefix = str(Path("scratch") / "setuptools")
-    assert any(path.startswith(setuptools_prefix) for path in result.files_created)
+    assert any(os.fspath(p).startswith(setuptools_prefix) for p in result.files_created)
 
 
 def test_download_wheel(script: PipTestEnvironment, data: TestData) -> None:
@@ -86,7 +85,10 @@ def test_basic_download_should_download_dependencies(
     result = script.pip("download", "Paste[openid]==1.7.5.1", "-d", ".")
     result.did_create(Path("scratch") / "Paste-1.7.5.1.tar.gz")
     openid_tarball_prefix = str(Path("scratch") / "python-openid-")
-    assert any(path.startswith(openid_tarball_prefix) for path in result.files_created)
+    assert any(
+        os.fspath(path).startswith(openid_tarball_prefix)
+        for path in result.files_created
+    )
     result.did_not_create(script.site_packages / "openid")
 
 
@@ -158,7 +160,10 @@ def test_download_should_skip_existing_files(script: PipTestEnvironment) -> None
         ".",
     )
     openid_tarball_prefix = str(Path("scratch") / "python-openid-")
-    assert any(path.startswith(openid_tarball_prefix) for path in result.files_created)
+    assert any(
+        os.fspath(path).startswith(openid_tarball_prefix)
+        for path in result.files_created
+    )
     result.did_not_create(Path("scratch") / "INITools-0.1.tar.gz")
     result.did_not_create(script.site_packages / "initools")
     result.did_not_create(script.site_packages / "openid")
@@ -1047,9 +1052,9 @@ def test_prefer_binary_when_only_tarball_exists_req_file(
 
 @pytest.fixture(scope="session")
 def shared_script(
-    tmpdir_factory: pytest.TempdirFactory, script_factory: ScriptFactory
+    tmpdir_factory: pytest.TempPathFactory, script_factory: ScriptFactory
 ) -> PipTestEnvironment:
-    tmpdir = Path(str(tmpdir_factory.mktemp("download_shared_script")))
+    tmpdir = tmpdir_factory.mktemp("download_shared_script")
     script = script_factory(tmpdir.joinpath("workspace"))
     return script
 
@@ -1068,7 +1073,7 @@ def test_download_file_url(
         "-d",
         str(download_dir),
         "--no-index",
-        path_to_url(str(simple_pkg)),
+        simple_pkg.as_uri(),
     )
 
     assert downloaded_path.exists()
@@ -1084,10 +1089,9 @@ def test_download_file_url_existing_ok_download(
     fake_existing_package = shared_data.packages / "simple-2.0.tar.gz"
     shutil.copy(str(fake_existing_package), str(downloaded_path))
     downloaded_path_bytes = downloaded_path.read_bytes()
-    digest = sha256(downloaded_path_bytes).hexdigest()
 
     simple_pkg = shared_data.packages / "simple-1.0.tar.gz"
-    url = "{}#sha256={}".format(path_to_url(simple_pkg), digest)
+    url = f"{simple_pkg.as_uri()}#sha256={sha256(downloaded_path_bytes).hexdigest()}"
 
     shared_script.pip("download", "-d", str(download_dir), url)
 
@@ -1105,8 +1109,7 @@ def test_download_file_url_existing_bad_download(
 
     simple_pkg = shared_data.packages / "simple-1.0.tar.gz"
     simple_pkg_bytes = simple_pkg.read_bytes()
-    digest = sha256(simple_pkg_bytes).hexdigest()
-    url = "{}#sha256={}".format(path_to_url(simple_pkg), digest)
+    url = f"{simple_pkg.as_uri()}#sha256={sha256(simple_pkg_bytes).hexdigest()}"
 
     shared_script.pip("download", "-d", str(download_dir), url)
 

@@ -1,11 +1,11 @@
 import collections
 import logging
 import os
-import pathlib
 import subprocess
 import textwrap
 from optparse import Values
-from typing import TYPE_CHECKING, Any, Iterator, List, Optional, Tuple
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Iterator, List, Optional, Tuple, Union
 from unittest import mock
 
 import pytest
@@ -29,7 +29,6 @@ from pip._internal.req.req_file import (
 )
 from pip._internal.req.req_install import InstallRequirement
 from tests.lib import TestData, make_test_finder, requirements_file
-from tests.lib.path import Path
 
 if TYPE_CHECKING:
     from typing import Protocol
@@ -59,7 +58,7 @@ def options(session: PipSession) -> mock.Mock:
 
 
 def parse_reqfile(
-    filename: str,
+    filename: Union[Path, str],
     session: PipSession,
     finder: PackageFinder = None,
     options: Values = None,
@@ -69,7 +68,7 @@ def parse_reqfile(
     # Wrap parse_requirements/install_req_from_parsed_requirement to
     # avoid having to write the same chunk of code in lots of tests.
     for parsed_req in parse_requirements(
-        filename,
+        os.fspath(filename),
         session,
         finder=finder,
         options=options,
@@ -78,7 +77,7 @@ def parse_reqfile(
         yield install_req_from_parsed_requirement(parsed_req, isolated=isolated)
 
 
-def test_read_file_url(tmp_path: pathlib.Path, session: PipSession) -> None:
+def test_read_file_url(tmp_path: Path, session: PipSession) -> None:
     reqs = tmp_path.joinpath("requirements.txt")
     reqs.write_text("foo")
     result = list(parse_requirements(reqs.as_posix(), session))
