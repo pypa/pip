@@ -286,4 +286,4 @@ class WheelCache(Cache):
                     cache_dir,
                     download_info.url,
                 )
-        origin_path.write_text(download_info.to_json())
+        origin_path.write_text(download_info.to_json(), encoding="utf-8")
