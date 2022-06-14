@@ -1,6 +1,6 @@
 import logging
 from optparse import Option, OptionParser, Values
-from typing import Callable, List, Optional
+from typing import Callable, List
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
@@ -31,22 +31,21 @@ class CheckCommand(Command):
             "--ignore-packages",
             action="callback",
             callback=_handle_ignore_packages,
+            default=set(),
             metavar="package",
             type="str",
             dest="ignore_packages",
-            help="Ignore packages.",
+            help="Ignore comma-separated packages.",
         )
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options: Values, args: List[str]) -> int:
 
         package_set, parsing_probs = create_package_set_from_installed()
-        should_ignore: Optional[Callable[[str], bool]] = (
-            (lambda p: p in options.ignore_packages)
-            if options.ignore_packages
-            else None
+        should_ignore: Callable[[str], bool] = lambda p: p in options.ignore_packages
+        missing, conflicting = check_package_set(
+            package_set, should_ignore, should_ignore
         )
-        missing, conflicting = check_package_set(package_set, should_ignore)
 
         for project_name in missing:
             version = package_set[project_name].version

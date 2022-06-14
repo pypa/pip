@@ -49,7 +49,9 @@ def create_package_set_from_installed() -> Tuple[PackageSet, bool]:
 
 
 def check_package_set(
-    package_set: PackageSet, should_ignore: Optional[Callable[[str], bool]] = None
+    package_set: PackageSet,
+    should_ignore: Optional[Callable[[str], bool]] = None,
+    should_ignore_dependencies: Optional[Callable[[str], bool]] = None,
 ) -> CheckResult:
     """Check if a package set is consistent
 
@@ -71,7 +73,7 @@ def check_package_set(
         for req in package_detail.dependencies:
             name = canonicalize_name(req.name)
 
-            if should_ignore and should_ignore(name):
+            if should_ignore_dependencies and should_ignore_dependencies(name):
                 continue
 
             # Check if it's missing
