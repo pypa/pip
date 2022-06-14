@@ -26,9 +26,11 @@ class CheckCommand(Command):
 
         package_set, parsing_probs = create_package_set_from_installed()
         missing, conflicting = check_package_set(package_set)
-        unsupported = check_unsupported(
-            get_default_environment().iter_installed_distributions(),
-            get_supported(),
+        unsupported = list(
+            check_unsupported(
+                get_default_environment().iter_installed_distributions(),
+                get_supported(),
+            )
         )
 
         for project_name in missing:
@@ -58,8 +60,7 @@ class CheckCommand(Command):
                 package.raw_name,
                 package.version,
             )
-            return ERROR
-        if missing or conflicting or parsing_probs:
+        if missing or conflicting or parsing_probs or unsupported:
             return ERROR
         else:
             write_output("No broken requirements found.")
