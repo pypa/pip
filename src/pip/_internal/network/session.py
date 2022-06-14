@@ -252,7 +252,7 @@ class LocalFSAdapter(BaseAdapter):
 
 
 class _SSLContextAdapterMixin:
-    """Mixin to add the ``ssl_context`` contructor argument to HTTP adapters.
+    """Mixin to add the ``ssl_context`` constructor argument to HTTP adapters.
 
     The additional argument is forwarded directly to the pool manager. This allows us
     to dynamically decide what SSL store to use at runtime, which is used to implement
