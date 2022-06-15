@@ -1,6 +1,6 @@
 import ssl
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import proxy
 import pytest
@@ -17,18 +17,18 @@ from tests.lib.server import (
 
 
 class AccessLogPlugin(HttpProxyBasePlugin):
-    def on_access_log(self, context: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def on_access_log(self, context: Dict[str, Any]) -> None:
         print(context)
-        return super().on_access_log(context)
 
 
 @pytest.mark.network
 def test_proxy_overrides_env(script: PipTestEnvironment) -> None:
     with proxy.Proxy(
         port=8899,
-    ), proxy.Proxy(plugins=[AccessLogPlugin], port=8888):
-        script.environ["http_proxy"] = "127:0.0.1:8888"
-        script.environ["https_proxy"] = "127:0.0.1:8888"
+        num_acceptors=1,
+    ), proxy.Proxy(plugins=[AccessLogPlugin], port=8888, num_acceptors=1):
+        script.environ["http_proxy"] = "127.0.0.1:8888"
+        script.environ["https_proxy"] = "127.0.0.1:8888"
         result = script.pip(
             "download",
             "--proxy",
@@ -69,7 +69,7 @@ def test_proxy_does_not_override_netrc(
 
     netrc = script.scratch_path / ".netrc"
     netrc.write_text(f"machine {server.host} login USERNAME password PASSWORD")
-    with proxy.Proxy(port=8888), server_running(server):
+    with proxy.Proxy(port=8888, num_acceptors=1), server_running(server):
         script.environ["NETRC"] = netrc
         script.pip(
             "install",
