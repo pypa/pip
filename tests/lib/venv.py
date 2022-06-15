@@ -171,7 +171,11 @@ class VirtualEnvironment:
         self._create(clear=True)
 
     def move(self, location: Union[Path, str]) -> None:
-        shutil.move(self.location, location)
+        if sys.version_info <= (3, 8):
+            src = str(self.location)
+        else:
+            src = self.location
+        shutil.move(src, location)
         self.location = Path(location)
         self._update_paths()
 
