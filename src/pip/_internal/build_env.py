@@ -6,9 +6,8 @@ import logging
 import os
 import pathlib
 import sys
-import textwrap
+import venv
 import zipfile
-from collections import OrderedDict
 from sysconfig import get_paths
 from types import TracebackType
 from typing import TYPE_CHECKING, Generator, Iterable, List, Optional, Set, Tuple, Type
@@ -19,7 +18,7 @@ from pip._vendor.packaging.version import Version
 
 from pip import __file__ as pip_location
 from pip._internal.cli.spinners import open_spinner
-from pip._internal.locations import get_platlib, get_prefixed_libs, get_purelib
+from pip._internal.locations import get_prefixed_libs
 from pip._internal.metadata import get_default_environment, get_environment
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
@@ -71,80 +70,28 @@ class BuildEnvironment:
     """Creates and manages an isolated environment to install build deps"""
 
     def __init__(self) -> None:
-        temp_dir = TempDirectory(kind=tempdir_kinds.BUILD_ENV, globally_managed=True)
-
-        self._prefixes = OrderedDict(
-            (name, _Prefix(os.path.join(temp_dir.path, name)))
-            for name in ("normal", "overlay")
+        self._venv = venv.EnvBuilder(
+            system_site_packages=False,
+            clear=False,
+            symlinks=False,
+            upgrade=False,
+            with_pip=False,
+            prompt=None,
+            upgrade_deps=False,
         )
-
-        self._bin_dirs: List[str] = []
-        self._lib_dirs: List[str] = []
-        for prefix in reversed(list(self._prefixes.values())):
-            self._bin_dirs.append(prefix.bin_dir)
-            self._lib_dirs.extend(prefix.lib_dirs)
-
-        # Customize site to:
-        # - ensure .pth files are honored
-        # - prevent access to system site packages
-        system_sites = {
-            os.path.normcase(site) for site in (get_purelib(), get_platlib())
-        }
-        self._site_dir = os.path.join(temp_dir.path, "site")
-        if not os.path.exists(self._site_dir):
-            os.mkdir(self._site_dir)
-        with open(
-            os.path.join(self._site_dir, "sitecustomize.py"), "w", encoding="utf-8"
-        ) as fp:
-            fp.write(
-                textwrap.dedent(
-                    """
-                import os, site, sys
-
-                # First, drop system-sites related paths.
-                original_sys_path = sys.path[:]
-                known_paths = set()
-                for path in {system_sites!r}:
-                    site.addsitedir(path, known_paths=known_paths)
-                system_paths = set(
-                    os.path.normcase(path)
-                    for path in sys.path[len(original_sys_path):]
-                )
-                original_sys_path = [
-                    path for path in original_sys_path
-                    if os.path.normcase(path) not in system_paths
-                ]
-                sys.path = original_sys_path
-
-                # Second, add lib directories.
-                # ensuring .pth file are processed.
-                for path in {lib_dirs!r}:
-                    assert not path in sys.path
-                    site.addsitedir(path)
-                """
-                ).format(system_sites=system_sites, lib_dirs=self._lib_dirs)
-            )
+        self._temp_dir = None
+        self._env_executable_path = None
 
     def __enter__(self) -> None:
-        self._save_env = {
-            name: os.environ.get(name, None)
-            for name in ("PATH", "PYTHONNOUSERSITE", "PYTHONPATH")
-        }
-
-        path = self._bin_dirs[:]
-        old_path = self._save_env["PATH"]
-        if old_path:
-            path.extend(old_path.split(os.pathsep))
-
-        pythonpath = [self._site_dir]
-
-        os.environ.update(
-            {
-                "PATH": os.pathsep.join(path),
-                "PYTHONNOUSERSITE": "1",
-                "PYTHONPATH": os.pathsep.join(pythonpath),
-            }
+        self._temp_dir = TempDirectory(
+            kind=tempdir_kinds.BUILD_ENV,
+            globally_managed=False,
         )
+
+        context = self._venv.ensure_directories(self._temp_dir)
+        self._env_executable_path = context.exe_name
+
+        self._venv.create(self._temp_dir)
 
     def __exit__(
         self,
@@ -152,11 +99,9 @@ class BuildEnvironment:
         exc_val: Optional[BaseException],
         exc_tb: Optional[TracebackType],
     ) -> None:
-        for varname, old_value in self._save_env.items():
-            if old_value is None:
-                os.environ.pop(varname, None)
-            else:
-                os.environ[varname] = old_value
+        self._temp_dir.cleanup()
+        self._temp_dir = None
+        self._env_executable_path = None
 
     def check_requirements(
         self, reqs: Iterable[str]
@@ -195,23 +140,18 @@ class BuildEnvironment:
     def install_requirements(
         self,
         finder: "PackageFinder",
-        prefix_as_string: str,
         *,
         requirements: Iterable[str],
         kind: str,
     ) -> None:
-        prefix = self._prefixes[prefix_as_string]
-        assert not prefix.setup
-        prefix.setup = True
         if not requirements:
             return
         with _create_standalone_pip() as pip_runnable:
             self._install_requirements(
-                sys.executable,
+                self._env_executable_path,
                 pip_runnable,
                 finder,
                 requirements,
-                prefix,
                 kind=kind,
             )
 
@@ -229,10 +169,7 @@ class BuildEnvironment:
             executable,
             pip_runnable,
             "install",
-            "--ignore-installed",
             "--no-user",
-            "--prefix",
-            prefix.path,
             "--no-warn-script-location",
         ]
         if logger.getEffectiveLevel() <= logging.DEBUG:
