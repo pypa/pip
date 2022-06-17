@@ -3,11 +3,11 @@
 
 import logging
 import os
-from distutils.util import change_root
 from typing import List, Optional, Sequence
 
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.exceptions import InstallationError, LegacyInstallFailure
+from pip._internal.locations.base import change_root
 from pip._internal.models.scheme import Scheme
 from pip._internal.utils.misc import ensure_dir
 from pip._internal.utils.setuptools_build import make_setuptools_install_args
