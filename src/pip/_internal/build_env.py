@@ -207,6 +207,7 @@ class BuildEnvironment:
             return
         with _create_standalone_pip() as pip_runnable:
             self._install_requirements(
+                sys.executable,
                 pip_runnable,
                 finder,
                 requirements,
@@ -216,6 +217,7 @@ class BuildEnvironment:
 
     @staticmethod
     def _install_requirements(
+        executable: str,
         pip_runnable: str,
         finder: "PackageFinder",
         requirements: Iterable[str],
@@ -224,7 +226,7 @@ class BuildEnvironment:
         kind: str,
     ) -> None:
         args: List[str] = [
-            sys.executable,
+            executable,
             pip_runnable,
             "install",
             "--ignore-installed",
