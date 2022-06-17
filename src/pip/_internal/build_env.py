@@ -205,8 +205,7 @@ class BuildEnvironment:
         prefix.setup = True
         if not requirements:
             return
-        with contextlib.ExitStack() as ctx:
-            pip_runnable = ctx.enter_context(_create_standalone_pip())
+        with _create_standalone_pip() as pip_runnable:
             self._install_requirements(
                 pip_runnable,
                 finder,
