@@ -291,9 +291,6 @@ class NoOpBuildEnvironment(BuildEnvironment):
     ) -> None:
         pass
 
-    def cleanup(self) -> None:
-        pass
-
     def install_requirements(
         self,
         finder: "PackageFinder",
