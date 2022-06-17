@@ -42,7 +42,9 @@ def test_backend(tmpdir: Path, data: TestData) -> None:
     req.load_pyproject_toml()
     env = BuildEnvironment()
     finder = make_test_finder(find_links=[data.backends])
-    env.install_requirements(finder, ["dummy_backend"], "normal", kind="Installing")
+    env.install_requirements(
+        finder, requirements=["dummy_backend"], kind="test"
+    )
     conflicting, missing = env.check_requirements(["dummy_backend"])
     assert not conflicting and not missing
     assert hasattr(req.pep517_backend, "build_wheel")
@@ -89,7 +91,9 @@ def test_backend_path_and_dep(tmpdir: Path, data: TestData) -> None:
     req.load_pyproject_toml()
     env = BuildEnvironment()
     finder = make_test_finder(find_links=[data.backends])
-    env.install_requirements(finder, ["dummy_backend"], "normal", kind="Installing")
+    env.install_requirements(
+        finder, requirements=["dummy_backend"], kind="test"
+    )
 
     assert hasattr(req.pep517_backend, "build_wheel")
     with env:

@@ -81,29 +81,9 @@ def run_with_build_env(
 def test_build_env_allow_empty_requirements_install() -> None:
     finder = make_test_finder()
     build_env = BuildEnvironment()
-    for prefix in ("normal", "overlay"):
-        build_env.install_requirements(
-            finder, [], prefix, kind="Installing build dependencies"
-        )
-
-
-def test_build_env_allow_only_one_install(script: PipTestEnvironment) -> None:
-    create_basic_wheel_for_package(script, "foo", "1.0")
-    create_basic_wheel_for_package(script, "bar", "1.0")
-    finder = make_test_finder(find_links=[os.fspath(script.scratch_path)])
-    build_env = BuildEnvironment()
-    for prefix in ("normal", "overlay"):
-        build_env.install_requirements(
-            finder, ["foo"], prefix, kind=f"installing foo in {prefix}"
-        )
-        with pytest.raises(AssertionError):
-            build_env.install_requirements(
-                finder, ["bar"], prefix, kind=f"installing bar in {prefix}"
-            )
-        with pytest.raises(AssertionError):
-            build_env.install_requirements(
-                finder, [], prefix, kind=f"installing in {prefix}"
-            )
+    build_env.install_requirements(
+        finder, requirements=[], kind="empty"
+    )
 
 
 def test_build_env_requirements_check(script: PipTestEnvironment) -> None:
@@ -132,37 +112,40 @@ def test_build_env_requirements_check(script: PipTestEnvironment) -> None:
     run_with_build_env(
         script,
         """
-        build_env.install_requirements(finder, ['foo', 'bar==3.0'], 'normal',
-                                       kind='installing foo in normal')
+        build_env.install_requirements(
+            finder, requirements=["foo", "bar==3.0"], kind="foo"
+        )
 
-        r = build_env.check_requirements(['foo', 'bar', 'other'])
-        assert r == (set(), {'other'}), repr(r)
+        r = build_env.check_requirements(["foo", "bar", "other"])
+        assert r == (set(), {"other"}), repr(r)
 
-        r = build_env.check_requirements(['foo>1.0', 'bar==3.0'])
+        r = build_env.check_requirements(["foo>1.0", "bar==3.0"])
         assert r == (set(), set()), repr(r)
 
-        r = build_env.check_requirements(['foo>3.0', 'bar>=2.5'])
-        assert r == ({('foo==2.0', 'foo>3.0')}, set()), repr(r)
+        r = build_env.check_requirements(["foo>3.0", "bar>=2.5"])
+        assert r == ({("foo==2.0", "foo>3.0")}, set()), repr(r)
         """,
     )
 
     run_with_build_env(
         script,
         """
-        build_env.install_requirements(finder, ['foo', 'bar==3.0'], 'normal',
-                                       kind='installing foo in normal')
-        build_env.install_requirements(finder, ['bar==1.0'], 'overlay',
-                                       kind='installing foo in overlay')
+        build_env.install_requirements(
+            finder, requirements=["foo", "bar==3.0"], kind="foo"
+        )
+        build_env.install_requirements(
+            finder, requirements=["1.0"], kind="bar"
+        )
 
-        r = build_env.check_requirements(['foo', 'bar', 'other'])
-        assert r == (set(), {'other'}), repr(r)
+        r = build_env.check_requirements(["foo", "bar", "other"])
+        assert r == (set(), {"other"}), repr(r)
 
-        r = build_env.check_requirements(['foo>1.0', 'bar==3.0'])
-        assert r == ({('bar==1.0', 'bar==3.0')}, set()), repr(r)
+        r = build_env.check_requirements(["foo>1.0", "bar==3.0"])
+        assert r == ({("bar==1.0", "bar==3.0")}, set()), repr(r)
 
-        r = build_env.check_requirements(['foo>3.0', 'bar>=2.5'])
-        assert r == ({('bar==1.0', 'bar>=2.5'), ('foo==2.0', 'foo>3.0')}, \
-            set()), repr(r)
+        r = build_env.check_requirements(["foo>3.0", "bar>=2.5"])
+        assert r == ({("bar==1.0", "bar>=2.5"), ("foo==2.0", "foo>3.0")}, set()), \
+            repr(r)
         """,
     )
 
@@ -187,19 +170,21 @@ def test_build_env_requirements_check(script: PipTestEnvironment) -> None:
     )
 
 
-def test_build_env_overlay_prefix_has_priority(script: PipTestEnvironment) -> None:
+def test_build_env_latest_install_has_priority(script: PipTestEnvironment) -> None:
     create_basic_wheel_for_package(script, "pkg", "2.0")
     create_basic_wheel_for_package(script, "pkg", "4.3")
     result = run_with_build_env(
         script,
         """
-        build_env.install_requirements(finder, ['pkg==2.0'], 'overlay',
-                                       kind='installing pkg==2.0 in overlay')
-        build_env.install_requirements(finder, ['pkg==4.3'], 'normal',
-                                       kind='installing pkg==4.3 in normal')
+        build_env.install_requirements(
+            finder, requirements=["pkg==4.3"], kind="pkg==4.3"
+        )
+        build_env.install_requirements(
+            finder, requirements=["pkg==2.0"], kind="pkg==2.0"
+        )
         """,
         """
-        print(__import__('pkg').__version__)
+        print(__import__("pkg").__version__)
         """,
     )
     assert result.stdout.strip() == "2.0", str(result)

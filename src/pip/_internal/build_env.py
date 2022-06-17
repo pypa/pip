@@ -8,9 +8,18 @@ import pathlib
 import sys
 import venv
 import zipfile
-from sysconfig import get_paths
 from types import TracebackType
-from typing import TYPE_CHECKING, Generator, Iterable, List, Optional, Set, Tuple, Type
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    Generator,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+)
 
 from pip._vendor.certifi import where
 from pip._vendor.packaging.requirements import Requirement
@@ -18,7 +27,6 @@ from pip._vendor.packaging.version import Version
 
 from pip import __file__ as pip_location
 from pip._internal.cli.spinners import open_spinner
-from pip._internal.locations import get_prefixed_libs
 from pip._internal.metadata import get_default_environment, get_environment
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
@@ -27,17 +35,6 @@ if TYPE_CHECKING:
     from pip._internal.index.package_finder import PackageFinder
 
 logger = logging.getLogger(__name__)
-
-
-class _Prefix:
-    def __init__(self, path: str) -> None:
-        self.path = path
-        self.setup = False
-        self.bin_dir = get_paths(
-            "nt" if os.name == "nt" else "posix_prefix",
-            vars={"base": path, "platbase": path},
-        )["scripts"]
-        self.lib_dirs = get_prefixed_libs(path)
 
 
 @contextlib.contextmanager
@@ -70,28 +67,42 @@ class BuildEnvironment:
     """Creates and manages an isolated environment to install build deps"""
 
     def __init__(self) -> None:
-        self._venv = venv.EnvBuilder(
-            system_site_packages=False,
-            clear=False,
-            symlinks=False,
-            upgrade=False,
-            with_pip=False,
-            prompt=None,
-            upgrade_deps=False,
+        self._temp_dir = TempDirectory(
+            kind=tempdir_kinds.BUILD_ENV, globally_managed=True
         )
-        self._temp_dir = None
-        self._env_executable_path = None
+        self._venv = venv.EnvBuilder()
+        context = self._venv.ensure_directories(self._temp_dir.path)
+        self._venv.create(self._temp_dir.path)
+
+        # Copy-pasted from venv/__init__.py
+        if sys.platform == "win32":
+            libpath = os.path.join(
+                self._temp_dir.path,
+                "Lib",
+                "site-packages",
+            )
+        else:
+            libpath = os.path.join(
+                self._temp_dir.path,
+                "lib",
+                f"python{sys.version_info.major}.{sys.version_info.minor}",
+                "site-packages",
+            )
+
+        self._lib_path = libpath
+        self._bin_path = context.bin_path
+        self._env_executable = context.env_exe
+        self._save_env: Dict[str, str] = {}
 
     def __enter__(self) -> None:
-        self._temp_dir = TempDirectory(
-            kind=tempdir_kinds.BUILD_ENV,
-            globally_managed=False,
-        )
+        self._save_env = {
+            name: os.environ.get(name, "") for name in ("PATH", "PYTHONPATH")
+        }
 
-        context = self._venv.ensure_directories(self._temp_dir)
-        self._env_executable_path = context.exe_name
+        old_path = self._save_env["PATH"]
+        new_path = os.pathsep.join(filter(None, [self._bin_path, old_path]))
 
-        self._venv.create(self._temp_dir)
+        os.environ.update({"PATH": new_path, "PYTHONPATH": self._lib_path})
 
     def __exit__(
         self,
@@ -99,9 +110,11 @@ class BuildEnvironment:
         exc_val: Optional[BaseException],
         exc_tb: Optional[TracebackType],
     ) -> None:
-        self._temp_dir.cleanup()
-        self._temp_dir = None
-        self._env_executable_path = None
+        for varname, old_value in self._save_env.items():
+            if old_value is None:
+                os.environ.pop(varname, None)
+            else:
+                os.environ[varname] = old_value
 
     def check_requirements(
         self, reqs: Iterable[str]
@@ -113,11 +126,7 @@ class BuildEnvironment:
         missing = set()
         conflicting = set()
         if reqs:
-            env = (
-                get_environment(self._lib_dirs)
-                if hasattr(self, "_lib_dirs")
-                else get_default_environment()
-            )
+            env = get_environment([self._lib_path])
             for req_str in reqs:
                 req = Requirement(req_str)
                 # We're explicitly evaluating with an empty extra value, since build
@@ -144,11 +153,12 @@ class BuildEnvironment:
         requirements: Iterable[str],
         kind: str,
     ) -> None:
+        assert self._env_executable
         if not requirements:
             return
         with _create_standalone_pip() as pip_runnable:
             self._install_requirements(
-                self._env_executable_path,
+                self._env_executable,
                 pip_runnable,
                 finder,
                 requirements,
@@ -161,7 +171,6 @@ class BuildEnvironment:
         pip_runnable: str,
         finder: "PackageFinder",
         requirements: Iterable[str],
-        prefix: _Prefix,
         *,
         kind: str,
     ) -> None:
@@ -231,7 +240,6 @@ class NoOpBuildEnvironment(BuildEnvironment):
     def install_requirements(
         self,
         finder: "PackageFinder",
-        prefix_as_string: str,
         *,
         requirements: Iterable[str],
         kind: str,
