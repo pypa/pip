@@ -195,9 +195,9 @@ class BuildEnvironment:
     def install_requirements(
         self,
         finder: "PackageFinder",
-        requirements: Iterable[str],
         prefix_as_string: str,
         *,
+        requirements: Iterable[str],
         kind: str,
     ) -> None:
         prefix = self._prefixes[prefix_as_string]
@@ -297,9 +297,9 @@ class NoOpBuildEnvironment(BuildEnvironment):
     def install_requirements(
         self,
         finder: "PackageFinder",
-        requirements: Iterable[str],
         prefix_as_string: str,
         *,
+        requirements: Iterable[str],
         kind: str,
     ) -> None:
         raise NotImplementedError()
