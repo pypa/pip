@@ -215,7 +215,7 @@ def test_build_env_isolation(script: PipTestEnvironment) -> None:
     run_with_build_env(
         script,
         "",
-        r"""
+        R"""
         from distutils.sysconfig import get_python_lib
         import sys
 
