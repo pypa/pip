@@ -163,6 +163,42 @@ This section has been moved to :doc:`../reference/requirement-specifiers`.
 
 This is now covered in :doc:`../reference/requirements-file-format`.
 
+Installing packages as root
+---------------------------
+
+Installing packages as ``root`` user is not recommended and ``pip`` maintainers highly recommend to
+avoid this if only possible and especially if you are not fully aware of the consequences of doing so.
+
+The problem with installing packages as ``root`` user with ``pip`` is that it often interferes with
+packages pre-installed by the maintainers of the distribution that your pip is used at. They are even
+often override the default ``pip`` installed by the distribution to manage their installed packages and
+if you are using "vanilla" ``pip`` installed manually (for example when you want to upgrade to the
+latest version), the "vanilla" ``pip`` might incorrectly override some of the installed files and corrupt
+the distribution you use.
+
+Therefore, you should avoid using ``pip`` as root if it is only possible. Instead, the best recommended
+approach is to create a virtualenv where your ``pip`` operates (either manually or via various tools - for
+example ``pipx`` will automatically create a `virtualenv <https://docs.python.org/3/tutorial/venv.html>`_
+when you install a Python application with it).
+
+When you attempt to perform an installation with ``pip`` as ``root`` user, pip will print a warning message
+and direct the user to this description. In the future, when  :pep:`668` is implemented, the problem of
+better integration with distribution-issued packages might solve the problem.
+
+However, there are certain cases where using root and no virtualenv might be legitimate today even without
+:pep:`668`. This is when you are using a distribution that does not modify/install Python packages by
+default or when you want to build a container image where Python application that you install is not intended
+for the user but intended to either be executed as part of the image. Another, multi-staging container use
+case is to prepare a "build" image stage where packages are pre-installed with the intention of copying
+them to a final container stage in order to save space in the final image.
+More details about this use case can be found in the
+`relevant discussion <https://github.com/pypa/pip/issues/10556>`_.
+
+For those - legitimate - cases, the warning printed by ``pip`` can be disabled by specifying an action to use
+for the root warning. This can be done with ``--root-user-action=ignore`` switch (the default action
+is ``warn``). Similarly to all other switches, this can be specified as ``PIP_ROOT_USER_ACTION=ignore``
+environment variable.
+
 .. _`Pre Release Versions`:
 
 Pre-release Versions
