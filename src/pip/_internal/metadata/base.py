@@ -384,7 +384,7 @@ class BaseDistribution(Protocol):
         return self._metadata_cached()
 
     @property
-    def json_metadata(self) -> Dict[str, Any]:
+    def metadata_dict(self) -> Dict[str, Any]:
         """PEP 566 compliant JSON-serializable representation of METADATA or PKG-INFO.
 
         This should return an empty dict if the metadata file is unavailable.

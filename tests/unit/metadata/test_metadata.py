@@ -90,8 +90,8 @@ def test_dist_get_direct_url_valid_metadata(mock_read_text: mock.Mock) -> None:
     assert isinstance(direct_url.info, ArchiveInfo)
 
 
-def test_json_metadata(tmp_path: Path) -> None:
-    """Basic test of BaseDistribution json_metadata.
+def test_metadata_dict(tmp_path: Path) -> None:
+    """Basic test of BaseDistribution metadata_dict.
 
     More tests are available in the original pkg_metadata project where this
     function comes from, and which we may vendor in the future.
@@ -99,6 +99,6 @@ def test_json_metadata(tmp_path: Path) -> None:
     wheel_path = make_wheel(name="pkga", version="1.0.1").save_to_dir(tmp_path)
     wheel = FilesystemWheel(wheel_path)
     dist = get_wheel_distribution(wheel, "pkga")
-    json_metadata = dist.json_metadata
-    assert json_metadata["name"] == "pkga"
-    assert json_metadata["version"] == "1.0.1"
+    metadata_dict = dist.metadata_dict
+    assert metadata_dict["name"] == "pkga"
+    assert metadata_dict["version"] == "1.0.1"

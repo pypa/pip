@@ -39,6 +39,8 @@ def json_name(field: str) -> str:
 
 
 def msg_to_json(msg: Message) -> Dict[str, Any]:
+    """Convert a Message object into a JSON-compatible dictionary."""
+
     def sanitise_header(h: Union[Header, str]) -> str:
         if isinstance(h, Header):
             chunks = []
@@ -67,6 +69,8 @@ def msg_to_json(msg: Message) -> Dict[str, Any]:
         else:
             value = sanitise_header(msg.get(field))
             if key == "keywords":
+                # Accept both comma-separated and space-separated
+                # forms, for better compatibility with old data.
                 if "," in value:
                     value = [v.strip() for v in value.split(",")]
                 else:
