@@ -174,7 +174,7 @@ def test_freeze_editable_not_vcs(script: PipTestEnvironment) -> None:
     """
     Test an editable install that is not version controlled.
     """
-    pkg_path = _create_test_package(script)
+    pkg_path = _create_test_package(script.scratch_path)
     # Rename the .git directory so the directory is no longer recognized
     # as a VCS directory.
     os.rename(os.path.join(pkg_path, ".git"), os.path.join(pkg_path, ".bak"))
@@ -201,7 +201,7 @@ def test_freeze_editable_git_with_no_remote(
     """
     Test an editable Git install with no remote url.
     """
-    pkg_path = _create_test_package(script)
+    pkg_path = _create_test_package(script.scratch_path)
     script.pip("install", "-e", pkg_path)
     result = script.pip("freeze")
 
@@ -225,7 +225,7 @@ def test_freeze_editable_git_with_no_remote(
 def test_freeze_svn(script: PipTestEnvironment) -> None:
     """Test freezing a svn checkout"""
 
-    checkout_path = _create_test_package(script, vcs="svn")
+    checkout_path = _create_test_package(script.scratch_path, vcs="svn")
 
     # Install with develop
     script.run("python", "setup.py", "develop", cwd=checkout_path, expect_stderr=True)
@@ -250,7 +250,7 @@ def test_freeze_exclude_editable(script: PipTestEnvironment) -> None:
     Test excluding editable from freezing list.
     """
     # Returns path to a generated package called "version_pkg"
-    pkg_version = _create_test_package(script)
+    pkg_version = _create_test_package(script.scratch_path)
 
     result = script.run(
         "git",
@@ -283,7 +283,7 @@ def test_freeze_git_clone(script: PipTestEnvironment) -> None:
     Test freezing a Git clone.
     """
     # Returns path to a generated package called "version_pkg"
-    pkg_version = _create_test_package(script)
+    pkg_version = _create_test_package(script.scratch_path)
 
     result = script.run(
         "git",
@@ -343,7 +343,7 @@ def test_freeze_git_clone_srcdir(script: PipTestEnvironment) -> None:
     relative to setup.py.
     """
     # Returns path to a generated package called "version_pkg"
-    pkg_version = _create_test_package_with_srcdir(script)
+    pkg_version = _create_test_package_with_srcdir(script.scratch_path)
 
     result = script.run(
         "git",
@@ -378,7 +378,7 @@ def test_freeze_mercurial_clone_srcdir(script: PipTestEnvironment) -> None:
     relative to setup.py.
     """
     # Returns path to a generated package called "version_pkg"
-    pkg_version = _create_test_package_with_srcdir(script, vcs="hg")
+    pkg_version = _create_test_package_with_srcdir(script.scratch_path, vcs="hg")
 
     result = script.run("hg", "clone", os.fspath(pkg_version), "pip-test-package")
     repo_dir = script.scratch_path / "pip-test-package"
@@ -399,7 +399,7 @@ def test_freeze_git_remote(script: PipTestEnvironment) -> None:
     Test freezing a Git clone.
     """
     # Returns path to a generated package called "version_pkg"
-    pkg_version = _create_test_package(script)
+    pkg_version = _create_test_package(script.scratch_path)
 
     result = script.run(
         "git",
@@ -483,7 +483,7 @@ def test_freeze_mercurial_clone(script: PipTestEnvironment) -> None:
 
     """
     # Returns path to a generated package called "version_pkg"
-    pkg_version = _create_test_package(script, vcs="hg")
+    pkg_version = _create_test_package(script.scratch_path, vcs="hg")
 
     result = script.run(
         "hg",
@@ -517,7 +517,7 @@ def test_freeze_bazaar_clone(script: PipTestEnvironment) -> None:
 
     """
     try:
-        checkout_path = _create_test_package(script, vcs="bazaar")
+        checkout_path = _create_test_package(script.scratch_path, vcs="bazaar")
     except OSError as e:
         pytest.fail(f"Invoking `bzr` failed: {e}")
 
@@ -549,7 +549,7 @@ def test_freeze_nested_vcs(
 ) -> None:
     """Test VCS can be correctly freezed when resides inside another VCS repo."""
     # Create Python package.
-    pkg_path = _create_test_package(script, vcs=inner_vcs)
+    pkg_path = _create_test_package(script.scratch_path, vcs=inner_vcs)
 
     # Create outer repo to clone into.
     root_path = script.scratch_path.joinpath("test_freeze_nested_vcs")
@@ -1011,7 +1011,7 @@ def test_freeze_pep610_editable(script: PipTestEnvironment) -> None:
     Test that a package installed with a direct_url.json with editable=true
     is correctly frozeon as editable.
     """
-    pkg_path = _create_test_package(script, name="testpkg")
+    pkg_path = _create_test_package(script.scratch_path, name="testpkg")
     result = script.pip("install", pkg_path)
     direct_url_path = get_created_direct_url_path(result, "testpkg")
     assert direct_url_path

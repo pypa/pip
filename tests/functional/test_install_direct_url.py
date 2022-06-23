@@ -13,7 +13,7 @@ def test_install_find_links_no_direct_url(script: PipTestEnvironment) -> None:
 
 @pytest.mark.usefixtures("with_wheel")
 def test_install_vcs_editable_no_direct_url(script: PipTestEnvironment) -> None:
-    pkg_path = _create_test_package(script, name="testpkg")
+    pkg_path = _create_test_package(script.scratch_path, name="testpkg")
     args = ["install", "-e", f"git+{pkg_path.as_uri()}#egg=testpkg"]
     result = script.pip(*args)
     # legacy editable installs do not generate .dist-info,
@@ -23,7 +23,7 @@ def test_install_vcs_editable_no_direct_url(script: PipTestEnvironment) -> None:
 
 @pytest.mark.usefixtures("with_wheel")
 def test_install_vcs_non_editable_direct_url(script: PipTestEnvironment) -> None:
-    pkg_path = _create_test_package(script, name="testpkg")
+    pkg_path = _create_test_package(script.scratch_path, name="testpkg")
     url = pkg_path.as_uri()
     args = ["install", f"git+{url}#egg=testpkg"]
     result = script.pip(*args)
@@ -57,7 +57,7 @@ def test_install_vcs_constraint_direct_url(script: PipTestEnvironment) -> None:
 
 @pytest.mark.usefixtures("with_wheel")
 def test_install_vcs_constraint_direct_file_url(script: PipTestEnvironment) -> None:
-    pkg_path = _create_test_package(script, name="testpkg")
+    pkg_path = _create_test_package(script.scratch_path, name="testpkg")
     url = pkg_path.as_uri()
     constraints_file = script.scratch_path / "constraints.txt"
     constraints_file.write_text(f"git+{url}#egg=testpkg")

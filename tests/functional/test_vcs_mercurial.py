@@ -6,7 +6,7 @@ from tests.lib import PipTestEnvironment, _create_test_package, need_mercurial
 
 @need_mercurial
 def test_get_repository_root(script: PipTestEnvironment) -> None:
-    version_pkg_path = _create_test_package(script, vcs="hg")
+    version_pkg_path = _create_test_package(script.scratch_path, vcs="hg")
     tests_path = version_pkg_path.joinpath("tests")
     tests_path.mkdir()
 

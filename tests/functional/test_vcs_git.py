@@ -221,7 +221,7 @@ def test_is_commit_id_equal(script: PipTestEnvironment) -> None:
     """
     Test Git.is_commit_id_equal().
     """
-    version_pkg_path = os.fspath(_create_test_package(script))
+    version_pkg_path = os.fspath(_create_test_package(script.scratch_path))
     script.run("git", "branch", "branch0.1", cwd=version_pkg_path)
     commit = script.run("git", "rev-parse", "HEAD", cwd=version_pkg_path).stdout.strip()
 
@@ -234,7 +234,7 @@ def test_is_commit_id_equal(script: PipTestEnvironment) -> None:
 
 
 def test_is_immutable_rev_checkout(script: PipTestEnvironment) -> None:
-    version_pkg_path = os.fspath(_create_test_package(script))
+    version_pkg_path = os.fspath(_create_test_package(script.scratch_path))
     commit = script.run("git", "rev-parse", "HEAD", cwd=version_pkg_path).stdout.strip()
     assert Git().is_immutable_rev_checkout(
         "git+https://g.c/o/r@" + commit, version_pkg_path
@@ -246,7 +246,7 @@ def test_is_immutable_rev_checkout(script: PipTestEnvironment) -> None:
 
 
 def test_get_repository_root(script: PipTestEnvironment) -> None:
-    version_pkg_path = _create_test_package(script)
+    version_pkg_path = _create_test_package(script.scratch_path)
     tests_path = version_pkg_path.joinpath("tests")
     tests_path.mkdir()
 

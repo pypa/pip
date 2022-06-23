@@ -736,7 +736,7 @@ def test_list_pep610_editable(script: PipTestEnvironment) -> None:
     Test that a package installed with a direct_url.json with editable=true
     is correctly listed as editable.
     """
-    pkg_path = _create_test_package(script, name="testpkg")
+    pkg_path = _create_test_package(script.scratch_path, name="testpkg")
     result = script.pip("install", pkg_path)
     direct_url_path = get_created_direct_url_path(result, "testpkg")
     assert direct_url_path
