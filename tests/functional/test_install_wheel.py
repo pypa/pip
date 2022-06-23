@@ -664,7 +664,7 @@ def test_wheel_install_fails_with_unrelated_dist_info(
     package = create_basic_wheel_for_package(script, "simple", "0.1.0")
     new_name = "unrelated-2.0.0-py2.py3-none-any.whl"
     new_package = os.path.join(os.path.dirname(package), new_name)
-    shutil.move(package, new_package)
+    shutil.move(os.fspath(package), new_package)
 
     result = script.pip(
         "install",

@@ -1,4 +1,5 @@
 import compileall
+import os
 import shutil
 import subprocess
 import sys
@@ -171,7 +172,7 @@ class VirtualEnvironment:
         self._create(clear=True)
 
     def move(self, location: Union[Path, str]) -> None:
-        shutil.move(self.location, location)
+        shutil.move(os.fspath(self.location), location)
         self.location = Path(location)
         self._update_paths()
 
