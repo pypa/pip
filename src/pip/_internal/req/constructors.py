@@ -148,7 +148,7 @@ def deduce_helpful_msg(req: str) -> str:
     """
     if not os.path.exists(req):
         return f" File '{req}' does not exist."
-    msg = " The path does exist. "
+    msg = " The path does exist. pip install -r <file> installs from a file."
     # Try to parse and check if it is a requirements file.
     try:
         check_first_requirement_in_file(req)
