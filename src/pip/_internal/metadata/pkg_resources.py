@@ -171,8 +171,7 @@ class Distribution(BaseDistribution):
                 name, _, value = str(entry_point).partition("=")
                 yield EntryPoint(name=name.strip(), value=value.strip(), group=group)
 
-    @property
-    def metadata(self) -> email.message.Message:
+    def _metadata_impl(self) -> email.message.Message:
         """
         :raises NoneMetadataError: if the distribution reports `has_metadata()`
             True but `get_metadata()` returns None.

@@ -1,11 +1,12 @@
 import logging
+from pathlib import Path
 from typing import cast
 from unittest import mock
 
 import pytest
 from pip._vendor.packaging.utils import NormalizedName
 
-from pip._internal.metadata import BaseDistribution
+from pip._internal.metadata import BaseDistribution, get_directory_distribution
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, ArchiveInfo
 
 
@@ -38,6 +39,32 @@ def test_dist_get_direct_url_invalid_json(
             "Error parsing direct_url.json for whatever:",
         )
     )
+
+
+def test_metadata_reads_egg_info_requires_txt(tmp_path: Path) -> None:
+    """Check Requires-Dist is obtained from requires.txt if absent in PKG-INFO."""
+    egg_info_path = tmp_path / "whatever.egg-info"
+    egg_info_path.mkdir()
+    dist = get_directory_distribution(str(egg_info_path))
+    assert dist.installed_with_setuptools_egg_info
+    pkg_info_path = egg_info_path / "PKG-INFO"
+    pkg_info_path.write_text("Name: whatever\n")
+    egg_info_path.joinpath("requires.txt").write_text("pkga\npkgb\n")
+    assert dist.metadata.get_all("Requires-Dist") == ["pkga", "pkgb"]
+
+
+def test_metadata_pkg_info_requires_priority(tmp_path: Path) -> None:
+    """Check Requires-Dist in PKG-INFO has priority over requires.txt."""
+    egg_info_path = tmp_path / "whatever.egg-info"
+    egg_info_path.mkdir()
+    dist = get_directory_distribution(str(egg_info_path))
+    assert dist.installed_with_setuptools_egg_info
+    pkg_info_path = egg_info_path / "PKG-INFO"
+    pkg_info_path.write_text(
+        "Name: whatever\nRequires-Dist: pkgc\nRequires-Dist: pkgd\n"
+    )
+    egg_info_path.joinpath("requires.txt").write_text("pkga\npkgb\n")
+    assert dist.metadata.get_all("Requires-Dist") == ["pkgc", "pkgd"]
 
 
 @mock.patch.object(
