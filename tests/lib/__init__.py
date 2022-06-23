@@ -895,50 +895,57 @@ def _git_commit(
 
 
 def _vcs_add(
-    script: PipTestEnvironment,
+    location: pathlib.Path,
     version_pkg_path: pathlib.Path,
     vcs: str = "git",
 ) -> pathlib.Path:
     if vcs == "git":
-        script.run("git", "init", cwd=version_pkg_path)
-        script.run("git", "add", ".", cwd=version_pkg_path)
-        _git_commit(script, version_pkg_path, message="initial version")
+        subprocess.check_call(["git", "init"], cwd=os.fspath(version_pkg_path))
+        subprocess.check_call(["git", "add", "."], cwd=os.fspath(version_pkg_path))
+        subprocess.check_call(
+            ["git", "commit", "-m", "initial version"], cwd=os.fspath(version_pkg_path)
+        )
     elif vcs == "hg":
-        script.run("hg", "init", cwd=version_pkg_path)
-        script.run("hg", "add", ".", cwd=version_pkg_path)
-        script.run(
-            "hg",
-            "commit",
-            "-q",
-            "--user",
-            "pip <distutils-sig@python.org>",
-            "-m",
-            "initial version",
-            cwd=version_pkg_path,
+        subprocess.check_call(["hg", "init"], cwd=os.fspath(version_pkg_path))
+        subprocess.check_call(["hg", "add", "."], cwd=os.fspath(version_pkg_path))
+        subprocess.check_call(
+            [
+                "hg",
+                "commit",
+                "-q",
+                "--user",
+                "pip <distutils-sig@python.org>",
+                "-m",
+                "initial version",
+            ],
+            cwd=os.fspath(version_pkg_path),
         )
     elif vcs == "svn":
-        repo_url = _create_svn_repo(script, version_pkg_path)
-        script.run(
-            "svn", "checkout", repo_url, "pip-test-package", cwd=script.scratch_path
+        repo_url = _create_svn_repo(location, version_pkg_path)
+        subprocess.check_call(
+            ["svn", "checkout", repo_url, "pip-test-package"], cwd=os.fspath(location)
         )
-        checkout_path = script.scratch_path / "pip-test-package"
+        checkout_path = location / "pip-test-package"
 
         version_pkg_path = checkout_path
     elif vcs == "bazaar":
-        script.run("bzr", "init", cwd=version_pkg_path)
-        script.run("bzr", "add", ".", cwd=version_pkg_path)
-        script.run(
-            "bzr", "whoami", "pip <distutils-sig@python.org>", cwd=version_pkg_path
+        subprocess.check_call(["bzr", "init"], cwd=os.fspath(version_pkg_path))
+        subprocess.check_call(["bzr", "add", "."], cwd=os.fspath(version_pkg_path))
+        subprocess.check_call(
+            ["bzr", "whoami", "pip <distutils-sig@python.org>"],
+            cwd=os.fspath(version_pkg_path),
         )
-        script.run(
-            "bzr",
-            "commit",
-            "-q",
-            "--author",
-            "pip <distutils-sig@python.org>",
-            "-m",
-            "initial version",
-            cwd=version_pkg_path,
+        subprocess.check_call(
+            [
+                "bzr",
+                "commit",
+                "-q",
+                "--author",
+                "pip <distutils-sig@python.org>",
+                "-m",
+                "initial version",
+            ],
+            cwd=os.fspath(version_pkg_path),
         )
     else:
         raise ValueError(f"Unknown vcs: {vcs}")
@@ -995,10 +1002,10 @@ def _create_test_package_with_subdirectory(
 
 
 def _create_test_package_with_srcdir(
-    script: PipTestEnvironment, name: str = "version_pkg", vcs: str = "git"
+    dir_path: pathlib.Path, name: str = "version_pkg", vcs: str = "git"
 ) -> pathlib.Path:
-    script.scratch_path.joinpath(name).mkdir()
-    version_pkg_path = script.scratch_path / name
+    dir_path.joinpath(name).mkdir()
+    version_pkg_path = dir_path / name
     subdir_path = version_pkg_path.joinpath("subdir")
     subdir_path.mkdir()
     src_path = subdir_path.joinpath("src")
@@ -1021,14 +1028,14 @@ def _create_test_package_with_srcdir(
             )
         )
     )
-    return _vcs_add(script, version_pkg_path, vcs)
+    return _vcs_add(dir_path, version_pkg_path, vcs)
 
 
 def _create_test_package(
-    script: PipTestEnvironment, name: str = "version_pkg", vcs: str = "git"
+    dir_path: pathlib.Path, name: str = "version_pkg", vcs: str = "git"
 ) -> pathlib.Path:
-    script.scratch_path.joinpath(name).mkdir()
-    version_pkg_path = script.scratch_path / name
+    dir_path.joinpath(name).mkdir()
+    version_pkg_path = dir_path / name
     _create_main_file(version_pkg_path, name=name, output="0.1")
     version_pkg_path.joinpath("setup.py").write_text(
         textwrap.dedent(
@@ -1046,20 +1053,24 @@ def _create_test_package(
             )
         )
     )
-    return _vcs_add(script, version_pkg_path, vcs)
+    return _vcs_add(dir_path, version_pkg_path, vcs)
 
 
-def _create_svn_repo(script: PipTestEnvironment, version_pkg_path: StrPath) -> str:
-    repo_url = script.scratch_path.joinpath("pip-test-package-repo", "trunk").as_uri()
-    script.run("svnadmin", "create", "pip-test-package-repo", cwd=script.scratch_path)
-    script.run(
-        "svn",
-        "import",
-        str(version_pkg_path),
-        repo_url,
-        "-m",
-        "Initial import of pip-test-package",
-        cwd=script.scratch_path,
+def _create_svn_repo(repo_path: pathlib.Path, version_pkg_path: StrPath) -> str:
+    repo_url = repo_path.joinpath("pip-test-package-repo", "trunk").as_uri()
+    subprocess.check_call(
+        "svnadmin create pip-test-package-repo".split(), cwd=repo_path
+    )
+    subprocess.check_call(
+        [
+            "svn",
+            "import",
+            os.fspath(version_pkg_path),
+            repo_url,
+            "-m",
+            "Initial import of pip-test-package",
+        ],
+        cwd=os.fspath(repo_path),
     )
     return repo_url
 

@@ -86,7 +86,7 @@ def pytest_addoption(parser: Parser) -> None:
     )
 
 
-def pytest_collection_modifyitems(config: Config, items: List[pytest.Item]) -> None:
+def pytest_collection_modifyitems(config: Config, items: List[pytest.Function]) -> None:
     for item in items:
         if not hasattr(item, "module"):  # e.g.: DoctestTextfile
             continue
@@ -112,8 +112,7 @@ def pytest_collection_modifyitems(config: Config, items: List[pytest.Item]) -> N
         if item.get_closest_marker("incompatible_with_sysconfig") and _USE_SYSCONFIG:
             item.add_marker(pytest.mark.skip("Incompatible with sysconfig"))
 
-        # "Item" has no attribute "module"
-        module_file = item.module.__file__  # type: ignore[attr-defined]
+        module_file = item.module.__file__
         module_path = os.path.relpath(
             module_file, os.path.commonprefix([__file__, module_file])
         )
@@ -127,6 +126,14 @@ def pytest_collection_modifyitems(config: Config, items: List[pytest.Item]) -> N
             item.add_marker(pytest.mark.integration)
         elif module_root_dir.startswith("unit"):
             item.add_marker(pytest.mark.unit)
+
+            # We don't want to allow using the script resource if this is a
+            # unit test, as unit tests should not need all that heavy lifting
+            if "script" in item.fixturenames:
+                raise RuntimeError(
+                    "Cannot use the ``script`` funcarg in a unit test: "
+                    "(filename = {}, item = {})".format(module_path, item)
+                )
         else:
             raise RuntimeError(f"Unknown test type (filename = {module_path})")
 
