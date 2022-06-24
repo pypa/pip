@@ -9,7 +9,12 @@ import pytest
 
 from pip._internal.cli.status_codes import ERROR
 from tests.conftest import MockServer, ScriptFactory
-from tests.lib import PipTestEnvironment, TestData, create_really_basic_wheel
+from tests.lib import (
+    PipTestEnvironment,
+    TestData,
+    create_basic_sdist_for_package,
+    create_really_basic_wheel,
+)
 from tests.lib.server import file_response
 
 
@@ -1166,3 +1171,46 @@ def test_download_editable(
     downloads = os.listdir(download_dir)
     assert len(downloads) == 1
     assert downloads[0].endswith(".zip")
+
+
+def test_download_use_pep517_propagation(
+    script: PipTestEnvironment, tmpdir: Path, common_wheels: Path
+) -> None:
+    """
+    Check that --use-pep517 applies not just to the requirements specified
+    on the command line, but to their dependencies too.
+    """
+
+    create_basic_sdist_for_package(script, "fake_proj", "1.0", depends=["fake_dep"])
+
+    # If --use-pep517 is in effect, then setup.py should be running in an isolated
+    # environment that doesn't have pip in it.
+    create_basic_sdist_for_package(
+        script,
+        "fake_dep",
+        "1.0",
+        setup_py_prelude=textwrap.dedent(
+            """\
+            try:
+                import pip
+            except ImportError:
+                pass
+            else:
+                raise Exception(f"not running in isolation")
+            """
+        ),
+    )
+
+    download_dir = tmpdir / "download_dir"
+    script.pip(
+        "download",
+        f"--dest={download_dir}",
+        "--no-index",
+        f"--find-links={common_wheels}",
+        f"--find-links={script.scratch_path}",
+        "--use-pep517",
+        "fake_proj",
+    )
+
+    downloads = os.listdir(download_dir)
+    assert len(downloads) == 2

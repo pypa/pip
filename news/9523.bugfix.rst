@@ -1,0 +1,3 @@
+Make the ``--use-pep517`` option of the ``download`` command apply not just
+to the requirements specified on the command line, but to their dependencies,
+as well.
