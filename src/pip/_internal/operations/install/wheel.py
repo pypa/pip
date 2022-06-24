@@ -50,7 +50,7 @@ from pip._internal.metadata import (
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
-from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file, partition
+from pip._internal.utils.misc import ensure_dir, hash_file, partition
 from pip._internal.utils.unpacking import (
     current_umask,
     is_within_directory,
@@ -606,19 +606,17 @@ def _install_wheel(
 
     # Compile all of the pyc files for the installed files
     if pycompile:
-        with captured_stdout() as stdout:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore")
-                for path in pyc_source_file_paths():
-                    success = compileall.compile_file(path, force=True, quiet=True)
-                    if success:
-                        pyc_path = pyc_output_path(path)
-                        assert os.path.exists(pyc_path)
-                        pyc_record_path = cast(
-                            "RecordPath", pyc_path.replace(os.path.sep, "/")
-                        )
-                        record_installed(pyc_record_path, pyc_path)
-        logger.debug(stdout.getvalue())
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            for path in pyc_source_file_paths():
+                success = compileall.compile_file(path, force=True, quiet=2)
+                if success:
+                    pyc_path = pyc_output_path(path)
+                    assert os.path.exists(pyc_path)
+                    pyc_record_path = cast(
+                        "RecordPath", pyc_path.replace(os.path.sep, "/")
+                    )
+                    record_installed(pyc_record_path, pyc_path)
 
     maker = PipScriptMaker(None, scheme.scripts)
 

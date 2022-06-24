@@ -1,5 +1,8 @@
 import logging
+import sys
 import time
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
 from threading import Thread
 from unittest.mock import patch
 
@@ -11,7 +14,6 @@ from pip._internal.utils.logging import (
     RichPipStreamHandler,
     indent_log,
 )
-from pip._internal.utils.misc import captured_stderr, captured_stdout
 
 logger = logging.getLogger(__name__)
 
@@ -139,9 +141,10 @@ class TestColorizedStreamHandler:
         This error should _not_ trigger an error in the logging framework.
         """
         record = self._make_log_record()
+        stderr = StringIO()
 
-        with captured_stderr() as stderr:
-            handler = RichPipStreamHandler(stream=stderr, no_color=True)
+        with redirect_stderr(stderr):
+            handler = RichPipStreamHandler(stream=sys.stderr, no_color=True)
             with patch("sys.stderr.flush") as mock_flush:
                 mock_flush.side_effect = BrokenPipeError()
                 # The emit() call raises no exception.
@@ -163,8 +166,8 @@ class TestColorizedStreamHandler:
         """
         record = self._make_log_record()
 
-        with captured_stdout() as stdout:
-            handler = RichPipStreamHandler(stream=stdout, no_color=True)
+        with redirect_stdout(StringIO()):
+            handler = RichPipStreamHandler(stream=sys.stdout, no_color=True)
             with patch("sys.stdout.write") as mock_write:
                 mock_write.side_effect = BrokenPipeError()
                 with pytest.raises(BrokenStdoutLoggingError):
@@ -177,9 +180,10 @@ class TestColorizedStreamHandler:
         This error _should_ trigger an error in the logging framework.
         """
         record = self._make_log_record()
+        stdout = StringIO()
 
-        with captured_stdout() as stdout:
-            handler = RichPipStreamHandler(stream=stdout, no_color=True)
+        with redirect_stdout(stdout):
+            handler = RichPipStreamHandler(stream=sys.stdout, no_color=True)
             with patch("sys.stdout.flush") as mock_flush:
                 mock_flush.side_effect = BrokenPipeError()
                 with pytest.raises(BrokenStdoutLoggingError):
