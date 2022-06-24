@@ -9,8 +9,10 @@ import zipfile
 from typing import (
     IO,
     TYPE_CHECKING,
+    Any,
     Collection,
     Container,
+    Dict,
     Iterable,
     Iterator,
     List,
@@ -37,6 +39,8 @@ from pip._internal.utils.egg_link import egg_link_path_from_sys_path
 from pip._internal.utils.misc import is_local, normalize_path
 from pip._internal.utils.packaging import safe_extra
 from pip._internal.utils.urls import url_to_path
+
+from ._json import msg_to_json
 
 if TYPE_CHECKING:
     from typing import Protocol
@@ -378,6 +382,17 @@ class BaseDistribution(Protocol):
             not contain valid metadata.
         """
         return self._metadata_cached()
+
+    @property
+    def metadata_dict(self) -> Dict[str, Any]:
+        """PEP 566 compliant JSON-serializable representation of METADATA or PKG-INFO.
+
+        This should return an empty dict if the metadata file is unavailable.
+
+        :raises NoneMetadataError: If the metadata file is available, but does
+            not contain valid metadata.
+        """
+        return msg_to_json(self.metadata)
 
     @property
     def metadata_version(self) -> Optional[str]:
