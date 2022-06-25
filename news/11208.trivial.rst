@@ -1,0 +1,3 @@
+Remove redundant netloc schemes for ``git`` and ``git+ssh``.
+
+These have been part of cpython since `2.7 and 3.1 <https://github.com/python/cpython/commit/ead169d3114ed0f1041b5b59ca20293449608c50>`_.
