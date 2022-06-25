@@ -171,6 +171,12 @@ def _get_simple_response(url: str, session: PipSession) -> Response:
     # downloaded it.
     _ensure_api_header(resp)
 
+    logger.debug(
+        "Fetched page %s as %s",
+        redact_auth_from_url(url),
+        resp.headers.get("Content-Type", "Unknown"),
+    )
+
     return resp
 
 
