@@ -34,7 +34,7 @@ from pip._vendor.requests import Response
 from pip._vendor.requests.exceptions import RetryError, SSLError
 
 from pip._internal.exceptions import NetworkConnectionError
-from pip._internal.models.link import Link
+from pip._internal.models.link import Link, SUPPORTED_HASHES
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.network.session import PipSession
 from pip._internal.network.utils import raise_for_status
@@ -266,6 +266,11 @@ def _clean_link(url: str) -> str:
     return urllib.parse.urlunparse(result._replace(path=path))
 
 
+_HASH_RE = re.compile(
+    r"({choices})=([a-f0-9]+)".format(choices="|".join(SUPPORTED_HASHES))
+)
+
+
 def _create_link_from_element(
     element_attribs: Dict[str, Optional[str]],
     page_url: str,
@@ -282,11 +287,17 @@ def _create_link_from_element(
     pyrequire = element_attribs.get("data-requires-python")
     yanked_reason = element_attribs.get("data-yanked")
 
+    hashes = {}
+    hm = _HASH_RE.search(url)
+    if hm is not None:
+        hashes[hm.group(1).lower()] = hm.group(2)
+
     link = Link(
         url,
         comes_from=page_url,
         requires_python=pyrequire,
         yanked_reason=yanked_reason,
+        hashes=hashes,
     )
 
     return link
@@ -387,6 +398,7 @@ def parse_links(page: "IndexContent", use_deprecated_html5lib: bool) -> Iterable
                 comes_from=page.url,
                 requires_python=file.get("requires-python"),
                 yanked_reason=yanked_reason,
+                hashes=file.get("hashes", {}),
             )
 
     if use_deprecated_html5lib:
