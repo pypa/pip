@@ -141,8 +141,8 @@ def _get_simple_response(url: str, session: PipSession) -> Response:
             "Accept": ", ".join(
                 [
                     "application/vnd.pypi.simple.v1+json",
-                    "application/vnd.pypi.simple.v1+html; q=0.2",
-                    "text/html; q=0.1",
+                    "application/vnd.pypi.simple.v1+html; q=0.1",
+                    "text/html; q=0.01",
                 ]
             ),
             # We don't want to blindly returned cached data for
