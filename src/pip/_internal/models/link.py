@@ -4,7 +4,16 @@ import os
 import posixpath
 import re
 import urllib.parse
-from typing import TYPE_CHECKING, Dict, List, NamedTuple, Optional, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    List,
+    NamedTuple,
+    Optional,
+    Tuple,
+    Union,
+    Mapping,
+)
 
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
 from pip._internal.utils.hashes import Hashes
@@ -47,7 +56,7 @@ class Link(KeyBasedCompareMixin):
         requires_python: Optional[str] = None,
         yanked_reason: Optional[str] = None,
         cache_link_parsing: bool = True,
-        hashes: Optional[dict[str, str]] = None,
+        hashes: Optional[Mapping[str, str]] = None,
     ) -> None:
         """
         :param url: url of the resource pointed to (href of the link)
