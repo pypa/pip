@@ -17,7 +17,7 @@ from pip._internal.utils.models import KeyBasedCompareMixin
 from pip._internal.utils.urls import path_to_url, url_to_path
 
 if TYPE_CHECKING:
-    from pip._internal.index.collector import HTMLPage
+    from pip._internal.index.collector import IndexContent
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +33,7 @@ class Link(KeyBasedCompareMixin):
     __slots__ = [
         "_parsed_url",
         "_url",
+        "_hashes",
         "comes_from",
         "requires_python",
         "yanked_reason",
@@ -42,7 +43,7 @@ class Link(KeyBasedCompareMixin):
     def __init__(
         self,
         url: str,
-        comes_from: Optional[Union[str, "HTMLPage"]] = None,
+        comes_from: Optional[Union[str, "IndexContent"]] = None,
         requires_python: Optional[str] = None,
         yanked_reason: Optional[str] = None,
         cache_link_parsing: bool = True,
@@ -50,7 +51,7 @@ class Link(KeyBasedCompareMixin):
     ) -> None:
         """
         :param url: url of the resource pointed to (href of the link)
-        :param comes_from: instance of HTMLPage where the link was found,
+        :param comes_from: instance of IndexContent where the link was found,
             or string.
         :param requires_python: String containing the `Requires-Python`
             metadata field, specified in PEP 345. This may be specified by
