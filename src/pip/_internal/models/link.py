@@ -8,11 +8,11 @@ from typing import (
     TYPE_CHECKING,
     Dict,
     List,
+    Mapping,
     NamedTuple,
     Optional,
     Tuple,
     Union,
-    Mapping,
 )
 
 from pip._internal.utils.filetypes import WHEEL_EXTENSION

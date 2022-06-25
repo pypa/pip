@@ -34,7 +34,7 @@ from pip._vendor.requests import Response
 from pip._vendor.requests.exceptions import RetryError, SSLError
 
 from pip._internal.exceptions import NetworkConnectionError
-from pip._internal.models.link import Link, SUPPORTED_HASHES
+from pip._internal.models.link import SUPPORTED_HASHES, Link
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.network.session import PipSession
 from pip._internal.network.utils import raise_for_status
