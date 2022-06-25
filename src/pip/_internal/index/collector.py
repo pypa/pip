@@ -83,11 +83,13 @@ def _ensure_api_header(response: Response) -> None:
     content_type = response.headers.get("Content-Type", "")
 
     content_type_l = content_type.lower()
-    if content_type_l.startswith("text/html"):
-        return
-    elif content_type_l.startswith("application/vnd.pypi.simple.v1+html"):
-        return
-    elif content_type_l.startswith("application/vnd.pypi.simple.v1+json"):
+    if content_type_l.startswith(
+        (
+            "text/html",
+            "application/vnd.pypi.simple.v1+html",
+            "application/vnd.pypi.simple.v1+json",
+        )
+    ):
         return
 
     raise _NotAPIContent(content_type, response.request.method)
