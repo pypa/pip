@@ -13,7 +13,7 @@ from pip._vendor import html5lib, requests
 
 from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.index.collector import (
-    HTMLPage,
+    IndexContent,
     LinkCollector,
     _clean_link,
     _clean_url_path,
@@ -426,7 +426,7 @@ def _test_parse_links_data_attribute(
         "<body>{}</body></html>"
     ).format(anchor_html)
     html_bytes = html.encode("utf-8")
-    page = HTMLPage(
+    page = IndexContent(
         html_bytes,
         encoding=None,
         # parse_links() is cached by url, so we inject a random uuid to ensure
@@ -503,14 +503,14 @@ def test_parse_links_caches_same_page_by_url() -> None:
 
     url = "https://example.com/simple/"
 
-    page_1 = HTMLPage(
+    page_1 = IndexContent(
         html_bytes,
         encoding=None,
         url=url,
     )
     # Make a second page with zero content, to ensure that it's not accessed,
     # because the page was cached by url.
-    page_2 = HTMLPage(
+    page_2 = IndexContent(
         b"",
         encoding=None,
         url=url,
@@ -518,7 +518,7 @@ def test_parse_links_caches_same_page_by_url() -> None:
     # Make a third page which represents an index url, which should not be
     # cached, even for the same url. We modify the page content slightly to
     # verify that the result is not cached.
-    page_3 = HTMLPage(
+    page_3 = IndexContent(
         re.sub(b"pkg1", b"pkg2", html_bytes),
         encoding=None,
         url=url,
@@ -541,7 +541,7 @@ def test_parse_links_caches_same_page_by_url() -> None:
 def test_parse_link_handles_deprecated_usage_properly() -> None:
     html = b'<a href="/pkg1-1.0.tar.gz"></a><a href="/pkg1-2.0.tar.gz"></a>'
     url = "https://example.com/simple/"
-    page = HTMLPage(html, encoding=None, url=url, cache_link_parsing=False)
+    page = IndexContent(html, encoding=None, url=url, cache_link_parsing=False)
 
     parsed_links = list(parse_links(page, use_deprecated_html5lib=True))
 
