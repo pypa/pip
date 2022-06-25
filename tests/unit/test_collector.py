@@ -201,7 +201,7 @@ def test_get_simple_response_no_head(
                 "Cache-Control": "max-age=0",
             },
         ),
-        mock.call().headers.get("Content-Type", ""),
+        mock.call().headers.get("Content-Type", "Unknown"),
     ]
     mock_raise_for_status.assert_called_once_with(resp)
 
@@ -667,7 +667,7 @@ def test_get_index_content_invalid_content_type(
     assert (
         "pip._internal.index.collector",
         logging.WARNING,
-        "Skipping page {} because the GET request got Content-Type: {}."
+        "Skipping page {} because the GET request got Content-Type: {}. "
         "The only supported Content-Types are application/vnd.pypi.simple.v1+json, "
         "application/vnd.pypi.simple.v1+html, and text/html'".format(url, content_type),
     ) in caplog.record_tuples

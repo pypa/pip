@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 # Order matters, earlier hashes have a precedence over later hashes for what
 # we will pick to use.
-SUPPORTED_HASHES = ("sha512", "sha384", "sha256", "sha224", "sha1", "md5")
+_SUPPORTED_HASHES = ("sha512", "sha384", "sha256", "sha224", "sha1", "md5")
 
 
 class Link(KeyBasedCompareMixin):
@@ -179,18 +179,32 @@ class Link(KeyBasedCompareMixin):
             return None
         return match.group(1)
 
+    _hash_re = re.compile(
+        r"({choices})=([a-f0-9]+)".format(choices="|".join(_SUPPORTED_HASHES))
+    )
+
     @property
     def hash(self) -> Optional[str]:
-        for hashname in SUPPORTED_HASHES:
+        for hashname in _SUPPORTED_HASHES:
             if hashname in self._hashes:
                 return self._hashes[hashname]
+
+        match = self._hash_re.search(self._url)
+        if match:
+            return match.group(2)
+
         return None
 
     @property
     def hash_name(self) -> Optional[str]:
-        for hashname in SUPPORTED_HASHES:
+        for hashname in _SUPPORTED_HASHES:
             if hashname in self._hashes:
                 return hashname
+
+        match = self._hash_re.search(self._url)
+        if match:
+            return match.group(1)
+
         return None
 
     @property
@@ -284,7 +298,7 @@ def _clean_link(link: Link) -> _CleanResult:
         subdirectory = ""
     # If there are multiple hash values under the same algorithm, use the
     # first one. This matches the behavior of Link.hash_value.
-    hashes = {k: fragment[k][0] for k in SUPPORTED_HASHES if k in fragment}
+    hashes = {k: fragment[k][0] for k in _SUPPORTED_HASHES if k in fragment}
     return _CleanResult(
         parsed=parsed._replace(netloc=netloc, query="", fragment=""),
         query=urllib.parse.parse_qs(parsed.query),
