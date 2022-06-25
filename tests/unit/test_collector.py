@@ -33,6 +33,15 @@ from pip._internal.network.session import PipSession
 from tests.lib import TestData, make_test_link_collector
 
 
+ACCEPT = ", ".join(
+    [
+        "application/vnd.pypi.simple.v1+json",
+        "application/vnd.pypi.simple.v1+html; q=0.1",
+        "text/html; q=0.01",
+    ]
+)
+
+
 @pytest.mark.parametrize(
     "url",
     [
@@ -143,7 +152,7 @@ def test_get_simple_response_archive_to_http_scheme_is_html(
         mock.call.get(
             url,
             headers={
-                "Accept": "text/html",
+                "Accept": ACCEPT,
                 "Cache-Control": "max-age=0",
             },
         ),
@@ -189,7 +198,7 @@ def test_get_simple_response_no_head(
         mock.call(
             url,
             headers={
-                "Accept": "text/html",
+                "Accept": ACCEPT,
                 "Cache-Control": "max-age=0",
             },
         ),
