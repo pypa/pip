@@ -63,7 +63,6 @@ class Git(VersionControl):
     schemes = (
         "git+http",
         "git+https",
-        "git+ssh",
         "git+git",
         "git+file",
     )
