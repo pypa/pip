@@ -235,11 +235,16 @@ def test_get_simple_response_dont_log_clear_text_password(
     assert resp is not None
     mock_raise_for_status.assert_called_once_with(resp)
 
-    assert len(caplog.records) == 1
+    assert len(caplog.records) == 2
     record = caplog.records[0]
     assert record.levelname == "DEBUG"
     assert record.message.splitlines() == [
         "Getting page https://user:****@example.com/simple/",
+    ]
+    record = caplog.records[1]
+    assert record.levelname == "DEBUG"
+    assert record.message.splitlines() == [
+        "Fetched page https://user:****@example.com/simple/ as text/html",
     ]
 
 
@@ -664,7 +669,8 @@ def test_get_index_content_invalid_content_type(
         "pip._internal.index.collector",
         logging.WARNING,
         "Skipping page {} because the GET request got Content-Type: {}."
-        "The only supported Content-Type is text/html".format(url, content_type),
+        "The only supported Content-Types are application/vnd.pypi.simple.v1+json, "
+        "application/vnd.pypi.simple.v1+html, and text/html'".format(url, content_type),
     ) in caplog.record_tuples
 
 
@@ -681,7 +687,7 @@ def make_fake_html_response(url: str) -> mock.Mock:
     """
     )
     content = html.encode("utf-8")
-    return mock.Mock(content=content, url=url, headers={})
+    return mock.Mock(content=content, url=url, headers={"Content-Type": "text/html"})
 
 
 def test_get_index_content_directory_append_index(tmpdir: Path) -> None:
