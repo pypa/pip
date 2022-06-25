@@ -32,7 +32,6 @@ from pip._internal.models.link import Link
 from pip._internal.network.session import PipSession
 from tests.lib import TestData, make_test_link_collector
 
-
 ACCEPT = ", ".join(
     [
         "application/vnd.pypi.simple.v1+json",
