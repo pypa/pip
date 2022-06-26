@@ -202,6 +202,7 @@ def test_get_simple_response_no_head(
             },
         ),
         mock.call().headers.get("Content-Type", "Unknown"),
+        mock.call().headers.get("Content-Type", "Unknown"),
     ]
     mock_raise_for_status.assert_called_once_with(resp)
 
