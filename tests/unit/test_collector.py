@@ -669,7 +669,7 @@ def test_get_index_content_invalid_content_type(
         logging.WARNING,
         "Skipping page {} because the GET request got Content-Type: {}. "
         "The only supported Content-Types are application/vnd.pypi.simple.v1+json, "
-        "application/vnd.pypi.simple.v1+html, and text/html'".format(url, content_type),
+        "application/vnd.pypi.simple.v1+html, and text/html".format(url, content_type),
     ) in caplog.record_tuples
 
 
