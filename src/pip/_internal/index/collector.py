@@ -80,7 +80,7 @@ def _ensure_api_header(response: Response) -> None:
 
     Raises `_NotAPIContent` if the content type is not a valid content-type.
     """
-    content_type = response.headers.get("Content-Type", "")
+    content_type = response.headers.get("Content-Type", "Unknown")
 
     content_type_l = content_type.lower()
     if content_type_l.startswith(
