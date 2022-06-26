@@ -2238,3 +2238,12 @@ def test_install_logs_pip_version_in_debug(
     result = script.pip("install", "-v", fake_package)
     pattern = "Using pip .* from .*"
     assert_re_match(pattern, result.stdout)
+
+
+def test_install_dry_run(script: PipTestEnvironment, data: TestData) -> None:
+    """Test that pip install --dry-run logs what it would install."""
+    result = script.pip(
+        "install", "--dry-run", "--find-links", data.find_links, "simple"
+    )
+    assert "Would install simple-3.0" in result.stdout
+    assert "Successfully installed" not in result.stdout

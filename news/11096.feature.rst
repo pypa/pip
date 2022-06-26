@@ -1,0 +1,2 @@
+Add ``--dry-run`` option to ``pip install``, to let it print what it would install but
+not actually change anything in the target environment.
