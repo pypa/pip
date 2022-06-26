@@ -4,6 +4,7 @@ import operator
 import os
 import shutil
 import site
+import sys
 from optparse import SUPPRESS_HELP, Values
 from typing import Iterable, List, Optional
 
@@ -261,7 +262,8 @@ class InstallCommand(RequirementCommand):
                 "Generate a JSON file describing what pip did to install "
                 "the provided requirements. "
                 "Can be used in combination with --dry-run and --ignore-installed "
-                "to 'resolve' the requirements."
+                "to 'resolve' the requirements. "
+                "When - is used as file name it writes to stdout."
             ),
         )
 
@@ -370,8 +372,11 @@ class InstallCommand(RequirementCommand):
 
             if options.json_report_file:
                 report = InstallationReport(requirement_set.requirements_to_install)
-                with open(options.json_report_file, "w", encoding="utf-8") as f:
-                    json.dump(report.to_dict(), f)
+                if options.json_report_file == "-":
+                    json.dump(report.to_dict(), sys.stdout, indent=2, ensure_ascii=True)
+                else:
+                    with open(options.json_report_file, "w", encoding="utf-8") as f:
+                        json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)
 
             if options.dry_run:
                 would_install_items = sorted(

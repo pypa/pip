@@ -175,3 +175,24 @@ def test_install_report_vcs_editable(
         "/src/pip-test-package"
     )
     assert pip_test_package_report["download_info"]["dir_info"]["editable"] is True
+
+
+@pytest.mark.usefixtures("with_wheel")
+def test_install_report_to_stdout(
+    script: PipTestEnvironment, shared_data: TestData
+) -> None:
+    result = script.pip(
+        "install",
+        "simplewheel",
+        "--quiet",
+        "--dry-run",
+        "--no-index",
+        "--find-links",
+        str(shared_data.root / "packages/"),
+        "--report",
+        "-",
+    )
+    assert not result.stderr
+    report = json.loads(result.stdout)
+    assert "install" in report
+    assert len(report["install"]) == 1
