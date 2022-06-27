@@ -44,5 +44,11 @@ class InstallationReport:
                 )
                 for ireq in self._install_requirements
             },
+            # https://peps.python.org/pep-0508/#environment-markers
+            # TODO: currently, the resolver uses the default environment to evaluate
+            # environment markers, so that is what we report here. In the future, it
+            # should also take into account options such as --python-version or
+            # --platform, perhaps under the form of an environment_override field?
+            # https://github.com/pypa/pip/issues/11198
             "environment": default_environment(),
         }
