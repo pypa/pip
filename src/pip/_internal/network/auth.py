@@ -72,11 +72,15 @@ def get_keyring_auth(url: Optional[str], username: Optional[str]) -> Optional[Au
 
 class MultiDomainBasicAuth(AuthBase):
     def __init__(
-        self, prompting: bool = True, index_urls: Optional[List[str]] = None
+        self,
+        prompting: bool = True,
+        index_urls: Optional[List[str]] = None,
+        allow_keyring: bool = False,
     ) -> None:
         self.prompting = prompting
         self.index_urls = index_urls
         self.passwords: Dict[str, AuthInfo] = {}
+        self.allow_keyring = allow_keyring
         # When the user is prompted to enter credentials and keyring is
         # available, we will offer to save them. If the user accepts,
         # this value is set to the credentials they entered. After the
@@ -110,7 +114,6 @@ class MultiDomainBasicAuth(AuthBase):
         self,
         original_url: str,
         allow_netrc: bool = True,
-        allow_keyring: bool = False,
     ) -> AuthInfo:
         """Find and return credentials for the specified URL."""
         # Split the credentials and netloc from the url.
@@ -148,7 +151,7 @@ class MultiDomainBasicAuth(AuthBase):
                 return netrc_auth
 
         # If we don't have a password and keyring is available, use it.
-        if allow_keyring:
+        if self.allow_keyring:
             # The index url is more specific than the netloc, so try it first
             # fmt: off
             kr_auth = (
@@ -261,7 +264,6 @@ class MultiDomainBasicAuth(AuthBase):
         username, password = self._get_new_credentials(
             resp.url,
             allow_netrc=False,
-            allow_keyring=True,
         )
 
         # Prompt the user for a new username and password

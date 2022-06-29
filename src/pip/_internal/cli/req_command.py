@@ -128,6 +128,7 @@ class SessionCommandMixin(CommandContextMixIn):
             trusted_hosts=options.trusted_hosts,
             index_urls=self._get_index_urls(options),
             ssl_context=ssl_context,
+            allow_keyring=options.keyring,
         )
 
         # Handle custom ca-bundles from the user
