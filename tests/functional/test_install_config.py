@@ -400,7 +400,7 @@ def test_prompt_for_keyring_if_needed(
     keyring_path.write_text(keyring_content)
 
     with server_running(server):
-        result = script.pip(
+        args = [
             "install",
             "--index-url",
             url,
@@ -409,7 +409,10 @@ def test_prompt_for_keyring_if_needed(
             "--client-cert",
             cert_path,
             "simple",
-        )
+        ]
+        if auth_needed:
+            args.append("--enable-keyring")
+        result = script.pip(*args)
 
     if auth_needed:
         assert "get_credential was called" in result.stderr
