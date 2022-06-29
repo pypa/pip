@@ -1024,6 +1024,15 @@ use_deprecated_feature: Callable[..., Option] = partial(
     help=("Enable deprecated functionality, that will be removed in the future."),
 )
 
+keyring: Callable[..., Option] = partial(
+    Option,
+    "--enable-keyring",
+    dest="keyring",
+    action="store_true",
+    default=False,
+    help="Enable keyring authentication",
+)
+
 
 ##########
 # groups #
