@@ -261,7 +261,6 @@ class RequirementCommand(IndexGroupCommand):
         super().__init__(*args, **kw)
 
         self.cmd_opts.add_option(cmdoptions.no_clean())
-        self.cmd_opts.add_option(cmdoptions.keyring())
 
     @staticmethod
     def determine_resolver_variant(options: Values) -> str:

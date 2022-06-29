@@ -1054,6 +1054,7 @@ general_group: Dict[str, Any] = {
         proxy,
         retries,
         timeout,
+        keyring,
         exists_action,
         trusted_host,
         cert,
