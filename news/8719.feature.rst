@@ -1,0 +1,1 @@
+Make support for the ``keyring`` library opt-in with the ``--enable-keyring`` flag
