@@ -76,14 +76,14 @@ def test_index_group_commands() -> None:
 
 @pytest.mark.parametrize("command_name", EXPECTED_INDEX_GROUP_COMMANDS)
 @pytest.mark.parametrize(
-    "disable_pip_version_check, no_index, expected_called",
+    "disable_pip_version_check, no_index, keyring, expected_called",
     [
         # pip_self_version_check() is only called when both
         # disable_pip_version_check and no_index are False.
-        (False, False, True),
-        (False, True, False),
-        (True, False, False),
-        (True, True, False),
+        (False, False, False, True),
+        (False, True, False, False),
+        (True, False, False, False),
+        (True, True, False, False),
     ],
 )
 @mock.patch("pip._internal.cli.req_command.pip_self_version_check")
@@ -92,6 +92,7 @@ def test_index_group_handle_pip_version_check(
     command_name: str,
     disable_pip_version_check: bool,
     no_index: bool,
+    keyring: bool,
     expected_called: bool,
 ) -> None:
     """
@@ -103,6 +104,7 @@ def test_index_group_handle_pip_version_check(
     options = command.parser.get_default_values()
     options.disable_pip_version_check = disable_pip_version_check
     options.no_index = no_index
+    options.keyring = keyring
 
     command.handle_pip_version_check(options)
     if expected_called:
