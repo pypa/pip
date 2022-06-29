@@ -91,10 +91,10 @@ def test_get_credentials_uses_cached_credentials_only_username() -> None:
 
 
 def test_get_index_url_credentials() -> None:
-    auth = MultiDomainBasicAuth(index_urls=["http://foo:bar@example.com/path"])
-    get = functools.partial(
-        auth._get_new_credentials, allow_netrc=False, allow_keyring=False
+    auth = MultiDomainBasicAuth(
+        index_urls=["http://foo:bar@example.com/path"], allow_keyring=False
     )
+    get = functools.partial(auth._get_new_credentials, allow_netrc=False)
 
     # Check resolution of indexes
     assert get("http://example.com/path/path2") == ("foo", "bar")
@@ -139,9 +139,11 @@ def test_keyring_get_password(
 ) -> None:
     keyring = KeyringModuleV1()
     monkeypatch.setattr("pip._internal.network.auth.keyring", keyring)
-    auth = MultiDomainBasicAuth(index_urls=["http://example.com/path2"])
+    auth = MultiDomainBasicAuth(
+        index_urls=["http://example.com/path2"], allow_keyring=True
+    )
 
-    actual = auth._get_new_credentials(url, allow_netrc=False, allow_keyring=True)
+    actual = auth._get_new_credentials(url, allow_netrc=False)
     assert actual == expect
 
 
@@ -185,10 +187,10 @@ def test_keyring_get_password_username_in_index(
 ) -> None:
     keyring = KeyringModuleV1()
     monkeypatch.setattr("pip._internal.network.auth.keyring", keyring)
-    auth = MultiDomainBasicAuth(index_urls=["http://user@example.com/path2"])
-    get = functools.partial(
-        auth._get_new_credentials, allow_netrc=False, allow_keyring=True
+    auth = MultiDomainBasicAuth(
+        index_urls=["http://user@example.com/path2"], allow_keyring=True
     )
+    get = functools.partial(auth._get_new_credentials, allow_netrc=False)
 
     assert get("http://example.com/path2/path3") == ("user", "user!url")
     assert get("http://example.com/path4/path1") == (None, None)
@@ -294,11 +296,11 @@ def test_keyring_get_credential(
     monkeypatch: pytest.MonkeyPatch, url: str, expect: str
 ) -> None:
     monkeypatch.setattr(pip._internal.network.auth, "keyring", KeyringModuleV2())
-    auth = MultiDomainBasicAuth(index_urls=["http://example.com/path2"])
-
-    assert (
-        auth._get_new_credentials(url, allow_netrc=False, allow_keyring=True) == expect
+    auth = MultiDomainBasicAuth(
+        index_urls=["http://example.com/path2"], allow_keyring=True
     )
+
+    assert auth._get_new_credentials(url, allow_netrc=False) == expect
 
 
 class KeyringModuleBroken:
@@ -316,12 +318,10 @@ def test_broken_keyring_disables_keyring(monkeypatch: pytest.MonkeyPatch) -> Non
     keyring_broken = KeyringModuleBroken()
     monkeypatch.setattr(pip._internal.network.auth, "keyring", keyring_broken)
 
-    auth = MultiDomainBasicAuth(index_urls=["http://example.com/"])
+    auth = MultiDomainBasicAuth(index_urls=["http://example.com/"], allow_keyring=True)
 
     assert keyring_broken._call_count == 0
     for i in range(5):
         url = "http://example.com/path" + str(i)
-        assert auth._get_new_credentials(
-            url, allow_netrc=False, allow_keyring=True
-        ) == (None, None)
+        assert auth._get_new_credentials(url, allow_netrc=False) == (None, None)
         assert keyring_broken._call_count == 1
