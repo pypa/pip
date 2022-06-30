@@ -583,7 +583,11 @@ def protect_pip_from_modification_on_windows(modifying_pip: bool) -> None:
 
 def is_console_interactive() -> bool:
     """Is this console interactive?"""
-    return sys.stdin is not None and not sys.stdin.closed and sys.stdin.isatty()
+    return (
+        sys.stdin is not None
+        and (not hasattr(sys.stdin, "closed") or not sys.stdin.closed)
+        and sys.stdin.isatty()
+    )
 
 
 def hash_file(path: str, blocksize: int = 1 << 20) -> Tuple[Any, int]:
