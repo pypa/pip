@@ -1,4 +1,5 @@
 import logging
+import os
 from pathlib import Path
 from typing import cast
 from unittest import mock
@@ -9,6 +10,7 @@ from pip._vendor.packaging.utils import NormalizedName
 from pip._internal.metadata import (
     BaseDistribution,
     get_directory_distribution,
+    get_environment,
     get_wheel_distribution,
 )
 from pip._internal.metadata.base import FilesystemWheel
@@ -102,3 +104,28 @@ def test_metadata_dict(tmp_path: Path) -> None:
     metadata_dict = dist.metadata_dict
     assert metadata_dict["name"] == "pkga"
     assert metadata_dict["version"] == "1.0.1"
+
+
+def test_no_dist_found_in_wheel(tmp_path: Path) -> None:
+    location = os.fspath(tmp_path.joinpath("pkg-1-py3-none-any.whl"))
+    make_wheel(name="pkg", version="1").save_to(location)
+    assert get_environment([location]).get_distribution("pkg") is None
+
+
+def test_dist_found_in_directory_named_whl(tmp_path: Path) -> None:
+    dir_path = tmp_path.joinpath("pkg-1-py3-none-any.whl")
+    info_path = dir_path.joinpath("pkg-1.dist-info")
+    info_path.mkdir(parents=True)
+    info_path.joinpath("METADATA").write_text("Name: pkg")
+    location = os.fspath(dir_path)
+    dist = get_environment([location]).get_distribution("pkg")
+    assert dist is not None and dist.location is not None
+    assert Path(dist.location) == Path(location)
+
+
+def test_dist_found_in_zip(tmp_path: Path) -> None:
+    location = os.fspath(tmp_path.joinpath("pkg.zip"))
+    make_wheel(name="pkg", version="1").save_to(location)
+    dist = get_environment([location]).get_distribution("pkg")
+    assert dist is not None and dist.location is not None
+    assert Path(dist.location) == Path(location)

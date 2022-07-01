@@ -10,10 +10,22 @@ from typing import Iterator, List, Optional, Sequence, Set, Tuple
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 
 from pip._internal.metadata.base import BaseDistribution, BaseEnvironment
+from pip._internal.models.wheel import Wheel
 from pip._internal.utils.deprecation import deprecated
+from pip._internal.utils.filetypes import WHEEL_EXTENSION
 
 from ._compat import BasePath, get_dist_name, get_info_location
 from ._dists import Distribution
+
+
+def _looks_like_wheel(location: str) -> bool:
+    if not location.endswith(WHEEL_EXTENSION):
+        return False
+    if not os.path.isfile(location):
+        return False
+    if not Wheel.wheel_file_re.match(os.path.basename(location)):
+        return False
+    return zipfile.is_zipfile(location)
 
 
 class _DistributionFinder:
@@ -36,6 +48,11 @@ class _DistributionFinder:
 
     def _find_impl(self, location: str) -> Iterator[FoundResult]:
         """Find distributions in a location."""
+        # Skip looking inside a wheel. Since a package inside a wheel is not
+        # always valid (due to .data directories etc.), its .dist-info entry
+        # should not be considered an installed distribution.
+        if _looks_like_wheel(location):
+            return
         # To know exactly where we find a distribution, we have to feed in the
         # paths one by one, instead of dumping the list to importlib.metadata.
         for dist in importlib.metadata.distributions(path=[location]):
