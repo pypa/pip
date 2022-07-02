@@ -7,6 +7,7 @@ it did install (or what it would have installed, if used with the `--dry-run` op
 
 The report is a JSON object with the following properties:
 
+- `pip_version`: a string with the version of pip used to produce the report.
 - `install`: an object where the properties are the canonicalized names of the
   distribution packages (to be) installed and the values are of type
   `InstallationReportItem` (see below).
@@ -54,6 +55,7 @@ will produce an output similar to this (metadata abriged for brevity):
 
 ```json
 {
+  "pip_version": "22.2",
   "install": {
     "pydantic": {
       "download_info": {

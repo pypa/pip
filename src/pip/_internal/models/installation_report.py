@@ -3,6 +3,7 @@ from typing import Any, Dict, Sequence
 from pip._vendor.packaging.markers import default_environment
 from pip._vendor.packaging.utils import canonicalize_name
 
+from pip import __version__
 from pip._internal.req.req_install import InstallRequirement
 
 
@@ -38,6 +39,7 @@ class InstallationReport:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
+            "pip_version": __version__,
             "install": {
                 canonicalize_name(ireq.metadata["Name"]): self._install_req_to_dict(
                     ireq
