@@ -39,6 +39,7 @@ class InstallationReport:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
+            "version": "0",
             "pip_version": __version__,
             "install": {
                 canonicalize_name(ireq.metadata["Name"]): self._install_req_to_dict(

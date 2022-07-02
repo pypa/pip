@@ -7,6 +7,16 @@ it did install (or what it would have installed, if used with the `--dry-run` op
 
 The report is a JSON object with the following properties:
 
+- `version`: the string `0`, denoting that the installation report is an experimental
+  feature. This value will change to `1`, when the feature is deemed stable after
+  gathering user feedback (likely in pip 22.3 or 23.0). Backward incompatible changes
+  may be introduced in version `1` without notice. After that, it will change only if
+  and when backward incompatible changes are introduced, such as removing mandatory
+  fields or changing the semantics or data type of existing fields. The introduction of
+  backward incompatible changes will follow the usual pip processes such as the
+  deprecation cycle or feature flags. Tools must check this field to ensure they support
+  the corresponding version.
+
 - `pip_version`: a string with the version of pip used to produce the report.
 - `install`: an object where the properties are the canonicalized names of the
   distribution packages (to be) installed and the values are of type
@@ -55,6 +65,7 @@ will produce an output similar to this (metadata abriged for brevity):
 
 ```json
 {
+  "version": "0",
   "pip_version": "22.2",
   "install": {
     "pydantic": {
