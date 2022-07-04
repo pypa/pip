@@ -1,0 +1,3 @@
+Report windows paths in their original case while reporting satisfied requirements
+i.e reporting ``Requirement already satisfied: setuptools in C:\Users\My User Name\miniconda3\lib\site-packages (41.0.1``
+instead of ``Requirement already satisfied: setuptools in c:\users\my user name\miniconda3\lib\site-packages (41.0.1)``
