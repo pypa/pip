@@ -13,6 +13,7 @@ import shutil
 import stat
 import sys
 import urllib.parse
+from pathlib import Path
 from io import StringIO
 from itertools import filterfalse, tee, zip_longest
 from types import TracebackType
@@ -151,7 +152,7 @@ def rmtree_errorhandler(func: Callable[..., Any], path: str, exc_info: ExcInfo) 
 def display_path(path: str) -> str:
     """Gives the display value for a given path, making it relative to cwd
     if possible."""
-    path = os.path.normcase(os.path.abspath(path))
+    path = str(Path(path).resolve())
     if path.startswith(os.getcwd() + os.path.sep):
         path = "." + path[len(os.getcwd()) :]
     return path
