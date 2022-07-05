@@ -43,6 +43,14 @@ package with the following properties:
   structure. When `is_direct` is `true`, this field is the same as the `direct_url.json`
   metadata, otherwise it represents the URL of the artifact obtained from the index or
   `--find-links`.
+
+  ```{note}
+  For source archives, `download_info.archive_info.hash` may
+  be absent when the requirement was installed from the wheel cache
+  and the cache entry was populated by an older pip version that did not
+  record the origin URL of the downloaded artifact.
+  ```
+
 - `requested`: `true` if the requirement was explicitly provided by the user, either
   directely via a command line argument or indirectly via a requirements file. `false`
   if the requirement was installed as a dependency of another requirement.
