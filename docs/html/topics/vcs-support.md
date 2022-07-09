@@ -73,9 +73,9 @@ The supported schemes are `svn`, `svn+svn`, `svn+http`, `svn+https` and
 `svn+ssh`. Here are some of the supported forms:
 
 ```none
-MyProject @svn+https://svn.example.com/MyProject
-MyProject @svn+ssh://svn.example.com/MyProject
-MyProject @svn+ssh://user@svn.example.com/MyProject
+MyProject @ svn+https://svn.example.com/MyProject
+MyProject @ svn+ssh://svn.example.com/MyProject
+MyProject @ svn+ssh://user@svn.example.com/MyProject
 ```
 
 You can also give specific revisions to an SVN URL, like so:
