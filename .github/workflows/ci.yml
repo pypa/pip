@@ -51,6 +51,7 @@ jobs:
               - ".github/workflows/ci.yml"
               - "src/**"
               - "tests/**"
+              - "tools/protected_pip.py"
         if: github.event_name == 'pull_request'
 
   pre-commit:
