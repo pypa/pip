@@ -81,8 +81,8 @@ MyProject @ svn+ssh://user@svn.example.com/MyProject
 You can also give specific revisions to an SVN URL, like so:
 
 ```none
-MyProject @ -e svn+http://svn.example.com/svn/MyProject/trunk@2019
-MyProject @ -e svn+http://svn.example.com/svn/MyProject/trunk@{20080101}
+MyProject @ -e svn+http://svn.example.com/svn/MyProject/trunk@2019#egg=project_name
+MyProject @ -e svn+http://svn.example.com/svn/MyProject/trunk@{20080101}#egg=project_name
 ```
 
 Note that you need to use [Editable VCS installs](#editable-vcs-installs) for
