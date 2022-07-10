@@ -266,11 +266,11 @@ def coverage(session: nox.Session) -> None:
 
 
 @nox.session(name="make-zipapp")
-def make_zipapp(session: nox.Session):
+def make_zipapp(session: nox.Session) -> None:
 
-    with TemporaryDirectory() as tmp:
+    with TemporaryDirectory() as tmpdir:
         session.log("# Creating application code")
-        tmp = Path(tmp)
+        tmp = Path(tmpdir)
         (tmp / "__main__.py").write_text(ZIPAPP_MAIN, encoding="utf-8")
         lib = tmp / "lib"
         lib.mkdir()
@@ -278,11 +278,11 @@ def make_zipapp(session: nox.Session):
         session.log("# Installing pip into application")
         session.run("python", "-m", "pip", "install", "--target", str(lib), ".")
 
-        distinfo = list(lib.glob("*.dist-info"))
-        if len(distinfo) != 1:
+        distinfo_l = list(lib.glob("*.dist-info"))
+        if len(distinfo_l) != 1:
             session.error("Failed to install pip, no dist-info directory")
 
-        distinfo = distinfo[0]
+        distinfo = distinfo_l[0]
         distinfo_name = distinfo.name
         if not distinfo_name.startswith("pip-"):
             session.error(
