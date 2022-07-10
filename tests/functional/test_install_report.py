@@ -1,9 +1,15 @@
 import json
 from pathlib import Path
+from typing import Any, Dict
 
 import pytest
+from packaging.utils import canonicalize_name
 
 from ..lib import PipTestEnvironment, TestData
+
+
+def _install_dict(report: Dict[str, Any]) -> Dict[str, Any]:
+    return {canonicalize_name(i["metadata"]["name"]): i for i in report["install"]}
 
 
 @pytest.mark.usefixtures("with_wheel")
@@ -24,8 +30,7 @@ def test_install_report_basic(
     report = json.loads(report_path.read_text())
     assert "install" in report
     assert len(report["install"]) == 1
-    assert "simplewheel" in report["install"]
-    simplewheel_report = report["install"]["simplewheel"]
+    simplewheel_report = _install_dict(report)["simplewheel"]
     assert simplewheel_report["metadata"]["name"] == "simplewheel"
     assert simplewheel_report["requested"] is True
     assert simplewheel_report["is_direct"] is False
@@ -56,8 +61,8 @@ def test_install_report_dep(
     )
     report = json.loads(report_path.read_text())
     assert len(report["install"]) == 2
-    assert report["install"]["require-simple"]["requested"] is True
-    assert report["install"]["simple"]["requested"] is False
+    assert _install_dict(report)["require-simple"]["requested"] is True
+    assert _install_dict(report)["simple"]["requested"] is False
 
 
 @pytest.mark.network
@@ -74,9 +79,10 @@ def test_install_report_index(script: PipTestEnvironment, tmp_path: Path) -> Non
     )
     report = json.loads(report_path.read_text())
     assert len(report["install"]) == 2
-    assert report["install"]["paste"]["requested"] is True
-    assert report["install"]["python-openid"]["requested"] is False
-    paste_report = report["install"]["paste"]
+    install_dict = _install_dict(report)
+    assert install_dict["paste"]["requested"] is True
+    assert install_dict["python-openid"]["requested"] is False
+    paste_report = install_dict["paste"]
     assert paste_report["download_info"]["url"].startswith(
         "https://files.pythonhosted.org/"
     )
@@ -108,7 +114,7 @@ def test_install_report_vcs_and_wheel_cache(
     )
     report = json.loads(report_path.read_text())
     assert len(report["install"]) == 1
-    pip_test_package_report = report["install"]["pip-test-package"]
+    pip_test_package_report = report["install"][0]
     assert pip_test_package_report["is_direct"] is True
     assert pip_test_package_report["requested"] is True
     assert (
@@ -136,7 +142,7 @@ def test_install_report_vcs_and_wheel_cache(
     assert "Using cached pip_test_package" in result.stdout
     report = json.loads(report_path.read_text())
     assert len(report["install"]) == 1
-    pip_test_package_report = report["install"]["pip-test-package"]
+    pip_test_package_report = report["install"][0]
     assert pip_test_package_report["is_direct"] is True
     assert pip_test_package_report["requested"] is True
     assert (
@@ -168,7 +174,7 @@ def test_install_report_vcs_editable(
     )
     report = json.loads(report_path.read_text())
     assert len(report["install"]) == 1
-    pip_test_package_report = report["install"]["pip-test-package"]
+    pip_test_package_report = report["install"][0]
     assert pip_test_package_report["is_direct"] is True
     assert pip_test_package_report["download_info"]["url"].startswith("file://")
     assert pip_test_package_report["download_info"]["url"].endswith(

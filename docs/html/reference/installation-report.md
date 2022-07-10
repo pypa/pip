@@ -18,13 +18,16 @@ The report is a JSON object with the following properties:
   the corresponding version.
 
 - `pip_version`: a string with the version of pip used to produce the report.
-- `install`: an object where the properties are the canonicalized names of the
-  distribution packages (to be) installed and the values are of type
-  `InstallationReportItem` (see below).
+
+- `install`: an array of [InstallationReportItem](InstallationReportItem) representing
+  the distribution packages (to be) installed.
+
 - `environment`: an object describing the environment where the installation report was
   generated. See [PEP 508 environment
   markers](https://peps.python.org/pep-0508/#environment-markers) for more information.
   Values have a string type.
+
+(InstallationReportItem)=
 
 An `InstallationReportItem` is an object describing a (to be) installed distribution
 package with the following properties:
@@ -75,8 +78,8 @@ will produce an output similar to this (metadata abriged for brevity):
 {
   "version": "0",
   "pip_version": "22.2",
-  "install": {
-    "pydantic": {
+  "install": [
+    {
       "download_info": {
         "url": "https://files.pythonhosted.org/packages/a4/0c/fbaa7319dcb5eecd3484686eb5a5c5702a6445adb566f01aee6de3369bc4/pydantic-1.9.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
         "archive_info": {
@@ -101,7 +104,7 @@ will produce an output similar to this (metadata abriged for brevity):
         ]
       }
     },
-    "packaging": {
+    {
       "download_info": {
         "url": "https://github.com/pypa/packaging",
         "vcs_info": {
@@ -121,7 +124,7 @@ will produce an output similar to this (metadata abriged for brevity):
         "requires_python": ">=3.7"
       }
     },
-    "pyparsing": {
+    {
       "download_info": {
         "url": "https://files.pythonhosted.org/packages/6c/10/a7d0fa5baea8fe7b50f448ab742f26f52b80bfca85ac2be9d35cdd9a3246/pyparsing-3.0.9-py3-none-any.whl",
         "archive_info": {
@@ -140,7 +143,7 @@ will produce an output similar to this (metadata abriged for brevity):
         "requires_python": ">=3.6.8"
       }
     },
-    "typing-extensions": {
+    {
       "download_info": {
         "url": "https://files.pythonhosted.org/packages/75/e1/932e06004039dd670c9d5e1df0cd606bf46e29a28e65d5bb28e894ea29c9/typing_extensions-4.2.0-py3-none-any.whl",
         "archive_info": {
@@ -155,7 +158,7 @@ will produce an output similar to this (metadata abriged for brevity):
         "requires_python": ">=3.7"
       }
     }
-  },
+  ],
   "environment": {
     "implementation_name": "cpython",
     "implementation_version": "3.10.5",

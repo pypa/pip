@@ -1,7 +1,6 @@
 from typing import Any, Dict, Sequence
 
 from pip._vendor.packaging.markers import default_environment
-from pip._vendor.packaging.utils import canonicalize_name
 
 from pip import __version__
 from pip._internal.req.req_install import InstallRequirement
@@ -41,12 +40,9 @@ class InstallationReport:
         return {
             "version": "0",
             "pip_version": __version__,
-            "install": {
-                canonicalize_name(ireq.metadata["Name"]): self._install_req_to_dict(
-                    ireq
-                )
-                for ireq in self._install_requirements
-            },
+            "install": [
+                self._install_req_to_dict(ireq) for ireq in self._install_requirements
+            ],
             # https://peps.python.org/pep-0508/#environment-markers
             # TODO: currently, the resolver uses the default environment to evaluate
             # environment markers, so that is what we report here. In the future, it
