@@ -5,7 +5,9 @@ import glob
 import os
 import shutil
 import sys
+import zipapp
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Iterator, List, Tuple
 
 import nox
@@ -31,6 +33,19 @@ REQUIREMENTS = {
 
 AUTHORS_FILE = "AUTHORS.txt"
 VERSION_FILE = "src/pip/__init__.py"
+
+ZIPAPP_MAIN = """\
+#!/usr/bin/env python
+
+import os
+import runpy
+import sys
+
+lib = os.path.join(os.path.dirname(__file__), "lib")
+sys.path.insert(0, lib)
+
+runpy.run_module("pip", run_name="__main__")
+"""
 
 
 def run_with_protected_pip(session: nox.Session, *arguments: str) -> None:
@@ -248,6 +263,42 @@ def coverage(session: nox.Session) -> None:
             "SETUPTOOLS_USE_DISTUTILS": "stdlib",
         },
     )
+
+
+@nox.session(name="make-zipapp")
+def make_zipapp(session: nox.Session):
+
+    with TemporaryDirectory() as tmp:
+        session.log("# Creating application code")
+        tmp = Path(tmp)
+        (tmp / "__main__.py").write_text(ZIPAPP_MAIN, encoding="utf-8")
+        lib = tmp / "lib"
+        lib.mkdir()
+
+        session.log("# Installing pip into application")
+        session.run("python", "-m", "pip", "install", "--target", str(lib), ".")
+
+        distinfo = list(lib.glob("*.dist-info"))
+        if len(distinfo) != 1:
+            session.error("Failed to install pip, no dist-info directory")
+
+        distinfo = distinfo[0]
+        distinfo_name = distinfo.name
+        if not distinfo_name.startswith("pip-"):
+            session.error(
+                f"Failed to install pip, invalid dist-info directory {distinfo}"
+            )
+
+        pipversion = distinfo_name[4:-10]
+
+        session.log("# Removing unwanted files")
+        shutil.rmtree(lib / "bin")
+        shutil.rmtree(distinfo)
+
+        session.log("# Creating zipapp")
+        zipapp.create_archive(
+            tmp, target=f"pip-{pipversion}.pyz", interpreter="/usr/bin/env python"
+        )
 
 
 # -----------------------------------------------------------------------------
