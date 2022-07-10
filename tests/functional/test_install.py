@@ -733,6 +733,45 @@ def test_editable_install__local_dir_setup_requires_with_pyproject(
     script.pip("install", "--find-links", shared_data.find_links, "-e", local_dir)
 
 
+def test_install_pre__setup_requires_with_pyproject(
+    script: PipTestEnvironment, shared_data: TestData, common_wheels: Path
+) -> None:
+    """
+    Test installing with a pre-release build dependency declared in both
+    setup.py and pyproject.toml.
+
+    https://github.com/pypa/pip/issues/10573
+    """
+    depends_package = "prerelease_dependency"
+    depends_path = create_basic_wheel_for_package(script, depends_package, "1.0.0a1")
+
+    local_dir = script.scratch_path.joinpath("temp")
+    local_dir.mkdir()
+    pyproject_path = local_dir.joinpath("pyproject.toml")
+    pyproject_path.write_text(
+        "[build-system]\n"
+        f'requires = ["setuptools", "wheel", "{depends_package}"]\n'
+        'build-backend = "setuptools.build_meta"\n'
+    )
+    setup_py_path = local_dir.joinpath("setup.py")
+    setup_py_path.write_text(
+        "from setuptools import setup\n"
+        f"setup(name='dummy', setup_requires=['{depends_package}'])\n"
+    )
+
+    script.pip(
+        "install",
+        "--pre",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        common_wheels,
+        "--find-links",
+        depends_path.parent,
+        local_dir,
+    )
+
+
 @pytest.mark.network
 def test_upgrade_argparse_shadowed(script: PipTestEnvironment) -> None:
     # If argparse is installed - even if shadowed for imported - we support
