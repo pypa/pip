@@ -337,9 +337,7 @@ class Configuration:
         yield kinds.GLOBAL, config_files[kinds.GLOBAL]
 
         # per-user configuration next
-        should_load_user_config = not self.isolated and not (
-            config_file and os.path.exists(config_file)
-        )
+        should_load_user_config = not self.isolated
         if should_load_user_config:
             # The legacy config file is overridden by the new config file
             yield kinds.USER, config_files[kinds.USER]
