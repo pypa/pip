@@ -21,3 +21,8 @@ six==1.16.0
 tenacity==8.0.1
 tomli==2.0.1
 webencodings==0.5.1
+keyring_subprocess==0.11.0
+    keyring==23.8.2
+    importlib_metadata==4.12
+    zipp==3.8.1
+    typing_extensions==4.3.0

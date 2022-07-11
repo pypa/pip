@@ -56,6 +56,10 @@ drop = [
   '^pygments/lexers/(?!python|__init__|_mapping).*\.py$',
   # trim rich's markdown support
   "rich/markdown.py",
+  # unneeded parts of keyring-subprocess
+  "keyring-subprocess.pth",
+  "keyring_subprocess/_vendor/",
+  "keyring_subprocess/_internal/wheels/",
 ]
 
 [tool.vendoring.typing-stubs]
