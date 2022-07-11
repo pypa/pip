@@ -86,9 +86,9 @@ def pytest_addoption(parser: Parser) -> None:
     )
     parser.addoption(
         "--use-zipapp",
-        action="store",
-        default=None,
-        help="use given pip zipapp when running pip in tests",
+        action="store_true",
+        default=False,
+        help="use a zipapp when running pip in tests",
     )
 
 
@@ -493,17 +493,17 @@ def with_wheel(virtualenv: VirtualEnvironment, wheel_install: Path) -> None:
 
 class ScriptFactory(Protocol):
     def __call__(
-        self, tmpdir: Path, virtualenv: Optional[VirtualEnvironment] = None, zipapp: Optional[str] = None
+        self, tmpdir: Path, virtualenv: Optional[VirtualEnvironment] = None
     ) -> PipTestEnvironment:
         ...
 
 
 @pytest.fixture(scope="session")
 def script_factory(
-    virtualenv_factory: Callable[[Path], VirtualEnvironment], deprecated_python: bool
+    virtualenv_factory: Callable[[Path], VirtualEnvironment], deprecated_python: bool, zipapp: Optional[str]
 ) -> ScriptFactory:
     def factory(
-        tmpdir: Path, virtualenv: Optional[VirtualEnvironment] = None, zipapp: Optional[str] = None,
+        tmpdir: Path, virtualenv: Optional[VirtualEnvironment] = None,
     ) -> PipTestEnvironment:
         if virtualenv is None:
             virtualenv = virtualenv_factory(tmpdir.joinpath("venv"))
@@ -529,6 +529,29 @@ def script_factory(
     return factory
 
 
+@pytest.fixture(scope="session")
+def zipapp(request: pytest.FixtureRequest, tmpdir_factory: pytest.TempPathFactory) -> Optional[str]:
+    """
+    If the user requested for pip to be run from a zipapp, build that zipapp
+    and return its location. If the user didn't request a zipapp, return None.
+
+    This fixture is session scoped, so the zipapp will only be created once.
+    """
+    if not request.config.getoption("--use-zipapp"):
+        return None
+
+    temp_location = tmpdir_factory.mktemp("zipapp")
+    pyz_file = temp_location / "pip.pyz"
+    # What we want to do here is `pip wheel --wheel-dir temp_location <source_dir>`
+    # and then build a zipapp from that wheel.
+    # TODO: Remove hard coded file
+    za = "pip-22.2.dev0.pyz"
+    import warnings
+    warnings.warn(f"Copying {za} to {pyz_file}")
+    shutil.copyfile(za, pyz_file)
+    return str(pyz_file)
+
+
 @pytest.fixture
 def script(
     request: pytest.FixtureRequest,
@@ -542,8 +565,7 @@ def script(
     test function. The returned object is a
     ``tests.lib.PipTestEnvironment``.
     """
-    zipapp = request.config.getoption("--use-zipapp")
-    return script_factory(tmpdir.joinpath("workspace"), virtualenv, zipapp)
+    return script_factory(tmpdir.joinpath("workspace"), virtualenv)
 
 
 @pytest.fixture(scope="session")
