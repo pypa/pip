@@ -591,6 +591,10 @@ class PipTestEnvironment(TestFileEnvironment):
     def _ignore_file(self, fn: str) -> bool:
         if fn.endswith("__pycache__") or fn.endswith(".pyc"):
             result = True
+        elif self.zipapp and fn.endswith("cacert.pem"):
+            # Temporary copies of cacert.pem are extracted
+            # when running from a zipapp
+            result = True
         else:
             result = super()._ignore_file(fn)
         return result
