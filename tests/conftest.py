@@ -84,6 +84,12 @@ def pytest_addoption(parser: Parser) -> None:
         default=None,
         help="use given proxy in session network tests",
     )
+    parser.addoption(
+        "--use-zipapp",
+        action="store",
+        default=None,
+        help="use given pip zipapp when running pip in tests",
+    )
 
 
 def pytest_collection_modifyitems(config: Config, items: List[pytest.Function]) -> None:
@@ -487,7 +493,7 @@ def with_wheel(virtualenv: VirtualEnvironment, wheel_install: Path) -> None:
 
 class ScriptFactory(Protocol):
     def __call__(
-        self, tmpdir: Path, virtualenv: Optional[VirtualEnvironment] = None
+        self, tmpdir: Path, virtualenv: Optional[VirtualEnvironment] = None, zipapp: Optional[str] = None
     ) -> PipTestEnvironment:
         ...
 
@@ -497,7 +503,7 @@ def script_factory(
     virtualenv_factory: Callable[[Path], VirtualEnvironment], deprecated_python: bool
 ) -> ScriptFactory:
     def factory(
-        tmpdir: Path, virtualenv: Optional[VirtualEnvironment] = None
+        tmpdir: Path, virtualenv: Optional[VirtualEnvironment] = None, zipapp: Optional[str] = None,
     ) -> PipTestEnvironment:
         if virtualenv is None:
             virtualenv = virtualenv_factory(tmpdir.joinpath("venv"))
@@ -516,6 +522,8 @@ def script_factory(
             assert_no_temp=True,
             # Deprecated python versions produce an extra deprecation warning
             pip_expect_warning=deprecated_python,
+            # Tell the Test Environment if we want to run pip via a zipapp
+            zipapp=zipapp,
         )
 
     return factory
@@ -523,6 +531,7 @@ def script_factory(
 
 @pytest.fixture
 def script(
+    request: pytest.FixtureRequest,
     tmpdir: Path,
     virtualenv: VirtualEnvironment,
     script_factory: ScriptFactory,
@@ -533,7 +542,8 @@ def script(
     test function. The returned object is a
     ``tests.lib.PipTestEnvironment``.
     """
-    return script_factory(tmpdir.joinpath("workspace"), virtualenv)
+    zipapp = request.config.getoption("--use-zipapp")
+    return script_factory(tmpdir.joinpath("workspace"), virtualenv, zipapp)
 
 
 @pytest.fixture(scope="session")

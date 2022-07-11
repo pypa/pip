@@ -507,6 +507,7 @@ class PipTestEnvironment(TestFileEnvironment):
         *args: Any,
         virtualenv: VirtualEnvironment,
         pip_expect_warning: bool = False,
+        zipapp: Optional[str] = None,
         **kwargs: Any,
     ) -> None:
         # Store paths related to the virtual environment
@@ -552,6 +553,9 @@ class PipTestEnvironment(TestFileEnvironment):
         # Whether all pip invocations should expect stderr
         # (useful for Python version deprecation)
         self.pip_expect_warning = pip_expect_warning
+
+        # The name of an (optional) zipapp to use when running pip
+        self.zipapp = zipapp
 
         # Call the TestFileEnvironment __init__
         super().__init__(base_path, *args, **kwargs)
@@ -698,7 +702,10 @@ class PipTestEnvironment(TestFileEnvironment):
         __tracebackhide__ = True
         if self.pip_expect_warning:
             kwargs["allow_stderr_warning"] = True
-        if use_module:
+        if self.zipapp:
+            exe = "python"
+            args = (self.zipapp, ) + args
+        elif use_module:
             exe = "python"
             args = ("-m", "pip") + args
         else:
