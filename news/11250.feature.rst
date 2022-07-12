@@ -1,0 +1,1 @@
+Add an option to run the test suite with pip built as a zipapp.
