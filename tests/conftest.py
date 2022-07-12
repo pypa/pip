@@ -502,10 +502,13 @@ class ScriptFactory(Protocol):
 
 @pytest.fixture(scope="session")
 def script_factory(
-    virtualenv_factory: Callable[[Path], VirtualEnvironment], deprecated_python: bool, zipapp: Optional[str]
+    virtualenv_factory: Callable[[Path], VirtualEnvironment],
+    deprecated_python: bool,
+    zipapp: Optional[str],
 ) -> ScriptFactory:
     def factory(
-        tmpdir: Path, virtualenv: Optional[VirtualEnvironment] = None,
+        tmpdir: Path,
+        virtualenv: Optional[VirtualEnvironment] = None,
     ) -> PipTestEnvironment:
         if virtualenv is None:
             virtualenv = virtualenv_factory(tmpdir.joinpath("venv"))
@@ -544,6 +547,7 @@ sys.path.insert(0, lib)
 runpy.run_module("pip", run_name="__main__")
 """
 
+
 def make_zipapp_from_pip(zipapp_name: Path) -> None:
     pip_dir = Path(pip_location).parent
     with zipapp_name.open("wb") as zipapp_file:
@@ -559,9 +563,10 @@ def make_zipapp_from_pip(zipapp_name: Path) -> None:
             zipapp.writestr("__main__.py", ZIPAPP_MAIN)
 
 
-
 @pytest.fixture(scope="session")
-def zipapp(request: pytest.FixtureRequest, tmpdir_factory: pytest.TempPathFactory) -> Optional[str]:
+def zipapp(
+    request: pytest.FixtureRequest, tmpdir_factory: pytest.TempPathFactory
+) -> Optional[str]:
     """
     If the user requested for pip to be run from a zipapp, build that zipapp
     and return its location. If the user didn't request a zipapp, return None.

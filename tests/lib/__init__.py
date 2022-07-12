@@ -708,7 +708,7 @@ class PipTestEnvironment(TestFileEnvironment):
             kwargs["allow_stderr_warning"] = True
         if self.zipapp:
             exe = "python"
-            args = (self.zipapp, ) + args
+            args = (self.zipapp,) + args
         elif use_module:
             exe = "python"
             args = ("-m", "pip") + args
