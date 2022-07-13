@@ -4,11 +4,11 @@ import operator
 import os
 import shutil
 import site
-import sys
 from optparse import SUPPRESS_HELP, Values
 from typing import Iterable, List, Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.rich import print_json
 
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
@@ -373,7 +373,7 @@ class InstallCommand(RequirementCommand):
             if options.json_report_file:
                 report = InstallationReport(requirement_set.requirements_to_install)
                 if options.json_report_file == "-":
-                    json.dump(report.to_dict(), sys.stdout, indent=2, ensure_ascii=True)
+                    print_json(data=report.to_dict())
                 else:
                     with open(options.json_report_file, "w", encoding="utf-8") as f:
                         json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)
