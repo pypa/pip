@@ -30,6 +30,15 @@ Description
 
 This is now covered in :doc:`../reference/build-system/index`.
 
+Differences to `build`
+----------------------
+
+`build <https://pypi.org/project/build/>`_ is a simple tool which can among other things build
+wheels for projects using PEP 517
+``pip wheel`` can do the same but also supports projects not using PEP 517.
+In addition, it's e.g. also possible to include the dependencies of a project into the wheel.
+
+
 Options
 =======
 
