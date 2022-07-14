@@ -29,7 +29,7 @@ from typing import (
     Union,
 )
 
-from pip._vendor import html5lib, requests
+from pip._vendor import requests
 from pip._vendor.requests import Response
 from pip._vendor.requests.exceptions import RetryError, SSLError
 
@@ -191,27 +191,6 @@ def _get_encoding_from_headers(headers: ResponseHeaders) -> Optional[str]:
     return None
 
 
-def _determine_base_url(document: HTMLElement, page_url: str) -> str:
-    """Determine the HTML document's base URL.
-
-    This looks for a ``<base>`` tag in the HTML document. If present, its href
-    attribute denotes the base URL of anchor tags in the document. If there is
-    no such tag (or if it does not have a valid href attribute), the HTML
-    file's URL is used as the base URL.
-
-    :param document: An HTML document representation. The current
-        implementation expects the result of ``html5lib.parse()``.
-    :param page_url: The URL of the HTML document.
-
-    TODO: Remove when `html5lib` is dropped.
-    """
-    for base in document.findall(".//base"):
-        href = base.get("href")
-        if href is not None:
-            return href
-    return page_url
-
-
 def _clean_url_path_part(part: str) -> str:
     """
     Clean a "part" of a URL path (i.e. after splitting on "@" characters).
@@ -313,9 +292,7 @@ class CacheablePageContent:
 
 
 class ParseLinks(Protocol):
-    def __call__(
-        self, page: "IndexContent", use_deprecated_html5lib: bool
-    ) -> Iterable[Link]:
+    def __call__(self, page: "IndexContent") -> Iterable[Link]:
         ...
 
 
@@ -327,49 +304,20 @@ def with_cached_index_content(fn: ParseLinks) -> ParseLinks:
     """
 
     @functools.lru_cache(maxsize=None)
-    def wrapper(
-        cacheable_page: CacheablePageContent, use_deprecated_html5lib: bool
-    ) -> List[Link]:
-        return list(fn(cacheable_page.page, use_deprecated_html5lib))
+    def wrapper(cacheable_page: CacheablePageContent) -> List[Link]:
+        return list(fn(cacheable_page.page))
 
     @functools.wraps(fn)
-    def wrapper_wrapper(
-        page: "IndexContent", use_deprecated_html5lib: bool
-    ) -> List[Link]:
+    def wrapper_wrapper(page: "IndexContent") -> List[Link]:
         if page.cache_link_parsing:
-            return wrapper(CacheablePageContent(page), use_deprecated_html5lib)
-        return list(fn(page, use_deprecated_html5lib))
+            return wrapper(CacheablePageContent(page))
+        return list(fn(page))
 
     return wrapper_wrapper
 
 
-def _parse_links_html5lib(page: "IndexContent") -> Iterable[Link]:
-    """
-    Parse an HTML document, and yield its anchor elements as Link objects.
-
-    TODO: Remove when `html5lib` is dropped.
-    """
-    document = html5lib.parse(
-        page.content,
-        transport_encoding=page.encoding,
-        namespaceHTMLElements=False,
-    )
-
-    url = page.url
-    base_url = _determine_base_url(document, url)
-    for anchor in document.findall(".//a"):
-        link = _create_link_from_element(
-            anchor.attrib,
-            page_url=url,
-            base_url=base_url,
-        )
-        if link is None:
-            continue
-        yield link
-
-
 @with_cached_index_content
-def parse_links(page: "IndexContent", use_deprecated_html5lib: bool) -> Iterable[Link]:
+def parse_links(page: "IndexContent") -> Iterable[Link]:
     """
     Parse a Simple API's Index Content, and yield its anchor elements as Link objects.
     """
@@ -397,10 +345,6 @@ def parse_links(page: "IndexContent", use_deprecated_html5lib: bool) -> Iterable
                 yanked_reason=yanked_reason,
                 hashes=file.get("hashes", {}),
             )
-
-    if use_deprecated_html5lib:
-        yield from _parse_links_html5lib(page)
-        return
 
     parser = HTMLLinkParser(page.url)
     encoding = page.encoding or "utf-8"

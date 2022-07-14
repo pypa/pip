@@ -26,7 +26,7 @@ def finder(data: TestData) -> Iterator[PackageFinder]:
     scope = SearchScope([str(data.packages)], [])
     collector = LinkCollector(session, scope)
     prefs = SelectionPreferences(allow_yanked=False)
-    finder = PackageFinder.create(collector, prefs, use_deprecated_html5lib=False)
+    finder = PackageFinder.create(collector, prefs)
     yield finder
 
 
