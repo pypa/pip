@@ -7,7 +7,6 @@ import os
 import pathlib
 import sys
 import textwrap
-import zipfile
 from collections import OrderedDict
 from sysconfig import get_paths
 from types import TracebackType
@@ -29,6 +28,29 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+PIP_RUNNER = """
+import importlib.util
+import os
+import runpy
+import sys
+
+
+class PipImportRedirectingFinder:
+
+    @classmethod
+    def find_spec(cls, fullname, path=None, target=None):
+        if not fullname.startswith("pip."):
+            return None
+
+        # Import pip from the current source directory
+        location = os.path.join({source!r}, *fullname.split("."))
+        return importlib.util.spec_from_file_location(fullname, location)
+
+
+sys.meta_path.insert(0, PipImportRedirectingFinder())
+runpy.run_module("pip", run_name="__main__")
+"""
+
 
 class _Prefix:
     def __init__(self, path: str) -> None:
@@ -42,29 +64,25 @@ class _Prefix:
 
 
 @contextlib.contextmanager
-def _create_standalone_pip() -> Generator[str, None, None]:
-    """Create a "standalone pip" zip file.
+def _create_runnable_pip() -> Generator[str, None, None]:
+    """Create a "pip runner" file.
 
-    The zip file's content is identical to the currently-running pip.
+    The runner file ensures that import for pip happens using the currently-running pip.
     It will be used to install requirements into the build environment.
     """
     source = pathlib.Path(pip_location).resolve().parent
 
-    # Return the current instance if `source` is not a directory. We can't build
-    # a zip from this, and it likely means the instance is already standalone.
+    # Return the current instance if `source` is not a directory. It likely
+    # means that this copy of pip is already standalone.
     if not source.is_dir():
         yield str(source)
         return
 
     with TempDirectory(kind="standalone-pip") as tmp_dir:
-        pip_zip = os.path.join(tmp_dir.path, "__env_pip__.zip")
-        kwargs = {}
-        if sys.version_info >= (3, 8):
-            kwargs["strict_timestamps"] = False
-        with zipfile.ZipFile(pip_zip, "w", **kwargs) as zf:
-            for child in source.rglob("*"):
-                zf.write(child, child.relative_to(source.parent).as_posix())
-        yield os.path.join(pip_zip, "pip")
+        pip_runner = os.path.join(tmp_dir.path, "__pip-runner__.py")
+        with open(pip_runner, "w", encoding="utf8") as f:
+            f.write(PIP_RUNNER.format(source=os.fsdecode(source)))
+        yield pip_runner
 
 
 class BuildEnvironment:
@@ -206,7 +224,7 @@ class BuildEnvironment:
         if not requirements:
             return
         with contextlib.ExitStack() as ctx:
-            pip_runnable = ctx.enter_context(_create_standalone_pip())
+            pip_runnable = ctx.enter_context(_create_runnable_pip())
             self._install_requirements(
                 pip_runnable,
                 finder,
