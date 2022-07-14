@@ -28,7 +28,7 @@ def test_inspect_basic(simple_script: PipTestEnvironment) -> None:
     """
     Test default behavior of inspect command.
     """
-    result = simple_script.pip("inspect")
+    result = simple_script.pip("inspect", allow_stderr_warning=True)
     report = json.loads(result.stdout)
     installed = report["installed"]
     assert len(installed) == 4
