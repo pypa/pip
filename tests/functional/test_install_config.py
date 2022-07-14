@@ -2,10 +2,12 @@ import os
 import ssl
 import tempfile
 import textwrap
+from pathlib import Path
+from typing import Callable
 
 import pytest
 
-from tests.conftest import CertFactory, MockServer
+from tests.conftest import CertFactory, MockServer, ScriptFactory
 from tests.lib import PipTestEnvironment, TestData
 from tests.lib.server import (
     authorization_response,
@@ -354,14 +356,30 @@ def test_do_not_prompt_for_authentication(
 
 @pytest.mark.parametrize("auth_needed", (True, False))
 def test_prompt_for_keyring_if_needed(
-    script: PipTestEnvironment,
     data: TestData,
     cert_factory: CertFactory,
     auth_needed: bool,
+    tmpdir: Path,
+    script_factory: ScriptFactory,
+    virtualenv_factory: Callable[[Path], VirtualEnvironment],
 ) -> None:
-    """Test behaviour while installing from a index url
+    """Test behaviour while installing from an index url
     requiring authentication and keyring is possible.
     """
+    workspace = tmpdir.joinpath("workspace")
+    keyring_virtualenv = virtualenv_factory(workspace.joinpath("keyring"))
+    keyring_script = script_factory(workspace.joinpath("keyring"), keyring_virtualenv)
+
+    environ = os.environ.copy()
+    environ["PATH"] = str(keyring_script.bin_path) + os.pathsep + environ["PATH"]
+    virtualenv = virtualenv_factory(workspace.joinpath("venv"))
+    script = script_factory(workspace.joinpath("venv"), virtualenv, environ=environ)
+
+    keyring_script.pip(
+        "install",
+        "keyring_subprocess_landmark",
+    )
+
     cert_path = cert_factory()
     ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
     ctx.load_cert_chain(cert_path, cert_path)
@@ -387,16 +405,29 @@ def test_prompt_for_keyring_if_needed(
         """\
         import os
         import sys
-        from collections import namedtuple
+        import keyring
+        from keyring.backend import KeyringBackend
+        from keyring.credentials import SimpleCredential
 
-        Cred = namedtuple("Cred", ["username", "password"])
+        class TestBackend(KeyringBackend):
+            priority = 1
 
-        def get_credential(url, username):
-            sys.stderr.write("get_credential was called" + os.linesep)
-            return Cred("USERNAME", "PASSWORD")
+            def get_credential(self, url, username):
+                sys.stderr.write("get_credential was called" + os.linesep)
+                return SimpleCredential(username="USERNAME", password="PASSWORD")
+
+            def get_password(self, url, username):
+                pass
+
+            def set_password(self, url, username):
+                pass
     """
     )
-    keyring_path = script.site_packages_path / "keyring.py"
+    keyring_path = keyring_script.site_packages_path / "keyring_test.py"
+    keyring_path.write_text(keyring_content)
+
+    keyring_content = "import keyring_test;" + os.linesep
+    keyring_path = keyring_path.with_suffix(".pth")
     keyring_path.write_text(keyring_content)
 
     with server_running(server):

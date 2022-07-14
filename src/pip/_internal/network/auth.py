@@ -3,7 +3,6 @@
 Contains interface (MultiDomainBasicAuth) and associated glue code for
 providing credentials in the context of network requests.
 """
-
 import urllib.parse
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -26,7 +25,10 @@ logger = getLogger(__name__)
 Credentials = Tuple[str, str, str]
 
 try:
-    import keyring
+    import pip._vendor.keyring as keyring
+    from pip._vendor.keyring_subprocess.backend import SubprocessBackend
+
+    keyring.set_keyring(SubprocessBackend())
 except ImportError:
     keyring = None  # type: ignore[assignment]
 except Exception as exc:
