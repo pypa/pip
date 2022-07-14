@@ -26,6 +26,7 @@ def test_install_report_basic(
         str(shared_data.root / "packages/"),
         "--report",
         str(report_path),
+        allow_stderr_warning=True,
     )
     report = json.loads(report_path.read_text())
     assert "install" in report
@@ -58,6 +59,7 @@ def test_install_report_dep(
         str(shared_data.root / "packages/"),
         "--report",
         str(report_path),
+        allow_stderr_warning=True,
     )
     report = json.loads(report_path.read_text())
     assert len(report["install"]) == 2
@@ -76,6 +78,7 @@ def test_install_report_index(script: PipTestEnvironment, tmp_path: Path) -> Non
         "Paste[openid]==1.7.5.1",
         "--report",
         str(report_path),
+        allow_stderr_warning=True,
     )
     report = json.loads(report_path.read_text())
     assert len(report["install"]) == 2
@@ -111,6 +114,7 @@ def test_install_report_vcs_and_wheel_cache(
         str(cache_dir),
         "--report",
         str(report_path),
+        allow_stderr_warning=True,
     )
     report = json.loads(report_path.read_text())
     assert len(report["install"]) == 1
@@ -138,6 +142,7 @@ def test_install_report_vcs_and_wheel_cache(
         str(cache_dir),
         "--report",
         str(report_path),
+        allow_stderr_warning=True,
     )
     assert "Using cached pip_test_package" in result.stdout
     report = json.loads(report_path.read_text())
@@ -171,6 +176,7 @@ def test_install_report_vcs_editable(
         "#egg=pip-test-package",
         "--report",
         str(report_path),
+        allow_stderr_warning=True,
     )
     report = json.loads(report_path.read_text())
     assert len(report["install"]) == 1
@@ -197,8 +203,12 @@ def test_install_report_to_stdout(
         str(shared_data.root / "packages/"),
         "--report",
         "-",
+        allow_stderr_warning=True,
     )
-    assert not result.stderr
+    assert result.stderr == (
+        "WARNING: --report is currently an experimental option. "
+        "The output format may change in a future release without prior warning.\n"
+    )
     report = json.loads(result.stdout)
     assert "install" in report
     assert len(report["install"]) == 1

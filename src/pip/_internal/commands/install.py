@@ -371,6 +371,12 @@ class InstallCommand(RequirementCommand):
             )
 
             if options.json_report_file:
+                logger.warning(
+                    "--report is currently an experimental option. "
+                    "The output format may change in a future release "
+                    "without prior warning."
+                )
+
                 report = InstallationReport(requirement_set.requirements_to_install)
                 if options.json_report_file == "-":
                     print_json(data=report.to_dict())
