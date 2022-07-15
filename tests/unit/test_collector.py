@@ -1,4 +1,5 @@
 import itertools
+import json
 import logging
 import os
 import re
@@ -479,6 +480,57 @@ def test_parse_links__requires_python(
     anchor_html: str, expected: Optional[str]
 ) -> None:
     _test_parse_links_data_attribute(anchor_html, "requires_python", expected)
+
+
+def test_parse_links_json() -> None:
+    json_bytes = json.dumps(
+        {
+            "meta": {"api-version": "1.0"},
+            "name": "holygrail",
+            "files": [
+                {
+                    "filename": "holygrail-1.0.tar.gz",
+                    "url": "https://example.com/files/holygrail-1.0.tar.gz",
+                    "hashes": {"sha256": "sha256 hash", "blake2b": "blake2b hash"},
+                    "requires-python": ">=3.7",
+                    "yanked": "Had a vulnerability",
+                },
+                {
+                    "filename": "holygrail-1.0-py3-none-any.whl",
+                    "url": "/files/holygrail-1.0-py3-none-any.whl",
+                    "hashes": {"sha256": "sha256 hash", "blake2b": "blake2b hash"},
+                    "requires-python": ">=3.7",
+                    "dist-info-metadata": False,
+                },
+            ],
+        }
+    ).encode("utf8")
+    page = IndexContent(
+        json_bytes,
+        "application/vnd.pypi.simple.v1+json",
+        encoding=None,
+        # parse_links() is cached by url, so we inject a random uuid to ensure
+        # the page content isn't cached.
+        url=f"https://example.com/simple-{uuid.uuid4()}/",
+    )
+    links = list(parse_links(page, use_deprecated_html5lib=False))
+
+    assert links == [
+        Link(
+            "https://example.com/files/holygrail-1.0.tar.gz",
+            comes_from=page.url,
+            requires_python=">=3.7",
+            yanked_reason="Had a vulnerability",
+            hashes={"sha256": "sha256 hash", "blake2b": "blake2b hash"},
+        ),
+        Link(
+            "https://example.com/files/holygrail-1.0-py3-none-any.whl",
+            comes_from=page.url,
+            requires_python=">=3.7",
+            yanked_reason=None,
+            hashes={"sha256": "sha256 hash", "blake2b": "blake2b hash"},
+        ),
+    ]
 
 
 @pytest.mark.parametrize(
