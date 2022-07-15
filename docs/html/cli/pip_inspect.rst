@@ -4,6 +4,7 @@
 pip inspect
 ===========
 
+.. versionadded:: 22.2
 
 
 Usage

@@ -1,5 +1,8 @@
 # `pip inspect` JSON output specification
 
+```{versionadded} 22.2
+```
+
 The `pip inspect` command produces a detailed JSON report of the Python
 environment, including installed distributions.
 
