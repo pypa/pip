@@ -77,6 +77,8 @@ class Link(KeyBasedCompareMixin):
                                    should be cached. PyPI index urls should
                                    generally have this set to False, for
                                    example.
+        :param hashes: A mapping of hash names to digests to allow us to
+                       determine the validity of a download.
         """
 
         # url can be a UNC windows share
