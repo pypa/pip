@@ -1,5 +1,8 @@
 # Installation Report
 
+```{versionadded} 22.2
+```
+
 The `--report` option of the pip install command produces a detailed JSON report of what
 it did install (or what it would have installed, if used with the `--dry-run` option).
 
