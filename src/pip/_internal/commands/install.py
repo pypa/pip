@@ -1,4 +1,5 @@
 import errno
+import json
 import operator
 import os
 import shutil
@@ -7,6 +8,7 @@ from optparse import SUPPRESS_HELP, Values
 from typing import Iterable, List, Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.rich import print_json
 
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
@@ -21,6 +23,7 @@ from pip._internal.exceptions import CommandError, InstallationError
 from pip._internal.locations import get_scheme
 from pip._internal.metadata import get_environment
 from pip._internal.models.format_control import FormatControl
+from pip._internal.models.installation_report import InstallationReport
 from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.operations.check import ConflictDetails, check_install_conflicts
 from pip._internal.req import install_given_reqs
@@ -250,6 +253,20 @@ class InstallCommand(RequirementCommand):
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, self.cmd_opts)
 
+        self.cmd_opts.add_option(
+            "--report",
+            dest="json_report_file",
+            metavar="file",
+            default=None,
+            help=(
+                "Generate a JSON file describing what pip did to install "
+                "the provided requirements. "
+                "Can be used in combination with --dry-run and --ignore-installed "
+                "to 'resolve' the requirements. "
+                "When - is used as file name it writes to stdout."
+            ),
+        )
+
     @with_cleanup
     def run(self, options: Values, args: List[str]) -> int:
         if options.use_user_site and options.target_dir is not None:
@@ -352,6 +369,20 @@ class InstallCommand(RequirementCommand):
             requirement_set = resolver.resolve(
                 reqs, check_supported_wheels=not options.target_dir
             )
+
+            if options.json_report_file:
+                logger.warning(
+                    "--report is currently an experimental option. "
+                    "The output format may change in a future release "
+                    "without prior warning."
+                )
+
+                report = InstallationReport(requirement_set.requirements_to_install)
+                if options.json_report_file == "-":
+                    print_json(data=report.to_dict())
+                else:
+                    with open(options.json_report_file, "w", encoding="utf-8") as f:
+                        json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)
 
             if options.dry_run:
                 would_install_items = sorted(

@@ -9,4 +9,5 @@ interoperability standards that pip utilises/implements.
 build-system/index
 requirement-specifiers
 requirements-file-format
+installation-report
 ```

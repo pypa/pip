@@ -79,6 +79,18 @@ for an exception regarding pre-release versions). Where more than one source of
 the chosen version is available, it is assumed that any source is acceptable
 (as otherwise the versions would differ).
 
+Obtaining information about what was installed
+----------------------------------------------
+
+The install command has a ``--report`` option that will generate a JSON report of what
+pip has installed. In combination with the ``--dry-run`` and ``--ignore-installed`` it
+can be used to *resolve* a set of requirements without actually installing them.
+
+The report can be written to a file, or to standard output (using ``--report -`` in
+combination with ``--quiet``).
+
+The format of the JSON report is described in :doc:`../reference/installation-report`.
+
 Installation Order
 ------------------
 
