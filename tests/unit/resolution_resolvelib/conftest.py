@@ -63,7 +63,6 @@ def factory(finder: PackageFinder, preparer: RequirementPreparer) -> Iterator[Fa
         force_reinstall=False,
         ignore_installed=False,
         ignore_requires_python=False,
-        suppress_build_failures=False,
         py_version_info=None,
     )
 
