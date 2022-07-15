@@ -1,7 +1,6 @@
 """Build Environment used for isolation during sdist building
 """
 
-import contextlib
 import logging
 import os
 import pathlib
@@ -10,7 +9,7 @@ import textwrap
 from collections import OrderedDict
 from sysconfig import get_paths
 from types import TracebackType
-from typing import TYPE_CHECKING, Generator, Iterable, List, Optional, Set, Tuple, Type
+from typing import TYPE_CHECKING, Iterable, List, Optional, Set, Tuple, Type
 
 from pip._vendor.certifi import where
 from pip._vendor.packaging.requirements import Requirement
@@ -28,29 +27,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-PIP_RUNNER = """
-import importlib.util
-import os
-import runpy
-import sys
-
-
-class PipImportRedirectingFinder:
-
-    @classmethod
-    def find_spec(cls, fullname, path=None, target=None):
-        if not fullname.startswith("pip."):
-            return None
-
-        # Import pip from the current source directory
-        location = os.path.join({source!r}, *fullname.split("."))
-        return importlib.util.spec_from_file_location(fullname, location)
-
-
-sys.meta_path.insert(0, PipImportRedirectingFinder())
-runpy.run_module("pip", run_name="__main__")
-"""
-
 
 class _Prefix:
     def __init__(self, path: str) -> None:
@@ -63,26 +39,20 @@ class _Prefix:
         self.lib_dirs = get_prefixed_libs(path)
 
 
-@contextlib.contextmanager
-def _create_runnable_pip() -> Generator[str, None, None]:
-    """Create a "pip runner" file.
+def _get_runnable_pip() -> str:
+    """Get a file to pass to a Python executable, to run the currently-running pip.
 
-    The runner file ensures that import for pip happens using the currently-running pip.
-    It will be used to install requirements into the build environment.
+    This is used to run a pip subprocess, for installing requirements into the build
+    environment.
     """
     source = pathlib.Path(pip_location).resolve().parent
 
-    # Return the current instance if `source` is not a directory. It likely
-    # means that this copy of pip is already standalone.
     if not source.is_dir():
-        yield str(source)
-        return
+        # This would happen if someone is using pip from inside a zip file. In that
+        # case, we can use that directly.
+        return str(source)
 
-    with TempDirectory(kind="standalone-pip") as tmp_dir:
-        pip_runner = os.path.join(tmp_dir.path, "__pip-runner__.py")
-        with open(pip_runner, "w", encoding="utf8") as f:
-            f.write(PIP_RUNNER.format(source=os.fsdecode(source)))
-        yield pip_runner
+    return os.fsdecode(source / "__pip-runner__.py")
 
 
 class BuildEnvironment:
@@ -223,15 +193,13 @@ class BuildEnvironment:
         prefix.setup = True
         if not requirements:
             return
-        with contextlib.ExitStack() as ctx:
-            pip_runnable = ctx.enter_context(_create_runnable_pip())
-            self._install_requirements(
-                pip_runnable,
-                finder,
-                requirements,
-                prefix,
-                kind=kind,
-            )
+        self._install_requirements(
+            _get_runnable_pip(),
+            finder,
+            requirements,
+            prefix,
+            kind=kind,
+        )
 
     @staticmethod
     def _install_requirements(
