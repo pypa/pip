@@ -1,4 +1,5 @@
 import logging
+import time
 from threading import Thread
 from unittest.mock import patch
 
@@ -22,7 +23,7 @@ class TestIndentingFormatter:
         level_number = getattr(logging, level_name)
         attrs = dict(
             msg=msg,
-            created=1547704837.040001,
+            created=1547704837.040001 + time.timezone,
             msecs=40,
             levelname=level_name,
             levelno=level_number,
