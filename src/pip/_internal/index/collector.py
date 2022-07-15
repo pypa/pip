@@ -525,9 +525,12 @@ def _get_index_content(
         # final segment
         if not url.endswith("/"):
             url += "/"
+        # TODO: In the future, it would be nice if pip supported PEP 691
+        #       style respones in the file:// URLs, however there's no
+        #       standard file extension for application/vnd.pypi.simple.v1+json
+        #       so we'll need to come up with something on our own.
         url = urllib.parse.urljoin(url, "index.html")
         logger.debug(" file: URL is directory, getting %s", url)
-        # TODO: index.json?
 
     try:
         resp = _get_simple_response(url, session=session)
