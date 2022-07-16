@@ -4,7 +4,16 @@ import os
 import posixpath
 import re
 import urllib.parse
-from typing import TYPE_CHECKING, Dict, List, NamedTuple, Optional, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    List,
+    Mapping,
+    NamedTuple,
+    Optional,
+    Tuple,
+    Union,
+)
 
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
 from pip._internal.utils.hashes import Hashes
@@ -17,12 +26,14 @@ from pip._internal.utils.models import KeyBasedCompareMixin
 from pip._internal.utils.urls import path_to_url, url_to_path
 
 if TYPE_CHECKING:
-    from pip._internal.index.collector import HTMLPage
+    from pip._internal.index.collector import IndexContent
 
 logger = logging.getLogger(__name__)
 
 
-_SUPPORTED_HASHES = ("sha1", "sha224", "sha384", "sha256", "sha512", "md5")
+# Order matters, earlier hashes have a precedence over later hashes for what
+# we will pick to use.
+_SUPPORTED_HASHES = ("sha512", "sha384", "sha256", "sha224", "sha1", "md5")
 
 
 class Link(KeyBasedCompareMixin):
@@ -31,6 +42,7 @@ class Link(KeyBasedCompareMixin):
     __slots__ = [
         "_parsed_url",
         "_url",
+        "_hashes",
         "comes_from",
         "requires_python",
         "yanked_reason",
@@ -40,14 +52,15 @@ class Link(KeyBasedCompareMixin):
     def __init__(
         self,
         url: str,
-        comes_from: Optional[Union[str, "HTMLPage"]] = None,
+        comes_from: Optional[Union[str, "IndexContent"]] = None,
         requires_python: Optional[str] = None,
         yanked_reason: Optional[str] = None,
         cache_link_parsing: bool = True,
+        hashes: Optional[Mapping[str, str]] = None,
     ) -> None:
         """
         :param url: url of the resource pointed to (href of the link)
-        :param comes_from: instance of HTMLPage where the link was found,
+        :param comes_from: instance of IndexContent where the link was found,
             or string.
         :param requires_python: String containing the `Requires-Python`
             metadata field, specified in PEP 345. This may be specified by
@@ -64,6 +77,8 @@ class Link(KeyBasedCompareMixin):
                                    should be cached. PyPI index urls should
                                    generally have this set to False, for
                                    example.
+        :param hashes: A mapping of hash names to digests to allow us to
+                       determine the validity of a download.
         """
 
         # url can be a UNC windows share
@@ -74,6 +89,7 @@ class Link(KeyBasedCompareMixin):
         # Store the url as a private attribute to prevent accidentally
         # trying to set a new value.
         self._url = url
+        self._hashes = hashes if hashes is not None else {}
 
         self.comes_from = comes_from
         self.requires_python = requires_python if requires_python else None
@@ -171,16 +187,26 @@ class Link(KeyBasedCompareMixin):
 
     @property
     def hash(self) -> Optional[str]:
+        for hashname in _SUPPORTED_HASHES:
+            if hashname in self._hashes:
+                return self._hashes[hashname]
+
         match = self._hash_re.search(self._url)
         if match:
             return match.group(2)
+
         return None
 
     @property
     def hash_name(self) -> Optional[str]:
+        for hashname in _SUPPORTED_HASHES:
+            if hashname in self._hashes:
+                return hashname
+
         match = self._hash_re.search(self._url)
         if match:
             return match.group(1)
+
         return None
 
     @property
