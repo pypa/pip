@@ -1,5 +1,5 @@
 CacheControl==0.12.11  # Make sure to update the license in pyproject.toml for this.
-colorama==0.4.4
+colorama==0.4.5
 distlib==0.3.3
 distro==1.7.0
 msgpack==1.0.3

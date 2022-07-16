@@ -11,7 +11,10 @@ from pip._vendor import urllib3
 
 from . import __version__ as requests_version
 
-charset_normalizer = None
+try:
+    import charset_normalizer
+except ImportError:
+    charset_normalizer = None
 
 try:
     from pip._vendor import chardet

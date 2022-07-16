@@ -44,7 +44,10 @@ from pip._vendor import urllib3
 import warnings
 from .exceptions import RequestsDependencyWarning
 
-charset_normalizer_version = None
+try:
+    from charset_normalizer import __version__ as charset_normalizer_version
+except ImportError:
+    charset_normalizer_version = None
 
 try:
     from pip._vendor.chardet import __version__ as chardet_version
@@ -104,11 +107,6 @@ except (AssertionError, ValueError):
 # if the standard library doesn't support SNI or the
 # 'ssl' library isn't available.
 try:
-    # Note: This logic prevents upgrading cryptography on Windows, if imported
-    #       as part of pip.
-    from pip._internal.utils.compat import WINDOWS
-    if not WINDOWS:
-        raise ImportError("pip internals: don't import cryptography on Windows")
     try:
         import ssl
     except ImportError:
