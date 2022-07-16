@@ -10,7 +10,7 @@ from typing import List, Optional, Tuple
 from unittest import mock
 
 import pytest
-from pip._vendor import html5lib, requests
+from pip._vendor import requests
 
 from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.index.collector import (
@@ -18,7 +18,6 @@ from pip._internal.index.collector import (
     LinkCollector,
     _clean_link,
     _clean_url_path,
-    _determine_base_url,
     _get_index_content,
     _get_simple_response,
     _make_index_content,
@@ -250,33 +249,6 @@ def test_get_simple_response_dont_log_clear_text_password(
 
 
 @pytest.mark.parametrize(
-    ("html", "url", "expected"),
-    [
-        (b"<html></html>", "https://example.com/", "https://example.com/"),
-        (
-            b'<html><head><base href="https://foo.example.com/"></head></html>',
-            "https://example.com/",
-            "https://foo.example.com/",
-        ),
-        (
-            b"<html><head>"
-            b'<base><base href="https://foo.example.com/">'
-            b"</head></html>",
-            "https://example.com/",
-            "https://foo.example.com/",
-        ),
-    ],
-)
-def test_determine_base_url(html: bytes, url: str, expected: str) -> None:
-    document = html5lib.parse(
-        html,
-        transport_encoding=None,
-        namespaceHTMLElements=False,
-    )
-    assert _determine_base_url(document, url) == expected
-
-
-@pytest.mark.parametrize(
     ("path", "expected"),
     [
         # Test a character that needs quoting.
@@ -451,7 +423,7 @@ def _test_parse_links_data_attribute(
         # the page content isn't cached.
         url=f"https://example.com/simple-{uuid.uuid4()}/",
     )
-    links = list(parse_links(page, use_deprecated_html5lib=False))
+    links = list(parse_links(page))
     (link,) = links
     actual = getattr(link, attr)
     assert actual == expected
@@ -513,7 +485,7 @@ def test_parse_links_json() -> None:
         # the page content isn't cached.
         url=f"https://example.com/simple-{uuid.uuid4()}/",
     )
-    links = list(parse_links(page, use_deprecated_html5lib=False))
+    links = list(parse_links(page))
 
     assert links == [
         Link(
@@ -597,31 +569,17 @@ def test_parse_links_caches_same_page_by_url() -> None:
         cache_link_parsing=False,
     )
 
-    parsed_links_1 = list(parse_links(page_1, use_deprecated_html5lib=False))
+    parsed_links_1 = list(parse_links(page_1))
     assert len(parsed_links_1) == 1
     assert "pkg1" in parsed_links_1[0].url
 
-    parsed_links_2 = list(parse_links(page_2, use_deprecated_html5lib=False))
+    parsed_links_2 = list(parse_links(page_2))
     assert parsed_links_2 == parsed_links_1
 
-    parsed_links_3 = list(parse_links(page_3, use_deprecated_html5lib=False))
+    parsed_links_3 = list(parse_links(page_3))
     assert len(parsed_links_3) == 1
     assert parsed_links_3 != parsed_links_1
     assert "pkg2" in parsed_links_3[0].url
-
-
-def test_parse_link_handles_deprecated_usage_properly() -> None:
-    html = b'<a href="/pkg1-1.0.tar.gz"></a><a href="/pkg1-2.0.tar.gz"></a>'
-    url = "https://example.com/simple/"
-    page = IndexContent(
-        html, "text/html", encoding=None, url=url, cache_link_parsing=False
-    )
-
-    parsed_links = list(parse_links(page, use_deprecated_html5lib=True))
-
-    assert len(parsed_links) == 2
-    assert "pkg1-1.0" in parsed_links[0].url
-    assert "pkg1-2.0" in parsed_links[1].url
 
 
 @mock.patch("pip._internal.index.collector.raise_for_status")

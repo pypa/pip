@@ -49,7 +49,6 @@ def run_with_build_env(
             finder = PackageFinder.create(
                 link_collector=link_collector,
                 selection_prefs=selection_prefs,
-                use_deprecated_html5lib=False,
             )
 
             with global_tempdir_manager():

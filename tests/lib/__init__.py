@@ -115,7 +115,6 @@ def make_test_finder(
     allow_all_prereleases: bool = False,
     session: Optional[PipSession] = None,
     target_python: Optional[TargetPython] = None,
-    use_deprecated_html5lib: bool = False,
 ) -> PackageFinder:
     """
     Create a PackageFinder for testing purposes.
@@ -134,7 +133,6 @@ def make_test_finder(
         link_collector=link_collector,
         selection_prefs=selection_prefs,
         target_python=target_python,
-        use_deprecated_html5lib=use_deprecated_html5lib,
     )
 
 
