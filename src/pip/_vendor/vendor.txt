@@ -11,7 +11,7 @@ requests==2.27.1
     certifi==2021.10.08
     chardet==4.0.0
     idna==3.3
-    urllib3==1.26.9
+    urllib3==1.26.10
 rich==12.2.0
     pygments==2.11.2
     typing_extensions==4.2.0
