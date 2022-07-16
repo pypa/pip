@@ -1,10 +1,10 @@
 diff --git a/src/pip/_vendor/certifi/core.py b/src/pip/_vendor/certifi/core.py
-index 5d2b8cd32..b8140cf1a 100644
+index 497d938..f34045b 100644
 --- a/src/pip/_vendor/certifi/core.py
 +++ b/src/pip/_vendor/certifi/core.py
-@@ -8,7 +8,21 @@ This module returns the installation location of cacert.pem or its contents.
- """
- import os
+@@ -8,7 +8,21 @@ import os
+ import types
+ from typing import Union
  
 +
 +class _PipPatchedCertificate(Exception):
@@ -38,4 +38,4 @@ index 5d2b8cd32..b8140cf1a 100644
 +    pass
  
  except ImportError:
-     # This fallback will work for Python versions prior to 3.7 that lack the
+     Package = Union[types.ModuleType, str]
