@@ -8,7 +8,7 @@ pep517==0.12.0
 platformdirs==2.5.2
 pyparsing==3.0.9
 requests==2.28.1
-    certifi==2021.10.08
+    certifi==2022.6.15
     chardet==5.0.0
     idna==3.3
     urllib3==1.26.10
