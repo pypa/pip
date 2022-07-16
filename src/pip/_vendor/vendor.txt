@@ -9,7 +9,7 @@ platformdirs==2.5.2
 pyparsing==3.0.9
 requests==2.28.1
     certifi==2021.10.08
-    chardet==4.0.0
+    chardet==5.0.0
     idna==3.3
     urllib3==1.26.10
 rich==12.5.1
