@@ -127,6 +127,8 @@ class RequirementCommand(IndexGroupCommand):
                     "fast-deps has no effect when used with the legacy resolver."
                 )
 
+        resume_incomplete = options.resume_incomplete == "resume"
+
         return RequirementPreparer(
             build_dir=temp_build_dir_path,
             src_dir=options.src_dir,
@@ -142,6 +144,8 @@ class RequirementCommand(IndexGroupCommand):
             lazy_wheel=lazy_wheel,
             verbosity=verbosity,
             legacy_resolver=legacy_resolver,
+            resume_incomplete=resume_incomplete,
+            resume_attempts=options.resume_attempts,
         )
 
     @classmethod

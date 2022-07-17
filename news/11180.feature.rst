@@ -1,0 +1,1 @@
+Add support to resume incomplete download. The behavior can be controlled using flags ``--incomplete-downloads`` and ``--incomplete-download-retries``.
