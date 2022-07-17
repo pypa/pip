@@ -24,6 +24,7 @@ def _rich_progress_bar(
     *,
     bar_type: str,
     size: int,
+    initial_progress: Optional[int] = None,
 ) -> Generator[bytes, None, None]:
     assert bar_type == "on", "This should only be used in the default mode."
 
@@ -49,6 +50,8 @@ def _rich_progress_bar(
 
     progress = Progress(*columns, refresh_per_second=30)
     task_id = progress.add_task(" " * (get_indentation() + 2), total=total)
+    if initial_progress is not None:
+        progress.update(task_id, advance=initial_progress)
     with progress:
         for chunk in iterable:
             yield chunk
@@ -56,13 +59,18 @@ def _rich_progress_bar(
 
 
 def get_download_progress_renderer(
-    *, bar_type: str, size: Optional[int] = None
+    *, bar_type: str, size: Optional[int] = None, initial_progress: Optional[int] = None
 ) -> DownloadProgressRenderer:
     """Get an object that can be used to render the download progress.
 
     Returns a callable, that takes an iterable to "wrap".
     """
     if bar_type == "on":
-        return functools.partial(_rich_progress_bar, bar_type=bar_type, size=size)
+        return functools.partial(
+            _rich_progress_bar,
+            bar_type=bar_type,
+            size=size,
+            initial_progress=initial_progress,
+        )
     else:
         return iter  # no-op, when passed an iterator

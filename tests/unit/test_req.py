@@ -106,6 +106,8 @@ class TestRequirementSet:
                 use_user_site=False,
                 lazy_wheel=False,
                 verbosity=0,
+                resume_incomplete=False,
+                resume_attempts=5,
             )
             yield Resolver(
                 preparer=preparer,
