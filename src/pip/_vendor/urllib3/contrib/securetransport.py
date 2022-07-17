@@ -770,7 +770,6 @@ if _fileobject:  # Platform-specific: Python 2
         self._makefile_refs += 1
         return _fileobject(self, mode, bufsize, close=True)
 
-
 else:  # Platform-specific: Python 3
 
     def makefile(self, mode="r", buffering=None, *args, **kwargs):

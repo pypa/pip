@@ -4,7 +4,7 @@
 
     Base lexer classes.
 
-    :copyright: Copyright 2006-2021 by the Pygments team, see AUTHORS.
+    :copyright: Copyright 2006-2022 by the Pygments team, see AUTHORS.
     :license: BSD, see LICENSE for details.
 """
 
@@ -75,6 +75,9 @@ class Lexer(metaclass=LexerMeta):
 
     #: Name of the lexer
     name = None
+
+    #: URL of the language specification/definition
+    url = None
 
     #: Shortcuts for the lexer
     aliases = []
@@ -618,7 +621,7 @@ class RegexLexer(Lexer, metaclass=RegexLexerMeta):
         """
         Split ``text`` into (tokentype, text) pairs.
 
-        ``stack`` is the inital stack (default: ``['root']``)
+        ``stack`` is the initial stack (default: ``['root']``)
         """
         pos = 0
         tokendefs = self._tokens
@@ -738,7 +741,7 @@ class ExtendedRegexLexer(RegexLexer):
                         elif isinstance(new_state, int):
                             # see RegexLexer for why this check is made
                             if abs(new_state) >= len(ctx.stack):
-                                del ctx.state[1:]
+                                del ctx.stack[1:]
                             else:
                                 del ctx.stack[new_state:]
                         elif new_state == '#push':
@@ -792,7 +795,7 @@ def do_insertions(insertions, tokens):
     # iterate over the token stream where we want to insert
     # the tokens from the insertion list.
     for i, t, v in tokens:
-        # first iteration. store the postition of first item
+        # first iteration. store the position of first item
         if realpos is None:
             realpos = i
         oldi = 0
