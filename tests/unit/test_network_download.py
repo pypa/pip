@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
+from pip._internal.exceptions import IncompleteDownloadError
 from pip._internal.models.link import Link
 from pip._internal.network.download import (
     Downloader,
@@ -349,7 +350,7 @@ def test_downloader(
         if expected_bytes is None:
             remove = MagicMock(return_value=None)
             with patch("os.remove", remove):
-                with pytest.raises(RuntimeError):
+                with pytest.raises(IncompleteDownloadError):
                     downloader(link, str(tmpdir))
             # Make sure the incomplete file is removed
             remove.assert_called_once()

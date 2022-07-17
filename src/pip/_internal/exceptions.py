@@ -656,3 +656,37 @@ class ConfigurationFileCouldNotBeLoaded(ConfigurationError):
             assert self.error is not None
             message_part = f".\n{self.error}\n"
         return f"Configuration file {self.reason}{message_part}"
+
+
+class IncompleteDownloadError(DiagnosticPipError):
+    """Raised when the downloader receives fewer bytes than advertised
+    in the Content-Length header."""
+
+    reference = "incomplete-download-error"
+
+    def __init__(
+        self, link: str, resume_incomplete: bool, resume_attempts: int
+    ) -> None:
+        if resume_incomplete:
+            message = (
+                "Download failed after {} attempts because not enough bytes are"
+                " received. The incomplete file has been cleaned up."
+            ).format(resume_attempts)
+            hint = "Use --incomplete-download-retries to configure resume retry limit."
+        else:
+            message = (
+                "Download failed because not enough bytes are received."
+                " The incomplete file has been cleaned up."
+            )
+            hint = (
+                "Use --incomplete-downloads=resume to make pip retry failed download."
+            )
+
+        super().__init__(
+            message=message,
+            context="File: {}\n"
+            "Resume failed download: {}\n"
+            "Resume retry limit: {}".format(link, resume_incomplete, resume_attempts),
+            hint_stmt=hint,
+            note_stmt="This is an issue with network connectivity, not pip.",
+        )

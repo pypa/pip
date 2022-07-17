@@ -10,7 +10,7 @@ from typing import Iterable, Optional, Tuple
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 
 from pip._internal.cli.progress_bars import get_download_progress_renderer
-from pip._internal.exceptions import NetworkConnectionError
+from pip._internal.exceptions import IncompleteDownloadError, NetworkConnectionError
 from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
 from pip._internal.network.cache import is_from_cache
@@ -228,21 +228,10 @@ class Downloader:
                         content_file.write(chunk)
 
         if total_length is not None and bytes_received < total_length:
-            if self._resume_incomplete:
-                logger.critical(
-                    "Failed to download %s after %d resumption attempts.",
-                    link,
-                    self._resume_attempts,
-                )
-            else:
-                logger.critical(
-                    "Failed to download %s."
-                    " Set --incomplete-downloads=resume to automatically"
-                    "resume incomplete download.",
-                    link,
-                )
             os.remove(filepath)
-            raise RuntimeError("Incomplete download")
+            raise IncompleteDownloadError(
+                str(link), self._resume_incomplete, self._resume_attempts
+            )
 
         content_type = resp.headers.get("Content-Type", "")
         return filepath, content_type
