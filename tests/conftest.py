@@ -659,15 +659,5 @@ def mock_server() -> Iterator[MockServer]:
 
 
 @pytest.fixture
-def utc() -> Iterator[None]:
-    # time.tzset() is not implemented on some platforms, e.g. Windows.
-    tzset = getattr(time, "tzset", lambda: None)
-    with patch.dict(os.environ, {"TZ": "UTC"}):
-        tzset()
-        yield
-    tzset()
-
-
-@pytest.fixture
 def proxy(request: pytest.FixtureRequest) -> str:
     return request.config.getoption("proxy")
