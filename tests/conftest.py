@@ -6,7 +6,6 @@ import re
 import shutil
 import subprocess
 import sys
-import time
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
 from typing import (
