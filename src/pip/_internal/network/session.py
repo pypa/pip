@@ -465,7 +465,7 @@ class PipSession(requests.Session):
                 continue
 
             try:
-                addr = ipaddress.ip_address(origin_host)
+                addr = ipaddress.ip_address(origin_host or "")
                 network = ipaddress.ip_network(secure_host)
             except ValueError:
                 # We don't have both a valid address or a valid network, so

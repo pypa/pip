@@ -3,7 +3,16 @@ import importlib.metadata
 import os
 import pathlib
 import zipfile
-from typing import Collection, Dict, Iterable, Iterator, Mapping, Optional, Sequence
+from typing import (
+    Collection,
+    Dict,
+    Iterable,
+    Iterator,
+    Mapping,
+    Optional,
+    Sequence,
+    cast,
+)
 
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
@@ -173,7 +182,12 @@ class Distribution(BaseDistribution):
         return self._dist.entry_points
 
     def _metadata_impl(self) -> email.message.Message:
-        return self._dist.metadata
+        # From Python 3.10+, importlib.metadata declares PackageMetadata as the
+        # return type. This protocol is unfortunately a disaster now and misses
+        # a ton of fields that we need, including get() and get_payload(). We
+        # rely on the implementation that the object is actually a Message now,
+        # until upstream can improve the protocol. (python/cpython#94952)
+        return cast(email.message.Message, self._dist.metadata)
 
     def iter_provided_extras(self) -> Iterable[str]:
         return (

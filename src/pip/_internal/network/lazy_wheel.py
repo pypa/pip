@@ -135,8 +135,8 @@ class LazyZipOverHTTP:
         self._file.__enter__()
         return self
 
-    def __exit__(self, *exc: Any) -> Optional[bool]:
-        return self._file.__exit__(*exc)
+    def __exit__(self, *exc: Any) -> None:
+        self._file.__exit__(*exc)
 
     @contextmanager
     def _stay(self) -> Generator[None, None, None]:
