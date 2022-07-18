@@ -62,9 +62,7 @@ class TestIndentingFormatter:
             ),
         ],
     )
-    def test_format_with_timestamp(
-        self, level_name: str, expected: str
-    ) -> None:
+    def test_format_with_timestamp(self, level_name: str, expected: str) -> None:
         record = self.make_record("hello\nworld", level_name=level_name)
         f = IndentingFormatter(fmt="%(message)s", add_timestamp=True)
         assert f.format(record) == expected
