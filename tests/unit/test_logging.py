@@ -42,7 +42,7 @@ class TestIndentingFormatter:
             ("CRITICAL", "ERROR: hello\nworld"),
         ],
     )
-    def test_format(self, level_name: str, expected: str, utc: None) -> None:
+    def test_format(self, level_name: str, expected: str) -> None:
         """
         Args:
           level_name: a logging level name (e.g. "WARNING").
@@ -63,7 +63,7 @@ class TestIndentingFormatter:
         ],
     )
     def test_format_with_timestamp(
-        self, level_name: str, expected: str, utc: None
+        self, level_name: str, expected: str
     ) -> None:
         record = self.make_record("hello\nworld", level_name=level_name)
         f = IndentingFormatter(fmt="%(message)s", add_timestamp=True)
@@ -77,7 +77,7 @@ class TestIndentingFormatter:
             ("CRITICAL", "DEPRECATION: hello\nworld"),
         ],
     )
-    def test_format_deprecated(self, level_name: str, expected: str, utc: None) -> None:
+    def test_format_deprecated(self, level_name: str, expected: str) -> None:
         """
         Test that logged deprecation warnings coming from deprecated()
         don't get another prefix.
@@ -89,7 +89,7 @@ class TestIndentingFormatter:
         f = IndentingFormatter(fmt="%(message)s")
         assert f.format(record) == expected
 
-    def test_thread_safety_base(self, utc: None) -> None:
+    def test_thread_safety_base(self) -> None:
         record = self.make_record(
             "DEPRECATION: hello\nworld",
             level_name="WARNING",
@@ -106,7 +106,7 @@ class TestIndentingFormatter:
         thread.join()
         assert results[0] == results[1]
 
-    def test_thread_safety_indent_log(self, utc: None) -> None:
+    def test_thread_safety_indent_log(self) -> None:
         record = self.make_record(
             "DEPRECATION: hello\nworld",
             level_name="WARNING",

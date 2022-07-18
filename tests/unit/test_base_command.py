@@ -16,7 +16,7 @@ from pip._internal.utils.temp_dir import TempDirectory
 
 
 @pytest.fixture
-def fixed_time(utc: None) -> Iterator[None]:
+def fixed_time() -> Iterator[None]:
     with patch("time.time", lambda: 1547704837.040001 + time.timezone):
         yield
 
