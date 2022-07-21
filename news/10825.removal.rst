@@ -1,1 +1,0 @@
-Remove the ``html5lib`` deprecated feature flag.

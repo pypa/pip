@@ -1,2 +1,0 @@
-Use ``importlib.resources`` to read the ``vendor.txt`` file in ``pip debug``.
-This makes the command safe for use from a zipapp.
