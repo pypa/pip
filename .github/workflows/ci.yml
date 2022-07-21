@@ -115,12 +115,16 @@ jobs:
           - 3.8
           - 3.9
           - "3.10"
+          - "3.11.0-alpha - 3.11.0"
 
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python }}
+
+      - name: Get Python version
+        run: echo python_version=$(python3 -c "import sys; print('.'.join(str(v) for v in sys.version_info[:2]))") >> $GITHUB_ENV
 
       - name: Install Ubuntu dependencies
         if: matrix.os == 'Ubuntu'
@@ -135,12 +139,12 @@ jobs:
       # Main check
       - name: Run unit tests
         run: >-
-          nox -s test-${{ matrix.python }} --
+          nox -s test-${{ env.python_version }} --
           -m unit
           --verbose --numprocesses auto --showlocals
       - name: Run integration tests
         run: >-
-          nox -s test-${{ matrix.python }} --
+          nox -s test-${{ env.python_version }} --
           -m integration
           --verbose --numprocesses auto --showlocals
           --durations=5
