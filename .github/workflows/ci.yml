@@ -134,7 +134,7 @@ jobs:
         if: matrix.os == 'MacOS'
         run: brew install bzr
 
-      - run: pip install nox 'virtualenv<20' 'setuptools != 60.6.0'
+      - run: pip install nox 'virtualenv' 'setuptools != 60.6.0'
 
       # Main check
       - name: Run unit tests
