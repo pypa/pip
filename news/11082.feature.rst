@@ -1,3 +1,0 @@
-Add support to use `truststore <https://pypi.org/project/truststore/>`_ as an alternative SSL certificate verification backend. The backend can be enabled on Python 3.10 and later by installing ``truststore`` into the environment, and adding the ``--use-feature=truststore`` flag to various pip commands.
-
-``truststore`` differs from the current default verification backend (provided by ``certifi``) in it uses the operating system’s trust store, which can be better controlled and augmented to better support non-standard certificates. Depending on feedback, pip may switch to this as the default certificate verification backend in the future.

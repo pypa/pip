@@ -1,2 +1,0 @@
-Add ``pip inspect`` command to obtain the list of installed distributions and other
-information about the Python environment, in JSON format.

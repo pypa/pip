@@ -9,6 +9,86 @@
 
 .. towncrier release notes start
 
+22.2 (2022-07-21)
+=================
+
+Deprecations and Removals
+-------------------------
+
+- Remove the ``html5lib`` deprecated feature flag. (`#10825 <https://github.com/pypa/pip/issues/10825>`_)
+- Remove ``--use-deprecated=backtrack-on-build-failures``. (`#11241 <https://github.com/pypa/pip/issues/11241>`_)
+
+Features
+--------
+
+- Add support to use `truststore <https://pypi.org/project/truststore/>`_ as an
+  alternative SSL certificate verification backend. The backend can be enabled on Python
+  3.10 and later by installing ``truststore`` into the environment, and adding the
+  ``--use-feature=truststore`` flag to various pip commands.
+
+  ``truststore`` differs from the current default verification backend (provided by
+  ``certifi``) in it uses the operating system’s trust store, which can be better
+  controlled and augmented to better support non-standard certificates. Depending on
+  feedback, pip may switch to this as the default certificate verification backend in
+  the future. (`#11082 <https://github.com/pypa/pip/issues/11082>`_)
+- Add ``--dry-run`` option to ``pip install``, to let it print what it would install but
+  not actually change anything in the target environment. (`#11096 <https://github.com/pypa/pip/issues/11096>`_)
+- Record in wheel cache entries the URL of the original artifact that was downloaded
+  to build the cached wheels. The record is named ``origin.json`` and uses the PEP 610
+  Direct URL format. (`#11137 <https://github.com/pypa/pip/issues/11137>`_)
+- Support `PEP 691 <https://peps.python.org/pep-0691/>`_. (`#11158 <https://github.com/pypa/pip/issues/11158>`_)
+- pip's deprecation warnings now subclass the built-in ``DeprecationWarning``, and
+  can be suppressed by running the Python interpreter with
+  ``-W ignore::DeprecationWarning``. (`#11225 <https://github.com/pypa/pip/issues/11225>`_)
+- Add ``pip inspect`` command to obtain the list of installed distributions and other
+  information about the Python environment, in JSON format. (`#11245 <https://github.com/pypa/pip/issues/11245>`_)
+- Significantly speed up isolated environment creation, by using the same
+  sources for pip instead of creating a standalone installation for each
+  environment. (`#11257 <https://github.com/pypa/pip/issues/11257>`_)
+- Add an experimental ``--report`` option to the install command to generate a JSON report
+  of what was installed. In combination with ``--dry-run`` and ``--ignore-installed`` it
+  can be used to resolve the requirements. (`#53 <https://github.com/pypa/pip/issues/53>`_)
+
+Bug Fixes
+---------
+
+- Fix ``pip install --pre`` for packages with pre-release build dependencies defined
+  both in ``pyproject.toml``'s ``build-system.requires`` and ``setup.py``'s
+  ``setup_requires``. (`#10222 <https://github.com/pypa/pip/issues/10222>`_)
+- When pip rewrites the shebang line in a script during wheel installation,
+  update the hash and size in the corresponding ``RECORD`` file entry. (`#10744 <https://github.com/pypa/pip/issues/10744>`_)
+- Do not consider a ``.dist-info`` directory found inside a wheel-like zip file
+  as metadata for an installed distribution. A package in a wheel is (by
+  definition) not installed, and is not guaranteed to work due to how a wheel is
+  structured. (`#11217 <https://github.com/pypa/pip/issues/11217>`_)
+- Use ``importlib.resources`` to read the ``vendor.txt`` file in ``pip debug``.
+  This makes the command safe for use from a zipapp. (`#11248 <https://github.com/pypa/pip/issues/11248>`_)
+- Make the ``--use-pep517`` option of the ``download`` command apply not just
+  to the requirements specified on the command line, but to their dependencies,
+  as well. (`#9523 <https://github.com/pypa/pip/issues/9523>`_)
+
+Process
+-------
+
+- Remove reliance on the stdlib cgi module, which is deprecated in Python 3.11.
+
+Vendored Libraries
+------------------
+
+- Remove html5lib.
+- Upgrade certifi to 2022.6.15
+- Upgrade chardet to 5.0.0
+- Upgrade colorama to 0.4.5
+- Upgrade distlib to 0.3.5
+- Upgrade msgpack to 1.0.4
+- Upgrade pygments to 2.12.0
+- Upgrade pyparsing to 3.0.9
+- Upgrade requests to 2.28.1
+- Upgrade rich to 12.5.1
+- Upgrade typing_extensions to 4.3.0
+- Upgrade urllib3 to 1.26.10
+
+
 22.1.2 (2022-05-31)
 ===================
 

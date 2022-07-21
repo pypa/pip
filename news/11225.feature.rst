@@ -1,3 +1,0 @@
-pip's deprecation warnings now subclass the built-in ``DeprecationWarning``, and
-can be suppressed by running the Python interpreter with
-``-W ignore::DeprecationWarning``.

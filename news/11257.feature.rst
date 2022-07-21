@@ -1,3 +1,0 @@
-Significantly speed up isolated environment creation, by using the same
-sources for pip instead of creating a standalone installation for each
-environment.

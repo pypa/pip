@@ -1,3 +1,0 @@
-Add an experimental ``--report`` option to the install command to generate a JSON report
-of what was installed. In combination with ``--dry-run`` and ``--ignore-installed`` it
-can be used to resolve the requirements.
