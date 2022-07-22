@@ -122,7 +122,7 @@ jobs:
         if: matrix.os == 'MacOS'
         run: brew install breezy
 
-      - run: pip install nox 'virtualenv<20' 'setuptools != 60.6.0'
+      - run: pip install nox 'virtualenv>=20' 'setuptools!=60.6.0'
 
       # Main check
       - name: Run unit tests
@@ -179,7 +179,7 @@ jobs:
           $acl.AddAccessRule($rule)
           Set-Acl "R:\Temp" $acl
 
-      - run: pip install nox 'virtualenv<20'
+      - run: pip install nox 'virtualenv>=20'
         env:
           TEMP: "R:\\Temp"
 
@@ -261,7 +261,7 @@ jobs:
       - name: Install Ubuntu dependencies
         run: sudo apt-get install bzr
 
-      - run: pip install nox 'virtualenv<20'
+      - run: pip install nox 'virtualenv>=20'
 
       - name: Run unit tests
         run: >-
