@@ -91,10 +91,10 @@ class VirtualEnvironment:
     def _customize_site(self) -> None:
         # Enable user site (before system).
         contents = textwrap.dedent(
-            """
+            f"""
             import os, site, sys
             if not os.environ.get('PYTHONNOUSERSITE', False):
-                site.ENABLE_USER_SITE = True
+                site.ENABLE_USER_SITE = {self._user_site_packages}
                 # First, drop system-sites related paths.
                 original_sys_path = sys.path[:]
                 known_paths = set()
@@ -106,7 +106,8 @@ class VirtualEnvironment:
                         original_sys_path.remove(path)
                 sys.path = original_sys_path
                 # Second, add user-site.
-                site.addsitedir(site.getusersitepackages())
+                if {self._user_site_packages}:
+                    site.addsitedir(site.getusersitepackages())
                 # Third, add back system-sites related paths.
                 for path in site.getsitepackages():
                     site.addsitedir(path)
@@ -142,12 +143,5 @@ class VirtualEnvironment:
 
     @user_site_packages.setter
     def user_site_packages(self, value: bool) -> None:
+        self._user_site_packages = value
         self._customize_site()
-        pyvenv_cfg = self.location.joinpath("pyvenv.cfg")
-        modified_lines = []
-        for line in pyvenv_cfg.read_text().splitlines():
-            k, v = line.split("=", 1)
-            if k.strip() == "include-system-site-packages":
-                line = f"include-system-site-packages = {str(bool(value)).lower()}"
-            modified_lines.append(line)
-        pyvenv_cfg.write_text("\n".join(modified_lines))
