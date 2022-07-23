@@ -109,7 +109,7 @@ def test_local_columns_flag(simple_script: PipTestEnvironment) -> None:
     assert "Package" in result.stdout
     assert "Version" in result.stdout
     assert "simple (1.0)" not in result.stdout
-    assert "simple     1.0" in result.stdout, str(result)
+    assert "simple  1.0" in result.stdout, str(result)
 
 
 def test_multiple_exclude_and_normalization(
