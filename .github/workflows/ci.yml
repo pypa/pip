@@ -46,11 +46,13 @@ jobs:
               # Anything that's touching "vendored code"
               - "src/pip/_vendor/**"
               - "pyproject.toml"
+              - "noxfile.py"
             tests:
               # Anything that's touching code-related stuff
               - ".github/workflows/ci.yml"
               - "src/**"
               - "tests/**"
+              - "noxfile.py"
         if: github.event_name == 'pull_request'
 
   pre-commit:
