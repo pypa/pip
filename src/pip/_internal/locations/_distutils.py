@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 # This module should never be invoked on Python 3.10 or later
-assert sys.version_info < (3, 10)
+assert sys.version_info < (3, 10) or __import__("typing").TYPE_CHECKING
 
 
 def distutils_scheme(
