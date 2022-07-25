@@ -3,6 +3,7 @@ from optparse import Values
 from typing import Generator, Iterable, Iterator, List, NamedTuple, Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.rich import print_json
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
@@ -32,6 +33,13 @@ class ShowCommand(Command):
             default=False,
             help="Show the full list of installed files for each package.",
         )
+        self.cmd_opts.add_option(
+            "--format",
+            dest="format",
+            default="text",
+            choices=("text", "json"),
+            help="Select the output format among: text (default), or json",
+        )
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
@@ -41,11 +49,18 @@ class ShowCommand(Command):
             return ERROR
         query = args
 
-        results = search_packages_info(query)
-        if not print_results(
-            results, list_files=options.files, verbose=options.verbose
-        ):
-            return ERROR
+        if options.format == "json":
+            results = search_packages_info(query, True)
+            if not print_results_json(
+                results, list_files=options.files, verbose=options.verbose
+            ):
+                return ERROR
+        else:
+            results = search_packages_info(query, False)
+            if not print_results(
+                results, list_files=options.files, verbose=options.verbose
+            ):
+                return ERROR
         return SUCCESS
 
 
@@ -68,7 +83,7 @@ class _PackageInfo(NamedTuple):
     files: Optional[List[str]]
 
 
-def search_packages_info(query: List[str]) -> Generator[_PackageInfo, None, None]:
+def search_packages_info(query: List[str], no_warning: bool) -> Generator[_PackageInfo, None, None]:
     """
     Gather details from installed distributions. Print distribution name,
     version, location, and installed files. Installed files requires a
@@ -83,7 +98,8 @@ def search_packages_info(query: List[str]) -> Generator[_PackageInfo, None, None
         [name for name, pkg in zip(query, query_names) if pkg not in installed]
     )
     if missing:
-        logger.warning("Package(s) not found: %s", ", ".join(missing))
+        if not no_warning:
+            logger.warning("Package(s) not found: %s", ", ".join(missing))
 
     def _get_requiring_packages(current_dist: BaseDistribution) -> Iterator[str]:
         return (
@@ -181,3 +197,52 @@ def print_results(
                 for line in dist.files:
                     write_output("  %s", line.strip())
     return results_printed
+
+
+def print_results_json(
+    distributions: Iterable[_PackageInfo],
+    list_files: bool,
+    verbose: bool,
+) -> bool:
+    """
+    Print the information from installed distributions found in JSON format.
+    """
+    output = []
+    for dist in distributions:
+        package_dict = {}
+
+        package_dict["Name"] = dist.name
+        package_dict["Version"] = dist.version
+        package_dict["Summary"] = dist.summary
+        package_dict["Home-Page"] = dist.homepage
+        package_dict["Author"] = dist.author
+        package_dict["Author-email"] = dist.author_email
+        package_dict["License"] = dist.license
+        package_dict["Location"] = dist.location
+        package_dict["Requires"] = dist.requires
+        package_dict["Required-by"] = dist.required_by
+
+        if verbose:
+            package_dict["Metadata-Version"] = dist.metadata_version
+            package_dict["Installer"] = dist.installer
+            package_dict["Classifiers"] = []
+            for classifier in dist.classifiers:
+                package_dict["Classifiers"].append(classifier)
+            package_dict["Entry-points"] = []
+            for entry in dist.entry_points:
+                package_dict["Entry-points"].append(entry.strip())
+            package_dict["Project-URLs"] = {}
+            for project_url in dist.project_urls:
+                name, url = project_url.split(", ", 1)
+                package_dict["Project-URLs"][name] = url
+        if list_files:
+            package_dict["Files"] = []
+            if dist.files is not None:
+                for line in dist.files:
+                    package_dict["Files"].append(line.strip())
+
+        output.append(package_dict)
+
+    print_json(data=output)
+
+    return len(output) > 0
