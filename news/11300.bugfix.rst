@@ -1,0 +1,1 @@
+Clarify that ``pip cache``'s wheels-related output is about locally built wheels only.
