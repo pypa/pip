@@ -94,4 +94,11 @@ class InspectCommand(Command):
         # requested
         if dist.installed_with_dist_info:
             res["requested"] = dist.requested
+        # convert project_url to dict
+        if "project_url" in res["metadata"]:
+            project_url_dict = {}
+            for i in res["metadata"]["project_url"]:
+                name, url = i.split(", ", 1)
+                project_url_dict[name] = url
+            res["metadata"]["project_url"] = project_url_dict
         return res
