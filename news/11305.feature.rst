@@ -1,1 +1,1 @@
-Format ``project_url`` in ``pip inspect`` as dict 
+Format ``project_url`` in ``pip inspect`` as dict
