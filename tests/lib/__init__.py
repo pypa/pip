@@ -1218,27 +1218,15 @@ def create_basic_sdist_for_package(
     version: str,
     extra_files: Optional[Dict[str, str]] = None,
     *,
-    fails_egg_info: bool = False,
-    fails_bdist_wheel: bool = False,
     depends: Optional[List[str]] = None,
     setup_py_prelude: str = "",
 ) -> pathlib.Path:
     files = {
         "setup.py": textwrap.dedent(
             """\
-            import sys
             from setuptools import find_packages, setup
 
             {setup_py_prelude}
-
-            fails_bdist_wheel = {fails_bdist_wheel!r}
-            fails_egg_info = {fails_egg_info!r}
-
-            if fails_egg_info and "egg_info" in sys.argv:
-                raise Exception("Simulated failure for generating metadata.")
-
-            if fails_bdist_wheel and "bdist_wheel" in sys.argv:
-                raise Exception("Simulated failure for building a wheel.")
 
             setup(name={name!r}, version={version!r},
                 install_requires={depends!r})
@@ -1248,8 +1236,6 @@ def create_basic_sdist_for_package(
             version=version,
             depends=depends or [],
             setup_py_prelude=setup_py_prelude,
-            fails_bdist_wheel=fails_bdist_wheel,
-            fails_egg_info=fails_egg_info,
         ),
     }
 

@@ -2307,10 +2307,19 @@ def test_new_resolver_respect_user_requested_if_extra_is_installed(
     script.assert_installed(pkg3="1.0", pkg2="2.0", pkg1="1.0")
 
 
+FAIL_EGG_INFO = """\
+import sys
+if "egg_info" in sys.argv:
+    raise Exception("Simulated failure for generating metadata.")
+"""
+
+
 def test_new_resolver_do_not_backtrack_on_build_failure(
     script: PipTestEnvironment,
 ) -> None:
-    create_basic_sdist_for_package(script, "pkg1", "2.0", fails_egg_info=True)
+    create_basic_sdist_for_package(
+        script, "pkg1", "2.0", setup_py_prelude=FAIL_EGG_INFO
+    )
     create_basic_wheel_for_package(script, "pkg1", "1.0")
 
     result = script.pip(
@@ -2330,7 +2339,9 @@ def test_new_resolver_works_when_failing_package_builds_are_disallowed(
     script: PipTestEnvironment,
 ) -> None:
     create_basic_wheel_for_package(script, "pkg2", "1.0", depends=["pkg1"])
-    create_basic_sdist_for_package(script, "pkg1", "2.0", fails_egg_info=True)
+    create_basic_sdist_for_package(
+        script, "pkg1", "2.0", setup_py_prelude=FAIL_EGG_INFO
+    )
     create_basic_wheel_for_package(script, "pkg1", "1.0")
     constraints_file = script.scratch_path / "constraints.txt"
     constraints_file.write_text("pkg1 != 2.0")
