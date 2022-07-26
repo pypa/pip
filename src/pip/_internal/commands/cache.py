@@ -105,9 +105,9 @@ class CacheCommand(Command):
                     Package index page cache location: {http_cache_location}
                     Package index page cache size: {http_cache_size}
                     Number of HTTP files: {num_http_files}
-                    Built wheels location: {wheels_cache_location}
-                    Built wheels size: {wheels_cache_size}
-                    Number of built wheels: {package_count}
+                    Locally built wheels location: {wheels_cache_location}
+                    Locally built wheels size: {wheels_cache_size}
+                    Number of locally built wheels: {package_count}
                 """
             )
             .format(
