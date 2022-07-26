@@ -180,6 +180,13 @@ class InstallCommand(RequirementCommand):
         )
 
         self.cmd_opts.add_option(
+            "--prefer-min",
+            dest="prefers_min",
+            action="store_true",
+            help="Prefer minimum versions of available dependencies.",
+        )
+
+        self.cmd_opts.add_option(
             "--force-reinstall",
             dest="force_reinstall",
             action="store_true",
@@ -361,6 +368,7 @@ class InstallCommand(RequirementCommand):
                 ignore_requires_python=options.ignore_requires_python,
                 force_reinstall=options.force_reinstall,
                 upgrade_strategy=upgrade_strategy,
+                prefers_min=options.prefers_min,
                 use_pep517=options.use_pep517,
             )
 

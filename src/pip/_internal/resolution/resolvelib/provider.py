@@ -93,12 +93,14 @@ class PipProvider(_ProviderBase):
         ignore_dependencies: bool,
         upgrade_strategy: str,
         user_requested: Dict[str, int],
+        prefers_min: bool,
     ) -> None:
         self._factory = factory
         self._constraints = constraints
         self._ignore_dependencies = ignore_dependencies
         self._upgrade_strategy = upgrade_strategy
         self._user_requested = user_requested
+        self._prefers_min = prefers_min
         self._known_depths: Dict[str, float] = collections.defaultdict(lambda: math.inf)
 
     def identify(self, requirement_or_candidate: Union[Requirement, Candidate]) -> str:
@@ -216,6 +218,12 @@ class PipProvider(_ProviderBase):
                 return user_order is not None
             return False
 
+        def _prefers_min(identifier: str) -> bool:
+            if identifier in ("pip", "setuptools", "wheel"):
+                return False
+
+            return self._prefers_min
+
         constraint = _get_with_identifier(
             self._constraints,
             identifier,
@@ -226,6 +234,7 @@ class PipProvider(_ProviderBase):
             requirements=requirements,
             constraint=constraint,
             prefers_installed=(not _eligible_for_upgrade(identifier)),
+            prefers_min=_prefers_min(identifier),
             incompatibilities=incompatibilities,
         )
 

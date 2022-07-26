@@ -47,6 +47,7 @@ class Resolver(BaseResolver):
         ignore_requires_python: bool,
         force_reinstall: bool,
         upgrade_strategy: str,
+        prefers_min: bool,
         py_version_info: Optional[Tuple[int, ...]] = None,
     ):
         super().__init__()
@@ -65,6 +66,7 @@ class Resolver(BaseResolver):
         )
         self.ignore_dependencies = ignore_dependencies
         self.upgrade_strategy = upgrade_strategy
+        self.prefers_min = prefers_min
         self._result: Optional[Result] = None
 
     def resolve(
@@ -77,6 +79,7 @@ class Resolver(BaseResolver):
             ignore_dependencies=self.ignore_dependencies,
             upgrade_strategy=self.upgrade_strategy,
             user_requested=collected.user_requested,
+            prefers_min=self.prefers_min,
         )
         if "PIP_RESOLVER_DEBUG" in os.environ:
             reporter: BaseReporter = PipDebuggingReporter()

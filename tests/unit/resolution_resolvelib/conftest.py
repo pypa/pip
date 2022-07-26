@@ -75,4 +75,5 @@ def provider(factory: Factory) -> Iterator[PipProvider]:
         ignore_dependencies=False,
         upgrade_strategy="to-satisfy-only",
         user_requested={},
+        prefers_min=False,
     )

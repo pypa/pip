@@ -79,6 +79,7 @@ def test_new_resolver_correct_number_of_matches(
             {},
             Constraint.empty(),
             prefers_installed=False,
+            prefers_min=False,
         )
         assert sum(1 for _ in matches) == match_count
 
@@ -96,6 +97,7 @@ def test_new_resolver_candidates_match_requirement(
             {},
             Constraint.empty(),
             prefers_installed=False,
+            prefers_min=False,
         )
         for c in candidates:
             assert isinstance(c, Candidate)

@@ -231,6 +231,7 @@ class Factory:
         specifier: SpecifierSet,
         hashes: Hashes,
         prefers_installed: bool,
+        prefers_min: bool,
         incompatible_ids: Set[int],
     ) -> Iterable[Candidate]:
         if not ireqs:
@@ -301,8 +302,11 @@ class Factory:
 
             pinned = is_pinned(specifier)
 
-            # PackageFinder returns earlier versions first, so we reverse.
-            for ican in reversed(icans):
+            if not prefers_min:
+                # PackageFinder returns earlier versions first, so we reverse.
+                icans = reversed(icans)
+
+            for ican in icans:
                 if not (all_yanked and pinned) and ican.link.is_yanked:
                     continue
                 func = functools.partial(
@@ -374,6 +378,7 @@ class Factory:
         incompatibilities: Mapping[str, Iterator[Candidate]],
         constraint: Constraint,
         prefers_installed: bool,
+        prefers_min: bool,
     ) -> Iterable[Candidate]:
         # Collect basic lookup information from the requirements.
         explicit_candidates: Set[Candidate] = set()
@@ -426,6 +431,7 @@ class Factory:
                 constraint.specifier,
                 constraint.hashes,
                 prefers_installed,
+                prefers_min,
                 incompat_ids,
             )
 
