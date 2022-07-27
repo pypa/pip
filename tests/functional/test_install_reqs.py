@@ -278,6 +278,34 @@ def test_install_collected_dependencies_first(script: PipTestEnvironment) -> Non
     assert text.endswith("toporequires2")
 
 
+def test_install_not_prefer_min(script: PipTestEnvironment) -> None:
+    result = script.pip_install_local(
+        "simple"
+    )
+    assert "Successfully installed simple-3.0" in str(result)
+
+
+def test_install_prefer_min(script: PipTestEnvironment) -> None:
+    result = script.pip_install_local(
+        "simple", "--prefer-min"
+    )
+    assert "Successfully installed simple-1.0" in str(result)
+
+
+def test_install_not_prefer_min_transitive(script: PipTestEnvironment) -> None:
+    result = script.pip_install_local(
+        "require_simple"
+    )
+    assert "Successfully installed require_simple-1.0 simple-3.0" in str(result)
+
+
+def test_install_prefer_min_transitive(script: PipTestEnvironment) -> None:
+    result = script.pip_install_local(
+        "require_simple", "--prefer-min"
+    )
+    assert "Successfully installed require_simple-1.0 simple-2.0" in str(result)
+
+
 @pytest.mark.network
 def test_install_local_editable_with_subdirectory(script: PipTestEnvironment) -> None:
     version_pkg_path = _create_test_package_with_subdirectory(script, "version_subdir")
