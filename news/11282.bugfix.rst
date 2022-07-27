@@ -1,1 +1,0 @@
-Send the pip upgrade prompt to stderr.

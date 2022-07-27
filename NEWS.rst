@@ -9,6 +9,20 @@
 
 .. towncrier release notes start
 
+22.2.1 (2022-07-27)
+===================
+
+Bug Fixes
+---------
+
+- Send the pip upgrade prompt to stderr. (`#11282 <https://github.com/pypa/pip/issues/11282>`_)
+- Ensure that things work correctly in environments where setuptools-injected
+  ``distutils`` is available by default. This is done by cooperating with
+  setuptools' injection logic to ensure that pip uses the ``distutils`` from the
+  Python standard library instead. (`#11298 <https://github.com/pypa/pip/issues/11298>`_)
+- Clarify that ``pip cache``'s wheels-related output is about locally built wheels only. (`#11300 <https://github.com/pypa/pip/issues/11300>`_)
+
+
 22.2 (2022-07-21)
 =================
 
