@@ -395,6 +395,13 @@ class TestProcessLine:
         line_processor("--no-index", "file", 1, finder=finder)
         assert finder.index_urls == []
 
+    def test_set_finder_no_index_is_remembered_for_later_invocations(
+        self, line_processor: LineProcessor, finder: PackageFinder
+    ) -> None:
+        line_processor("--no-index", "file", 1, finder=finder)
+        line_processor("--index-url=url", "file", 1, finder=finder)
+        assert finder.index_urls == []
+
     def test_set_finder_index_url(
         self, line_processor: LineProcessor, finder: PackageFinder, session: PipSession
     ) -> None:
