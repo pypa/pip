@@ -99,9 +99,42 @@ def test_new_resolver_candidates_match_requirement(
             prefers_installed=False,
             prefers_min=False,
         )
+        previous_candidate = None
         for c in candidates:
             assert isinstance(c, Candidate)
             assert req.is_satisfied_by(c)
+
+            if previous_candidate is not None:
+                assert c.version < previous_candidate.version
+
+            previous_candidate = c
+
+
+def test_new_resolver_candidates_order_min(
+    test_cases: List[Tuple[str, str, int]], factory: Factory
+) -> None:
+    """Candidates returned from find_candidates should satisfy the requirement"""
+    for spec, _, _ in test_cases:
+        req = factory.make_requirement_from_spec(spec, comes_from=None)
+        assert req is not None
+        candidates = factory.find_candidates(
+            req.name,
+            {req.name: [req]},
+            {},
+            Constraint.empty(),
+            prefers_installed=False,
+            prefers_min=True,
+        )
+        previous_candidate = None
+        for c in candidates:
+            assert isinstance(c, Candidate)
+            assert req.is_satisfied_by(c)
+
+            if previous_candidate is not None:
+                assert c.version > previous_candidate.version
+
+            previous_candidate = c
+
 
 
 def test_new_resolver_full_resolve(factory: Factory, provider: PipProvider) -> None:
