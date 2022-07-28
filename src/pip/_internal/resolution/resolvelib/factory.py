@@ -302,15 +302,21 @@ class Factory:
 
             pinned = is_pinned(specifier)
 
-            if strategy == "prefer-max":
-                # PackageFinder returns earlier versions first, so we reverse.
-                icans = reversed(icans)
-            elif strategy == "prefer-min":
-                # These are exceptions to the prefer-min logic
-                if name in ("pip", "setuptools", "wheel"):
-                    icans = reversed(icans)
-            else:
+            def apply_icans_strategy(name: str, icans: List[IndexCandidateInfo], strategy: str) -> List[IndexCandidateInfo]:
+                if strategy == "prefer-max":
+                    # PackageFinder returns earlier versions first, so we reverse.
+                    return reversed(icans)
+
+                if name in ("pip", "setuptools", "wheels"):
+                    # We always want the "max" behavior on these.
+                    return reversed(icans)
+
+                if strategy == "prefer-min":
+                    return icans
+
                 raise ValueError(f"Unknown strategy: {strategy}")
+
+            icans = apply_icans_strategy(name, icans, strategy)
 
             for ican in icans:
                 if not (all_yanked and pinned) and ican.link.is_yanked:
