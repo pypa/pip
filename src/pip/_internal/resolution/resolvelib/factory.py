@@ -44,6 +44,7 @@ from pip._internal.req.req_install import (
 from pip._internal.resolution.base import InstallRequirementProvider
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
+from pip._internal.utils.misc import ask
 from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
@@ -300,15 +301,18 @@ class Factory:
                     return True
                 return False
 
-            pinned = is_pinned(specifier)
+            def has_lower_bound(specifier: SpecifierSet) -> bool:
+                for sp in specifier:
+                    if sp.operator in (">", ">=", "~=", "=="):
+                        return True
+                return False
 
-            def apply_icans_strategy(name: str, icans: List[IndexCandidateInfo], strategy: str) -> List[IndexCandidateInfo]:
+            def should_apply_strategy(name: str) -> bool:
+                return name not in ("pip", "setuptools", "wheel")
+
+            def apply_strategy_to_icans(strategy: str, icans: List[IndexCandidateInfo]) -> List[IndexCandidateInfo]:
                 if strategy == "prefer-max":
                     # PackageFinder returns earlier versions first, so we reverse.
-                    return reversed(icans)
-
-                if name in ("pip", "setuptools", "wheels"):
-                    # We always want the "max" behavior on these.
                     return reversed(icans)
 
                 if strategy == "prefer-min":
@@ -316,7 +320,28 @@ class Factory:
 
                 raise ValueError(f"Unknown strategy: {strategy}")
 
-            icans = apply_icans_strategy(name, icans, strategy)
+            def check_strategy(strategy: str, specifier: SpecifierSet) -> bool:
+                if strategy == "prefer-min" and not has_lower_bound(specifier):
+                    raise InstallationError(f"No lower bound for {name}")
+
+            if should_apply_strategy(name):
+                try:
+                    check_strategy(strategy, specifier)
+                except InstallationError as e:
+                    # Resolver will process this more than once, so we need to store the error
+                    if (name, specifier) not in self._build_failures:
+                        logger.warning(f"{name}{specifier} is missing a lower bound.")
+                        if ask(f"Proceed (Y/n)? ", ("y", "n", "")) != "n":
+                            self._build_failures[(name, specifier)] = e
+                        else:
+                            raise e
+
+                icans = apply_strategy_to_icans(strategy, icans)
+            else:
+                # The default behavior is to always pick the max version
+                icans = reversed(icans)
+
+            pinned = is_pinned(specifier)
 
             for ican in icans:
                 if not (all_yanked and pinned) and ican.link.is_yanked:
