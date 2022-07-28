@@ -2,15 +2,17 @@
 """
 
 import os
+import shutil
 import subprocess
 import sys
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from pip._internal.build_env import _get_runnable_pip
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip._internal.commands import commands_dict, get_similar_commands
 from pip._internal.exceptions import CommandError
+from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import get_pip_version, get_prog
 
 __all__ = ["create_main_parser", "parse_command"]
@@ -47,6 +49,44 @@ def create_main_parser() -> ConfigOptionParser:
     return parser
 
 
+def identify_python_interpreter(python: str) -> Optional[str]:
+    if python == "python" or python == "py":
+        # Run the active Python.
+        # We have to be very careful here, because:
+        #
+        # 1. On Unix, "python" is probably correct but there is a "py" launcher.
+        # 2. On Windows, "py" is the best option if it's present.
+        # 3. On Windows without "py", "python" might work, but it might also
+        #    be the shim that launches the Windows store to allow you to install
+        #    Python.
+        #
+        # We go with getting py on Windows, and if it's not present or we're
+        # on Unix, get python. We don't worry about the launcher on Unix or
+        # the installer stub on Windows.
+        py = None
+        if WINDOWS:
+            py = shutil.which("py")
+        if py is None:
+            py = shutil.which("python")
+        if py:
+            return py
+
+    # TODO: On Windows, `--python .venv/Scripts/python` won't pass the
+    #       exists() check (no .exe extension supplied). But it's pretty
+    #       obvious what the user intends. Should we allow this?
+    if os.path.exists(python):
+        if not os.path.isdir(python):
+            return python
+        # Might be a virtual environment
+        for exe in ("bin/python", "Scripts/python.exe"):
+            py = os.path.join(python, exe)
+            if os.path.exists(py):
+                return py
+
+    # Could not find the interpreter specified
+    return None
+
+
 def parse_command(args: List[str]) -> Tuple[str, List[str]]:
     parser = create_main_parser()
 
@@ -60,17 +100,25 @@ def parse_command(args: List[str]) -> Tuple[str, List[str]]:
     general_options, args_else = parser.parse_args(args)
 
     # --python
-    if general_options.python:
-        if "_PIP_RUNNING_IN_SUBPROCESS" not in os.environ:
-            pip_cmd = [
-                general_options.python,
-                _get_runnable_pip(),
-            ]
-            pip_cmd.extend(args)
-            # Block recursing indefinitely
-            os.environ["_PIP_RUNNING_IN_SUBPROCESS"] = "1"
-            proc = subprocess.run(pip_cmd)
-            sys.exit(proc.returncode)
+    if general_options.python and "_PIP_RUNNING_IN_SUBPROCESS" not in os.environ:
+        # Re-invoke pip using the specified Python interpreter
+        interpreter = identify_python_interpreter(general_options.python)
+        if interpreter is None:
+            raise CommandError(
+                f"Could not locate Python interpreter {general_options.python}"
+            )
+
+        pip_cmd = [
+            interpreter,
+            _get_runnable_pip(),
+        ]
+        pip_cmd.extend(args)
+
+        # Set a flag so the child doesn't re-invoke itself, causing
+        # an infinite loop.
+        os.environ["_PIP_RUNNING_IN_SUBPROCESS"] = "1"
+        proc = subprocess.run(pip_cmd)
+        sys.exit(proc.returncode)
 
     # --version
     if general_options.version:
