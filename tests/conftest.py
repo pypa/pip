@@ -6,7 +6,6 @@ import re
 import shutil
 import subprocess
 import sys
-import time
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
 from typing import (
@@ -31,7 +30,9 @@ from _pytest.config import Config
 # Parser will be available from the public API in pytest >= 7.0.0:
 # https://github.com/pytest-dev/pytest/commit/538b5c24999e9ebb4fab43faabc8bcc28737bcdf
 from _pytest.config.argparsing import Parser
-from setuptools.wheel import Wheel
+from installer import install
+from installer.destinations import SchemeDictionaryDestination
+from installer.sources import WheelFile
 
 from pip import __file__ as pip_location
 from pip._internal.cli.main import main as pip_entry_point
@@ -373,10 +374,29 @@ def _common_wheel_editable_install(
     wheel_candidates = list(common_wheels.glob(f"{package}-*.whl"))
     assert len(wheel_candidates) == 1, wheel_candidates
     install_dir = tmpdir_factory.mktemp(package) / "install"
-    Wheel(wheel_candidates[0]).install_as_egg(install_dir)
-    (install_dir / "EGG-INFO").rename(install_dir / f"{package}.egg-info")
-    assert compileall.compile_dir(str(install_dir), quiet=1)
-    return install_dir
+    lib_install_dir = install_dir / "lib"
+    bin_install_dir = install_dir / "bin"
+    with WheelFile.open(wheel_candidates[0]) as source:
+        install(
+            source,
+            SchemeDictionaryDestination(
+                {
+                    "purelib": os.fspath(lib_install_dir),
+                    "platlib": os.fspath(lib_install_dir),
+                    "scripts": os.fspath(bin_install_dir),
+                },
+                interpreter=sys.executable,
+                script_kind="posix",
+            ),
+            additional_metadata={},
+        )
+    # The scripts are not necessary for our use cases, and they would be installed with
+    # the wrong interpreter, so remove them.
+    # TODO consider a refactoring by adding a install_from_wheel(path) method
+    # to the virtualenv fixture.
+    if bin_install_dir.exists():
+        shutil.rmtree(bin_install_dir)
+    return lib_install_dir
 
 
 @pytest.fixture(scope="session")
@@ -398,13 +418,12 @@ def coverage_install(
     return _common_wheel_editable_install(tmpdir_factory, common_wheels, "coverage")
 
 
-def install_egg_link(
-    venv: VirtualEnvironment, project_name: str, egg_info_dir: Path
+def install_pth_link(
+    venv: VirtualEnvironment, project_name: str, lib_dir: Path
 ) -> None:
-    with open(venv.site / "easy-install.pth", "a") as fp:
-        fp.write(str(egg_info_dir.resolve()) + "\n")
-    with open(venv.site / (project_name + ".egg-link"), "w") as fp:
-        fp.write(str(egg_info_dir) + "\n.")
+    venv.site.joinpath(f"_pip_testsuite_{project_name}.pth").write_text(
+        str(lib_dir.resolve()), encoding="utf-8"
+    )
 
 
 @pytest.fixture(scope="session")
@@ -427,7 +446,7 @@ def virtualenv_template(
     venv = VirtualEnvironment(tmpdir.joinpath("venv_orig"), venv_type=venv_type)
 
     # Install setuptools and pip.
-    install_egg_link(venv, "setuptools", setuptools_install)
+    install_pth_link(venv, "setuptools", setuptools_install)
     pip_editable = tmpdir_factory.mktemp("pip") / "pip"
     shutil.copytree(pip_src, pip_editable, symlinks=True)
     # noxfile.py is Python 3 only
@@ -442,7 +461,7 @@ def virtualenv_template(
 
     # Install coverage and pth file for executing it in any spawned processes
     # in this virtual environment.
-    install_egg_link(venv, "coverage", coverage_install)
+    install_pth_link(venv, "coverage", coverage_install)
     # zz prefix ensures the file is after easy-install.pth.
     with open(venv.site / "zz-coverage-helper.pth", "a") as f:
         f.write("import coverage; coverage.process_startup()")
@@ -490,7 +509,7 @@ def virtualenv(
 
 @pytest.fixture
 def with_wheel(virtualenv: VirtualEnvironment, wheel_install: Path) -> None:
-    install_egg_link(virtualenv, "wheel", wheel_install)
+    install_pth_link(virtualenv, "wheel", wheel_install)
 
 
 class ScriptFactory(Protocol):
@@ -718,16 +737,6 @@ def mock_server() -> Iterator[MockServer]:
     test_server = MockServer(server)
     with test_server.context:
         yield test_server
-
-
-@pytest.fixture
-def utc() -> Iterator[None]:
-    # time.tzset() is not implemented on some platforms, e.g. Windows.
-    tzset = getattr(time, "tzset", lambda: None)
-    with patch.dict(os.environ, {"TZ": "UTC"}):
-        tzset()
-        yield
-    tzset()
 
 
 @pytest.fixture

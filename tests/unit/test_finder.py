@@ -80,10 +80,7 @@ def test_incorrect_case_file_index(data: TestData) -> None:
 
 
 @pytest.mark.network
-@pytest.mark.parametrize("use_deprecated_html5lib", [False, True])
-def test_finder_detects_latest_already_satisfied_find_links(
-    data: TestData, use_deprecated_html5lib: bool
-) -> None:
+def test_finder_detects_latest_already_satisfied_find_links(data: TestData) -> None:
     """Test PackageFinder detects latest already satisfied using find-links"""
     req = install_req_from_line("simple", None)
     # the latest simple in local pkgs is 3.0
@@ -93,19 +90,14 @@ def test_finder_detects_latest_already_satisfied_find_links(
         version=parse_version(latest_version),
     )
     req.satisfied_by = satisfied_by
-    finder = make_test_finder(
-        find_links=[data.find_links], use_deprecated_html5lib=use_deprecated_html5lib
-    )
+    finder = make_test_finder(find_links=[data.find_links])
 
     with pytest.raises(BestVersionAlreadyInstalled):
         finder.find_requirement(req, True)
 
 
 @pytest.mark.network
-@pytest.mark.parametrize("use_deprecated_html5lib", [False, True])
-def test_finder_detects_latest_already_satisfied_pypi_links(
-    use_deprecated_html5lib: bool,
-) -> None:
+def test_finder_detects_latest_already_satisfied_pypi_links() -> None:
     """Test PackageFinder detects latest already satisfied using pypi links"""
     req = install_req_from_line("initools", None)
     # the latest initools on PyPI is 0.3.1
@@ -115,10 +107,7 @@ def test_finder_detects_latest_already_satisfied_pypi_links(
         version=parse_version(latest_version),
     )
     req.satisfied_by = satisfied_by
-    finder = make_test_finder(
-        index_urls=["http://pypi.org/simple/"],
-        use_deprecated_html5lib=use_deprecated_html5lib,
-    )
+    finder = make_test_finder(index_urls=["http://pypi.org/simple/"])
 
     with pytest.raises(BestVersionAlreadyInstalled):
         finder.find_requirement(req, True)

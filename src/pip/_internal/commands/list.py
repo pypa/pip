@@ -149,7 +149,6 @@ class ListCommand(IndexGroupCommand):
         return PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=selection_prefs,
-            use_deprecated_html5lib="html5lib" in options.deprecated_features_enabled,
         )
 
     def run(self, options: Values, args: List[str]) -> int:

@@ -1013,8 +1013,6 @@ use_deprecated_feature: Callable[..., Option] = partial(
     default=[],
     choices=[
         "legacy-resolver",
-        "backtrack-on-build-failures",
-        "html5lib",
     ],
     help=("Enable deprecated functionality, that will be removed in the future."),
 )

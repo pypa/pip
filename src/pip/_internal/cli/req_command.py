@@ -34,7 +34,6 @@ from pip._internal.req.req_file import parse_requirements
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.self_outdated_check import pip_self_version_check
-from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.temp_dir import (
     TempDirectory,
     TempDirectoryTypeRegistry,
@@ -270,31 +269,6 @@ class RequirementCommand(IndexGroupCommand):
 
         return "2020-resolver"
 
-    @staticmethod
-    def determine_build_failure_suppression(options: Values) -> bool:
-        """Determines whether build failures should be suppressed and backtracked on."""
-        if "backtrack-on-build-failures" not in options.deprecated_features_enabled:
-            return False
-
-        if "legacy-resolver" in options.deprecated_features_enabled:
-            raise CommandError("Cannot backtrack with legacy resolver.")
-
-        deprecated(
-            reason=(
-                "Backtracking on build failures can mask issues related to how "
-                "a package generates metadata or builds a wheel. This flag will "
-                "be removed in pip 22.2."
-            ),
-            gone_in=None,
-            replacement=(
-                "avoiding known-bad versions by explicitly telling pip to ignore them "
-                "(either directly as requirements, or via a constraints file)"
-            ),
-            feature_flag=None,
-            issue=10655,
-        )
-        return True
-
     @classmethod
     def make_requirement_preparer(
         cls,
@@ -371,7 +345,6 @@ class RequirementCommand(IndexGroupCommand):
             use_pep517=use_pep517,
             config_settings=getattr(options, "config_settings", None),
         )
-        suppress_build_failures = cls.determine_build_failure_suppression(options)
         resolver_variant = cls.determine_resolver_variant(options)
         # The long import name and duplicated invocation is needed to convince
         # Mypy into correctly typechecking. Otherwise it would complain the
@@ -391,7 +364,6 @@ class RequirementCommand(IndexGroupCommand):
                 force_reinstall=force_reinstall,
                 upgrade_strategy=upgrade_strategy,
                 py_version_info=py_version_info,
-                suppress_build_failures=suppress_build_failures,
             )
         import pip._internal.resolution.legacy.resolver
 
@@ -527,5 +499,4 @@ class RequirementCommand(IndexGroupCommand):
             link_collector=link_collector,
             selection_prefs=selection_prefs,
             target_python=target_python,
-            use_deprecated_html5lib="html5lib" in options.deprecated_features_enabled,
         )

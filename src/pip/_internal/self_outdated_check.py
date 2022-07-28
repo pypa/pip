@@ -173,7 +173,6 @@ def _get_current_remote_pip_version(
     finder = PackageFinder.create(
         link_collector=link_collector,
         selection_prefs=selection_prefs,
-        use_deprecated_html5lib=("html5lib" in options.deprecated_features_enabled),
     )
     best_candidate = finder.find_best_candidate("pip").best_candidate
     if best_candidate is None:
@@ -234,7 +233,7 @@ def pip_self_version_check(session: PipSession, options: optparse.Values) -> Non
             ),
         )
         if upgrade_prompt is not None:
-            logger.info("[present-rich] %s", upgrade_prompt)
+            logger.warning("[present-rich] %s", upgrade_prompt)
     except Exception:
         logger.warning("There was an error checking the latest version of pip.")
         logger.debug("See below for error", exc_info=True)

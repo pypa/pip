@@ -312,6 +312,10 @@ class BaseDistribution(Protocol):
         return ""
 
     @property
+    def requested(self) -> bool:
+        return self.is_file("REQUESTED")
+
+    @property
     def editable(self) -> bool:
         return bool(self.editable_project_location)
 

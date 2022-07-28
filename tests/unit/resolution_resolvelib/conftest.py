@@ -26,7 +26,7 @@ def finder(data: TestData) -> Iterator[PackageFinder]:
     scope = SearchScope([str(data.packages)], [])
     collector = LinkCollector(session, scope)
     prefs = SelectionPreferences(allow_yanked=False)
-    finder = PackageFinder.create(collector, prefs, use_deprecated_html5lib=False)
+    finder = PackageFinder.create(collector, prefs)
     yield finder
 
 
@@ -63,7 +63,6 @@ def factory(finder: PackageFinder, preparer: RequirementPreparer) -> Iterator[Fa
         force_reinstall=False,
         ignore_installed=False,
         ignore_requires_python=False,
-        suppress_build_failures=False,
         py_version_info=None,
     )
 

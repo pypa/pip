@@ -39,6 +39,7 @@ Andre Aguiar
 Andreas Lutro
 Andrei Geacar
 Andrew Gaul
+Andrew Shymanel
 Andrey Bienkowski
 Andrey Bulgakov
 Andrés Delfino
@@ -183,6 +184,7 @@ David Hewitt
 David Linke
 David Poggi
 David Pursehouse
+David Runge
 David Tucker
 David Wales
 Davidovich
@@ -235,6 +237,8 @@ Felix Yan
 fiber-space
 Filip Kokosiński
 Filipe Laíns
+Finn Womack
+finnagin
 Florian Briand
 Florian Rathgeber
 Francesco
@@ -275,6 +279,7 @@ Herbert Pfennig
 Hsiaoming Yang
 Hugo Lopes Tavares
 Hugo van Kemenade
+Hugues Bruant
 Hynek Schlawack
 Ian Bicking
 Ian Cordasco
@@ -561,6 +566,7 @@ Ryan Wooden
 ryneeverett
 Sachi King
 Salvatore Rinchiera
+sandeepkiran-js
 Savio Jomton
 schlamar
 Scott Kitterman
@@ -571,6 +577,7 @@ Sebastian Schaetz
 Segev Finer
 SeongSoo Cho
 Sergey Vasilyev
+Seth Michael Larson
 Seth Woodworth
 shireenrao
 Shivansh-007
@@ -615,6 +622,7 @@ Thomas Guettler
 Thomas Johansson
 Thomas Kluyver
 Thomas Smith
+Thomas VINCENT
 Tim D. Smith
 Tim Gates
 Tim Harder
@@ -629,6 +637,7 @@ Tomas Orsava
 Tomer Chachamu
 Tomáš Hrnčiar
 Tony Beswick
+Tony Narlock
 Tony Zhaocheng Tan
 TonyBeswick
 toonarmycaptain
@@ -674,5 +683,6 @@ Zhiping Deng
 ziebam
 Zvezdan Petkovic
 Łukasz Langa
+Роман Донченко
 Семён Марьясин
 ‮rekcäH nitraM‮

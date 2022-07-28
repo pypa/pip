@@ -115,7 +115,6 @@ def test(session: nox.Session) -> None:
         *arguments,
         env={
             "LC_CTYPE": "en_US.UTF-8",
-            "SETUPTOOLS_USE_DISTUTILS": "stdlib",
         },
     )
 
@@ -245,7 +244,6 @@ def coverage(session: nox.Session) -> None:
         env={
             "COVERAGE_OUTPUT_DIR": "./.coverage-output",
             "COVERAGE_PROCESS_START": os.fsdecode(Path("setup.cfg").resolve()),
-            "SETUPTOOLS_USE_DISTUTILS": "stdlib",
         },
     )
 

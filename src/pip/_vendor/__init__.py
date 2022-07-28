@@ -63,7 +63,6 @@ if DEBUNDLED:
     vendored("colorama")
     vendored("distlib")
     vendored("distro")
-    vendored("html5lib")
     vendored("six")
     vendored("six.moves")
     vendored("six.moves.urllib")

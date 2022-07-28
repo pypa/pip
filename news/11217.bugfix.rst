@@ -1,4 +1,0 @@
-Do not consider a ``.dist-info`` directory found inside a wheel-like zip file
-as metadata for an installed distribution. A package in a wheel is (by
-definition) not installed, and is not guaranteed to work due to how a wheel is
-structured.
