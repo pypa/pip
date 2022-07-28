@@ -1,0 +1,1 @@
+Add a ``--python`` option to specify the Python environment to be managed by pip.
