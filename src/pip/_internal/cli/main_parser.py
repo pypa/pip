@@ -2,9 +2,11 @@
 """
 
 import os
+import subprocess
 import sys
 from typing import List, Tuple
 
+from pip._internal.build_env import _get_runnable_pip
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip._internal.commands import commands_dict, get_similar_commands
@@ -56,6 +58,19 @@ def parse_command(args: List[str]) -> Tuple[str, List[str]]:
     #  general_options: ['--timeout==5']
     #  args_else: ['install', '--user', 'INITools']
     general_options, args_else = parser.parse_args(args)
+
+    # --python
+    if general_options.python:
+        if "_PIP_RUNNING_IN_SUBPROCESS" not in os.environ:
+            pip_cmd = [
+                general_options.python,
+                _get_runnable_pip(),
+            ]
+            pip_cmd.extend(args)
+            # Block recursing indefinitely
+            os.environ["_PIP_RUNNING_IN_SUBPROCESS"] = "1"
+            proc = subprocess.run(pip_cmd)
+            sys.exit(proc.returncode)
 
     # --version
     if general_options.version:
