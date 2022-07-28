@@ -231,7 +231,7 @@ class Factory:
         specifier: SpecifierSet,
         hashes: Hashes,
         prefers_installed: bool,
-        prefers_min: bool,
+        strategy: str,
         incompatible_ids: Set[int],
     ) -> Iterable[Candidate]:
         if not ireqs:
@@ -302,9 +302,15 @@ class Factory:
 
             pinned = is_pinned(specifier)
 
-            if not prefers_min:
+            if strategy == "prefer-max":
                 # PackageFinder returns earlier versions first, so we reverse.
                 icans = reversed(icans)
+            elif strategy == "prefer-min":
+                # These are exceptions to the prefer-min logic
+                if name in ("pip", "setuptools", "wheel"):
+                    icans = reversed(icans)
+            else:
+                raise ValueError(f"Unknown strategy: {strategy}")
 
             for ican in icans:
                 if not (all_yanked and pinned) and ican.link.is_yanked:
@@ -378,7 +384,7 @@ class Factory:
         incompatibilities: Mapping[str, Iterator[Candidate]],
         constraint: Constraint,
         prefers_installed: bool,
-        prefers_min: bool,
+        strategy: str,
     ) -> Iterable[Candidate]:
         # Collect basic lookup information from the requirements.
         explicit_candidates: Set[Candidate] = set()
@@ -431,7 +437,7 @@ class Factory:
                 constraint.specifier,
                 constraint.hashes,
                 prefers_installed,
-                prefers_min,
+                strategy,
                 incompat_ids,
             )
 

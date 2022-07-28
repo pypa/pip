@@ -79,7 +79,7 @@ def test_new_resolver_correct_number_of_matches(
             {},
             Constraint.empty(),
             prefers_installed=False,
-            prefers_min=False,
+            strategy="prefer-max",
         )
         assert sum(1 for _ in matches) == match_count
 
@@ -97,7 +97,7 @@ def test_new_resolver_candidates_match_requirement(
             {},
             Constraint.empty(),
             prefers_installed=False,
-            prefers_min=False,
+            strategy="prefer-max",
         )
         previous_candidate = None
         for c in candidates:
@@ -123,7 +123,7 @@ def test_new_resolver_candidates_order_min(
             {},
             Constraint.empty(),
             prefers_installed=False,
-            prefers_min=True,
+            strategy="prefer-min",
         )
         previous_candidate = None
         for c in candidates:
