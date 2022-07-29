@@ -7,7 +7,7 @@ import subprocess
 import sys
 from typing import List, Optional, Tuple
 
-from pip._internal.build_env import _get_runnable_pip
+from pip._internal.build_env import get_runnable_pip
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip._internal.commands import commands_dict, get_similar_commands
@@ -110,7 +110,7 @@ def parse_command(args: List[str]) -> Tuple[str, List[str]]:
 
         pip_cmd = [
             interpreter,
-            _get_runnable_pip(),
+            get_runnable_pip(),
         ]
         pip_cmd.extend(args)
 
