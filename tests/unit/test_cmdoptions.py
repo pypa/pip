@@ -1,8 +1,12 @@
+import os
+from pathlib import Path
 from typing import Optional, Tuple
+from venv import EnvBuilder
 
 import pytest
 
 from pip._internal.cli.cmdoptions import _convert_python_version
+from pip._internal.cli.main_parser import identify_python_interpreter
 
 
 @pytest.mark.parametrize(
@@ -29,3 +33,30 @@ def test_convert_python_version(
 ) -> None:
     actual = _convert_python_version(value)
     assert actual == expected, f"actual: {actual!r}"
+
+
+def test_identify_python_interpreter_py(monkeypatch: pytest.MonkeyPatch) -> None:
+    def which(cmd: str) -> str:
+        assert cmd == "py" or cmd == "python"
+        return "dummy_value"
+
+    monkeypatch.setattr("shutil.which", which)
+    assert identify_python_interpreter("py") == "dummy_value"
+    assert identify_python_interpreter("python") == "dummy_value"
+
+
+def test_identify_python_interpreter_venv(tmpdir: Path) -> None:
+    env_path = tmpdir / "venv"
+    env = EnvBuilder(with_pip=False)
+    env.create(env_path)
+
+    # Passing a virtual environment returns the Python executable
+    interp = identify_python_interpreter(os.fsdecode(env_path))
+    assert interp is not None
+    assert Path(interp).exists()
+
+    # Passing an executable returns it
+    assert identify_python_interpreter(interp) == interp
+
+    # Passing a non-existent file returns None
+    assert identify_python_interpreter(str(tmpdir / "nonexistent")) is None
