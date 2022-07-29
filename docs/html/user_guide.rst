@@ -2,6 +2,15 @@
 User Guide
 ==========
 
+.. Hello there!
+
+   If you're thinking of adding content to this page... please take a moment
+   to consider if this content can live on its own, within a topic guide or a
+   reference page.
+
+   There is active effort being put toward *reducing* the amount of content on
+   this specific page (https://github.com/pypa/pip/issues/9475) and moving it
+   into more focused single-page documents that cover that specific topic.
 
 Running pip
 ===========
