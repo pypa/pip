@@ -1,0 +1,3 @@
+This bug fix changes the where the compiled python files in
+a wheel to the prefix that is passed or the default prefix
+that is passed to the wheel.
