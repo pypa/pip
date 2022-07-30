@@ -16,22 +16,12 @@ environment.
 One example of where this might be useful is to manage a virtual environment
 that does not have pip installed.
 
-````{tab} Unix/macOS
-```{code-block} console
+```{pip-cli}
 $ python -m venv .venv --without-pip
-$ python -m pip --python .venv install SomePackage
+$ pip --python .venv install SomePackage
 [...]
 Successfully installed SomePackage
 ```
-````
-````{tab} Windows
-```{code-block} console
-C:\> py -m venv .venv --without-pip
-C:\> py -m pip --python .venv install SomePackage
-[...]
-Successfully installed SomePackage
-```
-````
 
 You could also use `--python .venv/bin/python` (or on Windows,
 `--python .venv\Scripts\python.exe`) if you wanted to be explicit, but the
