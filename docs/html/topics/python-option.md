@@ -1,5 +1,7 @@
 # Managing a different Python interpreter
 
+```{versionadded} 22.3
+```
 
 Occasionally, you may want to use pip to manage a Python installation other than
 the one pip is installed into. In this case, you can use the `--python` option
