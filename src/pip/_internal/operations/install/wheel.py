@@ -434,7 +434,7 @@ def _install_wheel(
     warn_script_location: bool = True,
     direct_url: Optional[DirectUrl] = None,
     requested: bool = False,
-    prefix: str = None,
+    prefix: Optional[str] = None,
 ) -> None:
     """Install a wheel.
 
@@ -614,7 +614,8 @@ def _install_wheel(
                     ddir = prefix
                     if ddir is not None:
                         ddir = os.path.join(
-                            prefix, os.path.dirname(path[len(scheme.data) + 1 :])
+                            cast(str, prefix),
+                            os.path.dirname(path[len(scheme.data) + 1 :]),
                         )
                     success = compileall.compile_file(
                         path,
@@ -732,7 +733,7 @@ def install_wheel(
     warn_script_location: bool = True,
     direct_url: Optional[DirectUrl] = None,
     requested: bool = False,
-    prefix: str = None,
+    prefix: Optional[str] = None,
 ) -> None:
     with ZipFile(wheel_path, allowZip64=True) as z:
         with req_error_context(req_description):
