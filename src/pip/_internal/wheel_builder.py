@@ -19,6 +19,7 @@ from pip._internal.operations.build.wheel import build_wheel_pep517
 from pip._internal.operations.build.wheel_editable import build_wheel_editable
 from pip._internal.operations.build.wheel_legacy import build_wheel_legacy
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.deprecation import LegacyInstallReasonMissingWheelPackage
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import ensure_dir, hash_file, is_wheel_installed
 from pip._internal.utils.setuptools_build import make_setuptools_clean_args
@@ -86,11 +87,7 @@ def _should_build(
 
     if not is_wheel_installed():
         # we don't build legacy requirements if wheel is not installed
-        logger.info(
-            "Using legacy 'setup.py install' for %s, "
-            "since package 'wheel' is not installed.",
-            req.name,
-        )
+        req.legacy_install_reason = LegacyInstallReasonMissingWheelPackage
         return False
 
     return True

@@ -811,6 +811,11 @@ class InstallRequirement:
         install_options = list(install_options) + self.install_options
 
         try:
+            if (
+                self.legacy_install_reason is not None
+                and self.legacy_install_reason.emit_before_install
+            ):
+                self.legacy_install_reason.emit_deprecation(self.name)
             success = install_legacy(
                 install_options=install_options,
                 global_options=global_options,
