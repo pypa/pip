@@ -120,8 +120,13 @@ def parse_command(args: List[str]) -> Tuple[str, List[str]]:
         # Set a flag so the child doesn't re-invoke itself, causing
         # an infinite loop.
         os.environ["_PIP_RUNNING_IN_SUBPROCESS"] = "1"
-        proc = subprocess.run(pip_cmd)
-        sys.exit(proc.returncode)
+        returncode = 0
+        try:
+            proc = subprocess.run(pip_cmd)
+            returncode = proc.returncode
+        except (subprocess.SubprocessError, OSError) as exc:
+            raise CommandError(f"Failed to run pip under {interpreter}: {exc}")
+        sys.exit(returncode)
 
     # --version
     if general_options.version:
