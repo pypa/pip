@@ -1,1 +1,1 @@
-Ensure that a binary executable of pip exists when checking for a new version of pip.
+Ensure that the candidate ``pip`` executable exists, when checking for a new version of pip.
