@@ -41,10 +41,7 @@ from pip._vendor.distlib.util import get_export_entry
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import InstallationError
-from pip._internal.locations import ( 
-    get_major_minor_version,
-    get_scheme,
-)
+from pip._internal.locations import get_major_minor_version, get_scheme
 from pip._internal.metadata import (
     BaseDistribution,
     FilesystemWheel,
@@ -623,7 +620,7 @@ def _install_wheel(
                                 os.path.dirname(path[len(scheme.data) + 1 :]),
                             )
                         else:
-                            ddir = os.path.join(path[path.find(prefix):])
+                            ddir = os.path.join(path[path.find(prefix) :])
                     success = compileall.compile_file(
                         path,
                         force=True,
