@@ -23,6 +23,7 @@ def test_find_links_relative_path(script: PipTestEnvironment, data: TestData) ->
     result.did_create(initools_folder)
 
 
+@pytest.mark.usefixtures("with_wheel")
 def test_find_links_no_doctype(script: PipTestEnvironment, data: TestData) -> None:
     shutil.copy(data.packages / "simple-1.0.tar.gz", script.scratch_path)
     html = script.scratch_path.joinpath("index.html")
