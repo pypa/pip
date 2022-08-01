@@ -35,23 +35,13 @@ def test_convert_python_version(
     assert actual == expected, f"actual: {actual!r}"
 
 
-def test_identify_python_interpreter_py(monkeypatch: pytest.MonkeyPatch) -> None:
-    def which(cmd: str) -> str:
-        assert cmd == "py" or cmd == "python"
-        return "dummy_value"
-
-    monkeypatch.setattr("shutil.which", which)
-    assert identify_python_interpreter("py") == "dummy_value"
-    assert identify_python_interpreter("python") == "dummy_value"
-
-
 def test_identify_python_interpreter_venv(tmpdir: Path) -> None:
     env_path = tmpdir / "venv"
     env = EnvBuilder(with_pip=False)
     env.create(env_path)
 
     # Passing a virtual environment returns the Python executable
-    interp = identify_python_interpreter(os.fsdecode(env_path))
+    interp = identify_python_interpreter(os.fspath(env_path))
     assert interp is not None
     assert Path(interp).exists()
 
