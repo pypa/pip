@@ -41,7 +41,10 @@ from pip._vendor.distlib.util import get_export_entry
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import InstallationError
-from pip._internal.locations import get_major_minor_version
+from pip._internal.locations import ( 
+    get_major_minor_version,
+    get_scheme,
+)
 from pip._internal.metadata import (
     BaseDistribution,
     FilesystemWheel,
@@ -611,18 +614,23 @@ def _install_wheel(
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
                 for path in pyc_source_file_paths():
-                    ddir = prefix
-                    if ddir is not None:
-                        ddir = os.path.join(
-                            cast(str, prefix),
-                            os.path.dirname(path[len(scheme.data) + 1 :]),
-                        )
+                    if prefix is None:
+                        ddir = prefix
+                    else:
+                        if path.startswith(scheme.data):
+                            ddir = os.path.join(
+                                prefix,
+                                os.path.dirname(path[len(scheme.data) + 1 :]),
+                            )
+                        else:
+                            ddir = os.path.join(path[path.find(prefix):])
                     success = compileall.compile_file(
                         path,
                         force=True,
                         quiet=True,
                         ddir=ddir,
                     )
+
                     if success:
                         pyc_path = pyc_output_path(path)
                         assert os.path.exists(pyc_path)
