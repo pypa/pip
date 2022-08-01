@@ -333,7 +333,7 @@ class RequirementCommand(IndexGroupCommand):
         ignore_requires_python: bool = False,
         force_reinstall: bool = False,
         upgrade_strategy: str = "to-satisfy-only",
-        strategy: str = "prefer-max",
+        version_selection: str = "max",
         use_pep517: Optional[bool] = None,
         py_version_info: Optional[Tuple[int, ...]] = None,
     ) -> BaseResolver:
@@ -364,7 +364,7 @@ class RequirementCommand(IndexGroupCommand):
                 ignore_requires_python=ignore_requires_python,
                 force_reinstall=force_reinstall,
                 upgrade_strategy=upgrade_strategy,
-                strategy=strategy,
+                version_selection=version_selection,
                 py_version_info=py_version_info,
             )
         import pip._internal.resolution.legacy.resolver

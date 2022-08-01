@@ -79,7 +79,7 @@ def test_new_resolver_correct_number_of_matches(
             {},
             Constraint.empty(),
             prefers_installed=False,
-            strategy="prefer-max",
+            version_selection="max",
         )
         assert sum(1 for _ in matches) == match_count
 
@@ -97,7 +97,7 @@ def test_new_resolver_candidates_match_requirement(
             {},
             Constraint.empty(),
             prefers_installed=False,
-            strategy="prefer-max",
+            version_selection="max",
         )
         previous_candidate = None
         for c in candidates:
@@ -110,7 +110,7 @@ def test_new_resolver_candidates_match_requirement(
             previous_candidate = c
 
 
-def test_new_resolver_candidates_order_min(
+def test_new_resolver_candidates_version_selection_min(
     test_cases: List[Tuple[str, str, int]], factory: Factory
 ) -> None:
     """Candidates returned from find_candidates should satisfy the requirement"""
@@ -123,7 +123,7 @@ def test_new_resolver_candidates_order_min(
             {},
             Constraint.empty(),
             prefers_installed=False,
-            strategy="prefer-min",
+            version_selection="min",
         )
         previous_candidate = None
         for c in candidates:

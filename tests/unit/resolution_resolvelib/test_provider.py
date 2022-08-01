@@ -35,7 +35,7 @@ def test_provider_known_depths(factory: Factory) -> None:
         constraints={},
         ignore_dependencies=False,
         upgrade_strategy="to-satisfy-only",
-        strategy="prefer-max",
+        version_selection="max",
         user_requested={root_requirement_name: 0},
     )
 

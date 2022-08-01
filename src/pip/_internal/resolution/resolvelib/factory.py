@@ -232,7 +232,7 @@ class Factory:
         specifier: SpecifierSet,
         hashes: Hashes,
         prefers_installed: bool,
-        strategy: str,
+        version_selection: str,
         incompatible_ids: Set[int],
     ) -> Iterable[Candidate]:
         if not ireqs:
@@ -307,26 +307,24 @@ class Factory:
                         return True
                 return False
 
-            def should_apply_strategy(name: str) -> bool:
+            def should_apply_version_selection(name: str) -> bool:
                 return name not in ("pip", "setuptools", "wheel")
 
-            def apply_strategy_to_icans(strategy: str, icans: List[IndexCandidateInfo]) -> List[IndexCandidateInfo]:
-                if strategy == "prefer-max":
+            def apply_version_selection_to_icans(version_selection: str, icans: List[IndexCandidateInfo]) -> List[IndexCandidateInfo]:
+                if version_selection == "max":
                     # PackageFinder returns earlier versions first, so we reverse.
                     return reversed(icans)
 
-                if strategy == "prefer-min":
+                if version_selection == "min":
                     return icans
 
-                raise ValueError(f"Unknown strategy: {strategy}")
-
-            def check_strategy(strategy: str, specifier: SpecifierSet) -> bool:
-                if strategy == "prefer-min" and not has_lower_bound(specifier):
+            def check_version_selection(version_selection: str, specifier: SpecifierSet) -> bool:
+                if version_selection == "min" and not has_lower_bound(specifier):
                     raise InstallationError(f"No lower bound for {name}")
 
-            if should_apply_strategy(name):
+            if should_apply_version_selection(name):
                 try:
-                    check_strategy(strategy, specifier)
+                    check_version_selection(version_selection, specifier)
                 except InstallationError as e:
                     # Resolver will process this more than once, so we need to store the error
                     if (name, specifier) not in self._build_failures:
@@ -336,7 +334,7 @@ class Factory:
                         else:
                             raise e
 
-                icans = apply_strategy_to_icans(strategy, icans)
+                icans = apply_version_selection_to_icans(version_selection, icans)
             else:
                 # The default behavior is to always pick the max version
                 icans = reversed(icans)
@@ -415,7 +413,7 @@ class Factory:
         incompatibilities: Mapping[str, Iterator[Candidate]],
         constraint: Constraint,
         prefers_installed: bool,
-        strategy: str,
+        version_selection: str,
     ) -> Iterable[Candidate]:
         # Collect basic lookup information from the requirements.
         explicit_candidates: Set[Candidate] = set()
@@ -468,7 +466,7 @@ class Factory:
                 constraint.specifier,
                 constraint.hashes,
                 prefers_installed,
-                strategy,
+                version_selection,
                 incompat_ids,
             )
 

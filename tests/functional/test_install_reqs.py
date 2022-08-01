@@ -278,37 +278,37 @@ def test_install_collected_dependencies_first(script: PipTestEnvironment) -> Non
     assert text.endswith("toporequires2")
 
 
-def test_install_strategy_default(script: PipTestEnvironment) -> None:
+def test_install_version_selection_default(script: PipTestEnvironment) -> None:
     result = script.pip_install_local(
         "simple"
     )
     assert "Successfully installed simple-3.0" in str(result)
 
 
-def test_install_strategy_prefer_max(script: PipTestEnvironment) -> None:
+def test_install_version_selection_max(script: PipTestEnvironment) -> None:
     result = script.pip_install_local(
-        "simple", "--strategy=prefer-max"
+        "simple", "--version-selection=max"
     )
     assert "Successfully installed simple-3.0" in str(result)
 
 
-def test_install_strategy_prefer_min(script: PipTestEnvironment) -> None:
+def test_install_version_selection_min(script: PipTestEnvironment) -> None:
     result = script.pip_install_local(
-        "simple", "--strategy=prefer-min"
+        "simple", "--version-selection=min"
     )
     assert "Successfully installed simple-1.0" in str(result)
 
 
-def test_install_strategy_default_transitive(script: PipTestEnvironment) -> None:
+def test_install_version_selection_default_transitive(script: PipTestEnvironment) -> None:
     result = script.pip_install_local(
         "require_simple"
     )
     assert "Successfully installed require_simple-1.0 simple-3.0" in str(result)
 
 
-def test_install_strategy_prefer_min_transitive(script: PipTestEnvironment) -> None:
+def test_install_version_selection_min_transitive(script: PipTestEnvironment) -> None:
     result = script.pip_install_local(
-        "require_simple", "--strategy=prefer-min"
+        "require_simple", "--version-selection=min"
     )
     assert "Successfully installed require_simple-1.0 simple-2.0" in str(result)
 
