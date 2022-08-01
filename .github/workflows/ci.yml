@@ -221,6 +221,35 @@ jobs:
         env:
           TEMP: "R:\\Temp"
 
+  tests-zipapp:
+    name: tests / zipapp
+    runs-on: ubuntu-latest
+
+    needs: [pre-commit, packaging, determine-changes]
+    if: >-
+      needs.determine-changes.outputs.tests == 'true' ||
+      github.event_name != 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.10"
+
+      - name: Install Ubuntu dependencies
+        run: sudo apt-get install bzr
+
+      - run: pip install nox 'virtualenv<20' 'setuptools != 60.6.0'
+
+      # Main check
+      - name: Run integration tests
+        run: >-
+          nox -s test-3.10 --
+          -m integration
+          --verbose --numprocesses auto --showlocals
+          --durations=5
+          --use-zipapp
+
   # TODO: Remove this when we add Python 3.11 to CI.
   tests-importlib-metadata:
     name: tests for importlib.metadata backend
