@@ -107,7 +107,12 @@ def test_completion_for_supported_shells(
     Test getting completion for bash shell
     """
     result = script_with_launchers.pip("completion", "--" + shell, use_module=False)
-    assert completion in result.stdout, str(result.stdout)
+    actual = str(result.stdout)
+    if script_with_launchers.zipapp:
+        # The zipapp reports its name as "pip.pyz", but the expected
+        # output assumes "pip"
+        actual = actual.replace("pip.pyz", "pip")
+    assert completion in actual, actual
 
 
 @pytest.fixture(scope="session")

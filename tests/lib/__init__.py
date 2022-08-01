@@ -505,6 +505,7 @@ class PipTestEnvironment(TestFileEnvironment):
         *args: Any,
         virtualenv: VirtualEnvironment,
         pip_expect_warning: bool = False,
+        zipapp: Optional[str] = None,
         **kwargs: Any,
     ) -> None:
         # Store paths related to the virtual environment
@@ -551,6 +552,9 @@ class PipTestEnvironment(TestFileEnvironment):
         # (useful for Python version deprecation)
         self.pip_expect_warning = pip_expect_warning
 
+        # The name of an (optional) zipapp to use when running pip
+        self.zipapp = zipapp
+
         # Call the TestFileEnvironment __init__
         super().__init__(base_path, *args, **kwargs)
 
@@ -584,6 +588,10 @@ class PipTestEnvironment(TestFileEnvironment):
 
     def _ignore_file(self, fn: str) -> bool:
         if fn.endswith("__pycache__") or fn.endswith(".pyc"):
+            result = True
+        elif self.zipapp and fn.endswith("cacert.pem"):
+            # Temporary copies of cacert.pem are extracted
+            # when running from a zipapp
             result = True
         else:
             result = super()._ignore_file(fn)
@@ -696,7 +704,10 @@ class PipTestEnvironment(TestFileEnvironment):
         __tracebackhide__ = True
         if self.pip_expect_warning:
             kwargs["allow_stderr_warning"] = True
-        if use_module:
+        if self.zipapp:
+            exe = "python"
+            args = (self.zipapp,) + args
+        elif use_module:
             exe = "python"
             args = ("-m", "pip") + args
         else:

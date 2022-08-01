@@ -43,7 +43,9 @@ match the constraint of the current interpreter (but not your target one), it
 is recommended to specify all of these options if you are specifying one of
 them. Generic dependencies (e.g. universal wheels, or dependencies with no
 platform, abi, or implementation constraints) will still match an over-
-constrained download requirement.
+constrained download requirement. If some of your dependencies are not
+available as binaries, you can build them manually for your target platform
+and let pip download know where to find them using ``--find-links``.
 
 
 
