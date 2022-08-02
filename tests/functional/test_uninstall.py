@@ -684,7 +684,7 @@ def test_uninstall_editable_and_pip_install_easy_install_remove(
     os.remove(pip_test_fspkg_pth)
 
     # Uninstall will fail with given warning
-    uninstall = script.pip("uninstall", "FSPkg", "-y")
+    uninstall = script.pip("uninstall", "FSPkg", "-y", allow_stderr_warning=True)
     assert "Cannot remove entries from nonexistent file" in uninstall.stderr
 
     assert (

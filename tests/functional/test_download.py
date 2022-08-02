@@ -1116,9 +1116,17 @@ def test_download_file_url_existing_bad_download(
     simple_pkg_bytes = simple_pkg.read_bytes()
     url = f"{simple_pkg.as_uri()}#sha256={sha256(simple_pkg_bytes).hexdigest()}"
 
-    shared_script.pip("download", "-d", str(download_dir), url)
+    result = shared_script.pip(
+        "download",
+        "-d",
+        str(download_dir),
+        url,
+        allow_stderr_warning=True,  # bad hash
+    )
 
     assert simple_pkg_bytes == downloaded_path.read_bytes()
+    assert "WARNING: Previously-downloaded file" in result.stderr
+    assert "has bad hash. Re-downloading." in result.stderr
 
 
 def test_download_http_url_bad_hash(
@@ -1144,9 +1152,17 @@ def test_download_http_url_bad_hash(
     base_address = f"http://{mock_server.host}:{mock_server.port}"
     url = f"{base_address}/simple-1.0.tar.gz#sha256={digest}"
 
-    shared_script.pip("download", "-d", str(download_dir), url)
+    result = shared_script.pip(
+        "download",
+        "-d",
+        str(download_dir),
+        url,
+        allow_stderr_warning=True,  # bad hash
+    )
 
     assert simple_pkg_bytes == downloaded_path.read_bytes()
+    assert "WARNING: Previously-downloaded file" in result.stderr
+    assert "has bad hash. Re-downloading." in result.stderr
 
     mock_server.stop()
     requests = mock_server.get_requests()

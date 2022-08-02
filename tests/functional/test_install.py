@@ -183,7 +183,16 @@ def test_pep518_with_user_pip(
     non-isolated environment, and break pip in the system site-packages,
     so that isolated uses of pip will fail.
     """
-    script.pip("install", "--ignore-installed", "-f", common_wheels, "--user", pip_src)
+    script.pip(
+        "install",
+        "--ignore-installed",
+        "-f",
+        common_wheels,
+        "--user",
+        pip_src,
+        # WARNING: The scripts pip, pip3, ... are installed in ... which is not on PATH
+        allow_stderr_warning=True,
+    )
     system_pip_dir = script.site_packages_path / "pip"
     assert not system_pip_dir.exists()
     system_pip_dir.mkdir()
@@ -1542,13 +1551,16 @@ def test_install_topological_sort(script: PipTestEnvironment, data: TestData) ->
 
 @pytest.mark.usefixtures("with_wheel")
 def test_install_wheel_broken(script: PipTestEnvironment) -> None:
-    res = script.pip_install_local("wheelbroken", expect_stderr=True)
+    res = script.pip_install_local("wheelbroken", allow_stderr_error=True)
+    assert "ERROR: Failed building wheel for wheelbroken" in res.stderr
+    # Fallback to setup.py install (https://github.com/pypa/pip/issues/8368)
     assert "Successfully installed wheelbroken-0.1" in str(res), str(res)
 
 
 @pytest.mark.usefixtures("with_wheel")
 def test_cleanup_after_failed_wheel(script: PipTestEnvironment) -> None:
-    res = script.pip_install_local("wheelbrokenafter", expect_stderr=True)
+    res = script.pip_install_local("wheelbrokenafter", allow_stderr_error=True)
+    assert "ERROR: Failed building wheel for wheelbrokenafter" in res.stderr
     # One of the effects of not cleaning up is broken scripts:
     script_py = script.bin_path / "script.py"
     assert script_py.exists(), script_py
@@ -1577,7 +1589,12 @@ def test_install_builds_wheels(script: PipTestEnvironment, data: TestData) -> No
     # vcs coverage.
     to_install = data.packages.joinpath("requires_wheelbroken_upper")
     res = script.pip(
-        "install", "--no-index", "-f", data.find_links, to_install, expect_stderr=True
+        "install",
+        "--no-index",
+        "-f",
+        data.find_links,
+        to_install,
+        allow_stderr_error=True,  # error building wheelbroken
     )
     expected = (
         "Successfully installed requires-wheelbroken-upper-0"
@@ -1620,7 +1637,7 @@ def test_install_no_binary_disables_building_wheels(
         "-f",
         data.find_links,
         to_install,
-        expect_stderr=True,
+        allow_stderr_error=True,  # error building wheelbroken
     )
     expected = (
         "Successfully installed requires-wheelbroken-upper-0"
