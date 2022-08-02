@@ -187,8 +187,10 @@ class InstallCommand(RequirementCommand):
             help=(
                 "Determines how dependency versions are selected when given a range "
                 "[default: %default]. "
-                "'max' - select the maximum compatible versions available within the given ranges. "
-                "'min' - select the minimum compatible versions available within the given ranges."
+                "'max' - select the maximum compatible versions available "
+                "within the given ranges. "
+                "'min' - select the minimum compatible versions available "
+                "within the given ranges."
             ),
         )
 

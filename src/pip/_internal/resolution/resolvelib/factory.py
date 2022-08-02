@@ -33,6 +33,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution, get_default_environment
+from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.operations.prepare import RequirementPreparer
@@ -309,24 +310,34 @@ class Factory:
             def should_apply_version_selection(name: str) -> bool:
                 return name not in ("pip", "setuptools", "wheel")
 
-            def apply_version_selection_to_icans(version_selection: str, icans: List[IndexCandidateInfo]) -> List[IndexCandidateInfo]:
+            def apply_version_selection_to_icans(
+                version_selection: str, icans: List[InstallationCandidate]
+            ) -> List[InstallationCandidate]:
                 if version_selection == "max":
                     # PackageFinder returns earlier versions first, so we reverse.
-                    return reversed(icans)
+                    return list(reversed(icans))
 
                 if version_selection == "min":
                     return icans
 
-            def check_version_selection(version_selection: str, specifier: SpecifierSet) -> bool:
+                return icans
+
+            def check_version_selection(
+                version_selection: str, specifier: SpecifierSet
+            ) -> None:
                 if version_selection == "min" and not has_lower_bound(specifier):
-                    raise InstallationError(f"No lower bound for {name} (lower bounds are required on all dependencies when using \"min\" version selection)")
+                    raise InstallationError(
+                        f"No lower bound for {name} "
+                        "(lower bounds are required on all dependencies "
+                        'when using "min" version selection)'
+                    )
 
             if should_apply_version_selection(name):
                 check_version_selection(version_selection, specifier)
                 icans = apply_version_selection_to_icans(version_selection, icans)
             else:
                 # The default behavior is to always pick the max version
-                icans = reversed(icans)
+                icans = list(reversed(icans))
 
             pinned = is_pinned(specifier)
 

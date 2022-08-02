@@ -3,8 +3,8 @@ from pathlib import Path
 from typing import Iterator, List, Tuple
 
 import pytest
-from pip._vendor.resolvelib import BaseReporter, Resolver
 from pip._vendor.packaging.specifiers import SpecifierSet
+from pip._vendor.resolvelib import BaseReporter, Resolver
 
 from pip._internal.resolution.resolvelib.base import Candidate, Constraint, Requirement
 from pip._internal.resolution.resolvelib.factory import Factory
