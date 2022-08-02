@@ -39,7 +39,6 @@ from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
-from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from tests.lib.venv import VirtualEnvironment
 from tests.lib.wheel import make_wheel
 
@@ -474,7 +473,7 @@ def _check_stderr(
         if allow_stderr_warning:
             continue
 
-        if line.startswith("WARNING: ") or line.startswith(DEPRECATION_MSG_PREFIX):
+        if line.startswith("WARNING: "):
             reason = (
                 "stderr has an unexpected warning "
                 "(pass allow_stderr_warning=True to permit this)"
