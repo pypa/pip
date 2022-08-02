@@ -1,1 +1,1 @@
-Add a ``pip install --version-selection=min`` option to select minimum available versions instead of the default behavior to select maximum versions.
+Add a ``pip install --version-selection=min`` option to select minimum versions.
