@@ -292,9 +292,19 @@ def test_install_version_selection_max(script: PipTestEnvironment) -> None:
     assert "Successfully installed simple-3.0" in str(result)
 
 
+def test_install_version_selection_min_lower_bound_required(script: PipTestEnvironment) -> None:
+    result = script.pip_install_local(
+        "simple",
+        "--version-selection=min",
+        allow_error=True,
+    )
+    assert result.returncode == 1
+    assert "ERROR: No lower bound for simple (lower bounds are required on all dependencies when using \"min\" version selection)" in str(result)
+
+
 def test_install_version_selection_min(script: PipTestEnvironment) -> None:
     result = script.pip_install_local(
-        "simple", "--version-selection=min"
+        "simple>=0.0", "--version-selection=min"
     )
     assert "Successfully installed simple-1.0" in str(result)
 
@@ -308,7 +318,7 @@ def test_install_version_selection_default_transitive(script: PipTestEnvironment
 
 def test_install_version_selection_min_transitive(script: PipTestEnvironment) -> None:
     result = script.pip_install_local(
-        "require_simple", "--version-selection=min"
+        "require_simple>=0.0", "--version-selection=min"
     )
     assert "Successfully installed require_simple-1.0 simple-2.0" in str(result)
 

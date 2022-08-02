@@ -44,7 +44,6 @@ from pip._internal.req.req_install import (
 from pip._internal.resolution.base import InstallRequirementProvider
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
-from pip._internal.utils.misc import ask
 from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
@@ -320,20 +319,10 @@ class Factory:
 
             def check_version_selection(version_selection: str, specifier: SpecifierSet) -> bool:
                 if version_selection == "min" and not has_lower_bound(specifier):
-                    raise InstallationError(f"No lower bound for {name}")
+                    raise InstallationError(f"No lower bound for {name} (lower bounds are required on all dependencies when using \"min\" version selection)")
 
             if should_apply_version_selection(name):
-                try:
-                    check_version_selection(version_selection, specifier)
-                except InstallationError as e:
-                    # Resolver will process this more than once, so we need to store the error
-                    if (name, specifier) not in self._build_failures:
-                        logger.warning(f"{name}{specifier} is missing a lower bound.")
-                        if ask(f"Proceed (Y/n)? ", ("y", "n", "")) != "n":
-                            self._build_failures[(name, specifier)] = e
-                        else:
-                            raise e
-
+                check_version_selection(version_selection, specifier)
                 icans = apply_version_selection_to_icans(version_selection, icans)
             else:
                 # The default behavior is to always pick the max version

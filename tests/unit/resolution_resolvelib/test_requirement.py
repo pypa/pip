@@ -4,6 +4,7 @@ from typing import Iterator, List, Tuple
 
 import pytest
 from pip._vendor.resolvelib import BaseReporter, Resolver
+from pip._vendor.packaging.specifiers import SpecifierSet
 
 from pip._internal.resolution.resolvelib.base import Candidate, Constraint, Requirement
 from pip._internal.resolution.resolvelib.factory import Factory
@@ -117,11 +118,13 @@ def test_new_resolver_candidates_version_selection_min(
     for spec, _, _ in test_cases:
         req = factory.make_requirement_from_spec(spec, comes_from=None)
         assert req is not None
+        constraint = Constraint.empty()
+        constraint.specifier = SpecifierSet(">=0.0")
         candidates = factory.find_candidates(
             req.name,
             {req.name: [req]},
             {},
-            Constraint.empty(),
+            constraint,
             prefers_installed=False,
             version_selection="min",
         )
