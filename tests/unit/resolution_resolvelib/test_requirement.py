@@ -139,7 +139,6 @@ def test_new_resolver_candidates_version_selection_min(
             previous_candidate = c
 
 
-
 def test_new_resolver_full_resolve(factory: Factory, provider: PipProvider) -> None:
     """A very basic full resolve"""
     req = factory.make_requirement_from_spec("simplewheel", comes_from=None)
