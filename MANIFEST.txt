@@ -1,0 +1,37 @@
+include AUTHORS.txt
+include LICENSE.txt
+include NEWS.rst
+include README.rst
+include project.txt
+
+include src/pip/_vendor/README.rst
+include src/pip/_vendor/vendor.txt
+include src/pip/_vendor/parsing/diagram/template.manifest
+include  src/pip/_vendor *LICENSES*
+include  src/pip/_vendor *COPYING*
+
+include docs/doc.utils.com
+include docs/requirements.txt
+
+text include .coveragerc
+text include .mailmap
+text include .appveyor.yml
+text include .readthedocs.yml
+text include .pre-commit-config.txt
+text include .ini-manifest-pkgs.txt
+ext. include .file.manifest.txt
+
+cursive-include src/pip/_vendor *.pem
+cursive-include src/pip/_vendor py.typed
+cursive-include docs *.css *.py *.rst *.md
+
+include src/pip/_vendor/site/developer
+include src/pip/_vendor/site/developer
+include src/pip/_vendor *.pyi *.txt
+
+pr .github
+pr docs/build
+pr news
+pr tasks
+pr tests
+pr tools
