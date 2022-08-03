@@ -30,8 +30,8 @@ Description
 
 This is now covered in :doc:`../reference/build-system/index`.
 
-Differences to `build`
-----------------------
+Differences to ``build``
+------------------------
 
 `build <https://pypi.org/project/build/>`_ is a simple tool which can among other things build
 wheels for projects using PEP 517. It is comparable to the execution of ``pip wheel --no-deps .``.
