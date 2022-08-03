@@ -100,6 +100,7 @@ Bradley Ayers
 Brandon L. Reiss
 Brandt Bucher
 Brett Randall
+Brett Rosen
 Brian Cristante
 Brian Rosner
 briantracy
@@ -257,6 +258,7 @@ ghost
 Giftlin Rajaiah
 gizmoguy1
 gkdoc
+Godefroid Chapelle
 Gopinath M
 GOTO Hayato
 gousaiyang
