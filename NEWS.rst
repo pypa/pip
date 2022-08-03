@@ -9,6 +9,17 @@
 
 .. towncrier release notes start
 
+22.2.2 (2022-08-03)
+===================
+
+Bug Fixes
+---------
+
+- Avoid  ``AttributeError`` when removing the setuptools-provided ``_distutils_hack`` and it is missing its implementation. (`#11314 <https://github.com/pypa/pip/issues/11314>`_)
+- Fix import error when reinstalling pip in user site. (`#11319 <https://github.com/pypa/pip/issues/11319>`_)
+- Show pip deprecation warnings by default. (`#11330 <https://github.com/pypa/pip/issues/11330>`_)
+
+
 22.2.1 (2022-07-27)
 ===================
 

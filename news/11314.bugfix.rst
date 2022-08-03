@@ -1,1 +1,0 @@
-Avoid  ``AttributeError`` when removing the setuptools-provided ``_distutils_hack`` and it is missing its implementation.
