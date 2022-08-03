@@ -41,6 +41,10 @@ def test_correct_pip_version(script: PipTestEnvironment) -> None:
     """
     Check we are running proper version of pip in run_pip.
     """
+
+    if script.zipapp:
+        pytest.skip("Test relies on the pip under test being in the filesystem")
+
     # output is like:
     # pip PIPVERSION from PIPDIRECTORY (python PYVERSION)
     result = script.pip("--version")

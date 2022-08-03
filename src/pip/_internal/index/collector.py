@@ -448,7 +448,7 @@ def _get_index_content(
 ) -> Optional["IndexContent"]:
     if session is None:
         raise TypeError(
-            "_get_html_page() missing 1 required keyword argument: 'session'"
+            "_get_index_content() missing 1 required keyword argument: 'session'"
         )
 
     url = link.url.split("#", 1)[0]

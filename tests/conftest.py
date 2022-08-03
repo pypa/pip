@@ -19,6 +19,7 @@ from typing import (
     Union,
 )
 from unittest.mock import patch
+from zipfile import ZipFile
 
 import pytest
 
@@ -33,6 +34,7 @@ from installer import install
 from installer.destinations import SchemeDictionaryDestination
 from installer.sources import WheelFile
 
+from pip import __file__ as pip_location
 from pip._internal.cli.main import main as pip_entry_point
 from pip._internal.locations import _USE_SYSCONFIG
 from pip._internal.utils.temp_dir import global_tempdir_manager
@@ -84,6 +86,12 @@ def pytest_addoption(parser: Parser) -> None:
         action="store",
         default=None,
         help="use given proxy in session network tests",
+    )
+    parser.addoption(
+        "--use-zipapp",
+        action="store_true",
+        default=False,
+        help="use a zipapp when running pip in tests",
     )
 
 
@@ -513,10 +521,13 @@ class ScriptFactory(Protocol):
 
 @pytest.fixture(scope="session")
 def script_factory(
-    virtualenv_factory: Callable[[Path], VirtualEnvironment], deprecated_python: bool
+    virtualenv_factory: Callable[[Path], VirtualEnvironment],
+    deprecated_python: bool,
+    zipapp: Optional[str],
 ) -> ScriptFactory:
     def factory(
-        tmpdir: Path, virtualenv: Optional[VirtualEnvironment] = None
+        tmpdir: Path,
+        virtualenv: Optional[VirtualEnvironment] = None,
     ) -> PipTestEnvironment:
         if virtualenv is None:
             virtualenv = virtualenv_factory(tmpdir.joinpath("venv"))
@@ -535,13 +546,64 @@ def script_factory(
             assert_no_temp=True,
             # Deprecated python versions produce an extra deprecation warning
             pip_expect_warning=deprecated_python,
+            # Tell the Test Environment if we want to run pip via a zipapp
+            zipapp=zipapp,
         )
 
     return factory
 
 
+ZIPAPP_MAIN = """\
+#!/usr/bin/env python
+
+import os
+import runpy
+import sys
+
+lib = os.path.join(os.path.dirname(__file__), "lib")
+sys.path.insert(0, lib)
+
+runpy.run_module("pip", run_name="__main__")
+"""
+
+
+def make_zipapp_from_pip(zipapp_name: Path) -> None:
+    pip_dir = Path(pip_location).parent
+    with zipapp_name.open("wb") as zipapp_file:
+        zipapp_file.write(b"#!/usr/bin/env python\n")
+        with ZipFile(zipapp_file, "w") as zipapp:
+            for pip_file in pip_dir.rglob("*"):
+                if pip_file.suffix == ".pyc":
+                    continue
+                if pip_file.name == "__pycache__":
+                    continue
+                rel_name = pip_file.relative_to(pip_dir.parent)
+                zipapp.write(pip_file, arcname=f"lib/{rel_name}")
+            zipapp.writestr("__main__.py", ZIPAPP_MAIN)
+
+
+@pytest.fixture(scope="session")
+def zipapp(
+    request: pytest.FixtureRequest, tmpdir_factory: pytest.TempPathFactory
+) -> Optional[str]:
+    """
+    If the user requested for pip to be run from a zipapp, build that zipapp
+    and return its location. If the user didn't request a zipapp, return None.
+
+    This fixture is session scoped, so the zipapp will only be created once.
+    """
+    if not request.config.getoption("--use-zipapp"):
+        return None
+
+    temp_location = tmpdir_factory.mktemp("zipapp")
+    pyz_file = temp_location / "pip.pyz"
+    make_zipapp_from_pip(pyz_file)
+    return str(pyz_file)
+
+
 @pytest.fixture
 def script(
+    request: pytest.FixtureRequest,
     tmpdir: Path,
     virtualenv: VirtualEnvironment,
     script_factory: ScriptFactory,
