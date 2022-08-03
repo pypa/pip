@@ -12,8 +12,6 @@ from os.path import dirname
 from typing import Optional, Sequence, Union
 
 PIP_SOURCES_ROOT = dirname(dirname(__file__))
-# Copied from setup.py
-PYTHON_REQUIRES = ">=3.7"
 
 
 class PipImportRedirectingFinder:
@@ -32,21 +30,7 @@ class PipImportRedirectingFinder:
         return spec
 
 
-def check_python_version() -> None:
-    # Import here to ensure the imports happen after the sys.meta_path change.
-    from pip._vendor.packaging.specifiers import SpecifierSet
-    from pip._vendor.packaging.version import Version
-
-    py_ver = Version("{0.major}.{0.minor}.{0.micro}".format(sys.version_info))
-    if py_ver not in SpecifierSet(PYTHON_REQUIRES):
-        raise SystemExit(
-            f"This version of pip does not support python {py_ver} "
-            f"(requires {PYTHON_REQUIRES})"
-        )
-
-
 sys.meta_path.insert(0, PipImportRedirectingFinder())
 
 assert __name__ == "__main__", "Cannot run __pip-runner__.py as a non-main module"
-check_python_version()
 runpy.run_module("pip", run_name="__main__", alter_sys=True)
