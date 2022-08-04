@@ -443,14 +443,7 @@ def _make_index_content(
     )
 
 
-def _get_index_content(
-    link: Link, session: Optional[PipSession] = None
-) -> Optional["IndexContent"]:
-    if session is None:
-        raise TypeError(
-            "_get_index_content() missing 1 required keyword argument: 'session'"
-        )
-
+def _get_index_content(link: Link, *, session: PipSession) -> Optional["IndexContent"]:
     url = link.url.split("#", 1)[0]
 
     # Check for VCS schemes that do not support lookup as web pages.
