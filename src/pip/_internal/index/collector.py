@@ -443,7 +443,7 @@ def _make_index_content(
     )
 
 
-def _get_index_content(link: Link, session: PipSession) -> Optional["IndexContent"]:
+def _get_index_content(link: Link, *, session: PipSession) -> Optional["IndexContent"]:
     url = link.url.split("#", 1)[0]
 
     # Check for VCS schemes that do not support lookup as web pages.
