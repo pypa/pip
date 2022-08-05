@@ -38,6 +38,7 @@ from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.network.session import PipSession
 from pip._internal.network.utils import raise_for_status
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import pairwise, redact_auth_from_url
 from pip._internal.vcs import vcs
@@ -169,7 +170,20 @@ def _get_simple_response(url: str, session: PipSession) -> Response:
     # url we cannot know ahead of time for sure if something is a
     # Simple API response or not. However we can check after we've
     # downloaded it.
-    _ensure_api_header(resp)
+    try:
+        _ensure_api_header(resp)
+    except _NotAPIContent as e:
+        deprecated(
+            reason=(
+                f"Handling of index page returning "
+                f"'Content-Type: {e.content_type}' is deprecated"
+            ),
+            replacement=(
+                "inform your package index or network provider to fix the "
+                "implementation."
+            ),
+            gone_in=None,
+        )
 
     logger.debug(
         "Fetched page %s as %s",

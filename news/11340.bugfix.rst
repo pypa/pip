@@ -1,0 +1,3 @@
+Continue to allow index pages with non-standard Content-Type in the response
+to maintain backward compatibility, but emit a deprecation message for this to
+suggest fixing the issue.
