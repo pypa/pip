@@ -14,6 +14,7 @@ authentication
 caching
 configuration
 dependency-resolution
+https-certificates
 local-project-installs
 repeatable-installs
 secure-installs

@@ -219,18 +219,10 @@ details) is selected.
 
 See the :ref:`pip install Examples<pip install Examples>`.
 
+.. _`0-ssl certificate verification`:
+.. rubric:: SSL Certificate Verification
 
-.. _`SSL Certificate Verification`:
-
-SSL Certificate Verification
-----------------------------
-
-Starting with v1.3, pip provides SSL certificate verification over HTTP, to
-prevent man-in-the-middle attacks against PyPI downloads. This does not use
-the system certificate store but instead uses a bundled CA certificate
-store. The default bundled CA certificate store certificate store may be
-overridden by using ``--cert`` option or by using ``PIP_CERT``,
-``REQUESTS_CA_BUNDLE``, or ``CURL_CA_BUNDLE`` environment variables.
+This is now covered in :doc:`../topics/https-certificates`.
 
 .. _`0-caching`:
 .. rubric:: Caching
