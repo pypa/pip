@@ -19,4 +19,5 @@ local-project-installs
 repeatable-installs
 secure-installs
 vcs-support
+python-option
 ```

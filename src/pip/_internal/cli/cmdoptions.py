@@ -189,6 +189,13 @@ require_virtualenv: Callable[..., Option] = partial(
     ),
 )
 
+python: Callable[..., Option] = partial(
+    Option,
+    "--python",
+    dest="python",
+    help="Run pip with the specified Python interpreter.",
+)
+
 verbose: Callable[..., Option] = partial(
     Option,
     "-v",
@@ -1029,6 +1036,7 @@ general_group: Dict[str, Any] = {
         debug_mode,
         isolated_mode,
         require_virtualenv,
+        python,
         verbose,
         version,
         quiet,

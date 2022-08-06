@@ -39,7 +39,7 @@ class _Prefix:
         self.lib_dirs = get_prefixed_libs(path)
 
 
-def _get_runnable_pip() -> str:
+def get_runnable_pip() -> str:
     """Get a file to pass to a Python executable, to run the currently-running pip.
 
     This is used to run a pip subprocess, for installing requirements into the build
@@ -194,7 +194,7 @@ class BuildEnvironment:
         if not requirements:
             return
         self._install_requirements(
-            _get_runnable_pip(),
+            get_runnable_pip(),
             finder,
             requirements,
             prefix,
