@@ -19,7 +19,10 @@ from pip._internal.operations.build.wheel import build_wheel_pep517
 from pip._internal.operations.build.wheel_editable import build_wheel_editable
 from pip._internal.operations.build.wheel_legacy import build_wheel_legacy
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.utils.deprecation import LegacyInstallReasonMissingWheelPackage
+from pip._internal.utils.deprecation import (
+    LegacyInstallReasonMissingWheelPackage,
+    LegacyInstallReasonNoBinaryForcesSetuptoolsInstall,
+)
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import ensure_dir, hash_file, is_wheel_installed
 from pip._internal.utils.setuptools_build import make_setuptools_clean_args
@@ -80,10 +83,7 @@ def _should_build(
 
     assert check_bdist_wheel is not None
     if not check_bdist_wheel(req):
-        logger.info(
-            "Skipping wheel build for %s, due to binaries being disabled for it.",
-            req.name,
-        )
+        req.legacy_install_reason = LegacyInstallReasonNoBinaryForcesSetuptoolsInstall
         return False
 
     if not is_wheel_installed():
