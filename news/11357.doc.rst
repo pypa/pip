@@ -1,0 +1,1 @@
+Mention that --quiet must be used when writing the installation report to stdout.
