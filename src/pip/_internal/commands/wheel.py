@@ -10,7 +10,11 @@ from pip._internal.cli.req_command import RequirementCommand, with_cleanup
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.exceptions import CommandError
 from pip._internal.operations.build.build_tracker import get_build_tracker
-from pip._internal.req.req_install import InstallRequirement
+from pip._internal.req.req_install import (
+    InstallRequirement,
+    LegacySetupPyOptionsCheckMode,
+    check_legacy_setup_py_options,
+)
 from pip._internal.utils.misc import ensure_dir, normalize_path
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.wheel_builder import build, should_build_for_wheel_command
@@ -100,8 +104,6 @@ class WheelCommand(RequirementCommand):
 
     @with_cleanup
     def run(self, options: Values, args: List[str]) -> int:
-        cmdoptions.check_install_build_global(options)
-
         session = self.get_default_session(options)
 
         finder = self._build_package_finder(options, session)
@@ -119,6 +121,9 @@ class WheelCommand(RequirementCommand):
         )
 
         reqs = self.get_requirements(args, options, finder, session)
+        check_legacy_setup_py_options(
+            options, reqs, LegacySetupPyOptionsCheckMode.WHEEL
+        )
 
         preparer = self.make_requirement_preparer(
             temp_build_dir=directory,
