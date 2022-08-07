@@ -874,5 +874,3 @@ class TestParseRequirements:
                 < args.index("install")
                 < args.index(install_option)
             )
-        assert options.format_control.no_binary == {":all:"}
-        assert options.format_control.only_binary == set()
