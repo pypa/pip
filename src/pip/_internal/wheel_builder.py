@@ -5,7 +5,7 @@ import logging
 import os.path
 import re
 import shutil
-from typing import Any, Callable, Iterable, List, Optional, Tuple
+from typing import Callable, Iterable, List, Optional, Tuple
 
 from pip._vendor.packaging.utils import canonicalize_name, canonicalize_version
 from pip._vendor.packaging.version import InvalidVersion, Version
@@ -47,7 +47,7 @@ def _contains_egg_info(s: str) -> bool:
 def _should_build(
     req: InstallRequirement,
     need_wheel: bool,
-    check_binary_allowed: BinaryAllowedPredicate,
+    check_binary_allowed: Optional[BinaryAllowedPredicate] = None,
 ) -> bool:
     """Return whether an InstallRequirement should be built into a wheel."""
     if req.constraint:
@@ -78,6 +78,7 @@ def _should_build(
     if req.use_pep517:
         return True
 
+    assert check_binary_allowed is not None
     if not check_binary_allowed(req):
         logger.info(
             "Skipping wheel build for %s, due to binaries being disabled for it.",
@@ -96,7 +97,7 @@ def _should_build(
 def should_build_for_wheel_command(
     req: InstallRequirement,
 ) -> bool:
-    return _should_build(req, need_wheel=True, check_binary_allowed=_always_true)
+    return _should_build(req, need_wheel=True)
 
 
 def should_build_for_install_command(
@@ -154,10 +155,6 @@ def _get_cache_dir(
     else:
         cache_dir = wheel_cache.get_ephem_path_for_link(req.link)
     return cache_dir
-
-
-def _always_true(_: Any) -> bool:
-    return True
 
 
 def _verify_one(req: InstallRequirement, wheel_path: str) -> None:
