@@ -45,7 +45,7 @@ from pip._internal.utils.virtualenv import (
     virtualenv_no_global,
 )
 from pip._internal.wheel_builder import (
-    BinaryAllowedPredicate,
+    BdistWheelAllowedPredicate,
     build,
     should_build_for_install_command,
 )
@@ -53,7 +53,9 @@ from pip._internal.wheel_builder import (
 logger = getLogger(__name__)
 
 
-def get_check_binary_allowed(format_control: FormatControl) -> BinaryAllowedPredicate:
+def get_check_bdist_wheel_allowed(
+    format_control: FormatControl,
+) -> BdistWheelAllowedPredicate:
     def check_binary_allowed(req: InstallRequirement) -> bool:
         canonical_name = canonicalize_name(req.name or "")
         allowed_formats = format_control.get_allowed_formats(canonical_name)
@@ -409,12 +411,14 @@ class InstallCommand(RequirementCommand):
                 modifying_pip = pip_req.satisfied_by is None
             protect_pip_from_modification_on_windows(modifying_pip=modifying_pip)
 
-            check_binary_allowed = get_check_binary_allowed(finder.format_control)
+            check_bdist_wheel_allowed = get_check_bdist_wheel_allowed(
+                finder.format_control
+            )
 
             reqs_to_build = [
                 r
                 for r in requirement_set.requirements.values()
-                if should_build_for_install_command(r, check_binary_allowed)
+                if should_build_for_install_command(r, check_bdist_wheel_allowed)
             ]
 
             _, build_failures = build(

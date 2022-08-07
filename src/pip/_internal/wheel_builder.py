@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 _egg_info_re = re.compile(r"([a-z0-9_.]+)-([a-z0-9_.!+-]+)", re.IGNORECASE)
 
-BinaryAllowedPredicate = Callable[[InstallRequirement], bool]
+BdistWheelAllowedPredicate = Callable[[InstallRequirement], bool]
 BuildResult = Tuple[List[InstallRequirement], List[InstallRequirement]]
 
 
@@ -47,7 +47,7 @@ def _contains_egg_info(s: str) -> bool:
 def _should_build(
     req: InstallRequirement,
     need_wheel: bool,
-    check_binary_allowed: Optional[BinaryAllowedPredicate] = None,
+    check_bdist_wheel: Optional[BdistWheelAllowedPredicate] = None,
 ) -> bool:
     """Return whether an InstallRequirement should be built into a wheel."""
     if req.constraint:
@@ -78,8 +78,8 @@ def _should_build(
     if req.use_pep517:
         return True
 
-    assert check_binary_allowed is not None
-    if not check_binary_allowed(req):
+    assert check_bdist_wheel is not None
+    if not check_bdist_wheel(req):
         logger.info(
             "Skipping wheel build for %s, due to binaries being disabled for it.",
             req.name,
@@ -102,10 +102,10 @@ def should_build_for_wheel_command(
 
 def should_build_for_install_command(
     req: InstallRequirement,
-    check_binary_allowed: BinaryAllowedPredicate,
+    check_bdist_wheel_allowed: BdistWheelAllowedPredicate,
 ) -> bool:
     return _should_build(
-        req, need_wheel=False, check_binary_allowed=check_binary_allowed
+        req, need_wheel=False, check_bdist_wheel=check_bdist_wheel_allowed
     )
 
 
