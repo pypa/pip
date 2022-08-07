@@ -58,9 +58,12 @@ logger = getLogger(__name__)
 
 
 def get_check_bdist_wheel_allowed(
+    options: Values,
     format_control: FormatControl,
 ) -> BdistWheelAllowedPredicate:
     def check_binary_allowed(req: InstallRequirement) -> bool:
+        if "no-binary-builds-wheels" in options.features_enabled:
+            return True
         canonical_name = canonicalize_name(req.name or "")
         allowed_formats = format_control.get_allowed_formats(canonical_name)
         return "binary" in allowed_formats
@@ -418,7 +421,7 @@ class InstallCommand(RequirementCommand):
             protect_pip_from_modification_on_windows(modifying_pip=modifying_pip)
 
             check_bdist_wheel_allowed = get_check_bdist_wheel_allowed(
-                finder.format_control
+                options, finder.format_control
             )
 
             reqs_to_build = [
