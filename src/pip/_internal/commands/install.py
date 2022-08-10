@@ -264,7 +264,9 @@ class InstallCommand(RequirementCommand):
                 "the provided requirements. "
                 "Can be used in combination with --dry-run and --ignore-installed "
                 "to 'resolve' the requirements. "
-                "When - is used as file name it writes to stdout."
+                "When - is used as file name it writes to stdout. "
+                "When writing to stdout, please combine with the --quiet option "
+                "to avoid mixing pip logging output with JSON output."
             ),
         )
 
