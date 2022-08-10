@@ -29,6 +29,7 @@ from pip._internal.operations.check import ConflictDetails, check_install_confli
 from pip._internal.req import install_given_reqs
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.compat import WINDOWS
+from pip._internal.utils.deprecation import LegacyInstallReasonFailedBdistWheel
 from pip._internal.utils.distutils_args import parse_distutils_args
 from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.logging import getLogger
@@ -440,7 +441,7 @@ class InstallCommand(RequirementCommand):
             # those.
             for r in build_failures:
                 if not r.use_pep517:
-                    r.legacy_install_reason = 8368
+                    r.legacy_install_reason = LegacyInstallReasonFailedBdistWheel
 
             to_install = resolver.get_installation_order(requirement_set)
 

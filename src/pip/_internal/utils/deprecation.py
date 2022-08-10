@@ -118,3 +118,58 @@ def deprecated(
         raise PipDeprecationWarning(message)
 
     warnings.warn(message, category=PipDeprecationWarning, stacklevel=2)
+
+
+class LegacyInstallReason:
+    def __init__(
+        self,
+        reason: str,
+        replacement: Optional[str],
+        gone_in: Optional[str],
+        feature_flag: Optional[str] = None,
+        issue: Optional[int] = None,
+        emit_after_success: bool = False,
+        emit_before_install: bool = False,
+    ):
+        self._reason = reason
+        self._replacement = replacement
+        self._gone_in = gone_in
+        self._feature_flag = feature_flag
+        self._issue = issue
+        self.emit_after_success = emit_after_success
+        self.emit_before_install = emit_before_install
+
+    def emit_deprecation(self, name: str) -> None:
+        deprecated(
+            reason=self._reason.format(name=name),
+            replacement=self._replacement,
+            gone_in=self._gone_in,
+            feature_flag=self._feature_flag,
+            issue=self._issue,
+        )
+
+
+LegacyInstallReasonFailedBdistWheel = LegacyInstallReason(
+    reason=(
+        "{name} was installed using the legacy 'setup.py install' "
+        "method, because a wheel could not be built for it."
+    ),
+    replacement="to fix the wheel build issue reported above",
+    gone_in=None,
+    issue=8368,
+    emit_after_success=True,
+)
+
+
+LegacyInstallReasonMissingWheelPackage = LegacyInstallReason(
+    reason=(
+        "{name} is being installed using the legacy "
+        "'setup.py install' method, because it does not have a "
+        "'pyproject.toml' and the 'wheel' package "
+        "is not installed."
+    ),
+    replacement="to enable the '--use-pep517' option",
+    gone_in=None,
+    issue=8559,
+    emit_before_install=True,
+)

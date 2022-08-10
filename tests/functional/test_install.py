@@ -12,6 +12,7 @@ import pytest
 
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.models.index import PyPI, TestPyPI
+from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from pip._internal.utils.misc import rmtree
 from tests.conftest import CertFactory
 from tests.lib import (
@@ -2303,3 +2304,32 @@ def test_install_dry_run(script: PipTestEnvironment, data: TestData) -> None:
     )
     assert "Would install simple-3.0" in result.stdout
     assert "Successfully installed" not in result.stdout
+
+
+def test_install_8559_missing_wheel_package(
+    script: PipTestEnvironment, shared_data: TestData
+) -> None:
+    result = script.pip(
+        "install",
+        "--find-links",
+        shared_data.find_links,
+        "simple",
+        allow_stderr_warning=True,
+    )
+    assert DEPRECATION_MSG_PREFIX in result.stderr
+    assert "'wheel' package is not installed" in result.stderr
+    assert "using the legacy 'setup.py install' method" in result.stderr
+
+
+@pytest.mark.usefixtures("with_wheel")
+def test_install_8559_wheel_package_present(
+    script: PipTestEnvironment, shared_data: TestData
+) -> None:
+    result = script.pip(
+        "install",
+        "--find-links",
+        shared_data.find_links,
+        "simple",
+        allow_stderr_warning=False,
+    )
+    assert DEPRECATION_MSG_PREFIX not in result.stderr

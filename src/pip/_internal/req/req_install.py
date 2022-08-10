@@ -42,7 +42,7 @@ from pip._internal.operations.install.legacy import install as install_legacy
 from pip._internal.operations.install.wheel import install_wheel
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
-from pip._internal.utils.deprecation import deprecated
+from pip._internal.utils.deprecation import LegacyInstallReason, deprecated
 from pip._internal.utils.direct_url_helpers import (
     direct_url_for_editable,
     direct_url_from_link,
@@ -96,7 +96,7 @@ class InstallRequirement:
         self.constraint = constraint
         self.editable = editable
         self.permit_editable_wheels = permit_editable_wheels
-        self.legacy_install_reason: Optional[int] = None
+        self.legacy_install_reason: Optional[LegacyInstallReason] = None
 
         # source_dir is the local directory where the linked requirement is
         # located, or unpacked. In case unpacking is needed, creating and
@@ -811,6 +811,11 @@ class InstallRequirement:
         install_options = list(install_options) + self.install_options
 
         try:
+            if (
+                self.legacy_install_reason is not None
+                and self.legacy_install_reason.emit_before_install
+            ):
+                self.legacy_install_reason.emit_deprecation(self.name)
             success = install_legacy(
                 install_options=install_options,
                 global_options=global_options,
@@ -836,18 +841,12 @@ class InstallRequirement:
 
         self.install_succeeded = success
 
-        if success and self.legacy_install_reason == 8368:
-            deprecated(
-                reason=(
-                    "{} was installed using the legacy 'setup.py install' "
-                    "method, because a wheel could not be built for it.".format(
-                        self.name
-                    )
-                ),
-                replacement="to fix the wheel build issue reported above",
-                gone_in=None,
-                issue=8368,
-            )
+        if (
+            success
+            and self.legacy_install_reason is not None
+            and self.legacy_install_reason.emit_after_success
+        ):
+            self.legacy_install_reason.emit_deprecation(self.name)
 
 
 def check_invalid_constraint_type(req: InstallRequirement) -> str:
