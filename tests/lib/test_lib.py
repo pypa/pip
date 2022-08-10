@@ -150,7 +150,6 @@ class TestPipTestEnvironment:
     @pytest.mark.parametrize(
         "prefix",
         (
-            "DEPRECATION",
             "WARNING",
             "ERROR",
         ),
@@ -167,7 +166,6 @@ class TestPipTestEnvironment:
     @pytest.mark.parametrize(
         "prefix, expected_start",
         (
-            ("DEPRECATION", "stderr has an unexpected warning"),
             ("WARNING", "stderr has an unexpected warning"),
             ("ERROR", "stderr has an unexpected error"),
         ),

@@ -94,7 +94,7 @@ def _install_version_pkg_only(
     script: PipTestEnvironment,
     path: Path,
     rev: Optional[str] = None,
-    expect_stderr: bool = False,
+    allow_stderr_warning: bool = False,
 ) -> None:
     """
     Install the version_pkg package in editable mode (without returning
@@ -106,14 +106,16 @@ def _install_version_pkg_only(
       rev: an optional revision to install like a branch name or tag.
     """
     version_pkg_url = _make_version_pkg_url(path, rev=rev)
-    script.pip("install", "-e", version_pkg_url, expect_stderr=expect_stderr)
+    script.pip(
+        "install", "-e", version_pkg_url, allow_stderr_warning=allow_stderr_warning
+    )
 
 
 def _install_version_pkg(
     script: PipTestEnvironment,
     path: Path,
     rev: Optional[str] = None,
-    expect_stderr: bool = False,
+    allow_stderr_warning: bool = False,
 ) -> str:
     """
     Install the version_pkg package in editable mode, and return the version
@@ -128,7 +130,7 @@ def _install_version_pkg(
         script,
         path,
         rev=rev,
-        expect_stderr=expect_stderr,
+        allow_stderr_warning=allow_stderr_warning,
     )
     result = script.run("version_pkg")
     version = result.stdout.strip()
@@ -227,7 +229,13 @@ def test_git_with_short_sha1_revisions(script: PipTestEnvironment) -> None:
         "HEAD~1",
         cwd=version_pkg_path,
     ).stdout.strip()[:7]
-    version = _install_version_pkg(script, version_pkg_path, rev=sha1)
+    version = _install_version_pkg(
+        script,
+        version_pkg_path,
+        rev=sha1,
+        # WARNING: Did not find branch or tag ..., assuming revision or ref.
+        allow_stderr_warning=True,
+    )
     assert "0.1" == version
 
 
@@ -273,6 +281,8 @@ def test_git_install_ref(script: PipTestEnvironment) -> None:
         script,
         version_pkg_path,
         rev="refs/foo/bar",
+        # WARNING: Did not find branch or tag ..., assuming revision or ref.
+        allow_stderr_warning=True,
     )
     assert "0.1" == version
 
@@ -294,6 +304,8 @@ def test_git_install_then_install_ref(script: PipTestEnvironment) -> None:
         script,
         version_pkg_path,
         rev="refs/foo/bar",
+        # WARNING: Did not find branch or tag ..., assuming revision or ref.
+        allow_stderr_warning=True,
     )
     assert "0.1" == version
 
