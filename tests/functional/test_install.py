@@ -700,17 +700,27 @@ def test_editable_install__local_dir_no_setup_py(
     )
 
 
+@pytest.mark.network
 def test_editable_install__local_dir_no_setup_py_with_pyproject(
     script: PipTestEnvironment,
 ) -> None:
     """
     Test installing in editable mode from a local directory with no setup.py
-    but that does have pyproject.toml.
+    but that does have pyproject.toml with a build backend that does not support
+    the build_editable hook.
     """
     local_dir = script.scratch_path.joinpath("temp")
     local_dir.mkdir()
     pyproject_path = local_dir.joinpath("pyproject.toml")
-    pyproject_path.write_text("")
+    pyproject_path.write_text(
+        textwrap.dedent(
+            """
+                [build-system]
+                requires = ["setuptools<64"]
+                build-backend = "setuptools.build_meta"
+            """
+        )
+    )
 
     result = script.pip("install", "-e", local_dir, expect_error=True)
     assert not result.files_created
@@ -1253,13 +1263,14 @@ setup(name='pkga', version='0.1')
     _test_install_editable_with_prefix(script, {"setup.py": setup_py})
 
 
+@pytest.mark.network
 def test_install_editable_with_prefix_setup_cfg(script: PipTestEnvironment) -> None:
     setup_cfg = """[metadata]
 name = pkga
 version = 0.1
 """
     pyproject_toml = """[build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools<64", "wheel"]
 build-backend = "setuptools.build_meta"
 """
     _test_install_editable_with_prefix(
