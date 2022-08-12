@@ -58,7 +58,7 @@ class ReqMock:
 
 
 @pytest.mark.parametrize(
-    "req, disallow_binaries, expected",
+    "req, disallow_bdist_wheel, expected",
     [
         # When binaries are allowed, we build.
         (ReqMock(use_pep517=True), False, True),
@@ -110,11 +110,11 @@ class ReqMock:
     ],
 )
 def test_should_build_for_install_command(
-    req: ReqMock, disallow_binaries: bool, expected: bool
+    req: ReqMock, disallow_bdist_wheel: bool, expected: bool
 ) -> None:
     should_build = wheel_builder.should_build_for_install_command(
         cast(InstallRequirement, req),
-        check_binary_allowed=lambda req: not disallow_binaries,
+        check_bdist_wheel_allowed=lambda req: not disallow_bdist_wheel,
     )
     assert should_build is expected
 
@@ -144,7 +144,7 @@ def test_should_build_legacy_wheel_not_installed(is_wheel_installed: mock.Mock) 
     legacy_req = ReqMock(use_pep517=False)
     should_build = wheel_builder.should_build_for_install_command(
         cast(InstallRequirement, legacy_req),
-        check_binary_allowed=lambda req: True,
+        check_bdist_wheel_allowed=lambda req: True,
     )
     assert not should_build
 
@@ -155,7 +155,7 @@ def test_should_build_legacy_wheel_installed(is_wheel_installed: mock.Mock) -> N
     legacy_req = ReqMock(use_pep517=False)
     should_build = wheel_builder.should_build_for_install_command(
         cast(InstallRequirement, legacy_req),
-        check_binary_allowed=lambda req: True,
+        check_bdist_wheel_allowed=lambda req: True,
     )
     assert should_build
 
