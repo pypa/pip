@@ -60,8 +60,8 @@ def options(session: PipSession) -> mock.Mock:
 def parse_reqfile(
     filename: Union[Path, str],
     session: PipSession,
-    finder: PackageFinder = None,
-    options: Values = None,
+    finder: Optional[PackageFinder] = None,
+    options: Optional[Values] = None,
     constraint: bool = False,
     isolated: bool = False,
 ) -> Iterator[InstallRequirement]:
