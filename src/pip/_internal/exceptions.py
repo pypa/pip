@@ -288,7 +288,10 @@ class NetworkConnectionError(PipError):
     """HTTP connection error"""
 
     def __init__(
-        self, error_msg: str, response: Response = None, request: Request = None
+        self,
+        error_msg: str,
+        response: Optional[Response] = None,
+        request: Optional[Request] = None,
     ) -> None:
         """
         Initialize NetworkConnectionError with  `request` and `response`

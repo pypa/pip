@@ -28,7 +28,7 @@ class Hashes:
 
     """
 
-    def __init__(self, hashes: Dict[str, List[str]] = None) -> None:
+    def __init__(self, hashes: Optional[Dict[str, List[str]]] = None) -> None:
         """
         :param hashes: A dict of algorithm names pointing to lists of allowed
             hex digests
