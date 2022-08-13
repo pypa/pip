@@ -1168,7 +1168,7 @@ def create_basic_wheel_for_package(
     name: str,
     version: str,
     depends: Optional[List[str]] = None,
-    extras: Dict[str, List[str]] = None,
+    extras: Optional[Dict[str, List[str]]] = None,
     requires_python: Optional[str] = None,
     extra_files: Optional[Dict[str, Union[bytes, str]]] = None,
 ) -> pathlib.Path:
