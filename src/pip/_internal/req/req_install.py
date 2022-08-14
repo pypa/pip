@@ -1,6 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 import functools
 import logging
 import os
@@ -192,7 +189,7 @@ class InstallRequirement:
             s = redact_auth_from_url(self.link.url)
         else:
             s = "<InstallRequirement>"
-        if self.satisfied_by is not None:
+        if self.satisfied_by is not None and self.satisfied_by.location is not None:
             s += " in {}".format(display_path(self.satisfied_by.location))
         if self.comes_from:
             if isinstance(self.comes_from, str):
@@ -219,11 +216,21 @@ class InstallRequirement:
             state=", ".join(state),
         )
 
+    @property
+    def checked_req(self) -> Requirement:
+        assert self.req is not None
+        return self.req
+
     # Things that are valid for all kinds of requirements?
     @property
     def name(self) -> Optional[str]:
         if self.req is None:
             return None
+        return self.req.name
+
+    @property
+    def checked_name(self) -> str:
+        assert self.req is not None
         return self.req.name
 
     @functools.lru_cache()  # use cached_property in python 3.8+
@@ -240,7 +247,7 @@ class InstallRequirement:
 
     @property
     def specifier(self) -> SpecifierSet:
-        return self.req.specifier
+        return self.checked_req.specifier
 
     @property
     def is_pinned(self) -> bool:
@@ -290,7 +297,7 @@ class InstallRequirement:
         """
         good_hashes = self.hash_options.copy()
         link = self.link if trust_internet else self.original_link
-        if link and link.hash:
+        if link and link.hash and link.hash_name:
             good_hashes.setdefault(link.hash_name, []).append(link.hash)
         return Hashes(good_hashes)
 
@@ -300,6 +307,7 @@ class InstallRequirement:
             return None
         s = str(self.req)
         if self.comes_from:
+            comes_from: Optional[str]
             if isinstance(self.comes_from, str):
                 comes_from = self.comes_from
             else:
@@ -331,7 +339,7 @@ class InstallRequirement:
 
         # When parallel builds are enabled, add a UUID to the build directory
         # name so multiple builds do not interfere with each other.
-        dir_name: str = canonicalize_name(self.name)
+        dir_name: str = canonicalize_name(self.checked_name)
         if parallel_builds:
             dir_name = f"{dir_name}_{uuid.uuid4().hex}"
 
@@ -375,7 +383,7 @@ class InstallRequirement:
 
     def warn_on_mismatching_name(self) -> None:
         metadata_name = canonicalize_name(self.metadata["Name"])
-        if canonicalize_name(self.req.name) == metadata_name:
+        if canonicalize_name(self.checked_name) == metadata_name:
             # Everything is fine.
             return
 
@@ -437,6 +445,7 @@ class InstallRequirement:
     # Things valid for sdists
     @property
     def unpacked_source_directory(self) -> str:
+        assert self.source_dir, f"No source dir for {self}"
         return os.path.join(
             self.source_dir, self.link and self.link.subdirectory_fragment or ""
         )
@@ -514,7 +523,7 @@ class InstallRequirement:
         Under PEP 517 and PEP 660, call the backend hook to prepare the metadata.
         Under legacy processing, call setup.py egg-info.
         """
-        assert self.source_dir
+        assert self.source_dir, f"No source dir for {self}"
         details = self.name or f"from {self.link}"
 
         if self.use_pep517:
@@ -564,7 +573,7 @@ class InstallRequirement:
             return get_directory_distribution(self.metadata_directory)
         elif self.local_file_path and self.is_wheel:
             return get_wheel_distribution(
-                FilesystemWheel(self.local_file_path), canonicalize_name(self.name)
+                FilesystemWheel(self.local_file_path), canonicalize_name(self.checked_name)
             )
         raise AssertionError(
             f"InstallRequirement {self} has no metadata directory and no wheel: "
@@ -572,9 +581,9 @@ class InstallRequirement:
         )
 
     def assert_source_matches_version(self) -> None:
-        assert self.source_dir
+        assert self.source_dir, f"No source dir for {self}"
         version = self.metadata["version"]
-        if self.req.specifier and version not in self.req.specifier:
+        if self.req and version not in self.specifier:
             logger.warning(
                 "Requested %s, but installing version %s",
                 self,
@@ -669,7 +678,7 @@ class InstallRequirement:
 
         path = os.path.join(parentdir, path)
         name = _clean_zip_name(path, rootdir)
-        return self.name + "/" + name
+        return self.checked_name + "/" + name
 
     def archive(self, build_dir: Optional[str]) -> None:
         """Saves archive to provided build_dir.
@@ -750,7 +759,7 @@ class InstallRequirement:
         pycompile: bool = True,
     ) -> None:
         scheme = get_scheme(
-            self.name,
+            self.checked_name,
             user=use_user_site,
             home=home,
             root=root,
@@ -766,7 +775,7 @@ class InstallRequirement:
                 prefix=prefix,
                 home=home,
                 use_user_site=use_user_site,
-                name=self.name,
+                name=self.checked_name,
                 setup_py_path=self.setup_py_path,
                 isolated=self.isolated,
                 build_env=self.build_env,
@@ -788,7 +797,7 @@ class InstallRequirement:
                     self.original_link_is_in_wheel_cache,
                 )
             install_wheel(
-                self.name,
+                self.checked_name,
                 self.local_file_path,
                 scheme=scheme,
                 req_description=str(self.req),
@@ -815,7 +824,7 @@ class InstallRequirement:
                 self.legacy_install_reason is not None
                 and self.legacy_install_reason.emit_before_install
             ):
-                self.legacy_install_reason.emit_deprecation(self.name)
+                self.legacy_install_reason.emit_deprecation(self.checked_name)
             success = install_legacy(
                 install_options=install_options,
                 global_options=global_options,
@@ -827,7 +836,7 @@ class InstallRequirement:
                 scheme=scheme,
                 setup_py_path=self.setup_py_path,
                 isolated=self.isolated,
-                req_name=self.name,
+                req_name=self.checked_name,
                 build_env=self.build_env,
                 unpacked_source_directory=self.unpacked_source_directory,
                 req_description=str(self.req),
@@ -846,7 +855,7 @@ class InstallRequirement:
             and self.legacy_install_reason is not None
             and self.legacy_install_reason.emit_after_success
         ):
-            self.legacy_install_reason.emit_deprecation(self.name)
+            self.legacy_install_reason.emit_deprecation(self.checked_name)
 
 
 def check_invalid_constraint_type(req: InstallRequirement) -> str:
