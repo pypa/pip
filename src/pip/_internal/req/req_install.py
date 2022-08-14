@@ -573,7 +573,8 @@ class InstallRequirement:
             return get_directory_distribution(self.metadata_directory)
         elif self.local_file_path and self.is_wheel:
             return get_wheel_distribution(
-                FilesystemWheel(self.local_file_path), canonicalize_name(self.checked_name)
+                FilesystemWheel(self.local_file_path),
+                canonicalize_name(self.checked_name),
             )
         raise AssertionError(
             f"InstallRequirement {self} has no metadata directory and no wheel: "
