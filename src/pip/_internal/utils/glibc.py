@@ -1,6 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 import os
 import sys
 from typing import Optional, Tuple
@@ -21,7 +18,7 @@ def glibc_version_string_confstr() -> Optional[str]:
         return None
     try:
         # os.confstr("CS_GNU_LIBC_VERSION") returns a string like "glibc 2.17":
-        _, version = os.confstr("CS_GNU_LIBC_VERSION").split()
+        _, version = os.confstr("CS_GNU_LIBC_VERSION").split()  # type: ignore[union-attr]
     except (AttributeError, OSError, ValueError):
         # os.confstr() or CS_GNU_LIBC_VERSION not available (or a bad value)...
         return None
