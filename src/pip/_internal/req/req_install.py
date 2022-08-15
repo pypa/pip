@@ -216,21 +216,11 @@ class InstallRequirement:
             state=", ".join(state),
         )
 
-    @property
-    def checked_req(self) -> Requirement:
-        assert self.req is not None
-        return self.req
-
     # Things that are valid for all kinds of requirements?
     @property
     def name(self) -> Optional[str]:
         if self.req is None:
             return None
-        return self.req.name
-
-    @property
-    def checked_name(self) -> str:
-        assert self.req is not None
         return self.req.name
 
     @functools.lru_cache()  # use cached_property in python 3.8+
@@ -247,7 +237,8 @@ class InstallRequirement:
 
     @property
     def specifier(self) -> SpecifierSet:
-        return self.checked_req.specifier
+        assert self.req is not None
+        return self.req.specifier
 
     @property
     def is_pinned(self) -> bool:
@@ -255,7 +246,8 @@ class InstallRequirement:
 
         For example, some-package==1.2 is pinned; some-package>1.2 is not.
         """
-        specifiers = self.specifier
+        assert self.req is not None
+        specifiers = self.req.specifier
         return len(specifiers) == 1 and next(iter(specifiers)).operator in {"==", "==="}
 
     def match_markers(self, extras_requested: Optional[Iterable[str]] = None) -> bool:
@@ -339,7 +331,7 @@ class InstallRequirement:
 
         # When parallel builds are enabled, add a UUID to the build directory
         # name so multiple builds do not interfere with each other.
-        dir_name: str = canonicalize_name(self.checked_name)
+        dir_name: str = canonicalize_name(self.req.name)
         if parallel_builds:
             dir_name = f"{dir_name}_{uuid.uuid4().hex}"
 
@@ -382,8 +374,9 @@ class InstallRequirement:
         )
 
     def warn_on_mismatching_name(self) -> None:
+        assert self.req is not None
         metadata_name = canonicalize_name(self.metadata["Name"])
-        if canonicalize_name(self.checked_name) == metadata_name:
+        if canonicalize_name(self.req.name) == metadata_name:
             # Everything is fine.
             return
 
@@ -572,9 +565,10 @@ class InstallRequirement:
         if self.metadata_directory:
             return get_directory_distribution(self.metadata_directory)
         elif self.local_file_path and self.is_wheel:
+            assert self.req is not None
             return get_wheel_distribution(
                 FilesystemWheel(self.local_file_path),
-                canonicalize_name(self.checked_name),
+                canonicalize_name(self.req.name),
             )
         raise AssertionError(
             f"InstallRequirement {self} has no metadata directory and no wheel: "
@@ -584,7 +578,7 @@ class InstallRequirement:
     def assert_source_matches_version(self) -> None:
         assert self.source_dir, f"No source dir for {self}"
         version = self.metadata["version"]
-        if self.req and version not in self.specifier:
+        if self.req and version not in self.req.specifier:
             logger.warning(
                 "Requested %s, but installing version %s",
                 self,
@@ -677,9 +671,10 @@ class InstallRequirement:
             name = name.replace(os.path.sep, "/")
             return name
 
+        assert self.req is not None
         path = os.path.join(parentdir, path)
         name = _clean_zip_name(path, rootdir)
-        return self.checked_name + "/" + name
+        return self.req.name + "/" + name
 
     def archive(self, build_dir: Optional[str]) -> None:
         """Saves archive to provided build_dir.
@@ -759,8 +754,9 @@ class InstallRequirement:
         use_user_site: bool = False,
         pycompile: bool = True,
     ) -> None:
+        assert self.req is not None
         scheme = get_scheme(
-            self.checked_name,
+            self.req.name,
             user=use_user_site,
             home=home,
             root=root,
@@ -776,7 +772,7 @@ class InstallRequirement:
                 prefix=prefix,
                 home=home,
                 use_user_site=use_user_site,
-                name=self.checked_name,
+                name=self.req.name,
                 setup_py_path=self.setup_py_path,
                 isolated=self.isolated,
                 build_env=self.build_env,
@@ -798,7 +794,7 @@ class InstallRequirement:
                     self.original_link_is_in_wheel_cache,
                 )
             install_wheel(
-                self.checked_name,
+                self.req.name,
                 self.local_file_path,
                 scheme=scheme,
                 req_description=str(self.req),
@@ -825,7 +821,7 @@ class InstallRequirement:
                 self.legacy_install_reason is not None
                 and self.legacy_install_reason.emit_before_install
             ):
-                self.legacy_install_reason.emit_deprecation(self.checked_name)
+                self.legacy_install_reason.emit_deprecation(self.req.name)
             success = install_legacy(
                 install_options=install_options,
                 global_options=global_options,
@@ -837,7 +833,7 @@ class InstallRequirement:
                 scheme=scheme,
                 setup_py_path=self.setup_py_path,
                 isolated=self.isolated,
-                req_name=self.checked_name,
+                req_name=self.req.name,
                 build_env=self.build_env,
                 unpacked_source_directory=self.unpacked_source_directory,
                 req_description=str(self.req),
@@ -856,7 +852,7 @@ class InstallRequirement:
             and self.legacy_install_reason is not None
             and self.legacy_install_reason.emit_after_success
         ):
-            self.legacy_install_reason.emit_deprecation(self.checked_name)
+            self.legacy_install_reason.emit_deprecation(self.req.name)
 
 
 def check_invalid_constraint_type(req: InstallRequirement) -> str:
