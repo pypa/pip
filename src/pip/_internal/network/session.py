@@ -422,7 +422,8 @@ class PipSession(requests.Session):
 
         host_port = parse_netloc(host)
         if host_port not in self.pip_trusted_origins:
-            self.pip_trusted_origins.append(host_port)
+            assert host_port[0] is not None
+            self.pip_trusted_origins.append((host_port[0], host_port[1]))
 
         self.mount(
             build_url_from_netloc(host, scheme="http") + "/", self._trusted_host_adapter
