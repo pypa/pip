@@ -289,7 +289,8 @@ class InstallRequirement:
         """
         good_hashes = self.hash_options.copy()
         link = self.link if trust_internet else self.original_link
-        if link and link.hash and link.hash_name:
+        if link and link.hash:
+            assert link.hash_name is not None
             good_hashes.setdefault(link.hash_name, []).append(link.hash)
         return Hashes(good_hashes)
 
