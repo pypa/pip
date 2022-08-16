@@ -7,7 +7,7 @@ from tests.lib import PipTestEnvironment
 def test_timeout(script: PipTestEnvironment) -> None:
     result = script.pip(
         "--timeout",
-        "0.0001",
+        "0.00001",
         "install",
         "-vvv",
         "INITools",
