@@ -430,7 +430,7 @@ class PipSession(requests.Session):
             build_url_from_netloc(host, scheme="http") + "/", self._trusted_host_adapter
         )
         self.mount(build_url_from_netloc(host) + "/", self._trusted_host_adapter)
-        if not host_port[1]:
+        if not parsed_port:
             self.mount(
                 build_url_from_netloc(host, scheme="http") + ":",
                 self._trusted_host_adapter,
