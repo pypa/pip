@@ -844,18 +844,6 @@ config_settings: Callable[..., Option] = partial(
     "to pass multiple keys to the backend.",
 )
 
-install_options: Callable[..., Option] = partial(
-    Option,
-    "--install-option",
-    dest="install_options",
-    action="append",
-    metavar="options",
-    help="Extra arguments to be supplied to the setup.py install "
-    'command (use like --install-option="--install-scripts=/usr/local/'
-    'bin"). Use multiple --install-option options to pass multiple '
-    "options to setup.py install. If you are using an option with a "
-    "directory path, be sure to use absolute path.",
-)
 
 build_options: Callable[..., Option] = partial(
     Option,
