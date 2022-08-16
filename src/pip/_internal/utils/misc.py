@@ -501,7 +501,9 @@ def _redact_netloc(netloc: str) -> Tuple[str]:
     return (redact_netloc(netloc),)
 
 
-def split_auth_netloc_from_url(url: str) -> Tuple[str, str, Tuple[Optional[str], Optional[str]]]:
+def split_auth_netloc_from_url(
+    url: str,
+) -> Tuple[str, str, Tuple[Optional[str], Optional[str]]]:
     """
     Parse a url into separate netloc, auth, and url with no auth.
 
