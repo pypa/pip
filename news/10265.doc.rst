@@ -1,0 +1,1 @@
+removed --install-scripts flag from pip/src/pip/_internal/cli/cmdoptions.py
