@@ -6,8 +6,10 @@ from tests.lib import PipTestEnvironment
 @pytest.mark.network
 def test_timeout(script: PipTestEnvironment) -> None:
     result = script.pip(
+        "--retries",
+        "1",
         "--timeout",
-        "0.0001",
+        "0.00001",
         "install",
         "-vvv",
         "INITools",
