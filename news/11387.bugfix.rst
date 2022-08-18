@@ -1,0 +1,1 @@
+Adding a check to verify that pip exists in th binary_prefix path prior to checking if it matches the pip found using shutil
