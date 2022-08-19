@@ -154,24 +154,34 @@ def rmtree_errorhandler(
     *,
     onexc: Callable[..., Any] = _onerror_reraise,
 ) -> None:
-    """On Windows, the files in .svn are read-only, so when rmtree() tries to
-    remove them, an exception is thrown.  We catch that here, remove the
-    read-only attribute, and hopefully continue without problems."""
+    """
+    `rmtree` error handler to 'force' a file remove (i.e. like `rm -f`).
+
+    * If a file is readonly then it's write flag is set and operation is
+      retried.
+
+    * `onerror` is the original callback from `rmtree(... onerror=onerror)`
+      that is chained at the end if the "rm -f" still fails.
+    """
     try:
-        has_attr_readonly = not (os.stat(path).st_mode & stat.S_IWRITE)
+        st_mode = os.stat(path).st_mode
     except OSError:
         # it's equivalent to os.path.exists
         return
 
-    if has_attr_readonly:
+    if not st_mode & stat.S_IWRITE:
         # convert to read/write
-        os.chmod(path, stat.S_IWRITE)
-        # use the original function to repeat the operation
         try:
-            func(path)
-            return
+            os.chmod(path, st_mode | stat.S_IWRITE)
         except OSError:
             pass
+        else:
+            # use the original function to repeat the operation
+            try:
+                func(path)
+                return
+            except OSError:
+                pass
 
     onexc(func, path, exc_info)
 
