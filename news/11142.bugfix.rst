@@ -1,0 +1,2 @@
+New resolver: Fix a regression that prevents the ``Requires-Python`` metadata
+to be correctly checked before Python package dependencies.
