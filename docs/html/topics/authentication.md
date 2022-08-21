@@ -66,18 +66,39 @@ man pages][netrc-docs].
 ## Keyring Support
 
 pip supports loading credentials stored in your keyring using the
-{pypi}`keyring` library.
+{pypi}`keyring-subprocess` library.
+
+```{note}
+In the previous versions Pip would import {pypi}`keyring` from its environment.
+Now Pip vendors `keyring` and `keyring-subprocess`. Pip will query a
+`keyring-subprocess` executable if it can be found on the PATH.
+
+This should make bootstrapping virtualenvs easier. The `virtualenv` library has
+a mechanism to seed (pre install) packages into new virtualenvs, but Python's
+venv module does not.
+
+The upside of vendoring keyring this way is that is will work for both flavours
+of virtualenvs.
+
+The downside is that this is a breaking change for existing `keyring` users,
+they now need to opt in by installing `keyring-subprocess[landmark]`.
+```
 
 ```bash
-$ pip install keyring  # install keyring from PyPI
+$ # install keyring-subprocess[landmark] and make it available on the PATH
+$ # and possibly additional keyring backends such
+$ # - artifacts-keyring for Azure DevOps
+$ # - keyrings.google-artifactregistry-auth for Google Artifact Registry
 $ echo "your-password" | keyring set pypi.company.com your-username
 $ pip install your-package --index-url https://pypi.company.com/
 ```
 
-Note that `keyring` (the Python package) needs to be installed separately from
-pip. This can create a bootstrapping issue if you need the credentials stored in
-the keyring to download and install keyring.
+Note that `keyring-subprocess[landmark]` (the Python package) needs to be
+installed separately from pip. This can create a bootstrapping issue if you
+need the credentials stored in the keyring to download and install keyring.
 
 It is, thus, expected that users that wish to use pip's keyring support have
-some mechanism for downloading and installing {pypi}`keyring` in their Python
-environment.
+some mechanism for downloading and installing `keyring-subprocess[landmark]`.
+There is a powershell script for Windows on the {pypi}`keyring-subprocess`
+project page to install pipx and then install it with pipx. It should be able
+to serve as a handy cheat sheet for other platforms.
