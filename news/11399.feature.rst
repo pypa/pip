@@ -1,0 +1,3 @@
+Breaking change: ``keyring`` support is now opt-in. A ``keyring-subprocess``
+executable needs to exists on the PATH. See the ``Authentication`` page in the
+documentation for more information.
