@@ -300,18 +300,27 @@ timeout: Callable[..., Option] = partial(
 )
 
 
+EXISTS_ACTIONS = {
+    "s": "switch",
+    "i": "ignore",
+    "w": "wipe",
+    "b": "backup",
+    "a": "abort",
+}
+
+
 def exists_action() -> Option:
     return Option(
         # Option when path already exist
         "--exists-action",
         dest="exists_action",
         type="choice",
-        choices=["s", "i", "w", "b", "a"],
+        choices=list(EXISTS_ACTIONS.keys()),
         default=[],
         action="append",
         metavar="action",
         help="Default action when a path already exists: "
-        "(s)witch, (i)gnore, (w)ipe, (b)ackup, (a)bort.",
+        ", ".join(EXISTS_ACTIONS.values()),
     )
 
 
@@ -505,6 +514,7 @@ def no_binary() -> Option:
         action="callback",
         callback=_handle_no_binary,
         type="str",
+        metavar="binary",
         default=format_control,
         help="Do not use binary packages. Can be supplied multiple times, and "
         'each time adds to the existing value. Accepts either ":all:" to '
@@ -523,6 +533,7 @@ def only_binary() -> Option:
         action="callback",
         callback=_handle_only_binary,
         type="str",
+        metavar="binary",
         default=format_control,
         help="Do not use source packages. Can be supplied multiple times, and "
         'each time adds to the existing value. Accepts either ":all:" to '
@@ -723,6 +734,7 @@ no_cache: Callable[..., Option] = partial(
     "--no-cache-dir",
     dest="cache_dir",
     action="callback",
+    metavar="",
     callback=_handle_no_cache_dir,
     help="Disable the cache.",
 )

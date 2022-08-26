@@ -1,0 +1,57 @@
+#compdef -P {{program}}[0-9.]#
+# https://github.com/zsh-users/zsh/blob/master/Etc/completion-style-guide
+# https://github.com/zsh-users/zsh/blob/master/Completion/Unix/Command/_pip
+# To get completion of installable packages, do:
+#     pip install pip-cache
+#     pip-cache update
+
+_arguments -s -S \
+  {{flags}} \
+  ': :->command' \
+  '*:: :->options'
+
+local _commands=(
+  {{commands}}
+)
+case $state in
+  'command')
+    _describe command _commands
+    ;;
+  'options')
+    local curcontext="${curcontext%:*:*}:{{program}}-${words[1]}":
+    case "${words[1]}" in
+{{cases}}
+      help)
+        _describe command _commands
+        ;;
+      *)
+        _message 'unknown command: '"${words[1]}"
+        ;;
+    esac
+
+    case $state in
+      path/url)
+        _alternative ': :_files' ': :_urls'
+      ;;
+
+      package_list)
+        packages=(${(f)"$(_call_program packages pip-cache pkgnames)"})
+        _sequence _wanted packages expl package compadd - -a packages
+      ;;
+
+      packages_or_dirs)
+        [[ -prefix - ]] || packages=(git+ hg+ svn+
+        ${(f)"$(_call_program packages pip-cache pkgnames)"})
+        _alternative \
+          'all-packages:package:compadd -a packages' \
+          'directories:directory with setup.py:_directories'
+      ;;
+
+      installed_packages)
+          packages=($(_call_program fetch-installed \
+            "env COMP_WORDS='pip uninstall' COMP_CWORD=2 PIP_AUTO_COMPLETE=1 $pip"))
+          _wanted installed-packages expl 'installed package' compadd -a packages
+      ;;
+    esac
+    ;;
+esac
