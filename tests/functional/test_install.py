@@ -23,6 +23,7 @@ from tests.lib import (
     _create_test_package,
     create_basic_wheel_for_package,
     create_test_package_with_setup,
+    make_wheel,
     need_bzr,
     need_mercurial,
     need_svn,
@@ -2344,3 +2345,16 @@ def test_install_8559_wheel_package_present(
         allow_stderr_warning=False,
     )
     assert DEPRECATION_MSG_PREFIX not in result.stderr
+
+
+def test_no_compiles_custom_scripts(script: PipTestEnvironment) -> None:
+    del script.environ["PYTHONDONTWRITEBYTECODE"]
+    package = make_wheel(
+        "simple",
+        "0.1.0",
+        extra_data_files={
+            "scripts/dostuff.py": "#!python\n",
+        },
+    ).save_to_dir(script.scratch_path)
+    script.pip("install", "--compile", package)
+    assert not any(script.bin_path.glob("__pycache__/dostuff*.pyc"))
