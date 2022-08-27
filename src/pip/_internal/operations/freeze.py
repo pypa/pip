@@ -14,6 +14,7 @@ from pip._internal.req.constructors import (
 )
 from pip._internal.req.req_file import COMMENT_RE
 from pip._internal.utils.direct_url_helpers import direct_url_as_pep440_direct_reference
+from pip._internal.utils.misc import redact_auth_from_url
 
 logger = logging.getLogger(__name__)
 
@@ -250,5 +251,5 @@ class FrozenRequirement:
     def __str__(self) -> str:
         req = self.req
         if self.editable:
-            req = f"-e {req}"
+            req = f"-e {redact_auth_from_url(req)}"
         return "\n".join(list(self.comments) + [str(req)]) + "\n"
