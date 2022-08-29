@@ -594,9 +594,11 @@ def _install_wheel(
         # file in .data maps to same location as file in wheel root).
         # Sorting installation paths makes it easier to reproduce and debug
         # issues related to permissions on existing files.
-        for installed_path in sorted(set(installed.values()) - changed):
-            full_installed_path = os.path.join(lib_dir, installed_path)
+        for installed_path in sorted(set(installed.values())):
+            full_installed_path = os.path.abspath(os.path.join(lib_dir, installed_path))
             if not os.path.isfile(full_installed_path):
+                continue
+            if lib_dir not in full_installed_path:
                 continue
             if not full_installed_path.endswith(".py"):
                 continue
