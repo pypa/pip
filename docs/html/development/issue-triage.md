@@ -58,10 +58,6 @@ seen on the [Labels](https://github.com/pypa/pip/labels) page.
 
 In addition, there are several standalone labels:
 
-**good first issue**
-: this label marks an issue as beginner-friendly and shows up in banners that
-GitHub displays for first-time visitors to the repository
-
 **triage**
 : default label given to issues when they are created
 
