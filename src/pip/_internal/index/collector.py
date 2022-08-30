@@ -552,6 +552,7 @@ class LinkCollector:
         search_scope = SearchScope.create(
             find_links=find_links,
             index_urls=index_urls,
+            no_index=options.no_index,
         )
         link_collector = LinkCollector(
             session=session,

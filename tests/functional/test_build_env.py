@@ -41,7 +41,7 @@ def run_with_build_env(
 
             link_collector = LinkCollector(
                 session=PipSession(),
-                search_scope=SearchScope.create([{scratch!r}], []),
+                search_scope=SearchScope.create([{scratch!r}], [], False),
             )
             selection_prefs = SelectionPreferences(
                 allow_yanked=True,
