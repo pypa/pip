@@ -11,6 +11,10 @@ pip allows a user to change its behaviour via 3 mechanisms:
 This page explains how the configuration files and environment variables work,
 and how they are related to pip's various command line options.
 
+```{seealso}
+{doc}`../cli/pip_config` command, which helps manage pip's configuration.
+```
+
 (config-file)=
 
 ## Configuration Files
