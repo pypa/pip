@@ -598,7 +598,7 @@ def _install_wheel(
             full_installed_path = os.path.abspath(os.path.join(lib_dir, installed_path))
             if not os.path.isfile(full_installed_path):
                 continue
-            if lib_dir not in full_installed_path:
+            if lib_dir != os.path.commonpath([lib_dir, full_installed_path]):
                 continue
             if not full_installed_path.endswith(".py"):
                 continue
