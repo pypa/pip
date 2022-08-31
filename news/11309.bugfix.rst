@@ -1,0 +1,1 @@
+Ensure that the candidate ``pip`` executable exists, when checking for a new version of pip.
