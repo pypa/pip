@@ -459,6 +459,12 @@ def test_parse_links__requires_python(
     _test_parse_links_data_attribute(anchor_html, "requires_python", expected)
 
 
+# TODO: this test generates its own examples to validate the json client implementation
+# instead of sharing those examples with the html client testing. We expect this won't
+# hide any bugs because operations like resolving PEP 658 metadata should use the same
+# code for both types of indices, but it might be nice to explicitly have all our tests
+# in test_download.py execute over both html and json indices with
+# a pytest.mark.parameterize decorator to ensure nothing slips through the cracks.
 def test_parse_links_json() -> None:
     json_bytes = json.dumps(
         {
