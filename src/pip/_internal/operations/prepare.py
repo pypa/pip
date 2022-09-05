@@ -374,19 +374,17 @@ class RequirementPreparer:
             req.req,
             metadata_link,
         )
+        # Download the contents of the METADATA file, separate from the dist itself.
         metadata_file = get_http_url(
             metadata_link,
             self._download,
             hashes=metadata_link.as_hashes(),
         )
-        # The file will be downloaded under the same name as it's listed in the index,
-        # which will end with .metadata. To make importlib.metadata.PathDistribution
-        # work, we need to keep it in the same directory, but rename it to METADATA.
-        containing_dir = os.path.dirname(metadata_file.path)
-        new_metadata_path = os.path.join(containing_dir, "METADATA")
-        os.rename(metadata_file.path, new_metadata_path)
+        with open(metadata_file.path, "rb") as f:
+            metadata_contents = f.read()
+        # Generate a dist just from those file contents.
         return get_metadata_distribution(
-            new_metadata_path,
+            metadata_contents,
             req.link.filename,
             req.req.name,
         )

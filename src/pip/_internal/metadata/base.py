@@ -114,15 +114,18 @@ class BaseDistribution(Protocol):
         raise NotImplementedError()
 
     @classmethod
-    def from_metadata_file(
+    def from_metadata_file_contents(
         cls,
-        metadata_path: str,
+        metadata_contents: bytes,
         filename: str,
         project_name: str,
     ) -> "BaseDistribution":
         """Load the distribution from the contents of a METADATA file.
 
-        :param metadata: The path to a METADATA file.
+        This is used to implement PEP 658 by generating a "shallow" dist object that can
+        be used for resolution without downloading or building the actual dist yet.
+
+        :param metadata_contents: The contents of a METADATA file.
         :param filename: File name for the dist with this metadata.
         :param project_name: Name of the project this dist represents.
         """

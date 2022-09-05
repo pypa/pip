@@ -93,20 +93,18 @@ class Distribution(BaseDistribution):
         return cls(dist)
 
     @classmethod
-    def from_metadata_file(
+    def from_metadata_file_contents(
         cls,
-        metadata_path: str,
+        metadata_contents: bytes,
         filename: str,
         project_name: str,
     ) -> BaseDistribution:
-        with open(metadata_path, "rb") as f:
-            metadata = f.read()
-        metadata_text = {
-            "METADATA": metadata,
+        metadata_dict = {
+            "METADATA": metadata_contents,
         }
         dist = pkg_resources.DistInfoDistribution(
             location=filename,
-            metadata=InMemoryMetadata(metadata_text, filename),
+            metadata=InMemoryMetadata(metadata_dict, filename),
             project_name=project_name,
         )
         return cls(dist)
