@@ -246,7 +246,12 @@ class Link(KeyBasedCompareMixin):
         if file_url is None:
             return None
 
+        url = _ensure_quoted_url(urllib.parse.urljoin(page_url, file_url))
+        pyrequire = file_data.get("requires-python")
         yanked_reason = file_data.get("yanked")
+        dist_info_metadata = file_data.get("dist-info-metadata")
+        hashes = file_data.get("hashes", {})
+
         # The Link.yanked_reason expects an empty string instead of a boolean.
         if yanked_reason and not isinstance(yanked_reason, str):
             yanked_reason = ""
@@ -255,11 +260,12 @@ class Link(KeyBasedCompareMixin):
             yanked_reason = None
 
         return cls(
-            _ensure_quoted_url(urllib.parse.urljoin(page_url, file_url)),
+            url,
             comes_from=page_url,
-            requires_python=file_data.get("requires-python"),
+            requires_python=pyrequire,
             yanked_reason=yanked_reason,
-            hashes=file_data.get("hashes", {}),
+            hashes=hashes,
+            dist_info_metadata=dist_info_metadata,
         )
 
     @classmethod
