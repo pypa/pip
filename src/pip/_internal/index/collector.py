@@ -32,7 +32,7 @@ from pip._vendor.requests import Response
 from pip._vendor.requests.exceptions import RetryError, SSLError
 
 from pip._internal.exceptions import NetworkConnectionError
-from pip._internal.models.link import HTMLElement, Link
+from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.network.session import PipSession
 from pip._internal.network.utils import raise_for_status
@@ -186,27 +186,6 @@ def _get_encoding_from_headers(headers: ResponseHeaders) -> Optional[str]:
         if charset:
             return str(charset)
     return None
-
-
-def _determine_base_url(document: HTMLElement, page_url: str) -> str:
-    """Determine the HTML document's base URL.
-
-    This looks for a ``<base>`` tag in the HTML document. If present, its href
-    attribute denotes the base URL of anchor tags in the document. If there is
-    no such tag (or if it does not have a valid href attribute), the HTML
-    file's URL is used as the base URL.
-
-    :param document: An HTML document representation. The current
-        implementation expects the result of ``html5lib.parse()``.
-    :param page_url: The URL of the HTML document.
-
-    TODO: Remove when `html5lib` is dropped.
-    """
-    for base in document.findall(".//base"):
-        href = base.get("href")
-        if href is not None:
-            return href
-    return page_url
 
 
 class CacheablePageContent:

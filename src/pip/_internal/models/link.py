@@ -5,7 +5,6 @@ import os
 import posixpath
 import re
 import urllib.parse
-import xml.etree.ElementTree
 from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
@@ -35,8 +34,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-
-HTMLElement = xml.etree.ElementTree.Element
 
 # Order matters, earlier hashes have a precedence over later hashes for what
 # we will pick to use.
