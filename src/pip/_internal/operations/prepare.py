@@ -356,11 +356,11 @@ class RequirementPreparer:
             )
             return None
         # Try PEP 658 metadata first, then fall back to lazy wheel if unavailable.
-        return self._fetch_metadata_using_pep_658(
+        return self._fetch_metadata_using_link_data_attr(
             req
         ) or self._fetch_metadata_using_lazy_wheel(req.link)
 
-    def _fetch_metadata_using_pep_658(
+    def _fetch_metadata_using_link_data_attr(
         self,
         req: InstallRequirement,
     ) -> Optional[BaseDistribution]:
