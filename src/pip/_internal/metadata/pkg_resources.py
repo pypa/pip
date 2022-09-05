@@ -33,7 +33,7 @@ class EntryPoint(NamedTuple):
     group: str
 
 
-class WheelMetadata:
+class InMemoryMetadata:
     """IMetadataProvider that reads metadata files from a dictionary.
 
     This also maps metadata decoding exceptions to our internal exception type.
@@ -106,7 +106,7 @@ class Distribution(BaseDistribution):
         }
         dist = pkg_resources.DistInfoDistribution(
             location=filename,
-            metadata=WheelMetadata(metadata_text, filename),
+            metadata=InMemoryMetadata(metadata_text, filename),
             project_name=project_name,
         )
         return cls(dist)
@@ -127,7 +127,7 @@ class Distribution(BaseDistribution):
             raise UnsupportedWheel(f"{name} has an invalid wheel, {e}")
         dist = pkg_resources.DistInfoDistribution(
             location=wheel.location,
-            metadata=WheelMetadata(metadata_text, wheel.location),
+            metadata=InMemoryMetadata(metadata_text, wheel.location),
             project_name=name,
         )
         return cls(dist)
