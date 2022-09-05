@@ -479,6 +479,14 @@ def test_parse_links_json() -> None:
                     "requires-python": ">=3.7",
                     "dist-info-metadata": False,
                 },
+                # Same as above, but parsing dist-info-metadata.
+                {
+                    "filename": "holygrail-1.0-py3-none-any.whl",
+                    "url": "/files/holygrail-1.0-py3-none-any.whl",
+                    "hashes": {"sha256": "sha256 hash", "blake2b": "blake2b hash"},
+                    "requires-python": ">=3.7",
+                    "dist-info-metadata": "sha512=aabdd41",
+                },
             ],
         }
     ).encode("utf8")
@@ -507,7 +515,24 @@ def test_parse_links_json() -> None:
             yanked_reason=None,
             hashes={"sha256": "sha256 hash", "blake2b": "blake2b hash"},
         ),
+        Link(
+            "https://example.com/files/holygrail-1.0-py3-none-any.whl",
+            comes_from=page.url,
+            requires_python=">=3.7",
+            yanked_reason=None,
+            hashes={"sha256": "sha256 hash", "blake2b": "blake2b hash"},
+            dist_info_metadata="sha512=aabdd41",
+        ),
     ]
+
+    # Ensure the metadata info can be parsed into the correct link.
+    metadata_link = links[2].metadata_link()
+    assert metadata_link is not None
+    assert (
+        metadata_link.url
+        == "https://example.com/files/holygrail-1.0-py3-none-any.whl.metadata"
+    )
+    assert metadata_link.link_hash == LinkHash("sha512", "aabdd41")
 
 
 @pytest.mark.parametrize(
