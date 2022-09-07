@@ -335,8 +335,8 @@ class MetadataInconsistent(InstallationError):
     """Built metadata contains inconsistent information.
 
     This is raised when the metadata contains values (e.g. name and version)
-    that do not match the information previously obtained from sdist filename
-    or user-supplied ``#egg=`` value.
+    that do not match the information previously obtained from sdist filename,
+    user-supplied ``#egg=`` value, or an install requirement name.
     """
 
     def __init__(
@@ -349,8 +349,7 @@ class MetadataInconsistent(InstallationError):
 
     def __str__(self) -> str:
         template = (
-            "Requested {} has inconsistent {}: "
-            "filename has {!r}, but metadata has {!r}"
+            "Requested {} has inconsistent {}: expected {!r}, but metadata has {!r}"
         )
         return template.format(self.ireq, self.field, self.f_val, self.m_val)
 
