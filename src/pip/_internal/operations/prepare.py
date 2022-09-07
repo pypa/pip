@@ -19,6 +19,7 @@ from pip._internal.exceptions import (
     HashMismatch,
     HashUnpinned,
     InstallationError,
+    MetadataInconsistent,
     NetworkConnectionError,
     PreviousBuildDirError,
     VcsHashUnsupported,
@@ -365,6 +366,7 @@ class RequirementPreparer:
         req: InstallRequirement,
     ) -> Optional[BaseDistribution]:
         """Fetch metadata from the data-dist-info-metadata attribute, if possible."""
+        # (1) Get the link to the metadata file, if provided by the backend.
         metadata_link = req.link.metadata_link()
         if metadata_link is None:
             return None
@@ -374,7 +376,7 @@ class RequirementPreparer:
             req.req,
             metadata_link,
         )
-        # Download the contents of the METADATA file, separate from the dist itself.
+        # (2) Download the contents of the METADATA file, separate from the dist itself.
         metadata_file = get_http_url(
             metadata_link,
             self._download,
@@ -382,12 +384,23 @@ class RequirementPreparer:
         )
         with open(metadata_file.path, "rb") as f:
             metadata_contents = f.read()
-        # Generate a dist just from those file contents.
-        return get_metadata_distribution(
+        # (3) Generate a dist just from those file contents.
+        metadata_dist = get_metadata_distribution(
             metadata_contents,
             req.link.filename,
             req.req.name,
         )
+        # (4) Ensure the Name: field from the METADATA file matches the name from the
+        #     install requirement.
+        #
+        #     NB: raw_name will fall back to the name from the install requirement if
+        #     the Name: field is not present, but it's noted in the raw_name docstring
+        #     that that should NEVER happen anyway.
+        if metadata_dist.raw_name != req.req.name:
+            raise MetadataInconsistent(
+                req, "Name", req.req.name, metadata_dist.raw_name
+            )
+        return metadata_dist
 
     def _fetch_metadata_using_lazy_wheel(
         self,
