@@ -122,8 +122,7 @@ class Distribution(BaseDistribution):
             TempDirectory(kind="metadata", globally_managed=True).path
         )
         metadata_path = temp_dir / "METADATA"
-        with open(metadata_path, "wb") as f:
-            f.write(metadata_contents)
+        metadata_path.write_bytes(metadata_contents)
         # Construct dist pointing to the newly created directory.
         dist = importlib.metadata.Distribution.at(metadata_path.parent)
         return cls(dist, metadata_path.parent, None)
