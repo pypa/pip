@@ -214,7 +214,7 @@ class TempDirectory:
                 rmtree(self._path, onexc=onerror)
             if errors:
                 logger.warning(
-                    "Failed to remove contents of a temporary directory '%s'.\n"
+                    "Failed to remove contents in a temporary directory '%s'.\n"
                     "You can safely remove it manually.",
                     self._path,
                 )
