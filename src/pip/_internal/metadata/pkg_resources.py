@@ -114,7 +114,7 @@ class Distribution(BaseDistribution):
         try:
             with wheel.as_zipfile() as zf:
                 info_dir, _ = parse_wheel(zf, name)
-                metadata_text = {
+                metadata_dict = {
                     path.split("/", 1)[-1]: read_wheel_metadata_file(zf, path)
                     for path in zf.namelist()
                     if path.startswith(f"{info_dir}/")
@@ -125,7 +125,7 @@ class Distribution(BaseDistribution):
             raise UnsupportedWheel(f"{name} has an invalid wheel, {e}")
         dist = pkg_resources.DistInfoDistribution(
             location=wheel.location,
-            metadata=InMemoryMetadata(metadata_text, wheel.location),
+            metadata=InMemoryMetadata(metadata_dict, wheel.location),
             project_name=name,
         )
         return cls(dist)
