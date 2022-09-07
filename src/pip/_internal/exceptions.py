@@ -348,10 +348,10 @@ class MetadataInconsistent(InstallationError):
         self.m_val = m_val
 
     def __str__(self) -> str:
-        template = (
-            "Requested {} has inconsistent {}: expected {!r}, but metadata has {!r}"
+        return (
+            f"Requested {self.ireq} has inconsistent {self.field}: "
+            f"expected {self.f_val!r}, but metadata has {self.m_val!r}"
         )
-        return template.format(self.ireq, self.field, self.f_val, self.m_val)
 
 
 class LegacyInstallFailure(DiagnosticPipError):
