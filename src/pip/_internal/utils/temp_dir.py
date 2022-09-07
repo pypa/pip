@@ -5,7 +5,18 @@ import os.path
 import tempfile
 import traceback
 from contextlib import ExitStack, contextmanager
-from typing import Any, Callable, Dict, Generator, Optional, Tuple, Type, TypeVar, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 from pip._internal.utils.misc import enum, rmtree
 
@@ -174,6 +185,8 @@ class TempDirectory:
         if not os.path.exists(self._path):
             return
 
+        errors: List[BaseException] = []
+
         def onerror(
             func: Callable[[str], Any],
             path: str,
@@ -183,14 +196,14 @@ class TempDirectory:
             exc_val = "\n".join(traceback.format_exception_only(*exc_info[:2]))
             exc_val = exc_val.rstrip()  # remove trailing new line
             if func in (os.unlink, os.remove, os.rmdir):
-                logging.warning(
-                    "Failed to remove a temporary file '%s' due to %s.\n"
-                    "You can safely remove it manually.",
+                logger.debug(
+                    "Failed to remove a temporary file '%s' due to %s.\n",
                     path,
                     exc_val,
                 )
             else:
-                logging.warning("%s failed with %s.", func.__qualname__, exc_val)
+                logger.debug("%s failed with %s.", func.__qualname__, exc_val)
+            errors.append(exc_info[1])
 
         if self.ignore_cleanup_errors:
             try:
@@ -199,6 +212,12 @@ class TempDirectory:
             except OSError:
                 # last pass ignore/log all errors
                 rmtree(self._path, onexc=onerror)
+            if errors:
+                logger.warning(
+                    "Failed to remove contents of a temporary directory '%s'.\n"
+                    "You can safely remove it manually.",
+                    self._path,
+                )
         else:
             rmtree(self._path)
 
