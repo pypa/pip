@@ -60,14 +60,12 @@ body:
       label: Output
       description: >-
         Provide the output of the steps above, including the commands
-        themselves and pip's output/traceback etc. If you're familiar with
-        Markdown, DO NOT add backticks. They're added automatically.
+        themselves and pip's output/traceback etc.
 
         If you want to present output from multiple commands, please prefix
         the line containing the command with `$ `. Please also ensure that
         the "How to reproduce" section contains matching instructions for
         reproducing this.
-      render: shell
 
   - type: checkboxes
     attributes:

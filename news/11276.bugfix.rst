@@ -1,0 +1,2 @@
+Fix ``--no-index`` when ``--index-url`` or ``--extra-index-url`` is specified
+inside a requirements file.

@@ -1,0 +1,1 @@
+Use the ``data-dist-info-metadata`` attribute from :pep:`658` to resolve distribution metadata without downloading the dist yet.

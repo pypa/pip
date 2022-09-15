@@ -593,7 +593,7 @@ class TestPackageFinder:
         """
         link_collector = LinkCollector(
             session=PipSession(),
-            search_scope=SearchScope([], []),
+            search_scope=SearchScope([], [], False),
         )
         selection_prefs = SelectionPreferences(
             allow_yanked=True,
@@ -614,7 +614,7 @@ class TestPackageFinder:
         """
         link_collector = LinkCollector(
             session=PipSession(),
-            search_scope=SearchScope([], []),
+            search_scope=SearchScope([], [], False),
         )
         finder = PackageFinder.create(
             link_collector=link_collector,
@@ -629,7 +629,7 @@ class TestPackageFinder:
         """
         link_collector = LinkCollector(
             session=PipSession(),
-            search_scope=SearchScope([], []),
+            search_scope=SearchScope([], [], False),
         )
         target_python = TargetPython(py_version_info=(3, 7, 3))
         finder = PackageFinder.create(
@@ -649,7 +649,7 @@ class TestPackageFinder:
         """
         link_collector = LinkCollector(
             session=PipSession(),
-            search_scope=SearchScope([], []),
+            search_scope=SearchScope([], [], False),
         )
         finder = PackageFinder.create(
             link_collector=link_collector,
@@ -668,7 +668,7 @@ class TestPackageFinder:
         """
         link_collector = LinkCollector(
             session=PipSession(),
-            search_scope=SearchScope([], []),
+            search_scope=SearchScope([], [], False),
         )
         selection_prefs = SelectionPreferences(allow_yanked=allow_yanked)
         finder = PackageFinder.create(
@@ -684,7 +684,7 @@ class TestPackageFinder:
         """
         link_collector = LinkCollector(
             session=PipSession(),
-            search_scope=SearchScope([], []),
+            search_scope=SearchScope([], [], False),
         )
         selection_prefs = SelectionPreferences(
             allow_yanked=True,
@@ -702,7 +702,7 @@ class TestPackageFinder:
         """
         link_collector = LinkCollector(
             session=PipSession(),
-            search_scope=SearchScope([], []),
+            search_scope=SearchScope([], [], False),
         )
         format_control = FormatControl(set(), {":all:"})
         selection_prefs = SelectionPreferences(
@@ -743,7 +743,7 @@ class TestPackageFinder:
 
         link_collector = LinkCollector(
             session=PipSession(),
-            search_scope=SearchScope([], []),
+            search_scope=SearchScope([], [], False),
         )
 
         finder = PackageFinder(
@@ -793,7 +793,7 @@ class TestPackageFinder:
         )
         link_collector = LinkCollector(
             session=PipSession(),
-            search_scope=SearchScope([], []),
+            search_scope=SearchScope([], [], False),
         )
         finder = PackageFinder(
             link_collector=link_collector,

@@ -229,11 +229,13 @@ def handle_option_line(
     if finder:
         find_links = finder.find_links
         index_urls = finder.index_urls
-        if opts.index_url:
-            index_urls = [opts.index_url]
+        no_index = finder.search_scope.no_index
         if opts.no_index is True:
+            no_index = True
             index_urls = []
-        if opts.extra_index_urls:
+        if opts.index_url and not no_index:
+            index_urls = [opts.index_url]
+        if opts.extra_index_urls and not no_index:
             index_urls.extend(opts.extra_index_urls)
         if opts.find_links:
             # FIXME: it would be nice to keep track of the source
@@ -253,6 +255,7 @@ def handle_option_line(
         search_scope = SearchScope(
             find_links=find_links,
             index_urls=index_urls,
+            no_index=no_index,
         )
         finder.search_scope = search_scope
 

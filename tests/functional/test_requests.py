@@ -7,7 +7,7 @@ from tests.lib import PipTestEnvironment
 def test_timeout(script: PipTestEnvironment) -> None:
     result = script.pip(
         "--retries",
-        "1",
+        "0",
         "--timeout",
         "0.00001",
         "install",
