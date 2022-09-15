@@ -5,7 +5,6 @@ from setuptools import find_packages, setup
 
 
 def read(rel_path: str) -> str:
-    
     here = os.path.abspath(os.path.dirname(__file__))
     # intentionally *not* adding an encoding option to open, See:
     #   https://github.com/pypa/virtualenv/issues/201#issuecomment-3145690
