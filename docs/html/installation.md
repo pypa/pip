@@ -47,6 +47,13 @@ More details about this script can be found in [pypa/get-pip]'s README.
 
 ### Standalone zip application
 
+```{note}
+The zip application is currently experimental. We test that pip runs correctly
+in this form, but it is possible that there could be issues in some situations.
+We will accept bug reports in such cases, but for now the zip application should
+not be used in production environments.
+```
+
 In addition to installing pip in your environment, pip is available as a
 standalone [zip application](https://docs.python.org/3.11/library/zipapp.html).
 This can be downloaded from <https://bootstrap.pypa.io/pip/pip.pyz>. There are
@@ -65,13 +72,6 @@ $ pip.pyz --help
 ```
 
 then the currently active Python interpreter will be used.
-
-```{note}
-The zip application is currently experimental. We test that pip runs correctly
-in this form, but it is possible that there could be issues in some situations.
-We will accept bug reports in such cases, but for now the zip application should
-not be used in production environments.
-```
 
 ## Alternative Methods
 
