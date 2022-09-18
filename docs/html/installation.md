@@ -45,7 +45,7 @@ More details about this script can be found in [pypa/get-pip]'s README.
 
 [pypa/get-pip]: https://github.com/pypa/get-pip
 
-## Standalone zip application
+### Standalone zip application
 
 In addition to installing pip in your environment, pip is available as a
 standalone [zip application](https://docs.python.org/3.11/library/zipapp.html).
