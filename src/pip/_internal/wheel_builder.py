@@ -83,6 +83,11 @@ def _should_build(
 
     assert check_bdist_wheel is not None
     if not check_bdist_wheel(req):
+        # /!\ When we change this to unconditionally return True, we must also remove
+        # support for `--install-option`. Indeed, `--install-option` implies
+        # `--no-binary` so we can return False here and run `setup.py install`.
+        # `--global-option` and `--build-option` can remain until we drop support for
+        # building with `setup.py bdist_wheel`.
         req.legacy_install_reason = LegacyInstallReasonNoBinaryForcesSetuptoolsInstall
         return False
 
