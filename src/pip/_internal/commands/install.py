@@ -29,7 +29,10 @@ from pip._internal.operations.check import ConflictDetails, check_install_confli
 from pip._internal.req import install_given_reqs
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.compat import WINDOWS
-from pip._internal.utils.deprecation import LegacyInstallReasonFailedBdistWheel
+from pip._internal.utils.deprecation import (
+    LegacyInstallReasonFailedBdistWheel,
+    deprecated,
+)
 from pip._internal.utils.distutils_args import parse_distutils_args
 from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.logging import getLogger
@@ -326,8 +329,6 @@ class InstallCommand(RequirementCommand):
             target_python=target_python,
             ignore_requires_python=options.ignore_requires_python,
         )
-        wheel_cache = WheelCache(options.cache_dir, options.format_control)
-
         build_tracker = self.enter_context(get_build_tracker())
 
         directory = TempDirectory(
@@ -338,6 +339,25 @@ class InstallCommand(RequirementCommand):
 
         try:
             reqs = self.get_requirements(args, options, finder, session)
+
+            if "no-binary-enable-wheel-cache" in options.features_enabled:
+                # TODO: remove format_control from WheelCache when the deprecation cycle
+                # is over
+                wheel_cache = WheelCache(options.cache_dir)
+            else:
+                if options.format_control.no_binary:
+                    deprecated(
+                        reason=(
+                            "--no-binary currently disables reading from "
+                            "the cache of locally built wheels. In the future "
+                            "--no-binary will not influence the wheel cache."
+                        ),
+                        replacement="to use the --no-cache-dir option",
+                        feature_flag="no-binary-enable-wheel-cache",
+                        issue=11453,
+                        gone_in="23.1",
+                    )
+                wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
             # Only when installing is it permitted to use PEP 660.
             # In other circumstances (pip wheel, pip download) we generate
