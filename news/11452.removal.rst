@@ -1,0 +1,2 @@
+Deprecate installation with 'setup.py install' when no-binary is enabled for
+source distributions without 'pyproject.toml'.
