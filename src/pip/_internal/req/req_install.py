@@ -889,6 +889,15 @@ def _has_option(options: Values, reqs: List[InstallRequirement], option: str) ->
     return False
 
 
+def _install_option_ignored(
+    install_options: List[str], reqs: List[InstallRequirement]
+) -> bool:
+    for req in reqs:
+        if (install_options or req.install_options) and not req.use_pep517:
+            return False
+    return True
+
+
 class LegacySetupPyOptionsCheckMode(Enum):
     INSTALL = 1
     WHEEL = 2
@@ -916,13 +925,18 @@ def check_legacy_setup_py_options(
         "Consider using --config-settings for more flexibility.",
     )
     if mode == LegacySetupPyOptionsCheckMode.INSTALL and has_install_options:
-        deprecated(
-            reason=(
-                "--install-option is deprecated because "
-                "it forces pip to use the 'setup.py install' "
-                "command which is itself deprecated."
-            ),
-            issue=11358,
-            replacement="to use --config-settings",
-            gone_in="23.1",
-        )
+        if _install_option_ignored(options.install_options, reqs):
+            logger.warning(
+                "Ignoring --install-option when building using PEP 517",
+            )
+        else:
+            deprecated(
+                reason=(
+                    "--install-option is deprecated because "
+                    "it forces pip to use the 'setup.py install' "
+                    "command which is itself deprecated."
+                ),
+                issue=11358,
+                replacement="to use --config-settings",
+                gone_in="23.1",
+            )
