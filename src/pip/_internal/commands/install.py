@@ -452,7 +452,7 @@ class InstallCommand(RequirementCommand):
                 wheel_cache=wheel_cache,
                 verify=True,
                 build_options=[],
-                global_options=[],
+                global_options=global_options,
             )
 
             # If we're using PEP 517, we cannot do a legacy setup.py install
