@@ -4,7 +4,7 @@ from typing import Optional
 
 import pytest
 
-from pip._internal.build_env import BuildEnvironment
+from pip._internal.build_env import BuildEnvironment, _get_system_sitepackages
 from tests.lib import (
     PipTestEnvironment,
     TestPipResult,
@@ -226,6 +226,10 @@ def test_build_env_isolation(script: PipTestEnvironment) -> None:
     script.pip_install_local("-t", target, pkg_whl)
     script.environ["PYTHONPATH"] = target
 
+    system_sites = _get_system_sitepackages()
+    # there should always be something to exclude
+    assert system_sites
+
     run_with_build_env(
         script,
         "",
@@ -247,5 +251,14 @@ def test_build_env_isolation(script: PipTestEnvironment) -> None:
                     })), file=sys.stderr)
             print('sys.path:\n  ' + '\n  '.join(sys.path), file=sys.stderr)
             sys.exit(1)
+        """
+        f"""
+        # second check: direct check of exclusion of system site packages
+        import os
+
+        normalized_path = [os.path.normcase(path) for path in sys.path]
+        for system_path in {system_sites!r}:
+            assert system_path not in normalized_path, \
+            f"{{system_path}} found in {{normalized_path}}"
         """,
     )
