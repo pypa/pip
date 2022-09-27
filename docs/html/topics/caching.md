@@ -96,7 +96,7 @@ In some cases, pip's caching behaviour can be undesirable. As an example, if you
 have package with optional C extensions, that generates a pure Python wheel
 when the C extension can’t be built, pip will use that cached wheel even when
 you later invoke it from an environment that could have built those optional C
-extensions. This is because pip is seeing a cached wheel for that matches the
+extensions. This is because pip is seeing a cached wheel that matches the
 package being built, and pip assumes that the result of building a package from
 a package index is deterministic.
 
