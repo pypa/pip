@@ -284,3 +284,34 @@ jobs:
           -m integration
           --verbose --numprocesses auto --showlocals
           --durations=5
+
+  check:  # This job does nothing and is only used for the branch protection
+    if: always()
+
+    needs:
+      - determine-changes
+      - docs
+      - packaging
+      - pre-commit
+      - tests-unix
+      - tests-windows
+      - tests-zipapp
+      - tests-importlib-metadata
+      - vendoring
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Decide whether the needed jobs succeeded or failed
+        uses: re-actors/alls-green@release/v1
+        with:
+          allowed-skips: >-
+            ${{
+              (
+                needs.determine-changes.outputs.vendoring != 'true'
+                && github.event_name == 'pull_request'
+              )
+              && 'vendoring'
+              || ''
+            }}
+          jobs: ${{ toJSON(needs) }}
