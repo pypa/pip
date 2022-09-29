@@ -323,8 +323,8 @@ jobs:
               && '
                 tests-unix,
                 tests-windows,
-                test-zipapp,
-                test-importlib-metadata,
+                tests-zipapp,
+                tests-importlib-metadata,
               '
               || ''
             }}
