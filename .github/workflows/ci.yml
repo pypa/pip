@@ -314,4 +314,18 @@ jobs:
               && 'vendoring'
               || ''
             }}
+            ,
+            ${{
+              (
+                needs.determine-changes.outputs.tests != 'true'
+                && github.event_name == 'pull_request'
+              )
+              && '
+                tests-unix,
+                tests-windows,
+                test-zipapp,
+                test-importlib-metadata,
+              '
+              || ''
+            }}
           jobs: ${{ toJSON(needs) }}
