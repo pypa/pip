@@ -104,7 +104,6 @@ class TestRequirementSet:
                 finder=finder,
                 require_hashes=require_hashes,
                 use_user_site=False,
-                lazy_wheel=False,
                 verbosity=0,
             )
             yield Resolver(
