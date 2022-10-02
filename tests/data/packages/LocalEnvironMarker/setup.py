@@ -11,17 +11,17 @@ def path_to_url(path):
     path = os.path.normpath(os.path.abspath(path))
     drive, path = os.path.splitdrive(path)
     filepath = path.split(os.path.sep)
-    url = '/'.join(filepath)
+    url = "/".join(filepath)
     if drive:
-        return 'file:///' + drive + url
-    return 'file://' + url
+        return "file:///" + drive + url
+    return "file://" + url
 
 
 setup(
-    name='LocalEnvironMarker',
-    version='0.0.1',
+    name="LocalEnvironMarker",
+    version="0.0.1",
     packages=find_packages(),
     extras_require={
-        ":python_version == '2.7'": ['simple'],
-    }
+        ":python_version == '2.7'": ["simple"],
+    },
 )

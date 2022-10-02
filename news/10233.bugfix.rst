@@ -1,3 +1,0 @@
-New resolver: When a package is specified with extras in constraints, and with
-extras in non-constraint requirements, the resolver now correctly identifies the
-constraint's existence and avoids backtracking.

@@ -18,11 +18,11 @@ from itertools import filterfalse, tee, zip_longest
 from types import TracebackType
 from typing import (
     Any,
-    AnyStr,
     BinaryIO,
     Callable,
-    Container,
     ContextManager,
+    Dict,
+    Generator,
     Iterable,
     Iterator,
     List,
@@ -34,17 +34,14 @@ from typing import (
     cast,
 )
 
-from pip._vendor.pkg_resources import Distribution
+from pip._vendor.pep517 import Pep517HookCaller
 from pip._vendor.tenacity import retry, stop_after_delay, wait_fixed
 
 from pip import __version__
 from pip._internal.exceptions import CommandError
-from pip._internal.locations import get_major_minor_version, site_packages, user_site
-from pip._internal.utils.compat import WINDOWS, stdlib_pkgs
-from pip._internal.utils.virtualenv import (
-    running_under_virtualenv,
-    virtualenv_no_global,
-)
+from pip._internal.locations import get_major_minor_version
+from pip._internal.utils.compat import WINDOWS
+from pip._internal.utils.virtualenv import running_under_virtualenv
 
 __all__ = [
     "rmtree",
@@ -60,6 +57,7 @@ __all__ = [
     "captured_stdout",
     "ensure_dir",
     "remove_auth_from_url",
+    "ConfiguredPep517HookCaller",
 ]
 
 
@@ -71,8 +69,7 @@ VersionInfo = Tuple[int, int, int]
 NetlocTuple = Tuple[str, Tuple[Optional[str], Optional[str]]]
 
 
-def get_pip_version():
-    # type: () -> str
+def get_pip_version() -> str:
     pip_pkg_dir = os.path.join(os.path.dirname(__file__), "..", "..")
     pip_pkg_dir = os.path.abspath(pip_pkg_dir)
 
@@ -83,8 +80,7 @@ def get_pip_version():
     )
 
 
-def normalize_version_info(py_version_info):
-    # type: (Tuple[int, ...]) -> Tuple[int, int, int]
+def normalize_version_info(py_version_info: Tuple[int, ...]) -> Tuple[int, int, int]:
     """
     Convert a tuple of ints representing a Python version to one of length
     three.
@@ -103,8 +99,7 @@ def normalize_version_info(py_version_info):
     return cast("VersionInfo", py_version_info)
 
 
-def ensure_dir(path):
-    # type: (AnyStr) -> None
+def ensure_dir(path: str) -> None:
     """os.path.makedirs without EEXIST."""
     try:
         os.makedirs(path)
@@ -114,8 +109,7 @@ def ensure_dir(path):
             raise
 
 
-def get_prog():
-    # type: () -> str
+def get_prog() -> str:
     try:
         prog = os.path.basename(sys.argv[0])
         if prog in ("__main__.py", "-c"):
@@ -130,13 +124,11 @@ def get_prog():
 # Retry every half second for up to 3 seconds
 # Tenacity raises RetryError by default, explicitly raise the original exception
 @retry(reraise=True, stop=stop_after_delay(3), wait=wait_fixed(0.5))
-def rmtree(dir, ignore_errors=False):
-    # type: (AnyStr, bool) -> None
+def rmtree(dir: str, ignore_errors: bool = False) -> None:
     shutil.rmtree(dir, ignore_errors=ignore_errors, onerror=rmtree_errorhandler)
 
 
-def rmtree_errorhandler(func, path, exc_info):
-    # type: (Callable[..., Any], str, ExcInfo) -> None
+def rmtree_errorhandler(func: Callable[..., Any], path: str, exc_info: ExcInfo) -> None:
     """On Windows, the files in .svn are read-only, so when rmtree() tries to
     remove them, an exception is thrown.  We catch that here, remove the
     read-only attribute, and hopefully continue without problems."""
@@ -156,8 +148,7 @@ def rmtree_errorhandler(func, path, exc_info):
         raise
 
 
-def display_path(path):
-    # type: (str) -> str
+def display_path(path: str) -> str:
     """Gives the display value for a given path, making it relative to cwd
     if possible."""
     path = os.path.normcase(os.path.abspath(path))
@@ -166,8 +157,7 @@ def display_path(path):
     return path
 
 
-def backup_dir(dir, ext=".bak"):
-    # type: (str, str) -> str
+def backup_dir(dir: str, ext: str = ".bak") -> str:
     """Figure out the name of a directory to back up the given dir to
     (adding .bak, .bak2, etc)"""
     n = 1
@@ -178,16 +168,14 @@ def backup_dir(dir, ext=".bak"):
     return dir + extension
 
 
-def ask_path_exists(message, options):
-    # type: (str, Iterable[str]) -> str
+def ask_path_exists(message: str, options: Iterable[str]) -> str:
     for action in os.environ.get("PIP_EXISTS_ACTION", "").split():
         if action in options:
             return action
     return ask(message, options)
 
 
-def _check_no_input(message):
-    # type: (str) -> None
+def _check_no_input(message: str) -> None:
     """Raise an error if no input is allowed."""
     if os.environ.get("PIP_NO_INPUT"):
         raise Exception(
@@ -195,8 +183,7 @@ def _check_no_input(message):
         )
 
 
-def ask(message, options):
-    # type: (str, Iterable[str]) -> str
+def ask(message: str, options: Iterable[str]) -> str:
     """Ask the message interactively, with the given possible responses"""
     while 1:
         _check_no_input(message)
@@ -211,22 +198,19 @@ def ask(message, options):
             return response
 
 
-def ask_input(message):
-    # type: (str) -> str
+def ask_input(message: str) -> str:
     """Ask for input interactively."""
     _check_no_input(message)
     return input(message)
 
 
-def ask_password(message):
-    # type: (str) -> str
+def ask_password(message: str) -> str:
     """Ask for a password interactively."""
     _check_no_input(message)
     return getpass.getpass(message)
 
 
-def strtobool(val):
-    # type: (str) -> int
+def strtobool(val: str) -> int:
     """Convert a string representation of truth to true (1) or false (0).
 
     True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
@@ -242,8 +226,7 @@ def strtobool(val):
         raise ValueError(f"invalid truth value {val!r}")
 
 
-def format_size(bytes):
-    # type: (float) -> str
+def format_size(bytes: float) -> str:
     if bytes > 1000 * 1000:
         return "{:.1f} MB".format(bytes / 1000.0 / 1000)
     elif bytes > 10 * 1000:
@@ -254,8 +237,7 @@ def format_size(bytes):
         return "{} bytes".format(int(bytes))
 
 
-def tabulate(rows):
-    # type: (Iterable[Iterable[Any]]) -> Tuple[List[str], List[int]]
+def tabulate(rows: Iterable[Iterable[Any]]) -> Tuple[List[str], List[int]]:
     """Return a list of formatted rows and a list of column sizes.
 
     For example::
@@ -286,8 +268,9 @@ def is_installable_dir(path: str) -> bool:
     return False
 
 
-def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
-    # type: (BinaryIO, int) -> Iterator[bytes]
+def read_chunks(
+    file: BinaryIO, size: int = io.DEFAULT_BUFFER_SIZE
+) -> Generator[bytes, None, None]:
     """Yield pieces of data from a file-like object until EOF."""
     while True:
         chunk = file.read(size)
@@ -296,8 +279,7 @@ def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
         yield chunk
 
 
-def normalize_path(path, resolve_symlinks=True):
-    # type: (str, bool) -> str
+def normalize_path(path: str, resolve_symlinks: bool = True) -> str:
     """
     Convert a path to its canonical, case-normalized, absolute version.
 
@@ -310,8 +292,7 @@ def normalize_path(path, resolve_symlinks=True):
     return os.path.normcase(path)
 
 
-def splitext(path):
-    # type: (str) -> Tuple[str, str]
+def splitext(path: str) -> Tuple[str, str]:
     """Like os.path.splitext, but take off .tar too"""
     base, ext = posixpath.splitext(path)
     if base.lower().endswith(".tar"):
@@ -320,8 +301,7 @@ def splitext(path):
     return base, ext
 
 
-def renames(old, new):
-    # type: (str, str) -> None
+def renames(old: str, new: str) -> None:
     """Like os.renames(), but handles renaming across devices."""
     # Implementation borrowed from os.renames().
     head, tail = os.path.split(new)
@@ -338,8 +318,7 @@ def renames(old, new):
             pass
 
 
-def is_local(path):
-    # type: (str) -> bool
+def is_local(path: str) -> bool:
     """
     Return True if path is within sys.prefix, if we're running in a virtualenv.
 
@@ -353,158 +332,15 @@ def is_local(path):
     return path.startswith(normalize_path(sys.prefix))
 
 
-def dist_is_local(dist):
-    # type: (Distribution) -> bool
-    """
-    Return True if given Distribution object is installed locally
-    (i.e. within current virtualenv).
-
-    Always True if we're not in a virtualenv.
-
-    """
-    return is_local(dist_location(dist))
-
-
-def dist_in_usersite(dist):
-    # type: (Distribution) -> bool
-    """
-    Return True if given Distribution is installed in user site.
-    """
-    return dist_location(dist).startswith(normalize_path(user_site))
-
-
-def dist_in_site_packages(dist):
-    # type: (Distribution) -> bool
-    """
-    Return True if given Distribution is installed in
-    sysconfig.get_python_lib().
-    """
-    return dist_location(dist).startswith(normalize_path(site_packages))
-
-
-def dist_is_editable(dist):
-    # type: (Distribution) -> bool
-    """
-    Return True if given Distribution is an editable install.
-    """
-    for path_item in sys.path:
-        egg_link = os.path.join(path_item, dist.project_name + ".egg-link")
-        if os.path.isfile(egg_link):
-            return True
-    return False
-
-
-def get_installed_distributions(
-    local_only=True,  # type: bool
-    skip=stdlib_pkgs,  # type: Container[str]
-    include_editables=True,  # type: bool
-    editables_only=False,  # type: bool
-    user_only=False,  # type: bool
-    paths=None,  # type: Optional[List[str]]
-):
-    # type: (...) -> List[Distribution]
-    """Return a list of installed Distribution objects.
-
-    Left for compatibility until direct pkg_resources uses are refactored out.
-    """
-    from pip._internal.metadata import get_default_environment, get_environment
-    from pip._internal.metadata.pkg_resources import Distribution as _Dist
-
-    if paths is None:
-        env = get_default_environment()
-    else:
-        env = get_environment(paths)
-    dists = env.iter_installed_distributions(
-        local_only=local_only,
-        skip=skip,
-        include_editables=include_editables,
-        editables_only=editables_only,
-        user_only=user_only,
-    )
-    return [cast(_Dist, dist)._dist for dist in dists]
-
-
-def get_distribution(req_name):
-    # type: (str) -> Optional[Distribution]
-    """Given a requirement name, return the installed Distribution object.
-
-    This searches from *all* distributions available in the environment, to
-    match the behavior of ``pkg_resources.get_distribution()``.
-
-    Left for compatibility until direct pkg_resources uses are refactored out.
-    """
-    from pip._internal.metadata import get_default_environment
-    from pip._internal.metadata.pkg_resources import Distribution as _Dist
-
-    dist = get_default_environment().get_distribution(req_name)
-    if dist is None:
-        return None
-    return cast(_Dist, dist)._dist
-
-
-def egg_link_path(dist):
-    # type: (Distribution) -> Optional[str]
-    """
-    Return the path for the .egg-link file if it exists, otherwise, None.
-
-    There's 3 scenarios:
-    1) not in a virtualenv
-       try to find in site.USER_SITE, then site_packages
-    2) in a no-global virtualenv
-       try to find in site_packages
-    3) in a yes-global virtualenv
-       try to find in site_packages, then site.USER_SITE
-       (don't look in global location)
-
-    For #1 and #3, there could be odd cases, where there's an egg-link in 2
-    locations.
-
-    This method will just return the first one found.
-    """
-    sites = []
-    if running_under_virtualenv():
-        sites.append(site_packages)
-        if not virtualenv_no_global() and user_site:
-            sites.append(user_site)
-    else:
-        if user_site:
-            sites.append(user_site)
-        sites.append(site_packages)
-
-    for site in sites:
-        egglink = os.path.join(site, dist.project_name) + ".egg-link"
-        if os.path.isfile(egglink):
-            return egglink
-    return None
-
-
-def dist_location(dist):
-    # type: (Distribution) -> str
-    """
-    Get the site-packages location of this distribution. Generally
-    this is dist.location, except in the case of develop-installed
-    packages, where dist.location is the source code location, and we
-    want to know where the egg-link file is.
-
-    The returned location is normalized (in particular, with symlinks removed).
-    """
-    egg_link = egg_link_path(dist)
-    if egg_link:
-        return normalize_path(egg_link)
-    return normalize_path(dist.location)
-
-
-def write_output(msg, *args):
-    # type: (Any, Any) -> None
+def write_output(msg: Any, *args: Any) -> None:
     logger.info(msg, *args)
 
 
 class StreamWrapper(StringIO):
-    orig_stream = None  # type: TextIO
+    orig_stream: TextIO = None
 
     @classmethod
-    def from_stream(cls, orig_stream):
-        # type: (TextIO) -> StreamWrapper
+    def from_stream(cls, orig_stream: TextIO) -> "StreamWrapper":
         cls.orig_stream = orig_stream
         return cls()
 
@@ -516,8 +352,7 @@ class StreamWrapper(StringIO):
 
 
 @contextlib.contextmanager
-def captured_output(stream_name):
-    # type: (str) -> Iterator[StreamWrapper]
+def captured_output(stream_name: str) -> Generator[StreamWrapper, None, None]:
     """Return a context manager used by captured_stdout/stdin/stderr
     that temporarily replaces the sys stream *stream_name* with a StringIO.
 
@@ -531,8 +366,7 @@ def captured_output(stream_name):
         setattr(sys, stream_name, orig_stdout)
 
 
-def captured_stdout():
-    # type: () -> ContextManager[StreamWrapper]
+def captured_stdout() -> ContextManager[StreamWrapper]:
     """Capture the output of sys.stdout:
 
        with captured_stdout() as stdout:
@@ -544,8 +378,7 @@ def captured_stdout():
     return captured_output("stdout")
 
 
-def captured_stderr():
-    # type: () -> ContextManager[StreamWrapper]
+def captured_stderr() -> ContextManager[StreamWrapper]:
     """
     See captured_stdout().
     """
@@ -553,16 +386,14 @@ def captured_stderr():
 
 
 # Simulates an enum
-def enum(*sequential, **named):
-    # type: (*Any, **Any) -> Type[Any]
+def enum(*sequential: Any, **named: Any) -> Type[Any]:
     enums = dict(zip(sequential, range(len(sequential))), **named)
     reverse = {value: key for key, value in enums.items()}
     enums["reverse_mapping"] = reverse
     return type("Enum", (), enums)
 
 
-def build_netloc(host, port):
-    # type: (str, Optional[int]) -> str
+def build_netloc(host: str, port: Optional[int]) -> str:
     """
     Build a netloc from a host-port pair
     """
@@ -574,8 +405,7 @@ def build_netloc(host, port):
     return f"{host}:{port}"
 
 
-def build_url_from_netloc(netloc, scheme="https"):
-    # type: (str, str) -> str
+def build_url_from_netloc(netloc: str, scheme: str = "https") -> str:
     """
     Build a full URL from a netloc.
     """
@@ -585,8 +415,7 @@ def build_url_from_netloc(netloc, scheme="https"):
     return f"{scheme}://{netloc}"
 
 
-def parse_netloc(netloc):
-    # type: (str) -> Tuple[str, Optional[int]]
+def parse_netloc(netloc: str) -> Tuple[str, Optional[int]]:
     """
     Return the host-port pair from a netloc.
     """
@@ -595,8 +424,7 @@ def parse_netloc(netloc):
     return parsed.hostname, parsed.port
 
 
-def split_auth_from_netloc(netloc):
-    # type: (str) -> NetlocTuple
+def split_auth_from_netloc(netloc: str) -> NetlocTuple:
     """
     Parse out and remove the auth information from a netloc.
 
@@ -609,7 +437,7 @@ def split_auth_from_netloc(netloc):
     # behaves if more than one @ is present (which can be checked using
     # the password attribute of urlsplit()'s return value).
     auth, netloc = netloc.rsplit("@", 1)
-    pw = None  # type: Optional[str]
+    pw: Optional[str] = None
     if ":" in auth:
         # Split from the left because that's how urllib.parse.urlsplit()
         # behaves if more than one : is present (which again can be checked
@@ -625,8 +453,7 @@ def split_auth_from_netloc(netloc):
     return netloc, (user, pw)
 
 
-def redact_netloc(netloc):
-    # type: (str) -> str
+def redact_netloc(netloc: str) -> str:
     """
     Replace the sensitive data in a netloc with "****", if it exists.
 
@@ -648,8 +475,9 @@ def redact_netloc(netloc):
     )
 
 
-def _transform_url(url, transform_netloc):
-    # type: (str, Callable[[str], Tuple[Any, ...]]) -> Tuple[str, NetlocTuple]
+def _transform_url(
+    url: str, transform_netloc: Callable[[str], Tuple[Any, ...]]
+) -> Tuple[str, NetlocTuple]:
     """Transform and replace netloc in a url.
 
     transform_netloc is a function taking the netloc and returning a
@@ -667,18 +495,15 @@ def _transform_url(url, transform_netloc):
     return surl, cast("NetlocTuple", netloc_tuple)
 
 
-def _get_netloc(netloc):
-    # type: (str) -> NetlocTuple
+def _get_netloc(netloc: str) -> NetlocTuple:
     return split_auth_from_netloc(netloc)
 
 
-def _redact_netloc(netloc):
-    # type: (str) -> Tuple[str,]
+def _redact_netloc(netloc: str) -> Tuple[str]:
     return (redact_netloc(netloc),)
 
 
-def split_auth_netloc_from_url(url):
-    # type: (str) -> Tuple[str, str, Tuple[str, str]]
+def split_auth_netloc_from_url(url: str) -> Tuple[str, str, Tuple[str, str]]:
     """
     Parse a url into separate netloc, auth, and url with no auth.
 
@@ -688,41 +513,31 @@ def split_auth_netloc_from_url(url):
     return url_without_auth, netloc, auth
 
 
-def remove_auth_from_url(url):
-    # type: (str) -> str
+def remove_auth_from_url(url: str) -> str:
     """Return a copy of url with 'username:password@' removed."""
     # username/pass params are passed to subversion through flags
     # and are not recognized in the url.
     return _transform_url(url, _get_netloc)[0]
 
 
-def redact_auth_from_url(url):
-    # type: (str) -> str
+def redact_auth_from_url(url: str) -> str:
     """Replace the password in a given url with ****."""
     return _transform_url(url, _redact_netloc)[0]
 
 
 class HiddenText:
-    def __init__(
-        self,
-        secret,  # type: str
-        redacted,  # type: str
-    ):
-        # type: (...) -> None
+    def __init__(self, secret: str, redacted: str) -> None:
         self.secret = secret
         self.redacted = redacted
 
-    def __repr__(self):
-        # type: (...) -> str
+    def __repr__(self) -> str:
         return "<HiddenText {!r}>".format(str(self))
 
-    def __str__(self):
-        # type: (...) -> str
+    def __str__(self) -> str:
         return self.redacted
 
     # This is useful for testing.
-    def __eq__(self, other):
-        # type: (Any) -> bool
+    def __eq__(self, other: Any) -> bool:
         if type(self) != type(other):
             return False
 
@@ -731,28 +546,25 @@ class HiddenText:
         return self.secret == other.secret
 
 
-def hide_value(value):
-    # type: (str) -> HiddenText
+def hide_value(value: str) -> HiddenText:
     return HiddenText(value, redacted="****")
 
 
-def hide_url(url):
-    # type: (str) -> HiddenText
+def hide_url(url: str) -> HiddenText:
     redacted = redact_auth_from_url(url)
     return HiddenText(url, redacted=redacted)
 
 
-def protect_pip_from_modification_on_windows(modifying_pip):
-    # type: (bool) -> None
+def protect_pip_from_modification_on_windows(modifying_pip: bool) -> None:
     """Protection of pip.exe from modification on Windows
 
     On Windows, any operation modifying pip should be run as:
         python -m pip ...
     """
     pip_names = [
-        "pip.exe",
-        "pip{}.exe".format(sys.version_info[0]),
-        "pip{}.{}.exe".format(*sys.version_info[:2]),
+        "pip",
+        f"pip{sys.version_info.major}",
+        f"pip{sys.version_info.major}.{sys.version_info.minor}",
     ]
 
     # See https://github.com/pypa/pip/issues/1299 for more discussion
@@ -769,14 +581,12 @@ def protect_pip_from_modification_on_windows(modifying_pip):
         )
 
 
-def is_console_interactive():
-    # type: () -> bool
+def is_console_interactive() -> bool:
     """Is this console interactive?"""
     return sys.stdin is not None and sys.stdin.isatty()
 
 
-def hash_file(path, blocksize=1 << 20):
-    # type: (str, int) -> Tuple[Any, int]
+def hash_file(path: str, blocksize: int = 1 << 20) -> Tuple[Any, int]:
     """Return (hash, length) for path using hashlib.sha256()"""
 
     h = hashlib.sha256()
@@ -788,8 +598,7 @@ def hash_file(path, blocksize=1 << 20):
     return h, length
 
 
-def is_wheel_installed():
-    # type: () -> bool
+def is_wheel_installed() -> bool:
     """
     Return whether the wheel package is installed.
     """
@@ -801,8 +610,7 @@ def is_wheel_installed():
     return True
 
 
-def pairwise(iterable):
-    # type: (Iterable[Any]) -> Iterator[Tuple[Any, Any]]
+def pairwise(iterable: Iterable[Any]) -> Iterator[Tuple[Any, Any]]:
     """
     Return paired elements.
 
@@ -814,10 +622,9 @@ def pairwise(iterable):
 
 
 def partition(
-    pred,  # type: Callable[[T], bool]
-    iterable,  # type: Iterable[T]
-):
-    # type: (...) -> Tuple[Iterable[T], Iterable[T]]
+    pred: Callable[[T], bool],
+    iterable: Iterable[T],
+) -> Tuple[Iterable[T], Iterable[T]]:
     """
     Use a predicate to partition entries into false entries and true entries,
     like
@@ -826,3 +633,91 @@ def partition(
     """
     t1, t2 = tee(iterable)
     return filterfalse(pred, t1), filter(pred, t2)
+
+
+class ConfiguredPep517HookCaller(Pep517HookCaller):
+    def __init__(
+        self,
+        config_holder: Any,
+        source_dir: str,
+        build_backend: str,
+        backend_path: Optional[str] = None,
+        runner: Optional[Callable[..., None]] = None,
+        python_executable: Optional[str] = None,
+    ):
+        super().__init__(
+            source_dir, build_backend, backend_path, runner, python_executable
+        )
+        self.config_holder = config_holder
+
+    def build_wheel(
+        self,
+        wheel_directory: str,
+        config_settings: Optional[Dict[str, str]] = None,
+        metadata_directory: Optional[str] = None,
+    ) -> str:
+        cs = self.config_holder.config_settings
+        return super().build_wheel(
+            wheel_directory, config_settings=cs, metadata_directory=metadata_directory
+        )
+
+    def build_sdist(
+        self, sdist_directory: str, config_settings: Optional[Dict[str, str]] = None
+    ) -> str:
+        cs = self.config_holder.config_settings
+        return super().build_sdist(sdist_directory, config_settings=cs)
+
+    def build_editable(
+        self,
+        wheel_directory: str,
+        config_settings: Optional[Dict[str, str]] = None,
+        metadata_directory: Optional[str] = None,
+    ) -> str:
+        cs = self.config_holder.config_settings
+        return super().build_editable(
+            wheel_directory, config_settings=cs, metadata_directory=metadata_directory
+        )
+
+    def get_requires_for_build_wheel(
+        self, config_settings: Optional[Dict[str, str]] = None
+    ) -> List[str]:
+        cs = self.config_holder.config_settings
+        return super().get_requires_for_build_wheel(config_settings=cs)
+
+    def get_requires_for_build_sdist(
+        self, config_settings: Optional[Dict[str, str]] = None
+    ) -> List[str]:
+        cs = self.config_holder.config_settings
+        return super().get_requires_for_build_sdist(config_settings=cs)
+
+    def get_requires_for_build_editable(
+        self, config_settings: Optional[Dict[str, str]] = None
+    ) -> List[str]:
+        cs = self.config_holder.config_settings
+        return super().get_requires_for_build_editable(config_settings=cs)
+
+    def prepare_metadata_for_build_wheel(
+        self,
+        metadata_directory: str,
+        config_settings: Optional[Dict[str, str]] = None,
+        _allow_fallback: bool = True,
+    ) -> str:
+        cs = self.config_holder.config_settings
+        return super().prepare_metadata_for_build_wheel(
+            metadata_directory=metadata_directory,
+            config_settings=cs,
+            _allow_fallback=_allow_fallback,
+        )
+
+    def prepare_metadata_for_build_editable(
+        self,
+        metadata_directory: str,
+        config_settings: Optional[Dict[str, str]] = None,
+        _allow_fallback: bool = True,
+    ) -> str:
+        cs = self.config_holder.config_settings
+        return super().prepare_metadata_for_build_editable(
+            metadata_directory=metadata_directory,
+            config_settings=cs,
+            _allow_fallback=_allow_fallback,
+        )

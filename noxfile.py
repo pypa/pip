@@ -21,7 +21,7 @@ nox.options.sessions = ["lint"]
 
 LOCATIONS = {
     "common-wheels": "tests/data/common_wheels",
-    "protected-pip": "tools/tox_pip.py",
+    "protected-pip": "tools/protected_pip.py",
 }
 REQUIREMENTS = {
     "docs": "docs/requirements.txt",
@@ -40,8 +40,7 @@ def run_with_protected_pip(session: nox.Session, *arguments: str) -> None:
     (stable) version, and not the code being tested. This ensures pip being
     used is not the code being tested.
     """
-    # https://github.com/theacodes/nox/pull/377
-    env = {"VIRTUAL_ENV": session.virtualenv.location}  # type: ignore
+    env = {"VIRTUAL_ENV": session.virtualenv.location}
 
     command = ("python", LOCATIONS["protected-pip"]) + arguments
     session.run(*command, env=env, silent=True)
@@ -66,11 +65,8 @@ def should_update_common_wheels() -> bool:
 
 # -----------------------------------------------------------------------------
 # Development Commands
-#   These are currently prototypes to evaluate whether we want to switch over
-#   completely to nox for all our automation. Contributors should prefer using
-#   `tox -e ...` until this note is removed.
 # -----------------------------------------------------------------------------
-@nox.session(python=["3.6", "3.7", "3.8", "3.9", "pypy3"])
+@nox.session(python=["3.7", "3.8", "3.9", "3.10", "pypy3"])
 def test(session: nox.Session) -> None:
     # Get the common wheels.
     if should_update_common_wheels():
@@ -87,8 +83,7 @@ def test(session: nox.Session) -> None:
         session.log(msg)
 
     # Build source distribution
-    # https://github.com/theacodes/nox/pull/377
-    sdist_dir = os.path.join(session.virtualenv.location, "sdist")  # type: ignore
+    sdist_dir = os.path.join(session.virtualenv.location, "sdist")
     if os.path.exists(sdist_dir):
         shutil.rmtree(sdist_dir, ignore_errors=True)
 
@@ -115,7 +110,13 @@ def test(session: nox.Session) -> None:
     # Run the tests
     #   LC_CTYPE is set to get UTF-8 output inside of the subprocesses that our
     #   tests use.
-    session.run("pytest", *arguments, env={"LC_CTYPE": "en_US.UTF-8"})
+    session.run(
+        "pytest",
+        *arguments,
+        env={
+            "LC_CTYPE": "en_US.UTF-8",
+        },
+    )
 
 
 @nox.session
@@ -123,8 +124,7 @@ def docs(session: nox.Session) -> None:
     session.install("-e", ".")
     session.install("-r", REQUIREMENTS["docs"])
 
-    def get_sphinx_build_command(kind):
-        # type: (str) -> List[str]
+    def get_sphinx_build_command(kind: str) -> List[str]:
         # Having the conf.py in the docs/html is weird but needed because we
         # can not use a different configuration directory vs source directory
         # on RTD currently. So, we'll pass "-c docs/html" here.
@@ -174,14 +174,13 @@ def lint(session: nox.Session) -> None:
 
 @nox.session
 def vendoring(session: nox.Session) -> None:
-    session.install("vendoring>=0.3.0")
+    session.install("vendoring~=1.2.0")
 
     if "--upgrade" not in session.posargs:
-        session.run("vendoring", "sync", ".", "-v")
+        session.run("vendoring", "sync", "-v")
         return
 
-    def pinned_requirements(path):
-        # type: (Path) -> Iterator[Tuple[str, str]]
+    def pinned_requirements(path: Path) -> Iterator[Tuple[str, str]]:
         for line in path.read_text().splitlines(keepends=False):
             one, sep, two = line.partition("==")
             if not sep:
@@ -225,6 +224,28 @@ def vendoring(session: nox.Session) -> None:
 
         # Commit the changes
         release.commit_file(session, ".", message=message)
+
+
+@nox.session
+def coverage(session: nox.Session) -> None:
+    # Install source distribution
+    run_with_protected_pip(session, "install", ".")
+
+    # Install test dependencies
+    run_with_protected_pip(session, "install", "-r", REQUIREMENTS["tests"])
+
+    if not os.path.exists(".coverage-output"):
+        os.mkdir(".coverage-output")
+    session.run(
+        "pytest",
+        "--cov=pip",
+        "--cov-config=./setup.cfg",
+        *session.posargs,
+        env={
+            "COVERAGE_OUTPUT_DIR": "./.coverage-output",
+            "COVERAGE_PROCESS_START": os.fsdecode(Path("setup.cfg").resolve()),
+        },
+    )
 
 
 # -----------------------------------------------------------------------------

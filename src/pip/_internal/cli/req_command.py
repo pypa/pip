@@ -10,7 +10,7 @@ import os
 import sys
 from functools import partial
 from optparse import Values
-from typing import Any, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
@@ -22,6 +22,7 @@ from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
+from pip._internal.operations.build.build_tracker import BuildTracker
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.constructors import (
     install_req_from_editable,
@@ -31,7 +32,6 @@ from pip._internal.req.constructors import (
 )
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.self_outdated_check import pip_self_version_check
 from pip._internal.utils.temp_dir import (
@@ -41,7 +41,31 @@ from pip._internal.utils.temp_dir import (
 )
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
+if TYPE_CHECKING:
+    from ssl import SSLContext
+
 logger = logging.getLogger(__name__)
+
+
+def _create_truststore_ssl_context() -> Optional["SSLContext"]:
+    if sys.version_info < (3, 10):
+        raise CommandError("The truststore feature is only available for Python 3.10+")
+
+    try:
+        import ssl
+    except ImportError:
+        logger.warning("Disabling truststore since ssl support is missing")
+        return None
+
+    try:
+        import truststore
+    except ImportError:
+        raise CommandError(
+            "To use the truststore feature, 'truststore' must be installed into "
+            "pip's current environment."
+        )
+
+    return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 
 
 class SessionCommandMixin(CommandContextMixIn):
@@ -83,15 +107,27 @@ class SessionCommandMixin(CommandContextMixIn):
         options: Values,
         retries: Optional[int] = None,
         timeout: Optional[int] = None,
+        fallback_to_certifi: bool = False,
     ) -> PipSession:
-        assert not options.cache_dir or os.path.isabs(options.cache_dir)
+        cache_dir = options.cache_dir
+        assert not cache_dir or os.path.isabs(cache_dir)
+
+        if "truststore" in options.features_enabled:
+            try:
+                ssl_context = _create_truststore_ssl_context()
+            except Exception:
+                if not fallback_to_certifi:
+                    raise
+                ssl_context = None
+        else:
+            ssl_context = None
+
         session = PipSession(
-            cache=(
-                os.path.join(options.cache_dir, "http") if options.cache_dir else None
-            ),
+            cache=os.path.join(cache_dir, "http") if cache_dir else None,
             retries=retries if retries is not None else options.retries,
             trusted_hosts=options.trusted_hosts,
             index_urls=self._get_index_urls(options),
+            ssl_context=ssl_context,
         )
 
         # Handle custom ca-bundles from the user
@@ -141,7 +177,14 @@ class IndexGroupCommand(Command, SessionCommandMixin):
 
         # Otherwise, check if we're using the latest version of pip available.
         session = self._build_session(
-            options, retries=0, timeout=min(5, options.timeout)
+            options,
+            retries=0,
+            timeout=min(5, options.timeout),
+            # This is set to ensure the function does not fail when truststore is
+            # specified in use-feature but cannot be loaded. This usually raises a
+            # CommandError and shows a nice user-facing error, but this function is not
+            # called in that try-except block.
+            fallback_to_certifi=True,
         )
         with session:
             pip_self_version_check(session, options)
@@ -172,9 +215,10 @@ def warn_if_run_as_root() -> None:
     # checks: https://mypy.readthedocs.io/en/stable/common_issues.html
     if sys.platform == "win32" or sys.platform == "cygwin":
         return
-    if sys.platform == "darwin" or sys.platform == "linux":
-        if os.getuid() != 0:
-            return
+
+    if os.getuid() != 0:
+        return
+
     logger.warning(
         "Running pip as the 'root' user can result in broken permissions and "
         "conflicting behaviour with the system package manager. "
@@ -230,11 +274,12 @@ class RequirementCommand(IndexGroupCommand):
         cls,
         temp_build_dir: TempDirectory,
         options: Values,
-        req_tracker: RequirementTracker,
+        build_tracker: BuildTracker,
         session: PipSession,
         finder: PackageFinder,
         use_user_site: bool,
         download_dir: Optional[str] = None,
+        verbosity: int = 0,
     ) -> RequirementPreparer:
         """
         Create a RequirementPreparer instance for the given parameters.
@@ -265,14 +310,15 @@ class RequirementCommand(IndexGroupCommand):
             src_dir=options.src_dir,
             download_dir=download_dir,
             build_isolation=options.build_isolation,
-            req_tracker=req_tracker,
+            check_build_deps=options.check_build_deps,
+            build_tracker=build_tracker,
             session=session,
             progress_bar=options.progress_bar,
             finder=finder,
             require_hashes=options.require_hashes,
             use_user_site=use_user_site,
             lazy_wheel=lazy_wheel,
-            in_tree_build="in-tree-build" in options.features_enabled,
+            verbosity=verbosity,
         )
 
     @classmethod
@@ -297,6 +343,7 @@ class RequirementCommand(IndexGroupCommand):
             install_req_from_req_string,
             isolated=options.isolated_mode,
             use_pep517=use_pep517,
+            config_settings=getattr(options, "config_settings", None),
         )
         resolver_variant = cls.determine_resolver_variant(options)
         # The long import name and duplicated invocation is needed to convince
@@ -367,6 +414,7 @@ class RequirementCommand(IndexGroupCommand):
                 isolated=options.isolated_mode,
                 use_pep517=options.use_pep517,
                 user_supplied=True,
+                config_settings=getattr(options, "config_settings", None),
             )
             requirements.append(req_to_add)
 
@@ -376,6 +424,7 @@ class RequirementCommand(IndexGroupCommand):
                 user_supplied=True,
                 isolated=options.isolated_mode,
                 use_pep517=options.use_pep517,
+                config_settings=getattr(options, "config_settings", None),
             )
             requirements.append(req_to_add)
 

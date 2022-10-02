@@ -16,6 +16,7 @@ pip
 
 pip_install
 pip_uninstall
+pip_inspect
 pip_list
 pip_show
 pip_freeze

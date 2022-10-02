@@ -7,7 +7,7 @@ from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.req_command import RequirementCommand, with_cleanup
 from pip._internal.cli.status_codes import SUCCESS
-from pip._internal.req.req_tracker import get_requirement_tracker
+from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.utils.misc import ensure_dir, normalize_path, write_output
 from pip._internal.utils.temp_dir import TempDirectory
 
@@ -37,7 +37,6 @@ class DownloadCommand(RequirementCommand):
     def add_options(self) -> None:
         self.cmd_opts.add_option(cmdoptions.constraints())
         self.cmd_opts.add_option(cmdoptions.requirements())
-        self.cmd_opts.add_option(cmdoptions.build_dir())
         self.cmd_opts.add_option(cmdoptions.no_deps())
         self.cmd_opts.add_option(cmdoptions.global_options())
         self.cmd_opts.add_option(cmdoptions.no_binary())
@@ -50,14 +49,18 @@ class DownloadCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.no_build_isolation())
         self.cmd_opts.add_option(cmdoptions.use_pep517())
         self.cmd_opts.add_option(cmdoptions.no_use_pep517())
+        self.cmd_opts.add_option(cmdoptions.check_build_deps())
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
 
         self.cmd_opts.add_option(
-            '-d', '--dest', '--destination-dir', '--destination-directory',
-            dest='download_dir',
-            metavar='dir',
+            "-d",
+            "--dest",
+            "--destination-dir",
+            "--destination-directory",
+            dest="download_dir",
+            metavar="dir",
             default=os.curdir,
-            help=("Download packages into <dir>."),
+            help="Download packages into <dir>.",
         )
 
         cmdoptions.add_target_python_options(self.cmd_opts)
@@ -93,7 +96,7 @@ class DownloadCommand(RequirementCommand):
             ignore_requires_python=options.ignore_requires_python,
         )
 
-        req_tracker = self.enter_context(get_requirement_tracker())
+        build_tracker = self.enter_context(get_build_tracker())
 
         directory = TempDirectory(
             delete=not options.no_clean,
@@ -106,11 +109,12 @@ class DownloadCommand(RequirementCommand):
         preparer = self.make_requirement_preparer(
             temp_build_dir=directory,
             options=options,
-            req_tracker=req_tracker,
+            build_tracker=build_tracker,
             session=session,
             finder=finder,
             download_dir=options.download_dir,
             use_user_site=False,
+            verbosity=self.verbosity,
         )
 
         resolver = self.make_resolver(
@@ -118,14 +122,13 @@ class DownloadCommand(RequirementCommand):
             finder=finder,
             options=options,
             ignore_requires_python=options.ignore_requires_python,
+            use_pep517=options.use_pep517,
             py_version_info=options.python_version,
         )
 
         self.trace_basic_info(finder)
 
-        requirement_set = resolver.resolve(
-            reqs, check_supported_wheels=True
-        )
+        requirement_set = resolver.resolve(reqs, check_supported_wheels=True)
 
         downloaded: List[str] = []
         for req in requirement_set.requirements.values():
@@ -134,6 +137,6 @@ class DownloadCommand(RequirementCommand):
                 preparer.save_linked_requirement(req)
                 downloaded.append(req.name)
         if downloaded:
-            write_output('Successfully downloaded %s', ' '.join(downloaded))
+            write_output("Successfully downloaded %s", " ".join(downloaded))
 
         return SUCCESS

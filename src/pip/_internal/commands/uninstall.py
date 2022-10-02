@@ -4,6 +4,7 @@ from typing import List
 
 from pip._vendor.packaging.utils import canonicalize_name
 
+from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.req_command import SessionCommandMixin, warn_if_run_as_root
 from pip._internal.cli.status_codes import SUCCESS
@@ -35,20 +36,25 @@ class UninstallCommand(Command, SessionCommandMixin):
 
     def add_options(self) -> None:
         self.cmd_opts.add_option(
-            '-r', '--requirement',
-            dest='requirements',
-            action='append',
+            "-r",
+            "--requirement",
+            dest="requirements",
+            action="append",
             default=[],
-            metavar='file',
-            help='Uninstall all the packages listed in the given requirements '
-                 'file.  This option can be used multiple times.',
+            metavar="file",
+            help=(
+                "Uninstall all the packages listed in the given requirements "
+                "file.  This option can be used multiple times."
+            ),
         )
         self.cmd_opts.add_option(
-            '-y', '--yes',
-            dest='yes',
-            action='store_true',
-            help="Don't ask for confirmation of uninstall deletions.")
-
+            "-y",
+            "--yes",
+            dest="yes",
+            action="store_true",
+            help="Don't ask for confirmation of uninstall deletions.",
+        )
+        self.cmd_opts.add_option(cmdoptions.root_user_action())
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options: Values, args: List[str]) -> int:
@@ -57,7 +63,8 @@ class UninstallCommand(Command, SessionCommandMixin):
         reqs_to_uninstall = {}
         for name in args:
             req = install_req_from_line(
-                name, isolated=options.isolated_mode,
+                name,
+                isolated=options.isolated_mode,
             )
             if req.name:
                 reqs_to_uninstall[canonicalize_name(req.name)] = req
@@ -70,18 +77,16 @@ class UninstallCommand(Command, SessionCommandMixin):
                 )
         for filename in options.requirements:
             for parsed_req in parse_requirements(
-                    filename,
-                    options=options,
-                    session=session):
+                filename, options=options, session=session
+            ):
                 req = install_req_from_parsed_requirement(
-                    parsed_req,
-                    isolated=options.isolated_mode
+                    parsed_req, isolated=options.isolated_mode
                 )
                 if req.name:
                     reqs_to_uninstall[canonicalize_name(req.name)] = req
         if not reqs_to_uninstall:
             raise InstallationError(
-                f'You must give at least one requirement to {self.name} (see '
+                f"You must give at least one requirement to {self.name} (see "
                 f'"pip help {self.name}")'
             )
 
@@ -91,10 +96,11 @@ class UninstallCommand(Command, SessionCommandMixin):
 
         for req in reqs_to_uninstall.values():
             uninstall_pathset = req.uninstall(
-                auto_confirm=options.yes, verbose=self.verbosity > 0,
+                auto_confirm=options.yes,
+                verbose=self.verbosity > 0,
             )
             if uninstall_pathset:
                 uninstall_pathset.commit()
-
-        warn_if_run_as_root()
+        if options.root_user_action == "warn":
+            warn_if_run_as_root()
         return SUCCESS

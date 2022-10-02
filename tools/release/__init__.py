@@ -26,8 +26,7 @@ def get_version_from_arguments(session: Session) -> Optional[str]:
     # We delegate to a script here, so that it can depend on packaging.
     session.install("packaging")
     cmd = [
-        # https://github.com/theacodes/nox/pull/378
-        os.path.join(session.bin, "python"),  # type: ignore
+        os.path.join(session.bin, "python"),
         "tools/release/check_version.py",
         version,
     ]
@@ -86,7 +85,7 @@ def commit_file(session: Session, filename: str, *, message: str) -> None:
 
 def generate_news(session: Session, version: str) -> None:
     session.install("towncrier")
-    session.run("towncrier", "--yes", "--version", version, silent=True)
+    session.run("towncrier", "build", "--yes", "--version", version, silent=True)
 
 
 def update_version_file(version: str, filepath: str) -> None:
@@ -156,12 +155,11 @@ def workdir(
     """Temporarily chdir when entering CM and chdir back on exit."""
     orig_dir = pathlib.Path.cwd()
 
-    # https://github.com/theacodes/nox/pull/376
-    nox_session.chdir(dir_path)  # type: ignore
+    nox_session.chdir(dir_path)
     try:
         yield dir_path
     finally:
-        nox_session.chdir(orig_dir)  # type: ignore
+        nox_session.chdir(orig_dir)
 
 
 @contextlib.contextmanager
@@ -175,23 +173,18 @@ def isolated_temporary_checkout(
         git_checkout_dir = tmp_dir / f"pip-build-{target_ref}"
         nox_session.run(
             # fmt: off
-            "git", "worktree", "add", "--force", "--checkout",
-            str(git_checkout_dir), str(target_ref),
+            "git", "clone",
+            "--depth", "1",
+            "--config", "core.autocrlf=false",
+            "--branch", str(target_ref),
+            "--",
+            ".", str(git_checkout_dir),
             # fmt: on
             external=True,
             silent=True,
         )
 
-        try:
-            yield git_checkout_dir
-        finally:
-            nox_session.run(
-                # fmt: off
-                "git", "worktree", "remove", "--force", str(git_checkout_dir),
-                # fmt: on
-                external=True,
-                silent=True,
-            )
+        yield git_checkout_dir
 
 
 def get_git_untracked_files() -> Iterator[str]:

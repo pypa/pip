@@ -28,8 +28,8 @@ like this:
 .. code-block:: python
 
     try:
-        import urllib3.contrib.pyopenssl
-        urllib3.contrib.pyopenssl.inject_into_urllib3()
+        import pip._vendor.urllib3.contrib.pyopenssl as pyopenssl
+        pyopenssl.inject_into_urllib3()
     except ImportError:
         pass
 
@@ -405,7 +405,6 @@ if _fileobject:  # Platform-specific: Python 2
     def makefile(self, mode, bufsize=-1):
         self._makefile_refs += 1
         return _fileobject(self, mode, bufsize, close=True)
-
 
 else:  # Platform-specific: Python 3
     makefile = backport_makefile

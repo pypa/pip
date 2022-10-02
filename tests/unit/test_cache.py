@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from pip._vendor.packaging.tags import Tag
 
@@ -8,27 +9,27 @@ from pip._internal.models.link import Link
 from pip._internal.utils.misc import ensure_dir
 
 
-def test_falsey_path_none():
-    wc = WheelCache(False, None)
+def test_falsey_path_none() -> None:
+    wc = WheelCache("", FormatControl())
     assert wc.cache_dir is None
 
 
-def test_subdirectory_fragment():
+def test_subdirectory_fragment() -> None:
     """
     Test the subdirectory URL fragment is part of the cache key.
     """
-    wc = WheelCache("/tmp/.foo/", None)
+    wc = WheelCache("/tmp/.foo/", FormatControl())
     link1 = Link("git+https://g.c/o/r#subdirectory=d1")
     link2 = Link("git+https://g.c/o/r#subdirectory=d2")
     assert wc.get_path_for_link(link1) != wc.get_path_for_link(link2)
 
 
-def test_wheel_name_filter(tmpdir):
+def test_wheel_name_filter(tmpdir: Path) -> None:
     """
     Test the wheel cache filters on wheel name when several wheels
     for different package are stored under the same cache directory.
     """
-    wc = WheelCache(tmpdir, FormatControl())
+    wc = WheelCache(os.fspath(tmpdir), FormatControl())
     link = Link("https://g.c/package.tar.gz")
     cache_path = wc.get_path_for_link(link)
     ensure_dir(cache_path)
@@ -42,7 +43,7 @@ def test_wheel_name_filter(tmpdir):
     assert wc.get(link, "package2", [Tag("py3", "none", "any")]) is link
 
 
-def test_cache_hash():
+def test_cache_hash() -> None:
     h = _hash_dict({"url": "https://g.c/o/r"})
     assert h == "72aa79d3315c181d2cc23239d7109a782de663b6f89982624d8c1e86"
     h = _hash_dict({"url": "https://g.c/o/r", "subdirectory": "sd"})
@@ -51,8 +52,8 @@ def test_cache_hash():
     assert h == "f83b32dfa27a426dec08c21bf006065dd003d0aac78e7fc493d9014d"
 
 
-def test_get_cache_entry(tmpdir):
-    wc = WheelCache(tmpdir, FormatControl())
+def test_get_cache_entry(tmpdir: Path) -> None:
+    wc = WheelCache(os.fspath(tmpdir), FormatControl())
     persi_link = Link("https://g.c/o/r/persi")
     persi_path = wc.get_path_for_link(persi_link)
     ensure_dir(persi_path)
@@ -65,10 +66,12 @@ def test_get_cache_entry(tmpdir):
         pass
     other_link = Link("https://g.c/o/r/other")
     supported_tags = [Tag("py3", "none", "any")]
-    assert (
-        wc.get_cache_entry(persi_link, "persi", supported_tags).persistent
-    )
-    assert (
-        not wc.get_cache_entry(ephem_link, "ephem", supported_tags).persistent
-    )
+    entry = wc.get_cache_entry(persi_link, "persi", supported_tags)
+    assert entry is not None
+    assert entry.persistent
+
+    entry = wc.get_cache_entry(ephem_link, "ephem", supported_tags)
+    assert entry is not None
+    assert not entry.persistent
+
     assert wc.get_cache_entry(other_link, "other", supported_tags) is None

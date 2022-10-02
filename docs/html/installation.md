@@ -14,7 +14,7 @@ If your Python environment does not have pip installed, there are 2 mechanisms
 to install pip supported directly by pip's maintainers:
 
 - [`ensurepip`](#ensurepip)
-- [`get-pip.py`](#get-pip-py)
+- [`get-pip.py`](#get-pippy)
 
 ### `ensurepip`
 
@@ -45,6 +45,34 @@ More details about this script can be found in [pypa/get-pip]'s README.
 
 [pypa/get-pip]: https://github.com/pypa/get-pip
 
+### Standalone zip application
+
+```{note}
+The zip application is currently experimental. We test that pip runs correctly
+in this form, but it is possible that there could be issues in some situations.
+We will accept bug reports in such cases, but for now the zip application should
+not be used in production environments.
+```
+
+In addition to installing pip in your environment, pip is available as a
+standalone [zip application](https://docs.python.org/3.11/library/zipapp.html).
+This can be downloaded from <https://bootstrap.pypa.io/pip/pip.pyz>. There are
+also zip applications for specific pip versions, named `pip-X.Y.Z.pyz`.
+
+The zip application can be run using any supported version of Python:
+
+```{pip-cli}
+$ python pip.pyz --help
+```
+
+If run directly:
+
+```{pip-cli}
+$ pip.pyz --help
+```
+
+then the currently active Python interpreter will be used.
+
 ## Alternative Methods
 
 Depending on how you installed Python, there might be other mechanisms
@@ -60,6 +88,14 @@ If you face issues when using Python and pip installed using these mechanisms,
 it is recommended to request for support from the relevant provider (eg: Linux
 distro community, cloud provider support channels, etc).
 
+## Upgrading `pip`
+
+Upgrading your `pip` by running:
+
+```{pip-cli}
+$ pip install --upgrade pip
+```
+
 (compatibility-requirements)=
 
 ## Compatibility
@@ -67,14 +103,15 @@ distro community, cloud provider support channels, etc).
 The current version of pip works on:
 
 - Windows, Linux and MacOS.
-- CPython 3.6, 3.7, 3.8, 3.9 and latest PyPy3.
+- CPython 3.7, 3.8, 3.9, 3.10 and latest PyPy3.
 
 pip is tested to work on the latest patch version of the Python interpreter,
 for each of the minor versions listed above. Previous patch versions are
 supported on a best effort approach.
 
-pip's maintainers do not provide support for users on older versions of Python,
-and these users should request for support from the relevant provider
-(eg: Linux distro community, cloud provider support channels, etc).
+Other operating systems and Python versions are not supported by pip's
+maintainers.
+
+Users who are on unsupported platforms should be aware that if they hit issues, they may have to resolve them for themselves. If they received pip from a source which provides support for their platform, they should request pip support from that source.
 
 [^python]: The `ensurepip` module was added to the Python standard library in Python 3.4.

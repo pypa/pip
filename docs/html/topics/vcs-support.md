@@ -1,3 +1,4 @@
+(vcs support)=
 # VCS Support
 
 pip supports installing from various version control systems (VCS).
@@ -17,9 +18,9 @@ The supported schemes are `git+file`, `git+https`, `git+ssh`, `git+http`,
 `git+git` and `git`. Here are some of the supported forms:
 
 ```none
-git+ssh://git.example.com/MyProject#egg=MyProject
-git+file:///home/user/projects/MyProject#egg=MyProject
-git+https://git.example.com/MyProject#egg=MyProject
+MyProject @ git+ssh://git.example.com/MyProject
+MyProject @ git+file:///home/user/projects/MyProject
+MyProject @ git+https://git.example.com/MyProject
 ```
 
 ```{warning}
@@ -34,10 +35,10 @@ It is also possible to specify a "git ref" such as branch name, a commit hash or
 a tag name:
 
 ```none
-git+https://git.example.com/MyProject.git@master#egg=MyProject
-git+https://git.example.com/MyProject.git@v1.0#egg=MyProject
-git+https://git.example.com/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
-git+https://git.example.com/MyProject.git@refs/pull/123/head#egg=MyProject
+MyProject @ git+https://git.example.com/MyProject.git@master
+MyProject @ git+https://git.example.com/MyProject.git@v1.0
+MyProject @ git+https://git.example.com/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709
+MyProject @ git+https://git.example.com/MyProject.git@refs/pull/123/head
 ```
 
 When passing a commit hash, specifying a full hash is preferable to a partial
@@ -50,20 +51,20 @@ The supported schemes are `hg+file`, `hg+http`, `hg+https`, `hg+ssh`
 and `hg+static-http`. Here are some of the supported forms:
 
 ```
-hg+http://hg.myproject.org/MyProject#egg=MyProject
-hg+https://hg.myproject.org/MyProject#egg=MyProject
-hg+ssh://hg.myproject.org/MyProject#egg=MyProject
-hg+file:///home/user/projects/MyProject#egg=MyProject
+MyProject @ hg+http://hg.myproject.org/MyProject
+MyProject @ hg+https://hg.myproject.org/MyProject
+MyProject @ hg+ssh://hg.myproject.org/MyProject
+MyProject @ hg+file:///home/user/projects/MyProject
 ```
 
 It is also possible to specify a revision number, a revision hash, a tag name
 or a local branch name:
 
 ```none
-hg+http://hg.example.com/MyProject@da39a3ee5e6b#egg=MyProject
-hg+http://hg.example.com/MyProject@2019#egg=MyProject
-hg+http://hg.example.com/MyProject@v1.0#egg=MyProject
-hg+http://hg.example.com/MyProject@special_feature#egg=MyProject
+MyProject @ hg+http://hg.example.com/MyProject@da39a3ee5e6b
+MyProject @ hg+http://hg.example.com/MyProject@2019
+MyProject @ hg+http://hg.example.com/MyProject@v1.0
+MyProject @ hg+http://hg.example.com/MyProject@special_feature
 ```
 
 ### Subversion
@@ -72,9 +73,9 @@ The supported schemes are `svn`, `svn+svn`, `svn+http`, `svn+https` and
 `svn+ssh`. Here are some of the supported forms:
 
 ```none
-svn+https://svn.example.com/MyProject#egg=MyProject
-svn+ssh://svn.example.com/MyProject#egg=MyProject
-svn+ssh://user@svn.example.com/MyProject#egg=MyProject
+MyProject @ svn+https://svn.example.com/MyProject
+MyProject @ svn+ssh://svn.example.com/MyProject
+MyProject @ svn+ssh://user@svn.example.com/MyProject
 ```
 
 You can also give specific revisions to an SVN URL, like so:
@@ -93,18 +94,18 @@ The supported schemes are `bzr+http`, `bzr+https`, `bzr+ssh`, `bzr+sftp`,
 `bzr+ftp` and `bzr+lp`. Here are the supported forms:
 
 ```none
-bzr+http://bzr.example.com/MyProject/trunk#egg=MyProject
-bzr+sftp://user@example.com/MyProject/trunk#egg=MyProject
-bzr+ssh://user@example.com/MyProject/trunk#egg=MyProject
-bzr+ftp://user@example.com/MyProject/trunk#egg=MyProject
-bzr+lp:MyProject#egg=MyProject
+MyProject @ bzr+http://bzr.example.com/MyProject/trunk
+MyProject @ bzr+sftp://user@example.com/MyProject/trunk
+MyProject @ bzr+ssh://user@example.com/MyProject/trunk
+MyProject @ bzr+ftp://user@example.com/MyProject/trunk
+MyProject @ bzr+lp:MyProject
 ```
 
 Tags or revisions can be installed like so:
 
 ```none
-bzr+https://bzr.example.com/MyProject/trunk@2019#egg=MyProject
-bzr+http://bzr.example.com/MyProject/trunk@v1.0#egg=MyProject
+MyProject @ bzr+https://bzr.example.com/MyProject/trunk@2019
+MyProject @ bzr+http://bzr.example.com/MyProject/trunk@v1.0
 ```
 
 (editable-vcs-installs)=

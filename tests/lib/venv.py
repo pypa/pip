@@ -1,13 +1,22 @@
 import compileall
+import os
 import shutil
 import subprocess
 import sys
 import textwrap
 import venv as _venv
+from pathlib import Path
+from typing import TYPE_CHECKING, Optional, Union
 
 import virtualenv as _virtualenv
 
-from .path import Path
+if TYPE_CHECKING:
+    # Literal was introduced in Python 3.8.
+    from typing import Literal
+
+    VirtualEnvironmentType = Literal["virtualenv", "venv"]
+else:
+    VirtualEnvironmentType = str
 
 
 class VirtualEnvironment:
@@ -16,18 +25,28 @@ class VirtualEnvironment:
     virtualenv but in the future it could use pyvenv.
     """
 
-    def __init__(self, location, template=None, venv_type=None):
+    def __init__(
+        self,
+        location: Path,
+        template: Optional["VirtualEnvironment"] = None,
+        venv_type: Optional[VirtualEnvironmentType] = None,
+    ):
+        self.location = location
         assert template is None or venv_type is None
-        assert venv_type in (None, "virtualenv", "venv")
-        self.location = Path(location)
-        self._venv_type = venv_type or template._venv_type or "virtualenv"
+        self._venv_type: VirtualEnvironmentType
+        if template is not None:
+            self._venv_type = template._venv_type
+        elif venv_type is not None:
+            self._venv_type = venv_type
+        else:
+            self._venv_type = "virtualenv"
         self._user_site_packages = False
         self._template = template
-        self._sitecustomize = None
+        self._sitecustomize: Optional[str] = None
         self._update_paths()
         self._create()
 
-    def _update_paths(self):
+    def _update_paths(self) -> None:
         home, lib, inc, bin = _virtualenv.path_locations(self.location)
         self.bin = Path(bin)
         self.site = Path(lib) / "site-packages"
@@ -38,10 +57,10 @@ class VirtualEnvironment:
         else:
             self.lib = Path(lib)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<VirtualEnvironment {self.location}>"
 
-    def _create(self, clear=False):
+    def _create(self, clear: bool = False) -> None:
         if clear:
             shutil.rmtree(self.location)
         if self._template:
@@ -77,7 +96,7 @@ class VirtualEnvironment:
             self.sitecustomize = self._sitecustomize
             self.user_site_packages = self._user_site_packages
 
-    def _fix_virtualenv_site_module(self):
+    def _fix_virtualenv_site_module(self) -> None:
         # Patch `site.py` so user site work as expected.
         site_py = self.lib / "site.py"
         with open(site_py) as fp:
@@ -111,7 +130,7 @@ class VirtualEnvironment:
         # Make sure bytecode is up-to-date too.
         assert compileall.compile_file(str(site_py), quiet=1, force=True)
 
-    def _customize_site(self):
+    def _customize_site(self) -> None:
         contents = ""
         if self._venv_type == "venv":
             # Enable user site (before system).
@@ -149,29 +168,29 @@ class VirtualEnvironment:
         # Make sure bytecode is up-to-date too.
         assert compileall.compile_file(str(sitecustomize), quiet=1, force=True)
 
-    def clear(self):
+    def clear(self) -> None:
         self._create(clear=True)
 
-    def move(self, location):
-        shutil.move(self.location, location)
+    def move(self, location: Union[Path, str]) -> None:
+        shutil.move(os.fspath(self.location), location)
         self.location = Path(location)
         self._update_paths()
 
     @property
-    def sitecustomize(self):
+    def sitecustomize(self) -> Optional[str]:
         return self._sitecustomize
 
     @sitecustomize.setter
-    def sitecustomize(self, value):
+    def sitecustomize(self, value: str) -> None:
         self._sitecustomize = value
         self._customize_site()
 
     @property
-    def user_site_packages(self):
+    def user_site_packages(self) -> bool:
         return self._user_site_packages
 
     @user_site_packages.setter
-    def user_site_packages(self, value):
+    def user_site_packages(self, value: bool) -> None:
         self._user_site_packages = value
         if self._venv_type == "virtualenv":
             marker = self.lib / "no-global-site-packages.txt"

@@ -44,7 +44,7 @@ class IndexCommand(IndexGroupCommand):
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, self.cmd_opts)
 
-    def run(self, options: Values, args: List[Any]) -> int:
+    def run(self, options: Values, args: List[str]) -> int:
         handlers = {
             "versions": self.get_available_package_versions,
         }
@@ -101,7 +101,7 @@ class IndexCommand(IndexGroupCommand):
 
     def get_available_package_versions(self, options: Values, args: List[Any]) -> None:
         if len(args) != 1:
-            raise CommandError('You need to specify exactly one argument')
+            raise CommandError("You need to specify exactly one argument")
 
         target_python = cmdoptions.make_target_python(options)
         query = args[0]
@@ -115,25 +115,24 @@ class IndexCommand(IndexGroupCommand):
             )
 
             versions: Iterable[Union[LegacyVersion, Version]] = (
-                candidate.version
-                for candidate in finder.find_all_candidates(query)
+                candidate.version for candidate in finder.find_all_candidates(query)
             )
 
             if not options.pre:
                 # Remove prereleases
-                versions = (version for version in versions
-                            if not version.is_prerelease)
+                versions = (
+                    version for version in versions if not version.is_prerelease
+                )
             versions = set(versions)
 
             if not versions:
                 raise DistributionNotFound(
-                    'No matching distribution found for {}'.format(query))
+                    "No matching distribution found for {}".format(query)
+                )
 
-            formatted_versions = [str(ver) for ver in sorted(
-                versions, reverse=True)]
+            formatted_versions = [str(ver) for ver in sorted(versions, reverse=True)]
             latest = formatted_versions[0]
 
-        write_output('{} ({})'.format(query, latest))
-        write_output('Available versions: {}'.format(
-            ', '.join(formatted_versions)))
+        write_output("{} ({})".format(query, latest))
+        write_output("Available versions: {}".format(", ".join(formatted_versions)))
         print_dist_installation_info(query, latest)

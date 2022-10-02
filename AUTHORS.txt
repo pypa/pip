@@ -18,10 +18,12 @@ Alan Yee
 Albert Tugushev
 Albert-Guan
 albertg
+Alberto Sottile
 Aleks Bunin
 Alethea Flowers
 Alex Gaynor
 Alex Grönholm
+Alex Hedges
 Alex Loosley
 Alex Morega
 Alex Stachowiak
@@ -37,6 +39,7 @@ Andre Aguiar
 Andreas Lutro
 Andrei Geacar
 Andrew Gaul
+Andrew Shymanel
 Andrey Bienkowski
 Andrey Bulgakov
 Andrés Delfino
@@ -76,6 +79,7 @@ Bastian Venthur
 Ben Bodenmiller
 Ben Darnell
 Ben Hoyt
+Ben Mares
 Ben Rosser
 Bence Nagy
 Benjamin Peterson
@@ -96,6 +100,7 @@ Bradley Ayers
 Brandon L. Reiss
 Brandt Bucher
 Brett Randall
+Brett Rosen
 Brian Cristante
 Brian Rosner
 briantracy
@@ -122,6 +127,7 @@ Chris Brinker
 Chris Hunt
 Chris Jerdonek
 Chris McDonough
+Chris Pawley
 Chris Wolfe
 Christian Clauss
 Christian Heimes
@@ -147,10 +153,13 @@ Cristina Muñoz
 Curtis Doty
 cytolentino
 Daan De Meyer
+Damian
 Damian Quiroga
+Damian Shaw
 Dan Black
 Dan Savilonis
 Dan Sully
+Dane Hillard
 daniel
 Daniel Collins
 Daniel Hahler
@@ -176,6 +185,7 @@ David Hewitt
 David Linke
 David Poggi
 David Pursehouse
+David Runge
 David Tucker
 David Wales
 Davidovich
@@ -191,6 +201,7 @@ DiegoCaraballo
 Dimitri Merejkowsky
 Dirk Stolle
 Dmitry Gladkov
+Dmitry Volodin
 Domen Kožar
 Dominic Davis-Foster
 Donald Stufft
@@ -200,6 +211,8 @@ DrFeathers
 Dustin Ingram
 Dwayne Bailey
 Ed Morley
+Edgar Ramírez
+Ee Durbin
 Eitan Adler
 ekristina
 elainechan
@@ -218,8 +231,6 @@ Eric Hanchrow
 Eric Hopper
 Erik M. Bray
 Erik Rose
-Ernest W Durbin III
-Ernest W. Durbin III
 Erwin Janssen
 Eugene Vereshchagin
 everdimension
@@ -227,6 +238,8 @@ Felix Yan
 fiber-space
 Filip Kokosiński
 Filipe Laíns
+Finn Womack
+finnagin
 Florian Briand
 Florian Rathgeber
 Francesco
@@ -235,16 +248,20 @@ Frost Ming
 Gabriel Curio
 Gabriel de Perthuis
 Garry Polley
+gavin
 gdanielson
 Geoffrey Sneddon
 George Song
 Georgi Valkov
+Georgy Pchelkin
 ghost
 Giftlin Rajaiah
 gizmoguy1
 gkdoc
+Godefroid Chapelle
 Gopinath M
 GOTO Hayato
+gousaiyang
 gpiks
 Greg Roodt
 Greg Ward
@@ -258,11 +275,13 @@ Hari Charan
 Harsh Vardhan
 harupy
 Harutaka Kawamura
+Henrich Hartzer
 Henry Schreiner
 Herbert Pfennig
 Hsiaoming Yang
 Hugo Lopes Tavares
 Hugo van Kemenade
+Hugues Bruant
 Hynek Schlawack
 Ian Bicking
 Ian Cordasco
@@ -287,9 +306,11 @@ Jakub Wilk
 James Cleveland
 James Curtin
 James Firth
+James Gerity
 James Polley
 Jan Pokorný
 Jannis Leidel
+Jarek Potiuk
 jarondl
 Jason R. Coombs
 Jay Graves
@@ -300,9 +321,11 @@ Jelmer Vernooĳ
 jenix21
 Jeremy Stanley
 Jeremy Zafran
+Jesse Rittner
 Jiashuo Li
 Jim Fisher
 Jim Garrison
+Jiun Bae
 Jivan Amara
 Joe Michelini
 John Paton
@@ -329,7 +352,9 @@ Jussi Kukkonen
 jwg4
 Jyrki Pulliainen
 Kai Chen
+Kai Mueller
 Kamal Bin Mustafa
+kasium
 kaustav haldar
 keanemind
 Keith Maxwell
@@ -354,6 +379,7 @@ Laurent Bristiel
 Laurent LAPORTE
 Laurie O
 Laurie Opperman
+layday
 Leon Sasson
 Lev Givon
 Lincoln de Sousa
@@ -361,6 +387,7 @@ Lipis
 Loren Carvalho
 Lucas Cimon
 Ludovic Gasc
+Lukas Juhrich
 Luke Macken
 Luo Jiebin
 luojiebin
@@ -373,6 +400,8 @@ Mariatta
 Mark Kohler
 Mark Williams
 Markus Hametner
+Martey Dodoo
+Martin Fischer
 Martin Häcker
 Martin Pavlasek
 Masaki
@@ -380,6 +409,8 @@ Masklinn
 Matej Stuchlik
 Mathew Jennings
 Mathieu Bridon
+Mathieu Kniewallner
+Matt Bacchi
 Matt Good
 Matt Maker
 Matt Robenolt
@@ -391,6 +422,7 @@ Matthew Trumbell
 Matthew Willson
 Matthias Bussonnier
 mattip
+Maurits van Rees
 Max W Chase
 Maxim Kurnikov
 Maxime Rouyrre
@@ -405,6 +437,7 @@ Michael E. Karpeles
 Michael Klich
 Michael Williamson
 michaelpacer
+Michał Górny
 Mickaël Schoentgen
 Miguel Araujo Perez
 Mihir Singh
@@ -416,7 +449,11 @@ Miro Hrončok
 Monica Baluna
 montefra
 Monty Taylor
+Nadav Wexler
+Nahuel Ambrosini
 Nate Coraor
+Nate Prewitt
+Nathan Houghton
 Nathaniel J. Smith
 Nehal J Wani
 Neil Botelho
@@ -430,14 +467,16 @@ Nicole Harris
 Nikhil Benesch
 Nikita Chepanov
 Nikolay Korolev
+Nipunn Koorapati
 Nitesh Sharma
+Niyas Sait
 Noah
 Noah Gorny
 Nowell Strite
 NtaleGrey
 nvdv
 OBITORASU
-Ofekmeister
+Ofek Lev
 ofrinevo
 Oliver Jeeves
 Oliver Mannion
@@ -463,9 +502,12 @@ Paul Nasrat
 Paul Oswald
 Paul van der Linden
 Paulus Schoutsen
+Pavel Safronov
 Pavithra Eswaramoorthy
 Pawel Jasinski
+Paweł Szramowski
 Pekka Klärck
+Peter Gessler
 Peter Lisák
 Peter Waller
 petr-tik
@@ -490,6 +532,7 @@ Preet Thakkar
 Preston Holmes
 Przemek Wrzos
 Pulkit Goyal
+q0w
 Qiangning Hong
 Quentin Lee
 Quentin Pradet
@@ -514,15 +557,18 @@ Roey Berman
 Rohan Jain
 Roman Bogorodskiy
 Romuald Brunet
+ronaudinho
 Ronny Pfannschmidt
 Rory McCann
 Ross Brattain
 Roy Wellington Ⅳ
 Ruairidh MacLeod
+Russell Keith-Magee
 Ryan Wooden
 ryneeverett
 Sachi King
 Salvatore Rinchiera
+sandeepkiran-js
 Savio Jomton
 schlamar
 Scott Kitterman
@@ -533,8 +579,10 @@ Sebastian Schaetz
 Segev Finer
 SeongSoo Cho
 Sergey Vasilyev
+Seth Michael Larson
 Seth Woodworth
 shireenrao
+Shivansh-007
 Shlomi Fish
 Shovan Maity
 Simeon Visser
@@ -564,9 +612,11 @@ Sumana Harihareswara
 Surbhi Sharma
 Sviatoslav Sydorenko
 Swat009
+Sylvain
 Takayuki SHIMIZUKAWA
 Taneli Hukkinen
 tbeswick
+Thiago
 Thijs Triemstra
 Thomas Fenzl
 Thomas Grainger
@@ -574,6 +624,7 @@ Thomas Guettler
 Thomas Johansson
 Thomas Kluyver
 Thomas Smith
+Thomas VINCENT
 Tim D. Smith
 Tim Gates
 Tim Harder
@@ -586,13 +637,16 @@ Tom V
 Tomas Hrnciar
 Tomas Orsava
 Tomer Chachamu
+Tomáš Hrnčiar
 Tony Beswick
+Tony Narlock
 Tony Zhaocheng Tan
 TonyBeswick
 toonarmycaptain
 Toshio Kuratomi
 toxinu
 Travis Swicegood
+Tushar Sadhwani
 Tzu-ping Chung
 Valentin Haenel
 Victor Stinner
@@ -625,9 +679,12 @@ Yeray Diaz Diaz
 Yoval P
 Yu Jian
 Yuan Jing Vincent Yan
+Yusuke Hayashi
 Zearin
 Zhiping Deng
+ziebam
 Zvezdan Petkovic
 Łukasz Langa
+Роман Донченко
 Семён Марьясин
 ‮rekcäH nitraM‮

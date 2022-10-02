@@ -39,9 +39,8 @@ separately, as a "formatting cleanup" PR, if needed.
 Automated Testing
 =================
 
-All pull requests and merges to 'main' branch are tested using `Travis CI`_,
-`Azure Pipelines`_ and `GitHub Actions`_ based on our `.travis.yml`_,
-`.azure-pipelines`_ and `.github/workflows`_ files. More details about pip's
+All pull requests and merges to 'main' branch are tested using `GitHub
+Actions`_ based on our `.github/workflows`_ files. More details about pip's
 Continuous Integration can be found in the `CI Documentation`_
 
 
@@ -89,7 +88,7 @@ The contents of this file are reStructuredText formatted text that
 will be used as the content of the news file entry. You do not need to
 reference the issue or PR numbers in the entry, since ``towncrier``
 will automatically add a reference to all of the affected issues when
-rendering the NEWS file.
+rendering the NEWS file. There must be a newline at the end of the file.
 
 In order to maintain a consistent style in the ``NEWS.rst`` file, it is
 preferred to keep the news entry to the point, in sentence case, shorter than
@@ -264,11 +263,7 @@ will initiate a vote among the existing maintainers.
 
 .. _`Studies have shown`: https://www.kessler.de/prd/smartbear/BestPracticesForPeerCodeReview.pdf
 .. _`resolve merge conflicts`: https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line
-.. _`Travis CI`: https://travis-ci.org/
-.. _`Azure Pipelines`: https://azure.microsoft.com/en-in/services/devops/pipelines/
 .. _`GitHub Actions`: https://github.com/features/actions
-.. _`.travis.yml`: https://github.com/pypa/pip/blob/main/.travis.yml
-.. _`.azure-pipelines`: https://github.com/pypa/pip/blob/main/.azure-pipelines
 .. _`.github/workflows`: https://github.com/pypa/pip/blob/main/.github/workflows
 .. _`CI Documentation`: https://pip.pypa.io/en/latest/development/ci/
 .. _`towncrier`: https://pypi.org/project/towncrier/

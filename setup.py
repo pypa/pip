@@ -37,10 +37,11 @@ setup(
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
     ],
@@ -63,7 +64,14 @@ setup(
         "pip._vendor.certifi": ["*.pem"],
         "pip._vendor.requests": ["*.pem"],
         "pip._vendor.distlib._backport": ["sysconfig.cfg"],
-        "pip._vendor.distlib": ["t32.exe", "t64.exe", "w32.exe", "w64.exe"],
+        "pip._vendor.distlib": [
+            "t32.exe",
+            "t64.exe",
+            "t64-arm.exe",
+            "w32.exe",
+            "w64.exe",
+            "w64-arm.exe",
+        ],
     },
     entry_points={
         "console_scripts": [
@@ -73,5 +81,7 @@ setup(
         ],
     },
     zip_safe=False,
-    python_requires=">=3.6",
+    # NOTE: python_requires is duplicated in __pip-runner__.py.
+    # When changing this value, please change the other copy as well.
+    python_requires=">=3.7",
 )

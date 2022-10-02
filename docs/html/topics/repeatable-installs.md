@@ -1,3 +1,4 @@
+(repeatability)=
 # Repeatable Installs
 
 pip can be used to achieve various levels of repeatable environments. This page
@@ -94,5 +95,5 @@ identical packages.
 Beware of the `setup_requires` keyword arg in {file}`setup.py`. The (rare)
 packages that use it will cause those dependencies to be downloaded by
 setuptools directly, skipping pip's protections. If you need to use such a
-package, see {ref}`Controlling setup_requires <controlling-setup-requires>`.
+package, see {ref}`Controlling setup_requires <controlling-setup_requires>`.
 ```

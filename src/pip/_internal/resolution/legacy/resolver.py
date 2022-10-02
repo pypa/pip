@@ -20,7 +20,7 @@ from itertools import chain
 from typing import DefaultDict, Iterable, List, Optional, Set, Tuple
 
 from pip._vendor.packaging import specifiers
-from pip._vendor.pkg_resources import Distribution
+from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.cache import WheelCache
 from pip._internal.exceptions import (
@@ -28,10 +28,14 @@ from pip._internal.exceptions import (
     DistributionNotFound,
     HashError,
     HashErrors,
+    InstallationError,
+    NoneMetadataError,
     UnsupportedPythonVersion,
 )
 from pip._internal.index.package_finder import PackageFinder
+from pip._internal.metadata import BaseDistribution
 from pip._internal.models.link import Link
+from pip._internal.models.wheel import Wheel
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.req_install import (
     InstallRequirement,
@@ -39,10 +43,12 @@ from pip._internal.req.req_install import (
 )
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver, InstallRequirementProvider
+from pip._internal.utils import compatibility_tags
 from pip._internal.utils.compatibility_tags import get_supported
+from pip._internal.utils.direct_url_helpers import direct_url_from_link
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import dist_in_usersite, normalize_version_info
-from pip._internal.utils.packaging import check_requires_python, get_requires_python
+from pip._internal.utils.misc import normalize_version_info
+from pip._internal.utils.packaging import check_requires_python
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +56,7 @@ DiscoveredDependencies = DefaultDict[str, List[InstallRequirement]]
 
 
 def _check_dist_requires_python(
-    dist: Distribution,
+    dist: BaseDistribution,
     version_info: Tuple[int, int, int],
     ignore_requires_python: bool = False,
 ) -> None:
@@ -66,14 +72,21 @@ def _check_dist_requires_python(
     :raises UnsupportedPythonVersion: When the given Python version isn't
         compatible.
     """
-    requires_python = get_requires_python(dist)
+    # This idiosyncratically converts the SpecifierSet to str and let
+    # check_requires_python then parse it again into SpecifierSet. But this
+    # is the legacy resolver so I'm just not going to bother refactoring.
+    try:
+        requires_python = str(dist.requires_python)
+    except FileNotFoundError as e:
+        raise NoneMetadataError(dist, str(e))
     try:
         is_compatible = check_requires_python(
-            requires_python, version_info=version_info
+            requires_python,
+            version_info=version_info,
         )
     except specifiers.InvalidSpecifier as exc:
         logger.warning(
-            "Package %r has an invalid Requires-Python: %s", dist.project_name, exc
+            "Package %r has an invalid Requires-Python: %s", dist.raw_name, exc
         )
         return
 
@@ -84,7 +97,7 @@ def _check_dist_requires_python(
     if ignore_requires_python:
         logger.debug(
             "Ignoring failed Requires-Python check for package %r: %s not in %r",
-            dist.project_name,
+            dist.raw_name,
             version,
             requires_python,
         )
@@ -92,7 +105,7 @@ def _check_dist_requires_python(
 
     raise UnsupportedPythonVersion(
         "Package {!r} requires a different Python: {} not in {!r}".format(
-            dist.project_name, version, requires_python
+            dist.raw_name, version, requires_python
         )
     )
 
@@ -159,7 +172,7 @@ class Resolver(BaseResolver):
         for req in root_reqs:
             if req.constraint:
                 check_invalid_constraint_type(req)
-            requirement_set.add_requirement(req)
+            self._add_requirement_to_set(requirement_set, req)
 
         # Actually prepare the files, and collect any exceptions. Most hash
         # exceptions cannot be checked ahead of time, because
@@ -179,6 +192,124 @@ class Resolver(BaseResolver):
 
         return requirement_set
 
+    def _add_requirement_to_set(
+        self,
+        requirement_set: RequirementSet,
+        install_req: InstallRequirement,
+        parent_req_name: Optional[str] = None,
+        extras_requested: Optional[Iterable[str]] = None,
+    ) -> Tuple[List[InstallRequirement], Optional[InstallRequirement]]:
+        """Add install_req as a requirement to install.
+
+        :param parent_req_name: The name of the requirement that needed this
+            added. The name is used because when multiple unnamed requirements
+            resolve to the same name, we could otherwise end up with dependency
+            links that point outside the Requirements set. parent_req must
+            already be added. Note that None implies that this is a user
+            supplied requirement, vs an inferred one.
+        :param extras_requested: an iterable of extras used to evaluate the
+            environment markers.
+        :return: Additional requirements to scan. That is either [] if
+            the requirement is not applicable, or [install_req] if the
+            requirement is applicable and has just been added.
+        """
+        # If the markers do not match, ignore this requirement.
+        if not install_req.match_markers(extras_requested):
+            logger.info(
+                "Ignoring %s: markers '%s' don't match your environment",
+                install_req.name,
+                install_req.markers,
+            )
+            return [], None
+
+        # If the wheel is not supported, raise an error.
+        # Should check this after filtering out based on environment markers to
+        # allow specifying different wheels based on the environment/OS, in a
+        # single requirements file.
+        if install_req.link and install_req.link.is_wheel:
+            wheel = Wheel(install_req.link.filename)
+            tags = compatibility_tags.get_supported()
+            if requirement_set.check_supported_wheels and not wheel.supported(tags):
+                raise InstallationError(
+                    "{} is not a supported wheel on this platform.".format(
+                        wheel.filename
+                    )
+                )
+
+        # This next bit is really a sanity check.
+        assert (
+            not install_req.user_supplied or parent_req_name is None
+        ), "a user supplied req shouldn't have a parent"
+
+        # Unnamed requirements are scanned again and the requirement won't be
+        # added as a dependency until after scanning.
+        if not install_req.name:
+            requirement_set.add_unnamed_requirement(install_req)
+            return [install_req], None
+
+        try:
+            existing_req: Optional[
+                InstallRequirement
+            ] = requirement_set.get_requirement(install_req.name)
+        except KeyError:
+            existing_req = None
+
+        has_conflicting_requirement = (
+            parent_req_name is None
+            and existing_req
+            and not existing_req.constraint
+            and existing_req.extras == install_req.extras
+            and existing_req.req
+            and install_req.req
+            and existing_req.req.specifier != install_req.req.specifier
+        )
+        if has_conflicting_requirement:
+            raise InstallationError(
+                "Double requirement given: {} (already in {}, name={!r})".format(
+                    install_req, existing_req, install_req.name
+                )
+            )
+
+        # When no existing requirement exists, add the requirement as a
+        # dependency and it will be scanned again after.
+        if not existing_req:
+            requirement_set.add_named_requirement(install_req)
+            # We'd want to rescan this requirement later
+            return [install_req], install_req
+
+        # Assume there's no need to scan, and that we've already
+        # encountered this for scanning.
+        if install_req.constraint or not existing_req.constraint:
+            return [], existing_req
+
+        does_not_satisfy_constraint = install_req.link and not (
+            existing_req.link and install_req.link.path == existing_req.link.path
+        )
+        if does_not_satisfy_constraint:
+            raise InstallationError(
+                "Could not satisfy constraints for '{}': "
+                "installation from path or url cannot be "
+                "constrained to a version".format(install_req.name)
+            )
+        # If we're now installing a constraint, mark the existing
+        # object for real installation.
+        existing_req.constraint = False
+        # If we're now installing a user supplied requirement,
+        # mark the existing object as such.
+        if install_req.user_supplied:
+            existing_req.user_supplied = True
+        existing_req.extras = tuple(
+            sorted(set(existing_req.extras) | set(install_req.extras))
+        )
+        logger.debug(
+            "Setting %s extras to: %s",
+            existing_req,
+            existing_req.extras,
+        )
+        # Return the existing requirement for addition to the parent and
+        # scanning again.
+        return [existing_req], existing_req
+
     def _is_upgrade_allowed(self, req: InstallRequirement) -> bool:
         if self.upgrade_strategy == "to-satisfy-only":
             return False
@@ -194,7 +325,7 @@ class Resolver(BaseResolver):
         """
         # Don't uninstall the conflict if doing a user install and the
         # conflict is not a user install.
-        if not self.use_user_site or dist_in_usersite(req.satisfied_by):
+        if not self.use_user_site or req.satisfied_by.in_usersite:
             req.should_reinstall = True
         req.satisfied_by = None
 
@@ -301,9 +432,17 @@ class Resolver(BaseResolver):
             logger.debug("Using cached wheel link: %s", cache_entry.link)
             if req.link is req.original_link and cache_entry.persistent:
                 req.original_link_is_in_wheel_cache = True
+            if cache_entry.origin is not None:
+                req.download_info = cache_entry.origin
+            else:
+                # Legacy cache entry that does not have origin.json.
+                # download_info may miss the archive_info.hash field.
+                req.download_info = direct_url_from_link(
+                    req.link, link_is_in_wheel_cache=cache_entry.persistent
+                )
             req.link = cache_entry.link
 
-    def _get_dist_for(self, req: InstallRequirement) -> Distribution:
+    def _get_dist_for(self, req: InstallRequirement) -> BaseDistribution:
         """Takes a InstallRequirement and returns a single AbstractDist \
         representing a prepared variant of the same.
         """
@@ -378,13 +517,14 @@ class Resolver(BaseResolver):
 
         more_reqs: List[InstallRequirement] = []
 
-        def add_req(subreq: Distribution, extras_requested: Iterable[str]) -> None:
-            sub_install_req = self._make_install_req(
-                str(subreq),
-                req_to_install,
-            )
+        def add_req(subreq: Requirement, extras_requested: Iterable[str]) -> None:
+            # This idiosyncratically converts the Requirement to str and let
+            # make_install_req then parse it again into Requirement. But this is
+            # the legacy resolver so I'm just not going to bother refactoring.
+            sub_install_req = self._make_install_req(str(subreq), req_to_install)
             parent_req_name = req_to_install.name
-            to_scan_again, add_to_parent = requirement_set.add_requirement(
+            to_scan_again, add_to_parent = self._add_requirement_to_set(
+                requirement_set,
                 sub_install_req,
                 parent_req_name=parent_req_name,
                 extras_requested=extras_requested,
@@ -401,7 +541,9 @@ class Resolver(BaseResolver):
                 # 'unnamed' requirements can only come from being directly
                 # provided by the user.
                 assert req_to_install.user_supplied
-                requirement_set.add_requirement(req_to_install, parent_req_name=None)
+                self._add_requirement_to_set(
+                    requirement_set, req_to_install, parent_req_name=None
+                )
 
             if not self.ignore_dependencies:
                 if req_to_install.extras:
@@ -410,15 +552,20 @@ class Resolver(BaseResolver):
                         ",".join(req_to_install.extras),
                     )
                 missing_requested = sorted(
-                    set(req_to_install.extras) - set(dist.extras)
+                    set(req_to_install.extras) - set(dist.iter_provided_extras())
                 )
                 for missing in missing_requested:
-                    logger.warning("%s does not provide the extra '%s'", dist, missing)
+                    logger.warning(
+                        "%s %s does not provide the extra '%s'",
+                        dist.raw_name,
+                        dist.version,
+                        missing,
+                    )
 
                 available_requested = sorted(
-                    set(dist.extras) & set(req_to_install.extras)
+                    set(dist.iter_provided_extras()) & set(req_to_install.extras)
                 )
-                for subreq in dist.requires(available_requested):
+                for subreq in dist.iter_dependencies(available_requested):
                     add_req(subreq, extras_requested=available_requested)
 
         return more_reqs

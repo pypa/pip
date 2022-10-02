@@ -11,7 +11,26 @@ on:
   schedule:
     - cron: 0 0 * * MON # Run every Monday at 00:00 UTC
 
+env:
+  # The "FORCE_COLOR" variable, when set to 1,
+  # tells Nox to colorize itself.
+  FORCE_COLOR: "1"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
 jobs:
+  docs:
+    name: docs
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - run: pip install nox
+      - run: nox -s docs
+
   determine-changes:
     runs-on: ubuntu-latest
     outputs:
@@ -27,11 +46,13 @@ jobs:
               # Anything that's touching "vendored code"
               - "src/pip/_vendor/**"
               - "pyproject.toml"
+              - "noxfile.py"
             tests:
-              # Anything that's touching testable stuff
+              # Anything that's touching code-related stuff
               - ".github/workflows/ci.yml"
               - "src/**"
               - "tests/**"
+              - "noxfile.py"
         if: github.event_name == 'pull_request'
 
   pre-commit:
@@ -74,8 +95,8 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
 
-      - run: pip install vendoring
-      - run: vendoring sync . --verbose
+      - run: pip install nox
+      - run: nox -s vendoring
       - run: git diff --exit-code
 
   tests-unix:
@@ -92,10 +113,10 @@ jobs:
       matrix:
         os: [Ubuntu, MacOS]
         python:
-          - 3.6
           - 3.7
           - 3.8
           - 3.9
+          - "3.10"
 
     steps:
       - uses: actions/checkout@v2
@@ -103,17 +124,25 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
-      - run: pip install tox 'virtualenv<20'
+      - name: Install Ubuntu dependencies
+        if: matrix.os == 'Ubuntu'
+        run: sudo apt-get install bzr
+
+      - name: Install MacOS dependencies
+        if: matrix.os == 'MacOS'
+        run: brew install bzr
+
+      - run: pip install nox 'virtualenv<20' 'setuptools != 60.6.0'
 
       # Main check
       - name: Run unit tests
         run: >-
-          tox -e py --
+          nox -s test-${{ matrix.python }} --
           -m unit
           --verbose --numprocesses auto --showlocals
       - name: Run integration tests
         run: >-
-          tox -e py --
+          nox -s test-${{ matrix.python }} --
           -m integration
           --verbose --numprocesses auto --showlocals
           --durations=5
@@ -132,11 +161,11 @@ jobs:
       matrix:
         os: [Windows]
         python:
-          - 3.6
+          - 3.7
           # Commented out, since Windows tests are expensively slow.
-          # - 3.7
           # - 3.8
-          - 3.9
+          # - 3.9
+          - "3.10"
         group: [1, 2]
 
     steps:
@@ -160,7 +189,7 @@ jobs:
           $acl.AddAccessRule($rule)
           Set-Acl "R:\Temp" $acl
 
-      - run: pip install tox 'virtualenv<20'
+      - run: pip install nox 'virtualenv<20'
         env:
           TEMP: "R:\\Temp"
 
@@ -168,7 +197,7 @@ jobs:
       - name: Run unit tests
         if: matrix.group == 1
         run: >-
-          tox -e py --
+          nox -s test-${{ matrix.python }} --
           -m unit
           --verbose --numprocesses auto --showlocals
         env:
@@ -177,7 +206,7 @@ jobs:
       - name: Run integration tests (group 1)
         if: matrix.group == 1
         run: >-
-          tox -e py --
+          nox -s test-${{ matrix.python }} --
           -m integration -k "not test_install"
           --verbose --numprocesses auto --showlocals
         env:
@@ -186,8 +215,72 @@ jobs:
       - name: Run integration tests (group 2)
         if: matrix.group == 2
         run: >-
-          tox -e py --
+          nox -s test-${{ matrix.python }} --
           -m integration -k "test_install"
           --verbose --numprocesses auto --showlocals
         env:
           TEMP: "R:\\Temp"
+
+  tests-zipapp:
+    name: tests / zipapp
+    runs-on: ubuntu-latest
+
+    needs: [pre-commit, packaging, determine-changes]
+    if: >-
+      needs.determine-changes.outputs.tests == 'true' ||
+      github.event_name != 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.10"
+
+      - name: Install Ubuntu dependencies
+        run: sudo apt-get install bzr
+
+      - run: pip install nox 'virtualenv<20' 'setuptools != 60.6.0'
+
+      # Main check
+      - name: Run integration tests
+        run: >-
+          nox -s test-3.10 --
+          -m integration
+          --verbose --numprocesses auto --showlocals
+          --durations=5
+          --use-zipapp
+
+  # TODO: Remove this when we add Python 3.11 to CI.
+  tests-importlib-metadata:
+    name: tests for importlib.metadata backend
+    runs-on: ubuntu-latest
+    env:
+      _PIP_USE_IMPORTLIB_METADATA: 'true'
+
+    needs: [pre-commit, packaging, determine-changes]
+    if: >-
+      needs.determine-changes.outputs.tests == 'true' ||
+      github.event_name != 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+
+      - name: Install Ubuntu dependencies
+        run: sudo apt-get install bzr
+
+      - run: pip install nox 'virtualenv<20'
+
+      - name: Run unit tests
+        run: >-
+          nox -s test-3.10 --
+          -m unit
+          --verbose --numprocesses auto --showlocals
+      - name: Run integration tests
+        run: >-
+          nox -s test-3.10 --
+          -m integration
+          --verbose --numprocesses auto --showlocals
+          --durations=5

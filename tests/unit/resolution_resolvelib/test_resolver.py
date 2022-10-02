@@ -1,3 +1,4 @@
+from typing import Dict, List, Optional, Set, Tuple, cast
 from unittest import mock
 
 import pytest
@@ -5,6 +6,8 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib.resolvers import Result
 from pip._vendor.resolvelib.structs import DirectedGraph
 
+from pip._internal.index.package_finder import PackageFinder
+from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.resolvelib.resolver import (
@@ -14,30 +17,31 @@ from pip._internal.resolution.resolvelib.resolver import (
 
 
 @pytest.fixture()
-def resolver(preparer, finder):
+def resolver(preparer: RequirementPreparer, finder: PackageFinder) -> Resolver:
     resolver = Resolver(
         preparer=preparer,
         finder=finder,
         wheel_cache=None,
         make_install_req=mock.Mock(),
-        use_user_site="not-used",
-        ignore_dependencies="not-used",
-        ignore_installed="not-used",
-        ignore_requires_python="not-used",
-        force_reinstall="not-used",
+        use_user_site=False,
+        ignore_dependencies=False,
+        ignore_installed=False,
+        ignore_requires_python=False,
+        force_reinstall=False,
         upgrade_strategy="to-satisfy-only",
     )
     return resolver
 
 
-def _make_graph(edges):
-    """Build graph from edge declarations.
-    """
+def _make_graph(
+    edges: List[Tuple[Optional[str], Optional[str]]]
+) -> "DirectedGraph[Optional[str]]":
+    """Build graph from edge declarations."""
 
-    graph = DirectedGraph()
+    graph: "DirectedGraph[Optional[str]]" = DirectedGraph()
     for parent, child in edges:
-        parent = canonicalize_name(parent) if parent else None
-        child = canonicalize_name(child) if child else None
+        parent = cast(str, canonicalize_name(parent)) if parent else None
+        child = cast(str, canonicalize_name(child)) if child else None
         for v in (parent, child):
             if v not in graph:
                 graph.add(v)
@@ -77,12 +81,16 @@ def _make_graph(edges):
         ),
     ],
 )
-def test_new_resolver_get_installation_order(resolver, edges, ordered_reqs):
+def test_new_resolver_get_installation_order(
+    resolver: Resolver,
+    edges: List[Tuple[Optional[str], Optional[str]]],
+    ordered_reqs: List[str],
+) -> None:
     graph = _make_graph(edges)
 
     # Mapping values and criteria are not used in test, so we stub them out.
     mapping = {vertex: None for vertex in graph if vertex is not None}
-    resolver._result = Result(mapping, graph, criteria=None)
+    resolver._result = Result(mapping, graph, criteria=None)  # type: ignore
 
     reqset = RequirementSet()
     for r in ordered_reqs:
@@ -94,7 +102,7 @@ def test_new_resolver_get_installation_order(resolver, edges, ordered_reqs):
 
 
 @pytest.mark.parametrize(
-    "name, edges, expected_weights",
+    "name, edges, requirement_keys, expected_weights",
     [
         (
             # From https://github.com/pypa/pip/pull/8127#discussion_r414564664
@@ -107,7 +115,8 @@ def test_new_resolver_get_installation_order(resolver, edges, ordered_reqs):
                 ("three", "four"),
                 ("four", "five"),
             ],
-            {None: 0, "one": 1, "two": 1, "three": 2, "four": 3, "five": 4},
+            {"one", "two", "three", "four", "five"},
+            {"five": 5, "four": 4, "one": 4, "three": 2, "two": 1},
         ),
         (
             "linear",
@@ -118,7 +127,20 @@ def test_new_resolver_get_installation_order(resolver, edges, ordered_reqs):
                 ("three", "four"),
                 ("four", "five"),
             ],
-            {None: 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
+            {"one", "two", "three", "four", "five"},
+            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
+        ),
+        (
+            "linear AND restricted",
+            [
+                (None, "one"),
+                ("one", "two"),
+                ("two", "three"),
+                ("three", "four"),
+                ("four", "five"),
+            ],
+            {"one", "three", "five"},
+            {"one": 1, "three": 3, "five": 5},
         ),
         (
             "linear AND root -> two",
@@ -130,7 +152,8 @@ def test_new_resolver_get_installation_order(resolver, edges, ordered_reqs):
                 ("four", "five"),
                 (None, "two"),
             ],
-            {None: 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
+            {"one", "two", "three", "four", "five"},
+            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
         ),
         (
             "linear AND root -> three",
@@ -142,7 +165,8 @@ def test_new_resolver_get_installation_order(resolver, edges, ordered_reqs):
                 ("four", "five"),
                 (None, "three"),
             ],
-            {None: 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
+            {"one", "two", "three", "four", "five"},
+            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
         ),
         (
             "linear AND root -> four",
@@ -154,7 +178,8 @@ def test_new_resolver_get_installation_order(resolver, edges, ordered_reqs):
                 ("four", "five"),
                 (None, "four"),
             ],
-            {None: 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
+            {"one", "two", "three", "four", "five"},
+            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
         ),
         (
             "linear AND root -> five",
@@ -166,7 +191,8 @@ def test_new_resolver_get_installation_order(resolver, edges, ordered_reqs):
                 ("four", "five"),
                 (None, "five"),
             ],
-            {None: 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
+            {"one", "two", "three", "four", "five"},
+            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
         ),
         (
             "linear AND one -> four",
@@ -178,7 +204,8 @@ def test_new_resolver_get_installation_order(resolver, edges, ordered_reqs):
                 ("four", "five"),
                 ("one", "four"),
             ],
-            {None: 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
+            {"one", "two", "three", "four", "five"},
+            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
         ),
         (
             "linear AND two -> four",
@@ -190,7 +217,8 @@ def test_new_resolver_get_installation_order(resolver, edges, ordered_reqs):
                 ("four", "five"),
                 ("two", "four"),
             ],
-            {None: 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
+            {"one", "two", "three", "four", "five"},
+            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
         ),
         (
             "linear AND four -> one (cycle)",
@@ -202,7 +230,8 @@ def test_new_resolver_get_installation_order(resolver, edges, ordered_reqs):
                 ("four", "five"),
                 ("four", "one"),
             ],
-            {None: 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
+            {"one", "two", "three", "four", "five"},
+            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
         ),
         (
             "linear AND four -> two (cycle)",
@@ -214,7 +243,8 @@ def test_new_resolver_get_installation_order(resolver, edges, ordered_reqs):
                 ("four", "five"),
                 ("four", "two"),
             ],
-            {None: 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
+            {"one", "two", "three", "four", "five"},
+            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
         ),
         (
             "linear AND four -> three (cycle)",
@@ -226,12 +256,44 @@ def test_new_resolver_get_installation_order(resolver, edges, ordered_reqs):
                 ("four", "five"),
                 ("four", "three"),
             ],
-            {None: 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
+            {"one", "two", "three", "four", "five"},
+            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
+        ),
+        (
+            "linear AND four -> three (cycle) AND restricted 1-2-3",
+            [
+                (None, "one"),
+                ("one", "two"),
+                ("two", "three"),
+                ("three", "four"),
+                ("four", "five"),
+                ("four", "three"),
+            ],
+            {"one", "two", "three"},
+            {"one": 1, "two": 2, "three": 3},
+        ),
+        (
+            "linear AND four -> three (cycle) AND restricted 4-5",
+            [
+                (None, "one"),
+                ("one", "two"),
+                ("two", "three"),
+                ("three", "four"),
+                ("four", "five"),
+                ("four", "three"),
+            ],
+            {"four", "five"},
+            {"four": 4, "five": 5},
         ),
     ],
 )
-def test_new_resolver_topological_weights(name, edges, expected_weights):
+def test_new_resolver_topological_weights(
+    name: str,
+    edges: List[Tuple[Optional[str], Optional[str]]],
+    requirement_keys: Set[str],
+    expected_weights: Dict[Optional[str], int],
+) -> None:
     graph = _make_graph(edges)
 
-    weights = get_topological_weights(graph, len(expected_weights))
+    weights = get_topological_weights(graph, requirement_keys)
     assert weights == expected_weights

@@ -100,18 +100,16 @@ Modifications
 
 * ``setuptools`` is completely stripped to only keep ``pkg_resources``.
 * ``pkg_resources`` has been modified to import its dependencies from
-  ``pip._vendor``.
+  ``pip._vendor``, and to use the vendored copy of ``platformdirs``
+  rather than ``appdirs``.
 * ``packaging`` has been modified to import its dependencies from
   ``pip._vendor``.
-* ``html5lib`` has been modified to import six from ``pip._vendor``, to prefer
-  importing from ``collections.abc`` instead of ``collections`` and does not
-  import ``xml.etree.cElementTree`` on Python 3.
 * ``CacheControl`` has been modified to import its dependencies from
   ``pip._vendor``.
 * ``requests`` has been modified to import its other dependencies from
   ``pip._vendor`` and to *not* load ``simplejson`` (all platforms) and
   ``pyopenssl`` (Windows).
-
+* ``platformdirs`` has been modified to import its submodules from ``pip._vendor.platformdirs``.
 
 Automatic Vendoring
 ===================

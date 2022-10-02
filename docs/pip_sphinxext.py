@@ -127,8 +127,7 @@ class PipOptions(rst.Directive):
             line += f" <{metavar.lower()}>"
         # fix defaults
         assert option.help is not None
-        # https://github.com/python/typeshed/pull/5080
-        opt_help = option.help.replace("%default", str(option.default))  # type: ignore
+        opt_help = option.help.replace("%default", str(option.default))
         # fix paths with sys.prefix
         opt_help = opt_help.replace(sys.prefix, "<sys.prefix>")
         return [bookmark_line, "", line, "", "    " + opt_help, ""]

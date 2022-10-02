@@ -1,17 +1,29 @@
 import pathlib
 import sys
 
-from tests.lib import create_basic_wheel_for_package, create_test_package_with_setup
+from tests.lib import (
+    PipTestEnvironment,
+    create_basic_wheel_for_package,
+    create_test_package_with_setup,
+)
 
 
-def test_new_resolver_conflict_requirements_file(tmpdir, script):
+def test_new_resolver_conflict_requirements_file(
+    tmpdir: pathlib.Path, script: PipTestEnvironment
+) -> None:
     create_basic_wheel_for_package(script, "base", "1.0")
     create_basic_wheel_for_package(script, "base", "2.0")
     create_basic_wheel_for_package(
-        script, "pkga", "1.0", depends=["base==1.0"],
+        script,
+        "pkga",
+        "1.0",
+        depends=["base==1.0"],
     )
     create_basic_wheel_for_package(
-        script, "pkgb", "1.0", depends=["base==2.0"],
+        script,
+        "pkgb",
+        "1.0",
+        depends=["base==2.0"],
     )
 
     req_file = tmpdir.joinpath("requirements.txt")
@@ -19,9 +31,12 @@ def test_new_resolver_conflict_requirements_file(tmpdir, script):
 
     result = script.pip(
         "install",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
-        "-r", req_file,
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "-r",
+        req_file,
         expect_error=True,
     )
 
@@ -29,17 +44,22 @@ def test_new_resolver_conflict_requirements_file(tmpdir, script):
     assert message in result.stderr, str(result)
 
 
-def test_new_resolver_conflict_constraints_file(tmpdir, script):
+def test_new_resolver_conflict_constraints_file(
+    tmpdir: pathlib.Path, script: PipTestEnvironment
+) -> None:
     create_basic_wheel_for_package(script, "pkg", "1.0")
 
-    constrats_file = tmpdir.joinpath("constraints.txt")
-    constrats_file.write_text("pkg!=1.0")
+    constraints_file = tmpdir.joinpath("constraints.txt")
+    constraints_file.write_text("pkg!=1.0")
 
     result = script.pip(
         "install",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
-        "-c", constrats_file,
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "-c",
+        constraints_file,
         "pkg==1.0",
         expect_error=True,
     )
@@ -50,7 +70,7 @@ def test_new_resolver_conflict_constraints_file(tmpdir, script):
     assert message in result.stdout, str(result)
 
 
-def test_new_resolver_requires_python_error(script):
+def test_new_resolver_requires_python_error(script: PipTestEnvironment) -> None:
     compatible_python = ">={0.major}.{0.minor}".format(sys.version_info)
     incompatible_python = "<{0.major}.{0.minor}".format(sys.version_info)
 
@@ -76,7 +96,9 @@ def test_new_resolver_requires_python_error(script):
     assert compatible_python not in result.stderr, str(result)
 
 
-def test_new_resolver_checks_requires_python_before_dependencies(script):
+def test_new_resolver_checks_requires_python_before_dependencies(
+    script: PipTestEnvironment,
+) -> None:
     incompatible_python = "<{0.major}.{0.minor}".format(sys.version_info)
 
     pkg_dep = create_basic_wheel_for_package(
@@ -95,8 +117,11 @@ def test_new_resolver_checks_requires_python_before_dependencies(script):
     )
 
     result = script.pip(
-        "install", "--no-cache-dir",
-        "--no-index", "--find-links", script.scratch_path,
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "pkg-root",
         expect_error=True,
     )

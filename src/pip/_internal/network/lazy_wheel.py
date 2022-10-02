@@ -5,36 +5,36 @@ __all__ = ["HTTPRangeRequestUnsupported", "dist_from_wheel_url"]
 from bisect import bisect_left, bisect_right
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple
 from zipfile import BadZipfile, ZipFile
 
-from pip._vendor.pkg_resources import Distribution
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 
+from pip._internal.metadata import BaseDistribution, MemoryWheel, get_wheel_distribution
 from pip._internal.network.session import PipSession
 from pip._internal.network.utils import HEADERS, raise_for_status, response_chunks
-from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
 
 
 class HTTPRangeRequestUnsupported(Exception):
     pass
 
 
-def dist_from_wheel_url(name: str, url: str, session: PipSession) -> Distribution:
-    """Return a pkg_resources.Distribution from the given wheel URL.
+def dist_from_wheel_url(name: str, url: str, session: PipSession) -> BaseDistribution:
+    """Return a distribution object from the given wheel URL.
 
-    This uses HTTP range requests to only fetch the potion of the wheel
+    This uses HTTP range requests to only fetch the portion of the wheel
     containing metadata, just enough for the object to be constructed.
     If such requests are not supported, HTTPRangeRequestUnsupported
     is raised.
     """
-    with LazyZipOverHTTP(url, session) as wheel:
+    with LazyZipOverHTTP(url, session) as zf:
         # For read-only ZIP files, ZipFile only needs methods read,
         # seek, seekable and tell, not the whole IO protocol.
-        zip_file = ZipFile(wheel)  # type: ignore
+        wheel = MemoryWheel(zf.name, zf)  # type: ignore
         # After context manager exit, wheel.name
         # is an invalid file by intention.
-        return pkg_resources_distribution_for_wheel(zip_file, name, wheel.name)
+        return get_wheel_distribution(wheel, canonicalize_name(name))
 
 
 class LazyZipOverHTTP:
@@ -135,11 +135,11 @@ class LazyZipOverHTTP:
         self._file.__enter__()
         return self
 
-    def __exit__(self, *exc: Any) -> Optional[bool]:
-        return self._file.__exit__(*exc)
+    def __exit__(self, *exc: Any) -> None:
+        self._file.__exit__(*exc)
 
     @contextmanager
-    def _stay(self) -> Iterator[None]:
+    def _stay(self) -> Generator[None, None, None]:
         """Return a context manager keeping the position.
 
         At the end of the block, seek back to original position.
@@ -177,8 +177,8 @@ class LazyZipOverHTTP:
 
     def _merge(
         self, start: int, end: int, left: int, right: int
-    ) -> Iterator[Tuple[int, int]]:
-        """Return an iterator of intervals to be fetched.
+    ) -> Generator[Tuple[int, int], None, None]:
+        """Return a generator of intervals to be fetched.
 
         Args:
             start (int): Start of needed interval

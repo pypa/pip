@@ -6,6 +6,7 @@ include pyproject.toml
 
 include src/pip/_vendor/README.rst
 include src/pip/_vendor/vendor.txt
+include src/pip/_vendor/pyparsing/diagram/template.jinja2
 recursive-include  src/pip/_vendor *LICENSE*
 recursive-include  src/pip/_vendor *COPYING*
 
@@ -15,7 +16,6 @@ include docs/requirements.txt
 exclude .coveragerc
 exclude .mailmap
 exclude .appveyor.yml
-exclude .travis.yml
 exclude .readthedocs.yml
 exclude .pre-commit-config.yaml
 exclude tox.ini
@@ -31,7 +31,6 @@ exclude src/pip/_vendor/six/moves
 recursive-exclude src/pip/_vendor *.pyi
 
 prune .github
-prune .azure-pipelines
 prune docs/build
 prune news
 prune tasks

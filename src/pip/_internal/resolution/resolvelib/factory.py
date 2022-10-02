@@ -19,7 +19,6 @@ from typing import (
 )
 
 from pip._vendor.packaging.requirements import InvalidRequirement
-from pip._vendor.packaging.requirements import Requirement as PackagingRequirement
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.resolvelib import ResolutionImpossible
@@ -28,7 +27,6 @@ from pip._internal.cache import CacheEntry, WheelCache
 from pip._internal.exceptions import (
     DistributionNotFound,
     InstallationError,
-    InstallationSubprocessError,
     MetadataInconsistent,
     UnsupportedPythonVersion,
     UnsupportedWheel,
@@ -46,6 +44,7 @@ from pip._internal.req.req_install import (
 from pip._internal.resolution.base import InstallRequirementProvider
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
+from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 from .base import Candidate, CandidateVersion, Constraint, Requirement
@@ -158,10 +157,7 @@ class Factory:
         try:
             base = self._installed_candidate_cache[dist.canonical_name]
         except KeyError:
-            from pip._internal.metadata.pkg_resources import Distribution as _Dist
-
-            compat_dist = cast(_Dist, dist)._dist
-            base = AlreadyInstalledCandidate(compat_dist, template, factory=self)
+            base = AlreadyInstalledCandidate(dist, template, factory=self)
             self._installed_candidate_cache[dist.canonical_name] = base
         if not extras:
             return base
@@ -193,10 +189,16 @@ class Factory:
                         name=name,
                         version=version,
                     )
-                except (InstallationSubprocessError, MetadataInconsistent) as e:
-                    logger.warning("Discarding %s. %s", link, e)
+                except MetadataInconsistent as e:
+                    logger.info(
+                        "Discarding [blue underline]%s[/]: [yellow]%s[reset]",
+                        link,
+                        e,
+                        extra={"markup": True},
+                    )
                     self._build_failures[link] = e
                     return None
+
             base: BaseCandidate = self._editable_candidate_cache[link]
         else:
             if link not in self._link_candidate_cache:
@@ -208,8 +210,13 @@ class Factory:
                         name=name,
                         version=version,
                     )
-                except (InstallationSubprocessError, MetadataInconsistent) as e:
-                    logger.warning("Discarding %s. %s", link, e)
+                except MetadataInconsistent as e:
+                    logger.info(
+                        "Discarding [blue underline]%s[/]: [yellow]%s[reset]",
+                        link,
+                        e,
+                        extra={"markup": True},
+                    )
                     self._build_failures[link] = e
                     return None
             base = self._link_candidate_cache[link]
@@ -263,7 +270,7 @@ class Factory:
                 extras=extras,
                 template=template,
             )
-            # The candidate is a known incompatiblity. Don't use it.
+            # The candidate is a known incompatibility. Don't use it.
             if id(candidate) in incompatible_ids:
                 return None
             return candidate
@@ -276,14 +283,27 @@ class Factory:
             )
             icans = list(result.iter_applicable())
 
-            # PEP 592: Yanked releases must be ignored unless only yanked
-            # releases can satisfy the version range. So if this is false,
-            # all yanked icans need to be skipped.
+            # PEP 592: Yanked releases are ignored unless the specifier
+            # explicitly pins a version (via '==' or '===') that can be
+            # solely satisfied by a yanked release.
             all_yanked = all(ican.link.is_yanked for ican in icans)
+
+            def is_pinned(specifier: SpecifierSet) -> bool:
+                for sp in specifier:
+                    if sp.operator == "===":
+                        return True
+                    if sp.operator != "==":
+                        continue
+                    if sp.version.endswith(".*"):
+                        continue
+                    return True
+                return False
+
+            pinned = is_pinned(specifier)
 
             # PackageFinder returns earlier versions first, so we reverse.
             for ican in reversed(icans):
-                if not all_yanked and ican.link.is_yanked:
+                if not (all_yanked and pinned) and ican.link.is_yanked:
                     continue
                 func = functools.partial(
                     self._make_candidate_from_link,
@@ -350,7 +370,7 @@ class Factory:
     def find_candidates(
         self,
         identifier: str,
-        requirements: Mapping[str, Iterator[Requirement]],
+        requirements: Mapping[str, Iterable[Requirement]],
         incompatibilities: Mapping[str, Iterator[Candidate]],
         constraint: Constraint,
         prefers_installed: bool,
@@ -368,7 +388,7 @@ class Factory:
         # If the current identifier contains extras, add explicit candidates
         # from entries from extra-less identifier.
         with contextlib.suppress(InvalidRequirement):
-            parsed_requirement = PackagingRequirement(identifier)
+            parsed_requirement = get_requirement(identifier)
             explicit_candidates.update(
                 self._iter_explicit_candidates_from_base(
                     requirements.get(parsed_requirement.name, ()),
@@ -377,7 +397,7 @@ class Factory:
             )
 
         # Add explicit candidates from constraints. We only do this if there are
-        # kown ireqs, which represent requirements not already explicit. If
+        # known ireqs, which represent requirements not already explicit. If
         # there are no ireqs, we're constraining already-explicit requirements,
         # which is handled later when we return the explicit candidates.
         if ireqs:
@@ -487,16 +507,20 @@ class Factory:
     def make_requirement_from_spec(
         self,
         specifier: str,
-        comes_from: InstallRequirement,
+        comes_from: Optional[InstallRequirement],
         requested_extras: Iterable[str] = (),
     ) -> Optional[Requirement]:
         ireq = self._make_install_req_from_spec(specifier, comes_from)
         return self._make_requirement_from_install_req(ireq, requested_extras)
 
     def make_requires_python_requirement(
-        self, specifier: Optional[SpecifierSet]
+        self,
+        specifier: SpecifierSet,
     ) -> Optional[Requirement]:
-        if self._ignore_requires_python or specifier is None:
+        if self._ignore_requires_python:
+            return None
+        # Don't bother creating a dependency for an empty Requires-Python.
+        if not str(specifier):
             return None
         return RequiresPythonRequirement(specifier, self._python_candidate)
 
@@ -578,8 +602,15 @@ class Factory:
             req_disp = f"{req} (from {parent.name})"
 
         cands = self._finder.find_all_candidates(req.project_name)
+        skipped_by_requires_python = self._finder.requires_python_skipped_reasons()
         versions = [str(v) for v in sorted({c.version for c in cands})]
 
+        if skipped_by_requires_python:
+            logger.critical(
+                "Ignored the following versions that require a different python "
+                "version: %s",
+                "; ".join(skipped_by_requires_python) or "none",
+            )
         logger.critical(
             "Could not find a version that satisfies the requirement %s "
             "(from versions: %s)",
@@ -614,7 +645,7 @@ class Factory:
         ]
         if requires_python_causes:
             # The comprehension above makes sure all Requirement instances are
-            # RequiresPythonRequirement, so let's cast for convinience.
+            # RequiresPythonRequirement, so let's cast for convenience.
             return self._report_requires_python_error(
                 cast("Sequence[ConflictCause]", requires_python_causes),
             )
@@ -695,6 +726,6 @@ class Factory:
 
         return DistributionNotFound(
             "ResolutionImpossible: for help visit "
-            "https://pip.pypa.io/en/latest/user_guide/"
-            "#fixing-conflicting-dependencies"
+            "https://pip.pypa.io/en/latest/topics/dependency-resolution/"
+            "#dealing-with-dependency-conflicts"
         )

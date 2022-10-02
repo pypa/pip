@@ -15,6 +15,10 @@ caching
 configuration
 dependency-resolution
 more-dependency-resolution
+https-certificates
+local-project-installs
 repeatable-installs
+secure-installs
 vcs-support
+python-option
 ```

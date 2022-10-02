@@ -1,7 +1,461 @@
-21.2.2 (2021-07-31)
+.. note
+
+    You should *NOT* be adding new change log entries to this file, this
+    file is managed by towncrier. You *may* edit previous change logs to
+    fix problems like typo corrections or such.
+
+    To add a new change log entry, please see
+        https://pip.pypa.io/en/latest/development/contributing/#news-entries
+
+.. towncrier release notes start
+
+22.2.2 (2022-08-03)
+===================
+
+Bug Fixes
+---------
+
+- Avoid  ``AttributeError`` when removing the setuptools-provided ``_distutils_hack`` and it is missing its implementation. (`#11314 <https://github.com/pypa/pip/issues/11314>`_)
+- Fix import error when reinstalling pip in user site. (`#11319 <https://github.com/pypa/pip/issues/11319>`_)
+- Show pip deprecation warnings by default. (`#11330 <https://github.com/pypa/pip/issues/11330>`_)
+
+
+22.2.1 (2022-07-27)
+===================
+
+Bug Fixes
+---------
+
+- Send the pip upgrade prompt to stderr. (`#11282 <https://github.com/pypa/pip/issues/11282>`_)
+- Ensure that things work correctly in environments where setuptools-injected
+  ``distutils`` is available by default. This is done by cooperating with
+  setuptools' injection logic to ensure that pip uses the ``distutils`` from the
+  Python standard library instead. (`#11298 <https://github.com/pypa/pip/issues/11298>`_)
+- Clarify that ``pip cache``'s wheels-related output is about locally built wheels only. (`#11300 <https://github.com/pypa/pip/issues/11300>`_)
+
+
+22.2 (2022-07-21)
+=================
+
+Deprecations and Removals
+-------------------------
+
+- Remove the ``html5lib`` deprecated feature flag. (`#10825 <https://github.com/pypa/pip/issues/10825>`_)
+- Remove ``--use-deprecated=backtrack-on-build-failures``. (`#11241 <https://github.com/pypa/pip/issues/11241>`_)
+
+Features
+--------
+
+- Add support to use `truststore <https://pypi.org/project/truststore/>`_ as an
+  alternative SSL certificate verification backend. The backend can be enabled on Python
+  3.10 and later by installing ``truststore`` into the environment, and adding the
+  ``--use-feature=truststore`` flag to various pip commands.
+
+  ``truststore`` differs from the current default verification backend (provided by
+  ``certifi``) in it uses the operating system’s trust store, which can be better
+  controlled and augmented to better support non-standard certificates. Depending on
+  feedback, pip may switch to this as the default certificate verification backend in
+  the future. (`#11082 <https://github.com/pypa/pip/issues/11082>`_)
+- Add ``--dry-run`` option to ``pip install``, to let it print what it would install but
+  not actually change anything in the target environment. (`#11096 <https://github.com/pypa/pip/issues/11096>`_)
+- Record in wheel cache entries the URL of the original artifact that was downloaded
+  to build the cached wheels. The record is named ``origin.json`` and uses the PEP 610
+  Direct URL format. (`#11137 <https://github.com/pypa/pip/issues/11137>`_)
+- Support `PEP 691 <https://peps.python.org/pep-0691/>`_. (`#11158 <https://github.com/pypa/pip/issues/11158>`_)
+- pip's deprecation warnings now subclass the built-in ``DeprecationWarning``, and
+  can be suppressed by running the Python interpreter with
+  ``-W ignore::DeprecationWarning``. (`#11225 <https://github.com/pypa/pip/issues/11225>`_)
+- Add ``pip inspect`` command to obtain the list of installed distributions and other
+  information about the Python environment, in JSON format. (`#11245 <https://github.com/pypa/pip/issues/11245>`_)
+- Significantly speed up isolated environment creation, by using the same
+  sources for pip instead of creating a standalone installation for each
+  environment. (`#11257 <https://github.com/pypa/pip/issues/11257>`_)
+- Add an experimental ``--report`` option to the install command to generate a JSON report
+  of what was installed. In combination with ``--dry-run`` and ``--ignore-installed`` it
+  can be used to resolve the requirements. (`#53 <https://github.com/pypa/pip/issues/53>`_)
+
+Bug Fixes
+---------
+
+- Fix ``pip install --pre`` for packages with pre-release build dependencies defined
+  both in ``pyproject.toml``'s ``build-system.requires`` and ``setup.py``'s
+  ``setup_requires``. (`#10222 <https://github.com/pypa/pip/issues/10222>`_)
+- When pip rewrites the shebang line in a script during wheel installation,
+  update the hash and size in the corresponding ``RECORD`` file entry. (`#10744 <https://github.com/pypa/pip/issues/10744>`_)
+- Do not consider a ``.dist-info`` directory found inside a wheel-like zip file
+  as metadata for an installed distribution. A package in a wheel is (by
+  definition) not installed, and is not guaranteed to work due to how a wheel is
+  structured. (`#11217 <https://github.com/pypa/pip/issues/11217>`_)
+- Use ``importlib.resources`` to read the ``vendor.txt`` file in ``pip debug``.
+  This makes the command safe for use from a zipapp. (`#11248 <https://github.com/pypa/pip/issues/11248>`_)
+- Make the ``--use-pep517`` option of the ``download`` command apply not just
+  to the requirements specified on the command line, but to their dependencies,
+  as well. (`#9523 <https://github.com/pypa/pip/issues/9523>`_)
+
+Process
+-------
+
+- Remove reliance on the stdlib cgi module, which is deprecated in Python 3.11.
+
+Vendored Libraries
+------------------
+
+- Remove html5lib.
+- Upgrade certifi to 2022.6.15
+- Upgrade chardet to 5.0.0
+- Upgrade colorama to 0.4.5
+- Upgrade distlib to 0.3.5
+- Upgrade msgpack to 1.0.4
+- Upgrade pygments to 2.12.0
+- Upgrade pyparsing to 3.0.9
+- Upgrade requests to 2.28.1
+- Upgrade rich to 12.5.1
+- Upgrade typing_extensions to 4.3.0
+- Upgrade urllib3 to 1.26.10
+
+
+22.1.2 (2022-05-31)
+===================
+
+Bug Fixes
+---------
+
+- Revert `#10979 <https://github.com/pypa/pip/issues/10979>`_ since it introduced a regression in certain edge cases. (`#10979 <https://github.com/pypa/pip/issues/10979>`_)
+- Fix an incorrect assertion in the logging logic, that prevented the upgrade prompt from being presented. (`#11136 <https://github.com/pypa/pip/issues/11136>`_)
+
+
+22.1.1 (2022-05-20)
+===================
+
+Bug Fixes
+---------
+
+- Properly filter out optional dependencies (i.e. extras) when checking build environment distributions. (`#11112 <https://github.com/pypa/pip/issues/11112>`_)
+- Change the build environment dependency checking to be opt-in. (`#11116 <https://github.com/pypa/pip/issues/11116>`_)
+- Allow using a pre-release version to satisfy a build requirement. This helps
+  manually populated build environments to more accurately detect build-time
+  requirement conflicts. (`#11123 <https://github.com/pypa/pip/issues/11123>`_)
+
+
+22.1 (2022-05-11)
+=================
+
+Process
+-------
+
+- Enable the ``importlib.metadata`` metadata implementation by default on
+  Python 3.11 (or later). The environment variable ``_PIP_USE_IMPORTLIB_METADATA``
+  can still be used to enable the implementation on 3.10 and earlier, or disable
+  it on 3.11 (by setting it to ``0`` or ``false``).
+
+Bug Fixes
+---------
+
+- Revert `#9243 <https://github.com/pypa/pip/issues/9243>`_ since it introduced a regression in certain edge cases. (`#10962 <https://github.com/pypa/pip/issues/10962>`_)
+- Fix missing ``REQUESTED`` metadata when using URL constraints. (`#11079 <https://github.com/pypa/pip/issues/11079>`_)
+- ``pip config`` now normalizes names by converting underscores into dashes. (`#9330 <https://github.com/pypa/pip/issues/9330>`_)
+
+
+22.1b1 (2022-04-30)
+===================
+
+Process
+-------
+
+- Start migration of distribution metadata implementation from ``pkg_resources``
+  to ``importlib.metadata``. The new implementation is currently not exposed in
+  any user-facing way, but included in the code base for easier development.
+
+Deprecations and Removals
+-------------------------
+
+- Drop ``--use-deprecated=out-of-tree-build``, according to deprecation message. (`#11001 <https://github.com/pypa/pip/issues/11001>`_)
+
+Features
+--------
+
+- Add option to install and uninstall commands to opt-out from running-as-root warning. (`#10556 <https://github.com/pypa/pip/issues/10556>`_)
+- Include Project-URLs in ``pip show`` output. (`#10799 <https://github.com/pypa/pip/issues/10799>`_)
+- Improve error message when ``pip config edit`` is provided an editor that
+  doesn't exist. (`#10812 <https://github.com/pypa/pip/issues/10812>`_)
+- Add a user interface for supplying config settings to build backends. (`#11059 <https://github.com/pypa/pip/issues/11059>`_)
+- Add support for Powershell autocompletion. (`#9024 <https://github.com/pypa/pip/issues/9024>`_)
+- Explains why specified version cannot be retrieved when *Requires-Python* is not satisfied. (`#9615 <https://github.com/pypa/pip/issues/9615>`_)
+- Validate build dependencies when using ``--no-build-isolation``. (`#9794 <https://github.com/pypa/pip/issues/9794>`_)
+
+Bug Fixes
+---------
+
+- Fix conditional checks to prevent ``pip.exe`` from trying to modify itself, on Windows. (`#10560 <https://github.com/pypa/pip/issues/10560>`_)
+- Fix uninstall editable from Windows junction link. (`#10696 <https://github.com/pypa/pip/issues/10696>`_)
+- Fallback to pyproject.toml-based builds if ``setup.py`` is present in a project, but ``setuptools`` cannot be imported. (`#10717 <https://github.com/pypa/pip/issues/10717>`_)
+- When checking for conflicts in the build environment, correctly skip requirements
+  containing markers that do not match the current environment. (`#10883 <https://github.com/pypa/pip/issues/10883>`_)
+- Disable brotli import in vendored urllib3 so brotli could be uninstalled/upgraded by pip. (`#10950 <https://github.com/pypa/pip/issues/10950>`_)
+- Prioritize URL credentials over netrc. (`#10979 <https://github.com/pypa/pip/issues/10979>`_)
+- Filter available distributions using hash declarations from constraints files. (`#9243 <https://github.com/pypa/pip/issues/9243>`_)
+- Fix an error when trying to uninstall packages installed as editable from a network drive. (`#9452 <https://github.com/pypa/pip/issues/9452>`_)
+- Fix pip install issues using a proxy due to an inconsistency in how Requests is currently handling variable precedence in session. (`#9691 <https://github.com/pypa/pip/issues/9691>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade CacheControl to 0.12.11
+- Upgrade distro to 1.7.0
+- Upgrade platformdirs to 2.5.2
+- Remove ``progress`` from vendored dependencies.
+- Upgrade ``pyparsing`` to 3.0.8 for startup performance improvements.
+- Upgrade rich to 12.2.0
+- Upgrade tomli to 2.0.1
+- Upgrade typing_extensions to 4.2.0
+
+Improved Documentation
+----------------------
+
+- Add more dedicated topic and reference pages to the documentation. (`#10899 <https://github.com/pypa/pip/issues/10899>`_)
+- Capitalise Y as the default for "Proceed (y/n)?" when uninstalling. (`#10936 <https://github.com/pypa/pip/issues/10936>`_)
+- Add ``scheme://`` requirement to ``--proxy`` option's description (`#10951 <https://github.com/pypa/pip/issues/10951>`_)
+- The wheel command now references the build interface section instead of stating the legacy
+  setuptools behavior as the default. (`#10972 <https://github.com/pypa/pip/issues/10972>`_)
+- Improved usefulness of ``pip config --help`` output. (`#11074 <https://github.com/pypa/pip/issues/11074>`_)
+
+
+22.0.4 (2022-03-06)
+===================
+
+Deprecations and Removals
+-------------------------
+
+- Drop the doctype check, that presented a warning for index pages that use non-compliant HTML 5. (`#10903 <https://github.com/pypa/pip/issues/10903>`_)
+
+Vendored Libraries
+------------------
+
+- Downgrade distlib to 0.3.3.
+
+
+22.0.3 (2022-02-03)
+===================
+
+Features
+--------
+
+- Print the exception via ``rich.traceback``, when running with ``--debug``. (`#10791 <https://github.com/pypa/pip/issues/10791>`_)
+
+Bug Fixes
+---------
+
+- Only calculate topological installation order, for packages that are going to be installed/upgraded.
+
+  This fixes an `AssertionError` that occurred when determining installation order, for a very specific combination of upgrading-already-installed-package + change of dependencies + fetching some packages from a package index. This combination was especially common in Read the Docs' builds. (`#10851 <https://github.com/pypa/pip/issues/10851>`_)
+- Use ``html.parser`` by default, instead of falling back to ``html5lib`` when ``--use-deprecated=html5lib`` is not passed. (`#10869 <https://github.com/pypa/pip/issues/10869>`_)
+
+Improved Documentation
+----------------------
+
+- Clarify that using per-requirement overrides disables the usage of wheels. (`#9674 <https://github.com/pypa/pip/issues/9674>`_)
+
+
+22.0.2 (2022-01-30)
+===================
+
+Deprecations and Removals
+-------------------------
+
+- Instead of failing on index pages that use non-compliant HTML 5, print a deprecation warning and fall back to ``html5lib``-based parsing for now. This simplifies the migration for non-compliant index pages, by letting such indexes function with a warning. (`#10847 <https://github.com/pypa/pip/issues/10847>`_)
+
+
+22.0.1 (2022-01-30)
+===================
+
+Bug Fixes
+---------
+
+- Accept lowercase ``<!doctype html>`` on index pages. (`#10844 <https://github.com/pypa/pip/issues/10844>`_)
+- Properly handle links parsed by html5lib, when using ``--use-deprecated=html5lib``. (`#10846 <https://github.com/pypa/pip/issues/10846>`_)
+
+
+22.0 (2022-01-29)
+=================
+
+Process
+-------
+
+- Completely replace :pypi:`tox` in our development workflow, with :pypi:`nox`.
+
+Deprecations and Removals
+-------------------------
+
+- Deprecate alternative progress bar styles, leaving only ``on`` and ``off`` as available choices. (`#10462 <https://github.com/pypa/pip/issues/10462>`_)
+- Drop support for Python 3.6. (`#10641 <https://github.com/pypa/pip/issues/10641>`_)
+- Disable location mismatch warnings on Python versions prior to 3.10.
+
+  These warnings were helping identify potential issues as part of the sysconfig -> distutils transition, and we no longer need to rely on reports from older Python versions for information on the transition. (`#10840 <https://github.com/pypa/pip/issues/10840>`_)
+
+Features
+--------
+
+- Changed ``PackageFinder`` to parse HTML documents using the stdlib :class:`html.parser.HTMLParser` class instead of the ``html5lib`` package.
+
+  For now, the deprecated ``html5lib`` code remains and can be used with the ``--use-deprecated=html5lib`` command line option. However, it will be removed in a future pip release. (`#10291 <https://github.com/pypa/pip/issues/10291>`_)
+- Utilise ``rich`` for presenting pip's default download progress bar. (`#10462 <https://github.com/pypa/pip/issues/10462>`_)
+- Present a better error message when an invalid wheel file is encountered, providing more context where the invalid wheel file is. (`#10535 <https://github.com/pypa/pip/issues/10535>`_)
+- Documents the ``--require-virtualenv`` flag for ``pip install``. (`#10588 <https://github.com/pypa/pip/issues/10588>`_)
+- ``pip install <tab>`` autocompletes paths. (`#10646 <https://github.com/pypa/pip/issues/10646>`_)
+- Allow Python distributors to opt-out from or opt-in to the ``sysconfig`` installation scheme backend by setting ``sysconfig._PIP_USE_SYSCONFIG`` to ``True`` or ``False``. (`#10647 <https://github.com/pypa/pip/issues/10647>`_)
+- Make it possible to deselect tests requiring cryptography package on systems where it cannot be installed. (`#10686 <https://github.com/pypa/pip/issues/10686>`_)
+- Start using Rich for presenting error messages in a consistent format. (`#10703 <https://github.com/pypa/pip/issues/10703>`_)
+- Improve presentation of errors from subprocesses. (`#10705 <https://github.com/pypa/pip/issues/10705>`_)
+- Forward pip's verbosity configuration to VCS tools to control their output accordingly. (`#8819 <https://github.com/pypa/pip/issues/8819>`_)
+
+Bug Fixes
+---------
+
+- Optimize installation order calculation to improve performance when installing requirements that form a complex dependency graph with a large amount of edges. (`#10557 <https://github.com/pypa/pip/issues/10557>`_)
+- When a package is requested by the user for upgrade, correctly identify that the extra-ed variant of that same package depended by another user-requested package is requesting the same package, and upgrade it accordingly. (`#10613 <https://github.com/pypa/pip/issues/10613>`_)
+- Prevent pip from installing yanked releases unless explicitly pinned via the ``==`` or ``===`` operators. (`#10617 <https://github.com/pypa/pip/issues/10617>`_)
+- Stop backtracking on build failures, by instead surfacing them to the user and aborting immediately. This behaviour provides more immediate feedback when a package cannot be built due to missing build dependencies or platform incompatibility. (`#10655 <https://github.com/pypa/pip/issues/10655>`_)
+- Silence ``Value for <location> does not match`` warning caused by an erroneous patch in Slackware-distributed Python 3.9. (`#10668 <https://github.com/pypa/pip/issues/10668>`_)
+- Fix an issue where pip did not consider dependencies with and without extras to be equal (`#9644 <https://github.com/pypa/pip/issues/9644>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade CacheControl to 0.12.10
+- Upgrade certifi to 2021.10.8
+- Upgrade distlib to 0.3.4
+- Upgrade idna to 3.3
+- Upgrade msgpack to 1.0.3
+- Upgrade packaging to 21.3
+- Upgrade platformdirs to 2.4.1
+- Add pygments 2.11.2 as a vendored dependency.
+- Tree-trim unused portions of vendored pygments, to reduce the distribution size.
+- Upgrade pyparsing to 3.0.7
+- Upgrade Requests to 2.27.1
+- Upgrade resolvelib to 0.8.1
+- Add rich 11.0.0 as a vendored dependency.
+- Tree-trim unused portions of vendored rich, to reduce the distribution size.
+- Add typing_extensions 4.0.1 as a vendored dependency.
+- Upgrade urllib3 to 1.26.8
+
+
+21.3.1 (2021-10-22)
 ===================
 
 
+Bug Fixes
+---------
+
+
+- Always refuse installing or building projects that have no ``pyproject.toml`` nor
+  ``setup.py``. (`#10531 <https://github.com/pypa/pip/issues/10531>`_)
+- Tweak running-as-root detection, to check ``os.getuid`` if it exists, on Unix-y and non-Linux/non-MacOS machines. (`#10565 <https://github.com/pypa/pip/issues/10565>`_)
+- When installing projects with a ``pyproject.toml`` in editable mode, and the build
+  backend does not support :pep:`660`, prepare metadata using
+  ``prepare_metadata_for_build_wheel`` instead of ``setup.py egg_info``. Also, refuse
+  installing projects that only have a ``setup.cfg`` and no ``setup.py`` nor
+  ``pyproject.toml``. These restore the pre-21.3 behaviour. (`#10573 <https://github.com/pypa/pip/issues/10573>`_)
+- Restore compatibility of where configuration files are loaded from on MacOS (back to ``Library/Application Support/pip``, instead of ``Preferences/pip``). (`#10585 <https://github.com/pypa/pip/issues/10585>`_)
+
+Vendored Libraries
+------------------
+
+
+- Upgrade pep517 to 0.12.0
+
+
+21.3 (2021-10-11)
+=================
+
+Deprecations and Removals
+-------------------------
+
+- Improve deprecation warning regarding the copying of source trees when installing from a local directory. (`#10128 <https://github.com/pypa/pip/issues/10128>`_)
+- Suppress location mismatch warnings when pip is invoked from a Python source
+  tree, so ``ensurepip`` does not emit warnings on CPython ``make install``. (`#10270 <https://github.com/pypa/pip/issues/10270>`_)
+- On Python 3.10 or later, the installation scheme backend has been changed to use
+  ``sysconfig``. This is to anticipate the deprecation of ``distutils`` in Python
+  3.10, and its scheduled removal in 3.12. For compatibility considerations, pip
+  installations running on Python 3.9 or lower will continue to use ``distutils``. (`#10358 <https://github.com/pypa/pip/issues/10358>`_)
+- Remove the ``--build-dir`` option and aliases, one last time. (`#10485 <https://github.com/pypa/pip/issues/10485>`_)
+- In-tree builds are now the default. ``--use-feature=in-tree-build`` is now
+  ignored. ``--use-deprecated=out-of-tree-build`` may be used temporarily to ease
+  the transition. (`#10495 <https://github.com/pypa/pip/issues/10495>`_)
+- Un-deprecate source distribution re-installation behaviour. (`#8711 <https://github.com/pypa/pip/issues/8711>`_)
+
+Features
+--------
+
+- Replace vendored appdirs with platformdirs. (`#10202 <https://github.com/pypa/pip/issues/10202>`_)
+- Support `PEP 610 <https://www.python.org/dev/peps/pep-0610/>`_ to detect
+  editable installs in ``pip freeze`` and  ``pip list``. The ``pip list`` column output
+  has a new ``Editable project location`` column, and the JSON output has a new
+  ``editable_project_location`` field. (`#10249 <https://github.com/pypa/pip/issues/10249>`_)
+- ``pip freeze`` will now always fallback to reporting the editable project
+  location when it encounters a VCS error while analyzing an editable
+  requirement. Before, it sometimes reported the requirement as non-editable. (`#10410 <https://github.com/pypa/pip/issues/10410>`_)
+- ``pip show`` now sorts ``Requires`` and ``Required-By`` alphabetically. (`#10422 <https://github.com/pypa/pip/issues/10422>`_)
+- Do not raise error when there are no files to remove with ``pip cache purge/remove``.
+  Instead log a warning and continue (to log that we removed 0 files). (`#10459 <https://github.com/pypa/pip/issues/10459>`_)
+- When backtracking during dependency resolution, prefer the dependencies which are involved in the most recent conflict. This can significantly reduce the amount of backtracking required. (`#10479 <https://github.com/pypa/pip/issues/10479>`_)
+- Cache requirement objects, to improve performance reducing reparses of requirement strings. (`#10550 <https://github.com/pypa/pip/issues/10550>`_)
+- Support editable installs for projects that have a ``pyproject.toml`` and use a
+  build backend that supports :pep:`660`. (`#8212 <https://github.com/pypa/pip/issues/8212>`_)
+- When a revision is specified in a Git URL, use git's partial clone feature to speed up source retrieval. (`#9086 <https://github.com/pypa/pip/issues/9086>`_)
+- Add a ``--debug`` flag, to enable a mode that doesn't log errors and propagates them to the top level instead. This is primarily to aid with debugging pip's crashes. (`#9349 <https://github.com/pypa/pip/issues/9349>`_)
+- If a host is explicitly specified as trusted by the user (via the --trusted-host option), cache HTTP responses from it in addition to HTTPS ones. (`#9498 <https://github.com/pypa/pip/issues/9498>`_)
+
+Bug Fixes
+---------
+
+- Present a better error message, when a ``file:`` URL is not found. (`#10263 <https://github.com/pypa/pip/issues/10263>`_)
+- Fix the auth credential cache to allow for the case in which
+  the index url contains the username, but the password comes
+  from an external source, such as keyring. (`#10269 <https://github.com/pypa/pip/issues/10269>`_)
+- Fix double unescape of HTML ``data-requires-python`` and ``data-yanked`` attributes. (`#10378 <https://github.com/pypa/pip/issues/10378>`_)
+- New resolver: Fixes depth ordering of packages during resolution, e.g. a dependency 2 levels deep will be ordered before a dependency 3 levels deep. (`#10482 <https://github.com/pypa/pip/issues/10482>`_)
+- Correctly indent metadata preparation messages in pip output. (`#10524 <https://github.com/pypa/pip/issues/10524>`_)
+
+Vendored Libraries
+------------------
+
+- Remove appdirs as a vendored dependency.
+- Upgrade distlib to 0.3.3
+- Upgrade distro to 1.6.0
+- Patch pkg_resources to use platformdirs rather than appdirs.
+- Add platformdirs as a vendored dependency.
+- Upgrade progress to 1.6
+- Upgrade resolvelib to 0.8.0
+- Upgrade urllib3 to 1.26.7
+
+Improved Documentation
+----------------------
+
+- Update links of setuptools as setuptools moved these documents. The Simple Repository link now points to PyPUG as that is the canonical place of packaging specification, and setuptools's ``easy_install`` is deprecated. (`#10430 <https://github.com/pypa/pip/issues/10430>`_)
+- Create a "Build System Interface" reference section, for documenting how pip interacts with build systems. (`#10497 <https://github.com/pypa/pip/issues/10497>`_)
+
+
+21.2.4 (2021-08-12)
+===================
+
+Bug Fixes
+---------
+
+- Fix 3.6.0 compatibility in link comparison logic. (`#10280 <https://github.com/pypa/pip/issues/10280>`_)
+
+
+21.2.3 (2021-08-06)
+===================
+
+Bug Fixes
+---------
+
+- Modify the ``sysconfig.get_preferred_scheme`` function check to be
+  compatible with CPython 3.10’s alphareleases. (`#10252 <https://github.com/pypa/pip/issues/10252>`_)
+
+
+21.2.2 (2021-07-31)
+===================
 
 Bug Fixes
 ---------
@@ -14,8 +468,6 @@ Bug Fixes
 21.2.1 (2021-07-25)
 ===================
 
-
-
 Process
 -------
 
@@ -24,8 +476,6 @@ Process
 
 21.2 (2021-07-24)
 =================
-
-
 
 Process
 -------
@@ -121,17 +571,6 @@ Vendored Libraries
 - Upgrade resolvelib to 0.7.1.
 - Upgrade urllib3 to 1.26.6.
 
-
-.. note
-
-    You should *NOT* be adding new change log entries to this file, this
-    file is managed by towncrier. You *may* edit previous change logs to
-    fix problems like typo corrections or such.
-
-    To add a new change log entry, please see
-        https://pip.pypa.io/en/latest/development/contributing/#news-entries
-
-.. towncrier release notes start
 
 21.1.3 (2021-06-26)
 ===================

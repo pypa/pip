@@ -3,9 +3,7 @@ import itertools
 import logging
 import sys
 import time
-from typing import IO, Iterator
-
-from pip._vendor.progress import HIDE_CURSOR, SHOW_CURSOR
+from typing import IO, Generator, Optional
 
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.logging import get_indentation
@@ -25,7 +23,7 @@ class InteractiveSpinner(SpinnerInterface):
     def __init__(
         self,
         message: str,
-        file: IO[str] = None,
+        file: Optional[IO[str]] = None,
         spin_chars: str = "-\\|/",
         # Empirically, 8 updates/second looks nice
         min_update_interval_seconds: float = 0.125,
@@ -115,7 +113,7 @@ class RateLimiter:
 
 
 @contextlib.contextmanager
-def open_spinner(message: str) -> Iterator[SpinnerInterface]:
+def open_spinner(message: str) -> Generator[SpinnerInterface, None, None]:
     # Interactive spinner goes directly to sys.stdout rather than being routed
     # through the logging system, but it acts like it has level INFO,
     # i.e. it's only displayed if we're at level INFO or better.
@@ -138,8 +136,12 @@ def open_spinner(message: str) -> Iterator[SpinnerInterface]:
         spinner.finish("done")
 
 
+HIDE_CURSOR = "\x1b[?25l"
+SHOW_CURSOR = "\x1b[?25h"
+
+
 @contextlib.contextmanager
-def hidden_cursor(file: IO[str]) -> Iterator[None]:
+def hidden_cursor(file: IO[str]) -> Generator[None, None, None]:
     # The Windows terminal does not support the hide/show cursor ANSI codes,
     # even via colorama. So don't even try.
     if WINDOWS:

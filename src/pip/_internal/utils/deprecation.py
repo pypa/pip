@@ -8,18 +8,9 @@ from typing import Any, Optional, TextIO, Type, Union
 
 from pip._vendor.packaging.version import parse
 
-from pip import __version__ as current_version
+from pip import __version__ as current_version  # NOTE: tests patch this name.
 
 DEPRECATION_MSG_PREFIX = "DEPRECATION: "
-DEPRECATION_MESSAGE = DEPRECATION_MSG_PREFIX + "{reason}"
-GONE_IN_MESSAGE_FUTURE = "pip {gone_in} will enforce this behavior change."
-GONE_IN_MESSAGE_PAST = "This behavior change has been enforced since pip {gone_in}."
-REPLACEMENT_MESSAGE = "A possible replacement is {replacement}."
-FEATURE_FLAG_MESSAGE = (
-    "You can temporarily use the flag --use-feature={feature_flag} "
-    "to test the upcoming behavior."
-)
-ISSUE_MESSAGE = "Discussion can be found at https://github.com/pypa/pip/issues/{issue}."
 
 
 class PipDeprecationWarning(Warning):
@@ -62,6 +53,7 @@ def install_warning_logger() -> None:
 
 
 def deprecated(
+    *,
     reason: str,
     replacement: Optional[str],
     gone_in: Optional[str],
@@ -86,42 +78,98 @@ def deprecated(
     issue:
         Issue number on the tracker that would serve as a useful place for
         users to find related discussion and provide feedback.
-
-    Always pass replacement, gone_in and issue as keyword arguments for clarity
-    at the call site.
     """
+
     # Determine whether or not the feature is already gone in this version.
     is_gone = gone_in is not None and parse(current_version) >= parse(gone_in)
-    # Allow variable substitutions within the "reason" variable.
-    formatted_reason = reason.format(gone_in=gone_in)
-    # Construct a nice message.
-    #   This is eagerly formatted as we want it to get logged as if someone
-    #   typed this entire message out.
-    formatted_deprecation_message = DEPRECATION_MESSAGE.format(reason=formatted_reason)
-    gone_in_message = GONE_IN_MESSAGE_PAST if is_gone else GONE_IN_MESSAGE_FUTURE
-    formatted_gone_in_message = (
-        gone_in_message.format(gone_in=gone_in) if gone_in else None
-    )
-    formatted_replacement_message = (
-        REPLACEMENT_MESSAGE.format(replacement=replacement) if replacement else None
-    )
-    formatted_feature_flag_message = (
-        None
-        if is_gone or not feature_flag
-        else FEATURE_FLAG_MESSAGE.format(feature_flag=feature_flag)
-    )
-    formatted_issue_message = ISSUE_MESSAGE.format(issue=issue) if issue else None
-    sentences = [
-        formatted_deprecation_message,
-        formatted_gone_in_message,
-        formatted_replacement_message,
-        formatted_feature_flag_message,
-        formatted_issue_message,
-    ]
-    message = " ".join(sentence for sentence in sentences if sentence)
 
-    # Raise as an error if the functionality is gone.
+    message_parts = [
+        (reason, f"{DEPRECATION_MSG_PREFIX}{{}}"),
+        (
+            gone_in,
+            "pip {} will enforce this behaviour change."
+            if not is_gone
+            else "Since pip {}, this is no longer supported.",
+        ),
+        (
+            replacement,
+            "A possible replacement is {}.",
+        ),
+        (
+            feature_flag,
+            "You can use the flag --use-feature={} to test the upcoming behaviour."
+            if not is_gone
+            else None,
+        ),
+        (
+            issue,
+            "Discussion can be found at https://github.com/pypa/pip/issues/{}",
+        ),
+    ]
+
+    message = " ".join(
+        format_str.format(value)
+        for value, format_str in message_parts
+        if format_str is not None and value is not None
+    )
+
+    # Raise as an error if this behaviour is deprecated.
     if is_gone:
         raise PipDeprecationWarning(message)
-    else:
-        warnings.warn(message, category=PipDeprecationWarning, stacklevel=2)
+
+    warnings.warn(message, category=PipDeprecationWarning, stacklevel=2)
+
+
+class LegacyInstallReason:
+    def __init__(
+        self,
+        reason: str,
+        replacement: Optional[str],
+        gone_in: Optional[str],
+        feature_flag: Optional[str] = None,
+        issue: Optional[int] = None,
+        emit_after_success: bool = False,
+        emit_before_install: bool = False,
+    ):
+        self._reason = reason
+        self._replacement = replacement
+        self._gone_in = gone_in
+        self._feature_flag = feature_flag
+        self._issue = issue
+        self.emit_after_success = emit_after_success
+        self.emit_before_install = emit_before_install
+
+    def emit_deprecation(self, name: str) -> None:
+        deprecated(
+            reason=self._reason.format(name=name),
+            replacement=self._replacement,
+            gone_in=self._gone_in,
+            feature_flag=self._feature_flag,
+            issue=self._issue,
+        )
+
+
+LegacyInstallReasonFailedBdistWheel = LegacyInstallReason(
+    reason=(
+        "{name} was installed using the legacy 'setup.py install' "
+        "method, because a wheel could not be built for it."
+    ),
+    replacement="to fix the wheel build issue reported above",
+    gone_in=None,
+    issue=8368,
+    emit_after_success=True,
+)
+
+
+LegacyInstallReasonMissingWheelPackage = LegacyInstallReason(
+    reason=(
+        "{name} is being installed using the legacy "
+        "'setup.py install' method, because it does not have a "
+        "'pyproject.toml' and the 'wheel' package "
+        "is not installed."
+    ),
+    replacement="to enable the '--use-pep517' option",
+    gone_in=None,
+    issue=8559,
+    emit_before_install=True,
+)
