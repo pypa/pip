@@ -5,6 +5,14 @@ In certain situations, pip can take a long time to determine what to install,
 and this article is intended to help readers understand what is happening
 "behind the scenes" during that process.
 
+```{note}
+This document is a work in progress. The details included are accurate (at the
+time of writing), but there is additional information, in particular around
+pip's interface with resolvelib, which have not yet been included.
+
+Contributions to improve this document are welcome.
+```
+
 ## The dependency resolution problem
 
 The process of finding a set of packages to install, given a set of dependencies
