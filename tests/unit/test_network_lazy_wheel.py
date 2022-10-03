@@ -12,7 +12,7 @@ from pip._internal.network.lazy_wheel import (
 from pip._internal.network.session import PipSession
 
 from tests.lib import TestData
-from tests.lib.server import MockServer, file_response
+from tests.lib.server import MockServer, file_response, make_mock_server
 
 MYPY_0_782_WHL = (
     "https://files.pythonhosted.org/packages/9d/65/"
@@ -27,19 +27,32 @@ MYPY_0_782_REQS = {
 }
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def session() -> PipSession:
     return PipSession()
 
 
-@pytest.fixture
-def mypy_whl_no_range(mock_server: MockServer, shared_data: TestData) -> Iterator[str]:
+# Reusing the same session and mock server from conftest.py causes macOS CI runners to
+# error, so recreate it here. Similarly, using a function scope fixture causes macOS CI
+# runners to hang, so use session scope for all fixtures in this file.
+@pytest.fixture(scope="session")
+def mypy_mock_server() -> Iterator[MockServer]:
+    server = make_mock_server()
+    test_server = MockServer(server)
+    with test_server.context:
+        yield test_server
+
+
+@pytest.fixture(scope="session")
+def mypy_whl_no_range(
+    mypy_mock_server: MockServer, shared_data: TestData
+) -> Iterator[str]:
     mypy_whl = shared_data.packages / "mypy-0.782-py3-none-any.whl"
-    mock_server.set_responses([file_response(mypy_whl)])
-    mock_server.start()
-    base_address = f"http://{mock_server.host}:{mock_server.port}"
+    mypy_mock_server.set_responses([file_response(mypy_whl)])
+    mypy_mock_server.start()
+    base_address = f"http://{mypy_mock_server.host}:{mypy_mock_server.port}"
     yield "{}/{}".format(base_address, "mypy-0.782-py3-none-any.whl")
-    mock_server.stop()
+    mypy_mock_server.stop()
 
 
 @pytest.mark.network
