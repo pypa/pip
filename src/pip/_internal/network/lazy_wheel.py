@@ -163,7 +163,7 @@ class LazyZipOverHTTP:
         return self
 
     def __exit__(self, *exc: Any) -> bool | None:
-        return self._file.__exit__(*exc)
+        return self._file.__exit__(*exc)  # type: ignore
 
     @contextmanager
     def _stay(self) -> Iterator[None]:
