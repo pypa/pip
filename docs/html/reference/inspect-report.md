@@ -44,7 +44,7 @@ the following properties:
   `.egg-info` directory.
 
   ```{warning}
-  This field may not necessary point to a directory, for instance, in the case of older
+  This field may not necessarily point to a directory, for instance, in the case of older
   `.egg` installs.
   ```
 
