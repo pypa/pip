@@ -1,26 +1,31 @@
 """Lazy ZIP over HTTP"""
 
+from __future__ import annotations
+
 __all__ = ["HTTPRangeRequestUnsupported", "dist_from_wheel_url"]
 
+import logging
 from bisect import bisect_left, bisect_right
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
-from typing import Any, Dict, Generator, List, Optional, Tuple
+from typing import Any, Iterator
 from zipfile import BadZipfile, ZipFile
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 
 from pip._internal.metadata import BaseDistribution, MemoryWheel, get_wheel_distribution
-from pip._internal.network.session import PipSession
-from pip._internal.network.utils import HEADERS, raise_for_status, response_chunks
+from pip._internal.network.session import PipSession as Session
+from pip._internal.network.utils import HEADERS
+
+log = logging.getLogger(__name__)
 
 
 class HTTPRangeRequestUnsupported(Exception):
     pass
 
 
-def dist_from_wheel_url(name: str, url: str, session: PipSession) -> BaseDistribution:
+def dist_from_wheel_url(name: str, url: str, session: Session) -> BaseDistribution:
     """Return a distribution object from the given wheel URL.
 
     This uses HTTP range requests to only fetch the portion of the wheel
@@ -47,20 +52,41 @@ class LazyZipOverHTTP:
     """
 
     def __init__(
-        self, url: str, session: PipSession, chunk_size: int = CONTENT_CHUNK_SIZE
+        self, url: str, session: Session, chunk_size: int = CONTENT_CHUNK_SIZE
     ) -> None:
-        head = session.head(url, headers=HEADERS)
-        raise_for_status(head)
-        assert head.status_code == 200
+
+        # if CONTENT_CHUNK_SIZE is bigger than the file:
+        # In [8]: response.headers["Content-Range"]
+        # Out[8]: 'bytes 0-3133374/3133375'
+
+        self._request_count = 0
+
         self._session, self._url, self._chunk_size = session, url, chunk_size
-        self._length = int(head.headers["Content-Length"])
+
+        # initial range request for the end of the file
+        tail = self._stream_response(start="", end=CONTENT_CHUNK_SIZE)
+        # e.g. {'accept-ranges': 'bytes', 'content-length': '10240',
+        # 'content-range': 'bytes 12824-23063/23064', 'last-modified': 'Sat, 16
+        # Apr 2022 13:03:02 GMT', 'date': 'Thu, 21 Apr 2022 11:34:04 GMT'}
+
+        if tail.status_code != 206:
+            raise HTTPRangeRequestUnsupported("range request is not supported")
+
+        # lowercase content-range to support s3
+        self._length = int(tail.headers["content-range"].partition("/")[-1])
         self._file = NamedTemporaryFile()
         self.truncate(self._length)
-        self._left: List[int] = []
-        self._right: List[int] = []
-        if "bytes" not in head.headers.get("Accept-Ranges", "none"):
-            raise HTTPRangeRequestUnsupported("range request is not supported")
-        self._check_zip()
+
+        # length is also in Content-Length and Content-Range header
+        with self._stay():
+            content_length = int(tail.headers["content-length"])
+            if hasattr(tail, "content"):
+                assert content_length == len(tail.content)
+            self.seek(self._length - content_length)
+            for chunk in tail.iter_content(self._chunk_size):
+                self._file.write(chunk)
+        self._left: list[int] = [self._length - content_length]
+        self._right: list[int] = [self._length - 1]
 
     @property
     def mode(self) -> str:
@@ -92,7 +118,8 @@ class LazyZipOverHTTP:
         all bytes until EOF are returned.  Fewer than
         size bytes may be returned if EOF is reached.
         """
-        download_size = max(size, self._chunk_size)
+        # BUG does not download correctly if size is unspecified
+        download_size = size
         start, length = self.tell(), self._length
         stop = length if size < 0 else min(start + download_size, length)
         start = max(0, stop - download_size)
@@ -117,7 +144,7 @@ class LazyZipOverHTTP:
         """Return the current position."""
         return self._file.tell()
 
-    def truncate(self, size: Optional[int] = None) -> int:
+    def truncate(self, size: int | None = None) -> int:
         """Resize the stream to the given size in bytes.
 
         If size is unspecified resize to the current position.
@@ -131,15 +158,15 @@ class LazyZipOverHTTP:
         """Return False."""
         return False
 
-    def __enter__(self) -> "LazyZipOverHTTP":
+    def __enter__(self) -> LazyZipOverHTTP:
         self._file.__enter__()
         return self
 
-    def __exit__(self, *exc: Any) -> None:
-        self._file.__exit__(*exc)
+    def __exit__(self, *exc: Any) -> bool | None:
+        return self._file.__exit__(*exc)
 
     @contextmanager
-    def _stay(self) -> Generator[None, None, None]:
+    def _stay(self) -> Iterator[None]:
         """Return a context manager keeping the position.
 
         At the end of the block, seek back to original position.
@@ -166,19 +193,27 @@ class LazyZipOverHTTP:
                     break
 
     def _stream_response(
-        self, start: int, end: int, base_headers: Dict[str, str] = HEADERS
+        self, start: int | str, end: int, base_headers: dict[str, str] = HEADERS
     ) -> Response:
-        """Return HTTP response to a range request from start to end."""
+        """Return HTTP response to a range request from start to end.
+
+        :param start: if "", request ``end` bytes from end of file."""
         headers = base_headers.copy()
         headers["Range"] = f"bytes={start}-{end}"
+        log.debug("%s", headers["Range"])
         # TODO: Get range requests to be correctly cached
         headers["Cache-Control"] = "no-cache"
-        return self._session.get(self._url, headers=headers, stream=True)
+        # TODO: If-Match (etag) to detect file changed during fetch would be a
+        # good addition to HEADERS
+        self._request_count += 1
+        response = self._session.get(self._url, headers=headers, stream=True)
+        response.raise_for_status()
+        return response
 
     def _merge(
         self, start: int, end: int, left: int, right: int
-    ) -> Generator[Tuple[int, int], None, None]:
-        """Return a generator of intervals to be fetched.
+    ) -> Iterator[tuple[int, int]]:
+        """Return an iterator of intervals to be fetched.
 
         Args:
             start (int): Start of needed interval
@@ -204,7 +239,6 @@ class LazyZipOverHTTP:
             right = bisect_right(self._left, end)
             for start, end in self._merge(start, end, left, right):
                 response = self._stream_response(start, end)
-                response.raise_for_status()
                 self.seek(start)
-                for chunk in response_chunks(response, self._chunk_size):
+                for chunk in response.iter_content(self._chunk_size):
                     self._file.write(chunk)
