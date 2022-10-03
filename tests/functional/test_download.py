@@ -1307,7 +1307,7 @@ def download_server_html_index(
             ["colander-0.9.9-py2.py3-none-any.whl", "translationstring-1.1.tar.gz"],
         ),
         (
-            "compilewheel",
+            "compilewheel==1.0",
             ["compilewheel-1.0-py2.py3-none-any.whl", "simple-1.0.tar.gz"],
         ),
     ],
@@ -1340,7 +1340,7 @@ def test_download_metadata(
             "/colander/colander-0.9.9-py2.py3-none-any.whl",
         ),
         (
-            "compilewheel",
+            "compilewheel==1.0",
             [
                 "compilewheel-1.0-py2.py3-none-any.whl",
                 "simple-1.0.tar.gz",
