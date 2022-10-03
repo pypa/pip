@@ -4,12 +4,14 @@ import os
 import pathlib
 import re
 from os.path import basename
-from typing import Iterable
+from pathlib import Path
+from typing import Iterable, List
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pytest import mark
 
 from pip._internal.utils.misc import hash_file
+from tests.conftest import HTMLIndexWithRangeServer, RangeHandler
 from tests.lib import PipTestEnvironment, TestData, TestPipResult
 
 
@@ -20,6 +22,7 @@ def pip(script: PipTestEnvironment, command: str, requirement: str) -> TestPipRe
         "--no-cache-dir",
         "--use-feature=fast-deps",
         requirement,
+        # TODO: remove this when fast-deps is on by default.
         allow_stderr_warning=True,
     )
 
@@ -136,3 +139,93 @@ def test_hash_mismatch_existing_download_for_metadata_only_wheel(
         hash_file(str(idna_wheel))[0].hexdigest()
         == "b97d804b1e9b523befed77c48dacec60e6dcb0b5391d57af6a65a312a90648c0"
     )
+
+
+@mark.parametrize("range_handler", list(RangeHandler))
+def test_download_range(
+    script: PipTestEnvironment,
+    tmpdir: Path,
+    html_index_with_range_server: HTMLIndexWithRangeServer,
+    range_handler: RangeHandler,
+) -> None:
+    """Execute `pip download` against a generated PyPI index."""
+    download_dir = tmpdir / "download_dir"
+
+    def run_for_generated_index(args: List[str]) -> TestPipResult:
+        """
+        Produce a PyPI directory structure pointing to the specified packages, then
+        execute `pip download -i ...` pointing to our generated index.
+        """
+        pip_args = [
+            "download",
+            "--use-feature=fast-deps",
+            "-d",
+            str(download_dir),
+            "-i",
+            "http://localhost:8000",
+            *args,
+        ]
+        return script.pip(*pip_args, allow_stderr_warning=True)
+
+    with html_index_with_range_server(range_handler) as handler:
+        run_for_generated_index(["colander", "compilewheel==2.0", "has-script"])
+        generated_files = os.listdir(download_dir)
+        assert fnmatch.filter(generated_files, "colander*.whl")
+        assert fnmatch.filter(generated_files, "compilewheel*.whl")
+        assert fnmatch.filter(generated_files, "has.script*.whl")
+
+        colander_wheel_path = "/colander/colander-0.9.9-py2.py3-none-any.whl"
+        compile_wheel_path = "/compilewheel/compilewheel-2.0-py2.py3-none-any.whl"
+        has_script_path = "/has-script/has.script-1.0-py2.py3-none-any.whl"
+
+        if range_handler == RangeHandler.Always200OK:
+            assert not handler.head_request_paths
+            assert not handler.positive_range_request_paths
+            assert {colander_wheel_path} == handler.negative_range_request_paths
+            # Tries a range request, finds it's unsupported, so doesn't try it again.
+            assert handler.get_request_counts[colander_wheel_path] == 2
+            assert handler.get_request_counts[compile_wheel_path] == 1
+            assert handler.get_request_counts[has_script_path] == 1
+        elif range_handler == RangeHandler.NoNegativeRange:
+            assert {
+                colander_wheel_path,
+                compile_wheel_path,
+                has_script_path,
+            } == handler.head_request_paths
+            assert {
+                colander_wheel_path,
+                compile_wheel_path,
+                has_script_path,
+            } == handler.positive_range_request_paths
+            # Tries this first, finds that negative offsets are unsupported, so doesn't
+            # try it again.
+            assert {colander_wheel_path} == handler.negative_range_request_paths
+            # One more for the first wheel, because it has the failing negative
+            # byte request.
+            assert handler.get_request_counts[colander_wheel_path] == 3
+            # The entire .dist-info dir should have been pulled in with a single
+            # ranged GET. The second GET is for the end of the download, pulling down
+            # the entire file contents.
+            assert handler.get_request_counts[compile_wheel_path] == 2
+            # The entire file should have been pulled in with a single ranged GET.
+            assert handler.get_request_counts[has_script_path] == 2
+        else:
+            assert range_handler == RangeHandler.SupportsNegativeRange
+            # The negative byte index worked, so no head requests.
+            assert not handler.head_request_paths
+            # The negative range request was in bounds and pulled in the entire
+            # .dist-info directory for compile-wheel==2.0, so we didn't need another
+            # range request.
+            assert {
+                colander_wheel_path,
+                has_script_path,
+            } == handler.positive_range_request_paths
+            assert {
+                colander_wheel_path,
+                compile_wheel_path,
+                has_script_path,
+            } == handler.negative_range_request_paths
+            assert handler.get_request_counts[colander_wheel_path] == 3
+            assert handler.get_request_counts[compile_wheel_path] == 2
+            # One more than last time, because the negative byte index failed.
+            assert handler.get_request_counts[has_script_path] == 3
