@@ -10,6 +10,7 @@ from zipfile import BadZipFile, ZipFile
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import UnsupportedWheel
+from pip._internal.network.lazy_wheel import LazyWheelOverHTTP
 
 VERSION_COMPATIBLE = (1, 0)
 
@@ -67,6 +68,9 @@ def wheel_dist_info_dir(source: ZipFile, name: str) -> str:
 
 
 def read_wheel_metadata_file(source: ZipFile, path: str) -> bytes:
+    if isinstance(source.fp, LazyWheelOverHTTP):
+        logger.debug("extracting entry '%s' from lazy zip '%s'", path, source.fp.name)
+
     try:
         return source.read(path)
         # BadZipFile for general corruption, KeyError for missing entry,

@@ -1,3 +1,4 @@
+import abc
 import compileall
 import contextlib
 import fnmatch
@@ -8,6 +9,7 @@ import shutil
 import subprocess
 import sys
 import threading
+from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass
 from enum import Enum
 from hashlib import sha256
@@ -17,6 +19,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     AnyStr,
+    BinaryIO,
     Callable,
     ClassVar,
     ContextManager,
@@ -27,6 +30,7 @@ from typing import (
     Optional,
     Set,
     Tuple,
+    Type,
 )
 from unittest.mock import patch
 from zipfile import ZipFile
@@ -832,6 +836,14 @@ def fake_packages() -> Dict[str, List[FakePackage]]:
                 MetadataKind.Unhashed,
                 ("simple==1.0",),
             ),
+            # This inserts a very large wheel, larger than the default fast-deps
+            # request size.
+            FakePackage(
+                "compilewheel",
+                "2.0",
+                "compilewheel-2.0-py2.py3-none-any.whl",
+                MetadataKind.Unhashed,
+            ),
         ],
         "has-script": [
             # Ensure we check PEP 658 metadata hashing errors for wheel files.
@@ -955,6 +967,7 @@ class OneTimeDownloadHandler(http.server.SimpleHTTPRequestHandler):
     """Serve files from the current directory, but error if a file is downloaded more
     than once."""
 
+    # NB: Needs to be set on per-function subclass.
     _seen_paths: ClassVar[Set[str]] = set()
 
     def do_GET(self) -> None:
@@ -1000,3 +1013,200 @@ def html_index_with_onetime_server(
         finally:
             httpd.shutdown()
             server_thread.join()
+
+
+class RangeHandler(Enum):
+    """All the modes of handling range requests we want pip to handle."""
+
+    Always200OK = "always-200-ok"
+    NoNegativeRange = "no-negative-range"
+    SupportsNegativeRange = "supports-negative-range"
+
+    def supports_range(self) -> bool:
+        return self in [type(self).NoNegativeRange, type(self).SupportsNegativeRange]
+
+    def supports_negative_range(self) -> bool:
+        return self == type(self).SupportsNegativeRange
+
+
+class ContentRangeDownloadHandler(
+    http.server.SimpleHTTPRequestHandler, metaclass=abc.ABCMeta
+):
+    """Extend the basic ``http.server`` to support content ranges."""
+
+    @abc.abstractproperty
+    def range_handler(self) -> RangeHandler:
+        ...
+
+    # NB: Needs to be set on per-function subclasses.
+    get_request_counts: ClassVar[Dict[str, int]] = {}
+    positive_range_request_paths: ClassVar[Set[str]] = set()
+    negative_range_request_paths: ClassVar[Set[str]] = set()
+    head_request_paths: ClassVar[Set[str]] = set()
+
+    @contextmanager
+    def _translate_path(self) -> Iterator[Optional[Tuple[BinaryIO, str, int]]]:
+        # Only test fast-deps, not PEP 658.
+        if self.path.endswith(".metadata"):
+            self.send_error(http.HTTPStatus.NOT_FOUND, "File not found")
+            yield None
+            return
+
+        path = self.translate_path(self.path)
+        if os.path.isdir(path):
+            path = os.path.join(path, "index.html")
+
+        ctype = self.guess_type(path)
+        try:
+            with open(path, "rb") as f:
+                fs = os.fstat(f.fileno())
+                full_file_length = fs[6]
+
+                yield (f, ctype, full_file_length)
+        except OSError:
+            self.send_error(http.HTTPStatus.NOT_FOUND, "File not found")
+            yield None
+            return
+
+    def _send_basic_headers(self, ctype: str) -> None:
+        self.send_header("Content-Type", ctype)
+        if self.range_handler.supports_range():
+            self.send_header("Accept-Ranges", "bytes")
+        # NB: callers must call self.end_headers()!
+
+    def _send_full_file_headers(self, ctype: str, full_file_length: int) -> None:
+        self.send_response(http.HTTPStatus.OK)
+        self._send_basic_headers(ctype)
+        self.send_header("Content-Length", str(full_file_length))
+        self.end_headers()
+
+    def do_HEAD(self) -> None:
+        self.head_request_paths.add(self.path)
+
+        with self._translate_path() as x:
+            if x is None:
+                return
+            (_, ctype, full_file_length) = x
+            self._send_full_file_headers(ctype, full_file_length)
+
+    def do_GET(self) -> None:
+        self.get_request_counts.setdefault(self.path, 0)
+        self.get_request_counts[self.path] += 1
+
+        with self._translate_path() as x:
+            if x is None:
+                return
+            (f, ctype, full_file_length) = x
+            range_arg = self.headers.get("Range", None)
+            if range_arg is not None:
+                m = re.match(r"bytes=([0-9]+)?-([0-9]+)", range_arg)
+                if m is not None:
+                    if m.group(1) is None:
+                        self.negative_range_request_paths.add(self.path)
+                    else:
+                        self.positive_range_request_paths.add(self.path)
+            # If no range given, return the whole file.
+            if range_arg is None or not self.range_handler.supports_range():
+                self._send_full_file_headers(ctype, full_file_length)
+                self.copyfile(f, self.wfile)
+                return
+            # Otherwise, return the requested contents.
+            assert m is not None
+            # This is a "start-end" range.
+            if m.group(1) is not None:
+                start = int(m.group(1))
+                end = int(m.group(2))
+                assert start <= end
+                was_out_of_bounds = (end + 1) > full_file_length
+            else:
+                # This is a "-end" range.
+                if not self.range_handler.supports_negative_range():
+                    self.send_response(http.HTTPStatus.NOT_IMPLEMENTED)
+                    self._send_basic_headers(ctype)
+                    self.end_headers()
+                    return
+                end = full_file_length - 1
+                start = end - int(m.group(2)) + 1
+                was_out_of_bounds = start < 0
+            if was_out_of_bounds:
+                self.send_response(http.HTTPStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
+                self._send_basic_headers(ctype)
+                self.send_header("Content-Range", f"bytes */{full_file_length}")
+                self.end_headers()
+                return
+            sent_length = end - start + 1
+            self.send_response(http.HTTPStatus.PARTIAL_CONTENT)
+            self._send_basic_headers(ctype)
+            self.send_header("Content-Length", str(sent_length))
+            self.send_header("Content-Range", f"bytes {start}-{end}/{full_file_length}")
+            self.end_headers()
+            f.seek(start)
+            self.wfile.write(f.read(sent_length))
+
+
+@pytest.fixture(scope="session")
+def html_index_no_metadata(
+    html_index_for_packages: Path,
+    tmpdir_factory: pytest.TempPathFactory,
+) -> Path:
+    """Return an index like ``html_index_for_packages`` without any PEP 658 metadata.
+
+    While we already return a 404 in ``ContentRangeDownloadHandler`` for ``.metadata``
+    paths, we need to also remove ``data-dist-info-metadata`` attrs on ``<a>`` tags,
+    otherwise pip will error after attempting to retrieve the metadata files."""
+    new_html_dir = tmpdir_factory.mktemp("fake_index_html_content_no_metadata")
+    new_html_dir.rmdir()
+    shutil.copytree(html_index_for_packages, new_html_dir)
+    for index_page in new_html_dir.rglob("index.html"):
+        prev_index = index_page.read_text()
+        no_metadata_index = re.sub(r'data-dist-info-metadata="[^"]+"', "", prev_index)
+        index_page.write_text(no_metadata_index)
+    return new_html_dir
+
+
+HTMLIndexWithRangeServer = Callable[
+    [RangeHandler],
+    "AbstractContextManager[Type[ContentRangeDownloadHandler]]",
+]
+
+
+@pytest.fixture(scope="function")
+def html_index_with_range_server(
+    html_index_no_metadata: Path,
+) -> HTMLIndexWithRangeServer:
+    """Serve files from a generated pypi index, with support for range requests.
+
+    Provide `-i http://localhost:8000` to pip invocations to point them at this server.
+    """
+
+    class InDirectoryServer(http.server.ThreadingHTTPServer):
+        def finish_request(self, request: Any, client_address: Any) -> None:
+            self.RequestHandlerClass(
+                request, client_address, self, directory=str(html_index_no_metadata)  # type: ignore[call-arg]
+            )
+
+    @contextmanager
+    def inner(
+        range_handler: RangeHandler,
+    ) -> Iterator[Type[ContentRangeDownloadHandler]]:
+        class Handler(ContentRangeDownloadHandler):
+            @property
+            def range_handler(self) -> RangeHandler:
+                return range_handler
+
+            get_request_counts: ClassVar[Dict[str, int]] = {}
+            positive_range_request_paths: ClassVar[Set[str]] = set()
+            negative_range_request_paths: ClassVar[Set[str]] = set()
+            head_request_paths: ClassVar[Set[str]] = set()
+
+        with InDirectoryServer(("", 8000), Handler) as httpd:
+            server_thread = threading.Thread(target=httpd.serve_forever)
+            server_thread.start()
+
+            try:
+                yield Handler
+            finally:
+                httpd.shutdown()
+                server_thread.join()
+
+    return inner
