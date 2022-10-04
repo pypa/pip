@@ -75,16 +75,18 @@ class LazyZipOverHTTP:
             # The 416 response message contains a Content-Range indicating an
             # unsatisfied range (that is a '*') followed by a '/' and the current
             # length of the resource. E.g. Content-Range: bytes */12777
-            content_length = int(e.response.headers['content-range'].rsplit('/', 1)[-1])
+            content_length = int(e.response.headers["content-range"].rsplit("/", 1)[-1])
             tail = self._stream_response(start=0, end=content_length)
 
         # e.g. {'accept-ranges': 'bytes', 'content-length': '10240',
         # 'content-range': 'bytes 12824-23063/23064', 'last-modified': 'Sat, 16
         # Apr 2022 13:03:02 GMT', 'date': 'Thu, 21 Apr 2022 11:34:04 GMT'}
 
-
         if tail.status_code != 206:
-            if tail.status_code == 200 and int(tail.headers['content-length']) <= CONTENT_CHUNK_SIZE:
+            if (
+                tail.status_code == 200
+                and int(tail.headers["content-length"]) <= CONTENT_CHUNK_SIZE
+            ):
                 # small file
                 content_length = len(tail.content)
                 tail.headers["content-range"] = f"0-{content_length-1}/{content_length}"
@@ -182,7 +184,7 @@ class LazyZipOverHTTP:
         return self
 
     def __exit__(self, *exc: Any) -> bool | None:
-        print(self._request_count, 'requests to fetch metadata from', self._url[107:])
+        print(self._request_count, "requests to fetch metadata from", self._url[107:])
         return self._file.__exit__(*exc)  # type: ignore
 
     @contextmanager
@@ -313,5 +315,5 @@ class LazyZipOverHTTP:
                     end = zf.start_dir
                     self.seek(start)
                     print(f"prefetch dist-info {start}-{end}")
-                    self.read(end-start)
+                    self.read(end - start)
                     break
