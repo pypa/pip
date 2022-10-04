@@ -118,6 +118,13 @@ class InstallCommand(RequirementCommand):
                 "with new versions."
             ),
         )
+        self.cmd_opts.add_option(
+            '--target-scripts',
+            dest='target_scripts_dir',
+            metavar='dir',
+            default=None,
+            help='Install packages\' scripts into <dir>. It requires the -t or --target flag to be used.'
+        )
         cmdoptions.add_target_python_options(self.cmd_opts)
 
         self.cmd_opts.add_option(
@@ -280,6 +287,9 @@ class InstallCommand(RequirementCommand):
         if options.use_user_site and options.target_dir is not None:
             raise CommandError("Can not combine '--user' and '--target'")
 
+        if options.target_scripts_dir is not None and options.target_dir is None:
+            raise CommandError("Can not use '--target-scripts' without '--target'")
+
         cmdoptions.check_install_build_global(options)
         upgrade_strategy = "to-satisfy-only"
         if options.upgrade:
@@ -316,6 +326,15 @@ class InstallCommand(RequirementCommand):
             # Create a target directory for using with the target option
             target_temp_dir = TempDirectory(kind="target")
             target_temp_dir_path = target_temp_dir.path
+
+            if options.target_scripts_dir is not None:
+                options.target_scripts_dir = os.path.abspath(options.target_scripts_dir)
+                if (os.path.exists(options.target_scripts_dir) and not
+                        os.path.isdir(options.target_scripts_dir)):
+                    raise CommandError(
+                        "Target's scripts path exists but is not a directory, will not "
+                        "continue."
+                    )
             self.enter_context(target_temp_dir)
 
         global_options = options.global_options or []
@@ -545,14 +564,14 @@ class InstallCommand(RequirementCommand):
         if options.target_dir:
             assert target_temp_dir
             self._handle_target_dir(
-                options.target_dir, target_temp_dir, options.upgrade
+                options.target_dir, target_temp_dir, options.target_scripts_dir, options.upgrade
             )
         if options.root_user_action == "warn":
             warn_if_run_as_root()
         return SUCCESS
 
     def _handle_target_dir(
-        self, target_dir: str, target_temp_dir: TempDirectory, upgrade: bool
+        self, target_dir: str, target_temp_dir: TempDirectory, target_scripts_dir: str, upgrade: bool
     ) -> None:
         ensure_dir(target_dir)
 
@@ -565,12 +584,19 @@ class InstallCommand(RequirementCommand):
         scheme = get_scheme("", home=target_temp_dir.path)
         purelib_dir = scheme.purelib
         platlib_dir = scheme.platlib
+        scripts_dir = scheme.scripts
         data_dir = scheme.data
+
+        if target_scripts_dir is None:
+            target_scripts_dir = os.path.join(target_dir, os.path.relpath(scripts_dir, target_temp_dir.path))
+        ensure_dir(target_scripts_dir)
 
         if os.path.exists(purelib_dir):
             lib_dir_list.append(purelib_dir)
         if os.path.exists(platlib_dir) and platlib_dir != purelib_dir:
             lib_dir_list.append(platlib_dir)
+        if os.path.exists(scripts_dir):
+            lib_dir_list.append(scripts_dir)
         if os.path.exists(data_dir):
             lib_dir_list.append(data_dir)
 
@@ -580,7 +606,10 @@ class InstallCommand(RequirementCommand):
                     ddir = os.path.join(data_dir, item)
                     if any(s.startswith(ddir) for s in lib_dir_list[:-1]):
                         continue
-                target_item_dir = os.path.join(target_dir, item)
+                if lib_dir == scripts_dir:
+                    target_item_dir = os.path.join(target_scripts_dir, item)
+                else:
+                    target_item_dir = os.path.join(target_dir, item)
                 if os.path.exists(target_item_dir):
                     if not upgrade:
                         logger.warning(

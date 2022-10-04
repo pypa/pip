@@ -1,0 +1,3 @@
+Added --target-scripts flag to specify the directory to place the package's scripts, which may be different to the directory pointed by --target.
+This allows, for instance, to do the following --target <path>/lib/python/site-packages --target-scripts <path>/bin
+The default behavior, if --target-scripts is not passed, is to place the scripts in the scripts directory (depending on the OS) inside the --target directory
