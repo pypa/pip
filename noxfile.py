@@ -236,8 +236,10 @@ def coverage(session: nox.Session) -> None:
 
     if not os.path.exists(".coverage-output"):
         os.mkdir(".coverage-output")
-        # Parallelize coverage as much as possible, by default.
-        arguments = session.posargs or ["-n", "auto"]
+
+    # Parallelize coverage as much as possible, by default.
+    arguments = session.posargs or ["-n", "auto"]
+
     session.run(
         "pytest",
         "--cov=pip",
