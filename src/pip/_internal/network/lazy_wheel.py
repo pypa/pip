@@ -12,7 +12,7 @@ from typing import Any, Iterator
 from zipfile import BadZipfile, ZipFile
 
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
+from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response, HTTPError
 
 from pip._internal.metadata import BaseDistribution, MemoryWheel, get_wheel_distribution
 from pip._internal.network.session import PipSession as Session
@@ -34,6 +34,8 @@ def dist_from_wheel_url(name: str, url: str, session: Session) -> BaseDistributi
     is raised.
     """
     with LazyZipOverHTTP(url, session) as zf:
+        zf.prefetch_dist_info()
+
         # For read-only ZIP files, ZipFile only needs methods read,
         # seek, seekable and tell, not the whole IO protocol.
         wheel = MemoryWheel(zf.name, zf)  # type: ignore
@@ -64,13 +66,30 @@ class LazyZipOverHTTP:
         self._session, self._url, self._chunk_size = session, url, chunk_size
 
         # initial range request for the end of the file
-        tail = self._stream_response(start="", end=CONTENT_CHUNK_SIZE)
+        try:
+            tail = self._stream_response(start="", end=CONTENT_CHUNK_SIZE)
+        except HTTPError as e:
+            if e.response.status_code != 416:
+                raise
+
+            # The 416 response message contains a Content-Range indicating an
+            # unsatisfied range (that is a '*') followed by a '/' and the current
+            # length of the resource. E.g. Content-Range: bytes */12777
+            content_length = int(e.response.headers['content-range'].rsplit('/', 1)[-1])
+            tail = self._stream_response(start=0, end=content_length)
+
         # e.g. {'accept-ranges': 'bytes', 'content-length': '10240',
         # 'content-range': 'bytes 12824-23063/23064', 'last-modified': 'Sat, 16
         # Apr 2022 13:03:02 GMT', 'date': 'Thu, 21 Apr 2022 11:34:04 GMT'}
 
+
         if tail.status_code != 206:
-            raise HTTPRangeRequestUnsupported("range request is not supported")
+            if tail.status_code == 200 and int(tail.headers['content-length']) <= CONTENT_CHUNK_SIZE:
+                # small file
+                content_length = len(tail.content)
+                tail.headers["content-range"] = f"0-{content_length-1}/{content_length}"
+            else:
+                raise HTTPRangeRequestUnsupported("range request is not supported")
 
         # lowercase content-range to support s3
         self._length = int(tail.headers["content-range"].partition("/")[-1])
@@ -163,6 +182,7 @@ class LazyZipOverHTTP:
         return self
 
     def __exit__(self, *exc: Any) -> bool | None:
+        print(self._request_count, 'requests to fetch metadata from', self._url[107:])
         return self._file.__exit__(*exc)  # type: ignore
 
     @contextmanager
@@ -242,3 +262,56 @@ class LazyZipOverHTTP:
                 self.seek(start)
                 for chunk in response.iter_content(self._chunk_size):
                     self._file.write(chunk)
+
+    def prefetch(self, target_file):
+        """
+        Prefetch a specific file from the remote ZIP in one request.
+        """
+        with self._stay():  # not strictly necessary
+            # try to read entire conda info in one request
+            zf = ZipFile(self)
+            infolist = zf.infolist()
+            for i, info in enumerate(infolist):
+                if info.filename == target_file:
+                    # could be incorrect if zipfile was concatenated to another
+                    # file (not likely for .conda)
+                    start = info.header_offset
+                    try:
+                        end = infolist[i + 1].header_offset
+                        # or info.header_offset
+                        # + len(info.filename)
+                        # + len(info.extra)
+                        # + info.compress_size
+                        # (unless Zip64)
+                    except IndexError:
+                        end = zf.start_dir
+                    self.seek(start)
+                    self.read(end - start)
+                    log.debug(
+                        "prefetch %s-%s",
+                        info.header_offset,
+                        end,
+                    )
+                    break
+            else:
+                log.debug("no zip prefetch")
+
+    def prefetch_dist_info(self):
+        """
+        Read contents of entire dist-info section of wheel.
+
+        pip wants to read WHEEL and METADATA.
+        """
+        print("prefetch dist-info begin")
+        with self._stay():
+            zf = ZipFile(self)
+            infolist = zf.infolist()
+            for i, info in enumerate(infolist):
+                # should be (wheel filename without extension etc) + (.dist-info/)
+                if ".dist-info/" in info.filename:
+                    start = info.header_offset
+                    end = zf.start_dir
+                    self.seek(start)
+                    print(f"prefetch dist-info {start}-{end}")
+                    self.read(end-start)
+                    break
