@@ -577,7 +577,7 @@ def test_outdated_formats(script: PipTestEnvironment, data: TestData) -> None:
     assert "Package Version Latest Type" in result.stdout
     assert "simple  1.0     1.1    wheel" in result.stdout
 
-    # Check freeze
+    # Check that freeze is not allowed
     result = script.pip(
         "list",
         "--no-index",
@@ -585,8 +585,12 @@ def test_outdated_formats(script: PipTestEnvironment, data: TestData) -> None:
         wheelhouse_path,
         "--outdated",
         "--format=freeze",
+        expect_error=True,
     )
-    assert "simple==1.0" in result.stdout
+    assert (
+        "List format 'freeze' can not be used with the --outdated option."
+        in result.stderr
+    )
 
     # Check json
     result = script.pip(
