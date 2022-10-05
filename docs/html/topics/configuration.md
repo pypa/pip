@@ -19,13 +19,14 @@ and how they are related to pip's various command line options.
 
 ## Configuration Files
 
-Configuration files can change the default values for command line option.
-They are written using a standard INI style configuration files.
+Configuration files can change the default values for command line options.
+They are written using standard INI style configuration files.
 
-pip has 3 "levels" of configuration files:
+pip has 4 "levels" of configuration files:
 
-- `global`: system-wide configuration file, shared across users.
-- `user`: per-user configuration file.
+- `global`: system-wide configuration file, shared across all users.
+- `user`: per-user configuration file, shared across all environments.
+- `base` : per-base environment configuration file, shared across all virtualenvs with the same base. (added in pip `v23`)
 - `site`: per-environment configuration file; i.e. per-virtualenv.
 
 ### Location
@@ -47,8 +48,11 @@ User
 
   The legacy "per-user" configuration file is also loaded, if it exists: {file}`$HOME/.pip/pip.conf`.
 
+Base
+: {file}`\{sys.base_prefix\}/pip.conf`
+
 Site
-: {file}`$VIRTUAL_ENV/pip.conf`
+: {file}`\{sys.prefix\}/pip.conf`
 ```
 
 ```{tab} MacOS
@@ -63,8 +67,11 @@ User
 
   The legacy "per-user" configuration file is also loaded, if it exists: {file}`$HOME/.pip/pip.conf`.
 
+Base
+: {file}`\{sys.base_prefix\}/pip.conf`
+
 Site
-: {file}`$VIRTUAL_ENV/pip.conf`
+: {file}`\{sys.prefix\}/pip.conf`
 ```
 
 ```{tab} Windows
@@ -81,8 +88,11 @@ User
 
   The legacy "per-user" configuration file is also loaded, if it exists: {file}`%HOME%\\pip\\pip.ini`
 
+Base
+: {file}`\{sys.base_prefix\}\\pip.ini`
+
 Site
-: {file}`%VIRTUAL_ENV%\\pip.ini`
+: {file}`\{sys.prefix\}\\pip.ini`
 ```
 
 ### `PIP_CONFIG_FILE`
@@ -102,6 +112,7 @@ order:
 - `PIP_CONFIG_FILE`, if given.
 - Global
 - User
+- Base
 - Site
 
 Each file read overrides any values read from previous files, so if the
