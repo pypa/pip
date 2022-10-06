@@ -1,0 +1,1 @@
+Raise RequirementsFileParseError when parsing malformed requirements options that can't be sucessfully parsed by shlex.
