@@ -186,10 +186,6 @@ def handle_requirement_line(
             constraint=line.constraint,
         )
     else:
-        if options:
-            # Disable wheels if the user has specified build options
-            cmdoptions.check_install_build_global(options, line.opts)
-
         # get the options that apply to requirements
         req_options = {}
         for dest in SUPPORTED_OPTIONS_REQ_DEST:
