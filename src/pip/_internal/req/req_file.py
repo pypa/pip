@@ -397,7 +397,12 @@ def get_line_parser(finder: Optional["PackageFinder"]) -> LineParser:
 
         args_str, options_str = break_args_options(line)
 
-        opts, _ = parser.parse_args(shlex.split(options_str), defaults)
+        try:
+            options = shlex.split(options_str)
+        except ValueError as e:
+            raise OptionParsingError(f"Could not split options: {options_str}") from e
+
+        opts, _ = parser.parse_args(options, defaults)
 
         return args_str, opts
 

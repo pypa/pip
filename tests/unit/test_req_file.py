@@ -786,6 +786,20 @@ class TestParseRequirements:
 
         assert not reqs
 
+    def test_invalid_options(self, tmpdir: Path, finder: PackageFinder) -> None:
+        """
+        Test parsing invalid options such as missing closing quotation
+        """
+        with open(tmpdir.joinpath("req1.txt"), "w") as fp:
+            fp.write("--'data\n")
+
+        with pytest.raises(RequirementsFileParseError):
+            list(
+                parse_reqfile(
+                    tmpdir.joinpath("req1.txt"), finder=finder, session=PipSession()
+                )
+            )
+
     def test_req_file_parse_comment_end_of_line_with_url(
         self, tmpdir: Path, finder: PackageFinder
     ) -> None:
