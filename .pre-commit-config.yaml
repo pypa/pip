@@ -77,3 +77,8 @@ repos:
   rev: '0.48'
   hooks:
   - id: check-manifest
+
+ci:
+  autofix_prs: false
+  autoupdate_commit_msg: 'pre-commit autoupdate'
+  autoupdate_schedule: monthly
