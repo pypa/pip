@@ -77,6 +77,7 @@ repos:
   rev: '0.48'
   hooks:
   - id: check-manifest
+    args: [--no-build-isolation]
 
 ci:
   autofix_prs: false
