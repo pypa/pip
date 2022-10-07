@@ -1,0 +1,1 @@
+Check ``NO_PROXY`` env variable to disable proxy settings.

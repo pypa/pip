@@ -143,7 +143,9 @@ class SessionCommandMixin(CommandContextMixIn):
             session.timeout = timeout if timeout is not None else options.timeout
 
         # Handle configured proxies
-        if options.proxy:
+        if "no_proxy" in os.environ or "NO_PROXY" in os.environ:
+            session.proxies["no_proxy"] = "*"
+        elif options.proxy:
             session.proxies = {
                 "http": options.proxy,
                 "https": options.proxy,
