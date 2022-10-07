@@ -22,7 +22,9 @@ class AccessLogPlugin(HttpProxyBasePlugin):
 
 
 @pytest.mark.network
-def test_proxy_overrides_env(script: PipTestEnvironment) -> None:
+def test_proxy_overrides_env(
+    script: PipTestEnvironment, capfd: pytest.CaptureFixture[str]
+) -> None:
     with proxy.Proxy(
         port=8899,
         num_acceptors=1,
@@ -40,7 +42,8 @@ def test_proxy_overrides_env(script: PipTestEnvironment) -> None:
             "INITools==0.1",
         )
         result.did_create(Path("scratch") / "pip_downloads" / "INITools-0.1.tar.gz")
-        assert "CONNECT" not in result.stdout
+        out, _ = capfd.readouterr()
+        assert "CONNECT" not in out
 
 
 def test_proxy_does_not_override_netrc(
