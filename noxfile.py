@@ -172,6 +172,10 @@ def lint(session: nox.Session) -> None:
     session.run("pre-commit", "run", *args)
 
 
+# NOTE: This session will COMMIT upgardes to vendored libraries.
+# You should therefore not run it directly against main, as you
+# will put your main branch out of sync with upstream. Always run
+# it on a dedicated branch
 @nox.session
 def vendoring(session: nox.Session) -> None:
     session.install("vendoring~=1.2.0")
