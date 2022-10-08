@@ -172,6 +172,13 @@ def lint(session: nox.Session) -> None:
     session.run("pre-commit", "run", *args)
 
 
+# NOTE: This session will COMMIT upgrades to vendored libraries.
+# You should therefore not run it directly against `main`. If you
+# do (assuming you started with a clean main), you can run:
+#
+# git checkout -b vendoring-updates
+# git checkout main
+# git reset --hard origin/main
 @nox.session
 def vendoring(session: nox.Session) -> None:
     session.install("vendoring~=1.2.0")
