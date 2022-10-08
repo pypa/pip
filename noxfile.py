@@ -174,7 +174,7 @@ def lint(session: nox.Session) -> None:
 
 # NOTE: This session will COMMIT upgrades to vendored libraries.
 # You should therefore not run it directly against `main`. If you
-# do (asusming you started with a clean main), you can run:
+# do (assuming you started with a clean main), you can run:
 #
 # git checkout -b vendoring-updates
 # git checkout main
