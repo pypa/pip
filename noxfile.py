@@ -187,7 +187,16 @@ def vendoring(session: nox.Session) -> None:
         session.run("vendoring", "sync", "-v")
         return
 
-    selected = [pkg for pkg in session.posargs if pkg != "--upgrade"]
+    # Yes, the UI is bad, we're expecting the user to list packages to *exclude*
+    # on the command line, without any indication that it's an exclusion. But
+    # to do better, we'd need to start actually parsing posargs, which is more
+    # complex than is warranted.
+    exclude = {pkg for pkg in session.posargs if pkg != "--upgrade"}
+
+    # Always exclude setuptools.
+    # See https://github.com/pypa/pip/pull/9170/commits/1466e7c49ac90cf11f4990a5cb0793aa1a42a3a7
+    # which was part of https://github.com/pypa/pip/pull/9170
+    exclude.add("setuptools")
 
     def pinned_requirements(path: Path) -> Iterator[Tuple[str, str]]:
         for line in path.read_text().splitlines(keepends=False):
@@ -201,10 +210,7 @@ def vendoring(session: nox.Session) -> None:
 
     vendor_txt = Path("src/pip/_vendor/vendor.txt")
     for name, old_version in pinned_requirements(vendor_txt):
-        if name == "setuptools":
-            continue
-
-        if selected and name not in selected:
+        if name in exclude:
             continue
 
         # update requirements.txt
