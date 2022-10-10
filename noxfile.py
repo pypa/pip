@@ -187,6 +187,8 @@ def vendoring(session: nox.Session) -> None:
         session.run("vendoring", "sync", "-v")
         return
 
+    selected = [pkg for pkg in session.posargs if pkg != "--upgrade"]
+
     def pinned_requirements(path: Path) -> Iterator[Tuple[str, str]]:
         for line in path.read_text().splitlines(keepends=False):
             one, sep, two = line.partition("==")
@@ -200,6 +202,9 @@ def vendoring(session: nox.Session) -> None:
     vendor_txt = Path("src/pip/_vendor/vendor.txt")
     for name, old_version in pinned_requirements(vendor_txt):
         if name == "setuptools":
+            continue
+
+        if selected and name not in selected:
             continue
 
         # update requirements.txt
