@@ -193,8 +193,8 @@ def vendoring(session: nox.Session) -> None:
     # complex than is warranted.
     exclude = {pkg for pkg in session.posargs if pkg != "--upgrade"}
 
-    # Always exclude setuptools.
-    # See https://github.com/pypa/pip/pull/9170/commits/1466e7c49ac90cf11f4990a5cb0793aa1a42a3a7
+    # Always exclude setuptools. See
+    # https://github.com/pypa/pip/commit/1466e7c49ac90cf11f4990a5cb0793aa1a42a3a7
     # which was part of https://github.com/pypa/pip/pull/9170
     exclude.add("setuptools")
 
