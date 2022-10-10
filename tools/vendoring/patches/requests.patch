@@ -123,3 +123,23 @@ index 8fbcd656..c5e9c19e 100644
  
  try:
      import chardet
+diff --git a/src/pip/_vendor/requests/certs.py b/src/pip/_vendor/requests/certs.py
+index 2743144b9..38696a1fb 100644
+--- a/src/pip/_vendor/requests/certs.py
++++ b/src/pip/_vendor/requests/certs.py
+@@ -11,7 +11,14 @@
+ environment, you can change the definition of where() to return a separately
+ packaged CA bundle.
+ """
+-from certifi import where
++
++import os
++
++if "_PIP_STANDALONE_CERT" not in os.environ:
++    from certifi import where
++else:
++    def where():
++        return os.environ["_PIP_STANDALONE_CERT"]
+
+ if __name__ == "__main__":
+     print(where())
