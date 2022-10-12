@@ -396,7 +396,7 @@ class RequirementPreparer:
         #     NB: raw_name will fall back to the name from the install requirement if
         #     the Name: field is not present, but it's noted in the raw_name docstring
         #     that that should NEVER happen anyway.
-        if metadata_dist.raw_name != req.req.name:
+        if canonicalize_name(metadata_dist.raw_name) != canonicalize_name(req.req.name):
             raise MetadataInconsistent(
                 req, "Name", req.req.name, metadata_dist.raw_name
             )
