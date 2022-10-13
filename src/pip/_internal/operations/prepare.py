@@ -400,6 +400,8 @@ class RequirementPreparer:
             raise MetadataInconsistent(
                 req, "Name", req.req.name, metadata_dist.raw_name
             )
+        # (5) Store the dist in the install requirement for reporting
+        req.dist_from_metadata = metadata_dist
         return metadata_dist
 
     def _fetch_metadata_using_lazy_wheel(
@@ -489,6 +491,16 @@ class RequirementPreparer:
 
             # None of the optimizations worked, fully prepare the requirement
             return self._prepare_linked_requirement(req, parallel_builds)
+
+    def prepare_download_info(self, reqs: Iterable[InstallRequirement]) -> None:
+        """ Prepare linked requirements with download_info, if needed. """
+        # During install --dry-run, .metadata files or lazy wheels may be used when determining
+        # distribution dependencies. The associated wheel does not need to be downloaded so the
+        # download_info need to be derived from the link. If the link does not contain a hash no
+        # hash will be included in the download_info.
+        for req in reqs:
+            if req.download_info is None:
+                req.download_info = direct_url_from_link(req.link, req.source_dir)
 
     def prepare_linked_requirements_more(
         self, reqs: Iterable[InstallRequirement], parallel_builds: bool = False

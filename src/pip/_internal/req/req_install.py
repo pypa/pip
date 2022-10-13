@@ -185,6 +185,10 @@ class InstallRequirement:
         # This requirement needs more preparation before it can be built
         self.needs_more_preparation = False
 
+        # Distribution from the .metadata file referenced by the PEP 658
+        # data-dist-info-metadata attribute.
+        self.dist_from_metadata: Optional[BaseDistribution] = None
+
     def __str__(self) -> str:
         if self.req:
             s = str(self.req)
@@ -568,6 +572,8 @@ class InstallRequirement:
             return get_wheel_distribution(
                 FilesystemWheel(self.local_file_path), canonicalize_name(self.name)
             )
+        elif self.is_wheel and self.dist_from_metadata:
+            return self.dist_from_metadata
         raise AssertionError(
             f"InstallRequirement {self} has no metadata directory and no wheel: "
             f"can't make a distribution."

@@ -68,7 +68,7 @@ class Resolver(BaseResolver):
         self._result: Optional[Result] = None
 
     def resolve(
-        self, root_reqs: List[InstallRequirement], check_supported_wheels: bool
+        self, root_reqs: List[InstallRequirement], check_supported_wheels: bool, dry_run: bool = False,
     ) -> RequirementSet:
         collected = self.factory.collect_root_requirements(root_reqs)
         provider = PipProvider(
@@ -158,7 +158,10 @@ class Resolver(BaseResolver):
             req_set.add_named_requirement(ireq)
 
         reqs = req_set.all_requirements
-        self.factory.preparer.prepare_linked_requirements_more(reqs)
+        if dry_run:
+            self.factory.preparer.prepare_download_info(reqs)
+        else:
+            self.factory.preparer.prepare_linked_requirements_more(reqs)
         return req_set
 
     def get_installation_order(
