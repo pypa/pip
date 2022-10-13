@@ -154,6 +154,7 @@ class TestRequirementSet:
             os.fspath(data.packages.joinpath("LocalEnvironMarker")),
         )
         req.user_supplied = True
+        req.allow_concrete_dist_overwrite = True
         reqset.add_unnamed_requirement(req)
         finder = make_test_finder(find_links=[data.find_links])
         with self._basic_resolver(finder) as resolver:
@@ -503,6 +504,7 @@ class TestRequirementSet:
         with self._basic_resolver(finder) as resolver:
             ireq_url = data.packages.joinpath("FSPkg").as_uri()
             ireq = get_processed_req_from_line(f"-e {ireq_url}#egg=FSPkg")
+            ireq.allow_concrete_dist_overwrite = True
             reqset = resolver.resolve([ireq], True)
             assert len(reqset.all_requirements) == 1
             req = reqset.all_requirements[0]

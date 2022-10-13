@@ -23,10 +23,7 @@ from pip._internal.locations import get_scheme
 from pip._internal.metadata import (
     BaseDistribution,
     get_default_environment,
-    get_directory_distribution,
-    get_wheel_distribution,
 )
-from pip._internal.metadata.base import FilesystemWheel
 from pip._internal.models.direct_url import DirectUrl
 from pip._internal.models.link import Link
 from pip._internal.operations.build.metadata import generate_metadata
@@ -150,6 +147,7 @@ class InstallRequirement:
         self.hash_options = hash_options if hash_options else {}
         self.config_settings = config_settings
         # Set to True after successful preparation of this requirement
+        # TODO: this is only used in the legacy resolver: remove this!
         self.prepared = False
         # User supplied requirement are explicitly requested for installation
         # by the user via CLI arguments or requirements files, as opposed to,
@@ -181,8 +179,13 @@ class InstallRequirement:
         # but after loading this flag should be treated as read only.
         self.use_pep517 = use_pep517
 
-        # This requirement needs more preparation before it can be built
-        self.needs_more_preparation = False
+        # When a dist is computed for this requirement, cache it here so it's visible
+        # everywhere within pip and isn't computed more than once. This may be
+        # a "virtual" dist without a physical location on the filesystem, or
+        # a "concrete" dist which has been fully downloaded.
+        self._cached_dist: Optional[BaseDistribution] = None
+        # Strictly used in testing: allow calling .cache_concrete_dist() twice.
+        self.allow_concrete_dist_overwrite = False
 
         # This requirement needs to be unpacked before it can be installed.
         self._archive_source: Optional[Path] = None
@@ -234,7 +237,7 @@ class InstallRequirement:
             return None
         return self.req.name
 
-    @functools.lru_cache()  # use cached_property in python 3.8+
+    @functools.lru_cache(maxsize=None)  # TODO: use cached_property in python 3.8+
     def supports_pyproject_editable(self) -> bool:
         if not self.use_pep517:
             return False
@@ -552,11 +555,11 @@ class InstallRequirement:
                 f"Consider using a build backend that supports PEP 660."
             )
 
-    def prepare_metadata(self) -> None:
+    def prepare_metadata_directory(self) -> None:
         """Ensure that project metadata is available.
 
-        Under PEP 517 and PEP 660, call the backend hook to prepare the metadata.
-        Under legacy processing, call setup.py egg-info.
+        Under PEP 517 and PEP 660, call the backend hook to prepare the metadata
+        directory.  Under legacy processing, call setup.py egg-info.
         """
         assert self.source_dir, f"No source dir for {self}"
         details = self.name or f"from {self.link}"
@@ -588,6 +591,8 @@ class InstallRequirement:
                 details=details,
             )
 
+    def validate_sdist_metadata(self) -> None:
+        """Ensure that we have a dist, and ensure it corresponds to expectations."""
         # Act on the newly generated metadata, based on the name and version.
         if not self.name:
             self._set_requirement()
@@ -598,24 +603,56 @@ class InstallRequirement:
 
     @property
     def metadata(self) -> Any:
+        # TODO: use cached_property in python 3.8+
         if not hasattr(self, "_metadata"):
-            self._metadata = self.get_dist().metadata
+            self._metadata = self.cached_dist.metadata
 
         return self._metadata
 
-    def get_dist(self) -> BaseDistribution:
-        if self.metadata_directory:
-            return get_directory_distribution(self.metadata_directory)
-        elif self.local_file_path and self.is_wheel:
-            assert self.req is not None
-            return get_wheel_distribution(
-                FilesystemWheel(self.local_file_path),
-                canonicalize_name(self.req.name),
-            )
-        raise AssertionError(
-            f"InstallRequirement {self} has no metadata directory and no wheel: "
-            f"can't make a distribution."
-        )
+    @property
+    def cached_dist(self) -> BaseDistribution:
+        """Retrieve the dist resolved from this requirement.
+
+        :raises AssertionError: if the resolver has not yet been executed.
+        """
+        if self._cached_dist is None:
+            raise AssertionError(f"{self!r} has no dist associated.")
+        return self._cached_dist
+
+    def cache_virtual_metadata_only_dist(self, dist: BaseDistribution) -> None:
+        """Associate a "virtual" metadata-only dist to this requirement.
+
+        This dist cannot be installed, but it can be used to complete the resolve
+        process.
+
+        :raises AssertionError: if a dist has already been associated.
+        :raises AssertionError: if the provided dist is "concrete", i.e. exists
+                                somewhere on the filesystem.
+        """
+        assert self._cached_dist is None, self
+        assert not dist.is_concrete, dist
+        self._cached_dist = dist
+
+    def cache_concrete_dist(self, dist: BaseDistribution) -> None:
+        """Associate a "concrete" dist to this requirement.
+
+        A concrete dist exists somewhere on the filesystem and can be installed.
+
+        :raises AssertionError: if a concrete dist has already been associated.
+        :raises AssertionError: if the provided dist is not concrete.
+        """
+        if self._cached_dist is not None:
+            # If we set a dist twice for the same requirement, we must be hydrating
+            # a concrete dist for what was previously virtual. This will occur in the
+            # case of `install --dry-run` when PEP 658 metadata is available.
+            if not self.allow_concrete_dist_overwrite:
+                assert not self._cached_dist.is_concrete
+        assert dist.is_concrete
+        self._cached_dist = dist
+
+    @property
+    def is_concrete(self) -> bool:
+        return self._cached_dist is not None and self._cached_dist.is_concrete
 
     def assert_source_matches_version(self) -> None:
         assert self.source_dir, f"No source dir for {self}"

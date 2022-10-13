@@ -9,7 +9,6 @@ from pip._vendor.packaging.specifiers import LegacySpecifier
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.packaging.version import LegacyVersion
 
-from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.metadata import get_default_environment
 from pip._internal.metadata.base import DistributionVersion
 from pip._internal.req.req_install import InstallRequirement
@@ -127,8 +126,8 @@ def _simulate_installation_of(
 
     # Modify it as installing requirement_set would (assuming no errors)
     for inst_req in to_install:
-        abstract_dist = make_distribution_for_install_requirement(inst_req)
-        dist = abstract_dist.get_metadata_distribution()
+        assert inst_req.is_concrete
+        dist = inst_req.cached_dist
         name = dist.canonical_name
         package_set[name] = PackageDetails(dist.version, list(dist.iter_dependencies()))
 

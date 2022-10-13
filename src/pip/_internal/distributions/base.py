@@ -35,11 +35,17 @@ class AbstractDistribution(metaclass=abc.ABCMeta):
 
         If None, then this dist has no work to do in the build tracker, and
         ``.prepare_distribution_metadata()`` will not be called."""
-        raise NotImplementedError()
+        ...
 
     @abc.abstractmethod
     def get_metadata_distribution(self) -> BaseDistribution:
-        raise NotImplementedError()
+        """Generate a concrete ``BaseDistribution`` instance for this artifact.
+
+        The implementation should also cache the result with
+        ``self.req.cache_concrete_dist()`` so the distribution is available to other
+        users of the ``InstallRequirement``. This method is not called within the build
+        tracker context, so it should not identify any new setup requirements."""
+        ...
 
     @abc.abstractmethod
     def prepare_distribution_metadata(
@@ -48,4 +54,11 @@ class AbstractDistribution(metaclass=abc.ABCMeta):
         build_isolation: bool,
         check_build_deps: bool,
     ) -> None:
-        raise NotImplementedError()
+        """Generate the information necessary to extract metadata from the artifact.
+
+        This method will be executed within the context of ``BuildTracker#track()``, so
+        it needs to fully identify any seutp requirements so they can be added to the
+        same active set of tracked builds, while ``.get_metadata_distribution()`` takes
+        care of generating and caching the ``BaseDistribution`` to expose to the rest of
+        the resolve."""
+        ...

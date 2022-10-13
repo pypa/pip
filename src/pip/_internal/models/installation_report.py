@@ -32,7 +32,7 @@ class InstallationReport:
             "requested": ireq.user_supplied,
             # PEP 566 json encoding for metadata
             # https://www.python.org/dev/peps/pep-0566/#json-compatible-metadata
-            "metadata": ireq.get_dist().metadata_dict,
+            "metadata": ireq.cached_dist.metadata_dict,
         }
         if ireq.user_supplied and ireq.extras:
             # For top level requirements, the list of requested extras, if any.

@@ -86,7 +86,7 @@ class RequirementSet:
 
     def warn_legacy_versions_and_specifiers(self) -> None:
         for req in self.requirements_to_install:
-            version = req.get_dist().version
+            version = req.cached_dist.version
             if isinstance(version, LegacyVersion):
                 deprecated(
                     reason=(
@@ -101,7 +101,7 @@ class RequirementSet:
                     issue=12063,
                     gone_in="24.0",
                 )
-            for dep in req.get_dist().iter_dependencies():
+            for dep in req.cached_dist.iter_dependencies():
                 if any(isinstance(spec, LegacySpecifier) for spec in dep.specifier):
                     deprecated(
                         reason=(
