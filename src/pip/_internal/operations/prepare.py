@@ -493,7 +493,7 @@ class RequirementPreparer:
             return self._prepare_linked_requirement(req, parallel_builds)
 
     def prepare_download_info(self, reqs: Iterable[InstallRequirement]) -> None:
-        """ Prepare linked requirements with download_info, if needed. """
+        """Prepare linked requirements with download_info, if needed."""
         # During install --dry-run, .metadata files or lazy wheels may be used when determining
         # distribution dependencies. The associated wheel does not need to be downloaded so the
         # download_info need to be derived from the link. If the link does not contain a hash no

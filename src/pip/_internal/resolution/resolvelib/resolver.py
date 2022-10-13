@@ -68,7 +68,10 @@ class Resolver(BaseResolver):
         self._result: Optional[Result] = None
 
     def resolve(
-        self, root_reqs: List[InstallRequirement], check_supported_wheels: bool, dry_run: bool = False,
+        self,
+        root_reqs: List[InstallRequirement],
+        check_supported_wheels: bool,
+        dry_run: bool = False,
     ) -> RequirementSet:
         collected = self.factory.collect_root_requirements(root_reqs)
         provider = PipProvider(
