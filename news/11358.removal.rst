@@ -1,2 +1,0 @@
-Deprecate ``--install-options`` which forces pip to use the deprecated ``install``
-command of ``setuptools``.

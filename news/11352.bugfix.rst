@@ -1,2 +1,0 @@
-Ignore distributions with invalid ``Name`` in metadata instead of crashing, when
-using the ``importlib.metadata`` backend.
