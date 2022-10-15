@@ -459,8 +459,16 @@ class TestProcessLine:
         self, line_processor: LineProcessor, options: mock.Mock
     ) -> None:
         """--use-feature can be set in requirements files."""
-        line_processor("--use-feature=2020-resolver", "filename", 1, options=options)
-        assert "2020-resolver" in options.features_enabled
+        line_processor("--use-feature=fast-deps", "filename", 1, options=options)
+
+    def test_use_feature_with_error(
+        self, line_processor: LineProcessor, options: mock.Mock
+    ) -> None:
+        """--use-feature triggers error when parsing requirements files."""
+        with pytest.raises(RequirementsFileParseError):
+            line_processor(
+                "--use-feature=2020-resolver", "filename", 1, options=options
+            )
 
     def test_relative_local_find_links(
         self,
