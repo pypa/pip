@@ -364,7 +364,7 @@ def test_do_not_prompt_for_authentication(
 
 @pytest.fixture(params=(True, False), ids=("auth_needed", "auth_not_needed"))
 def auth_needed(request: pytest.FixtureRequest) -> bool:
-    return request.param  # type: ignore[attr-defined]
+    return request.param
 
 
 @pytest.fixture(
@@ -386,7 +386,7 @@ def flags(request: pytest.FixtureRequest, auth_needed: bool) -> typing.List[str]
         no_input,
         force_keyring,
         xfail,
-    ) = request.param  # type: ignore[attr-defined]
+    ) = request.param
 
     flags = []
     if no_input:
