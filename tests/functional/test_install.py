@@ -1,8 +1,8 @@
-import distutils
 import os
 import re
 import ssl
 import sys
+import sysconfig
 import textwrap
 from os.path import curdir, join, pardir
 from pathlib import Path
@@ -1145,6 +1145,39 @@ def test_install_with_target_or_prefix_and_scripts_no_warning(
     assert "--no-warn-script-location" not in result.stderr, str(result)
 
 
+def _change_root(new_root: str, pathname: str) -> str:
+    """
+    Adapted from distutils.
+
+    Return 'pathname' with 'new_root' prepended.  If 'pathname' is
+    relative, this is equivalent to "os.path.join(new_root,pathname)".
+    Otherwise, it requires making 'pathname' relative and then joining the
+    two, which is tricky on DOS/Windows and Mac OS.
+    """
+    try:
+        from distutils.util import change_root
+    except ImportError:
+        pass
+    else:
+        return change_root(new_root, pathname)
+
+    if os.name == "posix":
+        if not os.path.isabs(pathname):
+            return os.path.join(new_root, pathname)
+        else:
+            return os.path.join(new_root, pathname[1:])
+
+    elif os.name == "nt":
+        drive, path = os.path.splitdrive(pathname)
+        if path[0] == "\\":
+            path = path[1:]
+        return os.path.join(new_root, path)
+
+    else:
+        # distutils raise DistutilsPlatformError here
+        raise RuntimeError(f"nothing known about platform '{os.name}'")
+
+
 @pytest.mark.usefixtures("with_wheel")
 def test_install_package_with_root(script: PipTestEnvironment, data: TestData) -> None:
     """
@@ -1163,10 +1196,8 @@ def test_install_package_with_root(script: PipTestEnvironment, data: TestData) -
     normal_install_path = os.fspath(
         script.base_path / script.site_packages / "simple-1.0.dist-info"
     )
-    # use distutils to change the root exactly how the --root option does it
-    from distutils.util import change_root
 
-    root_path = change_root(os.path.join(script.scratch, "root"), normal_install_path)
+    root_path = _change_root(os.path.join(script.scratch, "root"), normal_install_path)
     result.did_create(root_path)
 
     # Should show find-links location in output
@@ -1195,7 +1226,7 @@ def test_install_package_with_prefix(
 
     rel_prefix_path = script.scratch / "prefix"
     install_path = join(
-        distutils.sysconfig.get_python_lib(prefix=rel_prefix_path),
+        sysconfig.get_path("purelib", vars={"base": rel_prefix_path}),
         # we still test for egg-info because no-binary implies setup.py install
         f"simple-1.0-py{pyversion}.egg-info",
     )
@@ -1217,7 +1248,7 @@ def _test_install_editable_with_prefix(
             "prefix", "lib", f"python{pyversion}", "site-packages"
         )
     else:
-        site_packages = distutils.sysconfig.get_python_lib(prefix="prefix")
+        site_packages = sysconfig.get_path("purelib", vars={"base": "prefix"})
 
     # make sure target path is in PYTHONPATH
     pythonpath = script.scratch_path / site_packages
