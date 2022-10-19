@@ -12,7 +12,7 @@ from typing import Any, Iterator
 from zipfile import BadZipfile, ZipFile
 
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response, HTTPError
+from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, HTTPError, Response
 
 from pip._internal.metadata import BaseDistribution, MemoryWheel, get_wheel_distribution
 from pip._internal.network.session import PipSession as Session
@@ -265,13 +265,13 @@ class LazyZipOverHTTP:
                 for chunk in response.iter_content(self._chunk_size):
                     self._file.write(chunk)
 
-    def prefetch(self, target_file):
+    def prefetch(self, target_file: str) -> None:
         """
         Prefetch a specific file from the remote ZIP in one request.
         """
         with self._stay():  # not strictly necessary
             # try to read entire conda info in one request
-            zf = ZipFile(self)
+            zf = ZipFile(self)  # type: ignore
             infolist = zf.infolist()
             for i, info in enumerate(infolist):
                 if info.filename == target_file:
@@ -298,22 +298,20 @@ class LazyZipOverHTTP:
             else:
                 log.debug("no zip prefetch")
 
-    def prefetch_dist_info(self):
+    def prefetch_dist_info(self) -> None:
         """
         Read contents of entire dist-info section of wheel.
 
         pip wants to read WHEEL and METADATA.
         """
-        print("prefetch dist-info begin")
         with self._stay():
-            zf = ZipFile(self)
+            zf = ZipFile(self)  # type: ignore
             infolist = zf.infolist()
-            for i, info in enumerate(infolist):
+            for info in infolist:
                 # should be (wheel filename without extension etc) + (.dist-info/)
                 if ".dist-info/" in info.filename:
                     start = info.header_offset
                     end = zf.start_dir
                     self.seek(start)
-                    print(f"prefetch dist-info {start}-{end}")
                     self.read(end - start)
                     break
