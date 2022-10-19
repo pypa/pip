@@ -14,6 +14,7 @@ from zipfile import BadZipfile, ZipFile
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, HTTPError, Response
 
+from pip._internal.exceptions import InvalidWheel
 from pip._internal.metadata import BaseDistribution, MemoryWheel, get_wheel_distribution
 from pip._internal.network.session import PipSession as Session
 from pip._internal.network.utils import HEADERS
@@ -33,15 +34,18 @@ def dist_from_wheel_url(name: str, url: str, session: Session) -> BaseDistributi
     If such requests are not supported, HTTPRangeRequestUnsupported
     is raised.
     """
-    with LazyZipOverHTTP(url, session) as zf:
-        zf.prefetch_dist_info()
+    try:
+        with LazyZipOverHTTP(url, session) as zf:
+            zf.prefetch_dist_info()
 
-        # For read-only ZIP files, ZipFile only needs methods read,
-        # seek, seekable and tell, not the whole IO protocol.
-        wheel = MemoryWheel(zf.name, zf)  # type: ignore
-        # After context manager exit, wheel.name
-        # is an invalid file by intention.
-        return get_wheel_distribution(wheel, canonicalize_name(name))
+            # For read-only ZIP files, ZipFile only needs methods read,
+            # seek, seekable and tell, not the whole IO protocol.
+            wheel = MemoryWheel(zf.name, zf)  # type: ignore
+            # After context manager exit, wheel.name
+            # is an invalid file by intention.
+            return get_wheel_distribution(wheel, canonicalize_name(name))
+    except BadZipfile:
+        raise InvalidWheel(url, name)
 
 
 class LazyZipOverHTTP:
