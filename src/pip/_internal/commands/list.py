@@ -1,5 +1,6 @@
 import json
 import logging
+from email.parser import Parser
 from optparse import Values
 from typing import TYPE_CHECKING, Generator, List, Optional, Sequence, Tuple, cast
 
@@ -317,13 +318,25 @@ def format_for_columns(
     if has_editables:
         header.append("Editable project location")
 
+    def wheel_build(dist: BaseDistribution) -> Optional[str]:
+        try:
+            wheel_file = dist.read_text("WHEEL")
+        except FileNotFoundError:
+            return None
+        return Parser().parsestr(wheel_file).get("Build")
+
+    builds = [wheel_build(p) for p in pkgs]
+    has_builds = any(builds)
+    if has_builds:
+        header.append("Build")
+
     if options.verbose >= 1:
         header.append("Location")
     if options.verbose >= 1:
         header.append("Installer")
 
     data = []
-    for proj in pkgs:
+    for i, proj in enumerate(pkgs):
         # if we're working on the 'outdated' list, separate out the
         # latest_version and type
         row = [proj.raw_name, str(proj.version)]
@@ -334,6 +347,9 @@ def format_for_columns(
 
         if has_editables:
             row.append(proj.editable_project_location or "")
+
+        if has_builds:
+            row.append(builds[i] or "")
 
         if options.verbose >= 1:
             row.append(proj.location or "")
