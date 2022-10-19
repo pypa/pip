@@ -133,7 +133,7 @@ class UpgradePrompt:
         return Group(
             Text(),
             Text.from_markup(
-                f"{notice} A new release of pip available: "
+                f"{notice} A new release of pip is available: "
                 f"[red]{self.old}[reset] -> [green]{self.new}[reset]"
             ),
             Text.from_markup(
