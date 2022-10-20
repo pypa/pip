@@ -483,7 +483,7 @@ class Factory:
                     continue
                 assert ireq.name, "Constraint must be named"
                 name = canonicalize_name(ireq.name)
-                if name in collected.constraints:
+                if name in collected.constraints and not ireq.is_override:
                     collected.constraints[name] &= ireq
                 else:
                     collected.constraints[name] = Constraint.from_ireq(ireq)

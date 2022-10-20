@@ -208,6 +208,7 @@ def install_req_from_editable(
     user_supplied: bool = False,
     permit_editable_wheels: bool = False,
     config_settings: Optional[Dict[str, str]] = None,
+    is_override: Optional[bool] = False,
 ) -> InstallRequirement:
 
     parts = parse_req_from_editable(editable_req)
@@ -227,6 +228,7 @@ def install_req_from_editable(
         hash_options=options.get("hashes", {}) if options else {},
         config_settings=config_settings,
         extras=parts.extras,
+        is_override=is_override,
     )
 
 
@@ -383,6 +385,7 @@ def install_req_from_line(
     line_source: Optional[str] = None,
     user_supplied: bool = False,
     config_settings: Optional[Dict[str, str]] = None,
+    is_override: Optional[bool] = False,
 ) -> InstallRequirement:
     """Creates an InstallRequirement from a name, which might be a
     requirement, directory containing 'setup.py', filename, or URL.
@@ -406,6 +409,7 @@ def install_req_from_line(
         constraint=constraint,
         extras=parts.extras,
         user_supplied=user_supplied,
+        is_override=is_override,
     )
 
 
@@ -465,6 +469,7 @@ def install_req_from_parsed_requirement(
             isolated=isolated,
             user_supplied=user_supplied,
             config_settings=config_settings,
+            is_override=parsed_req.is_override,
         )
 
     else:
@@ -478,6 +483,7 @@ def install_req_from_parsed_requirement(
             line_source=parsed_req.line_source,
             user_supplied=user_supplied,
             config_settings=config_settings,
+            is_override=parsed_req.is_override,
         )
     return req
 

@@ -87,6 +87,7 @@ class ParsedRequirement:
         constraint: bool,
         options: Optional[Dict[str, Any]] = None,
         line_source: Optional[str] = None,
+        is_override: Optional[bool] = False,
     ) -> None:
         self.requirement = requirement
         self.is_editable = is_editable
@@ -94,6 +95,7 @@ class ParsedRequirement:
         self.options = options
         self.constraint = constraint
         self.line_source = line_source
+        self.is_override = is_override
 
 
 class ParsedLine:
@@ -109,6 +111,7 @@ class ParsedLine:
         self.lineno = lineno
         self.opts = opts
         self.constraint = constraint
+        self.is_override = opts.is_override
 
         if args:
             self.is_requirement = True
@@ -200,6 +203,7 @@ def handle_requirement_line(
             constraint=line.constraint,
             options=req_options,
             line_source=line_source,
+            is_override=line.is_override,
         )
 
 
@@ -391,6 +395,13 @@ def get_line_parser(finder: Optional["PackageFinder"]) -> LineParser:
         if finder:
             defaults.format_control = finder.format_control
 
+        tokens = line.strip().split(" ")
+        if tokens[0] in ("-o", "--override"):
+            is_override = True
+            # Only consider the rest of the line
+            line = " ".join(tokens[1:])
+        else:
+            is_override = False
         args_str, options_str = break_args_options(line)
 
         try:
@@ -399,6 +410,7 @@ def get_line_parser(finder: Optional["PackageFinder"]) -> LineParser:
             raise OptionParsingError(f"Could not split options: {options_str}") from e
 
         opts, _ = parser.parse_args(options, defaults)
+        opts.is_override = is_override
 
         return args_str, opts
 

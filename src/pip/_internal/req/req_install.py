@@ -91,6 +91,7 @@ class InstallRequirement:
         extras: Collection[str] = (),
         user_supplied: bool = False,
         permit_editable_wheels: bool = False,
+        is_override: Optional[bool] = False,
     ) -> None:
         assert req is None or isinstance(req, Requirement), req
         self.req = req
@@ -99,6 +100,7 @@ class InstallRequirement:
         self.editable = editable
         self.permit_editable_wheels = permit_editable_wheels
         self.legacy_install_reason: Optional[LegacyInstallReason] = None
+        self.is_override = is_override
 
         # source_dir is the local directory where the linked requirement is
         # located, or unpacked. In case unpacking is needed, creating and
