@@ -248,6 +248,11 @@ class Link(KeyBasedCompareMixin):
         yanked_reason = file_data.get("yanked")
         dist_info_metadata = file_data.get("dist-info-metadata")
         hashes = file_data.get("hashes", {})
+        link_hash = None
+        if hashes:
+            for hash_name in _SUPPORTED_HASHES:
+                if hash_name in hashes:
+                    link_hash = LinkHash(name=hash_name, value=hashes[hash_name])
 
         # The Link.yanked_reason expects an empty string instead of a boolean.
         if yanked_reason and not isinstance(yanked_reason, str):
@@ -262,6 +267,7 @@ class Link(KeyBasedCompareMixin):
             requires_python=pyrequire,
             yanked_reason=yanked_reason,
             hashes=hashes,
+            link_hash=link_hash,
             dist_info_metadata=dist_info_metadata,
         )
 
