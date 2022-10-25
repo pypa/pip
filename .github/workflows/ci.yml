@@ -120,7 +120,7 @@ jobs:
 
       - name: Install MacOS dependencies
         if: matrix.os == 'MacOS'
-        run: brew install breezy
+        run: brew install bzr
 
       - run: pip install nox 'virtualenv<20' 'setuptools != 60.6.0'
 
