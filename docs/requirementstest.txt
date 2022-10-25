@@ -1,0 +1,7 @@
+sphinx ~= 4.2, != 4.4.0
+towncrier
+furo
+myst_parser
+sphinx-copybutton
+sphinx-inline-tabs
+sphinxcontrib-towncrier >= 0.2.0a0
