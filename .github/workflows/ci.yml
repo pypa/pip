@@ -124,6 +124,8 @@ jobs:
 
       - run: pip install nox 'virtualenv<20' 'setuptools != 60.6.0'
 
+      - run: git config protocol.file.allow always
+
       # Main check
       - name: Run unit tests
         run: >-
@@ -231,6 +233,8 @@ jobs:
 
       - run: pip install nox 'virtualenv<20' 'setuptools != 60.6.0'
 
+      - run: git config protocol.file.allow always
+
       # Main check
       - name: Run integration tests
         run: >-
@@ -262,6 +266,8 @@ jobs:
         run: sudo apt-get install bzr
 
       - run: pip install nox 'virtualenv<20'
+
+      - run: git config protocol.file.allow always
 
       - name: Run unit tests
         run: >-
