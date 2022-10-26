@@ -1,9 +1,9 @@
 import base64
 import csv
-import distutils
 import hashlib
 import os
 import shutil
+import sysconfig
 from pathlib import Path
 from typing import Any
 
@@ -284,7 +284,9 @@ def test_install_wheel_with_prefix(
         "--find-links",
         tmpdir,
     )
-    lib = distutils.sysconfig.get_python_lib(prefix=os.path.join("scratch", "prefix"))
+    lib = sysconfig.get_path(
+        "purelib", vars={"base": os.path.join("scratch", "prefix")}
+    )
     result.did_create(lib)
 
 
