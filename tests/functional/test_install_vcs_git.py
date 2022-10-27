@@ -544,6 +544,11 @@ def test_reinstalling_works_with_editable_non_master_branch(
 
 # TODO(pnasrat) fix all helpers to do right things with paths on windows.
 @pytest.mark.skipif("sys.platform == 'win32'")
+@pytest.mark.xfail(
+    condition=True,
+    reason="Git submodule against file: is not working; waiting for a good solution",
+    run=True,
+)
 def test_check_submodule_addition(script: PipTestEnvironment) -> None:
     """
     Submodules are pulled in on install and updated on upgrade.
