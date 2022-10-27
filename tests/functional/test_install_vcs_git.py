@@ -1,5 +1,6 @@
+import subprocess
 from pathlib import Path
-from typing import Optional
+from typing import Iterator, Optional
 
 import pytest
 
@@ -542,18 +543,30 @@ def test_reinstalling_works_with_editable_non_master_branch(
     assert "some different version" == version
 
 
-# TODO(pnasrat) fix all helpers to do right things with paths on windows.
-@pytest.mark.skipif("sys.platform == 'win32'")
-def test_check_submodule_addition(script: PipTestEnvironment) -> None:
+@pytest.fixture()
+def git_server(script: PipTestEnvironment) -> Iterator[str]:
+    args = [
+        "git",
+        "daemon",
+        "--reuseaddr",
+        f"--base-path={script.scratch_path}",
+        script.scratch_path.as_posix(),
+    ]
+    proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    yield "git://localhost"
+    proc.terminate()
+
+
+def test_check_submodule_addition(script: PipTestEnvironment, git_server: str) -> None:
     """
     Submodules are pulled in on install and updated on upgrade.
     """
     module_path, submodule_path = _create_test_package_with_submodule(
-        script, rel_path="testpkg/static"
+        script, git_server=git_server, rel_path="testpkg/static"
     )
 
     install_result = script.pip(
-        "install", "-e", f"git+{module_path.as_uri()}#egg=version_pkg"
+        "install", "-e", f"git+{git_server}/{module_path.name}#egg=version_pkg"
     )
     install_result.did_create(script.venv / "src/version-pkg/testpkg/static/testfile")
 
@@ -568,7 +581,7 @@ def test_check_submodule_addition(script: PipTestEnvironment) -> None:
     update_result = script.pip(
         "install",
         "-e",
-        f"git+{module_path.as_uri()}#egg=version_pkg",
+        f"git+{git_server}/{module_path.name}#egg=version_pkg",
         "--upgrade",
     )
 
