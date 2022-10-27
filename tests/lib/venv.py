@@ -1,6 +1,8 @@
 import compileall
 import os
 import shutil
+import subprocess
+import sys
 import sysconfig
 import textwrap
 import venv as _venv
@@ -16,6 +18,9 @@ if TYPE_CHECKING:
     VirtualEnvironmentType = Literal["virtualenv", "venv"]
 else:
     VirtualEnvironmentType = str
+
+
+LEGACY_VIRTUALENV = int(_virtualenv.__version__.split(".", 1)[0]) < 20
 
 
 class VirtualEnvironment:
@@ -39,13 +44,28 @@ class VirtualEnvironment:
             self._venv_type = venv_type
         else:
             self._venv_type = "virtualenv"
+        assert self._venv_type in ("virtualenv", "venv")
         self._user_site_packages = False
         self._template = template
         self._sitecustomize: Optional[str] = None
         self._update_paths()
         self._create()
 
+    def __update_paths_legacy(self) -> None:
+        home, lib, inc, bin = _virtualenv.path_locations(self.location)
+        self.bin = Path(bin)
+        self.site = Path(lib) / "site-packages"
+        # Workaround for https://github.com/pypa/virtualenv/issues/306
+        if hasattr(sys, "pypy_version_info"):
+            version_dir = str(sys.version_info.major)
+            self.lib = Path(home, "lib-python", version_dir)
+        else:
+            self.lib = Path(lib)
+
     def _update_paths(self) -> None:
+        if LEGACY_VIRTUALENV:
+            self.__update_paths_legacy()
+            return
         bases = {
             "installed_base": self.location,
             "installed_platbase": self.location,
@@ -64,6 +84,10 @@ class VirtualEnvironment:
         if clear:
             shutil.rmtree(self.location)
         if self._template:
+            # On Windows, calling `_virtualenv.path_locations(target)`
+            # will have created the `target` directory...
+            if LEGACY_VIRTUALENV and sys.platform == "win32" and self.location.exists():
+                self.location.rmdir()
             # Clone virtual environment from template.
             shutil.copytree(self._template.location, self.location, symlinks=True)
             self._sitecustomize = self._template.sitecustomize
@@ -71,14 +95,28 @@ class VirtualEnvironment:
         else:
             # Create a new virtual environment.
             if self._venv_type == "virtualenv":
-                _virtualenv.cli_run(
-                    [
-                        "--no-pip",
-                        "--no-wheel",
-                        "--no-setuptools",
-                        os.fspath(self.location),
-                    ],
-                )
+                if LEGACY_VIRTUALENV:
+                    subprocess.check_call(
+                        [
+                            sys.executable,
+                            "-m",
+                            "virtualenv",
+                            "--no-pip",
+                            "--no-wheel",
+                            "--no-setuptools",
+                            os.fspath(self.location),
+                        ]
+                    )
+                    self._fix_legacy_virtualenv_site_module()
+                else:
+                    _virtualenv.cli_run(
+                        [
+                            "--no-pip",
+                            "--no-wheel",
+                            "--no-setuptools",
+                            os.fspath(self.location),
+                        ],
+                    )
             elif self._venv_type == "venv":
                 builder = _venv.EnvBuilder()
                 context = builder.ensure_directories(self.location)
@@ -88,31 +126,68 @@ class VirtualEnvironment:
             self.sitecustomize = self._sitecustomize
             self.user_site_packages = self._user_site_packages
 
+    def _fix_legacy_virtualenv_site_module(self) -> None:
+        # Patch `site.py` so user site work as expected.
+        site_py = self.lib / "site.py"
+        with open(site_py) as fp:
+            site_contents = fp.read()
+        for pattern, replace in (
+            (
+                # Ensure enabling user site does not result in adding
+                # the real site-packages' directory to `sys.path`.
+                ("\ndef virtual_addsitepackages(known_paths):\n"),
+                (
+                    "\ndef virtual_addsitepackages(known_paths):\n"
+                    "    return known_paths\n"
+                ),
+            ),
+            (
+                # Fix sites ordering: user site must be added before system.
+                (
+                    "\n    paths_in_sys = addsitepackages(paths_in_sys)"
+                    "\n    paths_in_sys = addusersitepackages(paths_in_sys)\n"
+                ),
+                (
+                    "\n    paths_in_sys = addusersitepackages(paths_in_sys)"
+                    "\n    paths_in_sys = addsitepackages(paths_in_sys)\n"
+                ),
+            ),
+        ):
+            assert pattern in site_contents
+            site_contents = site_contents.replace(pattern, replace)
+        with open(site_py, "w") as fp:
+            fp.write(site_contents)
+        # Make sure bytecode is up-to-date too.
+        assert compileall.compile_file(str(site_py), quiet=1, force=True)
+
     def _customize_site(self) -> None:
-        # Enable user site (before system).
-        contents = textwrap.dedent(
-            f"""
-            import os, site, sys
-            if not os.environ.get('PYTHONNOUSERSITE', False):
-                site.ENABLE_USER_SITE = {self._user_site_packages}
-                # First, drop system-sites related paths.
-                original_sys_path = sys.path[:]
-                known_paths = set()
-                for path in site.getsitepackages():
-                    site.addsitedir(path, known_paths=known_paths)
-                system_paths = sys.path[len(original_sys_path):]
-                for path in system_paths:
-                    if path in original_sys_path:
-                        original_sys_path.remove(path)
-                sys.path = original_sys_path
-                # Second, add user-site.
-                if {self._user_site_packages}:
-                    site.addsitedir(site.getusersitepackages())
-                # Third, add back system-sites related paths.
-                for path in site.getsitepackages():
-                    site.addsitedir(path)
-            """
-        ).strip()
+        if not LEGACY_VIRTUALENV or self._venv_type == "venv":
+            # Enable user site (before system).
+            contents = textwrap.dedent(
+                f"""
+                import os, site, sys
+                if not os.environ.get('PYTHONNOUSERSITE', False):
+                    site.ENABLE_USER_SITE = {self._user_site_packages}
+                    # First, drop system-sites related paths.
+                    original_sys_path = sys.path[:]
+                    known_paths = set()
+                    for path in site.getsitepackages():
+                        site.addsitedir(path, known_paths=known_paths)
+                    system_paths = sys.path[len(original_sys_path):]
+                    for path in system_paths:
+                        if path in original_sys_path:
+                            original_sys_path.remove(path)
+                    sys.path = original_sys_path
+                    # Second, add user-site.
+                    if {self._user_site_packages}:
+                        site.addsitedir(site.getusersitepackages())
+                    # Third, add back system-sites related paths.
+                    for path in site.getsitepackages():
+                        site.addsitedir(path)
+                """
+            ).strip()
+        else:
+            contents = ""
         if self._sitecustomize is not None:
             contents += "\n" + self._sitecustomize
         sitecustomize = self.site / "sitecustomize.py"
@@ -159,7 +234,14 @@ class VirtualEnvironment:
     @user_site_packages.setter
     def user_site_packages(self, value: bool) -> None:
         self._user_site_packages = value
-        self._rewrite_pyvenv_cfg(
-            {"include-system-site-packages": str(bool(value)).lower()}
-        )
-        self._customize_site()
+        if not LEGACY_VIRTUALENV or self._venv_type == "venv":
+            self._rewrite_pyvenv_cfg(
+                {"include-system-site-packages": str(bool(value)).lower()}
+            )
+            self._customize_site()
+        else:
+            marker = self.lib / "no-global-site-packages.txt"
+            if self._user_site_packages:
+                marker.unlink()
+            else:
+                marker.touch()
