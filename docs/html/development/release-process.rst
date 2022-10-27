@@ -70,7 +70,7 @@ their merits.
 Supported Versions
 ==================
 
-The latest major version of the pip is the only supported version, previous
+The latest version of the pip is the only supported version, previous
 major versions should be considered unsupported. Folks are encouraged to make
 regular updates to their version of pip in order to remain supported.
 
