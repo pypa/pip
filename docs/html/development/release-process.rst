@@ -65,6 +65,15 @@ their merits.
   ``pip._internal.utils.deprecation.deprecated``. The function is not a part of
   pip's public API.
 
+.. _`Supported Versions`:
+
+Supported Versions
+==================
+
+The latest major version of the pip is the only supported version, previous
+major versions should be considered unsupported. Folks are encouraged to make
+regular updates to their version of pip for best performance.
+
 .. _`Python 2 Support`:
 
 Python 2 Support
