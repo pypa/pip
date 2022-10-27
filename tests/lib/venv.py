@@ -5,7 +5,7 @@ import sysconfig
 import textwrap
 import venv as _venv
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Dict, Optional, Union
 
 import virtualenv as _virtualenv
 
@@ -120,6 +120,21 @@ class VirtualEnvironment:
         # Make sure bytecode is up-to-date too.
         assert compileall.compile_file(str(sitecustomize), quiet=1, force=True)
 
+    def _rewrite_pyvenv_cfg(self, replacements: Dict[str, str]) -> None:
+        pyvenv_cfg = self.location.joinpath("pyvenv.cfg")
+        lines = pyvenv_cfg.read_text(encoding="utf-8").splitlines()
+
+        def maybe_replace_line(line: str) -> str:
+            key = line.split("=", 1)[0].strip()
+            try:
+                value = replacements[key]
+            except KeyError:  # No need to replace.
+                return line
+            return f"{key} = {value}"
+
+        lines = [maybe_replace_line(line) for line in lines]
+        pyvenv_cfg.write_text("\n".join(lines), encoding="utf-8")
+
     def clear(self) -> None:
         self._create(clear=True)
 
@@ -144,4 +159,7 @@ class VirtualEnvironment:
     @user_site_packages.setter
     def user_site_packages(self, value: bool) -> None:
         self._user_site_packages = value
+        self._rewrite_pyvenv_cfg(
+            {"include-system-site-packages": str(bool(value)).lower()}
+        )
         self._customize_site()
