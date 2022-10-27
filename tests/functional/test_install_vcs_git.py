@@ -1,4 +1,5 @@
 import subprocess
+import time
 from pathlib import Path
 from typing import Iterator, Optional
 
@@ -553,7 +554,12 @@ def git_server(script: PipTestEnvironment) -> Iterator[str]:
         script.scratch_path.as_posix(),
     ]
     proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    time.sleep(0.5)  # Some startup time.
     yield "git://localhost"
+    if proc.stdout is not None:
+        print("### BEGIN GIT DAEMON LOGS ###")
+        print(proc.stdout.read().decode("utf8"))
+        print("### END GIT DAEMON LOGS #####")
     proc.terminate()
 
 
