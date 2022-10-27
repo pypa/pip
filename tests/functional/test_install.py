@@ -171,7 +171,7 @@ def test_pep518_allows_missing_requires(
     assert result.files_created
 
 
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 def test_pep518_with_user_pip(
     script: PipTestEnvironment, pip_src: Path, data: TestData, common_wheels: Path
 ) -> None:
@@ -2106,7 +2106,7 @@ def test_target_install_ignores_distutils_config_install_prefix(
     result.did_not_create(relative_script_base)
 
 
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 def test_user_config_accepted(script: PipTestEnvironment) -> None:
     # user set in the config file is parsed as 0/1 instead of True/False.
     # Check that this doesn't cause a problem.
