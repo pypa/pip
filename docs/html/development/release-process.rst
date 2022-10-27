@@ -71,7 +71,7 @@ Supported Versions
 ==================
 
 The latest version of the pip is the only supported version, previous
-major versions should be considered unsupported. Folks are encouraged to make
+versions should be considered unsupported. Users are encouraged to make
 regular updates to their version of pip in order to remain supported.
 
 .. _`Python 2 Support`:
