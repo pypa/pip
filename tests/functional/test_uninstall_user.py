@@ -11,7 +11,7 @@ from tests.lib.venv import VirtualEnvironment
 from tests.lib.wheel import make_wheel
 
 
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 class Tests_UninstallUserSite:
     @pytest.mark.network
     def test_uninstall_from_usersite(self, script: PipTestEnvironment) -> None:

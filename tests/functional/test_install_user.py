@@ -35,9 +35,9 @@ def _patch_dist_in_site_packages(virtualenv: VirtualEnvironment) -> None:
     )
 
 
+@pytest.mark.usefixtures("enable_user_site")
 class Tests_UserSite:
     @pytest.mark.network
-    @pytest.mark.incompatible_with_test_venv
     def test_reset_env_system_site_packages_usersite(
         self, script: PipTestEnvironment
     ) -> None:
@@ -57,7 +57,6 @@ class Tests_UserSite:
     @pytest.mark.xfail
     @pytest.mark.network
     @need_svn
-    @pytest.mark.incompatible_with_test_venv
     def test_install_subversion_usersite_editable_with_distribute(
         self, script: PipTestEnvironment, tmpdir: Path
     ) -> None:
@@ -77,7 +76,6 @@ class Tests_UserSite:
         )
         result.assert_installed("INITools", use_user_site=True)
 
-    @pytest.mark.incompatible_with_test_venv
     @pytest.mark.usefixtures("with_wheel")
     def test_install_from_current_directory_into_usersite(
         self, script: PipTestEnvironment, data: TestData
@@ -123,7 +121,6 @@ class Tests_UserSite:
         )
 
     @pytest.mark.network
-    @pytest.mark.incompatible_with_test_venv
     def test_install_user_conflict_in_usersite(
         self, script: PipTestEnvironment
     ) -> None:
@@ -148,7 +145,6 @@ class Tests_UserSite:
         result2.did_create(egg_info_folder)
         assert not isfile(initools_v3_file), initools_v3_file
 
-    @pytest.mark.incompatible_with_test_venv
     def test_install_user_conflict_in_globalsite(
         self, virtualenv: VirtualEnvironment, script: PipTestEnvironment
     ) -> None:
@@ -191,7 +187,6 @@ class Tests_UserSite:
         assert isdir(dist_info_folder)
         assert isdir(initools_folder)
 
-    @pytest.mark.incompatible_with_test_venv
     def test_upgrade_user_conflict_in_globalsite(
         self, virtualenv: VirtualEnvironment, script: PipTestEnvironment
     ) -> None:
@@ -235,7 +230,6 @@ class Tests_UserSite:
         assert isdir(dist_info_folder), result2.stdout
         assert isdir(initools_folder)
 
-    @pytest.mark.incompatible_with_test_venv
     def test_install_user_conflict_in_globalsite_and_usersite(
         self, virtualenv: VirtualEnvironment, script: PipTestEnvironment
     ) -> None:
@@ -294,7 +288,6 @@ class Tests_UserSite:
         assert isdir(initools_folder)
 
     @pytest.mark.network
-    @pytest.mark.incompatible_with_test_venv
     def test_install_user_in_global_virtualenv_with_conflict_fails(
         self, script: PipTestEnvironment
     ) -> None:

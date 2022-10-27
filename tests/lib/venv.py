@@ -20,9 +20,6 @@ else:
     VirtualEnvironmentType = str
 
 
-LEGACY_VIRTUALENV = int(_virtualenv.__version__.split(".", 1)[0]) < 20
-
-
 class VirtualEnvironment:
     """
     An abstraction around virtual environments, currently it only uses
@@ -34,7 +31,7 @@ class VirtualEnvironment:
         location: Path,
         template: Optional["VirtualEnvironment"] = None,
         venv_type: Optional[VirtualEnvironmentType] = None,
-    ):
+    ) -> None:
         self.location = location
         assert template is None or venv_type is None
         self._venv_type: VirtualEnvironmentType
@@ -44,12 +41,17 @@ class VirtualEnvironment:
             self._venv_type = venv_type
         else:
             self._venv_type = "virtualenv"
-        assert self._venv_type in ("virtualenv", "venv")
         self._user_site_packages = False
         self._template = template
         self._sitecustomize: Optional[str] = None
         self._update_paths()
         self._create()
+
+    @property
+    def _legacy_virtualenv(self) -> bool:
+        if self._venv_type != "virtualenv":
+            return False
+        return int(_virtualenv.__version__.split(".", 1)[0]) < 20
 
     def __update_paths_legacy(self) -> None:
         home, lib, inc, bin = _virtualenv.path_locations(self.location)
@@ -63,7 +65,7 @@ class VirtualEnvironment:
             self.lib = Path(lib)
 
     def _update_paths(self) -> None:
-        if LEGACY_VIRTUALENV:
+        if self._legacy_virtualenv:
             self.__update_paths_legacy()
             return
         bases = {
@@ -86,7 +88,11 @@ class VirtualEnvironment:
         if self._template:
             # On Windows, calling `_virtualenv.path_locations(target)`
             # will have created the `target` directory...
-            if LEGACY_VIRTUALENV and sys.platform == "win32" and self.location.exists():
+            if (
+                self._legacy_virtualenv
+                and sys.platform == "win32"
+                and self.location.exists()
+            ):
                 self.location.rmdir()
             # Clone virtual environment from template.
             shutil.copytree(self._template.location, self.location, symlinks=True)
@@ -94,35 +100,36 @@ class VirtualEnvironment:
             self._user_site_packages = self._template.user_site_packages
         else:
             # Create a new virtual environment.
-            if self._venv_type == "virtualenv":
-                if LEGACY_VIRTUALENV:
-                    subprocess.check_call(
-                        [
-                            sys.executable,
-                            "-m",
-                            "virtualenv",
-                            "--no-pip",
-                            "--no-wheel",
-                            "--no-setuptools",
-                            os.fspath(self.location),
-                        ]
-                    )
-                    self._fix_legacy_virtualenv_site_module()
-                else:
-                    _virtualenv.cli_run(
-                        [
-                            "--no-pip",
-                            "--no-wheel",
-                            "--no-setuptools",
-                            os.fspath(self.location),
-                        ],
-                    )
+            if self._legacy_virtualenv:
+                subprocess.check_call(
+                    [
+                        sys.executable,
+                        "-m",
+                        "virtualenv",
+                        "--no-pip",
+                        "--no-wheel",
+                        "--no-setuptools",
+                        os.fspath(self.location),
+                    ]
+                )
+                self._fix_legacy_virtualenv_site_module()
+            elif self._venv_type == "virtualenv":
+                _virtualenv.cli_run(
+                    [
+                        "--no-pip",
+                        "--no-wheel",
+                        "--no-setuptools",
+                        os.fspath(self.location),
+                    ],
+                )
             elif self._venv_type == "venv":
                 builder = _venv.EnvBuilder()
                 context = builder.ensure_directories(self.location)
                 builder.create_configuration(context)
                 builder.setup_python(context)
                 self.site.mkdir(parents=True, exist_ok=True)
+            else:
+                raise RuntimeError(f"Unsupported venv type {self._venv_type!r}")
             self.sitecustomize = self._sitecustomize
             self.user_site_packages = self._user_site_packages
 
@@ -161,7 +168,9 @@ class VirtualEnvironment:
         assert compileall.compile_file(str(site_py), quiet=1, force=True)
 
     def _customize_site(self) -> None:
-        if not LEGACY_VIRTUALENV or self._venv_type == "venv":
+        if self._legacy_virtualenv:
+            contents = ""
+        else:
             # Enable user site (before system).
             contents = textwrap.dedent(
                 f"""
@@ -186,8 +195,6 @@ class VirtualEnvironment:
                         site.addsitedir(path)
                 """
             ).strip()
-        else:
-            contents = ""
         if self._sitecustomize is not None:
             contents += "\n" + self._sitecustomize
         sitecustomize = self.site / "sitecustomize.py"
@@ -234,14 +241,14 @@ class VirtualEnvironment:
     @user_site_packages.setter
     def user_site_packages(self, value: bool) -> None:
         self._user_site_packages = value
-        if not LEGACY_VIRTUALENV or self._venv_type == "venv":
-            self._rewrite_pyvenv_cfg(
-                {"include-system-site-packages": str(bool(value)).lower()}
-            )
-            self._customize_site()
-        else:
+        if self._legacy_virtualenv:
             marker = self.lib / "no-global-site-packages.txt"
             if self._user_site_packages:
                 marker.unlink()
             else:
                 marker.touch()
+        else:
+            self._rewrite_pyvenv_cfg(
+                {"include-system-site-packages": str(bool(value)).lower()}
+            )
+            self._customize_site()

@@ -305,8 +305,7 @@ def test_install_local_with_subdirectory(script: PipTestEnvironment) -> None:
     result.assert_installed("version_subpkg.py", editable=False)
 
 
-@pytest.mark.incompatible_with_test_venv
-@pytest.mark.usefixtures("with_wheel")
+@pytest.mark.usefixtures("enable_user_site", "with_wheel")
 def test_wheel_user_with_prefix_in_pydistutils_cfg(
     script: PipTestEnvironment, data: TestData
 ) -> None:

@@ -406,8 +406,7 @@ def test_wheel_record_lines_have_updated_hash_for_scripts(
     ]
 
 
-@pytest.mark.incompatible_with_test_venv
-@pytest.mark.usefixtures("with_wheel")
+@pytest.mark.usefixtures("enable_user_site", "with_wheel")
 def test_install_user_wheel(
     script: PipTestEnvironment, shared_data: TestData, tmpdir: Path
 ) -> None:

@@ -7,7 +7,7 @@ from tests.lib import PipTestEnvironment, create_basic_wheel_for_package
 from tests.lib.venv import VirtualEnvironment
 
 
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 def test_new_resolver_install_user(script: PipTestEnvironment) -> None:
     create_basic_wheel_for_package(script, "base", "0.1.0")
     result = script.pip(
@@ -22,7 +22,7 @@ def test_new_resolver_install_user(script: PipTestEnvironment) -> None:
     result.did_create(script.user_site / "base")
 
 
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 def test_new_resolver_install_user_satisfied_by_global_site(
     script: PipTestEnvironment,
 ) -> None:
@@ -53,7 +53,7 @@ def test_new_resolver_install_user_satisfied_by_global_site(
     result.did_not_create(script.user_site / "base")
 
 
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 def test_new_resolver_install_user_conflict_in_user_site(
     script: PipTestEnvironment,
 ) -> None:
@@ -91,7 +91,7 @@ def test_new_resolver_install_user_conflict_in_user_site(
     result.did_not_create(base_2_dist_info)
 
 
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 def test_new_resolver_install_user_in_virtualenv_with_conflict_fails(
     script: PipTestEnvironment,
 ) -> None:
@@ -141,8 +141,7 @@ def patch_dist_in_site_packages(virtualenv: VirtualEnvironment) -> None:
     )
 
 
-@pytest.mark.incompatible_with_test_venv
-@pytest.mark.usefixtures("patch_dist_in_site_packages")
+@pytest.mark.usefixtures("enable_user_site", "patch_dist_in_site_packages")
 def test_new_resolver_install_user_reinstall_global_site(
     script: PipTestEnvironment,
 ) -> None:
@@ -177,8 +176,7 @@ def test_new_resolver_install_user_reinstall_global_site(
     assert "base" in site_packages_content
 
 
-@pytest.mark.incompatible_with_test_venv
-@pytest.mark.usefixtures("patch_dist_in_site_packages")
+@pytest.mark.usefixtures("enable_user_site", "patch_dist_in_site_packages")
 def test_new_resolver_install_user_conflict_in_global_site(
     script: PipTestEnvironment,
 ) -> None:
@@ -215,8 +213,7 @@ def test_new_resolver_install_user_conflict_in_global_site(
     assert "base-1.0.0.dist-info" in site_packages_content
 
 
-@pytest.mark.incompatible_with_test_venv
-@pytest.mark.usefixtures("patch_dist_in_site_packages")
+@pytest.mark.usefixtures("enable_user_site", "patch_dist_in_site_packages")
 def test_new_resolver_install_user_conflict_in_global_and_user_sites(
     script: PipTestEnvironment,
 ) -> None:
