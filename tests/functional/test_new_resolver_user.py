@@ -91,39 +91,6 @@ def test_new_resolver_install_user_conflict_in_user_site(
     result.did_not_create(base_2_dist_info)
 
 
-@pytest.mark.usefixtures("enable_user_site")
-def test_new_resolver_install_user_in_virtualenv_with_conflict_fails(
-    script: PipTestEnvironment,
-) -> None:
-    create_basic_wheel_for_package(script, "base", "1.0.0")
-    create_basic_wheel_for_package(script, "base", "2.0.0")
-
-    script.pip(
-        "install",
-        "--no-cache-dir",
-        "--no-index",
-        "--find-links",
-        script.scratch_path,
-        "base==2.0.0",
-    )
-    result = script.pip(
-        "install",
-        "--no-cache-dir",
-        "--no-index",
-        "--find-links",
-        script.scratch_path,
-        "--user",
-        "base==1.0.0",
-        expect_error=True,
-    )
-
-    error_message = (
-        "Will not install to the user site because it will lack sys.path "
-        "precedence to base in {}"
-    ).format(os.path.normcase(script.site_packages_path))
-    assert error_message in result.stderr
-
-
 @pytest.fixture()
 def patch_dist_in_site_packages(virtualenv: VirtualEnvironment) -> None:
     # Since the tests are run from a virtualenv, and to avoid the "Will not
