@@ -58,3 +58,5 @@ rooms, and mailing lists is expected to follow the `PSF Code of Conduct`_.
 .. _User IRC: https://kiwiirc.com/nextclient/#ircs://irc.libera.chat:+6697/pypa
 .. _Development IRC: https://kiwiirc.com/nextclient/#ircs://irc.libera.chat:+6697/pypa-dev
 .. _PSF Code of Conduct: https://github.com/pypa/.github/blob/main/CODE_OF_CONDUCT.md
+
+[![Codacy Security Scan](https://github.com/Adix82/pip/actions/workflows/codacy.yml/badge.svg?branch=main)](https://github.com/Adix82/pip/actions/workflows/codacy.yml)
