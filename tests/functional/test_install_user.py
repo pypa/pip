@@ -287,7 +287,6 @@ class Tests_UserSite:
         assert isdir(dist_info_folder)
         assert isdir(initools_folder)
 
-    @pytest.mark.network
     def test_install_user_in_global_virtualenv_with_conflict_fails(
         self, script: PipTestEnvironment
     ) -> None:
@@ -295,27 +294,37 @@ class Tests_UserSite:
         Test user install in --system-site-packages virtualenv with conflict in
         site fails.
         """
+        create_basic_wheel_for_package(script, "pkg", "0.1")
+        create_basic_wheel_for_package(script, "pkg", "0.2")
 
-        script.pip("install", "INITools==0.2")
+        script.pip(
+            "install",
+            "--no-cache-dir",
+            "--no-index",
+            "--find-links",
+            script.scratch_path,
+            "pkg==0.2",
+        )
 
         result2 = script.pip(
             "install",
+            "--no-cache-dir",
+            "--no-index",
+            "--find-links",
+            script.scratch_path,
             "--user",
-            "INITools==0.1",
+            "pkg==0.1",
             expect_error=True,
         )
         resultp = script.run(
             "python",
             "-c",
-            "import pkg_resources; print(pkg_resources.get_distribution"
-            "('initools').location)",
+            "from pip._internal.metadata import get_default_environment; "
+            "print(get_default_environment().get_distribution('pkg').location)",
         )
         dist_location = resultp.stdout.strip()
+
         assert (
-            "Will not install to the user site because it will lack sys.path "
-            "precedence to {name} in {location}".format(
-                name="INITools",
-                location=dist_location,
-            )
-            in result2.stderr
-        )
+            f"Will not install to the user site because it will lack sys.path "
+            f"precedence to pkg in {dist_location}"
+        ) in result2.stderr
