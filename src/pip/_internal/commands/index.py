@@ -35,6 +35,21 @@ class IndexCommand(IndexGroupCommand):
         self.cmd_opts.add_option(cmdoptions.pre())
         self.cmd_opts.add_option(cmdoptions.no_binary())
         self.cmd_opts.add_option(cmdoptions.only_binary())
+        self.cmd_opts.add_option(
+            "--latest",
+            dest="latest",
+            action="store_true",
+            default=False,
+            help="Print only the latest version of the given package.",
+        )
+        self.cmd_opts.add_option(
+            "--format",
+            action="store",
+            dest="list_format",
+            default="human",
+            choices=("human", "json"),
+            help="Select the output format among: human (default) or json",
+        )
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
@@ -130,9 +145,21 @@ class IndexCommand(IndexGroupCommand):
                     "No matching distribution found for {}".format(query)
                 )
 
+            if options.latest:
+                # Print only the last version in the list.
+                write_output(str(max(versions)))
+                return
+
+        if options.list_format == 'human':
             formatted_versions = [str(ver) for ver in sorted(versions, reverse=True)]
             latest = formatted_versions[0]
 
-        write_output("{} ({})".format(query, latest))
-        write_output("Available versions: {}".format(", ".join(formatted_versions)))
-        print_dist_installation_info(query, latest)
+            write_output("{} ({})".format(query, latest))
+            write_output("Available versions: {}".format(", ".join(formatted_versions)))
+            print_dist_installation_info(query, latest)
+        elif options.list_format == 'json':
+            json_output = {
+                'name': query,
+                'versions': [str(version) for version in sorted(versions)]
+            }
+            write_output(json_output)
