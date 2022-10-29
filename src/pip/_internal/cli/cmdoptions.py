@@ -825,8 +825,9 @@ install_options: Callable[..., Option] = partial(
     dest="install_options",
     action="append",
     metavar="options",
-    help="This option is deprecated. Using this option with location-changing options may cause unexpected behavior. "
-    "Use pip-level options like --user, --prefix, --root, and --target",
+    help="This option is deprecated. Using this option with location-changing "
+    "options may cause unexpected behavior. "
+    "Use pip-level options like --user, --prefix, --root, and --target.",
 )
 
 build_options: Callable[..., Option] = partial(
