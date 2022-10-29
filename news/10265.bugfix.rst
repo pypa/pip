@@ -1,0 +1,1 @@
+Fixed the description of the option "--install-options" in the documentation
