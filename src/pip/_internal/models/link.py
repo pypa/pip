@@ -253,6 +253,7 @@ class Link(KeyBasedCompareMixin):
             for hash_name in _SUPPORTED_HASHES:
                 if hash_name in hashes:
                     link_hash = LinkHash(name=hash_name, value=hashes[hash_name])
+                    break
 
         # The Link.yanked_reason expects an empty string instead of a boolean.
         if yanked_reason and not isinstance(yanked_reason, str):
