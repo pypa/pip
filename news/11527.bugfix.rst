@@ -1,2 +1,2 @@
-This change restores 22.2.x wheel cache behavior to pip allowing the
+Wheel cache behavior is restored to match previous versions, allowing the
 cache to find existing entries.
