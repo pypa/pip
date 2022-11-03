@@ -700,7 +700,7 @@ def test_get_console_script_specs_replaces_python_version(
         "pip99.88": "whatever",
         "easy_install": "real_easy_install",
         "easy_install-99.88": "whatever",
-        # The followings shouldn't be replaced.
+        # The following shouldn't be replaced.
         "not_pip_or_easy_install-99": "whatever",
         "not_pip_or_easy_install-99.88": "whatever",
     }
