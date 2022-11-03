@@ -94,19 +94,15 @@ class UninstallCommand(Command, SessionCommandMixin):
             modifying_pip="pip" in reqs_to_uninstall
         )
 
-        everything_okay = True
         for req in reqs_to_uninstall.values():
             uninstall_pathset = req.uninstall(
                 auto_confirm=options.yes,
                 verbose=self.verbosity > 0,
             )
             if uninstall_pathset:
+                if req.files_skipped:
+                    return ERROR
                 uninstall_pathset.commit()
-            else:
-                everything_okay = False
         if options.root_user_action == "warn":
             warn_if_run_as_root()
-        if everything_okay:
-            return SUCCESS
-        else:
-            return ERROR
+        return SUCCESS

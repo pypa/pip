@@ -658,6 +658,7 @@ class InstallRequirement:
 
         uninstalled_pathset = UninstallPathSet.from_dist(dist)
         uninstalled_pathset.remove(auto_confirm, verbose)
+        self.files_skipped = uninstalled_pathset.files_skipped
         return uninstalled_pathset
 
     def _get_archive_name(self, path: str, parentdir: str, rootdir: str) -> str:
