@@ -2,6 +2,7 @@ import os
 import string
 import urllib.parse
 import urllib.request
+import re
 from typing import Optional
 
 from .compat import WINDOWS
@@ -41,7 +42,8 @@ def url_to_path(url: str) -> str:
         netloc = "\\\\" + netloc
     else:
         raise ValueError(
-            f"non-local file URIs are not supported on this platform: {url!r}"
+            f"{url!r} points to the domain '{netloc}'. Non-local file URIs are not supported on this platform. "
+            f"Did you mean to use {re.sub('(^file:)(/)+','file:/',url)}?"
         )
 
     path = urllib.request.url2pathname(netloc + path)
