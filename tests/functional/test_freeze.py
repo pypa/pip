@@ -862,7 +862,7 @@ def test_freeze_with_requirement_option_package_repeated_multi_file(
 
 
 @pytest.mark.network
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 def test_freeze_user(
     script: PipTestEnvironment, virtualenv: VirtualEnvironment, data: TestData
 ) -> None:
@@ -900,7 +900,7 @@ def test_freeze_path(tmpdir: Path, script: PipTestEnvironment, data: TestData) -
 
 
 @pytest.mark.network
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 def test_freeze_path_exclude_user(
     tmpdir: Path, script: PipTestEnvironment, data: TestData
 ) -> None:

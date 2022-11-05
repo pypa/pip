@@ -1,0 +1,3 @@
+Fix entry point generation of ``pip.X``, ``pipX.Y``, and ``easy_install-X.Y``
+to correctly account for multi-digit Python version segments (e.g. the "11"
+part of 3.11).

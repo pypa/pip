@@ -26,8 +26,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
       - run: pip install nox
       - run: nox -s docs
 
@@ -60,8 +62,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
       - name: Set up git credentials
         run: |
           git config --global user.email "pypa-dev@googlegroups.com"
@@ -82,8 +86,10 @@ jobs:
       github.event_name != 'pull_request'
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
 
       - run: pip install nox
       - run: nox -s vendoring
@@ -103,14 +109,15 @@ jobs:
       matrix:
         os: [Ubuntu, MacOS]
         python:
-          - 3.7
-          - 3.8
-          - 3.9
+          - "3.7"
+          - "3.8"
+          - "3.9"
           - "3.10"
+          - "3.11"
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
 
@@ -120,9 +127,9 @@ jobs:
 
       - name: Install MacOS dependencies
         if: matrix.os == 'MacOS'
-        run: brew install bzr
+        run: brew install breezy
 
-      - run: pip install nox 'virtualenv<20' 'setuptools != 60.6.0'
+      - run: pip install nox
 
       # Main check
       - name: Run unit tests
@@ -151,16 +158,17 @@ jobs:
       matrix:
         os: [Windows]
         python:
-          - 3.7
+          - "3.7"
           # Commented out, since Windows tests are expensively slow.
-          # - 3.8
-          # - 3.9
-          - "3.10"
+          # - "3.8"
+          # - "3.9"
+          # - "3.10"
+          - "3.11"
         group: [1, 2]
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
 
@@ -179,7 +187,7 @@ jobs:
           $acl.AddAccessRule($rule)
           Set-Acl "R:\Temp" $acl
 
-      - run: pip install nox 'virtualenv<20'
+      - run: pip install nox
         env:
           TEMP: "R:\\Temp"
 
@@ -221,8 +229,8 @@ jobs:
       github.event_name != 'pull_request'
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
@@ -240,41 +248,6 @@ jobs:
           --durations=5
           --use-zipapp
 
-  # TODO: Remove this when we add Python 3.11 to CI.
-  tests-importlib-metadata:
-    name: tests for importlib.metadata backend
-    runs-on: ubuntu-latest
-    env:
-      _PIP_USE_IMPORTLIB_METADATA: 'true'
-
-    needs: [packaging, determine-changes]
-    if: >-
-      needs.determine-changes.outputs.tests == 'true' ||
-      github.event_name != 'pull_request'
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: '3.10'
-
-      - name: Install Ubuntu dependencies
-        run: sudo apt-get install bzr
-
-      - run: pip install nox 'virtualenv<20'
-
-      - name: Run unit tests
-        run: >-
-          nox -s test-3.10 --
-          -m unit
-          --verbose --numprocesses auto --showlocals
-      - name: Run integration tests
-        run: >-
-          nox -s test-3.10 --
-          -m integration
-          --verbose --numprocesses auto --showlocals
-          --durations=5
-
   check:  # This job does nothing and is only used for the branch protection
     if: always()
 
@@ -285,7 +258,6 @@ jobs:
       - tests-unix
       - tests-windows
       - tests-zipapp
-      - tests-importlib-metadata
       - vendoring
 
     runs-on: ubuntu-latest
