@@ -9,6 +9,17 @@
 
 .. towncrier release notes start
 
+22.3.1 (2022-11-05)
+===================
+
+Bug Fixes
+---------
+
+- Fix entry point generation of ``pip.X``, ``pipX.Y``, and ``easy_install-X.Y``
+  to correctly account for multi-digit Python version segments (e.g. the "11"
+  part of 3.11). (`#11547 <https://github.com/pypa/pip/issues/11547>`_)
+
+
 22.3 (2022-10-15)
 =================
 
