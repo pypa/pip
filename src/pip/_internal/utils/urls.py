@@ -1,9 +1,9 @@
 import os
+import re
 import string
 import sys
 import urllib.parse
 import urllib.request
-import re
 from typing import Optional
 
 from .compat import WINDOWS
@@ -45,7 +45,8 @@ def url_to_path(url: str) -> str:
         # do not include traceback as the error message should be self-explaining
         sys.tracebacklimit = 0
         raise ValueError(
-            f"{url!r} points to the domain '{netloc}'. Non-local file URIs are not supported on this platform. "
+            f"{url!r} points to the domain '{netloc}'. "
+            f"Non-local file URIs are not supported on this platform. "
             f"Did you mean to use {re.sub('(^file:)(/)+','file:/',url)}?"
         )
 
