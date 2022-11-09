@@ -47,7 +47,10 @@ class KeyRingCli:
     def get_password(self, service_name: str, username: str) -> Optional[str]:
         cmd = [self.keyring, "get", service_name, username]
         res = subprocess.run(
-            cmd, capture_output=True, env=dict(PYTHONIOENCODING="utf-8")
+            cmd,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            env=dict(PYTHONIOENCODING="utf-8"),
         )
         if res.returncode:
             return None
