@@ -51,17 +51,19 @@ class KeyRingCli:
         cls, service_name: str, username: Optional[str]
     ) -> Optional[KeyRingCredential]:
         cmd = ["keyring", "get", service_name, str(username)]
-        res = subprocess.run(cmd, capture_output=True)
+        res = subprocess.run(
+            cmd, capture_output=True, env=dict(PYTHONIOENCODING="utf-8")
+        )
         if res.returncode:
             return None
-        password = res.stdout.decode().strip("\n")
+        password = res.stdout.decode("utf-8").strip("\n")
         return KeyRingCredential(username=username, password=password)
 
     @classmethod
     def set_password(cls, service_name: str, username: str, password: str) -> None:
         cmd = ["keyring", "set", service_name, username]
-        input_ = password.encode() + b"\n"
-        res = subprocess.run(cmd, input=input_)
+        input_ = password.encode("utf-8") + b"\n"
+        res = subprocess.run(cmd, input=input_, env=dict(PYTHONIOENCODING="utf-8"))
         res.check_returncode()
         return None
 
