@@ -33,7 +33,7 @@ class Credentials(NamedTuple):
 
 
 class KeyRingCredential(NamedTuple):
-    username: str
+    username: Optional[str]
     password: str
 
 
@@ -46,30 +46,21 @@ class KeyRingCli:
     PATH.
     """
 
-    @staticmethod
-    def _quote(string: Optional[str]) -> str:
-        return f"'{string}'"
-
+    @classmethod
     def get_credential(
-        self, service_name: str, username: Optional[str]
+        cls, service_name: str, username: Optional[str]
     ) -> Optional[KeyRingCredential]:
-        cmd = ["keyring", "get", self._quote(service_name), self._quote(username)]
-        res = subprocess.run(cmd)
+        cmd = ["keyring", "get", service_name, str(username)]
+        res = subprocess.run(cmd, capture_output=True)
         if res.returncode:
             return None
-        return KeyRingCredential(username=username, password=res.stdout)
+        password = res.stdout.decode().strip("\n")
+        return KeyRingCredential(username=username, password=password)
 
-    def set_password(self, service_name: str, username: str, password: str) -> None:
-        cmd = [
-            "echo",
-            self._quote(password),
-            "|",
-            "keyring",
-            "set",
-            self._quote(service_name),
-            self._quote(username),
-        ]
-        res = subprocess.run(cmd)
+    @classmethod
+    def set_password(cls, service_name: str, username: str, password: str) -> None:
+        cmd = ["keyring", "set", service_name, username]
+        res = subprocess.run(cmd, input=password.encode() + b"\n", capture_output=True)
         if res.returncode:
             raise RuntimeError(res.stderr)
         return None
@@ -79,7 +70,7 @@ try:
     import keyring
 except ImportError:
     if shutil.which("keyring") is not None:
-        keyring = KeyRingCli()
+        keyring = KeyRingCli  # type: ignore[assignment]
     keyring = None  # type: ignore[assignment]
 except Exception as exc:
     logger.warning(
