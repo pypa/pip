@@ -63,9 +63,9 @@ class KeyRingCli:
 try:
     import keyring
 except ImportError:
+    keyring = None  # type: ignore[assignment]
     if shutil.which("keyring") is not None:
         keyring = KeyRingCli  # type: ignore[assignment]
-    keyring = None  # type: ignore[assignment]
 except Exception as exc:
     logger.warning(
         "Keyring is skipped due to an exception: %s",
