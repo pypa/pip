@@ -32,11 +32,6 @@ class Credentials(NamedTuple):
     password: str
 
 
-class KeyRingCredential(NamedTuple):
-    username: Optional[str]
-    password: str
-
-
 class KeyRingCli:
     """Mirror the parts of keyring's API which pip uses
 
@@ -47,17 +42,14 @@ class KeyRingCli:
     """
 
     @classmethod
-    def get_credential(
-        cls, service_name: str, username: Optional[str]
-    ) -> Optional[KeyRingCredential]:
-        cmd = ["keyring", "get", service_name, str(username)]
+    def get_password(cls, service_name: str, username: str) -> Optional[str]:
+        cmd = ["keyring", "get", service_name, username]
         res = subprocess.run(
             cmd, capture_output=True, env=dict(PYTHONIOENCODING="utf-8")
         )
         if res.returncode:
             return None
-        password = res.stdout.decode("utf-8").strip("\n")
-        return KeyRingCredential(username=username, password=password)
+        return res.stdout.decode("utf-8").strip("\n")
 
     @classmethod
     def set_password(cls, service_name: str, username: str, password: str) -> None:
