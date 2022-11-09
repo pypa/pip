@@ -47,7 +47,9 @@ def url_to_path(url: str) -> str:
         raise ValueError(
             f"{url!r} points to the domain '{netloc}'. "
             f"Non-local file URIs are not supported on this platform. "
-            f"Did you mean to use {re.sub('(^file:)(/)+','file:/',url)}?"
+            f"Did you mean to use '"
+            f"{re.sub('(^file:)(/)+', 'file:/', url)}"
+            f"'?"
         )
 
     path = urllib.request.url2pathname(netloc + path)
