@@ -4,8 +4,10 @@ Contains interface (MultiDomainBasicAuth) and associated glue code for
 providing credentials in the context of network requests.
 """
 
+import shutil
+import subprocess
 import urllib.parse
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
 from pip._vendor.requests.models import Request, Response
@@ -23,11 +25,61 @@ from pip._internal.vcs.versioncontrol import AuthInfo
 
 logger = getLogger(__name__)
 
-Credentials = Tuple[str, str, str]
+
+class Credentials(NamedTuple):
+    service_name: str
+    username: str
+    password: str
+
+
+class KeyRingCredential(NamedTuple):
+    username: str
+    password: str
+
+
+class KeyRingCli:
+    """Mirror the parts of keyring's API which pip uses
+
+    Instead of calling the keyring package installed alongside pip
+    we call keyring on the command line which will enable pip to
+    use which ever installation of keyring is available first in
+    PATH.
+    """
+
+    @staticmethod
+    def _quote(string: Optional[str]) -> str:
+        return f"'{string}'"
+
+    def get_credential(
+        self, service_name: str, username: Optional[str]
+    ) -> Optional[KeyRingCredential]:
+        cmd = ["keyring", "get", self._quote(service_name), self._quote(username)]
+        res = subprocess.run(cmd)
+        if res.returncode:
+            return None
+        return KeyRingCredential(username=username, password=res.stdout)
+
+    def set_password(self, service_name: str, username: str, password: str) -> None:
+        cmd = [
+            "echo",
+            self._quote(password),
+            "|",
+            "keyring",
+            "set",
+            self._quote(service_name),
+            self._quote(username),
+        ]
+        res = subprocess.run(cmd)
+        if res.returncode:
+            raise RuntimeError(res.stderr)
+        return None
+
 
 try:
     import keyring
 except ImportError:
+    if shutil.which("keyring") is not None:
+        keyring = KeyRingCli()
     keyring = None  # type: ignore[assignment]
 except Exception as exc:
     logger.warning(
@@ -276,7 +328,11 @@ class MultiDomainBasicAuth(AuthBase):
 
             # Prompt to save the password to keyring
             if save and self._should_save_password_to_keyring():
-                self._credentials_to_save = (parsed.netloc, username, password)
+                self._credentials_to_save = Credentials(
+                    service_name=parsed.netloc,
+                    username=username,
+                    password=password,
+                )
 
         # Consume content and release the original connection to allow our new
         #   request to reuse the same one.
@@ -318,6 +374,6 @@ class MultiDomainBasicAuth(AuthBase):
         if creds and resp.status_code < 400:
             try:
                 logger.info("Saving credentials to keyring")
-                keyring.set_password(*creds)
+                keyring.set_password(creds.service_name, creds.username, creds.password)
             except Exception:
                 logger.exception("Failed to save credentials")
