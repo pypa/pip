@@ -61,8 +61,7 @@ class KeyRingCli:
     def set_password(cls, service_name: str, username: str, password: str) -> None:
         cmd = ["keyring", "set", service_name, username]
         res = subprocess.run(cmd, input=password.encode() + b"\n", capture_output=True)
-        if res.returncode:
-            raise RuntimeError(res.stderr)
+        res.check_returncode()
         return None
 
 
