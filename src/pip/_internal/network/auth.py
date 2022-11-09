@@ -41,9 +41,11 @@ class KeyRingCli:
     PATH.
     """
 
-    @classmethod
-    def get_password(cls, service_name: str, username: str) -> Optional[str]:
-        cmd = ["keyring", "get", service_name, username]
+    def __init__(self, keyring: str) -> None:
+        self.keyring = keyring
+
+    def get_password(self, service_name: str, username: str) -> Optional[str]:
+        cmd = [self.keyring, "get", service_name, username]
         res = subprocess.run(
             cmd, capture_output=True, env=dict(PYTHONIOENCODING="utf-8")
         )
@@ -51,9 +53,8 @@ class KeyRingCli:
             return None
         return res.stdout.decode("utf-8").strip("\n")
 
-    @classmethod
-    def set_password(cls, service_name: str, username: str, password: str) -> None:
-        cmd = ["keyring", "set", service_name, username]
+    def set_password(self, service_name: str, username: str, password: str) -> None:
+        cmd = [self.keyring, "set", service_name, username]
         input_ = password.encode("utf-8") + b"\n"
         res = subprocess.run(cmd, input=input_, env=dict(PYTHONIOENCODING="utf-8"))
         res.check_returncode()
@@ -64,8 +65,9 @@ try:
     import keyring
 except ImportError:
     keyring = None  # type: ignore[assignment]
-    if shutil.which("keyring") is not None:
-        keyring = KeyRingCli  # type: ignore[assignment]
+    keyring_path = shutil.which("keyring")
+    if keyring_path is not None:
+        keyring = KeyRingCli(keyring_path)  # type: ignore[assignment]
 except Exception as exc:
     logger.warning(
         "Keyring is skipped due to an exception: %s",
