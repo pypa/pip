@@ -154,13 +154,12 @@ def get_keyring_provider() -> KeyRingBaseProvider:
             pass
         except Exception as exc:
             # In the event of an unexpected exception
-            # we shouldn't fallback silently to the
-            # CliProvider
+            # we should warn the user
             logger.warning(
-                "Keyring is skipped due to an exception: %s",
+                "Installed copy of keyring fails with exception %s, "
+                "trying to find a keyring executable as a fallback",
                 str(exc),
             )
-            return KeyRingNullProvider()
 
         # Fallback to Cli Provider if `keyring` isn't installed
         cli = shutil.which("keyring")
