@@ -1,9 +1,10 @@
+import pathlib
+
 import pytest
 
 from pip._internal.models.direct_url import VcsInfo
 from tests.lib import PipTestEnvironment, TestData, _create_test_package
 from tests.lib.direct_url import get_created_direct_url
-from tests.lib.path import Path
 
 
 @pytest.mark.usefixtures("with_wheel")
@@ -80,15 +81,15 @@ def test_reinstall_vcs_does_not_modify(script: PipTestEnvironment) -> None:
 @pytest.mark.network
 @pytest.mark.usefixtures("with_wheel")
 def test_reinstall_cached_vcs_does_modify(
-    script: PipTestEnvironment, tmpdir: Path
+    script: PipTestEnvironment, tmp_path: pathlib.Path
 ) -> None:
     # Populate the wheel cache.
     script.pip(
         "wheel",
         "--cache-dir",
-        tmpdir / "cache",
+        tmp_path.joinpath("cache").as_posix(),
         "--wheel-dir",
-        tmpdir / "wheelhouse",
+        tmp_path.joinpath("wheelhouse").as_posix(),
         "pip-test-package @ git+https://github.com/pypa/pip-test-package"
         "@5547fa909e83df8bd743d3978d6667497983a4b7",
     )
@@ -96,7 +97,7 @@ def test_reinstall_cached_vcs_does_modify(
     script.pip(
         "install",
         "--cache-dir",
-        tmpdir / "cache",
+        tmp_path.joinpath("cache").as_posix(),
         "pip-test-package @ git+https://github.com/pypa/pip-test-package@0.1.1",
     )
     # Install the same version but from a different commit for which we have the wheel
@@ -104,7 +105,7 @@ def test_reinstall_cached_vcs_does_modify(
     result = script.pip(
         "install",
         "--cache-dir",
-        tmpdir / "cache",
+        tmp_path.joinpath("cache").as_posix(),
         "pip-test-package @ git+https://github.com/pypa/pip-test-package"
         "@5547fa909e83df8bd743d3978d6667497983a4b7",
     )
