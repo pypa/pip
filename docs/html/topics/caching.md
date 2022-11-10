@@ -96,7 +96,7 @@ In some cases, pip's caching behaviour can be undesirable. As an example, if you
 have package with optional C extensions, that generates a pure Python wheel
 when the C extension can’t be built, pip will use that cached wheel even when
 you later invoke it from an environment that could have built those optional C
-extensions. This is because pip is seeing a cached wheel for that matches the
+extensions. This is because pip is seeing a cached wheel that matches the
 package being built, and pip assumes that the result of building a package from
 a package index is deterministic.
 
@@ -140,6 +140,6 @@ The {ref}`pip cache` command can be used to manage pip's cache.
 
 pip's caching behaviour is disabled by passing the `--no-cache-dir` option.
 
-It is, however, recommended to **NOT** disable pip's caching. Doing so can
+It is, however, recommended to **NOT** disable pip's caching unless you have caching at a higher level (eg: layered caches in container builds). Doing so can
 significantly slow down pip (due to repeated operations and package builds)
 and result in significantly more network usage.

@@ -1,257 +1,180 @@
 import datetime
-import functools
 import json
+import logging
 import os
 import sys
-from typing import Any, Optional, cast
-from unittest import mock
+from optparse import Values
+from pathlib import Path
+from typing import Optional
+from unittest.mock import ANY, Mock, patch
 
-import freezegun  # type: ignore
 import pytest
-from pip._vendor.packaging.version import parse as parse_version
+from freezegun import freeze_time
+from pip._vendor.packaging.version import Version
 
 from pip._internal import self_outdated_check
-from pip._internal.models.candidate import InstallationCandidate
-from pip._internal.models.link import Link
-from pip._internal.network.session import PipSession
-from pip._internal.self_outdated_check import (
-    SelfCheckState,
-    logger,
-    pip_self_version_check,
-)
-from tests.lib.path import Path
-
-
-class MockBestCandidateResult:
-    def __init__(self, best: InstallationCandidate) -> None:
-        self.best_candidate = best
-
-
-class MockPackageFinder:
-
-    BASE_URL = "https://pypi.org/simple/pip-{0}.tar.gz"
-    PIP_PROJECT_NAME = "pip"
-    INSTALLATION_CANDIDATES = [
-        InstallationCandidate(
-            PIP_PROJECT_NAME,
-            "6.9.0",
-            Link(BASE_URL.format("6.9.0")),
-        ),
-        InstallationCandidate(
-            PIP_PROJECT_NAME,
-            "3.3.1",
-            Link(BASE_URL.format("3.3.1")),
-        ),
-        InstallationCandidate(
-            PIP_PROJECT_NAME,
-            "1.0",
-            Link(BASE_URL.format("1.0")),
-        ),
-    ]
-
-    @classmethod
-    def create(cls, *args: Any, **kwargs: Any) -> "MockPackageFinder":
-        return cls()
-
-    def find_best_candidate(self, project_name: str) -> MockBestCandidateResult:
-        return MockBestCandidateResult(self.INSTALLATION_CANDIDATES[0])
-
-
-class MockDistribution:
-    def __init__(self, installer: str, version: str) -> None:
-        self.installer = installer
-        self.version = parse_version(version)
-
-
-class MockEnvironment:
-    def __init__(self, installer: str, installed_version: Optional[str]) -> None:
-        self.installer = installer
-        self.installed_version = installed_version
-
-    def get_distribution(self, name: str) -> Optional[MockDistribution]:
-        if self.installed_version is None:
-            return None
-        return MockDistribution(self.installer, self.installed_version)
-
-
-def _options() -> mock.Mock:
-    """Some default options that we pass to
-    self_outdated_check.pip_self_version_check"""
-    return mock.Mock(
-        find_links=[],
-        index_url="default_url",
-        extra_index_urls=[],
-        no_index=False,
-        pre=False,
-        cache_dir="",
-        deprecated_features_enabled=[],
-    )
 
 
 @pytest.mark.parametrize(
+    ["key", "expected"],
     [
-        "stored_time",
-        "installed_ver",
-        "new_ver",
-        "installer",
-        "check_if_upgrade_required",
-        "check_warn_logs",
-    ],
-    [
-        # Test we return None when installed version is None
-        ("1970-01-01T10:00:00Z", None, "1.0", "pip", False, False),
-        # Need an upgrade - upgrade warning should print
-        ("1970-01-01T10:00:00Z", "1.0", "6.9.0", "pip", True, True),
-        # Upgrade available, pip installed via rpm - warning should not print
-        ("1970-01-01T10:00:00Z", "1.0", "6.9.0", "rpm", True, False),
-        # No upgrade - upgrade warning should not print
-        ("1970-01-9T10:00:00Z", "6.9.0", "6.9.0", "pip", False, False),
-    ],
-)
-def test_pip_self_version_check(
-    monkeypatch: pytest.MonkeyPatch,
-    stored_time: str,
-    installed_ver: Optional[str],
-    new_ver: str,
-    installer: str,
-    check_if_upgrade_required: bool,
-    check_warn_logs: bool,
-) -> None:
-    monkeypatch.setattr(
-        self_outdated_check,
-        "get_default_environment",
-        functools.partial(MockEnvironment, installer, installed_ver),
-    )
-    monkeypatch.setattr(
-        self_outdated_check,
-        "PackageFinder",
-        MockPackageFinder,
-    )
-    monkeypatch.setattr(logger, "warning", mock.Mock())
-    monkeypatch.setattr(logger, "debug", mock.Mock())
-
-    fake_state = mock.Mock(
-        state={"last_check": stored_time, "pypi_version": installed_ver},
-        save=mock.Mock(),
-    )
-    monkeypatch.setattr(self_outdated_check, "SelfCheckState", lambda **kw: fake_state)
-
-    with freezegun.freeze_time(
-        "1970-01-09 10:00:00",
-        ignore=[
-            "six.moves",
-            "pip._vendor.six.moves",
-            "pip._vendor.requests.packages.urllib3.packages.six.moves",
-        ],
-    ):
-        pip_self_version_check(PipSession(), _options())
-
-    # See that we saved the correct version
-    if check_if_upgrade_required:
-        assert fake_state.save.call_args_list == [
-            mock.call(new_ver, datetime.datetime(1970, 1, 9, 10, 00, 00)),
-        ]
-    elif installed_ver:
-        # Make sure no Exceptions
-        assert not cast(mock.Mock, logger.debug).call_args_list
-        # See that save was not called
-        assert fake_state.save.call_args_list == []
-
-    # Ensure we warn the user or not
-    if check_warn_logs:
-        assert cast(mock.Mock, logger.warning).call_count == 1
-    else:
-        assert cast(mock.Mock, logger.warning).call_count == 0
-
-
-statefile_name_case_1 = "fcd2d5175dd33d5df759ee7b045264230205ef837bf9f582f7c3ada7"
-
-statefile_name_case_2 = "902cecc0745b8ecf2509ba473f3556f0ba222fedc6df433acda24aa5"
-
-
-@pytest.mark.parametrize(
-    "key,expected",
-    [
-        ("/hello/world/venv", statefile_name_case_1),
-        ("C:\\Users\\User\\Desktop\\venv", statefile_name_case_2),
+        (
+            "/hello/world/venv",
+            "fcd2d5175dd33d5df759ee7b045264230205ef837bf9f582f7c3ada7",
+        ),
+        (
+            "C:\\Users\\User\\Desktop\\venv",
+            "902cecc0745b8ecf2509ba473f3556f0ba222fedc6df433acda24aa5",
+        ),
     ],
 )
 def test_get_statefile_name_known_values(key: str, expected: str) -> None:
     assert expected == self_outdated_check._get_statefile_name(key)
 
 
-def _get_statefile_path(cache_dir: str, key: str) -> str:
-    return os.path.join(
-        cache_dir, "selfcheck", self_outdated_check._get_statefile_name(key)
+@freeze_time("1970-01-02T11:00:00Z")
+@patch("pip._internal.self_outdated_check._self_version_check_logic")
+@patch("pip._internal.self_outdated_check.SelfCheckState")
+def test_pip_self_version_check_calls_underlying_implementation(
+    mocked_state: Mock, mocked_function: Mock, tmpdir: Path
+) -> None:
+    # GIVEN
+    mock_session = Mock()
+    fake_options = Values(dict(cache_dir=str(tmpdir)))
+
+    # WHEN
+    self_outdated_check.pip_self_version_check(mock_session, fake_options)
+
+    # THEN
+    mocked_state.assert_called_once_with(cache_dir=str(tmpdir))
+    mocked_function.assert_called_once_with(
+        state=mocked_state(cache_dir=str(tmpdir)),
+        current_time=datetime.datetime(1970, 1, 2, 11, 0, 0),
+        local_version=ANY,
+        get_remote_version=ANY,
     )
 
 
-def test_self_check_state_no_cache_dir() -> None:
-    state = SelfCheckState(cache_dir="")
-    assert state.state == {}
-    assert state.statefile_path is None
-
-
-def test_self_check_state_key_uses_sys_prefix(monkeypatch: pytest.MonkeyPatch) -> None:
-    key = "helloworld"
-
-    monkeypatch.setattr(sys, "prefix", key)
-    state = self_outdated_check.SelfCheckState("")
-
-    assert state.key == key
-
-
-def test_self_check_state_reads_expected_statefile(
-    monkeypatch: pytest.MonkeyPatch, tmpdir: Path
+@pytest.mark.parametrize(
+    [
+        "installed_version",
+        "remote_version",
+        "stored_version",
+        "installed_by_pip",
+        "should_show_prompt",
+    ],
+    [
+        # A newer version available!
+        ("1.0", "2.0", None, True, True),
+        # A newer version available, and cached value is new too!
+        ("1.0", "2.0", "2.0", True, True),
+        # A newer version available, but was not installed by pip.
+        ("1.0", "2.0", None, False, False),
+        # On the latest version already.
+        ("2.0", "2.0", None, True, False),
+        # On the latest version already, and cached value matches.
+        ("2.0", "2.0", "2.0", True, False),
+        # A newer version available, but cached value is older.
+        ("1.0", "2.0", "1.0", True, False),
+    ],
+)
+def test_core_logic(
+    installed_version: str,
+    remote_version: str,
+    stored_version: Optional[str],
+    installed_by_pip: bool,
+    should_show_prompt: bool,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    cache_dir = tmpdir / "cache_dir"
-    cache_dir.mkdir()
-    key = "helloworld"
-    statefile_path = _get_statefile_path(str(cache_dir), key)
-
-    last_check = "1970-01-02T11:00:00Z"
-    pypi_version = "1.0"
-    content = {
-        "key": key,
-        "last_check": last_check,
-        "pypi_version": pypi_version,
-    }
-
-    Path(statefile_path).parent.mkdir()
-
-    with open(statefile_path, "w") as f:
-        json.dump(content, f)
-
-    monkeypatch.setattr(sys, "prefix", key)
-    state = self_outdated_check.SelfCheckState(str(cache_dir))
-
-    assert state.state["last_check"] == last_check
-    assert state.state["pypi_version"] == pypi_version
-
-
-def test_self_check_state_writes_expected_statefile(
-    monkeypatch: pytest.MonkeyPatch, tmpdir: Path
-) -> None:
-    cache_dir = tmpdir / "cache_dir"
-    cache_dir.mkdir()
-    key = "helloworld"
-    statefile_path = _get_statefile_path(str(cache_dir), key)
-
-    last_check = datetime.datetime.strptime(
-        "1970-01-02T11:00:00Z", self_outdated_check.SELFCHECK_DATE_FMT
+    # GIVEN
+    monkeypatch.setattr(
+        self_outdated_check, "was_installed_by_pip", lambda _: installed_by_pip
     )
-    pypi_version = "1.0"
+    mock_state = Mock()
+    mock_state.get.return_value = stored_version
+    fake_time = datetime.datetime(2000, 1, 1, 0, 0, 0)
+    version_that_should_be_checked = stored_version or remote_version
 
-    monkeypatch.setattr(sys, "prefix", key)
-    state = self_outdated_check.SelfCheckState(str(cache_dir))
+    # WHEN
+    with caplog.at_level(logging.DEBUG):
+        return_value = self_outdated_check._self_version_check_logic(
+            state=mock_state,
+            current_time=fake_time,
+            local_version=Version(installed_version),
+            get_remote_version=lambda: remote_version,
+        )
 
-    state.save(pypi_version, last_check)
-    with open(statefile_path) as f:
-        saved = json.load(f)
+    # THEN
+    mock_state.get.assert_called_once_with(fake_time)
+    assert caplog.messages == [
+        f"Remote version of pip: {version_that_should_be_checked}",
+        f"Local version of pip:  {installed_version}",
+        f"Was pip installed by pip? {installed_by_pip}",
+    ]
 
-    expected = {
-        "key": key,
-        "last_check": last_check.strftime(self_outdated_check.SELFCHECK_DATE_FMT),
-        "pypi_version": pypi_version,
-    }
-    assert expected == saved
+    if stored_version:
+        mock_state.set.assert_not_called()
+    else:
+        mock_state.set.assert_called_once_with(
+            version_that_should_be_checked, fake_time
+        )
+
+    if not should_show_prompt:
+        assert return_value is None
+        return  # the remaining assertions are for the other case.
+
+    assert return_value is not None
+    assert return_value.old == installed_version
+    assert return_value.new == remote_version
+
+
+class TestSelfCheckState:
+    def test_no_cache(self) -> None:
+        # GIVEN / WHEN
+        state = self_outdated_check.SelfCheckState(cache_dir="")
+        assert state._statefile_path is None
+
+    def test_reads_expected_statefile(self, tmpdir: Path) -> None:
+        # GIVEN
+        cache_dir = tmpdir / "cache_dir"
+        expected_path = (
+            cache_dir
+            / "selfcheck"
+            / self_outdated_check._get_statefile_name(sys.prefix)
+        )
+
+        cache_dir.mkdir()
+        (cache_dir / "selfcheck").mkdir()
+        expected_path.write_text('{"foo": "bar"}')
+
+        # WHEN
+        state = self_outdated_check.SelfCheckState(cache_dir=str(cache_dir))
+
+        # THEN
+        assert state._statefile_path == os.fspath(expected_path)
+        assert state._state == {"foo": "bar"}
+
+    def test_writes_expected_statefile(self, tmpdir: Path) -> None:
+        # GIVEN
+        cache_dir = tmpdir / "cache_dir"
+        cache_dir.mkdir()
+        expected_path = (
+            cache_dir
+            / "selfcheck"
+            / self_outdated_check._get_statefile_name(sys.prefix)
+        )
+
+        # WHEN
+        state = self_outdated_check.SelfCheckState(cache_dir=str(cache_dir))
+        state.set("1.0.0", datetime.datetime(2000, 1, 1, 0, 0, 0))
+
+        # THEN
+        assert state._statefile_path == os.fspath(expected_path)
+
+        contents = expected_path.read_text()
+        assert json.loads(contents) == {
+            "key": sys.prefix,
+            "last_check": "2000-01-01T00:00:00Z",
+            "pypi_version": "1.0.0",
+        }

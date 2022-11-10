@@ -1,11 +1,11 @@
 import collections
 import logging
 import os
-import pathlib
 import subprocess
 import textwrap
 from optparse import Values
-from typing import TYPE_CHECKING, Any, Iterator, List, Optional, Tuple
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Iterator, List, Optional, Tuple, Union
 from unittest import mock
 
 import pytest
@@ -29,7 +29,6 @@ from pip._internal.req.req_file import (
 )
 from pip._internal.req.req_install import InstallRequirement
 from tests.lib import TestData, make_test_finder, requirements_file
-from tests.lib.path import Path
 
 if TYPE_CHECKING:
     from typing import Protocol
@@ -59,17 +58,17 @@ def options(session: PipSession) -> mock.Mock:
 
 
 def parse_reqfile(
-    filename: str,
+    filename: Union[Path, str],
     session: PipSession,
-    finder: PackageFinder = None,
-    options: Values = None,
+    finder: Optional[PackageFinder] = None,
+    options: Optional[Values] = None,
     constraint: bool = False,
     isolated: bool = False,
 ) -> Iterator[InstallRequirement]:
     # Wrap parse_requirements/install_req_from_parsed_requirement to
     # avoid having to write the same chunk of code in lots of tests.
     for parsed_req in parse_requirements(
-        filename,
+        os.fspath(filename),
         session,
         finder=finder,
         options=options,
@@ -78,7 +77,7 @@ def parse_reqfile(
         yield install_req_from_parsed_requirement(parsed_req, isolated=isolated)
 
 
-def test_read_file_url(tmp_path: pathlib.Path, session: PipSession) -> None:
+def test_read_file_url(tmp_path: Path, session: PipSession) -> None:
     reqs = tmp_path.joinpath("requirements.txt")
     reqs.write_text("foo")
     result = list(parse_requirements(reqs.as_posix(), session))
@@ -396,6 +395,13 @@ class TestProcessLine:
         line_processor("--no-index", "file", 1, finder=finder)
         assert finder.index_urls == []
 
+    def test_set_finder_no_index_is_remembered_for_later_invocations(
+        self, line_processor: LineProcessor, finder: PackageFinder
+    ) -> None:
+        line_processor("--no-index", "file", 1, finder=finder)
+        line_processor("--index-url=url", "file", 1, finder=finder)
+        assert finder.index_urls == []
+
     def test_set_finder_index_url(
         self, line_processor: LineProcessor, finder: PackageFinder, session: PipSession
     ) -> None:
@@ -453,8 +459,16 @@ class TestProcessLine:
         self, line_processor: LineProcessor, options: mock.Mock
     ) -> None:
         """--use-feature can be set in requirements files."""
-        line_processor("--use-feature=2020-resolver", "filename", 1, options=options)
-        assert "2020-resolver" in options.features_enabled
+        line_processor("--use-feature=fast-deps", "filename", 1, options=options)
+
+    def test_use_feature_with_error(
+        self, line_processor: LineProcessor, options: mock.Mock
+    ) -> None:
+        """--use-feature triggers error when parsing requirements files."""
+        with pytest.raises(RequirementsFileParseError):
+            line_processor(
+                "--use-feature=2020-resolver", "filename", 1, options=options
+            )
 
     def test_relative_local_find_links(
         self,
@@ -780,6 +794,20 @@ class TestParseRequirements:
 
         assert not reqs
 
+    def test_invalid_options(self, tmpdir: Path, finder: PackageFinder) -> None:
+        """
+        Test parsing invalid options such as missing closing quotation
+        """
+        with open(tmpdir.joinpath("req1.txt"), "w") as fp:
+            fp.write("--'data\n")
+
+        with pytest.raises(RequirementsFileParseError):
+            list(
+                parse_reqfile(
+                    tmpdir.joinpath("req1.txt"), finder=finder, session=PipSession()
+                )
+            )
+
     def test_req_file_parse_comment_end_of_line_with_url(
         self, tmpdir: Path, finder: PackageFinder
     ) -> None:
@@ -875,5 +903,3 @@ class TestParseRequirements:
                 < args.index("install")
                 < args.index(install_option)
             )
-        assert options.format_control.no_binary == {":all:"}
-        assert options.format_control.only_binary == set()

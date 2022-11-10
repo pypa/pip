@@ -1,17 +1,16 @@
 """Build Environment used for isolation during sdist building
 """
 
-import contextlib
 import logging
 import os
 import pathlib
+import site
 import sys
 import textwrap
-import zipfile
 from collections import OrderedDict
 from sysconfig import get_paths
 from types import TracebackType
-from typing import TYPE_CHECKING, Generator, Iterable, List, Optional, Set, Tuple, Type
+from typing import TYPE_CHECKING, Iterable, List, Optional, Set, Tuple, Type
 
 from pip._vendor.certifi import where
 from pip._vendor.packaging.requirements import Requirement
@@ -41,30 +40,40 @@ class _Prefix:
         self.lib_dirs = get_prefixed_libs(path)
 
 
-@contextlib.contextmanager
-def _create_standalone_pip() -> Generator[str, None, None]:
-    """Create a "standalone pip" zip file.
+def get_runnable_pip() -> str:
+    """Get a file to pass to a Python executable, to run the currently-running pip.
 
-    The zip file's content is identical to the currently-running pip.
-    It will be used to install requirements into the build environment.
+    This is used to run a pip subprocess, for installing requirements into the build
+    environment.
     """
     source = pathlib.Path(pip_location).resolve().parent
 
-    # Return the current instance if `source` is not a directory. We can't build
-    # a zip from this, and it likely means the instance is already standalone.
     if not source.is_dir():
-        yield str(source)
-        return
+        # This would happen if someone is using pip from inside a zip file. In that
+        # case, we can use that directly.
+        return str(source)
 
-    with TempDirectory(kind="standalone-pip") as tmp_dir:
-        pip_zip = os.path.join(tmp_dir.path, "__env_pip__.zip")
-        kwargs = {}
-        if sys.version_info >= (3, 8):
-            kwargs["strict_timestamps"] = False
-        with zipfile.ZipFile(pip_zip, "w", **kwargs) as zf:
-            for child in source.rglob("*"):
-                zf.write(child, child.relative_to(source.parent).as_posix())
-        yield os.path.join(pip_zip, "pip")
+    return os.fsdecode(source / "__pip-runner__.py")
+
+
+def _get_system_sitepackages() -> Set[str]:
+    """Get system site packages
+
+    Usually from site.getsitepackages,
+    but fallback on `get_purelib()/get_platlib()` if unavailable
+    (e.g. in a virtualenv created by virtualenv<20)
+
+    Returns normalized set of strings.
+    """
+    if hasattr(site, "getsitepackages"):
+        system_sites = site.getsitepackages()
+    else:
+        # virtualenv < 20 overwrites site.py without getsitepackages
+        # fallback on get_purelib/get_platlib.
+        # this is known to miss things, but shouldn't in the cases
+        # where getsitepackages() has been removed (inside a virtualenv)
+        system_sites = [get_purelib(), get_platlib()]
+    return {os.path.normcase(path) for path in system_sites}
 
 
 class BuildEnvironment:
@@ -87,9 +96,8 @@ class BuildEnvironment:
         # Customize site to:
         # - ensure .pth files are honored
         # - prevent access to system site packages
-        system_sites = {
-            os.path.normcase(site) for site in (get_purelib(), get_platlib())
-        }
+        system_sites = _get_system_sitepackages()
+
         self._site_dir = os.path.join(temp_dir.path, "site")
         if not os.path.exists(self._site_dir):
             os.mkdir(self._site_dir)
@@ -175,8 +183,10 @@ class BuildEnvironment:
             )
             for req_str in reqs:
                 req = Requirement(req_str)
-                if req.marker is not None and not req.marker.evaluate():
-                    continue  # FIXME: Consider extras?
+                # We're explicitly evaluating with an empty extra value, since build
+                # environments are not provided any mechanism to select specific extras.
+                if req.marker is not None and not req.marker.evaluate({"extra": ""}):
+                    continue
                 dist = env.get_distribution(req.name)
                 if not dist:
                     missing.add(req_str)
@@ -185,7 +195,7 @@ class BuildEnvironment:
                     installed_req_str = f"{req.name}=={dist.version}"
                 else:
                     installed_req_str = f"{req.name}==={dist.version}"
-                if dist.version not in req.specifier:
+                if not req.specifier.contains(dist.version, prereleases=True):
                     conflicting.add((installed_req_str, req_str))
                 # FIXME: Consider direct URL?
         return conflicting, missing
@@ -203,15 +213,13 @@ class BuildEnvironment:
         prefix.setup = True
         if not requirements:
             return
-        with contextlib.ExitStack() as ctx:
-            pip_runnable = ctx.enter_context(_create_standalone_pip())
-            self._install_requirements(
-                pip_runnable,
-                finder,
-                requirements,
-                prefix,
-                kind=kind,
-            )
+        self._install_requirements(
+            get_runnable_pip(),
+            finder,
+            requirements,
+            prefix,
+            kind=kind,
+        )
 
     @staticmethod
     def _install_requirements(

@@ -2,7 +2,6 @@ import re
 from functools import partial, reduce
 from math import gcd
 from operator import itemgetter
-from pip._vendor.rich.emoji import EmojiVariant
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -141,7 +140,8 @@ class Text(JupyterMixin):
         tab_size: Optional[int] = 8,
         spans: Optional[List[Span]] = None,
     ) -> None:
-        self._text = [strip_control_codes(text)]
+        sanitized_text = strip_control_codes(text)
+        self._text = [sanitized_text]
         self.style = style
         self.justify: Optional["JustifyMethod"] = justify
         self.overflow: Optional["OverflowMethod"] = overflow
@@ -149,7 +149,7 @@ class Text(JupyterMixin):
         self.end = end
         self.tab_size = tab_size
         self._spans: List[Span] = spans or []
-        self._length: int = len(text)
+        self._length: int = len(sanitized_text)
 
     def __len__(self) -> int:
         return self._length
@@ -253,6 +253,7 @@ class Text(JupyterMixin):
         emoji_variant: Optional[EmojiVariant] = None,
         justify: Optional["JustifyMethod"] = None,
         overflow: Optional["OverflowMethod"] = None,
+        end: str = "\n",
     ) -> "Text":
         """Create Text instance from markup.
 
@@ -261,6 +262,7 @@ class Text(JupyterMixin):
             emoji (bool, optional): Also render emoji code. Defaults to True.
             justify (str, optional): Justify method: "left", "center", "full", "right". Defaults to None.
             overflow (str, optional): Overflow method: "crop", "fold", "ellipsis". Defaults to None.
+            end (str, optional): Character to end text with. Defaults to "\\\\n".
 
         Returns:
             Text: A Text instance with markup rendered.
@@ -270,6 +272,7 @@ class Text(JupyterMixin):
         rendered_text = render(text, style, emoji=emoji, emoji_variant=emoji_variant)
         rendered_text.justify = justify
         rendered_text.overflow = overflow
+        rendered_text.end = end
         return rendered_text
 
     @classmethod
@@ -391,9 +394,10 @@ class Text(JupyterMixin):
     def plain(self, new_text: str) -> None:
         """Set the text to a new value."""
         if new_text != self.plain:
-            self._text[:] = [new_text]
+            sanitized_text = strip_control_codes(new_text)
+            self._text[:] = [sanitized_text]
             old_length = self._length
-            self._length = len(new_text)
+            self._length = len(sanitized_text)
             if old_length > self._length:
                 self._trim_spans()
 
@@ -903,10 +907,10 @@ class Text(JupyterMixin):
 
         if len(text):
             if isinstance(text, str):
-                text = strip_control_codes(text)
-                self._text.append(text)
+                sanitized_text = strip_control_codes(text)
+                self._text.append(sanitized_text)
                 offset = len(self)
-                text_length = len(text)
+                text_length = len(sanitized_text)
                 if style is not None:
                     self._spans.append(Span(offset, offset + text_length, style))
                 self._length += text_length

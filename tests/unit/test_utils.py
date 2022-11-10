@@ -9,6 +9,7 @@ import stat
 import sys
 import time
 from io import BytesIO
+from pathlib import Path
 from typing import Any, Callable, Iterator, List, NoReturn, Optional, Tuple, Type
 from unittest.mock import Mock, patch
 
@@ -46,7 +47,6 @@ from pip._internal.utils.misc import (
     tabulate,
 )
 from pip._internal.utils.setuptools_build import make_setuptools_shim_args
-from tests.lib.path import Path
 
 
 class Tests_EgglinkPath:
@@ -389,7 +389,7 @@ class TestHashes:
                 "md5": ["5d41402abc4b2a76b9719d911017c592"],
             }
         )
-        hashes.check_against_path(file)
+        hashes.check_against_path(os.fspath(file))
 
     def test_failure(self) -> None:
         """Hashes should raise HashMismatch when no hashes match."""

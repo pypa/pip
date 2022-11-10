@@ -3,6 +3,17 @@
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
 
+# If pip's going to use distutils, it should not be using the copy that setuptools
+# might have injected into the environment. This is done by removing the injected
+# shim, if it's injected.
+#
+# See https://github.com/pypa/pip/issues/8761 for the original discussion and
+# rationale for why this is done within pip.
+try:
+    __import__("_distutils_hack").remove_shim()
+except (ImportError, AttributeError):
+    pass
+
 import logging
 import os
 import sys
@@ -24,10 +35,10 @@ logger = logging.getLogger(__name__)
 def distutils_scheme(
     dist_name: str,
     user: bool = False,
-    home: str = None,
-    root: str = None,
+    home: Optional[str] = None,
+    root: Optional[str] = None,
     isolated: bool = False,
-    prefix: str = None,
+    prefix: Optional[str] = None,
     *,
     ignore_config_files: bool = False,
 ) -> Dict[str, str]:

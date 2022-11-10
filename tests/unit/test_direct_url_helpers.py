@@ -1,4 +1,6 @@
+import os
 from functools import partial
+from pathlib import Path
 from unittest import mock
 
 from pip._internal.models.direct_url import ArchiveInfo, DirectUrl, DirInfo, VcsInfo
@@ -7,9 +9,7 @@ from pip._internal.utils.direct_url_helpers import (
     direct_url_as_pep440_direct_reference,
     direct_url_from_link,
 )
-from pip._internal.utils.urls import path_to_url
-from tests.lib import PipTestEnvironment
-from tests.lib.path import Path
+from pip._internal.vcs.git import Git
 
 
 def test_as_pep440_requirement_archive() -> None:
@@ -111,17 +111,15 @@ def test_from_link_vcs(mock_get_backend_for_scheme: mock.Mock) -> None:
     assert direct_url.to_dict()["url"] == "https://g.c/u/p.git"
 
 
-def test_from_link_vcs_with_source_dir_obtains_commit_id(
-    script: PipTestEnvironment, tmpdir: Path
-) -> None:
+def test_from_link_vcs_with_source_dir_obtains_commit_id(tmpdir: Path) -> None:
     repo_path = tmpdir / "test-repo"
     repo_path.mkdir()
-    repo_dir = str(repo_path)
-    script.run("git", "init", cwd=repo_dir)
+    repo_dir = os.fspath(repo_path)
+    Git.run_command(["init"], cwd=repo_dir)
     (repo_path / "somefile").touch()
-    script.run("git", "add", ".", cwd=repo_dir)
-    script.run("git", "commit", "-m", "commit msg", cwd=repo_dir)
-    commit_id = script.run("git", "rev-parse", "HEAD", cwd=repo_dir).stdout.strip()
+    Git.run_command(["add", "."], cwd=repo_dir)
+    Git.run_command(["commit", "-m", "commit msg"], cwd=repo_dir)
+    commit_id = Git.get_revision(repo_dir)
     direct_url = direct_url_from_link(
         Link("git+https://g.c/u/p.git"), source_dir=repo_dir
     )
@@ -130,7 +128,7 @@ def test_from_link_vcs_with_source_dir_obtains_commit_id(
     assert direct_url.info.commit_id == commit_id
 
 
-def test_from_link_vcs_without_source_dir(script: PipTestEnvironment) -> None:
+def test_from_link_vcs_without_source_dir() -> None:
     direct_url = direct_url_from_link(
         Link("git+https://g.c/u/p.git@1"), link_is_in_wheel_cache=True
     )
@@ -151,7 +149,7 @@ def test_from_link_archive() -> None:
 
 
 def test_from_link_dir(tmpdir: Path) -> None:
-    dir_url = path_to_url(tmpdir)
+    dir_url = tmpdir.as_uri()
     direct_url = direct_url_from_link(Link(dir_url))
     assert direct_url.url == dir_url
     assert isinstance(direct_url.info, DirInfo)

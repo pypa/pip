@@ -210,9 +210,9 @@ def test_cache_info(
     result = script.pip("cache", "info")
 
     assert f"Package index page cache location: {http_cache_dir}" in result.stdout
-    assert f"Wheels location: {wheel_cache_dir}" in result.stdout
+    assert f"Locally built wheels location: {wheel_cache_dir}" in result.stdout
     num_wheels = len(wheel_cache_files)
-    assert f"Number of wheels: {num_wheels}" in result.stdout
+    assert f"Number of locally built wheels: {num_wheels}" in result.stdout
 
 
 @pytest.mark.usefixtures("populate_wheel_cache")
@@ -242,9 +242,9 @@ def test_cache_list_abspath(script: PipTestEnvironment) -> None:
 @pytest.mark.usefixtures("empty_wheel_cache")
 def test_cache_list_with_empty_cache(script: PipTestEnvironment) -> None:
     """Running `pip cache list` with an empty cache should print
-    "Nothing cached." and exit."""
+    "No locally built wheels cached." and exit."""
     result = script.pip("cache", "list")
-    assert result.stdout == "Nothing cached.\n"
+    assert result.stdout == "No locally built wheels cached.\n"
 
 
 @pytest.mark.usefixtures("empty_wheel_cache")

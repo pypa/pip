@@ -224,19 +224,16 @@ def _normalized_outrows(
     )
 
 
-def _record_to_fs_path(record_path: RecordPath) -> str:
-    return record_path
+def _record_to_fs_path(record_path: RecordPath, lib_dir: str) -> str:
+    return os.path.join(lib_dir, record_path)
 
 
-def _fs_to_record_path(path: str, relative_to: Optional[str] = None) -> RecordPath:
-    if relative_to is not None:
-        # On Windows, do not handle relative paths if they belong to different
-        # logical disks
-        if (
-            os.path.splitdrive(path)[0].lower()
-            == os.path.splitdrive(relative_to)[0].lower()
-        ):
-            path = os.path.relpath(path, relative_to)
+def _fs_to_record_path(path: str, lib_dir: str) -> RecordPath:
+    # On Windows, do not handle relative paths if they belong to different
+    # logical disks
+    if os.path.splitdrive(path)[0].lower() == os.path.splitdrive(lib_dir)[0].lower():
+        path = os.path.relpath(path, lib_dir)
+
     path = path.replace(os.path.sep, "/")
     return cast("RecordPath", path)
 
@@ -259,7 +256,7 @@ def get_csv_rows_for_installed(
         old_record_path = cast("RecordPath", row[0])
         new_record_path = installed.pop(old_record_path, old_record_path)
         if new_record_path in changed:
-            digest, length = rehash(_record_to_fs_path(new_record_path))
+            digest, length = rehash(_record_to_fs_path(new_record_path, lib_dir))
         else:
             digest = row[1] if len(row) > 1 else ""
             length = row[2] if len(row) > 2 else ""
@@ -328,7 +325,7 @@ def get_console_script_specs(console: Dict[str, str]) -> List[str]:
 
         scripts_to_generate.append(f"pip{get_major_minor_version()} = {pip_script}")
         # Delete any other versioned pip entry points
-        pip_ep = [k for k in console if re.match(r"pip(\d(\.\d)?)?$", k)]
+        pip_ep = [k for k in console if re.match(r"pip(\d+(\.\d+)?)?$", k)]
         for k in pip_ep:
             del console[k]
     easy_install_script = console.pop("easy_install", None)
@@ -343,7 +340,7 @@ def get_console_script_specs(console: Dict[str, str]) -> List[str]:
         )
         # Delete any other versioned easy_install entry points
         easy_install_ep = [
-            k for k in console if re.match(r"easy_install(-\d\.\d)?$", k)
+            k for k in console if re.match(r"easy_install(-\d+\.\d+)?$", k)
         ]
         for k in easy_install_ep:
             del console[k]
@@ -423,7 +420,9 @@ def _raise_for_invalid_entrypoint(specification: str) -> None:
 
 
 class PipScriptMaker(ScriptMaker):
-    def make(self, specification: str, options: Dict[str, Any] = None) -> List[str]:
+    def make(
+        self, specification: str, options: Optional[Dict[str, Any]] = None
+    ) -> List[str]:
         _raise_for_invalid_entrypoint(specification)
         return super().make(specification, options)
 
@@ -475,7 +474,7 @@ def _install_wheel(
         newpath = _fs_to_record_path(destfile, lib_dir)
         installed[srcfile] = newpath
         if modified:
-            changed.add(_fs_to_record_path(destfile))
+            changed.add(newpath)
 
     def is_dir_path(path: RecordPath) -> bool:
         return path.endswith("/")

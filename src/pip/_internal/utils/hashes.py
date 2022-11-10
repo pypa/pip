@@ -1,5 +1,5 @@
 import hashlib
-from typing import TYPE_CHECKING, BinaryIO, Dict, Iterable, List
+from typing import TYPE_CHECKING, BinaryIO, Dict, Iterable, List, Optional
 
 from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError
 from pip._internal.utils.misc import read_chunks
@@ -28,7 +28,7 @@ class Hashes:
 
     """
 
-    def __init__(self, hashes: Dict[str, List[str]] = None) -> None:
+    def __init__(self, hashes: Optional[Dict[str, List[str]]] = None) -> None:
         """
         :param hashes: A dict of algorithm names pointing to lists of allowed
             hex digests
@@ -62,10 +62,6 @@ class Hashes:
     @property
     def digest_count(self) -> int:
         return sum(len(digests) for digests in self._allowed.values())
-
-    @property
-    def allowed(self) -> Dict[str, List[str]]:
-        return self._allowed
 
     def is_hash_allowed(self, hash_name: str, hex_digest: str) -> bool:
         """Return whether the given hex digest is allowed."""

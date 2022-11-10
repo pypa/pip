@@ -1,4 +1,5 @@
 import errno
+import json
 import operator
 import os
 import shutil
@@ -7,6 +8,7 @@ from optparse import SUPPRESS_HELP, Values
 from typing import Iterable, List, Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.rich import print_json
 
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
@@ -21,11 +23,20 @@ from pip._internal.exceptions import CommandError, InstallationError
 from pip._internal.locations import get_scheme
 from pip._internal.metadata import get_environment
 from pip._internal.models.format_control import FormatControl
+from pip._internal.models.installation_report import InstallationReport
 from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.operations.check import ConflictDetails, check_install_conflicts
 from pip._internal.req import install_given_reqs
-from pip._internal.req.req_install import InstallRequirement
+from pip._internal.req.req_install import (
+    InstallRequirement,
+    LegacySetupPyOptionsCheckMode,
+    check_legacy_setup_py_options,
+)
 from pip._internal.utils.compat import WINDOWS
+from pip._internal.utils.deprecation import (
+    LegacyInstallReasonFailedBdistWheel,
+    deprecated,
+)
 from pip._internal.utils.distutils_args import parse_distutils_args
 from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.logging import getLogger
@@ -41,7 +52,7 @@ from pip._internal.utils.virtualenv import (
     virtualenv_no_global,
 )
 from pip._internal.wheel_builder import (
-    BinaryAllowedPredicate,
+    BdistWheelAllowedPredicate,
     build,
     should_build_for_install_command,
 )
@@ -49,7 +60,9 @@ from pip._internal.wheel_builder import (
 logger = getLogger(__name__)
 
 
-def get_check_binary_allowed(format_control: FormatControl) -> BinaryAllowedPredicate:
+def get_check_bdist_wheel_allowed(
+    format_control: FormatControl,
+) -> BdistWheelAllowedPredicate:
     def check_binary_allowed(req: InstallRequirement) -> bool:
         canonical_name = canonicalize_name(req.name or "")
         allowed_formats = format_control.get_allowed_formats(canonical_name)
@@ -85,6 +98,17 @@ class InstallCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.pre())
 
         self.cmd_opts.add_option(cmdoptions.editable())
+        self.cmd_opts.add_option(
+            "--dry-run",
+            action="store_true",
+            dest="dry_run",
+            default=False,
+            help=(
+                "Don't actually install anything, just print what would be. "
+                "Can be used in combination with --ignore-installed "
+                "to 'resolve' the requirements."
+            ),
+        )
         self.cmd_opts.add_option(
             "-t",
             "--target",
@@ -189,7 +213,9 @@ class InstallCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.no_build_isolation())
         self.cmd_opts.add_option(cmdoptions.use_pep517())
         self.cmd_opts.add_option(cmdoptions.no_use_pep517())
+        self.cmd_opts.add_option(cmdoptions.check_build_deps())
 
+        self.cmd_opts.add_option(cmdoptions.config_settings())
         self.cmd_opts.add_option(cmdoptions.install_options())
         self.cmd_opts.add_option(cmdoptions.global_options())
 
@@ -237,12 +263,27 @@ class InstallCommand(RequirementCommand):
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, self.cmd_opts)
 
+        self.cmd_opts.add_option(
+            "--report",
+            dest="json_report_file",
+            metavar="file",
+            default=None,
+            help=(
+                "Generate a JSON file describing what pip did to install "
+                "the provided requirements. "
+                "Can be used in combination with --dry-run and --ignore-installed "
+                "to 'resolve' the requirements. "
+                "When - is used as file name it writes to stdout. "
+                "When writing to stdout, please combine with the --quiet option "
+                "to avoid mixing pip logging output with JSON output."
+            ),
+        )
+
     @with_cleanup
     def run(self, options: Values, args: List[str]) -> int:
         if options.use_user_site and options.target_dir is not None:
             raise CommandError("Can not combine '--user' and '--target'")
 
-        cmdoptions.check_install_build_global(options)
         upgrade_strategy = "to-satisfy-only"
         if options.upgrade:
             upgrade_strategy = options.upgrade_strategy
@@ -291,8 +332,6 @@ class InstallCommand(RequirementCommand):
             target_python=target_python,
             ignore_requires_python=options.ignore_requires_python,
         )
-        wheel_cache = WheelCache(options.cache_dir, options.format_control)
-
         build_tracker = self.enter_context(get_build_tracker())
 
         directory = TempDirectory(
@@ -303,6 +342,28 @@ class InstallCommand(RequirementCommand):
 
         try:
             reqs = self.get_requirements(args, options, finder, session)
+            check_legacy_setup_py_options(
+                options, reqs, LegacySetupPyOptionsCheckMode.INSTALL
+            )
+
+            if "no-binary-enable-wheel-cache" in options.features_enabled:
+                # TODO: remove format_control from WheelCache when the deprecation cycle
+                # is over
+                wheel_cache = WheelCache(options.cache_dir)
+            else:
+                if options.format_control.no_binary:
+                    deprecated(
+                        reason=(
+                            "--no-binary currently disables reading from "
+                            "the cache of locally built wheels. In the future "
+                            "--no-binary will not influence the wheel cache."
+                        ),
+                        replacement="to use the --no-cache-dir option",
+                        feature_flag="no-binary-enable-wheel-cache",
+                        issue=11453,
+                        gone_in="23.1",
+                    )
+                wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
             # Only when installing is it permitted to use PEP 660.
             # In other circumstances (pip wheel, pip download) we generate
@@ -340,6 +401,32 @@ class InstallCommand(RequirementCommand):
                 reqs, check_supported_wheels=not options.target_dir
             )
 
+            if options.json_report_file:
+                logger.warning(
+                    "--report is currently an experimental option. "
+                    "The output format may change in a future release "
+                    "without prior warning."
+                )
+
+                report = InstallationReport(requirement_set.requirements_to_install)
+                if options.json_report_file == "-":
+                    print_json(data=report.to_dict())
+                else:
+                    with open(options.json_report_file, "w", encoding="utf-8") as f:
+                        json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)
+
+            if options.dry_run:
+                would_install_items = sorted(
+                    (r.metadata["name"], r.metadata["version"])
+                    for r in requirement_set.requirements_to_install
+                )
+                if would_install_items:
+                    write_output(
+                        "Would install %s",
+                        " ".join("-".join(item) for item in would_install_items),
+                    )
+                return SUCCESS
+
             try:
                 pip_req = requirement_set.get_requirement("pip")
             except KeyError:
@@ -350,12 +437,14 @@ class InstallCommand(RequirementCommand):
                 modifying_pip = pip_req.satisfied_by is None
             protect_pip_from_modification_on_windows(modifying_pip=modifying_pip)
 
-            check_binary_allowed = get_check_binary_allowed(finder.format_control)
+            check_bdist_wheel_allowed = get_check_bdist_wheel_allowed(
+                finder.format_control
+            )
 
             reqs_to_build = [
                 r
                 for r in requirement_set.requirements.values()
-                if should_build_for_install_command(r, check_binary_allowed)
+                if should_build_for_install_command(r, check_bdist_wheel_allowed)
             ]
 
             _, build_failures = build(
@@ -363,7 +452,7 @@ class InstallCommand(RequirementCommand):
                 wheel_cache=wheel_cache,
                 verify=True,
                 build_options=[],
-                global_options=[],
+                global_options=global_options,
             )
 
             # If we're using PEP 517, we cannot do a legacy setup.py install
@@ -384,7 +473,7 @@ class InstallCommand(RequirementCommand):
             # those.
             for r in build_failures:
                 if not r.use_pep517:
-                    r.legacy_install_reason = 8368
+                    r.legacy_install_reason = LegacyInstallReasonFailedBdistWheel
 
             to_install = resolver.get_installation_order(requirement_set)
 

@@ -60,4 +60,4 @@ def test_all_value_options_work(name: str, value: str) -> None:
 
 def test_user_option_works() -> None:
     result = parse_distutils_args(["--user"])
-    assert result["user"] == 1
+    assert result["user"]

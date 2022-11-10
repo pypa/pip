@@ -598,7 +598,6 @@ class PackageFinder:
         link_collector: LinkCollector,
         target_python: TargetPython,
         allow_yanked: bool,
-        use_deprecated_html5lib: bool,
         format_control: Optional[FormatControl] = None,
         candidate_prefs: Optional[CandidatePreferences] = None,
         ignore_requires_python: Optional[bool] = None,
@@ -623,7 +622,6 @@ class PackageFinder:
         self._ignore_requires_python = ignore_requires_python
         self._link_collector = link_collector
         self._target_python = target_python
-        self._use_deprecated_html5lib = use_deprecated_html5lib
 
         self.format_control = format_control
 
@@ -640,8 +638,6 @@ class PackageFinder:
         link_collector: LinkCollector,
         selection_prefs: SelectionPreferences,
         target_python: Optional[TargetPython] = None,
-        *,
-        use_deprecated_html5lib: bool,
     ) -> "PackageFinder":
         """Create a PackageFinder.
 
@@ -666,7 +662,6 @@ class PackageFinder:
             allow_yanked=selection_prefs.allow_yanked,
             format_control=selection_prefs.format_control,
             ignore_requires_python=selection_prefs.ignore_requires_python,
-            use_deprecated_html5lib=use_deprecated_html5lib,
         )
 
     @property
@@ -792,11 +787,11 @@ class PackageFinder:
             "Fetching project page and analyzing links: %s",
             project_url,
         )
-        html_page = self._link_collector.fetch_page(project_url)
-        if html_page is None:
+        index_response = self._link_collector.fetch_response(project_url)
+        if index_response is None:
             return []
 
-        page_links = list(parse_links(html_page, self._use_deprecated_html5lib))
+        page_links = list(parse_links(index_response))
 
         with indent_log():
             package_links = self.evaluate_links(

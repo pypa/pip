@@ -1,1 +1,0 @@
-Add option to install and uninstall commands to opt-out from running-as-root warning.

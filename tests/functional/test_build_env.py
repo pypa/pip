@@ -1,9 +1,10 @@
+import os
 from textwrap import dedent
 from typing import Optional
 
 import pytest
 
-from pip._internal.build_env import BuildEnvironment
+from pip._internal.build_env import BuildEnvironment, _get_system_sitepackages
 from tests.lib import (
     PipTestEnvironment,
     TestPipResult,
@@ -40,7 +41,7 @@ def run_with_build_env(
 
             link_collector = LinkCollector(
                 session=PipSession(),
-                search_scope=SearchScope.create([{scratch!r}], []),
+                search_scope=SearchScope.create([{scratch!r}], [], False),
             )
             selection_prefs = SelectionPreferences(
                 allow_yanked=True,
@@ -48,7 +49,6 @@ def run_with_build_env(
             finder = PackageFinder.create(
                 link_collector=link_collector,
                 selection_prefs=selection_prefs,
-                use_deprecated_html5lib=False,
             )
 
             with global_tempdir_manager():
@@ -69,11 +69,11 @@ def run_with_build_env(
             "    ",
         )
     )
-    args = ["python", build_env_script]
+    args = ["python", os.fspath(build_env_script)]
     if test_script_contents is not None:
         test_script = script.scratch_path / "test.py"
         test_script.write_text(dedent(test_script_contents))
-        args.append(test_script)
+        args.append(os.fspath(test_script))
     return script.run(*args)
 
 
@@ -89,7 +89,7 @@ def test_build_env_allow_empty_requirements_install() -> None:
 def test_build_env_allow_only_one_install(script: PipTestEnvironment) -> None:
     create_basic_wheel_for_package(script, "foo", "1.0")
     create_basic_wheel_for_package(script, "bar", "1.0")
-    finder = make_test_finder(find_links=[script.scratch_path])
+    finder = make_test_finder(find_links=[os.fspath(script.scratch_path)])
     build_env = BuildEnvironment()
     for prefix in ("normal", "overlay"):
         build_env.install_requirements(
@@ -178,6 +178,7 @@ def test_build_env_requirements_check(script: PipTestEnvironment) -> None:
             [
                 "bar==2.0; python_version < '3.0'",
                 "bar==3.0; python_version >= '3.0'",
+                "foo==4.0; extra == 'dev'",
             ],
         )
         assert r == (set(), set()), repr(r)
@@ -203,7 +204,7 @@ def test_build_env_overlay_prefix_has_priority(script: PipTestEnvironment) -> No
     assert result.stdout.strip() == "2.0", str(result)
 
 
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 def test_build_env_isolation(script: PipTestEnvironment) -> None:
 
     # Create dummy `pkg` wheel.
@@ -224,6 +225,10 @@ def test_build_env_isolation(script: PipTestEnvironment) -> None:
     target = script.scratch_path / "pypath_install"
     script.pip_install_local("-t", target, pkg_whl)
     script.environ["PYTHONPATH"] = target
+
+    system_sites = _get_system_sitepackages()
+    # there should always be something to exclude
+    assert system_sites
 
     run_with_build_env(
         script,
@@ -246,5 +251,14 @@ def test_build_env_isolation(script: PipTestEnvironment) -> None:
                     })), file=sys.stderr)
             print('sys.path:\n  ' + '\n  '.join(sys.path), file=sys.stderr)
             sys.exit(1)
+        """
+        f"""
+        # second check: direct check of exclusion of system site packages
+        import os
+
+        normalized_path = [os.path.normcase(path) for path in sys.path]
+        for system_path in {system_sites!r}:
+            assert system_path not in normalized_path, \
+            f"{{system_path}} found in {{normalized_path}}"
         """,
     )

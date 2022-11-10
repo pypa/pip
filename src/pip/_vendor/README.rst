@@ -104,9 +104,6 @@ Modifications
   rather than ``appdirs``.
 * ``packaging`` has been modified to import its dependencies from
   ``pip._vendor``.
-* ``html5lib`` has been modified to import six from ``pip._vendor``, to prefer
-  importing from ``collections.abc`` instead of ``collections`` and does not
-  import ``xml.etree.cElementTree`` on Python 3.
 * ``CacheControl`` has been modified to import its dependencies from
   ``pip._vendor``.
 * ``requests`` has been modified to import its other dependencies from

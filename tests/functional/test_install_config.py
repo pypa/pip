@@ -289,7 +289,7 @@ def test_prompt_for_authentication(
                 "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",
             }
         ),
-        authorization_response(str(data.packages / "simple-3.0.tar.gz")),
+        authorization_response(data.packages / "simple-3.0.tar.gz"),
     ]
 
     url = f"https://{server.host}:{server.port}/simple"
@@ -330,7 +330,7 @@ def test_do_not_prompt_for_authentication(
                 "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",
             }
         ),
-        authorization_response(str(data.packages / "simple-3.0.tar.gz")),
+        authorization_response(data.packages / "simple-3.0.tar.gz"),
     ]
 
     url = f"https://{server.host}:{server.port}/simple"
@@ -377,8 +377,8 @@ def test_prompt_for_keyring_if_needed(
                 "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",
             }
         ),
-        response(str(data.packages / "simple-3.0.tar.gz")),
-        response(str(data.packages / "simple-3.0.tar.gz")),
+        response(data.packages / "simple-3.0.tar.gz"),
+        response(data.packages / "simple-3.0.tar.gz"),
     ]
 
     url = f"https://{server.host}:{server.port}/simple"
@@ -415,46 +415,3 @@ def test_prompt_for_keyring_if_needed(
         assert "get_credential was called" in result.stderr
     else:
         assert "get_credential was called" not in result.stderr
-
-
-def test_prioritize_url_credentials_over_netrc(
-    script: PipTestEnvironment,
-    data: TestData,
-    cert_factory: CertFactory,
-) -> None:
-    cert_path = cert_factory()
-    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-    ctx.load_cert_chain(cert_path, cert_path)
-    ctx.load_verify_locations(cafile=cert_path)
-    ctx.verify_mode = ssl.CERT_REQUIRED
-
-    server = make_mock_server(ssl_context=ctx)
-    server.mock.side_effect = [
-        package_page(
-            {
-                "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",
-            }
-        ),
-        authorization_response(str(data.packages / "simple-3.0.tar.gz")),
-    ]
-
-    url = f"https://USERNAME:PASSWORD@{server.host}:{server.port}/simple"
-
-    netrc = script.scratch_path / ".netrc"
-    netrc.write_text(
-        f"machine {server.host} login wrongusername password wrongpassword"
-    )
-    with server_running(server):
-        script.environ["NETRC"] = netrc
-        script.pip(
-            "install",
-            "--no-cache-dir",
-            "--index-url",
-            url,
-            "--cert",
-            cert_path,
-            "--client-cert",
-            cert_path,
-            "simple",
-        )
-        script.assert_installed(simple="3.0")

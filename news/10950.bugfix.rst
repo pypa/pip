@@ -1,1 +1,0 @@
-Disable brotli import in vendored urllib3 so brotli could be uninstalled/upgraded by pip.

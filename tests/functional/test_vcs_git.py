@@ -12,13 +12,7 @@ import pytest
 from pip._internal.utils.misc import HiddenText
 from pip._internal.vcs import vcs
 from pip._internal.vcs.git import Git, RemoteNotFoundError
-from tests.lib import (
-    PipTestEnvironment,
-    _create_test_package,
-    _git_commit,
-    _test_path_to_file_url,
-)
-from tests.lib.path import Path
+from tests.lib import PipTestEnvironment, _create_test_package, _git_commit
 
 
 def test_get_backend_for_scheme() -> None:
@@ -66,7 +60,7 @@ def check_rev(repo_dir: str, rev: str, expected: Tuple[Optional[str], bool]) -> 
     assert Git.get_revision_sha(repo_dir, rev) == expected
 
 
-def test_git_dir_ignored(tmpdir: Path) -> None:
+def test_git_dir_ignored(tmpdir: pathlib.Path) -> None:
     """
     Test that a GIT_DIR environment variable is ignored.
     """
@@ -80,7 +74,7 @@ def test_git_dir_ignored(tmpdir: Path) -> None:
     assert os.listdir(repo_dir) == [".git"]
 
 
-def test_git_work_tree_ignored(tmpdir: Path) -> None:
+def test_git_work_tree_ignored(tmpdir: pathlib.Path) -> None:
     """
     Test that a GIT_WORK_TREE environment variable is ignored.
     """
@@ -96,10 +90,10 @@ def test_git_work_tree_ignored(tmpdir: Path) -> None:
     Git.run_command(["status", repo_dir], extra_environ=env, cwd=repo_dir)
 
 
-def test_get_remote_url(script: PipTestEnvironment, tmpdir: Path) -> None:
+def test_get_remote_url(script: PipTestEnvironment, tmpdir: pathlib.Path) -> None:
     source_path = tmpdir / "source"
     source_path.mkdir()
-    source_url = _test_path_to_file_url(source_path)
+    source_url = source_path.as_uri()
 
     source_dir = str(source_path)
     script.run("git", "init", cwd=source_dir)
@@ -112,7 +106,9 @@ def test_get_remote_url(script: PipTestEnvironment, tmpdir: Path) -> None:
     assert remote_url == source_url
 
 
-def test_get_remote_url__no_remote(script: PipTestEnvironment, tmpdir: Path) -> None:
+def test_get_remote_url__no_remote(
+    script: PipTestEnvironment, tmpdir: pathlib.Path
+) -> None:
     """
     Test a repo with no remote.
     """
@@ -145,7 +141,7 @@ def test_get_current_branch(script: PipTestEnvironment) -> None:
 
 
 def test_get_current_branch__branch_and_tag_same_name(
-    script: PipTestEnvironment, tmpdir: Path
+    script: PipTestEnvironment, tmpdir: pathlib.Path
 ) -> None:
     """
     Check calling get_current_branch() from a branch or tag when the branch
@@ -225,7 +221,7 @@ def test_is_commit_id_equal(script: PipTestEnvironment) -> None:
     """
     Test Git.is_commit_id_equal().
     """
-    version_pkg_path = _create_test_package(script)
+    version_pkg_path = os.fspath(_create_test_package(script.scratch_path))
     script.run("git", "branch", "branch0.1", cwd=version_pkg_path)
     commit = script.run("git", "rev-parse", "HEAD", cwd=version_pkg_path).stdout.strip()
 
@@ -238,7 +234,7 @@ def test_is_commit_id_equal(script: PipTestEnvironment) -> None:
 
 
 def test_is_immutable_rev_checkout(script: PipTestEnvironment) -> None:
-    version_pkg_path = _create_test_package(script)
+    version_pkg_path = os.fspath(_create_test_package(script.scratch_path))
     commit = script.run("git", "rev-parse", "HEAD", cwd=version_pkg_path).stdout.strip()
     assert Git().is_immutable_rev_checkout(
         "git+https://g.c/o/r@" + commit, version_pkg_path
@@ -250,15 +246,15 @@ def test_is_immutable_rev_checkout(script: PipTestEnvironment) -> None:
 
 
 def test_get_repository_root(script: PipTestEnvironment) -> None:
-    version_pkg_path = _create_test_package(script)
+    version_pkg_path = _create_test_package(script.scratch_path)
     tests_path = version_pkg_path.joinpath("tests")
     tests_path.mkdir()
 
-    root1 = Git.get_repository_root(version_pkg_path)
+    root1 = Git.get_repository_root(os.fspath(version_pkg_path))
     assert root1 is not None
     assert os.path.normcase(root1) == os.path.normcase(version_pkg_path)
 
-    root2 = Git.get_repository_root(version_pkg_path.joinpath("tests"))
+    root2 = Git.get_repository_root(os.fspath(tests_path))
     assert root2 is not None
     assert os.path.normcase(root2) == os.path.normcase(version_pkg_path)
 

@@ -10,6 +10,7 @@ pass on state. To be consistent, all options will follow this design.
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
 
+import importlib.util
 import logging
 import os
 import textwrap
@@ -56,31 +57,6 @@ def make_option_group(group: Dict[str, Any], parser: ConfigOptionParser) -> Opti
     for option in group["options"]:
         option_group.add_option(option())
     return option_group
-
-
-def check_install_build_global(
-    options: Values, check_options: Optional[Values] = None
-) -> None:
-    """Disable wheels if per-setup.py call options are set.
-
-    :param options: The OptionParser options to update.
-    :param check_options: The options to check, if not supplied defaults to
-        options.
-    """
-    if check_options is None:
-        check_options = options
-
-    def getname(n: str) -> Optional[Any]:
-        return getattr(check_options, n, None)
-
-    names = ["build_options", "global_options", "install_options"]
-    if any(map(getname, names)):
-        control = options.format_control
-        control.disallow_binaries()
-        logger.warning(
-            "Disabling all use of wheels due to the use of --build-option "
-            "/ --global-option / --install-option.",
-        )
 
 
 def check_dist_restriction(options: Values, check_target: bool = False) -> None:
@@ -186,6 +162,13 @@ require_virtualenv: Callable[..., Option] = partial(
         "Allow pip to only run in a virtual environment; "
         "exit with an error otherwise."
     ),
+)
+
+python: Callable[..., Option] = partial(
+    Option,
+    "--python",
+    dest="python",
+    help="Run pip with the specified Python interpreter.",
 )
 
 verbose: Callable[..., Option] = partial(
@@ -748,6 +731,15 @@ no_build_isolation: Callable[..., Option] = partial(
     "if this option is used.",
 )
 
+check_build_deps: Callable[..., Option] = partial(
+    Option,
+    "--check-build-dependencies",
+    dest="check_build_deps",
+    action="store_true",
+    default=False,
+    help="Check the build dependencies when PEP517 is used.",
+)
+
 
 def _handle_no_use_pep517(
     option: Option, opt: str, value: str, parser: OptionParser
@@ -768,6 +760,12 @@ def _handle_no_use_pep517(
         of the PIP_USE_PEP517 environment variable or the "use-pep517"
         config file option instead.
         """
+        raise_option_error(parser, option=option, msg=msg)
+
+    # If user doesn't wish to use pep517, we check if setuptools is installed
+    # and raise error if it is not.
+    if not importlib.util.find_spec("setuptools"):
+        msg = "It is not possible to use --no-use-pep517 without setuptools installed."
         raise_option_error(parser, option=option, msg=msg)
 
     # Otherwise, --no-use-pep517 was passed via the command-line.
@@ -792,6 +790,33 @@ no_use_pep517: Any = partial(
     callback=_handle_no_use_pep517,
     default=None,
     help=SUPPRESS_HELP,
+)
+
+
+def _handle_config_settings(
+    option: Option, opt_str: str, value: str, parser: OptionParser
+) -> None:
+    key, sep, val = value.partition("=")
+    if sep != "=":
+        parser.error(f"Arguments to {opt_str} must be of the form KEY=VAL")  # noqa
+    dest = getattr(parser.values, option.dest)
+    if dest is None:
+        dest = {}
+        setattr(parser.values, option.dest, dest)
+    dest[key] = val
+
+
+config_settings: Callable[..., Option] = partial(
+    Option,
+    "--config-settings",
+    dest="config_settings",
+    type=str,
+    action="callback",
+    callback=_handle_config_settings,
+    metavar="settings",
+    help="Configuration settings to be passed to the PEP 517 build backend. "
+    "Settings take the form KEY=VALUE. Use multiple --config-settings options "
+    "to pass multiple keys to the backend.",
 )
 
 install_options: Callable[..., Option] = partial(
@@ -957,7 +982,11 @@ use_new_feature: Callable[..., Option] = partial(
     metavar="feature",
     action="append",
     default=[],
-    choices=["2020-resolver", "fast-deps"],
+    choices=[
+        "fast-deps",
+        "truststore",
+        "no-binary-enable-wheel-cache",
+    ],
     help="Enable new functionality, that may be backward incompatible.",
 )
 
@@ -970,8 +999,6 @@ use_deprecated_feature: Callable[..., Option] = partial(
     default=[],
     choices=[
         "legacy-resolver",
-        "backtrack-on-build-failures",
-        "html5lib",
     ],
     help=("Enable deprecated functionality, that will be removed in the future."),
 )
@@ -988,6 +1015,7 @@ general_group: Dict[str, Any] = {
         debug_mode,
         isolated_mode,
         require_virtualenv,
+        python,
         verbose,
         version,
         quiet,

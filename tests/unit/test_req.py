@@ -5,13 +5,15 @@ import shutil
 import sys
 import tempfile
 from functools import partial
-from typing import Iterator, Tuple, cast
+from pathlib import Path
+from typing import Iterator, Optional, Tuple, cast
 from unittest import mock
 
 import pytest
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 
+from pip._internal.cache import WheelCache
 from pip._internal.commands import create_command
 from pip._internal.commands.install import InstallCommand
 from pip._internal.exceptions import (
@@ -22,6 +24,9 @@ from pip._internal.exceptions import (
 )
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import select_backend
+from pip._internal.models.direct_url import ArchiveInfo, DirectUrl, DirInfo, VcsInfo
+from pip._internal.models.format_control import FormatControl
+from pip._internal.models.link import Link
 from pip._internal.network.session import PipSession
 from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.operations.prepare import RequirementPreparer
@@ -41,9 +46,7 @@ from pip._internal.req.req_file import (
     handle_requirement_line,
 )
 from pip._internal.resolution.legacy.resolver import Resolver
-from pip._internal.utils.urls import path_to_url
-from tests.lib import TestData, make_test_finder, requirements_file
-from tests.lib.path import Path
+from tests.lib import TestData, make_test_finder, requirements_file, wheel
 
 
 def get_processed_req_from_line(
@@ -76,7 +79,10 @@ class TestRequirementSet:
 
     @contextlib.contextmanager
     def _basic_resolver(
-        self, finder: PackageFinder, require_hashes: bool = False
+        self,
+        finder: PackageFinder,
+        require_hashes: bool = False,
+        wheel_cache: Optional[WheelCache] = None,
     ) -> Iterator[Resolver]:
         make_install_req = partial(
             install_req_from_req_string,
@@ -91,6 +97,7 @@ class TestRequirementSet:
                 src_dir=os.path.join(self.tempdir, "src"),
                 download_dir=None,
                 build_isolation=True,
+                check_build_deps=False,
                 build_tracker=tracker,
                 session=session,
                 progress_bar="on",
@@ -104,7 +111,7 @@ class TestRequirementSet:
                 preparer=preparer,
                 make_install_req=make_install_req,
                 finder=finder,
-                wheel_cache=None,
+                wheel_cache=wheel_cache,
                 use_user_site=False,
                 upgrade_strategy="to-satisfy-only",
                 ignore_dependencies=False,
@@ -123,7 +130,7 @@ class TestRequirementSet:
         reqset = RequirementSet()
         req = install_req_from_line("simple")
         req.user_supplied = True
-        reqset.add_requirement(req)
+        reqset.add_named_requirement(req)
         finder = make_test_finder(find_links=[data.find_links])
         with self._basic_resolver(finder) as resolver:
             with pytest.raises(
@@ -142,9 +149,11 @@ class TestRequirementSet:
         non-wheel installs.
         """
         reqset = RequirementSet()
-        req = install_req_from_editable(data.packages.joinpath("LocalEnvironMarker"))
+        req = install_req_from_editable(
+            os.fspath(data.packages.joinpath("LocalEnvironMarker")),
+        )
         req.user_supplied = True
-        reqset.add_requirement(req)
+        reqset.add_unnamed_requirement(req)
         finder = make_test_finder(find_links=[data.find_links])
         with self._basic_resolver(finder) as resolver:
             reqset = resolver.resolve(reqset.all_requirements, True)
@@ -155,7 +164,9 @@ class TestRequirementSet:
         are missing.
         """
         reqset = RequirementSet()
-        reqset.add_requirement(get_processed_req_from_line("simple==1.0", lineno=1))
+        reqset.add_named_requirement(
+            get_processed_req_from_line("simple==1.0", lineno=1)
+        )
 
         finder = make_test_finder(find_links=[data.find_links])
 
@@ -181,7 +192,7 @@ class TestRequirementSet:
         session = finder._link_collector.session
         command = cast(InstallCommand, create_command("install"))
         with requirements_file("--require-hashes", tmpdir) as reqs_file:
-            options, args = command.parse_args(["-r", reqs_file])
+            options, args = command.parse_args(["-r", os.fspath(reqs_file)])
             command.get_requirements(args, options, finder, session)
         assert options.require_hashes
 
@@ -194,14 +205,14 @@ class TestRequirementSet:
 
         """
         reqset = RequirementSet()
-        reqset.add_requirement(
+        reqset.add_unnamed_requirement(
             get_processed_req_from_line(
                 "git+git://github.com/pypa/pip-test-package --hash=sha256:123",
                 lineno=1,
             )
         )
         dir_path = data.packages.joinpath("FSPkg")
-        reqset.add_requirement(
+        reqset.add_unnamed_requirement(
             get_processed_req_from_line(
                 f"file://{dir_path}",
                 lineno=2,
@@ -235,7 +246,7 @@ class TestRequirementSet:
         """
         reqset = RequirementSet()
         # Test that there must be exactly 1 specifier:
-        reqset.add_requirement(
+        reqset.add_named_requirement(
             get_processed_req_from_line(
                 "simple --hash=sha256:a90427ae31f5d1d0d7ec06ee97d9fcf2d0fc9a786985"
                 "250c1c83fd68df5911dd",
@@ -243,7 +254,7 @@ class TestRequirementSet:
             )
         )
         # Test that the operator must be ==:
-        reqset.add_requirement(
+        reqset.add_named_requirement(
             get_processed_req_from_line(
                 "simple2>1.0 --hash=sha256:3ad45e1e9aa48b4462af0"
                 "123f6a7e44a9115db1ef945d4d92c123dfe21815a06",
@@ -265,9 +276,9 @@ class TestRequirementSet:
 
     def test_hash_mismatch(self, data: TestData) -> None:
         """A hash mismatch should raise an error."""
-        file_url = path_to_url((data.packages / "simple-1.0.tar.gz").resolve())
+        file_url = data.packages.joinpath("simple-1.0.tar.gz").resolve().as_uri()
         reqset = RequirementSet()
-        reqset.add_requirement(
+        reqset.add_unnamed_requirement(
             get_processed_req_from_line(
                 f"{file_url} --hash=sha256:badbad",
                 lineno=1,
@@ -292,7 +303,7 @@ class TestRequirementSet:
         dependencies get complained about when --require-hashes is on."""
         reqset = RequirementSet()
         finder = make_test_finder(find_links=[data.find_links])
-        reqset.add_requirement(
+        reqset.add_named_requirement(
             get_processed_req_from_line(
                 "TopoRequires2==0.0.1 "  # requires TopoRequires
                 "--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd"
@@ -322,7 +333,7 @@ class TestRequirementSet:
 
         """
         reqset = RequirementSet()
-        reqset.add_requirement(
+        reqset.add_named_requirement(
             get_processed_req_from_line(
                 "TopoRequires2==0.0.1 "  # requires TopoRequires
                 "--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd"
@@ -330,7 +341,7 @@ class TestRequirementSet:
                 lineno=1,
             )
         )
-        reqset.add_requirement(
+        reqset.add_named_requirement(
             get_processed_req_from_line(
                 "TopoRequires==0.0.1 "
                 "--hash=sha256:d6dd1e22e60df512fdcf3640ced3039b3b02a56ab2cee81ebcb"
@@ -338,6 +349,161 @@ class TestRequirementSet:
                 lineno=2,
             )
         )
+
+    def test_download_info_find_links(self, data: TestData) -> None:
+        """Test that download_info is set for requirements via find_links."""
+        finder = make_test_finder(find_links=[data.find_links])
+        with self._basic_resolver(finder) as resolver:
+            ireq = get_processed_req_from_line("simple")
+            reqset = resolver.resolve([ireq], True)
+            assert len(reqset.all_requirements) == 1
+            req = reqset.all_requirements[0]
+            assert req.download_info
+            assert isinstance(req.download_info.info, ArchiveInfo)
+            assert req.download_info.info.hash
+
+    @pytest.mark.network
+    def test_download_info_index_url(self) -> None:
+        """Test that download_info is set for requirements via index."""
+        finder = make_test_finder(index_urls=["https://pypi.org/simple"])
+        with self._basic_resolver(finder) as resolver:
+            ireq = get_processed_req_from_line("initools")
+            reqset = resolver.resolve([ireq], True)
+            assert len(reqset.all_requirements) == 1
+            req = reqset.all_requirements[0]
+            assert req.download_info
+            assert isinstance(req.download_info.info, ArchiveInfo)
+
+    @pytest.mark.network
+    def test_download_info_web_archive(self) -> None:
+        """Test that download_info is set for requirements from a web archive."""
+        finder = make_test_finder()
+        with self._basic_resolver(finder) as resolver:
+            ireq = get_processed_req_from_line(
+                "pip-test-package @ "
+                "https://github.com/pypa/pip-test-package/tarball/0.1.1"
+            )
+            reqset = resolver.resolve([ireq], True)
+            assert len(reqset.all_requirements) == 1
+            req = reqset.all_requirements[0]
+            assert req.download_info
+            assert (
+                req.download_info.url
+                == "https://github.com/pypa/pip-test-package/tarball/0.1.1"
+            )
+            assert isinstance(req.download_info.info, ArchiveInfo)
+            assert (
+                req.download_info.info.hash == "sha256="
+                "ad977496000576e1b6c41f6449a9897087ce9da6db4f15b603fe8372af4bf3c6"
+            )
+
+    def test_download_info_archive_legacy_cache(
+        self, tmp_path: Path, shared_data: TestData
+    ) -> None:
+        """Test download_info hash is not set for an archive with legacy cache entry."""
+        url = shared_data.packages.joinpath("simple-1.0.tar.gz").as_uri()
+        finder = make_test_finder()
+        wheel_cache = WheelCache(str(tmp_path / "cache"), FormatControl())
+        cache_entry_dir = wheel_cache.get_path_for_link(Link(url))
+        Path(cache_entry_dir).mkdir(parents=True)
+        wheel.make_wheel(name="simple", version="1.0").save_to_dir(cache_entry_dir)
+        with self._basic_resolver(finder, wheel_cache=wheel_cache) as resolver:
+            ireq = get_processed_req_from_line(f"simple @ {url}")
+            reqset = resolver.resolve([ireq], True)
+            assert len(reqset.all_requirements) == 1
+            req = reqset.all_requirements[0]
+            assert req.original_link_is_in_wheel_cache
+            assert req.download_info
+            assert req.download_info.url == url
+            assert isinstance(req.download_info.info, ArchiveInfo)
+            assert not req.download_info.info.hash
+
+    def test_download_info_archive_cache_with_origin(
+        self, tmp_path: Path, shared_data: TestData
+    ) -> None:
+        """Test download_info hash is set for a web archive with cache entry
+        that has origin.json."""
+        url = shared_data.packages.joinpath("simple-1.0.tar.gz").as_uri()
+        hash = "sha256=ad977496000576e1b6c41f6449a9897087ce9da6db4f15b603fe8372af4bf3c6"
+        finder = make_test_finder()
+        wheel_cache = WheelCache(str(tmp_path / "cache"), FormatControl())
+        cache_entry_dir = wheel_cache.get_path_for_link(Link(url))
+        Path(cache_entry_dir).mkdir(parents=True)
+        Path(cache_entry_dir).joinpath("origin.json").write_text(
+            DirectUrl(url, ArchiveInfo(hash=hash)).to_json()
+        )
+        wheel.make_wheel(name="simple", version="1.0").save_to_dir(cache_entry_dir)
+        with self._basic_resolver(finder, wheel_cache=wheel_cache) as resolver:
+            ireq = get_processed_req_from_line(f"simple @ {url}")
+            reqset = resolver.resolve([ireq], True)
+            assert len(reqset.all_requirements) == 1
+            req = reqset.all_requirements[0]
+            assert req.original_link_is_in_wheel_cache
+            assert req.download_info
+            assert req.download_info.url == url
+            assert isinstance(req.download_info.info, ArchiveInfo)
+            assert req.download_info.info.hash == hash
+
+    def test_download_info_local_wheel(self, data: TestData) -> None:
+        """Test that download_info is set for requirements from a local wheel."""
+        finder = make_test_finder()
+        with self._basic_resolver(finder) as resolver:
+            ireq = get_processed_req_from_line(
+                f"{data.packages}/simplewheel-1.0-py2.py3-none-any.whl"
+            )
+            reqset = resolver.resolve([ireq], True)
+            assert len(reqset.all_requirements) == 1
+            req = reqset.all_requirements[0]
+            assert req.download_info
+            assert req.download_info.url.startswith("file://")
+            assert isinstance(req.download_info.info, ArchiveInfo)
+            assert (
+                req.download_info.info.hash == "sha256="
+                "e63aa139caee941ec7f33f057a5b987708c2128238357cf905429846a2008718"
+            )
+
+    def test_download_info_local_dir(self, data: TestData) -> None:
+        """Test that download_info is set for requirements from a local dir."""
+        finder = make_test_finder()
+        with self._basic_resolver(finder) as resolver:
+            ireq_url = data.packages.joinpath("FSPkg").as_uri()
+            ireq = get_processed_req_from_line(f"FSPkg @ {ireq_url}")
+            reqset = resolver.resolve([ireq], True)
+            assert len(reqset.all_requirements) == 1
+            req = reqset.all_requirements[0]
+            assert req.download_info
+            assert req.download_info.url.startswith("file://")
+            assert isinstance(req.download_info.info, DirInfo)
+
+    def test_download_info_local_editable_dir(self, data: TestData) -> None:
+        """Test that download_info is set for requirements from a local editable dir."""
+        finder = make_test_finder()
+        with self._basic_resolver(finder) as resolver:
+            ireq_url = data.packages.joinpath("FSPkg").as_uri()
+            ireq = get_processed_req_from_line(f"-e {ireq_url}#egg=FSPkg")
+            reqset = resolver.resolve([ireq], True)
+            assert len(reqset.all_requirements) == 1
+            req = reqset.all_requirements[0]
+            assert req.download_info
+            assert req.download_info.url.startswith("file://")
+            assert isinstance(req.download_info.info, DirInfo)
+            assert req.download_info.info.editable
+
+    @pytest.mark.network
+    def test_download_info_vcs(self) -> None:
+        """Test that download_info is set for requirements from git."""
+        finder = make_test_finder()
+        with self._basic_resolver(finder) as resolver:
+            ireq = get_processed_req_from_line(
+                "pip-test-package @ git+https://github.com/pypa/pip-test-package"
+            )
+            reqset = resolver.resolve([ireq], True)
+            assert len(reqset.all_requirements) == 1
+            req = reqset.all_requirements[0]
+            assert req.download_info
+            assert isinstance(req.download_info.info, VcsInfo)
+            assert req.download_info.url == "https://github.com/pypa/pip-test-package"
+            assert req.download_info.info.vcs == "git"
 
 
 class TestInstallRequirement:
@@ -381,32 +547,6 @@ class TestInstallRequirement:
         assert req.link.is_wheel
         assert req.link.scheme == "https"
         assert req.link.url == url
-
-    def test_unsupported_wheel_link_requirement_raises(self) -> None:
-        reqset = RequirementSet()
-        req = install_req_from_line(
-            "https://whatever.com/peppercorn-0.4-py2.py3-bogus-any.whl",
-        )
-        assert req.link is not None
-        assert req.link.is_wheel
-        assert req.link.scheme == "https"
-
-        with pytest.raises(InstallationError):
-            reqset.add_requirement(req)
-
-    def test_unsupported_wheel_local_file_requirement_raises(
-        self, data: TestData
-    ) -> None:
-        reqset = RequirementSet()
-        req = install_req_from_line(
-            data.packages.joinpath("simple.dist-0.1-py1-none-invalid.whl"),
-        )
-        assert req.link is not None
-        assert req.link.is_wheel
-        assert req.link.scheme == "file"
-
-        with pytest.raises(InstallationError):
-            reqset.add_requirement(req)
 
     def test_str(self) -> None:
         req = install_req_from_line("simple==0.1")
@@ -658,19 +798,6 @@ def test_parse_editable_local_extras(
     )
 
 
-def test_exclusive_environment_markers() -> None:
-    """Make sure RequirementSet accepts several excluding env markers"""
-    eq36 = install_req_from_line("Django>=1.6.10,<1.7 ; python_version == '3.6'")
-    eq36.user_supplied = True
-    ne36 = install_req_from_line("Django>=1.6.10,<1.8 ; python_version != '3.6'")
-    ne36.user_supplied = True
-
-    req_set = RequirementSet()
-    req_set.add_requirement(eq36)
-    req_set.add_requirement(ne36)
-    assert req_set.has_requirement("Django")
-
-
 def test_mismatched_versions(caplog: pytest.LogCaptureFixture) -> None:
     req = InstallRequirement(
         req=Requirement("simplewheel==2.0"),
@@ -783,9 +910,8 @@ def test_get_url_from_path__archive_file(
     isdir_mock.return_value = False
     isfile_mock.return_value = True
     name = "simple-0.1-py2.py3-none-any.whl"
-    path = os.path.join("/path/to/" + name)
-    url = path_to_url(path)
-    assert _get_url_from_path(path, name) == url
+    url = Path(f"/path/to/{name}").resolve(strict=False).as_uri()
+    assert _get_url_from_path(f"/path/to/{name}", name) == url
 
 
 @mock.patch("pip._internal.req.req_install.os.path.isdir")
@@ -796,9 +922,8 @@ def test_get_url_from_path__installable_dir(
     isdir_mock.return_value = True
     isfile_mock.return_value = True
     name = "some/setuptools/project"
-    path = os.path.join("/path/to/" + name)
-    url = path_to_url(path)
-    assert _get_url_from_path(path, name) == url
+    url = Path(f"/path/to/{name}").resolve(strict=False).as_uri()
+    assert _get_url_from_path(f"/path/to/{name}", name) == url
 
 
 @mock.patch("pip._internal.req.req_install.os.path.isdir")

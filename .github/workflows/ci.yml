@@ -26,8 +26,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
       - run: pip install nox
       - run: nox -s docs
 
@@ -46,31 +48,24 @@ jobs:
               # Anything that's touching "vendored code"
               - "src/pip/_vendor/**"
               - "pyproject.toml"
+              - "noxfile.py"
             tests:
               # Anything that's touching code-related stuff
               - ".github/workflows/ci.yml"
               - "src/**"
               - "tests/**"
+              - "noxfile.py"
         if: github.event_name == 'pull_request'
-
-  pre-commit:
-    name: pre-commit
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-      - uses: pre-commit/action@v2.0.0
-        with:
-          extra_args: --all-files --hook-stage=manual
 
   packaging:
     name: packaging
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
       - name: Set up git credentials
         run: |
           git config --global user.email "pypa-dev@googlegroups.com"
@@ -79,6 +74,7 @@ jobs:
       - run: pip install nox
       - run: nox -s prepare-release -- 99.9
       - run: nox -s build-release -- 99.9
+      - run: pipx run check-manifest
 
   vendoring:
     name: vendoring
@@ -90,8 +86,10 @@ jobs:
       github.event_name != 'pull_request'
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
 
       - run: pip install nox
       - run: nox -s vendoring
@@ -101,7 +99,7 @@ jobs:
     name: tests / ${{ matrix.python }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}-latest
 
-    needs: [pre-commit, packaging, determine-changes]
+    needs: [packaging, determine-changes]
     if: >-
       needs.determine-changes.outputs.tests == 'true' ||
       github.event_name != 'pull_request'
@@ -111,14 +109,15 @@ jobs:
       matrix:
         os: [Ubuntu, MacOS]
         python:
-          - 3.7
-          - 3.8
-          - 3.9
+          - "3.7"
+          - "3.8"
+          - "3.9"
           - "3.10"
+          - "3.11"
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
 
@@ -128,9 +127,9 @@ jobs:
 
       - name: Install MacOS dependencies
         if: matrix.os == 'MacOS'
-        run: brew install bzr
+        run: brew install breezy
 
-      - run: pip install nox 'virtualenv<20' 'setuptools != 60.6.0'
+      - run: pip install nox
 
       # Main check
       - name: Run unit tests
@@ -149,7 +148,7 @@ jobs:
     name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group }}
     runs-on: ${{ matrix.os }}-latest
 
-    needs: [pre-commit, packaging, determine-changes]
+    needs: [packaging, determine-changes]
     if: >-
       needs.determine-changes.outputs.tests == 'true' ||
       github.event_name != 'pull_request'
@@ -159,16 +158,17 @@ jobs:
       matrix:
         os: [Windows]
         python:
-          - 3.7
+          - "3.7"
           # Commented out, since Windows tests are expensively slow.
-          # - 3.8
-          # - 3.9
-          - "3.10"
+          # - "3.8"
+          # - "3.9"
+          # - "3.10"
+          - "3.11"
         group: [1, 2]
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
 
@@ -187,7 +187,7 @@ jobs:
           $acl.AddAccessRule($rule)
           Set-Acl "R:\Temp" $acl
 
-      - run: pip install nox 'virtualenv<20'
+      - run: pip install nox
         env:
           TEMP: "R:\\Temp"
 
@@ -219,37 +219,74 @@ jobs:
         env:
           TEMP: "R:\\Temp"
 
-  tests-importlib-metadata:
-    name: tests for importlib.metadata backend
+  tests-zipapp:
+    name: tests / zipapp
     runs-on: ubuntu-latest
-    env:
-      _PIP_METADATA_BACKEND_IMPORTLIB: egg-compat
 
-    needs: [pre-commit, packaging, determine-changes]
+    needs: [packaging, determine-changes]
     if: >-
       needs.determine-changes.outputs.tests == 'true' ||
       github.event_name != 'pull_request'
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
       - name: Install Ubuntu dependencies
         run: sudo apt-get install bzr
 
-      - run: pip install nox 'virtualenv<20'
+      - run: pip install nox 'virtualenv<20' 'setuptools != 60.6.0'
 
       # Main check
-      - name: Run unit tests
-        run: >-
-          nox -s test-3.10 --
-          -m unit
-          --verbose --numprocesses auto --showlocals
       - name: Run integration tests
         run: >-
           nox -s test-3.10 --
           -m integration
           --verbose --numprocesses auto --showlocals
           --durations=5
+          --use-zipapp
+
+  check:  # This job does nothing and is only used for the branch protection
+    if: always()
+
+    needs:
+      - determine-changes
+      - docs
+      - packaging
+      - tests-unix
+      - tests-windows
+      - tests-zipapp
+      - vendoring
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Decide whether the needed jobs succeeded or failed
+        uses: re-actors/alls-green@release/v1
+        with:
+          allowed-skips: >-
+            ${{
+              (
+                needs.determine-changes.outputs.vendoring != 'true'
+                && github.event_name == 'pull_request'
+              )
+              && 'vendoring'
+              || ''
+            }}
+            ,
+            ${{
+              (
+                needs.determine-changes.outputs.tests != 'true'
+                && github.event_name == 'pull_request'
+              )
+              && '
+                tests-unix,
+                tests-windows,
+                tests-zipapp,
+                tests-importlib-metadata,
+              '
+              || ''
+            }}
+          jobs: ${{ toJSON(needs) }}

@@ -41,6 +41,7 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
     ],
@@ -80,5 +81,7 @@ setup(
         ],
     },
     zip_safe=False,
+    # NOTE: python_requires is duplicated in __pip-runner__.py.
+    # When changing this value, please change the other copy as well.
     python_requires=">=3.7",
 )

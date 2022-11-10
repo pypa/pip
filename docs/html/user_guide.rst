@@ -2,6 +2,15 @@
 User Guide
 ==========
 
+.. Hello there!
+
+   If you're thinking of adding content to this page... please take a moment
+   to consider if this content can live on its own, within a topic guide or a
+   reference page.
+
+   There is active effort being put toward *reducing* the amount of content on
+   this specific page (https://github.com/pypa/pip/issues/9475) and moving it
+   into more focused single-page documents that cover that specific topic.
 
 Running pip
 ===========
@@ -59,19 +68,18 @@ For more information and examples, see the :ref:`pip install` reference.
 
 .. _PyPI: https://pypi.org/
 
-
-Basic Authentication Credentials
-================================
-
-This is now covered in :doc:`topics/authentication`.
-
-netrc Support
--------------
+.. _`0-basic-authentication-credentials`:
+.. rubric:: Basic Authentication Credentials
 
 This is now covered in :doc:`topics/authentication`.
 
-Keyring Support
----------------
+.. _`0-netrc-support`:
+.. rubric:: netrc Support
+
+This is now covered in :doc:`topics/authentication`.
+
+.. _`0-keyring-support`:
+.. rubric:: Keyring Support
 
 This is now covered in :doc:`topics/authentication`.
 
@@ -451,33 +459,25 @@ packages.
 
 For more information and examples, see the :ref:`pip search` reference.
 
-.. _`Configuration`:
-
-
-Configuration
-=============
+.. _`0-configuration`:
+.. rubric:: Configuration
 
 This is now covered in :doc:`topics/configuration`.
 
-.. _config-file:
-
-Config file
------------
+.. _`0-config-file`:
+.. rubric:: Config file
 
 This is now covered in :doc:`topics/configuration`.
 
-Environment Variables
----------------------
+.. _`0-environment-variables`:
+.. rubric:: Environment Variables
 
 This is now covered in :doc:`topics/configuration`.
 
-.. _config-precedence:
-
-Config Precedence
------------------
+.. _`0-config-precedence`:
+.. rubric:: Config Precedence
 
 This is now covered in :doc:`topics/configuration`.
-
 
 Command Completion
 ==================
@@ -780,18 +780,14 @@ is the latest version:
       [...]
       Successfully installed SomePackage
 
-.. _`Repeatability`:
-
-
-Ensuring Repeatability
-======================
+.. _`0-repeatability`:
+.. _`0-ensuring-repeatability`:
+.. rubric:: Ensuring Repeatability
 
 This is now covered in :doc:`../topics/repeatable-installs`.
 
-.. _`Fixing conflicting dependencies`:
-
-Fixing conflicting dependencies
-===============================
+.. _`0-fixing-conflicting-dependencies`:
+.. rubric:: Fixing conflicting dependencies
 
 This is now covered in :doc:`../topics/dependency-resolution`.
 
@@ -1150,3 +1146,8 @@ announcements on the `low-traffic packaging announcements list`_ and
 .. _our survey on upgrades that create conflicts: https://docs.google.com/forms/d/e/1FAIpQLSeBkbhuIlSofXqCyhi3kGkLmtrpPOEBwr6iJA6SzHdxWKfqdA/viewform
 .. _the official Python blog: https://blog.python.org/
 .. _Python Windows launcher: https://docs.python.org/3/using/windows.html#launcher
+
+.. _`0-using-system-trust-stores-for-verifying-https`:
+.. rubric:: Using system trust stores for verifying HTTPS
+
+This is now covered in :doc:`topics/https-certificates`.

@@ -73,10 +73,19 @@ except ImportError:  # Platform-specific: Python 3
 import logging
 import ssl
 import sys
+import warnings
 
 from .. import util
 from ..packages import six
 from ..util.ssl_ import PROTOCOL_TLS_CLIENT
+
+warnings.warn(
+    "'urllib3.contrib.pyopenssl' module is deprecated and will be removed "
+    "in a future release of urllib3 2.x. Read more in this issue: "
+    "https://github.com/urllib3/urllib3/issues/2680",
+    category=DeprecationWarning,
+    stacklevel=2,
+)
 
 __all__ = ["inject_into_urllib3", "extract_from_urllib3"]
 
@@ -405,7 +414,6 @@ if _fileobject:  # Platform-specific: Python 2
     def makefile(self, mode, bufsize=-1):
         self._makefile_refs += 1
         return _fileobject(self, mode, bufsize, close=True)
-
 
 else:  # Platform-specific: Python 3
     makefile = backport_makefile
