@@ -14,7 +14,6 @@ def reset_keyring() -> Iterable[None]:
     yield None
     # Reset the state of the module between tests
     pip._internal.network.auth.KEYRING_DISABLED = False
-    pip._internal.network.auth.get_keyring_provider.cache_clear()
 
 
 @pytest.mark.parametrize(

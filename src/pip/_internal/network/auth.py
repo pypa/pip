@@ -4,12 +4,12 @@ Contains interface (MultiDomainBasicAuth) and associated glue code for
 providing credentials in the context of network requests.
 """
 
-import functools
 import os
 import shutil
 import subprocess
 import urllib.parse
 from abc import ABC, abstractmethod
+from types import ModuleType
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
@@ -41,10 +41,6 @@ class KeyRingBaseProvider(ABC):
     """Keyring base provider interface"""
 
     @abstractmethod
-    def is_available(self) -> bool:
-        ...
-
-    @abstractmethod
     def get_auth_info(self, url: str, username: Optional[str]) -> Optional[AuthInfo]:
         ...
 
@@ -53,24 +49,23 @@ class KeyRingBaseProvider(ABC):
         ...
 
 
+class KeyRingNullProvider(KeyRingBaseProvider):
+    """Keyring null provider"""
+
+    def get_auth_info(self, url: str, username: Optional[str]) -> Optional[AuthInfo]:
+        return None
+
+    def save_auth_info(self, url: str, username: str, password: str) -> None:
+        return None
+
+
 class KeyRingPythonProvider(KeyRingBaseProvider):
     """Keyring interface which uses locally imported `keyring`"""
 
-    def __init__(self) -> None:
-        try:
-            import keyring
-        except ImportError:
-            keyring = None  # type: ignore[assignment]
-
-        self.keyring = keyring
-
-    def is_available(self) -> bool:
-        return self.keyring is not None
+    def __init__(self, module: ModuleType) -> None:
+        self.keyring = module
 
     def get_auth_info(self, url: str, username: Optional[str]) -> Optional[AuthInfo]:
-        if self.is_available is False:
-            return None
-
         # Support keyring's get_credential interface which supports getting
         # credentials without a username. This is only available for
         # keyring>=15.2.0.
@@ -101,16 +96,10 @@ class KeyRingCliProvider(KeyRingBaseProvider):
     PATH.
     """
 
-    def __init__(self) -> None:
-        self.keyring = shutil.which("keyring")
-
-    def is_available(self) -> bool:
-        return self.keyring is not None
+    def __init__(self, cmd: str) -> None:
+        self.keyring = cmd
 
     def get_auth_info(self, url: str, username: Optional[str]) -> Optional[AuthInfo]:
-        if self.is_available is False:
-            return None
-
         # This is the default implementation of keyring.get_credential
         # https://github.com/jaraco/keyring/blob/97689324abcf01bd1793d49063e7ca01e03d7d07/keyring/backend.py#L134-L139
         if username is not None:
@@ -120,8 +109,6 @@ class KeyRingCliProvider(KeyRingBaseProvider):
         return None
 
     def save_auth_info(self, url: str, username: str, password: str) -> None:
-        if not self.is_available:
-            raise RuntimeError("keyring is not available")
         return self._set_password(url, username, password)
 
     def _get_password(self, service_name: str, username: str) -> Optional[str]:
@@ -156,17 +143,19 @@ class KeyRingCliProvider(KeyRingBaseProvider):
         return None
 
 
-@functools.lru_cache(maxsize=1)
-def get_keyring_provider() -> Optional[KeyRingBaseProvider]:
-    python_keyring = KeyRingPythonProvider()
-    if python_keyring.is_available():
-        return python_keyring
+def get_keyring_provider() -> KeyRingBaseProvider:
+    # keyring has previously failed and been disabled
+    if not KEYRING_DISABLED:
+        try:
+            import keyring
 
-    cli_keyring = KeyRingCliProvider()
-    if cli_keyring.is_available():
-        return cli_keyring
-
-    return None
+            return KeyRingPythonProvider(keyring)
+        except ImportError:
+            pass
+        cli = shutil.which("keyring")
+        if cli:
+            return KeyRingCliProvider(cli)
+    return KeyRingNullProvider()
 
 
 def get_keyring_auth(url: Optional[str], username: Optional[str]) -> Optional[AuthInfo]:
@@ -176,11 +165,6 @@ def get_keyring_auth(url: Optional[str], username: Optional[str]) -> Optional[Au
         return None
 
     keyring = get_keyring_provider()
-    # Do nothing if keyring is not available
-    global KEYRING_DISABLED
-    if keyring is None or KEYRING_DISABLED:
-        return None
-
     try:
         return keyring.get_auth_info(url, username)
     except Exception as exc:
@@ -188,6 +172,7 @@ def get_keyring_auth(url: Optional[str], username: Optional[str]) -> Optional[Au
             "Keyring is skipped due to an exception: %s",
             str(exc),
         )
+        global KEYRING_DISABLED
         KEYRING_DISABLED = True
         return None
 
@@ -436,9 +421,9 @@ class MultiDomainBasicAuth(AuthBase):
     def save_credentials(self, resp: Response, **kwargs: Any) -> None:
         """Response callback to save credentials on success."""
         keyring = get_keyring_provider()
-        assert keyring is not None, "should never reach here without keyring"
-        if not keyring:
-            return None
+        assert not isinstance(
+            keyring, KeyRingNullProvider
+        ), "should never reach here without keyring"
 
         creds = self._credentials_to_save
         self._credentials_to_save = None
