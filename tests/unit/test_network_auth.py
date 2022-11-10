@@ -1,11 +1,20 @@
 import functools
-from typing import Any, List, Optional, Tuple
+import sys
+from typing import Any, Iterable, List, Optional, Tuple
 
 import pytest
 
 import pip._internal.network.auth
 from pip._internal.network.auth import MultiDomainBasicAuth
 from tests.lib.requests_mocks import MockConnection, MockRequest, MockResponse
+
+
+@pytest.fixture(scope="function", autouse=True)
+def reset_keyring() -> Iterable[None]:
+    yield None
+    # Reset the state of the module between tests
+    pip._internal.network.auth.KEYRING_DISABLED = False
+    pip._internal.network.auth.get_keyring_provider.cache_clear()
 
 
 @pytest.mark.parametrize(
@@ -138,7 +147,7 @@ def test_keyring_get_password(
     expect: Tuple[Optional[str], Optional[str]],
 ) -> None:
     keyring = KeyringModuleV1()
-    monkeypatch.setattr("pip._internal.network.auth.keyring", keyring)
+    monkeypatch.setitem(sys.modules, "keyring", keyring)  # type: ignore[misc]
     auth = MultiDomainBasicAuth(index_urls=["http://example.com/path2"])
 
     actual = auth._get_new_credentials(url, allow_netrc=False, allow_keyring=True)
@@ -147,7 +156,7 @@ def test_keyring_get_password(
 
 def test_keyring_get_password_after_prompt(monkeypatch: pytest.MonkeyPatch) -> None:
     keyring = KeyringModuleV1()
-    monkeypatch.setattr("pip._internal.network.auth.keyring", keyring)
+    monkeypatch.setitem(sys.modules, "keyring", keyring)  # type: ignore[misc]
     auth = MultiDomainBasicAuth()
 
     def ask_input(prompt: str) -> str:
@@ -163,7 +172,7 @@ def test_keyring_get_password_after_prompt_when_none(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     keyring = KeyringModuleV1()
-    monkeypatch.setattr("pip._internal.network.auth.keyring", keyring)
+    monkeypatch.setitem(sys.modules, "keyring", keyring)  # type: ignore[misc]
     auth = MultiDomainBasicAuth()
 
     def ask_input(prompt: str) -> str:
@@ -184,7 +193,7 @@ def test_keyring_get_password_username_in_index(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     keyring = KeyringModuleV1()
-    monkeypatch.setattr("pip._internal.network.auth.keyring", keyring)
+    monkeypatch.setitem(sys.modules, "keyring", keyring)  # type: ignore[misc]
     auth = MultiDomainBasicAuth(index_urls=["http://user@example.com/path2"])
     get = functools.partial(
         auth._get_new_credentials, allow_netrc=False, allow_keyring=True
@@ -217,7 +226,7 @@ def test_keyring_set_password(
     expect_save: bool,
 ) -> None:
     keyring = KeyringModuleV1()
-    monkeypatch.setattr("pip._internal.network.auth.keyring", keyring)
+    monkeypatch.setitem(sys.modules, "keyring", keyring)  # type: ignore[misc]
     auth = MultiDomainBasicAuth(prompting=True)
     monkeypatch.setattr(auth, "_get_url_and_credentials", lambda u: (u, None, None))
     monkeypatch.setattr(auth, "_prompt_for_password", lambda *a: creds)
@@ -293,7 +302,7 @@ class KeyringModuleV2:
 def test_keyring_get_credential(
     monkeypatch: pytest.MonkeyPatch, url: str, expect: str
 ) -> None:
-    monkeypatch.setattr(pip._internal.network.auth, "keyring", KeyringModuleV2())
+    monkeypatch.setitem(sys.modules, "keyring", KeyringModuleV2())  # type: ignore[misc]
     auth = MultiDomainBasicAuth(index_urls=["http://example.com/path2"])
 
     assert (
@@ -314,7 +323,7 @@ class KeyringModuleBroken:
 
 def test_broken_keyring_disables_keyring(monkeypatch: pytest.MonkeyPatch) -> None:
     keyring_broken = KeyringModuleBroken()
-    monkeypatch.setattr(pip._internal.network.auth, "keyring", keyring_broken)
+    monkeypatch.setitem(sys.modules, "keyring", keyring_broken)  # type: ignore[misc]
 
     auth = MultiDomainBasicAuth(index_urls=["http://example.com/"])
 

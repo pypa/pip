@@ -28,6 +28,8 @@ from pip._internal.vcs.versioncontrol import AuthInfo
 
 logger = getLogger(__name__)
 
+KEYRING_DISABLED = False
+
 
 class Credentials(NamedTuple):
     url: str
@@ -174,11 +176,20 @@ def get_keyring_auth(url: Optional[str], username: Optional[str]) -> Optional[Au
         return None
 
     keyring = get_keyring_provider()
-    # Do nothin if keyring is not available
-    if keyring is None:
+    # Do nothing if keyring is not available
+    global KEYRING_DISABLED
+    if keyring is None or KEYRING_DISABLED:
         return None
 
-    return keyring.get_auth_info(url, username)
+    try:
+        return keyring.get_auth_info(url, username)
+    except Exception as exc:
+        logger.warning(
+            "Keyring is skipped due to an exception: %s",
+            str(exc),
+        )
+        KEYRING_DISABLED = True
+        return None
 
 
 class MultiDomainBasicAuth(AuthBase):
