@@ -133,7 +133,7 @@ class KeyRingCliProvider(KeyRingBaseProvider):
             return None
 
         cmd = [cls.keyring, "get", service_name, username]
-        env = os.environ
+        env = os.environ.copy()
         env["PYTHONIOENCODING"] = "utf-8"
         res = subprocess.run(
             cmd,
@@ -153,7 +153,7 @@ class KeyRingCliProvider(KeyRingBaseProvider):
 
         cmd = [cls.keyring, "set", service_name, username]
         input_ = password.encode("utf-8") + b"\n"
-        env = os.environ
+        env = os.environ.copy()
         env["PYTHONIOENCODING"] = "utf-8"
         res = subprocess.run(cmd, input=input_, env=env)
         res.check_returncode()
