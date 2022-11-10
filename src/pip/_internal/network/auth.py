@@ -147,13 +147,26 @@ class KeyRingCliProvider(KeyRingBaseProvider):
 def get_keyring_provider() -> KeyRingBaseProvider:
     # keyring has previously failed and been disabled
     if not KEYRING_DISABLED:
+        # Default to trying to use Python provider
         try:
             return KeyRingPythonProvider()
         except ImportError:
             pass
+        except Exception as exc:
+            # In the event of an unexpected exception
+            # we shouldn't fallback silently to the
+            # CliProvider
+            logger.warning(
+                "Keyring is skipped due to an exception: %s",
+                str(exc),
+            )
+            return KeyRingNullProvider()
+
+        # Fallback to Cli Provider if `keyring` isn't installed
         cli = shutil.which("keyring")
         if cli:
             return KeyRingCliProvider(cli)
+
     return KeyRingNullProvider()
 
 
