@@ -4,12 +4,13 @@ Contains interface (MultiDomainBasicAuth) and associated glue code for
 providing credentials in the context of network requests.
 """
 
+import functools
 import os
 import shutil
 import subprocess
 import urllib.parse
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Type
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
 from pip._vendor.requests.models import Request, Response
@@ -37,59 +38,56 @@ class Credentials(NamedTuple):
 class KeyRingBaseProvider(ABC):
     """Keyring base provider interface"""
 
-    @classmethod
     @abstractmethod
-    def is_available(cls) -> bool:
+    def is_available(self) -> bool:
         ...
 
-    @classmethod
     @abstractmethod
-    def get_auth_info(cls, url: str, username: Optional[str]) -> Optional[AuthInfo]:
+    def get_auth_info(self, url: str, username: Optional[str]) -> Optional[AuthInfo]:
         ...
 
-    @classmethod
     @abstractmethod
-    def save_auth_info(cls, url: str, username: str, password: str) -> None:
+    def save_auth_info(self, url: str, username: str, password: str) -> None:
         ...
 
 
 class KeyRingPythonProvider(KeyRingBaseProvider):
     """Keyring interface which uses locally imported `keyring`"""
 
-    try:
-        import keyring
-    except ImportError:
-        keyring = None  # type: ignore[assignment]
+    def __init__(self) -> None:
+        try:
+            import keyring
+        except ImportError:
+            keyring = None  # type: ignore[assignment]
 
-    @classmethod
-    def is_available(cls) -> bool:
-        return cls.keyring is not None
+        self.keyring = keyring
 
-    @classmethod
-    def get_auth_info(cls, url: str, username: Optional[str]) -> Optional[AuthInfo]:
-        if cls.is_available is False:
+    def is_available(self) -> bool:
+        return self.keyring is not None
+
+    def get_auth_info(self, url: str, username: Optional[str]) -> Optional[AuthInfo]:
+        if self.is_available is False:
             return None
 
         # Support keyring's get_credential interface which supports getting
         # credentials without a username. This is only available for
         # keyring>=15.2.0.
-        if hasattr(cls.keyring, "get_credential"):
+        if hasattr(self.keyring, "get_credential"):
             logger.debug("Getting credentials from keyring for %s", url)
-            cred = cls.keyring.get_credential(url, username)
+            cred = self.keyring.get_credential(url, username)
             if cred is not None:
                 return cred.username, cred.password
             return None
 
         if username is not None:
             logger.debug("Getting password from keyring for %s", url)
-            password = cls.keyring.get_password(url, username)
+            password = self.keyring.get_password(url, username)
             if password:
                 return username, password
         return None
 
-    @classmethod
-    def save_auth_info(cls, url: str, username: str, password: str) -> None:
-        cls.keyring.set_password(url, username, password)
+    def save_auth_info(self, url: str, username: str, password: str) -> None:
+        self.keyring.set_password(url, username, password)
 
 
 class KeyRingCliProvider(KeyRingBaseProvider):
@@ -101,38 +99,35 @@ class KeyRingCliProvider(KeyRingBaseProvider):
     PATH.
     """
 
-    keyring = shutil.which("keyring")
+    def __init__(self) -> None:
+        self.keyring = shutil.which("keyring")
 
-    @classmethod
-    def is_available(cls) -> bool:
-        return cls.keyring is not None
+    def is_available(self) -> bool:
+        return self.keyring is not None
 
-    @classmethod
-    def get_auth_info(cls, url: str, username: Optional[str]) -> Optional[AuthInfo]:
-        if cls.is_available is False:
+    def get_auth_info(self, url: str, username: Optional[str]) -> Optional[AuthInfo]:
+        if self.is_available is False:
             return None
 
         # This is the default implementation of keyring.get_credential
         # https://github.com/jaraco/keyring/blob/97689324abcf01bd1793d49063e7ca01e03d7d07/keyring/backend.py#L134-L139
         if username is not None:
-            password = cls._get_password(url, username)
+            password = self._get_password(url, username)
             if password is not None:
                 return username, password
         return None
 
-    @classmethod
-    def save_auth_info(cls, url: str, username: str, password: str) -> None:
-        if not cls.is_available:
+    def save_auth_info(self, url: str, username: str, password: str) -> None:
+        if not self.is_available:
             raise RuntimeError("keyring is not available")
-        return cls._set_password(url, username, password)
+        return self._set_password(url, username, password)
 
-    @classmethod
-    def _get_password(cls, service_name: str, username: str) -> Optional[str]:
+    def _get_password(self, service_name: str, username: str) -> Optional[str]:
         """Mirror the implemenation of keyring.get_password using cli"""
-        if cls.keyring is None:
+        if self.keyring is None:
             return None
 
-        cmd = [cls.keyring, "get", service_name, username]
+        cmd = [self.keyring, "get", service_name, username]
         env = os.environ.copy()
         env["PYTHONIOENCODING"] = "utf-8"
         res = subprocess.run(
@@ -145,13 +140,12 @@ class KeyRingCliProvider(KeyRingBaseProvider):
             return None
         return res.stdout.decode("utf-8").strip("\n")
 
-    @classmethod
-    def _set_password(cls, service_name: str, username: str, password: str) -> None:
+    def _set_password(self, service_name: str, username: str, password: str) -> None:
         """Mirror the implemenation of keyring.set_password using cli"""
-        if cls.keyring is None:
+        if self.keyring is None:
             return None
 
-        cmd = [cls.keyring, "set", service_name, username]
+        cmd = [self.keyring, "set", service_name, username]
         input_ = password.encode("utf-8") + b"\n"
         env = os.environ.copy()
         env["PYTHONIOENCODING"] = "utf-8"
@@ -160,11 +154,16 @@ class KeyRingCliProvider(KeyRingBaseProvider):
         return None
 
 
-def get_keyring_provider() -> Optional[Type[KeyRingBaseProvider]]:
-    if KeyRingPythonProvider.is_available():
-        return KeyRingPythonProvider
-    if KeyRingCliProvider.is_available():
-        return KeyRingCliProvider
+@functools.lru_cache(maxsize=1)
+def get_keyring_provider() -> Optional[KeyRingBaseProvider]:
+    python_keyring = KeyRingPythonProvider()
+    if python_keyring.is_available():
+        return python_keyring
+
+    cli_keyring = KeyRingCliProvider()
+    if cli_keyring.is_available():
+        return cli_keyring
+
     return None
 
 
