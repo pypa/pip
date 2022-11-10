@@ -9,7 +9,6 @@ import shutil
 import subprocess
 import urllib.parse
 from abc import ABC, abstractmethod
-from types import ModuleType
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
@@ -62,8 +61,10 @@ class KeyRingNullProvider(KeyRingBaseProvider):
 class KeyRingPythonProvider(KeyRingBaseProvider):
     """Keyring interface which uses locally imported `keyring`"""
 
-    def __init__(self, module: ModuleType) -> None:
-        self.keyring = module
+    def __init__(self) -> None:
+        import keyring
+
+        self.keyring = keyring
 
     def get_auth_info(self, url: str, username: Optional[str]) -> Optional[AuthInfo]:
         # Support keyring's get_credential interface which supports getting
@@ -147,9 +148,7 @@ def get_keyring_provider() -> KeyRingBaseProvider:
     # keyring has previously failed and been disabled
     if not KEYRING_DISABLED:
         try:
-            import keyring
-
-            return KeyRingPythonProvider(keyring)
+            return KeyRingPythonProvider()
         except ImportError:
             pass
         cli = shutil.which("keyring")
