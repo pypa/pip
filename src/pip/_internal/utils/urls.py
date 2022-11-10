@@ -44,12 +44,13 @@ def url_to_path(url: str) -> str:
     else:
         # do not include traceback as the error message should be self-explaining
         sys.tracebacklimit = 0
+        # suggest using 'file:/' to the user:
+        suggestion = re.sub("(^file:)(/)+", "file:/", url)
+
         raise ValueError(
             f"{url!r} points to the domain '{netloc}'. "
             f"Non-local file URIs are not supported on this platform. "
-            f"Did you mean to use '"
-            f"{re.sub('(^file:)(/)+', 'file:/', url)}"
-            f"'?"
+            f"Did you mean to use '{suggestion}'?"
         )
 
     path = urllib.request.url2pathname(netloc + path)
