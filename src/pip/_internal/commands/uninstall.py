@@ -100,9 +100,9 @@ class UninstallCommand(Command, SessionCommandMixin):
                 verbose=self.verbosity > 0,
             )
             if uninstall_pathset:
+                uninstall_pathset.commit()
                 if req.files_skipped:
                     return ERROR
-                uninstall_pathset.commit()
         if options.root_user_action == "warn":
             warn_if_run_as_root()
         return SUCCESS
