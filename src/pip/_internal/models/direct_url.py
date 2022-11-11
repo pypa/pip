@@ -176,7 +176,7 @@ class DirectUrl:
         self.info = info
         self.subdirectory = subdirectory
 
-    def equivalent(self, other: "DirectUrl") -> bool:
+    def equivalent(self, other: Optional["DirectUrl"]) -> bool:
         """Whether two direct URL objects are equivalent.
 
         This is different from ``__eq__`` in that two non-equal infos can be
@@ -184,7 +184,8 @@ class DirectUrl:
         if they resolve to the same commit.
         """
         return (
-            self.url == other.url
+            other is not None
+            and self.url == other.url
             and self.info.equivalent(other.info)
             and self.subdirectory == other.subdirectory
         )

@@ -103,12 +103,21 @@ class Resolver(BaseResolver):
         if cand_link is None:
             return None
 
+        # Whether --upgrade is specified.
+        upgrade_mode = self.upgrade_strategy != "to-satisfy-only"
+
         # The incoming candidate was produced only from version requirements.
-        # Reinstall if the installed distribution's version does not match.
+        # Reinstall only if...
         if not direct_url_requested:
-            if installed_dist.version == candidate.version:
-                return None
-            return ireq
+            # The currently installed distribution does not satisfy the
+            # requested version specification.
+            if installed_dist.version != candidate.version:
+                return ireq
+            # The currently installed distribution was from a direct URL, and
+            # an upgrade is requested.
+            if upgrade_mode and installed_dist.specified_by_url:
+                return ireq
+            return None
 
         # At this point, the incoming candidate was produced from a direct URL.
         # Determine whether to upgrade based on flags and whether the installed
@@ -119,15 +128,12 @@ class Resolver(BaseResolver):
             return ireq
 
         # Reinstall if --upgrade is specified.
-        if self.upgrade_strategy != "to-satisfy-only":
+        if upgrade_mode:
             return ireq
-
-        # The PEP 610 direct URL representation of the installed distribution.
-        dist_direct_url = installed_dist.direct_url
 
         # The incoming candidate was produced from a direct URL, but the
         # currently installed distribution was not. Always reinstall to be sure.
-        if dist_direct_url is None:
+        if not installed_dist.specified_by_url:
             return ireq
 
         # Editable candidate always triggers reinstallation.
@@ -150,7 +156,7 @@ class Resolver(BaseResolver):
             ireq.source_dir,
             ireq.original_link_is_in_wheel_cache,
         )
-        if cand_direct_url.equivalent(dist_direct_url):
+        if cand_direct_url.equivalent(installed_dist.direct_url):
             return None
 
         return ireq

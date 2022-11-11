@@ -295,8 +295,11 @@ class BaseDistribution(Protocol):
     def direct_url(self) -> Optional[DirectUrl]:
         """Obtain a DirectUrl from this distribution.
 
-        Returns None if the distribution has no `direct_url.json` metadata,
-        or if `direct_url.json` is invalid.
+        Returns None if the distribution has no ``direct_url.json`` metadata,
+        or if the ``direct_url.json`` content is invalid.
+
+        Note that this may return None for a legacy editable installation. See
+        also ``specified_by_url``.
         """
         try:
             content = self.read_text(DIRECT_URL_METADATA_NAME)
@@ -336,6 +339,15 @@ class BaseDistribution(Protocol):
     @property
     def editable(self) -> bool:
         return bool(self.editable_project_location)
+
+    @property
+    def specified_by_url(self) -> bool:
+        """WHether the distribution was originally installed via a direct URL.
+
+        This includes cases where the user used a path (since it is a shorthand
+        and internally treated very similarly as a URL).
+        """
+        return self.direct_url is not None or self.editable
 
     @property
     def local(self) -> bool:
