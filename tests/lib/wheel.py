@@ -2,7 +2,6 @@
 """
 import csv
 import itertools
-import pathlib
 from base64 import urlsafe_b64encode
 from collections import namedtuple
 from copy import deepcopy
@@ -253,23 +252,23 @@ class WheelBuilder:
         self._name = name
         self._files = files
 
-    def save_to_dir(self, path: Union[pathlib.Path, Path, str]) -> str:
+    def save_to_dir(self, path: Union[Path, str]) -> str:
         """Generate wheel file with correct name and save into the provided
         directory.
 
         :returns the wheel file path
         """
-        p = pathlib.Path(path) / self._name
+        p = Path(path) / self._name
         p.write_bytes(self.as_bytes())
         return str(p)
 
-    def save_to(self, path: Union[pathlib.Path, Path, str]) -> str:
+    def save_to(self, path: Union[Path, str]) -> str:
         """Generate wheel file, saving to the provided path. Any parent
         directories must already exist.
 
         :returns the wheel file path
         """
-        path = pathlib.Path(path)
+        path = Path(path)
         path.write_bytes(self.as_bytes())
         return str(path)
 
