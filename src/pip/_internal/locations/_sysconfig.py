@@ -214,5 +214,9 @@ def get_platlib() -> str:
 
 
 def get_prefixed_libs(prefix: str) -> typing.Tuple[str, str]:
-    paths = sysconfig.get_paths(vars={"base": prefix, "platbase": prefix})
+    vars = {"base": prefix, "platbase": prefix}
+    if "venv" in sysconfig.get_scheme_names():
+        paths = sysconfig.get_paths(vars=vars, scheme="venv")
+    else:
+        paths = sysconfig.get_paths(vars=vars)
     return (paths["purelib"], paths["platlib"])
