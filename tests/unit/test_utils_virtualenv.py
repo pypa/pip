@@ -63,7 +63,7 @@ def test_virtualenv_no_global_with_regular_virtualenv(
     monkeypatch.setattr(site, "__file__", os.fspath(tmpdir / "site.py"))
     monkeypatch.setattr(
         virtualenv,
-        "_running_under_regular_virtualenv",
+        "_running_under_legacy_virtualenv",
         lambda: under_virtualenv,
     )
     if no_global_file:
@@ -73,7 +73,7 @@ def test_virtualenv_no_global_with_regular_virtualenv(
 
 
 @pytest.mark.parametrize(
-    "pyvenv_cfg_lines, under_venv, expected, expect_warning",
+    "pyvenv_cfg_lines, under_venv, expect_no_global, expect_warning",
     [
         (None, False, False, False),
         (None, True, True, True),  # this has a warning.
@@ -104,15 +104,15 @@ def test_virtualenv_no_global_with_pep_405_virtual_environment(
     caplog: pytest.LogCaptureFixture,
     pyvenv_cfg_lines: Optional[List[str]],
     under_venv: bool,
-    expected: bool,
+    expect_no_global: bool,
     expect_warning: bool,
 ) -> None:
-    monkeypatch.setattr(virtualenv, "_running_under_regular_virtualenv", lambda: False)
+    monkeypatch.setattr(virtualenv, "_running_under_legacy_virtualenv", lambda: False)
     monkeypatch.setattr(virtualenv, "_get_pyvenv_cfg_lines", lambda: pyvenv_cfg_lines)
     monkeypatch.setattr(virtualenv, "_running_under_venv", lambda: under_venv)
 
     with caplog.at_level(logging.WARNING):
-        assert virtualenv.virtualenv_no_global() == expected
+        assert virtualenv.virtualenv_no_global() == expect_no_global
 
     if expect_warning:
         assert caplog.records

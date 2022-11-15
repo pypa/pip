@@ -86,7 +86,11 @@ def make_test_search_scope(
     if index_urls is None:
         index_urls = []
 
-    return SearchScope.create(find_links=find_links, index_urls=index_urls)
+    return SearchScope.create(
+        find_links=find_links,
+        index_urls=index_urls,
+        no_index=False,
+    )
 
 
 def make_test_link_collector(
@@ -1168,7 +1172,7 @@ def create_basic_wheel_for_package(
     name: str,
     version: str,
     depends: Optional[List[str]] = None,
-    extras: Dict[str, List[str]] = None,
+    extras: Optional[Dict[str, List[str]]] = None,
     requires_python: Optional[str] = None,
     extra_files: Optional[Dict[str, Union[bytes, str]]] = None,
 ) -> pathlib.Path:

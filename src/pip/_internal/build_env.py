@@ -4,6 +4,7 @@
 import logging
 import os
 import pathlib
+import site
 import sys
 import textwrap
 from collections import OrderedDict
@@ -55,6 +56,26 @@ def get_runnable_pip() -> str:
     return os.fsdecode(source / "__pip-runner__.py")
 
 
+def _get_system_sitepackages() -> Set[str]:
+    """Get system site packages
+
+    Usually from site.getsitepackages,
+    but fallback on `get_purelib()/get_platlib()` if unavailable
+    (e.g. in a virtualenv created by virtualenv<20)
+
+    Returns normalized set of strings.
+    """
+    if hasattr(site, "getsitepackages"):
+        system_sites = site.getsitepackages()
+    else:
+        # virtualenv < 20 overwrites site.py without getsitepackages
+        # fallback on get_purelib/get_platlib.
+        # this is known to miss things, but shouldn't in the cases
+        # where getsitepackages() has been removed (inside a virtualenv)
+        system_sites = [get_purelib(), get_platlib()]
+    return {os.path.normcase(path) for path in system_sites}
+
+
 class BuildEnvironment:
     """Creates and manages an isolated environment to install build deps"""
 
@@ -75,9 +96,8 @@ class BuildEnvironment:
         # Customize site to:
         # - ensure .pth files are honored
         # - prevent access to system site packages
-        system_sites = {
-            os.path.normcase(site) for site in (get_purelib(), get_platlib())
-        }
+        system_sites = _get_system_sitepackages()
+
         self._site_dir = os.path.join(temp_dir.path, "site")
         if not os.path.exists(self._site_dir):
             os.mkdir(self._site_dir)

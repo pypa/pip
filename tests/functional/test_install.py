@@ -1,8 +1,8 @@
-import distutils
 import os
 import re
 import ssl
 import sys
+import sysconfig
 import textwrap
 from os.path import curdir, join, pardir
 from pathlib import Path
@@ -171,7 +171,7 @@ def test_pep518_allows_missing_requires(
     assert result.files_created
 
 
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 def test_pep518_with_user_pip(
     script: PipTestEnvironment, pip_src: Path, data: TestData, common_wheels: Path
 ) -> None:
@@ -700,17 +700,27 @@ def test_editable_install__local_dir_no_setup_py(
     )
 
 
+@pytest.mark.network
 def test_editable_install__local_dir_no_setup_py_with_pyproject(
     script: PipTestEnvironment,
 ) -> None:
     """
     Test installing in editable mode from a local directory with no setup.py
-    but that does have pyproject.toml.
+    but that does have pyproject.toml with a build backend that does not support
+    the build_editable hook.
     """
     local_dir = script.scratch_path.joinpath("temp")
     local_dir.mkdir()
     pyproject_path = local_dir.joinpath("pyproject.toml")
-    pyproject_path.write_text("")
+    pyproject_path.write_text(
+        textwrap.dedent(
+            """
+                [build-system]
+                requires = ["setuptools<64"]
+                build-backend = "setuptools.build_meta"
+            """
+        )
+    )
 
     result = script.pip("install", "-e", local_dir, expect_error=True)
     assert not result.files_created
@@ -832,6 +842,8 @@ def test_install_global_option(script: PipTestEnvironment) -> None:
     )
     assert "INITools==0.1\n" in result.stdout
     assert not result.files_created
+    assert "Implying --no-binary=:all:" in result.stderr
+    assert "Consider using --config-settings" in result.stderr
 
 
 def test_install_with_hacked_egg_info(
@@ -1133,6 +1145,39 @@ def test_install_with_target_or_prefix_and_scripts_no_warning(
     assert "--no-warn-script-location" not in result.stderr, str(result)
 
 
+def _change_root(new_root: str, pathname: str) -> str:
+    """
+    Adapted from distutils.
+
+    Return 'pathname' with 'new_root' prepended.  If 'pathname' is
+    relative, this is equivalent to "os.path.join(new_root,pathname)".
+    Otherwise, it requires making 'pathname' relative and then joining the
+    two, which is tricky on DOS/Windows and Mac OS.
+    """
+    try:
+        from distutils.util import change_root
+    except ImportError:
+        pass
+    else:
+        return change_root(new_root, pathname)
+
+    if os.name == "posix":
+        if not os.path.isabs(pathname):
+            return os.path.join(new_root, pathname)
+        else:
+            return os.path.join(new_root, pathname[1:])
+
+    elif os.name == "nt":
+        drive, path = os.path.splitdrive(pathname)
+        if path[0] == "\\":
+            path = path[1:]
+        return os.path.join(new_root, path)
+
+    else:
+        # distutils raise DistutilsPlatformError here
+        raise RuntimeError(f"nothing known about platform '{os.name}'")
+
+
 @pytest.mark.usefixtures("with_wheel")
 def test_install_package_with_root(script: PipTestEnvironment, data: TestData) -> None:
     """
@@ -1151,10 +1196,8 @@ def test_install_package_with_root(script: PipTestEnvironment, data: TestData) -
     normal_install_path = os.fspath(
         script.base_path / script.site_packages / "simple-1.0.dist-info"
     )
-    # use distutils to change the root exactly how the --root option does it
-    from distutils.util import change_root
 
-    root_path = change_root(os.path.join(script.scratch, "root"), normal_install_path)
+    root_path = _change_root(os.path.join(script.scratch, "root"), normal_install_path)
     result.did_create(root_path)
 
     # Should show find-links location in output
@@ -1183,7 +1226,7 @@ def test_install_package_with_prefix(
 
     rel_prefix_path = script.scratch / "prefix"
     install_path = join(
-        distutils.sysconfig.get_python_lib(prefix=rel_prefix_path),
+        sysconfig.get_path("purelib", vars={"base": rel_prefix_path}),
         # we still test for egg-info because no-binary implies setup.py install
         f"simple-1.0-py{pyversion}.egg-info",
     )
@@ -1205,7 +1248,7 @@ def _test_install_editable_with_prefix(
             "prefix", "lib", f"python{pyversion}", "site-packages"
         )
     else:
-        site_packages = distutils.sysconfig.get_python_lib(prefix="prefix")
+        site_packages = sysconfig.get_path("purelib", vars={"base": "prefix"})
 
     # make sure target path is in PYTHONPATH
     pythonpath = script.scratch_path / site_packages
@@ -1253,13 +1296,14 @@ setup(name='pkga', version='0.1')
     _test_install_editable_with_prefix(script, {"setup.py": setup_py})
 
 
+@pytest.mark.network
 def test_install_editable_with_prefix_setup_cfg(script: PipTestEnvironment) -> None:
     setup_cfg = """[metadata]
 name = pkga
 version = 0.1
 """
     pyproject_toml = """[build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools<64", "wheel"]
 build-backend = "setuptools.build_meta"
 """
     _test_install_editable_with_prefix(
@@ -2062,7 +2106,7 @@ def test_target_install_ignores_distutils_config_install_prefix(
     result.did_not_create(relative_script_base)
 
 
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 def test_user_config_accepted(script: PipTestEnvironment) -> None:
     # user set in the config file is parsed as 0/1 instead of True/False.
     # Check that this doesn't cause a problem.

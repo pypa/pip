@@ -59,31 +59,6 @@ def make_option_group(group: Dict[str, Any], parser: ConfigOptionParser) -> Opti
     return option_group
 
 
-def check_install_build_global(
-    options: Values, check_options: Optional[Values] = None
-) -> None:
-    """Disable wheels if per-setup.py call options are set.
-
-    :param options: The OptionParser options to update.
-    :param check_options: The options to check, if not supplied defaults to
-        options.
-    """
-    if check_options is None:
-        check_options = options
-
-    def getname(n: str) -> Optional[Any]:
-        return getattr(check_options, n, None)
-
-    names = ["build_options", "global_options", "install_options"]
-    if any(map(getname, names)):
-        control = options.format_control
-        control.disallow_binaries()
-        logger.warning(
-            "Disabling all use of wheels due to the use of --build-option "
-            "/ --global-option / --install-option.",
-        )
-
-
 def check_dist_restriction(options: Values, check_target: bool = False) -> None:
     """Function for determining if custom platform options are allowed.
 
@@ -850,11 +825,9 @@ install_options: Callable[..., Option] = partial(
     dest="install_options",
     action="append",
     metavar="options",
-    help="Extra arguments to be supplied to the setup.py install "
-    'command (use like --install-option="--install-scripts=/usr/local/'
-    'bin"). Use multiple --install-option options to pass multiple '
-    "options to setup.py install. If you are using an option with a "
-    "directory path, be sure to use absolute path.",
+    help="This option is deprecated. Using this option with location-changing "
+    "options may cause unexpected behavior. "
+    "Use pip-level options like --user, --prefix, --root, and --target.",
 )
 
 build_options: Callable[..., Option] = partial(
@@ -1007,7 +980,11 @@ use_new_feature: Callable[..., Option] = partial(
     metavar="feature",
     action="append",
     default=[],
-    choices=["2020-resolver", "fast-deps", "truststore"],
+    choices=[
+        "fast-deps",
+        "truststore",
+        "no-binary-enable-wheel-cache",
+    ],
     help="Enable new functionality, that may be backward incompatible.",
 )
 
