@@ -1,0 +1,11 @@
+Add support to use `build <https://pypi.org/project/build/>`_ as an alternative
+isolated build environment implementation. The implementation can be enabled by
+installing ``build`` into the environment, and adding the ``--use-feature=build``
+flag to various pip commands.
+
+``build`` is a light-weight build frontend for ``pyproject.toml`` projects,
+providing various benefits by leveraging modern standards and tools. This
+addition only enables pip to use its logic for environment creation and
+populating build dependencies. Depending on feedback, pip may switch to also
+run the build logic with ``build``, and switch the default build interface in
+the future.

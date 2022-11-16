@@ -658,3 +658,16 @@ class ConfigurationFileCouldNotBeLoaded(ConfigurationError):
             assert self.error is not None
             message_part = f".\n{self.error}\n"
         return f"Configuration file {self.reason}{message_part}"
+
+
+class OptionalFeatureLibraryUnavailable(CommandError):
+    def __init__(self, feature: str, missing: str = "") -> None:
+        super().__init__(feature, missing)
+        self.feature = feature
+        self.missing = missing or feature
+
+    def __str__(self) -> str:
+        return (
+            f"To use the {self.feature!r} feature, {self.missing!r} "
+            f"must be installed into pip's current environment."
+        )

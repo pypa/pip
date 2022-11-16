@@ -981,9 +981,10 @@ use_new_feature: Callable[..., Option] = partial(
     action="append",
     default=[],
     choices=[
+        "build",
         "fast-deps",
-        "truststore",
         "no-binary-enable-wheel-cache",
+        "truststore",
     ],
     help="Enable new functionality, that may be backward incompatible.",
 )

@@ -1,4 +1,4 @@
-from pip._internal.distributions.base import AbstractDistribution
+from pip._internal.distributions.base import AbstractDistribution, BuildBackend
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution
 
@@ -17,7 +17,7 @@ class InstalledDistribution(AbstractDistribution):
     def prepare_distribution_metadata(
         self,
         finder: PackageFinder,
-        build_isolation: bool,
+        build_backend: BuildBackend,
         check_build_deps: bool,
     ) -> None:
         pass
