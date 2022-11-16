@@ -26,7 +26,7 @@ pip has 4 "levels" of configuration files:
 
 - `global`: system-wide configuration file, shared across all users.
 - `user`: per-user configuration file, shared across all environments.
-- `base` : per-base environment configuration file, shared across all virtualenvs with the same base. (added in pip `v23`)
+- `base` : per-base environment configuration file, shared across all virtualenvs with the same base. (available since pip 23.0)
 - `site`: per-environment configuration file; i.e. per-virtualenv.
 
 ### Location
