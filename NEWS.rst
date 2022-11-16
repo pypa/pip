@@ -9,6 +9,73 @@
 
 .. towncrier release notes start
 
+22.3.1 (2022-11-05)
+===================
+
+Bug Fixes
+---------
+
+- Fix entry point generation of ``pip.X``, ``pipX.Y``, and ``easy_install-X.Y``
+  to correctly account for multi-digit Python version segments (e.g. the "11"
+  part of 3.11). (`#11547 <https://github.com/pypa/pip/issues/11547>`_)
+
+
+22.3 (2022-10-15)
+=================
+
+Deprecations and Removals
+-------------------------
+
+- Deprecate ``--install-options`` which forces pip to use the deprecated ``install``
+  command of ``setuptools``. (`#11358 <https://github.com/pypa/pip/issues/11358>`_)
+- Deprecate installation with 'setup.py install' when no-binary is enabled for
+  source distributions without 'pyproject.toml'. (`#11452 <https://github.com/pypa/pip/issues/11452>`_)
+- Deprecate ```--no-binary`` disabling the wheel cache. (`#11454 <https://github.com/pypa/pip/issues/11454>`_)
+- Remove ``--use-feature=2020-resolver`` opt-in flag. This was supposed to be removed in 21.0, but missed during that release cycle. (`#11493 <https://github.com/pypa/pip/issues/11493>`_)
+- Deprecate installation with 'setup.py install' when the 'wheel' package is absent for
+  source distributions without 'pyproject.toml'. (`#8559 <https://github.com/pypa/pip/issues/8559>`_)
+- Remove the ability to use ``pip list --outdated`` in combination with ``--format=freeze``. (`#9789 <https://github.com/pypa/pip/issues/9789>`_)
+
+Features
+--------
+
+- Use ``shell=True`` for opening the editor with ``pip config edit``. (`#10716 <https://github.com/pypa/pip/issues/10716>`_)
+- Use the ``data-dist-info-metadata`` attribute from :pep:`658` to resolve distribution metadata without downloading the dist yet. (`#11111 <https://github.com/pypa/pip/issues/11111>`_)
+- Add an option to run the test suite with pip built as a zipapp. (`#11250 <https://github.com/pypa/pip/issues/11250>`_)
+- Add a ``--python`` option to allow pip to manage Python environments other
+  than the one pip is installed in. (`#11320 <https://github.com/pypa/pip/issues/11320>`_)
+- Document the new (experimental) zipapp distribution of pip. (`#11459 <https://github.com/pypa/pip/issues/11459>`_)
+- Use the much faster 'bzr co --lightweight' to obtain a copy of a Bazaar tree. (`#5444 <https://github.com/pypa/pip/issues/5444>`_)
+
+Bug Fixes
+---------
+
+- Fix ``--no-index`` when ``--index-url`` or ``--extra-index-url`` is specified
+  inside a requirements file. (`#11276 <https://github.com/pypa/pip/issues/11276>`_)
+- Ensure that the candidate ``pip`` executable exists, when checking for a new version of pip. (`#11309 <https://github.com/pypa/pip/issues/11309>`_)
+- Ignore distributions with invalid ``Name`` in metadata instead of crashing, when
+  using the ``importlib.metadata`` backend. (`#11352 <https://github.com/pypa/pip/issues/11352>`_)
+- Raise RequirementsFileParseError when parsing malformed requirements options that can't be sucessfully parsed by shlex. (`#11491 <https://github.com/pypa/pip/issues/11491>`_)
+- Fix build environment isolation on some system Pythons. (`#6264 <https://github.com/pypa/pip/issues/6264>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade certifi to 2022.9.24
+- Upgrade distlib to 0.3.6
+- Upgrade idna to 3.4
+- Upgrade pep517 to 0.13.0
+- Upgrade pygments to 2.13.0
+- Upgrade tenacity to 8.1.0
+- Upgrade typing_extensions to 4.4.0
+- Upgrade urllib3 to 1.26.12
+
+Improved Documentation
+----------------------
+
+- Mention that --quiet must be used when writing the installation report to stdout. (`#11357 <https://github.com/pypa/pip/issues/11357>`_)
+
+
 22.2.2 (2022-08-03)
 ===================
 

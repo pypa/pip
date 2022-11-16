@@ -137,6 +137,7 @@ Christopher Hunt
 Christopher Snyder
 cjc7373
 Clark Boylan
+Claudio Jolowicz
 Clay McClure
 Cody
 Cody Soyland
@@ -234,6 +235,8 @@ Erik Rose
 Erwin Janssen
 Eugene Vereshchagin
 everdimension
+Federico
+Felipe Peter
 Felix Yan
 fiber-space
 Filip Kokosiński
@@ -275,6 +278,7 @@ Hari Charan
 Harsh Vardhan
 harupy
 Harutaka Kawamura
+hauntsaninja
 Henrich Hartzer
 Henry Schreiner
 Herbert Pfennig
@@ -299,6 +303,7 @@ Ionel Maries Cristian
 Ivan Pozdeev
 Jacob Kim
 Jacob Walls
+Jaime Sanz
 jakirkham
 Jakub Stasiak
 Jakub Vysoky
@@ -393,6 +398,7 @@ Luo Jiebin
 luojiebin
 luz.paz
 László Kiss Kollár
+M00nL1ght
 Marc Abramowitz
 Marc Tamlyn
 Marcus Smith
@@ -545,6 +551,7 @@ Reece Dunham
 Remi Rampin
 Rene Dudfield
 Riccardo Magliocchetti
+Riccardo Schirone
 Richard Jones
 Richard Si
 Ricky Ng-Adam

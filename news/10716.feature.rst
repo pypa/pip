@@ -1,1 +1,0 @@
-Use ``shell=True`` for opening the editor with ``pip config edit``.

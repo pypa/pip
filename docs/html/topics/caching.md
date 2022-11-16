@@ -140,6 +140,6 @@ The {ref}`pip cache` command can be used to manage pip's cache.
 
 pip's caching behaviour is disabled by passing the `--no-cache-dir` option.
 
-It is, however, recommended to **NOT** disable pip's caching. Doing so can
+It is, however, recommended to **NOT** disable pip's caching unless you have caching at a higher level (eg: layered caches in container builds). Doing so can
 significantly slow down pip (due to repeated operations and package builds)
 and result in significantly more network usage.
