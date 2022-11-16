@@ -305,8 +305,7 @@ def test_install_local_with_subdirectory(script: PipTestEnvironment) -> None:
     result.assert_installed("version_subpkg.py", editable=False)
 
 
-@pytest.mark.incompatible_with_test_venv
-@pytest.mark.usefixtures("with_wheel")
+@pytest.mark.usefixtures("enable_user_site", "with_wheel")
 def test_wheel_user_with_prefix_in_pydistutils_cfg(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -342,7 +341,7 @@ def test_install_option_in_requirements_file_overrides_cli(
     reqs_file = script.scratch_path.joinpath("reqs.txt")
     reqs_file.write_text("simple --install-option='-O0'")
 
-    script.pip(
+    result = script.pip(
         "install",
         "--no-index",
         "-f",
@@ -355,6 +354,9 @@ def test_install_option_in_requirements_file_overrides_cli(
     simple_args = simple_sdist.args()
     assert "install" in simple_args
     assert simple_args.index("-O1") < simple_args.index("-O0")
+    assert "Implying --no-binary=:all:" in result.stderr
+    assert "Consider using --config-settings" in result.stderr
+    assert "--install-option is deprecated" in result.stderr
 
 
 def test_constraints_not_installed_by_default(

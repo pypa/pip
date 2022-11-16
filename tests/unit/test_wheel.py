@@ -3,6 +3,7 @@ import csv
 import logging
 import os
 import pathlib
+import sys
 import textwrap
 from email import message_from_string
 from pathlib import Path
@@ -22,7 +23,11 @@ from pip._internal.models.direct_url import (
 from pip._internal.models.scheme import Scheme
 from pip._internal.operations.build.wheel_legacy import get_legacy_build_wheel_path
 from pip._internal.operations.install import wheel
-from pip._internal.operations.install.wheel import InstalledCSVRow, RecordPath
+from pip._internal.operations.install.wheel import (
+    InstalledCSVRow,
+    RecordPath,
+    get_console_script_specs,
+)
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import hash_file
 from pip._internal.utils.unpacking import unpack_file
@@ -681,3 +686,31 @@ class TestWheelHashCalculators:
         h, length = wheel.rehash(os.fspath(self.test_file))
         assert length == str(self.test_file_len)
         assert h == self.test_file_hash_encoded
+
+
+def test_get_console_script_specs_replaces_python_version(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Fake Python version.
+    monkeypatch.setattr(sys, "version_info", (10, 11))
+
+    entry_points = {
+        "pip": "real_pip",
+        "pip99": "whatever",
+        "pip99.88": "whatever",
+        "easy_install": "real_easy_install",
+        "easy_install-99.88": "whatever",
+        # The following shouldn't be replaced.
+        "not_pip_or_easy_install-99": "whatever",
+        "not_pip_or_easy_install-99.88": "whatever",
+    }
+    specs = get_console_script_specs(entry_points)
+    assert specs == [
+        "pip = real_pip",
+        "pip10 = real_pip",
+        "pip10.11 = real_pip",
+        "easy_install = real_easy_install",
+        "easy_install-10.11 = real_easy_install",
+        "not_pip_or_easy_install-99 = whatever",
+        "not_pip_or_easy_install-99.88 = whatever",
+    ]

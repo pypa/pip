@@ -204,7 +204,7 @@ def test_build_env_overlay_prefix_has_priority(script: PipTestEnvironment) -> No
     assert result.stdout.strip() == "2.0", str(result)
 
 
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 def test_build_env_isolation(script: PipTestEnvironment) -> None:
 
     # Create dummy `pkg` wheel.

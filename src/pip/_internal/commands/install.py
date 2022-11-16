@@ -27,7 +27,11 @@ from pip._internal.models.installation_report import InstallationReport
 from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.operations.check import ConflictDetails, check_install_conflicts
 from pip._internal.req import install_given_reqs
-from pip._internal.req.req_install import InstallRequirement
+from pip._internal.req.req_install import (
+    InstallRequirement,
+    LegacySetupPyOptionsCheckMode,
+    check_legacy_setup_py_options,
+)
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.deprecation import (
     LegacyInstallReasonFailedBdistWheel,
@@ -280,7 +284,6 @@ class InstallCommand(RequirementCommand):
         if options.use_user_site and options.target_dir is not None:
             raise CommandError("Can not combine '--user' and '--target'")
 
-        cmdoptions.check_install_build_global(options)
         upgrade_strategy = "to-satisfy-only"
         if options.upgrade:
             upgrade_strategy = options.upgrade_strategy
@@ -339,6 +342,9 @@ class InstallCommand(RequirementCommand):
 
         try:
             reqs = self.get_requirements(args, options, finder, session)
+            check_legacy_setup_py_options(
+                options, reqs, LegacySetupPyOptionsCheckMode.INSTALL
+            )
 
             if "no-binary-enable-wheel-cache" in options.features_enabled:
                 # TODO: remove format_control from WheelCache when the deprecation cycle
@@ -446,7 +452,7 @@ class InstallCommand(RequirementCommand):
                 wheel_cache=wheel_cache,
                 verify=True,
                 build_options=[],
-                global_options=[],
+                global_options=global_options,
             )
 
             # If we're using PEP 517, we cannot do a legacy setup.py install

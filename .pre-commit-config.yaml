@@ -73,8 +73,7 @@ repos:
     exclude: ^news/(.gitignore|.*\.(process|removal|feature|bugfix|vendor|doc|trivial).rst)
     files: ^news/
 
-- repo: https://github.com/mgedmin/check-manifest
-  rev: '0.48'
-  hooks:
-  - id: check-manifest
-    stages: [manual]
+ci:
+  autofix_prs: false
+  autoupdate_commit_msg: 'pre-commit autoupdate'
+  autoupdate_schedule: monthly

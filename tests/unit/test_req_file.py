@@ -459,8 +459,16 @@ class TestProcessLine:
         self, line_processor: LineProcessor, options: mock.Mock
     ) -> None:
         """--use-feature can be set in requirements files."""
-        line_processor("--use-feature=2020-resolver", "filename", 1, options=options)
-        assert "2020-resolver" in options.features_enabled
+        line_processor("--use-feature=fast-deps", "filename", 1, options=options)
+
+    def test_use_feature_with_error(
+        self, line_processor: LineProcessor, options: mock.Mock
+    ) -> None:
+        """--use-feature triggers error when parsing requirements files."""
+        with pytest.raises(RequirementsFileParseError):
+            line_processor(
+                "--use-feature=2020-resolver", "filename", 1, options=options
+            )
 
     def test_relative_local_find_links(
         self,
@@ -786,6 +794,20 @@ class TestParseRequirements:
 
         assert not reqs
 
+    def test_invalid_options(self, tmpdir: Path, finder: PackageFinder) -> None:
+        """
+        Test parsing invalid options such as missing closing quotation
+        """
+        with open(tmpdir.joinpath("req1.txt"), "w") as fp:
+            fp.write("--'data\n")
+
+        with pytest.raises(RequirementsFileParseError):
+            list(
+                parse_reqfile(
+                    tmpdir.joinpath("req1.txt"), finder=finder, session=PipSession()
+                )
+            )
+
     def test_req_file_parse_comment_end_of_line_with_url(
         self, tmpdir: Path, finder: PackageFinder
     ) -> None:
@@ -881,5 +903,3 @@ class TestParseRequirements:
                 < args.index("install")
                 < args.index(install_option)
             )
-        assert options.format_control.no_binary == {":all:"}
-        assert options.format_control.only_binary == set()

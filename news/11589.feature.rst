@@ -1,0 +1,2 @@
+Enable the use of ``keyring`` found on ``PATH``. This allows ``keyring``
+installed using ``pipx`` to be used by ``pip``.
