@@ -16,7 +16,12 @@ from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.command_context import CommandContextMixIn
-from pip._internal.exceptions import CommandError, PreviousBuildDirError
+from pip._internal.distributions.base import BuildBackend
+from pip._internal.exceptions import (
+    CommandError,
+    OptionalFeatureLibraryUnavailable,
+    PreviousBuildDirError,
+)
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.selection_prefs import SelectionPreferences
@@ -60,10 +65,7 @@ def _create_truststore_ssl_context() -> Optional["SSLContext"]:
     try:
         import truststore
     except ImportError:
-        raise CommandError(
-            "To use the truststore feature, 'truststore' must be installed into "
-            "pip's current environment."
-        )
+        raise OptionalFeatureLibraryUnavailable("truststore", "truststore")
 
     return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 
@@ -305,11 +307,18 @@ class RequirementCommand(IndexGroupCommand):
                     "fast-deps has no effect when used with the legacy resolver."
                 )
 
+        if not options.build_isolation:
+            build_backend: BuildBackend = ""
+        elif "build" in options.features_enabled:
+            build_backend = "pypa"
+        else:
+            build_backend = "custom"
+
         return RequirementPreparer(
             build_dir=temp_build_dir_path,
             src_dir=options.src_dir,
             download_dir=download_dir,
-            build_isolation=options.build_isolation,
+            build_backend=build_backend,
             check_build_deps=options.check_build_deps,
             build_tracker=build_tracker,
             session=session,

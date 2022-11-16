@@ -13,6 +13,7 @@ from typing import Dict, Iterable, List, Optional
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.distributions import make_distribution_for_install_requirement
+from pip._internal.distributions.base import BuildBackend
 from pip._internal.distributions.installed import InstalledDistribution
 from pip._internal.exceptions import (
     DirectoryUrlHashUnsupported,
@@ -60,14 +61,14 @@ def _get_prepared_distribution(
     req: InstallRequirement,
     build_tracker: BuildTracker,
     finder: PackageFinder,
-    build_isolation: bool,
+    build_backend: BuildBackend,
     check_build_deps: bool,
 ) -> BaseDistribution:
     """Prepare a distribution for installation."""
     abstract_dist = make_distribution_for_install_requirement(req)
     with build_tracker.track(req):
         abstract_dist.prepare_distribution_metadata(
-            finder, build_isolation, check_build_deps
+            finder, build_backend, check_build_deps
         )
     return abstract_dist.get_metadata_distribution()
 
@@ -212,7 +213,7 @@ class RequirementPreparer:
         build_dir: str,
         download_dir: Optional[str],
         src_dir: str,
-        build_isolation: bool,
+        build_backend: BuildBackend,
         check_build_deps: bool,
         build_tracker: BuildTracker,
         session: PipSession,
@@ -237,8 +238,8 @@ class RequirementPreparer:
         # not saved, and are deleted immediately after unpacking.
         self.download_dir = download_dir
 
-        # Is build isolation allowed?
-        self.build_isolation = build_isolation
+        # What build backend should we use?
+        self.build_backend = build_backend
 
         # Should check build dependencies?
         self.check_build_deps = check_build_deps
@@ -578,7 +579,7 @@ class RequirementPreparer:
             req,
             self.build_tracker,
             self.finder,
-            self.build_isolation,
+            self.build_backend,
             self.check_build_deps,
         )
         return dist
@@ -634,7 +635,7 @@ class RequirementPreparer:
                 req,
                 self.build_tracker,
                 self.finder,
-                self.build_isolation,
+                self.build_backend,
                 self.check_build_deps,
             )
 
