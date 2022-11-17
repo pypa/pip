@@ -65,16 +65,10 @@ def filter_libc_tags(libc: Tuple[int, int], arch: str) -> Generator[str, None, N
             yield tag
 
 
-def _manylinux_platforms(arch: str) -> List[str]:
+def _custom_manylinux_platforms(arch: str) -> List[str]:
     arches = [arch]
     arch_prefix, arch_sep, arch_suffix = arch.partition("_")
-
-    if arch_prefix == "manylinux":
-        curr_glibc_major, curr_glibc_minor, curr_arch = arch_suffix.split("_", 2)
-        curr_glibc = (int(curr_glibc_major), int(curr_glibc_minor))
-        arches = list(filter_libc_tags(curr_glibc, curr_arch)) or arches
-
-    elif arch_prefix == "manylinux2014":
+    if arch_prefix == "manylinux2014":
         # manylinux1/manylinux2010 wheels run on most manylinux2014 systems
         # with the exception of wheels depending on ncurses. PEP 599 states
         # manylinux1/manylinux2010 wheels should be considered
@@ -92,24 +86,16 @@ def _manylinux_platforms(arch: str) -> List[str]:
     return arches
 
 
-def _musllinux_platforms(arch: str) -> List[str]:
-    arches = [arch]
-
-    *_, arch_suffix = arch.partition("_")
-    curr_musl_major, curr_musl_minor, curr_arch = arch_suffix.split("_", 2)
-    curr_musl = (int(curr_musl_major), int(curr_musl_minor))
-
-    arches = list(filter_libc_tags(curr_musl, curr_arch)) or arches
-    return arches
-
-
 def _get_custom_platforms(arch: str) -> List[str]:
+    arch_prefix, arch_sep, arch_suffix = arch.partition("_")
     if arch.startswith("macosx"):
         arches = _mac_platforms(arch)
-    elif arch.startswith("manylinux"):
-        arches = _manylinux_platforms(arch)
-    elif arch.startswith("musllinux"):
-        arches = _musllinux_platforms(arch)
+    elif arch_prefix in ["manylinux2014", "manylinux2010"]:
+        arches = _custom_manylinux_platforms(arch)
+    elif arch.startswith(("manylinux", "musllinux")):
+        curr_libc_major, curr_libc_minor, curr_arch = arch_suffix.split("_", 2)
+        curr_libc = (int(curr_libc_major), int(curr_libc_minor))
+        arches = list(filter_libc_tags(curr_libc, curr_arch)) or [arch]
     else:
         arches = [arch]
     return arches
