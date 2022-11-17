@@ -92,7 +92,7 @@ def _get_custom_platforms(arch: str) -> List[str]:
         arches = _mac_platforms(arch)
     elif arch_prefix in ["manylinux2014", "manylinux2010"]:
         arches = _custom_manylinux_platforms(arch)
-    elif arch.startswith(("manylinux", "musllinux")):
+    elif arch_prefix in ["manylinux", "musllinux"]:
         curr_libc_major, curr_libc_minor, curr_arch = arch_suffix.split("_", 2)
         curr_libc = (int(curr_libc_major), int(curr_libc_minor))
         arches = list(filter_libc_tags(curr_libc, curr_arch)) or [arch]
