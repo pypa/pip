@@ -1,7 +1,5 @@
-import os
 import shutil
 import textwrap
-import urllib.parse
 
 import pytest
 
@@ -25,6 +23,7 @@ def test_find_links_relative_path(script: PipTestEnvironment, data: TestData) ->
     result.did_create(initools_folder)
 
 
+@pytest.mark.usefixtures("with_wheel")
 def test_find_links_no_doctype(script: PipTestEnvironment, data: TestData) -> None:
     shutil.copy(data.packages / "simple-1.0.tar.gz", script.scratch_path)
     html = script.scratch_path.joinpath("index.html")
@@ -52,7 +51,7 @@ def test_find_links_requirements_file_relative_path(
         --find-links={}
         parent==0.1
         """.format(
-                data.packages.replace(os.path.sep, "/")
+                data.packages.as_posix()
             )
         )
     )
@@ -86,7 +85,7 @@ def test_file_index_url_quoting(script: PipTestEnvironment, data: TestData) -> N
     """
     Test url quoting of file index url with a space
     """
-    index_url = data.index_url(urllib.parse.quote("in dex"))
+    index_url = data.index_url("in dex")
     result = script.pip("install", "-vvv", "--index-url", index_url, "simple")
     result.did_create(script.site_packages / "simple")
     result.did_create(script.site_packages / "simple-1.0.dist-info")

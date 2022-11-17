@@ -23,7 +23,7 @@ class HTTPRangeRequestUnsupported(Exception):
 def dist_from_wheel_url(name: str, url: str, session: PipSession) -> BaseDistribution:
     """Return a distribution object from the given wheel URL.
 
-    This uses HTTP range requests to only fetch the potion of the wheel
+    This uses HTTP range requests to only fetch the portion of the wheel
     containing metadata, just enough for the object to be constructed.
     If such requests are not supported, HTTPRangeRequestUnsupported
     is raised.
@@ -135,8 +135,8 @@ class LazyZipOverHTTP:
         self._file.__enter__()
         return self
 
-    def __exit__(self, *exc: Any) -> Optional[bool]:
-        return self._file.__exit__(*exc)
+    def __exit__(self, *exc: Any) -> None:
+        self._file.__exit__(*exc)
 
     @contextmanager
     def _stay(self) -> Generator[None, None, None]:

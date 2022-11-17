@@ -262,7 +262,7 @@ class TestCallSubprocess:
             [
                 # pytest's caplog overrides th formatter, which means that we
                 # won't see the message formatted through our formatters.
-                ("pip.subprocessor", ERROR, "[present-diagnostic]"),
+                ("pip.subprocessor", ERROR, "[present-rich]"),
             ],
         )
         # The spinner should spin three times in this case since the

@@ -1,4 +1,3 @@
-import distutils.util  # FIXME: For change_root.
 import logging
 import os
 import sys
@@ -9,7 +8,7 @@ from pip._internal.exceptions import InvalidSchemeCombination, UserInstallationI
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
-from .base import get_major_minor_version, is_osx_framework
+from .base import change_root, get_major_minor_version, is_osx_framework
 
 logger = logging.getLogger(__name__)
 
@@ -194,7 +193,7 @@ def get_scheme(
     )
     if root is not None:
         for key in SCHEME_KEYS:
-            value = distutils.util.change_root(root, getattr(scheme, key))
+            value = change_root(root, getattr(scheme, key))
             setattr(scheme, key, value)
     return scheme
 

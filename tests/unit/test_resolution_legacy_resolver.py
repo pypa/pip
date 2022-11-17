@@ -1,5 +1,6 @@
 import email.message
 import logging
+import os
 from typing import List, Optional, Type, TypeVar, cast
 from unittest import mock
 
@@ -7,15 +8,20 @@ import pytest
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName
 
-from pip._internal.exceptions import NoneMetadataError, UnsupportedPythonVersion
+from pip._internal.exceptions import (
+    InstallationError,
+    NoneMetadataError,
+    UnsupportedPythonVersion,
+)
 from pip._internal.metadata import BaseDistribution
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.req.constructors import install_req_from_line
+from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.legacy.resolver import (
     Resolver,
     _check_dist_requires_python,
 )
-from tests.lib import make_test_finder
+from tests.lib import TestData, make_test_finder
 from tests.lib.index import make_mock_candidate
 
 T = TypeVar("T")
@@ -50,8 +56,94 @@ def make_fake_dist(
     return klass(metadata)  # type: ignore[call-arg]
 
 
-class TestCheckDistRequiresPython:
+def make_test_resolver(
+    monkeypatch: pytest.MonkeyPatch,
+    mock_candidates: List[InstallationCandidate],
+) -> Resolver:
+    def _find_candidates(project_name: str) -> List[InstallationCandidate]:
+        return mock_candidates
 
+    finder = make_test_finder()
+    monkeypatch.setattr(finder, "find_all_candidates", _find_candidates)
+
+    return Resolver(
+        finder=finder,
+        preparer=mock.Mock(),  # Not used.
+        make_install_req=install_req_from_line,
+        wheel_cache=None,
+        use_user_site=False,
+        force_reinstall=False,
+        ignore_dependencies=False,
+        ignore_installed=False,
+        ignore_requires_python=False,
+        upgrade_strategy="to-satisfy-only",
+    )
+
+
+class TestAddRequirement:
+    """
+    Test _add_requirement_to_set().
+    """
+
+    def test_unsupported_wheel_link_requirement_raises(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # GIVEN
+        resolver = make_test_resolver(monkeypatch, [])
+        requirement_set = RequirementSet(check_supported_wheels=True)
+
+        install_req = install_req_from_line(
+            "https://whatever.com/peppercorn-0.4-py2.py3-bogus-any.whl",
+        )
+        assert install_req.link is not None
+        assert install_req.link.is_wheel
+        assert install_req.link.scheme == "https"
+
+        # WHEN / THEN
+        with pytest.raises(InstallationError):
+            resolver._add_requirement_to_set(requirement_set, install_req)
+
+    def test_unsupported_wheel_local_file_requirement_raises(
+        self, data: TestData, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # GIVEN
+        resolver = make_test_resolver(monkeypatch, [])
+        requirement_set = RequirementSet(check_supported_wheels=True)
+
+        install_req = install_req_from_line(
+            os.fspath(data.packages.joinpath("simple.dist-0.1-py1-none-invalid.whl")),
+        )
+        assert install_req.link is not None
+        assert install_req.link.is_wheel
+        assert install_req.link.scheme == "file"
+
+        # WHEN / THEN
+        with pytest.raises(InstallationError):
+            resolver._add_requirement_to_set(requirement_set, install_req)
+
+    def test_exclusive_environment_markers(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Make sure excluding environment markers are handled correctly."""
+        # GIVEN
+        resolver = make_test_resolver(monkeypatch, [])
+        requirement_set = RequirementSet(check_supported_wheels=True)
+
+        eq36 = install_req_from_line("Django>=1.6.10,<1.7 ; python_version == '3.6'")
+        eq36.user_supplied = True
+        ne36 = install_req_from_line("Django>=1.6.10,<1.8 ; python_version != '3.6'")
+        ne36.user_supplied = True
+
+        # WHEN
+        resolver._add_requirement_to_set(requirement_set, eq36)
+        resolver._add_requirement_to_set(requirement_set, ne36)
+
+        # THEN
+        assert requirement_set.has_requirement("Django")
+        assert len(requirement_set.all_requirements) == 1
+
+
+class TestCheckDistRequiresPython:
     """
     Test _check_dist_requires_python().
     """
@@ -179,30 +271,6 @@ class TestYankedWarning:
     Test _populate_link() emits warning if one or more candidates are yanked.
     """
 
-    def _make_test_resolver(
-        self,
-        monkeypatch: pytest.MonkeyPatch,
-        mock_candidates: List[InstallationCandidate],
-    ) -> Resolver:
-        def _find_candidates(project_name: str) -> List[InstallationCandidate]:
-            return mock_candidates
-
-        finder = make_test_finder()
-        monkeypatch.setattr(finder, "find_all_candidates", _find_candidates)
-
-        return Resolver(
-            finder=finder,
-            preparer=mock.Mock(),  # Not used.
-            make_install_req=install_req_from_line,
-            wheel_cache=None,
-            use_user_site=False,
-            force_reinstall=False,
-            ignore_dependencies=False,
-            ignore_installed=False,
-            ignore_requires_python=False,
-            upgrade_strategy="to-satisfy-only",
-        )
-
     def test_sort_best_candidate__has_non_yanked(
         self, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -219,7 +287,7 @@ class TestYankedWarning:
         ]
         ireq = install_req_from_line("pkg")
 
-        resolver = self._make_test_resolver(monkeypatch, candidates)
+        resolver = make_test_resolver(monkeypatch, candidates)
         resolver._populate_link(ireq)
 
         assert ireq.link == candidates[0].link
@@ -243,7 +311,7 @@ class TestYankedWarning:
         ]
         ireq = install_req_from_line("pkg")
 
-        resolver = self._make_test_resolver(monkeypatch, candidates)
+        resolver = make_test_resolver(monkeypatch, candidates)
         resolver._populate_link(ireq)
 
         assert ireq.link == candidates[1].link
@@ -287,7 +355,7 @@ class TestYankedWarning:
         ]
         ireq = install_req_from_line("pkg")
 
-        resolver = self._make_test_resolver(monkeypatch, candidates)
+        resolver = make_test_resolver(monkeypatch, candidates)
         resolver._populate_link(ireq)
 
         assert ireq.link == candidates[0].link

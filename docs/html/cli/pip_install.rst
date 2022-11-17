@@ -79,6 +79,18 @@ for an exception regarding pre-release versions). Where more than one source of
 the chosen version is available, it is assumed that any source is acceptable
 (as otherwise the versions would differ).
 
+Obtaining information about what was installed
+----------------------------------------------
+
+The install command has a ``--report`` option that will generate a JSON report of what
+pip has installed. In combination with the ``--dry-run`` and ``--ignore-installed`` it
+can be used to *resolve* a set of requirements without actually installing them.
+
+The report can be written to a file, or to standard output (using ``--report -`` in
+combination with ``--quiet``).
+
+The format of the JSON report is described in :doc:`../reference/installation-report`.
+
 Installation Order
 ------------------
 
@@ -148,19 +160,18 @@ profile:
 3. For whatever reason, they don't or won't declare their build dependencies using
    ``setup_requires``.
 
-
-Requirements File Format
-------------------------
+.. _`0-requirements-file-format`:
+.. rubric:: Requirements File Format
 
 This section has been moved to :doc:`../reference/requirements-file-format`.
 
-Requirement Specifiers
-----------------------
+.. _`0-requirement-specifiers`:
+.. rubric:: Requirement Specifiers
 
 This section has been moved to :doc:`../reference/requirement-specifiers`.
 
-Per-requirement Overrides
--------------------------
+.. _`0-per-requirement-overrides`:
+.. rubric:: Per-requirement Overrides
 
 This is now covered in :doc:`../reference/requirements-file-format`.
 
@@ -183,11 +194,8 @@ that enables installation of pre-releases and development releases.
 
 .. _pre-releases: https://www.python.org/dev/peps/pep-0440/#handling-of-pre-releases
 
-
-.. _`VCS Support`:
-
-VCS Support
------------
+.. _`0-vcs-support`:
+.. rubric:: VCS Support
 
 This is now covered in :doc:`../topics/vcs-support`.
 
@@ -211,57 +219,42 @@ details) is selected.
 
 See the :ref:`pip install Examples<pip install Examples>`.
 
+.. _`0-ssl certificate verification`:
+.. rubric:: SSL Certificate Verification
 
-.. _`SSL Certificate Verification`:
+This is now covered in :doc:`../topics/https-certificates`.
 
-SSL Certificate Verification
-----------------------------
-
-Starting with v1.3, pip provides SSL certificate verification over HTTP, to
-prevent man-in-the-middle attacks against PyPI downloads. This does not use
-the system certificate store but instead uses a bundled CA certificate
-store. The default bundled CA certificate store certificate store may be
-overridden by using ``--cert`` option or by using ``PIP_CERT``,
-``REQUESTS_CA_BUNDLE``, or ``CURL_CA_BUNDLE`` environment variables.
-
-
-.. _`Caching`:
-
-Caching
--------
+.. _`0-caching`:
+.. rubric:: Caching
 
 This is now covered in :doc:`../topics/caching`.
 
-.. _`Wheel cache`:
-
-Wheel Cache
-^^^^^^^^^^^
+.. _`0-wheel-cache`:
+.. rubric:: Wheel Cache
 
 This is now covered in :doc:`../topics/caching`.
 
-Hash checking mode
-------------------
+.. _`0-hash-checking-mode`:
+.. rubric:: Hash checking mode
 
 This is now covered in :doc:`../topics/secure-installs`.
 
-Local Project Installs
-----------------------
+.. _`0-local-project-installs`:
+.. rubric:: Local Project Installs
 
 This is now covered in :doc:`../topics/local-project-installs`.
 
-Editable installs
------------------
+.. _`0-editable-installs`:
+.. rubric:: Editable installs
 
 This is now covered in :doc:`../topics/local-project-installs`.
 
-Build System Interface
-----------------------
+.. _`0-build-system-interface`:
+.. rubric:: Build System Interface
 
 This is now covered in :doc:`../reference/build-system/index`.
 
-
 .. _`pip install Options`:
-
 
 Options
 =======

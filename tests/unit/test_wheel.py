@@ -3,8 +3,10 @@ import csv
 import logging
 import os
 import pathlib
+import sys
 import textwrap
 from email import message_from_string
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple, cast
 from unittest.mock import patch
 
@@ -21,12 +23,15 @@ from pip._internal.models.direct_url import (
 from pip._internal.models.scheme import Scheme
 from pip._internal.operations.build.wheel_legacy import get_legacy_build_wheel_path
 from pip._internal.operations.install import wheel
-from pip._internal.operations.install.wheel import InstalledCSVRow, RecordPath
+from pip._internal.operations.install.wheel import (
+    InstalledCSVRow,
+    RecordPath,
+    get_console_script_specs,
+)
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import hash_file
 from pip._internal.utils.unpacking import unpack_file
 from tests.lib import DATA_DIR, TestData, assert_paths_equal
-from tests.lib.path import Path
 from tests.lib.wheel import make_wheel
 
 
@@ -258,13 +263,13 @@ def test_dist_from_broken_wheel_fails(data: TestData) -> None:
 
     package = data.packages.joinpath("corruptwheel-1.0-py2.py3-none-any.whl")
     with pytest.raises(InvalidWheel):
-        get_wheel_distribution(FilesystemWheel(package), "brokenwheel")
+        get_wheel_distribution(FilesystemWheel(os.fspath(package)), "brokenwheel")
 
 
 class TestWheelFile:
     def test_unpack_wheel_no_flatten(self, tmpdir: Path) -> None:
         filepath = os.path.join(DATA_DIR, "packages", "meta-1.0-py2.py3-none-any.whl")
-        unpack_file(filepath, tmpdir)
+        unpack_file(filepath, os.fspath(tmpdir))
         assert os.path.isdir(os.path.join(tmpdir, "meta-1.0.dist-info"))
 
 
@@ -273,12 +278,12 @@ class TestInstallUnpackedWheel:
     Tests for moving files from wheel src to scheme paths
     """
 
-    def prep(self, data: TestData, tmpdir: str) -> None:
+    def prep(self, data: TestData, tmp_path: Path) -> None:
         # Since Path implements __add__, os.path.join returns a Path object.
         # Passing Path objects to interfaces expecting str (like
         # `compileall.compile_file`) can cause failures, so we normalize it
         # to a string here.
-        tmpdir = str(tmpdir)
+        tmpdir = str(tmp_path)
         self.name = "sample"
         self.wheelpath = make_wheel(
             "sample",
@@ -672,12 +677,40 @@ class TestWheelHashCalculators:
 
     def test_hash_file(self, tmpdir: Path) -> None:
         self.prep(tmpdir)
-        h, length = hash_file(self.test_file)
+        h, length = hash_file(os.fspath(self.test_file))
         assert length == self.test_file_len
         assert h.hexdigest() == self.test_file_hash
 
     def test_rehash(self, tmpdir: Path) -> None:
         self.prep(tmpdir)
-        h, length = wheel.rehash(self.test_file)
+        h, length = wheel.rehash(os.fspath(self.test_file))
         assert length == str(self.test_file_len)
         assert h == self.test_file_hash_encoded
+
+
+def test_get_console_script_specs_replaces_python_version(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Fake Python version.
+    monkeypatch.setattr(sys, "version_info", (10, 11))
+
+    entry_points = {
+        "pip": "real_pip",
+        "pip99": "whatever",
+        "pip99.88": "whatever",
+        "easy_install": "real_easy_install",
+        "easy_install-99.88": "whatever",
+        # The following shouldn't be replaced.
+        "not_pip_or_easy_install-99": "whatever",
+        "not_pip_or_easy_install-99.88": "whatever",
+    }
+    specs = get_console_script_specs(entry_points)
+    assert specs == [
+        "pip = real_pip",
+        "pip10 = real_pip",
+        "pip10.11 = real_pip",
+        "easy_install = real_easy_install",
+        "easy_install-10.11 = real_easy_install",
+        "not_pip_or_easy_install-99 = whatever",
+        "not_pip_or_easy_install-99.88 = whatever",
+    ]

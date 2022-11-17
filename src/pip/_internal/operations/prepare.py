@@ -19,12 +19,14 @@ from pip._internal.exceptions import (
     HashMismatch,
     HashUnpinned,
     InstallationError,
+    MetadataInconsistent,
     NetworkConnectionError,
     PreviousBuildDirError,
     VcsHashUnsupported,
 )
 from pip._internal.index.package_finder import PackageFinder
-from pip._internal.metadata import BaseDistribution
+from pip._internal.metadata import BaseDistribution, get_metadata_distribution
+from pip._internal.models.direct_url import ArchiveInfo
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.network.download import BatchDownloader, Downloader
@@ -35,9 +37,18 @@ from pip._internal.network.lazy_wheel import (
 from pip._internal.network.session import PipSession
 from pip._internal.operations.build.build_tracker import BuildTracker
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.direct_url_helpers import (
+    direct_url_for_editable,
+    direct_url_from_link,
+)
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import display_path, hide_url, is_installable_dir
+from pip._internal.utils.misc import (
+    display_path,
+    hash_file,
+    hide_url,
+    is_installable_dir,
+)
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
@@ -50,11 +61,14 @@ def _get_prepared_distribution(
     build_tracker: BuildTracker,
     finder: PackageFinder,
     build_isolation: bool,
+    check_build_deps: bool,
 ) -> BaseDistribution:
     """Prepare a distribution for installation."""
     abstract_dist = make_distribution_for_install_requirement(req)
     with build_tracker.track(req):
-        abstract_dist.prepare_distribution_metadata(finder, build_isolation)
+        abstract_dist.prepare_distribution_metadata(
+            finder, build_isolation, check_build_deps
+        )
     return abstract_dist.get_metadata_distribution()
 
 
@@ -199,6 +213,7 @@ class RequirementPreparer:
         download_dir: Optional[str],
         src_dir: str,
         build_isolation: bool,
+        check_build_deps: bool,
         build_tracker: BuildTracker,
         session: PipSession,
         progress_bar: str,
@@ -224,6 +239,9 @@ class RequirementPreparer:
 
         # Is build isolation allowed?
         self.build_isolation = build_isolation
+
+        # Should check build dependencies?
+        self.check_build_deps = check_build_deps
 
         # Should hash-checking be required?
         self.require_hashes = require_hashes
@@ -329,19 +347,72 @@ class RequirementPreparer:
         # showing the user what the hash should be.
         return req.hashes(trust_internet=False) or MissingHashes()
 
+    def _fetch_metadata_only(
+        self,
+        req: InstallRequirement,
+    ) -> Optional[BaseDistribution]:
+        if self.require_hashes:
+            logger.debug(
+                "Metadata-only fetching is not used as hash checking is required",
+            )
+            return None
+        # Try PEP 658 metadata first, then fall back to lazy wheel if unavailable.
+        return self._fetch_metadata_using_link_data_attr(
+            req
+        ) or self._fetch_metadata_using_lazy_wheel(req.link)
+
+    def _fetch_metadata_using_link_data_attr(
+        self,
+        req: InstallRequirement,
+    ) -> Optional[BaseDistribution]:
+        """Fetch metadata from the data-dist-info-metadata attribute, if possible."""
+        # (1) Get the link to the metadata file, if provided by the backend.
+        metadata_link = req.link.metadata_link()
+        if metadata_link is None:
+            return None
+        assert req.req is not None
+        logger.info(
+            "Obtaining dependency information for %s from %s",
+            req.req,
+            metadata_link,
+        )
+        # (2) Download the contents of the METADATA file, separate from the dist itself.
+        metadata_file = get_http_url(
+            metadata_link,
+            self._download,
+            hashes=metadata_link.as_hashes(),
+        )
+        with open(metadata_file.path, "rb") as f:
+            metadata_contents = f.read()
+        # (3) Generate a dist just from those file contents.
+        metadata_dist = get_metadata_distribution(
+            metadata_contents,
+            req.link.filename,
+            req.req.name,
+        )
+        # (4) Ensure the Name: field from the METADATA file matches the name from the
+        #     install requirement.
+        #
+        #     NB: raw_name will fall back to the name from the install requirement if
+        #     the Name: field is not present, but it's noted in the raw_name docstring
+        #     that that should NEVER happen anyway.
+        if metadata_dist.raw_name != req.req.name:
+            raise MetadataInconsistent(
+                req, "Name", req.req.name, metadata_dist.raw_name
+            )
+        return metadata_dist
+
     def _fetch_metadata_using_lazy_wheel(
         self,
         link: Link,
     ) -> Optional[BaseDistribution]:
         """Fetch metadata using lazy wheel, if possible."""
+        # --use-feature=fast-deps must be provided.
         if not self.use_lazy_wheel:
-            return None
-        if self.require_hashes:
-            logger.debug("Lazy wheel is not used as hash checking is required")
             return None
         if link.is_file or not link.is_wheel:
             logger.debug(
-                "Lazy wheel is not used as %r does not points to a remote wheel",
+                "Lazy wheel is not used as %r does not point to a remote wheel",
                 link,
             )
             return None
@@ -397,13 +468,12 @@ class RequirementPreparer:
     ) -> BaseDistribution:
         """Prepare a requirement to be obtained from req.link."""
         assert req.link
-        link = req.link
         self._log_preparing_link(req)
         with indent_log():
             # Check if the relevant file is already available
             # in the download directory
             file_path = None
-            if self.download_dir is not None and link.is_wheel:
+            if self.download_dir is not None and req.link.is_wheel:
                 hashes = self._get_linked_req_hashes(req)
                 file_path = _check_download_dir(req.link, self.download_dir, hashes)
 
@@ -412,10 +482,10 @@ class RequirementPreparer:
                 self._downloaded[req.link.url] = file_path
             else:
                 # The file is not available, attempt to fetch only metadata
-                wheel_dist = self._fetch_metadata_using_lazy_wheel(link)
-                if wheel_dist is not None:
+                metadata_dist = self._fetch_metadata_only(req)
+                if metadata_dist is not None:
                     req.needs_more_preparation = True
-                    return wheel_dist
+                    return metadata_dist
 
             # None of the optimizations worked, fully prepare the requirement
             return self._prepare_linked_requirement(req, parallel_builds)
@@ -482,6 +552,23 @@ class RequirementPreparer:
                 hashes.check_against_path(file_path)
             local_file = File(file_path, content_type=None)
 
+        # If download_info is set, we got it from the wheel cache.
+        if req.download_info is None:
+            # Editables don't go through this function (see
+            # prepare_editable_requirement).
+            assert not req.editable
+            req.download_info = direct_url_from_link(link, req.source_dir)
+            # Make sure we have a hash in download_info. If we got it as part of the
+            # URL, it will have been verified and we can rely on it. Otherwise we
+            # compute it from the downloaded file.
+            if (
+                isinstance(req.download_info.info, ArchiveInfo)
+                and not req.download_info.info.hash
+                and local_file
+            ):
+                hash = hash_file(local_file.path)[0].hexdigest()
+                req.download_info.info.hash = f"sha256={hash}"
+
         # For use in later processing,
         # preserve the file path on the requirement.
         if local_file:
@@ -492,6 +579,7 @@ class RequirementPreparer:
             self.build_tracker,
             self.finder,
             self.build_isolation,
+            self.check_build_deps,
         )
         return dist
 
@@ -539,12 +627,15 @@ class RequirementPreparer:
                 )
             req.ensure_has_source_dir(self.src_dir)
             req.update_editable()
+            assert req.source_dir
+            req.download_info = direct_url_for_editable(req.unpacked_source_directory)
 
             dist = _get_prepared_distribution(
                 req,
                 self.build_tracker,
                 self.finder,
                 self.build_isolation,
+                self.check_build_deps,
             )
 
             req.check_if_exists(self.use_user_site)

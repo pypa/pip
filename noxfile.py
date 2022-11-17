@@ -21,7 +21,7 @@ nox.options.sessions = ["lint"]
 
 LOCATIONS = {
     "common-wheels": "tests/data/common_wheels",
-    "protected-pip": "tools/tox_pip.py",
+    "protected-pip": "tools/protected_pip.py",
 }
 REQUIREMENTS = {
     "docs": "docs/requirements.txt",
@@ -66,7 +66,7 @@ def should_update_common_wheels() -> bool:
 # -----------------------------------------------------------------------------
 # Development Commands
 # -----------------------------------------------------------------------------
-@nox.session(python=["3.7", "3.8", "3.9", "3.10", "pypy3"])
+@nox.session(python=["3.7", "3.8", "3.9", "3.10", "3.11", "pypy3"])
 def test(session: nox.Session) -> None:
     # Get the common wheels.
     if should_update_common_wheels():
@@ -115,7 +115,6 @@ def test(session: nox.Session) -> None:
         *arguments,
         env={
             "LC_CTYPE": "en_US.UTF-8",
-            "SETUPTOOLS_USE_DISTUTILS": "stdlib",
         },
     )
 
@@ -173,6 +172,13 @@ def lint(session: nox.Session) -> None:
     session.run("pre-commit", "run", *args)
 
 
+# NOTE: This session will COMMIT upgrades to vendored libraries.
+# You should therefore not run it directly against `main`. If you
+# do (assuming you started with a clean main), you can run:
+#
+# git checkout -b vendoring-updates
+# git checkout main
+# git reset --hard origin/main
 @nox.session
 def vendoring(session: nox.Session) -> None:
     session.install("vendoring~=1.2.0")
@@ -229,15 +235,22 @@ def vendoring(session: nox.Session) -> None:
 
 @nox.session
 def coverage(session: nox.Session) -> None:
-    if not os.path.exists("./.coverage-output"):
-        os.mkdir("./.coverage-output")
+    # Install source distribution
+    run_with_protected_pip(session, "install", ".")
+
+    # Install test dependencies
+    run_with_protected_pip(session, "install", "-r", REQUIREMENTS["tests"])
+
+    if not os.path.exists(".coverage-output"):
+        os.mkdir(".coverage-output")
     session.run(
         "pytest",
         "--cov=pip",
         "--cov-config=./setup.cfg",
+        *session.posargs,
         env={
             "COVERAGE_OUTPUT_DIR": "./.coverage-output",
-            "COVERAGE_PROCESS_START": "./setup.cfg",
+            "COVERAGE_PROCESS_START": os.fsdecode(Path("setup.cfg").resolve()),
         },
     )
 

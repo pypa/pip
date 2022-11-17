@@ -60,6 +60,7 @@ class _PackageInfo(NamedTuple):
     classifiers: List[str]
     summary: str
     homepage: str
+    project_urls: List[str]
     author: str
     author_email: str
     license: str
@@ -76,7 +77,7 @@ def search_packages_info(query: List[str]) -> Generator[_PackageInfo, None, None
     """
     env = get_default_environment()
 
-    installed = {dist.canonical_name: dist for dist in env.iter_distributions()}
+    installed = {dist.canonical_name: dist for dist in env.iter_all_distributions()}
     query_names = [canonicalize_name(name) for name in query]
     missing = sorted(
         [name for name, pkg in zip(query, query_names) if pkg not in installed]
@@ -126,6 +127,7 @@ def search_packages_info(query: List[str]) -> Generator[_PackageInfo, None, None
             classifiers=metadata.get_all("Classifier", []),
             summary=metadata.get("Summary", ""),
             homepage=metadata.get("Home-page", ""),
+            project_urls=metadata.get_all("Project-URL", []),
             author=metadata.get("Author", ""),
             author_email=metadata.get("Author-email", ""),
             license=metadata.get("License", ""),
@@ -168,6 +170,9 @@ def print_results(
             write_output("Entry-points:")
             for entry in dist.entry_points:
                 write_output("  %s", entry.strip())
+            write_output("Project-URLs:")
+            for project_url in dist.project_urls:
+                write_output("  %s", project_url)
         if list_files:
             write_output("Files:")
             if dist.files is None:

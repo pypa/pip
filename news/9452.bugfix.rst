@@ -1,1 +1,0 @@
-Fix an error when trying to uninstall packages installed as editable from a network drive.

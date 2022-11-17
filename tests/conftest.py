@@ -6,12 +6,21 @@ import re
 import shutil
 import subprocess
 import sys
-import time
 from contextlib import ExitStack, contextmanager
-from typing import TYPE_CHECKING, Callable, Dict, Iterable, Iterator, List, Optional
+from pathlib import Path
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Union,
+)
 from unittest.mock import patch
+from zipfile import ZipFile
 
-import py.path
 import pytest
 
 # Config will be available from the public API in pytest >= 7.0.0:
@@ -21,13 +30,15 @@ from _pytest.config import Config
 # Parser will be available from the public API in pytest >= 7.0.0:
 # https://github.com/pytest-dev/pytest/commit/538b5c24999e9ebb4fab43faabc8bcc28737bcdf
 from _pytest.config.argparsing import Parser
-from setuptools.wheel import Wheel
+from installer import install
+from installer.destinations import SchemeDictionaryDestination
+from installer.sources import WheelFile
 
+from pip import __file__ as pip_location
 from pip._internal.cli.main import main as pip_entry_point
 from pip._internal.locations import _USE_SYSCONFIG
 from pip._internal.utils.temp_dir import global_tempdir_manager
 from tests.lib import DATA_DIR, SRC_DIR, PipTestEnvironment, TestData
-from tests.lib.path import Path
 from tests.lib.server import MockServer as _MockServer
 from tests.lib.server import make_mock_server, server_running
 from tests.lib.venv import VirtualEnvironment, VirtualEnvironmentType
@@ -76,9 +87,15 @@ def pytest_addoption(parser: Parser) -> None:
         default=None,
         help="use given proxy in session network tests",
     )
+    parser.addoption(
+        "--use-zipapp",
+        action="store_true",
+        default=False,
+        help="use a zipapp when running pip in tests",
+    )
 
 
-def pytest_collection_modifyitems(config: Config, items: List[pytest.Item]) -> None:
+def pytest_collection_modifyitems(config: Config, items: List[pytest.Function]) -> None:
     for item in items:
         if not hasattr(item, "module"):  # e.g.: DoctestTextfile
             continue
@@ -91,10 +108,6 @@ def pytest_collection_modifyitems(config: Config, items: List[pytest.Item]) -> N
             if item.get_closest_marker("network") is not None:
                 item.add_marker(pytest.mark.flaky(reruns=3, reruns_delay=2))
 
-        if item.get_closest_marker("incompatible_with_test_venv") and config.getoption(
-            "--use-venv"
-        ):
-            item.add_marker(pytest.mark.skip("Incompatible with test venv"))
         if (
             item.get_closest_marker("incompatible_with_venv")
             and sys.prefix != sys.base_prefix
@@ -104,8 +117,7 @@ def pytest_collection_modifyitems(config: Config, items: List[pytest.Item]) -> N
         if item.get_closest_marker("incompatible_with_sysconfig") and _USE_SYSCONFIG:
             item.add_marker(pytest.mark.skip("Incompatible with sysconfig"))
 
-        # "Item" has no attribute "module"
-        module_file = item.module.__file__  # type: ignore[attr-defined]
+        module_file = item.module.__file__
         module_path = os.path.relpath(
             module_file, os.path.commonprefix([__file__, module_file])
         )
@@ -119,6 +131,14 @@ def pytest_collection_modifyitems(config: Config, items: List[pytest.Item]) -> N
             item.add_marker(pytest.mark.integration)
         elif module_root_dir.startswith("unit"):
             item.add_marker(pytest.mark.unit)
+
+            # We don't want to allow using the script resource if this is a
+            # unit test, as unit tests should not need all that heavy lifting
+            if "script" in item.fixturenames:
+                raise RuntimeError(
+                    "Cannot use the ``script`` funcarg in a unit test: "
+                    "(filename = {}, item = {})".format(module_path, item)
+                )
         else:
             raise RuntimeError(f"Unknown test type (filename = {module_path})")
 
@@ -146,38 +166,55 @@ def resolver_variant(request: pytest.FixtureRequest) -> Iterator[str]:
 
 
 @pytest.fixture(scope="session")
-def tmpdir_factory(
-    request: pytest.FixtureRequest, tmpdir_factory: pytest.TempdirFactory
-) -> Iterator[pytest.TempdirFactory]:
+def tmp_path_factory(
+    request: pytest.FixtureRequest, tmp_path_factory: pytest.TempPathFactory
+) -> Iterator[pytest.TempPathFactory]:
     """Modified `tmpdir_factory` session fixture
     that will automatically cleanup after itself.
     """
-    yield tmpdir_factory
+    yield tmp_path_factory
     if not request.config.getoption("--keep-tmpdir"):
         shutil.rmtree(
-            tmpdir_factory.getbasetemp(),
+            tmp_path_factory.getbasetemp(),
             ignore_errors=True,
         )
 
 
+@pytest.fixture(scope="session")
+def tmpdir_factory(tmp_path_factory: pytest.TempPathFactory) -> pytest.TempPathFactory:
+    """Override Pytest's ``tmpdir_factory`` with our pathlib implementation.
+
+    This prevents mis-use of this fixture.
+    """
+    return tmp_path_factory
+
+
 @pytest.fixture
-def tmpdir(request: pytest.FixtureRequest, tmpdir: py.path.local) -> Iterator[Path]:
+def tmp_path(request: pytest.FixtureRequest, tmp_path: Path) -> Iterator[Path]:
     """
     Return a temporary directory path object which is unique to each test
     function invocation, created as a sub directory of the base temporary
-    directory. The returned object is a ``tests.lib.path.Path`` object.
+    directory. The returned object is a ``Path`` object.
 
-    This uses the built-in tmpdir fixture from pytest itself but modified
-    to return our typical path object instead of py.path.local as well as
-    deleting the temporary directories at the end of each test case.
+    This uses the built-in tmp_path fixture from pytest itself, but deletes the
+    temporary directories at the end of each test case.
     """
-    assert tmpdir.isdir()
-    yield Path(str(tmpdir))
+    assert tmp_path.is_dir()
+    yield tmp_path
     # Clear out the temporary directory after the test has finished using it.
     # This should prevent us from needing a multiple gigabyte temporary
     # directory while running the tests.
     if not request.config.getoption("--keep-tmpdir"):
-        tmpdir.remove(ignore_errors=True)
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+@pytest.fixture()
+def tmpdir(tmp_path: Path) -> Path:
+    """Override Pytest's ``tmpdir`` with our pathlib implementation.
+
+    This prevents mis-use of this fixture.
+    """
+    return tmp_path
 
 
 @pytest.fixture(autouse=True)
@@ -296,10 +333,10 @@ def scoped_global_tempdir_manager(request: pytest.FixtureRequest) -> Iterator[No
 
 
 @pytest.fixture(scope="session")
-def pip_src(tmpdir_factory: pytest.TempdirFactory) -> Path:
+def pip_src(tmpdir_factory: pytest.TempPathFactory) -> Path:
     def not_code_files_and_folders(path: str, names: List[str]) -> Iterable[str]:
         # In the root directory...
-        if path == SRC_DIR:
+        if os.path.samefile(path, SRC_DIR):
             # ignore all folders except "src"
             folders = {
                 name for name in names if os.path.isdir(os.path.join(path, name))
@@ -317,7 +354,7 @@ def pip_src(tmpdir_factory: pytest.TempdirFactory) -> Path:
             ignored.update(fnmatch.filter(names, pattern))
         return ignored
 
-    pip_src = Path(str(tmpdir_factory.mktemp("pip_src"))).joinpath("pip_src")
+    pip_src = tmpdir_factory.mktemp("pip_src").joinpath("pip_src")
     # Copy over our source tree so that each use is self contained
     shutil.copytree(
         SRC_DIR,
@@ -328,49 +365,67 @@ def pip_src(tmpdir_factory: pytest.TempdirFactory) -> Path:
 
 
 def _common_wheel_editable_install(
-    tmpdir_factory: pytest.TempdirFactory, common_wheels: Path, package: str
+    tmpdir_factory: pytest.TempPathFactory, common_wheels: Path, package: str
 ) -> Path:
     wheel_candidates = list(common_wheels.glob(f"{package}-*.whl"))
     assert len(wheel_candidates) == 1, wheel_candidates
-    install_dir = Path(str(tmpdir_factory.mktemp(package))) / "install"
-    Wheel(wheel_candidates[0]).install_as_egg(install_dir)
-    (install_dir / "EGG-INFO").rename(install_dir / f"{package}.egg-info")
-    assert compileall.compile_dir(str(install_dir), quiet=1)
-    return install_dir
+    install_dir = tmpdir_factory.mktemp(package) / "install"
+    lib_install_dir = install_dir / "lib"
+    bin_install_dir = install_dir / "bin"
+    with WheelFile.open(wheel_candidates[0]) as source:
+        install(
+            source,
+            SchemeDictionaryDestination(
+                {
+                    "purelib": os.fspath(lib_install_dir),
+                    "platlib": os.fspath(lib_install_dir),
+                    "scripts": os.fspath(bin_install_dir),
+                },
+                interpreter=sys.executable,
+                script_kind="posix",
+            ),
+            additional_metadata={},
+        )
+    # The scripts are not necessary for our use cases, and they would be installed with
+    # the wrong interpreter, so remove them.
+    # TODO consider a refactoring by adding a install_from_wheel(path) method
+    # to the virtualenv fixture.
+    if bin_install_dir.exists():
+        shutil.rmtree(bin_install_dir)
+    return lib_install_dir
 
 
 @pytest.fixture(scope="session")
 def setuptools_install(
-    tmpdir_factory: pytest.TempdirFactory, common_wheels: Path
+    tmpdir_factory: pytest.TempPathFactory, common_wheels: Path
 ) -> Path:
     return _common_wheel_editable_install(tmpdir_factory, common_wheels, "setuptools")
 
 
 @pytest.fixture(scope="session")
-def wheel_install(tmpdir_factory: pytest.TempdirFactory, common_wheels: Path) -> Path:
+def wheel_install(tmpdir_factory: pytest.TempPathFactory, common_wheels: Path) -> Path:
     return _common_wheel_editable_install(tmpdir_factory, common_wheels, "wheel")
 
 
 @pytest.fixture(scope="session")
 def coverage_install(
-    tmpdir_factory: pytest.TempdirFactory, common_wheels: Path
+    tmpdir_factory: pytest.TempPathFactory, common_wheels: Path
 ) -> Path:
     return _common_wheel_editable_install(tmpdir_factory, common_wheels, "coverage")
 
 
-def install_egg_link(
-    venv: VirtualEnvironment, project_name: str, egg_info_dir: Path
+def install_pth_link(
+    venv: VirtualEnvironment, project_name: str, lib_dir: Path
 ) -> None:
-    with open(venv.site / "easy-install.pth", "a") as fp:
-        fp.write(str(egg_info_dir.resolve()) + "\n")
-    with open(venv.site / (project_name + ".egg-link"), "w") as fp:
-        fp.write(str(egg_info_dir) + "\n.")
+    venv.site.joinpath(f"_pip_testsuite_{project_name}.pth").write_text(
+        str(lib_dir.resolve()), encoding="utf-8"
+    )
 
 
 @pytest.fixture(scope="session")
 def virtualenv_template(
     request: pytest.FixtureRequest,
-    tmpdir_factory: pytest.TempdirFactory,
+    tmpdir_factory: pytest.TempPathFactory,
     pip_src: Path,
     setuptools_install: Path,
     coverage_install: Path,
@@ -383,12 +438,12 @@ def virtualenv_template(
         venv_type = "virtualenv"
 
     # Create the virtual environment
-    tmpdir = Path(str(tmpdir_factory.mktemp("virtualenv")))
+    tmpdir = tmpdir_factory.mktemp("virtualenv")
     venv = VirtualEnvironment(tmpdir.joinpath("venv_orig"), venv_type=venv_type)
 
     # Install setuptools and pip.
-    install_egg_link(venv, "setuptools", setuptools_install)
-    pip_editable = Path(str(tmpdir_factory.mktemp("pip"))) / "pip"
+    install_pth_link(venv, "setuptools", setuptools_install)
+    pip_editable = tmpdir_factory.mktemp("pip") / "pip"
     shutil.copytree(pip_src, pip_editable, symlinks=True)
     # noxfile.py is Python 3 only
     assert compileall.compile_dir(
@@ -397,12 +452,12 @@ def virtualenv_template(
         rx=re.compile("noxfile.py$"),
     )
     subprocess.check_call(
-        [venv.bin / "python", "setup.py", "-q", "develop"], cwd=pip_editable
+        [os.fspath(venv.bin / "python"), "setup.py", "-q", "develop"], cwd=pip_editable
     )
 
     # Install coverage and pth file for executing it in any spawned processes
     # in this virtual environment.
-    install_egg_link(venv, "coverage", coverage_install)
+    install_pth_link(venv, "coverage", coverage_install)
     # zz prefix ensures the file is after easy-install.pth.
     with open(venv.site / "zz-coverage-helper.pth", "a") as f:
         f.write("import coverage; coverage.process_startup()")
@@ -414,9 +469,6 @@ def virtualenv_template(
             or exe.startswith("libpy")  # Don't remove libpypy-c.so...
         ):
             (venv.bin / exe).unlink()
-
-    # Enable user site packages.
-    venv.user_site_packages = True
 
     # Rename original virtualenv directory to make sure
     # it's not reused by mistake from one of the copies.
@@ -450,7 +502,7 @@ def virtualenv(
 
 @pytest.fixture
 def with_wheel(virtualenv: VirtualEnvironment, wheel_install: Path) -> None:
-    install_egg_link(virtualenv, "wheel", wheel_install)
+    install_pth_link(virtualenv, "wheel", wheel_install)
 
 
 class ScriptFactory(Protocol):
@@ -462,10 +514,13 @@ class ScriptFactory(Protocol):
 
 @pytest.fixture(scope="session")
 def script_factory(
-    virtualenv_factory: Callable[[Path], VirtualEnvironment], deprecated_python: bool
+    virtualenv_factory: Callable[[Path], VirtualEnvironment],
+    deprecated_python: bool,
+    zipapp: Optional[str],
 ) -> ScriptFactory:
     def factory(
-        tmpdir: Path, virtualenv: Optional[VirtualEnvironment] = None
+        tmpdir: Path,
+        virtualenv: Optional[VirtualEnvironment] = None,
     ) -> PipTestEnvironment:
         if virtualenv is None:
             virtualenv = virtualenv_factory(tmpdir.joinpath("venv"))
@@ -484,16 +539,67 @@ def script_factory(
             assert_no_temp=True,
             # Deprecated python versions produce an extra deprecation warning
             pip_expect_warning=deprecated_python,
+            # Tell the Test Environment if we want to run pip via a zipapp
+            zipapp=zipapp,
         )
 
     return factory
 
 
+ZIPAPP_MAIN = """\
+#!/usr/bin/env python
+
+import os
+import runpy
+import sys
+
+lib = os.path.join(os.path.dirname(__file__), "lib")
+sys.path.insert(0, lib)
+
+runpy.run_module("pip", run_name="__main__")
+"""
+
+
+def make_zipapp_from_pip(zipapp_name: Path) -> None:
+    pip_dir = Path(pip_location).parent
+    with zipapp_name.open("wb") as zipapp_file:
+        zipapp_file.write(b"#!/usr/bin/env python\n")
+        with ZipFile(zipapp_file, "w") as zipapp:
+            for pip_file in pip_dir.rglob("*"):
+                if pip_file.suffix == ".pyc":
+                    continue
+                if pip_file.name == "__pycache__":
+                    continue
+                rel_name = pip_file.relative_to(pip_dir.parent)
+                zipapp.write(pip_file, arcname=f"lib/{rel_name}")
+            zipapp.writestr("__main__.py", ZIPAPP_MAIN)
+
+
+@pytest.fixture(scope="session")
+def zipapp(
+    request: pytest.FixtureRequest, tmpdir_factory: pytest.TempPathFactory
+) -> Optional[str]:
+    """
+    If the user requested for pip to be run from a zipapp, build that zipapp
+    and return its location. If the user didn't request a zipapp, return None.
+
+    This fixture is session scoped, so the zipapp will only be created once.
+    """
+    if not request.config.getoption("--use-zipapp"):
+        return None
+
+    temp_location = tmpdir_factory.mktemp("zipapp")
+    pyz_file = temp_location / "pip.pyz"
+    make_zipapp_from_pip(pyz_file)
+    return str(pyz_file)
+
+
 @pytest.fixture
 def script(
+    request: pytest.FixtureRequest,
     tmpdir: Path,
     virtualenv: VirtualEnvironment,
-    script_factory: Callable[[Path, Optional[VirtualEnvironment]], PipTestEnvironment],
+    script_factory: ScriptFactory,
 ) -> PipTestEnvironment:
     """
     Return a PipTestEnvironment which is unique to each test function and
@@ -511,8 +617,8 @@ def common_wheels() -> Path:
 
 
 @pytest.fixture(scope="session")
-def shared_data(tmpdir_factory: pytest.TempdirFactory) -> TestData:
-    return TestData.copy(Path(str(tmpdir_factory.mktemp("data"))))
+def shared_data(tmpdir_factory: pytest.TempPathFactory) -> TestData:
+    return TestData.copy(tmpdir_factory.mktemp("data"))
 
 
 @pytest.fixture
@@ -527,12 +633,12 @@ class InMemoryPipResult:
 
 
 class InMemoryPip:
-    def pip(self, *args: str) -> InMemoryPipResult:
+    def pip(self, *args: Union[str, Path]) -> InMemoryPipResult:
         orig_stdout = sys.stdout
         stdout = io.StringIO()
         sys.stdout = stdout
         try:
-            returncode = pip_entry_point(list(args))
+            returncode = pip_entry_point([os.fspath(a) for a in args])
         except SystemExit as e:
             returncode = e.code or 0
         finally:
@@ -555,7 +661,7 @@ CertFactory = Callable[[], str]
 
 
 @pytest.fixture(scope="session")
-def cert_factory(tmpdir_factory: pytest.TempdirFactory) -> CertFactory:
+def cert_factory(tmpdir_factory: pytest.TempPathFactory) -> CertFactory:
     # Delay the import requiring cryptography in order to make it possible
     # to deselect relevant tests on systems where cryptography cannot
     # be installed.
@@ -563,7 +669,7 @@ def cert_factory(tmpdir_factory: pytest.TempdirFactory) -> CertFactory:
 
     def factory() -> str:
         """Returns path to cert/key file."""
-        output_path = Path(str(tmpdir_factory.mktemp("certs"))) / "cert.pem"
+        output_path = tmpdir_factory.mktemp("certs") / "cert.pem"
         # Must be Text on PY2.
         cert, key = make_tls_cert("localhost")
         with open(str(output_path), "wb") as f:
@@ -627,15 +733,10 @@ def mock_server() -> Iterator[MockServer]:
 
 
 @pytest.fixture
-def utc() -> Iterator[None]:
-    # time.tzset() is not implemented on some platforms, e.g. Windows.
-    tzset = getattr(time, "tzset", lambda: None)
-    with patch.dict(os.environ, {"TZ": "UTC"}):
-        tzset()
-        yield
-    tzset()
+def proxy(request: pytest.FixtureRequest) -> str:
+    return request.config.getoption("proxy")
 
 
 @pytest.fixture
-def proxy(request: pytest.FixtureRequest) -> str:
-    return request.config.getoption("proxy")
+def enable_user_site(virtualenv: VirtualEnvironment) -> None:
+    virtualenv.user_site_packages = True

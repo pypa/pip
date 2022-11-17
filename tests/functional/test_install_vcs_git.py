@@ -1,14 +1,13 @@
+from pathlib import Path
 from typing import Optional
 
 import pytest
 
-from pip._internal.utils.urls import path_to_url
 from tests.lib import pyversion  # noqa: F401
 from tests.lib import (
     PipTestEnvironment,
     _change_test_package_version,
     _create_test_package,
-    _test_path_to_file_url,
 )
 from tests.lib.git_submodule_helpers import (
     _change_test_package_submodule,
@@ -16,7 +15,6 @@ from tests.lib.git_submodule_helpers import (
     _pull_in_submodule_changes_to_module,
 )
 from tests.lib.local_repos import local_checkout
-from tests.lib.path import Path
 
 
 def _get_editable_repo_dir(script: PipTestEnvironment, package_name: str) -> Path:
@@ -46,7 +44,7 @@ def _get_branch_remote(
 
 def _github_checkout(
     url_path: str,
-    temp_dir: Path,
+    tmpdir: Path,
     rev: Optional[str] = None,
     egg: Optional[str] = None,
     scheme: Optional[str] = None,
@@ -65,7 +63,7 @@ def _github_checkout(
     if scheme is None:
         scheme = "https"
     url = f"git+{scheme}://github.com/{url_path}"
-    local_url = local_checkout(url, temp_dir)
+    local_url = local_checkout(url, tmpdir)
     if rev is not None:
         local_url += f"@{rev}"
     if egg is not None:
@@ -85,7 +83,7 @@ def _make_version_pkg_url(
         containing the version_pkg package.
       rev: an optional revision to install like a branch name, tag, or SHA.
     """
-    file_url = _test_path_to_file_url(path)
+    file_url = path.as_uri()
     url_rev = "" if rev is None else f"@{rev}"
     url = f"git+{file_url}{url_rev}#egg={name}"
 
@@ -96,7 +94,7 @@ def _install_version_pkg_only(
     script: PipTestEnvironment,
     path: Path,
     rev: Optional[str] = None,
-    expect_stderr: bool = False,
+    allow_stderr_warning: bool = False,
 ) -> None:
     """
     Install the version_pkg package in editable mode (without returning
@@ -108,14 +106,16 @@ def _install_version_pkg_only(
       rev: an optional revision to install like a branch name or tag.
     """
     version_pkg_url = _make_version_pkg_url(path, rev=rev)
-    script.pip("install", "-e", version_pkg_url, expect_stderr=expect_stderr)
+    script.pip(
+        "install", "-e", version_pkg_url, allow_stderr_warning=allow_stderr_warning
+    )
 
 
 def _install_version_pkg(
     script: PipTestEnvironment,
     path: Path,
     rev: Optional[str] = None,
-    expect_stderr: bool = False,
+    allow_stderr_warning: bool = False,
 ) -> str:
     """
     Install the version_pkg package in editable mode, and return the version
@@ -130,7 +130,7 @@ def _install_version_pkg(
         script,
         path,
         rev=rev,
-        expect_stderr=expect_stderr,
+        allow_stderr_warning=allow_stderr_warning,
     )
     result = script.run("version_pkg")
     version = result.stdout.strip()
@@ -147,7 +147,7 @@ def test_git_install_again_after_changes(script: PipTestEnvironment) -> None:
     logged on the update: "Did not find branch or tag ..., assuming ref or
     revision."
     """
-    version_pkg_path = _create_test_package(script)
+    version_pkg_path = _create_test_package(script.scratch_path)
     version = _install_version_pkg(script, version_pkg_path)
     assert version == "0.1"
 
@@ -163,7 +163,7 @@ def test_git_install_branch_again_after_branch_changes(
     Test installing a branch again after the branch is updated in the remote
     repository.
     """
-    version_pkg_path = _create_test_package(script)
+    version_pkg_path = _create_test_package(script.scratch_path)
     version = _install_version_pkg(script, version_pkg_path, rev="master")
     assert version == "0.1"
 
@@ -205,7 +205,7 @@ def test_git_with_sha1_revisions(script: PipTestEnvironment) -> None:
     """
     Git backend should be able to install from SHA1 revisions
     """
-    version_pkg_path = _create_test_package(script)
+    version_pkg_path = _create_test_package(script.scratch_path)
     _change_test_package_version(script, version_pkg_path)
     sha1 = script.run(
         "git",
@@ -221,7 +221,7 @@ def test_git_with_short_sha1_revisions(script: PipTestEnvironment) -> None:
     """
     Git backend should be able to install from SHA1 revisions
     """
-    version_pkg_path = _create_test_package(script)
+    version_pkg_path = _create_test_package(script.scratch_path)
     _change_test_package_version(script, version_pkg_path)
     sha1 = script.run(
         "git",
@@ -229,7 +229,13 @@ def test_git_with_short_sha1_revisions(script: PipTestEnvironment) -> None:
         "HEAD~1",
         cwd=version_pkg_path,
     ).stdout.strip()[:7]
-    version = _install_version_pkg(script, version_pkg_path, rev=sha1)
+    version = _install_version_pkg(
+        script,
+        version_pkg_path,
+        rev=sha1,
+        # WARNING: Did not find branch or tag ..., assuming revision or ref.
+        allow_stderr_warning=True,
+    )
     assert "0.1" == version
 
 
@@ -237,7 +243,7 @@ def test_git_with_branch_name_as_revision(script: PipTestEnvironment) -> None:
     """
     Git backend should be able to install from branch names
     """
-    version_pkg_path = _create_test_package(script)
+    version_pkg_path = _create_test_package(script.scratch_path)
     branch = "test_branch"
     script.run("git", "checkout", "-b", branch, cwd=version_pkg_path)
     _change_test_package_version(script, version_pkg_path)
@@ -249,7 +255,7 @@ def test_git_with_tag_name_as_revision(script: PipTestEnvironment) -> None:
     """
     Git backend should be able to install from tag names
     """
-    version_pkg_path = _create_test_package(script)
+    version_pkg_path = _create_test_package(script.scratch_path)
     script.run("git", "tag", "test_tag", cwd=version_pkg_path)
     _change_test_package_version(script, version_pkg_path)
     version = _install_version_pkg(script, version_pkg_path, rev="test_tag")
@@ -267,7 +273,7 @@ def test_git_install_ref(script: PipTestEnvironment) -> None:
     """
     The Git backend should be able to install a ref with the first install.
     """
-    version_pkg_path = _create_test_package(script)
+    version_pkg_path = _create_test_package(script.scratch_path)
     _add_ref(script, version_pkg_path, "refs/foo/bar")
     _change_test_package_version(script, version_pkg_path)
 
@@ -275,6 +281,8 @@ def test_git_install_ref(script: PipTestEnvironment) -> None:
         script,
         version_pkg_path,
         rev="refs/foo/bar",
+        # WARNING: Did not find branch or tag ..., assuming revision or ref.
+        allow_stderr_warning=True,
     )
     assert "0.1" == version
 
@@ -284,7 +292,7 @@ def test_git_install_then_install_ref(script: PipTestEnvironment) -> None:
     The Git backend should be able to install a ref after a package has
     already been installed.
     """
-    version_pkg_path = _create_test_package(script)
+    version_pkg_path = _create_test_package(script.scratch_path)
     _add_ref(script, version_pkg_path, "refs/foo/bar")
     _change_test_package_version(script, version_pkg_path)
 
@@ -296,6 +304,8 @@ def test_git_install_then_install_ref(script: PipTestEnvironment) -> None:
         script,
         version_pkg_path,
         rev="refs/foo/bar",
+        # WARNING: Did not find branch or tag ..., assuming revision or ref.
+        allow_stderr_warning=True,
     )
     assert "0.1" == version
 
@@ -433,7 +443,7 @@ def test_git_with_ambiguous_revs(script: PipTestEnvironment) -> None:
     """
     Test git with two "names" (tag/branch) pointing to the same commit
     """
-    version_pkg_path = _create_test_package(script)
+    version_pkg_path = _create_test_package(script.scratch_path)
     version_pkg_url = _make_version_pkg_url(version_pkg_path, rev="0.1")
     script.run("git", "tag", "0.1", cwd=version_pkg_path)
     result = script.pip("install", "-e", version_pkg_url)
@@ -447,7 +457,7 @@ def test_editable__no_revision(script: PipTestEnvironment) -> None:
     """
     Test a basic install in editable mode specifying no revision.
     """
-    version_pkg_path = _create_test_package(script)
+    version_pkg_path = _create_test_package(script.scratch_path)
     _install_version_pkg_only(script, version_pkg_path)
 
     branch = _get_editable_branch(script, "version-pkg")
@@ -462,7 +472,7 @@ def test_editable__branch_with_sha_same_as_default(script: PipTestEnvironment) -
     Test installing in editable mode a branch whose sha matches the sha
     of the default branch, but is different from the default branch.
     """
-    version_pkg_path = _create_test_package(script)
+    version_pkg_path = _create_test_package(script.scratch_path)
     # Create a second branch with the same SHA.
     script.run("git", "branch", "develop", cwd=version_pkg_path)
     _install_version_pkg_only(script, version_pkg_path, rev="develop")
@@ -481,7 +491,7 @@ def test_editable__branch_with_sha_different_from_default(
     Test installing in editable mode a branch whose sha is different from
     the sha of the default branch.
     """
-    version_pkg_path = _create_test_package(script)
+    version_pkg_path = _create_test_package(script.scratch_path)
     # Create a second branch.
     script.run("git", "branch", "develop", cwd=version_pkg_path)
     # Add another commit to the master branch to give it a different sha.
@@ -502,7 +512,7 @@ def test_editable__non_master_default_branch(script: PipTestEnvironment) -> None
     Test the branch you get after an editable install from a remote repo
     with a non-master default branch.
     """
-    version_pkg_path = _create_test_package(script)
+    version_pkg_path = _create_test_package(script.scratch_path)
     # Change the default branch of the remote repo to a name that is
     # alphabetically after "master".
     script.run("git", "checkout", "-b", "release", cwd=version_pkg_path)
@@ -519,7 +529,7 @@ def test_reinstalling_works_with_editable_non_master_branch(
     Reinstalling an editable installation should not assume that the "master"
     branch exists. See https://github.com/pypa/pip/issues/4448.
     """
-    version_pkg_path = _create_test_package(script)
+    version_pkg_path = _create_test_package(script.scratch_path)
 
     # Switch the default branch to something other than 'master'
     script.run("git", "branch", "-m", "foobar", cwd=version_pkg_path)
@@ -534,6 +544,11 @@ def test_reinstalling_works_with_editable_non_master_branch(
 
 # TODO(pnasrat) fix all helpers to do right things with paths on windows.
 @pytest.mark.skipif("sys.platform == 'win32'")
+@pytest.mark.xfail(
+    condition=True,
+    reason="Git submodule against file: is not working; waiting for a good solution",
+    run=True,
+)
 def test_check_submodule_addition(script: PipTestEnvironment) -> None:
     """
     Submodules are pulled in on install and updated on upgrade.
@@ -543,7 +558,7 @@ def test_check_submodule_addition(script: PipTestEnvironment) -> None:
     )
 
     install_result = script.pip(
-        "install", "-e", "git+" + path_to_url(module_path) + "#egg=version_pkg"
+        "install", "-e", f"git+{module_path.as_uri()}#egg=version_pkg"
     )
     install_result.did_create(script.venv / "src/version-pkg/testpkg/static/testfile")
 
@@ -558,7 +573,7 @@ def test_check_submodule_addition(script: PipTestEnvironment) -> None:
     update_result = script.pip(
         "install",
         "-e",
-        "git+" + path_to_url(module_path) + "#egg=version_pkg",
+        f"git+{module_path.as_uri()}#egg=version_pkg",
         "--upgrade",
     )
 
@@ -571,7 +586,7 @@ def test_install_git_branch_not_cached(script: PipTestEnvironment) -> None:
     Installing git urls with a branch revision does not cause wheel caching.
     """
     PKG = "gitbranchnotcached"
-    repo_dir = _create_test_package(script, name=PKG)
+    repo_dir = _create_test_package(script.scratch_path, name=PKG)
     url = _make_version_pkg_url(repo_dir, rev="master", name=PKG)
     result = script.pip("install", url, "--only-binary=:all:")
     assert f"Successfully built {PKG}" in result.stdout, result.stdout
@@ -587,7 +602,7 @@ def test_install_git_sha_cached(script: PipTestEnvironment) -> None:
     Installing git urls with a sha revision does cause wheel caching.
     """
     PKG = "gitshacached"
-    repo_dir = _create_test_package(script, name=PKG)
+    repo_dir = _create_test_package(script.scratch_path, name=PKG)
     commit = script.run("git", "rev-parse", "HEAD", cwd=repo_dir).stdout.strip()
     url = _make_version_pkg_url(repo_dir, rev=commit, name=PKG)
     result = script.pip("install", url)

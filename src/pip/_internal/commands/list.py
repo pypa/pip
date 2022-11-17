@@ -149,12 +149,16 @@ class ListCommand(IndexGroupCommand):
         return PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=selection_prefs,
-            use_deprecated_html5lib="html5lib" in options.deprecated_features_enabled,
         )
 
     def run(self, options: Values, args: List[str]) -> int:
         if options.outdated and options.uptodate:
             raise CommandError("Options --outdated and --uptodate cannot be combined.")
+
+        if options.outdated and options.list_format == "freeze":
+            raise CommandError(
+                "List format 'freeze' can not be used with the --outdated option."
+            )
 
         cmdoptions.check_list_path_option(options)
 

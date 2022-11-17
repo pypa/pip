@@ -11,7 +11,7 @@ from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
-from . import _distutils, _sysconfig
+from . import _sysconfig
 from .base import (
     USER_CACHE_DIR,
     get_major_minor_version,
@@ -59,6 +59,12 @@ def _should_use_sysconfig() -> bool:
 
 
 _USE_SYSCONFIG = _should_use_sysconfig()
+
+if not _USE_SYSCONFIG:
+    # Import distutils lazily to avoid deprecation warnings,
+    # but import it soon enough that it is in memory and available during
+    # a pip reinstall.
+    from . import _distutils
 
 # Be noisy about incompatibilities if this platforms "should" be using
 # sysconfig, but is explicitly opting out and using distutils instead.
@@ -451,6 +457,8 @@ def get_platlib() -> str:
     new = _sysconfig.get_platlib()
     if _USE_SYSCONFIG:
         return new
+
+    from . import _distutils
 
     old = _distutils.get_platlib()
     if _looks_like_deb_system_dist_packages(old):

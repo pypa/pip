@@ -1,5 +1,6 @@
 """Test the test support."""
 import filecmp
+import pathlib
 import re
 import sys
 from contextlib import contextmanager
@@ -32,7 +33,7 @@ def test_tmp_dir_exists_in_env(script: PipTestEnvironment) -> None:
     # need these tests to ensure the assert_no_temp feature of scripttest is
     # working
     script.assert_no_temp()  # this fails if env.tmp_path doesn't exist
-    assert script.environ["TMPDIR"] == script.temp_path
+    assert pathlib.Path(script.environ["TMPDIR"]) == script.temp_path
     assert isdir(script.temp_path)
 
 
@@ -40,6 +41,10 @@ def test_correct_pip_version(script: PipTestEnvironment) -> None:
     """
     Check we are running proper version of pip in run_pip.
     """
+
+    if script.zipapp:
+        pytest.skip("Test relies on the pip under test being in the filesystem")
+
     # output is like:
     # pip PIPVERSION from PIPDIRECTORY (python PYVERSION)
     result = script.pip("--version")
@@ -145,7 +150,6 @@ class TestPipTestEnvironment:
     @pytest.mark.parametrize(
         "prefix",
         (
-            "DEPRECATION",
             "WARNING",
             "ERROR",
         ),
@@ -162,7 +166,6 @@ class TestPipTestEnvironment:
     @pytest.mark.parametrize(
         "prefix, expected_start",
         (
-            ("DEPRECATION", "stderr has an unexpected warning"),
             ("WARNING", "stderr has an unexpected warning"),
             ("ERROR", "stderr has an unexpected error"),
         ),

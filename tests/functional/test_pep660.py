@@ -1,12 +1,11 @@
 import os
+from pathlib import Path
 from typing import Any, Dict
 
 import pytest
 import tomli_w
 
-from pip._internal.utils.urls import path_to_url
 from tests.lib import PipTestEnvironment
-from tests.lib.path import Path
 
 SETUP_PY = """
 from setuptools import setup
@@ -217,7 +216,7 @@ def test_download_editable_pep660_basic(
     """
     project_dir = _make_project(tmpdir, BACKEND_WITH_PEP660, with_setup_py=False)
     reqs_file = tmpdir / "requirements.txt"
-    reqs_file.write_text(f"-e {path_to_url(project_dir)}\n")
+    reqs_file.write_text(f"-e {project_dir.as_uri()}\n")
     download_dir = tmpdir / "download"
     script.pip(
         "download",

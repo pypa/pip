@@ -593,7 +593,7 @@ class TestPackageFinder:
         """
         link_collector = LinkCollector(
             session=PipSession(),
-            search_scope=SearchScope([], []),
+            search_scope=SearchScope([], [], False),
         )
         selection_prefs = SelectionPreferences(
             allow_yanked=True,
@@ -603,7 +603,6 @@ class TestPackageFinder:
         finder = PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=selection_prefs,
-            use_deprecated_html5lib=False,
         )
         candidate_prefs = finder._candidate_prefs
         assert candidate_prefs.allow_all_prereleases == allow_all_prereleases
@@ -615,12 +614,11 @@ class TestPackageFinder:
         """
         link_collector = LinkCollector(
             session=PipSession(),
-            search_scope=SearchScope([], []),
+            search_scope=SearchScope([], [], False),
         )
         finder = PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=SelectionPreferences(allow_yanked=True),
-            use_deprecated_html5lib=False,
         )
 
         assert finder._link_collector is link_collector
@@ -631,14 +629,13 @@ class TestPackageFinder:
         """
         link_collector = LinkCollector(
             session=PipSession(),
-            search_scope=SearchScope([], []),
+            search_scope=SearchScope([], [], False),
         )
         target_python = TargetPython(py_version_info=(3, 7, 3))
         finder = PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=SelectionPreferences(allow_yanked=True),
             target_python=target_python,
-            use_deprecated_html5lib=False,
         )
         actual_target_python = finder._target_python
         # The target_python attribute should be set as is.
@@ -652,13 +649,12 @@ class TestPackageFinder:
         """
         link_collector = LinkCollector(
             session=PipSession(),
-            search_scope=SearchScope([], []),
+            search_scope=SearchScope([], [], False),
         )
         finder = PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=SelectionPreferences(allow_yanked=True),
             target_python=None,
-            use_deprecated_html5lib=False,
         )
         # Spot-check the default TargetPython object.
         actual_target_python = finder._target_python
@@ -672,13 +668,12 @@ class TestPackageFinder:
         """
         link_collector = LinkCollector(
             session=PipSession(),
-            search_scope=SearchScope([], []),
+            search_scope=SearchScope([], [], False),
         )
         selection_prefs = SelectionPreferences(allow_yanked=allow_yanked)
         finder = PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=selection_prefs,
-            use_deprecated_html5lib=False,
         )
         assert finder._allow_yanked == allow_yanked
 
@@ -689,7 +684,7 @@ class TestPackageFinder:
         """
         link_collector = LinkCollector(
             session=PipSession(),
-            search_scope=SearchScope([], []),
+            search_scope=SearchScope([], [], False),
         )
         selection_prefs = SelectionPreferences(
             allow_yanked=True,
@@ -698,7 +693,6 @@ class TestPackageFinder:
         finder = PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=selection_prefs,
-            use_deprecated_html5lib=False,
         )
         assert finder._ignore_requires_python == ignore_requires_python
 
@@ -708,7 +702,7 @@ class TestPackageFinder:
         """
         link_collector = LinkCollector(
             session=PipSession(),
-            search_scope=SearchScope([], []),
+            search_scope=SearchScope([], [], False),
         )
         format_control = FormatControl(set(), {":all:"})
         selection_prefs = SelectionPreferences(
@@ -718,7 +712,6 @@ class TestPackageFinder:
         finder = PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=selection_prefs,
-            use_deprecated_html5lib=False,
         )
         actual_format_control = finder.format_control
         assert actual_format_control is format_control
@@ -750,7 +743,7 @@ class TestPackageFinder:
 
         link_collector = LinkCollector(
             session=PipSession(),
-            search_scope=SearchScope([], []),
+            search_scope=SearchScope([], [], False),
         )
 
         finder = PackageFinder(
@@ -759,7 +752,6 @@ class TestPackageFinder:
             allow_yanked=allow_yanked,
             format_control=format_control,
             ignore_requires_python=ignore_requires_python,
-            use_deprecated_html5lib=False,
         )
 
         # Pass a project_name that will be different from canonical_name.
@@ -801,14 +793,13 @@ class TestPackageFinder:
         )
         link_collector = LinkCollector(
             session=PipSession(),
-            search_scope=SearchScope([], []),
+            search_scope=SearchScope([], [], False),
         )
         finder = PackageFinder(
             link_collector=link_collector,
             target_python=target_python,
             allow_yanked=True,
             candidate_prefs=candidate_prefs,
-            use_deprecated_html5lib=False,
         )
 
         specifier = SpecifierSet()

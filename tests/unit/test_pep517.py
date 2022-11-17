@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 from textwrap import dedent
 
 import pytest
@@ -5,7 +7,6 @@ import pytest
 from pip._internal.exceptions import InstallationError, InvalidPyProjectBuildRequires
 from pip._internal.req import InstallRequirement
 from tests.lib import TestData
-from tests.lib.path import Path
 
 
 @pytest.mark.parametrize(
@@ -22,7 +23,7 @@ def test_use_pep517(shared_data: TestData, source: str, expected: bool) -> None:
     """
     src = shared_data.src.joinpath(source)
     req = InstallRequirement(None, None)
-    req.source_dir = src  # make req believe it has been unpacked
+    req.source_dir = os.fspath(src)  # make req believe it has been unpacked
     req.load_pyproject_toml()
     assert req.use_pep517 is expected
 
@@ -33,7 +34,7 @@ def test_use_pep517_rejects_setup_cfg_only(shared_data: TestData) -> None:
     """
     src = shared_data.src.joinpath("pep517_setup_cfg_only")
     req = InstallRequirement(None, None)
-    req.source_dir = src  # make req believe it has been unpacked
+    req.source_dir = os.fspath(src)  # make req believe it has been unpacked
     with pytest.raises(InstallationError) as e:
         req.load_pyproject_toml()
     err_msg = e.value.args[0]
@@ -56,7 +57,7 @@ def test_disabling_pep517_invalid(shared_data: TestData, source: str, msg: str) 
     """
     src = shared_data.src.joinpath(source)
     req = InstallRequirement(None, None)
-    req.source_dir = src  # make req believe it has been unpacked
+    req.source_dir = os.fspath(src)  # make req believe it has been unpacked
 
     # Simulate --no-use-pep517
     req.use_pep517 = False
@@ -83,7 +84,7 @@ def test_pep517_parsing_checks_requirements(tmpdir: Path, spec: str) -> None:
         )
     )
     req = InstallRequirement(None, None)
-    req.source_dir = tmpdir  # make req believe it has been unpacked
+    req.source_dir = os.fspath(tmpdir)  # make req believe it has been unpacked
 
     with pytest.raises(InvalidPyProjectBuildRequires) as e:
         req.load_pyproject_toml()
