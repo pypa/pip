@@ -52,7 +52,7 @@ Base
 : {file}`\{sys.base_prefix\}/pip.conf`
 
 Site
-: {file}`\{sys.prefix\}/pip.conf`
+: {file}`$VIRTUAL_ENV/pip.conf`
 ```
 
 ```{tab} MacOS
@@ -71,7 +71,7 @@ Base
 : {file}`\{sys.base_prefix\}/pip.conf`
 
 Site
-: {file}`\{sys.prefix\}/pip.conf`
+: {file}`$VIRTUAL_ENV/pip.conf`
 ```
 
 ```{tab} Windows
@@ -92,7 +92,7 @@ Base
 : {file}`\{sys.base_prefix\}\\pip.ini`
 
 Site
-: {file}`\{sys.prefix\}\\pip.ini`
+: {file}`%VIRTUAL_ENV%\\pip.ini`
 ```
 
 ### `PIP_CONFIG_FILE`
