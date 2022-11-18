@@ -209,6 +209,7 @@ class RequirementPreparer:
 
     def __init__(
         self,
+        *,
         build_dir: str,
         download_dir: Optional[str],
         src_dir: str,

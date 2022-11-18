@@ -5,7 +5,7 @@ import logging
 import os
 from typing import List, Optional, Sequence
 
-from pip._internal.build_env import CustomBuildEnvironment
+from pip._internal.build_env import BuildEnvironment
 from pip._internal.exceptions import InstallationError, LegacyInstallFailure
 from pip._internal.locations.base import change_root
 from pip._internal.models.scheme import Scheme
@@ -66,7 +66,7 @@ def install(
     setup_py_path: str,
     isolated: bool,
     req_name: str,
-    build_env: CustomBuildEnvironment,
+    build_env: BuildEnvironment,
     unpacked_source_directory: str,
     req_description: str,
 ) -> bool:

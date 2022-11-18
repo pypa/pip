@@ -20,7 +20,7 @@ from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.pep517.wrappers import Pep517HookCaller
 
-from pip._internal.build_env import CustomBuildEnvironment, NoOpBuildEnvironment
+from pip._internal.build_env import BuildEnvironment, NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError, LegacyInstallFailure
 from pip._internal.locations import get_scheme
 from pip._internal.metadata import (
@@ -158,7 +158,7 @@ class InstallRequirement:
         self.user_supplied = user_supplied
 
         self.isolated = isolated
-        self.build_env: CustomBuildEnvironment = NoOpBuildEnvironment()
+        self.build_env: BuildEnvironment = NoOpBuildEnvironment()
 
         # For PEP 517, the directory where we request the project metadata
         # gets stored. We need this to pass to build_wheel, so the backend

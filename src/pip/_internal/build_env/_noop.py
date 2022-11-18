@@ -1,16 +1,17 @@
-
 from types import TracebackType
-from typing import TYPE_CHECKING, Iterable, Optional, Type
+from typing import List, Optional, Type, Iterable
 
-if TYPE_CHECKING:
-    from pip._internal.index.package_finder import PackageFinder
+from pip._internal.build_env import BuildEnvironment
+from pip._internal.index.package_finder import PackageFinder
 
 
-class NoOpBuildEnvironment:
+class NoOpBuildEnvironment(BuildEnvironment):
     """A build environment that does nothing."""
 
+    lib_dirs: List[str] = []
+
     def __enter__(self) -> None:
-        pass
+        return
 
     def __exit__(
         self,
@@ -18,7 +19,7 @@ class NoOpBuildEnvironment:
         exc_val: Optional[BaseException],
         exc_tb: Optional[TracebackType],
     ) -> None:
-        pass
+        return
 
     def install_requirements(
         self,
@@ -28,4 +29,4 @@ class NoOpBuildEnvironment:
         *,
         kind: str,
     ) -> None:
-        raise NotImplementedError()
+        raise NotImplementedError("This should never get called.")

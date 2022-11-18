@@ -1,9 +1,15 @@
+import abc
 import logging
 import os
 import pathlib
-from typing import TYPE_CHECKING, Iterable
+from types import TracebackType
+from typing import TYPE_CHECKING, Iterable, List, Optional, Set, Tuple, Type
+
+from pip._vendor.packaging.requirements import Requirement
+from pip._vendor.packaging.version import Version
 
 from pip import __file__ as pip_location
+from pip._internal.metadata import get_default_environment, get_environment
 from pip._internal.utils.logging import VERBOSE, getLogger
 
 if TYPE_CHECKING:
@@ -61,3 +67,64 @@ def iter_install_flags(finder: "PackageFinder") -> Iterable[str]:
         yield "--pre"
     if finder.prefer_binary:
         yield "--prefer-binary"
+
+
+class BuildEnvironment(metaclass=abc.ABCMeta):
+    lib_dirs: List[str]
+
+    def __init__(self) -> None:
+        ...
+
+    @abc.abstractmethod
+    def __enter__(self) -> None:
+        ...
+
+    @abc.abstractmethod
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
+        ...
+
+    def check_requirements(
+        self, reqs: Iterable[str]
+    ) -> Tuple[Set[Tuple[str, str]], Set[str]]:
+        missing = set()
+        conflicting = set()
+        if reqs:
+            env = (
+                get_environment(self.lib_dirs)
+                if self.lib_dirs
+                else get_default_environment()
+            )
+            for req_str in reqs:
+                req = Requirement(req_str)
+                # We're explicitly evaluating with an empty extra value, since build
+                # environments are not provided any mechanism to select specific extras.
+                if req.marker is not None and not req.marker.evaluate({"extra": ""}):
+                    continue
+                dist = env.get_distribution(req.name)
+                if not dist:
+                    missing.add(req_str)
+                    continue
+                if isinstance(dist.version, Version):
+                    installed_req_str = f"{req.name}=={dist.version}"
+                else:
+                    installed_req_str = f"{req.name}==={dist.version}"
+                if not req.specifier.contains(dist.version, prereleases=True):
+                    conflicting.add((installed_req_str, req_str))
+                # FIXME: Consider direct URL?
+        return conflicting, missing
+
+    @abc.abstractmethod
+    def install_requirements(
+        self,
+        finder: "PackageFinder",
+        requirements: Iterable[str],
+        prefix_as_string: str,
+        *,
+        kind: str,
+    ) -> None:
+        raise NotImplementedError()

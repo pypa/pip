@@ -6,11 +6,9 @@ import textwrap
 from collections import OrderedDict
 from sysconfig import get_paths
 from types import TracebackType
-from typing import TYPE_CHECKING, Iterable, List, Optional, Set, Tuple, Type
+from typing import TYPE_CHECKING, Iterable, List, Optional, Set, Type
 
 from pip._vendor.certifi import where
-from pip._vendor.packaging.requirements import Requirement
-from pip._vendor.packaging.version import Version
 
 from pip._internal.cli.spinners import open_spinner
 from pip._internal.locations import (
@@ -18,11 +16,10 @@ from pip._internal.locations import (
     get_platlib,
     get_purelib,
 )
-from pip._internal.metadata import get_default_environment, get_environment
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 
-from ._base import get_runnable_pip, iter_install_flags
+from ._base import BuildEnvironment, get_runnable_pip, iter_install_flags
 
 if TYPE_CHECKING:
     from pip._internal.index.package_finder import PackageFinder
@@ -62,7 +59,7 @@ def _get_system_sitepackages() -> Set[str]:
     return {os.path.normcase(path) for path in system_sites}
 
 
-class CustomBuildEnvironment:
+class CustomBuildEnvironment(BuildEnvironment):
     """Creates and manages an isolated environment to install build deps"""
 
     def __init__(self) -> None:
@@ -74,10 +71,10 @@ class CustomBuildEnvironment:
         )
 
         self._bin_dirs: List[str] = []
-        self._lib_dirs: List[str] = []
+        self.lib_dirs: List[str] = []
         for prefix in reversed(list(self._prefixes.values())):
             self._bin_dirs.append(prefix.bin_dir)
-            self._lib_dirs.extend(prefix.lib_dirs)
+            self.lib_dirs.extend(prefix.lib_dirs)
 
         # Customize site to:
         # - ensure .pth files are honored
@@ -116,7 +113,7 @@ class CustomBuildEnvironment:
                     assert not path in sys.path
                     site.addsitedir(path)
                 """
-                ).format(system_sites=system_sites, lib_dirs=self._lib_dirs)
+                ).format(system_sites=system_sites, lib_dirs=self.lib_dirs)
             )
 
     def __enter__(self) -> None:
@@ -151,40 +148,6 @@ class CustomBuildEnvironment:
                 os.environ.pop(varname, None)
             else:
                 os.environ[varname] = old_value
-
-    def check_requirements(
-        self, reqs: Iterable[str]
-    ) -> Tuple[Set[Tuple[str, str]], Set[str]]:
-        """Return 2 sets:
-        - conflicting requirements: set of (installed, wanted) reqs tuples
-        - missing requirements: set of reqs
-        """
-        missing = set()
-        conflicting = set()
-        if reqs:
-            env = (
-                get_environment(self._lib_dirs)
-                if hasattr(self, "_lib_dirs")
-                else get_default_environment()
-            )
-            for req_str in reqs:
-                req = Requirement(req_str)
-                # We're explicitly evaluating with an empty extra value, since build
-                # environments are not provided any mechanism to select specific extras.
-                if req.marker is not None and not req.marker.evaluate({"extra": ""}):
-                    continue
-                dist = env.get_distribution(req.name)
-                if not dist:
-                    missing.add(req_str)
-                    continue
-                if isinstance(dist.version, Version):
-                    installed_req_str = f"{req.name}=={dist.version}"
-                else:
-                    installed_req_str = f"{req.name}==={dist.version}"
-                if not req.specifier.contains(dist.version, prereleases=True):
-                    conflicting.add((installed_req_str, req_str))
-                # FIXME: Consider direct URL?
-        return conflicting, missing
 
     def install_requirements(
         self,

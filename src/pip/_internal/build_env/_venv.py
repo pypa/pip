@@ -5,24 +5,21 @@ import os
 import sys
 import venv
 from types import TracebackType
-from typing import TYPE_CHECKING, Dict, Iterable, Optional, Set, Tuple, Type
+from typing import TYPE_CHECKING, Dict, Iterable, Optional, Type
 
-from pip._vendor.packaging.requirements import Requirement
-from pip._vendor.packaging.version import Version
 from pip._vendor.requests.certs import where
 
 from pip._internal.cli.spinners import open_spinner
-from pip._internal.metadata import get_environment
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 
-from ._base import get_runnable_pip, iter_install_flags
+from ._base import BuildEnvironment, get_runnable_pip, iter_install_flags
 
 if TYPE_CHECKING:
     from pip._internal.index.package_finder import PackageFinder
 
 
-class VenvBuildEnvironment:
+class VenvBuildEnvironment(BuildEnvironment):
     """A build environment that does nothing."""
 
     def __init__(self) -> None:
@@ -48,7 +45,7 @@ class VenvBuildEnvironment:
                 "site-packages",
             )
 
-        self._lib_path = libpath
+        self.lib_dirs = [libpath]
         self._bin_path = context.bin_path
         self._env_executable = context.env_exe
         self._save_env: Dict[str, str] = {}
@@ -61,7 +58,7 @@ class VenvBuildEnvironment:
         old_path = self._save_env["PATH"]
         new_path = os.pathsep.join(filter(None, [self._bin_path, old_path]))
 
-        os.environ.update({"PATH": new_path, "PYTHONPATH": self._lib_path})
+        os.environ.update({"PATH": new_path, "PYTHONPATH": self.lib_dirs[0]})
 
     def __exit__(
         self,
@@ -74,36 +71,6 @@ class VenvBuildEnvironment:
                 os.environ.pop(varname, None)
             else:
                 os.environ[varname] = old_value
-
-    def check_requirements(
-        self, reqs: Iterable[str]
-    ) -> Tuple[Set[Tuple[str, str]], Set[str]]:
-        """Return 2 sets:
-        - conflicting requirements: set of (installed, wanted) reqs tuples
-        - missing requirements: set of reqs
-        """
-        missing = set()
-        conflicting = set()
-        if reqs:
-            env = get_environment([self._lib_path])
-            for req_str in reqs:
-                req = Requirement(req_str)
-                # We're explicitly evaluating with an empty extra value, since build
-                # environments are not provided any mechanism to select specific extras.
-                if req.marker is not None and not req.marker.evaluate({"extra": ""}):
-                    continue
-                dist = env.get_distribution(req.name)
-                if not dist:
-                    missing.add(req_str)
-                    continue
-                if isinstance(dist.version, Version):
-                    installed_req_str = f"{req.name}=={dist.version}"
-                else:
-                    installed_req_str = f"{req.name}==={dist.version}"
-                if not req.specifier.contains(dist.version, prereleases=True):
-                    conflicting.add((installed_req_str, req_str))
-                # FIXME: Consider direct URL?
-        return conflicting, missing
 
     def install_requirements(
         self,
