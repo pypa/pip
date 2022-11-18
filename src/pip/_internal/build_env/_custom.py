@@ -199,26 +199,10 @@ class BuildEnvironment:
         prefix.setup = True
         if not requirements:
             return
-        self._install_requirements(
-            get_runnable_pip(),
-            finder,
-            requirements,
-            prefix,
-            kind=kind,
-        )
 
-    @staticmethod
-    def _install_requirements(
-        pip_runnable: str,
-        finder: "PackageFinder",
-        requirements: Iterable[str],
-        prefix: _Prefix,
-        *,
-        kind: str,
-    ) -> None:
         args = [
             sys.executable,
-            pip_runnable,
+            get_runnable_pip(),
             "install",
             "--ignore-installed",
             "--no-user",
