@@ -4,7 +4,8 @@ from typing import Optional
 
 import pytest
 
-from pip._internal.build_env import BuildEnvironment, _get_system_sitepackages
+from pip._internal.build_env import BuildEnvironment
+from pip._internal.build_env._custom import _get_system_sitepackages
 from tests.lib import (
     PipTestEnvironment,
     TestPipResult,
