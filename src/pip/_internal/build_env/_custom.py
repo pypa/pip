@@ -22,7 +22,7 @@ from pip._internal.metadata import get_default_environment, get_environment
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 
-from ._base import get_runnable_pip
+from ._base import get_runnable_pip, iter_install_flags
 
 if TYPE_CHECKING:
     from pip._internal.index.package_finder import PackageFinder
@@ -216,7 +216,7 @@ class BuildEnvironment:
         *,
         kind: str,
     ) -> None:
-        args: List[str] = [
+        args = [
             sys.executable,
             pip_runnable,
             "install",
@@ -225,36 +225,10 @@ class BuildEnvironment:
             "--prefix",
             prefix.path,
             "--no-warn-script-location",
+            *iter_install_flags(finder),
+            "--",
+            *requirements,
         ]
-        if logger.getEffectiveLevel() <= logging.DEBUG:
-            args.append("-v")
-        for format_control in ("no_binary", "only_binary"):
-            formats = getattr(finder.format_control, format_control)
-            args.extend(
-                (
-                    "--" + format_control.replace("_", "-"),
-                    ",".join(sorted(formats or {":none:"})),
-                )
-            )
-
-        index_urls = finder.index_urls
-        if index_urls:
-            args.extend(["-i", index_urls[0]])
-            for extra_index in index_urls[1:]:
-                args.extend(["--extra-index-url", extra_index])
-        else:
-            args.append("--no-index")
-        for link in finder.find_links:
-            args.extend(["--find-links", link])
-
-        for host in finder.trusted_hosts:
-            args.extend(["--trusted-host", host])
-        if finder.allow_all_prereleases:
-            args.append("--pre")
-        if finder.prefer_binary:
-            args.append("--prefer-binary")
-        args.append("--")
-        args.extend(requirements)
         extra_environ = {"_PIP_STANDALONE_CERT": where()}
         with open_spinner(f"Installing {kind}") as spinner:
             call_subprocess(
