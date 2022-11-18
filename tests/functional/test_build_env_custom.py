@@ -4,7 +4,7 @@ from typing import Optional
 
 import pytest
 
-from pip._internal.build_env import BuildEnvironment
+from pip._internal.build_env import CustomBuildEnvironment
 from pip._internal.build_env._custom import _get_system_sitepackages
 from tests.lib import (
     PipTestEnvironment,
@@ -30,7 +30,7 @@ def run_with_build_env(
             import subprocess
             import sys
 
-            from pip._internal.build_env import BuildEnvironment
+            from pip._internal.build_env import CustomBuildEnvironment
             from pip._internal.index.collector import LinkCollector
             from pip._internal.index.package_finder import PackageFinder
             from pip._internal.models.search_scope import SearchScope
@@ -53,7 +53,7 @@ def run_with_build_env(
             )
 
             with global_tempdir_manager():
-                build_env = BuildEnvironment()
+                build_env = CustomBuildEnvironment()
             """.format(
                 scratch=str(script.scratch_path)
             )
@@ -80,7 +80,7 @@ def run_with_build_env(
 
 def test_build_env_allow_empty_requirements_install() -> None:
     finder = make_test_finder()
-    build_env = BuildEnvironment()
+    build_env = CustomBuildEnvironment()
     for prefix in ("normal", "overlay"):
         build_env.install_requirements(
             finder, [], prefix, kind="Installing build dependencies"
@@ -91,7 +91,7 @@ def test_build_env_allow_only_one_install(script: PipTestEnvironment) -> None:
     create_basic_wheel_for_package(script, "foo", "1.0")
     create_basic_wheel_for_package(script, "bar", "1.0")
     finder = make_test_finder(find_links=[os.fspath(script.scratch_path)])
-    build_env = BuildEnvironment()
+    build_env = CustomBuildEnvironment()
     for prefix in ("normal", "overlay"):
         build_env.install_requirements(
             finder, ["foo"], prefix, kind=f"installing foo in {prefix}"

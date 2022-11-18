@@ -1,7 +1,7 @@
 import logging
 from typing import Iterable, Set, Tuple
 
-from pip._internal.build_env import BuildEnvironment
+from pip._internal.build_env import CustomBuildEnvironment
 from pip._internal.distributions.base import AbstractDistribution
 from pip._internal.exceptions import InstallationError
 from pip._internal.index.package_finder import PackageFinder
@@ -66,7 +66,7 @@ class SourceDistribution(AbstractDistribution):
         pyproject_requires = self.req.pyproject_requires
         assert pyproject_requires is not None
 
-        self.req.build_env = BuildEnvironment()
+        self.req.build_env = CustomBuildEnvironment()
         self.req.build_env.install_requirements(
             finder, pyproject_requires, "overlay", kind="build dependencies"
         )

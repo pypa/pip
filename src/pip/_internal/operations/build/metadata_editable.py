@@ -5,7 +5,7 @@ import os
 
 from pip._vendor.pep517.wrappers import Pep517HookCaller
 
-from pip._internal.build_env import BuildEnvironment
+from pip._internal.build_env import CustomBuildEnvironment
 from pip._internal.exceptions import (
     InstallationSubprocessError,
     MetadataGenerationFailed,
@@ -15,7 +15,7 @@ from pip._internal.utils.temp_dir import TempDirectory
 
 
 def generate_editable_metadata(
-    build_env: BuildEnvironment, backend: Pep517HookCaller, details: str
+    build_env: CustomBuildEnvironment, backend: Pep517HookCaller, details: str
 ) -> str:
     """Generate metadata using mechanisms described in PEP 660.
 

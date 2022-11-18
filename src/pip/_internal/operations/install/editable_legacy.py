@@ -3,7 +3,7 @@
 import logging
 from typing import List, Optional, Sequence
 
-from pip._internal.build_env import BuildEnvironment
+from pip._internal.build_env import CustomBuildEnvironment
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.setuptools_build import make_setuptools_develop_args
 from pip._internal.utils.subprocess import call_subprocess
@@ -20,7 +20,7 @@ def install_editable(
     name: str,
     setup_py_path: str,
     isolated: bool,
-    build_env: BuildEnvironment,
+    build_env: CustomBuildEnvironment,
     unpacked_source_directory: str,
 ) -> None:
     """Install a package in editable mode. Most arguments are pass-through

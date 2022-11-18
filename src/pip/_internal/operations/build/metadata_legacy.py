@@ -4,7 +4,7 @@
 import logging
 import os
 
-from pip._internal.build_env import BuildEnvironment
+from pip._internal.build_env import CustomBuildEnvironment
 from pip._internal.cli.spinners import open_spinner
 from pip._internal.exceptions import (
     InstallationError,
@@ -34,7 +34,7 @@ def _find_egg_info(directory: str) -> str:
 
 
 def generate_metadata(
-    build_env: BuildEnvironment,
+    build_env: CustomBuildEnvironment,
     setup_py_path: str,
     source_dir: str,
     isolated: bool,

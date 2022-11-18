@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import pytest
 import tomli_w
 
-from pip._internal.build_env import BuildEnvironment
+from pip._internal.build_env import CustomBuildEnvironment
 from pip._internal.req import InstallRequirement
 from tests.lib import (
     PipTestEnvironment,
@@ -40,7 +40,7 @@ def test_backend(tmpdir: Path, data: TestData) -> None:
     req = InstallRequirement(None, None)
     req.source_dir = os.fspath(project_dir)  # make req believe it has been unpacked
     req.load_pyproject_toml()
-    env = BuildEnvironment()
+    env = CustomBuildEnvironment()
     finder = make_test_finder(find_links=[data.backends])
     env.install_requirements(finder, ["dummy_backend"], "normal", kind="Installing")
     conflicting, missing = env.check_requirements(["dummy_backend"])
@@ -69,7 +69,7 @@ def test_backend_path(tmpdir: Path, data: TestData) -> None:
     req.source_dir = os.fspath(project_dir)  # make req believe it has been unpacked
     req.load_pyproject_toml()
 
-    env = BuildEnvironment()
+    env = CustomBuildEnvironment()
     assert hasattr(req.pep517_backend, "build_wheel")
     with env:
         assert req.pep517_backend is not None
@@ -87,7 +87,7 @@ def test_backend_path_and_dep(tmpdir: Path, data: TestData) -> None:
     req = InstallRequirement(None, None)
     req.source_dir = os.fspath(project_dir)  # make req believe it has been unpacked
     req.load_pyproject_toml()
-    env = BuildEnvironment()
+    env = CustomBuildEnvironment()
     finder = make_test_finder(find_links=[data.backends])
     env.install_requirements(finder, ["dummy_backend"], "normal", kind="Installing")
 

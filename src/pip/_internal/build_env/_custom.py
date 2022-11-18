@@ -62,7 +62,7 @@ def _get_system_sitepackages() -> Set[str]:
     return {os.path.normcase(path) for path in system_sites}
 
 
-class BuildEnvironment:
+class CustomBuildEnvironment:
     """Creates and manages an isolated environment to install build deps"""
 
     def __init__(self) -> None:
