@@ -113,7 +113,7 @@ class KeyRingCliProvider(KeyRingBaseProvider):
         return self._set_password(url, username, password)
 
     def _get_password(self, service_name: str, username: str) -> Optional[str]:
-        """Mirror the implemenation of keyring.get_password using cli"""
+        """Mirror the implementation of keyring.get_password using cli"""
         if self.keyring is None:
             return None
 
@@ -131,7 +131,7 @@ class KeyRingCliProvider(KeyRingBaseProvider):
         return res.stdout.decode("utf-8").strip("\n")
 
     def _set_password(self, service_name: str, username: str, password: str) -> None:
-        """Mirror the implemenation of keyring.set_password using cli"""
+        """Mirror the implementation of keyring.set_password using cli"""
         if self.keyring is None:
             return None
 
