@@ -55,7 +55,7 @@ Bug Fixes
 - Ensure that the candidate ``pip`` executable exists, when checking for a new version of pip. (`#11309 <https://github.com/pypa/pip/issues/11309>`_)
 - Ignore distributions with invalid ``Name`` in metadata instead of crashing, when
   using the ``importlib.metadata`` backend. (`#11352 <https://github.com/pypa/pip/issues/11352>`_)
-- Raise RequirementsFileParseError when parsing malformed requirements options that can't be sucessfully parsed by shlex. (`#11491 <https://github.com/pypa/pip/issues/11491>`_)
+- Raise RequirementsFileParseError when parsing malformed requirements options that can't be successfully parsed by shlex. (`#11491 <https://github.com/pypa/pip/issues/11491>`_)
 - Fix build environment isolation on some system Pythons. (`#6264 <https://github.com/pypa/pip/issues/6264>`_)
 
 Vendored Libraries
