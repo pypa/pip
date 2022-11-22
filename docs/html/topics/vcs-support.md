@@ -139,9 +139,16 @@ option.
 pip looks at 2 fragments for VCS URLs:
 
 - `egg`: For specifying the "project name" for use in pip's dependency
-  resolution logic. eg: `egg=project_name`
+  resolution logic. e.g.: `egg=project_name`
+
+  The `egg` fragment may additionally contain an extras specifier, e.g.:
+  `egg=project_name[dev,test]`.
+
+  Both the project name and extras specifier must appear in the form
+  defined by [PEP 508](https://peps.python.org/pep-0508/).
+
 - `subdirectory`: For specifying the path to the Python package, when it is not
-  in the root of the VCS directory. eg: `pkg_dir`
+  in the root of the VCS directory. e.g.: `pkg_dir`
 
 ````{admonition} Example
 If your repository layout is:
