@@ -18,6 +18,7 @@ from typing import (
     Union,
 )
 
+from pip._internal.exceptions import InvalidEggFragment
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.misc import (
@@ -358,12 +359,25 @@ class Link(KeyBasedCompareMixin):
 
     _egg_fragment_re = re.compile(r"[#&]egg=([^&]*)")
 
+    # Per PEP 508.
+    _project_name_re = re.compile(
+        r"^([A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9])$", re.IGNORECASE
+    )
+
     @property
     def egg_fragment(self) -> Optional[str]:
         match = self._egg_fragment_re.search(self._url)
         if not match:
             return None
-        return match.group(1)
+
+        # The egg fragment must look like a project name, and only
+        # a project name. In particular, it can't contain version constraints
+        # or anything else like that.
+        project_name = match.group(1)
+        if not self._project_name_re.match(project_name):
+            raise InvalidEggFragment(project_name)
+
+        return project_name
 
     _subdirectory_fragment_re = re.compile(r"[#&]subdirectory=([^&]*)")
 
