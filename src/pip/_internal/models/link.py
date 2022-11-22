@@ -171,6 +171,7 @@ class Link(KeyBasedCompareMixin):
         "dist_info_metadata",
         "link_hash",
         "cache_link_parsing",
+        "egg_fragment",
     ]
 
     def __init__(
@@ -234,6 +235,7 @@ class Link(KeyBasedCompareMixin):
         super().__init__(key=url, defining_class=Link)
 
         self.cache_link_parsing = cache_link_parsing
+        self.egg_fragment = self._egg_fragment()
 
     @classmethod
     def from_json(
@@ -365,8 +367,7 @@ class Link(KeyBasedCompareMixin):
 
     _fragment_parser = stringStart + NAME + Maybe(EXTRAS) + stringEnd
 
-    @property
-    def egg_fragment(self) -> Optional[str]:
+    def _egg_fragment(self) -> Optional[str]:
         match = self._egg_fragment_re.search(self._url)
         if not match:
             return None
