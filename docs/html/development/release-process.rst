@@ -31,7 +31,7 @@ to need extra work before being released, the release manager always has the
 option to back out the partial change prior to a release. The PR can then be
 reworked and resubmitted for the next release.
 
-Vendoring updates will be picked up fron the ``main`` branch, as for any other
+Vendoring updates will be picked up from the ``main`` branch, as for any other
 update. Ideally, vendoring updates should be merged between releases, just like
 any other change. If there are outstanding updates to vendored packages, the
 release manager *may* at their discretion choose to do a vendoring update
