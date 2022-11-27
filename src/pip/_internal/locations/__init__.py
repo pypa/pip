@@ -28,6 +28,7 @@ __all__ = [
     "get_major_minor_version",
     "get_platlib",
     "get_isolated_environment_lib_paths",
+    "get_isolated_environment_bin_path",
     "get_purelib",
     "get_scheme",
     "get_src_prefix",
@@ -526,3 +527,7 @@ def get_isolated_environment_lib_paths(prefix: str) -> List[str]:
         _log_context(prefix=prefix)
 
     return old_lib_paths
+
+
+def get_isolated_environment_bin_path(prefix: str) -> str:
+    return _sysconfig.get_isolated_environment_bin_path(prefix)
