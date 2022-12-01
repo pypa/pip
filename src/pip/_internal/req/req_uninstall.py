@@ -364,19 +364,28 @@ class UninstallPathSet:
         logger.info("Uninstalling %s:", dist_name_version)
 
         with indent_log():
-            if auto_confirm or self._allowed_to_proceed(verbose):
-                moved = self._moved_paths
+            try:
+                if auto_confirm or self._allowed_to_proceed(verbose):
+                    moved = self._moved_paths
 
-                for_rename = compress_for_rename(self._paths)
+                    for_rename = compress_for_rename(self._paths)
 
-                for path in sorted(compact(for_rename)):
-                    moved.stash(path)
-                    logger.verbose("Removing file or directory %s", path)
+                    for path in sorted(compact(for_rename)):
+                        moved.stash(path)
+                        logger.verbose("Removing file or directory %s", path)
 
-                for pth in self._pth.values():
-                    pth.remove()
+                    for pth in self._pth.values():
+                        pth.remove()
 
-                logger.info("Successfully uninstalled %s", dist_name_version)
+                    logger.info("Successfully uninstalled %s", dist_name_version)
+            except RuntimeError as runerror:
+                if "lost sys.stderr" in runerror.args[0]:
+                    logger.error(
+                        "A crash was detected while prompting for user input. Rerun `pip uninstall`\n"
+                        "with -y to suppress, see https://github.com/pypa/pip/issues/11632"
+                    )
+                raise
+
 
     def _allowed_to_proceed(self, verbose: bool) -> bool:
         """Display which files would be deleted and prompt for confirmation"""
