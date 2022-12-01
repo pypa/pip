@@ -398,6 +398,10 @@ class UninstallPathSet:
             will_remove = set(self._paths)
             will_skip = set()
 
+        # git-bash breaks the stdin pipe, so assume confirmation.
+        if os.name == "nt" and os.getenv("MSYSTEM") == "MINGW64":
+            logger.warning("git bash can not prompt input, skipping.")
+            return True  # fixes crash on git-bash win32.
         _display("Would remove:", will_remove)
         _display("Would not remove (might be manually added):", will_skip)
         _display("Would not remove (outside of prefix):", self._refuse)
