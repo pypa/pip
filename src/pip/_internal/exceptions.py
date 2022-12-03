@@ -658,11 +658,3 @@ class ConfigurationFileCouldNotBeLoaded(ConfigurationError):
             assert self.error is not None
             message_part = f".\n{self.error}\n"
         return f"Configuration file {self.reason}{message_part}"
-
-
-class InvalidEggFragment(InstallationError):
-    """A link's `#egg=` fragment doesn't look like a valid PEP 508 project
-    name."""
-
-    def __init__(self, fragment: str) -> None:
-        super().__init__(f"egg fragment is not a bare project name: {fragment}")

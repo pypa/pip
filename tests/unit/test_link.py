@@ -2,7 +2,6 @@ from typing import Optional
 
 import pytest
 
-from pip._internal.exceptions import InvalidEggFragment
 from pip._internal.models.link import Link, links_equivalent
 from pip._internal.utils.hashes import Hashes
 
@@ -93,6 +92,7 @@ class TestLink:
         assert "eggname[]" == Link(url).egg_fragment
         assert None is Link(url).subdirectory_fragment
 
+    @pytest.mark.xfail(reason="Behavior change scheduled for 25.0", strict=True)
     @pytest.mark.parametrize(
         "fragment",
         [
@@ -107,7 +107,7 @@ class TestLink:
     )
     def test_invalid_egg_fragments(self, fragment: str) -> None:
         url = f"git+https://example.com/package#egg={fragment}"
-        with pytest.raises(InvalidEggFragment):
+        with pytest.raises(Exception):
             Link(url)
 
     @pytest.mark.parametrize(
