@@ -81,7 +81,8 @@ class TestLink:
         assert "subdir" == Link(url).subdirectory_fragment
 
         # Extras are supported and preserved in the egg fragment,
-        # even the empty extras specifier (since PEP 508 allows it).
+        # even the empty extras specifier.
+        # This behavior is deprecated and will change in pip 25.
         url = "git+https://example.com/package#egg=eggname[extra]"
         assert "eggname[extra]" == Link(url).egg_fragment
         assert None is Link(url).subdirectory_fragment
