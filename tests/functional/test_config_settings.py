@@ -112,6 +112,20 @@ def test_backend_sees_config(script: PipTestEnvironment) -> None:
             assert json.loads(output) == {"FOO": "Hello"}
 
 
+def test_backend_sees_config_reqs(script: PipTestEnvironment) -> None:
+    name, version, project_dir = make_project(script.scratch_path)
+    script.scratch_path.joinpath("reqs.txt").write_text(
+        f"{project_dir} --config-settings FOO=Hello"
+    )
+    script.pip("wheel", "-r", "reqs.txt")
+    wheel_file_name = f"{name}-{version}-py3-none-any.whl"
+    wheel_file_path = script.cwd / wheel_file_name
+    with open(wheel_file_path, "rb") as f:
+        with ZipFile(f) as z:
+            output = z.read("config.json")
+            assert json.loads(output) == {"FOO": "Hello"}
+
+
 def test_install_sees_config(script: PipTestEnvironment) -> None:
     _, _, project_dir = make_project(script.scratch_path)
     script.pip(
@@ -120,6 +134,17 @@ def test_install_sees_config(script: PipTestEnvironment) -> None:
         "FOO=Hello",
         project_dir,
     )
+    config = script.site_packages_path / "config.json"
+    with open(config, "rb") as f:
+        assert json.load(f) == {"FOO": "Hello"}
+
+
+def test_install_sees_config_reqs(script: PipTestEnvironment) -> None:
+    _, _, project_dir = make_project(script.scratch_path)
+    script.scratch_path.joinpath("reqs.txt").write_text(
+        f"{project_dir} --config-settings FOO=Hello"
+    )
+    script.pip("install", "-r", "reqs.txt")
     config = script.site_packages_path / "config.json"
     with open(config, "rb") as f:
         assert json.load(f) == {"FOO": "Hello"}

@@ -150,6 +150,8 @@ class InstallRequirement:
         self.global_options = global_options if global_options else []
         self.hash_options = hash_options if hash_options else {}
         self.config_settings = config_settings
+        if isinstance(comes_from, InstallRequirement) and comes_from.config_settings:
+            self.config_settings = comes_from.config_settings
         # Set to True after successful preparation of this requirement
         self.prepared = False
         # User supplied requirement are explicitly requested for installation

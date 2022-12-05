@@ -72,6 +72,7 @@ SUPPORTED_OPTIONS_REQ: List[Callable[..., optparse.Option]] = [
     cmdoptions.install_options,
     cmdoptions.global_options,
     cmdoptions.hash,
+    cmdoptions.config_settings,
 ]
 
 # the 'dest' string values
