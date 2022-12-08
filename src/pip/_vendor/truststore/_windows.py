@@ -1,4 +1,6 @@
+import contextlib
 import ssl
+import typing
 from ctypes import WinDLL  # type: ignore
 from ctypes import WinError  # type: ignore
 from ctypes import (
@@ -26,6 +28,8 @@ from ctypes.wintypes import (
     LPWSTR,
 )
 from typing import TYPE_CHECKING, Any
+
+from ._ssl_constants import _set_ssl_context_verify_mode
 
 HCERTCHAINENGINE = HANDLE
 HCERTSTORE = HANDLE
@@ -78,7 +82,7 @@ class CERT_CHAIN_PARA(Structure):
 
 
 if TYPE_CHECKING:
-    PCERT_CHAIN_PARA = pointer[CERT_CHAIN_PARA]
+    PCERT_CHAIN_PARA = pointer[CERT_CHAIN_PARA]  # type: ignore[misc]
 else:
     PCERT_CHAIN_PARA = POINTER(CERT_CHAIN_PARA)
 
@@ -199,10 +203,32 @@ USAGE_MATCH_TYPE_OR = 1
 OID_PKIX_KP_SERVER_AUTH = c_char_p(b"1.3.6.1.5.5.7.3.1")
 CERT_CHAIN_REVOCATION_CHECK_END_CERT = 0x10000000
 CERT_CHAIN_REVOCATION_CHECK_CHAIN = 0x20000000
+CERT_CHAIN_POLICY_IGNORE_ALL_NOT_TIME_VALID_FLAGS = 0x00000007
+CERT_CHAIN_POLICY_IGNORE_INVALID_BASIC_CONSTRAINTS_FLAG = 0x00000008
+CERT_CHAIN_POLICY_ALLOW_UNKNOWN_CA_FLAG = 0x00000010
+CERT_CHAIN_POLICY_IGNORE_INVALID_NAME_FLAG = 0x00000040
+CERT_CHAIN_POLICY_IGNORE_WRONG_USAGE_FLAG = 0x00000020
+CERT_CHAIN_POLICY_IGNORE_INVALID_POLICY_FLAG = 0x00000080
+CERT_CHAIN_POLICY_IGNORE_ALL_REV_UNKNOWN_FLAGS = 0x00000F00
+CERT_CHAIN_POLICY_ALLOW_TESTROOT_FLAG = 0x00008000
+CERT_CHAIN_POLICY_TRUST_TESTROOT_FLAG = 0x00004000
 AUTHTYPE_SERVER = 2
 CERT_CHAIN_POLICY_SSL = 4
 FORMAT_MESSAGE_FROM_SYSTEM = 0x00001000
 FORMAT_MESSAGE_IGNORE_INSERTS = 0x00000200
+
+# Flags to set for SSLContext.verify_mode=CERT_NONE
+CERT_CHAIN_POLICY_VERIFY_MODE_NONE_FLAGS = (
+    CERT_CHAIN_POLICY_IGNORE_ALL_NOT_TIME_VALID_FLAGS
+    | CERT_CHAIN_POLICY_IGNORE_INVALID_BASIC_CONSTRAINTS_FLAG
+    | CERT_CHAIN_POLICY_ALLOW_UNKNOWN_CA_FLAG
+    | CERT_CHAIN_POLICY_IGNORE_INVALID_NAME_FLAG
+    | CERT_CHAIN_POLICY_IGNORE_WRONG_USAGE_FLAG
+    | CERT_CHAIN_POLICY_IGNORE_INVALID_POLICY_FLAG
+    | CERT_CHAIN_POLICY_IGNORE_ALL_REV_UNKNOWN_FLAGS
+    | CERT_CHAIN_POLICY_ALLOW_TESTROOT_FLAG
+    | CERT_CHAIN_POLICY_TRUST_TESTROOT_FLAG
+)
 
 wincrypt = WinDLL("crypt32.dll")
 kernel32 = WinDLL("kernel32.dll")
@@ -341,6 +367,7 @@ def _verify_peercerts_impl(
             # First attempt to verify using the default Windows system trust roots
             # (default chain engine).
             _get_and_verify_cert_chain(
+                ssl_context,
                 None,
                 hIntermediateCertStore,
                 pCertContext,
@@ -358,6 +385,7 @@ def _verify_peercerts_impl(
             )
             if custom_ca_certs:
                 _verify_using_custom_ca_certs(
+                    ssl_context,
                     custom_ca_certs,
                     hIntermediateCertStore,
                     pCertContext,
@@ -374,17 +402,18 @@ def _verify_peercerts_impl(
 
 
 def _get_and_verify_cert_chain(
+    ssl_context: ssl.SSLContext,
     hChainEngine: HCERTCHAINENGINE | None,
     hIntermediateCertStore: HCERTSTORE,
     pPeerCertContext: c_void_p,
-    pChainPara: PCERT_CHAIN_PARA,
+    pChainPara: PCERT_CHAIN_PARA,  # type: ignore[valid-type]
     server_hostname: str | None,
     chain_flags: int,
 ) -> None:
     ppChainContext = None
     try:
         # Get cert chain
-        ppChainContext = pointer(PCERT_CHAIN_CONTEXT())  # type: ignore[call-arg]
+        ppChainContext = pointer(PCERT_CHAIN_CONTEXT())
         CertGetCertificateChain(
             hChainEngine,  # chain engine
             pPeerCertContext,  # leaf cert context
@@ -406,11 +435,17 @@ def _get_and_verify_cert_chain(
         ssl_extra_cert_chain_policy_para.fdwChecks = 0
         if server_hostname:
             ssl_extra_cert_chain_policy_para.pwszServerName = c_wchar_p(server_hostname)
+
         chain_policy = CERT_CHAIN_POLICY_PARA()
         chain_policy.pvExtraPolicyPara = cast(
             pointer(ssl_extra_cert_chain_policy_para), c_void_p
         )
+        if ssl_context.verify_mode == ssl.CERT_NONE:
+            chain_policy.dwFlags |= CERT_CHAIN_POLICY_VERIFY_MODE_NONE_FLAGS
+        if not ssl_context.check_hostname:
+            chain_policy.dwFlags |= CERT_CHAIN_POLICY_IGNORE_INVALID_NAME_FLAG
         chain_policy.cbSize = sizeof(chain_policy)
+
         pPolicyPara = pointer(chain_policy)
         policy_status = CERT_CHAIN_POLICY_STATUS()
         policy_status.cbSize = sizeof(policy_status)
@@ -425,7 +460,6 @@ def _get_and_verify_cert_chain(
         # Check status
         error_code = policy_status.dwError
         if error_code:
-
             # Try getting a human readable message for an error code.
             error_message_buf = create_unicode_buffer(1024)
             error_message_chars = FormatMessageW(
@@ -456,10 +490,11 @@ def _get_and_verify_cert_chain(
 
 
 def _verify_using_custom_ca_certs(
+    ssl_context: ssl.SSLContext,
     custom_ca_certs: list[bytes],
     hIntermediateCertStore: HCERTSTORE,
     pPeerCertContext: c_void_p,
-    pChainPara: PCERT_CHAIN_PARA,
+    pChainPara: PCERT_CHAIN_PARA,  # type: ignore[valid-type]
     server_hostname: str | None,
     chain_flags: int,
 ) -> None:
@@ -492,6 +527,7 @@ def _verify_using_custom_ca_certs(
 
         # Get and verify a cert chain using the custom chain engine
         _get_and_verify_cert_chain(
+            ssl_context,
             hChainEngine,
             hIntermediateCertStore,
             pPeerCertContext,
@@ -505,6 +541,14 @@ def _verify_using_custom_ca_certs(
         CertCloseStore(hRootCertStore, 0)
 
 
-def _configure_context(ctx: ssl.SSLContext) -> None:
+@contextlib.contextmanager
+def _configure_context(ctx: ssl.SSLContext) -> typing.Iterator[None]:
+    check_hostname = ctx.check_hostname
+    verify_mode = ctx.verify_mode
     ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
+    _set_ssl_context_verify_mode(ctx, ssl.CERT_NONE)
+    try:
+        yield
+    finally:
+        ctx.check_hostname = check_hostname
+        _set_ssl_context_verify_mode(ctx, verify_mode)

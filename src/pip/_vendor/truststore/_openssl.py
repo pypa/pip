@@ -1,6 +1,8 @@
+import contextlib
 import os
 import re
 import ssl
+import typing
 
 # candidates based on https://github.com/tiran/certifi-system-store by Christian Heimes
 _CA_FILE_CANDIDATES = [
@@ -17,7 +19,8 @@ _CA_FILE_CANDIDATES = [
 _HASHED_CERT_FILENAME_RE = re.compile(r"^[0-9a-fA-F]{8}\.[0-9]$")
 
 
-def _configure_context(ctx: ssl.SSLContext) -> None:
+@contextlib.contextmanager
+def _configure_context(ctx: ssl.SSLContext) -> typing.Iterator[None]:
     # First, check whether the default locations from OpenSSL
     # seem like they will give us a usable set of CA certs.
     # ssl.get_default_verify_paths already takes care of:
@@ -40,8 +43,7 @@ def _configure_context(ctx: ssl.SSLContext) -> None:
                 ctx.load_verify_locations(cafile=cafile)
                 break
 
-    ctx.verify_mode = ssl.CERT_REQUIRED
-    ctx.check_hostname = True
+    yield
 
 
 def _capath_contains_certs(capath: str) -> bool:

@@ -1,6 +1,8 @@
+import contextlib
 import ctypes
 import platform
 import ssl
+import typing
 from ctypes import (
     CDLL,
     POINTER,
@@ -13,7 +15,8 @@ from ctypes import (
     c_void_p,
 )
 from ctypes.util import find_library
-from typing import Any
+
+from ._ssl_constants import _set_ssl_context_verify_mode
 
 _mac_version = platform.mac_ver()[0]
 _mac_version_info = tuple(map(int, _mac_version.split(".")))
@@ -201,7 +204,7 @@ except AttributeError:
     raise ImportError("Error initializing ctypes") from None
 
 
-def _handle_osstatus(result: OSStatus, _: Any, args: Any) -> Any:
+def _handle_osstatus(result: OSStatus, _: typing.Any, args: typing.Any) -> typing.Any:
     """
     Raises an error if the OSStatus value is non-zero.
     """
@@ -254,15 +257,20 @@ def _handle_osstatus(result: OSStatus, _: Any, args: Any) -> Any:
     raise ssl.SSLError(message)
 
 
-Security.SecTrustCreateWithCertificates.errcheck = _handle_osstatus  # type: ignore[assignment,misc]
-Security.SecTrustSetAnchorCertificates.errcheck = _handle_osstatus  # type: ignore[assignment,misc]
-Security.SecTrustGetTrustResult.errcheck = _handle_osstatus  # type: ignore[assignment,misc]
+Security.SecTrustCreateWithCertificates.errcheck = _handle_osstatus  # type: ignore[assignment]
+Security.SecTrustSetAnchorCertificates.errcheck = _handle_osstatus  # type: ignore[assignment]
+Security.SecTrustGetTrustResult.errcheck = _handle_osstatus  # type: ignore[assignment]
 
 
 class CFConst:
     """CoreFoundation constants"""
 
     kCFStringEncodingUTF8 = CFStringEncoding(0x08000100)
+
+    errSecIncompleteCertRevocationCheck = -67635
+    errSecHostNameMismatch = -67602
+    errSecCertificateExpired = -67818
+    errSecNotTrusted = -67843
 
 
 def _bytes_to_cf_data_ref(value: bytes) -> CFDataRef:  # type: ignore[valid-type]
@@ -338,9 +346,17 @@ def _der_certs_to_cf_cert_array(certs: list[bytes]) -> CFMutableArrayRef:  # typ
     return cf_array  # type: ignore[no-any-return]
 
 
-def _configure_context(ctx: ssl.SSLContext) -> None:
+@contextlib.contextmanager
+def _configure_context(ctx: ssl.SSLContext) -> typing.Iterator[None]:
+    check_hostname = ctx.check_hostname
+    verify_mode = ctx.verify_mode
     ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
+    _set_ssl_context_verify_mode(ctx, ssl.CERT_NONE)
+    try:
+        yield
+    finally:
+        ctx.check_hostname = check_hostname
+        _set_ssl_context_verify_mode(ctx, verify_mode)
 
 
 def _verify_peercerts_impl(
@@ -432,8 +448,27 @@ def _verify_peercerts_impl(
                 f"Unknown result from Security.SecTrustEvaluateWithError: {sec_trust_eval_result!r}"
             )
 
+        cf_error_code = 0
         if not is_trusted:
             cf_error_code = CoreFoundation.CFErrorGetCode(cf_error)
+
+            # If the error is a known failure that we're
+            # explicitly okay with from SSLContext configuration
+            # we can set is_trusted accordingly.
+            if ssl_context.verify_mode != ssl.CERT_REQUIRED and (
+                cf_error_code == CFConst.errSecNotTrusted
+                or cf_error_code == CFConst.errSecCertificateExpired
+            ):
+                is_trusted = True
+            elif (
+                not ssl_context.check_hostname
+                and cf_error_code == CFConst.errSecHostNameMismatch
+            ):
+                is_trusted = True
+
+        # If we're still not trusted then we start to
+        # construct and raise the SSLCertVerificationError.
+        if not is_trusted:
             cf_error_string_ref = None
             try:
                 cf_error_string_ref = CoreFoundation.CFErrorCopyDescription(cf_error)

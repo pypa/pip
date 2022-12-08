@@ -1,12 +1,16 @@
-"""Verify certificates using OS trust stores"""
+"""Verify certificates using OS trust stores. This is useful when your system contains
+custom certificate authorities such as when using a corporate proxy or using test certificates.
+Supports macOS, Windows, and Linux (with OpenSSL).
+"""
 
 import sys as _sys
 
 if _sys.version_info < (3, 10):
     raise ImportError("truststore requires Python 3.10 or later")
-del _sys
 
-from ._api import SSLContext  # noqa: E402
+from ._api import SSLContext, extract_from_ssl, inject_into_ssl  # noqa: E402
 
-__all__ = ["SSLContext"]
-__version__ = "0.5.0"
+del _api, _sys  # type: ignore[name-defined] # noqa: F821
+
+__all__ = ["SSLContext", "inject_into_ssl", "extract_from_ssl"]
+__version__ = "0.6.0"
