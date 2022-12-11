@@ -34,7 +34,7 @@ from typing import (
     cast,
 )
 
-from pip._vendor.pep517 import Pep517HookCaller
+from pip._vendor.pyproject_hooks import BuildBackendHookCaller
 from pip._vendor.tenacity import retry, stop_after_delay, wait_fixed
 
 from pip import __version__
@@ -57,7 +57,7 @@ __all__ = [
     "captured_stdout",
     "ensure_dir",
     "remove_auth_from_url",
-    "ConfiguredPep517HookCaller",
+    "ConfiguredBuildBackendHookCaller",
 ]
 
 
@@ -635,7 +635,7 @@ def partition(
     return filterfalse(pred, t1), filter(pred, t2)
 
 
-class ConfiguredPep517HookCaller(Pep517HookCaller):
+class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
     def __init__(
         self,
         config_holder: Any,
