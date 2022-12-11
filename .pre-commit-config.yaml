@@ -26,8 +26,8 @@ repos:
   hooks:
   - id: flake8
     additional_dependencies: [
-        'flake8-bugbear==22.3.23',
-        'flake8-logging-format==0.6.0',
+        'flake8-bugbear==22.10.27',
+        'flake8-logging-format==0.9.0',
         'flake8-implicit-str-concat==0.3.0',
     ]
     exclude: tests/data

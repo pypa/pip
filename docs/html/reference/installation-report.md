@@ -71,7 +71,7 @@ package with the following properties:
   ```
 
 - `requested`: `true` if the requirement was explicitly provided by the user, either
-  directely via a command line argument or indirectly via a requirements file. `false`
+  directly via a command line argument or indirectly via a requirements file. `false`
   if the requirement was installed as a dependency of another requirement.
 
 - `requested_extras`: extras requested by the user. This field is only present when the

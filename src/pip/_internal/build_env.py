@@ -18,7 +18,11 @@ from pip._vendor.packaging.version import Version
 
 from pip import __file__ as pip_location
 from pip._internal.cli.spinners import open_spinner
-from pip._internal.locations import get_platlib, get_prefixed_libs, get_purelib
+from pip._internal.locations import (
+    get_isolated_environment_lib_paths,
+    get_platlib,
+    get_purelib,
+)
 from pip._internal.metadata import get_default_environment, get_environment
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
@@ -37,7 +41,7 @@ class _Prefix:
             "nt" if os.name == "nt" else "posix_prefix",
             vars={"base": path, "platbase": path},
         )["scripts"]
-        self.lib_dirs = get_prefixed_libs(path)
+        self.lib_dirs = get_isolated_environment_lib_paths(path)
 
 
 def get_runnable_pip() -> str:
