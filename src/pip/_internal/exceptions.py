@@ -7,9 +7,11 @@ subpackage and, thus, should not depend on them.
 
 import configparser
 import re
+import sys
 from itertools import chain, groupby, repeat
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
+from pip._vendor import distro
 from pip._vendor.requests.models import Request, Response
 from pip._vendor.rich.console import Console, ConsoleOptions, RenderResult
 from pip._vendor.rich.markup import escape
@@ -169,6 +171,37 @@ class DiagnosticPipError(PipError):
 #
 # Actual Errors
 #
+class VenvImportError(DiagnosticPipError):
+    """Raised when `venv` can't be imported."""
+
+    reference = "venv-importerror"
+
+    def __init__(self) -> None:
+        if sys.platform != "linux":
+            hint_stmt = None
+        elif distro.like() == "debian":
+            hint_stmt = (
+                "Debian has split the Python standard library into multiple "
+                "pieces and maintains the venv as a separate `python3-venv` (or "
+                "`python3.x-venv`) package."
+            )
+        else:
+            hint_stmt = (
+                "If this is an OS-provided Python, it's likely that your OS "
+                "package maintainers have split Python's standard library across "
+                "multiple OS packages."
+            )
+        super().__init__(
+            message="Can not import the `venv` module of the Python standard library",
+            context=(
+                "This is a symptom of a broken/modified Python, which cannot be used "
+                "with pip."
+            ),
+            note_stmt="This is an issue with the Python installation itself, not pip.",
+            hint_stmt=hint_stmt,
+        )
+
+
 class ConfigurationError(PipError):
     """General exception in configuration"""
 

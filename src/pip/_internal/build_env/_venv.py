@@ -3,13 +3,13 @@
 
 import os
 import sys
-import venv
 from types import TracebackType
 from typing import TYPE_CHECKING, Dict, Iterable, Optional, Type
 
 from pip._vendor.requests.certs import where
 
 from pip._internal.cli.spinners import open_spinner
+from pip._internal.exceptions import VenvImportError
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 
@@ -23,6 +23,13 @@ class VenvBuildEnvironment(BuildEnvironment):
     """A build environment that does nothing."""
 
     def __init__(self) -> None:
+        # We defer this import because certain redistributors (like Debian) have decided
+        # that parts of the Python standard library should not be shipped with Python.
+        try:
+            import venv
+        except ImportError:
+            raise VenvImportError()
+
         self._temp_dir = TempDirectory(
             kind=tempdir_kinds.BUILD_ENV, globally_managed=True
         )
