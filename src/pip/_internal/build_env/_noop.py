@@ -1,8 +1,10 @@
 from types import TracebackType
-from typing import List, Optional, Type, Iterable
+from typing import TYPE_CHECKING, Iterable, List, Optional, Type
 
 from pip._internal.build_env import BuildEnvironment
-from pip._internal.index.package_finder import PackageFinder
+
+if TYPE_CHECKING:
+    from pip._internal.index.package_finder import PackageFinder
 
 
 class NoOpBuildEnvironment(BuildEnvironment):

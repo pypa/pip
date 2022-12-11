@@ -11,5 +11,6 @@ else:
 from pip._internal.build_env._base import BuildEnvironment, get_runnable_pip
 from pip._internal.build_env._custom import CustomBuildEnvironment
 from pip._internal.build_env._noop import NoOpBuildEnvironment
+from pip._internal.build_env._venv import VenvBuildEnvironment
 
 BuildIsolationMode = Literal["noop", "custom", "venv"]

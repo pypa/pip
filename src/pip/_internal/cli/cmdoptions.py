@@ -984,6 +984,7 @@ use_new_feature: Callable[..., Option] = partial(
         "fast-deps",
         "truststore",
         "no-binary-enable-wheel-cache",
+        "venv-isolation",
     ],
     help="Enable new functionality, that may be backward incompatible.",
 )

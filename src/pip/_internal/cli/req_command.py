@@ -308,6 +308,8 @@ class RequirementCommand(IndexGroupCommand):
 
         if not options.build_isolation:
             build_isolation: BuildIsolationMode = "noop"
+        elif "venv-isolation" in options.features_enabled:
+            build_isolation = "venv"
         else:
             build_isolation = "custom"
 
