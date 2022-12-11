@@ -1,7 +1,7 @@
 import logging
 from typing import Iterable, Set, Tuple
 
-from pip._internal.build_env import CustomBuildEnvironment
+from pip._internal.build_env import BuildIsolationMode, CustomBuildEnvironment
 from pip._internal.distributions.base import AbstractDistribution
 from pip._internal.exceptions import InstallationError
 from pip._internal.index.package_finder import PackageFinder
@@ -24,14 +24,14 @@ class SourceDistribution(AbstractDistribution):
     def prepare_distribution_metadata(
         self,
         finder: PackageFinder,
-        build_isolation: bool,
+        build_isolation: BuildIsolationMode,
         check_build_deps: bool,
     ) -> None:
         # Load pyproject.toml, to determine whether PEP 517 is to be used
         self.req.load_pyproject_toml()
 
         # Set up the build isolation, if this requirement should be isolated
-        should_isolate = self.req.use_pep517 and build_isolation
+        should_isolate = self.req.use_pep517 and build_isolation != "noop"
         if should_isolate:
             # Setup an isolated environment and install the build backend static
             # requirements in it.

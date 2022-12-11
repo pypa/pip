@@ -1,9 +1,6 @@
 """Prepares a distribution for installation
 """
 
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 import logging
 import mimetypes
 import os
@@ -12,6 +9,9 @@ from typing import Dict, Iterable, List, Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
 
+# The following comment should be removed at some point in the future.
+# mypy: strict-optional=False
+from pip._internal.build_env import BuildIsolationMode
 from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.distributions.installed import InstalledDistribution
 from pip._internal.exceptions import (
@@ -60,7 +60,7 @@ def _get_prepared_distribution(
     req: InstallRequirement,
     build_tracker: BuildTracker,
     finder: PackageFinder,
-    build_isolation: bool,
+    build_isolation: BuildIsolationMode,
     check_build_deps: bool,
 ) -> BaseDistribution:
     """Prepare a distribution for installation."""
@@ -213,7 +213,7 @@ class RequirementPreparer:
         build_dir: str,
         download_dir: Optional[str],
         src_dir: str,
-        build_isolation: bool,
+        build_isolation: BuildIsolationMode,
         check_build_deps: bool,
         build_tracker: BuildTracker,
         session: PipSession,

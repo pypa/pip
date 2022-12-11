@@ -12,6 +12,7 @@ from functools import partial
 from optparse import Values
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
+from pip._internal.build_env import BuildIsolationMode
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
@@ -305,11 +306,16 @@ class RequirementCommand(IndexGroupCommand):
                     "fast-deps has no effect when used with the legacy resolver."
                 )
 
+        if not options.build_isolation:
+            build_isolation: BuildIsolationMode = "noop"
+        else:
+            build_isolation = "custom"
+
         return RequirementPreparer(
             build_dir=temp_build_dir_path,
             src_dir=options.src_dir,
             download_dir=download_dir,
-            build_isolation=options.build_isolation,
+            build_isolation=build_isolation,
             check_build_deps=options.check_build_deps,
             build_tracker=build_tracker,
             session=session,
