@@ -1,5 +1,6 @@
 import os
 import ssl
+import sys
 import tempfile
 import textwrap
 
@@ -270,6 +271,10 @@ def test_install_no_binary_via_config_disables_cached_wheels(
     assert "Running setup.py install for upper" in str(res), str(res)
 
 
+@pytest.mark.skipif(
+    sys.platform == "linux" and sys.version_info < (3, 8),
+    reason="Custom SSL certification not running well in CI",
+)
 def test_prompt_for_authentication(
     script: PipTestEnvironment, data: TestData, cert_factory: CertFactory
 ) -> None:
@@ -310,6 +315,10 @@ def test_prompt_for_authentication(
     assert f"User for {server.host}:{server.port}" in result.stdout, str(result)
 
 
+@pytest.mark.skipif(
+    sys.platform == "linux" and sys.version_info < (3, 8),
+    reason="Custom SSL certification not running well in CI",
+)
 def test_do_not_prompt_for_authentication(
     script: PipTestEnvironment, data: TestData, cert_factory: CertFactory
 ) -> None:
@@ -352,6 +361,10 @@ def test_do_not_prompt_for_authentication(
     assert "ERROR: HTTP error 401" in result.stderr
 
 
+@pytest.mark.skipif(
+    sys.platform == "linux" and sys.version_info < (3, 8),
+    reason="Custom SSL certification not running well in CI",
+)
 @pytest.mark.parametrize("auth_needed", (True, False))
 def test_prompt_for_keyring_if_needed(
     script: PipTestEnvironment,
