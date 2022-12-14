@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Tuple
 from zipfile import ZipFile
 
-from tests.lib import PipTestEnvironment
+from tests.lib import PipTestEnvironment, create_basic_sdist_for_package
 
 PYPROJECT_TOML = """\
 [build-system]
@@ -159,6 +159,24 @@ def test_install_editable_sees_config(script: PipTestEnvironment) -> None:
         "--editable",
         project_dir,
     )
+    config = script.site_packages_path / "config.json"
+    with open(config, "rb") as f:
+        assert json.load(f) == {"FOO": "Hello"}
+
+
+def test_install_config_reqs(script: PipTestEnvironment) -> None:
+    _, _, project_dir = make_project(script.scratch_path)
+    a_sdist = create_basic_sdist_for_package(
+        script,
+        "foo",
+        "1.0",
+        {"pyproject.toml": PYPROJECT_TOML, "backend/dummy_backend.py": BACKEND_SRC},
+    )
+    script.scratch_path.joinpath("reqs.txt").write_text(
+        "foo --config-settings FOO=Hello"
+    )
+    script.pip("install", "--no-index", "-f", str(a_sdist.parent), "-r", "reqs.txt")
+    script.assert_installed(foo="1.0")
     config = script.site_packages_path / "config.json"
     with open(config, "rb") as f:
         assert json.load(f) == {"FOO": "Hello"}
