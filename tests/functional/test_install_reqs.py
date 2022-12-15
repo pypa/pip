@@ -2,7 +2,7 @@ import json
 import os
 import textwrap
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
@@ -34,9 +34,7 @@ class ArgRecordingSdist:
 
 
 class ArgRecordingSdistMaker(Protocol):
-    def __call__(
-        self, name: str, extra_files: Optional[Dict[str, str]] = None
-    ) -> ArgRecordingSdist:
+    def __call__(self, name: str, **kwargs: Any) -> ArgRecordingSdist:
         ...
 
 
@@ -44,20 +42,16 @@ class ArgRecordingSdistMaker(Protocol):
 def arg_recording_sdist_maker(
     script: PipTestEnvironment,
 ) -> ArgRecordingSdistMaker:
-    arg_writing_setup_py = textwrap.dedent(
+    arg_writing_setup_py_prelude = textwrap.dedent(
         """
         import io
         import json
         import os
         import sys
 
-        from setuptools import setup
-
         args_path = os.path.join(os.environ["OUTPUT_DIR"], "{name}.json")
         with open(args_path, 'w') as f:
             json.dump(sys.argv, f)
-
-        setup(name={name!r}, version="0.1.0")
         """
     )
     output_dir = script.scratch_path.joinpath("args_recording_sdist_maker_output")
@@ -65,12 +59,16 @@ def arg_recording_sdist_maker(
     script.environ["OUTPUT_DIR"] = str(output_dir)
 
     def _arg_recording_sdist_maker(
-        name: str, extra_files: Optional[Dict[str, str]] = None
+        name: str,
+        **kwargs: Any,
     ) -> ArgRecordingSdist:
-        _extra_files = {"setup.py": arg_writing_setup_py.format(name=name)}
-        if extra_files is not None:
-            _extra_files.update(extra_files)
-        sdist_path = create_basic_sdist_for_package(script, name, "0.1.0", _extra_files)
+        sdist_path = create_basic_sdist_for_package(
+            script,
+            name,
+            "0.1.0",
+            setup_py_prelude=arg_writing_setup_py_prelude.format(name=name),
+            **kwargs,
+        )
         args_path = output_dir / f"{name}.json"
         return ArgRecordingSdist(sdist_path, args_path)
 
@@ -835,9 +833,10 @@ def test_location_related_install_option_fails(script: PipTestEnvironment) -> No
     assert "['--home'] from simple" in result.stderr
 
 
-@pytest.mark.network
 def test_config_settings_local_to_package(
-    script: PipTestEnvironment, arg_recording_sdist_maker: ArgRecordingSdistMaker
+    script: PipTestEnvironment,
+    common_wheels: Path,
+    arg_recording_sdist_maker: ArgRecordingSdistMaker,
 ) -> None:
     pyproject_toml = textwrap.dedent(
         """
@@ -847,10 +846,16 @@ def test_config_settings_local_to_package(
         """
     )
     simple1_sdist = arg_recording_sdist_maker(
-        "simple1", {"pyproject.toml": pyproject_toml}
+        "simple1",
+        extra_files={"pyproject.toml": pyproject_toml},
+        depends=["bar"],
+    )
+    bar_sdist = arg_recording_sdist_maker(
+        "bar", extra_files={"pyproject.toml": pyproject_toml}
     )
     simple2_sdist = arg_recording_sdist_maker(
-        "simple2", {"pyproject.toml": pyproject_toml}
+        "simple2",
+        extra_files={"pyproject.toml": pyproject_toml},
     )
 
     reqs_file = script.scratch_path.joinpath("reqs.txt")
@@ -862,15 +867,21 @@ def test_config_settings_local_to_package(
             """
         )
     )
+
     script.pip(
         "install",
+        "--no-index",
         "-f",
-        str(simple1_sdist.sdist_path.parent),
+        script.scratch_path,
+        "-f",
+        common_wheels,
         "-r",
         reqs_file,
     )
 
     simple1_args = simple1_sdist.args()
     assert "--verbose" in simple1_args
+    bar_args = bar_sdist.args()
+    assert "--verbose" in bar_args
     simple2_args = simple2_sdist.args()
     assert "--verbose" not in simple2_args
