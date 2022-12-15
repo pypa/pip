@@ -10,6 +10,7 @@ from contextlib import ExitStack, contextmanager
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
+    AnyStr,
     Callable,
     Dict,
     Iterable,
@@ -507,7 +508,10 @@ def with_wheel(virtualenv: VirtualEnvironment, wheel_install: Path) -> None:
 
 class ScriptFactory(Protocol):
     def __call__(
-        self, tmpdir: Path, virtualenv: Optional[VirtualEnvironment] = None
+        self,
+        tmpdir: Path,
+        virtualenv: Optional[VirtualEnvironment] = None,
+        environ: Optional[Dict[AnyStr, AnyStr]] = None,
     ) -> PipTestEnvironment:
         ...
 
@@ -521,7 +525,11 @@ def script_factory(
     def factory(
         tmpdir: Path,
         virtualenv: Optional[VirtualEnvironment] = None,
+        environ: Optional[Dict[AnyStr, AnyStr]] = None,
     ) -> PipTestEnvironment:
+        kwargs = {}
+        if environ:
+            kwargs["environ"] = environ
         if virtualenv is None:
             virtualenv = virtualenv_factory(tmpdir.joinpath("venv"))
         return PipTestEnvironment(
@@ -541,6 +549,7 @@ def script_factory(
             pip_expect_warning=deprecated_python,
             # Tell the Test Environment if we want to run pip via a zipapp
             zipapp=zipapp,
+            **kwargs,
         )
 
     return factory

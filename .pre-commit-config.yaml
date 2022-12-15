@@ -47,7 +47,7 @@ repos:
     additional_dependencies: [
         'keyring==23.0.1',
         'nox==2021.6.12',
-        'pytest==7.1.1',
+        'pytest',
         'types-docutils==0.18.3',
         'types-setuptools==57.4.14',
         'types-freezegun==1.1.9',

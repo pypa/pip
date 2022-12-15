@@ -244,6 +244,19 @@ no_input: Callable[..., Option] = partial(
     help="Disable prompting for input.",
 )
 
+keyring_provider: Callable[..., Option] = partial(
+    Option,
+    "--keyring-provider",
+    dest="keyring_provider",
+    choices=["auto", "disabled", "import", "subprocess"],
+    default="disabled",
+    help=(
+        "Enable the credential lookup via the keyring library if user input is allowed."
+        " Specify which mechanism to use [disabled, import, subprocess]."
+        " (default: disabled)"
+    ),
+)
+
 proxy: Callable[..., Option] = partial(
     Option,
     "--proxy",
@@ -1019,6 +1032,7 @@ general_group: Dict[str, Any] = {
         quiet,
         log,
         no_input,
+        keyring_provider,
         proxy,
         retries,
         timeout,
