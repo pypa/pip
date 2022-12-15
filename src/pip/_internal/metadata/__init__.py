@@ -4,6 +4,7 @@ import os
 import sys
 from typing import TYPE_CHECKING, List, Optional, Type, cast
 
+from pip._internal.exceptions import PipError
 from pip._internal.utils.misc import strtobool
 
 from .base import BaseDistribution, BaseEnvironment, FilesystemWheel, MemoryWheel, Wheel
@@ -60,6 +61,11 @@ def select_backend() -> Backend:
         from . import importlib
 
         return cast(Backend, importlib)
+
+    if sys.version_info >= (3, 12):
+        message = "Cannot use pkg_resources as metadata backend on Python 3.12+"
+        raise PipError(message)
+
     from . import pkg_resources
 
     return cast(Backend, pkg_resources)
