@@ -14,7 +14,10 @@ from pip._internal.req.constructors import (
     install_req_from_line,
     install_req_from_parsed_requirement,
 )
-from pip._internal.utils.misc import protect_pip_from_modification_on_windows
+from pip._internal.utils.misc import (
+    get_externally_managed_error,
+    protect_pip_from_modification_on_windows,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +92,10 @@ class UninstallCommand(Command, SessionCommandMixin):
                 f"You must give at least one requirement to {self.name} (see "
                 f'"pip help {self.name}")'
             )
+
+        externally_managed_error = get_externally_managed_error()
+        if externally_managed_error is not None:
+            raise InstallationError(externally_managed_error)
 
         protect_pip_from_modification_on_windows(
             modifying_pip="pip" in reqs_to_uninstall

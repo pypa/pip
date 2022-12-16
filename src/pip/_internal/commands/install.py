@@ -42,6 +42,7 @@ from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import (
     ensure_dir,
+    get_externally_managed_error,
     get_pip_version,
     protect_pip_from_modification_on_windows,
     write_output,
@@ -283,6 +284,21 @@ class InstallCommand(RequirementCommand):
     def run(self, options: Values, args: List[str]) -> int:
         if options.use_user_site and options.target_dir is not None:
             raise CommandError("Can not combine '--user' and '--target'")
+
+        # Check whether the environment we're installing into is externally
+        # managed, as specified in PEP 668. Specifying --root, --target, or
+        # --prefix disables the check, since there's no reliable way to locate
+        # the EXTERNALLY-MANAGED file for those cases.
+        installing_into_current_environment = (
+            not options.dry_run
+            and options.root_path is None
+            and options.target_dir is None
+            and options.prefix_path is None
+        )
+        if installing_into_current_environment:
+            externally_managed_error = get_externally_managed_error()
+            if externally_managed_error is not None:
+                raise InstallationError(externally_managed_error)
 
         upgrade_strategy = "to-satisfy-only"
         if options.upgrade:

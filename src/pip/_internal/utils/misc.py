@@ -1,17 +1,20 @@
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
 
+import configparser
 import contextlib
 import errno
 import getpass
 import hashlib
 import io
+import locale
 import logging
 import os
 import posixpath
 import shutil
 import stat
 import sys
+import sysconfig
 import urllib.parse
 from io import StringIO
 from itertools import filterfalse, tee, zip_longest
@@ -57,6 +60,7 @@ __all__ = [
     "captured_stdout",
     "ensure_dir",
     "remove_auth_from_url",
+    "get_externally_managed_error",
     "ConfiguredBuildBackendHookCaller",
 ]
 
@@ -579,6 +583,58 @@ def protect_pip_from_modification_on_windows(modifying_pip: bool) -> None:
                 " ".join(new_command)
             )
         )
+
+
+_DEFAULT_EXTERNALLY_MANAGED_ERROR = f"""\
+The Python environment under {sys.prefix} is managed externally, and may not be
+manipulated by the user. Please use specific tooling from the distributor of
+the Python installation to interact with this environment instead.
+"""
+
+
+def _iter_externally_managed_error_keys() -> Iterator[str]:
+    lang, _ = locale.getlocale(locale.LC_MESSAGES)
+    if lang is not None:
+        yield f"Error-{lang}"
+        for sep in ("-", "_"):
+            before, found, _ = lang.partition(sep)
+            if not found:
+                continue
+            yield f"Error-{before}"
+    yield "Error"
+
+
+def get_externally_managed_error() -> Optional[str]:
+    """Get an error message from the EXTERNALLY-MANAGED config file.
+
+    This checks whether the current environment pip is running in is externally
+    managed. If the EXTERNALLY-MANAGED file is found, the vendor-provided error
+    message is read and returned (if available; a default message is used
+    otherwise), as specified in `PEP 668`_.
+
+    If the current environment is *not* externally managed, *None* is returned.
+
+    .. _`PEP 668`: https://peps.python.org/pep-0668/
+    """
+    if running_under_virtualenv():
+        return None
+    marker = os.path.join(sysconfig.get_path("stdlib"), "EXTERNALLY-MANAGED")
+    if not os.path.isfile(marker):
+        return None
+    try:
+        parser = configparser.ConfigParser(interpolation=None)
+        parser.read(marker, encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as e:
+        logger.warning("Ignoring %s due to error %s", marker, e)
+        return _DEFAULT_EXTERNALLY_MANAGED_ERROR
+    try:
+        section = parser["externally-managed"]
+    except KeyError:
+        return _DEFAULT_EXTERNALLY_MANAGED_ERROR
+    for key in _iter_externally_managed_error_keys():
+        with contextlib.suppress(KeyError):
+            return section[key]
+    return _DEFAULT_EXTERNALLY_MANAGED_ERROR
 
 
 def is_console_interactive() -> bool:
