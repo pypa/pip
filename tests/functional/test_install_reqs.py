@@ -845,6 +845,15 @@ def test_config_settings_local_to_package(
         build-backend = "setuptools.build_meta"
         """
     )
+    simple0_sdist = arg_recording_sdist_maker(
+        "simple0",
+        extra_files={"pyproject.toml": pyproject_toml},
+        depends=["foo"],
+    )
+    foo_sdist = arg_recording_sdist_maker(
+        "foo",
+        extra_files={"pyproject.toml": pyproject_toml},
+    )
     simple1_sdist = arg_recording_sdist_maker(
         "simple1",
         extra_files={"pyproject.toml": pyproject_toml},
@@ -862,6 +871,8 @@ def test_config_settings_local_to_package(
     reqs_file.write_text(
         textwrap.dedent(
             """
+            simple0 --config-settings "--build-option=--verbose"
+            foo --config-settings "--build-option=--quiet"
             simple1 --config-settings "--build-option=--verbose"
             simple2
             """
@@ -879,6 +890,10 @@ def test_config_settings_local_to_package(
         reqs_file,
     )
 
+    simple0_args = simple0_sdist.args()
+    assert "--verbose" in simple0_args
+    foo_args = foo_sdist.args()
+    assert "--quiet" in foo_args
     simple1_args = simple1_sdist.args()
     assert "--verbose" in simple1_args
     bar_args = bar_sdist.args()
