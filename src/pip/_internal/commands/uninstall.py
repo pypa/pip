@@ -15,7 +15,7 @@ from pip._internal.req.constructors import (
     install_req_from_parsed_requirement,
 )
 from pip._internal.utils.misc import (
-    get_externally_managed_error,
+    check_externally_managed,
     protect_pip_from_modification_on_windows,
 )
 
@@ -93,9 +93,7 @@ class UninstallCommand(Command, SessionCommandMixin):
                 f'"pip help {self.name}")'
             )
 
-        externally_managed_error = get_externally_managed_error()
-        if externally_managed_error is not None:
-            raise InstallationError(externally_managed_error)
+        check_externally_managed()
 
         protect_pip_from_modification_on_windows(
             modifying_pip="pip" in reqs_to_uninstall

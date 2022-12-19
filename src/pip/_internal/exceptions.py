@@ -6,9 +6,12 @@ subpackage and, thus, should not depend on them.
 """
 
 import configparser
+import contextlib
+import locale
 import re
+import sys
 from itertools import chain, groupby, repeat
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Dict, Iterator, List, Optional, Union
 
 from pip._vendor.requests.models import Request, Response
 from pip._vendor.rich.console import Console, ConsoleOptions, RenderResult
@@ -658,3 +661,62 @@ class ConfigurationFileCouldNotBeLoaded(ConfigurationError):
             assert self.error is not None
             message_part = f".\n{self.error}\n"
         return f"Configuration file {self.reason}{message_part}"
+
+
+_DEFAULT_EXTERNALLY_MANAGED_ERROR = f"""\
+The Python environment under {sys.prefix} is managed externally, and may not be
+manipulated by the user. Please use specific tooling from the distributor of
+the Python installation to interact with this environment instead.
+"""
+
+
+class ExternallyManagedEnvironment(DiagnosticPipError):
+    """The current environment is externally managed.
+
+    This is raised when the current environment is externally managed, as
+    defined by `PEP 668`_. The ``EXTERNALLY-MANAGED`` configuration is checked
+    and displayed when the error is bubbled up to the user.
+
+    :param error: The error message read from ``EXTERNALLY-MANAGED``.
+    """
+
+    def __init__(self, error: Optional[str]) -> None:
+        if error is None:
+            context = Text(_DEFAULT_EXTERNALLY_MANAGED_ERROR)
+        else:
+            context = Text(error)
+        super().__init__(
+            message="This environment is externally managed",
+            context=context,
+            note_stmt=(
+                "If you believe this is a mistake, please contact your "
+                "Python installation or OS distribution provider."
+            ),
+            hint_stmt=Text("See PEP 668 for the detailed specification."),
+        )
+
+    @staticmethod
+    def _iter_externally_managed_error_keys() -> Iterator[str]:
+        lang, _ = locale.getlocale(locale.LC_MESSAGES)
+        if lang is not None:
+            yield f"Error-{lang}"
+            for sep in ("-", "_"):
+                before, found, _ = lang.partition(sep)
+                if not found:
+                    continue
+                yield f"Error-{before}"
+        yield "Error"
+
+    @classmethod
+    def from_config(
+        cls,
+        parser: configparser.ConfigParser,
+    ) -> "ExternallyManagedEnvironment":
+        try:
+            section = parser["externally-managed"]
+        except KeyError:
+            return cls(None)
+        for key in cls._iter_externally_managed_error_keys():
+            with contextlib.suppress(KeyError):
+                return cls(section[key])
+        return cls(None)

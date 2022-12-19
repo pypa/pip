@@ -41,8 +41,8 @@ from pip._internal.utils.distutils_args import parse_distutils_args
 from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import (
+    check_externally_managed,
     ensure_dir,
-    get_externally_managed_error,
     get_pip_version,
     protect_pip_from_modification_on_windows,
     write_output,
@@ -296,9 +296,7 @@ class InstallCommand(RequirementCommand):
             and options.prefix_path is None
         )
         if installing_into_current_environment:
-            externally_managed_error = get_externally_managed_error()
-            if externally_managed_error is not None:
-                raise InstallationError(externally_managed_error)
+            check_externally_managed()
 
         upgrade_strategy = "to-satisfy-only"
         if options.upgrade:
