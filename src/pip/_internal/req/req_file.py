@@ -4,6 +4,7 @@ Requirements file parsing
 
 import optparse
 import os
+import os.path
 import re
 import shlex
 import urllib.parse
@@ -537,7 +538,8 @@ def get_file_content(url: str, session: PipSession) -> Tuple[str, str]:
 
     # Assume this is a bare path.
     try:
-        with open(url, "rb") as f:
+        # Resolve symlinks first to support multiple levels of symlinking
+        with open(os.path.abspath(url), "rb") as f:
             content = auto_decode(f.read())
     except OSError as exc:
         raise InstallationError(f"Could not open requirements file: {exc}")
