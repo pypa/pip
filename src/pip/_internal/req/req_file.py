@@ -538,7 +538,7 @@ def get_file_content(url: str, session: PipSession) -> Tuple[str, str]:
 
     # Assume this is a bare path.
     try:
-        # Resolve symlinks first to support multiple levels of symlinking
+        # Resolve symlink'd directories
         with open(os.path.abspath(url), "rb") as f:
             content = auto_decode(f.read())
     except OSError as exc:
