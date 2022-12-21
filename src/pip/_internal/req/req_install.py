@@ -151,6 +151,13 @@ class InstallRequirement:
         self.hash_options = hash_options if hash_options else {}
         self.config_settings = config_settings
         if isinstance(comes_from, InstallRequirement) and comes_from.config_settings:
+            # 1. If a user-requested package has config settings, those are always used.
+            # 2. If a user-requested package does not have user-specified config
+            # settings, but is another package’s transitive dependency, it would
+            # inherit the dependant’s config settings.
+            # 3. A transitive cannot have user-specified config settings.
+            # 4. If a transitive dependency’s dependant has config settings,
+            # the config settings are inherited.
             self.config_settings = comes_from.config_settings
         # Set to True after successful preparation of this requirement
         self.prepared = False
