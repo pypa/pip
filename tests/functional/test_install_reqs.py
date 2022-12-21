@@ -860,7 +860,12 @@ def test_config_settings_local_to_package(
         depends=["bar"],
     )
     bar_sdist = arg_recording_sdist_maker(
-        "bar", extra_files={"pyproject.toml": pyproject_toml}
+        "bar",
+        extra_files={"pyproject.toml": pyproject_toml},
+        depends=["simple3"],
+    )
+    simple3_sdist = arg_recording_sdist_maker(
+        "simple3", extra_files={"pyproject.toml": pyproject_toml}
     )
     simple2_sdist = arg_recording_sdist_maker(
         "simple2",
@@ -898,5 +903,7 @@ def test_config_settings_local_to_package(
     assert "--verbose" in simple1_args
     bar_args = bar_sdist.args()
     assert "--verbose" in bar_args
+    simple3_args = simple3_sdist.args()
+    assert "--verbose" in simple3_args
     simple2_args = simple2_sdist.args()
     assert "--verbose" not in simple2_args
