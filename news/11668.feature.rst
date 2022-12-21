@@ -1,3 +1,2 @@
 Allow relative paths to other requirements.txt files to be resolved the same
 even if some directories on the relative path are symlinks to other directories.
-
