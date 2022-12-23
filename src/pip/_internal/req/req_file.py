@@ -538,7 +538,8 @@ def get_file_content(url: str, session: PipSession) -> Tuple[str, str]:
 
     # Assume this is a bare path.
     try:
-        # Resolve symlink'd directories
+        # Treat symlink'd dirs in url as real so that an environment with symlinks
+        # (e.g. development) is the same as an environment without (e.g. prod)
         with open(os.path.abspath(url), "rb") as f:
             content = auto_decode(f.read())
     except OSError as exc:
