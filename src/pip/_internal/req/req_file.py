@@ -538,9 +538,14 @@ def get_file_content(url: str, session: PipSession) -> Tuple[str, str]:
 
     # Assume this is a bare path.
     try:
-        # Treat symlink'd dirs in url as real so that an environment with symlinks
-        # (e.g. development) is the same as an environment without (e.g. prod)
-        with open(os.path.abspath(url), "rb") as f:
+        if not os.path.exists(url):
+          # If the expected bare path doesn't exist, check if treating symlink'd path
+          # components as real works.
+          abs_path_url = os.path.abspath(url)
+          if os.path.exists(abs_path_url):
+            url = abs_path_url
+
+        with open(url, "rb") as f:
             content = auto_decode(f.read())
     except OSError as exc:
         raise InstallationError(f"Could not open requirements file: {exc}")
