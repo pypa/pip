@@ -4,7 +4,6 @@ Requirements file parsing
 
 import optparse
 import os
-import os.path
 import re
 import shlex
 import urllib.parse
