@@ -128,6 +128,16 @@ You can also refer to {ref}`constraints files <Constraints Files>`, like this:
 -c some_constraints.txt
 ```
 
+The specification following the `-r` or `-c` is a local file path. There is
+no implicit search path for referenced local files. If the referenced file
+is not in the current working directory from which `pip` is being run then
+the path to the referenced file must be specified. The path can be a relative
+path (it can include `../` elements). If the path includes directories that
+are symlinks and relative path elements follow the symlinked directory name,
+then `pip` will first try and find the referenced file by resolving the symlink.
+If the referenced file cannot be found, then `pip` will try and find it
+without resolving the symlink (by using `os.path.abspath`).
+
 ## Using environment variables
 
 ```{versionadded} 10.0
