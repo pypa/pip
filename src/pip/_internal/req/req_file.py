@@ -538,11 +538,11 @@ def get_file_content(url: str, session: PipSession) -> Tuple[str, str]:
     # Assume this is a bare path.
     try:
         if not os.path.exists(url):
-          # If the expected bare path doesn't exist, check if treating symlink'd path
-          # components as real works.
-          abs_path_url = os.path.abspath(url)
-          if os.path.exists(abs_path_url):
-            url = abs_path_url
+            # If the expected bare path doesn't exist, check if treating symlink'd path
+            # components as real works.
+            abs_path_url = os.path.abspath(url)
+            if os.path.exists(abs_path_url):
+                url = abs_path_url
 
         with open(url, "rb") as f:
             content = auto_decode(f.read())
