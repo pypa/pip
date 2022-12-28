@@ -530,4 +530,4 @@ def get_isolated_environment_lib_paths(prefix: str) -> List[str]:
 
 
 def get_isolated_environment_bin_path(prefix: str) -> str:
-    return _sysconfig.get_isolated_environment_bin_path(prefix)
+    return _sysconfig.get_isolated_environment_paths(prefix)["scripts"]
