@@ -130,10 +130,6 @@ VCS source will not overwrite it without an `--upgrade` flag. Further, pip
 looks at the package version, at the target revision to determine what action to
 take on the VCS requirement (not the commit itself).
 
-The {ref}`pip freeze` subcommand will record the VCS requirement specifier
-(referencing a specific commit) only if the install is done with the editable
-option.
-
 ## URL fragments
 
 pip looks at 2 fragments for VCS URLs:
