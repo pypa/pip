@@ -1,0 +1,1 @@
+Make ``pip show`` show the editable location if package is editable
