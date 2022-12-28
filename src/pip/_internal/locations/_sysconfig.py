@@ -214,10 +214,10 @@ def get_platlib() -> str:
 
 
 def _get_isolated_environment_paths(prefix: str) -> typing.Dict[str, str]:
-    vars = {"base": prefix, "platbase": prefix}
+    variables = {"base": prefix, "platbase": prefix}
     if "venv" in sysconfig.get_scheme_names():
-        return sysconfig.get_paths(vars=vars, scheme="venv")
-    return sysconfig.get_paths(vars=vars)
+        return sysconfig.get_paths(vars=variables, scheme="venv")
+    return sysconfig.get_paths(vars=variables)
 
 
 def get_isolated_environment_lib_paths(prefix: str) -> typing.Tuple[str, str]:
