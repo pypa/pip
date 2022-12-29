@@ -1,12 +1,12 @@
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
 
-import configparser
 import contextlib
 import errno
 import getpass
 import hashlib
 import io
+import logging
 import os
 import posixpath
 import shutil
@@ -41,7 +41,6 @@ from pip._vendor.tenacity import retry, stop_after_delay, wait_fixed
 from pip import __version__
 from pip._internal.exceptions import CommandError, ExternallyManagedEnvironment
 from pip._internal.locations import get_major_minor_version
-from pip._internal.utils._log import VERBOSE, getLogger
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
@@ -63,8 +62,7 @@ __all__ = [
     "ConfiguredBuildBackendHookCaller",
 ]
 
-
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 ExcInfo = Tuple[Type[BaseException], BaseException, TracebackType]
@@ -592,17 +590,11 @@ def check_externally_managed() -> None:
     raised.
     """
     if running_under_virtualenv():
-        return None
+        return
     marker = os.path.join(sysconfig.get_path("stdlib"), "EXTERNALLY-MANAGED")
     if not os.path.isfile(marker):
         return
-    parser = configparser.ConfigParser(interpolation=None)
-    try:
-        parser.read(marker, encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
-        exc_info = logger.isEnabledFor(VERBOSE)
-        logger.warning("Failed to read %s", marker, exc_info=exc_info)
-    raise ExternallyManagedEnvironment.from_config(parser)
+    raise ExternallyManagedEnvironment.from_config(marker)
 
 
 def is_console_interactive() -> bool:

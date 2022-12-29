@@ -8,6 +8,7 @@ subpackage and, thus, should not depend on them.
 import configparser
 import contextlib
 import locale
+import logging
 import re
 import sys
 from itertools import chain, groupby, repeat
@@ -24,6 +25,8 @@ if TYPE_CHECKING:
 
     from pip._internal.metadata import BaseDistribution
     from pip._internal.req.req_install import InstallRequirement
+
+logger = logging.getLogger(__name__)
 
 
 #
@@ -708,10 +711,15 @@ class ExternallyManagedEnvironment(DiagnosticPipError):
         yield "Error"
 
     @classmethod
-    def from_config(
-        cls,
-        parser: configparser.ConfigParser,
-    ) -> "ExternallyManagedEnvironment":
+    def from_config(cls, config: str) -> "ExternallyManagedEnvironment":
+        parser = configparser.ConfigParser(interpolation=None)
+        try:
+            parser.read(config, encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            from pip._internal.utils._log import VERBOSE
+
+            exc_info = logger.isEnabledFor(VERBOSE)
+            logger.warning("Failed to read %s", config, exc_info=exc_info)
         try:
             section = parser["externally-managed"]
         except KeyError:
