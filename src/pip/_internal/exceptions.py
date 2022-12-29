@@ -9,6 +9,7 @@ import configparser
 import contextlib
 import locale
 import logging
+import pathlib
 import re
 import sys
 from itertools import chain, groupby, repeat
@@ -683,6 +684,8 @@ class ExternallyManagedEnvironment(DiagnosticPipError):
     :param error: The error message read from ``EXTERNALLY-MANAGED``.
     """
 
+    reference = "externally-managed-environment"
+
     def __init__(self, error: Optional[str]) -> None:
         if error is None:
             context = Text(_DEFAULT_EXTERNALLY_MANAGED_ERROR)
@@ -711,20 +714,22 @@ class ExternallyManagedEnvironment(DiagnosticPipError):
         yield "Error"
 
     @classmethod
-    def from_config(cls, config: str) -> "ExternallyManagedEnvironment":
+    def from_config(
+        cls,
+        config: Union[pathlib.Path, str],
+    ) -> "ExternallyManagedEnvironment":
         parser = configparser.ConfigParser(interpolation=None)
         try:
             parser.read(config, encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
+            section = parser["externally-managed"]
+            for key in cls._iter_externally_managed_error_keys():
+                with contextlib.suppress(KeyError):
+                    return cls(section[key])
+        except KeyError:
+            pass
+        except (OSError, UnicodeDecodeError, configparser.ParsingError):
             from pip._internal.utils._log import VERBOSE
 
             exc_info = logger.isEnabledFor(VERBOSE)
             logger.warning("Failed to read %s", config, exc_info=exc_info)
-        try:
-            section = parser["externally-managed"]
-        except KeyError:
-            return cls(None)
-        for key in cls._iter_externally_managed_error_keys():
-            with contextlib.suppress(KeyError):
-                return cls(section[key])
         return cls(None)
