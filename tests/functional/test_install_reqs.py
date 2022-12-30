@@ -201,7 +201,6 @@ def test_relative_requirements_file_across_symlink(
     )
 
     package2_to_package1 = Path(".." if test_type == "true_rel_path" else "../..")
-    package1_to_fspkg = Path(os.path.relpath(script.site_packages, package1))
 
     # Create app and package requirements files with relative references
     app_req = f"-r {app_subpackages / 'package2' / 'reqs.txt'}\n"
