@@ -39,6 +39,10 @@ def test_archive_info() -> None:
     assert (
         direct_url.info.hash == direct_url_dict["archive_info"]["hash"]  # type: ignore
     )
+    # test we add the hashes key automatically
+    direct_url_dict["archive_info"]["hashes"] = {  # type: ignore
+        "sha1": "1b8c5bc61a86f377fea47b4276c8c8a5842d2220"
+    }
     assert direct_url.to_dict() == direct_url_dict
 
 
