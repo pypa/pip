@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 import textwrap
 from pathlib import Path
 from typing import Any, Callable
@@ -169,6 +170,9 @@ def test_relative_requirements_file_across_symlink(
     have different relative locations.
 
     """
+    if sys.platform.startswith("win") and test_type == 'true_rel_path':
+        pytest.skip("Windows does not resolve the relative path across a symlink")
+
     dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
     package_folder = script.site_packages / "fspkg"
 
