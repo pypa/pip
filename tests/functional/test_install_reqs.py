@@ -159,7 +159,19 @@ def test_relative_requirements_file(
             result.did_create(egg_link_file)
 
 
-@pytest.mark.parametrize("test_type", ["true_rel_path", "app_rel_path"])
+@pytest.mark.parametrize(
+    "test_type",
+    [
+        "app_rel_path",
+        pytest.param(
+            "true_rel_path",
+            marks=pytest.mark.skipif(
+                "sys.platform.startswith('win')",
+                reason="Windows does not resolve the relative path across a symlink",
+            ),
+        ),
+    ],
+)
 @pytest.mark.usefixtures("with_wheel")
 def test_relative_requirements_file_across_symlink(
     script: PipTestEnvironment, data: TestData, tmpdir: Path, test_type: str
@@ -170,9 +182,6 @@ def test_relative_requirements_file_across_symlink(
     have different relative locations.
 
     """
-    if sys.platform.startswith("win") and test_type == "true_rel_path":
-        pytest.skip("Windows does not resolve the relative path across a symlink")
-
     dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
     package_folder = script.site_packages / "fspkg"
 
