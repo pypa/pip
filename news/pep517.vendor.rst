@@ -1,0 +1,1 @@
+Remove pep517 from vendored packages
