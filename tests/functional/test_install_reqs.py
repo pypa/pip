@@ -1,6 +1,5 @@
 import json
 import os
-import sys
 import textwrap
 from pathlib import Path
 from typing import Any, Callable
