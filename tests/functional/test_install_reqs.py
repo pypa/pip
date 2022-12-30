@@ -203,9 +203,13 @@ def test_relative_requirements_file_across_symlink(
     package2_to_package1 = Path(".." if test_type == "true_rel_path" else "../..")
 
     # Create app and package requirements files with relative references
-    app_req = f"-r {app_subpackages / 'package2' / 'reqs.txt'}\n"
-    package2_req = f"-r {package2_to_package1 / 'package1' / 'reqs.txt'}\n"
-    package1_req = f"{data.packages / 'FSPkg'}\n"
+    app_req = f"-r {app_subpackages / 'package2' / 'reqs.txt'}\n".replace(
+        os.path.sep, "/"
+    )
+    package2_req = f"-r {package2_to_package1 / 'package1' / 'reqs.txt'}\n".replace(
+        os.path.sep, "/"
+    )
+    package1_req = f"{data.packages / 'FSPkg'}\n".replace(os.path.sep, "/")
 
     with requirements_file(app_req, script.scratch_path) as reqs_file:
         with requirements_file(package2_req, package2):
