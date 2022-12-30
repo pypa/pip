@@ -158,6 +158,71 @@ def test_relative_requirements_file(
             result.did_create(egg_link_file)
 
 
+@pytest.mark.parametrize("test_type", ["true_rel_path", "app_rel_path"])
+@pytest.mark.usefixtures("with_wheel")
+def test_relative_requirements_file_across_symlink(
+    script: PipTestEnvironment, data: TestData, tmpdir: Path, test_type: str
+) -> None:
+    """
+    Test installing from requirements files in sub-directories where the
+    sub-directories are actually symlinks to other directories that may
+    have different relative locations.
+
+    """
+    dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
+    egg_link_file = script.site_packages / "FSPkg.egg-link"
+    package_folder = script.site_packages / "fspkg"
+
+    # Create package directories that are symlink'd by apps
+    package1 = tmpdir.joinpath('package1')
+    package1.mkdir()
+
+    package2 = tmpdir.joinpath('package2')
+    package2.mkdir()
+
+    # Create a subdirectory which will contain the app's
+    # symlinks to packages
+    app_packages = script.scratch_path.joinpath('app_packages')
+    app_packages.mkdir()
+    app_subpackages = app_packages.joinpath('sub')
+    app_subpackages.mkdir()
+
+    # Symlink the packages into the app's subdirectory, but
+    # at different relative locations than their true locations
+    os.symlink(
+        os.path.relpath(
+            package1, app_packages
+        ),
+        app_packages.joinpath('package1'),
+        target_is_directory=True
+    )
+
+    os.symlink(
+        os.path.relpath(
+            package2, app_subpackages
+        ),
+        app_subpackages.joinpath('package2'),
+        target_is_directory=True
+    )
+
+    package2_to_package1 = '../' if test_type == 'true_rel_path' else '../../'
+
+    # Create app and package requirements files with relative references
+    app_req = "-r " + "app_packages/sub/package2/reqs.txt\n"
+    package2_req = "-r " + package2_to_package1 + "package1/reqs.txt\n"
+    package1_req = "../../data/packages/FSPkg\n"
+
+    with requirements_file(app_req, script.scratch_path) as reqs_file:
+        with requirements_file(package2_req, package2) as linked_reqs_file:
+            with requirements_file(package1_req, package1) as final_reqs_file:
+                result = script.pip(
+                    "install", "-vvv", "-r", reqs_file.name,
+                    cwd=script.scratch_path
+                )
+                result.did_create(dist_info_folder)
+                result.did_create(package_folder)
+
+
 @pytest.mark.xfail
 @pytest.mark.network
 @need_svn
