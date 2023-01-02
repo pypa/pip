@@ -80,6 +80,37 @@ class TestLink:
         assert "eggname" == Link(url).egg_fragment
         assert "subdir" == Link(url).subdirectory_fragment
 
+        # Extras are supported and preserved in the egg fragment,
+        # even the empty extras specifier.
+        # This behavior is deprecated and will change in pip 25.
+        url = "git+https://example.com/package#egg=eggname[extra]"
+        assert "eggname[extra]" == Link(url).egg_fragment
+        assert None is Link(url).subdirectory_fragment
+        url = "git+https://example.com/package#egg=eggname[extra1,extra2]"
+        assert "eggname[extra1,extra2]" == Link(url).egg_fragment
+        assert None is Link(url).subdirectory_fragment
+        url = "git+https://example.com/package#egg=eggname[]"
+        assert "eggname[]" == Link(url).egg_fragment
+        assert None is Link(url).subdirectory_fragment
+
+    @pytest.mark.xfail(reason="Behavior change scheduled for 25.0", strict=True)
+    @pytest.mark.parametrize(
+        "fragment",
+        [
+            # Package names in egg fragments must be in PEP 508 form.
+            "~invalid~package~name~",
+            # Version specifiers are not valid in egg fragments.
+            "eggname==1.2.3",
+            "eggname>=1.2.3",
+            # The extras specifier must be in PEP 508 form.
+            "eggname[!]",
+        ],
+    )
+    def test_invalid_egg_fragments(self, fragment: str) -> None:
+        url = f"git+https://example.com/package#egg={fragment}"
+        with pytest.raises(Exception):
+            Link(url)
+
     @pytest.mark.parametrize(
         "yanked_reason, expected",
         [
