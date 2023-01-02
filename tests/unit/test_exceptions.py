@@ -492,9 +492,9 @@ class TestExternallyManagedEnvironment:
         orig_getlocal = locale.getlocale
 
         def fake_getlocale(category: int) -> Tuple[Optional[str], Optional[str]]:
-            """Fake getlocale() that always report zh_Hant."""
+            """Fake getlocale() that always reports zh_Hant for LC_MESSASGES."""
             result = orig_getlocal(category)
-            if category == locale.LC_MESSAGES:
+            if category == getattr(locale, "LC_MESSAGES", None):
                 return "zh_Hant", result[1]
             return result
 
@@ -541,6 +541,10 @@ class TestExternallyManagedEnvironment:
         assert not caplog.records
         assert str(exc.context) == self.default_text
 
+    @pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="Localization disabled on Windows",
+    )
     @pytest.mark.parametrize(
         "config, expected",
         [
@@ -594,3 +598,57 @@ class TestExternallyManagedEnvironment:
             exc = ExternallyManagedEnvironment.from_config(marker)
         assert not caplog.records
         assert str(exc.context) == expected
+
+    @pytest.mark.skipif(
+        sys.platform != "win32",
+        reason="Non-Windows should implement localization",
+    )
+    @pytest.mark.parametrize(
+        "config",
+        [
+            pytest.param(
+                """\
+                [externally-managed]
+                Error = 最後
+                Error-en = English
+                Error-zh = 中文
+                Error-zh_Hant = 繁體
+                Error-zh_Hans = 简体
+                """,
+                id="full",
+            ),
+            pytest.param(
+                """\
+                [externally-managed]
+                Error = 最後
+                Error-en = English
+                Error-zh = 中文
+                Error-zh_Hans = 简体
+                """,
+                id="no-variant",
+            ),
+            pytest.param(
+                """\
+                [externally-managed]
+                Error = 最後
+                Error-en = English
+                """,
+                id="fallback",
+            ),
+        ],
+    )
+    def test_config_canonical_no_localization(
+        self,
+        caplog: pytest.LogCaptureFixture,
+        marker: pathlib.Path,
+        config: str,
+    ) -> None:
+        marker.write_text(
+            textwrap.dedent(config),
+            encoding="utf8",
+        )
+
+        with caplog.at_level(logging.WARNING, "pip._internal.exceptions"):
+            exc = ExternallyManagedEnvironment.from_config(marker)
+        assert not caplog.records
+        assert str(exc.context) == "最後"
