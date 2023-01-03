@@ -1,7 +1,11 @@
 import logging
 from typing import Iterable, Set, Tuple
 
-from pip._internal.build_env import BuildEnvironment
+from pip._internal.build_env import (
+    BuildIsolationMode,
+    CustomBuildEnvironment,
+    VenvBuildEnvironment,
+)
 from pip._internal.distributions.base import AbstractDistribution
 from pip._internal.exceptions import InstallationError
 from pip._internal.index.package_finder import PackageFinder
@@ -24,18 +28,18 @@ class SourceDistribution(AbstractDistribution):
     def prepare_distribution_metadata(
         self,
         finder: PackageFinder,
-        build_isolation: bool,
+        build_isolation: BuildIsolationMode,
         check_build_deps: bool,
     ) -> None:
         # Load pyproject.toml, to determine whether PEP 517 is to be used
         self.req.load_pyproject_toml()
 
         # Set up the build isolation, if this requirement should be isolated
-        should_isolate = self.req.use_pep517 and build_isolation
+        should_isolate = self.req.use_pep517 and build_isolation != "noop"
         if should_isolate:
             # Setup an isolated environment and install the build backend static
             # requirements in it.
-            self._prepare_build_backend(finder)
+            self._prepare_build_backend(finder, build_isolation)
             # Check that if the requirement is editable, it either supports PEP 660 or
             # has a setup.py or a setup.cfg. This cannot be done earlier because we need
             # to setup the build backend to verify it supports build_editable, nor can
@@ -60,13 +64,18 @@ class SourceDistribution(AbstractDistribution):
                 self._raise_missing_reqs(missing)
         self.req.prepare_metadata()
 
-    def _prepare_build_backend(self, finder: PackageFinder) -> None:
+    def _prepare_build_backend(
+        self, finder: PackageFinder, build_isolation: BuildIsolationMode
+    ) -> None:
         # Isolate in a BuildEnvironment and install the build-time
         # requirements.
         pyproject_requires = self.req.pyproject_requires
         assert pyproject_requires is not None
 
-        self.req.build_env = BuildEnvironment()
+        if build_isolation == "custom":
+            self.req.build_env = CustomBuildEnvironment()
+        else:
+            self.req.build_env = VenvBuildEnvironment()
         self.req.build_env.install_requirements(
             finder, pyproject_requires, "overlay", kind="build dependencies"
         )
