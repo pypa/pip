@@ -4,7 +4,6 @@ import os
 import sys
 from typing import TYPE_CHECKING, List, Optional, Type, cast
 
-from pip._internal.exceptions import PipError
 from pip._internal.utils.misc import strtobool
 
 from .base import BaseDistribution, BaseEnvironment, FilesystemWheel, MemoryWheel, Wheel
@@ -31,7 +30,8 @@ def _should_use_importlib_metadata() -> bool:
     """Whether to use the ``importlib.metadata`` or ``pkg_resources`` backend.
 
     By default, pip uses ``importlib.metadata`` on Python 3.11+, and
-    ``pkg_resourcess`` otherwise. This can be overridden by a couple of ways:
+    ``pkg_resources`` otherwise. On Python versions prior to 3.12, this can be
+    overridden by a couple of ways for transitional purposes:
 
     * If environment variable ``_PIP_USE_IMPORTLIB_METADATA`` is set, it
       dictates whether ``importlib.metadata`` is used, regardless of Python
@@ -41,6 +41,8 @@ def _should_use_importlib_metadata() -> bool:
       makes pip use ``pkg_resources`` (unless the user set the aforementioned
       environment variable to *True*).
     """
+    if sys.version_info >= (3, 12):
+        return True
     with contextlib.suppress(KeyError, ValueError):
         return bool(strtobool(os.environ["_PIP_USE_IMPORTLIB_METADATA"]))
     if sys.version_info < (3, 11):
@@ -61,11 +63,6 @@ def select_backend() -> Backend:
         from . import importlib
 
         return cast(Backend, importlib)
-
-    if sys.version_info >= (3, 12):
-        message = "Cannot use pkg_resources as metadata backend on Python 3.12+"
-        raise PipError(message)
-
     from . import pkg_resources
 
     return cast(Backend, pkg_resources)

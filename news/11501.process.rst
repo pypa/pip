@@ -1,6 +1,6 @@
-Emit an error to prevent the ``pkg_resources`` metadata backend from being used
-on Python 3.12 or later. This backend exists for backward compatibility, and
-should only be used on newer Python versions by Python distributors that cannot
-correctly implement ``importlib.metadata`` support in a timely fashion. Time is
-up for transition since CPython is now removing mechanisms that ``pkg_resource``
+Prevent the ``pkg_resources`` metadata backend from being used on Python 3.12
+or later. This backend exists for backward compatibility, and should only be
+used on newer Python versions by Python distributors that cannot correctly
+implement ``importlib.metadata`` support in a timely fashion. Time is up for
+transition since CPython is now removing mechanisms that ``pkg_resource``
 relies on, and the backend will no longer work on Python 3.12 or later.
