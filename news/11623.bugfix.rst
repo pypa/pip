@@ -1,0 +1,1 @@
+Fix scripts path in isolated build environment on Debian.
