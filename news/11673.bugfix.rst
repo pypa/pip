@@ -1,0 +1,3 @@
+Stop checking that ``wheel`` is present when ``build-system.requires``
+is provided without ``build-system.build-backend`` as ``setuptools``
+(which we still check for) will inject it anyway.

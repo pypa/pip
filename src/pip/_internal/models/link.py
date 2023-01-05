@@ -18,6 +18,7 @@ from typing import (
     Union,
 )
 
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.misc import (
@@ -166,6 +167,7 @@ class Link(KeyBasedCompareMixin):
         "dist_info_metadata",
         "link_hash",
         "cache_link_parsing",
+        "egg_fragment",
     ]
 
     def __init__(
@@ -229,6 +231,7 @@ class Link(KeyBasedCompareMixin):
         super().__init__(key=url, defining_class=Link)
 
         self.cache_link_parsing = cache_link_parsing
+        self.egg_fragment = self._egg_fragment()
 
     @classmethod
     def from_json(
@@ -358,12 +361,28 @@ class Link(KeyBasedCompareMixin):
 
     _egg_fragment_re = re.compile(r"[#&]egg=([^&]*)")
 
-    @property
-    def egg_fragment(self) -> Optional[str]:
+    # Per PEP 508.
+    _project_name_re = re.compile(
+        r"^([A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9])$", re.IGNORECASE
+    )
+
+    def _egg_fragment(self) -> Optional[str]:
         match = self._egg_fragment_re.search(self._url)
         if not match:
             return None
-        return match.group(1)
+
+        # An egg fragment looks like a PEP 508 project name, along with
+        # an optional extras specifier. Anything else is invalid.
+        project_name = match.group(1)
+        if not self._project_name_re.match(project_name):
+            deprecated(
+                reason=f"{self} contains an egg fragment with a non-PEP 508 name",
+                replacement="to use the req @ url syntax, and remove the egg fragment",
+                gone_in="25.0",
+                issue=11617,
+            )
+
+        return project_name
 
     _subdirectory_fragment_re = re.compile(r"[#&]subdirectory=([^&]*)")
 
