@@ -1,0 +1,2 @@
+Strip command line prompts like "$" and "C:>" from the actual command
+being copied using the copybutton.
