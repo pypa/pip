@@ -85,10 +85,11 @@ class ResolutionError(ResolverException):
 
 
 class ResolutionImpossible(ResolutionError):
-    def __init__(self, causes):
+    def __init__(self, causes, req_conflict=False):
         super(ResolutionImpossible, self).__init__(causes)
         # causes is a list of RequirementInformation objects
         self.causes = causes
+        self.req_conflict = req_conflict
 
 
 class ResolutionTooDeep(ResolutionError):
@@ -382,7 +383,7 @@ class Resolution(object):
 
                 # Dead ends everywhere. Give up.
                 if not success:
-                    raise ResolutionImpossible(self.state.backtrack_causes)
+                    raise ResolutionImpossible(self.state.backtrack_causes[-1:], req_conflict=True)
             else:
                 # Pinning was successful. Push a new state to do another pin.
                 self._push_new_state()

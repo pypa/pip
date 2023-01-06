@@ -655,7 +655,7 @@ class Factory:
 
         # The simplest case is when we have *one* cause that can't be
         # satisfied. We just report that case.
-        if len(e.causes) == 1:
+        if not e.req_conflict and len(e.causes) == 1:
             req, parent = e.causes[0]
             if req.name not in constraints:
                 return self._report_single_requirement_conflict(req, parent)

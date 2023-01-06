@@ -51,6 +51,7 @@ class InconsistentCandidate(ResolverException, Generic[RT, CT, KT]):
 
 class ResolutionImpossible(ResolutionError, Generic[RT, CT]):
     causes: List[RequirementInformation[RT, CT]]
+    req_conflict: bool
 
 class ResolutionTooDeep(ResolutionError):
     round_count: int
