@@ -131,3 +131,9 @@ def determine_man_pages() -> List[Tuple[str, str, str, str, int]]:
 
 
 man_pages = determine_man_pages()
+
+# -- Options for sphinx_copybutton ----------------------------------------------------
+
+copybutton_prompt_text = r"\$ | C\:\> "
+copybutton_prompt_is_regexp = True
+copybutton_only_copy_prompt_lines = False
