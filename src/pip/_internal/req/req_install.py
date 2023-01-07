@@ -1,4 +1,5 @@
 # The following comment should be removed at some point in the future.
+# mypy: strict-optional=False
 
 import functools
 import logging
