@@ -2357,7 +2357,7 @@ def test_install_8559_wheel_package_present(
     sys.version_info < (3, 11),
     reason="3.11 required to find distributions via importlib metadata",
 )
-def test_install_existing_memory_distribution(script: PipTestEnvironment):
+def test_install_existing_memory_distribution(script: PipTestEnvironment) -> None:
     sitecustomize_text = textwrap.dedent(
         """
         import sys
