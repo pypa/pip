@@ -2355,44 +2355,41 @@ def test_install_8559_wheel_package_present(
 
 @pytest.mark.skipif(
     sys.version_info < (3, 11),
-    reason="3.11 required to find distributions via importlib metadata"
+    reason="3.11 required to find distributions via importlib metadata",
 )
 def test_install_existing_memory_distribution(script: PipTestEnvironment):
     sitecustomize_text = textwrap.dedent(
         """
         import sys
         from importlib.metadata import Distribution, DistributionFinder
-        
-        
+
+
         EXAMPLE_METADATA = '''Metadata-Version: 2.1
         Name: example
         Version: 1.0.0
-        
+
         '''
 
         class ExampleDistribution(Distribution):
             def locate_file(self, path):
                 return path
-        
+
             def read_text(self, filename):
                 if filename == 'METADATA':
                     return EXAMPLE_METADATA
-        
-        
+
+
         class CustomFinder(DistributionFinder):
             def find_distributions(self, context=None):
                 return [ExampleDistribution()]
-        
-        
+
+
         sys.meta_path.append(CustomFinder())
         """
     )
-    with open(script.site_packages_path / 'sitecustomize.py', 'w') as sitecustomize_file:
-        sitecustomize_file.write(sitecustomize_text)
+    with open(script.site_packages_path / "sitecustomize.py", "w") as sitecustomize:
+        sitecustomize.write(sitecustomize_text)
 
-    result = script.pip(
-        "install",
-        "example"
-    )
+    result = script.pip("install", "example")
 
     assert "Requirement already satisfied: example in <memory>" in result.stdout

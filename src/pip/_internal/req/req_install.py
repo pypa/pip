@@ -198,7 +198,7 @@ class InstallRequirement:
             if self.satisfied_by.location is not None:
                 location = display_path(self.satisfied_by.location)
             else:
-                location = 'memory'
+                location = "<memory>"
             s += f" in {location}"
         if self.comes_from:
             if isinstance(self.comes_from, str):
