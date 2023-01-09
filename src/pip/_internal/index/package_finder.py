@@ -8,7 +8,7 @@ import functools
 import itertools
 import logging
 import re
-from typing import FrozenSet, Iterable, List, Optional, Set, Tuple, Union
+from typing import Dict, FrozenSet, Iterable, List, Optional, Set, Tuple, Union
 
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.tags import Tag
@@ -125,6 +125,7 @@ class LinkEvaluator:
         target_python: TargetPython,
         allow_yanked: bool,
         ignore_requires_python: Optional[bool] = None,
+        index_formats: Optional[Dict[str, Set[str]]] = None,
     ) -> None:
         """
         :param project_name: The user supplied package name.
@@ -142,6 +143,10 @@ class LinkEvaluator:
         :param ignore_requires_python: Whether to ignore incompatible
             PEP 503 "data-requires-python" values in HTML links. Defaults
             to False.
+        :param index_formats: Allows to specify which format is allowed from
+            specific indexes. Should be a dict with 'no_binary' and/or 'only_binary'
+            keys and a set of index URL strings as value for each key.
+
         """
         if ignore_requires_python is None:
             ignore_requires_python = False
@@ -150,6 +155,7 @@ class LinkEvaluator:
         self._canonical_name = canonical_name
         self._ignore_requires_python = ignore_requires_python
         self._formats = formats
+        self._index_formats = index_formats or {}
         self._target_python = target_python
 
         self.project_name = project_name
@@ -187,6 +193,10 @@ class LinkEvaluator:
             if "macosx10" in link.path and ext == ".zip":
                 return (LinkType.format_unsupported, "macosx10 one")
             if ext == WHEEL_EXTENSION:
+                for index in self._index_formats.get("no_binary", []):
+                    if link.comes_from and link.comes_from_url.startswith(index):
+                        reason = f"No binaries permitted from index {index}"
+                        return (LinkType.format_unsupported, reason)
                 try:
                     wheel = Wheel(link.filename)
                 except InvalidWheelFilename:
@@ -212,9 +222,14 @@ class LinkEvaluator:
                 version = wheel.version
 
         # This should be up by the self.ok_binary check, but see issue 2700.
-        if "source" not in self._formats and ext != WHEEL_EXTENSION:
-            reason = f"No sources permitted for {self.project_name}"
-            return (LinkType.format_unsupported, reason)
+        if ext != WHEEL_EXTENSION:
+            if "source" not in self._formats:
+                reason = f"No sources permitted for {self.project_name}"
+                return (LinkType.format_unsupported, reason)
+            for index in self._index_formats.get("only_binary", []):
+                if link.comes_from and link.comes_from_url.startswith(index):
+                    reason = f"No sources permitted from index {index}"
+                    return (LinkType.format_unsupported, reason)
 
         if not version:
             version = _extract_version_from_fragment(
@@ -714,11 +729,13 @@ class PackageFinder:
     def make_link_evaluator(self, project_name: str) -> LinkEvaluator:
         canonical_name = canonicalize_name(project_name)
         formats = self.format_control.get_allowed_formats(canonical_name)
+        index_formats = self.format_control.get_index_formats()
 
         return LinkEvaluator(
             project_name=project_name,
             canonical_name=canonical_name,
             formats=formats,
+            index_formats=index_formats,
             target_python=self._target_python,
             allow_yanked=self._allow_yanked,
             ignore_requires_python=self._ignore_requires_python,

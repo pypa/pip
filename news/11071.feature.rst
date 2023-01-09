@@ -1,0 +1,1 @@
+Allow specifying index in --no-binary or --only-binary options.

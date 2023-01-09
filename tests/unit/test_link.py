@@ -1,7 +1,8 @@
-from typing import Optional
+from typing import Optional, Union
 
 import pytest
 
+from pip._internal.index.collector import HTMLPage
 from pip._internal.models.link import Link, links_equivalent
 from pip._internal.utils.hashes import Hashes
 
@@ -19,6 +20,20 @@ class TestLink:
     def test_repr(self, url: str, expected: str) -> None:
         link = Link(url)
         assert repr(link) == expected
+
+    @pytest.mark.parametrize(
+        "comes_from, expected",
+        [
+            ("happy", "happy"),
+            (HTMLPage(b"", None, "bunnies"), "bunnies"),
+            (None, None),
+        ],
+    )
+    def test_comes_from_url(
+        self, comes_from: Union[HTMLPage, str, None], expected: Union[str, None]
+    ) -> None:
+        link = Link("http://does-not-matter", comes_from=comes_from)
+        assert link.comes_from_url == expected
 
     @pytest.mark.parametrize(
         "url, expected",

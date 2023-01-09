@@ -71,3 +71,30 @@ def test_fmt_ctl_matches(
 ) -> None:
     fmt = FormatControl(no_binary, only_binary)
     assert fmt.get_allowed_formats(argument) == expected
+
+
+@pytest.mark.parametrize(
+    "no_binary,only_binary,expected",
+    [
+        (set(), set(), dict(no_binary=set(), only_binary=set())),
+        ({":index:abc"}, set(), dict(no_binary={"abc"}, only_binary=set())),
+        (set(), {":index:abc"}, dict(no_binary=set(), only_binary={"abc"})),
+        ({":index:abc"}, {":index:xyz"}, dict(no_binary={"abc"}, only_binary={"xyz"})),
+    ],
+)
+def test_get_index_formats(
+    no_binary: Set[str], only_binary: Set[str], expected: FrozenSet[str]
+) -> None:
+    fmt = FormatControl(no_binary, only_binary)
+    assert fmt.get_index_formats() == expected
+
+
+def test_index_formats_not_canonicalized() -> None:
+    """Test that special :index:xxx tokens are not canonicalized.
+
+    Ensure there's no "https://a.b.c" -> "https://a-b-c" conversion.
+    """
+    cmd = SimpleCommand()
+    cmd.main(["fake", "--no-binary=:index:a.b.c", "--only-binary=:index:x.y.z"])
+    format_control = FormatControl({":index:a.b.c"}, {":index:x.y.z"})
+    assert cmd.options.format_control == format_control

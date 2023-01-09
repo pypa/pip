@@ -316,6 +316,14 @@ class Link(KeyBasedCompareMixin):
         return self._url
 
     @property
+    def comes_from_url(self) -> Union[str, None]:
+        if hasattr(self.comes_from, "url"):
+            return self.comes_from.url  # type: ignore
+        if isinstance(self.comes_from, str):
+            return self.comes_from
+        return None
+
+    @property
     def filename(self) -> str:
         path = self.path.rstrip("/")
         name = posixpath.basename(path)
