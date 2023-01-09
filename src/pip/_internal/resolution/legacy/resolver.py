@@ -10,9 +10,6 @@ for sub-dependencies
     a. "first found, wins" (where the order is breadth first)
 """
 
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 import logging
 import sys
 from collections import defaultdict
@@ -325,6 +322,8 @@ class Resolver(BaseResolver):
         """
         # Don't uninstall the conflict if doing a user install and the
         # conflict is not a user install.
+        if not req.satisfied_by:
+            return
         if not self.use_user_site or req.satisfied_by.in_usersite:
             req.should_reinstall = True
         req.satisfied_by = None
@@ -405,6 +404,31 @@ class Resolver(BaseResolver):
 
         return link
 
+    def _apply_wheel_cache_link(self, req: InstallRequirement) -> None:
+        if not self.wheel_cache:
+            return
+        if not req.link:
+            return
+        cache_entry = self.wheel_cache.get_cache_entry(
+            link=req.link,
+            package_name=req.name,
+            supported_tags=get_supported(),
+        )
+        if not cache_entry:
+            return
+        logger.debug("Using cached wheel link: %s", cache_entry.link)
+        if req.link is req.original_link and cache_entry.persistent:
+            req.original_link_is_in_wheel_cache = True
+        if cache_entry.origin is not None:
+            req.download_info = cache_entry.origin
+        else:
+            # Legacy cache entry that does not have origin.json.
+            # download_info may miss the archive_info.hash field.
+            req.download_info = direct_url_from_link(
+                req.link, link_is_in_wheel_cache=cache_entry.persistent
+            )
+        req.link = cache_entry.link
+
     def _populate_link(self, req: InstallRequirement) -> None:
         """Ensure that if a link can be found for this, that it is found.
 
@@ -423,24 +447,7 @@ class Resolver(BaseResolver):
 
         if self.wheel_cache is None or self.preparer.require_hashes:
             return
-        cache_entry = self.wheel_cache.get_cache_entry(
-            link=req.link,
-            package_name=req.name,
-            supported_tags=get_supported(),
-        )
-        if cache_entry is not None:
-            logger.debug("Using cached wheel link: %s", cache_entry.link)
-            if req.link is req.original_link and cache_entry.persistent:
-                req.original_link_is_in_wheel_cache = True
-            if cache_entry.origin is not None:
-                req.download_info = cache_entry.origin
-            else:
-                # Legacy cache entry that does not have origin.json.
-                # download_info may miss the archive_info.hash field.
-                req.download_info = direct_url_from_link(
-                    req.link, link_is_in_wheel_cache=cache_entry.persistent
-                )
-            req.link = cache_entry.link
+        self._apply_wheel_cache_link(req)
 
     def _get_dist_for(self, req: InstallRequirement) -> BaseDistribution:
         """Takes a InstallRequirement and returns a single AbstractDist \
@@ -536,7 +543,8 @@ class Resolver(BaseResolver):
         with indent_log():
             # We add req_to_install before its dependencies, so that we
             # can refer to it when adding dependencies.
-            if not requirement_set.has_requirement(req_to_install.name):
+            name = req_to_install.name
+            if name is None or not requirement_set.has_requirement(name):
                 # 'unnamed' requirements will get added here
                 # 'unnamed' requirements can only come from being directly
                 # provided by the user.
@@ -591,6 +599,7 @@ class Resolver(BaseResolver):
             if req.constraint:
                 return
             ordered_reqs.add(req)
+            assert req.name is not None, "req should be named after resolution"
             for dep in self._discovered_dependencies[req.name]:
                 schedule(dep)
             order.append(req)
