@@ -1,0 +1,2 @@
+Wheel cache behavior is restored to match previous versions, allowing the
+cache to find existing entries.
