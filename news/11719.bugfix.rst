@@ -1,0 +1,1 @@
+Normalize paths before checking if installed scripts are on PATH.
