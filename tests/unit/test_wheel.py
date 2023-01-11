@@ -535,7 +535,7 @@ class TestMessageAboutScriptsNotOnPATH:
         retval = self._template(paths=["/a/b", "/c/d/bin"], scripts=["/c/d/foo"])
         assert retval is not None
         assert "--no-warn-script-location" in retval
-        assert "foo is installed in '/c/d'" in retval
+        assert f"foo is installed in '{Path('/c/d')}'" in retval
         assert self.tilde_warning_msg not in retval
 
     def test_two_script__single_dir_not_on_PATH(self) -> None:
@@ -544,7 +544,7 @@ class TestMessageAboutScriptsNotOnPATH:
         )
         assert retval is not None
         assert "--no-warn-script-location" in retval
-        assert "baz and foo are installed in '/c/d'" in retval
+        assert f"baz and foo are installed in '{Path('/c/d')}'" in retval
         assert self.tilde_warning_msg not in retval
 
     def test_multi_script__multi_dir_not_on_PATH(self) -> None:
@@ -554,8 +554,8 @@ class TestMessageAboutScriptsNotOnPATH:
         )
         assert retval is not None
         assert "--no-warn-script-location" in retval
-        assert "bar, baz and foo are installed in '/c/d'" in retval
-        assert "spam is installed in '/a/b/c'" in retval
+        assert f"bar, baz and foo are installed in '{Path('/c/d')}'" in retval
+        assert f"spam is installed in '{Path('/a/b/c')}'" in retval
         assert self.tilde_warning_msg not in retval
 
     def test_multi_script_all__multi_dir_not_on_PATH(self) -> None:
@@ -565,8 +565,8 @@ class TestMessageAboutScriptsNotOnPATH:
         )
         assert retval is not None
         assert "--no-warn-script-location" in retval
-        assert "bar, baz and foo are installed in '/c/d'" in retval
-        assert "eggs and spam are installed in '/a/b/c'" in retval
+        assert f"bar, baz and foo are installed in '{Path('/c/d')}'" in retval
+        assert f"eggs and spam are installed in '{Path('/a/b/c')}'" in retval
         assert self.tilde_warning_msg not in retval
 
     def test_two_script__single_dir_on_PATH(self) -> None:
@@ -643,9 +643,9 @@ class TestMessageAboutScriptsNotOnPATH:
         )
         assert retval is not None
         assert "--no-warn-script-location" in retval
-        assert "bar, baz and foo are installed in '/c/d'" in retval
-        assert "eggs and spam are installed in '/a/b/c'" in retval
-        assert "tilde is installed in '/e/f'" in retval
+        assert f"bar, baz and foo are installed in '{Path('/c/d')}'" in retval
+        assert f"eggs and spam are installed in '{Path('/a/b/c')}'" in retval
+        assert f"tilde is installed in '{Path('/e/f')}'" in retval
         assert self.tilde_warning_msg in retval
 
     def test_multi_script_all_tilde_not_at_start__multi_dir_not_on_PATH(self) -> None:
@@ -661,8 +661,8 @@ class TestMessageAboutScriptsNotOnPATH:
         )
         assert retval is not None
         assert "--no-warn-script-location" in retval
-        assert "bar, baz and foo are installed in '/c/d'" in retval
-        assert "eggs and spam are installed in '/e/f~f/c'" in retval
+        assert f"bar, baz and foo are installed in '{Path('/c/d')}'" in retval
+        assert f"eggs and spam are installed in '{Path('/e/f~f/c')}'" in retval
         assert self.tilde_warning_msg not in retval
 
 
