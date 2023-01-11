@@ -138,8 +138,9 @@ def message_about_scripts_not_on_PATH(scripts: Sequence[str]) -> Optional[str]:
     # Group scripts by the path they were installed in
     grouped_by_dir: Dict[Path, Set[str]] = collections.defaultdict(set)
     for destfile in scripts:
-        parent_dir = Path(destfile).parent.resolve()
-        script_name = Path(destfile).name
+        dest_path = Path(destfile)
+        parent_dir = dest_path.parent.resolve()
+        script_name = dest_path.name
         grouped_by_dir[parent_dir].add(script_name)
 
     # We don't want to warn for directories that are on PATH.
