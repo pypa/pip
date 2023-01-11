@@ -15,6 +15,7 @@ import warnings
 from base64 import urlsafe_b64encode
 from email.message import Message
 from itertools import chain, filterfalse, starmap
+from pathlib import Path
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -143,18 +144,15 @@ def message_about_scripts_not_on_PATH(scripts: Sequence[str]) -> Optional[str]:
 
     # We don't want to warn for directories that are on PATH.
     not_warn_dirs = [
-        os.path.normcase(os.path.normpath(i)).rstrip(os.sep)
-        for i in os.environ.get("PATH", "").split(os.pathsep)
+        Path(i).resolve() for i in os.environ.get("PATH", "").split(os.pathsep)
     ]
     # If an executable sits with sys.executable, we don't warn for it.
     #     This covers the case of venv invocations without activating the venv.
-    not_warn_dirs.append(
-        os.path.normcase(os.path.normpath(os.path.dirname(sys.executable)))
-    )
+    not_warn_dirs.append(Path(sys.executable).parent.resolve())
     warn_for: Dict[str, Set[str]] = {
         parent_dir: scripts
         for parent_dir, scripts in grouped_by_dir.items()
-        if os.path.normcase(os.path.normpath(parent_dir)) not in not_warn_dirs
+        if Path(parent_dir).resolve() not in not_warn_dirs
     }
     if not warn_for:
         return None
