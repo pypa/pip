@@ -415,6 +415,19 @@ def constraints() -> Option:
     )
 
 
+def ignored_constraints() -> Option:
+    return Option(
+        "--ignore-constraint",
+        dest="ignored_constraints",
+        action="append",
+        default=[],
+        metavar="package",
+        help="Ignore constraints for given package. This is commonly used "
+        "during development of a package when using a common constraints "
+        "file. This option be used multiple times.",
+    )
+
+
 def requirements() -> Option:
     return Option(
         "-r",

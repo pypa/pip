@@ -363,10 +363,13 @@ class RequirementCommand(IndexGroupCommand):
                 ignore_requires_python=ignore_requires_python,
                 force_reinstall=force_reinstall,
                 upgrade_strategy=upgrade_strategy,
+                ignored_constraints=options.ignored_constraints,
                 py_version_info=py_version_info,
             )
         import pip._internal.resolution.legacy.resolver
 
+        # we intentionally don't pass ignored_constraints to this since the
+        # resolver is deprecated
         return pip._internal.resolution.legacy.resolver.Resolver(
             preparer=preparer,
             finder=finder,

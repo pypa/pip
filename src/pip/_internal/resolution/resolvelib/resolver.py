@@ -2,7 +2,7 @@ import contextlib
 import functools
 import logging
 import os
-from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple, cast
+from typing import TYPE_CHECKING, Dict, List, Optional, Sequence, Set, Tuple, cast
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible
@@ -50,6 +50,7 @@ class Resolver(BaseResolver):
         ignore_requires_python: bool,
         force_reinstall: bool,
         upgrade_strategy: str,
+        ignored_constraints: Sequence[str],
         py_version_info: Optional[Tuple[int, ...]] = None,
     ):
         super().__init__()
@@ -68,6 +69,7 @@ class Resolver(BaseResolver):
         )
         self.ignore_dependencies = ignore_dependencies
         self.upgrade_strategy = upgrade_strategy
+        self.ignored_constraints = ignored_constraints
         self._result: Optional[Result] = None
 
     def resolve(
@@ -80,6 +82,7 @@ class Resolver(BaseResolver):
             ignore_dependencies=self.ignore_dependencies,
             upgrade_strategy=self.upgrade_strategy,
             user_requested=collected.user_requested,
+            ignored_constraints=self.ignored_constraints,
         )
         if "PIP_RESOLVER_DEBUG" in os.environ:
             reporter: BaseReporter = PipDebuggingReporter()

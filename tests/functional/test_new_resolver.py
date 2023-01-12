@@ -681,6 +681,26 @@ def test_new_resolver_constraints(
     script.assert_not_installed("constraint_only")
 
 
+def test_new_resolver_constraint_ignored(script: PipTestEnvironment) -> None:
+    "We can ignore constraints. Useful when hacking on a constrained package."
+    create_basic_wheel_for_package(script, "pkg", "1.1.dev1")
+    constraints_file = script.scratch_path / "constraints.txt"
+    constraints_file.write_text("pkg==1.0")
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "-c",
+        constraints_file,
+        "--ignore-constraint",
+        "pkg",
+        "pkg",
+    )
+    script.assert_installed(pkg="1.1.dev1")
+
+
 def test_new_resolver_constraint_no_specifier(script: PipTestEnvironment) -> None:
     "It's allowed (but useless...) for a constraint to have no specifier"
     create_basic_wheel_for_package(script, "pkg", "1.0")
