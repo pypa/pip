@@ -120,7 +120,7 @@ required by `keyring`'s command line interface. See the example below or the
 basic HTTP authentication section at the top of this page.
 
 ```bash
-# Install keyring from PyPI using pipx, which we assume if installed properly
+# Install keyring from PyPI using pipx, which we assume is installed properly
 # you can also create a venv somewhere and add it to the PATH yourself instead
 $ pipx install keyring --index-url https://pypi.org/simple
 
