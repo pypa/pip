@@ -102,9 +102,10 @@ class BuildEnvironment:
         # If interpreter is embedded Python, its build-in pyd files are in the same directory as python.exe rather
         # than DLLs folder. Add it in sys.path to make sure packages like pyexpat can be imported.
         extra_path = []
-        import pyexpat
-        if os.path.dirname(pyexpat.__file__) == os.path.dirname(sys.executable):
-            extra_path.append(os.path.dirname(sys.executable))
+        if os.name == "nt":
+            import pyexpat
+            if os.path.dirname(pyexpat.__file__) == os.path.dirname(sys.executable):
+                extra_path.append(os.path.dirname(sys.executable))
 
         self._site_dir = os.path.join(temp_dir.path, "site")
         if not os.path.exists(self._site_dir):
