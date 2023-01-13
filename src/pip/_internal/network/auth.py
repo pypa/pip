@@ -3,6 +3,7 @@
 Contains interface (MultiDomainBasicAuth) and associated glue code for
 providing credentials in the context of network requests.
 """
+import logging
 import os
 import shutil
 import subprocess
@@ -169,7 +170,7 @@ def get_keyring_provider(provider: str) -> KeyRingBaseProvider:
             msg = "Installed copy of keyring fails with exception %s"
             if provider == "auto":
                 msg = msg + ", trying to find a keyring executable as a fallback"
-            logger.warning(msg, str(exc))
+            logger.warning(msg, exc, exc_info=logger.isEnabledFor(logging.DEBUG))
     if provider in ["subprocess", "auto"]:
         cli = shutil.which("keyring")
         if cli and cli.startswith(sysconfig.get_path("scripts")):
@@ -188,13 +189,16 @@ def get_keyring_provider(provider: str) -> KeyRingBaseProvider:
 
                 return path
 
-            scripts = Path(sysconfig.get_path("scripts")).resolve()
+            scripts = Path(sysconfig.get_path("scripts"))
 
             paths = []
             for path in PATH_as_shutil_which_determines_it().split(os.pathsep):
                 p = Path(path)
-                if p.exists() and not p.resolve().samefile(scripts):
-                    paths.append(path)
+                try:
+                    if not p.samefile(scripts):
+                        paths.append(path)
+                except FileNotFoundError:
+                    pass
 
             path = os.pathsep.join(paths)
 
