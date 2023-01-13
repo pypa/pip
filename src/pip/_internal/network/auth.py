@@ -138,13 +138,14 @@ class KeyRingCliProvider(KeyRingBaseProvider):
         """Mirror the implementation of keyring.set_password using cli"""
         if self.keyring is None:
             return None
-
-        cmd = [self.keyring, "set", service_name, username]
-        input_ = (password + os.linesep).encode("utf-8")
         env = os.environ.copy()
         env["PYTHONIOENCODING"] = "utf-8"
-        res = subprocess.run(cmd, input=input_, env=env)
-        res.check_returncode()
+        subprocess.run(
+            [self.keyring, "set", service_name, username],
+            input=f"{password}{os.linesep}".encode("utf-8"),
+            env=env,
+            check=True,
+        )
         return None
 
 

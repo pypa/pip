@@ -406,11 +406,13 @@ class KeyringSubprocessResult(KeyringModuleV1):
         stdin: Optional[Any] = None,
         stdout: Optional[Any] = None,
         input: Optional[bytes] = None,
+        check: Optional[bool] = None
     ) -> Any:
         if cmd[1] == "get":
             assert stdin == -3  # subprocess.DEVNULL
             assert stdout == subprocess.PIPE
             assert env["PYTHONIOENCODING"] == "utf-8"
+            assert check is None
 
             password = self.get_password(*cmd[2:])
             if password is None:
@@ -426,6 +428,7 @@ class KeyringSubprocessResult(KeyringModuleV1):
             assert stdout is None
             assert env["PYTHONIOENCODING"] == "utf-8"
             assert input is not None
+            assert check
 
             # Input from stdin is encoded
             self.set_password(cmd[2], cmd[3], input.decode("utf-8").strip(os.linesep))
