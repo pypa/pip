@@ -66,18 +66,21 @@ man pages][netrc-docs].
 ## Keyring Support
 
 pip supports loading credentials stored in your keyring using the
-{pypi}`keyring` library which can be enabled py passing `--keyring-provider`
-with a value of `auto`, `disabled`, `import` or `subprocess`. The default value
-is `auto`. `auto` will respect `--no-input` and not query keyring at all if that
-option is used. The `auto` provider will use the `import` provider if the
-`keyring` module can be imported. If that is not the case it will use the
-`subprocess` provider if a `keyring` executable can be found. Otherwise, the
-`disabled` provider will be used.
+{pypi}`keyring` library, which can be enabled py passing `--keyring-provider`
+with a value of `auto`, `disabled`, `import`, or `subprocess`. The default
+value `auto` respects `--no-input` and not query keyring at all if the option
+is used; otherwise it tries the `import`, `subprocess`, and `disabled`
+providers (in this order) and uses the first one that works.
 
-### Configuring Pip
-Passing this as a command line argument will work, but is not how the majority
-of this feature's users will use it. They instead will want to overwrite the
-default of `disabled` in the global, user of site configuration file:
+### Configuring pip's keyring usage
+
+Since the keyring configuration is likely system-wide, a more common way to
+configure its usage would be to use a configuration instead:
+
+```{seealso}
+{doc}`./configuration` describes how pip configuration works.
+```
+
 ```bash
 $ pip config set --global global.keyring-provider subprocess
 
@@ -95,10 +98,10 @@ $ pip config set --site global.keyring-provider disabled
 $ export PIP_KEYRING_PROVIDER=disabled
 ```
 
-### Installing and using the keyring python module
+### Using keyring's Python module
 
-Setting it to `import` tries to communicate with `keyring` by importing it
-and using its Python api.
+Setting `keyring-provider` to `import` makes pip communicate with `keyring` via
+its Python interface.
 
 ```bash
 # install keyring from PyPI
@@ -107,29 +110,28 @@ $ echo "your-password" | keyring set pypi.company.com your-username
 $ pip install your-package --keyring-provider import --index-url https://pypi.company.com/
 ```
 
-### Installing and using the keyring cli application
+### Using keyring as a command line application
 
-Setting it to `subprocess` will look for a `keyring` executable on the PATH
-if one can be found that is different from the `keyring` installation `import`
-would be using.
+Setting `keyring-provider` to `subprocess` makes pip look for and use the
+`keyring` command found on `PATH`.
 
-The cli requires a username, therefore you MUST put a username in the url.
-See the example below or the basic HTTP authentication section at the top of
-this page.
+For this use case, a username *must* be included in the URL, since it is
+required by `keyring`'s command line interface. See the example below or the
+basic HTTP authentication section at the top of this page.
 
 ```bash
-# install keyring from PyPI using pipx, which we assume if installed properly
+# Install keyring from PyPI using pipx, which we assume if installed properly
 # you can also create a venv somewhere and add it to the PATH yourself instead
 $ pipx install keyring --index-url https://pypi.org/simple
 
-# install the keyring backend for Azure DevOps for example
-# VssSessionToken is the username you MUST use for this backend
+# For Azure DevOps, also install its keyring backend.
 $ pipx inject keyring artifacts-keyring --index-url https://pypi.org/simple
 
-# or the one for Google Artifact Registry
+# For Google Artifact Registry, also install and initialize its keyring backend.
 $ pipx inject keyring keyrings.google-artifactregistry-auth --index-url https://pypi.org/simple
 $ gcloud auth login
 
+# Note that a username is required in the index URL.
 $ pip install your-package --keyring-provider subprocess --index-url https://username@pypi.example.com/
 ```
 
@@ -155,13 +157,13 @@ $ export PIP_KEYRING_PROVIDER=import
 ```
 
 ```{warning}
-Be careful when doing this since it could cause tools such as Pipx and Pipenv
+Be careful when doing this since it could cause tools such as pipx and Pipenv
 to appear to hang. They show their own progress indicator while hiding output
 from the subprocess in which they run Pip. You won't know whether the keyring
 backend is waiting the user input or not in such situations.
 ```
 
-Pip is conservative and does not query keyring at all when `--no-input` is used
+pip is conservative and does not query keyring at all when `--no-input` is used
 because the keyring might require user interaction such as prompting the user
 on the console. You can force keyring usage by passing `--force-keyring` or one
 of the following:
@@ -174,7 +176,7 @@ $ export PIP_FORCE_KEYRING=1
 ```
 
 ```{warning}
-Be careful when doing this since it could cause tools such as Pipx and Pipenv
+Be careful when doing this since it could cause tools such as pipx and Pipenv
 to appear to hang. They show their own progress indicator while hiding output
 from the subprocess in which they run Pip. You won't know whether the keyring
 backend is waiting the user input or not in such situations.
