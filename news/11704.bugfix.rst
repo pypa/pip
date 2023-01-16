@@ -1,0 +1,2 @@
+Fix an issue when an already existing in-memory distribution would cause
+exceptions in ``pip install``
