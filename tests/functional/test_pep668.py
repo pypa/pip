@@ -1,3 +1,5 @@
+import json
+import pathlib
 import textwrap
 from typing import List
 
@@ -30,6 +32,7 @@ def patch_check_externally_managed(virtualenv: VirtualEnvironment) -> None:
     [
         pytest.param(["install"], id="install"),
         pytest.param(["install", "--user"], id="install-user"),
+        pytest.param(["install", "--dry-run"], id="install-dry-run"),
         pytest.param(["uninstall", "-y"], id="uninstall"),
     ],
 )
@@ -59,8 +62,20 @@ def test_allows_if_out_of_environment(
 
 
 @pytest.mark.usefixtures("patch_check_externally_managed")
-def test_allows_install_dry_run(script: PipTestEnvironment) -> None:
+def test_allows_install_dry_run(
+    script: PipTestEnvironment,
+    tmp_path: pathlib.Path,
+) -> None:
+    output = tmp_path.joinpath("out.json")
     wheel = create_basic_wheel_for_package(script, "foo", "1.0")
-    result = script.pip("install", "--dry-run", wheel.as_uri())
+    result = script.pip(
+        "install",
+        "--dry-run",
+        f"--report={output.as_posix()}",
+        wheel.as_uri(),
+        expect_stderr=True,
+    )
     assert "Would install foo-1.0" in result.stdout
     assert "I am externally managed" not in result.stderr
+    with output.open(encoding="utf8") as f:
+        assert isinstance(json.load(f), dict)

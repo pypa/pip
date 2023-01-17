@@ -288,9 +288,10 @@ class InstallCommand(RequirementCommand):
         # Check whether the environment we're installing into is externally
         # managed, as specified in PEP 668. Specifying --root, --target, or
         # --prefix disables the check, since there's no reliable way to locate
-        # the EXTERNALLY-MANAGED file for those cases.
+        # the EXTERNALLY-MANAGED file for those cases. An exception is also
+        # made specifically for "--dry-run --report" for convenience.
         installing_into_current_environment = (
-            not options.dry_run
+            not (options.dry_run and options.json_report_file)
             and options.root_path is None
             and options.target_dir is None
             and options.prefix_path is None
