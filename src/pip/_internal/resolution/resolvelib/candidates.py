@@ -72,7 +72,7 @@ def make_install_req_from_link(
         ),
         config_settings=template.config_settings,
     )
-    ireq.original_link = template.original_link
+    ireq.original_link = template.original_link or link
     ireq.link = link
     return ireq
 
@@ -270,6 +270,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
             logger.debug("Using cached wheel link: %s", cache_entry.link)
             link = cache_entry.link
         ireq = make_install_req_from_link(link, template)
+        # breakpoint()
         assert ireq.link == link
         if ireq.link.is_wheel and not ireq.link.is_file:
             wheel = Wheel(ireq.link.filename)
