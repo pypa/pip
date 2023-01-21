@@ -486,8 +486,9 @@ def _looks_like_apple_library(path: str) -> bool:
 def get_isolated_environment_lib_paths(prefix: str) -> List[str]:
     """Return the lib locations under ``prefix``."""
     new_pure, new_plat = _sysconfig.get_isolated_environment_lib_paths(prefix)
+    new_lib_paths = _deduplicated(new_pure, new_plat)
     if _USE_SYSCONFIG:
-        return _deduplicated(new_pure, new_plat)
+        return new_lib_paths
 
     old_pure, old_plat = _distutils.get_isolated_environment_lib_paths(prefix)
     old_lib_paths = _deduplicated(old_pure, old_plat)
@@ -497,7 +498,7 @@ def get_isolated_environment_lib_paths(prefix: str) -> List[str]:
     # cause serious build isolation bugs when Apple starts shipping 3.10 because
     # pip will install build backends to the wrong location. This tells users
     # who is at fault so Apple may notice it and fix the issue in time.
-    if all(_looks_like_apple_library(p) for p in old_lib_paths):
+    if all(_looks_like_apple_library(p) for p in new_lib_paths):
         deprecated(
             reason=(
                 "Python distributed by Apple's Command Line Tools incorrectly "

@@ -1,0 +1,1 @@
+Fix condition for triggering warning on macOS bogus sysconfig.
