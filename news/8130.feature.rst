@@ -1,0 +1,2 @@
+Add 'add' and 'i' aliases for 'install', 'remove' and 'u' aliases for
+'uninstall'.
