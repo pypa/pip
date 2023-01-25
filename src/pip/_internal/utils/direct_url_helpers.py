@@ -2,6 +2,7 @@ from typing import Optional
 
 from pip._internal.models.direct_url import ArchiveInfo, DirectUrl, DirInfo, VcsInfo
 from pip._internal.models.link import Link
+from pip._internal.utils.misc import hash_file
 from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs import vcs
 
@@ -76,10 +77,13 @@ def direct_url_from_link(
             subdirectory=link.subdirectory_fragment,
         )
     else:
-        hash = None
         hash_name = link.hash_name
         if hash_name:
             hash = f"{hash_name}={link.hash}"
+        else:
+            sha256 = hash_file(link.path)[0]
+            hash = f"sha256={sha256.hexdigest()}"
+
         return DirectUrl(
             url=link.url_without_fragment,
             info=ArchiveInfo(hash=hash),
