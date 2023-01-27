@@ -32,7 +32,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.logging import BrokenStdoutLoggingError, setup_logging
-from pip._internal.utils.misc import get_prog, normalize_path
+from pip._internal.utils.misc import ask, get_prog, normalize_path
 from pip._internal.utils.temp_dir import TempDirectoryTypeRegistry as TempDirRegistry
 from pip._internal.utils.temp_dir import global_tempdir_manager, tempdir_registry
 from pip._internal.utils.virtualenv import running_under_virtualenv
@@ -137,6 +137,16 @@ class Command(CommandContextMixIn):
             if not running_under_virtualenv():
                 logger.critical("Could not find an activated virtualenv (required).")
                 sys.exit(VIRTUALENV_NOT_FOUND)
+
+        # if both require_venv and global_install_warning options are set
+        # then global_install_warning should not run
+        if options.global_install_warning and not (
+            options.require_venv or self.ignore_require_venv
+        ):
+            if not running_under_virtualenv():
+                logger.warning("Could not find an activated virtualenv.")
+                if ask("Proceed (y/N)? ", ("y", "n", "")) != "y":
+                    sys.exit(VIRTUALENV_NOT_FOUND)
 
         if options.cache_dir:
             options.cache_dir = normalize_path(options.cache_dir)

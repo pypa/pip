@@ -164,6 +164,15 @@ require_virtualenv: Callable[..., Option] = partial(
     ),
 )
 
+global_install_warning: Callable[..., Option] = partial(
+    Option,
+    "--global-install-warning",
+    dest="global_install_warning",
+    action="store_true",
+    default=False,
+    help=("Warn if pip is not running in a virtual environment."),
+)
+
 python: Callable[..., Option] = partial(
     Option,
     "--python",
@@ -1013,6 +1022,7 @@ general_group: Dict[str, Any] = {
         debug_mode,
         isolated_mode,
         require_virtualenv,
+        global_install_warning,
         python,
         verbose,
         version,
