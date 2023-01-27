@@ -84,13 +84,6 @@ def rehash(path: str, blocksize: int = 1 << 20) -> Tuple[str, str]:
     return (digest, str(length))
 
 
-def csv_io_kwargs(mode: str) -> Dict[str, Any]:
-    """Return keyword arguments to properly open a CSV file
-    in the given mode.
-    """
-    return {"mode": mode, "newline": "", "encoding": "utf-8"}
-
-
 def fix_script(path: str) -> bool:
     """Replace #!python with #!/path/to/python
     Return True if file was changed.
@@ -698,7 +691,9 @@ def _install_wheel(
     # Record details of all files installed
     record_path = os.path.join(dest_info_dir, "RECORD")
 
-    with _generate_file(record_path, **csv_io_kwargs("w")) as record_file:
+    with _generate_file(
+        record_path, mode="w", newline="", encoding="utf-8"
+    ) as record_file:
         # Explicitly cast to typing.IO[str] as a workaround for the mypy error:
         # "writer" has incompatible type "BinaryIO"; expected "_Writer"
         writer = csv.writer(cast("IO[str]", record_file))

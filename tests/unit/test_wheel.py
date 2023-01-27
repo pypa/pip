@@ -186,7 +186,7 @@ def call_get_csv_rows_for_installed(tmpdir: Path, text: str) -> List[InstalledCS
     installed = cast(Dict[RecordPath, RecordPath], {"a": "z"})
     lib_dir = "/lib/dir"
 
-    with open(path, **wheel.csv_io_kwargs("r")) as f:
+    with open(path, "r", newline="", encoding="utf-8") as f:
         record_rows = list(csv.reader(f))
     outrows = wheel.get_csv_rows_for_installed(
         record_rows,
