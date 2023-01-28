@@ -7,7 +7,7 @@ packaging==21.3
 platformdirs==2.6.2
 pyparsing==3.0.9
 pyproject-hooks==1.0.0
-requests==2.28.1
+requests==2.28.2
     certifi==2022.09.24
     chardet==5.0.0
     idna==3.4
