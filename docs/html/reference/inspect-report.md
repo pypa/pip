@@ -10,10 +10,7 @@ environment, including installed distributions.
 
 The report is a JSON object with the following properties:
 
-- `version`: the string `0`, denoting that the inspect command is an experimental
-  feature. This value will change to `1`, when the feature is deemed stable after
-  gathering user feedback (likely in pip 22.3 or 23.0). Backward incompatible changes
-  may be introduced in version `1` without notice. After that, it will change only if
+- `version`: the string `1`. It will change only if
   and when backward incompatible changes are introduced, such as removing mandatory
   fields or changing the semantics or data type of existing fields. The introduction of
   backward incompatible changes will follow the usual pip processes such as the
@@ -72,7 +69,7 @@ this (metadata abriged for brevity):
 
 ```json
 {
-  "version": "0",
+  "version": "1",
   "pip_version": "22.2.dev0",
   "installed": [
     {
