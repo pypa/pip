@@ -1,5 +1,5 @@
 """Tests for wheel binary packages and .dist-info."""
-import csv
+import io
 import logging
 import os
 import pathlib
@@ -7,7 +7,7 @@ import sys
 import textwrap
 from email import message_from_string
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, cast
+from typing import Dict, List, Optional, cast
 from unittest.mock import patch
 
 import pytest
@@ -20,16 +20,12 @@ from pip._internal.models.direct_url import (
     ArchiveInfo,
     DirectUrl,
 )
+from pip._internal.models.record import RecordPath, parse_record, serialize_record
 from pip._internal.models.scheme import Scheme
 from pip._internal.operations.build.wheel_legacy import get_legacy_build_wheel_path
 from pip._internal.operations.install import wheel
-from pip._internal.operations.install.wheel import (
-    InstalledCSVRow,
-    RecordPath,
-    get_console_script_specs,
-)
+from pip._internal.operations.install.wheel import get_console_script_specs
 from pip._internal.utils.compat import WINDOWS
-from pip._internal.utils.misc import hash_file
 from pip._internal.utils.unpacking import unpack_file
 from tests.lib import DATA_DIR, TestData, assert_paths_equal
 from tests.lib.wheel import make_wheel
@@ -132,114 +128,46 @@ def test_get_entrypoints_no_entrypoints(tmp_path: pathlib.Path) -> None:
     assert gui == {}
 
 
-@pytest.mark.parametrize(
-    "outrows, expected",
-    [
-        (
-            [
-                ("", "", "a"),
-                ("", "", ""),
-            ],
-            [
-                ("", "", ""),
-                ("", "", "a"),
-            ],
-        ),
-        (
-            [
-                # Include an int to check avoiding the following error:
-                # > TypeError: '<' not supported between instances of 'str' and 'int'
-                ("", "", 1),
-                ("", "", ""),
-            ],
-            [
-                ("", "", ""),
-                ("", "", "1"),
-            ],
-        ),
-        (
-            [
-                # Test the normalization correctly encode everything for csv.writer().
-                ("😉", "", 1),
-                ("", "", ""),
-            ],
-            [
-                ("", "", ""),
-                ("😉", "", "1"),
-            ],
-        ),
-    ],
-)
-def test_normalized_outrows(
-    outrows: List[Tuple[RecordPath, str, str]], expected: List[Tuple[str, str, str]]
-) -> None:
-    actual = wheel._normalized_outrows(outrows)
-    assert actual == expected
-
-
-def call_get_csv_rows_for_installed(tmpdir: Path, text: str) -> List[InstalledCSVRow]:
-    path = tmpdir.joinpath("temp.txt")
-    path.write_text(text)
+def call_get_installed_integrity_map(text: str) -> str:
+    old_integrity_map = parse_record(text, "RECORD")
 
     # Test that an installed file appearing in RECORD has its filename
     # updated in the new RECORD file.
     installed = cast(Dict[RecordPath, RecordPath], {"a": "z"})
     lib_dir = "/lib/dir"
 
-    with open(path, "r", newline="", encoding="utf-8") as f:
-        record_rows = list(csv.reader(f))
-    outrows = wheel.get_csv_rows_for_installed(
-        record_rows,
+    new_integrity_map = wheel.get_installed_integrity_map(
+        old_integrity_map,
         installed=installed,
         changed=set(),
         generated=[],
         lib_dir=lib_dir,
     )
-    return outrows
+
+    out_file = io.StringIO(newline="")
+    serialize_record(new_integrity_map, out_file)
+
+    return out_file.getvalue()
 
 
-def test_get_csv_rows_for_installed(
-    tmpdir: Path, caplog: pytest.LogCaptureFixture
-) -> None:
+def test_get_installed_integrity_map(caplog: pytest.LogCaptureFixture) -> None:
     text = textwrap.dedent(
         """\
-    a,b,c
-    d,e,f
-    """
+        a,sha256=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaY,10
+        d,sha256=ddddddddddddddddddddddddddddddddddddddddddc,13
+        """
     )
-    outrows = call_get_csv_rows_for_installed(tmpdir, text)
+    out_text = call_get_installed_integrity_map(text)
 
-    expected = [
-        ("z", "b", "c"),
-        ("d", "e", "f"),
-    ]
-    assert outrows == expected
+    expected = textwrap.dedent(
+        """\
+        d,sha256=ddddddddddddddddddddddddddddddddddddddddddc,13\r
+        z,sha256=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaY,10\r
+        """
+    )
+    assert out_text == expected
     # Check there were no warnings.
     assert len(caplog.records) == 0
-
-
-def test_get_csv_rows_for_installed__long_lines(
-    tmpdir: Path, caplog: pytest.LogCaptureFixture
-) -> None:
-    text = textwrap.dedent(
-        """\
-    a,b,c,d
-    e,f,g
-    h,i,j,k
-    """
-    )
-    outrows = call_get_csv_rows_for_installed(tmpdir, text)
-    assert outrows == [
-        ("z", "b", "c"),
-        ("e", "f", "g"),
-        ("h", "i", "j"),
-    ]
-
-    messages = [rec.message for rec in caplog.records]
-    assert messages == [
-        "RECORD line has more than three elements: ['a', 'b', 'c', 'd']",
-        "RECORD line has more than three elements: ['h', 'i', 'j', 'k']",
-    ]
 
 
 @pytest.mark.parametrize(
@@ -516,6 +444,22 @@ class TestInstallUnpackedWheel:
         assert os.path.basename(wheel_path) in exc_text
         assert entrypoint in exc_text
 
+    def test_invalid_record_fail(self, data: TestData, tmp_path: Path) -> None:
+        self.prep(data, tmp_path)
+        wheel_path = make_wheel("simple", "0.1.0", record="garbage").save_to_dir(
+            tmp_path
+        )
+
+        with pytest.raises(InstallationError) as e:
+            wheel.install_wheel(
+                "simple",
+                str(wheel_path),
+                scheme=self.scheme,
+                req_description="simple",
+            )
+
+        assert "RECORD" in str(e.value)
+
 
 class TestMessageAboutScriptsNotOnPATH:
 
@@ -659,33 +603,6 @@ class TestMessageAboutScriptsNotOnPATH:
         assert "bar, baz and foo are installed in '/c/d'" in retval
         assert "eggs and spam are installed in '/e/f~f/c'" in retval
         assert self.tilde_warning_msg not in retval
-
-
-class TestWheelHashCalculators:
-    def prep(self, tmpdir: Path) -> None:
-        self.test_file = tmpdir.joinpath("hash.file")
-        # Want this big enough to trigger the internal read loops.
-        self.test_file_len = 2 * 1024 * 1024
-        with open(str(self.test_file), "w") as fp:
-            fp.truncate(self.test_file_len)
-        self.test_file_hash = (
-            "5647f05ec18958947d32874eeb788fa396a05d0bab7c1b71f112ceb7e9b31eee"
-        )
-        self.test_file_hash_encoded = (
-            "sha256=VkfwXsGJWJR9ModO63iPo5agXQurfBtx8RLOt-mzHu4"
-        )
-
-    def test_hash_file(self, tmpdir: Path) -> None:
-        self.prep(tmpdir)
-        h, length = hash_file(os.fspath(self.test_file))
-        assert length == self.test_file_len
-        assert h.hexdigest() == self.test_file_hash
-
-    def test_rehash(self, tmpdir: Path) -> None:
-        self.prep(tmpdir)
-        h, length = wheel.rehash(os.fspath(self.test_file))
-        assert length == str(self.test_file_len)
-        assert h == self.test_file_hash_encoded
 
 
 def test_get_console_script_specs_replaces_python_version(
