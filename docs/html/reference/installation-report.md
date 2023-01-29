@@ -3,6 +3,10 @@
 ```{versionadded} 22.2
 ```
 
+```{versionchanged} 23.0
+``version`` has been bumped to ``1`` and the format declared stable.
+```
+
 The `--report` option of the pip install command produces a detailed JSON report of what
 it did install (or what it would have installed, if used with the `--dry-run` option).
 

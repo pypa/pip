@@ -3,6 +3,10 @@
 ```{versionadded} 22.2
 ```
 
+```{versionchanged} 23.0
+``version`` has been bumped to ``1`` and the format declared stable.
+```
+
 The `pip inspect` command produces a detailed JSON report of the Python
 environment, including installed distributions.
 
