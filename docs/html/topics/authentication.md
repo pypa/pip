@@ -68,8 +68,21 @@ man pages][netrc-docs].
 pip supports loading credentials stored in your keyring using the
 {pypi}`keyring` library.
 
+pip will first try to use `keyring` in the same environment as itself and
+fallback to using any `keyring` installation which is available on `PATH`.
+
+Therefore, either of the following setups will work:
+
 ```bash
-$ pip install keyring  # install keyring from PyPI
+$ pip install keyring  # install keyring from PyPI into same environment as pip
+$ echo "your-password" | keyring set pypi.company.com your-username
+$ pip install your-package --index-url https://pypi.company.com/
+```
+
+or
+
+```bash
+$ pipx install keyring  # install keyring from PyPI into standalone environment
 $ echo "your-password" | keyring set pypi.company.com your-username
 $ pip install your-package --index-url https://pypi.company.com/
 ```
@@ -79,5 +92,4 @@ pip. This can create a bootstrapping issue if you need the credentials stored in
 the keyring to download and install keyring.
 
 It is, thus, expected that users that wish to use pip's keyring support have
-some mechanism for downloading and installing {pypi}`keyring` in their Python
-environment.
+some mechanism for downloading and installing {pypi}`keyring`.

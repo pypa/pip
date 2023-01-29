@@ -1,0 +1,2 @@
+The inspect and installation report formats are now declared stabled, and their version
+has been bumped from ``0`` to ``1``.

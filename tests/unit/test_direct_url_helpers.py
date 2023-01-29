@@ -146,6 +146,10 @@ def test_from_link_archive() -> None:
     )
     assert isinstance(direct_url.info, ArchiveInfo)
     assert direct_url.info.hash == "sha1=1b8c5bc61a86f377fea47b4276c8c8a5842d2220"
+    # Test the hashes key has been automatically populated.
+    assert direct_url.info.hashes == {
+        "sha1": "1b8c5bc61a86f377fea47b4276c8c8a5842d2220"
+    }
 
 
 def test_from_link_dir(tmpdir: Path) -> None:

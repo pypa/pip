@@ -1,0 +1,2 @@
+Change the hashes in the installation report to be a mapping. Emit the
+``archive_info.hashes`` dictionary in ``direct_url.json``.
