@@ -2324,6 +2324,23 @@ def test_install_dry_run(script: PipTestEnvironment, data: TestData) -> None:
     assert "Successfully installed" not in result.stdout
 
 
+def test_install_dry_run_with_dist_restriction(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """Test that pip install --dry-run logs what it would install."""
+    result = script.pip(
+        "install",
+        "--dry-run",
+        "--platform",
+        "linux_x86_64",
+        "--find-links",
+        data.find_links,
+        "simple",
+    )
+    assert "Would install simple-3.0" in result.stdout
+    assert "Successfully installed" not in result.stdout
+
+
 def test_install_8559_missing_wheel_package(
     script: PipTestEnvironment, shared_data: TestData
 ) -> None:

@@ -1,0 +1,2 @@
+Relax ``check_dist_restriction`` for dry run so one can more easily use ``pip`` as a cross platform
+dependency resolver.

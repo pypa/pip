@@ -79,6 +79,11 @@ def check_dist_restriction(options: Values, check_target: bool = False) -> None:
         options.format_control != binary_only and not options.ignore_dependencies
     )
 
+    if hasattr(options, "dry_run") and options.dry_run:
+        # In dry run mode nothing will be downloaded or installed, so sdist are OK and
+        # there is no need to specify `--target`.
+        return
+
     # Installations or downloads using dist restrictions must not combine
     # source distributions and dist-specific wheels, as they are not
     # guaranteed to be locally compatible.
