@@ -61,7 +61,7 @@ package with the following properties:
   `--find-links`.
 
   ```{note}
-  For source archives, `download_info.archive_info.hash` may
+  For source archives, `download_info.archive_info.hashes` may
   be absent when the requirement was installed from the wheel cache
   and the cache entry was populated by an older pip version that did not
   record the origin URL of the downloaded artifact.
@@ -96,7 +96,9 @@ will produce an output similar to this (metadata abriged for brevity):
       "download_info": {
         "url": "https://files.pythonhosted.org/packages/a4/0c/fbaa7319dcb5eecd3484686eb5a5c5702a6445adb566f01aee6de3369bc4/pydantic-1.9.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
         "archive_info": {
-          "hash": "sha256=18f3e912f9ad1bdec27fb06b8198a2ccc32f201e24174cec1b3424dda605a310"
+          "hashes": {
+            "sha256": "18f3e912f9ad1bdec27fb06b8198a2ccc32f201e24174cec1b3424dda605a310"
+          }
         }
       },
       "is_direct": false,
@@ -141,7 +143,9 @@ will produce an output similar to this (metadata abriged for brevity):
       "download_info": {
         "url": "https://files.pythonhosted.org/packages/6c/10/a7d0fa5baea8fe7b50f448ab742f26f52b80bfca85ac2be9d35cdd9a3246/pyparsing-3.0.9-py3-none-any.whl",
         "archive_info": {
-          "hash": "sha256=5026bae9a10eeaefb61dab2f09052b9f4307d44aee4eda64b309723d8d206bbc"
+          "hashes": {
+            "sha256": "5026bae9a10eeaefb61dab2f09052b9f4307d44aee4eda64b309723d8d206bbc"
+          }
         }
       },
       "is_direct": false,
@@ -160,7 +164,9 @@ will produce an output similar to this (metadata abriged for brevity):
       "download_info": {
         "url": "https://files.pythonhosted.org/packages/75/e1/932e06004039dd670c9d5e1df0cd606bf46e29a28e65d5bb28e894ea29c9/typing_extensions-4.2.0-py3-none-any.whl",
         "archive_info": {
-          "hash": "sha256=6657594ee297170d19f67d55c05852a874e7eb634f4f753dbd667855e07c1708"
+          "hashes": {
+            "sha256": "6657594ee297170d19f67d55c05852a874e7eb634f4f753dbd667855e07c1708"
+          }
         }
       },
       "is_direct": false,
