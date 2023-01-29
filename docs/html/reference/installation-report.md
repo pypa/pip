@@ -58,9 +58,10 @@ package with the following properties:
   specifier.
 
 - `download_info`: Information about the artifact (to be) downloaded for installation,
-  using the [direct
-  URL](https://packaging.python.org/en/latest/specifications/direct-url/) data
-  structure. When `is_direct` is `true`, this field is the same as the `direct_url.json`
+  using the [direct URL data
+  structure](https://packaging.python.org/en/latest/specifications/direct-url-data-structure/).
+  When `is_direct` is `true`, this field is the same as the
+  [direct_url.json](https://packaging.python.org/en/latest/specifications/direct-url)
   metadata, otherwise it represents the URL of the artifact obtained from the index or
   `--find-links`.
 
