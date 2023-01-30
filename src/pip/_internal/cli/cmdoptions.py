@@ -79,7 +79,7 @@ def check_dist_restriction(options: Values, check_target: bool = False) -> None:
         options.format_control != binary_only and not options.ignore_dependencies
     )
 
-    if hasattr(options, "dry_run") and options.dry_run:
+    if getattr(options, "dry_run", False):
         # In dry run mode nothing will be downloaded or installed, so sdist are OK and
         # there is no need to specify `--target`.
         return
