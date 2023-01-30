@@ -1,2 +1,0 @@
-Remove mention that editable installs are necessary for pip freeze to report the VCS
-URL.

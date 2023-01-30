@@ -1,3 +1,0 @@
-Deprecated a historical ambiguity in how ``egg`` fragments in URL-style
-requirements are formatted and handled. ``egg`` fragments that do not look
-like PEP 508 names now produce a deprecation warning.
