@@ -213,6 +213,75 @@ def test_new_resolver_ignore_dependencies(script: PipTestEnvironment) -> None:
     script.assert_not_installed("dep")
 
 
+def test_new_resolver_build_isolation_dependency_mismatch(
+    script: PipTestEnvironment, common_wheels: pathlib.Path
+) -> None:
+    # This test simulates a situation that is common for packages
+    # that have a C/C++ ABI dependency on other packages (e.g. packages depending
+    # on numpy's C or torch's C++ ABI).
+    # Lets call the package in question "script", whose sdist has lax requirements
+    # on the API of package "base" at build time. However, let's imagine package
+    # "base" is rather liberal with breaking the ABI from release to release.
+    # Hence, we want to pin the the specific build-time version in the resulting
+    # wheel file.
+    # Cf. https://github.com/pypa/pip/issues/9542 for the different variants of
+    # this issue.
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+    )
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.2.0",
+    )
+    extra_files = {
+        "pyproject.toml": textwrap.dedent(
+            """\
+            [build-system]
+            requires = [
+                "base>=0.1.0",
+                "setuptools>=40.8.0",
+                "wheel"
+            ]
+            build-backend = "setuptools.build_meta"
+        """
+        ),
+    }
+    setup_py_prelude = "import base"
+
+    # in order to use create_basic_sdist_for_package for
+    # a dynamic base.__version__-pinned dependency we need
+    # a string without quotes
+    class unquoted_string(str):
+        def __repr__(self):
+            return self.__str__()
+
+    create_basic_sdist_for_package(
+        script,
+        "script",
+        "0.1.0",
+        setup_py_prelude=setup_py_prelude,
+        extra_files=extra_files,
+        depends=[unquoted_string('"base=="+base.__version__')],
+    )
+    script.pip(
+        "install",
+        "--verbose",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "--find-links",
+        common_wheels,
+        "script",
+        "base==0.1.0",
+    )
+    script.assert_installed(script="0.1.0")
+    script.assert_installed(base="0.1.0")
+
+
 @pytest.mark.parametrize(
     "root_dep",
     [
