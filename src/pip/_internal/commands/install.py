@@ -156,7 +156,12 @@ class InstallCommand(RequirementCommand):
             default=None,
             help=(
                 "Installation prefix where lib, bin and other top-level "
-                "folders are placed"
+                "folders are placed. Note that the resulting installation may "
+                "contain scripts and other resources which reference the "
+                "Python interpreter of pip, and not that of ``--prefix``. "
+                "See also the ``--python`` option if the intention is to "
+                "install packages into another (possibly pip-free) "
+                "environment."
             ),
         )
 
