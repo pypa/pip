@@ -359,7 +359,7 @@ class MultiDomainBasicAuth(AuthBase):
 
     # Factored out to allow for easy patching in tests
     def _should_save_password_to_keyring(self) -> bool:
-        if get_keyring_provider() is None:
+        if isinstance(get_keyring_provider(), KeyRingNullProvider):
             return False
         return ask("Save credentials to keyring [y/N]: ", ["y", "n"]) == "y"
 
