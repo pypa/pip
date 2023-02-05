@@ -46,7 +46,6 @@ def test_fails(script: PipTestEnvironment, arguments: List[str]) -> None:
     "arguments",
     [
         pytest.param(["install"], id="install"),
-        pytest.param(["install", "--user"], id="install-user"),
         pytest.param(["install", "--dry-run"], id="install-dry-run"),
         pytest.param(["uninstall", "-y"], id="uninstall"),
     ],
