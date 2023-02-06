@@ -1,0 +1,3 @@
+Improve handling of isolated build environments on platforms that
+customize the Python's installation schemes, such as Debian and
+Homebrew.
