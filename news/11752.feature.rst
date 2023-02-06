@@ -1,0 +1,2 @@
+Add option to enable a warning if a virtual environment could not be detected,
+preventing accidental installation of global packages.
