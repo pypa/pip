@@ -104,7 +104,7 @@ class PipProvider(_ProviderBase):
     def identify(self, requirement_or_candidate: Union[Requirement, Candidate]) -> str:
         return requirement_or_candidate.name
 
-    def get_preference(  # type: ignore
+    def get_preference(
         self,
         identifier: str,
         resolutions: Mapping[str, Candidate],
