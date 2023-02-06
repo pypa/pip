@@ -39,6 +39,8 @@ class Credentials(NamedTuple):
 class KeyRingBaseProvider(ABC):
     """Keyring base provider interface"""
 
+    has_keyring: bool
+
     @abstractmethod
     def get_auth_info(self, url: str, username: Optional[str]) -> Optional[AuthInfo]:
         ...
@@ -51,6 +53,8 @@ class KeyRingBaseProvider(ABC):
 class KeyRingNullProvider(KeyRingBaseProvider):
     """Keyring null provider"""
 
+    has_keyring = False
+
     def get_auth_info(self, url: str, username: Optional[str]) -> Optional[AuthInfo]:
         return None
 
@@ -60,6 +64,8 @@ class KeyRingNullProvider(KeyRingBaseProvider):
 
 class KeyRingPythonProvider(KeyRingBaseProvider):
     """Keyring interface which uses locally imported `keyring`"""
+
+    has_keyring = True
 
     def __init__(self) -> None:
         import keyring
@@ -97,6 +103,8 @@ class KeyRingCliProvider(KeyRingBaseProvider):
     PATH.
     """
 
+    has_keyring = True
+
     def __init__(self, cmd: str) -> None:
         self.keyring = cmd
 
@@ -128,7 +136,7 @@ class KeyRingCliProvider(KeyRingBaseProvider):
         )
         if res.returncode:
             return None
-        return res.stdout.decode("utf-8").strip("\n")
+        return res.stdout.decode("utf-8").strip(os.linesep)
 
     def _set_password(self, service_name: str, username: str, password: str) -> None:
         """Mirror the implementation of keyring.set_password using cli"""
@@ -136,7 +144,7 @@ class KeyRingCliProvider(KeyRingBaseProvider):
             return None
 
         cmd = [self.keyring, "set", service_name, username]
-        input_ = password.encode("utf-8") + b"\n"
+        input_ = (password + os.linesep).encode("utf-8")
         env = os.environ.copy()
         env["PYTHONIOENCODING"] = "utf-8"
         res = subprocess.run(cmd, input=input_, env=env)
@@ -359,7 +367,7 @@ class MultiDomainBasicAuth(AuthBase):
 
     # Factored out to allow for easy patching in tests
     def _should_save_password_to_keyring(self) -> bool:
-        if get_keyring_provider() is None:
+        if not get_keyring_provider().has_keyring:
             return False
         return ask("Save credentials to keyring [y/N]: ", ["y", "n"]) == "y"
 
@@ -432,9 +440,7 @@ class MultiDomainBasicAuth(AuthBase):
     def save_credentials(self, resp: Response, **kwargs: Any) -> None:
         """Response callback to save credentials on success."""
         keyring = get_keyring_provider()
-        assert not isinstance(
-            keyring, KeyRingNullProvider
-        ), "should never reach here without keyring"
+        assert keyring.has_keyring, "should never reach here without keyring"
 
         creds = self._credentials_to_save
         self._credentials_to_save = None

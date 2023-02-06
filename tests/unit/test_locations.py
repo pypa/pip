@@ -28,13 +28,13 @@ def _get_scheme_dict(*args: Any, **kwargs: Any) -> Dict[str, str]:
 
 
 class TestLocations:
-    def setup(self) -> None:
+    def setup_method(self) -> None:
         self.tempdir = tempfile.mkdtemp()
         self.st_uid = 9999
         self.username = "example"
         self.patch()
 
-    def teardown(self) -> None:
+    def teardown_method(self) -> None:
         self.revert_patch()
         shutil.rmtree(self.tempdir, ignore_errors=True)
 

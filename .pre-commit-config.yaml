@@ -33,7 +33,7 @@ repos:
     exclude: tests/data
 
 - repo: https://github.com/PyCQA/isort
-  rev: 5.10.1
+  rev: 5.12.0
   hooks:
   - id: isort
     files: \.py$
@@ -52,6 +52,7 @@ repos:
         'types-setuptools==57.4.14',
         'types-freezegun==1.1.9',
         'types-six==1.16.15',
+        'types-pyyaml==6.0.12.2',
     ]
 
 - repo: https://github.com/pre-commit/pygrep-hooks

@@ -8,7 +8,6 @@ import site
 import sys
 import textwrap
 from collections import OrderedDict
-from sysconfig import get_paths
 from types import TracebackType
 from typing import TYPE_CHECKING, Iterable, List, Optional, Set, Tuple, Type
 
@@ -19,6 +18,7 @@ from pip._vendor.packaging.version import Version
 from pip import __file__ as pip_location
 from pip._internal.cli.spinners import open_spinner
 from pip._internal.locations import (
+    get_isolated_environment_bin_path,
     get_isolated_environment_lib_paths,
     get_platlib,
     get_purelib,
@@ -37,10 +37,7 @@ class _Prefix:
     def __init__(self, path: str) -> None:
         self.path = path
         self.setup = False
-        self.bin_dir = get_paths(
-            "nt" if os.name == "nt" else "posix_prefix",
-            vars={"base": path, "platbase": path},
-        )["scripts"]
+        self.bin_dir = get_isolated_environment_bin_path(path)
         self.lib_dirs = get_isolated_environment_lib_paths(path)
 
 

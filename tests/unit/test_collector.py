@@ -6,7 +6,7 @@ import re
 import uuid
 from pathlib import Path
 from textwrap import dedent
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from unittest import mock
 
 import pytest
@@ -538,7 +538,7 @@ def test_parse_links_json() -> None:
         metadata_link.url
         == "https://example.com/files/holygrail-1.0-py3-none-any.whl.metadata"
     )
-    assert metadata_link.link_hash == LinkHash("sha512", "aabdd41")
+    assert metadata_link._hashes == {"sha512": "aabdd41"}
 
 
 @pytest.mark.parametrize(
@@ -575,41 +575,41 @@ _pkg1_requirement = Requirement("pkg1==1.0")
 
 
 @pytest.mark.parametrize(
-    "anchor_html, expected, link_hash",
+    "anchor_html, expected, hashes",
     [
         # Test not present.
         (
             '<a href="/pkg1-1.0.tar.gz"></a>',
             None,
-            None,
+            {},
         ),
         # Test with value "true".
         (
             '<a href="/pkg1-1.0.tar.gz" data-dist-info-metadata="true"></a>',
             "true",
-            None,
+            {},
         ),
         # Test with a provided hash value.
         (
             '<a href="/pkg1-1.0.tar.gz" data-dist-info-metadata="sha256=aa113592bbe"></a>',  # noqa: E501
             "sha256=aa113592bbe",
-            None,
+            {},
         ),
         # Test with a provided hash value for both the requirement as well as metadata.
         (
             '<a href="/pkg1-1.0.tar.gz#sha512=abc132409cb" data-dist-info-metadata="sha256=aa113592bbe"></a>',  # noqa: E501
             "sha256=aa113592bbe",
-            LinkHash("sha512", "abc132409cb"),
+            {"sha512": "abc132409cb"},
         ),
     ],
 )
 def test_parse_links__dist_info_metadata(
     anchor_html: str,
     expected: Optional[str],
-    link_hash: Optional[LinkHash],
+    hashes: Dict[str, str],
 ) -> None:
     link = _test_parse_links_data_attribute(anchor_html, "dist_info_metadata", expected)
-    assert link.link_hash == link_hash
+    assert link._hashes == hashes
 
 
 def test_parse_links_caches_same_page_by_url() -> None:
