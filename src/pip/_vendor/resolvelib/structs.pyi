@@ -16,7 +16,7 @@ RT = TypeVar("RT")  # Requirement.
 CT = TypeVar("CT")  # Candidate.
 _T = TypeVar("_T")
 
-Matches = Union[Iterable[CT], Callable[[], Iterator[CT]]]
+Matches = Union[Iterable[CT], Callable[[], Iterable[CT]]]
 
 class IteratorMapping(Mapping[KT, _T], metaclass=ABCMeta):
     pass
