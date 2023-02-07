@@ -22,7 +22,7 @@ Features
   modify the externally managed environment. (`#11381 <https://github.com/pypa/pip/issues/11381>`_)
 - Enable the use of ``keyring`` found on ``PATH``. This allows ``keyring``
   installed using ``pipx`` to be used by ``pip``. (`#11589 <https://github.com/pypa/pip/issues/11589>`_)
-- The inspect and installation report formats are now declared stabled, and their version
+- The inspect and installation report formats are now declared stable, and their version
   has been bumped from ``0`` to ``1``. (`#11757 <https://github.com/pypa/pip/issues/11757>`_)
 
 Bug Fixes
