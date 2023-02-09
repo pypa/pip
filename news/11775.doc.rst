@@ -1,1 +1,2 @@
-Cross-reference the --python flag in the docs for the --prefix flag, and mention the --prefix limitations with regards to installed console scripts.
+Cross-reference the ``--python`` flag from the ``--prefix`` flag,
+and mention limitations of ``--prefix`` regarding script installation.
