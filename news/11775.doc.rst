@@ -1,0 +1,1 @@
+Cross-reference the --python flag in the docs for the --prefix flag, and mention the --prefix limitations with regards to installed console scripts.
