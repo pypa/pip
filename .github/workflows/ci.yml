@@ -109,12 +109,13 @@ jobs:
           - "3.9"
           - "3.10"
           - "3.11"
+          - "3.12"
 
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python }}
+          python-version: ${{ matrix.python }}-dev
 
       - name: Install Ubuntu dependencies
         if: matrix.os == 'Ubuntu'
