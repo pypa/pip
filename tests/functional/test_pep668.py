@@ -45,6 +45,22 @@ def test_fails(script: PipTestEnvironment, arguments: List[str]) -> None:
 @pytest.mark.parametrize(
     "arguments",
     [
+        pytest.param(["install"], id="install"),
+        pytest.param(["install", "--dry-run"], id="install-dry-run"),
+        pytest.param(["uninstall", "-y"], id="uninstall"),
+    ],
+)
+@pytest.mark.usefixtures("patch_check_externally_managed")
+def test_succeeds_when_overridden(
+    script: PipTestEnvironment, arguments: List[str]
+) -> None:
+    result = script.pip(*arguments, "pip", "--break-system-packages")
+    assert "I am externally managed" not in result.stderr
+
+
+@pytest.mark.parametrize(
+    "arguments",
+    [
         pytest.param(["install", "--root"], id="install-root"),
         pytest.param(["install", "--prefix"], id="install-prefix"),
         pytest.param(["install", "--target"], id="install-target"),

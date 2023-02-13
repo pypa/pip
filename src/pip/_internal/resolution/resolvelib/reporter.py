@@ -11,9 +11,9 @@ logger = getLogger(__name__)
 
 class PipReporter(BaseReporter):
     def __init__(self) -> None:
-        self.backtracks_by_package: DefaultDict[str, int] = defaultdict(int)
+        self.reject_count_by_package: DefaultDict[str, int] = defaultdict(int)
 
-        self._messages_at_backtrack = {
+        self._messages_at_reject_count = {
             1: (
                 "pip is looking at multiple versions of {package_name} to "
                 "determine which version is compatible with other "
@@ -32,14 +32,14 @@ class PipReporter(BaseReporter):
             ),
         }
 
-    def backtracking(self, candidate: Candidate) -> None:
-        self.backtracks_by_package[candidate.name] += 1
+    def rejecting_candidate(self, criterion: Any, candidate: Candidate) -> None:
+        self.reject_count_by_package[candidate.name] += 1
 
-        count = self.backtracks_by_package[candidate.name]
-        if count not in self._messages_at_backtrack:
+        count = self.reject_count_by_package[candidate.name]
+        if count not in self._messages_at_reject_count:
             return
 
-        message = self._messages_at_backtrack[count]
+        message = self._messages_at_reject_count[count]
         logger.info("INFO: %s", message.format(package_name=candidate.name))
 
 
@@ -61,8 +61,8 @@ class PipDebuggingReporter(BaseReporter):
     def adding_requirement(self, requirement: Requirement, parent: Candidate) -> None:
         logger.info("Reporter.adding_requirement(%r, %r)", requirement, parent)
 
-    def backtracking(self, candidate: Candidate) -> None:
-        logger.info("Reporter.backtracking(%r)", candidate)
+    def rejecting_candidate(self, criterion: Any, candidate: Candidate) -> None:
+        logger.info("Reporter.rejecting_candidate(%r, %r)", criterion, candidate)
 
     def pinning(self, candidate: Candidate) -> None:
         logger.info("Reporter.pinning(%r)", candidate)

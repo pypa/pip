@@ -102,6 +102,13 @@ def test_parsing_validation() -> None:
         match="more than one of archive_info, dir_info, vcs_info",
     ):
         DirectUrl.from_dict({"url": "http://...", "dir_info": {}, "archive_info": {}})
+    with pytest.raises(
+        DirectUrlValidationError,
+        match="invalid archive_info.hash format",
+    ):
+        DirectUrl.from_dict(
+            {"url": "http://...", "archive_info": {"hash": "sha256:aaa"}}
+        )
 
 
 def test_redact_url() -> None:
