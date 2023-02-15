@@ -79,6 +79,9 @@ def check_dist_restriction(options: Values, check_target: bool = False) -> None:
         options.format_control != binary_only and not options.ignore_dependencies
     )
 
+    if getattr(options, "dry_run", False):
+        return
+
     # Installations or downloads using dist restrictions must not combine
     # source distributions and dist-specific wheels, as they are not
     # guaranteed to be locally compatible.
