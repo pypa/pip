@@ -1,1 +1,0 @@
-Do not crash in presence of misformatted hash field in ``direct_url.json``.
