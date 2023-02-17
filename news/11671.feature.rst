@@ -1,1 +1,0 @@
-Ignore PIP_REQUIRE_VIRTUALENV for ``pip index``
