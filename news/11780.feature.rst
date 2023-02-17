@@ -1,2 +1,0 @@
-Implement ``--break-system-packages`` to permit installing packages into
-``EXTERNALLY-MANAGED`` Python installations.
