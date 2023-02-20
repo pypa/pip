@@ -98,3 +98,27 @@ Instead of `python setup.py develop`, use:
 ```{pip-cli}
 $ pip install --no-deps -e .
 ```
+
+## Avoiding dependency confusion
+
+When dealing with private packages on your project you need to be careful to [dependency confusion](https://azure.microsoft.com/mediahandler/files/resourcefiles/3-ways-to-mitigate-risk-using-private-package-feeds/3%20Ways%20to%20Mitigate%20Risk%20When%20Using%20Private%20Package%20Feeds%20-%20v1.0.pdf), where an attacker can claim the package on the public repository in a way that will ensure it gets chosen over the private package.
+
+To avoid that risk you shouldn't install your private packages using {any}`--extra-index-url` like below:
+
+```{pip-cli}
+$ pip install --extra-index-url http://my.package.repo/simple SomePackage
+```
+
+Instead use {any}`--index-url`:
+
+```{pip-cli}
+$ pip install --index-url http://my.package.repo/simple/ SomePackage
+```
+
+Or, use {any}`--find-links` with {any}`--no-index`:
+
+```{pip-cli}
+$ pip install --no-index --find-links=file:///local/dir/ SomePackage
+```
+
+For more examples see the {ref}`pip install examples <pip install Examples>`.

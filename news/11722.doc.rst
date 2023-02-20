@@ -1,0 +1,1 @@
+describe how to avoid dependency confusion in ``Secure installs`` topic
