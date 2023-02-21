@@ -44,6 +44,8 @@ class Credentials(NamedTuple):
 class KeyRingBaseProvider(ABC):
     """Keyring base provider interface"""
 
+    has_keyring: bool
+
     @abstractmethod
     def get_auth_info(self, url: str, username: Optional[str]) -> Optional[AuthInfo]:
         ...
@@ -56,6 +58,8 @@ class KeyRingBaseProvider(ABC):
 class KeyRingNullProvider(KeyRingBaseProvider):
     """Keyring null provider"""
 
+    has_keyring = False
+
     def get_auth_info(self, url: str, username: Optional[str]) -> Optional[AuthInfo]:
         return None
 
@@ -65,6 +69,8 @@ class KeyRingNullProvider(KeyRingBaseProvider):
 
 class KeyRingPythonProvider(KeyRingBaseProvider):
     """Keyring interface which uses locally imported `keyring`"""
+
+    has_keyring = True
 
     def __init__(self) -> None:
         import keyring
@@ -101,6 +107,8 @@ class KeyRingCliProvider(KeyRingBaseProvider):
     use which ever installation of keyring is available first in
     PATH.
     """
+
+    has_keyring = True
 
     def __init__(self, cmd: str) -> None:
         self.keyring = cmd
@@ -459,7 +467,7 @@ class MultiDomainBasicAuth(AuthBase):
         if (
             not self.prompting
             or not self.use_keyring
-            or isinstance(self.keyring_provider, KeyRingNullProvider)
+            or not self.keyring_provider.has_keyring
         ):
             return False
         return ask("Save credentials to keyring [y/N]: ", ["y", "n"]) == "y"
@@ -535,8 +543,8 @@ class MultiDomainBasicAuth(AuthBase):
 
     def save_credentials(self, resp: Response, **kwargs: Any) -> None:
         """Response callback to save credentials on success."""
-        assert not isinstance(
-            self.keyring_provider, KeyRingNullProvider
+        assert (
+            self.keyring_provider.has_keyring
         ), "should never reach here without keyring"
 
         creds = self._credentials_to_save

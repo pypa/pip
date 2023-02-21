@@ -55,6 +55,18 @@ class ResolutionImpossible(ResolutionError, Generic[RT, CT]):
 class ResolutionTooDeep(ResolutionError):
     round_count: int
 
+# This should be a NamedTuple, but Python 3.6 has a bug that prevents it.
+# https://stackoverflow.com/a/50531189/1376863
+class State(tuple, Generic[RT, CT, KT]):
+    mapping: Mapping[KT, CT]
+    criteria: Mapping[KT, Criterion[RT, CT, KT]]
+    backtrack_causes: Collection[RequirementInformation[RT, CT]]
+
+class Resolution(Generic[RT, CT, KT]):
+    def resolve(
+        self, requirements: Iterable[RT], max_rounds: int
+    ) -> State[RT, CT, KT]: ...
+
 class Result(Generic[RT, CT, KT]):
     mapping: Mapping[KT, CT]
     graph: DirectedGraph[Optional[KT]]

@@ -1,0 +1,2 @@
+Cross-reference the ``--python`` flag from the ``--prefix`` flag,
+and mention limitations of ``--prefix`` regarding script installation.

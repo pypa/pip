@@ -128,6 +128,7 @@ Chris Hunt
 Chris Jerdonek
 Chris McDonough
 Chris Pawley
+Chris Pryer
 Chris Wolfe
 Christian Clauss
 Christian Heimes
@@ -169,7 +170,9 @@ Daniel Jost
 Daniel Katz
 Daniel Shaulov
 Daniele Esposti
+Daniele Nicolodi
 Daniele Procida
+Daniil Konovalenko
 Danny Hermes
 Danny McClanahan
 Darren Kavanagh
@@ -200,6 +203,7 @@ Diego Caraballo
 Diego Ramirez
 DiegoCaraballo
 Dimitri Merejkowsky
+Dimitri Papadopoulos
 Dirk Stolle
 Dmitry Gladkov
 Dmitry Volodin
@@ -207,6 +211,7 @@ Domen Kožar
 Dominic Davis-Foster
 Donald Stufft
 Dongweiming
+doron zarhi
 Douglas Thor
 DrFeathers
 Dustin Ingram
@@ -282,6 +287,7 @@ hauntsaninja
 Henrich Hartzer
 Henry Schreiner
 Herbert Pfennig
+Holly Stotelmyer
 Hsiaoming Yang
 Hugo Lopes Tavares
 Hugo van Kemenade
@@ -305,6 +311,7 @@ Jacob Kim
 Jacob Walls
 Jaime Sanz
 jakirkham
+Jakub Kuczys
 Jakub Stasiak
 Jakub Vysoky
 Jakub Wilk
@@ -317,6 +324,7 @@ Jan Pokorný
 Jannis Leidel
 Jarek Potiuk
 jarondl
+Jason Curtis
 Jason R. Coombs
 Jay Graves
 Jean-Christophe Fillion-Robin
@@ -342,6 +350,7 @@ Jon Dufresne
 Jon Parise
 Jonas Nockert
 Jonathan Herbert
+Joonatan Partanen
 Joost Molenaar
 Jorge Niedbalski
 Joseph Bylund
@@ -350,6 +359,7 @@ Josh Bronson
 Josh Hansen
 Josh Schneier
 Juanjo Bazán
+Judah Rand
 Julian Berman
 Julian Gethmann
 Julien Demoor
@@ -455,6 +465,7 @@ Miro Hrončok
 Monica Baluna
 montefra
 Monty Taylor
+Muha Ajjan‮
 Nadav Wexler
 Nahuel Ambrosini
 Nate Coraor
@@ -484,6 +495,7 @@ nvdv
 OBITORASU
 Ofek Lev
 ofrinevo
+Oliver Freund
 Oliver Jeeves
 Oliver Mannion
 Oliver Tonnhofer
@@ -555,6 +567,7 @@ Riccardo Schirone
 Richard Jones
 Richard Si
 Ricky Ng-Adam
+Rishi
 RobberPhex
 Robert Collins
 Robert McGibbon
@@ -605,6 +618,7 @@ Stavros Korokithakis
 Stefan Scherfke
 Stefano Rivera
 Stephan Erb
+Stephen Rosen
 stepshal
 Steve (Gadget) Barnes
 Steve Barnes
@@ -644,6 +658,7 @@ Tom V
 Tomas Hrnciar
 Tomas Orsava
 Tomer Chachamu
+Tommi Enenkel | AnB
 Tomáš Hrnčiar
 Tony Beswick
 Tony Narlock
@@ -672,6 +687,7 @@ Wil Tan
 Wilfred Hughes
 William ML Leslie
 William T Olson
+William Woodruff
 Wilson Mo
 wim glenn
 Winson Luk

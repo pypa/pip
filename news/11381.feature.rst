@@ -1,3 +1,0 @@
-Implement logic to read the ``EXTERNALLY-MANAGED`` file as specified in PEP 668.
-This allows a downstream Python distributor to prevent users from using pip to
-modify the externally managed environment.

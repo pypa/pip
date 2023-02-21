@@ -1,6 +1,7 @@
 """Automation using nox.
 """
 
+import argparse
 import glob
 import os
 import shutil
@@ -183,7 +184,13 @@ def lint(session: nox.Session) -> None:
 def vendoring(session: nox.Session) -> None:
     session.install("vendoring~=1.2.0")
 
-    if "--upgrade" not in session.posargs:
+    parser = argparse.ArgumentParser(prog="nox -s vendoring")
+    parser.add_argument("--upgrade-all", action="store_true")
+    parser.add_argument("--upgrade", action="append", default=[])
+    parser.add_argument("--skip", action="append", default=[])
+    args = parser.parse_args(session.posargs)
+
+    if not (args.upgrade or args.upgrade_all):
         session.run("vendoring", "sync", "-v")
         return
 
@@ -199,7 +206,9 @@ def vendoring(session: nox.Session) -> None:
 
     vendor_txt = Path("src/pip/_vendor/vendor.txt")
     for name, old_version in pinned_requirements(vendor_txt):
-        if name == "setuptools":
+        if name in args.skip:
+            continue
+        if args.upgrade and name not in args.upgrade:
             continue
 
         # update requirements.txt

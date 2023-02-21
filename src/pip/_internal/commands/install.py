@@ -156,7 +156,12 @@ class InstallCommand(RequirementCommand):
             default=None,
             help=(
                 "Installation prefix where lib, bin and other top-level "
-                "folders are placed"
+                "folders are placed. Note that the resulting installation may "
+                "contain scripts and other resources which reference the "
+                "Python interpreter of pip, and not that of ``--prefix``. "
+                "See also the ``--python`` option if the intention is to "
+                "install packages into another (possibly pip-free) "
+                "environment."
             ),
         )
 
@@ -215,6 +220,7 @@ class InstallCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.use_pep517())
         self.cmd_opts.add_option(cmdoptions.no_use_pep517())
         self.cmd_opts.add_option(cmdoptions.check_build_deps())
+        self.cmd_opts.add_option(cmdoptions.override_externally_managed())
 
         self.cmd_opts.add_option(cmdoptions.config_settings())
         self.cmd_opts.add_option(cmdoptions.install_options())
@@ -296,7 +302,10 @@ class InstallCommand(RequirementCommand):
             and options.target_dir is None
             and options.prefix_path is None
         )
-        if installing_into_current_environment:
+        if (
+            installing_into_current_environment
+            and not options.override_externally_managed
+        ):
             check_externally_managed()
 
         upgrade_strategy = "to-satisfy-only"
