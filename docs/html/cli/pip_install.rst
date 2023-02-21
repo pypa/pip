@@ -386,21 +386,21 @@ Examples
 
       .. code-block:: shell
 
-         python -m pip install SomePackage[PDF]
-         python -m pip install "SomePackage[PDF] @ git+https://git.repo/SomePackage@main#subdirectory=subdir_path"
-         python -m pip install .[PDF]  # project in current directory
-         python -m pip install SomePackage[PDF]==3.0
-         python -m pip install SomePackage[PDF,EPUB]  # multiple extras
+         python -m pip install 'SomePackage[PDF]'
+         python -m pip install 'SomePackage[PDF] @ git+https://git.repo/SomePackage@main#subdirectory=subdir_path'
+         python -m pip install '.[PDF]'  # project in current directory
+         python -m pip install 'SomePackage[PDF]==3.0'
+         python -m pip install 'SomePackage[PDF,EPUB]'  # multiple extras
 
    .. tab:: Windows
 
       .. code-block:: shell
 
-         py -m pip install SomePackage[PDF]
+         py -m pip install "SomePackage[PDF]"
          py -m pip install "SomePackage[PDF] @ git+https://git.repo/SomePackage@main#subdirectory=subdir_path"
-         py -m pip install .[PDF]  # project in current directory
-         py -m pip install SomePackage[PDF]==3.0
-         py -m pip install SomePackage[PDF,EPUB]  # multiple extras
+         py -m pip install ".[PDF]"  # project in current directory
+         py -m pip install "SomePackage[PDF]==3.0"
+         py -m pip install "SomePackage[PDF,EPUB]"  # multiple extras
 
 #. Install a particular source archive file.
 
