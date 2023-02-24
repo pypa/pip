@@ -2393,3 +2393,61 @@ def test_install_existing_memory_distribution(script: PipTestEnvironment) -> Non
     result = script.pip("install", "example")
 
     assert "Requirement already satisfied: example in <memory>" in result.stdout
+
+
+def test_install_pip_prints_req_chain_local(script: PipTestEnvironment) -> None:
+    """
+    Test installing a local package with a dependency and check that the
+    dependency chain is reported.
+    """
+
+    req_path = script.scratch_path.joinpath("requirements.txt")
+    req_path.write_text("base==0.1.0")
+
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+        depends=["dep"],
+    )
+    dep_path = create_basic_wheel_for_package(
+        script,
+        "dep",
+        "0.1.0",
+    )
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "-r",
+        req_path,
+    )
+    assert_re_match(
+        rf"Processing .*{re.escape(os.path.basename(dep_path))} "
+        rf"\(from base==0.1.0->-r {re.escape(str(req_path))} \(line 1\)\)",
+        result.stdout,
+    )
+
+
+@pytest.mark.network
+def test_install_pip_prints_req_chain_pypi(script: PipTestEnvironment) -> None:
+    """
+    Test installing a package with a dependency from PyPI and check that the
+    dependency chain is reported.
+    """
+    req_path = script.scratch_path.joinpath("requirements.txt")
+    req_path.write_text("Paste[openid]==1.7.5.1")
+
+    result = script.pip(
+        "install",
+        "-r",
+        req_path,
+    )
+
+    assert (
+        f"Collecting python-openid "
+        f"(from Paste[openid]==1.7.5.1->-r {req_path} (line 1))" in result.stdout
+    )
