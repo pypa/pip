@@ -261,6 +261,7 @@ class InstallCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.require_hashes())
         self.cmd_opts.add_option(cmdoptions.progress_bar())
         self.cmd_opts.add_option(cmdoptions.root_user_action())
+        self.cmd_opts.add_option(cmdoptions.default_key_ring_user())
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,

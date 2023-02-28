@@ -884,6 +884,13 @@ disable_pip_version_check: Callable[..., Option] = partial(
     help="Don't periodically check PyPI to determine whether a new version "
     "of pip is available for download. Implied with --no-index.",
 )
+default_key_ring_user: Callable[..., Option] = partial(
+    Option,
+    "--default-key-ring-user",
+    dest="default_key_ring_user",
+    default=None,
+    help="Default key ring user that pip can use to get credentials from keyring",
+)
 
 root_user_action: Callable[..., Option] = partial(
     Option,
