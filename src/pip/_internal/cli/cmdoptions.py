@@ -816,6 +816,7 @@ def _handle_config_settings(
 
 config_settings: Callable[..., Option] = partial(
     Option,
+    "-C",
     "--config-settings",
     dest="config_settings",
     type=str,
