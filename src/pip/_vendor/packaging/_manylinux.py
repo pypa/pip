@@ -151,6 +151,13 @@ def _glibc_version_string_confstr() -> Optional[str]:
     return version
 
 
+def _glibc_version_string_environment_variable() -> Optional[str]:
+    """
+    Getting the glibc version from an environment variable, if present.
+    """
+    return os.environ.get('PIP_OVERRIDE_GLIBC', None)
+
+
 def _glibc_version_string_ctypes() -> Optional[str]:
     """
     Fallback implementation of glibc_version_string using ctypes.
@@ -197,7 +204,7 @@ def _glibc_version_string_ctypes() -> Optional[str]:
 
 def _glibc_version_string() -> Optional[str]:
     """Returns glibc version string, or None if not using glibc."""
-    return _glibc_version_string_confstr() or _glibc_version_string_ctypes()
+    return _glibc_version_string_environment_variable() or _glibc_version_string_confstr() or _glibc_version_string_ctypes()
 
 
 def _parse_glibc_version(version_str: str) -> Tuple[int, int]:
