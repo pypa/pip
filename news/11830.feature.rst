@@ -1,0 +1,1 @@
+Allow overriding detected Linux GLIBC version with environment variable PIP_OVERRIDE_GLIBC
