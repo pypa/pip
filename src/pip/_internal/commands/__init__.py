@@ -66,7 +66,7 @@ commands_dict: Dict[str, CommandInfo] = {
     "search": CommandInfo(
         "pip._internal.commands.search",
         "SearchCommand",
-        "Search PyPI for packages.",
+        "Search PyPI for packages. This feature is deprecated",
     ),
     "cache": CommandInfo(
         "pip._internal.commands.cache",
