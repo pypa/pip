@@ -50,6 +50,10 @@ logger = logging.getLogger(__name__)
 
 
 def _create_truststore_ssl_context() -> Optional["SSLContext"]:
+    # Truststore only works with Python 3.10+
+    if sys.version_info < (3, 10):
+        return None
+
     try:
         import ssl
     except ImportError:
@@ -113,11 +117,7 @@ class SessionCommandMixin(CommandContextMixIn):
         cache_dir = options.cache_dir
         assert not cache_dir or os.path.isabs(cache_dir)
 
-        # Truststore only works with Python 3.10+
-        if (
-            sys.version_info >= (3, 10)
-            and "legacy-certs" not in options.deprecated_features_enabled
-        ):
+        if "legacy-certs" not in options.deprecated_features_enabled:
             ssl_context = _create_truststore_ssl_context()
         else:
             ssl_context = None
