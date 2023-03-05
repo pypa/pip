@@ -179,16 +179,6 @@ class PipProvider(_ProviderBase):
         # free, so we always do it first to avoid needless work if it fails.
         requires_python = identifier == REQUIRES_PYTHON_IDENTIFIER
 
-        # HACK: Setuptools have a very long and solid backward compatibility
-        # track record, and extremely few projects would request a narrow,
-        # non-recent version range of it since that would break a lot things.
-        # (Most projects specify it only to request for an installer feature,
-        # which does not work, but that's another topic.) Intentionally
-        # delaying Setuptools helps reduce branches the resolver has to check.
-        # This serves as a temporary fix for issues like "apache-airflow[all]"
-        # while we work on "proper" branch pruning techniques.
-        delay_this = identifier == "setuptools"
-
         # Prefer the causes of backtracking on the assumption that the problem
         # resolving the dependency tree is related to the failures that caused
         # the backtracking
@@ -196,7 +186,6 @@ class PipProvider(_ProviderBase):
 
         return (
             not requires_python,
-            delay_this,
             not direct,
             not pinned,
             not backtrack_cause,
