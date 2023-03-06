@@ -43,7 +43,7 @@ def inject_into_ssl() -> None:
     # urllib3 holds on to its own reference of ssl.SSLContext
     # so we need to replace that reference too.
     try:
-        import urllib3.util.ssl_ as urllib3_ssl
+        import pip._vendor.urllib3.util.ssl_ as urllib3_ssl
 
         setattr(urllib3_ssl, "SSLContext", SSLContext)
     except ImportError:
@@ -54,7 +54,7 @@ def extract_from_ssl() -> None:
     """Restores the :class:`ssl.SSLContext` class to its original state"""
     setattr(ssl, "SSLContext", _original_SSLContext)
     try:
-        import urllib3.util.ssl_ as urllib3_ssl
+        import pip._vendor.urllib3.util.ssl_ as urllib3_ssl
 
         urllib3_ssl.SSLContext = _original_SSLContext
     except ImportError:
