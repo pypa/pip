@@ -1,0 +1,30 @@
+---
+
+action-hints:
+  # check-title-prefix: chng  # default: `{{ branch-protection-check-name }}: `
+  external-docs-url: https://pip.pypa.io/how-to-changelog
+  inline-markdown: >
+    Check out https://pip.pypa.io/how-to-changelog
+
+branch-protection-check-name: Timeline protection
+
+enforce-name:
+  # suffix: .md
+  suffix: .rst
+
+exclude:
+  bots:
+  - dependabot-preview
+  - dependabot
+  - patchback
+  humans:
+  - pyup-bot
+
+labels:
+  skip-changelog: skip news
+
+paths:  # relative modified file paths that do or don't need changelog mention
+  exclude: []
+  include: []
+
+...
