@@ -798,6 +798,7 @@ class InstallRequirement:
                 direct_url = DirectUrl(
                     url=self.download_info.redacted_url,
                     info=ArchiveInfo("sha256=" + sha256.hexdigest()),
+                    provenance_file=True,
                 )
 
             install_wheel(

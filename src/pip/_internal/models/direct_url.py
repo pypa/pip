@@ -15,6 +15,7 @@ __all__ = [
 T = TypeVar("T")
 
 DIRECT_URL_METADATA_NAME = "direct_url.json"
+PROVENANCE_URL_METADATA_NAME = "provenance_url.json"
 ENV_VAR_RE = re.compile(r"^\$\{[A-Za-z0-9-_]+\}(:\$\{[A-Za-z0-9-_]+\})?$")
 
 
@@ -144,10 +145,12 @@ class DirectUrl:
         url: str,
         info: InfoType,
         subdirectory: Optional[str] = None,
+        provenance_file: bool = False
     ) -> None:
         self.url = url
         self.info = info
         self.subdirectory = subdirectory
+        self.provenance_file = provenance_file
 
     def _remove_auth_from_netloc(self, netloc: str) -> str:
         if "@" not in netloc:
