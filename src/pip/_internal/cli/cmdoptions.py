@@ -811,7 +811,13 @@ def _handle_config_settings(
     if dest is None:
         dest = {}
         setattr(parser.values, option.dest, dest)
-    dest[key] = val
+    if key in dest:
+        if isinstance(dest[key], list):
+            dest[key].append(val)
+        else:
+            dest[key] = [dest[key], val]
+    else:
+        dest[key] = val
 
 
 config_settings: Callable[..., Option] = partial(
