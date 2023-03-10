@@ -77,18 +77,12 @@ def direct_url_from_link(
             subdirectory=link.subdirectory_fragment,
         )
     else:
+        hash = None
         hash_name = link.hash_name
-        provenance_file = False
         if hash_name:
             hash = f"{hash_name}={link.hash}"
-        else:
-            sha256 = hash_file(link.path)[0]
-            hash = f"sha256={sha256.hexdigest()}"
-            provenance_file = True
-
         return DirectUrl(
             url=link.url_without_fragment,
             info=ArchiveInfo(hash=hash),
             subdirectory=link.subdirectory_fragment,
-            provenance_file=provenance_file,
         )
