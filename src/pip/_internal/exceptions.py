@@ -695,7 +695,7 @@ class ExternallyManagedEnvironment(DiagnosticPipError):
             message="This environment is externally managed",
             context=context,
             note_stmt=(
-                "You are receiving this message because this python ""
+                "You are receiving this message because this python "
                 "installation is set up to not allow pip to alter it. This is "
                 "often because it is a system wide python managed by the OS "
                 "distribution provider, or somehow specially managed, such as "
