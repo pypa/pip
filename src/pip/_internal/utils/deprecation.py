@@ -173,16 +173,3 @@ LegacyInstallReasonMissingWheelPackage = LegacyInstallReason(
     issue=8559,
     emit_before_install=True,
 )
-
-LegacyInstallReasonNoBinaryForcesSetuptoolsInstall = LegacyInstallReason(
-    reason=(
-        "{name} is being installed using the legacy "
-        "'setup.py install' method, because the '--no-binary' option was enabled "
-        "for it and this currently disables local wheel building for projects that "
-        "don't have a 'pyproject.toml' file."
-    ),
-    replacement="to enable the '--use-pep517' option",
-    gone_in="23.1",
-    issue=11451,
-    emit_before_install=True,
-)
