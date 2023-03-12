@@ -332,33 +332,6 @@ def test_wheel_user_with_prefix_in_pydistutils_cfg(
     assert "installed requiresupper" in result.stdout
 
 
-def test_install_option_in_requirements_file_overrides_cli(
-    script: PipTestEnvironment,
-    arg_recording_sdist_maker: Callable[[str], ArgRecordingSdist],
-) -> None:
-    simple_sdist = arg_recording_sdist_maker("simple")
-
-    reqs_file = script.scratch_path.joinpath("reqs.txt")
-    reqs_file.write_text("simple --install-option='-O0'")
-
-    result = script.pip(
-        "install",
-        "--no-index",
-        "-f",
-        str(simple_sdist.sdist_path.parent),
-        "-r",
-        str(reqs_file),
-        "--install-option=-O1",
-        allow_stderr_warning=True,
-    )
-    simple_args = simple_sdist.args()
-    assert "install" in simple_args
-    assert simple_args.index("-O1") < simple_args.index("-O0")
-    assert "Implying --no-binary=:all:" in result.stderr
-    assert "Consider using --config-settings" in result.stderr
-    assert "--install-option is deprecated" in result.stderr
-
-
 def test_constraints_not_installed_by_default(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -759,61 +732,3 @@ def test_install_unsupported_wheel_file(
         in result.stderr
     )
     assert len(result.files_created) == 0
-
-
-def test_install_options_local_to_package(
-    script: PipTestEnvironment,
-    arg_recording_sdist_maker: Callable[[str], ArgRecordingSdist],
-) -> None:
-    """Make sure --install-options does not leak across packages.
-
-    A requirements.txt file can have per-package --install-options; these
-    should be isolated to just the package instead of leaking to subsequent
-    packages.  This needs to be a functional test because the bug was around
-    cross-contamination at install time.
-    """
-
-    simple1_sdist = arg_recording_sdist_maker("simple1")
-    simple2_sdist = arg_recording_sdist_maker("simple2")
-
-    reqs_file = script.scratch_path.joinpath("reqs.txt")
-    reqs_file.write_text(
-        textwrap.dedent(
-            """
-            simple1 --install-option='-O0'
-            simple2
-            """
-        )
-    )
-    script.pip(
-        "install",
-        "--no-index",
-        "-f",
-        str(simple1_sdist.sdist_path.parent),
-        "-r",
-        reqs_file,
-        allow_stderr_warning=True,
-    )
-
-    simple1_args = simple1_sdist.args()
-    assert "install" in simple1_args
-    assert "-O0" in simple1_args
-    simple2_args = simple2_sdist.args()
-    assert "install" in simple2_args
-    assert "-O0" not in simple2_args
-
-
-def test_location_related_install_option_fails(script: PipTestEnvironment) -> None:
-    simple_sdist = create_basic_sdist_for_package(script, "simple", "0.1.0")
-    reqs_file = script.scratch_path.joinpath("reqs.txt")
-    reqs_file.write_text("simple --install-option='--home=/tmp'")
-    result = script.pip(
-        "install",
-        "--no-index",
-        "-f",
-        str(simple_sdist.parent),
-        "-r",
-        reqs_file,
-        expect_error=True,
-    )
-    assert "['--home'] from simple" in result.stderr

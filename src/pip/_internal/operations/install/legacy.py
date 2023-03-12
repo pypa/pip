@@ -55,7 +55,6 @@ def write_installed_files_from_setuptools_record(
 
 
 def install(
-    install_options: List[str],
     global_options: Sequence[str],
     root: Optional[str],
     home: Optional[str],
@@ -79,7 +78,6 @@ def install(
             install_args = make_setuptools_install_args(
                 setup_py_path,
                 global_options=global_options,
-                install_options=install_options,
                 record_filename=record_filename,
                 root=root,
                 prefix=prefix,

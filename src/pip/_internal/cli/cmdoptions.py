@@ -847,17 +847,6 @@ config_settings: Callable[..., Option] = partial(
     "to pass multiple keys to the backend.",
 )
 
-install_options: Callable[..., Option] = partial(
-    Option,
-    "--install-option",
-    dest="install_options",
-    action="append",
-    metavar="options",
-    help="This option is deprecated. Using this option with location-changing "
-    "options may cause unexpected behavior. "
-    "Use pip-level options like --user, --prefix, --root, and --target.",
-)
-
 build_options: Callable[..., Option] = partial(
     Option,
     "--build-option",
