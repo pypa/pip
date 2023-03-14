@@ -3,7 +3,6 @@
 
 import contextlib
 import errno
-import getpass
 import hashlib
 import io
 import logging
@@ -197,18 +196,6 @@ def ask(message: str, options: Iterable[str]) -> str:
             )
         else:
             return response
-
-
-def ask_input(message: str) -> str:
-    """Ask for input interactively."""
-    _check_no_input(message)
-    return input(message)
-
-
-def ask_password(message: str) -> str:
-    """Ask for a password interactively."""
-    _check_no_input(message)
-    return getpass.getpass(message)
 
 
 def strtobool(val: str) -> int:
