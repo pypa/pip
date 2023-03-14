@@ -27,7 +27,7 @@ from pip._internal.metadata import (
     get_wheel_distribution,
 )
 from pip._internal.metadata.base import FilesystemWheel
-from pip._internal.models.direct_url import DirectUrl
+from pip._internal.models.direct_url import ArchiveInfo, DirectUrl
 from pip._internal.models.link import Link
 from pip._internal.operations.build.metadata import generate_metadata
 from pip._internal.operations.build.metadata_editable import generate_editable_metadata
@@ -47,6 +47,7 @@ from pip._internal.utils.misc import (
     ask_path_exists,
     backup_dir,
     display_path,
+    hash_file,
     hide_url,
     is_installable_dir,
     redact_auth_from_requirement,

@@ -47,7 +47,11 @@ from pip._internal.metadata import (
     FilesystemWheel,
     get_wheel_distribution,
 )
-from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
+from pip._internal.models.direct_url import (
+    DIRECT_URL_METADATA_NAME,
+    PROVENANCE_URL_METADATA_NAME,
+    DirectUrl,
+)
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
 from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file, partition
@@ -668,7 +672,11 @@ def _install_wheel(
 
     # Record the PEP 610 direct URL reference
     if direct_url is not None:
-        direct_url_path = os.path.join(dest_info_dir, DIRECT_URL_METADATA_NAME)
+        if direct_url.provenance_file:
+            direct_url_path = os.path.join(dest_info_dir, PROVENANCE_URL_METADATA_NAME)
+        else:
+            direct_url_path = os.path.join(dest_info_dir, DIRECT_URL_METADATA_NAME)
+        print(direct_url_path)
         with _generate_file(direct_url_path) as direct_url_file:
             direct_url_file.write(direct_url.to_json().encode("utf-8"))
         generated.append(direct_url_path)
