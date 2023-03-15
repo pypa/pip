@@ -1,5 +1,6 @@
 import functools
 import os
+import subprocess
 import sys
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
@@ -15,6 +16,7 @@ def reset_keyring() -> Iterable[None]:
     yield None
     # Reset the state of the module between tests
     pip._internal.network.auth.KEYRING_DISABLED = False
+    pip._internal.network.auth.get_keyring_provider.cache_clear()
 
 
 @pytest.mark.parametrize(
@@ -100,7 +102,12 @@ def test_get_credentials_uses_cached_credentials_only_username() -> None:
 
 
 def test_get_index_url_credentials() -> None:
-    auth = MultiDomainBasicAuth(index_urls=["http://foo:bar@example.com/path"])
+    auth = MultiDomainBasicAuth(
+        index_urls=[
+            "http://example.com/",
+            "http://foo:bar@example.com/path",
+        ]
+    )
     get = functools.partial(
         auth._get_new_credentials, allow_netrc=False, allow_keyring=False
     )
@@ -108,6 +115,45 @@ def test_get_index_url_credentials() -> None:
     # Check resolution of indexes
     assert get("http://example.com/path/path2") == ("foo", "bar")
     assert get("http://example.com/path3/path2") == (None, None)
+
+
+def test_prioritize_longest_path_prefix_match_organization() -> None:
+    auth = MultiDomainBasicAuth(
+        index_urls=[
+            "http://foo:bar@example.com/org-name-alpha/repo-alias/simple",
+            "http://bar:foo@example.com/org-name-beta/repo-alias/simple",
+        ]
+    )
+    get = functools.partial(
+        auth._get_new_credentials, allow_netrc=False, allow_keyring=False
+    )
+
+    # Inspired by Azure DevOps URL structure, GitLab should look similar
+    assert get("http://example.com/org-name-alpha/repo-guid/dowbload/") == (
+        "foo",
+        "bar",
+    )
+    assert get("http://example.com/org-name-beta/repo-guid/dowbload/") == ("bar", "foo")
+
+
+def test_prioritize_longest_path_prefix_match_project() -> None:
+    auth = MultiDomainBasicAuth(
+        index_urls=[
+            "http://foo:bar@example.com/org-alpha/project-name-alpha/repo-alias/simple",
+            "http://bar:foo@example.com/org-alpha/project-name-beta/repo-alias/simple",
+        ]
+    )
+    get = functools.partial(
+        auth._get_new_credentials, allow_netrc=False, allow_keyring=False
+    )
+
+    # Inspired by Azure DevOps URL structure, GitLab should look similar
+    assert get(
+        "http://example.com/org-alpha/project-name-alpha/repo-guid/dowbload/"
+    ) == ("foo", "bar")
+    assert get(
+        "http://example.com/org-alpha/project-name-beta/repo-guid/dowbload/"
+    ) == ("bar", "foo")
 
 
 class KeyringModuleV1:
@@ -121,7 +167,7 @@ class KeyringModuleV1:
     def get_password(self, system: str, username: str) -> Optional[str]:
         if system == "example.com" and username:
             return username + "!netloc"
-        if system == "http://example.com/path2" and username:
+        if system == "http://example.com/path2/" and username:
             return username + "!url"
         return None
 
@@ -134,8 +180,8 @@ class KeyringModuleV1:
     (
         ("http://example.com/path1", (None, None)),
         # path1 URLs will be resolved by netloc
-        ("http://user@example.com/path1", ("user", "user!netloc")),
-        ("http://user2@example.com/path1", ("user2", "user2!netloc")),
+        ("http://user@example.com/path3", ("user", "user!netloc")),
+        ("http://user2@example.com/path3", ("user2", "user2!netloc")),
         # path2 URLs will be resolved by index URL
         ("http://example.com/path2/path3", (None, None)),
         ("http://foo@example.com/path2/path3", ("foo", "foo!url")),
@@ -148,7 +194,10 @@ def test_keyring_get_password(
 ) -> None:
     keyring = KeyringModuleV1()
     monkeypatch.setitem(sys.modules, "keyring", keyring)  # type: ignore[misc]
-    auth = MultiDomainBasicAuth(index_urls=["http://example.com/path2"])
+    auth = MultiDomainBasicAuth(
+        index_urls=["http://example.com/path2", "http://example.com/path3"],
+        keyring_provider="import",
+    )
 
     actual = auth._get_new_credentials(url, allow_netrc=False, allow_keyring=True)
     assert actual == expect
@@ -157,7 +206,7 @@ def test_keyring_get_password(
 def test_keyring_get_password_after_prompt(monkeypatch: pytest.MonkeyPatch) -> None:
     keyring = KeyringModuleV1()
     monkeypatch.setitem(sys.modules, "keyring", keyring)  # type: ignore[misc]
-    auth = MultiDomainBasicAuth()
+    auth = MultiDomainBasicAuth(keyring_provider="import")
 
     def ask_input(prompt: str) -> str:
         assert prompt == "User for example.com: "
@@ -173,7 +222,7 @@ def test_keyring_get_password_after_prompt_when_none(
 ) -> None:
     keyring = KeyringModuleV1()
     monkeypatch.setitem(sys.modules, "keyring", keyring)  # type: ignore[misc]
-    auth = MultiDomainBasicAuth()
+    auth = MultiDomainBasicAuth(keyring_provider="import")
 
     def ask_input(prompt: str) -> str:
         assert prompt == "User for unknown.com: "
@@ -194,7 +243,10 @@ def test_keyring_get_password_username_in_index(
 ) -> None:
     keyring = KeyringModuleV1()
     monkeypatch.setitem(sys.modules, "keyring", keyring)  # type: ignore[misc]
-    auth = MultiDomainBasicAuth(index_urls=["http://user@example.com/path2"])
+    auth = MultiDomainBasicAuth(
+        index_urls=["http://user@example.com/path2", "http://example.com/path4"],
+        keyring_provider="import",
+    )
     get = functools.partial(
         auth._get_new_credentials, allow_netrc=False, allow_keyring=True
     )
@@ -227,7 +279,7 @@ def test_keyring_set_password(
 ) -> None:
     keyring = KeyringModuleV1()
     monkeypatch.setitem(sys.modules, "keyring", keyring)  # type: ignore[misc]
-    auth = MultiDomainBasicAuth(prompting=True)
+    auth = MultiDomainBasicAuth(prompting=True, keyring_provider="import")
     monkeypatch.setattr(auth, "_get_url_and_credentials", lambda u: (u, None, None))
     monkeypatch.setattr(auth, "_prompt_for_password", lambda *a: creds)
     if creds[2]:
@@ -284,7 +336,7 @@ class KeyringModuleV2:
         assert False, "get_password should not ever be called"
 
     def get_credential(self, system: str, username: str) -> Optional[Credential]:
-        if system == "http://example.com/path2":
+        if system == "http://example.com/path2/":
             return self.Credential("username", "url")
         if system == "example.com":
             return self.Credential("username", "netloc")
@@ -303,7 +355,10 @@ def test_keyring_get_credential(
     monkeypatch: pytest.MonkeyPatch, url: str, expect: str
 ) -> None:
     monkeypatch.setitem(sys.modules, "keyring", KeyringModuleV2())  # type: ignore[misc]
-    auth = MultiDomainBasicAuth(index_urls=["http://example.com/path2"])
+    auth = MultiDomainBasicAuth(
+        index_urls=["http://example.com/path1", "http://example.com/path2"],
+        keyring_provider="import",
+    )
 
     assert (
         auth._get_new_credentials(url, allow_netrc=False, allow_keyring=True) == expect
@@ -325,7 +380,9 @@ def test_broken_keyring_disables_keyring(monkeypatch: pytest.MonkeyPatch) -> Non
     keyring_broken = KeyringModuleBroken()
     monkeypatch.setitem(sys.modules, "keyring", keyring_broken)  # type: ignore[misc]
 
-    auth = MultiDomainBasicAuth(index_urls=["http://example.com/"])
+    auth = MultiDomainBasicAuth(
+        index_urls=["http://example.com/"], keyring_provider="import"
+    )
 
     assert keyring_broken._call_count == 0
     for i in range(5):
@@ -347,13 +404,15 @@ class KeyringSubprocessResult(KeyringModuleV1):
         *,
         env: Dict[str, str],
         stdin: Optional[Any] = None,
-        capture_output: Optional[bool] = None,
+        stdout: Optional[Any] = None,
         input: Optional[bytes] = None,
+        check: Optional[bool] = None
     ) -> Any:
         if cmd[1] == "get":
             assert stdin == -3  # subprocess.DEVNULL
-            assert capture_output is True
+            assert stdout == subprocess.PIPE
             assert env["PYTHONIOENCODING"] == "utf-8"
+            assert check is None
 
             password = self.get_password(*cmd[2:])
             if password is None:
@@ -361,13 +420,15 @@ class KeyringSubprocessResult(KeyringModuleV1):
                 self.returncode = 1
             else:
                 # Passwords are returned encoded with a newline appended
+                self.returncode = 0
                 self.stdout = (password + os.linesep).encode("utf-8")
 
         if cmd[1] == "set":
             assert stdin is None
-            assert capture_output is None
+            assert stdout is None
             assert env["PYTHONIOENCODING"] == "utf-8"
             assert input is not None
+            assert check
 
             # Input from stdin is encoded
             self.set_password(cmd[2], cmd[3], input.decode("utf-8").strip(os.linesep))
@@ -384,8 +445,8 @@ class KeyringSubprocessResult(KeyringModuleV1):
     (
         ("http://example.com/path1", (None, None)),
         # path1 URLs will be resolved by netloc
-        ("http://user@example.com/path1", ("user", "user!netloc")),
-        ("http://user2@example.com/path1", ("user2", "user2!netloc")),
+        ("http://user@example.com/path3", ("user", "user!netloc")),
+        ("http://user2@example.com/path3", ("user2", "user2!netloc")),
         # path2 URLs will be resolved by index URL
         ("http://example.com/path2/path3", (None, None)),
         ("http://foo@example.com/path2/path3", ("foo", "foo!url")),
@@ -400,7 +461,10 @@ def test_keyring_cli_get_password(
     monkeypatch.setattr(
         pip._internal.network.auth.subprocess, "run", KeyringSubprocessResult()
     )
-    auth = MultiDomainBasicAuth(index_urls=["http://example.com/path2"])
+    auth = MultiDomainBasicAuth(
+        index_urls=["http://example.com/path2", "http://example.com/path3"],
+        keyring_provider="subprocess",
+    )
 
     actual = auth._get_new_credentials(url, allow_netrc=False, allow_keyring=True)
     assert actual == expect
@@ -431,7 +495,7 @@ def test_keyring_cli_set_password(
     monkeypatch.setattr(pip._internal.network.auth.shutil, "which", lambda x: "keyring")
     keyring = KeyringSubprocessResult()
     monkeypatch.setattr(pip._internal.network.auth.subprocess, "run", keyring)
-    auth = MultiDomainBasicAuth(prompting=True)
+    auth = MultiDomainBasicAuth(prompting=True, keyring_provider="subprocess")
     monkeypatch.setattr(auth, "_get_url_and_credentials", lambda u: (u, None, None))
     monkeypatch.setattr(auth, "_prompt_for_password", lambda *a: creds)
     if creds[2]:
