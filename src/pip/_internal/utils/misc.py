@@ -295,7 +295,7 @@ def normalize_path(path: str, resolve_symlinks: bool = True) -> str:
     return os.path.normcase(path)
 
 
-@functools.lru_cache
+@functools.lru_cache(maxsize=128)
 def normalize_path_cached(path: str, resolve_symlinks: bool = True) -> str:
     """
     Cache the results of normalize_path when called frequently during certain
