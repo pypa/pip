@@ -11,7 +11,7 @@ from pip._internal.metadata import BaseDistribution
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.egg_link import egg_link_path_from_location
 from pip._internal.utils.logging import getLogger, indent_log
-from pip._internal.utils.misc import ask, is_local, normalize_path, renames, rmtree
+from pip._internal.utils.misc import ask, is_local, normalize_path, normalize_path_cached, renames, rmtree
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
 
 logger = getLogger(__name__)
@@ -312,6 +312,7 @@ class UninstallPathSet:
         self._pth: Dict[str, UninstallPthEntries] = {}
         self._dist = dist
         self._moved_paths = StashedUninstallPathSet()
+        normalize_path_cached.cache_clear()
 
     def _permitted(self, path: str) -> bool:
         """
@@ -326,7 +327,7 @@ class UninstallPathSet:
 
         # we normalize the head to resolve parent directory symlinks, but not
         # the tail, since we only want to uninstall symlinks, not their targets
-        path = os.path.join(normalize_path(head), os.path.normcase(tail))
+        path = os.path.join(normalize_path_cached(head), os.path.normcase(tail))
 
         if not os.path.exists(path):
             return
@@ -341,7 +342,7 @@ class UninstallPathSet:
             self.add(cache_from_source(path))
 
     def add_pth(self, pth_file: str, entry: str) -> None:
-        pth_file = normalize_path(pth_file)
+        pth_file = normalize_path_cached(pth_file)
         if self._permitted(pth_file):
             if pth_file not in self._pth:
                 self._pth[pth_file] = UninstallPthEntries(pth_file)
@@ -434,7 +435,7 @@ class UninstallPathSet:
             )
             return cls(dist)
 
-        normalized_dist_location = normalize_path(dist_location)
+        normalized_dist_location = normalize_path_cached(dist_location)
         if not dist.local:
             logger.info(
                 "Not uninstalling %s at %s, outside environment %s",
@@ -531,7 +532,7 @@ class UninstallPathSet:
             # above, so this only covers the setuptools-style editable.
             with open(develop_egg_link) as fh:
                 link_pointer = os.path.normcase(fh.readline().strip())
-                normalized_link_pointer = normalize_path(link_pointer)
+                normalized_link_pointer = normalize_path_cached(link_pointer)
             assert os.path.samefile(
                 normalized_link_pointer, normalized_dist_location
             ), (

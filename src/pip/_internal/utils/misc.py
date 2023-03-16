@@ -3,6 +3,7 @@
 
 import contextlib
 import errno
+import functools
 import getpass
 import hashlib
 import io
@@ -294,6 +295,17 @@ def normalize_path(path: str, resolve_symlinks: bool = True) -> str:
     return os.path.normcase(path)
 
 
+@functools.lru_cache
+def normalize_path_cached(path: str, resolve_symlinks: bool = True) -> str:
+    """
+    Cache the results of normalize_path when called frequently during certain
+    operations. Separate function because it is probably unsafe to
+    cache normalize_path in the general case, e.g. symlinks can be changed
+    while the process is running.
+    """
+    return normalize_path(str, resolve_symlinks)
+
+
 def splitext(path: str) -> Tuple[str, str]:
     """Like os.path.splitext, but take off .tar too"""
     base, ext = posixpath.splitext(path)
@@ -331,7 +343,8 @@ def is_local(path: str) -> bool:
     """
     if not running_under_virtualenv():
         return True
-    return path.startswith(normalize_path(sys.prefix))
+    # Safe to call cached because sys.prefix shouldn't change
+    return path.startswith(normalize_path_cached(sys.prefix))
 
 
 def write_output(msg: Any, *args: Any) -> None:
