@@ -303,7 +303,7 @@ def normalize_path_cached(path: str, resolve_symlinks: bool = True) -> str:
     cache normalize_path in the general case, e.g. symlinks can be changed
     while the process is running.
     """
-    return normalize_path(str, resolve_symlinks)
+    return normalize_path(path, resolve_symlinks)
 
 
 def splitext(path: str) -> Tuple[str, str]:
