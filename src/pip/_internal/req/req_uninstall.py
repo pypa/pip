@@ -11,7 +11,7 @@ from pip._internal.metadata import BaseDistribution
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.egg_link import egg_link_path_from_location
 from pip._internal.utils.logging import getLogger, indent_log
-from pip._internal.utils.misc import ask, is_local, normalize_path, normalize_path_cached, renames, rmtree
+from pip._internal.utils.misc import ask, is_local, normalize_path, renames, rmtree
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
