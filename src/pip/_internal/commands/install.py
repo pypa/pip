@@ -30,10 +30,7 @@ from pip._internal.req.req_install import (
     check_legacy_setup_py_options,
 )
 from pip._internal.utils.compat import WINDOWS
-from pip._internal.utils.deprecation import (
-    LegacyInstallReasonFailedBdistWheel,
-    deprecated,
-)
+from pip._internal.utils.deprecation import LegacyInstallReasonFailedBdistWheel
 from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import (
@@ -347,23 +344,9 @@ class InstallCommand(RequirementCommand):
             check_legacy_setup_py_options(options, reqs)
 
             if "no-binary-enable-wheel-cache" in options.features_enabled:
-                # TODO: remove format_control from WheelCache when the deprecation cycle
-                # is over
-                wheel_cache = WheelCache(options.cache_dir)
-            else:
-                if options.format_control.no_binary:
-                    deprecated(
-                        reason=(
-                            "--no-binary currently disables reading from "
-                            "the cache of locally built wheels. In the future "
-                            "--no-binary will not influence the wheel cache."
-                        ),
-                        replacement="to use the --no-cache-dir option",
-                        feature_flag="no-binary-enable-wheel-cache",
-                        issue=11453,
-                        gone_in="23.1",
-                    )
-                wheel_cache = WheelCache(options.cache_dir, options.format_control)
+                logger.warning("no-binary-enable-wheel-cache is now active by default.")
+
+            wheel_cache = WheelCache(options.cache_dir)
 
             # Only when installing is it permitted to use PEP 660.
             # In other circumstances (pip wheel, pip download) we generate

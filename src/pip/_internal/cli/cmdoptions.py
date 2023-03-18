@@ -1004,7 +1004,7 @@ use_new_feature: Callable[..., Option] = partial(
     choices=[
         "fast-deps",
         "truststore",
-        "no-binary-enable-wheel-cache",
+        "no-binary-enable-wheel-cache",  # now always on
     ],
     help="Enable new functionality, that may be backward incompatible.",
 )
