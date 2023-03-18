@@ -1174,7 +1174,7 @@ def test_install_package_with_prefix(
     install_path = join(
         sysconfig.get_path("purelib", vars={"base": rel_prefix_path}),
         # we still test for egg-info because no-binary implies setup.py install
-        f"simple-1.0-py{pyversion}.egg-info",
+        "simple-1.0.dist-info",
     )
     result.did_create(install_path)
 

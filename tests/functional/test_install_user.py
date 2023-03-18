@@ -133,8 +133,7 @@ class Tests_UserSite:
         result2 = script.pip("install", "--user", "INITools==0.1", "--no-binary=:all:")
 
         # usersite has 0.1
-        # we still test for egg-info because no-binary implies setup.py install
-        egg_info_folder = script.user_site / f"INITools-0.1-py{pyversion}.egg-info"
+        dist_info_folder = script.user_site / "INITools-0.1.dist-info"
         initools_v3_file = (
             # file only in 0.3
             script.base_path
@@ -142,7 +141,7 @@ class Tests_UserSite:
             / "initools"
             / "configparser.py"
         )
-        result2.did_create(egg_info_folder)
+        result2.did_create(dist_info_folder)
         assert not isfile(initools_v3_file), initools_v3_file
 
     def test_install_user_conflict_in_globalsite(
