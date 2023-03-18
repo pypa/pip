@@ -30,7 +30,6 @@ from pip._internal.req.req_install import (
     check_legacy_setup_py_options,
 )
 from pip._internal.utils.compat import WINDOWS
-from pip._internal.utils.deprecation import LegacyInstallReasonFailedBdistWheel
 from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import (
@@ -423,25 +422,13 @@ class InstallCommand(RequirementCommand):
                 global_options=global_options,
             )
 
-            # If we're using PEP 517, we cannot do a legacy setup.py install
-            # so we fail here.
-            pep517_build_failure_names: List[str] = [
-                r.name for r in build_failures if r.use_pep517  # type: ignore
-            ]
-            if pep517_build_failure_names:
+            if build_failures:
                 raise InstallationError(
                     "Could not build wheels for {}, which is required to "
                     "install pyproject.toml-based projects".format(
-                        ", ".join(pep517_build_failure_names)
+                        ", ".join(r.name for r in build_failures)  # type: ignore
                     )
                 )
-
-            # For now, we just warn about failures building legacy
-            # requirements, as we'll fall through to a setup.py install for
-            # those.
-            for r in build_failures:
-                if not r.use_pep517:
-                    r.legacy_install_reason = LegacyInstallReasonFailedBdistWheel
 
             to_install = resolver.get_installation_order(requirement_set)
 

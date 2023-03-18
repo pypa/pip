@@ -147,15 +147,3 @@ class LegacyInstallReason:
             feature_flag=self._feature_flag,
             issue=self._issue,
         )
-
-
-LegacyInstallReasonFailedBdistWheel = LegacyInstallReason(
-    reason=(
-        "{name} was installed using the legacy 'setup.py install' "
-        "method, because a wheel could not be built for it."
-    ),
-    replacement="to fix the wheel build issue reported above",
-    gone_in="23.1",
-    issue=8368,
-    emit_after_success=True,
-)
