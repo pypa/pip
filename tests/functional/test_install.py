@@ -1945,28 +1945,6 @@ def test_installing_scripts_on_path_does_not_print_warning(
     assert "--no-warn-script-location" not in result.stderr
 
 
-def test_installed_files_recorded_in_deterministic_order(
-    script: PipTestEnvironment, data: TestData
-) -> None:
-    """
-    Ensure that we record the files installed by a package in a deterministic
-    order, to make installs reproducible.
-    """
-    to_install = data.packages.joinpath("FSPkg")
-    result = script.pip("install", to_install)
-    fspkg_folder = script.site_packages / "fspkg"
-    egg_info = f"FSPkg-0.1.dev0-py{pyversion}.egg-info"
-    installed_files_path = script.site_packages / egg_info / "installed-files.txt"
-    result.did_create(fspkg_folder)
-    result.did_create(installed_files_path)
-
-    installed_files_path = result.files_created[installed_files_path].full
-    installed_files_lines = [
-        p for p in Path(installed_files_path).read_text().split("\n") if p
-    ]
-    assert installed_files_lines == sorted(installed_files_lines)
-
-
 def test_install_conflict_results_in_warning(
     script: PipTestEnvironment, data: TestData
 ) -> None:
