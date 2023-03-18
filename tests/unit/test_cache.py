@@ -4,13 +4,12 @@ from pathlib import Path
 from pip._vendor.packaging.tags import Tag, interpreter_name, interpreter_version
 
 from pip._internal.cache import WheelCache, _hash_dict
-from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
 from pip._internal.utils.misc import ensure_dir
 
 
 def test_falsey_path_none() -> None:
-    wc = WheelCache("", FormatControl())
+    wc = WheelCache("")
     assert wc.cache_dir is None
 
 
@@ -18,7 +17,7 @@ def test_subdirectory_fragment() -> None:
     """
     Test the subdirectory URL fragment is part of the cache key.
     """
-    wc = WheelCache("/tmp/.foo/", FormatControl())
+    wc = WheelCache("/tmp/.foo/")
     link1 = Link("git+https://g.c/o/r#subdirectory=d1")
     link2 = Link("git+https://g.c/o/r#subdirectory=d2")
     assert wc.get_path_for_link(link1) != wc.get_path_for_link(link2)
@@ -29,7 +28,7 @@ def test_wheel_name_filter(tmpdir: Path) -> None:
     Test the wheel cache filters on wheel name when several wheels
     for different package are stored under the same cache directory.
     """
-    wc = WheelCache(os.fspath(tmpdir), FormatControl())
+    wc = WheelCache(os.fspath(tmpdir))
     link = Link("https://g.c/package.tar.gz")
     cache_path = wc.get_path_for_link(link)
     ensure_dir(cache_path)
@@ -57,7 +56,7 @@ def test_link_to_cache(tmpdir: Path) -> None:
     Test that Link.from_json() produces Links with consistent cache
     locations
     """
-    wc = WheelCache(os.fspath(tmpdir), FormatControl())
+    wc = WheelCache(os.fspath(tmpdir))
     # Define our expectations for stable cache path.
     i_name = interpreter_name()
     i_version = interpreter_version()
@@ -95,7 +94,7 @@ def test_link_to_cache(tmpdir: Path) -> None:
 
 
 def test_get_cache_entry(tmpdir: Path) -> None:
-    wc = WheelCache(os.fspath(tmpdir), FormatControl())
+    wc = WheelCache(os.fspath(tmpdir))
     persi_link = Link("https://g.c/o/r/persi")
     persi_path = wc.get_path_for_link(persi_link)
     ensure_dir(persi_path)
