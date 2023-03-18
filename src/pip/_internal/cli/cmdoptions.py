@@ -783,11 +783,15 @@ def _handle_no_use_pep517(
         """
         raise_option_error(parser, option=option, msg=msg)
 
-    # If user doesn't wish to use pep517, we check if setuptools is installed
+    # If user doesn't wish to use pep517, we check if setuptools and wheel are installed
     # and raise error if it is not.
-    if not importlib.util.find_spec("setuptools"):
-        msg = "It is not possible to use --no-use-pep517 without setuptools installed."
-        raise_option_error(parser, option=option, msg=msg)
+    for package in ("setuptools", "wheel"):
+        if not importlib.util.find_spec(package):
+            msg = (
+                f"It is not possible to use --no-use-pep517 "
+                f"without {package} installed."
+            )
+            raise_option_error(parser, option=option, msg=msg)
 
     # Otherwise, --no-use-pep517 was passed via the command-line.
     parser.values.use_pep517 = False
