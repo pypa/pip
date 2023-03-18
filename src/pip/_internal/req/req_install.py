@@ -83,7 +83,7 @@ class InstallRequirement:
         markers: Optional[Marker] = None,
         use_pep517: Optional[bool] = None,
         isolated: bool = False,
-        install_options: Optional[List[str]] = None,
+        *,
         global_options: Optional[List[str]] = None,
         hash_options: Optional[Dict[str, List[str]]] = None,
         config_settings: Optional[Dict[str, str]] = None,
@@ -146,7 +146,6 @@ class InstallRequirement:
         # Set to True after successful installation
         self.install_succeeded: Optional[bool] = None
         # Supplied options
-        self.install_options = install_options if install_options else []
         self.global_options = global_options if global_options else []
         self.hash_options = hash_options if hash_options else {}
         self.config_settings = config_settings
@@ -746,7 +745,6 @@ class InstallRequirement:
 
     def install(
         self,
-        install_options: List[str],
         global_options: Optional[Sequence[str]] = None,
         root: Optional[str] = None,
         home: Optional[str] = None,
@@ -767,8 +765,7 @@ class InstallRequirement:
         global_options = global_options if global_options is not None else []
         if self.editable and not self.is_wheel:
             install_editable_legacy(
-                install_options,
-                global_options,
+                global_options=global_options,
                 prefix=prefix,
                 home=home,
                 use_user_site=use_user_site,
@@ -808,13 +805,12 @@ class InstallRequirement:
 
         # TODO: Why don't we do this for editable installs?
 
-        # Extend the list of global and install options passed on to
+        # Extend the list of global options passed on to
         # the setup.py call with the ones from the requirements file.
         # Options specified in requirements file override those
         # specified on the command line, since the last option given
         # to setup.py is the one that is used.
         global_options = list(global_options) + self.global_options
-        install_options = list(install_options) + self.install_options
 
         try:
             if (
@@ -823,7 +819,6 @@ class InstallRequirement:
             ):
                 self.legacy_install_reason.emit_deprecation(self.name)
             success = install_legacy(
-                install_options=install_options,
                 global_options=global_options,
                 root=root,
                 home=home,
@@ -893,15 +888,6 @@ def _has_option(options: Values, reqs: List[InstallRequirement], option: str) ->
     return False
 
 
-def _install_option_ignored(
-    install_options: List[str], reqs: List[InstallRequirement]
-) -> bool:
-    for req in reqs:
-        if (install_options or req.install_options) and not req.use_pep517:
-            return False
-    return True
-
-
 class LegacySetupPyOptionsCheckMode(Enum):
     INSTALL = 1
     WHEEL = 2
@@ -913,34 +899,15 @@ def check_legacy_setup_py_options(
     reqs: List[InstallRequirement],
     mode: LegacySetupPyOptionsCheckMode,
 ) -> None:
-    has_install_options = _has_option(options, reqs, "install_options")
     has_build_options = _has_option(options, reqs, "build_options")
     has_global_options = _has_option(options, reqs, "global_options")
-    legacy_setup_py_options_present = (
-        has_install_options or has_build_options or has_global_options
-    )
+    legacy_setup_py_options_present = has_build_options or has_global_options
     if not legacy_setup_py_options_present:
         return
 
     options.format_control.disallow_binaries()
     logger.warning(
         "Implying --no-binary=:all: due to the presence of "
-        "--build-option / --global-option / --install-option. "
+        "--build-option / --global-option. "
         "Consider using --config-settings for more flexibility.",
     )
-    if mode == LegacySetupPyOptionsCheckMode.INSTALL and has_install_options:
-        if _install_option_ignored(options.install_options, reqs):
-            logger.warning(
-                "Ignoring --install-option when building using PEP 517",
-            )
-        else:
-            deprecated(
-                reason=(
-                    "--install-option is deprecated because "
-                    "it forces pip to use the 'setup.py install' "
-                    "command which is itself deprecated."
-                ),
-                issue=11358,
-                replacement="to use --config-settings",
-                gone_in="23.1",
-            )

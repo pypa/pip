@@ -5,7 +5,7 @@ import os
 import shutil
 import site
 from optparse import SUPPRESS_HELP, Values
-from typing import Iterable, List, Optional
+from typing import List, Optional
 
 from pip._vendor.rich import print_json
 
@@ -35,7 +35,6 @@ from pip._internal.utils.deprecation import (
     LegacyInstallReasonFailedBdistWheel,
     deprecated,
 )
-from pip._internal.utils.distutils_args import parse_distutils_args
 from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import (
@@ -206,7 +205,6 @@ class InstallCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.override_externally_managed())
 
         self.cmd_opts.add_option(cmdoptions.config_settings())
-        self.cmd_opts.add_option(cmdoptions.install_options())
         self.cmd_opts.add_option(cmdoptions.global_options())
 
         self.cmd_opts.add_option(
@@ -297,8 +295,6 @@ class InstallCommand(RequirementCommand):
 
         cmdoptions.check_dist_restriction(options, check_target=True)
 
-        install_options = options.install_options or []
-
         logger.verbose("Using %s", get_pip_version())
         options.use_user_site = decide_user_install(
             options.use_user_site,
@@ -377,8 +373,6 @@ class InstallCommand(RequirementCommand):
             # regular (i.e. non editable) metadata and wheels.
             for req in reqs:
                 req.permit_editable_wheels = True
-
-            reject_location_related_install_options(reqs, options.install_options)
 
             preparer = self.make_requirement_preparer(
                 temp_build_dir=directory,
@@ -490,7 +484,6 @@ class InstallCommand(RequirementCommand):
 
             installed = install_given_reqs(
                 to_install,
-                install_options,
                 global_options,
                 root=options.root_path,
                 home=target_temp_dir_path,
@@ -759,45 +752,6 @@ def decide_user_install(
         "is not writeable"
     )
     return True
-
-
-def reject_location_related_install_options(
-    requirements: List[InstallRequirement], options: Optional[List[str]]
-) -> None:
-    """If any location-changing --install-option arguments were passed for
-    requirements or on the command-line, then show a deprecation warning.
-    """
-
-    def format_options(option_names: Iterable[str]) -> List[str]:
-        return ["--{}".format(name.replace("_", "-")) for name in option_names]
-
-    offenders = []
-
-    for requirement in requirements:
-        install_options = requirement.install_options
-        location_options = parse_distutils_args(install_options)
-        if location_options:
-            offenders.append(
-                "{!r} from {}".format(
-                    format_options(location_options.keys()), requirement
-                )
-            )
-
-    if options:
-        location_options = parse_distutils_args(options)
-        if location_options:
-            offenders.append(
-                "{!r} from command line".format(format_options(location_options.keys()))
-            )
-
-    if not offenders:
-        return
-
-    raise CommandError(
-        "Location-changing options found in --install-option: {}."
-        " This is unsupported, use pip-level options like --user,"
-        " --prefix, --root, and --target instead.".format("; ".join(offenders))
-    )
 
 
 def create_os_error_message(

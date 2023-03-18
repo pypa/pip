@@ -109,7 +109,6 @@ and two {ref}`--find-links <install_--find-links>` locations:
 
 The options which can be applied to individual requirements are:
 
-- {ref}`--install-option <install_--install-option>`
 - {ref}`--global-option <install_--global-option>`
 - {ref}`--config-settings <install_--config-settings>`
 - `--hash` (for {ref}`Hash-checking mode`)
@@ -161,7 +160,7 @@ This disables the use of wheels (cached or otherwise). This could mean that buil
 This mechanism is only preserved for backwards compatibility and should be considered deprecated. A future release of pip may drop these options.
 ```
 
-The `--global-option` and `--install-option` options are used to pass options to `setup.py`.
+The `--global-option` option is used to pass options to `setup.py`.
 
 ```{attention}
 These options are highly coupled with how pip invokes setuptools using the {doc}`../reference/build-system/setup-py` build system interface. It is not compatible with newer {doc}`../reference/build-system/pyproject-toml` build system interface.
@@ -171,15 +170,10 @@ This is will not work with other build-backends or newer setup.cfg-only projects
 
 If you have a declaration like:
 
-    FooProject >= 1.2 --global-option="--no-user-cfg" \
-                      --install-option="--prefix='/usr/local'" \
-                      --install-option="--no-compile"
+    FooProject >= 1.2 --global-option="--no-user-cfg"
 
 The above translates roughly into running FooProject's `setup.py` script as:
 
-    python setup.py --no-user-cfg install --prefix='/usr/local' --no-compile
+    python setup.py --no-user-cfg install
 
-Note that the only way of giving more than one option to `setup.py` is through multiple `--global-option` and `--install-option` options, as shown in the example above. The value of each option is passed as a single argument to the `setup.py` script. Therefore, a line such as the following is invalid and would result in an installation error.
-
-    # Invalid. Please use '--install-option' twice as shown above.
-    FooProject >= 1.2 --install-option="--prefix=/usr/local --no-compile"
+Note that the only way of giving more than one option to `setup.py` is through multiple `--global-option` options.

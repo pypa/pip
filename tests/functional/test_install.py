@@ -857,29 +857,6 @@ def test_install_with_hacked_egg_info(
     assert "Successfully installed hackedegginfo-0.0.0\n" in result.stdout
 
 
-@pytest.mark.network
-def test_install_using_install_option_and_editable(
-    script: PipTestEnvironment, tmpdir: Path
-) -> None:
-    """
-    Test installing a tool using -e and --install-option
-    """
-    folder = "script_folder"
-    script.scratch_path.joinpath(folder).mkdir()
-    url = local_checkout("git+https://github.com/pypa/pip-test-package", tmpdir)
-    result = script.pip(
-        "install",
-        "-e",
-        f"{url}#egg=pip-test-package",
-        f"--install-option=--script-dir={folder}",
-        expect_stderr=True,
-    )
-    script_file = (
-        script.venv / "src/pip-test-package" / folder / f"pip-test-package{script.exe}"
-    )
-    result.did_create(script_file)
-
-
 @pytest.mark.xfail
 @pytest.mark.network
 @need_mercurial

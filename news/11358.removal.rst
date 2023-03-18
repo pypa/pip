@@ -1,0 +1,1 @@
+Remove support for the deprecated ``--install-options``.
