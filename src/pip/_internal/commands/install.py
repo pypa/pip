@@ -27,7 +27,6 @@ from pip._internal.operations.check import ConflictDetails, check_install_confli
 from pip._internal.req import install_given_reqs
 from pip._internal.req.req_install import (
     InstallRequirement,
-    LegacySetupPyOptionsCheckMode,
     check_legacy_setup_py_options,
 )
 from pip._internal.utils.compat import WINDOWS
@@ -345,9 +344,7 @@ class InstallCommand(RequirementCommand):
 
         try:
             reqs = self.get_requirements(args, options, finder, session)
-            check_legacy_setup_py_options(
-                options, reqs, LegacySetupPyOptionsCheckMode.INSTALL
-            )
+            check_legacy_setup_py_options(options, reqs)
 
             if "no-binary-enable-wheel-cache" in options.features_enabled:
                 # TODO: remove format_control from WheelCache when the deprecation cycle
