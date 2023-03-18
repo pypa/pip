@@ -219,7 +219,11 @@ def test_uninstall_overlapping_package(
 
 
 @pytest.mark.parametrize(
-    "console_scripts", ["test_ = distutils_install", "test_:test_ = distutils_install"]
+    "console_scripts",
+    [
+        "test_ = distutils_install:test",
+        "test_:test_ = distutils_install:test_test",
+    ],
 )
 def test_uninstall_entry_point_colon_in_name(
     script: PipTestEnvironment, console_scripts: str
@@ -266,7 +270,7 @@ def test_uninstall_gui_scripts(script: PipTestEnvironment) -> None:
         version="0.1",
         entry_points={
             "gui_scripts": [
-                "test_ = distutils_install",
+                "test_ = distutils_install:test",
             ],
         },
     )
@@ -300,6 +304,7 @@ def test_uninstall_console_scripts(script: PipTestEnvironment) -> None:
             os.path.join(script.venv, "build"),
             "cache",
             os.path.join("scratch", "discover", "discover.egg-info"),
+            os.path.join("scratch", "discover", "build"),
         ],
     )
 
@@ -314,7 +319,7 @@ def test_uninstall_console_scripts_uppercase_name(script: PipTestEnvironment) ->
         version="0.1",
         entry_points={
             "console_scripts": [
-                "Test = distutils_install",
+                "Test = distutils_install:Test",
             ],
         },
     )
