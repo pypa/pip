@@ -1665,12 +1665,9 @@ def test_install_no_binary_disables_building_wheels(
     # Wheels are built for local directories, but not cached across runs
     assert "Building wheel for requir" in str(res), str(res)
     # Don't build wheel for upper which was blacklisted
-    assert "Building wheel for upper" not in str(res), str(res)
-    # Wheels are built for local directories, but not cached across runs
-    assert "Running setup.py install for requir" not in str(res), str(res)
+    assert "Building wheel for upper" in str(res), str(res)
     # And these two fell back to sdist based installed.
     assert "Running setup.py install for wheelb" in str(res), str(res)
-    assert "Running setup.py install for upper" in str(res), str(res)
 
 
 @pytest.mark.network
@@ -1720,10 +1717,8 @@ def test_install_no_binary_disables_cached_wheels(
         expect_stderr=True,
     )
     assert "Successfully installed upper-2.0" in str(res), str(res)
-    # No wheel building for upper, which was blacklisted
-    assert "Building wheel for upper" not in str(res), str(res)
-    # Must have used source, not a cached wheel to install upper.
-    assert "Running setup.py install for upper" in str(res), str(res)
+    # upper is built and not obtained from cache
+    assert "Building wheel for upper" in str(res), str(res)
 
 
 def test_install_editable_with_wrong_egg_name(

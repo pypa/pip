@@ -7,7 +7,6 @@ import site
 from optparse import SUPPRESS_HELP, Values
 from typing import Iterable, List, Optional
 
-from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.rich import print_json
 
 from pip._internal.cache import WheelCache
@@ -22,7 +21,6 @@ from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.exceptions import CommandError, InstallationError
 from pip._internal.locations import get_scheme
 from pip._internal.metadata import get_environment
-from pip._internal.models.format_control import FormatControl
 from pip._internal.models.installation_report import InstallationReport
 from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.operations.check import ConflictDetails, check_install_conflicts
@@ -52,24 +50,9 @@ from pip._internal.utils.virtualenv import (
     running_under_virtualenv,
     virtualenv_no_global,
 )
-from pip._internal.wheel_builder import (
-    BdistWheelAllowedPredicate,
-    build,
-    should_build_for_install_command,
-)
+from pip._internal.wheel_builder import build, should_build_for_install_command
 
 logger = getLogger(__name__)
-
-
-def get_check_bdist_wheel_allowed(
-    format_control: FormatControl,
-) -> BdistWheelAllowedPredicate:
-    def check_binary_allowed(req: InstallRequirement) -> bool:
-        canonical_name = canonicalize_name(req.name or "")
-        allowed_formats = format_control.get_allowed_formats(canonical_name)
-        return "binary" in allowed_formats
-
-    return check_binary_allowed
 
 
 class InstallCommand(RequirementCommand):
@@ -455,14 +438,10 @@ class InstallCommand(RequirementCommand):
                 modifying_pip = pip_req.satisfied_by is None
             protect_pip_from_modification_on_windows(modifying_pip=modifying_pip)
 
-            check_bdist_wheel_allowed = get_check_bdist_wheel_allowed(
-                finder.format_control
-            )
-
             reqs_to_build = [
                 r
                 for r in requirement_set.requirements.values()
-                if should_build_for_install_command(r, check_bdist_wheel_allowed)
+                if should_build_for_install_command(r)
             ]
 
             _, build_failures = build(
