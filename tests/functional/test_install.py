@@ -1515,12 +1515,18 @@ def test_install_subprocess_output_handling(
     # If the install fails, then we *should* show the output... but only once,
     # even if --verbose is given.
     result = script.pip(*(args + ["--global-option=--fail"]), expect_error=True)
-    assert 1 == result.stderr.count("I DIE, I DIE")
+    # This error is emitted 3 times:
+    # - by setup.py bdist_wheel
+    # - by setup.py clean
+    # - by setup.py install which is used as fallback when setup.py bdist_wheel failed
+    # Before, it failed only once because it attempted only setup.py install.
+    # TODO update this when we remove the last setup.py install code path.
+    assert 3 == result.stderr.count("I DIE, I DIE")
 
     result = script.pip(
         *(args + ["--global-option=--fail", "--verbose"]), expect_error=True
     )
-    assert 1 == result.stderr.count("I DIE, I DIE")
+    assert 3 == result.stderr.count("I DIE, I DIE")
 
 
 def test_install_log(script: PipTestEnvironment, data: TestData, tmpdir: Path) -> None:
