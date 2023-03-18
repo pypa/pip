@@ -4,9 +4,6 @@ import re
 
 from pip import __version__
 from pip._internal.commands.show import search_packages_info
-from pip._internal.operations.install.legacy import (
-    write_installed_files_from_setuptools_record,
-)
 from pip._internal.utils.unpacking import untar_file
 from tests.lib import PipTestEnvironment, TestData, create_test_package_with_setup
 
