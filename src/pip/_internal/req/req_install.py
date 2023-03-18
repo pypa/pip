@@ -8,7 +8,6 @@ import shutil
 import sys
 import uuid
 import zipfile
-from enum import Enum
 from optparse import Values
 from typing import Any, Collection, Dict, Iterable, List, Optional, Sequence, Union
 
@@ -888,26 +887,16 @@ def _has_option(options: Values, reqs: List[InstallRequirement], option: str) ->
     return False
 
 
-class LegacySetupPyOptionsCheckMode(Enum):
-    INSTALL = 1
-    WHEEL = 2
-    DOWNLOAD = 3
-
-
 def check_legacy_setup_py_options(
     options: Values,
     reqs: List[InstallRequirement],
-    mode: LegacySetupPyOptionsCheckMode,
 ) -> None:
     has_build_options = _has_option(options, reqs, "build_options")
     has_global_options = _has_option(options, reqs, "global_options")
-    legacy_setup_py_options_present = has_build_options or has_global_options
-    if not legacy_setup_py_options_present:
-        return
-
-    options.format_control.disallow_binaries()
-    logger.warning(
-        "Implying --no-binary=:all: due to the presence of "
-        "--build-option / --global-option. "
-        "Consider using --config-settings for more flexibility.",
-    )
+    if has_build_options or has_global_options:
+        logger.warning(
+            "Implying --no-binary=:all: due to the presence of "
+            "--build-option / --global-option. "
+            "Consider using --config-settings for more flexibility.",
+        )
+        options.format_control.disallow_binaries()
