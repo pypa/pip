@@ -76,7 +76,6 @@ class Tests_UserSite:
         )
         result.assert_installed("INITools", use_user_site=True)
 
-    @pytest.mark.usefixtures("with_wheel")
     def test_install_from_current_directory_into_usersite(
         self, script: PipTestEnvironment, data: TestData
     ) -> None:

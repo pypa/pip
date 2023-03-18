@@ -503,11 +503,6 @@ def virtualenv(
     yield virtualenv_factory(tmpdir.joinpath("workspace", "venv"))
 
 
-@pytest.fixture
-def with_wheel(virtualenv: VirtualEnvironment, wheel_install: Path) -> None:
-    pass
-
-
 class ScriptFactory(Protocol):
     def __call__(
         self,

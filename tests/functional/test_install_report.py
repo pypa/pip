@@ -12,7 +12,6 @@ def _install_dict(report: Dict[str, Any]) -> Dict[str, Any]:
     return {canonicalize_name(i["metadata"]["name"]): i for i in report["install"]}
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_report_basic(
     script: PipTestEnvironment, shared_data: TestData, tmp_path: Path
 ) -> None:
@@ -43,7 +42,6 @@ def test_install_report_basic(
     )
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_report_dep(
     script: PipTestEnvironment, shared_data: TestData, tmp_path: Path
 ) -> None:
@@ -66,7 +64,6 @@ def test_install_report_dep(
 
 
 @pytest.mark.network
-@pytest.mark.usefixtures("with_wheel")
 def test_install_report_index(script: PipTestEnvironment, tmp_path: Path) -> None:
     """Test report for sdist obtained from index."""
     report_path = tmp_path / "report.json"
@@ -96,7 +93,6 @@ def test_install_report_index(script: PipTestEnvironment, tmp_path: Path) -> Non
 
 
 @pytest.mark.network
-@pytest.mark.usefixtures("with_wheel")
 def test_install_report_vcs_and_wheel_cache(
     script: PipTestEnvironment, tmp_path: Path
 ) -> None:
@@ -157,7 +153,6 @@ def test_install_report_vcs_and_wheel_cache(
 
 
 @pytest.mark.network
-@pytest.mark.usefixtures("with_wheel")
 def test_install_report_vcs_editable(
     script: PipTestEnvironment, tmp_path: Path
 ) -> None:
@@ -183,7 +178,6 @@ def test_install_report_vcs_editable(
     assert pip_test_package_report["download_info"]["dir_info"]["editable"] is True
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_report_to_stdout(
     script: PipTestEnvironment, shared_data: TestData
 ) -> None:

@@ -10,8 +10,6 @@ from pip._internal.cli.status_codes import ERROR
 from tests.lib import pyversion  # noqa: F401
 from tests.lib import PipTestEnvironment, TestData
 
-pytestmark = pytest.mark.usefixtures("with_wheel")
-
 
 def add_files_to_dist_directory(folder: Path) -> None:
     (folder / "dist").mkdir(parents=True)

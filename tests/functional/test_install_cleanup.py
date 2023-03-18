@@ -31,7 +31,6 @@ def test_no_clean_option_blocks_cleaning_after_install(
 
 
 @pytest.mark.network
-@pytest.mark.usefixtures("with_wheel")
 def test_pep517_no_legacy_cleanup(script: PipTestEnvironment, data: TestData) -> None:
     """Test a PEP 517 failed build does not attempt a legacy cleanup"""
     to_install = data.packages.joinpath("pep517_wrapper_buildsys")

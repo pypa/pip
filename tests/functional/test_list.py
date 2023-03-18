@@ -734,7 +734,6 @@ def test_list_include_work_dir_pkg(script: PipTestEnvironment) -> None:
     assert {"name": "simple", "version": "1.0"} in json_result
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_list_pep610_editable(script: PipTestEnvironment) -> None:
     """
     Test that a package installed with a direct_url.json with editable=true
