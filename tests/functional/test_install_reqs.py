@@ -466,7 +466,7 @@ def test_constraints_constrain_to_local(
         "singlemodule",
         allow_stderr_warning=True,
     )
-    assert "Running setup.py install for singlemodule" in result.stdout
+    assert "Building wheel for singlemodule" in result.stdout
 
 
 def test_constrained_to_url_install_same_url(
@@ -485,7 +485,7 @@ def test_constrained_to_url_install_same_url(
         to_install,
         allow_stderr_warning=True,
     )
-    assert "Running setup.py install for singlemodule" in result.stdout, str(result)
+    assert "Building wheel for singlemodule" in result.stdout, str(result)
 
 
 @pytest.mark.usefixtures("with_wheel")
@@ -617,7 +617,7 @@ def test_install_distribution_full_union(
     result = script.pip_install_local(
         to_install, f"{to_install}[bar]", f"{to_install}[baz]"
     )
-    assert "Running setup.py install for LocalExtras" in result.stdout
+    assert "Building wheel for LocalExtras" in result.stdout
     result.did_create(script.site_packages / "simple")
     result.did_create(script.site_packages / "singlemodule.py")
 
