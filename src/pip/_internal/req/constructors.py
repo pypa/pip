@@ -456,7 +456,6 @@ def install_req_from_parsed_requirement(
     isolated: bool = False,
     use_pep517: Optional[bool] = None,
     user_supplied: bool = False,
-    config_settings: Optional[Dict[str, str]] = None,
 ) -> InstallRequirement:
     if parsed_req.is_editable:
         req = install_req_from_editable(
@@ -466,7 +465,6 @@ def install_req_from_parsed_requirement(
             constraint=parsed_req.constraint,
             isolated=isolated,
             user_supplied=user_supplied,
-            config_settings=config_settings,
         )
 
     else:
@@ -486,7 +484,6 @@ def install_req_from_parsed_requirement(
             constraint=parsed_req.constraint,
             line_source=parsed_req.line_source,
             user_supplied=user_supplied,
-            config_settings=config_settings,  # TODO get this from parsed_req.options?
         )
     return req
 
