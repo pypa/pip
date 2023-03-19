@@ -209,7 +209,7 @@ def install_req_from_editable(
     constraint: bool = False,
     user_supplied: bool = False,
     permit_editable_wheels: bool = False,
-    config_settings: Optional[Dict[str, str]] = None,
+    config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
 ) -> InstallRequirement:
 
     parts = parse_req_from_editable(editable_req)
@@ -385,7 +385,7 @@ def install_req_from_line(
     constraint: bool = False,
     line_source: Optional[str] = None,
     user_supplied: bool = False,
-    config_settings: Optional[Dict[str, str]] = None,
+    config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
 ) -> InstallRequirement:
     """Creates an InstallRequirement from a name, which might be a
     requirement, directory containing 'setup.py', filename, or URL.
@@ -417,7 +417,7 @@ def install_req_from_req_string(
     isolated: bool = False,
     use_pep517: Optional[bool] = None,
     user_supplied: bool = False,
-    config_settings: Optional[Dict[str, str]] = None,
+    config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
 ) -> InstallRequirement:
     try:
         req = get_requirement(req_string)
