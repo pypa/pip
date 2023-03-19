@@ -1,7 +1,6 @@
 import collections
 import logging
 import os
-import subprocess
 import textwrap
 from optparse import Values
 from pathlib import Path
@@ -880,14 +879,4 @@ class TestParseRequirements:
                 )
             )
 
-        req.source_dir = os.curdir
-        with mock.patch.object(subprocess, "Popen") as popen:
-            popen.return_value.stdout.readline.return_value = b""
-            try:
-                req.install([])
-            except Exception:
-                pass
-
-            last_call = popen.call_args_list[-1]
-            args = last_call[0][0]
-            assert 0 < args.index(global_option) < args.index("install")
+        assert req.global_options == [global_option]
