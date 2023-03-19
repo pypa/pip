@@ -44,10 +44,6 @@ from pip._internal.operations.install.wheel import install_wheel
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.deprecation import LegacyInstallReason, deprecated
-from pip._internal.utils.direct_url_helpers import (
-    direct_url_for_editable,
-    direct_url_from_link,
-)
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.misc import (
     ConfiguredBuildBackendHookCaller,
@@ -779,16 +775,6 @@ class InstallRequirement:
 
         if self.is_wheel:
             assert self.local_file_path
-            direct_url = None
-            # TODO this can be refactored to direct_url = self.download_info
-            if self.editable:
-                direct_url = direct_url_for_editable(self.unpacked_source_directory)
-            elif self.original_link:
-                direct_url = direct_url_from_link(
-                    self.original_link,
-                    self.source_dir,
-                    self.original_link_is_in_wheel_cache,
-                )
             install_wheel(
                 self.name,
                 self.local_file_path,
@@ -796,7 +782,7 @@ class InstallRequirement:
                 req_description=str(self.req),
                 pycompile=pycompile,
                 warn_script_location=warn_script_location,
-                direct_url=direct_url,
+                direct_url=self.download_info if self.original_link else None,
                 requested=self.user_supplied,
             )
             self.install_succeeded = True
