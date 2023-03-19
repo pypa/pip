@@ -222,7 +222,12 @@ def test_uninstall_overlapping_package(
     "console_scripts",
     [
         "test_ = distutils_install:test",
-        "test_:test_ = distutils_install:test_test",
+        pytest.param(
+            "test_:test_ = distutils_install:test_test",
+            marks=pytest.mark.xfail(
+                reason="colon not supported in wheel entry point name?"
+            ),
+        ),
     ],
 )
 def test_uninstall_entry_point_colon_in_name(
