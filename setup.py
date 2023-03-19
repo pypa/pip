@@ -21,44 +21,14 @@ def get_version(rel_path: str) -> str:
     raise RuntimeError("Unable to find version string.")
 
 
-long_description = read("README.rst")
-
 setup(
-    name="pip",
     version=get_version("src/pip/__init__.py"),
-    description="The PyPA recommended tool for installing Python packages.",
-    long_description=long_description,
-    license="MIT",
-    classifiers=[
-        "Development Status :: 5 - Production/Stable",
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: MIT License",
-        "Topic :: Software Development :: Build Tools",
-        "Programming Language :: Python",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
-        "Programming Language :: Python :: 3.12",
-        "Programming Language :: Python :: Implementation :: CPython",
-        "Programming Language :: Python :: Implementation :: PyPy",
-    ],
-    url="https://pip.pypa.io/",
-    project_urls={
-        "Documentation": "https://pip.pypa.io",
-        "Source": "https://github.com/pypa/pip",
-        "Changelog": "https://pip.pypa.io/en/stable/news/",
-    },
-    author="The pip developers",
-    author_email="distutils-sig@python.org",
     package_dir={"": "src"},
     packages=find_packages(
         where="src",
         exclude=["contrib", "docs", "tests*", "tasks"],
     ),
+    include_package_data=False,
     package_data={
         "pip": ["py.typed"],
         "pip._vendor": ["vendor.txt"],
@@ -82,7 +52,4 @@ setup(
         ],
     },
     zip_safe=False,
-    # NOTE: python_requires is duplicated in __pip-runner__.py.
-    # When changing this value, please change the other copy as well.
-    python_requires=">=3.7",
 )
