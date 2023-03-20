@@ -817,8 +817,8 @@ def test_config_settings_local_to_package(
     simple1_args = simple1_sdist.args()
     assert "--verbose" in simple1_args
     bar_args = bar_sdist.args()
-    assert "--verbose" in bar_args
+    assert "--verbose" not in bar_args
     simple3_args = simple3_sdist.args()
-    assert "--verbose" in simple3_args
+    assert "--verbose" not in simple3_args
     simple2_args = simple2_sdist.args()
     assert "--verbose" not in simple2_args
