@@ -14,7 +14,6 @@ import stat
 import sys
 import sysconfig
 import urllib.parse
-from collections import defaultdict
 from io import StringIO
 from itertools import filterfalse, tee, zip_longest
 from types import TracebackType
@@ -746,11 +745,14 @@ def merge_config_settings(
     reqs_settings: Dict[str, Union[str, List[str]]],
     cli_settings: Dict[str, Union[str, List[str]]],
 ) -> Dict[str, Union[str, List[str]]]:
-    dd = defaultdict(list)
+    dd: Dict[str, Union[str, List[str]]] = {}
     for d in (reqs_settings, cli_settings):
         for k, v in d.items():
-            if isinstance(v, list):
-                dd[k].extend(v)
+            if k in dd:
+                if isinstance(dd[k], list):
+                    dd[k].append(v)
+                else:
+                    dd[k] = [dd[k], v]
             else:
-                dd[k].append(v)
-    return dict(dd)
+                dd[k] = v
+    return dd

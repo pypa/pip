@@ -192,7 +192,8 @@ def test_merge_cli_reqs_config_settings(script: PipTestEnvironment) -> None:
         {"pyproject.toml": PYPROJECT_TOML, "backend/dummy_backend.py": BACKEND_SRC},
     )
     script.scratch_path.joinpath("reqs.txt").write_text(
-        'foo --config-settings "FOO=HELLO" --config-settings "FOO=BAR"'
+        'foo --config-settings "FOO=HELLO" --config-settings "FOO=BAR" '
+        '--config-settings "BAZ=BAR"'
     )
     script.pip(
         "install",
@@ -207,4 +208,4 @@ def test_merge_cli_reqs_config_settings(script: PipTestEnvironment) -> None:
     script.assert_installed(foo="1.0")
     config = script.site_packages_path / "config.json"
     with open(config, "rb") as f:
-        assert json.load(f) == {"FOO": ["HELLO", "BAR", "FOOBAR"]}
+        assert json.load(f) == {"FOO": ["HELLO", "BAR", "FOOBAR"], "BAZ": "BAR"}
