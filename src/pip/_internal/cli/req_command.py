@@ -444,6 +444,8 @@ class RequirementCommand(IndexGroupCommand):
                     config_settings = merge_config_settings(
                         config_settings, options.config_settings
                     )
+                elif options.config_settings:
+                    config_settings = options.config_settings
                 req_to_add = install_req_from_parsed_requirement(
                     parsed_req,
                     isolated=options.isolated_mode,
