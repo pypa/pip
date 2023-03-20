@@ -14,6 +14,8 @@ import stat
 import sys
 import sysconfig
 import urllib.parse
+from collections import defaultdict
+from collections.abc import Iterable
 from io import StringIO
 from itertools import filterfalse, tee, zip_longest
 from types import TracebackType
@@ -24,7 +26,6 @@ from typing import (
     ContextManager,
     Dict,
     Generator,
-    Iterable,
     Iterator,
     List,
     Optional,
@@ -32,6 +33,7 @@ from typing import (
     Tuple,
     Type,
     TypeVar,
+    Union,
     cast,
 )
 
@@ -60,6 +62,7 @@ __all__ = [
     "remove_auth_from_url",
     "check_externally_managed",
     "ConfiguredBuildBackendHookCaller",
+    "merge_config_settings",
 ]
 
 logger = logging.getLogger(__name__)
@@ -737,3 +740,17 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
             config_settings=cs,
             _allow_fallback=_allow_fallback,
         )
+
+
+def merge_config_settings(
+    reqs_settings: Dict[str, Union[str, List[str]]],
+    cli_settings: Dict[str, Union[str, List[str]]],
+) -> Dict[str, Union[str, List[str]]]:
+    dd = defaultdict(list)
+    for d in (reqs_settings, cli_settings):
+        for k, v in d.items():
+            if isinstance(v, list):
+                dd[k].extend(v)
+            else:
+                dd[k].append(v)
+    return dict(dd)
