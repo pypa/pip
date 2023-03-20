@@ -435,17 +435,18 @@ class RequirementCommand(IndexGroupCommand):
             for parsed_req in parse_requirements(
                 filename, finder=finder, options=options, session=session
             ):
-                config_settings = (
+                req_config_settings = (
                     parsed_req.options.get("config_settings")
                     if parsed_req.options
                     else None
                 )
-                if config_settings and options.config_settings:
+                cli_config_settings = getattr(options, "config_settings", None)
+                if req_config_settings and cli_config_settings:
                     config_settings = merge_config_settings(
-                        config_settings, options.config_settings
+                        req_config_settings, cli_config_settings
                     )
-                elif options.config_settings:
-                    config_settings = options.config_settings
+                else:
+                    config_settings = req_config_settings or cli_config_settings
                 req_to_add = install_req_from_parsed_requirement(
                     parsed_req,
                     isolated=options.isolated_mode,
