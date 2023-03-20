@@ -15,7 +15,6 @@ import sys
 import sysconfig
 import urllib.parse
 from collections import defaultdict
-from collections.abc import Iterable
 from io import StringIO
 from itertools import filterfalse, tee, zip_longest
 from types import TracebackType
@@ -26,6 +25,7 @@ from typing import (
     ContextManager,
     Dict,
     Generator,
+    Iterable,
     Iterator,
     List,
     Optional,
