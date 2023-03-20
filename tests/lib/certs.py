@@ -26,6 +26,10 @@ def make_tls_cert(hostname: str) -> Tuple[x509.Certificate, rsa.RSAPrivateKey]:
         .not_valid_before(datetime.utcnow())
         .not_valid_after(datetime.utcnow() + timedelta(days=10))
         .add_extension(
+            x509.BasicConstraints(ca=True, path_length=9),
+            critical=True,
+        )
+        .add_extension(
             x509.SubjectAlternativeName([x509.DNSName(hostname)]),
             critical=False,
         )
