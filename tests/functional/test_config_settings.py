@@ -173,10 +173,11 @@ def test_install_config_reqs(script: PipTestEnvironment) -> None:
         {"pyproject.toml": PYPROJECT_TOML, "backend/dummy_backend.py": BACKEND_SRC},
     )
     script.scratch_path.joinpath("reqs.txt").write_text(
-        "foo --config-settings FOO=Hello"
+        'foo --config-settings "--build-option=--cffi" '
+        '--config-settings "--build-option=--avx2"'
     )
     script.pip("install", "--no-index", "-f", str(a_sdist.parent), "-r", "reqs.txt")
     script.assert_installed(foo="1.0")
     config = script.site_packages_path / "config.json"
     with open(config, "rb") as f:
-        assert json.load(f) == {"FOO": "Hello"}
+        assert json.load(f) == {"--build-option": ["--cffi", "--avx2"]}
