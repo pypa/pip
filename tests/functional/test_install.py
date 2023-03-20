@@ -857,29 +857,6 @@ def test_install_with_hacked_egg_info(
     assert "Successfully installed hackedegginfo-0.0.0\n" in result.stdout
 
 
-@pytest.mark.network
-def test_install_using_install_option_and_editable(
-    script: PipTestEnvironment, tmpdir: Path
-) -> None:
-    """
-    Test installing a tool using -e and --install-option
-    """
-    folder = "script_folder"
-    script.scratch_path.joinpath(folder).mkdir()
-    url = local_checkout("git+https://github.com/pypa/pip-test-package", tmpdir)
-    result = script.pip(
-        "install",
-        "-e",
-        f"{url}#egg=pip-test-package",
-        f"--install-option=--script-dir={folder}",
-        expect_stderr=True,
-    )
-    script_file = (
-        script.venv / "src/pip-test-package" / folder / f"pip-test-package{script.exe}"
-    )
-    result.did_create(script_file)
-
-
 @pytest.mark.xfail
 @pytest.mark.network
 @need_mercurial
@@ -1665,12 +1642,9 @@ def test_install_no_binary_disables_building_wheels(
     # Wheels are built for local directories, but not cached across runs
     assert "Building wheel for requir" in str(res), str(res)
     # Don't build wheel for upper which was blacklisted
-    assert "Building wheel for upper" not in str(res), str(res)
-    # Wheels are built for local directories, but not cached across runs
-    assert "Running setup.py install for requir" not in str(res), str(res)
+    assert "Building wheel for upper" in str(res), str(res)
     # And these two fell back to sdist based installed.
     assert "Running setup.py install for wheelb" in str(res), str(res)
-    assert "Running setup.py install for upper" in str(res), str(res)
 
 
 @pytest.mark.network
@@ -1720,10 +1694,8 @@ def test_install_no_binary_disables_cached_wheels(
         expect_stderr=True,
     )
     assert "Successfully installed upper-2.0" in str(res), str(res)
-    # No wheel building for upper, which was blacklisted
-    assert "Building wheel for upper" not in str(res), str(res)
-    # Must have used source, not a cached wheel to install upper.
-    assert "Running setup.py install for upper" in str(res), str(res)
+    # upper is built and not obtained from cache
+    assert "Building wheel for upper" in str(res), str(res)
 
 
 def test_install_editable_with_wrong_egg_name(
@@ -2351,3 +2323,103 @@ def test_install_8559_wheel_package_present(
         allow_stderr_warning=False,
     )
     assert DEPRECATION_MSG_PREFIX not in result.stderr
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 11),
+    reason="3.11 required to find distributions via importlib metadata",
+)
+def test_install_existing_memory_distribution(script: PipTestEnvironment) -> None:
+    sitecustomize_text = textwrap.dedent(
+        """
+        import sys
+        from importlib.metadata import Distribution, DistributionFinder
+
+
+        EXAMPLE_METADATA = '''Metadata-Version: 2.1
+        Name: example
+        Version: 1.0.0
+
+        '''
+
+        class ExampleDistribution(Distribution):
+            def locate_file(self, path):
+                return path
+
+            def read_text(self, filename):
+                if filename == 'METADATA':
+                    return EXAMPLE_METADATA
+
+
+        class CustomFinder(DistributionFinder):
+            def find_distributions(self, context=None):
+                return [ExampleDistribution()]
+
+
+        sys.meta_path.append(CustomFinder())
+        """
+    )
+    with open(script.site_packages_path / "sitecustomize.py", "w") as sitecustomize:
+        sitecustomize.write(sitecustomize_text)
+
+    result = script.pip("install", "example")
+
+    assert "Requirement already satisfied: example in <memory>" in result.stdout
+
+
+def test_install_pip_prints_req_chain_local(script: PipTestEnvironment) -> None:
+    """
+    Test installing a local package with a dependency and check that the
+    dependency chain is reported.
+    """
+
+    req_path = script.scratch_path.joinpath("requirements.txt")
+    req_path.write_text("base==0.1.0")
+
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+        depends=["dep"],
+    )
+    dep_path = create_basic_wheel_for_package(
+        script,
+        "dep",
+        "0.1.0",
+    )
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "-r",
+        req_path,
+    )
+    assert_re_match(
+        rf"Processing .*{re.escape(os.path.basename(dep_path))} "
+        rf"\(from base==0.1.0->-r {re.escape(str(req_path))} \(line 1\)\)",
+        result.stdout,
+    )
+
+
+@pytest.mark.network
+def test_install_pip_prints_req_chain_pypi(script: PipTestEnvironment) -> None:
+    """
+    Test installing a package with a dependency from PyPI and check that the
+    dependency chain is reported.
+    """
+    req_path = script.scratch_path.joinpath("requirements.txt")
+    req_path.write_text("Paste[openid]==1.7.5.1")
+
+    result = script.pip(
+        "install",
+        "-r",
+        req_path,
+    )
+
+    assert (
+        f"Collecting python-openid "
+        f"(from Paste[openid]==1.7.5.1->-r {req_path} (line 1))" in result.stdout
+    )

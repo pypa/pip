@@ -1,0 +1,2 @@
+``--no-binary`` does not imply ``setup.py install`` anymore. Instead a wheel will be
+built locally and installed.

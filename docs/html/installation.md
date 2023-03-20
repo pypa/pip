@@ -90,7 +90,7 @@ distro community, cloud provider support channels, etc).
 
 ## Upgrading `pip`
 
-Upgrading your `pip` by running:
+Upgrade your `pip` by running:
 
 ```{pip-cli}
 $ pip install --upgrade pip

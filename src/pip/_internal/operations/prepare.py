@@ -270,6 +270,16 @@ class RequirementPreparer:
             message = "Collecting %s"
             information = str(req.req or req)
 
+        # If we used req.req, inject requirement source if available (this
+        # would already be included if we used req directly)
+        if req.req and req.comes_from:
+            if isinstance(req.comes_from, str):
+                comes_from: Optional[str] = req.comes_from
+            else:
+                comes_from = req.comes_from.from_path()
+            if comes_from:
+                information += f" (from {comes_from})"
+
         if (message, information) != self._previous_requirement_header:
             self._previous_requirement_header = (message, information)
             logger.info(message, information)

@@ -211,12 +211,3 @@ def get_purelib() -> str:
 
 def get_platlib() -> str:
     return sysconfig.get_paths()["platlib"]
-
-
-def get_isolated_environment_lib_paths(prefix: str) -> typing.Tuple[str, str]:
-    vars = {"base": prefix, "platbase": prefix}
-    if "venv" in sysconfig.get_scheme_names():
-        paths = sysconfig.get_paths(vars=vars, scheme="venv")
-    else:
-        paths = sysconfig.get_paths(vars=vars)
-    return (paths["purelib"], paths["platlib"])

@@ -67,7 +67,7 @@ You can use `pip cache dir` to get the cache directory that pip is currently con
 
 ### Default paths
 
-````{tab} Unix
+````{tab} Linux
 ```
 ~/.cache/pip
 ```
