@@ -36,7 +36,7 @@ The report is a JSON object with the following properties:
 
 - `pip_version`: a string with the version of pip used to produce the report.
 
-- `install`: an array of [InstallationReportItem](InstallationReportItem) representing
+- `install`: an array of [`InstallationReportItem`](InstallationReportItem) representing
   the distribution packages (to be) installed.
 
 - `environment`: an object describing the environment where the installation report was
@@ -61,7 +61,7 @@ package with the following properties:
   using the [direct URL data
   structure](https://packaging.python.org/en/latest/specifications/direct-url-data-structure/).
   When `is_direct` is `true`, this field is the same as the
-  [direct_url.json](https://packaging.python.org/en/latest/specifications/direct-url)
+  [`direct_url.json`](https://packaging.python.org/en/latest/specifications/direct-url)
   metadata, otherwise it represents the URL of the artifact obtained from the index or
   `--find-links`.
 

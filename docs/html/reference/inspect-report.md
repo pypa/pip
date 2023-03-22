@@ -23,7 +23,7 @@ The report is a JSON object with the following properties:
 
 - `pip_version`: a string with the version of pip used to produce the report.
 
-- `installed`: an array of [InspectReportItem](InspectReportItem) representing the
+- `installed`: an array of [`InspectReportItem`](InspectReportItem) representing the
   distribution packages that are installed.
 
 - `environment`: an object describing the environment where the installation report was
@@ -53,7 +53,7 @@ the following properties:
   using the [direct URL data
   structure](https://packaging.python.org/en/latest/specifications/direct-url-data-structure/).
   In most case, this field corresponds to the
-  [direct_url.json](https://packaging.python.org/en/latest/specifications/direct-url)
+  [`direct_url.json`](https://packaging.python.org/en/latest/specifications/direct-url)
   metadata, except for legacy editable installs, where it is emulated.
 
 - `requested`: `true` if the `REQUESTED` metadata is present, `false` otherwise. This
