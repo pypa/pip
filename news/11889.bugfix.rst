@@ -1,0 +1,4 @@
+The ``uninstall`` and ``install --force-reinstall`` commands no longer call
+``normalize_path()`` repeatedly on the same paths. Instead, these results are
+cached for the duration of an uninstall operation, resulting in improved
+performance, particularly on Windows.
