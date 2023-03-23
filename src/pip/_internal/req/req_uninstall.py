@@ -539,7 +539,9 @@ class UninstallPathSet:
             # above, so this only covers the setuptools-style editable.
             with open(develop_egg_link) as fh:
                 link_pointer = os.path.normcase(fh.readline().strip())
-                normalized_link_pointer = paths_to_remove._normalize_path_cached(link_pointer)
+                normalized_link_pointer = paths_to_remove._normalize_path_cached(
+                    link_pointer
+                )
             assert os.path.samefile(
                 normalized_link_pointer, normalized_dist_location
             ), (
