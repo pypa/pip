@@ -313,6 +313,9 @@ class UninstallPathSet:
         self._pth: Dict[str, UninstallPthEntries] = {}
         self._dist = dist
         self._moved_paths = StashedUninstallPathSet()
+        # Create local cache of normalize_path results. Creating an UninstallPathSet
+        # can result in hundreds/thousands of redundant calls to normalize_path with the same
+        # args, which hurts performance.
         self._normalize_path_cached = functools.lru_cache(maxsize=256)(normalize_path)
 
     def _permitted(self, path: str) -> bool:
