@@ -911,7 +911,7 @@ def test_collect_sources__non_existing_path() -> None:
             index_url="ignored-by-no-index",
             extra_index_urls=[],
             no_index=True,
-            find_links=[os.path.join("this", "doesnt", "exist")],
+            find_links=[os.path.join("this", "does", "not", "exist")],
         ),
     )
     sources = collector.collect_sources(
