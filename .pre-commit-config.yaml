@@ -54,6 +54,11 @@ repos:
     types: [file]
     exclude: NEWS.rst  # The errors flagged in NEWS.rst are old.
 
+- repo: https://github.com/codespell-project/codespell
+  rev: v2.2.4
+  hooks:
+    - id: codespell
+
 - repo: local
   hooks:
   - id: news-fragment-filenames
