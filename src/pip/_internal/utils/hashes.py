@@ -149,3 +149,13 @@ class MissingHashes(Hashes):
 
     def _raise(self, gots: Dict[str, "_Hash"]) -> "NoReturn":
         raise HashMissing(gots[FAVORITE_HASH].hexdigest())
+
+
+class VcsHashes(MissingHashes):
+    """A workalike for Hashes used for VCS references
+
+    It never matches, and is used as a sentinel to indicate that we should
+    check the VCS reference is an immutable commit reference.
+    """
+
+    pass

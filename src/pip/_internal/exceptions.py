@@ -501,6 +501,32 @@ class VcsHashUnsupported(HashError):
     )
 
 
+class CacheEntryTypeHashNotSupported(HashError):
+    """A wheel cache entry was build from a URL that does not support hash checking."""
+
+    order = 0
+    head = (
+        "Can't verify hashes for these cached requirements because they are "
+        "from a URL that does not support hash checking:"
+    )
+
+
+class DependencyVcsHashNotSupported(HashError):
+    order = 0
+    head = (
+        "Can't verify hashes for these VCS requirements because they are "
+        "not user supplied, so we don't assume their VCS ref is trusted:"
+    )
+
+
+class MutableVcsRefHashNotSupported(HashError):
+    order = 0
+    head = (
+        "Can't verify hashes for these VCS requirements because their ref "
+        "is not immutable:"
+    )
+
+
 class DirectoryUrlHashUnsupported(HashError):
     """A hash was provided for a version-control-system-based requirement, but
     we don't have a method for hashing those."""

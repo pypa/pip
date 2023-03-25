@@ -15,18 +15,21 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.distributions.installed import InstalledDistribution
 from pip._internal.exceptions import (
+    CacheEntryTypeHashNotSupported,
+    DependencyVcsHashNotSupported,
     DirectoryUrlHashUnsupported,
     HashMismatch,
     HashUnpinned,
     InstallationError,
     MetadataInconsistent,
+    MutableVcsRefHashNotSupported,
     NetworkConnectionError,
     PreviousBuildDirError,
     VcsHashUnsupported,
 )
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution, get_metadata_distribution
-from pip._internal.models.direct_url import ArchiveInfo
+from pip._internal.models.direct_url import ArchiveInfo, VcsInfo
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.network.download import BatchDownloader, Downloader
@@ -41,7 +44,7 @@ from pip._internal.utils.direct_url_helpers import (
     direct_url_for_editable,
     direct_url_from_link,
 )
-from pip._internal.utils.hashes import Hashes, MissingHashes
+from pip._internal.utils.hashes import Hashes, MissingHashes, VcsHashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     display_path,
@@ -72,10 +75,14 @@ def _get_prepared_distribution(
     return abstract_dist.get_metadata_distribution()
 
 
-def unpack_vcs_link(link: Link, location: str, verbosity: int) -> None:
+def unpack_vcs_link(
+    link: Link, location: str, verbosity: int, hashes: Optional[Hashes] = None
+) -> None:
     vcs_backend = vcs.get_backend_for_scheme(link.scheme)
     assert vcs_backend is not None
     vcs_backend.unpack(location, url=hide_url(link.url), verbosity=verbosity)
+    if hashes and not vcs_backend.is_immutable_rev_checkout(link.url, location):
+        raise MutableVcsRefHashNotSupported()
 
 
 class File:
@@ -152,7 +159,7 @@ def unpack_url(
     """
     # non-editable vcs urls
     if link.is_vcs:
-        unpack_vcs_link(link, location, verbosity=verbosity)
+        unpack_vcs_link(link, location, verbosity=verbosity, hashes=hashes)
         return None
 
     assert not link.is_existing_dir()
@@ -335,6 +342,14 @@ class RequirementPreparer:
         # and raise some more informative errors than otherwise.
         # (For example, we can raise VcsHashUnsupported for a VCS URL
         # rather than HashMissing.)
+
+        # Check that --hash is not used with VCS and local directories direct URLs.
+        if req.original_link:
+            if req.original_link.is_vcs and req.hashes(trust_internet=False):
+                raise VcsHashUnsupported()
+            if req.original_link.is_existing_dir() and req.hashes(trust_internet=False):
+                raise DirectoryUrlHashUnsupported()
+
         if not self.require_hashes:
             return req.hashes(trust_internet=True)
 
@@ -343,7 +358,9 @@ class RequirementPreparer:
         # report less-useful error messages for unhashable
         # requirements, complaining that there's no hash provided.
         if req.link.is_vcs:
-            raise VcsHashUnsupported()
+            if not req.user_supplied:
+                raise DependencyVcsHashNotSupported()
+            return VcsHashes()
         if req.link.is_existing_dir():
             raise DirectoryUrlHashUnsupported()
 
@@ -559,24 +576,33 @@ class RequirementPreparer:
             assert link.is_file
             # We need to verify hashes, and we have found the requirement in the cache
             # of locally built wheels.
-            if (
-                isinstance(req.download_info.info, ArchiveInfo)
-                and req.download_info.info.hashes
-                and hashes.has_one_of(req.download_info.info.hashes)
-            ):
-                # At this point we know the requirement was built from a hashable source
-                # artifact, and we verified that the cache entry's hash of the original
-                # artifact matches one of the hashes we expect. We don't verify hashes
-                # against the cached wheel, because the wheel is not the original.
+            if isinstance(req.download_info.info, ArchiveInfo):
+                if req.download_info.info.hashes and hashes.has_one_of(
+                    req.download_info.info.hashes
+                ):
+                    # At this point we know the requirement was built from a hashable
+                    # source artifact, and we verified that the cache entry's hash of
+                    # the original artifact matches one of the hashes we expect. We
+                    # don't verify hashes against the cached wheel, because the wheel is
+                    # not the original.
+                    hashes = None
+                else:
+                    logger.warning(
+                        "The hashes of the source archive found in cache entry "
+                        "don't match, ignoring cached built wheel "
+                        "and re-downloading source."
+                    )
+                    req.link = req.cached_wheel_source_link
+                    link = req.link
+            elif isinstance(req.download_info.info, VcsInfo):
+                if not req.user_supplied:
+                    raise DependencyVcsHashNotSupported()
+                # Don't verify hashes against the cached wheel: if it is in cache,
+                # it means it was built from a URL referencing an immutable commit
+                # hash.
                 hashes = None
             else:
-                logger.warning(
-                    "The hashes of the source archive found in cache entry "
-                    "don't match, ignoring cached built wheel "
-                    "and re-downloading source."
-                )
-                req.link = req.cached_wheel_source_link
-                link = req.link
+                raise CacheEntryTypeHashNotSupported()
 
         self._ensure_link_req_src_dir(req, parallel_builds)
 
