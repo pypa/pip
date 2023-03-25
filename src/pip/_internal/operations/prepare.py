@@ -536,8 +536,40 @@ class RequirementPreparer:
         assert req.link
         link = req.link
 
-        self._ensure_link_req_src_dir(req, parallel_builds)
         hashes = self._get_linked_req_hashes(req)
+
+        if (
+            hashes
+            and link.is_wheel
+            and link.is_file
+            and req.original_link_is_in_wheel_cache
+        ):
+            assert req.download_info is not None
+            # We need to verify hashes, and we have found the requirement in the cache
+            # of locally built wheels.
+            if (
+                isinstance(req.download_info.info, ArchiveInfo)
+                and req.download_info.info.hashes
+                and hashes.has_one_of(req.download_info.info.hashes)
+            ):
+                # At this point we know the requirement was built from a hashable source
+                # artifact, and we verified that the cache entry's hash of the original
+                # artifact matches one of the hashes we expect. We don't verify hashes
+                # against the cached wheel, because the wheel is not the original.
+                hashes = None
+            else:
+                logger.warning(
+                    "The hashes of the source archive found in cache entry "
+                    "don't match, ignoring cached built wheel "
+                    "and re-downloading source."
+                )
+                # For some reason req.original_link is not set here, even though
+                # req.original_link_is_in_wheel_cache is True. So we get the original
+                # link from download_info.
+                req.link = Link(req.download_info.url)  # TODO comes_from?
+                link = req.link
+
+        self._ensure_link_req_src_dir(req, parallel_builds)
 
         if link.is_existing_dir():
             local_file = None
