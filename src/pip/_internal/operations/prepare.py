@@ -179,7 +179,10 @@ def unpack_url(
 
 
 def _check_download_dir(
-    link: Link, download_dir: str, hashes: Optional[Hashes]
+    link: Link,
+    download_dir: str,
+    hashes: Optional[Hashes],
+    warn_on_hash_mismatch: bool = True,
 ) -> Optional[str]:
     """Check download_dir for previously downloaded file with correct hash
     If a correct file is found return its path else None
@@ -195,10 +198,11 @@ def _check_download_dir(
         try:
             hashes.check_against_path(download_path)
         except HashMismatch:
-            logger.warning(
-                "Previously-downloaded file %s has bad hash. Re-downloading.",
-                download_path,
-            )
+            if warn_on_hash_mismatch:
+                logger.warning(
+                    "Previously-downloaded file %s has bad hash. Re-downloading.",
+                    download_path,
+                )
             os.unlink(download_path)
             return None
     return download_path
@@ -485,7 +489,18 @@ class RequirementPreparer:
             file_path = None
             if self.download_dir is not None and req.link.is_wheel:
                 hashes = self._get_linked_req_hashes(req)
-                file_path = _check_download_dir(req.link, self.download_dir, hashes)
+                file_path = _check_download_dir(
+                    req.link,
+                    self.download_dir,
+                    hashes,
+                    # When a locally built wheel has been found in cache, we don't warn
+                    # about re-downloading when the already downloaded wheel hash does
+                    # not match. This is because the hash must be checked against the
+                    # original link, not the cached link. It that case the already
+                    # downloaded file will be removed and re-fetched from cache (which
+                    # implies a hash check against the cache entry's origin.json).
+                    warn_on_hash_mismatch=not req.original_link_is_in_wheel_cache,
+                )
 
             if file_path is not None:
                 # The file is already available, so mark it as downloaded
