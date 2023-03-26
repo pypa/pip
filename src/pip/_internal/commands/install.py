@@ -267,6 +267,12 @@ class InstallCommand(RequirementCommand):
         if options.use_user_site and options.target_dir is not None:
             raise CommandError("Can not combine '--user' and '--target'")
 
+        # Prevent users from running pip install pip install, since this likely
+        # indicates a mistake with the command
+        if args[:2] == ['pip', 'install']:
+            raise CommandError(
+                "Likely incorrect command: pip install pip install ...")
+
         # Check whether the environment we're installing into is externally
         # managed, as specified in PEP 668. Specifying --root, --target, or
         # --prefix disables the check, since there's no reliable way to locate
