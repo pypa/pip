@@ -1,0 +1,2 @@
+Prevent users from running ``pip install pip install ...``, as this is likely
+unintentional.
