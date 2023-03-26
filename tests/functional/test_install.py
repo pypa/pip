@@ -2560,3 +2560,21 @@ def test_install_pip_prints_req_chain_pypi(script: PipTestEnvironment) -> None:
         f"Collecting python-openid "
         f"(from Paste[openid]==1.7.5.1->-r {req_path} (line 1))" in result.stdout
     )
+
+
+def test_prevent_pip_install_pip_install(script: PipTestEnvironment) -> None:
+    """
+    Test that an error is given if a user tries to run pip install pip install,
+    as they likely made a mistake with their command
+    """
+    result = script.pip(
+        "install",
+        "pip",
+        "install",
+        "simple_package",
+        expect_error=True,
+    )
+
+    assert (
+        "Likely incorrect command: pip install pip install ..." in result.stderr
+    )
