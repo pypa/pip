@@ -6,6 +6,7 @@ import pytest
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import InstallationError
+from pip._internal.models.link import Link
 from pip._internal.req.constructors import (
     install_req_from_line,
     install_req_from_req_string,
@@ -82,6 +83,22 @@ class TestInstallRequirementFrom:
         assert install_req.req.url == wheel_url
         assert install_req.comes_from is None
         assert install_req.is_wheel
+        assert not install_req.editable
+        assert not install_req.editable_requirements
+
+        path_url = "file:///path/to/torch"
+        install_str = "torch@ " + path_url
+        install_req = install_req_from_req_string(install_str)
+
+        assert isinstance(install_req, InstallRequirement)
+        assert install_req.link is not None
+        assert install_req.link.url == path_url
+        assert install_req.req is not None
+        assert install_req.req.url == path_url
+        assert install_req.comes_from is None
+        assert not install_req.is_wheel
+        assert not install_req.editable
+        assert not install_req.editable_requirements
 
     def test_install_req_from_string_with_comes_from_without_link(self) -> None:
         """
@@ -110,3 +127,80 @@ class TestInstallRequirementFrom:
         assert install_req.req is not None
         assert install_req.req.url == wheel_url
         assert install_req.is_wheel
+
+    @pytest.mark.parametrize("editable", [False, True])
+    @pytest.mark.parametrize("editable_requirements", [False, True])
+    def test_install_req_from_string_with_comes_from_with_editable_requirements(
+        self, editable: bool, editable_requirements: bool
+    ) -> None:
+        """
+        Test that the editable flag is set correctly when installing as a
+        requirement from an editable package with editable_requirements set
+        """
+        comes_from = InstallRequirement(
+            Requirement("numpy>=1.15.0"),
+            comes_from=None,
+            link=Link("file:///path/to/numpy"),
+            editable=editable,
+            editable_requirements=editable_requirements,
+        )
+
+        path_url = "file:///path/to/torch"
+        install_str = "torch@ " + path_url
+        install_req = install_req_from_req_string(install_str, comes_from=comes_from)
+
+        assert isinstance(install_req, InstallRequirement)
+        assert isinstance(install_req.comes_from, InstallRequirement)
+        assert install_req.link is not None
+        assert install_req.link.url == path_url
+        assert install_req.req is not None
+        assert install_req.req.url == path_url
+        assert install_req.editable == (editable and editable_requirements)
+        assert install_req.permit_editable_wheels == (
+            editable and editable_requirements
+        )
+        assert install_req.editable_requirements == (editable and editable_requirements)
+
+        path_url = "git+https://url#egg=torch"
+        install_str = "torch@ " + path_url
+        install_req = install_req_from_req_string(install_str, comes_from=comes_from)
+
+        assert isinstance(install_req, InstallRequirement)
+        assert isinstance(install_req.comes_from, InstallRequirement)
+        assert install_req.link is not None
+        assert install_req.link.url == path_url
+        assert install_req.req is not None
+        assert install_req.req.url == path_url
+        assert install_req.editable == (editable and editable_requirements)
+        assert install_req.permit_editable_wheels == (
+            editable and editable_requirements
+        )
+        assert install_req.editable_requirements == (editable and editable_requirements)
+
+        wheel_url = (
+            "https://download.pytorch.org/whl/cu90/"
+            "torch-1.0.0-cp36-cp36m-win_amd64.whl"
+        )
+        install_str = "torch@ " + wheel_url
+        install_req = install_req_from_req_string(install_str, comes_from=comes_from)
+
+        assert isinstance(install_req, InstallRequirement)
+        assert isinstance(install_req.comes_from, InstallRequirement)
+        assert install_req.link is not None
+        assert install_req.link.url == wheel_url
+        assert install_req.req is not None
+        assert install_req.req.url == wheel_url
+        assert not install_req.editable
+        assert not install_req.permit_editable_wheels
+        assert not install_req.editable_requirements
+
+        install_str = "torch"
+        install_req = install_req_from_req_string(install_str, comes_from=comes_from)
+
+        assert isinstance(install_req, InstallRequirement)
+        assert isinstance(install_req.comes_from, InstallRequirement)
+        assert install_req.link is None
+        assert install_req.req is not None
+        assert not install_req.editable
+        assert not install_req.permit_editable_wheels
+        assert not install_req.editable_requirements

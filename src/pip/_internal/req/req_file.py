@@ -58,6 +58,7 @@ SUPPORTED_OPTIONS: List[Callable[..., optparse.Option]] = [
     cmdoptions.constraints,
     cmdoptions.requirements,
     cmdoptions.editable,
+    cmdoptions.editable_requirements,
     cmdoptions.find_links,
     cmdoptions.no_binary,
     cmdoptions.only_binary,
@@ -228,6 +229,8 @@ def handle_option_line(
             options.features_enabled.extend(
                 f for f in opts.features_enabled if f not in options.features_enabled
             )
+        if opts.editable_requirements:
+            options.editable_requirements = True
 
     # set finder options
     if finder:

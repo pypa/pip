@@ -83,6 +83,7 @@ def make_install_req_from_editable(
         link.url,
         user_supplied=template.user_supplied,
         comes_from=template.comes_from,
+        editable_requirements=template.editable_requirements,
         use_pep517=template.use_pep517,
         isolated=template.isolated,
         constraint=template.constraint,

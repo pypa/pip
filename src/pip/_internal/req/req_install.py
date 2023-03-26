@@ -78,6 +78,7 @@ class InstallRequirement:
         use_pep517: Optional[bool] = None,
         isolated: bool = False,
         *,
+        editable_requirements: bool = False,
         global_options: Optional[List[str]] = None,
         hash_options: Optional[Dict[str, List[str]]] = None,
         config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
@@ -91,6 +92,7 @@ class InstallRequirement:
         self.comes_from = comes_from
         self.constraint = constraint
         self.editable = editable
+        self.editable_requirements = editable_requirements
         self.permit_editable_wheels = permit_editable_wheels
 
         # source_dir is the local directory where the linked requirement is

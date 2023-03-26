@@ -424,6 +424,7 @@ class RequirementCommand(IndexGroupCommand):
                 user_supplied=True,
                 isolated=options.isolated_mode,
                 use_pep517=options.use_pep517,
+                editable_requirements=options.editable_requirements,
                 config_settings=getattr(options, "config_settings", None),
             )
             requirements.append(req_to_add)
@@ -437,6 +438,7 @@ class RequirementCommand(IndexGroupCommand):
                     parsed_req,
                     isolated=options.isolated_mode,
                     use_pep517=options.use_pep517,
+                    editable_requirements=options.editable_requirements,
                     user_supplied=True,
                     config_settings=parsed_req.options.get("config_settings")
                     if parsed_req.options
