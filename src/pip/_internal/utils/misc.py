@@ -12,6 +12,7 @@ import posixpath
 import shutil
 import stat
 import sys
+import sysconfig
 import urllib.parse
 from io import StringIO
 from itertools import filterfalse, tee, zip_longest
@@ -21,6 +22,8 @@ from typing import (
     BinaryIO,
     Callable,
     ContextManager,
+    Dict,
+    Generator,
     Iterable,
     Iterator,
     List,
@@ -32,14 +35,13 @@ from typing import (
     cast,
 )
 
-from pip._vendor.pkg_resources import Distribution
+from pip._vendor.pyproject_hooks import BuildBackendHookCaller
 from pip._vendor.tenacity import retry, stop_after_delay, wait_fixed
 
 from pip import __version__
-from pip._internal.exceptions import CommandError
-from pip._internal.locations import get_major_minor_version, site_packages, user_site
+from pip._internal.exceptions import CommandError, ExternallyManagedEnvironment
+from pip._internal.locations import get_major_minor_version
 from pip._internal.utils.compat import WINDOWS
-from pip._internal.utils.egg_link import egg_link_path_from_location
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 __all__ = [
@@ -56,8 +58,9 @@ __all__ = [
     "captured_stdout",
     "ensure_dir",
     "remove_auth_from_url",
+    "check_externally_managed",
+    "ConfiguredBuildBackendHookCaller",
 ]
-
 
 logger = logging.getLogger(__name__)
 
@@ -266,7 +269,9 @@ def is_installable_dir(path: str) -> bool:
     return False
 
 
-def read_chunks(file: BinaryIO, size: int = io.DEFAULT_BUFFER_SIZE) -> Iterator[bytes]:
+def read_chunks(
+    file: BinaryIO, size: int = io.DEFAULT_BUFFER_SIZE
+) -> Generator[bytes, None, None]:
     """Yield pieces of data from a file-like object until EOF."""
     while True:
         chunk = file.read(size)
@@ -328,64 +333,6 @@ def is_local(path: str) -> bool:
     return path.startswith(normalize_path(sys.prefix))
 
 
-def dist_is_local(dist: Distribution) -> bool:
-    """
-    Return True if given Distribution object is installed locally
-    (i.e. within current virtualenv).
-
-    Always True if we're not in a virtualenv.
-
-    """
-    return is_local(dist_location(dist))
-
-
-def dist_in_usersite(dist: Distribution) -> bool:
-    """
-    Return True if given Distribution is installed in user site.
-    """
-    return dist_location(dist).startswith(normalize_path(user_site))
-
-
-def dist_in_site_packages(dist: Distribution) -> bool:
-    """
-    Return True if given Distribution is installed in
-    sysconfig.get_python_lib().
-    """
-    return dist_location(dist).startswith(normalize_path(site_packages))
-
-
-def get_distribution(req_name: str) -> Optional[Distribution]:
-    """Given a requirement name, return the installed Distribution object.
-
-    This searches from *all* distributions available in the environment, to
-    match the behavior of ``pkg_resources.get_distribution()``.
-
-    Left for compatibility until direct pkg_resources uses are refactored out.
-    """
-    from pip._internal.metadata import get_default_environment
-    from pip._internal.metadata.pkg_resources import Distribution as _Dist
-
-    dist = get_default_environment().get_distribution(req_name)
-    if dist is None:
-        return None
-    return cast(_Dist, dist)._dist
-
-
-def dist_location(dist: Distribution) -> str:
-    """
-    Get the site-packages location of this distribution. Generally
-    this is dist.location, except in the case of develop-installed
-    packages, where dist.location is the source code location, and we
-    want to know where the egg-link file is.
-
-    The returned location is normalized (in particular, with symlinks removed).
-    """
-    egg_link = egg_link_path_from_location(dist.project_name)
-    if egg_link:
-        return normalize_path(egg_link)
-    return normalize_path(dist.location)
-
-
 def write_output(msg: Any, *args: Any) -> None:
     logger.info(msg, *args)
 
@@ -406,7 +353,7 @@ class StreamWrapper(StringIO):
 
 
 @contextlib.contextmanager
-def captured_output(stream_name: str) -> Iterator[StreamWrapper]:
+def captured_output(stream_name: str) -> Generator[StreamWrapper, None, None]:
     """Return a context manager used by captured_stdout/stdin/stderr
     that temporarily replaces the sys stream *stream_name* with a StringIO.
 
@@ -616,9 +563,9 @@ def protect_pip_from_modification_on_windows(modifying_pip: bool) -> None:
         python -m pip ...
     """
     pip_names = [
-        "pip.exe",
-        "pip{}.exe".format(sys.version_info[0]),
-        "pip{}.{}.exe".format(*sys.version_info[:2]),
+        "pip",
+        f"pip{sys.version_info.major}",
+        f"pip{sys.version_info.major}.{sys.version_info.minor}",
     ]
 
     # See https://github.com/pypa/pip/issues/1299 for more discussion
@@ -633,6 +580,21 @@ def protect_pip_from_modification_on_windows(modifying_pip: bool) -> None:
                 " ".join(new_command)
             )
         )
+
+
+def check_externally_managed() -> None:
+    """Check whether the current environment is externally managed.
+
+    If the ``EXTERNALLY-MANAGED`` config file is found, the current environment
+    is considered externally managed, and an ExternallyManagedEnvironment is
+    raised.
+    """
+    if running_under_virtualenv():
+        return
+    marker = os.path.join(sysconfig.get_path("stdlib"), "EXTERNALLY-MANAGED")
+    if not os.path.isfile(marker):
+        return
+    raise ExternallyManagedEnvironment.from_config(marker)
 
 
 def is_console_interactive() -> bool:
@@ -687,3 +649,91 @@ def partition(
     """
     t1, t2 = tee(iterable)
     return filterfalse(pred, t1), filter(pred, t2)
+
+
+class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
+    def __init__(
+        self,
+        config_holder: Any,
+        source_dir: str,
+        build_backend: str,
+        backend_path: Optional[str] = None,
+        runner: Optional[Callable[..., None]] = None,
+        python_executable: Optional[str] = None,
+    ):
+        super().__init__(
+            source_dir, build_backend, backend_path, runner, python_executable
+        )
+        self.config_holder = config_holder
+
+    def build_wheel(
+        self,
+        wheel_directory: str,
+        config_settings: Optional[Dict[str, str]] = None,
+        metadata_directory: Optional[str] = None,
+    ) -> str:
+        cs = self.config_holder.config_settings
+        return super().build_wheel(
+            wheel_directory, config_settings=cs, metadata_directory=metadata_directory
+        )
+
+    def build_sdist(
+        self, sdist_directory: str, config_settings: Optional[Dict[str, str]] = None
+    ) -> str:
+        cs = self.config_holder.config_settings
+        return super().build_sdist(sdist_directory, config_settings=cs)
+
+    def build_editable(
+        self,
+        wheel_directory: str,
+        config_settings: Optional[Dict[str, str]] = None,
+        metadata_directory: Optional[str] = None,
+    ) -> str:
+        cs = self.config_holder.config_settings
+        return super().build_editable(
+            wheel_directory, config_settings=cs, metadata_directory=metadata_directory
+        )
+
+    def get_requires_for_build_wheel(
+        self, config_settings: Optional[Dict[str, str]] = None
+    ) -> List[str]:
+        cs = self.config_holder.config_settings
+        return super().get_requires_for_build_wheel(config_settings=cs)
+
+    def get_requires_for_build_sdist(
+        self, config_settings: Optional[Dict[str, str]] = None
+    ) -> List[str]:
+        cs = self.config_holder.config_settings
+        return super().get_requires_for_build_sdist(config_settings=cs)
+
+    def get_requires_for_build_editable(
+        self, config_settings: Optional[Dict[str, str]] = None
+    ) -> List[str]:
+        cs = self.config_holder.config_settings
+        return super().get_requires_for_build_editable(config_settings=cs)
+
+    def prepare_metadata_for_build_wheel(
+        self,
+        metadata_directory: str,
+        config_settings: Optional[Dict[str, str]] = None,
+        _allow_fallback: bool = True,
+    ) -> str:
+        cs = self.config_holder.config_settings
+        return super().prepare_metadata_for_build_wheel(
+            metadata_directory=metadata_directory,
+            config_settings=cs,
+            _allow_fallback=_allow_fallback,
+        )
+
+    def prepare_metadata_for_build_editable(
+        self,
+        metadata_directory: str,
+        config_settings: Optional[Dict[str, str]] = None,
+        _allow_fallback: bool = True,
+    ) -> str:
+        cs = self.config_holder.config_settings
+        return super().prepare_metadata_for_build_editable(
+            metadata_directory=metadata_directory,
+            config_settings=cs,
+            _allow_fallback=_allow_fallback,
+        )

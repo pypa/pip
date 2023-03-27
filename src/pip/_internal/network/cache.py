@@ -3,7 +3,7 @@
 
 import os
 from contextlib import contextmanager
-from typing import Iterator, Optional
+from typing import Generator, Optional
 
 from pip._vendor.cachecontrol.cache import BaseCache
 from pip._vendor.cachecontrol.caches import FileCache
@@ -18,7 +18,7 @@ def is_from_cache(response: Response) -> bool:
 
 
 @contextmanager
-def suppressed_cache_errors() -> Iterator[None]:
+def suppressed_cache_errors() -> Generator[None, None, None]:
     """If we can't access the cache then we can just skip caching and process
     requests as if caching wasn't enabled.
     """
@@ -53,7 +53,7 @@ class SafeFileCache(BaseCache):
             with open(path, "rb") as f:
                 return f.read()
 
-    def set(self, key: str, value: bytes) -> None:
+    def set(self, key: str, value: bytes, expires: Optional[int] = None) -> None:
         path = self._get_cache_path(key)
         with suppressed_cache_errors():
             ensure_dir(os.path.dirname(path))

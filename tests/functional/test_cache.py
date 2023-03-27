@@ -1,12 +1,15 @@
 import os
 import shutil
 from glob import glob
+from typing import Callable, List, Tuple
 
 import pytest
 
+from tests.lib import PipTestEnvironment, TestPipResult
+
 
 @pytest.fixture
-def cache_dir(script):
+def cache_dir(script: PipTestEnvironment) -> str:
     result = script.run(
         "python",
         "-c",
@@ -16,17 +19,17 @@ def cache_dir(script):
 
 
 @pytest.fixture
-def http_cache_dir(cache_dir):
+def http_cache_dir(cache_dir: str) -> str:
     return os.path.normcase(os.path.join(cache_dir, "http"))
 
 
 @pytest.fixture
-def wheel_cache_dir(cache_dir):
+def wheel_cache_dir(cache_dir: str) -> str:
     return os.path.normcase(os.path.join(cache_dir, "wheels"))
 
 
 @pytest.fixture
-def http_cache_files(http_cache_dir):
+def http_cache_files(http_cache_dir: str) -> List[str]:
     destination = os.path.join(http_cache_dir, "arbitrary", "pathname")
 
     if not os.path.exists(destination):
@@ -40,7 +43,7 @@ def http_cache_files(http_cache_dir):
 
 
 @pytest.fixture
-def wheel_cache_files(wheel_cache_dir):
+def wheel_cache_files(wheel_cache_dir: str) -> List[str]:
     destination = os.path.join(wheel_cache_dir, "arbitrary", "pathname")
 
     if not os.path.exists(destination):
@@ -54,7 +57,7 @@ def wheel_cache_files(wheel_cache_dir):
 
 
 @pytest.fixture
-def populate_http_cache(http_cache_dir):
+def populate_http_cache(http_cache_dir: str) -> List[Tuple[str, str]]:
     destination = os.path.join(http_cache_dir, "arbitrary", "pathname")
     os.makedirs(destination)
 
@@ -72,7 +75,7 @@ def populate_http_cache(http_cache_dir):
 
 
 @pytest.fixture
-def populate_wheel_cache(wheel_cache_dir):
+def populate_wheel_cache(wheel_cache_dir: str) -> List[Tuple[str, str]]:
     destination = os.path.join(wheel_cache_dir, "arbitrary", "pathname")
     os.makedirs(destination)
 
@@ -91,12 +94,12 @@ def populate_wheel_cache(wheel_cache_dir):
 
 
 @pytest.fixture
-def empty_wheel_cache(wheel_cache_dir):
+def empty_wheel_cache(wheel_cache_dir: str) -> None:
     if os.path.exists(wheel_cache_dir):
         shutil.rmtree(wheel_cache_dir)
 
 
-def list_matches_wheel(wheel_name, result):
+def list_matches_wheel(wheel_name: str, result: TestPipResult) -> bool:
     """Returns True if any line in `result`, which should be the output of
     a `pip cache list` call, matches `wheel_name`.
 
@@ -107,7 +110,7 @@ def list_matches_wheel(wheel_name, result):
     return any(map(lambda l: l.startswith(expected), lines))
 
 
-def list_matches_wheel_abspath(wheel_name, result):
+def list_matches_wheel_abspath(wheel_name: str, result: TestPipResult) -> bool:
     """Returns True if any line in `result`, which should be the output of
     a `pip cache list --format=abspath` call, is a valid path and belongs to
     `wheel_name`.
@@ -124,8 +127,11 @@ def list_matches_wheel_abspath(wheel_name, result):
     )
 
 
+RemoveMatches = Callable[[str, TestPipResult], bool]
+
+
 @pytest.fixture
-def remove_matches_http(http_cache_dir):
+def remove_matches_http(http_cache_dir: str) -> RemoveMatches:
     """Returns True if any line in `result`, which should be the output of
     a `pip cache purge` call, matches `http_filename`.
 
@@ -133,7 +139,7 @@ def remove_matches_http(http_cache_dir):
     `Removed <http files cache dir>/arbitrary/pathname/aaaaaaaaa`.
     """
 
-    def _remove_matches_http(http_filename, result):
+    def _remove_matches_http(http_filename: str, result: TestPipResult) -> bool:
         lines = result.stdout.splitlines()
 
         # The "/arbitrary/pathname/" bit is an implementation detail of how
@@ -151,7 +157,7 @@ def remove_matches_http(http_cache_dir):
 
 
 @pytest.fixture
-def remove_matches_wheel(wheel_cache_dir):
+def remove_matches_wheel(wheel_cache_dir: str) -> RemoveMatches:
     """Returns True if any line in `result`, which should be the output of
     a `pip cache remove`/`pip cache purge` call, matches `wheel_name`.
 
@@ -159,7 +165,7 @@ def remove_matches_wheel(wheel_cache_dir):
     `Removed <wheel cache dir>/arbitrary/pathname/foo-1.2.3-py3-none-any.whl`.
     """
 
-    def _remove_matches_wheel(wheel_name, result):
+    def _remove_matches_wheel(wheel_name: str, result: TestPipResult) -> bool:
         lines = result.stdout.splitlines()
 
         wheel_filename = f"{wheel_name}-py3-none-any.whl"
@@ -178,13 +184,13 @@ def remove_matches_wheel(wheel_cache_dir):
     return _remove_matches_wheel
 
 
-def test_cache_dir(script, cache_dir):
+def test_cache_dir(script: PipTestEnvironment, cache_dir: str) -> None:
     result = script.pip("cache", "dir")
 
     assert os.path.normcase(cache_dir) == result.stdout.strip()
 
 
-def test_cache_dir_too_many_args(script, cache_dir):
+def test_cache_dir_too_many_args(script: PipTestEnvironment, cache_dir: str) -> None:
     result = script.pip("cache", "dir", "aaa", expect_error=True)
 
     assert result.stdout == ""
@@ -195,17 +201,22 @@ def test_cache_dir_too_many_args(script, cache_dir):
 
 
 @pytest.mark.usefixtures("populate_http_cache", "populate_wheel_cache")
-def test_cache_info(script, http_cache_dir, wheel_cache_dir, wheel_cache_files):
+def test_cache_info(
+    script: PipTestEnvironment,
+    http_cache_dir: str,
+    wheel_cache_dir: str,
+    wheel_cache_files: List[str],
+) -> None:
     result = script.pip("cache", "info")
 
     assert f"Package index page cache location: {http_cache_dir}" in result.stdout
-    assert f"Wheels location: {wheel_cache_dir}" in result.stdout
+    assert f"Locally built wheels location: {wheel_cache_dir}" in result.stdout
     num_wheels = len(wheel_cache_files)
-    assert f"Number of wheels: {num_wheels}" in result.stdout
+    assert f"Number of locally built wheels: {num_wheels}" in result.stdout
 
 
 @pytest.mark.usefixtures("populate_wheel_cache")
-def test_cache_list(script):
+def test_cache_list(script: PipTestEnvironment) -> None:
     """Running `pip cache list` should return exactly what the
     populate_wheel_cache fixture adds."""
     result = script.pip("cache", "list")
@@ -217,7 +228,7 @@ def test_cache_list(script):
 
 
 @pytest.mark.usefixtures("populate_wheel_cache")
-def test_cache_list_abspath(script):
+def test_cache_list_abspath(script: PipTestEnvironment) -> None:
     """Running `pip cache list --format=abspath` should return full
     paths of exactly what the populate_wheel_cache fixture adds."""
     result = script.pip("cache", "list", "--format=abspath")
@@ -229,15 +240,15 @@ def test_cache_list_abspath(script):
 
 
 @pytest.mark.usefixtures("empty_wheel_cache")
-def test_cache_list_with_empty_cache(script):
+def test_cache_list_with_empty_cache(script: PipTestEnvironment) -> None:
     """Running `pip cache list` with an empty cache should print
-    "Nothing cached." and exit."""
+    "No locally built wheels cached." and exit."""
     result = script.pip("cache", "list")
-    assert result.stdout == "Nothing cached.\n"
+    assert result.stdout == "No locally built wheels cached.\n"
 
 
 @pytest.mark.usefixtures("empty_wheel_cache")
-def test_cache_list_with_empty_cache_abspath(script):
+def test_cache_list_with_empty_cache_abspath(script: PipTestEnvironment) -> None:
     """Running `pip cache list --format=abspath` with an empty cache should not
     print anything and exit."""
     result = script.pip("cache", "list", "--format=abspath")
@@ -245,7 +256,7 @@ def test_cache_list_with_empty_cache_abspath(script):
 
 
 @pytest.mark.usefixtures("empty_wheel_cache")
-def test_cache_purge_with_empty_cache(script):
+def test_cache_purge_with_empty_cache(script: PipTestEnvironment) -> None:
     """Running `pip cache purge` with an empty cache should print a warning
     and exit without an error code."""
     result = script.pip("cache", "purge", allow_stderr_warning=True)
@@ -254,7 +265,7 @@ def test_cache_purge_with_empty_cache(script):
 
 
 @pytest.mark.usefixtures("populate_wheel_cache")
-def test_cache_remove_with_bad_pattern(script):
+def test_cache_remove_with_bad_pattern(script: PipTestEnvironment) -> None:
     """Running `pip cache remove` with a bad pattern should print a warning
     and exit without an error code."""
     result = script.pip("cache", "remove", "aaa", allow_stderr_warning=True)
@@ -262,13 +273,13 @@ def test_cache_remove_with_bad_pattern(script):
     assert result.stdout == "Files removed: 0\n"
 
 
-def test_cache_list_too_many_args(script):
+def test_cache_list_too_many_args(script: PipTestEnvironment) -> None:
     """Passing `pip cache list` too many arguments should cause an error."""
     script.pip("cache", "list", "aaa", "bbb", expect_error=True)
 
 
 @pytest.mark.usefixtures("populate_wheel_cache")
-def test_cache_list_name_match(script):
+def test_cache_list_name_match(script: PipTestEnvironment) -> None:
     """Running `pip cache list zzz` should list zzz-4.5.6, zzz-4.5.7,
     zzz-7.8.9, but nothing else."""
     result = script.pip("cache", "list", "zzz", "--verbose")
@@ -280,7 +291,7 @@ def test_cache_list_name_match(script):
 
 
 @pytest.mark.usefixtures("populate_wheel_cache")
-def test_cache_list_name_match_abspath(script):
+def test_cache_list_name_match_abspath(script: PipTestEnvironment) -> None:
     """Running `pip cache list zzz --format=abspath` should list paths of
     zzz-4.5.6, zzz-4.5.7, zzz-7.8.9, but nothing else."""
     result = script.pip("cache", "list", "zzz", "--format=abspath", "--verbose")
@@ -292,7 +303,7 @@ def test_cache_list_name_match_abspath(script):
 
 
 @pytest.mark.usefixtures("populate_wheel_cache")
-def test_cache_list_name_and_version_match(script):
+def test_cache_list_name_and_version_match(script: PipTestEnvironment) -> None:
     """Running `pip cache list zzz-4.5.6` should list zzz-4.5.6, but
     nothing else."""
     result = script.pip("cache", "list", "zzz-4.5.6", "--verbose")
@@ -304,7 +315,7 @@ def test_cache_list_name_and_version_match(script):
 
 
 @pytest.mark.usefixtures("populate_wheel_cache")
-def test_cache_list_name_and_version_match_abspath(script):
+def test_cache_list_name_and_version_match_abspath(script: PipTestEnvironment) -> None:
     """Running `pip cache list zzz-4.5.6 --format=abspath` should list path of
     zzz-4.5.6, but nothing else."""
     result = script.pip("cache", "list", "zzz-4.5.6", "--format=abspath", "--verbose")
@@ -316,18 +327,20 @@ def test_cache_list_name_and_version_match_abspath(script):
 
 
 @pytest.mark.usefixtures("populate_wheel_cache")
-def test_cache_remove_no_arguments(script):
+def test_cache_remove_no_arguments(script: PipTestEnvironment) -> None:
     """Running `pip cache remove` with no arguments should cause an error."""
     script.pip("cache", "remove", expect_error=True)
 
 
-def test_cache_remove_too_many_args(script):
+def test_cache_remove_too_many_args(script: PipTestEnvironment) -> None:
     """Passing `pip cache remove` too many arguments should cause an error."""
     script.pip("cache", "remove", "aaa", "bbb", expect_error=True)
 
 
 @pytest.mark.usefixtures("populate_wheel_cache")
-def test_cache_remove_name_match(script, remove_matches_wheel):
+def test_cache_remove_name_match(
+    script: PipTestEnvironment, remove_matches_wheel: RemoveMatches
+) -> None:
     """Running `pip cache remove zzz` should remove zzz-4.5.6 and zzz-7.8.9,
     but nothing else."""
     result = script.pip("cache", "remove", "zzz", "--verbose")
@@ -339,7 +352,9 @@ def test_cache_remove_name_match(script, remove_matches_wheel):
 
 
 @pytest.mark.usefixtures("populate_wheel_cache")
-def test_cache_remove_name_and_version_match(script, remove_matches_wheel):
+def test_cache_remove_name_and_version_match(
+    script: PipTestEnvironment, remove_matches_wheel: RemoveMatches
+) -> None:
     """Running `pip cache remove zzz-4.5.6` should remove zzz-4.5.6, but
     nothing else."""
     result = script.pip("cache", "remove", "zzz-4.5.6", "--verbose")
@@ -351,7 +366,11 @@ def test_cache_remove_name_and_version_match(script, remove_matches_wheel):
 
 
 @pytest.mark.usefixtures("populate_http_cache", "populate_wheel_cache")
-def test_cache_purge(script, remove_matches_http, remove_matches_wheel):
+def test_cache_purge(
+    script: PipTestEnvironment,
+    remove_matches_http: RemoveMatches,
+    remove_matches_wheel: RemoveMatches,
+) -> None:
     """Running `pip cache purge` should remove all cached http files and
     wheels."""
     result = script.pip("cache", "purge", "--verbose")
@@ -367,7 +386,11 @@ def test_cache_purge(script, remove_matches_http, remove_matches_wheel):
 
 
 @pytest.mark.usefixtures("populate_http_cache", "populate_wheel_cache")
-def test_cache_purge_too_many_args(script, http_cache_files, wheel_cache_files):
+def test_cache_purge_too_many_args(
+    script: PipTestEnvironment,
+    http_cache_files: List[str],
+    wheel_cache_files: List[str],
+) -> None:
     """Running `pip cache purge aaa` should raise an error and remove no
     cached http files or wheels."""
     result = script.pip("cache", "purge", "aaa", "--verbose", expect_error=True)
@@ -383,7 +406,9 @@ def test_cache_purge_too_many_args(script, http_cache_files, wheel_cache_files):
 
 
 @pytest.mark.parametrize("command", ["info", "list", "remove", "purge"])
-def test_cache_abort_when_no_cache_dir(script, command):
+def test_cache_abort_when_no_cache_dir(
+    script: PipTestEnvironment, command: str
+) -> None:
     """Running any pip cache command when cache is disabled should
     abort and log an informative error"""
     result = script.pip("cache", command, "--no-cache-dir", expect_error=True)

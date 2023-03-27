@@ -1,5 +1,0 @@
-When installing projects with a ``pyproject.toml`` in editable mode, and the build
-backend does not support :pep:`660`, prepare metadata using
-``prepare_metadata_for_build_wheel`` instead of ``setup.py egg_info``. Also, refuse
-installing projects that only have a ``setup.cfg`` and no ``setup.py`` nor
-``pyproject.toml``. These restore the pre-21.3 behaviour.

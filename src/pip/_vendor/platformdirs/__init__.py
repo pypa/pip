@@ -2,30 +2,43 @@
 Utilities for determining application-specific dirs. See <https://github.com/platformdirs/platformdirs> for details and
 usage.
 """
-import importlib
+from __future__ import annotations
+
 import os
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Type, Union
 
-if TYPE_CHECKING:
-    from typing_extensions import Literal  # pragma: no cover
+if sys.version_info >= (3, 8):  # pragma: no cover (py38+)
+    from typing import Literal
+else:  # pragma: no cover (py38+)
+    from pip._vendor.typing_extensions import Literal
 
 from .api import PlatformDirsABC
-from .version import __version__, __version_info__
+from .version import __version__
+from .version import __version_tuple__ as __version_info__
 
 
-def _set_platform_dir_class() -> Type[PlatformDirsABC]:
-    if os.getenv("ANDROID_DATA") == "/data" and os.getenv("ANDROID_ROOT") == "/system":
-        module, name = "pip._vendor.platformdirs.android", "Android"
-    elif sys.platform == "win32":
-        module, name = "pip._vendor.platformdirs.windows", "Windows"
+def _set_platform_dir_class() -> type[PlatformDirsABC]:
+    if sys.platform == "win32":
+        from pip._vendor.platformdirs.windows import Windows as Result
     elif sys.platform == "darwin":
-        module, name = "pip._vendor.platformdirs.macos", "MacOS"
+        from pip._vendor.platformdirs.macos import MacOS as Result
     else:
-        module, name = "pip._vendor.platformdirs.unix", "Unix"
-    result: Type[PlatformDirsABC] = getattr(importlib.import_module(module), name)
-    return result
+        from pip._vendor.platformdirs.unix import Unix as Result
+
+    if os.getenv("ANDROID_DATA") == "/data" and os.getenv("ANDROID_ROOT") == "/system":
+
+        if os.getenv("SHELL") or os.getenv("PREFIX"):
+            return Result
+
+        from pip._vendor.platformdirs.android import _android_folder
+
+        if _android_folder() is not None:
+            from pip._vendor.platformdirs.android import Android
+
+            return Android  # return to avoid redefinition of result
+
+    return Result
 
 
 PlatformDirs = _set_platform_dir_class()  #: Currently active platform
@@ -33,9 +46,9 @@ AppDirs = PlatformDirs  #: Backwards compatibility with appdirs
 
 
 def user_data_dir(
-    appname: Optional[str] = None,
-    appauthor: Union[str, None, "Literal[False]"] = None,
-    version: Optional[str] = None,
+    appname: str | None = None,
+    appauthor: str | None | Literal[False] = None,
+    version: str | None = None,
     roaming: bool = False,
 ) -> str:
     """
@@ -49,9 +62,9 @@ def user_data_dir(
 
 
 def site_data_dir(
-    appname: Optional[str] = None,
-    appauthor: Union[str, None, "Literal[False]"] = None,
-    version: Optional[str] = None,
+    appname: str | None = None,
+    appauthor: str | None | Literal[False] = None,
+    version: str | None = None,
     multipath: bool = False,
 ) -> str:
     """
@@ -65,9 +78,9 @@ def site_data_dir(
 
 
 def user_config_dir(
-    appname: Optional[str] = None,
-    appauthor: Union[str, None, "Literal[False]"] = None,
-    version: Optional[str] = None,
+    appname: str | None = None,
+    appauthor: str | None | Literal[False] = None,
+    version: str | None = None,
     roaming: bool = False,
 ) -> str:
     """
@@ -81,9 +94,9 @@ def user_config_dir(
 
 
 def site_config_dir(
-    appname: Optional[str] = None,
-    appauthor: Union[str, None, "Literal[False]"] = None,
-    version: Optional[str] = None,
+    appname: str | None = None,
+    appauthor: str | None | Literal[False] = None,
+    version: str | None = None,
     multipath: bool = False,
 ) -> str:
     """
@@ -97,9 +110,9 @@ def site_config_dir(
 
 
 def user_cache_dir(
-    appname: Optional[str] = None,
-    appauthor: Union[str, None, "Literal[False]"] = None,
-    version: Optional[str] = None,
+    appname: str | None = None,
+    appauthor: str | None | Literal[False] = None,
+    version: str | None = None,
     opinion: bool = True,
 ) -> str:
     """
@@ -113,9 +126,9 @@ def user_cache_dir(
 
 
 def user_state_dir(
-    appname: Optional[str] = None,
-    appauthor: Union[str, None, "Literal[False]"] = None,
-    version: Optional[str] = None,
+    appname: str | None = None,
+    appauthor: str | None | Literal[False] = None,
+    version: str | None = None,
     roaming: bool = False,
 ) -> str:
     """
@@ -129,9 +142,9 @@ def user_state_dir(
 
 
 def user_log_dir(
-    appname: Optional[str] = None,
-    appauthor: Union[str, None, "Literal[False]"] = None,
-    version: Optional[str] = None,
+    appname: str | None = None,
+    appauthor: str | None | Literal[False] = None,
+    version: str | None = None,
     opinion: bool = True,
 ) -> str:
     """
@@ -152,9 +165,9 @@ def user_documents_dir() -> str:
 
 
 def user_runtime_dir(
-    appname: Optional[str] = None,
-    appauthor: Union[str, None, "Literal[False]"] = None,
-    version: Optional[str] = None,
+    appname: str | None = None,
+    appauthor: str | None | Literal[False] = None,
+    version: str | None = None,
     opinion: bool = True,
 ) -> str:
     """
@@ -168,9 +181,9 @@ def user_runtime_dir(
 
 
 def user_data_path(
-    appname: Optional[str] = None,
-    appauthor: Union[str, None, "Literal[False]"] = None,
-    version: Optional[str] = None,
+    appname: str | None = None,
+    appauthor: str | None | Literal[False] = None,
+    version: str | None = None,
     roaming: bool = False,
 ) -> Path:
     """
@@ -184,9 +197,9 @@ def user_data_path(
 
 
 def site_data_path(
-    appname: Optional[str] = None,
-    appauthor: Union[str, None, "Literal[False]"] = None,
-    version: Optional[str] = None,
+    appname: str | None = None,
+    appauthor: str | None | Literal[False] = None,
+    version: str | None = None,
     multipath: bool = False,
 ) -> Path:
     """
@@ -200,9 +213,9 @@ def site_data_path(
 
 
 def user_config_path(
-    appname: Optional[str] = None,
-    appauthor: Union[str, None, "Literal[False]"] = None,
-    version: Optional[str] = None,
+    appname: str | None = None,
+    appauthor: str | None | Literal[False] = None,
+    version: str | None = None,
     roaming: bool = False,
 ) -> Path:
     """
@@ -216,9 +229,9 @@ def user_config_path(
 
 
 def site_config_path(
-    appname: Optional[str] = None,
-    appauthor: Union[str, None, "Literal[False]"] = None,
-    version: Optional[str] = None,
+    appname: str | None = None,
+    appauthor: str | None | Literal[False] = None,
+    version: str | None = None,
     multipath: bool = False,
 ) -> Path:
     """
@@ -232,9 +245,9 @@ def site_config_path(
 
 
 def user_cache_path(
-    appname: Optional[str] = None,
-    appauthor: Union[str, None, "Literal[False]"] = None,
-    version: Optional[str] = None,
+    appname: str | None = None,
+    appauthor: str | None | Literal[False] = None,
+    version: str | None = None,
     opinion: bool = True,
 ) -> Path:
     """
@@ -248,9 +261,9 @@ def user_cache_path(
 
 
 def user_state_path(
-    appname: Optional[str] = None,
-    appauthor: Union[str, None, "Literal[False]"] = None,
-    version: Optional[str] = None,
+    appname: str | None = None,
+    appauthor: str | None | Literal[False] = None,
+    version: str | None = None,
     roaming: bool = False,
 ) -> Path:
     """
@@ -264,9 +277,9 @@ def user_state_path(
 
 
 def user_log_path(
-    appname: Optional[str] = None,
-    appauthor: Union[str, None, "Literal[False]"] = None,
-    version: Optional[str] = None,
+    appname: str | None = None,
+    appauthor: str | None | Literal[False] = None,
+    version: str | None = None,
     opinion: bool = True,
 ) -> Path:
     """
@@ -287,9 +300,9 @@ def user_documents_path() -> Path:
 
 
 def user_runtime_path(
-    appname: Optional[str] = None,
-    appauthor: Union[str, None, "Literal[False]"] = None,
-    version: Optional[str] = None,
+    appname: str | None = None,
+    appauthor: str | None | Literal[False] = None,
+    version: str | None = None,
     opinion: bool = True,
 ) -> Path:
     """

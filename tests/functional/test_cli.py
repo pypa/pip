@@ -4,6 +4,8 @@ from textwrap import dedent
 
 import pytest
 
+from tests.lib import PipTestEnvironment
+
 
 @pytest.mark.parametrize(
     "entrypoint",
@@ -13,7 +15,10 @@ import pytest
         ("fake_pip = pip:main",),
     ],
 )
-def test_entrypoints_work(entrypoint, script):
+def test_entrypoints_work(entrypoint: str, script: PipTestEnvironment) -> None:
+    if script.zipapp:
+        pytest.skip("Zipapp does not include entrypoints")
+
     fake_pkg = script.temp_path / "fake_pkg"
     fake_pkg.mkdir()
     fake_pkg.joinpath("setup.py").write_text(

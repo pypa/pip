@@ -1,17 +1,19 @@
 import itertools
 import os
+import sys
 import textwrap
+from pathlib import Path
 
 import pytest
 
 from tests.lib import pyversion  # noqa: F401
-from tests.lib import assert_all_changes
+from tests.lib import PipTestEnvironment, ResolverVariant, TestData, assert_all_changes
 from tests.lib.local_repos import local_checkout
 from tests.lib.wheel import make_wheel
 
 
 @pytest.mark.network
-def test_no_upgrade_unless_requested(script):
+def test_no_upgrade_unless_requested(script: PipTestEnvironment) -> None:
     """
     No upgrade if not specifically requested.
 
@@ -23,7 +25,7 @@ def test_no_upgrade_unless_requested(script):
     ), "pip install INITools upgraded when it should not have"
 
 
-def test_invalid_upgrade_strategy_causes_error(script):
+def test_invalid_upgrade_strategy_causes_error(script: PipTestEnvironment) -> None:
     """
     It errors out when the upgrade-strategy is an invalid/unrecognised one
 
@@ -37,7 +39,9 @@ def test_invalid_upgrade_strategy_causes_error(script):
 
 
 @pytest.mark.usefixtures("with_wheel")
-def test_only_if_needed_does_not_upgrade_deps_when_satisfied(script, resolver_variant):
+def test_only_if_needed_does_not_upgrade_deps_when_satisfied(
+    script: PipTestEnvironment, resolver_variant: ResolverVariant
+) -> None:
     """
     It doesn't upgrade a dependency if it already satisfies the requirements.
 
@@ -63,7 +67,9 @@ def test_only_if_needed_does_not_upgrade_deps_when_satisfied(script, resolver_va
 
 
 @pytest.mark.usefixtures("with_wheel")
-def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(script):
+def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(
+    script: PipTestEnvironment,
+) -> None:
     """
     It does upgrade a dependency if it no longer satisfies the requirements.
 
@@ -83,7 +89,9 @@ def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(script):
 
 
 @pytest.mark.usefixtures("with_wheel")
-def test_eager_does_upgrade_dependencies_when_currently_satisfied(script):
+def test_eager_does_upgrade_dependencies_when_currently_satisfied(
+    script: PipTestEnvironment,
+) -> None:
     """
     It does upgrade a dependency even if it already satisfies the requirements.
 
@@ -102,7 +110,9 @@ def test_eager_does_upgrade_dependencies_when_currently_satisfied(script):
 
 
 @pytest.mark.usefixtures("with_wheel")
-def test_eager_does_upgrade_dependencies_when_no_longer_satisfied(script):
+def test_eager_does_upgrade_dependencies_when_no_longer_satisfied(
+    script: PipTestEnvironment,
+) -> None:
     """
     It does upgrade a dependency if it no longer satisfies the requirements.
 
@@ -126,7 +136,7 @@ def test_eager_does_upgrade_dependencies_when_no_longer_satisfied(script):
 
 @pytest.mark.network
 @pytest.mark.usefixtures("with_wheel")
-def test_upgrade_to_specific_version(script):
+def test_upgrade_to_specific_version(script: PipTestEnvironment) -> None:
     """
     It does upgrade to specific version requested.
 
@@ -140,7 +150,7 @@ def test_upgrade_to_specific_version(script):
 
 @pytest.mark.network
 @pytest.mark.usefixtures("with_wheel")
-def test_upgrade_if_requested(script):
+def test_upgrade_if_requested(script: PipTestEnvironment) -> None:
     """
     And it does upgrade if requested.
 
@@ -151,7 +161,9 @@ def test_upgrade_if_requested(script):
     result.did_not_create(script.site_packages / "INITools-0.1.dist-info")
 
 
-def test_upgrade_with_newest_already_installed(script, data, resolver_variant):
+def test_upgrade_with_newest_already_installed(
+    script: PipTestEnvironment, data: TestData, resolver_variant: ResolverVariant
+) -> None:
     """
     If the newest version of a package is already installed, the package should
     not be reinstalled and the user should be informed.
@@ -169,7 +181,7 @@ def test_upgrade_with_newest_already_installed(script, data, resolver_variant):
 
 
 @pytest.mark.network
-def test_upgrade_force_reinstall_newest(script):
+def test_upgrade_force_reinstall_newest(script: PipTestEnvironment) -> None:
     """
     Force reinstallation of a package even if it is already at its newest
     version if --force-reinstall is supplied.
@@ -183,7 +195,7 @@ def test_upgrade_force_reinstall_newest(script):
 
 
 @pytest.mark.network
-def test_uninstall_before_upgrade(script):
+def test_uninstall_before_upgrade(script: PipTestEnvironment) -> None:
     """
     Automatic uninstall-before-upgrade.
 
@@ -197,7 +209,7 @@ def test_uninstall_before_upgrade(script):
 
 
 @pytest.mark.network
-def test_uninstall_before_upgrade_from_url(script):
+def test_uninstall_before_upgrade_from_url(script: PipTestEnvironment) -> None:
     """
     Automatic uninstall-before-upgrade from URL.
 
@@ -215,7 +227,7 @@ def test_uninstall_before_upgrade_from_url(script):
 
 
 @pytest.mark.network
-def test_upgrade_to_same_version_from_url(script):
+def test_upgrade_to_same_version_from_url(script: PipTestEnvironment) -> None:
     """
     When installing from a URL the same version that is already installed, no
     need to uninstall and reinstall if --upgrade is not specified.
@@ -236,7 +248,7 @@ def test_upgrade_to_same_version_from_url(script):
 
 
 @pytest.mark.network
-def test_upgrade_from_reqs_file(script):
+def test_upgrade_from_reqs_file(script: PipTestEnvironment) -> None:
     """
     Upgrade from a requirements file.
 
@@ -271,7 +283,7 @@ def test_upgrade_from_reqs_file(script):
     )
 
 
-def test_uninstall_rollback(script, data):
+def test_uninstall_rollback(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test uninstall-rollback (using test package with a setup.py
     crafted to fail on install).
@@ -301,7 +313,7 @@ def test_uninstall_rollback(script, data):
 
 @pytest.mark.network
 @pytest.mark.usefixtures("with_wheel")
-def test_should_not_install_always_from_cache(script):
+def test_should_not_install_always_from_cache(script: PipTestEnvironment) -> None:
     """
     If there is an old cached package, pip should download the newer version
     Related to issue #175
@@ -315,7 +327,7 @@ def test_should_not_install_always_from_cache(script):
 
 @pytest.mark.network
 @pytest.mark.usefixtures("with_wheel")
-def test_install_with_ignoreinstalled_requested(script):
+def test_install_with_ignoreinstalled_requested(script: PipTestEnvironment) -> None:
     """
     Test old conflicting package is completely ignored
     """
@@ -328,7 +340,9 @@ def test_install_with_ignoreinstalled_requested(script):
 
 
 @pytest.mark.network
-def test_upgrade_vcs_req_with_no_dists_found(script, tmpdir):
+def test_upgrade_vcs_req_with_no_dists_found(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
     """It can upgrade a VCS requirement that has no distributions otherwise."""
     req = "{checkout}#egg=pip-test-package".format(
         checkout=local_checkout(
@@ -342,13 +356,13 @@ def test_upgrade_vcs_req_with_no_dists_found(script, tmpdir):
 
 
 @pytest.mark.network
-def test_upgrade_vcs_req_with_dist_found(script):
+def test_upgrade_vcs_req_with_dist_found(script: PipTestEnvironment) -> None:
     """It can upgrade a VCS requirement that has distributions on the index."""
     # TODO(pnasrat) Using local_checkout fails on windows - oddness with the
     # test path urls/git.
     req = "{url}#egg=pretend".format(
         url=(
-            "git+git://github.com/alex/pretend@e7f26ad7dbcb4a02a4995aade4"
+            "git+https://github.com/alex/pretend@e7f26ad7dbcb4a02a4995aade4"
             "743aad47656b27"
         ),
     )
@@ -366,7 +380,9 @@ def test_upgrade_vcs_req_with_dist_found(script):
         )
     ),
 )
-def test_install_find_existing_package_canonicalize(script, req1, req2):
+def test_install_find_existing_package_canonicalize(
+    script: PipTestEnvironment, req1: str, req2: str
+) -> None:
     """Ensure an already-installed dist is found no matter how the dist name
     was normalized on installation. (pypa/pip#8645)
     """
@@ -396,3 +412,14 @@ def test_install_find_existing_package_canonicalize(script, req1, req2):
     )
     satisfied_message = f"Requirement already satisfied: {req2}"
     assert satisfied_message in result.stdout, str(result)
+
+
+@pytest.mark.network
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows-only test")
+def test_modifying_pip_presents_error(script: PipTestEnvironment) -> None:
+    result = script.pip(
+        "install", "pip", "--force-reinstall", use_module=False, expect_error=True
+    )
+
+    assert "python.exe" in result.stderr or "python.EXE" in result.stderr, str(result)
+    assert " -m " in result.stderr, str(result)

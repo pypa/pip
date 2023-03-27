@@ -13,8 +13,8 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Generator,
     Iterable,
-    Iterator,
     List,
     Optional,
     Tuple,
@@ -69,7 +69,6 @@ SUPPORTED_OPTIONS: List[Callable[..., optparse.Option]] = [
 
 # options to be passed to requirements
 SUPPORTED_OPTIONS_REQ: List[Callable[..., optparse.Option]] = [
-    cmdoptions.install_options,
     cmdoptions.global_options,
     cmdoptions.hash,
 ]
@@ -129,7 +128,7 @@ def parse_requirements(
     finder: Optional["PackageFinder"] = None,
     options: Optional[optparse.Values] = None,
     constraint: bool = False,
-) -> Iterator[ParsedRequirement]:
+) -> Generator[ParsedRequirement, None, None]:
     """Parse a requirements file and yield ParsedRequirement instances.
 
     :param filename:    Path or url of requirements file.
@@ -186,10 +185,6 @@ def handle_requirement_line(
             constraint=line.constraint,
         )
     else:
-        if options:
-            # Disable wheels if the user has specified build options
-            cmdoptions.check_install_build_global(options, line.opts)
-
         # get the options that apply to requirements
         req_options = {}
         for dest in SUPPORTED_OPTIONS_REQ_DEST:
@@ -229,11 +224,13 @@ def handle_option_line(
     if finder:
         find_links = finder.find_links
         index_urls = finder.index_urls
-        if opts.index_url:
-            index_urls = [opts.index_url]
+        no_index = finder.search_scope.no_index
         if opts.no_index is True:
+            no_index = True
             index_urls = []
-        if opts.extra_index_urls:
+        if opts.index_url and not no_index:
+            index_urls = [opts.index_url]
+        if opts.extra_index_urls and not no_index:
             index_urls.extend(opts.extra_index_urls)
         if opts.find_links:
             # FIXME: it would be nice to keep track of the source
@@ -253,6 +250,7 @@ def handle_option_line(
         search_scope = SearchScope(
             find_links=find_links,
             index_urls=index_urls,
+            no_index=no_index,
         )
         finder.search_scope = search_scope
 
@@ -321,13 +319,15 @@ class RequirementsFileParser:
         self._session = session
         self._line_parser = line_parser
 
-    def parse(self, filename: str, constraint: bool) -> Iterator[ParsedLine]:
+    def parse(
+        self, filename: str, constraint: bool
+    ) -> Generator[ParsedLine, None, None]:
         """Parse a given file, yielding parsed lines."""
         yield from self._parse_and_recurse(filename, constraint)
 
     def _parse_and_recurse(
         self, filename: str, constraint: bool
-    ) -> Iterator[ParsedLine]:
+    ) -> Generator[ParsedLine, None, None]:
         for line in self._parse_file(filename, constraint):
             if not line.is_requirement and (
                 line.opts.requirements or line.opts.constraints
@@ -356,7 +356,9 @@ class RequirementsFileParser:
             else:
                 yield line
 
-    def _parse_file(self, filename: str, constraint: bool) -> Iterator[ParsedLine]:
+    def _parse_file(
+        self, filename: str, constraint: bool
+    ) -> Generator[ParsedLine, None, None]:
         _, content = get_file_content(filename, self._session)
 
         lines_enum = preprocess(content)
@@ -390,7 +392,12 @@ def get_line_parser(finder: Optional["PackageFinder"]) -> LineParser:
 
         args_str, options_str = break_args_options(line)
 
-        opts, _ = parser.parse_args(shlex.split(options_str), defaults)
+        try:
+            options = shlex.split(options_str)
+        except ValueError as e:
+            raise OptionParsingError(f"Could not split options: {options_str}") from e
+
+        opts, _ = parser.parse_args(options, defaults)
 
         return args_str, opts
 

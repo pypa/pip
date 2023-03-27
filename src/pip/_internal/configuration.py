@@ -36,12 +36,20 @@ ENV_NAMES_IGNORED = "version", "help"
 kinds = enum(
     USER="user",  # User Specific
     GLOBAL="global",  # System Wide
-    SITE="site",  # [Virtual] Environment Specific
+    BASE="base",  # Base environment specific (e.g. for all venvs with the same base)
+    SITE="site",  # Environment Specific (e.g. per venv)
     ENV="env",  # from PIP_CONFIG_FILE
     ENV_VAR="env-var",  # from Environment Variables
 )
-OVERRIDE_ORDER = kinds.GLOBAL, kinds.USER, kinds.SITE, kinds.ENV, kinds.ENV_VAR
-VALID_LOAD_ONLY = kinds.USER, kinds.GLOBAL, kinds.SITE
+OVERRIDE_ORDER = (
+    kinds.GLOBAL,
+    kinds.USER,
+    kinds.BASE,
+    kinds.SITE,
+    kinds.ENV,
+    kinds.ENV_VAR,
+)
+VALID_LOAD_ONLY = kinds.USER, kinds.GLOBAL, kinds.BASE, kinds.SITE
 
 logger = getLogger(__name__)
 
@@ -70,6 +78,7 @@ def get_configuration_files() -> Dict[Kind, List[str]]:
         os.path.join(path, CONFIG_BASENAME) for path in appdirs.site_config_dirs("pip")
     ]
 
+    base_config_file = os.path.join(sys.base_prefix, CONFIG_BASENAME)
     site_config_file = os.path.join(sys.prefix, CONFIG_BASENAME)
     legacy_config_file = os.path.join(
         os.path.expanduser("~"),
@@ -78,6 +87,7 @@ def get_configuration_files() -> Dict[Kind, List[str]]:
     )
     new_config_file = os.path.join(appdirs.user_config_dir("pip"), CONFIG_BASENAME)
     return {
+        kinds.BASE: [base_config_file],
         kinds.GLOBAL: global_config_files,
         kinds.SITE: [site_config_file],
         kinds.USER: [legacy_config_file, new_config_file],
@@ -142,13 +152,19 @@ class Configuration:
 
     def get_value(self, key: str) -> Any:
         """Get a value from the configuration."""
+        orig_key = key
+        key = _normalize_name(key)
         try:
             return self._dictionary[key]
         except KeyError:
-            raise ConfigurationError(f"No such key - {key}")
+            # disassembling triggers a more useful error message than simply
+            # "No such key" in the case that the key isn't in the form command.option
+            _disassemble_key(key)
+            raise ConfigurationError(f"No such key - {orig_key}")
 
     def set_value(self, key: str, value: Any) -> None:
         """Modify a value in the configuration."""
+        key = _normalize_name(key)
         self._ensure_have_load_only()
 
         assert self.load_only
@@ -167,11 +183,13 @@ class Configuration:
 
     def unset_value(self, key: str) -> None:
         """Unset a value in the configuration."""
+        orig_key = key
+        key = _normalize_name(key)
         self._ensure_have_load_only()
 
         assert self.load_only
         if key not in self._config[self.load_only]:
-            raise ConfigurationError(f"No such key - {key}")
+            raise ConfigurationError(f"No such key - {orig_key}")
 
         fname, parser = self._get_parser_to_modify()
 
@@ -335,6 +353,8 @@ class Configuration:
         if should_load_user_config:
             # The legacy config file is overridden by the new config file
             yield kinds.USER, config_files[kinds.USER]
+
+        yield kinds.BASE, config_files[kinds.BASE]
 
         # finally virtualenv configuration first trumping others
         yield kinds.SITE, config_files[kinds.SITE]

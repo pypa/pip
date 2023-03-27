@@ -1,24 +1,28 @@
+import base64
 import csv
-import distutils
-import glob
+import hashlib
 import os
 import shutil
+import sysconfig
+from pathlib import Path
+from typing import Any
 
 import pytest
 
-from tests.lib import create_basic_wheel_for_package
-from tests.lib.path import Path
-from tests.lib.wheel import make_wheel
+from tests.lib import PipTestEnvironment, TestData, create_basic_wheel_for_package
+from tests.lib.wheel import WheelBuilder, make_wheel
 
 
 # assert_installed expects a package subdirectory, so give it to them
-def make_wheel_with_file(name, version, **kwargs):
+def make_wheel_with_file(name: str, version: str, **kwargs: Any) -> WheelBuilder:
     extra_files = kwargs.setdefault("extra_files", {})
     extra_files[f"{name}/__init__.py"] = "# example"
     return make_wheel(name=name, version=version, **kwargs)
 
 
-def test_install_from_future_wheel_version(script, tmpdir):
+def test_install_from_future_wheel_version(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
     """
     Test installing a wheel with a WHEEL metadata version that is:
     - a major version ahead of what we expect (not ok), and
@@ -45,19 +49,30 @@ def test_install_from_future_wheel_version(script, tmpdir):
     result.assert_installed("futurewheel", without_egg_link=True, editable=False)
 
 
-def test_install_from_broken_wheel(script, data):
+@pytest.mark.parametrize(
+    "wheel_name",
+    [
+        "brokenwheel-1.0-py2.py3-none-any.whl",
+        "corruptwheel-1.0-py2.py3-none-any.whl",
+    ],
+)
+def test_install_from_broken_wheel(
+    script: PipTestEnvironment, data: TestData, wheel_name: str
+) -> None:
     """
     Test that installing a broken wheel fails properly
     """
     from tests.lib import TestFailure
 
-    package = data.packages.joinpath("brokenwheel-1.0-py2.py3-none-any.whl")
+    package = data.packages.joinpath(wheel_name)
     result = script.pip("install", package, "--no-index", expect_error=True)
     with pytest.raises(TestFailure):
         result.assert_installed("futurewheel", without_egg_link=True, editable=False)
 
 
-def test_basic_install_from_wheel(script, shared_data, tmpdir):
+def test_basic_install_from_wheel(
+    script: PipTestEnvironment, shared_data: TestData, tmpdir: Path
+) -> None:
     """
     Test installing from a wheel (that has a script)
     """
@@ -75,7 +90,9 @@ def test_basic_install_from_wheel(script, shared_data, tmpdir):
     result.did_create(script_file)
 
 
-def test_basic_install_from_wheel_with_extras(script, shared_data, tmpdir):
+def test_basic_install_from_wheel_with_extras(
+    script: PipTestEnvironment, shared_data: TestData, tmpdir: Path
+) -> None:
     """
     Test installing from a wheel with extras.
     """
@@ -94,7 +111,9 @@ def test_basic_install_from_wheel_with_extras(script, shared_data, tmpdir):
     result.did_create(dist_info_folder)
 
 
-def test_basic_install_from_wheel_file(script, data):
+def test_basic_install_from_wheel_file(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Test installing directly from a wheel file.
     """
@@ -113,7 +132,9 @@ def test_basic_install_from_wheel_file(script, data):
 
 # Installation seems to work, but scripttest fails to check.
 # I really don't care now since we're desupporting it soon anyway.
-def test_basic_install_from_unicode_wheel(script, data):
+def test_basic_install_from_unicode_wheel(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Test installing from a wheel (that has a script)
     """
@@ -143,7 +164,9 @@ def test_basic_install_from_unicode_wheel(script, data):
     result.did_create(file2)
 
 
-def get_header_scheme_path_for_script(script, dist_name):
+def get_header_scheme_path_for_script(
+    script: PipTestEnvironment, dist_name: str
+) -> Path:
     command = (
         "from pip._internal.locations import get_scheme;"
         "scheme = get_scheme({!r});"
@@ -153,7 +176,7 @@ def get_header_scheme_path_for_script(script, dist_name):
     return Path(result.strip())
 
 
-def test_install_from_wheel_with_headers(script):
+def test_install_from_wheel_with_headers(script: PipTestEnvironment) -> None:
     """
     Test installing from a wheel file with headers
     """
@@ -173,7 +196,9 @@ def test_install_from_wheel_with_headers(script):
 
 
 @pytest.mark.usefixtures("with_wheel")
-def test_install_wheel_with_target(script, shared_data, tmpdir):
+def test_install_wheel_with_target(
+    script: PipTestEnvironment, shared_data: TestData, tmpdir: Path
+) -> None:
     """
     Test installing a wheel using pip install --target
     """
@@ -192,7 +217,9 @@ def test_install_wheel_with_target(script, shared_data, tmpdir):
 
 
 @pytest.mark.usefixtures("with_wheel")
-def test_install_wheel_with_target_and_data_files(script, data):
+def test_install_wheel_with_target_and_data_files(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Test for issue #4092. It will be checked that a data_files specification in
     setup.py is handled correctly when a wheel is installed with the --target
@@ -220,7 +247,9 @@ def test_install_wheel_with_target_and_data_files(script, data):
     result.did_not_create(project_path / "lib" / "python")
 
 
-def test_install_wheel_with_root(script, shared_data, tmpdir):
+def test_install_wheel_with_root(
+    script: PipTestEnvironment, shared_data: TestData, tmpdir: Path
+) -> None:
     """
     Test installing a wheel using pip install --root
     """
@@ -238,7 +267,9 @@ def test_install_wheel_with_root(script, shared_data, tmpdir):
     result.did_create(Path("scratch") / "root")
 
 
-def test_install_wheel_with_prefix(script, shared_data, tmpdir):
+def test_install_wheel_with_prefix(
+    script: PipTestEnvironment, shared_data: TestData, tmpdir: Path
+) -> None:
     """
     Test installing a wheel using pip install --prefix
     """
@@ -253,11 +284,15 @@ def test_install_wheel_with_prefix(script, shared_data, tmpdir):
         "--find-links",
         tmpdir,
     )
-    lib = distutils.sysconfig.get_python_lib(prefix=Path("scratch") / "prefix")
+    lib = sysconfig.get_path(
+        "purelib", vars={"base": os.path.join("scratch", "prefix")}
+    )
     result.did_create(lib)
 
 
-def test_install_from_wheel_installs_deps(script, data, tmpdir):
+def test_install_from_wheel_installs_deps(
+    script: PipTestEnvironment, data: TestData, tmpdir: Path
+) -> None:
     """
     Test can install dependencies of wheels
     """
@@ -274,7 +309,9 @@ def test_install_from_wheel_installs_deps(script, data, tmpdir):
     result.assert_installed("source", editable=False)
 
 
-def test_install_from_wheel_no_deps(script, data, tmpdir):
+def test_install_from_wheel_no_deps(
+    script: PipTestEnvironment, data: TestData, tmpdir: Path
+) -> None:
     """
     Test --no-deps works with wheel installs
     """
@@ -293,7 +330,9 @@ def test_install_from_wheel_no_deps(script, data, tmpdir):
     result.did_not_create(pkg_folder)
 
 
-def test_wheel_record_lines_in_deterministic_order(script, data):
+def test_wheel_record_lines_in_deterministic_order(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     to_install = data.packages.joinpath("simplewheel-1.0-py2.py3-none-any.whl")
     result = script.pip("install", to_install)
 
@@ -308,7 +347,9 @@ def test_wheel_record_lines_in_deterministic_order(script, data):
     assert record_lines == sorted(record_lines)
 
 
-def test_wheel_record_lines_have_hash_for_data_files(script):
+def test_wheel_record_lines_have_hash_for_data_files(
+    script: PipTestEnvironment,
+) -> None:
     package = make_wheel(
         "simple",
         "0.1.0",
@@ -327,9 +368,48 @@ def test_wheel_record_lines_have_hash_for_data_files(script):
     ]
 
 
-@pytest.mark.incompatible_with_test_venv
-@pytest.mark.usefixtures("with_wheel")
-def test_install_user_wheel(script, shared_data, tmpdir):
+def test_wheel_record_lines_have_updated_hash_for_scripts(
+    script: PipTestEnvironment,
+) -> None:
+    """
+    pip rewrites "#!python" shebang lines in scripts when it installs them;
+    make sure it updates the RECORD file correspondingly.
+    """
+    package = make_wheel(
+        "simple",
+        "0.1.0",
+        extra_data_files={
+            "scripts/dostuff": "#!python\n",
+        },
+    ).save_to_dir(script.scratch_path)
+    script.pip("install", package)
+    record_file = script.site_packages_path / "simple-0.1.0.dist-info" / "RECORD"
+    record_text = record_file.read_text()
+    record_rows = list(csv.reader(record_text.splitlines()))
+    records = {r[0]: r[1:] for r in record_rows}
+
+    script_path = script.bin_path / "dostuff"
+    script_contents = script_path.read_bytes()
+    assert not script_contents.startswith(b"#!python\n")
+
+    script_digest = hashlib.sha256(script_contents).digest()
+    script_digest_b64 = (
+        base64.urlsafe_b64encode(script_digest).decode("US-ASCII").rstrip("=")
+    )
+
+    script_record_path = os.path.relpath(
+        script_path, script.site_packages_path
+    ).replace(os.path.sep, "/")
+    assert records[script_record_path] == [
+        f"sha256={script_digest_b64}",
+        str(len(script_contents)),
+    ]
+
+
+@pytest.mark.usefixtures("enable_user_site", "with_wheel")
+def test_install_user_wheel(
+    script: PipTestEnvironment, shared_data: TestData, tmpdir: Path
+) -> None:
     """
     Test user install from wheel (that has a script)
     """
@@ -348,7 +428,9 @@ def test_install_user_wheel(script, shared_data, tmpdir):
     result.did_create(script_file)
 
 
-def test_install_from_wheel_gen_entrypoint(script, shared_data, tmpdir):
+def test_install_from_wheel_gen_entrypoint(
+    script: PipTestEnvironment, shared_data: TestData, tmpdir: Path
+) -> None:
     """
     Test installing scripts (entry points are generated)
     """
@@ -373,7 +455,9 @@ def test_install_from_wheel_gen_entrypoint(script, shared_data, tmpdir):
         assert bool(os.access(script.base_path / wrapper_file, os.X_OK))
 
 
-def test_install_from_wheel_gen_uppercase_entrypoint(script, shared_data, tmpdir):
+def test_install_from_wheel_gen_uppercase_entrypoint(
+    script: PipTestEnvironment, shared_data: TestData, tmpdir: Path
+) -> None:
     """
     Test installing scripts with uppercase letters in entry point names
     """
@@ -399,7 +483,7 @@ def test_install_from_wheel_gen_uppercase_entrypoint(script, shared_data, tmpdir
         assert bool(os.access(script.base_path / wrapper_file, os.X_OK))
 
 
-def test_install_from_wheel_gen_unicode_entrypoint(script):
+def test_install_from_wheel_gen_unicode_entrypoint(script: PipTestEnvironment) -> None:
     make_wheel(
         "script_wheel_unicode",
         "1.0",
@@ -419,7 +503,9 @@ def test_install_from_wheel_gen_unicode_entrypoint(script):
         result.did_create(script.bin.joinpath("進入點"))
 
 
-def test_install_from_wheel_with_legacy(script, shared_data, tmpdir):
+def test_install_from_wheel_with_legacy(
+    script: PipTestEnvironment, shared_data: TestData, tmpdir: Path
+) -> None:
     """
     Test installing scripts (legacy scripts are preserved)
     """
@@ -442,7 +528,9 @@ def test_install_from_wheel_with_legacy(script, shared_data, tmpdir):
     result.did_create(legacy_file2)
 
 
-def test_install_from_wheel_no_setuptools_entrypoint(script, shared_data, tmpdir):
+def test_install_from_wheel_no_setuptools_entrypoint(
+    script: PipTestEnvironment, shared_data: TestData, tmpdir: Path
+) -> None:
     """
     Test that when we generate scripts, any existing setuptools wrappers in
     the wheel are skipped.
@@ -470,7 +558,9 @@ def test_install_from_wheel_no_setuptools_entrypoint(script, shared_data, tmpdir
     result.did_not_create(wrapper_helper)
 
 
-def test_skipping_setuptools_doesnt_skip_legacy(script, shared_data, tmpdir):
+def test_skipping_setuptools_doesnt_skip_legacy(
+    script: PipTestEnvironment, shared_data: TestData, tmpdir: Path
+) -> None:
     """
     Test installing scripts (legacy scripts are preserved even when we skip
     setuptools wrappers)
@@ -493,7 +583,9 @@ def test_skipping_setuptools_doesnt_skip_legacy(script, shared_data, tmpdir):
     result.did_not_create(wrapper_helper)
 
 
-def test_install_from_wheel_gui_entrypoint(script, shared_data, tmpdir):
+def test_install_from_wheel_gui_entrypoint(
+    script: PipTestEnvironment, shared_data: TestData, tmpdir: Path
+) -> None:
     """
     Test installing scripts (gui entry points are generated)
     """
@@ -512,7 +604,9 @@ def test_install_from_wheel_gui_entrypoint(script, shared_data, tmpdir):
     result.did_create(wrapper_file)
 
 
-def test_wheel_compiles_pyc(script, shared_data, tmpdir):
+def test_wheel_compiles_pyc(
+    script: PipTestEnvironment, shared_data: TestData, tmpdir: Path
+) -> None:
     """
     Test installing from wheel with --compile on
     """
@@ -529,16 +623,14 @@ def test_wheel_compiles_pyc(script, shared_data, tmpdir):
     #   any of them
     exists = [
         os.path.exists(script.site_packages_path / "simpledist/__init__.pyc"),
+        *script.site_packages_path.glob("simpledist/__pycache__/__init__*.pyc"),
     ]
-
-    exists += glob.glob(
-        script.site_packages_path / "simpledist/__pycache__/__init__*.pyc"
-    )
-
     assert any(exists)
 
 
-def test_wheel_no_compiles_pyc(script, shared_data, tmpdir):
+def test_wheel_no_compiles_pyc(
+    script: PipTestEnvironment, shared_data: TestData, tmpdir: Path
+) -> None:
     """
     Test installing from wheel with --compile on
     """
@@ -555,16 +647,15 @@ def test_wheel_no_compiles_pyc(script, shared_data, tmpdir):
     #   any of them
     exists = [
         os.path.exists(script.site_packages_path / "simpledist/__init__.pyc"),
+        *script.site_packages_path.glob("simpledist/__pycache__/__init__*.pyc"),
     ]
-
-    exists += glob.glob(
-        script.site_packages_path / "simpledist/__pycache__/__init__*.pyc"
-    )
 
     assert not any(exists)
 
 
-def test_install_from_wheel_uninstalls_old_version(script, data):
+def test_install_from_wheel_uninstalls_old_version(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     # regression test for https://github.com/pypa/pip/issues/1825
     package = data.packages.joinpath("simplewheel-1.0-py2.py3-none-any.whl")
     result = script.pip("install", package, "--no-index")
@@ -576,21 +667,23 @@ def test_install_from_wheel_uninstalls_old_version(script, data):
     result.did_not_create(dist_info_folder)
 
 
-def test_wheel_compile_syntax_error(script, data):
+def test_wheel_compile_syntax_error(script: PipTestEnvironment, data: TestData) -> None:
     package = data.packages.joinpath("compilewheel-1.0-py2.py3-none-any.whl")
     result = script.pip("install", "--compile", package, "--no-index")
     assert "yield from" not in result.stdout
     assert "SyntaxError: " not in result.stdout
 
 
-def test_wheel_install_with_no_cache_dir(script, data):
+def test_wheel_install_with_no_cache_dir(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """Check wheel installations work, even with no cache."""
     package = data.packages.joinpath("simple.dist-0.1-py2.py3-none-any.whl")
     result = script.pip("install", "--no-cache-dir", "--no-index", package)
     result.assert_installed("simpledist", editable=False)
 
 
-def test_wheel_install_fails_with_extra_dist_info(script):
+def test_wheel_install_fails_with_extra_dist_info(script: PipTestEnvironment) -> None:
     package = create_basic_wheel_for_package(
         script,
         "simple",
@@ -606,11 +699,13 @@ def test_wheel_install_fails_with_extra_dist_info(script):
     assert "multiple .dist-info directories" in result.stderr
 
 
-def test_wheel_install_fails_with_unrelated_dist_info(script):
+def test_wheel_install_fails_with_unrelated_dist_info(
+    script: PipTestEnvironment,
+) -> None:
     package = create_basic_wheel_for_package(script, "simple", "0.1.0")
     new_name = "unrelated-2.0.0-py2.py3-none-any.whl"
     new_package = os.path.join(os.path.dirname(package), new_name)
-    shutil.move(package, new_package)
+    shutil.move(os.fspath(package), new_package)
 
     result = script.pip(
         "install",
@@ -623,7 +718,7 @@ def test_wheel_install_fails_with_unrelated_dist_info(script):
     assert "'simple-0.1.0.dist-info' does not start with 'unrelated'" in result.stderr
 
 
-def test_wheel_installs_ok_with_nested_dist_info(script):
+def test_wheel_installs_ok_with_nested_dist_info(script: PipTestEnvironment) -> None:
     package = create_basic_wheel_for_package(
         script,
         "simple",
@@ -638,7 +733,9 @@ def test_wheel_installs_ok_with_nested_dist_info(script):
     script.pip("install", "--no-cache-dir", "--no-index", package)
 
 
-def test_wheel_installs_ok_with_badly_encoded_irrelevant_dist_info_file(script):
+def test_wheel_installs_ok_with_badly_encoded_irrelevant_dist_info_file(
+    script: PipTestEnvironment,
+) -> None:
     package = create_basic_wheel_for_package(
         script,
         "simple",
@@ -648,7 +745,9 @@ def test_wheel_installs_ok_with_badly_encoded_irrelevant_dist_info_file(script):
     script.pip("install", "--no-cache-dir", "--no-index", package)
 
 
-def test_wheel_install_fails_with_badly_encoded_metadata(script):
+def test_wheel_install_fails_with_badly_encoded_metadata(
+    script: PipTestEnvironment,
+) -> None:
     package = create_basic_wheel_for_package(
         script,
         "simple",
@@ -667,7 +766,9 @@ def test_wheel_install_fails_with_badly_encoded_metadata(script):
     "package_name",
     ["simple-package", "simple_package"],
 )
-def test_correct_package_name_while_creating_wheel_bug(script, package_name):
+def test_correct_package_name_while_creating_wheel_bug(
+    script: PipTestEnvironment, package_name: str
+) -> None:
     """Check that the package name is correctly named while creating
     a .whl file with a given format
     """
@@ -677,7 +778,9 @@ def test_correct_package_name_while_creating_wheel_bug(script, package_name):
 
 
 @pytest.mark.parametrize("name", ["purelib", "abc"])
-def test_wheel_with_file_in_data_dir_has_reasonable_error(script, tmpdir, name):
+def test_wheel_with_file_in_data_dir_has_reasonable_error(
+    script: PipTestEnvironment, tmpdir: Path, name: str
+) -> None:
     """Normally we expect entities in the .data directory to be in a
     subdirectory, but if they are not then we should show a reasonable error
     message that includes the path.
@@ -690,7 +793,9 @@ def test_wheel_with_file_in_data_dir_has_reasonable_error(script, tmpdir, name):
     assert f"simple-0.1.0.data/{name}" in result.stderr
 
 
-def test_wheel_with_unknown_subdir_in_data_dir_has_reasonable_error(script, tmpdir):
+def test_wheel_with_unknown_subdir_in_data_dir_has_reasonable_error(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
     wheel_path = make_wheel(
         "simple", "0.1.0", extra_data_files={"unknown/hello.txt": "hello world"}
     ).save_to_dir(tmpdir)

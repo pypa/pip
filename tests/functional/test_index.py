@@ -2,10 +2,11 @@ import pytest
 
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.commands import create_command
+from tests.lib import PipTestEnvironment
 
 
 @pytest.mark.network
-def test_list_all_versions_basic_search(script):
+def test_list_all_versions_basic_search(script: PipTestEnvironment) -> None:
     """
     End to end test of index versions command.
     """
@@ -27,7 +28,7 @@ def test_list_all_versions_basic_search(script):
 
 
 @pytest.mark.network
-def test_list_all_versions_search_with_pre(script):
+def test_list_all_versions_search_with_pre(script: PipTestEnvironment) -> None:
     """
     See that adding the --pre flag adds pre-releases
     """
@@ -49,7 +50,7 @@ def test_list_all_versions_search_with_pre(script):
 
 
 @pytest.mark.network
-def test_list_all_versions_returns_no_matches_found_when_name_not_exact():
+def test_list_all_versions_returns_no_matches_found_when_name_not_exact() -> None:
     """
     Test that non exact name do not match
     """
@@ -62,7 +63,7 @@ def test_list_all_versions_returns_no_matches_found_when_name_not_exact():
 
 
 @pytest.mark.network
-def test_list_all_versions_returns_matches_found_when_name_is_exact():
+def test_list_all_versions_returns_matches_found_when_name_is_exact() -> None:
     """
     Test that exact name matches
     """

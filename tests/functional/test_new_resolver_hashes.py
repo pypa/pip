@@ -3,8 +3,11 @@ import hashlib
 
 import pytest
 
-from pip._internal.utils.urls import path_to_url
-from tests.lib import create_basic_sdist_for_package, create_basic_wheel_for_package
+from tests.lib import (
+    PipTestEnvironment,
+    create_basic_sdist_for_package,
+    create_basic_wheel_for_package,
+)
 
 _FindLinks = collections.namedtuple(
     "_FindLinks",
@@ -12,7 +15,7 @@ _FindLinks = collections.namedtuple(
 )
 
 
-def _create_find_links(script):
+def _create_find_links(script: PipTestEnvironment) -> _FindLinks:
     sdist_path = create_basic_sdist_for_package(script, "base", "0.1.0")
     wheel_path = create_basic_wheel_for_package(script, "base", "0.1.0")
 
@@ -22,16 +25,17 @@ def _create_find_links(script):
     index_html = script.scratch_path / "index.html"
     index_html.write_text(
         """
+        <!DOCTYPE html>
         <a href="{sdist_url}#sha256={sdist_hash}">{sdist_path.stem}</a>
         <a href="{wheel_url}#sha256={wheel_hash}">{wheel_path.stem}</a>
         """.format(
-            sdist_url=path_to_url(sdist_path),
+            sdist_url=sdist_path.as_uri(),
             sdist_hash=sdist_hash,
             sdist_path=sdist_path,
-            wheel_url=path_to_url(wheel_path),
+            wheel_url=wheel_path.as_uri(),
             wheel_hash=wheel_hash,
             wheel_path=wheel_path,
-        )
+        ).strip()
     )
 
     return _FindLinks(index_html, sdist_hash, wheel_hash)
@@ -60,7 +64,9 @@ def _create_find_links(script):
     ],
     ids=["identical", "intersect"],
 )
-def test_new_resolver_hash_intersect(script, requirements_template, message):
+def test_new_resolver_hash_intersect(
+    script: PipTestEnvironment, requirements_template: str, message: str
+) -> None:
     find_links = _create_find_links(script)
 
     requirements_txt = script.scratch_path / "requirements.txt"
@@ -86,7 +92,9 @@ def test_new_resolver_hash_intersect(script, requirements_template, message):
     assert message.format(name="base") in result.stdout, str(result)
 
 
-def test_new_resolver_hash_intersect_from_constraint(script):
+def test_new_resolver_hash_intersect_from_constraint(
+    script: PipTestEnvironment,
+) -> None:
     find_links = _create_find_links(script)
 
     constraints_txt = script.scratch_path / "constraints.txt"
@@ -144,10 +152,10 @@ def test_new_resolver_hash_intersect_from_constraint(script):
     ids=["both-requirements", "one-each"],
 )
 def test_new_resolver_hash_intersect_empty(
-    script,
-    requirements_template,
-    constraints_template,
-):
+    script: PipTestEnvironment,
+    requirements_template: str,
+    constraints_template: str,
+) -> None:
     find_links = _create_find_links(script)
 
     constraints_txt = script.scratch_path / "constraints.txt"
@@ -185,7 +193,9 @@ def test_new_resolver_hash_intersect_empty(
     ) in result.stderr, str(result)
 
 
-def test_new_resolver_hash_intersect_empty_from_constraint(script):
+def test_new_resolver_hash_intersect_empty_from_constraint(
+    script: PipTestEnvironment,
+) -> None:
     find_links = _create_find_links(script)
 
     constraints_txt = script.scratch_path / "constraints.txt"
@@ -221,9 +231,9 @@ def test_new_resolver_hash_intersect_empty_from_constraint(script):
 
 @pytest.mark.parametrize("constrain_by_hash", [False, True])
 def test_new_resolver_hash_requirement_and_url_constraint_can_succeed(
-    script,
-    constrain_by_hash,
-):
+    script: PipTestEnvironment,
+    constrain_by_hash: bool,
+) -> None:
     wheel_path = create_basic_wheel_for_package(script, "base", "0.1.0")
 
     wheel_hash = hashlib.sha256(wheel_path.read_bytes()).hexdigest()
@@ -238,7 +248,7 @@ def test_new_resolver_hash_requirement_and_url_constraint_can_succeed(
     )
 
     constraints_txt = script.scratch_path / "constraints.txt"
-    constraint_text = "base @ {wheel_url}\n".format(wheel_url=path_to_url(wheel_path))
+    constraint_text = "base @ {wheel_url}\n".format(wheel_url=wheel_path.as_uri())
     if constrain_by_hash:
         constraint_text += "base==0.1.0 --hash=sha256:{wheel_hash}\n".format(
             wheel_hash=wheel_hash,
@@ -260,9 +270,9 @@ def test_new_resolver_hash_requirement_and_url_constraint_can_succeed(
 
 @pytest.mark.parametrize("constrain_by_hash", [False, True])
 def test_new_resolver_hash_requirement_and_url_constraint_can_fail(
-    script,
-    constrain_by_hash,
-):
+    script: PipTestEnvironment,
+    constrain_by_hash: bool,
+) -> None:
     wheel_path = create_basic_wheel_for_package(script, "base", "0.1.0")
     other_path = create_basic_wheel_for_package(script, "other", "0.1.0")
 
@@ -278,7 +288,7 @@ def test_new_resolver_hash_requirement_and_url_constraint_can_fail(
     )
 
     constraints_txt = script.scratch_path / "constraints.txt"
-    constraint_text = "base @ {wheel_url}\n".format(wheel_url=path_to_url(wheel_path))
+    constraint_text = "base @ {wheel_url}\n".format(wheel_url=wheel_path.as_uri())
     if constrain_by_hash:
         constraint_text += "base==0.1.0 --hash=sha256:{other_hash}\n".format(
             other_hash=other_hash,
@@ -301,3 +311,64 @@ def test_new_resolver_hash_requirement_and_url_constraint_can_fail(
     ) in result.stderr, str(result)
 
     script.assert_not_installed("base", "other")
+
+
+def test_new_resolver_hash_with_extras(script: PipTestEnvironment) -> None:
+    parent_with_extra_path = create_basic_wheel_for_package(
+        script, "parent_with_extra", "0.1.0", depends=["child[extra]"]
+    )
+    parent_with_extra_hash = hashlib.sha256(
+        parent_with_extra_path.read_bytes()
+    ).hexdigest()
+
+    parent_without_extra_path = create_basic_wheel_for_package(
+        script, "parent_without_extra", "0.1.0", depends=["child"]
+    )
+    parent_without_extra_hash = hashlib.sha256(
+        parent_without_extra_path.read_bytes()
+    ).hexdigest()
+
+    child_path = create_basic_wheel_for_package(
+        script, "child", "0.1.0", extras={"extra": ["extra"]}
+    )
+    child_hash = hashlib.sha256(child_path.read_bytes()).hexdigest()
+
+    # Newer release
+    create_basic_wheel_for_package(
+        script, "child", "0.2.0", extras={"extra": ["extra"]}
+    )
+
+    extra_path = create_basic_wheel_for_package(script, "extra", "0.1.0")
+    extra_hash = hashlib.sha256(extra_path.read_bytes()).hexdigest()
+
+    requirements_txt = script.scratch_path / "requirements.txt"
+    requirements_txt.write_text(
+        """
+        child[extra]==0.1.0 --hash=sha256:{child_hash}
+        parent_with_extra==0.1.0 --hash=sha256:{parent_with_extra_hash}
+        parent_without_extra==0.1.0 --hash=sha256:{parent_without_extra_hash}
+        extra==0.1.0 --hash=sha256:{extra_hash}
+        """.format(
+            child_hash=child_hash,
+            parent_with_extra_hash=parent_with_extra_hash,
+            parent_without_extra_hash=parent_without_extra_hash,
+            extra_hash=extra_hash,
+        ),
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "--requirement",
+        requirements_txt,
+    )
+
+    script.assert_installed(
+        parent_with_extra="0.1.0",
+        parent_without_extra="0.1.0",
+        child="0.1.0",
+        extra="0.1.0",
+    )

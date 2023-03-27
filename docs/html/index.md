@@ -48,3 +48,5 @@ lists or chat rooms:
 [packaging-discourse]: https://discuss.python.org/c/packaging/14
 [irc-pypa]: https://kiwiirc.com/nextclient/#ircs://irc.libera.chat:+6697/pypa
 [irc-pypa-dev]: https://kiwiirc.com/nextclient/#ircs://irc.libera.chat:+6697/pypa-dev
+
+If you find any security issues, please report to [security@python.org](mailto:security@python.org)

@@ -5,7 +5,11 @@ from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, Optional, Tuple, Uni
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.packaging.version import Version
 
-from pip._internal.exceptions import HashError, MetadataInconsistent
+from pip._internal.exceptions import (
+    HashError,
+    InstallationSubprocessError,
+    MetadataInconsistent,
+)
 from pip._internal.metadata import BaseDistribution
 from pip._internal.models.link import Link, links_equivalent
 from pip._internal.models.wheel import Wheel
@@ -14,6 +18,7 @@ from pip._internal.req.constructors import (
     install_req_from_line,
 )
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.direct_url_helpers import direct_url_from_link
 from pip._internal.utils.misc import normalize_version_info
 
 from .base import Candidate, CandidateVersion, Requirement, format_name
@@ -61,10 +66,10 @@ def make_install_req_from_link(
         isolated=template.isolated,
         constraint=template.constraint,
         options=dict(
-            install_options=template.install_options,
             global_options=template.global_options,
             hashes=template.hash_options,
         ),
+        config_settings=template.config_settings,
     )
     ireq.original_link = template.original_link
     ireq.link = link
@@ -84,18 +89,16 @@ def make_install_req_from_editable(
         constraint=template.constraint,
         permit_editable_wheels=template.permit_editable_wheels,
         options=dict(
-            install_options=template.install_options,
             global_options=template.global_options,
             hashes=template.hash_options,
         ),
+        config_settings=template.config_settings,
     )
 
 
 def _make_install_req_from_dist(
     dist: BaseDistribution, template: InstallRequirement
 ) -> InstallRequirement:
-    from pip._internal.metadata.pkg_resources import Distribution as _Dist
-
     if template.req:
         line = str(template.req)
     elif template.link:
@@ -110,12 +113,12 @@ def _make_install_req_from_dist(
         isolated=template.isolated,
         constraint=template.constraint,
         options=dict(
-            install_options=template.install_options,
             global_options=template.global_options,
             hashes=template.hash_options,
         ),
+        config_settings=template.config_settings,
     )
-    ireq.satisfied_by = cast(_Dist, dist)._dist
+    ireq.satisfied_by = dist
     return ireq
 
 
@@ -229,6 +232,11 @@ class _InstallRequirementBackedCandidate(Candidate):
             # offending line to the user.
             e.req = self._ireq
             raise
+        except InstallationSubprocessError as exc:
+            # The output has been presented already, so don't duplicate it.
+            exc.context = "See above for output."
+            raise
+
         self._check_metadata_consistency(dist)
         return dist
 
@@ -271,12 +279,17 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
                     version, wheel_version, name
                 )
 
-        if (
-            cache_entry is not None
-            and cache_entry.persistent
-            and template.link is template.original_link
-        ):
-            ireq.original_link_is_in_wheel_cache = True
+        if cache_entry is not None:
+            if cache_entry.persistent and template.link is template.original_link:
+                ireq.original_link_is_in_wheel_cache = True
+            if cache_entry.origin is not None:
+                ireq.download_info = cache_entry.origin
+            else:
+                # Legacy cache entry that does not have origin.json.
+                # download_info may miss the archive_info.hash field.
+                ireq.download_info = direct_url_from_link(
+                    source_link, link_is_in_wheel_cache=cache_entry.persistent
+                )
 
         super().__init__(
             link=link,

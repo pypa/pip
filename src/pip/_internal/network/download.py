@@ -1,6 +1,6 @@
 """Download files with progress indicators.
 """
-import cgi
+import email.message
 import logging
 import mimetypes
 import os
@@ -8,7 +8,7 @@ from typing import Iterable, Optional, Tuple
 
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 
-from pip._internal.cli.progress_bars import DownloadProgressProvider
+from pip._internal.cli.progress_bars import get_download_progress_renderer
 from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
@@ -65,7 +65,8 @@ def _prepare_download(
     if not show_progress:
         return chunks
 
-    return DownloadProgressProvider(progress_bar, max=total_length)(chunks)
+    renderer = get_download_progress_renderer(bar_type=progress_bar, size=total_length)
+    return renderer(chunks)
 
 
 def sanitize_content_filename(filename: str) -> str:
@@ -80,12 +81,13 @@ def parse_content_disposition(content_disposition: str, default_filename: str) -
     Parse the "filename" value from a Content-Disposition header, and
     return the default filename if the result is empty.
     """
-    _type, params = cgi.parse_header(content_disposition)
-    filename = params.get("filename")
+    m = email.message.Message()
+    m["content-type"] = content_disposition
+    filename = m.get_param("filename")
     if filename:
         # We need to sanitize the filename to prevent directory traversal
         # in case the filename contains ".." path parts.
-        filename = sanitize_content_filename(filename)
+        filename = sanitize_content_filename(str(filename))
     return filename or default_filename
 
 

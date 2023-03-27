@@ -7,5 +7,8 @@ interoperability standards that pip utilises/implements.
 :titlesonly:
 
 build-system/index
+requirement-specifiers
 requirements-file-format
+installation-report
+inspect-report
 ```

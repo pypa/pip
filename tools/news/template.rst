@@ -12,7 +12,6 @@
 {#- Heading for individual version #}
 {{ versiondata.version }} ({{ versiondata.date }})
 {{ top_underline * ((versiondata.version + versiondata.date)|length + 3) }}
-
 {#
 
   The following loop will run exactly once, with ``section_name == ""``.
@@ -30,9 +29,9 @@
 {# Heading for individual types #}
 {{ definitions[type_]['name'] }}
 {{ underlines[0] * definitions[type_]['name']|length }}
-
 {# This is the loop that generates individual entries #}
 {% for message, issue_reference in sections[section_name][type_]|dictsort(by='value') %}
+
 - {{ message }}
   {%- if type_ not in ["vendor", "process"] %} ({{ issue_reference|sort|join(', ') }}){% endif %}
 {% endfor %}

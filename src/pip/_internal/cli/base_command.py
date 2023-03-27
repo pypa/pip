@@ -10,6 +10,8 @@ import traceback
 from optparse import Values
 from typing import Any, Callable, List, Optional, Tuple
 
+from pip._vendor.rich import traceback as rich_traceback
+
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.command_context import CommandContextMixIn
 from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
@@ -22,6 +24,7 @@ from pip._internal.cli.status_codes import (
 from pip._internal.exceptions import (
     BadCommand,
     CommandError,
+    DiagnosticPipError,
     InstallationError,
     NetworkConnectionError,
     PreviousBuildDirError,
@@ -148,13 +151,6 @@ class Command(CommandContextMixIn):
                 )
                 options.cache_dir = None
 
-        if "2020-resolver" in options.features_enabled:
-            logger.warning(
-                "--use-feature=2020-resolver no longer has any effect, "
-                "since it is now the default dependency resolver in pip. "
-                "This will become an error in pip 21.0."
-            )
-
         def intercepts_unhandled_exc(
             run_func: Callable[..., int]
         ) -> Callable[..., int]:
@@ -164,6 +160,11 @@ class Command(CommandContextMixIn):
                     status = run_func(*args)
                     assert isinstance(status, int)
                     return status
+                except DiagnosticPipError as exc:
+                    logger.error("[present-rich] %s", exc)
+                    logger.debug("Exception information:", exc_info=True)
+
+                    return ERROR
                 except PreviousBuildDirError as exc:
                     logger.critical(str(exc))
                     logger.debug("Exception information:", exc_info=True)
@@ -209,6 +210,7 @@ class Command(CommandContextMixIn):
                 run = intercepts_unhandled_exc(self.run)
             else:
                 run = self.run
+                rich_traceback.install(show_locals=True)
             return run(options, args)
         finally:
             self.handle_pip_version_check(options)

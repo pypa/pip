@@ -15,7 +15,6 @@ from pip._internal.vcs.mercurial import Mercurial
 from pip._internal.vcs.subversion import Subversion
 from pip._internal.vcs.versioncontrol import RevOptions, VersionControl
 from tests.lib import is_svn_installed, need_svn
-from tests.lib.path import Path
 
 
 @pytest.mark.skipif(
@@ -201,7 +200,7 @@ def test_paths_are_not_mistaken_for_scp_shorthand(url: str, platform: str) -> No
             Git._git_remote_to_pip_url(url)
 
 
-def test_git_remote_local_path(tmpdir: Path) -> None:
+def test_git_remote_local_path(tmpdir: pathlib.Path) -> None:
     path = pathlib.Path(tmpdir, "project.git")
     path.mkdir()
     # Path must exist to be recognised as a local git remote.
@@ -764,12 +763,12 @@ class TestSubversionArgs(TestCase):
         assert self.call_subprocess_mock.call_args[0][0] == args
 
     def test_obtain(self) -> None:
-        self.svn.obtain(self.dest, hide_url(self.url))
+        self.svn.obtain(self.dest, hide_url(self.url), verbosity=0)
         self.assert_call_args(
             [
                 "svn",
                 "checkout",
-                "-q",
+                "--quiet",
                 "--non-interactive",
                 "--username",
                 "username",
@@ -781,12 +780,12 @@ class TestSubversionArgs(TestCase):
         )
 
     def test_fetch_new(self) -> None:
-        self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options)
+        self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options, verbosity=0)
         self.assert_call_args(
             [
                 "svn",
                 "checkout",
-                "-q",
+                "--quiet",
                 "--non-interactive",
                 hide_url("svn+http://username:password@svn.example.com/"),
                 "/tmp/test",
@@ -795,12 +794,12 @@ class TestSubversionArgs(TestCase):
 
     def test_fetch_new_revision(self) -> None:
         rev_options = RevOptions(Subversion, "123")
-        self.svn.fetch_new(self.dest, hide_url(self.url), rev_options)
+        self.svn.fetch_new(self.dest, hide_url(self.url), rev_options, verbosity=0)
         self.assert_call_args(
             [
                 "svn",
                 "checkout",
-                "-q",
+                "--quiet",
                 "--non-interactive",
                 "-r",
                 "123",

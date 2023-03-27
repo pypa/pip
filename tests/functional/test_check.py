@@ -1,7 +1,9 @@
-from tests.lib import create_test_package_with_setup
+from typing import Collection
+
+from tests.lib import PipTestEnvironment, create_test_package_with_setup
 
 
-def matches_expected_lines(string, expected_lines):
+def matches_expected_lines(string: str, expected_lines: Collection[str]) -> bool:
     # Ignore empty lines
     output_lines = list(filter(None, string.splitlines()))
     # We'll match the last n lines, given n lines to match.
@@ -10,7 +12,7 @@ def matches_expected_lines(string, expected_lines):
     return set(last_few_output_lines) == set(expected_lines)
 
 
-def test_basic_check_clean(script):
+def test_basic_check_clean(script: PipTestEnvironment) -> None:
     """On a clean environment, check should print a helpful message."""
     result = script.pip("check")
 
@@ -19,7 +21,7 @@ def test_basic_check_clean(script):
     assert result.returncode == 0
 
 
-def test_basic_check_missing_dependency(script):
+def test_basic_check_missing_dependency(script: PipTestEnvironment) -> None:
     # Setup a small project
     pkga_path = create_test_package_with_setup(
         script,
@@ -38,7 +40,7 @@ def test_basic_check_missing_dependency(script):
     assert result.returncode == 1
 
 
-def test_basic_check_broken_dependency(script):
+def test_basic_check_broken_dependency(script: PipTestEnvironment) -> None:
     # Setup pkga depending on pkgb>=1.0
     pkga_path = create_test_package_with_setup(
         script,
@@ -72,7 +74,9 @@ def test_basic_check_broken_dependency(script):
     assert result.returncode == 1
 
 
-def test_basic_check_broken_dependency_and_missing_dependency(script):
+def test_basic_check_broken_dependency_and_missing_dependency(
+    script: PipTestEnvironment,
+) -> None:
     pkga_path = create_test_package_with_setup(
         script,
         name="pkga",
@@ -105,7 +109,7 @@ def test_basic_check_broken_dependency_and_missing_dependency(script):
     assert result.returncode == 1
 
 
-def test_check_complicated_name_missing(script):
+def test_check_complicated_name_missing(script: PipTestEnvironment) -> None:
     package_a_path = create_test_package_with_setup(
         script,
         name="package_A",
@@ -123,7 +127,7 @@ def test_check_complicated_name_missing(script):
     assert result.returncode == 1
 
 
-def test_check_complicated_name_broken(script):
+def test_check_complicated_name_broken(script: PipTestEnvironment) -> None:
     package_a_path = create_test_package_with_setup(
         script,
         name="package_A",
@@ -157,7 +161,7 @@ def test_check_complicated_name_broken(script):
     assert result.returncode == 1
 
 
-def test_check_complicated_name_clean(script):
+def test_check_complicated_name_clean(script: PipTestEnvironment) -> None:
     package_a_path = create_test_package_with_setup(
         script,
         name="package_A",
@@ -187,7 +191,7 @@ def test_check_complicated_name_clean(script):
     assert result.returncode == 0
 
 
-def test_check_considers_conditional_reqs(script):
+def test_check_considers_conditional_reqs(script: PipTestEnvironment) -> None:
     package_a_path = create_test_package_with_setup(
         script,
         name="package_A",
@@ -207,7 +211,9 @@ def test_check_considers_conditional_reqs(script):
     assert result.returncode == 1
 
 
-def test_check_development_versions_are_also_considered(script):
+def test_check_development_versions_are_also_considered(
+    script: PipTestEnvironment,
+) -> None:
     # Setup pkga depending on pkgb>=1.0
     pkga_path = create_test_package_with_setup(
         script,
@@ -240,7 +246,7 @@ def test_check_development_versions_are_also_considered(script):
     assert result.returncode == 0
 
 
-def test_basic_check_broken_metadata(script):
+def test_basic_check_broken_metadata(script: PipTestEnvironment) -> None:
     # Create some corrupt metadata
     dist_info_dir = script.site_packages_path / "pkga-1.0.dist-info"
     dist_info_dir.mkdir()
@@ -258,7 +264,7 @@ def test_basic_check_broken_metadata(script):
     assert result.returncode == 1
 
 
-def test_check_skip_work_dir_pkg(script):
+def test_check_skip_work_dir_pkg(script: PipTestEnvironment) -> None:
     """
     Test that check should not include package
     present in working directory
@@ -280,7 +286,7 @@ def test_check_skip_work_dir_pkg(script):
     assert result.returncode == 0
 
 
-def test_check_include_work_dir_pkg(script):
+def test_check_include_work_dir_pkg(script: PipTestEnvironment) -> None:
     """
     Test that check should include package in working directory
     if working directory is added in PYTHONPATH

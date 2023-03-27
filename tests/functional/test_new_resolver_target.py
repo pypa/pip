@@ -1,13 +1,18 @@
+from pathlib import Path
+from typing import Callable, Optional
+
 import pytest
 
 from pip._internal.cli.status_codes import ERROR, SUCCESS
-from tests.lib.path import Path
+from tests.lib import PipTestEnvironment
 from tests.lib.wheel import make_wheel
+
+MakeFakeWheel = Callable[[str], str]
 
 
 @pytest.fixture()
-def make_fake_wheel(script):
-    def _make_fake_wheel(wheel_tag):
+def make_fake_wheel(script: PipTestEnvironment) -> MakeFakeWheel:
+    def _make_fake_wheel(wheel_tag: str) -> str:
         wheel_house = script.scratch_path.joinpath("wheelhouse")
         wheel_house.mkdir()
         wheel_builder = make_wheel(
@@ -17,7 +22,7 @@ def make_fake_wheel(script):
         )
         wheel_path = wheel_house.joinpath(f"fake-1.0-{wheel_tag}.whl")
         wheel_builder.save_to(wheel_path)
-        return wheel_path
+        return str(wheel_path)
 
     return _make_fake_wheel
 
@@ -27,13 +32,13 @@ def make_fake_wheel(script):
 @pytest.mark.parametrize("abi", [None, "fakeabi"])
 @pytest.mark.parametrize("platform", [None, "fakeplat"])
 def test_new_resolver_target_checks_compatibility_failure(
-    script,
-    make_fake_wheel,
-    implementation,
-    python_version,
-    abi,
-    platform,
-):
+    script: PipTestEnvironment,
+    make_fake_wheel: MakeFakeWheel,
+    implementation: Optional[str],
+    python_version: Optional[str],
+    abi: Optional[str],
+    platform: Optional[str],
+) -> None:
     fake_wheel_tag = "fakepy1-fakeabi-fakeplat"
     args = [
         "install",

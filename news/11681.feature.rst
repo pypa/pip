@@ -1,0 +1,4 @@
+The ``--config-settings``/``-C`` option now supports using the same key multiple
+times. When the same key is specified multiple times, all values are passed to
+the build backend as a list, as opposed to the previous behavior, where pip would
+only pass the last value if the same key was used multiple times.

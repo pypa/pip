@@ -9,8 +9,12 @@ from pip._internal.cli import cmdoptions
 from pip._internal.cli.req_command import RequirementCommand, with_cleanup
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.exceptions import CommandError
-from pip._internal.req.req_install import InstallRequirement
-from pip._internal.req.req_tracker import get_requirement_tracker
+from pip._internal.operations.build.build_tracker import get_build_tracker
+from pip._internal.req.req_install import (
+    InstallRequirement,
+    check_legacy_setup_py_options,
+)
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.misc import ensure_dir, normalize_path
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.wheel_builder import build, should_build_for_wheel_command
@@ -26,10 +30,8 @@ class WheelCommand(RequirementCommand):
     recompiling your software during every install. For more details, see the
     wheel docs: https://wheel.readthedocs.io/en/latest/
 
-    Requirements: setuptools>=0.8, and wheel.
-
-    'pip wheel' uses the bdist_wheel setuptools extension from the wheel
-    package to build individual wheels.
+    'pip wheel' uses the build system interface as described here:
+    https://pip.pypa.io/en/stable/reference/build-system/
 
     """
 
@@ -59,6 +61,7 @@ class WheelCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.no_build_isolation())
         self.cmd_opts.add_option(cmdoptions.use_pep517())
         self.cmd_opts.add_option(cmdoptions.no_use_pep517())
+        self.cmd_opts.add_option(cmdoptions.check_build_deps())
         self.cmd_opts.add_option(cmdoptions.constraints())
         self.cmd_opts.add_option(cmdoptions.editable())
         self.cmd_opts.add_option(cmdoptions.requirements())
@@ -75,6 +78,7 @@ class WheelCommand(RequirementCommand):
             help="Don't verify if built wheel is valid.",
         )
 
+        self.cmd_opts.add_option(cmdoptions.config_settings())
         self.cmd_opts.add_option(cmdoptions.build_options())
         self.cmd_opts.add_option(cmdoptions.global_options())
 
@@ -100,8 +104,6 @@ class WheelCommand(RequirementCommand):
 
     @with_cleanup
     def run(self, options: Values, args: List[str]) -> int:
-        cmdoptions.check_install_build_global(options)
-
         session = self.get_default_session(options)
 
         finder = self._build_package_finder(options, session)
@@ -110,7 +112,7 @@ class WheelCommand(RequirementCommand):
         options.wheel_dir = normalize_path(options.wheel_dir)
         ensure_dir(options.wheel_dir)
 
-        req_tracker = self.enter_context(get_requirement_tracker())
+        build_tracker = self.enter_context(get_build_tracker())
 
         directory = TempDirectory(
             delete=not options.no_clean,
@@ -119,15 +121,36 @@ class WheelCommand(RequirementCommand):
         )
 
         reqs = self.get_requirements(args, options, finder, session)
+        check_legacy_setup_py_options(options, reqs)
+
+        if "no-binary-enable-wheel-cache" in options.features_enabled:
+            # TODO: remove format_control from WheelCache when the deprecation cycle
+            # is over
+            wheel_cache = WheelCache(options.cache_dir)
+        else:
+            if options.format_control.no_binary:
+                deprecated(
+                    reason=(
+                        "--no-binary currently disables reading from "
+                        "the cache of locally built wheels. In the future "
+                        "--no-binary will not influence the wheel cache."
+                    ),
+                    replacement="to use the --no-cache-dir option",
+                    feature_flag="no-binary-enable-wheel-cache",
+                    issue=11453,
+                    gone_in="23.1",
+                )
+            wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
         preparer = self.make_requirement_preparer(
             temp_build_dir=directory,
             options=options,
-            req_tracker=req_tracker,
+            build_tracker=build_tracker,
             session=session,
             finder=finder,
             download_dir=options.wheel_dir,
             use_user_site=False,
+            verbosity=self.verbosity,
         )
 
         resolver = self.make_resolver(

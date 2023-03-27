@@ -60,15 +60,12 @@ body:
       label: Output
       description: >-
         Provide the output of the steps above, including the commands
-        themselves and pip's output/traceback etc. If you're familiar with
-        Markdown, this block will have triple backticks added automatically
-        around it -- you don't have to add them.
+        themselves and pip's output/traceback etc.
 
-        If you want to present output from multiple commands, please present
-        that as a shell session (commands you run get prefixed with `$ `).
-        Please also ensure that the "How to reproduce" section contains matching
-        instructions for reproducing this.
-      render: sh-session
+        If you want to present output from multiple commands, please prefix
+        the line containing the command with `$ `. Please also ensure that
+        the "How to reproduce" section contains matching instructions for
+        reproducing this.
 
   - type: checkboxes
     attributes:

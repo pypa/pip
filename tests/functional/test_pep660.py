@@ -1,8 +1,11 @@
 import os
+from pathlib import Path
+from typing import Any, Dict
 
+import pytest
 import tomli_w
 
-from pip._internal.utils.urls import path_to_url
+from tests.lib import PipTestEnvironment
 
 SETUP_PY = """
 from setuptools import setup
@@ -59,7 +62,9 @@ def build_editable(wheel_directory, config_settings=None, metadata_directory=Non
 # fmt: on
 
 
-def _make_project(tmpdir, backend_code, with_setup_py, with_pyproject=True):
+def _make_project(
+    tmpdir: Path, backend_code: str, with_setup_py: bool, with_pyproject: bool = True
+) -> Path:
     project_dir = tmpdir / "project"
     project_dir.mkdir()
     project_dir.joinpath("setup.cfg").write_text(SETUP_CFG)
@@ -67,7 +72,7 @@ def _make_project(tmpdir, backend_code, with_setup_py, with_pyproject=True):
         project_dir.joinpath("setup.py").write_text(SETUP_PY)
     if backend_code:
         assert with_pyproject
-        buildsys = {"requires": ["setuptools", "wheel"]}
+        buildsys: Dict[str, Any] = {"requires": ["setuptools", "wheel"]}
         buildsys["build-backend"] = "test_backend"
         buildsys["backend-path"] = ["."]
         data = tomli_w.dumps({"build-system": buildsys})
@@ -79,17 +84,18 @@ def _make_project(tmpdir, backend_code, with_setup_py, with_pyproject=True):
     return project_dir
 
 
-def _assert_hook_called(project_dir, hook):
+def _assert_hook_called(project_dir: Path, hook: str) -> None:
     log = project_dir.joinpath("log.txt").read_text()
     assert f":{hook} called" in log, f"{hook} has not been called"
 
 
-def _assert_hook_not_called(project_dir, hook):
+def _assert_hook_not_called(project_dir: Path, hook: str) -> None:
     log = project_dir.joinpath("log.txt").read_text()
     assert f":{hook} called" not in log, f"{hook} should not have been called"
 
 
-def test_install_pep517_basic(tmpdir, script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_pep517_basic(tmpdir: Path, script: PipTestEnvironment) -> None:
     """
     Check that the test harness we have in this file is sane.
     """
@@ -104,7 +110,8 @@ def test_install_pep517_basic(tmpdir, script, with_wheel):
     _assert_hook_called(project_dir, "build_wheel")
 
 
-def test_install_pep660_basic(tmpdir, script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_pep660_basic(tmpdir: Path, script: PipTestEnvironment) -> None:
     """
     Test with backend that supports build_editable.
     """
@@ -124,7 +131,10 @@ def test_install_pep660_basic(tmpdir, script, with_wheel):
     ), "a .egg-link file should not have been created"
 
 
-def test_install_no_pep660_setup_py_fallback(tmpdir, script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_no_pep660_setup_py_fallback(
+    tmpdir: Path, script: PipTestEnvironment
+) -> None:
     """
     Test that we fall back to setuptools develop when using a backend that
     does not support build_editable. Since there is a pyproject.toml,
@@ -146,7 +156,10 @@ def test_install_no_pep660_setup_py_fallback(tmpdir, script, with_wheel):
     ), "a .egg-link file should have been created"
 
 
-def test_install_no_pep660_setup_cfg_fallback(tmpdir, script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_install_no_pep660_setup_cfg_fallback(
+    tmpdir: Path, script: PipTestEnvironment
+) -> None:
     """
     Test that we fall back to setuptools develop when using a backend that
     does not support build_editable. Since there is a pyproject.toml,
@@ -169,7 +182,8 @@ def test_install_no_pep660_setup_cfg_fallback(tmpdir, script, with_wheel):
     ), ".egg-link file should have been created"
 
 
-def test_wheel_editable_pep660_basic(tmpdir, script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_wheel_editable_pep660_basic(tmpdir: Path, script: PipTestEnvironment) -> None:
     """
     Test 'pip wheel' of an editable pep 660 project.
     It must *not* call prepare_metadata_for_build_editable.
@@ -192,14 +206,17 @@ def test_wheel_editable_pep660_basic(tmpdir, script, with_wheel):
     assert len(os.listdir(str(wheel_dir))) == 1, "a wheel should have been created"
 
 
-def test_download_editable_pep660_basic(tmpdir, script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_download_editable_pep660_basic(
+    tmpdir: Path, script: PipTestEnvironment
+) -> None:
     """
     Test 'pip download' of an editable pep 660 project.
     It must *not* call prepare_metadata_for_build_editable.
     """
     project_dir = _make_project(tmpdir, BACKEND_WITH_PEP660, with_setup_py=False)
     reqs_file = tmpdir / "requirements.txt"
-    reqs_file.write_text(f"-e {path_to_url(project_dir)}\n")
+    reqs_file.write_text(f"-e {project_dir.as_uri()}\n")
     download_dir = tmpdir / "download"
     script.pip(
         "download",

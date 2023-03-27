@@ -1,7 +1,12 @@
+import re
+from typing import List
+
 import pytest
+from pip._vendor.packaging.version import Version
 
 from pip._internal.commands.debug import create_vendor_txt_map
 from pip._internal.utils import compatibility_tags
+from tests.lib import PipTestEnvironment
 
 
 @pytest.mark.parametrize(
@@ -21,7 +26,7 @@ from pip._internal.utils import compatibility_tags
         "vendored library versions:",
     ],
 )
-def test_debug(script, expected_text):
+def test_debug(script: PipTestEnvironment, expected_text: str) -> None:
     """
     Check that certain strings are present in the output.
     """
@@ -32,7 +37,7 @@ def test_debug(script, expected_text):
     assert expected_text in stdout
 
 
-def test_debug__library_versions(script):
+def test_debug__library_versions(script: PipTestEnvironment) -> None:
     """
     Check the library versions normal output.
     """
@@ -42,7 +47,9 @@ def test_debug__library_versions(script):
 
     vendored_versions = create_vendor_txt_map()
     for name, value in vendored_versions.items():
-        assert f"{name}=={value}" in result.stdout
+        match = re.search(rf"{name}==(\S+)", result.stdout)
+        assert match is not None, f"Could not find {name} in output"
+        assert Version(match.group(1)) == Version(value)
 
 
 @pytest.mark.parametrize(
@@ -52,7 +59,7 @@ def test_debug__library_versions(script):
         ["--verbose"],
     ],
 )
-def test_debug__tags(script, args):
+def test_debug__tags(script: PipTestEnvironment, args: List[str]) -> None:
     """
     Check the compatible tag output.
     """
@@ -76,7 +83,9 @@ def test_debug__tags(script, args):
         (["--python-version", "3.7"], "(target: version_info='3.7')"),
     ],
 )
-def test_debug__target_options(script, args, expected):
+def test_debug__target_options(
+    script: PipTestEnvironment, args: List[str], expected: str
+) -> None:
     """
     Check passing target-related options.
     """

@@ -2,16 +2,18 @@
 import os
 import re
 import sys
+from pathlib import Path
 
 import pytest
 
 from pip._internal.cli.status_codes import ERROR
 from tests.lib import pyversion  # noqa: F401
+from tests.lib import PipTestEnvironment, TestData
 
 pytestmark = pytest.mark.usefixtures("with_wheel")
 
 
-def add_files_to_dist_directory(folder):
+def add_files_to_dist_directory(folder: Path) -> None:
     (folder / "dist").mkdir(parents=True)
     (folder / "dist" / "a_name-0.0.1.tar.gz").write_text("hello")
     # Not adding a wheel file since that confuses setuptools' backend.
@@ -20,7 +22,9 @@ def add_files_to_dist_directory(folder):
     # )
 
 
-def test_wheel_exit_status_code_when_no_requirements(script):
+def test_wheel_exit_status_code_when_no_requirements(
+    script: PipTestEnvironment,
+) -> None:
     """
     Test wheel exit status code when no requirements specified
     """
@@ -29,7 +33,9 @@ def test_wheel_exit_status_code_when_no_requirements(script):
     assert result.returncode == ERROR
 
 
-def test_wheel_exit_status_code_when_blank_requirements_file(script):
+def test_wheel_exit_status_code_when_blank_requirements_file(
+    script: PipTestEnvironment,
+) -> None:
     """
     Test wheel exit status code when blank requirements file specified
     """
@@ -37,7 +43,7 @@ def test_wheel_exit_status_code_when_blank_requirements_file(script):
     script.pip("wheel", "-r", "blank.txt")
 
 
-def test_pip_wheel_success(script, data):
+def test_pip_wheel_success(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test 'pip wheel' success.
     """
@@ -62,7 +68,7 @@ def test_pip_wheel_success(script, data):
     assert "Successfully built simple" in result.stdout, result.stdout
 
 
-def test_pip_wheel_build_cache(script, data):
+def test_pip_wheel_build_cache(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test 'pip wheel' builds and caches.
     """
@@ -92,7 +98,9 @@ def test_pip_wheel_build_cache(script, data):
     assert "Successfully built simple" not in result.stdout, result.stdout
 
 
-def test_basic_pip_wheel_downloads_wheels(script, data):
+def test_basic_pip_wheel_downloads_wheels(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Test 'pip wheel' downloads wheels
     """
@@ -109,7 +117,9 @@ def test_basic_pip_wheel_downloads_wheels(script, data):
     assert "Saved" in result.stdout, result.stdout
 
 
-def test_pip_wheel_build_relative_cachedir(script, data):
+def test_pip_wheel_build_relative_cachedir(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Test 'pip wheel' builds and caches with a non-absolute cache directory.
     """
@@ -125,7 +135,9 @@ def test_pip_wheel_build_relative_cachedir(script, data):
     assert result.returncode == 0
 
 
-def test_pip_wheel_builds_when_no_binary_set(script, data):
+def test_pip_wheel_builds_when_no_binary_set(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     data.packages.joinpath("simple-3.0-py2.py3-none-any.whl").touch()
     # Check that the wheel package is ignored
     res = script.pip(
@@ -141,7 +153,9 @@ def test_pip_wheel_builds_when_no_binary_set(script, data):
 
 
 @pytest.mark.skipif("sys.platform == 'win32'")
-def test_pip_wheel_readonly_cache(script, data, tmpdir):
+def test_pip_wheel_readonly_cache(
+    script: PipTestEnvironment, data: TestData, tmpdir: Path
+) -> None:
     cache_dir = tmpdir / "cache"
     cache_dir.mkdir()
     os.chmod(cache_dir, 0o400)  # read-only cache
@@ -160,7 +174,9 @@ def test_pip_wheel_readonly_cache(script, data, tmpdir):
     assert "The cache has been disabled." in str(res), str(res)
 
 
-def test_pip_wheel_builds_editable_deps(script, data):
+def test_pip_wheel_builds_editable_deps(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Test 'pip wheel' finds and builds dependencies of editables
     """
@@ -173,7 +189,7 @@ def test_pip_wheel_builds_editable_deps(script, data):
     result.did_create(wheel_file_path)
 
 
-def test_pip_wheel_builds_editable(script, data):
+def test_pip_wheel_builds_editable(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test 'pip wheel' builds an editable package
     """
@@ -187,7 +203,9 @@ def test_pip_wheel_builds_editable(script, data):
 
 
 @pytest.mark.network
-def test_pip_wheel_git_editable_keeps_clone(script, tmpdir):
+def test_pip_wheel_git_editable_keeps_clone(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
     """
     Test that `pip wheel -e giturl` preserves a git clone in src.
     """
@@ -205,7 +223,9 @@ def test_pip_wheel_git_editable_keeps_clone(script, tmpdir):
     assert (tmpdir / "src" / "pip-test-package" / ".git").exists()
 
 
-def test_pip_wheel_builds_editable_does_not_create_zip(script, data, tmpdir):
+def test_pip_wheel_builds_editable_does_not_create_zip(
+    script: PipTestEnvironment, data: TestData, tmpdir: Path
+) -> None:
     """
     Test 'pip wheel' of editables does not create zip files
     (regression test for issue #9122)
@@ -219,7 +239,7 @@ def test_pip_wheel_builds_editable_does_not_create_zip(script, data, tmpdir):
     assert wheels[0].endswith(".whl")
 
 
-def test_pip_wheel_fail(script, data):
+def test_pip_wheel_fail(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test 'pip wheel' failure.
     """
@@ -239,7 +259,7 @@ def test_pip_wheel_fail(script, data):
     assert result.returncode != 0
 
 
-def test_pip_wheel_source_deps(script, data):
+def test_pip_wheel_source_deps(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test 'pip wheel' finds and builds source archive dependencies
     of wheels
@@ -258,7 +278,9 @@ def test_pip_wheel_source_deps(script, data):
     assert "Successfully built source" in result.stdout, result.stdout
 
 
-def test_wheel_package_with_latin1_setup(script, data):
+def test_wheel_package_with_latin1_setup(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """Create a wheel from a package with latin-1 encoded setup.py."""
 
     pkg_to_wheel = data.packages.joinpath("SetupPyLatin1")
@@ -266,7 +288,9 @@ def test_wheel_package_with_latin1_setup(script, data):
     assert "Successfully built SetupPyUTF8" in result.stdout
 
 
-def test_pip_wheel_with_pep518_build_reqs(script, data, common_wheels):
+def test_pip_wheel_with_pep518_build_reqs(
+    script: PipTestEnvironment, data: TestData, common_wheels: Path
+) -> None:
     result = script.pip(
         "wheel",
         "--no-index",
@@ -283,7 +307,9 @@ def test_pip_wheel_with_pep518_build_reqs(script, data, common_wheels):
     assert "Installing build dependencies" in result.stdout, result.stdout
 
 
-def test_pip_wheel_with_pep518_build_reqs_no_isolation(script, data):
+def test_pip_wheel_with_pep518_build_reqs_no_isolation(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     script.pip_install_local("simplewheel==2.0")
     result = script.pip(
         "wheel",
@@ -300,7 +326,9 @@ def test_pip_wheel_with_pep518_build_reqs_no_isolation(script, data):
     assert "Installing build dependencies" not in result.stdout, result.stdout
 
 
-def test_pip_wheel_with_user_set_in_config(script, data, common_wheels):
+def test_pip_wheel_with_user_set_in_config(
+    script: PipTestEnvironment, data: TestData, common_wheels: Path
+) -> None:
     config_file = script.scratch_path / "pip.conf"
     script.environ["PIP_CONFIG_FILE"] = str(config_file)
     config_file.write_text("[install]\nuser = true")
@@ -314,7 +342,18 @@ def test_pip_wheel_with_user_set_in_config(script, data, common_wheels):
     sys.platform.startswith("win"),
     reason="The empty extension module does not work on Win",
 )
-def test_pip_wheel_ext_module_with_tmpdir_inside(script, data, common_wheels):
+@pytest.mark.xfail(
+    condition=sys.platform == "darwin" and sys.version_info < (3, 9),
+    reason=(
+        "Unexplained 'no module named platform' in "
+        "https://github.com/pypa/wheel/blob"
+        "/c87e6ed82b58b41b258a3e8c852af8bc1817bb00"
+        "/src/wheel/vendored/packaging/tags.py#L396-L411"
+    ),
+)
+def test_pip_wheel_ext_module_with_tmpdir_inside(
+    script: PipTestEnvironment, data: TestData, common_wheels: Path
+) -> None:
     tmpdir = data.src / "extension/tmp"
     tmpdir.mkdir()
     script.environ["TMPDIR"] = str(tmpdir)
@@ -330,7 +369,9 @@ def test_pip_wheel_ext_module_with_tmpdir_inside(script, data, common_wheels):
 
 
 @pytest.mark.network
-def test_pep517_wheels_are_not_confused_with_other_files(script, data):
+def test_pep517_wheels_are_not_confused_with_other_files(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """Check correct wheels are copied. (#6196)"""
     pkg_to_wheel = data.src / "withpyproject"
     add_files_to_dist_directory(pkg_to_wheel)
@@ -343,7 +384,9 @@ def test_pep517_wheels_are_not_confused_with_other_files(script, data):
     result.did_create(wheel_file_path)
 
 
-def test_legacy_wheels_are_not_confused_with_other_files(script, data):
+def test_legacy_wheels_are_not_confused_with_other_files(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """Check correct wheels are copied. (#6196)"""
     pkg_to_wheel = data.src / "simplewheel-1.0"
     add_files_to_dist_directory(pkg_to_wheel)

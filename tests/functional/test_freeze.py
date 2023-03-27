@@ -3,12 +3,15 @@ import re
 import sys
 import textwrap
 from doctest import ELLIPSIS, OutputChecker
+from pathlib import Path
 
 import pytest
 from pip._vendor.packaging.utils import canonicalize_name
 
-from pip._internal.models.direct_url import DirectUrl
+from pip._internal.models.direct_url import DirectUrl, DirInfo
 from tests.lib import (
+    PipTestEnvironment,
+    TestData,
     _create_test_package,
     _create_test_package_with_srcdir,
     _git_commit,
@@ -17,15 +20,15 @@ from tests.lib import (
     need_bzr,
     need_mercurial,
     need_svn,
-    path_to_url,
     wheel,
 )
 from tests.lib.direct_url import get_created_direct_url_path
+from tests.lib.venv import VirtualEnvironment
 
 distribute_re = re.compile("^distribute==[0-9.]+\n", re.MULTILINE)
 
 
-def _check_output(result, expected):
+def _check_output(result: str, expected: str) -> None:
     checker = OutputChecker()
     actual = str(result)
 
@@ -44,7 +47,7 @@ def _check_output(result, expected):
     # with distribute installed.
     actual = distribute_re.sub("", actual)
 
-    def banner(msg):
+    def banner(msg: str) -> str:
         return f"\n========== {msg} ==========\n"
 
     assert checker.check_output(expected, actual, ELLIPSIS), (
@@ -52,7 +55,7 @@ def _check_output(result, expected):
     )
 
 
-def test_basic_freeze(script):
+def test_basic_freeze(script: PipTestEnvironment) -> None:
     """
     Some tests of freeze, first we have to install some stuff.  Note that
     the test is a little crude at the end because Python 2.5+ adds egg
@@ -84,13 +87,13 @@ def test_basic_freeze(script):
     _check_output(result.stdout, expected)
 
 
-def test_freeze_with_pip(script):
+def test_freeze_with_pip(script: PipTestEnvironment) -> None:
     """Test pip shows itself"""
     result = script.pip("freeze", "--all")
     assert "pip==" in result.stdout
 
 
-def test_exclude_and_normalization(script, tmpdir):
+def test_exclude_and_normalization(script: PipTestEnvironment, tmpdir: Path) -> None:
     req_path = wheel.make_wheel(name="Normalizable_Name", version="1.0").save_to_dir(
         tmpdir
     )
@@ -102,7 +105,7 @@ def test_exclude_and_normalization(script, tmpdir):
 
 
 @pytest.mark.usefixtures("with_wheel")
-def test_freeze_multiple_exclude_with_all(script):
+def test_freeze_multiple_exclude_with_all(script: PipTestEnvironment) -> None:
     result = script.pip("freeze", "--all")
     assert "pip==" in result.stdout
     assert "wheel==" in result.stdout
@@ -111,12 +114,12 @@ def test_freeze_multiple_exclude_with_all(script):
     assert "wheel==" not in result.stdout
 
 
-def test_freeze_with_invalid_names(script):
+def test_freeze_with_invalid_names(script: PipTestEnvironment) -> None:
     """
     Test that invalid names produce warnings and are passed over gracefully.
     """
 
-    def fake_install(pkgname, dest):
+    def fake_install(pkgname: str, dest: str) -> None:
         egg_info_path = os.path.join(
             dest,
             "{}-1.0-py{}.{}.egg-info".format(
@@ -146,7 +149,7 @@ def test_freeze_with_invalid_names(script):
         "trailingdot.",
     )
     for pkgname in valid_pkgnames + invalid_pkgnames:
-        fake_install(pkgname, script.site_packages_path)
+        fake_install(pkgname, os.fspath(script.site_packages_path))
 
     result = script.pip("freeze", expect_stderr=True)
 
@@ -167,11 +170,11 @@ def test_freeze_with_invalid_names(script):
 
 
 @pytest.mark.git
-def test_freeze_editable_not_vcs(script):
+def test_freeze_editable_not_vcs(script: PipTestEnvironment) -> None:
     """
     Test an editable install that is not version controlled.
     """
-    pkg_path = _create_test_package(script)
+    pkg_path = _create_test_package(script.scratch_path)
     # Rename the .git directory so the directory is no longer recognized
     # as a VCS directory.
     os.rename(os.path.join(pkg_path, ".git"), os.path.join(pkg_path, ".bak"))
@@ -192,11 +195,13 @@ def test_freeze_editable_not_vcs(script):
 
 
 @pytest.mark.git
-def test_freeze_editable_git_with_no_remote(script, deprecated_python):
+def test_freeze_editable_git_with_no_remote(
+    script: PipTestEnvironment, deprecated_python: bool
+) -> None:
     """
     Test an editable Git install with no remote url.
     """
-    pkg_path = _create_test_package(script)
+    pkg_path = _create_test_package(script.scratch_path)
     script.pip("install", "-e", pkg_path)
     result = script.pip("freeze")
 
@@ -217,10 +222,10 @@ def test_freeze_editable_git_with_no_remote(script, deprecated_python):
 
 
 @need_svn
-def test_freeze_svn(script):
+def test_freeze_svn(script: PipTestEnvironment) -> None:
     """Test freezing a svn checkout"""
 
-    checkout_path = _create_test_package(script, vcs="svn")
+    checkout_path = _create_test_package(script.scratch_path, vcs="svn")
 
     # Install with develop
     script.run("python", "setup.py", "develop", cwd=checkout_path, expect_stderr=True)
@@ -240,17 +245,17 @@ def test_freeze_svn(script):
     run=True,
     strict=True,
 )
-def test_freeze_exclude_editable(script):
+def test_freeze_exclude_editable(script: PipTestEnvironment) -> None:
     """
     Test excluding editable from freezing list.
     """
     # Returns path to a generated package called "version_pkg"
-    pkg_version = _create_test_package(script)
+    pkg_version = _create_test_package(script.scratch_path)
 
     result = script.run(
         "git",
         "clone",
-        pkg_version,
+        os.fspath(pkg_version),
         "pip-test-package",
         expect_stderr=True,
     )
@@ -273,17 +278,17 @@ def test_freeze_exclude_editable(script):
 
 
 @pytest.mark.git
-def test_freeze_git_clone(script):
+def test_freeze_git_clone(script: PipTestEnvironment) -> None:
     """
     Test freezing a Git clone.
     """
     # Returns path to a generated package called "version_pkg"
-    pkg_version = _create_test_package(script)
+    pkg_version = _create_test_package(script.scratch_path)
 
     result = script.run(
         "git",
         "clone",
-        pkg_version,
+        os.fspath(pkg_version),
         "pip-test-package",
         expect_stderr=True,
     )
@@ -331,19 +336,19 @@ def test_freeze_git_clone(script):
 
 
 @pytest.mark.git
-def test_freeze_git_clone_srcdir(script):
+def test_freeze_git_clone_srcdir(script: PipTestEnvironment) -> None:
     """
     Test freezing a Git clone where setup.py is in a subdirectory
     relative the repo root and the source code is in a subdirectory
     relative to setup.py.
     """
     # Returns path to a generated package called "version_pkg"
-    pkg_version = _create_test_package_with_srcdir(script)
+    pkg_version = _create_test_package_with_srcdir(script.scratch_path)
 
     result = script.run(
         "git",
         "clone",
-        pkg_version,
+        os.fspath(pkg_version),
         "pip-test-package",
         expect_stderr=True,
     )
@@ -366,16 +371,16 @@ def test_freeze_git_clone_srcdir(script):
 
 
 @need_mercurial
-def test_freeze_mercurial_clone_srcdir(script):
+def test_freeze_mercurial_clone_srcdir(script: PipTestEnvironment) -> None:
     """
     Test freezing a Mercurial clone where setup.py is in a subdirectory
     relative to the repo root and the source code is in a subdirectory
     relative to setup.py.
     """
     # Returns path to a generated package called "version_pkg"
-    pkg_version = _create_test_package_with_srcdir(script, vcs="hg")
+    pkg_version = _create_test_package_with_srcdir(script.scratch_path, vcs="hg")
 
-    result = script.run("hg", "clone", pkg_version, "pip-test-package")
+    result = script.run("hg", "clone", os.fspath(pkg_version), "pip-test-package")
     repo_dir = script.scratch_path / "pip-test-package"
     result = script.run("python", "setup.py", "develop", cwd=repo_dir / "subdir")
     result = script.pip("freeze")
@@ -389,17 +394,17 @@ def test_freeze_mercurial_clone_srcdir(script):
 
 
 @pytest.mark.git
-def test_freeze_git_remote(script):
+def test_freeze_git_remote(script: PipTestEnvironment) -> None:
     """
     Test freezing a Git clone.
     """
     # Returns path to a generated package called "version_pkg"
-    pkg_version = _create_test_package(script)
+    pkg_version = _create_test_package(script.scratch_path)
 
     result = script.run(
         "git",
         "clone",
-        pkg_version,
+        os.fspath(pkg_version),
         "pip-test-package",
         expect_stderr=True,
     )
@@ -421,7 +426,7 @@ def test_freeze_git_remote(script):
             ...
         """
         )
-        .format(remote=path_to_url(origin_remote))
+        .format(remote=origin_remote.as_uri())
         .strip()
     )
     _check_output(result.stdout, expected)
@@ -435,13 +440,13 @@ def test_freeze_git_remote(script):
             ...
         """
         )
-        .format(remote=path_to_url(origin_remote))
+        .format(remote=origin_remote.as_uri())
         .strip()
     )
     _check_output(result.stdout, expected)
     # When the remote is a local path, it must exist.
     # If it doesn't, it gets flagged as invalid.
-    other_remote = pkg_version + "-other"
+    other_remote = f"{pkg_version}-other"
     script.run("git", "remote", "set-url", "other", other_remote, cwd=repo_dir)
     result = script.pip("freeze", expect_stderr=True)
     expected = os.path.normcase(
@@ -456,7 +461,7 @@ def test_freeze_git_remote(script):
     _check_output(os.path.normcase(result.stdout), expected)
     # when there are more than one origin, priority is given to the
     # remote named origin
-    script.run("git", "remote", "add", "origin", origin_remote, cwd=repo_dir)
+    script.run("git", "remote", "add", "origin", os.fspath(origin_remote), cwd=repo_dir)
     result = script.pip("freeze", expect_stderr=True)
     expected = (
         textwrap.dedent(
@@ -465,25 +470,25 @@ def test_freeze_git_remote(script):
             ...
         """
         )
-        .format(remote=path_to_url(origin_remote))
+        .format(remote=origin_remote.as_uri())
         .strip()
     )
     _check_output(result.stdout, expected)
 
 
 @need_mercurial
-def test_freeze_mercurial_clone(script):
+def test_freeze_mercurial_clone(script: PipTestEnvironment) -> None:
     """
     Test freezing a Mercurial clone.
 
     """
     # Returns path to a generated package called "version_pkg"
-    pkg_version = _create_test_package(script, vcs="hg")
+    pkg_version = _create_test_package(script.scratch_path, vcs="hg")
 
     result = script.run(
         "hg",
         "clone",
-        pkg_version,
+        os.fspath(pkg_version),
         "pip-test-package",
         expect_stderr=True,
     )
@@ -506,17 +511,17 @@ def test_freeze_mercurial_clone(script):
 
 
 @need_bzr
-def test_freeze_bazaar_clone(script):
+def test_freeze_bazaar_clone(script: PipTestEnvironment) -> None:
     """
     Test freezing a Bazaar clone.
 
     """
     try:
-        checkout_path = _create_test_package(script, vcs="bazaar")
+        checkout_path = _create_test_package(script.scratch_path, vcs="bazaar")
     except OSError as e:
         pytest.fail(f"Invoking `bzr` failed: {e}")
 
-    result = script.run("bzr", "checkout", checkout_path, "bzr-package")
+    result = script.run("bzr", "checkout", os.fspath(checkout_path), "bzr-package")
     result = script.run(
         "python",
         "setup.py",
@@ -539,10 +544,12 @@ def test_freeze_bazaar_clone(script):
     "outer_vcs, inner_vcs",
     [("hg", "git"), ("git", "hg")],
 )
-def test_freeze_nested_vcs(script, outer_vcs, inner_vcs):
+def test_freeze_nested_vcs(
+    script: PipTestEnvironment, outer_vcs: str, inner_vcs: str
+) -> None:
     """Test VCS can be correctly freezed when resides inside another VCS repo."""
     # Create Python package.
-    pkg_path = _create_test_package(script, vcs=inner_vcs)
+    pkg_path = _create_test_package(script.scratch_path, vcs=inner_vcs)
 
     # Create outer repo to clone into.
     root_path = script.scratch_path.joinpath("test_freeze_nested_vcs")
@@ -554,7 +561,13 @@ def test_freeze_nested_vcs(script, outer_vcs, inner_vcs):
     # Clone Python package into inner directory and install it.
     src_path = root_path.joinpath("src")
     src_path.mkdir()
-    script.run(inner_vcs, "clone", pkg_path, src_path, expect_stderr=True)
+    script.run(
+        inner_vcs,
+        "clone",
+        os.fspath(pkg_path),
+        os.fspath(src_path),
+        expect_stderr=True,
+    )
     script.pip("install", "-e", src_path, expect_stderr=True)
 
     # Check the freeze output recognizes the inner VCS.
@@ -585,14 +598,14 @@ _freeze_req_opts = textwrap.dedent(
 
 
 def test_freeze_with_requirement_option_file_url_egg_not_installed(
-    script, deprecated_python
-):
+    script: PipTestEnvironment, deprecated_python: bool
+) -> None:
     """
     Test "freeze -r requirements.txt" with a local file URL whose egg name
     is not installed.
     """
 
-    url = path_to_url("my-package.tar.gz") + "#egg=Does.Not-Exist"
+    url = "file:///my-package.tar.gz#egg=Does.Not-Exist"
     requirements_path = script.scratch_path.joinpath("requirements.txt")
     requirements_path.write_text(url + "\n")
 
@@ -612,7 +625,7 @@ def test_freeze_with_requirement_option_file_url_egg_not_installed(
         assert expected_err == result.stderr
 
 
-def test_freeze_with_requirement_option(script):
+def test_freeze_with_requirement_option(script: PipTestEnvironment) -> None:
     """
     Test that new requirements are created correctly with --requirement hints
 
@@ -672,7 +685,7 @@ def test_freeze_with_requirement_option(script):
     ) in result.stderr
 
 
-def test_freeze_with_requirement_option_multiple(script):
+def test_freeze_with_requirement_option_multiple(script: PipTestEnvironment) -> None:
     """
     Test that new requirements are created correctly with multiple
     --requirement hints
@@ -741,7 +754,9 @@ def test_freeze_with_requirement_option_multiple(script):
     assert result.stdout.count("--index-url http://ignore") == 1
 
 
-def test_freeze_with_requirement_option_package_repeated_one_file(script):
+def test_freeze_with_requirement_option_package_repeated_one_file(
+    script: PipTestEnvironment,
+) -> None:
     """
     Test freezing with single requirements file that contains a package
     multiple times
@@ -788,7 +803,9 @@ def test_freeze_with_requirement_option_package_repeated_one_file(script):
     assert result.stderr.count("is not installed") == 1
 
 
-def test_freeze_with_requirement_option_package_repeated_multi_file(script):
+def test_freeze_with_requirement_option_package_repeated_multi_file(
+    script: PipTestEnvironment,
+) -> None:
     """
     Test freezing with multiple requirements file that contain a package
     """
@@ -845,8 +862,10 @@ def test_freeze_with_requirement_option_package_repeated_multi_file(script):
 
 
 @pytest.mark.network
-@pytest.mark.incompatible_with_test_venv
-def test_freeze_user(script, virtualenv, data):
+@pytest.mark.usefixtures("enable_user_site")
+def test_freeze_user(
+    script: PipTestEnvironment, virtualenv: VirtualEnvironment, data: TestData
+) -> None:
     """
     Testing freeze with --user, first we have to install some stuff.
     """
@@ -864,7 +883,7 @@ def test_freeze_user(script, virtualenv, data):
 
 
 @pytest.mark.network
-def test_freeze_path(tmpdir, script, data):
+def test_freeze_path(tmpdir: Path, script: PipTestEnvironment, data: TestData) -> None:
     """
     Test freeze with --path.
     """
@@ -881,8 +900,10 @@ def test_freeze_path(tmpdir, script, data):
 
 
 @pytest.mark.network
-@pytest.mark.incompatible_with_test_venv
-def test_freeze_path_exclude_user(tmpdir, script, data):
+@pytest.mark.usefixtures("enable_user_site")
+def test_freeze_path_exclude_user(
+    tmpdir: Path, script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Test freeze with --path and make sure packages from --user are not picked
     up.
@@ -908,7 +929,9 @@ def test_freeze_path_exclude_user(tmpdir, script, data):
 
 
 @pytest.mark.network
-def test_freeze_path_multiple(tmpdir, script, data):
+def test_freeze_path_multiple(
+    tmpdir: Path, script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Test freeze with multiple --path arguments.
     """
@@ -940,15 +963,16 @@ def test_freeze_path_multiple(tmpdir, script, data):
 
 
 @pytest.mark.usefixtures("with_wheel")
-def test_freeze_direct_url_archive(script, shared_data):
-    req = "simple @ " + path_to_url(shared_data.packages / "simple-2.0.tar.gz")
-    assert req.startswith("simple @ file://")
+def test_freeze_direct_url_archive(
+    script: PipTestEnvironment, shared_data: TestData
+) -> None:
+    req = "simple @ " + shared_data.packages.joinpath("simple-2.0.tar.gz").as_uri()
     script.pip("install", req)
     result = script.pip("freeze")
     assert req in result.stdout
 
 
-def test_freeze_skip_work_dir_pkg(script):
+def test_freeze_skip_work_dir_pkg(script: PipTestEnvironment) -> None:
     """
     Test that freeze should not include package
     present in working directory
@@ -963,7 +987,7 @@ def test_freeze_skip_work_dir_pkg(script):
     assert "simple" not in result.stdout
 
 
-def test_freeze_include_work_dir_pkg(script):
+def test_freeze_include_work_dir_pkg(script: PipTestEnvironment) -> None:
     """
     Test that freeze should include package in working directory
     if working directory is added in PYTHONPATH
@@ -981,18 +1005,20 @@ def test_freeze_include_work_dir_pkg(script):
     assert "simple==1.0" in result.stdout
 
 
-def test_freeze_pep610_editable(script, with_wheel):
+@pytest.mark.usefixtures("with_wheel")
+def test_freeze_pep610_editable(script: PipTestEnvironment) -> None:
     """
     Test that a package installed with a direct_url.json with editable=true
     is correctly frozeon as editable.
     """
-    pkg_path = _create_test_package(script, name="testpkg")
+    pkg_path = _create_test_package(script.scratch_path, name="testpkg")
     result = script.pip("install", pkg_path)
     direct_url_path = get_created_direct_url_path(result, "testpkg")
     assert direct_url_path
     # patch direct_url.json to simulate an editable install
     with open(direct_url_path) as f:
         direct_url = DirectUrl.from_json(f.read())
+    assert isinstance(direct_url.info, DirInfo)
     direct_url.info.editable = True
     with open(direct_url_path, "w") as f:
         f.write(direct_url.to_json())

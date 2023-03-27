@@ -1,3 +1,5 @@
+# mypy: no-warn-unused-ignores
+
 import os
 import sys
 from unittest import mock
@@ -14,7 +16,7 @@ class TestUserCacheDir:
         _get_win_folder = mock.Mock(return_value="C:\\Users\\test\\AppData\\Local")
 
         monkeypatch.setattr(
-            platformdirs.windows,  # type: ignore[attr-defined]
+            platformdirs.windows,  # type: ignore
             "get_win_folder",
             _get_win_folder,
             raising=False,
@@ -62,10 +64,14 @@ class TestUserCacheDir:
         if sys.platform != "win32":
             return
 
-        def my_get_win_folder(csidl_name):
+        def my_get_win_folder(csidl_name: str) -> str:
             return "\u00DF\u00E4\u03B1\u20AC"
 
-        monkeypatch.setattr(platformdirs.windows, "get_win_folder", my_get_win_folder)
+        monkeypatch.setattr(
+            platformdirs.windows,  # type: ignore
+            "get_win_folder",
+            my_get_win_folder,
+        )
 
         # Do not use the isinstance expression directly in the
         # assert statement, as the Unicode characters in the result
@@ -85,7 +91,7 @@ class TestSiteConfigDirs:
         _get_win_folder = mock.Mock(return_value="C:\\ProgramData")
 
         monkeypatch.setattr(
-            platformdirs.windows,  # type: ignore[attr-defined]
+            platformdirs.windows,  # type: ignore
             "get_win_folder",
             _get_win_folder,
             raising=False,
@@ -145,7 +151,7 @@ class TestUserConfigDir:
         _get_win_folder = mock.Mock(return_value="C:\\Users\\test\\AppData\\Local")
 
         monkeypatch.setattr(
-            platformdirs.windows,  # type: ignore[attr-defined]
+            platformdirs.windows,  # type: ignore
             "get_win_folder",
             _get_win_folder,
             raising=False,
@@ -164,7 +170,7 @@ class TestUserConfigDir:
         _get_win_folder = mock.Mock(return_value="C:\\Users\\test\\AppData\\Roaming")
 
         monkeypatch.setattr(
-            platformdirs.windows,  # type: ignore[attr-defined]
+            platformdirs.windows,  # type: ignore
             "get_win_folder",
             _get_win_folder,
             raising=False,

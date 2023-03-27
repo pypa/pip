@@ -1,19 +1,20 @@
 import pytest
 
-from tests.lib import _create_test_package, path_to_url
+from pip._internal.models.direct_url import VcsInfo
+from tests.lib import PipTestEnvironment, TestData, _create_test_package
 from tests.lib.direct_url import get_created_direct_url
 
 
 @pytest.mark.usefixtures("with_wheel")
-def test_install_find_links_no_direct_url(script):
+def test_install_find_links_no_direct_url(script: PipTestEnvironment) -> None:
     result = script.pip_install_local("simple")
     assert not get_created_direct_url(result, "simple")
 
 
 @pytest.mark.usefixtures("with_wheel")
-def test_install_vcs_editable_no_direct_url(script):
-    pkg_path = _create_test_package(script, name="testpkg")
-    args = ["install", "-e", "git+%s#egg=testpkg" % path_to_url(pkg_path)]
+def test_install_vcs_editable_no_direct_url(script: PipTestEnvironment) -> None:
+    pkg_path = _create_test_package(script.scratch_path, name="testpkg")
+    args = ["install", "-e", f"git+{pkg_path.as_uri()}#egg=testpkg"]
     result = script.pip(*args)
     # legacy editable installs do not generate .dist-info,
     # hence no direct_url.json
@@ -21,20 +22,21 @@ def test_install_vcs_editable_no_direct_url(script):
 
 
 @pytest.mark.usefixtures("with_wheel")
-def test_install_vcs_non_editable_direct_url(script):
-    pkg_path = _create_test_package(script, name="testpkg")
-    url = path_to_url(pkg_path)
+def test_install_vcs_non_editable_direct_url(script: PipTestEnvironment) -> None:
+    pkg_path = _create_test_package(script.scratch_path, name="testpkg")
+    url = pkg_path.as_uri()
     args = ["install", f"git+{url}#egg=testpkg"]
     result = script.pip(*args)
     direct_url = get_created_direct_url(result, "testpkg")
     assert direct_url
     assert direct_url.url == url
+    assert isinstance(direct_url.info, VcsInfo)
     assert direct_url.info.vcs == "git"
 
 
 @pytest.mark.usefixtures("with_wheel")
-def test_install_archive_direct_url(script, data):
-    req = "simple @ " + path_to_url(data.packages / "simple-2.0.tar.gz")
+def test_install_archive_direct_url(script: PipTestEnvironment, data: TestData) -> None:
+    req = "simple @ " + data.packages.joinpath("simple-2.0.tar.gz").as_uri()
     assert req.startswith("simple @ file://")
     result = script.pip("install", req)
     assert get_created_direct_url(result, "simple")
@@ -42,7 +44,7 @@ def test_install_archive_direct_url(script, data):
 
 @pytest.mark.network
 @pytest.mark.usefixtures("with_wheel")
-def test_install_vcs_constraint_direct_url(script):
+def test_install_vcs_constraint_direct_url(script: PipTestEnvironment) -> None:
     constraints_file = script.scratch_path / "constraints.txt"
     constraints_file.write_text(
         "git+https://github.com/pypa/pip-test-package"
@@ -54,9 +56,9 @@ def test_install_vcs_constraint_direct_url(script):
 
 
 @pytest.mark.usefixtures("with_wheel")
-def test_install_vcs_constraint_direct_file_url(script):
-    pkg_path = _create_test_package(script, name="testpkg")
-    url = path_to_url(pkg_path)
+def test_install_vcs_constraint_direct_file_url(script: PipTestEnvironment) -> None:
+    pkg_path = _create_test_package(script.scratch_path, name="testpkg")
+    url = pkg_path.as_uri()
     constraints_file = script.scratch_path / "constraints.txt"
     constraints_file.write_text(f"git+{url}#egg=testpkg")
     result = script.pip("install", "testpkg", "-c", constraints_file)

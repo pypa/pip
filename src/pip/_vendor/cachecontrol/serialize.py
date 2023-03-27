@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2015 Eric Larson
+#
+# SPDX-License-Identifier: Apache-2.0
+
 import base64
 import io
 import json
@@ -17,24 +21,18 @@ def _b64_decode_str(s):
     return _b64_decode_bytes(s).decode("utf8")
 
 
-class Serializer(object):
+_default_body_read = object()
 
+
+class Serializer(object):
     def dumps(self, request, response, body=None):
         response_headers = CaseInsensitiveDict(response.headers)
 
         if body is None:
+            # When a body isn't passed in, we'll read the response. We
+            # also update the response with a new file handler to be
+            # sure it acts as though it was never read.
             body = response.read(decode_content=False)
-
-            # NOTE: 99% sure this is dead code. I'm only leaving it
-            #       here b/c I don't have a test yet to prove
-            #       it. Basically, before using
-            #       `cachecontrol.filewrapper.CallbackFileWrapper`,
-            #       this made an effort to reset the file handle. The
-            #       `CallbackFileWrapper` short circuits this code by
-            #       setting the body as the content is consumed, the
-            #       result being a `body` argument is *always* passed
-            #       into cache_response, and in turn,
-            #       `Serializer.dump`.
             response._fp = io.BytesIO(body)
 
         # NOTE: This is all a bit weird, but it's really important that on
@@ -46,7 +44,7 @@ class Serializer(object):
         #       enough to have msgpack know the difference.
         data = {
             u"response": {
-                u"body": body,
+                u"body": body,  # Empty bytestring if body is stored separately
                 u"headers": dict(
                     (text_type(k), text_type(v)) for k, v in response.headers.items()
                 ),
@@ -71,7 +69,7 @@ class Serializer(object):
 
         return b",".join([b"cc=4", msgpack.dumps(data, use_bin_type=True)])
 
-    def loads(self, request, data):
+    def loads(self, request, data, body_file=None):
         # Short circuit if we've been given an empty set of data
         if not data:
             return
@@ -94,14 +92,14 @@ class Serializer(object):
 
         # Dispatch to the actual load method for the given version
         try:
-            return getattr(self, "_loads_v{}".format(ver))(request, data)
+            return getattr(self, "_loads_v{}".format(ver))(request, data, body_file)
 
         except AttributeError:
             # This is a version we don't have a loads function for, so we'll
             # just treat it as a miss and return None
             return
 
-    def prepare_response(self, request, cached):
+    def prepare_response(self, request, cached, body_file=None):
         """Verify our vary headers match and construct a real urllib3
         HTTPResponse object.
         """
@@ -127,7 +125,10 @@ class Serializer(object):
         cached["response"]["headers"] = headers
 
         try:
-            body = io.BytesIO(body_raw)
+            if body_file is None:
+                body = io.BytesIO(body_raw)
+            else:
+                body = body_file
         except TypeError:
             # This can happen if cachecontrol serialized to v1 format (pickle)
             # using Python 2. A Python 2 str(byte string) will be unpickled as
@@ -139,21 +140,22 @@ class Serializer(object):
 
         return HTTPResponse(body=body, preload_content=False, **cached["response"])
 
-    def _loads_v0(self, request, data):
+    def _loads_v0(self, request, data, body_file=None):
         # The original legacy cache data. This doesn't contain enough
         # information to construct everything we need, so we'll treat this as
         # a miss.
         return
 
-    def _loads_v1(self, request, data):
+    def _loads_v1(self, request, data, body_file=None):
         try:
             cached = pickle.loads(data)
         except ValueError:
             return
 
-        return self.prepare_response(request, cached)
+        return self.prepare_response(request, cached, body_file)
 
-    def _loads_v2(self, request, data):
+    def _loads_v2(self, request, data, body_file=None):
+        assert body_file is None
         try:
             cached = json.loads(zlib.decompress(data).decode("utf8"))
         except (ValueError, zlib.error):
@@ -171,18 +173,18 @@ class Serializer(object):
             for k, v in cached["vary"].items()
         )
 
-        return self.prepare_response(request, cached)
+        return self.prepare_response(request, cached, body_file)
 
-    def _loads_v3(self, request, data):
+    def _loads_v3(self, request, data, body_file):
         # Due to Python 2 encoding issues, it's impossible to know for sure
         # exactly how to load v3 entries, thus we'll treat these as a miss so
         # that they get rewritten out as v4 entries.
         return
 
-    def _loads_v4(self, request, data):
+    def _loads_v4(self, request, data, body_file=None):
         try:
             cached = msgpack.loads(data, raw=False)
         except ValueError:
             return
 
-        return self.prepare_response(request, cached)
+        return self.prepare_response(request, cached, body_file)

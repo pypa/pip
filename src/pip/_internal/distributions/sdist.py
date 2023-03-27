@@ -19,12 +19,13 @@ class SourceDistribution(AbstractDistribution):
     """
 
     def get_metadata_distribution(self) -> BaseDistribution:
-        from pip._internal.metadata.pkg_resources import Distribution as _Dist
-
-        return _Dist(self.req.get_dist())
+        return self.req.get_dist()
 
     def prepare_distribution_metadata(
-        self, finder: PackageFinder, build_isolation: bool
+        self,
+        finder: PackageFinder,
+        build_isolation: bool,
+        check_build_deps: bool,
     ) -> None:
         # Load pyproject.toml, to determine whether PEP 517 is to be used
         self.req.load_pyproject_toml()
@@ -45,7 +46,18 @@ class SourceDistribution(AbstractDistribution):
             self.req.isolated_editable_sanity_check()
             # Install the dynamic build requirements.
             self._install_build_reqs(finder)
-
+        # Check if the current environment provides build dependencies
+        should_check_deps = self.req.use_pep517 and check_build_deps
+        if should_check_deps:
+            pyproject_requires = self.req.pyproject_requires
+            assert pyproject_requires is not None
+            conflicting, missing = self.req.build_env.check_requirements(
+                pyproject_requires
+            )
+            if conflicting:
+                self._raise_conflicts("the backend dependencies", conflicting)
+            if missing:
+                self._raise_missing_reqs(missing)
         self.req.prepare_metadata()
 
     def _prepare_build_backend(self, finder: PackageFinder) -> None:
@@ -56,7 +68,7 @@ class SourceDistribution(AbstractDistribution):
 
         self.req.build_env = BuildEnvironment()
         self.req.build_env.install_requirements(
-            finder, pyproject_requires, "overlay", "Installing build dependencies"
+            finder, pyproject_requires, "overlay", kind="build dependencies"
         )
         conflicting, missing = self.req.build_env.check_requirements(
             self.req.requirements_to_check
@@ -108,7 +120,7 @@ class SourceDistribution(AbstractDistribution):
         if conflicting:
             self._raise_conflicts("the backend dependencies", conflicting)
         self.req.build_env.install_requirements(
-            finder, missing, "normal", "Installing backend dependencies"
+            finder, missing, "normal", kind="backend dependencies"
         )
 
     def _raise_conflicts(
@@ -125,5 +137,14 @@ class SourceDistribution(AbstractDistribution):
                 f"{installed} is incompatible with {wanted}"
                 for installed, wanted in sorted(conflicting_reqs)
             ),
+        )
+        raise InstallationError(error_message)
+
+    def _raise_missing_reqs(self, missing: Set[str]) -> None:
+        format_string = (
+            "Some build dependencies for {requirement} are missing: {missing}."
+        )
+        error_message = format_string.format(
+            requirement=self.req, missing=", ".join(map(repr, sorted(missing)))
         )
         raise InstallationError(error_message)

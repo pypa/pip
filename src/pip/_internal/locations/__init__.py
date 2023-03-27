@@ -4,14 +4,14 @@ import os
 import pathlib
 import sys
 import sysconfig
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Generator, Optional, Tuple
 
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
-from . import _distutils, _sysconfig
+from . import _sysconfig
 from .base import (
     USER_CACHE_DIR,
     get_major_minor_version,
@@ -27,7 +27,6 @@ __all__ = [
     "get_bin_user",
     "get_major_minor_version",
     "get_platlib",
-    "get_prefixed_libs",
     "get_purelib",
     "get_scheme",
     "get_src_prefix",
@@ -38,14 +37,40 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 
-if os.environ.get("_PIP_LOCATIONS_NO_WARN_ON_MISMATCH"):
-    _MISMATCH_LEVEL = logging.DEBUG
-else:
-    _MISMATCH_LEVEL = logging.WARNING
 
 _PLATLIBDIR: str = getattr(sys, "platlibdir", "lib")
 
-_USE_SYSCONFIG = sys.version_info >= (3, 10)
+_USE_SYSCONFIG_DEFAULT = sys.version_info >= (3, 10)
+
+
+def _should_use_sysconfig() -> bool:
+    """This function determines the value of _USE_SYSCONFIG.
+
+    By default, pip uses sysconfig on Python 3.10+.
+    But Python distributors can override this decision by setting:
+        sysconfig._PIP_USE_SYSCONFIG = True / False
+    Rationale in https://github.com/pypa/pip/issues/10647
+
+    This is a function for testability, but should be constant during any one
+    run.
+    """
+    return bool(getattr(sysconfig, "_PIP_USE_SYSCONFIG", _USE_SYSCONFIG_DEFAULT))
+
+
+_USE_SYSCONFIG = _should_use_sysconfig()
+
+if not _USE_SYSCONFIG:
+    # Import distutils lazily to avoid deprecation warnings,
+    # but import it soon enough that it is in memory and available during
+    # a pip reinstall.
+    from . import _distutils
+
+# Be noisy about incompatibilities if this platforms "should" be using
+# sysconfig, but is explicitly opting out and using distutils instead.
+if _USE_SYSCONFIG_DEFAULT and not _USE_SYSCONFIG:
+    _MISMATCH_LEVEL = logging.WARNING
+else:
+    _MISMATCH_LEVEL = logging.DEBUG
 
 
 def _looks_like_bpo_44860() -> bool:
@@ -53,7 +78,7 @@ def _looks_like_bpo_44860() -> bool:
 
     See <https://bugs.python.org/issue44860>.
     """
-    from distutils.command.install import INSTALL_SCHEMES  # type: ignore
+    from distutils.command.install import INSTALL_SCHEMES
 
     try:
         unix_user_platlib = INSTALL_SCHEMES["unix_user"]["platlib"]
@@ -64,8 +89,8 @@ def _looks_like_bpo_44860() -> bool:
 
 def _looks_like_red_hat_patched_platlib_purelib(scheme: Dict[str, str]) -> bool:
     platlib = scheme["platlib"]
-    if "/$platlibdir/" in platlib and hasattr(sys, "platlibdir"):
-        platlib = platlib.replace("/$platlibdir/", f"/{sys.platlibdir}/")
+    if "/$platlibdir/" in platlib:
+        platlib = platlib.replace("/$platlibdir/", f"/{_PLATLIBDIR}/")
     if "/lib64/" not in platlib:
         return False
     unpatched = platlib.replace("/lib64/", "/lib/")
@@ -78,7 +103,7 @@ def _looks_like_red_hat_lib() -> bool:
 
     This is the only way I can see to tell a Red Hat-patched Python.
     """
-    from distutils.command.install import INSTALL_SCHEMES  # type: ignore
+    from distutils.command.install import INSTALL_SCHEMES
 
     return all(
         k in INSTALL_SCHEMES
@@ -90,7 +115,7 @@ def _looks_like_red_hat_lib() -> bool:
 @functools.lru_cache(maxsize=None)
 def _looks_like_debian_scheme() -> bool:
     """Debian adds two additional schemes."""
-    from distutils.command.install import INSTALL_SCHEMES  # type: ignore
+    from distutils.command.install import INSTALL_SCHEMES
 
     return "deb_system" in INSTALL_SCHEMES and "unix_local" in INSTALL_SCHEMES
 
@@ -116,6 +141,22 @@ def _looks_like_red_hat_scheme() -> bool:
 
 
 @functools.lru_cache(maxsize=None)
+def _looks_like_slackware_scheme() -> bool:
+    """Slackware patches sysconfig but fails to patch distutils and site.
+
+    Slackware changes sysconfig's user scheme to use ``"lib64"`` for the lib
+    path, but does not do the same to the site module.
+    """
+    if user_site is None:  # User-site not available.
+        return False
+    try:
+        paths = sysconfig.get_paths(scheme="posix_user", expand=False)
+    except KeyError:  # User-site not available.
+        return False
+    return "/lib64/" in paths["purelib"] and "/lib64/" not in user_site
+
+
+@functools.lru_cache(maxsize=None)
 def _looks_like_msys2_mingw_scheme() -> bool:
     """MSYS2 patches distutils and sysconfig to use a UNIX-like scheme.
 
@@ -133,9 +174,9 @@ def _looks_like_msys2_mingw_scheme() -> bool:
     )
 
 
-def _fix_abiflags(parts: Tuple[str]) -> Iterator[str]:
+def _fix_abiflags(parts: Tuple[str]) -> Generator[str, None, None]:
     ldversion = sysconfig.get_config_var("LDVERSION")
-    abiflags: str = getattr(sys, "abiflags", None)
+    abiflags = getattr(sys, "abiflags", None)
 
     # LDVERSION does not end with sys.abiflags. Just return the path unchanged.
     if not ldversion or not abiflags or not ldversion.endswith(abiflags):
@@ -268,6 +309,17 @@ def get_scheme(
             and _looks_like_bpo_44860()
         )
         if skip_bpo_44860:
+            continue
+
+        # Slackware incorrectly patches posix_user to use lib64 instead of lib,
+        # but not usersite to match the location.
+        skip_slackware_user_scheme = (
+            user
+            and k in ("platlib", "purelib")
+            and not WINDOWS
+            and _looks_like_slackware_scheme()
+        )
+        if skip_slackware_user_scheme:
             continue
 
         # Both Debian and Red Hat patch Python to place the system site under
@@ -405,42 +457,11 @@ def get_platlib() -> str:
     if _USE_SYSCONFIG:
         return new
 
+    from . import _distutils
+
     old = _distutils.get_platlib()
     if _looks_like_deb_system_dist_packages(old):
         return old
     if _warn_if_mismatch(pathlib.Path(old), pathlib.Path(new), key="platlib"):
         _log_context()
     return old
-
-
-def _deduplicated(v1: str, v2: str) -> List[str]:
-    """Deduplicate values from a list."""
-    if v1 == v2:
-        return [v1]
-    return [v1, v2]
-
-
-def get_prefixed_libs(prefix: str) -> List[str]:
-    """Return the lib locations under ``prefix``."""
-    new_pure, new_plat = _sysconfig.get_prefixed_libs(prefix)
-    if _USE_SYSCONFIG:
-        return _deduplicated(new_pure, new_plat)
-
-    old_pure, old_plat = _distutils.get_prefixed_libs(prefix)
-
-    warned = [
-        _warn_if_mismatch(
-            pathlib.Path(old_pure),
-            pathlib.Path(new_pure),
-            key="prefixed-purelib",
-        ),
-        _warn_if_mismatch(
-            pathlib.Path(old_plat),
-            pathlib.Path(new_plat),
-            key="prefixed-platlib",
-        ),
-    ]
-    if any(warned):
-        _log_context(prefix=prefix)
-
-    return _deduplicated(old_pure, old_plat)

@@ -1,7 +1,7 @@
 import json
 import logging
 from optparse import Values
-from typing import TYPE_CHECKING, Iterator, List, Optional, Sequence, Tuple, cast
+from typing import TYPE_CHECKING, Generator, List, Optional, Sequence, Tuple, cast
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -16,7 +16,6 @@ from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.session import PipSession
 from pip._internal.utils.compat import stdlib_pkgs
 from pip._internal.utils.misc import tabulate, write_output
-from pip._internal.utils.parallel import map_multithread
 
 if TYPE_CHECKING:
     from pip._internal.metadata.base import DistributionVersion
@@ -156,6 +155,11 @@ class ListCommand(IndexGroupCommand):
         if options.outdated and options.uptodate:
             raise CommandError("Options --outdated and --uptodate cannot be combined.")
 
+        if options.outdated and options.list_format == "freeze":
+            raise CommandError(
+                "List format 'freeze' can not be used with the --outdated option."
+            )
+
         cmdoptions.check_list_path_option(options)
 
         skip = set(stdlib_pkgs)
@@ -222,7 +226,7 @@ class ListCommand(IndexGroupCommand):
 
     def iter_packages_latest_infos(
         self, packages: "_ProcessedDists", options: Values
-    ) -> Iterator["_DistWithLatestInfo"]:
+    ) -> Generator["_DistWithLatestInfo", None, None]:
         with self._build_session(options) as session:
             finder = self._build_package_finder(options, session)
 
@@ -254,7 +258,7 @@ class ListCommand(IndexGroupCommand):
                 dist.latest_filetype = typ
                 return dist
 
-            for dist in map_multithread(latest_info, packages):
+            for dist in map(latest_info, packages):
                 if dist is not None:
                     yield dist
 

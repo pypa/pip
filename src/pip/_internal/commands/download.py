@@ -7,7 +7,8 @@ from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.req_command import RequirementCommand, with_cleanup
 from pip._internal.cli.status_codes import SUCCESS
-from pip._internal.req.req_tracker import get_requirement_tracker
+from pip._internal.operations.build.build_tracker import get_build_tracker
+from pip._internal.req.req_install import check_legacy_setup_py_options
 from pip._internal.utils.misc import ensure_dir, normalize_path, write_output
 from pip._internal.utils.temp_dir import TempDirectory
 
@@ -49,6 +50,7 @@ class DownloadCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.no_build_isolation())
         self.cmd_opts.add_option(cmdoptions.use_pep517())
         self.cmd_opts.add_option(cmdoptions.no_use_pep517())
+        self.cmd_opts.add_option(cmdoptions.check_build_deps())
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
 
         self.cmd_opts.add_option(
@@ -95,7 +97,7 @@ class DownloadCommand(RequirementCommand):
             ignore_requires_python=options.ignore_requires_python,
         )
 
-        req_tracker = self.enter_context(get_requirement_tracker())
+        build_tracker = self.enter_context(get_build_tracker())
 
         directory = TempDirectory(
             delete=not options.no_clean,
@@ -104,15 +106,17 @@ class DownloadCommand(RequirementCommand):
         )
 
         reqs = self.get_requirements(args, options, finder, session)
+        check_legacy_setup_py_options(options, reqs)
 
         preparer = self.make_requirement_preparer(
             temp_build_dir=directory,
             options=options,
-            req_tracker=req_tracker,
+            build_tracker=build_tracker,
             session=session,
             finder=finder,
             download_dir=options.download_dir,
             use_user_site=False,
+            verbosity=self.verbosity,
         )
 
         resolver = self.make_resolver(
@@ -120,6 +124,7 @@ class DownloadCommand(RequirementCommand):
             finder=finder,
             options=options,
             ignore_requires_python=options.ignore_requires_python,
+            use_pep517=options.use_pep517,
             py_version_info=options.python_version,
         )
 

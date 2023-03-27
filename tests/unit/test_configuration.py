@@ -1,6 +1,7 @@
 """Tests for all things related to the configuration
 """
 
+import re
 from unittest.mock import MagicMock
 
 import pytest
@@ -23,11 +24,17 @@ class TestConfigurationLoading(ConfigurationMixin):
         self.configuration.load()
         assert self.configuration.get_value("test.hello") == "2"
 
-    def test_site_loading(self) -> None:
-        self.patch_configuration(kinds.SITE, {"test.hello": "3"})
+    def test_base_loading(self) -> None:
+        self.patch_configuration(kinds.BASE, {"test.hello": "3"})
 
         self.configuration.load()
         assert self.configuration.get_value("test.hello") == "3"
+
+    def test_site_loading(self) -> None:
+        self.patch_configuration(kinds.SITE, {"test.hello": "4"})
+
+        self.configuration.load()
+        assert self.configuration.get_value("test.hello") == "4"
 
     def test_environment_config_loading(self, monkeypatch: pytest.MonkeyPatch) -> None:
         contents = """
@@ -87,6 +94,34 @@ class TestConfigurationLoading(ConfigurationMixin):
             err.value
         )
 
+    def test_no_such_key_error_message_no_command(self) -> None:
+        self.configuration.load_only = kinds.GLOBAL
+        self.configuration.load()
+        expected_msg = (
+            "Key does not contain dot separated section and key. "
+            "Perhaps you wanted to use 'global.index-url' instead?"
+        )
+        pat = f"^{re.escape(expected_msg)}$"
+        with pytest.raises(ConfigurationError, match=pat):
+            self.configuration.get_value("index-url")
+
+    def test_no_such_key_error_message_missing_option(self) -> None:
+        self.configuration.load_only = kinds.GLOBAL
+        self.configuration.load()
+        expected_msg = "No such key - global.index-url"
+        pat = f"^{re.escape(expected_msg)}$"
+        with pytest.raises(ConfigurationError, match=pat):
+            self.configuration.get_value("global.index-url")
+
+    def test_overrides_normalization(self) -> None:
+        # Check that normalized names are used in precedence calculations.
+        # Reminder: USER has higher precedence than GLOBAL.
+        self.patch_configuration(kinds.USER, {"test.hello-world": "1"})
+        self.patch_configuration(kinds.GLOBAL, {"test.hello_world": "0"})
+        self.configuration.load()
+
+        assert self.configuration.get_value("test.hello_world") == "1"
+
 
 class TestConfigurationPrecedence(ConfigurationMixin):
     # Tests for methods to that determine the order of precedence of
@@ -113,6 +148,13 @@ class TestConfigurationPrecedence(ConfigurationMixin):
 
         assert self.configuration.get_value("test.hello") == "0"
 
+    def test_site_overides_base(self) -> None:
+        self.patch_configuration(kinds.BASE, {"test.hello": "2"})
+        self.patch_configuration(kinds.SITE, {"test.hello": "1"})
+        self.configuration.load()
+
+        assert self.configuration.get_value("test.hello") == "1"
+
     def test_site_overides_user(self) -> None:
         self.patch_configuration(kinds.USER, {"test.hello": "2"})
         self.patch_configuration(kinds.SITE, {"test.hello": "1"})
@@ -123,6 +165,13 @@ class TestConfigurationPrecedence(ConfigurationMixin):
     def test_site_overides_global(self) -> None:
         self.patch_configuration(kinds.GLOBAL, {"test.hello": "3"})
         self.patch_configuration(kinds.SITE, {"test.hello": "1"})
+        self.configuration.load()
+
+        assert self.configuration.get_value("test.hello") == "1"
+
+    def test_base_overides_user(self) -> None:
+        self.patch_configuration(kinds.USER, {"test.hello": "2"})
+        self.patch_configuration(kinds.BASE, {"test.hello": "1"})
         self.configuration.load()
 
         assert self.configuration.get_value("test.hello") == "1"
@@ -185,12 +234,8 @@ class TestConfigurationModification(ConfigurationMixin):
     def test_no_specific_given_modification(self) -> None:
         self.configuration.load()
 
-        try:
+        with pytest.raises(ConfigurationError):
             self.configuration.set_value("test.hello", "10")
-        except ConfigurationError:
-            pass
-        else:
-            assert False, "Should have raised an error."
 
     def test_site_modification(self) -> None:
         self.configuration.load_only = kinds.SITE
@@ -241,3 +286,16 @@ class TestConfigurationModification(ConfigurationMixin):
         # get the path to user config file
         assert mymock.call_count == 1
         assert mymock.call_args[0][0] == (get_configuration_files()[kinds.GLOBAL][-1])
+
+    def test_normalization(self) -> None:
+        # underscores and dashes can be used interchangeably.
+        # internally, underscores get converted into dashes before reading/writing file
+        self.configuration.load_only = kinds.GLOBAL
+        self.configuration.load()
+        self.configuration.set_value("global.index_url", "example.org")
+        assert self.configuration.get_value("global.index_url") == "example.org"
+        assert self.configuration.get_value("global.index-url") == "example.org"
+        self.configuration.unset_value("global.index-url")
+        pat = r"^No such key - global\.index-url$"
+        with pytest.raises(ConfigurationError, match=pat):
+            self.configuration.get_value("global.index-url")

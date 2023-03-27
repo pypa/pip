@@ -55,6 +55,7 @@ print("pip release:", release)
 # -- Options for myst-parser ----------------------------------------------------------
 
 myst_enable_extensions = ["deflist"]
+myst_heading_anchors = 3
 
 # -- Options for smartquotes ----------------------------------------------------------
 
