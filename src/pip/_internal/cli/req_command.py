@@ -411,7 +411,7 @@ class RequirementCommand(IndexGroupCommand):
         for req in args:
             req_to_add = install_req_from_line(
                 req,
-                None,
+                comes_from=None,
                 isolated=options.isolated_mode,
                 use_pep517=options.use_pep517,
                 user_supplied=True,
