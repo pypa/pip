@@ -894,9 +894,14 @@ def check_legacy_setup_py_options(
     has_build_options = _has_option(options, reqs, "build_options")
     has_global_options = _has_option(options, reqs, "global_options")
     if has_build_options or has_global_options:
+        deprecated(
+            reason="--build-option and --global-option are deprecated.",
+            issue=11859,
+            replacement="to use --config-settings",
+            gone_in="23.3",
+        )
         logger.warning(
             "Implying --no-binary=:all: due to the presence of "
             "--build-option / --global-option. "
-            "Consider using --config-settings for more flexibility.",
         )
         options.format_control.disallow_binaries()

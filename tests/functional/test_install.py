@@ -834,7 +834,7 @@ def test_install_global_option(script: PipTestEnvironment) -> None:
     assert "INITools==0.1\n" in result.stdout
     assert not result.files_created
     assert "Implying --no-binary=:all:" in result.stderr
-    assert "Consider using --config-settings" in result.stderr
+    assert "A possible replacement is to use --config-settings" in result.stderr
 
 
 def test_install_with_hacked_egg_info(
