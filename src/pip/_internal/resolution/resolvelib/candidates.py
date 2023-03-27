@@ -65,10 +65,8 @@ def make_install_req_from_link(
         use_pep517=template.use_pep517,
         isolated=template.isolated,
         constraint=template.constraint,
-        options=dict(
-            global_options=template.global_options,
-            hashes=template.hash_options,
-        ),
+        global_options=template.global_options,
+        hash_options=template.hash_options,
         config_settings=template.config_settings,
     )
     ireq.original_link = template.original_link
@@ -88,10 +86,8 @@ def make_install_req_from_editable(
         isolated=template.isolated,
         constraint=template.constraint,
         permit_editable_wheels=template.permit_editable_wheels,
-        options=dict(
-            global_options=template.global_options,
-            hashes=template.hash_options,
-        ),
+        global_options=template.global_options,
+        hash_options=template.hash_options,
         config_settings=template.config_settings,
     )
 
@@ -112,10 +108,8 @@ def _make_install_req_from_dist(
         use_pep517=template.use_pep517,
         isolated=template.isolated,
         constraint=template.constraint,
-        options=dict(
-            global_options=template.global_options,
-            hashes=template.hash_options,
-        ),
+        global_options=template.global_options,
+        hash_options=template.hash_options,
         config_settings=template.config_settings,
     )
     ireq.satisfied_by = dist

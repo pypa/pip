@@ -42,6 +42,18 @@ class PipReporter(BaseReporter):
         message = self._messages_at_reject_count[count]
         logger.info("INFO: %s", message.format(package_name=candidate.name))
 
+        msg = "Will try a different candidate, due to conflict:"
+        for req_info in criterion.information:
+            req, parent = req_info.requirement, req_info.parent
+            # Inspired by Factory.get_installation_error
+            msg += "\n    "
+            if parent:
+                msg += f"{parent.name} {parent.version} depends on "
+            else:
+                msg += "The user requested "
+            msg += req.format_for_error()
+        logger.debug(msg)
+
 
 class PipDebuggingReporter(BaseReporter):
     """A reporter that does an info log for every event it sees."""
