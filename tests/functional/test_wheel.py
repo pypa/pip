@@ -342,6 +342,10 @@ def test_pip_wheel_with_user_set_in_config(
     sys.platform.startswith("win"),
     reason="The empty extension module does not work on Win",
 )
+@pytest.mark.skipif(
+    sys.platform.startswith("darwin"),
+    reason="The empty extension module does not work on MacOS",
+)
 def test_pip_wheel_ext_module_with_tmpdir_inside(
     script: PipTestEnvironment, data: TestData, common_wheels: Path
 ) -> None:
