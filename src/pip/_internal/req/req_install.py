@@ -85,7 +85,7 @@ class InstallRequirement:
         *,
         global_options: Optional[List[str]] = None,
         hash_options: Optional[Dict[str, List[str]]] = None,
-        config_settings: Optional[Dict[str, str]] = None,
+        config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
         constraint: bool = False,
         extras: Collection[str] = (),
         user_supplied: bool = False,

@@ -1,0 +1,2 @@
+When the ``wheel`` package is not installed, pip now uses the default build backend
+instead of ``setup.py install`` for project without ``pyproject.toml``.

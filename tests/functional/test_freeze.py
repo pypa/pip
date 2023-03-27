@@ -104,7 +104,6 @@ def test_exclude_and_normalization(script: PipTestEnvironment, tmpdir: Path) -> 
     assert "Normalizable_Name" not in result.stdout
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_freeze_multiple_exclude_with_all(script: PipTestEnvironment) -> None:
     result = script.pip("freeze", "--all")
     assert "pip==" in result.stdout
@@ -962,7 +961,6 @@ def test_freeze_path_multiple(
     _check_output(result.stdout, expected)
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_freeze_direct_url_archive(
     script: PipTestEnvironment, shared_data: TestData
 ) -> None:
@@ -1005,7 +1003,6 @@ def test_freeze_include_work_dir_pkg(script: PipTestEnvironment) -> None:
     assert "simple==1.0" in result.stdout
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_freeze_pep610_editable(script: PipTestEnvironment) -> None:
     """
     Test that a package installed with a direct_url.json with editable=true

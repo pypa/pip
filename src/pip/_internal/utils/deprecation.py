@@ -159,17 +159,3 @@ LegacyInstallReasonFailedBdistWheel = LegacyInstallReason(
     issue=8368,
     emit_after_success=True,
 )
-
-
-LegacyInstallReasonMissingWheelPackage = LegacyInstallReason(
-    reason=(
-        "{name} is being installed using the legacy "
-        "'setup.py install' method, because it does not have a "
-        "'pyproject.toml' and the 'wheel' package "
-        "is not installed."
-    ),
-    replacement="to enable the '--use-pep517' option",
-    gone_in="23.1",
-    issue=8559,
-    emit_before_install=True,
-)
