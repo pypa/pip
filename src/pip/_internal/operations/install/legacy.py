@@ -69,7 +69,6 @@ def install(
     unpacked_source_directory: str,
     req_description: str,
 ) -> bool:
-
     header_dir = scheme.headers
 
     with TempDirectory(kind="record") as temp_dir:

@@ -108,7 +108,7 @@ class TestLink:
     )
     def test_invalid_egg_fragments(self, fragment: str) -> None:
         url = f"git+https://example.com/package#egg={fragment}"
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             Link(url)
 
     @pytest.mark.parametrize(

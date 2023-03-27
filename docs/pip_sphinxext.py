@@ -254,7 +254,6 @@ class PipCLIDirective(rst.Directive):
         lines = []
         # Create a tab for each OS
         for os, variant in os_variants.items():
-
             # Unpack the values
             prompt = variant["prompt"]
             highlighter = variant["highlighter"]
