@@ -1160,7 +1160,6 @@ def test_install_package_with_prefix(
     rel_prefix_path = script.scratch / "prefix"
     install_path = join(
         sysconfig.get_path("purelib", vars={"base": rel_prefix_path}),
-        # we still test for egg-info because no-binary implies setup.py install
         "simple-1.0.dist-info",
     )
     result.did_create(install_path)
@@ -1606,7 +1605,6 @@ def test_install_no_binary_builds_pep_517_wheel(
     assert expected in str(res), str(res)
 
     assert "Building wheel for pep517-setup" in str(res), str(res)
-    assert "Running setup.py install for pep517-set" not in str(res), str(res)
 
 
 @pytest.mark.network
