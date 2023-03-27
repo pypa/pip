@@ -74,9 +74,9 @@ intersphinx_mapping = {
 # -- Options for extlinks -------------------------------------------------------------
 
 extlinks = {
-    "issue": ("https://github.com/pypa/pip/issues/%s", "#"),
-    "pull": ("https://github.com/pypa/pip/pull/%s", "PR #"),
-    "pypi": ("https://pypi.org/project/%s/", ""),
+    "issue": ("https://github.com/pypa/pip/issues/%s", "#%s"),
+    "pull": ("https://github.com/pypa/pip/pull/%s", "PR #%s"),
+    "pypi": ("https://pypi.org/project/%s/", "%s"),
 }
 
 # -- Options for towncrier_draft extension --------------------------------------------
