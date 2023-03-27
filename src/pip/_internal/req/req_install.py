@@ -29,7 +29,7 @@ from pip._internal.metadata import (
     get_wheel_distribution,
 )
 from pip._internal.metadata.base import FilesystemWheel
-from pip._internal.models.direct_url import DirectUrl
+from pip._internal.models.direct_url import ArchiveInfo, DirectUrl
 from pip._internal.models.link import Link
 from pip._internal.operations.build.metadata import generate_metadata
 from pip._internal.operations.build.metadata_editable import generate_editable_metadata
@@ -54,6 +54,7 @@ from pip._internal.utils.misc import (
     ask_path_exists,
     backup_dir,
     display_path,
+    hash_file,
     hide_url,
     redact_auth_from_url,
 )
@@ -779,7 +780,6 @@ class InstallRequirement:
 
         if self.is_wheel:
             assert self.local_file_path
-            direct_url = None
             # TODO this can be refactored to direct_url = self.download_info
             if self.editable:
                 direct_url = direct_url_for_editable(self.unpacked_source_directory)
@@ -789,6 +789,14 @@ class InstallRequirement:
                     self.source_dir,
                     self.original_link_is_in_wheel_cache,
                 )
+            else:
+                sha256 = hash_file(self.local_file_path)[0]
+                direct_url = DirectUrl(
+                    url=self.download_info.redacted_url,
+                    info=ArchiveInfo("sha256=" + sha256.hexdigest()),
+                    provenance_file=True,
+                )
+
             install_wheel(
                 self.name,
                 self.local_file_path,
