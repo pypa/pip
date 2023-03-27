@@ -43,7 +43,6 @@ class WheelCommand(RequirementCommand):
       %prog [options] <archive url/path> ..."""
 
     def add_options(self) -> None:
-
         self.cmd_opts.add_option(
             "-w",
             "--wheel-dir",

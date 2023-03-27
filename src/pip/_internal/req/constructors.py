@@ -209,7 +209,6 @@ def install_req_from_editable(
     permit_editable_wheels: bool = False,
     config_settings: Optional[Dict[str, str]] = None,
 ) -> InstallRequirement:
-
     parts = parse_req_from_editable(editable_req)
 
     return InstallRequirement(

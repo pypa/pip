@@ -518,7 +518,6 @@ class TestInstallUnpackedWheel:
 
 
 class TestMessageAboutScriptsNotOnPATH:
-
     tilde_warning_msg = (
         "NOTE: The current PATH contains path(s) starting with `~`, "
         "which may not be expanded by all applications."

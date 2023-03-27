@@ -454,7 +454,6 @@ class TestCountOptions(AddFakeCommandMixin):
 
 
 class TestGeneralOptions(AddFakeCommandMixin):
-
     # the reason to specifically test general options is due to the
     # extra processing they receive, and the number of bugs we've had
 

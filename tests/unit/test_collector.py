@@ -1014,6 +1014,7 @@ def test_link_collector_create_find_links_expansion(
     """
     Test "~" expansion in --find-links paths.
     """
+
     # This is a mock version of expanduser() that expands "~" to the tmpdir.
     def expand_path(path: str) -> str:
         if path.startswith("~/"):

@@ -53,7 +53,6 @@ class Tests_EgglinkPath:
     "util.egg_link_path_from_location() tests"
 
     def setup_method(self) -> None:
-
         project = "foo"
 
         self.mock_dist = Mock(project_name=project)

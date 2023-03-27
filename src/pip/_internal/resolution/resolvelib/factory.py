@@ -632,7 +632,6 @@ class Factory:
         e: "ResolutionImpossible[Requirement, Candidate]",
         constraints: Dict[str, Constraint],
     ) -> InstallationError:
-
         assert e.causes, "Installation error reported with no cause"
 
         # If one of the things we can't solve is "we need Python X.Y",

@@ -431,7 +431,6 @@ def virtualenv_template(
     setuptools_install: Path,
     coverage_install: Path,
 ) -> Iterator[VirtualEnvironment]:
-
     venv_type: VirtualEnvironmentType
     if request.config.getoption("--use-venv"):
         venv_type = "venv"

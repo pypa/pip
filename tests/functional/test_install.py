@@ -2262,7 +2262,6 @@ def test_install_skip_work_dir_pkg(script: PipTestEnvironment, data: TestData) -
 def test_install_verify_package_name_normalization(
     script: PipTestEnvironment, package_name: str
 ) -> None:
-
     """
     Test that install of a package again using a name which
     normalizes to the original package name, is a no-op

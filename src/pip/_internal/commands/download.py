@@ -76,7 +76,6 @@ class DownloadCommand(RequirementCommand):
 
     @with_cleanup
     def run(self, options: Values, args: List[str]) -> int:
-
         options.ignore_installed = True
         # editable doesn't really make sense for `pip download`, but the bowels
         # of the RequirementSet code require that property.

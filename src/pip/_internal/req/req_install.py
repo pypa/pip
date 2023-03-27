@@ -850,7 +850,6 @@ class InstallRequirement:
 
 
 def check_invalid_constraint_type(req: InstallRequirement) -> str:
-
     # Check for unsupported forms
     problem = ""
     if not req.name:
