@@ -10,6 +10,7 @@ from contextlib import ExitStack, contextmanager
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
+    AnyStr,
     Callable,
     Dict,
     Iterable,
@@ -108,10 +109,6 @@ def pytest_collection_modifyitems(config: Config, items: List[pytest.Function]) 
             if item.get_closest_marker("network") is not None:
                 item.add_marker(pytest.mark.flaky(reruns=3, reruns_delay=2))
 
-        if item.get_closest_marker("incompatible_with_test_venv") and config.getoption(
-            "--use-venv"
-        ):
-            item.add_marker(pytest.mark.skip("Incompatible with test venv"))
         if (
             item.get_closest_marker("incompatible_with_venv")
             and sys.prefix != sys.base_prefix
@@ -474,9 +471,6 @@ def virtualenv_template(
         ):
             (venv.bin / exe).unlink()
 
-    # Enable user site packages.
-    venv.user_site_packages = True
-
     # Rename original virtualenv directory to make sure
     # it's not reused by mistake from one of the copies.
     venv_template = tmpdir / "venv_template"
@@ -514,7 +508,10 @@ def with_wheel(virtualenv: VirtualEnvironment, wheel_install: Path) -> None:
 
 class ScriptFactory(Protocol):
     def __call__(
-        self, tmpdir: Path, virtualenv: Optional[VirtualEnvironment] = None
+        self,
+        tmpdir: Path,
+        virtualenv: Optional[VirtualEnvironment] = None,
+        environ: Optional[Dict[AnyStr, AnyStr]] = None,
     ) -> PipTestEnvironment:
         ...
 
@@ -528,7 +525,11 @@ def script_factory(
     def factory(
         tmpdir: Path,
         virtualenv: Optional[VirtualEnvironment] = None,
+        environ: Optional[Dict[AnyStr, AnyStr]] = None,
     ) -> PipTestEnvironment:
+        kwargs = {}
+        if environ:
+            kwargs["environ"] = environ
         if virtualenv is None:
             virtualenv = virtualenv_factory(tmpdir.joinpath("venv"))
         return PipTestEnvironment(
@@ -548,6 +549,7 @@ def script_factory(
             pip_expect_warning=deprecated_python,
             # Tell the Test Environment if we want to run pip via a zipapp
             zipapp=zipapp,
+            **kwargs,
         )
 
     return factory
@@ -742,3 +744,8 @@ def mock_server() -> Iterator[MockServer]:
 @pytest.fixture
 def proxy(request: pytest.FixtureRequest) -> str:
     return request.config.getoption("proxy")
+
+
+@pytest.fixture
+def enable_user_site(virtualenv: VirtualEnvironment) -> None:
+    virtualenv.user_site_packages = True

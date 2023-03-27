@@ -1,6 +1,7 @@
 """Automation using nox.
 """
 
+import argparse
 import glob
 import os
 import shutil
@@ -66,7 +67,7 @@ def should_update_common_wheels() -> bool:
 # -----------------------------------------------------------------------------
 # Development Commands
 # -----------------------------------------------------------------------------
-@nox.session(python=["3.7", "3.8", "3.9", "3.10", "pypy3"])
+@nox.session(python=["3.7", "3.8", "3.9", "3.10", "3.11", "pypy3"])
 def test(session: nox.Session) -> None:
     # Get the common wheels.
     if should_update_common_wheels():
@@ -172,11 +173,24 @@ def lint(session: nox.Session) -> None:
     session.run("pre-commit", "run", *args)
 
 
+# NOTE: This session will COMMIT upgrades to vendored libraries.
+# You should therefore not run it directly against `main`. If you
+# do (assuming you started with a clean main), you can run:
+#
+# git checkout -b vendoring-updates
+# git checkout main
+# git reset --hard origin/main
 @nox.session
 def vendoring(session: nox.Session) -> None:
     session.install("vendoring~=1.2.0")
 
-    if "--upgrade" not in session.posargs:
+    parser = argparse.ArgumentParser(prog="nox -s vendoring")
+    parser.add_argument("--upgrade-all", action="store_true")
+    parser.add_argument("--upgrade", action="append", default=[])
+    parser.add_argument("--skip", action="append", default=[])
+    args = parser.parse_args(session.posargs)
+
+    if not (args.upgrade or args.upgrade_all):
         session.run("vendoring", "sync", "-v")
         return
 
@@ -192,7 +206,9 @@ def vendoring(session: nox.Session) -> None:
 
     vendor_txt = Path("src/pip/_vendor/vendor.txt")
     for name, old_version in pinned_requirements(vendor_txt):
-        if name == "setuptools":
+        if name in args.skip:
+            continue
+        if args.upgrade and name not in args.upgrade:
             continue
 
         # update requirements.txt

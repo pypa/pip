@@ -86,7 +86,11 @@ def make_test_search_scope(
     if index_urls is None:
         index_urls = []
 
-    return SearchScope.create(find_links=find_links, index_urls=index_urls)
+    return SearchScope.create(
+        find_links=find_links,
+        index_urls=index_urls,
+        no_index=False,
+    )
 
 
 def make_test_link_collector(

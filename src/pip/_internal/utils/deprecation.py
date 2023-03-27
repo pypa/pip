@@ -124,8 +124,8 @@ class LegacyInstallReason:
     def __init__(
         self,
         reason: str,
-        replacement: Optional[str],
-        gone_in: Optional[str],
+        replacement: Optional[str] = None,
+        gone_in: Optional[str] = None,
         feature_flag: Optional[str] = None,
         issue: Optional[int] = None,
         emit_after_success: bool = False,
@@ -155,7 +155,7 @@ LegacyInstallReasonFailedBdistWheel = LegacyInstallReason(
         "method, because a wheel could not be built for it."
     ),
     replacement="to fix the wheel build issue reported above",
-    gone_in=None,
+    gone_in="23.1",
     issue=8368,
     emit_after_success=True,
 )
@@ -169,7 +169,7 @@ LegacyInstallReasonMissingWheelPackage = LegacyInstallReason(
         "is not installed."
     ),
     replacement="to enable the '--use-pep517' option",
-    gone_in=None,
+    gone_in="23.1",
     issue=8559,
     emit_before_install=True,
 )

@@ -173,6 +173,31 @@ class Resolution(object):
             raise RequirementsConflicted(criterion)
         criteria[identifier] = criterion
 
+    def _remove_information_from_criteria(self, criteria, parents):
+        """Remove information from parents of criteria.
+
+        Concretely, removes all values from each criterion's ``information``
+        field that have one of ``parents`` as provider of the requirement.
+
+        :param criteria: The criteria to update.
+        :param parents: Identifiers for which to remove information from all criteria.
+        """
+        if not parents:
+            return
+        for key, criterion in criteria.items():
+            criteria[key] = Criterion(
+                criterion.candidates,
+                [
+                    information
+                    for information in criterion.information
+                    if (
+                        information[1] is None
+                        or self._p.identify(information[1]) not in parents
+                    )
+                ],
+                criterion.incompatibilities,
+            )
+
     def _get_preference(self, name):
         return self._p.get_preference(
             identifier=name,
@@ -212,6 +237,7 @@ class Resolution(object):
             try:
                 criteria = self._get_updated_criteria(candidate)
             except RequirementsConflicted as e:
+                self._r.rejecting_candidate(e.criterion, candidate)
                 causes.append(e.criterion)
                 continue
 
@@ -280,8 +306,6 @@ class Resolution(object):
 
             # Also mark the newly known incompatibility.
             incompatibilities_from_broken.append((name, [candidate]))
-
-            self._r.backtracking(candidate=candidate)
 
             # Create a new state from the last known-to-work one, and apply
             # the previously gathered incompatibility information.
@@ -368,6 +392,11 @@ class Resolution(object):
                 self._r.ending(state=self.state)
                 return self.state
 
+            # keep track of satisfied names to calculate diff after pinning
+            satisfied_names = set(self.state.criteria.keys()) - set(
+                unsatisfied_names
+            )
+
             # Choose the most preferred unpinned criterion to try.
             name = min(unsatisfied_names, key=self._get_preference)
             failure_causes = self._attempt_to_pin_criterion(name)
@@ -384,6 +413,17 @@ class Resolution(object):
                 if not success:
                     raise ResolutionImpossible(self.state.backtrack_causes)
             else:
+                # discard as information sources any invalidated names
+                # (unsatisfied names that were previously satisfied)
+                newly_unsatisfied_names = {
+                    key
+                    for key, criterion in self.state.criteria.items()
+                    if key in satisfied_names
+                    and not self._is_current_pin_satisfying(key, criterion)
+                }
+                self._remove_information_from_criteria(
+                    self.state.criteria, newly_unsatisfied_names
+                )
                 # Pinning was successful. Push a new state to do another pin.
                 self._push_new_state()
 

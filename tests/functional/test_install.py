@@ -1,8 +1,8 @@
-import distutils
 import os
 import re
 import ssl
 import sys
+import sysconfig
 import textwrap
 from os.path import curdir, join, pardir
 from pathlib import Path
@@ -172,7 +172,7 @@ def test_pep518_allows_missing_requires(
     assert result.files_created
 
 
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 def test_pep518_with_user_pip(
     script: PipTestEnvironment, pip_src: Path, data: TestData, common_wheels: Path
 ) -> None:
@@ -843,6 +843,8 @@ def test_install_global_option(script: PipTestEnvironment) -> None:
     )
     assert "INITools==0.1\n" in result.stdout
     assert not result.files_created
+    assert "Implying --no-binary=:all:" in result.stderr
+    assert "Consider using --config-settings" in result.stderr
 
 
 def test_install_with_hacked_egg_info(
@@ -854,29 +856,6 @@ def test_install_with_hacked_egg_info(
     run_from = data.packages.joinpath("HackedEggInfo")
     result = script.pip("install", ".", cwd=run_from)
     assert "Successfully installed hackedegginfo-0.0.0\n" in result.stdout
-
-
-@pytest.mark.network
-def test_install_using_install_option_and_editable(
-    script: PipTestEnvironment, tmpdir: Path
-) -> None:
-    """
-    Test installing a tool using -e and --install-option
-    """
-    folder = "script_folder"
-    script.scratch_path.joinpath(folder).mkdir()
-    url = local_checkout("git+https://github.com/pypa/pip-test-package", tmpdir)
-    result = script.pip(
-        "install",
-        "-e",
-        f"{url}#egg=pip-test-package",
-        f"--install-option=--script-dir={folder}",
-        expect_stderr=True,
-    )
-    script_file = (
-        script.venv / "src/pip-test-package" / folder / f"pip-test-package{script.exe}"
-    )
-    result.did_create(script_file)
 
 
 @pytest.mark.xfail
@@ -1162,8 +1141,9 @@ def test_install_package_with_root(script: PipTestEnvironment, data: TestData) -
     normal_install_path = os.fspath(
         script.base_path / script.site_packages / "simple-1.0.dist-info"
     )
-    # use distutils to change the root exactly how the --root option does it
-    from distutils.util import change_root
+    # use a function borrowed from distutils
+    # to change the root exactly how the --root option does it
+    from pip._internal.locations.base import change_root
 
     root_path = change_root(os.path.join(script.scratch, "root"), normal_install_path)
     result.did_create(root_path)
@@ -1194,7 +1174,7 @@ def test_install_package_with_prefix(
 
     rel_prefix_path = script.scratch / "prefix"
     install_path = join(
-        distutils.sysconfig.get_python_lib(prefix=rel_prefix_path),
+        sysconfig.get_path("purelib", vars={"base": rel_prefix_path}),
         # we still test for egg-info because no-binary implies setup.py install
         f"simple-1.0-py{pyversion}.egg-info",
     )
@@ -1216,7 +1196,7 @@ def _test_install_editable_with_prefix(
             "prefix", "lib", f"python{pyversion}", "site-packages"
         )
     else:
-        site_packages = distutils.sysconfig.get_python_lib(prefix="prefix")
+        site_packages = sysconfig.get_path("purelib", vars={"base": "prefix"})
 
     # make sure target path is in PYTHONPATH
     pythonpath = script.scratch_path / site_packages
@@ -1663,12 +1643,9 @@ def test_install_no_binary_disables_building_wheels(
     # Wheels are built for local directories, but not cached across runs
     assert "Building wheel for requir" in str(res), str(res)
     # Don't build wheel for upper which was blacklisted
-    assert "Building wheel for upper" not in str(res), str(res)
-    # Wheels are built for local directories, but not cached across runs
-    assert "Running setup.py install for requir" not in str(res), str(res)
+    assert "Building wheel for upper" in str(res), str(res)
     # And these two fell back to sdist based installed.
     assert "Running setup.py install for wheelb" in str(res), str(res)
-    assert "Running setup.py install for upper" in str(res), str(res)
 
 
 @pytest.mark.network
@@ -1718,10 +1695,8 @@ def test_install_no_binary_disables_cached_wheels(
         expect_stderr=True,
     )
     assert "Successfully installed upper-2.0" in str(res), str(res)
-    # No wheel building for upper, which was blacklisted
-    assert "Building wheel for upper" not in str(res), str(res)
-    # Must have used source, not a cached wheel to install upper.
-    assert "Running setup.py install for upper" in str(res), str(res)
+    # upper is built and not obtained from cache
+    assert "Building wheel for upper" in str(res), str(res)
 
 
 def test_install_editable_with_wrong_egg_name(
@@ -2074,7 +2049,7 @@ def test_target_install_ignores_distutils_config_install_prefix(
     result.did_not_create(relative_script_base)
 
 
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 def test_user_config_accepted(script: PipTestEnvironment) -> None:
     # user set in the config file is parsed as 0/1 instead of True/False.
     # Check that this doesn't cause a problem.
@@ -2202,6 +2177,10 @@ def test_error_all_yanked_files_and_no_pin(
     ), str(result)
 
 
+@pytest.mark.skipif(
+    sys.platform == "linux" and sys.version_info < (3, 8),
+    reason="Custom SSL certification not running well in CI",
+)
 @pytest.mark.parametrize(
     "install_args",
     [
@@ -2358,3 +2337,103 @@ def test_no_compiles_custom_scripts(script: PipTestEnvironment) -> None:
     ).save_to_dir(script.scratch_path)
     script.pip("install", "--compile", package)
     assert not any(script.bin_path.glob("__pycache__/dostuff*.pyc"))
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 11),
+    reason="3.11 required to find distributions via importlib metadata",
+)
+def test_install_existing_memory_distribution(script: PipTestEnvironment) -> None:
+    sitecustomize_text = textwrap.dedent(
+        """
+        import sys
+        from importlib.metadata import Distribution, DistributionFinder
+
+
+        EXAMPLE_METADATA = '''Metadata-Version: 2.1
+        Name: example
+        Version: 1.0.0
+
+        '''
+
+        class ExampleDistribution(Distribution):
+            def locate_file(self, path):
+                return path
+
+            def read_text(self, filename):
+                if filename == 'METADATA':
+                    return EXAMPLE_METADATA
+
+
+        class CustomFinder(DistributionFinder):
+            def find_distributions(self, context=None):
+                return [ExampleDistribution()]
+
+
+        sys.meta_path.append(CustomFinder())
+        """
+    )
+    with open(script.site_packages_path / "sitecustomize.py", "w") as sitecustomize:
+        sitecustomize.write(sitecustomize_text)
+
+    result = script.pip("install", "example")
+
+    assert "Requirement already satisfied: example in <memory>" in result.stdout
+
+
+def test_install_pip_prints_req_chain_local(script: PipTestEnvironment) -> None:
+    """
+    Test installing a local package with a dependency and check that the
+    dependency chain is reported.
+    """
+
+    req_path = script.scratch_path.joinpath("requirements.txt")
+    req_path.write_text("base==0.1.0")
+
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+        depends=["dep"],
+    )
+    dep_path = create_basic_wheel_for_package(
+        script,
+        "dep",
+        "0.1.0",
+    )
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "-r",
+        req_path,
+    )
+    assert_re_match(
+        rf"Processing .*{re.escape(os.path.basename(dep_path))} "
+        rf"\(from base==0.1.0->-r {re.escape(str(req_path))} \(line 1\)\)",
+        result.stdout,
+    )
+
+
+@pytest.mark.network
+def test_install_pip_prints_req_chain_pypi(script: PipTestEnvironment) -> None:
+    """
+    Test installing a package with a dependency from PyPI and check that the
+    dependency chain is reported.
+    """
+    req_path = script.scratch_path.joinpath("requirements.txt")
+    req_path.write_text("Paste[openid]==1.7.5.1")
+
+    result = script.pip(
+        "install",
+        "-r",
+        req_path,
+    )
+
+    assert (
+        f"Collecting python-openid "
+        f"(from Paste[openid]==1.7.5.1->-r {req_path} (line 1))" in result.stdout
+    )

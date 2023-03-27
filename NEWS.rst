@@ -9,6 +9,149 @@
 
 .. towncrier release notes start
 
+23.0.1 (2023-02-17)
+===================
+
+Features
+--------
+
+- Ignore PIP_REQUIRE_VIRTUALENV for ``pip index`` (`#11671 <https://github.com/pypa/pip/issues/11671>`_)
+- Implement ``--break-system-packages`` to permit installing packages into
+  ``EXTERNALLY-MANAGED`` Python installations. (`#11780 <https://github.com/pypa/pip/issues/11780>`_)
+
+Bug Fixes
+---------
+
+- Improve handling of isolated build environments on platforms that
+  customize the Python's installation schemes, such as Debian and
+  Homebrew. (`#11740 <https://github.com/pypa/pip/issues/11740>`_)
+- Do not crash in presence of misformatted hash field in ``direct_url.json``. (`#11773 <https://github.com/pypa/pip/issues/11773>`_)
+
+
+23.0 (2023-01-30)
+=================
+
+Features
+--------
+
+- Change the hashes in the installation report to be a mapping. Emit the
+  ``archive_info.hashes`` dictionary in ``direct_url.json``. (`#11312 <https://github.com/pypa/pip/issues/11312>`_)
+- Implement logic to read the ``EXTERNALLY-MANAGED`` file as specified in PEP 668.
+  This allows a downstream Python distributor to prevent users from using pip to
+  modify the externally managed environment. (`#11381 <https://github.com/pypa/pip/issues/11381>`_)
+- Enable the use of ``keyring`` found on ``PATH``. This allows ``keyring``
+  installed using ``pipx`` to be used by ``pip``. (`#11589 <https://github.com/pypa/pip/issues/11589>`_)
+- The inspect and installation report formats are now declared stable, and their version
+  has been bumped from ``0`` to ``1``. (`#11757 <https://github.com/pypa/pip/issues/11757>`_)
+
+Bug Fixes
+---------
+
+- Wheel cache behavior is restored to match previous versions, allowing the
+  cache to find existing entries. (`#11527 <https://github.com/pypa/pip/issues/11527>`_)
+- Use the "venv" scheme if available to obtain prefixed lib paths. (`#11598 <https://github.com/pypa/pip/issues/11598>`_)
+- Deprecated a historical ambiguity in how ``egg`` fragments in URL-style
+  requirements are formatted and handled. ``egg`` fragments that do not look
+  like PEP 508 names now produce a deprecation warning. (`#11617 <https://github.com/pypa/pip/issues/11617>`_)
+- Fix scripts path in isolated build environment on Debian. (`#11623 <https://github.com/pypa/pip/issues/11623>`_)
+- Make ``pip show`` show the editable location if package is editable (`#11638 <https://github.com/pypa/pip/issues/11638>`_)
+- Stop checking that ``wheel`` is present when ``build-system.requires``
+  is provided without ``build-system.build-backend`` as ``setuptools``
+  (which we still check for) will inject it anyway. (`#11673 <https://github.com/pypa/pip/issues/11673>`_)
+- Fix an issue when an already existing in-memory distribution would cause
+  exceptions in ``pip install`` (`#11704 <https://github.com/pypa/pip/issues/11704>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade certifi to 2022.12.7
+- Upgrade chardet to 5.1.0
+- Upgrade colorama to 0.4.6
+- Upgrade distro to 1.8.0
+- Remove pep517 from vendored packages
+- Upgrade platformdirs to 2.6.2
+- Add pyproject-hooks 1.0.0
+- Upgrade requests to 2.28.2
+- Upgrade rich to 12.6.0
+- Upgrade urllib3 to 1.26.14
+
+Improved Documentation
+----------------------
+
+- Fixed the description of the option "--install-options" in the documentation (`#10265 <https://github.com/pypa/pip/issues/10265>`_)
+- Remove mention that editable installs are necessary for pip freeze to report the VCS
+  URL. (`#11675 <https://github.com/pypa/pip/issues/11675>`_)
+- Clarify that the egg URL fragment is only necessary for editable VCS installs, and
+  otherwise not necessary anymore. (`#11676 <https://github.com/pypa/pip/issues/11676>`_)
+
+
+22.3.1 (2022-11-05)
+===================
+
+Bug Fixes
+---------
+
+- Fix entry point generation of ``pip.X``, ``pipX.Y``, and ``easy_install-X.Y``
+  to correctly account for multi-digit Python version segments (e.g. the "11"
+  part of 3.11). (`#11547 <https://github.com/pypa/pip/issues/11547>`_)
+
+
+22.3 (2022-10-15)
+=================
+
+Deprecations and Removals
+-------------------------
+
+- Deprecate ``--install-options`` which forces pip to use the deprecated ``install``
+  command of ``setuptools``. (`#11358 <https://github.com/pypa/pip/issues/11358>`_)
+- Deprecate installation with 'setup.py install' when no-binary is enabled for
+  source distributions without 'pyproject.toml'. (`#11452 <https://github.com/pypa/pip/issues/11452>`_)
+- Deprecate ```--no-binary`` disabling the wheel cache. (`#11454 <https://github.com/pypa/pip/issues/11454>`_)
+- Remove ``--use-feature=2020-resolver`` opt-in flag. This was supposed to be removed in 21.0, but missed during that release cycle. (`#11493 <https://github.com/pypa/pip/issues/11493>`_)
+- Deprecate installation with 'setup.py install' when the 'wheel' package is absent for
+  source distributions without 'pyproject.toml'. (`#8559 <https://github.com/pypa/pip/issues/8559>`_)
+- Remove the ability to use ``pip list --outdated`` in combination with ``--format=freeze``. (`#9789 <https://github.com/pypa/pip/issues/9789>`_)
+
+Features
+--------
+
+- Use ``shell=True`` for opening the editor with ``pip config edit``. (`#10716 <https://github.com/pypa/pip/issues/10716>`_)
+- Use the ``data-dist-info-metadata`` attribute from :pep:`658` to resolve distribution metadata without downloading the dist yet. (`#11111 <https://github.com/pypa/pip/issues/11111>`_)
+- Add an option to run the test suite with pip built as a zipapp. (`#11250 <https://github.com/pypa/pip/issues/11250>`_)
+- Add a ``--python`` option to allow pip to manage Python environments other
+  than the one pip is installed in. (`#11320 <https://github.com/pypa/pip/issues/11320>`_)
+- Document the new (experimental) zipapp distribution of pip. (`#11459 <https://github.com/pypa/pip/issues/11459>`_)
+- Use the much faster 'bzr co --lightweight' to obtain a copy of a Bazaar tree. (`#5444 <https://github.com/pypa/pip/issues/5444>`_)
+
+Bug Fixes
+---------
+
+- Fix ``--no-index`` when ``--index-url`` or ``--extra-index-url`` is specified
+  inside a requirements file. (`#11276 <https://github.com/pypa/pip/issues/11276>`_)
+- Ensure that the candidate ``pip`` executable exists, when checking for a new version of pip. (`#11309 <https://github.com/pypa/pip/issues/11309>`_)
+- Ignore distributions with invalid ``Name`` in metadata instead of crashing, when
+  using the ``importlib.metadata`` backend. (`#11352 <https://github.com/pypa/pip/issues/11352>`_)
+- Raise RequirementsFileParseError when parsing malformed requirements options that can't be successfully parsed by shlex. (`#11491 <https://github.com/pypa/pip/issues/11491>`_)
+- Fix build environment isolation on some system Pythons. (`#6264 <https://github.com/pypa/pip/issues/6264>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade certifi to 2022.9.24
+- Upgrade distlib to 0.3.6
+- Upgrade idna to 3.4
+- Upgrade pep517 to 0.13.0
+- Upgrade pygments to 2.13.0
+- Upgrade tenacity to 8.1.0
+- Upgrade typing_extensions to 4.4.0
+- Upgrade urllib3 to 1.26.12
+
+Improved Documentation
+----------------------
+
+- Mention that --quiet must be used when writing the installation report to stdout. (`#11357 <https://github.com/pypa/pip/issues/11357>`_)
+
+
 22.2.2 (2022-08-03)
 ===================
 

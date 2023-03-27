@@ -800,7 +800,7 @@ As noted previously, pip is a command line program. While it is implemented in
 Python, and so is available from your Python code via ``import pip``, you must
 not use pip's internal APIs in this way. There are a number of reasons for this:
 
-#. The pip code assumes that is in sole control of the global state of the
+#. The pip code assumes that it is in sole control of the global state of the
    program.
    pip manages things like the logging system configuration, or the values of
    the standard IO streams, without considering the possibility that user code

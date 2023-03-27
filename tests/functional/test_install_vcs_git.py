@@ -79,7 +79,7 @@ def _make_version_pkg_url(
     Return a "git+file://" URL to the version_pkg test package.
 
     Args:
-      path: a tests.lib.path.Path object pointing to a Git repository
+      path: a pathlib.Path object pointing to a Git repository
         containing the version_pkg package.
       rev: an optional revision to install like a branch name, tag, or SHA.
     """
@@ -101,7 +101,7 @@ def _install_version_pkg_only(
     the version).
 
     Args:
-      path: a tests.lib.path.Path object pointing to a Git repository
+      path: a pathlib.Path object pointing to a Git repository
         containing the package.
       rev: an optional revision to install like a branch name or tag.
     """
@@ -122,7 +122,7 @@ def _install_version_pkg(
     installed.
 
     Args:
-      path: a tests.lib.path.Path object pointing to a Git repository
+      path: a pathlib.Path object pointing to a Git repository
         containing the package.
       rev: an optional revision to install like a branch name or tag.
     """
@@ -544,6 +544,11 @@ def test_reinstalling_works_with_editable_non_master_branch(
 
 # TODO(pnasrat) fix all helpers to do right things with paths on windows.
 @pytest.mark.skipif("sys.platform == 'win32'")
+@pytest.mark.xfail(
+    condition=True,
+    reason="Git submodule against file: is not working; waiting for a good solution",
+    run=True,
+)
 def test_check_submodule_addition(script: PipTestEnvironment) -> None:
     """
     Submodules are pulled in on install and updated on upgrade.

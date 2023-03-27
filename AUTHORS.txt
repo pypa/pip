@@ -128,6 +128,7 @@ Chris Hunt
 Chris Jerdonek
 Chris McDonough
 Chris Pawley
+Chris Pryer
 Chris Wolfe
 Christian Clauss
 Christian Heimes
@@ -137,6 +138,7 @@ Christopher Hunt
 Christopher Snyder
 cjc7373
 Clark Boylan
+Claudio Jolowicz
 Clay McClure
 Cody
 Cody Soyland
@@ -168,7 +170,9 @@ Daniel Jost
 Daniel Katz
 Daniel Shaulov
 Daniele Esposti
+Daniele Nicolodi
 Daniele Procida
+Daniil Konovalenko
 Danny Hermes
 Danny McClanahan
 Darren Kavanagh
@@ -199,6 +203,7 @@ Diego Caraballo
 Diego Ramirez
 DiegoCaraballo
 Dimitri Merejkowsky
+Dimitri Papadopoulos
 Dirk Stolle
 Dmitry Gladkov
 Dmitry Volodin
@@ -206,6 +211,7 @@ Domen Kožar
 Dominic Davis-Foster
 Donald Stufft
 Dongweiming
+doron zarhi
 Douglas Thor
 DrFeathers
 Dustin Ingram
@@ -234,6 +240,8 @@ Erik Rose
 Erwin Janssen
 Eugene Vereshchagin
 everdimension
+Federico
+Felipe Peter
 Felix Yan
 fiber-space
 Filip Kokosiński
@@ -275,9 +283,11 @@ Hari Charan
 Harsh Vardhan
 harupy
 Harutaka Kawamura
+hauntsaninja
 Henrich Hartzer
 Henry Schreiner
 Herbert Pfennig
+Holly Stotelmyer
 Hsiaoming Yang
 Hugo Lopes Tavares
 Hugo van Kemenade
@@ -299,7 +309,9 @@ Ionel Maries Cristian
 Ivan Pozdeev
 Jacob Kim
 Jacob Walls
+Jaime Sanz
 jakirkham
+Jakub Kuczys
 Jakub Stasiak
 Jakub Vysoky
 Jakub Wilk
@@ -312,6 +324,7 @@ Jan Pokorný
 Jannis Leidel
 Jarek Potiuk
 jarondl
+Jason Curtis
 Jason R. Coombs
 Jay Graves
 Jean-Christophe Fillion-Robin
@@ -337,6 +350,7 @@ Jon Dufresne
 Jon Parise
 Jonas Nockert
 Jonathan Herbert
+Joonatan Partanen
 Joost Molenaar
 Jorge Niedbalski
 Joseph Bylund
@@ -345,6 +359,7 @@ Josh Bronson
 Josh Hansen
 Josh Schneier
 Juanjo Bazán
+Judah Rand
 Julian Berman
 Julian Gethmann
 Julien Demoor
@@ -393,6 +408,7 @@ Luo Jiebin
 luojiebin
 luz.paz
 László Kiss Kollár
+M00nL1ght
 Marc Abramowitz
 Marc Tamlyn
 Marcus Smith
@@ -449,6 +465,7 @@ Miro Hrončok
 Monica Baluna
 montefra
 Monty Taylor
+Muha Ajjan‮
 Nadav Wexler
 Nahuel Ambrosini
 Nate Coraor
@@ -478,6 +495,7 @@ nvdv
 OBITORASU
 Ofek Lev
 ofrinevo
+Oliver Freund
 Oliver Jeeves
 Oliver Mannion
 Oliver Tonnhofer
@@ -545,9 +563,11 @@ Reece Dunham
 Remi Rampin
 Rene Dudfield
 Riccardo Magliocchetti
+Riccardo Schirone
 Richard Jones
 Richard Si
 Ricky Ng-Adam
+Rishi
 RobberPhex
 Robert Collins
 Robert McGibbon
@@ -598,6 +618,7 @@ Stavros Korokithakis
 Stefan Scherfke
 Stefano Rivera
 Stephan Erb
+Stephen Rosen
 stepshal
 Steve (Gadget) Barnes
 Steve Barnes
@@ -637,6 +658,7 @@ Tom V
 Tomas Hrnciar
 Tomas Orsava
 Tomer Chachamu
+Tommi Enenkel | AnB
 Tomáš Hrnčiar
 Tony Beswick
 Tony Narlock
@@ -665,6 +687,7 @@ Wil Tan
 Wilfred Hughes
 William ML Leslie
 William T Olson
+William Woodruff
 Wilson Mo
 wim glenn
 Winson Luk

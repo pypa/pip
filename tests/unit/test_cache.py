@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from pip._vendor.packaging.tags import Tag
+from pip._vendor.packaging.tags import Tag, interpreter_name, interpreter_version
 
 from pip._internal.cache import WheelCache, _hash_dict
 from pip._internal.models.format_control import FormatControl
@@ -50,6 +50,48 @@ def test_cache_hash() -> None:
     assert h == "8b13391b6791bf7f3edeabb41ea4698d21bcbdbba7f9c7dc9339750d"
     h = _hash_dict({"subdirectory": "/\xe9e"})
     assert h == "f83b32dfa27a426dec08c21bf006065dd003d0aac78e7fc493d9014d"
+
+
+def test_link_to_cache(tmpdir: Path) -> None:
+    """
+    Test that Link.from_json() produces Links with consistent cache
+    locations
+    """
+    wc = WheelCache(os.fspath(tmpdir), FormatControl())
+    # Define our expectations for stable cache path.
+    i_name = interpreter_name()
+    i_version = interpreter_version()
+    key_parts = {
+        "url": "https://files.pythonhosted.org/packages/a6/91/"
+        "86a6eac449ddfae239e93ffc1918cf33fd9bab35c04d1e963b311e347a73/"
+        "netifaces-0.11.0.tar.gz",
+        "sha256": "043a79146eb2907edf439899f262b3dfe41717d34124298ed281139a8b93ca32",
+        "interpreter_name": i_name,
+        "interpreter_version": i_version,
+    }
+    expected_hash = _hash_dict(key_parts)
+    parts = [
+        expected_hash[:2],
+        expected_hash[2:4],
+        expected_hash[4:6],
+        expected_hash[6:],
+    ]
+    pathed_hash = os.path.join(*parts)
+    # Check working from a Link produces the same result.
+    file_data = {
+        "filename": "netifaces-0.11.0.tar.gz",
+        "hashes": {
+            "sha256": key_parts["sha256"],
+        },
+        "requires-python": "",
+        "url": key_parts["url"],
+        "yanked": False,
+    }
+    page_url = "https://pypi.org/simple/netifaces/"
+    link = Link.from_json(file_data=file_data, page_url=page_url)
+    assert link
+    path = wc.get_path_for_link(link)
+    assert pathed_hash in path
 
 
 def test_get_cache_entry(tmpdir: Path) -> None:

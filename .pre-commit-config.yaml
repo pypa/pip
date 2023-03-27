@@ -26,14 +26,14 @@ repos:
   hooks:
   - id: flake8
     additional_dependencies: [
-        'flake8-bugbear==22.3.23',
-        'flake8-logging-format==0.6.0',
+        'flake8-bugbear==22.10.27',
+        'flake8-logging-format==0.9.0',
         'flake8-implicit-str-concat==0.3.0',
     ]
     exclude: tests/data
 
 - repo: https://github.com/PyCQA/isort
-  rev: 5.10.1
+  rev: 5.12.0
   hooks:
   - id: isort
     files: \.py$
@@ -47,11 +47,12 @@ repos:
     additional_dependencies: [
         'keyring==23.0.1',
         'nox==2021.6.12',
-        'pytest==7.1.1',
+        'pytest',
         'types-docutils==0.18.3',
         'types-setuptools==57.4.14',
         'types-freezegun==1.1.9',
         'types-six==1.16.15',
+        'types-pyyaml==6.0.12.2',
     ]
 
 - repo: https://github.com/pre-commit/pygrep-hooks
@@ -73,8 +74,7 @@ repos:
     exclude: ^news/(.gitignore|.*\.(process|removal|feature|bugfix|vendor|doc|trivial).rst)
     files: ^news/
 
-- repo: https://github.com/mgedmin/check-manifest
-  rev: '0.48'
-  hooks:
-  - id: check-manifest
-    stages: [manual]
+ci:
+  autofix_prs: false
+  autoupdate_commit_msg: 'pre-commit autoupdate'
+  autoupdate_schedule: monthly
