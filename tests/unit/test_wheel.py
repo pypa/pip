@@ -588,6 +588,12 @@ class TestMessageAboutScriptsNotOnPATH:
         )
         assert retval is None
 
+    def test_PATH_check_path_normalization(self) -> None:
+        retval = self._template(
+            paths=["/a/./b/../b//c/", "/d/e/bin"], scripts=["/a/b/c/foo"]
+        )
+        assert retval is None
+
     def test_single_script__single_dir_on_PATH(self) -> None:
         retval = self._template(paths=["/a/b", "/c/d/bin"], scripts=["/a/b/foo"])
         assert retval is None
