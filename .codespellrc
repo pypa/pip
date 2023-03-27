@@ -3,4 +3,5 @@ skip = .git,*.pdf,*.svg,_vendor,AUTHORS.txt
 # Wil - is a name
 # falsy - terminology used to describe bool eval to False values
 # uptodate - used as a word in options etc
-ignore-words-list = wil,falsy,uptodate
+# lousily - as in a bad manner
+ignore-words-list = wil,falsy,uptodate,lousily
