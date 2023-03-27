@@ -79,6 +79,9 @@ class LinkHash:
         name, value = match.groups()
         return cls(name=name, value=value)
 
+    def as_dict(self) -> Dict[str, str]:
+        return {self.name: self.value}
+
     def as_hashes(self) -> Hashes:
         """Return a Hashes instance which checks only for the current hash."""
         return Hashes({self.name: [self.value]})
@@ -165,7 +168,6 @@ class Link(KeyBasedCompareMixin):
         "requires_python",
         "yanked_reason",
         "dist_info_metadata",
-        "link_hash",
         "cache_link_parsing",
         "egg_fragment",
     ]
@@ -177,7 +179,6 @@ class Link(KeyBasedCompareMixin):
         requires_python: Optional[str] = None,
         yanked_reason: Optional[str] = None,
         dist_info_metadata: Optional[str] = None,
-        link_hash: Optional[LinkHash] = None,
         cache_link_parsing: bool = True,
         hashes: Optional[Mapping[str, str]] = None,
     ) -> None:
@@ -200,16 +201,11 @@ class Link(KeyBasedCompareMixin):
             attribute, if present, in a simple repository HTML link. This may be parsed
             into its own `Link` by `self.metadata_link()`. See PEP 658 for more
             information and the specification.
-        :param link_hash: a checksum for the content the link points to. If not
-            provided, this will be extracted from the link URL, if the URL has
-            any checksum.
         :param cache_link_parsing: A flag that is used elsewhere to determine
-                                   whether resources retrieved from this link
-                                   should be cached. PyPI index urls should
-                                   generally have this set to False, for
-                                   example.
+            whether resources retrieved from this link should be cached. PyPI
+            URLs should generally have this set to False, for example.
         :param hashes: A mapping of hash names to digests to allow us to
-                       determine the validity of a download.
+            determine the validity of a download.
         """
 
         # url can be a UNC windows share
@@ -220,13 +216,18 @@ class Link(KeyBasedCompareMixin):
         # Store the url as a private attribute to prevent accidentally
         # trying to set a new value.
         self._url = url
-        self._hashes = hashes if hashes is not None else {}
+
+        link_hash = LinkHash.split_hash_name_and_value(url)
+        hashes_from_link = {} if link_hash is None else link_hash.as_dict()
+        if hashes is None:
+            self._hashes = hashes_from_link
+        else:
+            self._hashes = {**hashes, **hashes_from_link}
 
         self.comes_from = comes_from
         self.requires_python = requires_python if requires_python else None
         self.yanked_reason = yanked_reason
         self.dist_info_metadata = dist_info_metadata
-        self.link_hash = link_hash or LinkHash.split_hash_name_and_value(self._url)
 
         super().__init__(key=url, defining_class=Link)
 
@@ -401,29 +402,26 @@ class Link(KeyBasedCompareMixin):
         if self.dist_info_metadata is None:
             return None
         metadata_url = f"{self.url_without_fragment}.metadata"
-        link_hash: Optional[LinkHash] = None
         # If data-dist-info-metadata="true" is set, then the metadata file exists,
         # but there is no information about its checksum or anything else.
         if self.dist_info_metadata != "true":
             link_hash = LinkHash.split_hash_name_and_value(self.dist_info_metadata)
-        return Link(metadata_url, link_hash=link_hash)
+        else:
+            link_hash = None
+        if link_hash is None:
+            return Link(metadata_url)
+        return Link(metadata_url, hashes=link_hash.as_dict())
 
-    def as_hashes(self) -> Optional[Hashes]:
-        if self.link_hash is not None:
-            return self.link_hash.as_hashes()
-        return None
+    def as_hashes(self) -> Hashes:
+        return Hashes({k: [v] for k, v in self._hashes.items()})
 
     @property
     def hash(self) -> Optional[str]:
-        if self.link_hash is not None:
-            return self.link_hash.value
-        return None
+        return next(iter(self._hashes.values()), None)
 
     @property
     def hash_name(self) -> Optional[str]:
-        if self.link_hash is not None:
-            return self.link_hash.name
-        return None
+        return next(iter(self._hashes), None)
 
     @property
     def show_url(self) -> str:
@@ -452,15 +450,15 @@ class Link(KeyBasedCompareMixin):
 
     @property
     def has_hash(self) -> bool:
-        return self.link_hash is not None
+        return bool(self._hashes)
 
     def is_hash_allowed(self, hashes: Optional[Hashes]) -> bool:
         """
         Return True if the link has a hash and it is allowed by `hashes`.
         """
-        if self.link_hash is None:
+        if hashes is None:
             return False
-        return self.link_hash.is_hash_allowed(hashes)
+        return any(hashes.is_hash_allowed(k, v) for k, v in self._hashes.items())
 
 
 class _CleanResult(NamedTuple):

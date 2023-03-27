@@ -18,7 +18,7 @@ The supported schemes are `git+file`, `git+https`, `git+ssh`, `git+http`,
 `git+git` and `git`. Here are some of the supported forms:
 
 ```none
-MyProject @ git+ssh://git.example.com/MyProject
+MyProject @ git+ssh://git@git.example.com/MyProject
 MyProject @ git+file:///home/user/projects/MyProject
 MyProject @ git+https://git.example.com/MyProject
 ```

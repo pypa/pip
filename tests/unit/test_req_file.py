@@ -344,14 +344,10 @@ class TestProcessLine:
         assert reqs[0].constraint
 
     def test_options_on_a_requirement_line(self, line_processor: LineProcessor) -> None:
-        line = (
-            "SomeProject --install-option=yo1 --install-option yo2 "
-            '--global-option="yo3" --global-option "yo4"'
-        )
+        line = 'SomeProject --global-option="yo3" --global-option "yo4"'
         filename = "filename"
         req = line_processor(line, filename, 1)[0]
         assert req.global_options == ["yo3", "yo4"]
-        assert req.install_options == ["yo1", "yo2"]
 
     def test_hash_options(self, line_processor: LineProcessor) -> None:
         """Test the --hash option: mostly its value storage.
@@ -870,14 +866,12 @@ class TestParseRequirements:
         options: mock.Mock,
     ) -> None:
         global_option = "--dry-run"
-        install_option = "--prefix=/opt"
 
         content = """
         --only-binary :all:
-        INITools==2.0 --global-option="{global_option}" \
-                        --install-option "{install_option}"
+        INITools==2.0 --global-option="{global_option}"
         """.format(
-            global_option=global_option, install_option=install_option
+            global_option=global_option
         )
 
         with requirements_file(content, tmpdir) as reqs_file:
@@ -897,9 +891,4 @@ class TestParseRequirements:
 
             last_call = popen.call_args_list[-1]
             args = last_call[0][0]
-            assert (
-                0
-                < args.index(global_option)
-                < args.index("install")
-                < args.index(install_option)
-            )
+            assert 0 < args.index(global_option) < args.index("install")

@@ -66,7 +66,6 @@ def make_install_req_from_link(
         isolated=template.isolated,
         constraint=template.constraint,
         options=dict(
-            install_options=template.install_options,
             global_options=template.global_options,
             hashes=template.hash_options,
         ),
@@ -90,7 +89,6 @@ def make_install_req_from_editable(
         constraint=template.constraint,
         permit_editable_wheels=template.permit_editable_wheels,
         options=dict(
-            install_options=template.install_options,
             global_options=template.global_options,
             hashes=template.hash_options,
         ),
@@ -115,7 +113,6 @@ def _make_install_req_from_dist(
         isolated=template.isolated,
         constraint=template.constraint,
         options=dict(
-            install_options=template.install_options,
             global_options=template.global_options,
             hashes=template.hash_options,
         ),

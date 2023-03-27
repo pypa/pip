@@ -3,6 +3,10 @@
 ```{versionadded} 22.2
 ```
 
+```{versionchanged} 23.0
+``version`` has been bumped to ``1`` and the format declared stable.
+```
+
 The `pip inspect` command produces a detailed JSON report of the Python
 environment, including installed distributions.
 
@@ -10,10 +14,7 @@ environment, including installed distributions.
 
 The report is a JSON object with the following properties:
 
-- `version`: the string `0`, denoting that the inspect command is an experimental
-  feature. This value will change to `1`, when the feature is deemed stable after
-  gathering user feedback (likely in pip 22.3 or 23.0). Backward incompatible changes
-  may be introduced in version `1` without notice. After that, it will change only if
+- `version`: the string `1`. It will change only if
   and when backward incompatible changes are introduced, such as removing mandatory
   fields or changing the semantics or data type of existing fields. The introduction of
   backward incompatible changes will follow the usual pip processes such as the
@@ -22,7 +23,7 @@ The report is a JSON object with the following properties:
 
 - `pip_version`: a string with the version of pip used to produce the report.
 
-- `installed`: an array of [InspectReportItem](InspectReportItem) representing the
+- `installed`: an array of [`InspectReportItem`](InspectReportItem) representing the
   distribution packages that are installed.
 
 - `environment`: an object describing the environment where the installation report was
@@ -49,10 +50,11 @@ the following properties:
   ```
 
 - `direct_url`: Information about the direct URL that was used for installation, if any,
-  using the [direct
-  URL](https://packaging.python.org/en/latest/specifications/direct-url/) data
-  structure. In most case, this field corresponds to the `direct_url.json` metadata,
-  except for legacy editable installs, where it is emulated.
+  using the [direct URL data
+  structure](https://packaging.python.org/en/latest/specifications/direct-url-data-structure/).
+  In most case, this field corresponds to the
+  [`direct_url.json`](https://packaging.python.org/en/latest/specifications/direct-url)
+  metadata, except for legacy editable installs, where it is emulated.
 
 - `requested`: `true` if the `REQUESTED` metadata is present, `false` otherwise. This
   field is only present for modern `.dist-info` installations.
@@ -72,7 +74,7 @@ this (metadata abriged for brevity):
 
 ```json
 {
-  "version": "0",
+  "version": "1",
   "pip_version": "22.2.dev0",
   "installed": [
     {
