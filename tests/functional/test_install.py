@@ -829,7 +829,10 @@ def test_install_global_option(script: PipTestEnvironment) -> None:
     (In particular those that disable the actual install action)
     """
     result = script.pip(
-        "install", "--global-option=--version", "INITools==0.1", expect_stderr=True
+        "install",
+        "--global-option=--version",
+        "INITools==0.1",
+        expect_error=True,  # build is going to fail because of --version
     )
     assert "INITools==0.1\n" in result.stdout
     assert not result.files_created
@@ -1498,15 +1501,12 @@ def test_install_subprocess_output_handling(
     # This error is emitted 3 times:
     # - by setup.py bdist_wheel
     # - by setup.py clean
-    # - by setup.py install which is used as fallback when setup.py bdist_wheel failed
-    # Before, it failed only once because it attempted only setup.py install.
-    # TODO update this when we remove the last setup.py install code path.
-    assert 3 == result.stderr.count("I DIE, I DIE")
+    assert 2 == result.stderr.count("I DIE, I DIE")
 
     result = script.pip(
         *(args + ["--global-option=--fail", "--verbose"]), expect_error=True
     )
-    assert 3 == result.stderr.count("I DIE, I DIE")
+    assert 2 == result.stderr.count("I DIE, I DIE")
 
 
 def test_install_log(script: PipTestEnvironment, data: TestData, tmpdir: Path) -> None:
@@ -1526,22 +1526,9 @@ def test_install_topological_sort(script: PipTestEnvironment, data: TestData) ->
     assert order1 in res or order2 in res, res
 
 
-def test_install_wheel_broken(script: PipTestEnvironment) -> None:
-    res = script.pip_install_local("wheelbroken", allow_stderr_error=True)
-    assert "ERROR: Failed building wheel for wheelbroken" in res.stderr
-    # Fallback to setup.py install (https://github.com/pypa/pip/issues/8368)
-    assert "Successfully installed wheelbroken-0.1" in str(res), str(res)
-
-
 def test_cleanup_after_failed_wheel(script: PipTestEnvironment) -> None:
-    res = script.pip_install_local("wheelbrokenafter", allow_stderr_error=True)
+    res = script.pip_install_local("wheelbrokenafter", expect_error=True)
     assert "ERROR: Failed building wheel for wheelbrokenafter" in res.stderr
-    # One of the effects of not cleaning up is broken scripts:
-    script_py = script.bin_path / "script.py"
-    assert script_py.exists(), script_py
-    with open(script_py) as f:
-        shebang = f.readline().strip()
-    assert shebang != "#!python", shebang
     # OK, assert that we *said* we were cleaning up:
     # /!\ if in need to change this, also change test_pep517_no_legacy_cleanup
     assert "Running setup.py clean for wheelbrokenafter" in str(res), str(res)
@@ -1568,38 +1555,26 @@ def test_install_builds_wheels(script: PipTestEnvironment, data: TestData) -> No
         "-f",
         data.find_links,
         to_install,
-        allow_stderr_error=True,  # error building wheelbroken
+        expect_error=True,  # error building wheelbroken
     )
-    expected = (
-        "Successfully installed requires-wheelbroken-upper-0"
-        " upper-2.0 wheelbroken-0.1"
-    )
-    # Must have installed it all
-    assert expected in str(res), str(res)
     wheels: List[str] = []
     for _, _, files in os.walk(wheels_cache):
         wheels.extend(f for f in files if f.endswith(".whl"))
-    # and built wheels for upper and wheelbroken
+    # Built wheel for upper
     assert "Building wheel for upper" in str(res), str(res)
+    # Built wheel for wheelbroken, but failed
     assert "Building wheel for wheelb" in str(res), str(res)
+    assert "Failed to build wheelbroken" in str(res), str(res)
     # Wheels are built for local directories, but not cached.
     assert "Building wheel for requir" in str(res), str(res)
-    # wheelbroken has to run install
     # into the cache
     assert wheels != [], str(res)
-    # and installed from the wheel
-    assert "Running setup.py install for upper" not in str(res), str(res)
-    # Wheels are built for local directories, but not cached.
-    assert "Running setup.py install for requir" not in str(res), str(res)
-    # wheelbroken has to run install
-    assert "Running setup.py install for wheelb" in str(res), str(res)
-    # We want to make sure pure python wheels do not have an implementation tag
     assert wheels == [
         "Upper-2.0-py{}-none-any.whl".format(sys.version_info[0]),
     ]
 
 
-def test_install_no_binary_disables_building_wheels(
+def test_install_no_binary_builds_wheels(
     script: PipTestEnvironment, data: TestData
 ) -> None:
     to_install = data.packages.joinpath("requires_wheelbroken_upper")
@@ -1610,22 +1585,14 @@ def test_install_no_binary_disables_building_wheels(
         "-f",
         data.find_links,
         to_install,
-        allow_stderr_error=True,  # error building wheelbroken
+        expect_error=True,  # error building wheelbroken
     )
-    expected = (
-        "Successfully installed requires-wheelbroken-upper-0"
-        " upper-2.0 wheelbroken-0.1"
-    )
-    # Must have installed it all
-    assert expected in str(res), str(res)
-    # and built wheels for wheelbroken only
+    # Wheels are built for all requirements
     assert "Building wheel for wheelb" in str(res), str(res)
-    # Wheels are built for local directories, but not cached across runs
     assert "Building wheel for requir" in str(res), str(res)
-    # Don't build wheel for upper which was blacklisted
     assert "Building wheel for upper" in str(res), str(res)
-    # And these two fell back to sdist based installed.
-    assert "Running setup.py install for wheelb" in str(res), str(res)
+    # Wheelbroken failed to build
+    assert "Failed to build wheelbroken" in str(res), str(res)
 
 
 @pytest.mark.network
