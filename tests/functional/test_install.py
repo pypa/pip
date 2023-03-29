@@ -12,7 +12,6 @@ import pytest
 
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.models.index import PyPI, TestPyPI
-from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from pip._internal.utils.misc import rmtree
 from tests.conftest import CertFactory
 from tests.lib import (
@@ -273,7 +272,6 @@ def test_pep518_forkbombs(
 
 
 @pytest.mark.network
-@pytest.mark.usefixtures("with_wheel")
 def test_pip_second_command_line_interface_works(
     script: PipTestEnvironment,
     pip_src: Path,
@@ -318,7 +316,6 @@ def test_install_exit_status_code_when_blank_requirements_file(
 
 
 @pytest.mark.network
-@pytest.mark.usefixtures("with_wheel")
 def test_basic_install_from_pypi(script: PipTestEnvironment) -> None:
     """
     Test installing a package from PyPI.
@@ -377,7 +374,6 @@ def test_basic_install_editable_from_git(script: PipTestEnvironment) -> None:
     _test_install_editable_from_git(script)
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_editable_from_git_autobuild_wheel(script: PipTestEnvironment) -> None:
     _test_install_editable_from_git(script)
 
@@ -504,7 +500,6 @@ def test_vcs_url_urlquote_normalization(
 
 
 @pytest.mark.parametrize("resolver", ["", "--use-deprecated=legacy-resolver"])
-@pytest.mark.usefixtures("with_wheel")
 def test_basic_install_from_local_directory(
     script: PipTestEnvironment, data: TestData, resolver: str
 ) -> None:
@@ -534,7 +529,6 @@ def test_basic_install_from_local_directory(
         ("embedded_rel_path", True),
     ],
 )
-@pytest.mark.usefixtures("with_wheel")
 def test_basic_install_relative_directory(
     script: PipTestEnvironment, data: TestData, test_type: str, editable: bool
 ) -> None:
@@ -656,7 +650,6 @@ def test_hashed_install_failure_later_flag(
     )
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_from_local_directory_with_in_tree_build(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -801,7 +794,6 @@ def test_upgrade_argparse_shadowed(script: PipTestEnvironment) -> None:
     assert "Not uninstalling argparse" not in result.stdout
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_curdir(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test installing current directory ('.').
@@ -818,7 +810,6 @@ def test_install_curdir(script: PipTestEnvironment, data: TestData) -> None:
     result.did_create(dist_info_folder)
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_pardir(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test installing parent directory ('..').
@@ -843,7 +834,7 @@ def test_install_global_option(script: PipTestEnvironment) -> None:
     assert "INITools==0.1\n" in result.stdout
     assert not result.files_created
     assert "Implying --no-binary=:all:" in result.stderr
-    assert "Consider using --config-settings" in result.stderr
+    assert "A possible replacement is to use --config-settings" in result.stderr
 
 
 def test_install_with_hacked_egg_info(
@@ -855,29 +846,6 @@ def test_install_with_hacked_egg_info(
     run_from = data.packages.joinpath("HackedEggInfo")
     result = script.pip("install", ".", cwd=run_from)
     assert "Successfully installed hackedegginfo-0.0.0\n" in result.stdout
-
-
-@pytest.mark.network
-def test_install_using_install_option_and_editable(
-    script: PipTestEnvironment, tmpdir: Path
-) -> None:
-    """
-    Test installing a tool using -e and --install-option
-    """
-    folder = "script_folder"
-    script.scratch_path.joinpath(folder).mkdir()
-    url = local_checkout("git+https://github.com/pypa/pip-test-package", tmpdir)
-    result = script.pip(
-        "install",
-        "-e",
-        f"{url}#egg=pip-test-package",
-        f"--install-option=--script-dir={folder}",
-        expect_stderr=True,
-    )
-    script_file = (
-        script.venv / "src/pip-test-package" / folder / f"pip-test-package{script.exe}"
-    )
-    result.did_create(script_file)
 
 
 @pytest.mark.xfail
@@ -901,7 +869,6 @@ def test_install_global_option_using_editable(
 
 
 @pytest.mark.network
-@pytest.mark.usefixtures("with_wheel")
 def test_install_package_with_same_name_in_curdir(script: PipTestEnvironment) -> None:
     """
     Test installing a package with the same name of a local folder
@@ -920,7 +887,6 @@ mock100_setup_py = textwrap.dedent(
 )
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_folder_using_dot_slash(script: PipTestEnvironment) -> None:
     """
     Test installing a folder using pip install ./foldername
@@ -933,7 +899,6 @@ def test_install_folder_using_dot_slash(script: PipTestEnvironment) -> None:
     result.did_create(dist_info_folder)
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_folder_using_slash_in_the_end(script: PipTestEnvironment) -> None:
     r"""
     Test installing a folder using pip install foldername/ or foldername\
@@ -946,7 +911,6 @@ def test_install_folder_using_slash_in_the_end(script: PipTestEnvironment) -> No
     result.did_create(dist_info_folder)
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_folder_using_relative_path(script: PipTestEnvironment) -> None:
     """
     Test installing a folder using pip install folder1/folder2
@@ -961,7 +925,6 @@ def test_install_folder_using_relative_path(script: PipTestEnvironment) -> None:
 
 
 @pytest.mark.network
-@pytest.mark.usefixtures("with_wheel")
 def test_install_package_which_contains_dev_in_name(script: PipTestEnvironment) -> None:
     """
     Test installing package from PyPI which contains 'dev' in name
@@ -973,7 +936,6 @@ def test_install_package_which_contains_dev_in_name(script: PipTestEnvironment) 
     result.did_create(dist_info_folder)
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_package_with_target(script: PipTestEnvironment) -> None:
     """
     Test installing a package using pip install --target
@@ -1106,7 +1068,6 @@ def test_install_nonlocal_compatible_wheel_path(
 
 
 @pytest.mark.parametrize("opt", ("--target", "--prefix"))
-@pytest.mark.usefixtures("with_wheel")
 def test_install_with_target_or_prefix_and_scripts_no_warning(
     opt: str, script: PipTestEnvironment
 ) -> None:
@@ -1145,7 +1106,6 @@ def test_install_with_target_or_prefix_and_scripts_no_warning(
     assert "--no-warn-script-location" not in result.stderr, str(result)
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_package_with_root(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test installing a package using pip install --root
@@ -1198,7 +1158,7 @@ def test_install_package_with_prefix(
     install_path = join(
         sysconfig.get_path("purelib", vars={"base": rel_prefix_path}),
         # we still test for egg-info because no-binary implies setup.py install
-        f"simple-1.0-py{pyversion}.egg-info",
+        "simple-1.0.dist-info",
     )
     result.did_create(install_path)
 
@@ -1342,7 +1302,6 @@ def test_install_package_with_latin1_setup(
     script.pip("install", to_install)
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_url_req_case_mismatch_no_index(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -1366,7 +1325,6 @@ def test_url_req_case_mismatch_no_index(
     result.did_not_create(dist_info_folder)
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_url_req_case_mismatch_file_index(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -1396,7 +1354,6 @@ def test_url_req_case_mismatch_file_index(
     result.did_not_create(dist_info_folder)
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_url_incorrect_case_no_index(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -1420,7 +1377,6 @@ def test_url_incorrect_case_no_index(
     result.did_create(dist_info_folder)
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_url_incorrect_case_file_index(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -1539,12 +1495,18 @@ def test_install_subprocess_output_handling(
     # If the install fails, then we *should* show the output... but only once,
     # even if --verbose is given.
     result = script.pip(*(args + ["--global-option=--fail"]), expect_error=True)
-    assert 1 == result.stderr.count("I DIE, I DIE")
+    # This error is emitted 3 times:
+    # - by setup.py bdist_wheel
+    # - by setup.py clean
+    # - by setup.py install which is used as fallback when setup.py bdist_wheel failed
+    # Before, it failed only once because it attempted only setup.py install.
+    # TODO update this when we remove the last setup.py install code path.
+    assert 3 == result.stderr.count("I DIE, I DIE")
 
     result = script.pip(
         *(args + ["--global-option=--fail", "--verbose"]), expect_error=True
     )
-    assert 1 == result.stderr.count("I DIE, I DIE")
+    assert 3 == result.stderr.count("I DIE, I DIE")
 
 
 def test_install_log(script: PipTestEnvironment, data: TestData, tmpdir: Path) -> None:
@@ -1564,7 +1526,6 @@ def test_install_topological_sort(script: PipTestEnvironment, data: TestData) ->
     assert order1 in res or order2 in res, res
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_wheel_broken(script: PipTestEnvironment) -> None:
     res = script.pip_install_local("wheelbroken", allow_stderr_error=True)
     assert "ERROR: Failed building wheel for wheelbroken" in res.stderr
@@ -1572,7 +1533,6 @@ def test_install_wheel_broken(script: PipTestEnvironment) -> None:
     assert "Successfully installed wheelbroken-0.1" in str(res), str(res)
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_cleanup_after_failed_wheel(script: PipTestEnvironment) -> None:
     res = script.pip_install_local("wheelbrokenafter", allow_stderr_error=True)
     assert "ERROR: Failed building wheel for wheelbrokenafter" in res.stderr
@@ -1587,7 +1547,6 @@ def test_cleanup_after_failed_wheel(script: PipTestEnvironment) -> None:
     assert "Running setup.py clean for wheelbrokenafter" in str(res), str(res)
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_builds_wheels(script: PipTestEnvironment, data: TestData) -> None:
     # We need to use a subprocess to get the right value on Windows.
     res = script.run(
@@ -1640,7 +1599,6 @@ def test_install_builds_wheels(script: PipTestEnvironment, data: TestData) -> No
     ]
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_no_binary_disables_building_wheels(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -1665,16 +1623,12 @@ def test_install_no_binary_disables_building_wheels(
     # Wheels are built for local directories, but not cached across runs
     assert "Building wheel for requir" in str(res), str(res)
     # Don't build wheel for upper which was blacklisted
-    assert "Building wheel for upper" not in str(res), str(res)
-    # Wheels are built for local directories, but not cached across runs
-    assert "Running setup.py install for requir" not in str(res), str(res)
+    assert "Building wheel for upper" in str(res), str(res)
     # And these two fell back to sdist based installed.
     assert "Running setup.py install for wheelb" in str(res), str(res)
-    assert "Running setup.py install for upper" in str(res), str(res)
 
 
 @pytest.mark.network
-@pytest.mark.usefixtures("with_wheel")
 def test_install_no_binary_builds_pep_517_wheel(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -1689,7 +1643,6 @@ def test_install_no_binary_builds_pep_517_wheel(
 
 
 @pytest.mark.network
-@pytest.mark.usefixtures("with_wheel")
 def test_install_no_binary_uses_local_backend(
     script: PipTestEnvironment, data: TestData, tmpdir: Path
 ) -> None:
@@ -1703,7 +1656,6 @@ def test_install_no_binary_uses_local_backend(
     assert os.path.isfile(marker), "Local PEP 517 backend not used"
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_no_binary_disables_cached_wheels(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -1720,10 +1672,8 @@ def test_install_no_binary_disables_cached_wheels(
         expect_stderr=True,
     )
     assert "Successfully installed upper-2.0" in str(res), str(res)
-    # No wheel building for upper, which was blacklisted
-    assert "Building wheel for upper" not in str(res), str(res)
-    # Must have used source, not a cached wheel to install upper.
-    assert "Running setup.py install for upper" in str(res), str(res)
+    # upper is built and not obtained from cache
+    assert "Building wheel for upper" in str(res), str(res)
 
 
 def test_install_editable_with_wrong_egg_name(
@@ -1844,7 +1794,6 @@ def test_install_incompatible_python_requires_editable(
     assert _get_expected_error_text() in result.stderr, str(result)
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_incompatible_python_requires_wheel(script: PipTestEnvironment) -> None:
     script.scratch_path.joinpath("pkga").mkdir()
     pkga_path = script.scratch_path / "pkga"
@@ -1972,28 +1921,6 @@ def test_installing_scripts_on_path_does_not_print_warning(
     result = script.pip_install_local("script_wheel1")
     assert "Successfully installed script_wheel1" in result.stdout, str(result)
     assert "--no-warn-script-location" not in result.stderr
-
-
-def test_installed_files_recorded_in_deterministic_order(
-    script: PipTestEnvironment, data: TestData
-) -> None:
-    """
-    Ensure that we record the files installed by a package in a deterministic
-    order, to make installs reproducible.
-    """
-    to_install = data.packages.joinpath("FSPkg")
-    result = script.pip("install", to_install)
-    fspkg_folder = script.site_packages / "fspkg"
-    egg_info = f"FSPkg-0.1.dev0-py{pyversion}.egg-info"
-    installed_files_path = script.site_packages / egg_info / "installed-files.txt"
-    result.did_create(fspkg_folder)
-    result.did_create(installed_files_path)
-
-    installed_files_path = result.files_created[installed_files_path].full
-    installed_files_lines = [
-        p for p in Path(installed_files_path).read_text().split("\n") if p
-    ]
-    assert installed_files_lines == sorted(installed_files_lines)
 
 
 def test_install_conflict_results_in_warning(
@@ -2204,6 +2131,10 @@ def test_error_all_yanked_files_and_no_pin(
     ), str(result)
 
 
+@pytest.mark.skipif(
+    sys.platform == "linux" and sys.version_info < (3, 8),
+    reason="Custom SSL certification not running well in CI",
+)
 @pytest.mark.parametrize(
     "install_args",
     [
@@ -2286,7 +2217,6 @@ def test_install_skip_work_dir_pkg(script: PipTestEnvironment, data: TestData) -
 def test_install_verify_package_name_normalization(
     script: PipTestEnvironment, package_name: str
 ) -> None:
-
     """
     Test that install of a package again using a name which
     normalizes to the original package name, is a no-op
@@ -2320,30 +2250,101 @@ def test_install_dry_run(script: PipTestEnvironment, data: TestData) -> None:
     assert "Successfully installed" not in result.stdout
 
 
-def test_install_8559_missing_wheel_package(
-    script: PipTestEnvironment, shared_data: TestData
-) -> None:
-    result = script.pip(
-        "install",
-        "--find-links",
-        shared_data.find_links,
-        "simple",
-        allow_stderr_warning=True,
-    )
-    assert DEPRECATION_MSG_PREFIX in result.stderr
-    assert "'wheel' package is not installed" in result.stderr
-    assert "using the legacy 'setup.py install' method" in result.stderr
+@pytest.mark.skipif(
+    sys.version_info < (3, 11),
+    reason="3.11 required to find distributions via importlib metadata",
+)
+def test_install_existing_memory_distribution(script: PipTestEnvironment) -> None:
+    sitecustomize_text = textwrap.dedent(
+        """
+        import sys
+        from importlib.metadata import Distribution, DistributionFinder
 
 
-@pytest.mark.usefixtures("with_wheel")
-def test_install_8559_wheel_package_present(
-    script: PipTestEnvironment, shared_data: TestData
-) -> None:
+        EXAMPLE_METADATA = '''Metadata-Version: 2.1
+        Name: example
+        Version: 1.0.0
+
+        '''
+
+        class ExampleDistribution(Distribution):
+            def locate_file(self, path):
+                return path
+
+            def read_text(self, filename):
+                if filename == 'METADATA':
+                    return EXAMPLE_METADATA
+
+
+        class CustomFinder(DistributionFinder):
+            def find_distributions(self, context=None):
+                return [ExampleDistribution()]
+
+
+        sys.meta_path.append(CustomFinder())
+        """
+    )
+    with open(script.site_packages_path / "sitecustomize.py", "w") as sitecustomize:
+        sitecustomize.write(sitecustomize_text)
+
+    result = script.pip("install", "example")
+
+    assert "Requirement already satisfied: example in <memory>" in result.stdout
+
+
+def test_install_pip_prints_req_chain_local(script: PipTestEnvironment) -> None:
+    """
+    Test installing a local package with a dependency and check that the
+    dependency chain is reported.
+    """
+
+    req_path = script.scratch_path.joinpath("requirements.txt")
+    req_path.write_text("base==0.1.0")
+
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+        depends=["dep"],
+    )
+    dep_path = create_basic_wheel_for_package(
+        script,
+        "dep",
+        "0.1.0",
+    )
+
     result = script.pip(
         "install",
+        "--no-cache-dir",
+        "--no-index",
         "--find-links",
-        shared_data.find_links,
-        "simple",
-        allow_stderr_warning=False,
+        script.scratch_path,
+        "-r",
+        req_path,
     )
-    assert DEPRECATION_MSG_PREFIX not in result.stderr
+    assert_re_match(
+        rf"Processing .*{re.escape(os.path.basename(dep_path))} "
+        rf"\(from base==0.1.0->-r {re.escape(str(req_path))} \(line 1\)\)",
+        result.stdout,
+    )
+
+
+@pytest.mark.network
+def test_install_pip_prints_req_chain_pypi(script: PipTestEnvironment) -> None:
+    """
+    Test installing a package with a dependency from PyPI and check that the
+    dependency chain is reported.
+    """
+    req_path = script.scratch_path.joinpath("requirements.txt")
+    req_path.write_text("Paste[openid]==1.7.5.1")
+
+    result = script.pip(
+        "install",
+        "-r",
+        req_path,
+    )
+
+    assert (
+        f"Collecting python-openid "
+        f"(from Paste[openid]==1.7.5.1->-r {req_path} (line 1))" in result.stdout
+    )

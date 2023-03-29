@@ -17,7 +17,7 @@ def test_basic_show(script: PipTestEnvironment) -> None:
     """
     result = script.pip("show", "pip")
     lines = result.stdout.splitlines()
-    assert len(lines) == 10
+    assert len(lines) == 11
     assert "Name: pip" in lines
     assert f"Version: {__version__}" in lines
     assert any(line.startswith("Location: ") for line in lines)
@@ -33,7 +33,7 @@ def test_show_with_files_not_found(script: PipTestEnvironment, data: TestData) -
     script.pip("install", "-e", editable)
     result = script.pip("show", "-f", "SetupPyUTF8")
     lines = result.stdout.splitlines()
-    assert len(lines) == 12
+    assert len(lines) == 13
     assert "Name: SetupPyUTF8" in lines
     assert "Version: 0.0.0" in lines
     assert any(line.startswith("Location: ") for line in lines)
@@ -128,7 +128,7 @@ def test_report_mixed_not_found(script: PipTestEnvironment) -> None:
     result = script.pip("show", "Abcd3", "A-B-C", "pip", allow_stderr_warning=True)
     assert "WARNING: Package(s) not found: A-B-C, Abcd3" in result.stderr
     lines = result.stdout.splitlines()
-    assert len(lines) == 10
+    assert len(lines) == 11
     assert "Name: pip" in lines
 
 
@@ -213,6 +213,7 @@ def test_all_fields(script: PipTestEnvironment) -> None:
         "Author-email",
         "License",
         "Location",
+        "Editable project location",
         "Requires",
         "Required-by",
     }
@@ -226,7 +227,7 @@ def test_pip_show_is_short(script: PipTestEnvironment) -> None:
     """
     result = script.pip("show", "pip")
     lines = result.stdout.splitlines()
-    assert len(lines) <= 10
+    assert len(lines) <= 11
 
 
 def test_pip_show_divider(script: PipTestEnvironment, data: TestData) -> None:

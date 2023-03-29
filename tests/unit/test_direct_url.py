@@ -39,6 +39,10 @@ def test_archive_info() -> None:
     assert (
         direct_url.info.hash == direct_url_dict["archive_info"]["hash"]  # type: ignore
     )
+    # test we add the hashes key automatically
+    direct_url_dict["archive_info"]["hashes"] = {  # type: ignore
+        "sha1": "1b8c5bc61a86f377fea47b4276c8c8a5842d2220"
+    }
     assert direct_url.to_dict() == direct_url_dict
 
 
@@ -98,6 +102,13 @@ def test_parsing_validation() -> None:
         match="more than one of archive_info, dir_info, vcs_info",
     ):
         DirectUrl.from_dict({"url": "http://...", "dir_info": {}, "archive_info": {}})
+    with pytest.raises(
+        DirectUrlValidationError,
+        match="invalid archive_info.hash format",
+    ):
+        DirectUrl.from_dict(
+            {"url": "http://...", "archive_info": {"hash": "sha256:aaa"}}
+        )
 
 
 def test_redact_url() -> None:

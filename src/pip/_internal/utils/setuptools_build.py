@@ -103,8 +103,8 @@ def make_setuptools_clean_args(
 
 def make_setuptools_develop_args(
     setup_py_path: str,
+    *,
     global_options: Sequence[str],
-    install_options: Sequence[str],
     no_user_config: bool,
     prefix: Optional[str],
     home: Optional[str],
@@ -119,8 +119,6 @@ def make_setuptools_develop_args(
     )
 
     args += ["develop", "--no-deps"]
-
-    args += install_options
 
     if prefix:
         args += ["--prefix", prefix]
@@ -150,8 +148,8 @@ def make_setuptools_egg_info_args(
 
 def make_setuptools_install_args(
     setup_py_path: str,
+    *,
     global_options: Sequence[str],
-    install_options: Sequence[str],
     record_filename: str,
     root: Optional[str],
     prefix: Optional[str],
@@ -189,7 +187,5 @@ def make_setuptools_install_args(
 
     if header_dir:
         args += ["--install-headers", header_dir]
-
-    args += install_options
 
     return args

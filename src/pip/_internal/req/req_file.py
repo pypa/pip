@@ -69,7 +69,6 @@ SUPPORTED_OPTIONS: List[Callable[..., optparse.Option]] = [
 
 # options to be passed to requirements
 SUPPORTED_OPTIONS_REQ: List[Callable[..., optparse.Option]] = [
-    cmdoptions.install_options,
     cmdoptions.global_options,
     cmdoptions.hash,
 ]
@@ -166,7 +165,6 @@ def handle_requirement_line(
     line: ParsedLine,
     options: Optional[optparse.Values] = None,
 ) -> ParsedRequirement:
-
     # preserve for the nested code path
     line_comes_from = "{} {} (line {})".format(
         "-c" if line.constraint else "-r",
@@ -211,7 +209,6 @@ def handle_option_line(
     options: Optional[optparse.Values] = None,
     session: Optional[PipSession] = None,
 ) -> None:
-
     if options:
         # percolate options upward
         if opts.require_hashes:

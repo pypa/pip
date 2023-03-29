@@ -8,7 +8,6 @@ import shutil
 import sys
 import uuid
 import zipfile
-from enum import Enum
 from optparse import Values
 from typing import Any, Collection, Dict, Iterable, List, Optional, Sequence, Union
 
@@ -18,7 +17,7 @@ from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
-from pip._vendor.pep517.wrappers import Pep517HookCaller
+from pip._vendor.pyproject_hooks import BuildBackendHookCaller
 
 from pip._internal.build_env import BuildEnvironment, NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError, LegacyInstallFailure
@@ -45,13 +44,9 @@ from pip._internal.operations.install.wheel import install_wheel
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.deprecation import LegacyInstallReason, deprecated
-from pip._internal.utils.direct_url_helpers import (
-    direct_url_for_editable,
-    direct_url_from_link,
-)
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.misc import (
-    ConfiguredPep517HookCaller,
+    ConfiguredBuildBackendHookCaller,
     ask_path_exists,
     backup_dir,
     display_path,
@@ -83,10 +78,10 @@ class InstallRequirement:
         markers: Optional[Marker] = None,
         use_pep517: Optional[bool] = None,
         isolated: bool = False,
-        install_options: Optional[List[str]] = None,
+        *,
         global_options: Optional[List[str]] = None,
         hash_options: Optional[Dict[str, List[str]]] = None,
-        config_settings: Optional[Dict[str, str]] = None,
+        config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
         constraint: bool = False,
         extras: Collection[str] = (),
         user_supplied: bool = False,
@@ -146,7 +141,6 @@ class InstallRequirement:
         # Set to True after successful installation
         self.install_succeeded: Optional[bool] = None
         # Supplied options
-        self.install_options = install_options if install_options else []
         self.global_options = global_options if global_options else []
         self.hash_options = hash_options if hash_options else {}
         self.config_settings = config_settings
@@ -173,7 +167,7 @@ class InstallRequirement:
         self.requirements_to_check: List[str] = []
 
         # The PEP 517 backend we should use to build the project
-        self.pep517_backend: Optional[Pep517HookCaller] = None
+        self.pep517_backend: Optional[BuildBackendHookCaller] = None
 
         # Are we using PEP 517 for this requirement?
         # After pyproject.toml has been loaded, the only valid values are True
@@ -195,7 +189,11 @@ class InstallRequirement:
         else:
             s = "<InstallRequirement>"
         if self.satisfied_by is not None:
-            s += " in {}".format(display_path(self.satisfied_by.location))
+            if self.satisfied_by.location is not None:
+                location = display_path(self.satisfied_by.location)
+            else:
+                location = "<memory>"
+            s += f" in {location}"
         if self.comes_from:
             if isinstance(self.comes_from, str):
                 comes_from: Optional[str] = self.comes_from
@@ -482,7 +480,7 @@ class InstallRequirement:
         requires, backend, check, backend_path = pyproject_toml_data
         self.requirements_to_check = check
         self.pyproject_requires = requires
-        self.pep517_backend = ConfiguredPep517HookCaller(
+        self.pep517_backend = ConfiguredBuildBackendHookCaller(
             self,
             self.unpacked_source_directory,
             backend,
@@ -742,7 +740,6 @@ class InstallRequirement:
 
     def install(
         self,
-        install_options: List[str],
         global_options: Optional[Sequence[str]] = None,
         root: Optional[str] = None,
         home: Optional[str] = None,
@@ -763,8 +760,7 @@ class InstallRequirement:
         global_options = global_options if global_options is not None else []
         if self.editable and not self.is_wheel:
             install_editable_legacy(
-                install_options,
-                global_options,
+                global_options=global_options,
                 prefix=prefix,
                 home=home,
                 use_user_site=use_user_site,
@@ -779,16 +775,6 @@ class InstallRequirement:
 
         if self.is_wheel:
             assert self.local_file_path
-            direct_url = None
-            # TODO this can be refactored to direct_url = self.download_info
-            if self.editable:
-                direct_url = direct_url_for_editable(self.unpacked_source_directory)
-            elif self.original_link:
-                direct_url = direct_url_from_link(
-                    self.original_link,
-                    self.source_dir,
-                    self.original_link_is_in_wheel_cache,
-                )
             install_wheel(
                 self.name,
                 self.local_file_path,
@@ -796,7 +782,7 @@ class InstallRequirement:
                 req_description=str(self.req),
                 pycompile=pycompile,
                 warn_script_location=warn_script_location,
-                direct_url=direct_url,
+                direct_url=self.download_info if self.original_link else None,
                 requested=self.user_supplied,
             )
             self.install_succeeded = True
@@ -804,13 +790,12 @@ class InstallRequirement:
 
         # TODO: Why don't we do this for editable installs?
 
-        # Extend the list of global and install options passed on to
+        # Extend the list of global options passed on to
         # the setup.py call with the ones from the requirements file.
         # Options specified in requirements file override those
         # specified on the command line, since the last option given
         # to setup.py is the one that is used.
         global_options = list(global_options) + self.global_options
-        install_options = list(install_options) + self.install_options
 
         try:
             if (
@@ -819,7 +804,6 @@ class InstallRequirement:
             ):
                 self.legacy_install_reason.emit_deprecation(self.name)
             success = install_legacy(
-                install_options=install_options,
                 global_options=global_options,
                 root=root,
                 home=home,
@@ -852,7 +836,6 @@ class InstallRequirement:
 
 
 def check_invalid_constraint_type(req: InstallRequirement) -> str:
-
     # Check for unsupported forms
     problem = ""
     if not req.name:
@@ -889,54 +872,21 @@ def _has_option(options: Values, reqs: List[InstallRequirement], option: str) ->
     return False
 
 
-def _install_option_ignored(
-    install_options: List[str], reqs: List[InstallRequirement]
-) -> bool:
-    for req in reqs:
-        if (install_options or req.install_options) and not req.use_pep517:
-            return False
-    return True
-
-
-class LegacySetupPyOptionsCheckMode(Enum):
-    INSTALL = 1
-    WHEEL = 2
-    DOWNLOAD = 3
-
-
 def check_legacy_setup_py_options(
     options: Values,
     reqs: List[InstallRequirement],
-    mode: LegacySetupPyOptionsCheckMode,
 ) -> None:
-    has_install_options = _has_option(options, reqs, "install_options")
     has_build_options = _has_option(options, reqs, "build_options")
     has_global_options = _has_option(options, reqs, "global_options")
-    legacy_setup_py_options_present = (
-        has_install_options or has_build_options or has_global_options
-    )
-    if not legacy_setup_py_options_present:
-        return
-
-    options.format_control.disallow_binaries()
-    logger.warning(
-        "Implying --no-binary=:all: due to the presence of "
-        "--build-option / --global-option / --install-option. "
-        "Consider using --config-settings for more flexibility.",
-    )
-    if mode == LegacySetupPyOptionsCheckMode.INSTALL and has_install_options:
-        if _install_option_ignored(options.install_options, reqs):
-            logger.warning(
-                "Ignoring --install-option when building using PEP 517",
-            )
-        else:
-            deprecated(
-                reason=(
-                    "--install-option is deprecated because "
-                    "it forces pip to use the 'setup.py install' "
-                    "command which is itself deprecated."
-                ),
-                issue=11358,
-                replacement="to use --config-settings",
-                gone_in="23.1",
-            )
+    if has_build_options or has_global_options:
+        deprecated(
+            reason="--build-option and --global-option are deprecated.",
+            issue=11859,
+            replacement="to use --config-settings",
+            gone_in="23.3",
+        )
+        logger.warning(
+            "Implying --no-binary=:all: due to the presence of "
+            "--build-option / --global-option. "
+        )
+        options.format_control.disallow_binaries()

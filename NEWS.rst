@@ -9,6 +9,82 @@
 
 .. towncrier release notes start
 
+23.0.1 (2023-02-17)
+===================
+
+Features
+--------
+
+- Ignore PIP_REQUIRE_VIRTUALENV for ``pip index`` (`#11671 <https://github.com/pypa/pip/issues/11671>`_)
+- Implement ``--break-system-packages`` to permit installing packages into
+  ``EXTERNALLY-MANAGED`` Python installations. (`#11780 <https://github.com/pypa/pip/issues/11780>`_)
+
+Bug Fixes
+---------
+
+- Improve handling of isolated build environments on platforms that
+  customize the Python's installation schemes, such as Debian and
+  Homebrew. (`#11740 <https://github.com/pypa/pip/issues/11740>`_)
+- Do not crash in presence of misformatted hash field in ``direct_url.json``. (`#11773 <https://github.com/pypa/pip/issues/11773>`_)
+
+
+23.0 (2023-01-30)
+=================
+
+Features
+--------
+
+- Change the hashes in the installation report to be a mapping. Emit the
+  ``archive_info.hashes`` dictionary in ``direct_url.json``. (`#11312 <https://github.com/pypa/pip/issues/11312>`_)
+- Implement logic to read the ``EXTERNALLY-MANAGED`` file as specified in PEP 668.
+  This allows a downstream Python distributor to prevent users from using pip to
+  modify the externally managed environment. (`#11381 <https://github.com/pypa/pip/issues/11381>`_)
+- Enable the use of ``keyring`` found on ``PATH``. This allows ``keyring``
+  installed using ``pipx`` to be used by ``pip``. (`#11589 <https://github.com/pypa/pip/issues/11589>`_)
+- The inspect and installation report formats are now declared stable, and their version
+  has been bumped from ``0`` to ``1``. (`#11757 <https://github.com/pypa/pip/issues/11757>`_)
+
+Bug Fixes
+---------
+
+- Wheel cache behavior is restored to match previous versions, allowing the
+  cache to find existing entries. (`#11527 <https://github.com/pypa/pip/issues/11527>`_)
+- Use the "venv" scheme if available to obtain prefixed lib paths. (`#11598 <https://github.com/pypa/pip/issues/11598>`_)
+- Deprecated a historical ambiguity in how ``egg`` fragments in URL-style
+  requirements are formatted and handled. ``egg`` fragments that do not look
+  like PEP 508 names now produce a deprecation warning. (`#11617 <https://github.com/pypa/pip/issues/11617>`_)
+- Fix scripts path in isolated build environment on Debian. (`#11623 <https://github.com/pypa/pip/issues/11623>`_)
+- Make ``pip show`` show the editable location if package is editable (`#11638 <https://github.com/pypa/pip/issues/11638>`_)
+- Stop checking that ``wheel`` is present when ``build-system.requires``
+  is provided without ``build-system.build-backend`` as ``setuptools``
+  (which we still check for) will inject it anyway. (`#11673 <https://github.com/pypa/pip/issues/11673>`_)
+- Fix an issue when an already existing in-memory distribution would cause
+  exceptions in ``pip install`` (`#11704 <https://github.com/pypa/pip/issues/11704>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade certifi to 2022.12.7
+- Upgrade chardet to 5.1.0
+- Upgrade colorama to 0.4.6
+- Upgrade distro to 1.8.0
+- Remove pep517 from vendored packages
+- Upgrade platformdirs to 2.6.2
+- Add pyproject-hooks 1.0.0
+- Upgrade requests to 2.28.2
+- Upgrade rich to 12.6.0
+- Upgrade urllib3 to 1.26.14
+
+Improved Documentation
+----------------------
+
+- Fixed the description of the option "--install-options" in the documentation (`#10265 <https://github.com/pypa/pip/issues/10265>`_)
+- Remove mention that editable installs are necessary for pip freeze to report the VCS
+  URL. (`#11675 <https://github.com/pypa/pip/issues/11675>`_)
+- Clarify that the egg URL fragment is only necessary for editable VCS installs, and
+  otherwise not necessary anymore. (`#11676 <https://github.com/pypa/pip/issues/11676>`_)
+
+
 22.3.1 (2022-11-05)
 ===================
 
@@ -55,7 +131,7 @@ Bug Fixes
 - Ensure that the candidate ``pip`` executable exists, when checking for a new version of pip. (`#11309 <https://github.com/pypa/pip/issues/11309>`_)
 - Ignore distributions with invalid ``Name`` in metadata instead of crashing, when
   using the ``importlib.metadata`` backend. (`#11352 <https://github.com/pypa/pip/issues/11352>`_)
-- Raise RequirementsFileParseError when parsing malformed requirements options that can't be sucessfully parsed by shlex. (`#11491 <https://github.com/pypa/pip/issues/11491>`_)
+- Raise RequirementsFileParseError when parsing malformed requirements options that can't be successfully parsed by shlex. (`#11491 <https://github.com/pypa/pip/issues/11491>`_)
 - Fix build environment isolation on some system Pythons. (`#6264 <https://github.com/pypa/pip/issues/6264>`_)
 
 Vendored Libraries

@@ -1,0 +1,2 @@
+Deprecate ``--build-option`` and ``--global-option``. Users are invited to switch to
+``--config-settings``.

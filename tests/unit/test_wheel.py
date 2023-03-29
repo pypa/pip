@@ -518,7 +518,6 @@ class TestInstallUnpackedWheel:
 
 
 class TestMessageAboutScriptsNotOnPATH:
-
     tilde_warning_msg = (
         "NOTE: The current PATH contains path(s) starting with `~`, "
         "which may not be expanded by all applications."
@@ -586,6 +585,12 @@ class TestMessageAboutScriptsNotOnPATH:
     def test_multi_script__single_dir_on_PATH(self) -> None:
         retval = self._template(
             paths=["/a/b", "/c/d/bin"], scripts=["/a/b/foo", "/a/b/bar", "/a/b/baz"]
+        )
+        assert retval is None
+
+    def test_PATH_check_path_normalization(self) -> None:
+        retval = self._template(
+            paths=["/a/./b/../b//c/", "/d/e/bin"], scripts=["/a/b/c/foo"]
         )
         assert retval is None
 

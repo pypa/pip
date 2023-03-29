@@ -12,7 +12,6 @@ from pip._internal.exceptions import CommandError
 from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.req.req_install import (
     InstallRequirement,
-    LegacySetupPyOptionsCheckMode,
     check_legacy_setup_py_options,
 )
 from pip._internal.utils.deprecation import deprecated
@@ -44,7 +43,6 @@ class WheelCommand(RequirementCommand):
       %prog [options] <archive url/path> ..."""
 
     def add_options(self) -> None:
-
         self.cmd_opts.add_option(
             "-w",
             "--wheel-dir",
@@ -122,9 +120,7 @@ class WheelCommand(RequirementCommand):
         )
 
         reqs = self.get_requirements(args, options, finder, session)
-        check_legacy_setup_py_options(
-            options, reqs, LegacySetupPyOptionsCheckMode.WHEEL
-        )
+        check_legacy_setup_py_options(options, reqs)
 
         if "no-binary-enable-wheel-cache" in options.features_enabled:
             # TODO: remove format_control from WheelCache when the deprecation cycle

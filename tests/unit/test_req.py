@@ -71,10 +71,10 @@ def get_processed_req_from_line(
 class TestRequirementSet:
     """RequirementSet tests"""
 
-    def setup(self) -> None:
+    def setup_method(self) -> None:
         self.tempdir = tempfile.mkdtemp()
 
-    def teardown(self) -> None:
+    def teardown_method(self) -> None:
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
     @contextlib.contextmanager
@@ -507,10 +507,10 @@ class TestRequirementSet:
 
 
 class TestInstallRequirement:
-    def setup(self) -> None:
+    def setup_method(self) -> None:
         self.tempdir = tempfile.mkdtemp()
 
-    def teardown(self) -> None:
+    def teardown_method(self) -> None:
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
     def test_url_with_query(self) -> None:

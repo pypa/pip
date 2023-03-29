@@ -164,6 +164,14 @@ require_virtualenv: Callable[..., Option] = partial(
     ),
 )
 
+override_externally_managed: Callable[..., Option] = partial(
+    Option,
+    "--break-system-packages",
+    dest="override_externally_managed",
+    action="store_true",
+    help="Allow pip to modify an EXTERNALLY-MANAGED Python installation",
+)
+
 python: Callable[..., Option] = partial(
     Option,
     "--python",
@@ -242,6 +250,19 @@ no_input: Callable[..., Option] = partial(
     action="store_true",
     default=False,
     help="Disable prompting for input.",
+)
+
+keyring_provider: Callable[..., Option] = partial(
+    Option,
+    "--keyring-provider",
+    dest="keyring_provider",
+    choices=["auto", "disabled", "import", "subprocess"],
+    default="disabled",
+    help=(
+        "Enable the credential lookup via the keyring library if user input is allowed."
+        " Specify which mechanism to use [disabled, import, subprocess]."
+        " (default: disabled)"
+    ),
 )
 
 proxy: Callable[..., Option] = partial(
@@ -762,10 +783,14 @@ def _handle_no_use_pep517(
         """
         raise_option_error(parser, option=option, msg=msg)
 
-    # If user doesn't wish to use pep517, we check if setuptools is installed
+    # If user doesn't wish to use pep517, we check if setuptools and wheel are installed
     # and raise error if it is not.
-    if not importlib.util.find_spec("setuptools"):
-        msg = "It is not possible to use --no-use-pep517 without setuptools installed."
+    packages = ("setuptools", "wheel")
+    if not all(importlib.util.find_spec(package) for package in packages):
+        msg = (
+            f"It is not possible to use --no-use-pep517 "
+            f"without {' and '.join(packages)} installed."
+        )
         raise_option_error(parser, option=option, msg=msg)
 
     # Otherwise, --no-use-pep517 was passed via the command-line.
@@ -803,11 +828,18 @@ def _handle_config_settings(
     if dest is None:
         dest = {}
         setattr(parser.values, option.dest, dest)
-    dest[key] = val
+    if key in dest:
+        if isinstance(dest[key], list):
+            dest[key].append(val)
+        else:
+            dest[key] = [dest[key], val]
+    else:
+        dest[key] = val
 
 
 config_settings: Callable[..., Option] = partial(
     Option,
+    "-C",
     "--config-settings",
     dest="config_settings",
     type=str,
@@ -817,17 +849,6 @@ config_settings: Callable[..., Option] = partial(
     help="Configuration settings to be passed to the PEP 517 build backend. "
     "Settings take the form KEY=VALUE. Use multiple --config-settings options "
     "to pass multiple keys to the backend.",
-)
-
-install_options: Callable[..., Option] = partial(
-    Option,
-    "--install-option",
-    dest="install_options",
-    action="append",
-    metavar="options",
-    help="This option is deprecated. Using this option with location-changing "
-    "options may cause unexpected behavior. "
-    "Use pip-level options like --user, --prefix, --root, and --target.",
 )
 
 build_options: Callable[..., Option] = partial(
@@ -1019,6 +1040,7 @@ general_group: Dict[str, Any] = {
         quiet,
         log,
         no_input,
+        keyring_provider,
         proxy,
         retries,
         timeout,

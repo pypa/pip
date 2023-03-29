@@ -454,7 +454,6 @@ class TestCountOptions(AddFakeCommandMixin):
 
 
 class TestGeneralOptions(AddFakeCommandMixin):
-
     # the reason to specifically test general options is due to the
     # extra processing they receive, and the number of bugs we've had
 
@@ -588,7 +587,7 @@ class TestOptionsConfigFiles:
         for _, val in cp.iter_config_files():
             files.extend(val)
 
-        assert len(files) == 4
+        assert len(files) == 5
 
     @pytest.mark.parametrize(
         "args, expect",

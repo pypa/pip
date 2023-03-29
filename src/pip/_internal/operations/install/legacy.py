@@ -55,7 +55,6 @@ def write_installed_files_from_setuptools_record(
 
 
 def install(
-    install_options: List[str],
     global_options: Sequence[str],
     root: Optional[str],
     home: Optional[str],
@@ -70,7 +69,6 @@ def install(
     unpacked_source_directory: str,
     req_description: str,
 ) -> bool:
-
     header_dir = scheme.headers
 
     with TempDirectory(kind="record") as temp_dir:
@@ -79,7 +77,6 @@ def install(
             install_args = make_setuptools_install_args(
                 setup_py_path,
                 global_options=global_options,
-                install_options=install_options,
                 record_filename=record_filename,
                 root=root,
                 prefix=prefix,
