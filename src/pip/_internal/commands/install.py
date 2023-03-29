@@ -343,9 +343,6 @@ class InstallCommand(RequirementCommand):
             reqs = self.get_requirements(args, options, finder, session)
             check_legacy_setup_py_options(options, reqs)
 
-            if "no-binary-enable-wheel-cache" in options.features_enabled:
-                logger.warning("no-binary-enable-wheel-cache is now active by default.")
-
             wheel_cache = WheelCache(options.cache_dir)
 
             # Only when installing is it permitted to use PEP 660.
