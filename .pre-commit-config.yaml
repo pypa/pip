@@ -2,7 +2,7 @@ exclude: 'src/pip/_vendor/'
 
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.3.0
+  rev: v4.4.0
   hooks:
   - id: check-builtin-literals
   - id: check-added-large-files
@@ -17,18 +17,18 @@ repos:
     exclude: .patch
 
 - repo: https://github.com/psf/black
-  rev: 22.6.0
+  rev: 23.1.0
   hooks:
   - id: black
 
 - repo: https://github.com/PyCQA/flake8
-  rev: 4.0.1
+  rev: 6.0.0
   hooks:
   - id: flake8
     additional_dependencies: [
-        'flake8-bugbear==22.10.27',
-        'flake8-logging-format==0.9.0',
-        'flake8-implicit-str-concat==0.3.0',
+        'flake8-bugbear',
+        'flake8-logging-format',
+        'flake8-implicit-str-concat',
     ]
     exclude: tests/data
 
@@ -56,7 +56,7 @@ repos:
     ]
 
 - repo: https://github.com/pre-commit/pygrep-hooks
-  rev: v1.9.0
+  rev: v1.10.0
   hooks:
   - id: python-no-log-warn
   - id: python-no-eval

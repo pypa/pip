@@ -2,7 +2,6 @@ import logging
 import os
 from pathlib import Path
 from typing import Optional, cast
-from unittest import mock
 
 import pytest
 
@@ -115,26 +114,6 @@ def test_should_build_for_wheel_command(req: ReqMock, expected: bool) -> None:
         cast(InstallRequirement, req)
     )
     assert should_build is expected
-
-
-@mock.patch("pip._internal.wheel_builder.is_wheel_installed")
-def test_should_build_legacy_wheel_not_installed(is_wheel_installed: mock.Mock) -> None:
-    is_wheel_installed.return_value = False
-    legacy_req = ReqMock(use_pep517=False)
-    should_build = wheel_builder.should_build_for_install_command(
-        cast(InstallRequirement, legacy_req),
-    )
-    assert not should_build
-
-
-@mock.patch("pip._internal.wheel_builder.is_wheel_installed")
-def test_should_build_legacy_wheel_installed(is_wheel_installed: mock.Mock) -> None:
-    is_wheel_installed.return_value = True
-    legacy_req = ReqMock(use_pep517=False)
-    should_build = wheel_builder.should_build_for_install_command(
-        cast(InstallRequirement, legacy_req),
-    )
-    assert should_build
 
 
 @pytest.mark.parametrize(

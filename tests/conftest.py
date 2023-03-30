@@ -429,9 +429,9 @@ def virtualenv_template(
     tmpdir_factory: pytest.TempPathFactory,
     pip_src: Path,
     setuptools_install: Path,
+    wheel_install: Path,
     coverage_install: Path,
 ) -> Iterator[VirtualEnvironment]:
-
     venv_type: VirtualEnvironmentType
     if request.config.getoption("--use-venv"):
         venv_type = "venv"
@@ -442,8 +442,9 @@ def virtualenv_template(
     tmpdir = tmpdir_factory.mktemp("virtualenv")
     venv = VirtualEnvironment(tmpdir.joinpath("venv_orig"), venv_type=venv_type)
 
-    # Install setuptools and pip.
+    # Install setuptools, wheel and pip.
     install_pth_link(venv, "setuptools", setuptools_install)
+    install_pth_link(venv, "wheel", wheel_install)
     pip_editable = tmpdir_factory.mktemp("pip") / "pip"
     shutil.copytree(pip_src, pip_editable, symlinks=True)
     # noxfile.py is Python 3 only
@@ -499,11 +500,6 @@ def virtualenv(
     ``tests.lib.venv.VirtualEnvironment`` object.
     """
     yield virtualenv_factory(tmpdir.joinpath("workspace", "venv"))
-
-
-@pytest.fixture
-def with_wheel(virtualenv: VirtualEnvironment, wheel_install: Path) -> None:
-    install_pth_link(virtualenv, "wheel", wheel_install)
 
 
 class ScriptFactory(Protocol):

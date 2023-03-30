@@ -8,7 +8,7 @@ class FakeError(Exception):
     pass
 
 
-if sys.argv[1] == "install":
+if sys.argv[1] in ("install", "bdist_wheel"):
     if hasattr(sys.stdout, "buffer"):
         sys.stdout.buffer.write(
             "\nThis package prints out UTF-8 stuff like:\n".encode("utf-8")

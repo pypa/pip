@@ -76,7 +76,6 @@ def arg_recording_sdist_maker(
 
 
 @pytest.mark.network
-@pytest.mark.usefixtures("with_wheel")
 def test_requirements_file(script: PipTestEnvironment) -> None:
     """
     Test installing from a requirements file.
@@ -127,7 +126,6 @@ def test_schema_check_in_requirements_file(script: PipTestEnvironment) -> None:
         ("embedded_rel_path", True),
     ],
 )
-@pytest.mark.usefixtures("with_wheel")
 def test_relative_requirements_file(
     script: PipTestEnvironment, data: TestData, test_type: str, editable: bool
 ) -> None:
@@ -175,7 +173,6 @@ def test_relative_requirements_file(
 @pytest.mark.xfail
 @pytest.mark.network
 @need_svn
-@pytest.mark.usefixtures("with_wheel")
 def test_multiple_requirements_files(script: PipTestEnvironment, tmpdir: Path) -> None:
     """
     Test installing from multiple nested requirements files.
@@ -319,7 +316,7 @@ def test_install_local_with_subdirectory(script: PipTestEnvironment) -> None:
     result.assert_installed("version_subpkg.py", editable=False)
 
 
-@pytest.mark.usefixtures("enable_user_site", "with_wheel")
+@pytest.mark.usefixtures("enable_user_site")
 def test_wheel_user_with_prefix_in_pydistutils_cfg(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -480,7 +477,7 @@ def test_constraints_constrain_to_local(
         "singlemodule",
         allow_stderr_warning=True,
     )
-    assert "Running setup.py install for singlemodule" in result.stdout
+    assert "Building wheel for singlemodule" in result.stdout
 
 
 def test_constrained_to_url_install_same_url(
@@ -499,10 +496,9 @@ def test_constrained_to_url_install_same_url(
         to_install,
         allow_stderr_warning=True,
     )
-    assert "Running setup.py install for singlemodule" in result.stdout, str(result)
+    assert "Building wheel for singlemodule" in result.stdout, str(result)
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_double_install_spurious_hash_mismatch(
     script: PipTestEnvironment, tmpdir: Path, data: TestData
 ) -> None:
@@ -631,7 +627,7 @@ def test_install_distribution_full_union(
     result = script.pip_install_local(
         to_install, f"{to_install}[bar]", f"{to_install}[baz]"
     )
-    assert "Running setup.py install for LocalExtras" in result.stdout
+    assert "Building wheel for LocalExtras" in result.stdout
     result.did_create(script.site_packages / "simple")
     result.did_create(script.site_packages / "singlemodule.py")
 

@@ -245,7 +245,6 @@ def test_options_from_venv_config(
     assert msg.lower() in result.stdout.lower(), str(result)
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_no_binary_via_config_disables_cached_wheels(
     script: PipTestEnvironment, data: TestData
 ) -> None:

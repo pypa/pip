@@ -166,7 +166,6 @@ def handle_requirement_line(
     line: ParsedLine,
     options: Optional[optparse.Values] = None,
 ) -> ParsedRequirement:
-
     # preserve for the nested code path
     line_comes_from = "{} {} (line {})".format(
         "-c" if line.constraint else "-r",
@@ -211,7 +210,6 @@ def handle_option_line(
     options: Optional[optparse.Values] = None,
     session: Optional[PipSession] = None,
 ) -> None:
-
     if options:
         # percolate options upward
         if opts.require_hashes:

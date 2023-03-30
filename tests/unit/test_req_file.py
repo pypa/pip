@@ -623,7 +623,6 @@ class TestBreakOptionsArgs:
 
 
 class TestOptionVariants:
-
     # this suite is really just testing optparse, but added it anyway
 
     def test_variant1(

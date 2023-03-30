@@ -617,18 +617,6 @@ def hash_file(path: str, blocksize: int = 1 << 20) -> Tuple[Any, int]:
     return h, length
 
 
-def is_wheel_installed() -> bool:
-    """
-    Return whether the wheel package is installed.
-    """
-    try:
-        import wheel  # noqa: F401
-    except ImportError:
-        return False
-
-    return True
-
-
 def pairwise(iterable: Iterable[Any]) -> Iterator[Tuple[Any, Any]]:
     """
     Return paired elements.

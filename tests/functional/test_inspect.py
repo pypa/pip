@@ -31,11 +31,12 @@ def test_inspect_basic(simple_script: PipTestEnvironment) -> None:
     result = simple_script.pip("inspect")
     report = json.loads(result.stdout)
     installed = report["installed"]
-    assert len(installed) == 4
+    assert len(installed) == 5
     installed_by_name = {i["metadata"]["name"]: i for i in installed}
     assert installed_by_name.keys() == {
         "pip",
         "setuptools",
+        "wheel",
         "coverage",
         "simplewheel",
     }
