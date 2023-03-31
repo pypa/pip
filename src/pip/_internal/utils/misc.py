@@ -27,7 +27,6 @@ from typing import (
     Iterable,
     Iterator,
     List,
-    Mapping,
     Optional,
     TextIO,
     Tuple,
@@ -733,9 +732,12 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
 
 
 def merge_config_settings(
-    reqs_settings: Mapping[str, Union[str, List[str]]],
-    cli_settings: Mapping[str, Union[str, List[str]]],
+    reqs_settings: Optional[Dict[str, Union[str, List[str]]]],
+    cli_settings: Optional[Dict[str, Union[str, List[str]]]],
 ) -> Dict[str, Union[str, List[str]]]:
+    if not reqs_settings or not cli_settings:
+        return reqs_settings or cli_settings
+
     dd: Dict[str, Union[str, List[str]]] = {}
     for d in (reqs_settings, cli_settings):
         for k, v in d.items():

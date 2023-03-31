@@ -10,7 +10,7 @@ import os
 import sys
 from functools import partial
 from optparse import Values
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
@@ -441,13 +441,9 @@ class RequirementCommand(IndexGroupCommand):
                     else None
                 )
                 cli_config_settings = getattr(options, "config_settings", None)
-                config_settings: Optional[Dict[str, Union[str, List[str]]]]
-                if req_config_settings and cli_config_settings:
-                    config_settings = merge_config_settings(
-                        req_config_settings, cli_config_settings
-                    )
-                else:
-                    config_settings = req_config_settings or cli_config_settings
+                config_settings = merge_config_settings(
+                    req_config_settings, cli_config_settings
+                )
                 req_to_add = install_req_from_parsed_requirement(
                     parsed_req,
                     isolated=options.isolated_mode,
