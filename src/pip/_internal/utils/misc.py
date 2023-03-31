@@ -734,7 +734,7 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
 def merge_config_settings(
     reqs_settings: Optional[Dict[str, Union[str, List[str]]]],
     cli_settings: Optional[Dict[str, Union[str, List[str]]]],
-) -> Dict[str, Union[str, List[str]]]:
+) -> Optional[Dict[str, Union[str, List[str]]]]:
     if not reqs_settings or not cli_settings:
         return reqs_settings or cli_settings
 
