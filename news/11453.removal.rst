@@ -1,0 +1,2 @@
+``--no-binary`` does not disable the cache of locally built wheels anymore. It only
+means "don't download wheels".

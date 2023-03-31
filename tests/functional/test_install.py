@@ -1656,7 +1656,7 @@ def test_install_no_binary_uses_local_backend(
     assert os.path.isfile(marker), "Local PEP 517 backend not used"
 
 
-def test_install_no_binary_disables_cached_wheels(
+def test_install_no_binary_uses_cached_wheels(
     script: PipTestEnvironment, data: TestData
 ) -> None:
     # Seed the cache
@@ -1673,7 +1673,7 @@ def test_install_no_binary_disables_cached_wheels(
     )
     assert "Successfully installed upper-2.0" in str(res), str(res)
     # upper is built and not obtained from cache
-    assert "Building wheel for upper" in str(res), str(res)
+    assert "Building wheel for upper" not in str(res), str(res)
 
 
 def test_install_editable_with_wrong_egg_name(

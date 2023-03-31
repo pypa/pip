@@ -994,6 +994,11 @@ no_python_version_warning: Callable[..., Option] = partial(
 )
 
 
+# Features that are now always on. A warning is printed if they are used.
+ALWAYS_ENABLED_FEATURES = [
+    "no-binary-enable-wheel-cache",  # always on since 23.1
+]
+
 use_new_feature: Callable[..., Option] = partial(
     Option,
     "--use-feature",
@@ -1004,8 +1009,8 @@ use_new_feature: Callable[..., Option] = partial(
     choices=[
         "fast-deps",
         "truststore",
-        "no-binary-enable-wheel-cache",
-    ],
+    ]
+    + ALWAYS_ENABLED_FEATURES,
     help="Enable new functionality, that may be backward incompatible.",
 )
 
