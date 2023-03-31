@@ -325,7 +325,6 @@ def test_wheel_user_with_prefix_in_pydistutils_cfg(
         "install", "--user", "--no-index", "-f", data.find_links, "requiresupper"
     )
     # Check that we are really installing a wheel
-    assert "Running setup.py install for requiresupper" not in result.stdout
     assert "installed requiresupper" in result.stdout
 
 
@@ -647,7 +646,7 @@ def test_install_distribution_union_with_constraints(
         msg = "Unnamed requirements are not allowed as constraints"
         assert msg in result.stderr
     else:
-        assert "Running setup.py install for LocalExtras" in result.stdout
+        assert "Building wheel for LocalExtras" in result.stdout
         result.did_create(script.site_packages / "singlemodule.py")
 
 

@@ -392,7 +392,7 @@ def test_git_with_non_editable_unpacking(
     )
     result = script.pip(
         "install",
-        "--global-option=--version",
+        "--global-option=--quiet",
         local_url,
         allow_stderr_warning=True,
     )

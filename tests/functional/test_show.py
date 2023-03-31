@@ -1,14 +1,17 @@
 import os
 import pathlib
 import re
+import textwrap
 
 from pip import __version__
 from pip._internal.commands.show import search_packages_info
-from pip._internal.operations.install.legacy import (
-    write_installed_files_from_setuptools_record,
-)
 from pip._internal.utils.unpacking import untar_file
-from tests.lib import PipTestEnvironment, TestData, create_test_package_with_setup
+from tests.lib import (
+    PipTestEnvironment,
+    TestData,
+    create_test_package_with_setup,
+    pyversion,
+)
 
 
 def test_basic_show(script: PipTestEnvironment) -> None:
@@ -77,10 +80,19 @@ def test_show_with_files_from_legacy(
         str(setuptools_record),
         cwd=source_dir,
     )
-    write_installed_files_from_setuptools_record(
-        setuptools_record.read_text().splitlines(),
-        root=None,
-        req_description="simple==1.0",
+    # Emulate the installed-files.txt generation which previous pip version did
+    # after running setup.py install (write_installed_files_from_setuptools_record).
+    egg_info_dir = script.site_packages_path / f"simple-1.0-py{pyversion}.egg-info"
+    egg_info_dir.joinpath("installed-files.txt").write_text(
+        textwrap.dedent(
+            """\
+                ../simple/__init__.py
+                PKG-INFO
+                SOURCES.txt
+                dependency_links.txt
+                top_level.txt
+            """
+        )
     )
 
     result = script.pip("show", "--files", "simple")
