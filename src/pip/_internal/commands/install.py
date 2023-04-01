@@ -262,6 +262,13 @@ class InstallCommand(RequirementCommand):
             ),
         )
 
+        self.cmd_opts.add_option(
+            "--all",
+            action="store_true",
+            dest="all",
+            help="Install all packages",
+        )
+
     @with_cleanup
     def run(self, options: Values, args: List[str]) -> int:
         if options.use_user_site and options.target_dir is not None:

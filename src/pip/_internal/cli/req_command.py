@@ -11,6 +11,9 @@ import sys
 from functools import partial
 from optparse import Values
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple
+from urllib.parse import urljoin
+
+from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
@@ -19,6 +22,7 @@ from pip._internal.cli.command_context import CommandContextMixIn
 from pip._internal.exceptions import CommandError, PreviousBuildDirError
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
+from pip._internal.models.index import PyPI
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
@@ -408,6 +412,18 @@ class RequirementCommand(IndexGroupCommand):
                 )
                 requirements.append(req_to_add)
 
+        if options.all:
+            for req in self.find_all_packages(session, options.index_url):
+                req_to_add = install_req_from_req_string(
+                    req,
+                    None,
+                    isolated=options.isolated_mode,
+                    use_pep517=options.use_pep517,
+                    user_supplied=False,
+                    config_settings=getattr(options, "config_settings", None),
+                )
+                requirements.append(req_to_add)
+
         for req in args:
             req_to_add = install_req_from_line(
                 req,
@@ -446,7 +462,7 @@ class RequirementCommand(IndexGroupCommand):
         if any(req.has_hash_options for req in requirements):
             options.require_hashes = True
 
-        if not (args or options.editables or options.requirements):
+        if not (args or options.editables or options.requirements or options.all):
             opts = {"name": self.name}
             if options.find_links:
                 raise CommandError(
@@ -473,6 +489,26 @@ class RequirementCommand(IndexGroupCommand):
         locations = search_scope.get_formatted_locations()
         if locations:
             logger.info(locations)
+
+    @staticmethod
+    def find_all_packages(session: PipSession, index_url: str):
+        response = session.request(
+            'GET',
+            index_url,
+            headers={'Accept': 'application/vnd.pypi.simple.v1+json'}
+        )
+        for item in response.json()['projects']:
+            project_name = item['name']
+            # Skip packages with no files
+            project_response = session.request(
+                'GET',
+                index_url + "/" + canonicalize_name(project_name),
+                headers={'Accept': 'application/vnd.pypi.simple.v1+json'}
+            )
+            if project_response.json()['files']:
+                yield project_name
+            else:
+                logger.warn("Skipping package %s because it has no files", project_name)
 
     def _build_package_finder(
         self,
