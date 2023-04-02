@@ -181,6 +181,16 @@ class InstallRequirement:
         # but after loading this flag should be treated as read only.
         self.use_pep517 = use_pep517
 
+        # If config settings are provided, enforce PEP 517.
+        if self.config_settings:
+            if self.use_pep517 is False:
+                raise InstallationError(
+                    f"Disabling PEP 517 processing is not allowed for {self} "
+                    f"when --config-settings are specified."
+                )
+            else:
+                self.use_pep517 = True
+
         # This requirement needs more preparation before it can be built
         self.needs_more_preparation = False
 
@@ -508,15 +518,7 @@ class InstallRequirement:
         )
 
         if pyproject_toml_data is None:
-            if self.config_settings:
-                deprecated(
-                    reason=f"Config settings are ignored for project {self}.",
-                    replacement=(
-                        "to use --use-pep517 or add a "
-                        "pyproject.toml file to the project"
-                    ),
-                    gone_in="24.0",
-                )
+            assert not self.config_settings
             self.use_pep517 = False
             return
 
