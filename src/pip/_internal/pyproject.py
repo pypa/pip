@@ -91,7 +91,7 @@ def load_pyproject_toml(
     # If we haven't worked out whether to use PEP 517 yet,
     # and the user hasn't explicitly stated a preference,
     # we do so if the project has a pyproject.toml file
-    # or if we cannot import setuptools.
+    # or if we cannot import setuptools or wheels.
 
     # We fallback to PEP 517 when without setuptools or without the wheel package,
     # so setuptools can be installed as a default build backend.
