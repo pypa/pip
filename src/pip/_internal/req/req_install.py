@@ -477,6 +477,15 @@ class InstallRequirement:
         )
 
         if pyproject_toml_data is None:
+            if self.config_settings:
+                deprecated(
+                    reason=f"Config settings are ignored for project {self}.",
+                    replacement=(
+                        "to use --use-pep517 or add a "
+                        "pyproject.toml file to the project"
+                    ),
+                    gone_in="23.3",
+                )
             self.use_pep517 = False
             return
 
