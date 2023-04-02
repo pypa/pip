@@ -18,6 +18,6 @@ rich==13.3.3
 resolvelib==1.0.1
 setuptools==67.6.1
 six==1.16.0
-tenacity==8.1.0
+tenacity==8.2.2
 tomli==2.0.1
 webencodings==0.5.1
