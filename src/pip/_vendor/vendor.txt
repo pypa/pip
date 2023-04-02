@@ -2,7 +2,7 @@ CacheControl==0.12.11  # Make sure to update the license in pyproject.toml for t
 colorama==0.4.6
 distlib==0.3.6
 distro==1.8.0
-msgpack==1.0.4
+msgpack==1.0.5
 packaging==21.3
 platformdirs==2.6.2
 pyparsing==3.0.9
