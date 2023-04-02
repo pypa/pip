@@ -553,13 +553,10 @@ class RequirementPreparer:
 
         hashes = self._get_linked_req_hashes(req)
 
-        if (
-            hashes
-            and link.is_wheel
-            and link.is_file
-            and req.original_link_is_in_wheel_cache
-        ):
+        if hashes and req.original_link_is_in_wheel_cache:
             assert req.download_info is not None
+            assert link.is_wheel
+            assert link.is_file
             # We need to verify hashes, and we have found the requirement in the cache
             # of locally built wheels.
             if (
