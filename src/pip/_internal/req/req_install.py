@@ -275,31 +275,9 @@ class InstallRequirement:
         """
         return bool(self.hash_options)
 
-    def hashes(self, trust_internet: bool = True) -> Hashes:
-        """Return a hash-comparer that considers my option- and URL-based
-        hashes to be known-good.
-
-        Hashes in URLs--ones embedded in the requirements file, not ones
-        downloaded from an index server--are almost peers with ones from
-        flags. They satisfy --require-hashes (whether it was implicitly or
-        explicitly activated) but do not activate it. md5 and sha224 are not
-        allowed in flags, which should nudge people toward good algos. We
-        always OR all hashes together, even ones from URLs.
-
-        :param trust_internet: Whether to trust URL-based (#md5=...) hashes
-            downloaded from the internet, as by populate_link()
-
-        """
-        good_hashes = self.hash_options.copy()
-        if trust_internet:
-            link = self.link
-        elif self.original_link and self.user_supplied:
-            link = self.original_link
-        else:
-            link = None
-        if link and link.hash:
-            good_hashes.setdefault(link.hash_name, []).append(link.hash)
-        return Hashes(good_hashes)
+    def hashes(self) -> Hashes:
+        """Return a hash-comparer that considers my option-hashes to be known-good."""
+        return Hashes(self.hash_options)
 
     def from_path(self) -> Optional[str]:
         """Format a nice indicator to show where this "comes from" """

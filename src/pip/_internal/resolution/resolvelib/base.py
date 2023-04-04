@@ -34,7 +34,7 @@ class Constraint:
     @classmethod
     def from_ireq(cls, ireq: InstallRequirement) -> "Constraint":
         links = frozenset([ireq.link]) if ireq.link else frozenset()
-        return Constraint(ireq.specifier, ireq.hashes(trust_internet=False), links)
+        return Constraint(ireq.specifier, ireq.hashes(), links)
 
     def __bool__(self) -> bool:
         return bool(self.specifier) or bool(self.hashes) or bool(self.links)
@@ -43,7 +43,7 @@ class Constraint:
         if not isinstance(other, InstallRequirement):
             return NotImplemented
         specifier = self.specifier & other.specifier
-        hashes = self.hashes & other.hashes(trust_internet=False)
+        hashes = self.hashes & other.hashes()
         links = self.links
         if other.link:
             links = links.union([other.link])

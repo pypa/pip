@@ -8,6 +8,7 @@ These are meant to be used elsewhere within pip to create instances of
 InstallRequirement.
 """
 
+import copy
 import logging
 import os
 import re
@@ -385,14 +386,23 @@ def install_req_from_line(
     line_source: Optional[str] = None,
     user_supplied: bool = False,
     config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
+    trust_link_hash: bool = False,
 ) -> InstallRequirement:
     """Creates an InstallRequirement from a name, which might be a
     requirement, directory containing 'setup.py', filename, or URL.
 
     :param line_source: An optional string describing where the line is from,
         for logging purposes in case of an error.
+    :param trust_link_hash: If True, consider hashes provided as URL fragments
+        are trusted on the same foot as hases provided as --hash options.
     """
     parts = parse_req_from_line(name, line_source)
+
+    #
+    if parts.link and parts.link.hash and trust_link_hash:
+        assert parts.link.hash_name
+        hash_options = copy.deepcopy(hash_options) or {}
+        hash_options.setdefault(parts.link.hash_name, []).append(parts.link.hash)
 
     return InstallRequirement(
         parts.requirement,
@@ -454,6 +464,7 @@ def install_req_from_parsed_requirement(
     use_pep517: Optional[bool] = None,
     user_supplied: bool = False,
     config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
+    trust_link_hash: bool = False,
 ) -> InstallRequirement:
     if parsed_req.is_editable:
         req = install_req_from_editable(
@@ -484,6 +495,7 @@ def install_req_from_parsed_requirement(
             line_source=parsed_req.line_source,
             user_supplied=user_supplied,
             config_settings=config_settings,
+            trust_link_hash=trust_link_hash,
         )
     return req
 
