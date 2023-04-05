@@ -79,7 +79,7 @@ class InstallRequirement:
         isolated: bool = False,
         *,
         global_options: Optional[List[str]] = None,
-        hash_options: Optional[Dict[str, List[str]]] = None,
+        trusted_hashes: Optional[Dict[str, List[str]]] = None,
         config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
         constraint: bool = False,
         extras: Collection[str] = (),
@@ -144,7 +144,7 @@ class InstallRequirement:
         self.install_succeeded: Optional[bool] = None
         # Supplied options
         self.global_options = global_options if global_options else []
-        self.hash_options = hash_options if hash_options else {}
+        self.trusted_hashes = trusted_hashes if trusted_hashes else {}
         self.config_settings = config_settings
         # Set to True after successful preparation of this requirement
         self.prepared = False
@@ -273,11 +273,11 @@ class InstallRequirement:
         URL do not.
 
         """
-        return bool(self.hash_options)
+        return bool(self.trusted_hashes)
 
     def hashes(self) -> Hashes:
         """Return a hash-comparer that considers my option-hashes to be known-good."""
-        return Hashes(self.hash_options)
+        return Hashes(self.trusted_hashes)
 
     def from_path(self) -> Optional[str]:
         """Format a nice indicator to show where this "comes from" """

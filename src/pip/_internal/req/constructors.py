@@ -206,7 +206,7 @@ def install_req_from_editable(
     use_pep517: Optional[bool] = None,
     isolated: bool = False,
     global_options: Optional[List[str]] = None,
-    hash_options: Optional[Dict[str, List[str]]] = None,
+    trusted_hashes: Optional[Dict[str, List[str]]] = None,
     constraint: bool = False,
     user_supplied: bool = False,
     permit_editable_wheels: bool = False,
@@ -225,7 +225,7 @@ def install_req_from_editable(
         use_pep517=use_pep517,
         isolated=isolated,
         global_options=global_options,
-        hash_options=hash_options,
+        trusted_hashes=trusted_hashes,
         config_settings=config_settings,
         extras=parts.extras,
     )
@@ -381,7 +381,7 @@ def install_req_from_line(
     use_pep517: Optional[bool] = None,
     isolated: bool = False,
     global_options: Optional[List[str]] = None,
-    hash_options: Optional[Dict[str, List[str]]] = None,
+    trusted_hashes: Optional[Dict[str, List[str]]] = None,
     constraint: bool = False,
     line_source: Optional[str] = None,
     user_supplied: bool = False,
@@ -401,8 +401,8 @@ def install_req_from_line(
     #
     if parts.link and parts.link.hash and trust_link_hash:
         assert parts.link.hash_name
-        hash_options = copy.deepcopy(hash_options) or {}
-        hash_options.setdefault(parts.link.hash_name, []).append(parts.link.hash)
+        trusted_hashes = copy.deepcopy(trusted_hashes) or {}
+        trusted_hashes.setdefault(parts.link.hash_name, []).append(parts.link.hash)
 
     return InstallRequirement(
         parts.requirement,
@@ -412,7 +412,7 @@ def install_req_from_line(
         use_pep517=use_pep517,
         isolated=isolated,
         global_options=global_options,
-        hash_options=hash_options,
+        trusted_hashes=trusted_hashes,
         config_settings=config_settings,
         constraint=constraint,
         extras=parts.extras,
@@ -488,7 +488,7 @@ def install_req_from_parsed_requirement(
                 if parsed_req.options
                 else []
             ),
-            hash_options=(
+            trusted_hashes=(
                 parsed_req.options.get("hashes", {}) if parsed_req.options else {}
             ),
             constraint=parsed_req.constraint,
@@ -512,7 +512,7 @@ def install_req_from_link_and_ireq(
         use_pep517=ireq.use_pep517,
         isolated=ireq.isolated,
         global_options=ireq.global_options,
-        hash_options=ireq.hash_options,
+        trusted_hashes=ireq.trusted_hashes,
         config_settings=ireq.config_settings,
         user_supplied=ireq.user_supplied,
     )

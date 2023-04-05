@@ -66,7 +66,7 @@ def make_install_req_from_link(
         isolated=template.isolated,
         constraint=template.constraint,
         global_options=template.global_options,
-        hash_options=template.hash_options,
+        trusted_hashes=template.trusted_hashes,
         config_settings=template.config_settings,
     )
     ireq.original_link = template.original_link
@@ -88,7 +88,7 @@ def make_install_req_from_editable(
         constraint=template.constraint,
         permit_editable_wheels=template.permit_editable_wheels,
         global_options=template.global_options,
-        hash_options=template.hash_options,
+        trusted_hashes=template.trusted_hashes,
         config_settings=template.config_settings,
     )
     ireq.extras = template.extras
@@ -112,7 +112,7 @@ def _make_install_req_from_dist(
         isolated=template.isolated,
         constraint=template.constraint,
         global_options=template.global_options,
-        hash_options=template.hash_options,
+        trusted_hashes=template.trusted_hashes,
         config_settings=template.config_settings,
     )
     ireq.satisfied_by = dist
