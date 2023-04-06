@@ -63,7 +63,7 @@ def get_vendor_version_from_module(module_name: str) -> Optional[str]:
     except ImportError:
         # Truststore only supports Python 3.10+ so this ImportError
         # is expected for only the 'truststore' module.
-        if module_name == "truststore":
+        if module_name == "truststore" and sys.version_info < (3, 10):
             return None
         raise
 

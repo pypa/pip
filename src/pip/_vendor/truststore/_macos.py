@@ -21,7 +21,7 @@ from ._ssl_constants import _set_ssl_context_verify_mode
 _mac_version = platform.mac_ver()[0]
 _mac_version_info = tuple(map(int, _mac_version.split(".")))
 if _mac_version_info < (10, 8):
-    raise OSError(
+    raise ImportError(
         f"Only OS X 10.8 and newer are supported, not {_mac_version_info[0]}.{_mac_version_info[1]}"
     )
 

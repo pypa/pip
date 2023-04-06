@@ -60,13 +60,12 @@ def _create_truststore_ssl_context() -> Optional["SSLContext"]:
         logger.warning("Disabling truststore since ssl support is missing")
         return None
 
-    # Since truststore is developed with only Python 3.10+ in mind
-    # we delay the import until we know we're running pip with Python 3.10+.
+    # Truststore raises 'ImportError's if the platform isn't supported.
+    # Truststore doesn't work on macOS versions earlier than 10.8
     try:
         from pip._vendor import truststore
-    # Truststore doesn't work on macOS versions earlier than 10.8
-    except OSError:
-        logger.warning("Disabling truststore since OS version isn't supported")
+    except ImportError:
+        logger.warning("Disabling truststore since platform isn't supported")
         return None
 
     ctx = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
