@@ -55,7 +55,7 @@ class LinkHash:
     name: str
     value: str
 
-    _hash_re = re.compile(
+    _hash_url_fragment_re = re.compile(
         # NB: we do not validate that the second group (.*) is a valid hex
         # digest. Instead, we simply keep that string in this class, and then check it
         # against Hashes when hash-checking is needed. This is easier to debug than
@@ -67,13 +67,26 @@ class LinkHash:
     )
 
     def __post_init__(self) -> None:
-        assert self._hash_re.match(f"#{self.name}={self.value}")
+        assert self._hash_url_fragment_re.match(f"#{self.name}={self.value}")
+
+    @classmethod
+    def parse_pep658_hash(cls, dist_info_metadata: str) -> Optional["LinkHash"]:
+        """Parse a PEP 658 data-dist-info-metadata hash."""
+        if dist_info_metadata == "true":
+            return None
+        try:
+            name, value = dist_info_metadata.split("=", 1)
+        except ValueError:
+            return None
+        if name not in _SUPPORTED_HASHES:
+            return None
+        return cls(name=name, value=value)
 
     @classmethod
     @functools.lru_cache(maxsize=None)
-    def split_hash_name_and_value(cls, url: str) -> Optional["LinkHash"]:
+    def find_hash_url_fragment(cls, url: str) -> Optional["LinkHash"]:
         """Search a string for a checksum algorithm name and encoded output value."""
-        match = cls._hash_re.search(url)
+        match = cls._hash_url_fragment_re.search(url)
         if match is None:
             return None
         name, value = match.groups()
@@ -217,7 +230,7 @@ class Link(KeyBasedCompareMixin):
         # trying to set a new value.
         self._url = url
 
-        link_hash = LinkHash.split_hash_name_and_value(url)
+        link_hash = LinkHash.find_hash_url_fragment(url)
         hashes_from_link = {} if link_hash is None else link_hash.as_dict()
         if hashes is None:
             self._hashes = hashes_from_link
@@ -402,15 +415,10 @@ class Link(KeyBasedCompareMixin):
         if self.dist_info_metadata is None:
             return None
         metadata_url = f"{self.url_without_fragment}.metadata"
-        # If data-dist-info-metadata="true" is set, then the metadata file exists,
-        # but there is no information about its checksum or anything else.
-        if self.dist_info_metadata != "true":
-            link_hash = LinkHash.split_hash_name_and_value(self.dist_info_metadata)
-        else:
-            link_hash = None
-        if link_hash is None:
+        metadata_link_hash = LinkHash.parse_pep658_hash(self.dist_info_metadata)
+        if metadata_link_hash is None:
             return Link(metadata_url)
-        return Link(metadata_url, hashes=link_hash.as_dict())
+        return Link(metadata_url, hashes=metadata_link_hash.as_dict())
 
     def as_hashes(self) -> Hashes:
         return Hashes({k: [v] for k, v in self._hashes.items()})

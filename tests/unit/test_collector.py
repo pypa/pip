@@ -1073,4 +1073,20 @@ def test_link_collector_create_find_links_expansion(
     ],
 )
 def test_link_hash_parsing(url: str, result: Optional[LinkHash]) -> None:
-    assert LinkHash.split_hash_name_and_value(url) == result
+    assert LinkHash.find_hash_url_fragment(url) == result
+
+
+@pytest.mark.parametrize(
+    "dist_info_metadata, result",
+    [
+        ("sha256=aa113592bbe", LinkHash("sha256", "aa113592bbe")),
+        ("sha500=aa113592bbe", None),
+        ("true", None),
+        ("", None),
+        ("aa113592bbe", None),
+    ],
+)
+def test_pep658_hash_parsing(
+    dist_info_metadata: str, result: Optional[LinkHash]
+) -> None:
+    assert LinkHash.parse_pep658_hash(dist_info_metadata) == result
