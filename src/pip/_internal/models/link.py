@@ -67,7 +67,7 @@ class LinkHash:
     )
 
     def __post_init__(self) -> None:
-        assert self._hash_url_fragment_re.match(f"#{self.name}={self.value}")
+        assert self.name in _SUPPORTED_HASHES
 
     @classmethod
     def parse_pep658_hash(cls, dist_info_metadata: str) -> Optional["LinkHash"]:
