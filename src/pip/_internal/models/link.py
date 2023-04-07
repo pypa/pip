@@ -61,13 +61,13 @@ class LinkHash:
         # against Hashes when hash-checking is needed. This is easier to debug than
         # proactively discarding an invalid hex digest, as we handle incorrect hashes
         # and malformed hashes in the same place.
-        r"({choices})=(.*)".format(
+        r"[#&]({choices})=([^&]+)".format(
             choices="|".join(re.escape(hash_name) for hash_name in _SUPPORTED_HASHES)
         ),
     )
 
     def __post_init__(self) -> None:
-        assert self._hash_re.match(f"{self.name}={self.value}")
+        assert self._hash_re.match(f"#{self.name}={self.value}")
 
     @classmethod
     @functools.lru_cache(maxsize=None)
