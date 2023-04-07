@@ -1061,8 +1061,11 @@ def test_link_collector_create_find_links_expansion(
         ),
         # "xsha256" is not a valid algorithm, so we discard it.
         ("https://pypi.org/pip-18.0.tar.gz#xsha256=aa113592bbe", None),
-        # Discard empty hash.
-        ("https://pypi.org/pip-18.0.tar.gz#sha256=", None),
+        # Empty hash.
+        (
+            "https://pypi.org/pip-18.0.tar.gz#sha256=",
+            LinkHash("sha256", ""),
+        ),
         (
             "https://pypi.org/pip-18.0.tar.gz#md5=aa113592bbe",
             LinkHash("md5", "aa113592bbe"),
@@ -1080,6 +1083,7 @@ def test_link_hash_parsing(url: str, result: Optional[LinkHash]) -> None:
     "dist_info_metadata, result",
     [
         ("sha256=aa113592bbe", LinkHash("sha256", "aa113592bbe")),
+        ("sha256=", LinkHash("sha256", "")),
         ("sha500=aa113592bbe", None),
         ("true", None),
         ("", None),

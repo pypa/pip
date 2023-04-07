@@ -61,7 +61,7 @@ class LinkHash:
         # against Hashes when hash-checking is needed. This is easier to debug than
         # proactively discarding an invalid hex digest, as we handle incorrect hashes
         # and malformed hashes in the same place.
-        r"[#&]({choices})=([^&]+)".format(
+        r"[#&]({choices})=([^&]*)".format(
             choices="|".join(re.escape(hash_name) for hash_name in _SUPPORTED_HASHES)
         ),
     )
