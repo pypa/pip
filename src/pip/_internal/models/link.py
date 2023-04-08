@@ -74,9 +74,8 @@ class LinkHash:
         """Parse a PEP 658 data-dist-info-metadata hash."""
         if dist_info_metadata == "true":
             return None
-        try:
-            name, value = dist_info_metadata.split("=", 1)
-        except ValueError:
+        name, sep, value = dist_info_metadata.partition("=")
+        if not sep:
             return None
         if name not in _SUPPORTED_HASHES:
             return None
