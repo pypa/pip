@@ -1,3 +1,4 @@
+import hashlib
 import os
 import re
 import ssl
@@ -13,6 +14,7 @@ import pytest
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.utils.misc import rmtree
+from pip._internal.utils.urls import path_to_url
 from tests.conftest import CertFactory
 from tests.lib import (
     PipTestEnvironment,
@@ -614,6 +616,101 @@ def test_hashed_install_failure(script: PipTestEnvironment, tmpdir: Path) -> Non
     ) as reqs_file:
         result = script.pip_install_local("-r", reqs_file.resolve(), expect_error=True)
     assert len(result.files_created) == 0
+
+
+def test_link_hash_pass_require_hashes(
+    script: PipTestEnvironment, shared_data: TestData
+) -> None:
+    """Test that a good hash in user provided direct URL is
+    considered valid for --require-hashes."""
+    url = path_to_url(str(shared_data.packages.joinpath("simple-1.0.tar.gz")))
+    url = (
+        f"{url}#sha256="
+        "393043e672415891885c9a2a0929b1af95fb866d6ca016b42d2e6ce53619b653"
+    )
+    script.pip_install_local("--no-deps", "--require-hashes", url)
+
+
+def test_bad_link_hash_install_failure(
+    script: PipTestEnvironment, shared_data: TestData
+) -> None:
+    """Test that wrong hash in direct URL stop installation."""
+    url = path_to_url(str(shared_data.packages.joinpath("simple-1.0.tar.gz")))
+    url = f"{url}#sha256=invalidhash"
+    result = script.pip_install_local("--no-deps", url, expect_error=True)
+    assert "THESE PACKAGES DO NOT MATCH THE HASHES" in result.stderr
+
+
+def test_link_hash_in_dep_fails_require_hashes(
+    script: PipTestEnvironment, tmp_path: Path, shared_data: TestData
+) -> None:
+    """Test that a good hash in direct URL dependency is not considered
+    for --require-hashes."""
+    # Create a project named pkga that depends on the simple-1.0.tar.gz with a direct
+    # URL including a hash.
+    simple_url = path_to_url(str(shared_data.packages.joinpath("simple-1.0.tar.gz")))
+    simple_url_with_hash = (
+        f"{simple_url}#sha256="
+        "393043e672415891885c9a2a0929b1af95fb866d6ca016b42d2e6ce53619b653"
+    )
+    project_path = tmp_path / "pkga"
+    project_path.mkdir()
+    project_path.joinpath("pyproject.toml").write_text(
+        textwrap.dedent(
+            f"""\
+            [project]
+            name = "pkga"
+            version = "1.0"
+            dependencies = ["simple @ {simple_url_with_hash}"]
+            """
+        )
+    )
+    # Build a wheel for pkga and compute its hash.
+    wheelhouse = tmp_path / "wheehouse"
+    wheelhouse.mkdir()
+    script.pip("wheel", "--no-deps", "-w", wheelhouse, project_path)
+    digest = hashlib.sha256(
+        wheelhouse.joinpath("pkga-1.0-py3-none-any.whl").read_bytes()
+    ).hexdigest()
+    # Install pkga from a requirements file with hash, using --require-hashes.
+    # This should fail because we have not provided a hash for the 'simple' dependency.
+    with requirements_file(f"pkga==1.0 --hash sha256:{digest}", tmp_path) as reqs_file:
+        result = script.pip(
+            "install",
+            "--no-build-isolation",
+            "--require-hashes",
+            "--no-index",
+            "-f",
+            wheelhouse,
+            "-r",
+            reqs_file,
+            expect_error=True,
+        )
+    assert "Hashes are required in --require-hashes mode" in result.stderr
+
+
+def test_bad_link_hash_in_dep_install_failure(
+    script: PipTestEnvironment, tmp_path: Path, shared_data: TestData
+) -> None:
+    """Test that wrong hash in direct URL dependency stops installation."""
+    url = path_to_url(str(shared_data.packages.joinpath("simple-1.0.tar.gz")))
+    url = f"{url}#sha256=invalidhash"
+    project_path = tmp_path / "pkga"
+    project_path.mkdir()
+    project_path.joinpath("pyproject.toml").write_text(
+        textwrap.dedent(
+            f"""\
+            [project]
+            name = "pkga"
+            version = "1.0"
+            dependencies = ["simple @ {url}"]
+            """
+        )
+    )
+    result = script.pip_install_local(
+        "--no-build-isolation", project_path, expect_error=True
+    )
+    assert "THESE PACKAGES DO NOT MATCH THE HASHES" in result.stderr, result.stderr
 
 
 def assert_re_match(pattern: str, text: str) -> None:
