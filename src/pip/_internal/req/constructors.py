@@ -416,7 +416,6 @@ def install_req_from_req_string(
     isolated: bool = False,
     use_pep517: Optional[bool] = None,
     user_supplied: bool = False,
-    config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
 ) -> InstallRequirement:
     try:
         req = get_requirement(req_string)
@@ -446,7 +445,6 @@ def install_req_from_req_string(
         isolated=isolated,
         use_pep517=use_pep517,
         user_supplied=user_supplied,
-        config_settings=config_settings,
     )
 
 

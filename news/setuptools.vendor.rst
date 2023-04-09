@@ -1,1 +1,1 @@
-Update pkg_resources (via setuptools) to 65.6.3
+Upgrade setuptools to 67.6.1

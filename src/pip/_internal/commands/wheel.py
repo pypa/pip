@@ -14,7 +14,6 @@ from pip._internal.req.req_install import (
     InstallRequirement,
     check_legacy_setup_py_options,
 )
-from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.misc import ensure_dir, normalize_path
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.wheel_builder import build, should_build_for_wheel_command
@@ -106,7 +105,6 @@ class WheelCommand(RequirementCommand):
         session = self.get_default_session(options)
 
         finder = self._build_package_finder(options, session)
-        wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
         options.wheel_dir = normalize_path(options.wheel_dir)
         ensure_dir(options.wheel_dir)
@@ -122,24 +120,7 @@ class WheelCommand(RequirementCommand):
         reqs = self.get_requirements(args, options, finder, session)
         check_legacy_setup_py_options(options, reqs)
 
-        if "no-binary-enable-wheel-cache" in options.features_enabled:
-            # TODO: remove format_control from WheelCache when the deprecation cycle
-            # is over
-            wheel_cache = WheelCache(options.cache_dir)
-        else:
-            if options.format_control.no_binary:
-                deprecated(
-                    reason=(
-                        "--no-binary currently disables reading from "
-                        "the cache of locally built wheels. In the future "
-                        "--no-binary will not influence the wheel cache."
-                    ),
-                    replacement="to use the --no-cache-dir option",
-                    feature_flag="no-binary-enable-wheel-cache",
-                    issue=11453,
-                    gone_in="23.1",
-                )
-            wheel_cache = WheelCache(options.cache_dir, options.format_control)
+        wheel_cache = WheelCache(options.cache_dir)
 
         preparer = self.make_requirement_preparer(
             temp_build_dir=directory,

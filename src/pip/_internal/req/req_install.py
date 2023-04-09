@@ -20,7 +20,7 @@ from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.pyproject_hooks import BuildBackendHookCaller
 
 from pip._internal.build_env import BuildEnvironment, NoOpBuildEnvironment
-from pip._internal.exceptions import InstallationError, LegacyInstallFailure
+from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_scheme
 from pip._internal.metadata import (
     BaseDistribution,
@@ -39,11 +39,10 @@ from pip._internal.operations.build.metadata_legacy import (
 from pip._internal.operations.install.editable_legacy import (
     install_editable as install_editable_legacy,
 )
-from pip._internal.operations.install.legacy import install as install_legacy
 from pip._internal.operations.install.wheel import install_wheel
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
-from pip._internal.utils.deprecation import LegacyInstallReason, deprecated
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.misc import (
     ConfiguredBuildBackendHookCaller,
@@ -93,7 +92,6 @@ class InstallRequirement:
         self.constraint = constraint
         self.editable = editable
         self.permit_editable_wheels = permit_editable_wheels
-        self.legacy_install_reason: Optional[LegacyInstallReason] = None
 
         # source_dir is the local directory where the linked requirement is
         # located, or unpacked. In case unpacking is needed, creating and
@@ -757,10 +755,9 @@ class InstallRequirement:
             prefix=prefix,
         )
 
-        global_options = global_options if global_options is not None else []
         if self.editable and not self.is_wheel:
             install_editable_legacy(
-                global_options=global_options,
+                global_options=global_options if global_options is not None else [],
                 prefix=prefix,
                 home=home,
                 use_user_site=use_user_site,
@@ -773,66 +770,20 @@ class InstallRequirement:
             self.install_succeeded = True
             return
 
-        if self.is_wheel:
-            assert self.local_file_path
-            install_wheel(
-                self.name,
-                self.local_file_path,
-                scheme=scheme,
-                req_description=str(self.req),
-                pycompile=pycompile,
-                warn_script_location=warn_script_location,
-                direct_url=self.download_info if self.original_link else None,
-                requested=self.user_supplied,
-            )
-            self.install_succeeded = True
-            return
+        assert self.is_wheel
+        assert self.local_file_path
 
-        # TODO: Why don't we do this for editable installs?
-
-        # Extend the list of global options passed on to
-        # the setup.py call with the ones from the requirements file.
-        # Options specified in requirements file override those
-        # specified on the command line, since the last option given
-        # to setup.py is the one that is used.
-        global_options = list(global_options) + self.global_options
-
-        try:
-            if (
-                self.legacy_install_reason is not None
-                and self.legacy_install_reason.emit_before_install
-            ):
-                self.legacy_install_reason.emit_deprecation(self.name)
-            success = install_legacy(
-                global_options=global_options,
-                root=root,
-                home=home,
-                prefix=prefix,
-                use_user_site=use_user_site,
-                pycompile=pycompile,
-                scheme=scheme,
-                setup_py_path=self.setup_py_path,
-                isolated=self.isolated,
-                req_name=self.name,
-                build_env=self.build_env,
-                unpacked_source_directory=self.unpacked_source_directory,
-                req_description=str(self.req),
-            )
-        except LegacyInstallFailure as exc:
-            self.install_succeeded = False
-            raise exc
-        except Exception:
-            self.install_succeeded = True
-            raise
-
-        self.install_succeeded = success
-
-        if (
-            success
-            and self.legacy_install_reason is not None
-            and self.legacy_install_reason.emit_after_success
-        ):
-            self.legacy_install_reason.emit_deprecation(self.name)
+        install_wheel(
+            self.name,
+            self.local_file_path,
+            scheme=scheme,
+            req_description=str(self.req),
+            pycompile=pycompile,
+            warn_script_location=warn_script_location,
+            direct_url=self.download_info if self.original_link else None,
+            requested=self.user_supplied,
+        )
+        self.install_succeeded = True
 
 
 def check_invalid_constraint_type(req: InstallRequirement) -> str:
