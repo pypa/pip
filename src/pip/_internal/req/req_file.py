@@ -2,6 +2,7 @@
 Requirements file parsing
 """
 
+import logging
 import optparse
 import os
 import re
@@ -75,6 +76,8 @@ SUPPORTED_OPTIONS_REQ: List[Callable[..., optparse.Option]] = [
 
 # the 'dest' string values
 SUPPORTED_OPTIONS_REQ_DEST = [str(o().dest) for o in SUPPORTED_OPTIONS_REQ]
+
+logger = logging.getLogger(__name__)
 
 
 class ParsedRequirement:
@@ -209,6 +212,13 @@ def handle_option_line(
     options: Optional[optparse.Values] = None,
     session: Optional[PipSession] = None,
 ) -> None:
+    if opts.hashes:
+        logger.warning(
+            "%s line %s has --hash but no requirement, and will be ignored.",
+            filename,
+            lineno,
+        )
+
     if options:
         # percolate options upward
         if opts.require_hashes:

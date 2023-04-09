@@ -1,0 +1,1 @@
+Warn if ``--hash`` is used on a line without requirement in a requirements file.
