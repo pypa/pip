@@ -182,8 +182,8 @@ def test_req_file_does_not_see_config(script: PipTestEnvironment) -> None:
         assert json.load(f) == {}
 
 
-def test_dep_sees_config(script: PipTestEnvironment) -> None:
-    """Test that CLI config settings do propagate to dependencies."""
+def test_dep_does_not_see_config(script: PipTestEnvironment) -> None:
+    """Test that CLI config settings do not propagate to dependencies."""
     _, _, bar_project_dir = make_project(script.scratch_path, name="bar")
     _, _, foo_project_dir = make_project(
         script.scratch_path,
@@ -201,7 +201,7 @@ def test_dep_sees_config(script: PipTestEnvironment) -> None:
         assert json.load(f) == {"FOO": "Hello"}
     bar_config = script.site_packages_path / "bar-config.json"
     with open(bar_config, "rb") as f:
-        assert json.load(f) == {"FOO": "Hello"}  # TODO we want to change this
+        assert json.load(f) == {}
 
 
 def test_dep_in_req_file_does_not_see_config(script: PipTestEnvironment) -> None:
