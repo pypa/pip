@@ -61,7 +61,6 @@ __all__ = [
     "remove_auth_from_url",
     "check_externally_managed",
     "ConfiguredBuildBackendHookCaller",
-    "merge_config_settings",
 ]
 
 logger = logging.getLogger(__name__)
@@ -729,31 +728,3 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
             config_settings=cs,
             _allow_fallback=_allow_fallback,
         )
-
-
-def merge_config_settings(
-    reqs_settings: Optional[Dict[str, Union[str, List[str]]]],
-    cli_settings: Optional[Dict[str, Union[str, List[str]]]],
-) -> Optional[Dict[str, Union[str, List[str]]]]:
-    if not reqs_settings or not cli_settings:
-        return reqs_settings or cli_settings
-
-    dd: Dict[str, Union[str, List[str]]] = {}
-    for d in (reqs_settings, cli_settings):
-        for k, v in d.items():
-            if k in dd:
-                value = dd[k]
-                if isinstance(value, list):
-                    if isinstance(v, list):
-                        value.extend(v)
-                    else:
-                        value.append(v)
-                else:
-                    if isinstance(v, str):
-                        value = [value, v]
-                    else:
-                        value = [value, *v]
-                dd[k] = value
-            else:
-                dd[k] = v
-    return dd

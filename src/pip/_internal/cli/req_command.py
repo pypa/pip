@@ -34,7 +34,6 @@ from pip._internal.req.req_file import parse_requirements
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.self_outdated_check import pip_self_version_check
-from pip._internal.utils.misc import merge_config_settings
 from pip._internal.utils.temp_dir import (
     TempDirectory,
     TempDirectoryTypeRegistry,
@@ -435,21 +434,14 @@ class RequirementCommand(IndexGroupCommand):
             for parsed_req in parse_requirements(
                 filename, finder=finder, options=options, session=session
             ):
-                req_config_settings = (
-                    parsed_req.options.get("config_settings")
-                    if parsed_req.options
-                    else None
-                )
-                cli_config_settings = getattr(options, "config_settings", None)
-                config_settings = merge_config_settings(
-                    req_config_settings, cli_config_settings
-                )
                 req_to_add = install_req_from_parsed_requirement(
                     parsed_req,
                     isolated=options.isolated_mode,
                     use_pep517=options.use_pep517,
                     user_supplied=True,
-                    config_settings=config_settings,
+                    config_settings=parsed_req.options.get("config_settings")
+                    if parsed_req.options
+                    else None,
                 )
                 requirements.append(req_to_add)
 
