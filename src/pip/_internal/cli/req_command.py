@@ -344,7 +344,6 @@ class RequirementCommand(IndexGroupCommand):
             install_req_from_req_string,
             isolated=options.isolated_mode,
             use_pep517=use_pep517,
-            config_settings=getattr(options, "config_settings", None),
         )
         resolver_variant = cls.determine_resolver_variant(options)
         # The long import name and duplicated invocation is needed to convince
