@@ -259,7 +259,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
         version: Optional[CandidateVersion] = None,
     ) -> None:
         source_link = link
-        cache_entry = factory.get_wheel_cache_entry(link, name)
+        cache_entry = factory.get_wheel_cache_entry(source_link, name)
         if cache_entry is not None:
             logger.debug("Using cached wheel link: %s", cache_entry.link)
             link = cache_entry.link
