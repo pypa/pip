@@ -763,6 +763,10 @@ def test_hashed_install_from_cache(
             reqs_file.resolve(),
             expect_error=True,
         )
+        assert (
+            "WARNING: The hashes of the source archive found in cache entry "
+            "don't match, ignoring cached built wheel and re-downloading source."
+        ) in result.stderr
         assert "Using cached simple2" in result.stdout
         assert "ERROR: THESE PACKAGES DO NOT MATCH THE HASHES" in result.stderr
 
