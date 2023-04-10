@@ -7,17 +7,11 @@ import sysconfig
 import textwrap
 import venv as _venv
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, Optional, Union
+from typing import Dict, Literal, Optional, Union
 
 import virtualenv as _virtualenv
 
-if TYPE_CHECKING:
-    # Literal was introduced in Python 3.8.
-    from typing import Literal
-
-    VirtualEnvironmentType = Literal["virtualenv", "venv"]
-else:
-    VirtualEnvironmentType = str
+VirtualEnvironmentType = Literal["virtualenv", "venv"]
 
 
 class VirtualEnvironment:

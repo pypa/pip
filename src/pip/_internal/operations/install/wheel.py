@@ -28,6 +28,7 @@ from typing import (
     List,
     NewType,
     Optional,
+    Protocol,
     Sequence,
     Set,
     Tuple,
@@ -60,7 +61,6 @@ from pip._internal.utils.unpacking import (
 from pip._internal.utils.wheel import parse_wheel
 
 if TYPE_CHECKING:
-    from typing import Protocol
 
     class File(Protocol):
         src_record_path: "RecordPath"

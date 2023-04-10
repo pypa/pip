@@ -17,6 +17,7 @@ from typing import (
     Iterator,
     List,
     Optional,
+    Protocol,
     Union,
 )
 from unittest.mock import patch
@@ -47,13 +48,7 @@ from tests.lib.venv import VirtualEnvironment, VirtualEnvironmentType
 from .lib.compat import nullcontext
 
 if TYPE_CHECKING:
-    from typing import Protocol
-
     from wsgi import WSGIApplication
-else:
-    # TODO: Protocol was introduced in Python 3.8. Remove this branch when
-    # dropping support for Python 3.7.
-    Protocol = object
 
 
 def pytest_addoption(parser: Parser) -> None:
@@ -724,9 +719,7 @@ class MockServer:
     def get_requests(self) -> List[Dict[str, str]]:
         """Get environ for each received request."""
         assert not self._running, "cannot get mock from running server"
-        # Legacy: replace call[0][0] with call.args[0]
-        # when pip drops support for python3.7
-        return [call[0][0] for call in self._server.mock.call_args_list]
+        return [call.args[0] for call in self._server.mock.call_args_list]
 
 
 @pytest.fixture

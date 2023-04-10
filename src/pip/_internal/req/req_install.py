@@ -224,7 +224,7 @@ class InstallRequirement:
             return None
         return self.req.name
 
-    @functools.lru_cache()  # use cached_property in python 3.8+
+    @functools.cached_property
     def supports_pyproject_editable(self) -> bool:
         if not self.use_pep517:
             return False
@@ -494,7 +494,7 @@ class InstallRequirement:
         if (
             self.editable
             and self.use_pep517
-            and not self.supports_pyproject_editable()
+            and not self.supports_pyproject_editable
             and not os.path.isfile(self.setup_py_path)
             and not os.path.isfile(self.setup_cfg_path)
         ):
@@ -520,7 +520,7 @@ class InstallRequirement:
             if (
                 self.editable
                 and self.permit_editable_wheels
-                and self.supports_pyproject_editable()
+                and self.supports_pyproject_editable
             ):
                 self.metadata_directory = generate_editable_metadata(
                     build_env=self.build_env,

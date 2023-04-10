@@ -11,6 +11,7 @@ from typing import (
     Mapping,
     NamedTuple,
     Optional,
+    Protocol,
     Sequence,
     Set,
     Tuple,
@@ -66,7 +67,6 @@ from .requirements import (
 )
 
 if TYPE_CHECKING:
-    from typing import Protocol
 
     class ConflictCause(Protocol):
         requirement: RequiresPythonRequirement

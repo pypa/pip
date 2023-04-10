@@ -13,13 +13,13 @@ from hashlib import sha256
 from io import BytesIO
 from textwrap import dedent
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
     Iterable,
     Iterator,
     List,
+    Literal,
     Mapping,
     Optional,
     Tuple,
@@ -42,13 +42,7 @@ from pip._internal.network.session import PipSession
 from tests.lib.venv import VirtualEnvironment
 from tests.lib.wheel import make_wheel
 
-if TYPE_CHECKING:
-    # Literal was introduced in Python 3.8.
-    from typing import Literal
-
-    ResolverVariant = Literal["resolvelib", "legacy"]
-else:
-    ResolverVariant = str
+ResolverVariant = Literal["resolvelib", "legacy"]
 
 DATA_DIR = pathlib.Path(__file__).parent.parent.joinpath("data").resolve()
 SRC_DIR = pathlib.Path(__file__).resolve().parent.parent.parent

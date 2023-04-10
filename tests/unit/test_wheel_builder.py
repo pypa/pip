@@ -52,6 +52,7 @@ class ReqMock:
         self.use_pep517 = use_pep517
         self._supports_pyproject_editable = supports_pyproject_editable
 
+    @property
     def supports_pyproject_editable(self) -> bool:
         return self._supports_pyproject_editable
 

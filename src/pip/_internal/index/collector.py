@@ -14,7 +14,6 @@ import urllib.request
 from html.parser import HTMLParser
 from optparse import Values
 from typing import (
-    TYPE_CHECKING,
     Callable,
     Dict,
     Iterable,
@@ -22,6 +21,7 @@ from typing import (
     MutableMapping,
     NamedTuple,
     Optional,
+    Protocol,
     Sequence,
     Tuple,
     Union,
@@ -41,11 +41,6 @@ from pip._internal.utils.misc import redact_auth_from_url
 from pip._internal.vcs import vcs
 
 from .sources import CandidatesFromPage, LinkSource, build_source
-
-if TYPE_CHECKING:
-    from typing import Protocol
-else:
-    Protocol = object
 
 logger = logging.getLogger(__name__)
 
