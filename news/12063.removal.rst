@@ -1,0 +1,2 @@
+Deprecate legacy version and version specifiers that don't conform to `PEP 440
+<https://peps.python.org/pep-0440/>`_
