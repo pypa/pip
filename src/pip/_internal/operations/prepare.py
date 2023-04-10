@@ -575,10 +575,7 @@ class RequirementPreparer:
                     "don't match, ignoring cached built wheel "
                     "and re-downloading source."
                 )
-                # For some reason req.original_link is not set here, even though
-                # req.is_wheel_from_cache is True. So we get the original
-                # link from download_info.
-                req.link = Link(req.download_info.url)  # TODO comes_from?
+                req.link = req.cached_wheel_source_link
                 link = req.link
 
         self._ensure_link_req_src_dir(req, parallel_builds)
