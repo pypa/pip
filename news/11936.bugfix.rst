@@ -1,0 +1,1 @@
+Fix and improve the parsing of hashes embedded in URL fragments.

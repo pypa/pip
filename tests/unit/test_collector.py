@@ -1052,6 +1052,21 @@ def test_link_collector_create_find_links_expansion(
             LinkHash("sha256", "aa113592bbe"),
         ),
         (
+            "https://pypi.org/pip-18.0.tar.gz#sha256=aa113592bbe&subdirectory=setup",
+            LinkHash("sha256", "aa113592bbe"),
+        ),
+        (
+            "https://pypi.org/pip-18.0.tar.gz#subdirectory=setup&sha256=aa113592bbe",
+            LinkHash("sha256", "aa113592bbe"),
+        ),
+        # "xsha256" is not a valid algorithm, so we discard it.
+        ("https://pypi.org/pip-18.0.tar.gz#xsha256=aa113592bbe", None),
+        # Empty hash.
+        (
+            "https://pypi.org/pip-18.0.tar.gz#sha256=",
+            LinkHash("sha256", ""),
+        ),
+        (
             "https://pypi.org/pip-18.0.tar.gz#md5=aa113592bbe",
             LinkHash("md5", "aa113592bbe"),
         ),
@@ -1061,4 +1076,21 @@ def test_link_collector_create_find_links_expansion(
     ],
 )
 def test_link_hash_parsing(url: str, result: Optional[LinkHash]) -> None:
-    assert LinkHash.split_hash_name_and_value(url) == result
+    assert LinkHash.find_hash_url_fragment(url) == result
+
+
+@pytest.mark.parametrize(
+    "dist_info_metadata, result",
+    [
+        ("sha256=aa113592bbe", LinkHash("sha256", "aa113592bbe")),
+        ("sha256=", LinkHash("sha256", "")),
+        ("sha500=aa113592bbe", None),
+        ("true", None),
+        ("", None),
+        ("aa113592bbe", None),
+    ],
+)
+def test_pep658_hash_parsing(
+    dist_info_metadata: str, result: Optional[LinkHash]
+) -> None:
+    assert LinkHash.parse_pep658_hash(dist_info_metadata) == result
