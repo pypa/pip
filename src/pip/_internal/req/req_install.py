@@ -108,7 +108,10 @@ class InstallRequirement:
             # PEP 508 URL requirement
             link = Link(req.url)
         self.link = self.original_link = link
-        self.original_link_is_in_wheel_cache = False
+
+        # When is_wheel_from_cache is True, it means that this InstallRequirement
+        # is a local wheel file in the cache of locally built wheels.
+        self.is_wheel_from_cache = False
 
         # Information about the location of the artifact that was downloaded . This
         # property is guaranteed to be set in resolver results.

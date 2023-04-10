@@ -278,7 +278,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
 
         if cache_entry is not None:
             if cache_entry.persistent and template.link is template.original_link:
-                ireq.original_link_is_in_wheel_cache = True
+                ireq.is_wheel_from_cache = True
             if cache_entry.origin is not None:
                 ireq.download_info = cache_entry.origin
             else:

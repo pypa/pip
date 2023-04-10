@@ -267,7 +267,7 @@ class RequirementPreparer:
 
     def _log_preparing_link(self, req: InstallRequirement) -> None:
         """Provide context for the requirement being prepared."""
-        if req.link.is_file and not req.original_link_is_in_wheel_cache:
+        if req.link.is_file and not req.is_wheel_from_cache:
             message = "Processing %s"
             information = str(display_path(req.link.file_path))
         else:
@@ -288,7 +288,7 @@ class RequirementPreparer:
             self._previous_requirement_header = (message, information)
             logger.info(message, information)
 
-        if req.original_link_is_in_wheel_cache:
+        if req.is_wheel_from_cache:
             with indent_log():
                 logger.info("Using cached %s", req.link.filename)
 
@@ -499,7 +499,7 @@ class RequirementPreparer:
                     # original link, not the cached link. It that case the already
                     # downloaded file will be removed and re-fetched from cache (which
                     # implies a hash check against the cache entry's origin.json).
-                    warn_on_hash_mismatch=not req.original_link_is_in_wheel_cache,
+                    warn_on_hash_mismatch=not req.is_wheel_from_cache,
                 )
 
             if file_path is not None:
@@ -553,7 +553,7 @@ class RequirementPreparer:
 
         hashes = self._get_linked_req_hashes(req)
 
-        if hashes and req.original_link_is_in_wheel_cache:
+        if hashes and req.is_wheel_from_cache:
             assert req.download_info is not None
             assert link.is_wheel
             assert link.is_file
@@ -576,7 +576,7 @@ class RequirementPreparer:
                     "and re-downloading source."
                 )
                 # For some reason req.original_link is not set here, even though
-                # req.original_link_is_in_wheel_cache is True. So we get the original
+                # req.is_wheel_from_cache is True. So we get the original
                 # link from download_info.
                 req.link = Link(req.download_info.url)  # TODO comes_from?
                 link = req.link
