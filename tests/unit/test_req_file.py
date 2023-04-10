@@ -73,7 +73,13 @@ def parse_reqfile(
         options=options,
         constraint=constraint,
     ):
-        yield install_req_from_parsed_requirement(parsed_req, isolated=isolated)
+        yield install_req_from_parsed_requirement(
+            parsed_req,
+            isolated=isolated,
+            config_settings=parsed_req.options.get("config_settings")
+            if parsed_req.options
+            else None,
+        )
 
 
 def test_read_file_url(tmp_path: Path, session: PipSession) -> None:
@@ -343,10 +349,14 @@ class TestProcessLine:
         assert reqs[0].constraint
 
     def test_options_on_a_requirement_line(self, line_processor: LineProcessor) -> None:
-        line = 'SomeProject --global-option="yo3" --global-option "yo4"'
+        line = (
+            'SomeProject --global-option="yo3" --global-option "yo4" '
+            '--config-settings="yo3=yo4" --config-settings "yo1=yo2"'
+        )
         filename = "filename"
         req = line_processor(line, filename, 1)[0]
         assert req.global_options == ["yo3", "yo4"]
+        assert req.config_settings == {"yo3": "yo4", "yo1": "yo2"}
 
     def test_hash_options(self, line_processor: LineProcessor) -> None:
         """Test the --hash option: mostly its value storage.

@@ -2,7 +2,7 @@ import json
 import os
 import textwrap
 from pathlib import Path
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
@@ -18,6 +18,11 @@ from tests.lib import (
 )
 from tests.lib.local_repos import local_checkout
 
+if TYPE_CHECKING:
+    from typing import Protocol
+else:
+    Protocol = object
+
 
 class ArgRecordingSdist:
     def __init__(self, sdist_path: Path, args_path: Path) -> None:
@@ -28,33 +33,42 @@ class ArgRecordingSdist:
         return json.loads(self._args_path.read_text())
 
 
+class ArgRecordingSdistMaker(Protocol):
+    def __call__(self, name: str, **kwargs: Any) -> ArgRecordingSdist:
+        ...
+
+
 @pytest.fixture()
 def arg_recording_sdist_maker(
     script: PipTestEnvironment,
-) -> Callable[[str], ArgRecordingSdist]:
-    arg_writing_setup_py = textwrap.dedent(
+) -> ArgRecordingSdistMaker:
+    arg_writing_setup_py_prelude = textwrap.dedent(
         """
         import io
         import json
         import os
         import sys
 
-        from setuptools import setup
-
         args_path = os.path.join(os.environ["OUTPUT_DIR"], "{name}.json")
         with open(args_path, 'w') as f:
             json.dump(sys.argv, f)
-
-        setup(name={name!r}, version="0.1.0")
         """
     )
     output_dir = script.scratch_path.joinpath("args_recording_sdist_maker_output")
     output_dir.mkdir(parents=True)
     script.environ["OUTPUT_DIR"] = str(output_dir)
 
-    def _arg_recording_sdist_maker(name: str) -> ArgRecordingSdist:
-        extra_files = {"setup.py": arg_writing_setup_py.format(name=name)}
-        sdist_path = create_basic_sdist_for_package(script, name, "0.1.0", extra_files)
+    def _arg_recording_sdist_maker(
+        name: str,
+        **kwargs: Any,
+    ) -> ArgRecordingSdist:
+        sdist_path = create_basic_sdist_for_package(
+            script,
+            name,
+            "0.1.0",
+            setup_py_prelude=arg_writing_setup_py_prelude.format(name=name),
+            **kwargs,
+        )
         args_path = output_dir / f"{name}.json"
         return ArgRecordingSdist(sdist_path, args_path)
 
@@ -727,3 +741,79 @@ def test_install_unsupported_wheel_file(
         in result.stderr
     )
     assert len(result.files_created) == 0
+
+
+def test_config_settings_local_to_package(
+    script: PipTestEnvironment,
+    common_wheels: Path,
+    arg_recording_sdist_maker: ArgRecordingSdistMaker,
+) -> None:
+    pyproject_toml = textwrap.dedent(
+        """
+        [build-system]
+        requires = ["setuptools"]
+        build-backend = "setuptools.build_meta"
+        """
+    )
+    simple0_sdist = arg_recording_sdist_maker(
+        "simple0",
+        extra_files={"pyproject.toml": pyproject_toml},
+        depends=["foo"],
+    )
+    foo_sdist = arg_recording_sdist_maker(
+        "foo",
+        extra_files={"pyproject.toml": pyproject_toml},
+    )
+    simple1_sdist = arg_recording_sdist_maker(
+        "simple1",
+        extra_files={"pyproject.toml": pyproject_toml},
+        depends=["bar"],
+    )
+    bar_sdist = arg_recording_sdist_maker(
+        "bar",
+        extra_files={"pyproject.toml": pyproject_toml},
+        depends=["simple3"],
+    )
+    simple3_sdist = arg_recording_sdist_maker(
+        "simple3", extra_files={"pyproject.toml": pyproject_toml}
+    )
+    simple2_sdist = arg_recording_sdist_maker(
+        "simple2",
+        extra_files={"pyproject.toml": pyproject_toml},
+    )
+
+    reqs_file = script.scratch_path.joinpath("reqs.txt")
+    reqs_file.write_text(
+        textwrap.dedent(
+            """
+            simple0 --config-settings "--build-option=--verbose"
+            foo --config-settings "--build-option=--quiet"
+            simple1 --config-settings "--build-option=--verbose"
+            simple2
+            """
+        )
+    )
+
+    script.pip(
+        "install",
+        "--no-index",
+        "-f",
+        script.scratch_path,
+        "-f",
+        common_wheels,
+        "-r",
+        reqs_file,
+    )
+
+    simple0_args = simple0_sdist.args()
+    assert "--verbose" in simple0_args
+    foo_args = foo_sdist.args()
+    assert "--quiet" in foo_args
+    simple1_args = simple1_sdist.args()
+    assert "--verbose" in simple1_args
+    bar_args = bar_sdist.args()
+    assert "--verbose" not in bar_args
+    simple3_args = simple3_sdist.args()
+    assert "--verbose" not in simple3_args
+    simple2_args = simple2_sdist.args()
+    assert "--verbose" not in simple2_args

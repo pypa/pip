@@ -5,7 +5,7 @@ from typing import List, Optional, Tuple
 from zipfile import ZipFile
 
 from pip._internal.utils.urls import path_to_url
-from tests.lib import PipTestEnvironment
+from tests.lib import PipTestEnvironment, create_basic_sdist_for_package
 
 PYPROJECT_TOML = """\
 [build-system]
@@ -115,6 +115,20 @@ def test_backend_sees_config(script: PipTestEnvironment) -> None:
         "FOO=Hello",
         project_dir,
     )
+    wheel_file_name = f"{name}-{version}-py3-none-any.whl"
+    wheel_file_path = script.cwd / wheel_file_name
+    with open(wheel_file_path, "rb") as f:
+        with ZipFile(f) as z:
+            output = z.read(f"{name}-config.json")
+            assert json.loads(output) == {"FOO": "Hello"}
+
+
+def test_backend_sees_config_reqs(script: PipTestEnvironment) -> None:
+    name, version, project_dir = make_project(script.scratch_path)
+    script.scratch_path.joinpath("reqs.txt").write_text(
+        f"{project_dir} --config-settings FOO=Hello"
+    )
+    script.pip("wheel", "-r", "reqs.txt")
     wheel_file_name = f"{name}-{version}-py3-none-any.whl"
     wheel_file_path = script.cwd / wheel_file_name
     with open(wheel_file_path, "rb") as f:
@@ -244,6 +258,17 @@ def test_install_sees_config(script: PipTestEnvironment) -> None:
         assert json.load(f) == {"FOO": "Hello"}
 
 
+def test_install_sees_config_reqs(script: PipTestEnvironment) -> None:
+    name, _, project_dir = make_project(script.scratch_path)
+    script.scratch_path.joinpath("reqs.txt").write_text(
+        f"{project_dir} --config-settings FOO=Hello"
+    )
+    script.pip("install", "-r", "reqs.txt")
+    config = script.site_packages_path / f"{name}-config.json"
+    with open(config, "rb") as f:
+        assert json.load(f) == {"FOO": "Hello"}
+
+
 def test_install_editable_sees_config(script: PipTestEnvironment) -> None:
     name, _, project_dir = make_project(script.scratch_path)
     script.pip(
@@ -256,3 +281,23 @@ def test_install_editable_sees_config(script: PipTestEnvironment) -> None:
     config = script.site_packages_path / f"{name}-config.json"
     with open(config, "rb") as f:
         assert json.load(f) == {"FOO": "Hello"}
+
+
+def test_install_config_reqs(script: PipTestEnvironment) -> None:
+    name, _, project_dir = make_project(script.scratch_path)
+    a_sdist = create_basic_sdist_for_package(
+        script,
+        "foo",
+        "1.0",
+        {"pyproject.toml": PYPROJECT_TOML, "backend/dummy_backend.py": BACKEND_SRC},
+    )
+    script.scratch_path.joinpath("reqs.txt").write_text(
+        f'{project_dir} --config-settings "--build-option=--cffi" '
+        '--config-settings "--build-option=--avx2" '
+        "--config-settings FOO=BAR"
+    )
+    script.pip("install", "--no-index", "-f", str(a_sdist.parent), "-r", "reqs.txt")
+    script.assert_installed(foo="1.0")
+    config = script.site_packages_path / f"{name}-config.json"
+    with open(config, "rb") as f:
+        assert json.load(f) == {"--build-option": ["--cffi", "--avx2"], "FOO": "BAR"}
