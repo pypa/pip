@@ -287,7 +287,12 @@ class InstallRequirement:
 
         """
         good_hashes = self.hash_options.copy()
-        link = self.link if trust_internet else self.original_link
+        if trust_internet:
+            link = self.link
+        elif self.original_link and self.user_supplied:
+            link = self.original_link
+        else:
+            link = None
         if link and link.hash:
             good_hashes.setdefault(link.hash_name, []).append(link.hash)
         return Hashes(good_hashes)
