@@ -535,8 +535,8 @@ class UninstallPathSet:
             assert os.path.samefile(
                 normalized_link_pointer, normalized_dist_location
             ), (
-                f"Egg-link {link_pointer} does not match installed location of "
-                f"{dist.raw_name} (at {dist_location})"
+                f"Egg-link {develop_egg_link} (to {link_pointer}) does not match "
+                f"installed location of {dist.raw_name} (at {dist_location})"
             )
             paths_to_remove.add(develop_egg_link)
             easy_install_pth = os.path.join(
