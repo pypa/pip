@@ -71,6 +71,7 @@ def make_install_req_from_link(
     )
     ireq.original_link = template.original_link
     ireq.link = link
+    ireq.extras = template.extras
     return ireq
 
 

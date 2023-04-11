@@ -1,0 +1,2 @@
+Correctly report ``requested_extras`` in the installation report when extras are
+specified for a local directory installation.
