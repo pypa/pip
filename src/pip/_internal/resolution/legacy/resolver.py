@@ -436,7 +436,7 @@ class Resolver(BaseResolver):
                 req.download_info = cache_entry.origin
             else:
                 # Legacy cache entry that does not have origin.json.
-                # download_info may miss the archive_info.hash field.
+                # download_info may miss the archive_info.hashes field.
                 req.download_info = direct_url_from_link(
                     req.link, link_is_in_wheel_cache=cache_entry.persistent
                 )

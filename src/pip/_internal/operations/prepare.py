@@ -571,12 +571,15 @@ class RequirementPreparer:
             # Make sure we have a hash in download_info. If we got it as part of the
             # URL, it will have been verified and we can rely on it. Otherwise we
             # compute it from the downloaded file.
+            # FIXME: https://github.com/pypa/pip/issues/11943
             if (
                 isinstance(req.download_info.info, ArchiveInfo)
-                and not req.download_info.info.hash
+                and not req.download_info.info.hashes
                 and local_file
             ):
                 hash = hash_file(local_file.path)[0].hexdigest()
+                # We populate info.hash for backward compatibility.
+                # This will automatically populate info.hashes.
                 req.download_info.info.hash = f"sha256={hash}"
 
         # For use in later processing,
