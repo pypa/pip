@@ -93,6 +93,39 @@ def test_install_report_index(script: PipTestEnvironment, tmp_path: Path) -> Non
 
 
 @pytest.mark.network
+def test_install_report_direct_archive(
+    script: PipTestEnvironment, tmp_path: Path, shared_data: TestData
+) -> None:
+    """Test report for direct URL archive."""
+    report_path = tmp_path / "report.json"
+    script.pip(
+        "install",
+        str(shared_data.root / "packages" / "simplewheel-1.0-py2.py3-none-any.whl"),
+        "--dry-run",
+        "--no-index",
+        "--report",
+        str(report_path),
+    )
+    report = json.loads(report_path.read_text())
+    assert "install" in report
+    assert len(report["install"]) == 1
+    simplewheel_report = _install_dict(report)["simplewheel"]
+    assert simplewheel_report["metadata"]["name"] == "simplewheel"
+    assert simplewheel_report["requested"] is True
+    assert simplewheel_report["is_direct"] is True
+    url = simplewheel_report["download_info"]["url"]
+    assert url.startswith("file://")
+    assert url.endswith("/packages/simplewheel-1.0-py2.py3-none-any.whl")
+    assert (
+        simplewheel_report["download_info"]["archive_info"]["hash"]
+        == "sha256=e63aa139caee941ec7f33f057a5b987708c2128238357cf905429846a2008718"
+    )
+    assert simplewheel_report["download_info"]["archive_info"]["hashes"] == {
+        "sha256": "e63aa139caee941ec7f33f057a5b987708c2128238357cf905429846a2008718"
+    }
+
+
+@pytest.mark.network
 def test_install_report_vcs_and_wheel_cache(
     script: PipTestEnvironment, tmp_path: Path
 ) -> None:
