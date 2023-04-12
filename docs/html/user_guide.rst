@@ -242,6 +242,10 @@ organisation and use that everywhere. If the thing being installed requires
 "helloworld" to be installed, your fixed version specified in your constraints
 file will be used.
 
+Constraints file can be served via a URL, e.g.
+http://example.com/constraints.txt instead of only a local file, so that your
+organization can provide constraints files online from a centraliazed place.
+
 Constraints file support was added in pip 7.1. In :ref:`Resolver
 changes 2020` we did a fairly comprehensive overhaul, removing several
 undocumented and unsupported quirks from the previous implementation,
