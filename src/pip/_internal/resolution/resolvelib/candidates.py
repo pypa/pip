@@ -71,6 +71,7 @@ def make_install_req_from_link(
     )
     ireq.original_link = template.original_link
     ireq.link = link
+    ireq.extras = template.extras
     return ireq
 
 
@@ -78,7 +79,7 @@ def make_install_req_from_editable(
     link: Link, template: InstallRequirement
 ) -> InstallRequirement:
     assert template.editable, "template not editable"
-    return install_req_from_editable(
+    ireq = install_req_from_editable(
         link.url,
         user_supplied=template.user_supplied,
         comes_from=template.comes_from,
@@ -90,6 +91,8 @@ def make_install_req_from_editable(
         hash_options=template.hash_options,
         config_settings=template.config_settings,
     )
+    ireq.extras = template.extras
+    return ireq
 
 
 def _make_install_req_from_dist(

@@ -1,4 +1,5 @@
 import json
+import textwrap
 from pathlib import Path
 from typing import Any, Dict
 
@@ -176,6 +177,97 @@ def test_install_report_vcs_editable(
         "/src/pip-test-package"
     )
     assert pip_test_package_report["download_info"]["dir_info"]["editable"] is True
+
+
+@pytest.mark.network
+def test_install_report_local_path_with_extras(
+    script: PipTestEnvironment, tmp_path: Path, shared_data: TestData
+) -> None:
+    """Test report remote editable."""
+    project_path = tmp_path / "pkga"
+    project_path.mkdir()
+    project_path.joinpath("pyproject.toml").write_text(
+        textwrap.dedent(
+            """\
+            [project]
+            name = "pkga"
+            version = "1.0"
+
+            [project.optional-dependencies]
+            test = ["simple"]
+            """
+        )
+    )
+    report_path = tmp_path / "report.json"
+    script.pip(
+        "install",
+        "--dry-run",
+        "--no-build-isolation",
+        "--no-index",
+        "--find-links",
+        str(shared_data.root / "packages/"),
+        "--report",
+        str(report_path),
+        str(project_path) + "[test]",
+    )
+    report = json.loads(report_path.read_text())
+    assert len(report["install"]) == 2
+    pkga_report = report["install"][0]
+    assert pkga_report["metadata"]["name"] == "pkga"
+    assert pkga_report["is_direct"] is True
+    assert pkga_report["requested"] is True
+    assert pkga_report["requested_extras"] == ["test"]
+    simple_report = report["install"][1]
+    assert simple_report["metadata"]["name"] == "simple"
+    assert simple_report["is_direct"] is False
+    assert simple_report["requested"] is False
+    assert "requested_extras" not in simple_report
+
+
+@pytest.mark.network
+def test_install_report_editable_local_path_with_extras(
+    script: PipTestEnvironment, tmp_path: Path, shared_data: TestData
+) -> None:
+    """Test report remote editable."""
+    project_path = tmp_path / "pkga"
+    project_path.mkdir()
+    project_path.joinpath("pyproject.toml").write_text(
+        textwrap.dedent(
+            """\
+            [project]
+            name = "pkga"
+            version = "1.0"
+
+            [project.optional-dependencies]
+            test = ["simple"]
+            """
+        )
+    )
+    report_path = tmp_path / "report.json"
+    script.pip(
+        "install",
+        "--dry-run",
+        "--no-build-isolation",
+        "--no-index",
+        "--find-links",
+        str(shared_data.root / "packages/"),
+        "--report",
+        str(report_path),
+        "--editable",
+        str(project_path) + "[test]",
+    )
+    report = json.loads(report_path.read_text())
+    assert len(report["install"]) == 2
+    pkga_report = report["install"][0]
+    assert pkga_report["metadata"]["name"] == "pkga"
+    assert pkga_report["is_direct"] is True
+    assert pkga_report["requested"] is True
+    assert pkga_report["requested_extras"] == ["test"]
+    simple_report = report["install"][1]
+    assert simple_report["metadata"]["name"] == "simple"
+    assert simple_report["is_direct"] is False
+    assert simple_report["requested"] is False
+    assert "requested_extras" not in simple_report
 
 
 def test_install_report_to_stdout(
