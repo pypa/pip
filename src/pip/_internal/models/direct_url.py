@@ -79,6 +79,11 @@ class VcsInfo:
         self.requested_revision = requested_revision
         self.commit_id = commit_id
 
+    def equivalent(self, other: "InfoType") -> bool:
+        if not isinstance(other, VcsInfo):
+            return False
+        return self.vcs == other.vcs and self.commit_id == other.commit_id
+
     @classmethod
     def _from_dict(cls, d: Optional[Dict[str, Any]]) -> Optional["VcsInfo"]:
         if d is None:
@@ -87,6 +92,12 @@ class VcsInfo:
             vcs=_get_required(d, str, "vcs"),
             commit_id=_get_required(d, str, "commit_id"),
             requested_revision=_get(d, str, "requested_revision"),
+        )
+
+    def __repr__(self) -> str:
+        return (
+            f"VcsInfo(vcs={self.vcs!r}, commit_id={self.commit_id!r}, "
+            f"requested_revision={self.requested_revision!r})"
         )
 
     def _to_dict(self) -> Dict[str, Any]:
@@ -122,11 +133,19 @@ class ArchiveInfo:
         self.hash = hash
         self.hashes = hashes
 
+    def equivalent(self, other: "InfoType") -> bool:
+        if not isinstance(other, ArchiveInfo):
+            return False
+        return self.hash == other.hash
+
     @classmethod
     def _from_dict(cls, d: Optional[Dict[str, Any]]) -> Optional["ArchiveInfo"]:
         if d is None:
             return None
         return cls(hash=_get(d, str, "hash"), hashes=_get(d, dict, "hashes"))
+
+    def __repr__(self) -> str:
+        return f"ArchiveInfo(hash={self.hash!r})"
 
     def _to_dict(self) -> Dict[str, Any]:
         return _filter_none(hash=self.hash, hashes=self.hashes)
@@ -141,11 +160,19 @@ class DirInfo:
     ) -> None:
         self.editable = editable
 
+    def equivalent(self, other: "InfoType") -> bool:
+        if not isinstance(other, DirInfo):
+            return False
+        return self.editable == other.editable
+
     @classmethod
     def _from_dict(cls, d: Optional[Dict[str, Any]]) -> Optional["DirInfo"]:
         if d is None:
             return None
         return cls(editable=_get_required(d, bool, "editable", default=False))
+
+    def __repr__(self) -> str:
+        return f"DirInfo(editable={self.editable!r})"
 
     def _to_dict(self) -> Dict[str, Any]:
         return _filter_none(editable=self.editable or None)
@@ -164,6 +191,26 @@ class DirectUrl:
         self.url = url
         self.info = info
         self.subdirectory = subdirectory
+
+    def equivalent(self, other: Optional["DirectUrl"]) -> bool:
+        """Whether two direct URL objects are equivalent.
+
+        This is different from ``__eq__`` in that two non-equal infos can be
+        "logically the same", e.g. two different Git branches cab be equivalent
+        if they resolve to the same commit.
+        """
+        return (
+            other is not None
+            and self.url == other.url
+            and self.info.equivalent(other.info)
+            and self.subdirectory == other.subdirectory
+        )
+
+    def __repr__(self) -> str:
+        return (
+            f"DirectUrl(url={self.url!r}, info={self.info!r}, "
+            f"subdirectory={self.subdirectory!r})"
+        )
 
     def _remove_auth_from_netloc(self, netloc: str) -> str:
         if "@" not in netloc:

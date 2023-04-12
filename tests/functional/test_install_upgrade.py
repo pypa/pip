@@ -223,9 +223,8 @@ def test_uninstall_before_upgrade_from_url(script: PipTestEnvironment) -> None:
 @pytest.mark.network
 def test_upgrade_to_same_version_from_url(script: PipTestEnvironment) -> None:
     """
-    When installing from a URL the same version that is already installed, no
-    need to uninstall and reinstall if --upgrade is not specified.
-
+    A direct URL always triggers reinstallation if the current installation
+    was not made from a URL, even if they specify the same version.
     """
     result = script.pip("install", "INITools==0.3")
     result.did_create(script.site_packages / "initools")
@@ -235,7 +234,7 @@ def test_upgrade_to_same_version_from_url(script: PipTestEnvironment) -> None:
         "0.3.tar.gz",
     )
     assert (
-        script.site_packages / "initools" not in result2.files_updated
+        script.site_packages / "initools" in result2.files_updated
     ), "INITools 0.3 reinstalled same version"
     result3 = script.pip("uninstall", "initools", "-y")
     assert_all_changes(result, result3, [script.venv / "build", "cache"])

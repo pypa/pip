@@ -1,0 +1,6 @@
+Reinstallation and upgrade behaviour of direct URL requirements are completely
+rewritten to better match user expectation. Now pip will try to parse the URLs
+and VCS information (if applicable) from both the incoming direct URLs and the
+already-installed PEP 610 metadata to determine whether reinstallation is
+needed. If pip guesses wrong, the user can also force pip to always reinstall
+direct URL requirments (but not version-specified ones) with ``--upgrade``.

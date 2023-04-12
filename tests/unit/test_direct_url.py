@@ -140,3 +140,79 @@ def test_redact_url() -> None:
         == "https://${PIP_TOKEN}@g.c/u/p.git"
     )
     assert _redact_git("ssh://git@g.c/u/p.git") == "ssh://git@g.c/u/p.git"
+
+
+@pytest.mark.parametrize(
+    "direct_url, other_direct_url, expected",
+    [
+        (
+            DirectUrl(url="file:///some/dir", info=DirInfo(editable=False)),
+            DirectUrl(url="file:///some/dir", info=DirInfo(editable=False)),
+            True,
+        ),
+        (
+            DirectUrl(url="file:///some/dir", info=DirInfo(editable=False)),
+            DirectUrl(url="file:///some/other/dir", info=DirInfo(editable=False)),
+            False,
+        ),
+        (
+            DirectUrl(url="file:///some/dir", info=DirInfo(editable=True)),
+            DirectUrl(url="file:///some/dir", info=DirInfo(editable=False)),
+            False,
+        ),
+        (
+            DirectUrl(url="file:///some/dir/a.tgz", info=ArchiveInfo()),
+            DirectUrl(url="file:///some/dir/a.tgz", info=ArchiveInfo(hash="abcd")),
+            False,
+        ),
+        (
+            DirectUrl(
+                url="https://g.c/u/r",
+                info=VcsInfo(vcs="git", requested_revision="main", commit_id="abcd"),
+            ),
+            DirectUrl(
+                url="https://g.c/u/r",
+                info=VcsInfo(vcs="git", requested_revision="main", commit_id="abcd"),
+            ),
+            True,
+        ),
+        (
+            DirectUrl(
+                url="https://g.c/u/r",
+                info=VcsInfo(vcs="git", requested_revision="main", commit_id="abcd"),
+            ),
+            DirectUrl(
+                url="https://g.c/u/r",
+                info=VcsInfo(vcs="git", requested_revision="v1", commit_id="abcd"),
+            ),
+            True,
+        ),
+        (
+            DirectUrl(
+                url="https://g.c/u/r",
+                info=VcsInfo(vcs="git", requested_revision="main", commit_id="abcd"),
+            ),
+            DirectUrl(
+                url="https://g.c/u/r",
+                info=VcsInfo(vcs="git", requested_revision="main", commit_id="abce"),
+            ),
+            False,
+        ),
+        (
+            DirectUrl(
+                url="https://g.c/u/r",
+                info=VcsInfo(vcs="git", requested_revision="main", commit_id="abcd"),
+                subdirectory="subdir",
+            ),
+            DirectUrl(
+                url="https://g.c/u/r",
+                info=VcsInfo(vcs="git", requested_revision="main", commit_id="abcd"),
+            ),
+            False,
+        ),
+    ],
+)
+def test_direct_url_equivalent(
+    direct_url: DirectUrl, other_direct_url: DirectUrl, expected: bool
+) -> None:
+    assert direct_url.equivalent(other_direct_url) is expected
