@@ -127,6 +127,10 @@ Logically, a Requirements file is just a list of :ref:`pip install` arguments
 placed in a file. Note that you should not rely on the items in the file being
 installed by pip in any particular order.
 
+Requirements files can also be served via a URL, e.g.
+http://example.com/requirements.txt besides as local files, so that they can
+be stored and served in a centralized place.
+
 In practice, there are 4 common uses of Requirements files:
 
 1. Requirements files are used to hold the result from :ref:`pip freeze` for the
@@ -242,15 +246,15 @@ organisation and use that everywhere. If the thing being installed requires
 "helloworld" to be installed, your fixed version specified in your constraints
 file will be used.
 
-Constraints file can be served via a URL, e.g.
-http://example.com/constraints.txt instead of only a local file, so that your
-organization can provide constraints files online from a centraliazed place.
-
 Constraints file support was added in pip 7.1. In :ref:`Resolver
 changes 2020` we did a fairly comprehensive overhaul, removing several
 undocumented and unsupported quirks from the previous implementation,
 and stripped constraints files down to being purely a way to specify
 global (version) limits for packages.
+
+The same as requirements files, constraints files can be served via a URL, e.g.
+http://example.com/constraints.txt, so that your organization can store and
+serve them in a centralized place.
 
 .. _`Installing from Wheels`:
 
