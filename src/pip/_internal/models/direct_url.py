@@ -105,6 +105,7 @@ class ArchiveInfo:
         hash: Optional[str] = None,
         hashes: Optional[Dict[str, str]] = None,
     ) -> None:
+        # set hashes before hash, since the hash setter will further populate hashes
         self.hashes = hashes
         self.hash = hash
 
