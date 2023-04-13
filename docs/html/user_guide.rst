@@ -252,8 +252,8 @@ undocumented and unsupported quirks from the previous implementation,
 and stripped constraints files down to being purely a way to specify
 global (version) limits for packages.
 
-The same as requirements files, constraints files can be served via a URL, e.g.
-http://example.com/constraints.txt, so that your organization can store and
+The same as requirements files, constraints files can also be served via a URL,
+e.g. http://example.com/constraints.txt, so that your organization can store and
 serve them in a centralized place.
 
 .. _`Installing from Wheels`:
