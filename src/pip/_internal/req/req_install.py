@@ -109,11 +109,9 @@ class InstallRequirement:
             link = Link(req.url)
         self.link = self.original_link = link
 
-        # When is_wheel_from_cache is True, it means that this InstallRequirement
-        # is a local wheel file in the cache of locally built wheels.
-        self.is_wheel_from_cache = False
-        # When is_wheel_from_cache is True, this is the source link corresponding
-        # to the cache entry, which was used to download and build the cached wheel.
+        # When this InstallRequirement is a wheel obtained from the cache of locally
+        # built wheels, this is the source link corresponding to the cache entry, which
+        # was used to download and build the cached wheel.
         self.cached_wheel_source_link: Optional[Link] = None
 
         # Information about the location of the artifact that was downloaded . This
@@ -442,6 +440,12 @@ class InstallRequirement:
         if not self.link:
             return False
         return self.link.is_wheel
+
+    @property
+    def is_wheel_from_cache(self) -> bool:
+        # When True, it means that this InstallRequirement is a local wheel file in the
+        # cache of locally built wheels.
+        return self.cached_wheel_source_link is not None
 
     # Things valid for sdists
     @property
