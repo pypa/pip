@@ -535,7 +535,7 @@ class Factory:
         hash mismatches. Furthermore, cached wheels at present have
         nondeterministic contents due to file modification times.
         """
-        if self._wheel_cache is None or self.preparer.require_hashes:
+        if self._wheel_cache is None:
             return None
         return self._wheel_cache.get_cache_entry(
             link=link,

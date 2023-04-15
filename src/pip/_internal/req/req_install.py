@@ -108,7 +108,11 @@ class InstallRequirement:
             # PEP 508 URL requirement
             link = Link(req.url)
         self.link = self.original_link = link
-        self.original_link_is_in_wheel_cache = False
+
+        # When this InstallRequirement is a wheel obtained from the cache of locally
+        # built wheels, this is the source link corresponding to the cache entry, which
+        # was used to download and build the cached wheel.
+        self.cached_wheel_source_link: Optional[Link] = None
 
         # Information about the location of the artifact that was downloaded . This
         # property is guaranteed to be set in resolver results.
@@ -436,6 +440,12 @@ class InstallRequirement:
         if not self.link:
             return False
         return self.link.is_wheel
+
+    @property
+    def is_wheel_from_cache(self) -> bool:
+        # When True, it means that this InstallRequirement is a local wheel file in the
+        # cache of locally built wheels.
+        return self.cached_wheel_source_link is not None
 
     # Things valid for sdists
     @property

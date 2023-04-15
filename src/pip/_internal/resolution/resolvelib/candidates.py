@@ -259,7 +259,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
         version: Optional[CandidateVersion] = None,
     ) -> None:
         source_link = link
-        cache_entry = factory.get_wheel_cache_entry(link, name)
+        cache_entry = factory.get_wheel_cache_entry(source_link, name)
         if cache_entry is not None:
             logger.debug("Using cached wheel link: %s", cache_entry.link)
             link = cache_entry.link
@@ -277,8 +277,10 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
                 )
 
         if cache_entry is not None:
+            assert ireq.link.is_wheel
+            assert ireq.link.is_file
             if cache_entry.persistent and template.link is template.original_link:
-                ireq.original_link_is_in_wheel_cache = True
+                ireq.cached_wheel_source_link = source_link
             if cache_entry.origin is not None:
                 ireq.download_info = cache_entry.origin
             else:

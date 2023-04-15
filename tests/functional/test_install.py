@@ -729,6 +729,48 @@ def test_bad_link_hash_in_dep_install_failure(
     assert "THESE PACKAGES DO NOT MATCH THE HASHES" in result.stderr, result.stderr
 
 
+def test_hashed_install_from_cache(
+    script: PipTestEnvironment, data: TestData, tmpdir: Path
+) -> None:
+    """
+    Test that installing from a cached built wheel works and that the hash is verified
+    against the hash of the original source archived stored in the cache entry.
+    """
+    with requirements_file(
+        "simple2==1.0 --hash=sha256:"
+        "9336af72ca661e6336eb87bc7de3e8844d853e3848c2b9bbd2e8bf01db88c2c7\n",
+        tmpdir,
+    ) as reqs_file:
+        result = script.pip_install_local(
+            "--use-pep517", "--no-build-isolation", "-r", reqs_file.resolve()
+        )
+        assert "Created wheel for simple2" in result.stdout
+        script.pip("uninstall", "simple2", "-y")
+        result = script.pip_install_local(
+            "--use-pep517", "--no-build-isolation", "-r", reqs_file.resolve()
+        )
+        assert "Using cached simple2" in result.stdout
+    # now try with an invalid hash
+    with requirements_file(
+        "simple2==1.0 --hash=sha256:invalid\n",
+        tmpdir,
+    ) as reqs_file:
+        script.pip("uninstall", "simple2", "-y")
+        result = script.pip_install_local(
+            "--use-pep517",
+            "--no-build-isolation",
+            "-r",
+            reqs_file.resolve(),
+            expect_error=True,
+        )
+        assert (
+            "WARNING: The hashes of the source archive found in cache entry "
+            "don't match, ignoring cached built wheel and re-downloading source."
+        ) in result.stderr
+        assert "Using cached simple2" in result.stdout
+        assert "ERROR: THESE PACKAGES DO NOT MATCH THE HASHES" in result.stderr
+
+
 def assert_re_match(pattern: str, text: str) -> None:
     assert re.search(pattern, text), f"Could not find {pattern!r} in {text!r}"
 

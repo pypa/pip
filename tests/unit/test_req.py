@@ -411,7 +411,8 @@ class TestRequirementSet:
             reqset = resolver.resolve([ireq], True)
             assert len(reqset.all_requirements) == 1
             req = reqset.all_requirements[0]
-            assert req.original_link_is_in_wheel_cache
+            assert req.is_wheel_from_cache
+            assert req.cached_wheel_source_link
             assert req.download_info
             assert req.download_info.url == url
             assert isinstance(req.download_info.info, ArchiveInfo)
@@ -437,7 +438,8 @@ class TestRequirementSet:
             reqset = resolver.resolve([ireq], True)
             assert len(reqset.all_requirements) == 1
             req = reqset.all_requirements[0]
-            assert req.original_link_is_in_wheel_cache
+            assert req.is_wheel_from_cache
+            assert req.cached_wheel_source_link
             assert req.download_info
             assert req.download_info.url == url
             assert isinstance(req.download_info.info, ArchiveInfo)

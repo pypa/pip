@@ -425,6 +425,14 @@ class TestHashes:
         cache[Hashes({"sha256": ["ab", "cd"]})] = 42
         assert cache[Hashes({"sha256": ["ab", "cd"]})] == 42
 
+    def test_has_one_of(self) -> None:
+        hashes = Hashes({"sha256": ["abcd", "efgh"], "sha384": ["ijkl"]})
+        assert hashes.has_one_of({"sha256": "abcd"})
+        assert hashes.has_one_of({"sha256": "efgh"})
+        assert not hashes.has_one_of({"sha256": "xyzt"})
+        empty_hashes = Hashes()
+        assert not empty_hashes.has_one_of({"sha256": "xyzt"})
+
 
 class TestEncoding:
     """Tests for pip._internal.utils.encoding"""
