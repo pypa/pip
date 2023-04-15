@@ -1,1 +1,0 @@
-Include ``AUTHORS.txt`` in pip's wheels.

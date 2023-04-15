@@ -143,6 +143,7 @@ Clay McClure
 Cody
 Cody Soyland
 Colin Watson
+Collin Anderson
 Connor Osborn
 Cooper Lees
 Cooper Ry Lees
@@ -212,6 +213,7 @@ Dominic Davis-Foster
 Donald Stufft
 Dongweiming
 doron zarhi
+Dos Moonen
 Douglas Thor
 DrFeathers
 Dustin Ingram
@@ -274,6 +276,7 @@ gpiks
 Greg Roodt
 Greg Ward
 Guilherme Espada
+Guillaume Seguin
 gutsytechster
 Guy Rozendorn
 Guy Tuval
@@ -288,6 +291,7 @@ Henrich Hartzer
 Henry Schreiner
 Herbert Pfennig
 Holly Stotelmyer
+Honnix
 Hsiaoming Yang
 Hugo Lopes Tavares
 Hugo van Kemenade
@@ -358,6 +362,7 @@ Joseph Long
 Josh Bronson
 Josh Hansen
 Josh Schneier
+Juan Luis Cano Rodríguez
 Juanjo Bazán
 Judah Rand
 Julian Berman
@@ -399,6 +404,7 @@ Leon Sasson
 Lev Givon
 Lincoln de Sousa
 Lipis
+lorddavidiii
 Loren Carvalho
 Lucas Cimon
 Ludovic Gasc
@@ -432,6 +438,7 @@ Matt Maker
 Matt Robenolt
 matthew
 Matthew Einhorn
+Matthew Feickert
 Matthew Gilliard
 Matthew Iversen
 Matthew Trumbell
@@ -451,6 +458,7 @@ Michael
 Michael Aquilina
 Michael E. Karpeles
 Michael Klich
+Michael Mintz
 Michael Williamson
 michaelpacer
 Michał Górny
@@ -482,6 +490,7 @@ Nick Timkovich
 Nicolas Bock
 Nicole Harris
 Nikhil Benesch
+Nikhil Ladha
 Nikita Chepanov
 Nikolay Korolev
 Nipunn Koorapati
@@ -539,6 +548,7 @@ Philip Molloy
 Philippe Ombredanne
 Pi Delport
 Pierre-Yves Rofes
+Pieter Degroote
 pip
 Prabakaran Kumaresshan
 Prabhjyotsing Surjit Singh Sodhi
@@ -546,6 +556,7 @@ Prabhu Marappan
 Pradyun Gedam
 Prashant Sharma
 Pratik Mallya
+pre-commit-ci[bot]
 Preet Thakkar
 Preston Holmes
 Przemek Wrzos
@@ -576,6 +587,7 @@ robin elisha robinson
 Roey Berman
 Rohan Jain
 Roman Bogorodskiy
+Roman Donchenko
 Romuald Brunet
 ronaudinho
 Ronny Pfannschmidt
@@ -584,6 +596,7 @@ Ross Brattain
 Roy Wellington Ⅳ
 Ruairidh MacLeod
 Russell Keith-Magee
+Ryan Shepherd
 Ryan Wooden
 ryneeverett
 Sachi King
@@ -652,6 +665,7 @@ Tim Harder
 Tim Heap
 tim smith
 tinruufu
+Tobias Hermann
 Tom Forbes
 Tom Freudenheim
 Tom V
@@ -685,6 +699,7 @@ Vladimir Rutsky
 W. Trevor King
 Wil Tan
 Wilfred Hughes
+William Edwards
 William ML Leslie
 William T Olson
 William Woodruff

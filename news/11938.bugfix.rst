@@ -1,3 +1,0 @@
-When package A depends on package B provided as a direct URL dependency including a hash
-embedded in the link, the ``--require-hashes`` option did not warn when user supplied hashes
-were missing for package B.

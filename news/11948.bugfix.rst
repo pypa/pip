@@ -1,3 +1,0 @@
-When installing an archive from a direct URL or local file, populate
-``download_info.info.hashes`` in the installation report, in addition to the legacy
-``download_info.info.hash`` key.

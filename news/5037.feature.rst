@@ -1,1 +1,0 @@
-Support wheel cache when using ``--require-hashes``.
