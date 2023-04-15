@@ -1,3 +1,0 @@
-Using ``--config-settings`` with projects that don't have a ``pyproject.toml`` now print
-a deprecation warning. In the future the presence of config settings will automatically
-enable the default build backend for legacy projects and pass the setttings to it.

@@ -1,1 +1,0 @@
-In the case of virtual environments, configuration files are now also included from the base installation.
