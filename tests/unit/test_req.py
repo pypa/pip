@@ -206,7 +206,7 @@ class TestRequirementSet:
         reqset = RequirementSet()
         reqset.add_unnamed_requirement(
             get_processed_req_from_line(
-                "git+git://github.com/pypa/pip-test-package --hash=sha256:123",
+                "git+https://github.com/pypa/pip-test-package --hash=sha256:123",
                 lineno=1,
             )
         )
@@ -229,7 +229,7 @@ class TestRequirementSet:
                 match=(
                     r"Can't verify hashes for these requirements because we don't "
                     r"have a way to hash version control repositories:\n"
-                    r"    git\+git://github\.com/pypa/pip-test-package \(from -r "
+                    r"    git\+https://github\.com/pypa/pip-test-package \(from -r "
                     r"file \(line 1\)\)\n"
                     r"Can't verify hashes for these file:// requirements because "
                     r"they point to directories:\n"
