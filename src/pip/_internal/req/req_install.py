@@ -275,7 +275,7 @@ class InstallRequirement:
         """
         return bool(self.hash_options)
 
-    def hashes(self, trust_internet: bool = True) -> Hashes:
+    def hashes(self, *, trust_internet: bool) -> Hashes:
         """Return a hash-comparer that considers my option- and URL-based
         hashes to be known-good.
 
