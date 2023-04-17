@@ -22,7 +22,7 @@ Deprecations and Removals
   means "don't download wheels". (`#11453 <https://github.com/pypa/pip/issues/11453>`_)
 - Deprecate ``--build-option`` and ``--global-option``. Users are invited to switch to
   ``--config-settings``. (`#11859 <https://github.com/pypa/pip/issues/11859>`_)
-- Using ``--config-settings`` with projects that don't have a ``pyproject.toml`` now print
+- Using ``--config-settings`` with projects that don't have a ``pyproject.toml`` now prints
   a deprecation warning. In the future the presence of config settings will automatically
   enable the default build backend for legacy projects and pass the setttings to it. (`#11915 <https://github.com/pypa/pip/issues/11915>`_)
 - Remove ``setup.py install`` fallback when building a wheel failed for projects without
