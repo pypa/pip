@@ -28,7 +28,8 @@ Deprecations and Removals
 - Remove ``setup.py install`` fallback when building a wheel failed for projects without
   ``pyproject.toml``. (`#8368 <https://github.com/pypa/pip/issues/8368>`_)
 - When the ``wheel`` package is not installed, pip now uses the default build backend
-  instead of ``setup.py install`` for project without ``pyproject.toml``. (`#8559 <https://github.com/pypa/pip/issues/8559>`_)
+  instead of ``setup.py install`` and ``setup.py develop`` for project without
+  ``pyproject.toml``. (`#8559 <https://github.com/pypa/pip/issues/8559>`_)
 
 Features
 --------
