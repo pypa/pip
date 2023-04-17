@@ -24,7 +24,7 @@ def test_to_json() -> None:
     )
     direct_url.validate()
     assert direct_url.to_json() == (
-        '{"archive_info": {}, "url": "file:///home/user/archive.tgz"}'
+        '{"archive_info":{},"url":"file:///home/user/archive.tgz"}'
     )
 
 
