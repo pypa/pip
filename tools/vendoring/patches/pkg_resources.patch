@@ -1,4 +1,26 @@
 diff --git a/src/pip/_vendor/pkg_resources/__init__.py b/src/pip/_vendor/pkg_resources/__init__.py
+index d59226af9..3b9565893 100644
+--- a/src/pip/_vendor/pkg_resources/__init__.py
++++ b/src/pip/_vendor/pkg_resources/__init__.py
+@@ -77,7 +77,7 @@
+     join_continuation,
+ )
+
+-from pkg_resources.extern import appdirs
++from pkg_resources.extern import platformdirs
+ from pkg_resources.extern import packaging
+ __import__('pkg_resources.extern.packaging.version')
+ __import__('pkg_resources.extern.packaging.specifiers')
+@@ -1321,7 +1321,7 @@ def get_default_cache():
+     """
+     return (
+         os.environ.get('PYTHON_EGG_CACHE')
+-        or appdirs.user_cache_dir(appname='Python-Eggs')
++        or platformdirs.user_cache_dir(appname='Python-Eggs')
+     )
+
+
+diff --git a/src/pip/_vendor/pkg_resources/__init__.py b/src/pip/_vendor/pkg_resources/__init__.py
 index 3f2476a0c..8d5727d35 100644
 --- a/src/pip/_vendor/pkg_resources/__init__.py
 +++ b/src/pip/_vendor/pkg_resources/__init__.py
