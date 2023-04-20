@@ -78,7 +78,7 @@ def get_configuration_files() -> Dict[Kind, List[str]]:
         os.path.join(path, CONFIG_BASENAME) for path in appdirs.site_config_dirs("pip")
     ]
 
-    base_config_file = os.path.join(sys.base_prefix, CONFIG_BASENAME)
+    # base_config_file = os.path.join(sys.base_prefix, CONFIG_BASENAME)
     site_config_file = os.path.join(sys.prefix, CONFIG_BASENAME)
     legacy_config_file = os.path.join(
         os.path.expanduser("~"),
@@ -87,7 +87,8 @@ def get_configuration_files() -> Dict[Kind, List[str]]:
     )
     new_config_file = os.path.join(appdirs.user_config_dir("pip"), CONFIG_BASENAME)
     return {
-        kinds.BASE: [base_config_file],
+        # TEMPORARY FIX: Remove BASE location
+        # kinds.BASE: [base_config_file],
         kinds.GLOBAL: global_config_files,
         kinds.SITE: [site_config_file],
         kinds.USER: [legacy_config_file, new_config_file],
@@ -354,7 +355,8 @@ class Configuration:
             # The legacy config file is overridden by the new config file
             yield kinds.USER, config_files[kinds.USER]
 
-        yield kinds.BASE, config_files[kinds.BASE]
+        # TEMPORARY FIX: Remove BASE location
+        # yield kinds.BASE, config_files[kinds.BASE]
 
         # finally virtualenv configuration first trumping others
         yield kinds.SITE, config_files[kinds.SITE]

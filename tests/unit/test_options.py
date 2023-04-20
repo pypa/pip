@@ -587,7 +587,10 @@ class TestOptionsConfigFiles:
         for _, val in cp.iter_config_files():
             files.extend(val)
 
-        assert len(files) == 5
+        # TEMPORARY FIX: Remove BASE location
+        # expect 4, because base location is patched out
+        # assert len(files) == 5
+        assert len(files) == 4
 
     @pytest.mark.parametrize(
         "args, expect",
