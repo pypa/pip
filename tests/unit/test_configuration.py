@@ -24,17 +24,11 @@ class TestConfigurationLoading(ConfigurationMixin):
         self.configuration.load()
         assert self.configuration.get_value("test.hello") == "2"
 
-    def test_base_loading(self) -> None:
-        self.patch_configuration(kinds.BASE, {"test.hello": "3"})
+    def test_site_loading(self) -> None:
+        self.patch_configuration(kinds.SITE, {"test.hello": "3"})
 
         self.configuration.load()
         assert self.configuration.get_value("test.hello") == "3"
-
-    def test_site_loading(self) -> None:
-        self.patch_configuration(kinds.SITE, {"test.hello": "4"})
-
-        self.configuration.load()
-        assert self.configuration.get_value("test.hello") == "4"
 
     def test_environment_config_loading(self, monkeypatch: pytest.MonkeyPatch) -> None:
         contents = """
@@ -113,15 +107,6 @@ class TestConfigurationLoading(ConfigurationMixin):
         with pytest.raises(ConfigurationError, match=pat):
             self.configuration.get_value("global.index-url")
 
-    def test_overrides_normalization(self) -> None:
-        # Check that normalized names are used in precedence calculations.
-        # Reminder: USER has higher precedence than GLOBAL.
-        self.patch_configuration(kinds.USER, {"test.hello-world": "1"})
-        self.patch_configuration(kinds.GLOBAL, {"test.hello_world": "0"})
-        self.configuration.load()
-
-        assert self.configuration.get_value("test.hello_world") == "1"
-
 
 class TestConfigurationPrecedence(ConfigurationMixin):
     # Tests for methods to that determine the order of precedence of
@@ -148,13 +133,6 @@ class TestConfigurationPrecedence(ConfigurationMixin):
 
         assert self.configuration.get_value("test.hello") == "0"
 
-    def test_site_overides_base(self) -> None:
-        self.patch_configuration(kinds.BASE, {"test.hello": "2"})
-        self.patch_configuration(kinds.SITE, {"test.hello": "1"})
-        self.configuration.load()
-
-        assert self.configuration.get_value("test.hello") == "1"
-
     def test_site_overides_user(self) -> None:
         self.patch_configuration(kinds.USER, {"test.hello": "2"})
         self.patch_configuration(kinds.SITE, {"test.hello": "1"})
@@ -165,13 +143,6 @@ class TestConfigurationPrecedence(ConfigurationMixin):
     def test_site_overides_global(self) -> None:
         self.patch_configuration(kinds.GLOBAL, {"test.hello": "3"})
         self.patch_configuration(kinds.SITE, {"test.hello": "1"})
-        self.configuration.load()
-
-        assert self.configuration.get_value("test.hello") == "1"
-
-    def test_base_overides_user(self) -> None:
-        self.patch_configuration(kinds.USER, {"test.hello": "2"})
-        self.patch_configuration(kinds.BASE, {"test.hello": "1"})
         self.configuration.load()
 
         assert self.configuration.get_value("test.hello") == "1"
