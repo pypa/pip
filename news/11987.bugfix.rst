@@ -1,0 +1,1 @@
+Revert `#11487 <https://github.com/pypa/pip/pull/11487>`_, as it causes issues with virtualenvs created by the Windows Store distribution of Python.
