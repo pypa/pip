@@ -9,9 +9,9 @@ from typing import (
     Iterable,
     Iterator,
     Mapping,
-    NamedTuple,
     Optional,
     Sequence,
+    cast,
 )
 
 from pip._vendor.packaging.requirements import Requirement
@@ -28,6 +28,7 @@ from pip._internal.metadata.base import (
 )
 from pip._internal.utils.misc import normalize_path
 from pip._internal.utils.packaging import safe_extra
+from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.wheel import parse_wheel, read_wheel_metadata_file
 
 from ._compat import BasePath, get_dist_name
@@ -92,12 +93,6 @@ class WheelDistribution(importlib.metadata.Distribution):
         return text
 
 
-class RequiresEntry(NamedTuple):
-    requirement: str
-    extra: str
-    marker: str
-
-
 class Distribution(BaseDistribution):
     def __init__(
         self,
@@ -114,6 +109,23 @@ class Distribution(BaseDistribution):
         info_location = pathlib.Path(directory)
         dist = importlib.metadata.Distribution.at(info_location)
         return cls(dist, info_location, info_location.parent)
+
+    @classmethod
+    def from_metadata_file_contents(
+        cls,
+        metadata_contents: bytes,
+        filename: str,
+        project_name: str,
+    ) -> BaseDistribution:
+        # Generate temp dir to contain the metadata file, and write the file contents.
+        temp_dir = pathlib.Path(
+            TempDirectory(kind="metadata", globally_managed=True).path
+        )
+        metadata_path = temp_dir / "METADATA"
+        metadata_path.write_bytes(metadata_contents)
+        # Construct dist pointing to the newly created directory.
+        dist = importlib.metadata.Distribution.at(metadata_path.parent)
+        return cls(dist, metadata_path.parent, None)
 
     @classmethod
     def from_wheel(cls, wheel: Wheel, name: str) -> BaseDistribution:
@@ -187,84 +199,22 @@ class Distribution(BaseDistribution):
         # importlib.metadata's EntryPoint structure sasitfies BaseEntryPoint.
         return self._dist.entry_points
 
-    @property
-    def metadata(self) -> email.message.Message:
-        return self._dist.metadata
-
-    def _iter_requires_txt_entries(self) -> Iterator[RequiresEntry]:
-        """Parse a ``requires.txt`` in an egg-info directory.
-
-        This is an INI-ish format where an egg-info stores dependencies. A
-        section name describes extra other environment markers, while each entry
-        is an arbitrary string (not a key-value pair) representing a dependency
-        as a requirement string (no markers).
-
-        There is a construct in ``importlib.metadata`` called ``Sectioned`` that
-        does mostly the same, but the format is currently considered private.
-        """
-        content = self._dist.read_text("requires.txt")
-        if content is None:
-            return
-        extra = marker = ""  # Section-less entries don't have markers.
-        for line in content.splitlines():
-            line = line.strip()
-            if not line or line.startswith("#"):  # Comment; ignored.
-                continue
-            if line.startswith("[") and line.endswith("]"):  # A section header.
-                extra, _, marker = line.strip("[]").partition(":")
-                continue
-            yield RequiresEntry(requirement=line, extra=extra, marker=marker)
-
-    def _iter_egg_info_extras(self) -> Iterable[str]:
-        """Get extras from the egg-info directory."""
-        known_extras = {""}
-        for entry in self._iter_requires_txt_entries():
-            if entry.extra in known_extras:
-                continue
-            known_extras.add(entry.extra)
-            yield entry.extra
+    def _metadata_impl(self) -> email.message.Message:
+        # From Python 3.10+, importlib.metadata declares PackageMetadata as the
+        # return type. This protocol is unfortunately a disaster now and misses
+        # a ton of fields that we need, including get() and get_payload(). We
+        # rely on the implementation that the object is actually a Message now,
+        # until upstream can improve the protocol. (python/cpython#94952)
+        return cast(email.message.Message, self._dist.metadata)
 
     def iter_provided_extras(self) -> Iterable[str]:
-        iterator = (
-            self._dist.metadata.get_all("Provides-Extra")
-            or self._iter_egg_info_extras()
+        return (
+            safe_extra(extra) for extra in self.metadata.get_all("Provides-Extra", [])
         )
-        return (safe_extra(extra) for extra in iterator)
-
-    def _iter_egg_info_dependencies(self) -> Iterable[str]:
-        """Get distribution dependencies from the egg-info directory.
-
-        To ease parsing, this converts a legacy dependency entry into a PEP 508
-        requirement string. Like ``_iter_requires_txt_entries()``, there is code
-        in ``importlib.metadata`` that does mostly the same, but not do exactly
-        what we need.
-
-        Namely, ``importlib.metadata`` does not normalize the extra name before
-        putting it into the requirement string, which causes marker comparison
-        to fail because the dist-info format do normalize. This is consistent in
-        all currently available PEP 517 backends, although not standardized.
-        """
-        for entry in self._iter_requires_txt_entries():
-            if entry.extra and entry.marker:
-                marker = f'({entry.marker}) and extra == "{safe_extra(entry.extra)}"'
-            elif entry.extra:
-                marker = f'extra == "{safe_extra(entry.extra)}"'
-            elif entry.marker:
-                marker = entry.marker
-            else:
-                marker = ""
-            if marker:
-                yield f"{entry.requirement} ; {marker}"
-            else:
-                yield entry.requirement
 
     def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
-        req_string_iterator = (
-            self._dist.metadata.get_all("Requires-Dist")
-            or self._iter_egg_info_dependencies()
-        )
         contexts: Sequence[Dict[str, str]] = [{"extra": safe_extra(e)} for e in extras]
-        for req_string in req_string_iterator:
+        for req_string in self.metadata.get_all("Requires-Dist", []):
             req = Requirement(req_string)
             if not req.marker:
                 yield req

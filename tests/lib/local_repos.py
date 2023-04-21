@@ -1,11 +1,10 @@
 import os
 import subprocess
 import urllib.request
+from pathlib import Path
 
 from pip._internal.utils.misc import hide_url
 from pip._internal.vcs import vcs
-from tests.lib import path_to_url
-from tests.lib.path import Path
 
 
 def _create_svn_initools_repo(initools_dir: str) -> None:
@@ -57,7 +56,7 @@ def local_checkout(
         assert vcs_backend is not None
         vcs_backend.obtain(repo_url_path, url=hide_url(remote_repo), verbosity=0)
 
-    return "{}+{}".format(vcs_name, path_to_url(repo_url_path))
+    return "{}+{}".format(vcs_name, Path(repo_url_path).as_uri())
 
 
 def local_repo(remote_repo: str, temp_path: Path) -> str:

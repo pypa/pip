@@ -1,3 +1,5 @@
+from typing import Dict, List
+
 import pytest
 
 from pip._internal.commands import create_command
@@ -36,9 +38,16 @@ def test_set_config_empty_value() -> None:
     assert options.config_settings == {"x": ""}
 
 
-def test_replace_config_value() -> None:
+@pytest.mark.parametrize(
+    ("passed", "expected"),
+    [
+        (["x=hello", "x=world"], {"x": ["hello", "world"]}),
+        (["x=hello", "x=world", "x=other"], {"x": ["hello", "world", "other"]}),
+    ],
+)
+def test_multiple_config_values(passed: List[str], expected: Dict[str, str]) -> None:
     i = create_command("install")
     options, _ = i.parse_args(
-        ["xxx", "--config-settings", "x=hello", "--config-settings", "x=world"]
+        ["xxx", *(f"--config-settings={option}" for option in passed)]
     )
-    assert options.config_settings == {"x": "world"}
+    assert options.config_settings == expected

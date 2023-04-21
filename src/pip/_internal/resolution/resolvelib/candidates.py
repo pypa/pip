@@ -18,6 +18,7 @@ from pip._internal.req.constructors import (
     install_req_from_line,
 )
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.direct_url_helpers import direct_url_from_link
 from pip._internal.utils.misc import normalize_version_info
 
 from .base import Candidate, CandidateVersion, Requirement, format_name
@@ -64,16 +65,14 @@ def make_install_req_from_link(
         use_pep517=template.use_pep517,
         isolated=template.isolated,
         constraint=template.constraint,
-        options=dict(
-            install_options=template.install_options,
-            global_options=template.global_options,
-            hashes=template.hash_options,
-            ignore_dependencies=template.ignore_dependencies,
-        ),
+        global_options=template.global_options,
+        hash_options=template.hash_options,
         config_settings=template.config_settings,
+        ignore_dependencies=template.ignore_dependencies,
     )
     ireq.original_link = template.original_link
     ireq.link = link
+    ireq.extras = template.extras
     return ireq
 
 
@@ -81,7 +80,7 @@ def make_install_req_from_editable(
     link: Link, template: InstallRequirement
 ) -> InstallRequirement:
     assert template.editable, "template not editable"
-    return install_req_from_editable(
+    ireq = install_req_from_editable(
         link.url,
         user_supplied=template.user_supplied,
         comes_from=template.comes_from,
@@ -89,14 +88,13 @@ def make_install_req_from_editable(
         isolated=template.isolated,
         constraint=template.constraint,
         permit_editable_wheels=template.permit_editable_wheels,
-        options=dict(
-            install_options=template.install_options,
-            global_options=template.global_options,
-            hashes=template.hash_options,
-            ignore_dependencies=template.ignore_dependencies,
-        ),
+        global_options=template.global_options,
+        hash_options=template.hash_options,
         config_settings=template.config_settings,
+        ignore_dependencies=template.ignore_dependencies,
     )
+    ireq.extras = template.extras
+    return ireq
 
 
 def _make_install_req_from_dist(
@@ -115,13 +113,10 @@ def _make_install_req_from_dist(
         use_pep517=template.use_pep517,
         isolated=template.isolated,
         constraint=template.constraint,
-        options=dict(
-            install_options=template.install_options,
-            global_options=template.global_options,
-            hashes=template.hash_options,
-            ignore_dependencies=template.ignore_dependencies,
-        ),
+        global_options=template.global_options,
+        hash_options=template.hash_options,
         config_settings=template.config_settings,
+        ignore_dependencies=template.ignore_dependencies,
     )
     ireq.satisfied_by = dist
     return ireq
@@ -271,7 +266,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
         version: Optional[CandidateVersion] = None,
     ) -> None:
         source_link = link
-        cache_entry = factory.get_wheel_cache_entry(link, name)
+        cache_entry = factory.get_wheel_cache_entry(source_link, name)
         if cache_entry is not None:
             logger.debug("Using cached wheel link: %s", cache_entry.link)
             link = cache_entry.link
@@ -288,12 +283,19 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
                     version, wheel_version, name
                 )
 
-        if (
-            cache_entry is not None
-            and cache_entry.persistent
-            and template.link is template.original_link
-        ):
-            ireq.original_link_is_in_wheel_cache = True
+        if cache_entry is not None:
+            assert ireq.link.is_wheel
+            assert ireq.link.is_file
+            if cache_entry.persistent and template.link is template.original_link:
+                ireq.cached_wheel_source_link = source_link
+            if cache_entry.origin is not None:
+                ireq.download_info = cache_entry.origin
+            else:
+                # Legacy cache entry that does not have origin.json.
+                # download_info may miss the archive_info.hashes field.
+                ireq.download_info = direct_url_from_link(
+                    source_link, link_is_in_wheel_cache=cache_entry.persistent
+                )
 
         super().__init__(
             link=link,

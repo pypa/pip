@@ -122,6 +122,15 @@ class Command(CommandContextMixIn):
             user_log_file=options.log,
         )
 
+        always_enabled_features = set(options.features_enabled) & set(
+            cmdoptions.ALWAYS_ENABLED_FEATURES
+        )
+        if always_enabled_features:
+            logger.warning(
+                "The following features are always enabled: %s. ",
+                ", ".join(sorted(always_enabled_features)),
+            )
+
         # TODO: Try to get these passing down from the command?
         #       without resorting to os.environ to hold these.
         #       This also affects isolated builds and it should.
@@ -150,13 +159,6 @@ class Command(CommandContextMixIn):
                     options.cache_dir,
                 )
                 options.cache_dir = None
-
-        if "2020-resolver" in options.features_enabled:
-            logger.warning(
-                "--use-feature=2020-resolver no longer has any effect, "
-                "since it is now the default dependency resolver in pip. "
-                "This will become an error in pip 21.0."
-            )
 
         def intercepts_unhandled_exc(
             run_func: Callable[..., int]

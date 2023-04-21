@@ -1,8 +1,9 @@
+import os
 import textwrap
+from pathlib import Path
 from typing import Tuple
 
 from tests.lib import PipTestEnvironment, _create_main_file, _git_commit
-from tests.lib.path import Path
 
 
 def _create_test_package_submodule(env: PipTestEnvironment) -> Path:
@@ -73,7 +74,7 @@ def _create_test_package_with_submodule(
         "git",
         "submodule",
         "add",
-        submodule_path,
+        os.fspath(submodule_path),
         rel_path,
         cwd=version_pkg_path,
     )

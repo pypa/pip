@@ -25,10 +25,18 @@ Description
 .. pip-command-description:: wheel
 
 
-Build System Interface
-----------------------
+.. _`1-build-system-interface`:
+.. rubric:: Build System Interface
 
 This is now covered in :doc:`../reference/build-system/index`.
+
+Differences to ``build``
+------------------------
+
+`build <https://pypi.org/project/build/>`_ is a simple tool which can among other things build
+wheels for projects using PEP 517. It is comparable to the execution of ``pip wheel --no-deps .``.
+It can also build source distributions which is not possible with ``pip``.
+``pip wheel`` covers the wheel scope of ``build`` but offers many additional features.
 
 Options
 =======

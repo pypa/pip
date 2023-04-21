@@ -6,9 +6,14 @@ subpackage and, thus, should not depend on them.
 """
 
 import configparser
+import contextlib
+import locale
+import logging
+import pathlib
 import re
+import sys
 from itertools import chain, groupby, repeat
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Dict, Iterator, List, Optional, Union
 
 from pip._vendor.requests.models import Request, Response
 from pip._vendor.rich.console import Console, ConsoleOptions, RenderResult
@@ -21,6 +26,8 @@ if TYPE_CHECKING:
 
     from pip._internal.metadata import BaseDistribution
     from pip._internal.req.req_install import InstallRequirement
+
+logger = logging.getLogger(__name__)
 
 
 #
@@ -288,7 +295,10 @@ class NetworkConnectionError(PipError):
     """HTTP connection error"""
 
     def __init__(
-        self, error_msg: str, response: Response = None, request: Request = None
+        self,
+        error_msg: str,
+        response: Optional[Response] = None,
+        request: Optional[Request] = None,
     ) -> None:
         """
         Initialize NetworkConnectionError with  `request` and `response`
@@ -332,8 +342,8 @@ class MetadataInconsistent(InstallationError):
     """Built metadata contains inconsistent information.
 
     This is raised when the metadata contains values (e.g. name and version)
-    that do not match the information previously obtained from sdist filename
-    or user-supplied ``#egg=`` value.
+    that do not match the information previously obtained from sdist filename,
+    user-supplied ``#egg=`` value, or an install requirement name.
     """
 
     def __init__(
@@ -345,24 +355,9 @@ class MetadataInconsistent(InstallationError):
         self.m_val = m_val
 
     def __str__(self) -> str:
-        template = (
-            "Requested {} has inconsistent {}: "
-            "filename has {!r}, but metadata has {!r}"
-        )
-        return template.format(self.ireq, self.field, self.f_val, self.m_val)
-
-
-class LegacyInstallFailure(DiagnosticPipError):
-    """Error occurred while executing `setup.py install`"""
-
-    reference = "legacy-install-failure"
-
-    def __init__(self, package_details: str) -> None:
-        super().__init__(
-            message="Encountered error while trying to install package.",
-            context=package_details,
-            hint_stmt="See above for output from the failure.",
-            note_stmt="This is an issue with the package mentioned above, not pip.",
+        return (
+            f"Requested {self.ireq} has inconsistent {self.field}: "
+            f"expected {self.f_val!r}, but metadata has {self.m_val!r}"
         )
 
 
@@ -656,3 +651,83 @@ class ConfigurationFileCouldNotBeLoaded(ConfigurationError):
             assert self.error is not None
             message_part = f".\n{self.error}\n"
         return f"Configuration file {self.reason}{message_part}"
+
+
+_DEFAULT_EXTERNALLY_MANAGED_ERROR = f"""\
+The Python environment under {sys.prefix} is managed externally, and may not be
+manipulated by the user. Please use specific tooling from the distributor of
+the Python installation to interact with this environment instead.
+"""
+
+
+class ExternallyManagedEnvironment(DiagnosticPipError):
+    """The current environment is externally managed.
+
+    This is raised when the current environment is externally managed, as
+    defined by `PEP 668`_. The ``EXTERNALLY-MANAGED`` configuration is checked
+    and displayed when the error is bubbled up to the user.
+
+    :param error: The error message read from ``EXTERNALLY-MANAGED``.
+    """
+
+    reference = "externally-managed-environment"
+
+    def __init__(self, error: Optional[str]) -> None:
+        if error is None:
+            context = Text(_DEFAULT_EXTERNALLY_MANAGED_ERROR)
+        else:
+            context = Text(error)
+        super().__init__(
+            message="This environment is externally managed",
+            context=context,
+            note_stmt=(
+                "If you believe this is a mistake, please contact your "
+                "Python installation or OS distribution provider. "
+                "You can override this, at the risk of breaking your Python "
+                "installation or OS, by passing --break-system-packages."
+            ),
+            hint_stmt=Text("See PEP 668 for the detailed specification."),
+        )
+
+    @staticmethod
+    def _iter_externally_managed_error_keys() -> Iterator[str]:
+        # LC_MESSAGES is in POSIX, but not the C standard. The most common
+        # platform that does not implement this category is Windows, where
+        # using other categories for console message localization is equally
+        # unreliable, so we fall back to the locale-less vendor message. This
+        # can always be re-evaluated when a vendor proposes a new alternative.
+        try:
+            category = locale.LC_MESSAGES
+        except AttributeError:
+            lang: Optional[str] = None
+        else:
+            lang, _ = locale.getlocale(category)
+        if lang is not None:
+            yield f"Error-{lang}"
+            for sep in ("-", "_"):
+                before, found, _ = lang.partition(sep)
+                if not found:
+                    continue
+                yield f"Error-{before}"
+        yield "Error"
+
+    @classmethod
+    def from_config(
+        cls,
+        config: Union[pathlib.Path, str],
+    ) -> "ExternallyManagedEnvironment":
+        parser = configparser.ConfigParser(interpolation=None)
+        try:
+            parser.read(config, encoding="utf-8")
+            section = parser["externally-managed"]
+            for key in cls._iter_externally_managed_error_keys():
+                with contextlib.suppress(KeyError):
+                    return cls(section[key])
+        except KeyError:
+            pass
+        except (OSError, UnicodeDecodeError, configparser.ParsingError):
+            from pip._internal.utils._log import VERBOSE
+
+            exc_info = logger.isEnabledFor(VERBOSE)
+            logger.warning("Failed to read %s", config, exc_info=exc_info)
+        return cls(None)

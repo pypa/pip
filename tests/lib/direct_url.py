@@ -1,9 +1,10 @@
+import os
 import re
+from pathlib import Path
 from typing import Optional
 
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from tests.lib import TestPipResult
-from tests.lib.path import Path
 
 
 def get_created_direct_url_path(result: TestPipResult, pkg: str) -> Optional[Path]:
@@ -11,7 +12,7 @@ def get_created_direct_url_path(result: TestPipResult, pkg: str) -> Optional[Pat
         pkg + r"-[\d\.]+\.dist-info." + DIRECT_URL_METADATA_NAME + r"$"
     )
     for filename in result.files_created:
-        if direct_url_metadata_re.search(filename):
+        if direct_url_metadata_re.search(os.fspath(filename)):
             return result.test_env.base_path / filename
     return None
 

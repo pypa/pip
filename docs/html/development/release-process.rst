@@ -31,6 +31,15 @@ to need extra work before being released, the release manager always has the
 option to back out the partial change prior to a release. The PR can then be
 reworked and resubmitted for the next release.
 
+Vendoring updates will be picked up from the ``main`` branch, as for any other
+update. Ideally, vendoring updates should be merged between releases, just like
+any other change. If there are outstanding updates to vendored packages, the
+release manager *may* at their discretion choose to do a vendoring update
+before the release. However this is *not* a requirement and in particular,
+updates to vendored packages that fix issues in pip should be merged
+proactively, to ensure that they will be present in the next release.
+
+
 .. _`Deprecation Policy`:
 
 Deprecation Policy
@@ -64,6 +73,13 @@ their merits.
   The supporting documentation can be found in the source code of
   ``pip._internal.utils.deprecation.deprecated``. The function is not a part of
   pip's public API.
+
+Supported Versions
+==================
+
+The latest version of the pip is the only supported version, previous
+versions should be considered unsupported. Users are encouraged to make
+regular updates to their version of pip in order to remain supported.
 
 .. _`Python 2 Support`:
 
@@ -158,6 +174,11 @@ Creating a bug-fix release
 Sometimes we need to release a bugfix release of the form ``YY.N.Z+1``. In
 order to create one of these the changes should already be merged into the
 ``main`` branch.
+
+Note that this process is only needed when there are changes on the main branch
+that you do *not* want to include in the bugfix release. For a bugfix release
+that will include everything that is on the ``main`` branch, the above process
+for creating a new release can be used, simply changing the version number.
 
 #. Create a new ``release/YY.N.Z+1`` branch off of the ``YY.N`` tag using the
    command ``git checkout -b release/YY.N.Z+1 YY.N``.

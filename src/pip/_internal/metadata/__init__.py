@@ -1,6 +1,10 @@
+import contextlib
 import functools
 import os
+import sys
 from typing import TYPE_CHECKING, List, Optional, Type, cast
+
+from pip._internal.utils.misc import strtobool
 
 from .base import BaseDistribution, BaseEnvironment, FilesystemWheel, MemoryWheel, Wheel
 
@@ -22,6 +26,29 @@ __all__ = [
 ]
 
 
+def _should_use_importlib_metadata() -> bool:
+    """Whether to use the ``importlib.metadata`` or ``pkg_resources`` backend.
+
+    By default, pip uses ``importlib.metadata`` on Python 3.11+, and
+    ``pkg_resourcess`` otherwise. This can be overridden by a couple of ways:
+
+    * If environment variable ``_PIP_USE_IMPORTLIB_METADATA`` is set, it
+      dictates whether ``importlib.metadata`` is used, regardless of Python
+      version.
+    * On Python 3.11+, Python distributors can patch ``importlib.metadata``
+      to add a global constant ``_PIP_USE_IMPORTLIB_METADATA = False``. This
+      makes pip use ``pkg_resources`` (unless the user set the aforementioned
+      environment variable to *True*).
+    """
+    with contextlib.suppress(KeyError, ValueError):
+        return bool(strtobool(os.environ["_PIP_USE_IMPORTLIB_METADATA"]))
+    if sys.version_info < (3, 11):
+        return False
+    import importlib.metadata
+
+    return bool(getattr(importlib.metadata, "_PIP_USE_IMPORTLIB_METADATA", True))
+
+
 class Backend(Protocol):
     Distribution: Type[BaseDistribution]
     Environment: Type[BaseEnvironment]
@@ -29,7 +56,7 @@ class Backend(Protocol):
 
 @functools.lru_cache(maxsize=None)
 def select_backend() -> Backend:
-    if os.environ.get("_PIP_METADATA_BACKEND_IMPORTLIB"):
+    if _should_use_importlib_metadata():
         from . import importlib
 
         return cast(Backend, importlib)
@@ -76,3 +103,25 @@ def get_wheel_distribution(wheel: Wheel, canonical_name: str) -> BaseDistributio
     :param canonical_name: Normalized project name of the given wheel.
     """
     return select_backend().Distribution.from_wheel(wheel, canonical_name)
+
+
+def get_metadata_distribution(
+    metadata_contents: bytes,
+    filename: str,
+    canonical_name: str,
+) -> BaseDistribution:
+    """Get the dist representation of the specified METADATA file contents.
+
+    This returns a Distribution instance from the chosen backend sourced from the data
+    in `metadata_contents`.
+
+    :param metadata_contents: Contents of a METADATA file within a dist, or one served
+                              via PEP 658.
+    :param filename: Filename for the dist this metadata represents.
+    :param canonical_name: Normalized project name of the given dist.
+    """
+    return select_backend().Distribution.from_metadata_file_contents(
+        metadata_contents,
+        filename,
+        canonical_name,
+    )

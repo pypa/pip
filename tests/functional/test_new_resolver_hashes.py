@@ -3,7 +3,6 @@ import hashlib
 
 import pytest
 
-from pip._internal.utils.urls import path_to_url
 from tests.lib import (
     PipTestEnvironment,
     create_basic_sdist_for_package,
@@ -30,10 +29,10 @@ def _create_find_links(script: PipTestEnvironment) -> _FindLinks:
         <a href="{sdist_url}#sha256={sdist_hash}">{sdist_path.stem}</a>
         <a href="{wheel_url}#sha256={wheel_hash}">{wheel_path.stem}</a>
         """.format(
-            sdist_url=path_to_url(sdist_path),
+            sdist_url=sdist_path.as_uri(),
             sdist_hash=sdist_hash,
             sdist_path=sdist_path,
-            wheel_url=path_to_url(wheel_path),
+            wheel_url=wheel_path.as_uri(),
             wheel_hash=wheel_hash,
             wheel_path=wheel_path,
         ).strip()
@@ -249,7 +248,7 @@ def test_new_resolver_hash_requirement_and_url_constraint_can_succeed(
     )
 
     constraints_txt = script.scratch_path / "constraints.txt"
-    constraint_text = "base @ {wheel_url}\n".format(wheel_url=path_to_url(wheel_path))
+    constraint_text = "base @ {wheel_url}\n".format(wheel_url=wheel_path.as_uri())
     if constrain_by_hash:
         constraint_text += "base==0.1.0 --hash=sha256:{wheel_hash}\n".format(
             wheel_hash=wheel_hash,
@@ -289,7 +288,7 @@ def test_new_resolver_hash_requirement_and_url_constraint_can_fail(
     )
 
     constraints_txt = script.scratch_path / "constraints.txt"
-    constraint_text = "base @ {wheel_url}\n".format(wheel_url=path_to_url(wheel_path))
+    constraint_text = "base @ {wheel_url}\n".format(wheel_url=wheel_path.as_uri())
     if constrain_by_hash:
         constraint_text += "base==0.1.0 --hash=sha256:{other_hash}\n".format(
             other_hash=other_hash,
@@ -373,34 +372,3 @@ def test_new_resolver_hash_with_extras(script: PipTestEnvironment) -> None:
         child="0.1.0",
         extra="0.1.0",
     )
-
-
-def test_new_resolver_hash_with_pin(script: PipTestEnvironment) -> None:
-    find_links = _create_find_links(script)
-
-    requirements_txt = script.scratch_path / "requirements.txt"
-    requirements_txt.write_text("base")
-
-    constraints_txt = script.scratch_path / "constraints.txt"
-    constraints_txt.write_text(
-        """
-        base==0.1.0 --hash=sha256:{sdist_hash} --hash=sha256:{wheel_hash}
-        """.format(
-            sdist_hash=find_links.sdist_hash,
-            wheel_hash=find_links.wheel_hash,
-        )
-    )
-
-    script.pip(
-        "install",
-        "--no-cache-dir",
-        "--no-index",
-        "--find-links",
-        find_links.index_html,
-        "--requirement",
-        requirements_txt,
-        "--constraint",
-        constraints_txt,
-    )
-
-    script.assert_installed(base="0.1.0")

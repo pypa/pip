@@ -27,7 +27,6 @@ from pip._internal.cache import CacheEntry, WheelCache
 from pip._internal.exceptions import (
     DistributionNotFound,
     InstallationError,
-    InstallationSubprocessError,
     MetadataInconsistent,
     UnsupportedPythonVersion,
     UnsupportedWheel,
@@ -45,7 +44,7 @@ from pip._internal.req.req_install import (
 from pip._internal.resolution.base import InstallRequirementProvider
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
-from pip._internal.utils.packaging import get_requirement, is_pinned
+from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 from .base import Candidate, CandidateVersion, Constraint, Requirement
@@ -97,7 +96,6 @@ class Factory:
         force_reinstall: bool,
         ignore_installed: bool,
         ignore_requires_python: bool,
-        suppress_build_failures: bool,
         py_version_info: Optional[Tuple[int, ...]] = None,
     ) -> None:
         self._finder = finder
@@ -108,7 +106,6 @@ class Factory:
         self._use_user_site = use_user_site
         self._force_reinstall = force_reinstall
         self._ignore_requires_python = ignore_requires_python
-        self._suppress_build_failures = suppress_build_failures
 
         self._build_failures: Cache[InstallationError] = {}
         self._link_candidate_cache: Cache[LinkCandidate] = {}
@@ -201,12 +198,6 @@ class Factory:
                     )
                     self._build_failures[link] = e
                     return None
-                except InstallationSubprocessError as e:
-                    if not self._suppress_build_failures:
-                        raise
-                    logger.warning("Discarding %s due to build failure: %s", link, e)
-                    self._build_failures[link] = e
-                    return None
 
             base: BaseCandidate = self._editable_candidate_cache[link]
         else:
@@ -226,12 +217,6 @@ class Factory:
                         e,
                         extra={"markup": True},
                     )
-                    self._build_failures[link] = e
-                    return None
-                except InstallationSubprocessError as e:
-                    if not self._suppress_build_failures:
-                        raise
-                    logger.warning("Discarding %s due to build failure: %s", link, e)
                     self._build_failures[link] = e
                     return None
             base = self._link_candidate_cache[link]
@@ -303,12 +288,18 @@ class Factory:
             # solely satisfied by a yanked release.
             all_yanked = all(ican.link.is_yanked for ican in icans)
 
-            pinned = is_pinned(specifier)
+            def is_pinned(specifier: SpecifierSet) -> bool:
+                for sp in specifier:
+                    if sp.operator == "===":
+                        return True
+                    if sp.operator != "==":
+                        continue
+                    if sp.version.endswith(".*"):
+                        continue
+                    return True
+                return False
 
-            if not template.is_pinned:
-                assert template.req, "Candidates found on index must be PEP 508"
-                template.req.specifier = specifier
-                template.hash_options = hashes.allowed
+            pinned = is_pinned(specifier)
 
             # PackageFinder returns earlier versions first, so we reverse.
             for ican in reversed(icans):
@@ -544,7 +535,7 @@ class Factory:
         hash mismatches. Furthermore, cached wheels at present have
         nondeterministic contents due to file modification times.
         """
-        if self._wheel_cache is None or self.preparer.require_hashes:
+        if self._wheel_cache is None:
             return None
         return self._wheel_cache.get_cache_entry(
             link=link,
@@ -641,7 +632,6 @@ class Factory:
         e: "ResolutionImpossible[Requirement, Candidate]",
         constraints: Dict[str, Constraint],
     ) -> InstallationError:
-
         assert e.causes, "Installation error reported with no cause"
 
         # If one of the things we can't solve is "we need Python X.Y",
