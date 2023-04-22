@@ -1,2 +1,0 @@
-Update documentation to reflect the new behavior of using the cache of locally
-built wheels in hash-checking mode.
