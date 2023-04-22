@@ -9,6 +9,26 @@
 
 .. towncrier release notes start
 
+23.1.1 (2023-04-22)
+===================
+
+Bug Fixes
+---------
+
+- Revert `#11487 <https://github.com/pypa/pip/pull/11487>`_, as it causes issues with virtualenvs created by the Windows Store distribution of Python. (`#11987 <https://github.com/pypa/pip/issues/11987>`_)
+
+Vendored Libraries
+------------------
+
+- Revert pkg_resources (via setuptools) back to 65.6.3
+
+Improved Documentation
+----------------------
+
+- Update documentation to reflect the new behavior of using the cache of locally
+  built wheels in hash-checking mode. (`#11967 <https://github.com/pypa/pip/issues/11967>`_)
+
+
 23.1 (2023-04-15)
 =================
 
