@@ -145,11 +145,13 @@ def prepare_metadata_for_build_wheel(
     except AttributeError:
         if not _allow_fallback:
             raise HookMissing()
-        whl_basename = backend.build_wheel(metadata_directory, config_settings)
-        return _get_wheel_metadata_from_wheel(whl_basename, metadata_directory,
-                                              config_settings)
     else:
         return hook(metadata_directory, config_settings)
+    # fallback to build_wheel outside the try block to avoid exception chaining
+    # which can be confusing to users and is not relevant
+    whl_basename = backend.build_wheel(metadata_directory, config_settings)
+    return _get_wheel_metadata_from_wheel(whl_basename, metadata_directory,
+                                          config_settings)
 
 
 def prepare_metadata_for_build_editable(

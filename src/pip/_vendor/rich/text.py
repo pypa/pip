@@ -53,11 +53,7 @@ class Span(NamedTuple):
     """Style associated with the span."""
 
     def __repr__(self) -> str:
-        return (
-            f"Span({self.start}, {self.end}, {self.style!r})"
-            if (isinstance(self.style, Style) and self.style._meta)
-            else f"Span({self.start}, {self.end}, {repr(self.style)})"
-        )
+        return f"Span({self.start}, {self.end}, {self.style!r})"
 
     def __bool__(self) -> bool:
         return self.end > self.start
@@ -450,7 +446,6 @@ class Text(JupyterMixin):
             style (Union[str, Style]): Style instance or style definition to apply.
             start (int): Start offset (negative indexing is supported). Defaults to 0.
             end (Optional[int], optional): End offset (negative indexing is supported), or None for end of text. Defaults to None.
-
         """
         if style:
             length = len(self)
@@ -464,6 +459,32 @@ class Text(JupyterMixin):
                 # Span not in text or not valid
                 return
             self._spans.append(Span(start, min(length, end), style))
+
+    def stylize_before(
+        self,
+        style: Union[str, Style],
+        start: int = 0,
+        end: Optional[int] = None,
+    ) -> None:
+        """Apply a style to the text, or a portion of the text. Styles will be applied before other styles already present.
+
+        Args:
+            style (Union[str, Style]): Style instance or style definition to apply.
+            start (int): Start offset (negative indexing is supported). Defaults to 0.
+            end (Optional[int], optional): End offset (negative indexing is supported), or None for end of text. Defaults to None.
+        """
+        if style:
+            length = len(self)
+            if start < 0:
+                start = length + start
+            if end is None:
+                end = length
+            if end < 0:
+                end = length + end
+            if start >= length or end <= start:
+                # Span not in text or not valid
+                return
+            self._spans.insert(0, Span(start, min(length, end), style))
 
     def apply_meta(
         self, meta: Dict[str, Any], start: int = 0, end: Optional[int] = None
@@ -1179,7 +1200,7 @@ class Text(JupyterMixin):
             width (int): Maximum characters in a line.
 
         Returns:
-            Lines: List of lines.
+            Lines: Lines container.
         """
         lines: Lines = Lines()
         append = lines.append

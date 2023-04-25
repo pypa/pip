@@ -12,6 +12,7 @@ import posixpath
 import shutil
 import stat
 import sys
+import sysconfig
 import urllib.parse
 from io import StringIO
 from itertools import filterfalse, tee, zip_longest
@@ -31,14 +32,15 @@ from typing import (
     Tuple,
     Type,
     TypeVar,
+    Union,
     cast,
 )
 
-from pip._vendor.pep517 import Pep517HookCaller
+from pip._vendor.pyproject_hooks import BuildBackendHookCaller
 from pip._vendor.tenacity import retry, stop_after_delay, wait_fixed
 
 from pip import __version__
-from pip._internal.exceptions import CommandError
+from pip._internal.exceptions import CommandError, ExternallyManagedEnvironment
 from pip._internal.locations import get_major_minor_version
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.virtualenv import running_under_virtualenv
@@ -57,9 +59,9 @@ __all__ = [
     "captured_stdout",
     "ensure_dir",
     "remove_auth_from_url",
-    "ConfiguredPep517HookCaller",
+    "check_externally_managed",
+    "ConfiguredBuildBackendHookCaller",
 ]
-
 
 logger = logging.getLogger(__name__)
 
@@ -581,6 +583,21 @@ def protect_pip_from_modification_on_windows(modifying_pip: bool) -> None:
         )
 
 
+def check_externally_managed() -> None:
+    """Check whether the current environment is externally managed.
+
+    If the ``EXTERNALLY-MANAGED`` config file is found, the current environment
+    is considered externally managed, and an ExternallyManagedEnvironment is
+    raised.
+    """
+    if running_under_virtualenv():
+        return
+    marker = os.path.join(sysconfig.get_path("stdlib"), "EXTERNALLY-MANAGED")
+    if not os.path.isfile(marker):
+        return
+    raise ExternallyManagedEnvironment.from_config(marker)
+
+
 def is_console_interactive() -> bool:
     """Is this console interactive?"""
     return sys.stdin is not None and sys.stdin.isatty()
@@ -596,18 +613,6 @@ def hash_file(path: str, blocksize: int = 1 << 20) -> Tuple[Any, int]:
             length += len(block)
             h.update(block)
     return h, length
-
-
-def is_wheel_installed() -> bool:
-    """
-    Return whether the wheel package is installed.
-    """
-    try:
-        import wheel  # noqa: F401
-    except ImportError:
-        return False
-
-    return True
 
 
 def pairwise(iterable: Iterable[Any]) -> Iterator[Tuple[Any, Any]]:
@@ -635,7 +640,7 @@ def partition(
     return filterfalse(pred, t1), filter(pred, t2)
 
 
-class ConfiguredPep517HookCaller(Pep517HookCaller):
+class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
     def __init__(
         self,
         config_holder: Any,
@@ -653,7 +658,7 @@ class ConfiguredPep517HookCaller(Pep517HookCaller):
     def build_wheel(
         self,
         wheel_directory: str,
-        config_settings: Optional[Dict[str, str]] = None,
+        config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
         metadata_directory: Optional[str] = None,
     ) -> str:
         cs = self.config_holder.config_settings
@@ -662,7 +667,9 @@ class ConfiguredPep517HookCaller(Pep517HookCaller):
         )
 
     def build_sdist(
-        self, sdist_directory: str, config_settings: Optional[Dict[str, str]] = None
+        self,
+        sdist_directory: str,
+        config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
     ) -> str:
         cs = self.config_holder.config_settings
         return super().build_sdist(sdist_directory, config_settings=cs)
@@ -670,7 +677,7 @@ class ConfiguredPep517HookCaller(Pep517HookCaller):
     def build_editable(
         self,
         wheel_directory: str,
-        config_settings: Optional[Dict[str, str]] = None,
+        config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
         metadata_directory: Optional[str] = None,
     ) -> str:
         cs = self.config_holder.config_settings
@@ -679,19 +686,19 @@ class ConfiguredPep517HookCaller(Pep517HookCaller):
         )
 
     def get_requires_for_build_wheel(
-        self, config_settings: Optional[Dict[str, str]] = None
+        self, config_settings: Optional[Dict[str, Union[str, List[str]]]] = None
     ) -> List[str]:
         cs = self.config_holder.config_settings
         return super().get_requires_for_build_wheel(config_settings=cs)
 
     def get_requires_for_build_sdist(
-        self, config_settings: Optional[Dict[str, str]] = None
+        self, config_settings: Optional[Dict[str, Union[str, List[str]]]] = None
     ) -> List[str]:
         cs = self.config_holder.config_settings
         return super().get_requires_for_build_sdist(config_settings=cs)
 
     def get_requires_for_build_editable(
-        self, config_settings: Optional[Dict[str, str]] = None
+        self, config_settings: Optional[Dict[str, Union[str, List[str]]]] = None
     ) -> List[str]:
         cs = self.config_holder.config_settings
         return super().get_requires_for_build_editable(config_settings=cs)
@@ -699,7 +706,7 @@ class ConfiguredPep517HookCaller(Pep517HookCaller):
     def prepare_metadata_for_build_wheel(
         self,
         metadata_directory: str,
-        config_settings: Optional[Dict[str, str]] = None,
+        config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
         _allow_fallback: bool = True,
     ) -> str:
         cs = self.config_holder.config_settings
@@ -712,7 +719,7 @@ class ConfiguredPep517HookCaller(Pep517HookCaller):
     def prepare_metadata_for_build_editable(
         self,
         metadata_directory: str,
-        config_settings: Optional[Dict[str, str]] = None,
+        config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
         _allow_fallback: bool = True,
     ) -> str:
         cs = self.config_holder.config_settings

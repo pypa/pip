@@ -195,7 +195,6 @@ def test_install_from_wheel_with_headers(script: PipTestEnvironment) -> None:
     assert header_path.read_text() == header_text
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_wheel_with_target(
     script: PipTestEnvironment, shared_data: TestData, tmpdir: Path
 ) -> None:
@@ -216,7 +215,6 @@ def test_install_wheel_with_target(
     result.did_create(Path("scratch") / "target" / "simpledist")
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_wheel_with_target_and_data_files(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -406,7 +404,7 @@ def test_wheel_record_lines_have_updated_hash_for_scripts(
     ]
 
 
-@pytest.mark.usefixtures("enable_user_site", "with_wheel")
+@pytest.mark.usefixtures("enable_user_site")
 def test_install_user_wheel(
     script: PipTestEnvironment, shared_data: TestData, tmpdir: Path
 ) -> None:

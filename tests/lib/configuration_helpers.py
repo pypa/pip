@@ -17,7 +17,7 @@ kinds = pip._internal.configuration.kinds
 
 
 class ConfigurationMixin:
-    def setup(self) -> None:
+    def setup_method(self) -> None:
         self.configuration = pip._internal.configuration.Configuration(
             isolated=False,
         )

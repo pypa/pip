@@ -25,7 +25,6 @@ from pip._internal.exceptions import (
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import select_backend
 from pip._internal.models.direct_url import ArchiveInfo, DirectUrl, DirInfo, VcsInfo
-from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
 from pip._internal.network.session import PipSession
 from pip._internal.operations.build.build_tracker import get_build_tracker
@@ -71,10 +70,10 @@ def get_processed_req_from_line(
 class TestRequirementSet:
     """RequirementSet tests"""
 
-    def setup(self) -> None:
+    def setup_method(self) -> None:
         self.tempdir = tempfile.mkdtemp()
 
-    def teardown(self) -> None:
+    def teardown_method(self) -> None:
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
     @contextlib.contextmanager
@@ -403,7 +402,7 @@ class TestRequirementSet:
         """Test download_info hash is not set for an archive with legacy cache entry."""
         url = shared_data.packages.joinpath("simple-1.0.tar.gz").as_uri()
         finder = make_test_finder()
-        wheel_cache = WheelCache(str(tmp_path / "cache"), FormatControl())
+        wheel_cache = WheelCache(str(tmp_path / "cache"))
         cache_entry_dir = wheel_cache.get_path_for_link(Link(url))
         Path(cache_entry_dir).mkdir(parents=True)
         wheel.make_wheel(name="simple", version="1.0").save_to_dir(cache_entry_dir)
@@ -412,7 +411,8 @@ class TestRequirementSet:
             reqset = resolver.resolve([ireq], True)
             assert len(reqset.all_requirements) == 1
             req = reqset.all_requirements[0]
-            assert req.original_link_is_in_wheel_cache
+            assert req.is_wheel_from_cache
+            assert req.cached_wheel_source_link
             assert req.download_info
             assert req.download_info.url == url
             assert isinstance(req.download_info.info, ArchiveInfo)
@@ -426,7 +426,7 @@ class TestRequirementSet:
         url = shared_data.packages.joinpath("simple-1.0.tar.gz").as_uri()
         hash = "sha256=ad977496000576e1b6c41f6449a9897087ce9da6db4f15b603fe8372af4bf3c6"
         finder = make_test_finder()
-        wheel_cache = WheelCache(str(tmp_path / "cache"), FormatControl())
+        wheel_cache = WheelCache(str(tmp_path / "cache"))
         cache_entry_dir = wheel_cache.get_path_for_link(Link(url))
         Path(cache_entry_dir).mkdir(parents=True)
         Path(cache_entry_dir).joinpath("origin.json").write_text(
@@ -438,7 +438,8 @@ class TestRequirementSet:
             reqset = resolver.resolve([ireq], True)
             assert len(reqset.all_requirements) == 1
             req = reqset.all_requirements[0]
-            assert req.original_link_is_in_wheel_cache
+            assert req.is_wheel_from_cache
+            assert req.cached_wheel_source_link
             assert req.download_info
             assert req.download_info.url == url
             assert isinstance(req.download_info.info, ArchiveInfo)
@@ -507,10 +508,10 @@ class TestRequirementSet:
 
 
 class TestInstallRequirement:
-    def setup(self) -> None:
+    def setup_method(self) -> None:
         self.tempdir = tempfile.mkdtemp()
 
-    def teardown(self) -> None:
+    def teardown_method(self) -> None:
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
     def test_url_with_query(self) -> None:

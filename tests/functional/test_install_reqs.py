@@ -2,7 +2,7 @@ import json
 import os
 import textwrap
 from pathlib import Path
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
@@ -18,6 +18,11 @@ from tests.lib import (
 )
 from tests.lib.local_repos import local_checkout
 
+if TYPE_CHECKING:
+    from typing import Protocol
+else:
+    Protocol = object
+
 
 class ArgRecordingSdist:
     def __init__(self, sdist_path: Path, args_path: Path) -> None:
@@ -28,33 +33,42 @@ class ArgRecordingSdist:
         return json.loads(self._args_path.read_text())
 
 
+class ArgRecordingSdistMaker(Protocol):
+    def __call__(self, name: str, **kwargs: Any) -> ArgRecordingSdist:
+        ...
+
+
 @pytest.fixture()
 def arg_recording_sdist_maker(
     script: PipTestEnvironment,
-) -> Callable[[str], ArgRecordingSdist]:
-    arg_writing_setup_py = textwrap.dedent(
+) -> ArgRecordingSdistMaker:
+    arg_writing_setup_py_prelude = textwrap.dedent(
         """
         import io
         import json
         import os
         import sys
 
-        from setuptools import setup
-
         args_path = os.path.join(os.environ["OUTPUT_DIR"], "{name}.json")
         with open(args_path, 'w') as f:
             json.dump(sys.argv, f)
-
-        setup(name={name!r}, version="0.1.0")
         """
     )
     output_dir = script.scratch_path.joinpath("args_recording_sdist_maker_output")
     output_dir.mkdir(parents=True)
     script.environ["OUTPUT_DIR"] = str(output_dir)
 
-    def _arg_recording_sdist_maker(name: str) -> ArgRecordingSdist:
-        extra_files = {"setup.py": arg_writing_setup_py.format(name=name)}
-        sdist_path = create_basic_sdist_for_package(script, name, "0.1.0", extra_files)
+    def _arg_recording_sdist_maker(
+        name: str,
+        **kwargs: Any,
+    ) -> ArgRecordingSdist:
+        sdist_path = create_basic_sdist_for_package(
+            script,
+            name,
+            "0.1.0",
+            setup_py_prelude=arg_writing_setup_py_prelude.format(name=name),
+            **kwargs,
+        )
         args_path = output_dir / f"{name}.json"
         return ArgRecordingSdist(sdist_path, args_path)
 
@@ -62,7 +76,6 @@ def arg_recording_sdist_maker(
 
 
 @pytest.mark.network
-@pytest.mark.usefixtures("with_wheel")
 def test_requirements_file(script: PipTestEnvironment) -> None:
     """
     Test installing from a requirements file.
@@ -113,7 +126,6 @@ def test_schema_check_in_requirements_file(script: PipTestEnvironment) -> None:
         ("embedded_rel_path", True),
     ],
 )
-@pytest.mark.usefixtures("with_wheel")
 def test_relative_requirements_file(
     script: PipTestEnvironment, data: TestData, test_type: str, editable: bool
 ) -> None:
@@ -161,7 +173,6 @@ def test_relative_requirements_file(
 @pytest.mark.xfail
 @pytest.mark.network
 @need_svn
-@pytest.mark.usefixtures("with_wheel")
 def test_multiple_requirements_files(script: PipTestEnvironment, tmpdir: Path) -> None:
     """
     Test installing from multiple nested requirements files.
@@ -305,7 +316,7 @@ def test_install_local_with_subdirectory(script: PipTestEnvironment) -> None:
     result.assert_installed("version_subpkg.py", editable=False)
 
 
-@pytest.mark.usefixtures("enable_user_site", "with_wheel")
+@pytest.mark.usefixtures("enable_user_site")
 def test_wheel_user_with_prefix_in_pydistutils_cfg(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -328,35 +339,7 @@ def test_wheel_user_with_prefix_in_pydistutils_cfg(
         "install", "--user", "--no-index", "-f", data.find_links, "requiresupper"
     )
     # Check that we are really installing a wheel
-    assert "Running setup.py install for requiresupper" not in result.stdout
     assert "installed requiresupper" in result.stdout
-
-
-def test_install_option_in_requirements_file_overrides_cli(
-    script: PipTestEnvironment,
-    arg_recording_sdist_maker: Callable[[str], ArgRecordingSdist],
-) -> None:
-    simple_sdist = arg_recording_sdist_maker("simple")
-
-    reqs_file = script.scratch_path.joinpath("reqs.txt")
-    reqs_file.write_text("simple --install-option='-O0'")
-
-    result = script.pip(
-        "install",
-        "--no-index",
-        "-f",
-        str(simple_sdist.sdist_path.parent),
-        "-r",
-        str(reqs_file),
-        "--install-option=-O1",
-        allow_stderr_warning=True,
-    )
-    simple_args = simple_sdist.args()
-    assert "install" in simple_args
-    assert simple_args.index("-O1") < simple_args.index("-O0")
-    assert "Implying --no-binary=:all:" in result.stderr
-    assert "Consider using --config-settings" in result.stderr
-    assert "--install-option is deprecated" in result.stderr
 
 
 def test_constraints_not_installed_by_default(
@@ -493,7 +476,7 @@ def test_constraints_constrain_to_local(
         "singlemodule",
         allow_stderr_warning=True,
     )
-    assert "Running setup.py install for singlemodule" in result.stdout
+    assert "Building wheel for singlemodule" in result.stdout
 
 
 def test_constrained_to_url_install_same_url(
@@ -512,10 +495,9 @@ def test_constrained_to_url_install_same_url(
         to_install,
         allow_stderr_warning=True,
     )
-    assert "Running setup.py install for singlemodule" in result.stdout, str(result)
+    assert "Building wheel for singlemodule" in result.stdout, str(result)
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_double_install_spurious_hash_mismatch(
     script: PipTestEnvironment, tmpdir: Path, data: TestData
 ) -> None:
@@ -644,7 +626,7 @@ def test_install_distribution_full_union(
     result = script.pip_install_local(
         to_install, f"{to_install}[bar]", f"{to_install}[baz]"
     )
-    assert "Running setup.py install for LocalExtras" in result.stdout
+    assert "Building wheel for LocalExtras" in result.stdout
     result.did_create(script.site_packages / "simple")
     result.did_create(script.site_packages / "singlemodule.py")
 
@@ -678,7 +660,7 @@ def test_install_distribution_union_with_constraints(
         msg = "Unnamed requirements are not allowed as constraints"
         assert msg in result.stderr
     else:
-        assert "Running setup.py install for LocalExtras" in result.stdout
+        assert "Building wheel for LocalExtras" in result.stdout
         result.did_create(script.site_packages / "singlemodule.py")
 
 
@@ -761,59 +743,77 @@ def test_install_unsupported_wheel_file(
     assert len(result.files_created) == 0
 
 
-def test_install_options_local_to_package(
+def test_config_settings_local_to_package(
     script: PipTestEnvironment,
-    arg_recording_sdist_maker: Callable[[str], ArgRecordingSdist],
+    common_wheels: Path,
+    arg_recording_sdist_maker: ArgRecordingSdistMaker,
 ) -> None:
-    """Make sure --install-options does not leak across packages.
-
-    A requirements.txt file can have per-package --install-options; these
-    should be isolated to just the package instead of leaking to subsequent
-    packages.  This needs to be a functional test because the bug was around
-    cross-contamination at install time.
-    """
-
-    simple1_sdist = arg_recording_sdist_maker("simple1")
-    simple2_sdist = arg_recording_sdist_maker("simple2")
+    pyproject_toml = textwrap.dedent(
+        """
+        [build-system]
+        requires = ["setuptools"]
+        build-backend = "setuptools.build_meta"
+        """
+    )
+    simple0_sdist = arg_recording_sdist_maker(
+        "simple0",
+        extra_files={"pyproject.toml": pyproject_toml},
+        depends=["foo"],
+    )
+    foo_sdist = arg_recording_sdist_maker(
+        "foo",
+        extra_files={"pyproject.toml": pyproject_toml},
+    )
+    simple1_sdist = arg_recording_sdist_maker(
+        "simple1",
+        extra_files={"pyproject.toml": pyproject_toml},
+        depends=["bar"],
+    )
+    bar_sdist = arg_recording_sdist_maker(
+        "bar",
+        extra_files={"pyproject.toml": pyproject_toml},
+        depends=["simple3"],
+    )
+    simple3_sdist = arg_recording_sdist_maker(
+        "simple3", extra_files={"pyproject.toml": pyproject_toml}
+    )
+    simple2_sdist = arg_recording_sdist_maker(
+        "simple2",
+        extra_files={"pyproject.toml": pyproject_toml},
+    )
 
     reqs_file = script.scratch_path.joinpath("reqs.txt")
     reqs_file.write_text(
         textwrap.dedent(
             """
-            simple1 --install-option='-O0'
+            simple0 --config-settings "--build-option=--verbose"
+            foo --config-settings "--build-option=--quiet"
+            simple1 --config-settings "--build-option=--verbose"
             simple2
             """
         )
     )
+
     script.pip(
         "install",
         "--no-index",
         "-f",
-        str(simple1_sdist.sdist_path.parent),
-        "-r",
-        reqs_file,
-        allow_stderr_warning=True,
-    )
-
-    simple1_args = simple1_sdist.args()
-    assert "install" in simple1_args
-    assert "-O0" in simple1_args
-    simple2_args = simple2_sdist.args()
-    assert "install" in simple2_args
-    assert "-O0" not in simple2_args
-
-
-def test_location_related_install_option_fails(script: PipTestEnvironment) -> None:
-    simple_sdist = create_basic_sdist_for_package(script, "simple", "0.1.0")
-    reqs_file = script.scratch_path.joinpath("reqs.txt")
-    reqs_file.write_text("simple --install-option='--home=/tmp'")
-    result = script.pip(
-        "install",
-        "--no-index",
+        script.scratch_path,
         "-f",
-        str(simple_sdist.parent),
+        common_wheels,
         "-r",
         reqs_file,
-        expect_error=True,
     )
-    assert "['--home'] from simple" in result.stderr
+
+    simple0_args = simple0_sdist.args()
+    assert "--verbose" in simple0_args
+    foo_args = foo_sdist.args()
+    assert "--quiet" in foo_args
+    simple1_args = simple1_sdist.args()
+    assert "--verbose" in simple1_args
+    bar_args = bar_sdist.args()
+    assert "--verbose" not in bar_args
+    simple3_args = simple3_sdist.args()
+    assert "--verbose" not in simple3_args
+    simple2_args = simple2_sdist.args()
+    assert "--verbose" not in simple2_args

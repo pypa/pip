@@ -22,7 +22,6 @@ def fixed_time() -> Iterator[None]:
 
 
 class FakeCommand(Command):
-
     _name = "fake"
 
     def __init__(

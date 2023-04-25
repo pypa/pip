@@ -6,7 +6,7 @@ import re
 import uuid
 from pathlib import Path
 from textwrap import dedent
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from unittest import mock
 
 import pytest
@@ -538,7 +538,7 @@ def test_parse_links_json() -> None:
         metadata_link.url
         == "https://example.com/files/holygrail-1.0-py3-none-any.whl.metadata"
     )
-    assert metadata_link.link_hash == LinkHash("sha512", "aabdd41")
+    assert metadata_link._hashes == {"sha512": "aabdd41"}
 
 
 @pytest.mark.parametrize(
@@ -575,41 +575,41 @@ _pkg1_requirement = Requirement("pkg1==1.0")
 
 
 @pytest.mark.parametrize(
-    "anchor_html, expected, link_hash",
+    "anchor_html, expected, hashes",
     [
         # Test not present.
         (
             '<a href="/pkg1-1.0.tar.gz"></a>',
             None,
-            None,
+            {},
         ),
         # Test with value "true".
         (
             '<a href="/pkg1-1.0.tar.gz" data-dist-info-metadata="true"></a>',
             "true",
-            None,
+            {},
         ),
         # Test with a provided hash value.
         (
             '<a href="/pkg1-1.0.tar.gz" data-dist-info-metadata="sha256=aa113592bbe"></a>',  # noqa: E501
             "sha256=aa113592bbe",
-            None,
+            {},
         ),
         # Test with a provided hash value for both the requirement as well as metadata.
         (
             '<a href="/pkg1-1.0.tar.gz#sha512=abc132409cb" data-dist-info-metadata="sha256=aa113592bbe"></a>',  # noqa: E501
             "sha256=aa113592bbe",
-            LinkHash("sha512", "abc132409cb"),
+            {"sha512": "abc132409cb"},
         ),
     ],
 )
 def test_parse_links__dist_info_metadata(
     anchor_html: str,
     expected: Optional[str],
-    link_hash: Optional[LinkHash],
+    hashes: Dict[str, str],
 ) -> None:
     link = _test_parse_links_data_attribute(anchor_html, "dist_info_metadata", expected)
-    assert link.link_hash == link_hash
+    assert link._hashes == hashes
 
 
 def test_parse_links_caches_same_page_by_url() -> None:
@@ -1014,6 +1014,7 @@ def test_link_collector_create_find_links_expansion(
     """
     Test "~" expansion in --find-links paths.
     """
+
     # This is a mock version of expanduser() that expands "~" to the tmpdir.
     def expand_path(path: str) -> str:
         if path.startswith("~/"):
@@ -1051,6 +1052,21 @@ def test_link_collector_create_find_links_expansion(
             LinkHash("sha256", "aa113592bbe"),
         ),
         (
+            "https://pypi.org/pip-18.0.tar.gz#sha256=aa113592bbe&subdirectory=setup",
+            LinkHash("sha256", "aa113592bbe"),
+        ),
+        (
+            "https://pypi.org/pip-18.0.tar.gz#subdirectory=setup&sha256=aa113592bbe",
+            LinkHash("sha256", "aa113592bbe"),
+        ),
+        # "xsha256" is not a valid algorithm, so we discard it.
+        ("https://pypi.org/pip-18.0.tar.gz#xsha256=aa113592bbe", None),
+        # Empty hash.
+        (
+            "https://pypi.org/pip-18.0.tar.gz#sha256=",
+            LinkHash("sha256", ""),
+        ),
+        (
             "https://pypi.org/pip-18.0.tar.gz#md5=aa113592bbe",
             LinkHash("md5", "aa113592bbe"),
         ),
@@ -1060,4 +1076,21 @@ def test_link_collector_create_find_links_expansion(
     ],
 )
 def test_link_hash_parsing(url: str, result: Optional[LinkHash]) -> None:
-    assert LinkHash.split_hash_name_and_value(url) == result
+    assert LinkHash.find_hash_url_fragment(url) == result
+
+
+@pytest.mark.parametrize(
+    "dist_info_metadata, result",
+    [
+        ("sha256=aa113592bbe", LinkHash("sha256", "aa113592bbe")),
+        ("sha256=", LinkHash("sha256", "")),
+        ("sha500=aa113592bbe", None),
+        ("true", None),
+        ("", None),
+        ("aa113592bbe", None),
+    ],
+)
+def test_pep658_hash_parsing(
+    dist_info_metadata: str, result: Optional[LinkHash]
+) -> None:
+    assert LinkHash.parse_pep658_hash(dist_info_metadata) == result

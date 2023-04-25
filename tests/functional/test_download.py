@@ -659,7 +659,6 @@ def make_wheel_with_python_requires(
     return package_dir / "dist" / file_name
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_download__python_version_used_for_python_requires(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -700,7 +699,6 @@ def test_download__python_version_used_for_python_requires(
     script.pip(*args)  # no exception
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_download_ignore_requires_python_dont_fail_with_wrong_python(
     script: PipTestEnvironment,
 ) -> None:

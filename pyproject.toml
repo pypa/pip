@@ -50,6 +50,8 @@ drop = [
   "easy_install.py",
   "setuptools",
   "pkg_resources/_vendor/",
+  "_distutils_hack",
+  "distutils-precedence.pth",
   "pkg_resources/extern/",
   # trim vendored pygments styles and lexers
   "pygments/styles/[!_]*.py",
