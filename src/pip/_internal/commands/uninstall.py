@@ -108,6 +108,8 @@ class UninstallCommand(Command, SessionCommandMixin):
             )
             if uninstall_pathset:
                 uninstall_pathset.commit()
+                if req.files_skipped:
+                    return ERROR
         if options.root_user_action == "warn":
             warn_if_run_as_root()
         return SUCCESS
