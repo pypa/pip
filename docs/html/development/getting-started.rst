@@ -45,6 +45,7 @@ You can then invoke your local source tree pip normally.
         python -m venv .venv
         source .venv/bin/activate
         python -m pip install -e .
+        python -m pip install nox # If planning on running tests
         python -m pip --version
 
 .. tab:: Windows
