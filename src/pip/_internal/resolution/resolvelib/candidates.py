@@ -423,7 +423,7 @@ class ExtrasCandidate(Candidate):
     def __init__(
         self,
         base: BaseCandidate,
-        extras: FrozenSet[str],
+        extras: FrozenSet[NormalizedName],
     ) -> None:
         self.base = base
         self.extras = extras

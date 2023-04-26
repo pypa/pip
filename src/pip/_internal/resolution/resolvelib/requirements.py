@@ -43,7 +43,7 @@ class SpecifierRequirement(Requirement):
     def __init__(self, ireq: InstallRequirement) -> None:
         assert ireq.link is None, "This is a link, not a specifier"
         self._ireq = ireq
-        self._extras = frozenset(ireq.extras)
+        self._extras = frozenset(canonicalize_name(e) for e in ireq.extras)
 
     def __str__(self) -> str:
         return str(self._ireq.req)

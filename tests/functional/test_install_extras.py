@@ -4,7 +4,12 @@ from os.path import join
 
 import pytest
 
-from tests.lib import PipTestEnvironment, ResolverVariant, TestData
+from tests.lib import (
+    PipTestEnvironment,
+    ResolverVariant,
+    TestData,
+    create_basic_wheel_for_package,
+)
 
 
 @pytest.mark.network
@@ -223,3 +228,20 @@ def test_install_extra_merging(
     if not fails_on_legacy or resolver_variant == "2020-resolver":
         expected = f"Successfully installed pkga-0.1 simple-{simple_version}"
         assert expected in result.stdout
+
+
+def test_install_extras(script: PipTestEnvironment) -> None:
+    create_basic_wheel_for_package(script, "a", "1", depends=["b", "dep[x-y]"])
+    create_basic_wheel_for_package(script, "b", "1", depends=["dep[x_y]"])
+    create_basic_wheel_for_package(script, "dep", "1", extras={"x-y": ["meh"]})
+    create_basic_wheel_for_package(script, "meh", "1")
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "a",
+    )
+    script.assert_installed(a="1", b="1", dep="1", meh="1")

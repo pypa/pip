@@ -12,7 +12,7 @@ CandidateLookup = Tuple[Optional["Candidate"], Optional[InstallRequirement]]
 CandidateVersion = Union[LegacyVersion, Version]
 
 
-def format_name(project: str, extras: FrozenSet[str]) -> str:
+def format_name(project: NormalizedName, extras: FrozenSet[NormalizedName]) -> str:
     if not extras:
         return project
     canonical_extras = sorted(canonicalize_name(e) for e in extras)
