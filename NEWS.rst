@@ -9,6 +9,15 @@
 
 .. towncrier release notes start
 
+23.1.2 (2023-04-26)
+===================
+
+Vendored Libraries
+------------------
+
+- Upgrade setuptools to 67.7.2
+
+
 23.1.1 (2023-04-22)
 ===================
 
