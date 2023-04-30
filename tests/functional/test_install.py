@@ -2575,6 +2575,4 @@ def test_prevent_pip_install_pip_install(script: PipTestEnvironment) -> None:
         expect_error=True,
     )
 
-    assert (
-        "Likely incorrect command: pip install pip install ..." in result.stderr
-    )
+    assert "Likely incorrect command: pip install pip install ..." in result.stderr
