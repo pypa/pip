@@ -17,14 +17,16 @@ def make_tls_cert(hostname: str) -> Tuple[x509.Certificate, rsa.RSAPrivateKey]:
             x509.NameAttribute(NameOID.COMMON_NAME, hostname),
         ]
     )
+    # Current time as a UTC datetime object
+    now = datetime.datetime.now(datetime.timezone(datetime.timedelta(0)))
     cert = (
         x509.CertificateBuilder()
         .subject_name(subject)
         .issuer_name(issuer)
         .public_key(key.public_key())
         .serial_number(x509.random_serial_number())
-        .not_valid_before(datetime.utcnow())
-        .not_valid_after(datetime.utcnow() + timedelta(days=10))
+        .not_valid_before(now)
+        .not_valid_after(now + timedelta(days=10))
         .add_extension(
             x509.SubjectAlternativeName([x509.DNSName(hostname)]),
             critical=False,

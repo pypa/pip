@@ -28,7 +28,7 @@ from pip._internal.utils.entrypoints import (
 from pip._internal.utils.filesystem import adjacent_tmp_file, check_path_owner, replace
 from pip._internal.utils.misc import ensure_dir
 
-_DATE_FMT = "%Y-%m-%dT%H:%M:%SZ"
+_DATE_FMT = "%Y-%m-%dT%H:%M:%S%z"
 
 
 logger = logging.getLogger(__name__)
@@ -227,9 +227,11 @@ def pip_self_version_check(session: PipSession, options: optparse.Values) -> Non
         return
 
     try:
+        # Current time as a UTC datetime object
+        current_time = datetime.datetime.now(datetime.timezone(datetime.timedelta(0)))
         upgrade_prompt = _self_version_check_logic(
             state=SelfCheckState(cache_dir=options.cache_dir),
-            current_time=datetime.datetime.utcnow(),
+            current_time=current_time,
             local_version=installed_dist.version,
             get_remote_version=functools.partial(
                 _get_current_remote_pip_version, session, options
