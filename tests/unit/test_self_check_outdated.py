@@ -49,7 +49,9 @@ def test_pip_self_version_check_calls_underlying_implementation(
     mocked_state.assert_called_once_with(cache_dir=str(tmpdir))
     mocked_function.assert_called_once_with(
         state=mocked_state(cache_dir=str(tmpdir)),
-        current_time=datetime.datetime(1970, 1, 2, 11, 0, 0),
+        current_time=datetime.datetime(
+            1970, 1, 2, 11, 0, 0, tzinfo=datetime.timezone.utc
+        ),
         local_version=ANY,
         get_remote_version=ANY,
     )
