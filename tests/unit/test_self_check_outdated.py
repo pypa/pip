@@ -169,7 +169,10 @@ class TestSelfCheckState:
 
         # WHEN
         state = self_outdated_check.SelfCheckState(cache_dir=str(cache_dir))
-        state.set("1.0.0", datetime.datetime(2000, 1, 1, 0, 0, 0))
+        state.set(
+            "1.0.0",
+            datetime.datetime(2000, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
+        )
 
         # THEN
         assert state._statefile_path == os.fspath(expected_path)
@@ -177,6 +180,6 @@ class TestSelfCheckState:
         contents = expected_path.read_text()
         assert json.loads(contents) == {
             "key": sys.prefix,
-            "last_check": "2000-01-01T00:00:00Z",
+            "last_check": "2000-01-01T00:00:00+00:00",
             "pypi_version": "1.0.0",
         }
