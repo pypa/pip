@@ -1,6 +1,7 @@
 import functools
 import logging
 import os
+from multiprocessing.pool import ThreadPool
 from typing import TYPE_CHECKING, Dict, Iterable, List, Optional, Set, Tuple, cast
 
 from pip._vendor.packaging.utils import canonicalize_name
@@ -19,7 +20,6 @@ from pip._internal.resolution.resolvelib.reporter import (
     PipDebuggingReporter,
     PipReporter,
 )
-from pip._internal.utils.parallel import LACK_SEM_OPEN, map_multithread
 
 from .base import Candidate, Requirement
 from .factory import Factory
@@ -175,8 +175,6 @@ class Resolver(BaseResolver):
         in parallel in order to avoid later blocking on network requests during
         resolution.
         """
-        if LACK_SEM_OPEN:
-            return
 
         def _maybe_find_candidates(project_name: str) -> None:
             try:
@@ -184,8 +182,9 @@ class Resolver(BaseResolver):
             except AttributeError:
                 pass
 
-        for _ in map_multithread(_maybe_find_candidates, project_names):
-            pass
+        with ThreadPool() as tp:
+            for _ in tp.imap_unordered(_maybe_find_candidates, project_names):
+                pass
 
     def get_installation_order(
         self, req_set: RequirementSet
