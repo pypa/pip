@@ -287,7 +287,7 @@ class TestPipSession:
             return session
 
         session = PipSession(trusted_hosts=[])
-        
+
         connection_error_http: Union[requests.exceptions.RequestException, None] = None
         # setup with known bad (hopefully) http proxy, and then test connection
         # expecting a failure if the proxy is used
