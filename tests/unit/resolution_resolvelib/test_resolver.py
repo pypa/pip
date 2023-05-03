@@ -32,6 +32,7 @@ def resolver(preparer: RequirementPreparer, finder: PackageFinder) -> Resolver:
         force_reinstall=False,
         upgrade_strategy="to-satisfy-only",
     )
+    finder.find_all_candidates.cache_clear()
     return resolver
 
 
@@ -302,8 +303,6 @@ def test_new_resolver_topological_weights(
 
 
 def test_resolver_cache_population(resolver: Resolver) -> None:
-    resolver._finder.find_all_candidates.cache_clear()
-
     def get_findall_cacheinfo() -> Dict[str, int]:
         cacheinfo = resolver._finder.find_all_candidates.cache_info()
         return {k: getattr(cacheinfo, k) for k in ["currsize", "hits", "misses"]}
