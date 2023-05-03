@@ -175,15 +175,8 @@ class Resolver(BaseResolver):
         in parallel in order to avoid later blocking on network requests during
         resolution.
         """
-
-        def _maybe_find_candidates(project_name: str) -> None:
-            try:
-                self._finder.find_all_candidates(project_name)
-            except AttributeError:
-                pass
-
         with ThreadPool() as tp:
-            for _ in tp.imap_unordered(_maybe_find_candidates, project_names):
+            for _ in tp.imap_unordered(self._finder.find_all_candidates, project_names):
                 pass
 
     def get_installation_order(

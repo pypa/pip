@@ -569,7 +569,6 @@ def test_find_all_candidates_find_links_and_index(data: TestData) -> None:
 
 
 def test_finder_caching(data: TestData) -> None:
-
     # This is not required for the behavior of the finder itself, but we exploit
     # the implementation of the finder's find_best_candidate consuming it's own
     # find_all_candidates cache to pre-populate the cache before the resolution process
