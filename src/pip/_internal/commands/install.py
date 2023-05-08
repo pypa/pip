@@ -173,6 +173,21 @@ class InstallCommand(RequirementCommand):
         )
 
         self.cmd_opts.add_option(
+            "--version-selection",
+            dest="version_selection",
+            default="max",
+            choices=["max", "min"],
+            help=(
+                "Determines how dependency versions are selected when given a range "
+                "[default: %default]. "
+                "'max' - select the maximum compatible versions available "
+                "within the given ranges. "
+                "'min' - select the minimum compatible versions available "
+                "within the given ranges."
+            ),
+        )
+
+        self.cmd_opts.add_option(
             "--force-reinstall",
             dest="force_reinstall",
             action="store_true",
@@ -369,6 +384,7 @@ class InstallCommand(RequirementCommand):
                 ignore_requires_python=options.ignore_requires_python,
                 force_reinstall=options.force_reinstall,
                 upgrade_strategy=upgrade_strategy,
+                version_selection=options.version_selection,
                 use_pep517=options.use_pep517,
             )
 

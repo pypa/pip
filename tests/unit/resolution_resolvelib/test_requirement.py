@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Iterator, List, Tuple
 
 import pytest
+from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.resolvelib import BaseReporter, Resolver
 
 from pip._internal.resolution.resolvelib.base import Candidate, Constraint, Requirement
@@ -79,6 +80,7 @@ def test_new_resolver_correct_number_of_matches(
             {},
             Constraint.empty(),
             prefers_installed=False,
+            version_selection="max",
         )
         assert sum(1 for _ in matches) == match_count
 
@@ -96,10 +98,45 @@ def test_new_resolver_candidates_match_requirement(
             {},
             Constraint.empty(),
             prefers_installed=False,
+            version_selection="max",
         )
+        previous_candidate = None
         for c in candidates:
             assert isinstance(c, Candidate)
             assert req.is_satisfied_by(c)
+
+            if previous_candidate is not None:
+                assert c.version < previous_candidate.version
+
+            previous_candidate = c
+
+
+def test_new_resolver_candidates_version_selection_min(
+    test_cases: List[Tuple[str, str, int]], factory: Factory
+) -> None:
+    """Candidates returned from find_candidates should satisfy the requirement"""
+    for spec, _, _ in test_cases:
+        req = factory.make_requirement_from_spec(spec, comes_from=None)
+        assert req is not None
+        constraint = Constraint.empty()
+        constraint.specifier = SpecifierSet(">=0.0")
+        candidates = factory.find_candidates(
+            req.name,
+            {req.name: [req]},
+            {},
+            constraint,
+            prefers_installed=False,
+            version_selection="min",
+        )
+        previous_candidate = None
+        for c in candidates:
+            assert isinstance(c, Candidate)
+            assert req.is_satisfied_by(c)
+
+            if previous_candidate is not None:
+                assert c.version > previous_candidate.version
+
+            previous_candidate = c
 
 
 def test_new_resolver_full_resolve(factory: Factory, provider: PipProvider) -> None:

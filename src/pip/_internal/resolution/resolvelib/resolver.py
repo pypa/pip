@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 
 class Resolver(BaseResolver):
     _allowed_strategies = {"eager", "only-if-needed", "to-satisfy-only"}
+    _allowed_version_selection = {"max", "min"}
 
     def __init__(
         self,
@@ -47,10 +48,12 @@ class Resolver(BaseResolver):
         ignore_requires_python: bool,
         force_reinstall: bool,
         upgrade_strategy: str,
+        version_selection: str,
         py_version_info: Optional[Tuple[int, ...]] = None,
     ):
         super().__init__()
         assert upgrade_strategy in self._allowed_strategies
+        assert version_selection in self._allowed_version_selection
 
         self.factory = Factory(
             finder=finder,
@@ -65,6 +68,7 @@ class Resolver(BaseResolver):
         )
         self.ignore_dependencies = ignore_dependencies
         self.upgrade_strategy = upgrade_strategy
+        self.version_selection = version_selection
         self._result: Optional[Result] = None
 
     def resolve(
@@ -76,6 +80,7 @@ class Resolver(BaseResolver):
             constraints=collected.constraints,
             ignore_dependencies=self.ignore_dependencies,
             upgrade_strategy=self.upgrade_strategy,
+            version_selection=self.version_selection,
             user_requested=collected.user_requested,
         )
         if "PIP_RESOLVER_DEBUG" in os.environ:

@@ -74,5 +74,6 @@ def provider(factory: Factory) -> Iterator[PipProvider]:
         constraints={},
         ignore_dependencies=False,
         upgrade_strategy="to-satisfy-only",
+        version_selection="max",
         user_requested={},
     )

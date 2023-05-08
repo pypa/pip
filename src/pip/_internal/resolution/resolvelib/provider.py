@@ -82,6 +82,7 @@ class PipProvider(_ProviderBase):
         are canonicalized project names.
     :params ignore_dependencies: Whether the user specified ``--no-deps``.
     :params upgrade_strategy: The user-specified upgrade strategy.
+    :params version_selection: The user-specified version selection strategy.
     :params user_requested: A set of canonicalized package names that the user
         supplied for pip to install/upgrade.
     """
@@ -92,12 +93,14 @@ class PipProvider(_ProviderBase):
         constraints: Dict[str, Constraint],
         ignore_dependencies: bool,
         upgrade_strategy: str,
+        version_selection: str,
         user_requested: Dict[str, int],
     ) -> None:
         self._factory = factory
         self._constraints = constraints
         self._ignore_dependencies = ignore_dependencies
         self._upgrade_strategy = upgrade_strategy
+        self._version_selection = version_selection
         self._user_requested = user_requested
         self._known_depths: Dict[str, float] = collections.defaultdict(lambda: math.inf)
 
@@ -233,6 +236,7 @@ class PipProvider(_ProviderBase):
             requirements=requirements,
             constraint=constraint,
             prefers_installed=(not _eligible_for_upgrade(identifier)),
+            version_selection=self._version_selection,
             incompatibilities=incompatibilities,
         )
 
