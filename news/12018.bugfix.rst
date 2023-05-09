@@ -1,0 +1,3 @@
+When looking for candidate provided via constraints, correctly parse and split
+the package name and extras from the user input, so the correct constraint can
+be picked based on the package name.
