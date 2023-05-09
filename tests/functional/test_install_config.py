@@ -8,9 +8,9 @@ from typing import Callable, List
 
 import pytest
 
-from tests.conftest import CertFactory, MockServer, ScriptFactory
-from tests.lib import PipTestEnvironment, TestData
+from tests.lib import CertFactory, PipTestEnvironment, ScriptFactory, TestData
 from tests.lib.server import (
+    MockServer,
     authorization_response,
     file_response,
     make_mock_server,

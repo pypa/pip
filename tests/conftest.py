@@ -1,23 +1,21 @@
 import compileall
+import contextlib
 import fnmatch
-import io
 import os
 import re
 import shutil
 import subprocess
 import sys
-from contextlib import ExitStack, contextmanager
 from pathlib import Path
 from typing import (
-    TYPE_CHECKING,
     AnyStr,
     Callable,
+    ContextManager,
     Dict,
     Iterable,
     Iterator,
     List,
     Optional,
-    Union,
 )
 from unittest.mock import patch
 from zipfile import ZipFile
@@ -36,24 +34,19 @@ from installer.destinations import SchemeDictionaryDestination
 from installer.sources import WheelFile
 
 from pip import __file__ as pip_location
-from pip._internal.cli.main import main as pip_entry_point
 from pip._internal.locations import _USE_SYSCONFIG
 from pip._internal.utils.temp_dir import global_tempdir_manager
-from tests.lib import DATA_DIR, SRC_DIR, PipTestEnvironment, TestData
-from tests.lib.server import MockServer as _MockServer
-from tests.lib.server import make_mock_server, server_running
+from tests.lib import (
+    DATA_DIR,
+    SRC_DIR,
+    CertFactory,
+    InMemoryPip,
+    PipTestEnvironment,
+    ScriptFactory,
+    TestData,
+)
+from tests.lib.server import MockServer, make_mock_server
 from tests.lib.venv import VirtualEnvironment, VirtualEnvironmentType
-
-from .lib.compat import nullcontext
-
-if TYPE_CHECKING:
-    from typing import Protocol
-
-    from wsgi import WSGIApplication
-else:
-    # TODO: Protocol was introduced in Python 3.8. Remove this branch when
-    # dropping support for Python 3.7.
-    Protocol = object
 
 
 def pytest_addoption(parser: Parser) -> None:
@@ -325,7 +318,7 @@ def scoped_global_tempdir_manager(request: pytest.FixtureRequest) -> Iterator[No
     temporary directories in the application.
     """
     if "no_auto_tempdir_manager" in request.keywords:
-        ctx = nullcontext
+        ctx: Callable[[], ContextManager[None]] = contextlib.nullcontext
     else:
         ctx = global_tempdir_manager
 
@@ -502,16 +495,6 @@ def virtualenv(
     yield virtualenv_factory(tmpdir.joinpath("workspace", "venv"))
 
 
-class ScriptFactory(Protocol):
-    def __call__(
-        self,
-        tmpdir: Path,
-        virtualenv: Optional[VirtualEnvironment] = None,
-        environ: Optional[Dict[AnyStr, AnyStr]] = None,
-    ) -> PipTestEnvironment:
-        ...
-
-
 @pytest.fixture(scope="session")
 def script_factory(
     virtualenv_factory: Callable[[Path], VirtualEnvironment],
@@ -631,26 +614,6 @@ def data(tmpdir: Path) -> TestData:
     return TestData.copy(tmpdir.joinpath("data"))
 
 
-class InMemoryPipResult:
-    def __init__(self, returncode: int, stdout: str) -> None:
-        self.returncode = returncode
-        self.stdout = stdout
-
-
-class InMemoryPip:
-    def pip(self, *args: Union[str, Path]) -> InMemoryPipResult:
-        orig_stdout = sys.stdout
-        stdout = io.StringIO()
-        sys.stdout = stdout
-        try:
-            returncode = pip_entry_point([os.fspath(a) for a in args])
-        except SystemExit as e:
-            returncode = e.code or 0
-        finally:
-            sys.stdout = orig_stdout
-        return InMemoryPipResult(returncode, stdout.getvalue())
-
-
 @pytest.fixture
 def in_memory_pip() -> InMemoryPip:
     return InMemoryPip()
@@ -660,9 +623,6 @@ def in_memory_pip() -> InMemoryPip:
 def deprecated_python() -> bool:
     """Used to indicate whether pip deprecated this Python version"""
     return sys.version_info[:2] in []
-
-
-CertFactory = Callable[[], str]
 
 
 @pytest.fixture(scope="session")
@@ -684,49 +644,6 @@ def cert_factory(tmpdir_factory: pytest.TempPathFactory) -> CertFactory:
         return str(output_path)
 
     return factory
-
-
-class MockServer:
-    def __init__(self, server: _MockServer) -> None:
-        self._server = server
-        self._running = False
-        self.context = ExitStack()
-
-    @property
-    def port(self) -> int:
-        return self._server.port
-
-    @property
-    def host(self) -> str:
-        return self._server.host
-
-    def set_responses(self, responses: Iterable["WSGIApplication"]) -> None:
-        assert not self._running, "responses cannot be set on running server"
-        self._server.mock.side_effect = responses
-
-    def start(self) -> None:
-        assert not self._running, "running server cannot be started"
-        self.context.enter_context(server_running(self._server))
-        self.context.enter_context(self._set_running())
-
-    @contextmanager
-    def _set_running(self) -> Iterator[None]:
-        self._running = True
-        try:
-            yield
-        finally:
-            self._running = False
-
-    def stop(self) -> None:
-        assert self._running, "idle server cannot be stopped"
-        self.context.close()
-
-    def get_requests(self) -> List[Dict[str, str]]:
-        """Get environ for each received request."""
-        assert not self._running, "cannot get mock from running server"
-        # Legacy: replace call[0][0] with call.args[0]
-        # when pip drops support for python3.7
-        return [call[0][0] for call in self._server.mock.call_args_list]
 
 
 @pytest.fixture

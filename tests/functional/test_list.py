@@ -5,9 +5,9 @@ from pathlib import Path
 import pytest
 
 from pip._internal.models.direct_url import DirectUrl, DirInfo
-from tests.conftest import ScriptFactory
 from tests.lib import (
     PipTestEnvironment,
+    ScriptFactory,
     TestData,
     _create_test_package,
     create_test_package_with_setup,
