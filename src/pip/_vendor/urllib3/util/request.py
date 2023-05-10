@@ -19,21 +19,6 @@ SKIP_HEADER = "@@@SKIP_HEADER@@@"
 SKIPPABLE_HEADERS = frozenset(["accept-encoding", "host", "user-agent"])
 
 ACCEPT_ENCODING = "gzip,deflate"
-try:
-    try:
-        import brotlicffi as _unused_module_brotli  # type: ignore[import] # noqa: F401
-    except ImportError:
-        import brotli as _unused_module_brotli  # type: ignore[import] # noqa: F401
-except ImportError:
-    pass
-else:
-    ACCEPT_ENCODING += ",br"
-try:
-    import zstandard as _unused_module_zstd  # type: ignore[import] # noqa: F401
-except ImportError:
-    pass
-else:
-    ACCEPT_ENCODING += ",zstd"
 
 
 class _TYPE_FAILEDTELL(Enum):
