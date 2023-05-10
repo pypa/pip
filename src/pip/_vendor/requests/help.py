@@ -10,15 +10,7 @@ from pip._vendor import urllib3
 
 from . import __version__ as requests_version
 
-try:
-    from pip._vendor import charset_normalizer
-except ImportError:
-    charset_normalizer = None
-
-try:
-    import chardet
-except ImportError:
-    chardet = None
+from pip._vendor import charset_normalizer
 
 try:
     from pip._vendor.urllib3.contrib import pyopenssl

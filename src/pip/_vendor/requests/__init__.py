@@ -44,15 +44,9 @@ from pip._vendor import urllib3
 
 from .exceptions import RequestsDependencyWarning
 
-try:
-    from pip._vendor.charset_normalizer import __version__ as charset_normalizer_version
-except ImportError:
-    charset_normalizer_version = None
+from pip._vendor.charset_normalizer import __version__ as charset_normalizer_version
 
-try:
-    from chardet import __version__ as chardet_version
-except ImportError:
-    chardet_version = None
+chardet_version = None
 
 
 def check_compatibility(urllib3_version, chardet_version, charset_normalizer_version):
