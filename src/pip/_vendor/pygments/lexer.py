@@ -150,7 +150,7 @@ class Lexer(metaclass=LexerMeta):
                 text, _ = guess_decode(text)
             elif self.encoding == 'chardet':
                 try:
-                    import chardet
+                    from pip._vendor import charset_normalizer as chardet
                 except ImportError as e:
                     raise ImportError('To enable chardet encoding guessing, '
                                       'please install the chardet library '
