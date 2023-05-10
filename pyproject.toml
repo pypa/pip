@@ -58,6 +58,9 @@ drop = [
   '^pygments/lexers/(?!python|__init__|_mapping).*\.py$',
   # trim rich's markdown support
   "rich/markdown.py",
+  # remove charset-normalizer's speedup modules
+  '^charset_normalizer/md.+\.pyd$',
+  '^charset_normalizer/md.+\.so$',
 ]
 
 [tool.vendoring.typing-stubs]
