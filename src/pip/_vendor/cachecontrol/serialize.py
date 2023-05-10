@@ -51,7 +51,7 @@ class Serializer(object):
                 u"status": response.status,
                 u"version": response.version,
                 u"reason": text_type(response.reason),
-                u"strict": response.strict,
+                u"strict": True,
                 u"decode_content": response.decode_content,
             }
         }
@@ -137,7 +137,9 @@ class Serializer(object):
             #
             #     TypeError: 'str' does not support the buffer interface
             body = io.BytesIO(body_raw.encode("utf8"))
-
+        # Work around ionrock/cachecontrol#292. According to urllib3 maintainers,
+        # the 'strict' argument can be simply dropped since we always use urllib3 2.x.
+        cached["response"].pop("strict", None)
         return HTTPResponse(body=body, preload_content=False, **cached["response"])
 
     def _loads_v0(self, request, data, body_file=None):
