@@ -24,19 +24,10 @@ is_py2 = _ver[0] == 2
 #: Python 3.x?
 is_py3 = _ver[0] == 3
 
-# json/simplejson module import resolution
-has_simplejson = False
-try:
-    import simplejson as json
-
-    has_simplejson = True
-except ImportError:
-    import json
-
-if has_simplejson:
-    from simplejson import JSONDecodeError
-else:
-    from json import JSONDecodeError
+# Note: We've patched out simplejson support in pip because it prevents
+#       upgrading simplejson on Windows.
+import json
+from json import JSONDecodeError
 
 # Keep OrderedDict for backwards compatibility.
 from collections import OrderedDict

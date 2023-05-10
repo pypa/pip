@@ -1,0 +1,64 @@
+diff --git a/src/pip/_vendor/requests/__init__.py b/src/pip/_vendor/requests/__init__.py
+index 271926aa6..d5bcda2f2 100644
+--- a/src/pip/_vendor/requests/__init__.py
++++ b/src/pip/_vendor/requests/__init__.py
+@@ -112,6 +112,11 @@ except (AssertionError, ValueError):
+ # if the standard library doesn't support SNI or the
+ # 'ssl' library isn't available.
+ try:
++    # Note: This logic prevents upgrading cryptography on Windows, if imported
++    #       as part of pip.
++    from pip._internal.utils.compat import WINDOWS
++    if not WINDOWS:
++        raise ImportError("pip internals: don't import cryptography on Windows")
+     try:
+         import ssl
+     except ImportError:
+diff --git a/src/pip/_vendor/requests/certs.py b/src/pip/_vendor/requests/certs.py
+index 2743144b9..6cd7b0c7d 100644
+--- a/src/pip/_vendor/requests/certs.py
++++ b/src/pip/_vendor/requests/certs.py
+@@ -11,7 +11,14 @@ If you are packaging Requests, e.g., for a Linux distribution or a managed
+ environment, you can change the definition of where() to return a separately
+ packaged CA bundle.
+ """
+-from certifi import where
++
++import os
++
++if "_PIP_STANDALONE_CERT" not in os.environ:
++    from pip._vendor.certifi import where
++else:
++    def where():
++        return os.environ["_PIP_STANDALONE_CERT"]
+ 
+ if __name__ == "__main__":
+     print(where())
+diff --git a/src/pip/_vendor/requests/compat.py b/src/pip/_vendor/requests/compat.py
+index 6e6eb6120..33525c52f 100644
+--- a/src/pip/_vendor/requests/compat.py
++++ b/src/pip/_vendor/requests/compat.py
+@@ -24,19 +24,10 @@ is_py2 = _ver[0] == 2
+ #: Python 3.x?
+ is_py3 = _ver[0] == 3
+ 
+-# json/simplejson module import resolution
+-has_simplejson = False
+-try:
+-    import simplejson as json
+-
+-    has_simplejson = True
+-except ImportError:
+-    import json
+-
+-if has_simplejson:
+-    from simplejson import JSONDecodeError
+-else:
+-    from json import JSONDecodeError
++# Note: We've patched out simplejson support in pip because it prevents
++#       upgrading simplejson on Windows.
++import json
++from json import JSONDecodeError
+ 
+ # Keep OrderedDict for backwards compatibility.
+ from collections import OrderedDict

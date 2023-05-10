@@ -112,6 +112,11 @@ except (AssertionError, ValueError):
 # if the standard library doesn't support SNI or the
 # 'ssl' library isn't available.
 try:
+    # Note: This logic prevents upgrading cryptography on Windows, if imported
+    #       as part of pip.
+    from pip._internal.utils.compat import WINDOWS
+    if not WINDOWS:
+        raise ImportError("pip internals: don't import cryptography on Windows")
     try:
         import ssl
     except ImportError:
