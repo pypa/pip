@@ -7,7 +7,7 @@ between Python 2 and Python 3. It remains for backwards
 compatibility until the next major version.
 """
 
-from pip._vendor import chardet
+import chardet
 
 import sys
 

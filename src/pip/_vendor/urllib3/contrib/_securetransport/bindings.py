@@ -1,3 +1,5 @@
+# type: ignore
+
 """
 This module uses ctypes to bind a whole bunch of functions and constants from
 SecureTransport. The goal here is to provide the low-level API to
@@ -29,7 +31,8 @@ license and by oscrypto's:
     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
     DEALINGS IN THE SOFTWARE.
 """
-from __future__ import absolute_import
+
+from __future__ import annotations
 
 import platform
 from ctypes import (
@@ -48,8 +51,6 @@ from ctypes import (
 )
 from ctypes.util import find_library
 
-from ...packages.six import raise_from
-
 if platform.system() != "Darwin":
     raise ImportError("Only macOS is supported")
 
@@ -57,16 +58,16 @@ version = platform.mac_ver()[0]
 version_info = tuple(map(int, version.split(".")))
 if version_info < (10, 8):
     raise OSError(
-        "Only OS X 10.8 and newer are supported, not %s.%s"
-        % (version_info[0], version_info[1])
+        f"Only OS X 10.8 and newer are supported, not {version_info[0]}.{version_info[1]}"
     )
 
 
-def load_cdll(name, macos10_16_path):
+def load_cdll(name: str, macos10_16_path: str) -> CDLL:
     """Loads a CDLL by name, falling back to known path on 10.16+"""
     try:
         # Big Sur is technically 11 but we use 10.16 due to the Big Sur
         # beta being labeled as 10.16.
+        path: str | None
         if version_info >= (10, 16):
             path = macos10_16_path
         else:
@@ -75,7 +76,7 @@ def load_cdll(name, macos10_16_path):
             raise OSError  # Caught and reraised as 'ImportError'
         return CDLL(path, use_errno=True)
     except OSError:
-        raise_from(ImportError("The library %s failed to load" % name), None)
+        raise ImportError(f"The library {name} failed to load") from None
 
 
 Security = load_cdll(
@@ -416,104 +417,14 @@ try:
     CoreFoundation.CFStringRef = CFStringRef
     CoreFoundation.CFDictionaryRef = CFDictionaryRef
 
-except (AttributeError):
-    raise ImportError("Error initializing ctypes")
+except AttributeError:
+    raise ImportError("Error initializing ctypes") from None
 
 
-class CFConst(object):
+class CFConst:
     """
     A class object that acts as essentially a namespace for CoreFoundation
     constants.
     """
 
     kCFStringEncodingUTF8 = CFStringEncoding(0x08000100)
-
-
-class SecurityConst(object):
-    """
-    A class object that acts as essentially a namespace for Security constants.
-    """
-
-    kSSLSessionOptionBreakOnServerAuth = 0
-
-    kSSLProtocol2 = 1
-    kSSLProtocol3 = 2
-    kTLSProtocol1 = 4
-    kTLSProtocol11 = 7
-    kTLSProtocol12 = 8
-    # SecureTransport does not support TLS 1.3 even if there's a constant for it
-    kTLSProtocol13 = 10
-    kTLSProtocolMaxSupported = 999
-
-    kSSLClientSide = 1
-    kSSLStreamType = 0
-
-    kSecFormatPEMSequence = 10
-
-    kSecTrustResultInvalid = 0
-    kSecTrustResultProceed = 1
-    # This gap is present on purpose: this was kSecTrustResultConfirm, which
-    # is deprecated.
-    kSecTrustResultDeny = 3
-    kSecTrustResultUnspecified = 4
-    kSecTrustResultRecoverableTrustFailure = 5
-    kSecTrustResultFatalTrustFailure = 6
-    kSecTrustResultOtherError = 7
-
-    errSSLProtocol = -9800
-    errSSLWouldBlock = -9803
-    errSSLClosedGraceful = -9805
-    errSSLClosedNoNotify = -9816
-    errSSLClosedAbort = -9806
-
-    errSSLXCertChainInvalid = -9807
-    errSSLCrypto = -9809
-    errSSLInternal = -9810
-    errSSLCertExpired = -9814
-    errSSLCertNotYetValid = -9815
-    errSSLUnknownRootCert = -9812
-    errSSLNoRootCert = -9813
-    errSSLHostNameMismatch = -9843
-    errSSLPeerHandshakeFail = -9824
-    errSSLPeerUserCancelled = -9839
-    errSSLWeakPeerEphemeralDHKey = -9850
-    errSSLServerAuthCompleted = -9841
-    errSSLRecordOverflow = -9847
-
-    errSecVerifyFailed = -67808
-    errSecNoTrustSettings = -25263
-    errSecItemNotFound = -25300
-    errSecInvalidTrustSettings = -25262
-
-    # Cipher suites. We only pick the ones our default cipher string allows.
-    # Source: https://developer.apple.com/documentation/security/1550981-ssl_cipher_suite_values
-    TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 = 0xC02C
-    TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 = 0xC030
-    TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 = 0xC02B
-    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 = 0xC02F
-    TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 = 0xCCA9
-    TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 = 0xCCA8
-    TLS_DHE_RSA_WITH_AES_256_GCM_SHA384 = 0x009F
-    TLS_DHE_RSA_WITH_AES_128_GCM_SHA256 = 0x009E
-    TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384 = 0xC024
-    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384 = 0xC028
-    TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA = 0xC00A
-    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA = 0xC014
-    TLS_DHE_RSA_WITH_AES_256_CBC_SHA256 = 0x006B
-    TLS_DHE_RSA_WITH_AES_256_CBC_SHA = 0x0039
-    TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 = 0xC023
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256 = 0xC027
-    TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA = 0xC009
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA = 0xC013
-    TLS_DHE_RSA_WITH_AES_128_CBC_SHA256 = 0x0067
-    TLS_DHE_RSA_WITH_AES_128_CBC_SHA = 0x0033
-    TLS_RSA_WITH_AES_256_GCM_SHA384 = 0x009D
-    TLS_RSA_WITH_AES_128_GCM_SHA256 = 0x009C
-    TLS_RSA_WITH_AES_256_CBC_SHA256 = 0x003D
-    TLS_RSA_WITH_AES_128_CBC_SHA256 = 0x003C
-    TLS_RSA_WITH_AES_256_CBC_SHA = 0x0035
-    TLS_RSA_WITH_AES_128_CBC_SHA = 0x002F
-    TLS_AES_128_GCM_SHA256 = 0x1301
-    TLS_AES_256_GCM_SHA384 = 0x1302
-    TLS_AES_128_CCM_8_SHA256 = 0x1305
-    TLS_AES_128_CCM_SHA256 = 0x1304

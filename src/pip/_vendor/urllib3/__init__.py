@@ -1,23 +1,46 @@
 """
 Python HTTP library with thread-safe connection pooling, file post support, user friendly, and more
 """
-from __future__ import absolute_import
+
+from __future__ import annotations
 
 # Set default logging handler to avoid "No handler found" warnings.
 import logging
+import typing
 import warnings
 from logging import NullHandler
 
 from . import exceptions
+from ._base_connection import _TYPE_BODY
+from ._collections import HTTPHeaderDict
 from ._version import __version__
 from .connectionpool import HTTPConnectionPool, HTTPSConnectionPool, connection_from_url
-from .filepost import encode_multipart_formdata
+from .filepost import _TYPE_FIELDS, encode_multipart_formdata
 from .poolmanager import PoolManager, ProxyManager, proxy_from_url
-from .response import HTTPResponse
+from .response import BaseHTTPResponse, HTTPResponse
 from .util.request import make_headers
 from .util.retry import Retry
 from .util.timeout import Timeout
-from .util.url import get_host
+
+# Ensure that Python is compiled with OpenSSL 1.1.1+
+# If the 'ssl' module isn't available at all that's
+# fine, we only care if the module is available.
+try:
+    import ssl
+except ImportError:
+    pass
+else:
+    # fmt: off
+    if (
+        not ssl.OPENSSL_VERSION.startswith("OpenSSL ")
+        or ssl.OPENSSL_VERSION_INFO < (1, 1, 1)
+    ):  # Defensive:
+        raise ImportError(
+            "urllib3 v2.0 only supports OpenSSL 1.1.1+, currently "
+            f"the 'ssl' module is compiled with {ssl.OPENSSL_VERSION}. "
+            "See: https://github.com/urllib3/urllib3/issues/2168"
+        )
+    # fmt: on
 
 # === NOTE TO REPACKAGERS AND VENDORS ===
 # Please delete this block, this logic is only
@@ -25,12 +48,12 @@ from .util.url import get_host
 # See: https://github.com/urllib3/urllib3/issues/2680
 try:
     import urllib3_secure_extra  # type: ignore # noqa: F401
-except ImportError:
+except ModuleNotFoundError:
     pass
 else:
     warnings.warn(
         "'urllib3[secure]' extra is deprecated and will be removed "
-        "in a future release of urllib3 2.x. Read more in this issue: "
+        "in urllib3 v2.1.0. Read more in this issue: "
         "https://github.com/urllib3/urllib3/issues/2680",
         category=DeprecationWarning,
         stacklevel=2,
@@ -42,6 +65,7 @@ __version__ = __version__
 
 __all__ = (
     "HTTPConnectionPool",
+    "HTTPHeaderDict",
     "HTTPSConnectionPool",
     "PoolManager",
     "ProxyManager",
@@ -52,15 +76,17 @@ __all__ = (
     "connection_from_url",
     "disable_warnings",
     "encode_multipart_formdata",
-    "get_host",
     "make_headers",
     "proxy_from_url",
+    "request",
 )
 
 logging.getLogger(__name__).addHandler(NullHandler())
 
 
-def add_stderr_logger(level=logging.DEBUG):
+def add_stderr_logger(
+    level: int = logging.DEBUG,
+) -> logging.StreamHandler[typing.TextIO]:
     """
     Helper for quickly adding a StreamHandler to the logger. Useful for
     debugging.
@@ -87,16 +113,51 @@ del NullHandler
 # mechanisms to silence them.
 # SecurityWarning's always go off by default.
 warnings.simplefilter("always", exceptions.SecurityWarning, append=True)
-# SubjectAltNameWarning's should go off once per host
-warnings.simplefilter("default", exceptions.SubjectAltNameWarning, append=True)
 # InsecurePlatformWarning's don't vary between requests, so we keep it default.
 warnings.simplefilter("default", exceptions.InsecurePlatformWarning, append=True)
-# SNIMissingWarnings should go off only once.
-warnings.simplefilter("default", exceptions.SNIMissingWarning, append=True)
 
 
-def disable_warnings(category=exceptions.HTTPWarning):
+def disable_warnings(category: type[Warning] = exceptions.HTTPWarning) -> None:
     """
     Helper for quickly disabling all urllib3 warnings.
     """
     warnings.simplefilter("ignore", category)
+
+
+_DEFAULT_POOL = PoolManager()
+
+
+def request(
+    method: str,
+    url: str,
+    *,
+    body: _TYPE_BODY | None = None,
+    fields: _TYPE_FIELDS | None = None,
+    headers: typing.Mapping[str, str] | None = None,
+    preload_content: bool | None = True,
+    decode_content: bool | None = True,
+    redirect: bool | None = True,
+    retries: Retry | bool | int | None = None,
+    timeout: Timeout | float | int | None = 3,
+    json: typing.Any | None = None,
+) -> BaseHTTPResponse:
+    """
+    A convenience, top-level request method. It uses a module-global ``PoolManager`` instance.
+    Therefore, its side effects could be shared across dependencies relying on it.
+    To avoid side effects create a new ``PoolManager`` instance and use it instead.
+    The method does not accept low-level ``**urlopen_kw`` keyword arguments.
+    """
+
+    return _DEFAULT_POOL.request(
+        method,
+        url,
+        body=body,
+        fields=fields,
+        headers=headers,
+        preload_content=preload_content,
+        decode_content=decode_content,
+        redirect=redirect,
+        retries=retries,
+        timeout=timeout,
+        json=json,
+    )

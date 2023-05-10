@@ -7,6 +7,8 @@ CoreFoundation messing about and memory management. The concerns in this module
 are almost entirely about trying to avoid memory leaks and providing
 appropriate and useful assistance to the higher-level code.
 """
+from __future__ import annotations
+
 import base64
 import ctypes
 import itertools
@@ -15,8 +17,20 @@ import re
 import ssl
 import struct
 import tempfile
+import typing
 
-from .bindings import CFConst, CoreFoundation, Security
+from .bindings import (  # type: ignore[attr-defined]
+    CFArray,
+    CFConst,
+    CFData,
+    CFDictionary,
+    CFMutableArray,
+    CFString,
+    CFTypeRef,
+    CoreFoundation,
+    SecKeychainRef,
+    Security,
+)
 
 # This regular expression is used to grab PEM data out of a PEM bundle.
 _PEM_CERTS_RE = re.compile(
@@ -24,7 +38,7 @@ _PEM_CERTS_RE = re.compile(
 )
 
 
-def _cf_data_from_bytes(bytestring):
+def _cf_data_from_bytes(bytestring: bytes) -> CFData:
     """
     Given a bytestring, create a CFData object from it. This CFData object must
     be CFReleased by the caller.
@@ -34,7 +48,9 @@ def _cf_data_from_bytes(bytestring):
     )
 
 
-def _cf_dictionary_from_tuples(tuples):
+def _cf_dictionary_from_tuples(
+    tuples: list[tuple[typing.Any, typing.Any]]
+) -> CFDictionary:
     """
     Given a list of Python tuples, create an associated CFDictionary.
     """
@@ -56,7 +72,7 @@ def _cf_dictionary_from_tuples(tuples):
     )
 
 
-def _cfstr(py_bstr):
+def _cfstr(py_bstr: bytes) -> CFString:
     """
     Given a Python binary data, create a CFString.
     The string must be CFReleased by the caller.
@@ -70,7 +86,7 @@ def _cfstr(py_bstr):
     return cf_str
 
 
-def _create_cfstring_array(lst):
+def _create_cfstring_array(lst: list[bytes]) -> CFMutableArray:
     """
     Given a list of Python binary data, create an associated CFMutableArray.
     The array must be CFReleased by the caller.
@@ -97,11 +113,11 @@ def _create_cfstring_array(lst):
     except BaseException as e:
         if cf_arr:
             CoreFoundation.CFRelease(cf_arr)
-        raise ssl.SSLError("Unable to allocate array: %s" % (e,))
+        raise ssl.SSLError(f"Unable to allocate array: {e}") from None
     return cf_arr
 
 
-def _cf_string_to_unicode(value):
+def _cf_string_to_unicode(value: CFString) -> str | None:
     """
     Creates a Unicode string from a CFString object. Used entirely for error
     reporting.
@@ -123,10 +139,12 @@ def _cf_string_to_unicode(value):
         string = buffer.value
     if string is not None:
         string = string.decode("utf-8")
-    return string
+    return string  # type: ignore[no-any-return]
 
 
-def _assert_no_error(error, exception_class=None):
+def _assert_no_error(
+    error: int, exception_class: type[BaseException] | None = None
+) -> None:
     """
     Checks the return code and throws an exception if there is an error to
     report
@@ -138,8 +156,8 @@ def _assert_no_error(error, exception_class=None):
     output = _cf_string_to_unicode(cf_error_string)
     CoreFoundation.CFRelease(cf_error_string)
 
-    if output is None or output == u"":
-        output = u"OSStatus %s" % error
+    if output is None or output == "":
+        output = f"OSStatus {error}"
 
     if exception_class is None:
         exception_class = ssl.SSLError
@@ -147,7 +165,7 @@ def _assert_no_error(error, exception_class=None):
     raise exception_class(output)
 
 
-def _cert_array_from_pem(pem_bundle):
+def _cert_array_from_pem(pem_bundle: bytes) -> CFArray:
     """
     Given a bundle of certs in PEM format, turns them into a CFArray of certs
     that can be used to validate a cert chain.
@@ -193,23 +211,23 @@ def _cert_array_from_pem(pem_bundle):
     return cert_array
 
 
-def _is_cert(item):
+def _is_cert(item: CFTypeRef) -> bool:
     """
     Returns True if a given CFTypeRef is a certificate.
     """
     expected = Security.SecCertificateGetTypeID()
-    return CoreFoundation.CFGetTypeID(item) == expected
+    return CoreFoundation.CFGetTypeID(item) == expected  # type: ignore[no-any-return]
 
 
-def _is_identity(item):
+def _is_identity(item: CFTypeRef) -> bool:
     """
     Returns True if a given CFTypeRef is an identity.
     """
     expected = Security.SecIdentityGetTypeID()
-    return CoreFoundation.CFGetTypeID(item) == expected
+    return CoreFoundation.CFGetTypeID(item) == expected  # type: ignore[no-any-return]
 
 
-def _temporary_keychain():
+def _temporary_keychain() -> tuple[SecKeychainRef, str]:
     """
     This function creates a temporary Mac keychain that we can use to work with
     credentials. This keychain uses a one-time password and a temporary file to
@@ -244,7 +262,9 @@ def _temporary_keychain():
     return keychain, tempdirectory
 
 
-def _load_items_from_file(keychain, path):
+def _load_items_from_file(
+    keychain: SecKeychainRef, path: str
+) -> tuple[list[CFTypeRef], list[CFTypeRef]]:
     """
     Given a single file, loads all the trust objects from it into arrays and
     the keychain.
@@ -299,7 +319,7 @@ def _load_items_from_file(keychain, path):
     return (identities, certificates)
 
 
-def _load_client_cert_chain(keychain, *paths):
+def _load_client_cert_chain(keychain: SecKeychainRef, *paths: str | None) -> CFArray:
     """
     Load certificates and maybe keys from a number of files. Has the end goal
     of returning a CFArray containing one SecIdentityRef, and then zero or more
@@ -335,10 +355,10 @@ def _load_client_cert_chain(keychain, *paths):
     identities = []
 
     # Filter out bad paths.
-    paths = (path for path in paths if path)
+    filtered_paths = (path for path in paths if path)
 
     try:
-        for file_path in paths:
+        for file_path in filtered_paths:
             new_identities, new_certs = _load_items_from_file(keychain, file_path)
             identities.extend(new_identities)
             certificates.extend(new_certs)
@@ -383,7 +403,7 @@ TLS_PROTOCOL_VERSIONS = {
 }
 
 
-def _build_tls_unknown_ca_alert(version):
+def _build_tls_unknown_ca_alert(version: str) -> bytes:
     """
     Builds a TLS alert record for an unknown CA.
     """
@@ -395,3 +415,60 @@ def _build_tls_unknown_ca_alert(version):
     record_type_alert = 0x15
     record = struct.pack(">BBBH", record_type_alert, ver_maj, ver_min, msg_len) + msg
     return record
+
+
+class SecurityConst:
+    """
+    A class object that acts as essentially a namespace for Security constants.
+    """
+
+    kSSLSessionOptionBreakOnServerAuth = 0
+
+    kSSLProtocol2 = 1
+    kSSLProtocol3 = 2
+    kTLSProtocol1 = 4
+    kTLSProtocol11 = 7
+    kTLSProtocol12 = 8
+    # SecureTransport does not support TLS 1.3 even if there's a constant for it
+    kTLSProtocol13 = 10
+    kTLSProtocolMaxSupported = 999
+
+    kSSLClientSide = 1
+    kSSLStreamType = 0
+
+    kSecFormatPEMSequence = 10
+
+    kSecTrustResultInvalid = 0
+    kSecTrustResultProceed = 1
+    # This gap is present on purpose: this was kSecTrustResultConfirm, which
+    # is deprecated.
+    kSecTrustResultDeny = 3
+    kSecTrustResultUnspecified = 4
+    kSecTrustResultRecoverableTrustFailure = 5
+    kSecTrustResultFatalTrustFailure = 6
+    kSecTrustResultOtherError = 7
+
+    errSSLProtocol = -9800
+    errSSLWouldBlock = -9803
+    errSSLClosedGraceful = -9805
+    errSSLClosedNoNotify = -9816
+    errSSLClosedAbort = -9806
+
+    errSSLXCertChainInvalid = -9807
+    errSSLCrypto = -9809
+    errSSLInternal = -9810
+    errSSLCertExpired = -9814
+    errSSLCertNotYetValid = -9815
+    errSSLUnknownRootCert = -9812
+    errSSLNoRootCert = -9813
+    errSSLHostNameMismatch = -9843
+    errSSLPeerHandshakeFail = -9824
+    errSSLPeerUserCancelled = -9839
+    errSSLWeakPeerEphemeralDHKey = -9850
+    errSSLServerAuthCompleted = -9841
+    errSSLRecordOverflow = -9847
+
+    errSecVerifyFailed = -67808
+    errSecNoTrustSettings = -25263
+    errSecItemNotFound = -25300
+    errSecInvalidTrustSettings = -25262
