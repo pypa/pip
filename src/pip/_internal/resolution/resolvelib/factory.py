@@ -140,9 +140,9 @@ class Factory:
     def _make_extras_candidate(
         self,
         base: BaseCandidate,
-        extras: FrozenSet[NormalizedName],
+        extras: FrozenSet[str],
     ) -> ExtrasCandidate:
-        cache_key = (id(base), extras)
+        cache_key = (id(base), frozenset(canonicalize_name(e) for e in extras))
         try:
             candidate = self._extras_candidate_cache[cache_key]
         except KeyError:
@@ -153,7 +153,7 @@ class Factory:
     def _make_candidate_from_dist(
         self,
         dist: BaseDistribution,
-        extras: FrozenSet[NormalizedName],
+        extras: FrozenSet[str],
         template: InstallRequirement,
     ) -> Candidate:
         try:
@@ -168,7 +168,7 @@ class Factory:
     def _make_candidate_from_link(
         self,
         link: Link,
-        extras: FrozenSet[NormalizedName],
+        extras: FrozenSet[str],
         template: InstallRequirement,
         name: Optional[NormalizedName],
         version: Optional[CandidateVersion],
@@ -246,12 +246,12 @@ class Factory:
         assert template.req, "Candidates found on index must be PEP 508"
         name = canonicalize_name(template.req.name)
 
-        extras: FrozenSet[NormalizedName] = frozenset()
+        extras: FrozenSet[str] = frozenset()
         for ireq in ireqs:
             assert ireq.req, "Candidates found on index must be PEP 508"
             specifier &= ireq.req.specifier
             hashes &= ireq.hashes(trust_internet=False)
-            extras |= frozenset(canonicalize_name(e) for e in ireq.extras)
+            extras |= frozenset(ireq.extras)
 
         def _get_installed_candidate() -> Optional[Candidate]:
             """Get the candidate for the currently-installed version."""
@@ -327,7 +327,7 @@ class Factory:
     def _iter_explicit_candidates_from_base(
         self,
         base_requirements: Iterable[Requirement],
-        extras: FrozenSet[NormalizedName],
+        extras: FrozenSet[str],
     ) -> Iterator[Candidate]:
         """Produce explicit candidates from the base given an extra-ed package.
 
@@ -394,7 +394,7 @@ class Factory:
             explicit_candidates.update(
                 self._iter_explicit_candidates_from_base(
                     requirements.get(parsed_requirement.name, ()),
-                    frozenset(canonicalize_name(e) for e in parsed_requirement.extras),
+                    frozenset(parsed_requirement.extras),
                 ),
             )
 
@@ -454,7 +454,7 @@ class Factory:
         self._fail_if_link_is_unsupported_wheel(ireq.link)
         cand = self._make_candidate_from_link(
             ireq.link,
-            extras=frozenset(canonicalize_name(e) for e in ireq.extras),
+            extras=frozenset(ireq.extras),
             template=ireq,
             name=canonicalize_name(ireq.name) if ireq.name else None,
             version=None,
