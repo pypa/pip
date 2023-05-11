@@ -1,7 +1,7 @@
 from typing import FrozenSet, Iterable, Optional, Tuple, Union
 
 from pip._vendor.packaging.specifiers import SpecifierSet
-from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
+from pip._vendor.packaging.utils import NormalizedName
 from pip._vendor.packaging.version import LegacyVersion, Version
 
 from pip._internal.models.link import Link, links_equivalent
@@ -15,8 +15,8 @@ CandidateVersion = Union[LegacyVersion, Version]
 def format_name(project: NormalizedName, extras: FrozenSet[NormalizedName]) -> str:
     if not extras:
         return project
-    canonical_extras = sorted(canonicalize_name(e) for e in extras)
-    return "{}[{}]".format(project, ",".join(canonical_extras))
+    extras_expr = ",".join(sorted(extras))
+    return f"{project}[{extras_expr}]"
 
 
 class Constraint:
