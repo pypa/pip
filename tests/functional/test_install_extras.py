@@ -155,25 +155,50 @@ def test_install_fails_if_extra_at_end(
     assert "Extras after version" in result.stderr
 
 
-def test_install_special_extra(script: PipTestEnvironment) -> None:
+@pytest.mark.parametrize(
+    "specified_extra, requested_extra",
+    [
+        ("Hop_hOp-hoP", "Hop_hOp-hoP"),
+        pytest.param(
+            "Hop_hOp-hoP",
+            "hop-hop-hop",
+            marks=pytest.mark.xfail(
+                reason=(
+                    "matching a normalized extra request against an"
+                    "unnormalized extra in metadata requires PEP 685 support "
+                    "in packaging (see pypa/pip#11445)."
+                ),
+            ),
+        ),
+        ("hop-hop-hop", "Hop_hOp-hoP"),
+    ],
+)
+def test_install_special_extra(
+    script: PipTestEnvironment,
+    specified_extra: str,
+    requested_extra: str,
+) -> None:
     # Check that uppercase letters and '-' are dealt with
     # make a dummy project
     pkga_path = script.scratch_path / "pkga"
     pkga_path.mkdir()
     pkga_path.joinpath("setup.py").write_text(
         textwrap.dedent(
-            """
+            f"""
         from setuptools import setup
         setup(name='pkga',
               version='0.1',
-              extras_require={'Hop_hOp-hoP': ['missing_pkg']},
+              extras_require={{'{specified_extra}': ['missing_pkg']}},
         )
     """
         )
     )
 
     result = script.pip(
-        "install", "--no-index", f"{pkga_path}[Hop_hOp-hoP]", expect_error=True
+        "install",
+        "--no-index",
+        f"{pkga_path}[{requested_extra}]",
+        expect_error=True,
     )
     assert (
         "Could not find a version that satisfies the requirement missing_pkg"
