@@ -88,9 +88,27 @@ def test_basic_freeze(script: PipTestEnvironment) -> None:
 
 
 def test_freeze_with_pip(script: PipTestEnvironment) -> None:
-    """Test pip shows itself"""
+    """Test that pip shows itself only when --all is used"""
+    result = script.pip("freeze")
+    assert "pip==" not in result.stdout
     result = script.pip("freeze", "--all")
     assert "pip==" in result.stdout
+
+
+def test_freeze_with_setuptools(script: PipTestEnvironment) -> None:
+    """
+    Test that pip shows setuptools only when --all is used
+    or Python version is >=3.12
+    """
+
+    result = script.pip("freeze")
+    if sys.version_info >= (3, 12):
+        assert "setuptools==" in result.stdout
+    else:
+        assert "setuptools==" not in result.stdout
+
+    result = script.pip("freeze", "--all")
+    assert "setuptools==" in result.stdout
 
 
 def test_exclude_and_normalization(script: PipTestEnvironment, tmpdir: Path) -> None:

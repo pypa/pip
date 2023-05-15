@@ -8,7 +8,10 @@ from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.operations.freeze import freeze
 from pip._internal.utils.compat import stdlib_pkgs
 
-DEV_PKGS = {"pip", "setuptools", "distribute", "wheel"}
+DEV_PKGS = {"pip"}
+
+if sys.version_info < (3, 12):
+    DEV_PKGS |= {"setuptools", "distribute", "wheel"}
 
 
 class FreezeCommand(Command):
