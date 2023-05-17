@@ -372,6 +372,11 @@ class Link(KeyBasedCompareMixin):
         scheme, netloc, path, query, fragment = self._parsed_url
         return urllib.parse.urlunsplit((scheme, netloc, path, query, ""))
 
+    @property
+    def metadata_file_url(self) -> str:
+        scheme, netloc, path, query, fragment = self._parsed_url
+        return urllib.parse.urlunsplit((scheme, netloc, path + ".metadata", query, ""))
+
     _egg_fragment_re = re.compile(r"[#&]egg=([^&]*)")
 
     # Per PEP 508.
@@ -413,7 +418,7 @@ class Link(KeyBasedCompareMixin):
         # gets set.
         if self.dist_info_metadata is None:
             return None
-        metadata_url = f"{self.url_without_fragment}.metadata"
+        metadata_url = self.metadata_file_url
         metadata_link_hash = LinkHash.parse_pep658_hash(self.dist_info_metadata)
         if metadata_link_hash is None:
             return Link(metadata_url)
