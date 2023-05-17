@@ -1,0 +1,2 @@
+Correct the calculation of the metadata file URL for a link to handle
+URL query components correctly.
