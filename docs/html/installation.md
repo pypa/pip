@@ -67,9 +67,17 @@ $ python pip.pyz --help
 
 If run directly:
 
-```{pip-cli}
-$ pip.pyz --help
+````{tab} Unix/macOS
+```shell
+./pip.pyz
 ```
+````
+
+````{tab} Windows
+```shell
+.\pip.pyz
+```
+````
 
 then the currently active Python interpreter will be used.
 
