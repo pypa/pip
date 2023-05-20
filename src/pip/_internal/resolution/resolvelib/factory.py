@@ -248,7 +248,7 @@ class Factory:
         for ireq in ireqs:
             assert ireq.req, "Candidates found on index must be PEP 508"
             specifier &= ireq.req.specifier
-            hashes &= ireq.hashes(trust_internet=False)
+            hashes &= ireq.hashes()
             extras |= frozenset(ireq.extras)
 
         def _get_installed_candidate() -> Optional[Candidate]:

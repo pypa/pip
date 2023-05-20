@@ -336,7 +336,7 @@ class RequirementPreparer:
         # (For example, we can raise VcsHashUnsupported for a VCS URL
         # rather than HashMissing.)
         if not self.require_hashes:
-            return req.hashes(trust_internet=True)
+            return req.hashes()
 
         # We could check these first 2 conditions inside unpack_url
         # and save repetition of conditions, but then we would
@@ -359,7 +359,7 @@ class RequirementPreparer:
         # shim it with a facade object that will provoke hash
         # computation and then raise a HashMissing exception
         # showing the user what the hash should be.
-        return req.hashes(trust_internet=False) or MissingHashes()
+        return req.hashes() or MissingHashes()
 
     def _fetch_metadata_only(
         self,

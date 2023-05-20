@@ -8,6 +8,7 @@ These are meant to be used elsewhere within pip to create instances of
 InstallRequirement.
 """
 
+import copy
 import logging
 import os
 import re
@@ -205,7 +206,7 @@ def install_req_from_editable(
     use_pep517: Optional[bool] = None,
     isolated: bool = False,
     global_options: Optional[List[str]] = None,
-    hash_options: Optional[Dict[str, List[str]]] = None,
+    trusted_hashes: Optional[Dict[str, List[str]]] = None,
     constraint: bool = False,
     user_supplied: bool = False,
     permit_editable_wheels: bool = False,
@@ -224,7 +225,7 @@ def install_req_from_editable(
         use_pep517=use_pep517,
         isolated=isolated,
         global_options=global_options,
-        hash_options=hash_options,
+        trusted_hashes=trusted_hashes,
         config_settings=config_settings,
         extras=parts.extras,
     )
@@ -380,19 +381,28 @@ def install_req_from_line(
     use_pep517: Optional[bool] = None,
     isolated: bool = False,
     global_options: Optional[List[str]] = None,
-    hash_options: Optional[Dict[str, List[str]]] = None,
+    trusted_hashes: Optional[Dict[str, List[str]]] = None,
     constraint: bool = False,
     line_source: Optional[str] = None,
     user_supplied: bool = False,
     config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
+    trust_link_hash: bool = False,
 ) -> InstallRequirement:
     """Creates an InstallRequirement from a name, which might be a
     requirement, directory containing 'setup.py', filename, or URL.
 
     :param line_source: An optional string describing where the line is from,
         for logging purposes in case of an error.
+    :param trust_link_hash: If True, consider hashes provided as URL fragments
+        are trusted on the same foot as hases provided as --hash options.
     """
     parts = parse_req_from_line(name, line_source)
+
+    #
+    if parts.link and parts.link.hash and trust_link_hash:
+        assert parts.link.hash_name
+        trusted_hashes = copy.deepcopy(trusted_hashes) or {}
+        trusted_hashes.setdefault(parts.link.hash_name, []).append(parts.link.hash)
 
     return InstallRequirement(
         parts.requirement,
@@ -402,7 +412,7 @@ def install_req_from_line(
         use_pep517=use_pep517,
         isolated=isolated,
         global_options=global_options,
-        hash_options=hash_options,
+        trusted_hashes=trusted_hashes,
         config_settings=config_settings,
         constraint=constraint,
         extras=parts.extras,
@@ -454,6 +464,7 @@ def install_req_from_parsed_requirement(
     use_pep517: Optional[bool] = None,
     user_supplied: bool = False,
     config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
+    trust_link_hash: bool = False,
 ) -> InstallRequirement:
     if parsed_req.is_editable:
         req = install_req_from_editable(
@@ -477,13 +488,14 @@ def install_req_from_parsed_requirement(
                 if parsed_req.options
                 else []
             ),
-            hash_options=(
+            trusted_hashes=(
                 parsed_req.options.get("hashes", {}) if parsed_req.options else {}
             ),
             constraint=parsed_req.constraint,
             line_source=parsed_req.line_source,
             user_supplied=user_supplied,
             config_settings=config_settings,
+            trust_link_hash=trust_link_hash,
         )
     return req
 
@@ -500,7 +512,7 @@ def install_req_from_link_and_ireq(
         use_pep517=ireq.use_pep517,
         isolated=ireq.isolated,
         global_options=ireq.global_options,
-        hash_options=ireq.hash_options,
+        trusted_hashes=ireq.trusted_hashes,
         config_settings=ireq.config_settings,
         user_supplied=ireq.user_supplied,
     )

@@ -904,7 +904,7 @@ class PackageFinder:
         Returns a InstallationCandidate if found,
         Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
         """
-        hashes = req.hashes(trust_internet=False)
+        hashes = req.hashes()
         best_candidate_result = self.find_best_candidate(
             req.name,
             specifier=req.specifier,
