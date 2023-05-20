@@ -588,7 +588,7 @@ def test_outdated_formats(script: PipTestEnvironment, data: TestData) -> None:
         expect_error=True,
     )
     assert (
-        "List format 'freeze' cannot be used together with the --outdated option."
+        "List format 'freeze' cannot be used with the --outdated option."
         in result.stderr
     )
 
