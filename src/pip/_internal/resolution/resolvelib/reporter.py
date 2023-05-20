@@ -20,9 +20,9 @@ class PipReporter(BaseReporter):
                 "requirements. This could take a while."
             ),
             8: (
-                "pip is looking at multiple versions of {package_name} to "
+                "pip is still looking at multiple versions of {package_name} to "
                 "determine which version is compatible with other "
-                "requirements. This could take quite a while."
+                "requirements. This could take a while."
             ),
             13: (
                 "This is taking longer than usual. You might need to provide "
