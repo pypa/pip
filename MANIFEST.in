@@ -2,6 +2,7 @@ include AUTHORS.txt
 include LICENSE.txt
 include NEWS.rst
 include README.rst
+include SECURITY.md
 include pyproject.toml
 
 include src/pip/_vendor/README.rst
@@ -18,6 +19,7 @@ exclude .mailmap
 exclude .appveyor.yml
 exclude .readthedocs.yml
 exclude .pre-commit-config.yaml
+exclude .readthedocs-custom-redirects.yml
 exclude tox.ini
 exclude noxfile.py
 

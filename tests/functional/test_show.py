@@ -1,14 +1,17 @@
 import os
 import pathlib
 import re
+import textwrap
 
 from pip import __version__
 from pip._internal.commands.show import search_packages_info
-from pip._internal.operations.install.legacy import (
-    write_installed_files_from_setuptools_record,
-)
 from pip._internal.utils.unpacking import untar_file
-from tests.lib import PipTestEnvironment, TestData, create_test_package_with_setup
+from tests.lib import (
+    PipTestEnvironment,
+    TestData,
+    create_test_package_with_setup,
+    pyversion,
+)
 
 
 def test_basic_show(script: PipTestEnvironment) -> None:
@@ -17,7 +20,7 @@ def test_basic_show(script: PipTestEnvironment) -> None:
     """
     result = script.pip("show", "pip")
     lines = result.stdout.splitlines()
-    assert len(lines) == 10
+    assert len(lines) == 11
     assert "Name: pip" in lines
     assert f"Version: {__version__}" in lines
     assert any(line.startswith("Location: ") for line in lines)
@@ -33,7 +36,7 @@ def test_show_with_files_not_found(script: PipTestEnvironment, data: TestData) -
     script.pip("install", "-e", editable)
     result = script.pip("show", "-f", "SetupPyUTF8")
     lines = result.stdout.splitlines()
-    assert len(lines) == 12
+    assert len(lines) == 13
     assert "Name: SetupPyUTF8" in lines
     assert "Version: 0.0.0" in lines
     assert any(line.startswith("Location: ") for line in lines)
@@ -77,10 +80,19 @@ def test_show_with_files_from_legacy(
         str(setuptools_record),
         cwd=source_dir,
     )
-    write_installed_files_from_setuptools_record(
-        setuptools_record.read_text().splitlines(),
-        root=None,
-        req_description="simple==1.0",
+    # Emulate the installed-files.txt generation which previous pip version did
+    # after running setup.py install (write_installed_files_from_setuptools_record).
+    egg_info_dir = script.site_packages_path / f"simple-1.0-py{pyversion}.egg-info"
+    egg_info_dir.joinpath("installed-files.txt").write_text(
+        textwrap.dedent(
+            """\
+                ../simple/__init__.py
+                PKG-INFO
+                SOURCES.txt
+                dependency_links.txt
+                top_level.txt
+            """
+        )
     )
 
     result = script.pip("show", "--files", "simple")
@@ -128,7 +140,7 @@ def test_report_mixed_not_found(script: PipTestEnvironment) -> None:
     result = script.pip("show", "Abcd3", "A-B-C", "pip", allow_stderr_warning=True)
     assert "WARNING: Package(s) not found: A-B-C, Abcd3" in result.stderr
     lines = result.stdout.splitlines()
-    assert len(lines) == 10
+    assert len(lines) == 11
     assert "Name: pip" in lines
 
 
@@ -213,6 +225,7 @@ def test_all_fields(script: PipTestEnvironment) -> None:
         "Author-email",
         "License",
         "Location",
+        "Editable project location",
         "Requires",
         "Required-by",
     }
@@ -226,7 +239,7 @@ def test_pip_show_is_short(script: PipTestEnvironment) -> None:
     """
     result = script.pip("show", "pip")
     lines = result.stdout.splitlines()
-    assert len(lines) <= 10
+    assert len(lines) <= 11
 
 
 def test_pip_show_divider(script: PipTestEnvironment, data: TestData) -> None:

@@ -14,7 +14,7 @@ class InstallationReport:
     def _install_req_to_dict(cls, ireq: InstallRequirement) -> Dict[str, Any]:
         assert ireq.download_info, f"No download_info for {ireq}"
         res = {
-            # PEP 610 json for the download URL. download_info.archive_info.hash may
+            # PEP 610 json for the download URL. download_info.archive_info.hashes may
             # be absent when the requirement was installed from the wheel cache
             # and the cache entry was populated by an older pip version that did not
             # record origin.json.
@@ -38,7 +38,7 @@ class InstallationReport:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "version": "0",
+            "version": "1",
             "pip_version": __version__,
             "install": [
                 self._install_req_to_dict(ireq) for ireq in self._install_requirements

@@ -5,13 +5,11 @@ from tests.lib import PipTestEnvironment, TestData, _create_test_package
 from tests.lib.direct_url import get_created_direct_url
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_find_links_no_direct_url(script: PipTestEnvironment) -> None:
     result = script.pip_install_local("simple")
     assert not get_created_direct_url(result, "simple")
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_vcs_editable_no_direct_url(script: PipTestEnvironment) -> None:
     pkg_path = _create_test_package(script.scratch_path, name="testpkg")
     args = ["install", "-e", f"git+{pkg_path.as_uri()}#egg=testpkg"]
@@ -21,7 +19,6 @@ def test_install_vcs_editable_no_direct_url(script: PipTestEnvironment) -> None:
     assert not get_created_direct_url(result, "testpkg")
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_vcs_non_editable_direct_url(script: PipTestEnvironment) -> None:
     pkg_path = _create_test_package(script.scratch_path, name="testpkg")
     url = pkg_path.as_uri()
@@ -34,7 +31,6 @@ def test_install_vcs_non_editable_direct_url(script: PipTestEnvironment) -> None
     assert direct_url.info.vcs == "git"
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_archive_direct_url(script: PipTestEnvironment, data: TestData) -> None:
     req = "simple @ " + data.packages.joinpath("simple-2.0.tar.gz").as_uri()
     assert req.startswith("simple @ file://")
@@ -43,7 +39,6 @@ def test_install_archive_direct_url(script: PipTestEnvironment, data: TestData) 
 
 
 @pytest.mark.network
-@pytest.mark.usefixtures("with_wheel")
 def test_install_vcs_constraint_direct_url(script: PipTestEnvironment) -> None:
     constraints_file = script.scratch_path / "constraints.txt"
     constraints_file.write_text(
@@ -55,7 +50,6 @@ def test_install_vcs_constraint_direct_url(script: PipTestEnvironment) -> None:
     assert get_created_direct_url(result, "pip_test_package")
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_vcs_constraint_direct_file_url(script: PipTestEnvironment) -> None:
     pkg_path = _create_test_package(script.scratch_path, name="testpkg")
     url = pkg_path.as_uri()

@@ -106,7 +106,6 @@ def test_build_env_allow_only_one_install(script: PipTestEnvironment) -> None:
 
 
 def test_build_env_requirements_check(script: PipTestEnvironment) -> None:
-
     create_basic_wheel_for_package(script, "foo", "2.0")
     create_basic_wheel_for_package(script, "bar", "1.0")
     create_basic_wheel_for_package(script, "bar", "3.0")
@@ -204,9 +203,8 @@ def test_build_env_overlay_prefix_has_priority(script: PipTestEnvironment) -> No
     assert result.stdout.strip() == "2.0", str(result)
 
 
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 def test_build_env_isolation(script: PipTestEnvironment) -> None:
-
     # Create dummy `pkg` wheel.
     pkg_whl = create_basic_wheel_for_package(script, "pkg", "1.0")
 

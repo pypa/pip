@@ -127,6 +127,10 @@ Logically, a Requirements file is just a list of :ref:`pip install` arguments
 placed in a file. Note that you should not rely on the items in the file being
 installed by pip in any particular order.
 
+Requirements files can also be served via a URL, e.g.
+http://example.com/requirements.txt besides as local files, so that they can
+be stored and served in a centralized place.
+
 In practice, there are 4 common uses of Requirements files:
 
 1. Requirements files are used to hold the result from :ref:`pip freeze` for the
@@ -247,6 +251,10 @@ changes 2020` we did a fairly comprehensive overhaul, removing several
 undocumented and unsupported quirks from the previous implementation,
 and stripped constraints files down to being purely a way to specify
 global (version) limits for packages.
+
+Same as requirements files, constraints files can also be served via a URL,
+e.g. http://example.com/constraints.txt, so that your organization can store and
+serve them in a centralized place.
 
 .. _`Installing from Wheels`:
 
@@ -800,7 +808,7 @@ As noted previously, pip is a command line program. While it is implemented in
 Python, and so is available from your Python code via ``import pip``, you must
 not use pip's internal APIs in this way. There are a number of reasons for this:
 
-#. The pip code assumes that is in sole control of the global state of the
+#. The pip code assumes that it is in sole control of the global state of the
    program.
    pip manages things like the logging system configuration, or the values of
    the standard IO streams, without considering the possibility that user code

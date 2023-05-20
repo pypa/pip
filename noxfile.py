@@ -1,6 +1,7 @@
 """Automation using nox.
 """
 
+import argparse
 import glob
 import os
 import shutil
@@ -66,7 +67,7 @@ def should_update_common_wheels() -> bool:
 # -----------------------------------------------------------------------------
 # Development Commands
 # -----------------------------------------------------------------------------
-@nox.session(python=["3.7", "3.8", "3.9", "3.10", "pypy3"])
+@nox.session(python=["3.7", "3.8", "3.9", "3.10", "3.11", "pypy3"])
 def test(session: nox.Session) -> None:
     # Get the common wheels.
     if should_update_common_wheels():
@@ -132,6 +133,7 @@ def docs(session: nox.Session) -> None:
         # fmt: off
         return [
             "sphinx-build",
+            "--keep-going",
             "-W",
             "-c", "docs/html",  # see note above
             "-d", "docs/build/doctrees/" + kind,
@@ -183,7 +185,13 @@ def lint(session: nox.Session) -> None:
 def vendoring(session: nox.Session) -> None:
     session.install("vendoring~=1.2.0")
 
-    if "--upgrade" not in session.posargs:
+    parser = argparse.ArgumentParser(prog="nox -s vendoring")
+    parser.add_argument("--upgrade-all", action="store_true")
+    parser.add_argument("--upgrade", action="append", default=[])
+    parser.add_argument("--skip", action="append", default=[])
+    args = parser.parse_args(session.posargs)
+
+    if not (args.upgrade or args.upgrade_all):
         session.run("vendoring", "sync", "-v")
         return
 
@@ -199,7 +207,9 @@ def vendoring(session: nox.Session) -> None:
 
     vendor_txt = Path("src/pip/_vendor/vendor.txt")
     for name, old_version in pinned_requirements(vendor_txt):
-        if name == "setuptools":
+        if name in args.skip:
+            continue
+        if args.upgrade and name not in args.upgrade:
             continue
 
         # update requirements.txt

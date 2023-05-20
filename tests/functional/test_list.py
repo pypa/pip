@@ -129,7 +129,7 @@ def test_multiple_exclude_and_normalization(
 
 
 @pytest.mark.network
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 def test_user_flag(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test the behavior of --user flag in the list command
@@ -144,7 +144,7 @@ def test_user_flag(script: PipTestEnvironment, data: TestData) -> None:
 
 
 @pytest.mark.network
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 def test_user_columns_flag(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test the behavior of --user --format=columns flags in the list command
@@ -656,7 +656,7 @@ def test_list_path(tmpdir: Path, script: PipTestEnvironment, data: TestData) -> 
     assert {"name": "simple", "version": "2.0"} in json_result
 
 
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 def test_list_path_exclude_user(
     tmpdir: Path, script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -734,7 +734,6 @@ def test_list_include_work_dir_pkg(script: PipTestEnvironment) -> None:
     assert {"name": "simple", "version": "1.0"} in json_result
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_list_pep610_editable(script: PipTestEnvironment) -> None:
     """
     Test that a package installed with a direct_url.json with editable=true

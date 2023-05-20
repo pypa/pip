@@ -39,6 +39,10 @@ def test_archive_info() -> None:
     assert (
         direct_url.info.hash == direct_url_dict["archive_info"]["hash"]  # type: ignore
     )
+    # test we add the hashes key automatically
+    direct_url_dict["archive_info"]["hashes"] = {  # type: ignore
+        "sha1": "1b8c5bc61a86f377fea47b4276c8c8a5842d2220"
+    }
     assert direct_url.to_dict() == direct_url_dict
 
 
@@ -98,6 +102,13 @@ def test_parsing_validation() -> None:
         match="more than one of archive_info, dir_info, vcs_info",
     ):
         DirectUrl.from_dict({"url": "http://...", "dir_info": {}, "archive_info": {}})
+    with pytest.raises(
+        DirectUrlValidationError,
+        match="invalid archive_info.hash format",
+    ):
+        DirectUrl.from_dict(
+            {"url": "http://...", "archive_info": {"hash": "sha256:aaa"}}
+        )
 
 
 def test_redact_url() -> None:
@@ -129,3 +140,33 @@ def test_redact_url() -> None:
         == "https://${PIP_TOKEN}@g.c/u/p.git"
     )
     assert _redact_git("ssh://git@g.c/u/p.git") == "ssh://git@g.c/u/p.git"
+
+
+def test_hash_to_hashes() -> None:
+    direct_url = DirectUrl(url="https://e.c/archive.tar.gz", info=ArchiveInfo())
+    assert isinstance(direct_url.info, ArchiveInfo)
+    direct_url.info.hash = "sha256=abcdef"
+    assert direct_url.info.hashes == {"sha256": "abcdef"}
+
+
+def test_hash_to_hashes_constructor() -> None:
+    direct_url = DirectUrl(
+        url="https://e.c/archive.tar.gz", info=ArchiveInfo(hash="sha256=abcdef")
+    )
+    assert isinstance(direct_url.info, ArchiveInfo)
+    assert direct_url.info.hashes == {"sha256": "abcdef"}
+    direct_url = DirectUrl(
+        url="https://e.c/archive.tar.gz",
+        info=ArchiveInfo(hash="sha256=abcdef", hashes={"sha512": "123456"}),
+    )
+    assert isinstance(direct_url.info, ArchiveInfo)
+    assert direct_url.info.hashes == {"sha256": "abcdef", "sha512": "123456"}
+    # In case of conflict between hash and hashes, hashes wins.
+    direct_url = DirectUrl(
+        url="https://e.c/archive.tar.gz",
+        info=ArchiveInfo(
+            hash="sha256=abcdef", hashes={"sha256": "012345", "sha512": "123456"}
+        ),
+    )
+    assert isinstance(direct_url.info, ArchiveInfo)
+    assert direct_url.info.hashes == {"sha256": "012345", "sha512": "123456"}

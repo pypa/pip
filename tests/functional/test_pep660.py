@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 from typing import Any, Dict
 
-import pytest
 import tomli_w
 
 from tests.lib import PipTestEnvironment
@@ -94,7 +93,6 @@ def _assert_hook_not_called(project_dir: Path, hook: str) -> None:
     assert f":{hook} called" not in log, f"{hook} should not have been called"
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_pep517_basic(tmpdir: Path, script: PipTestEnvironment) -> None:
     """
     Check that the test harness we have in this file is sane.
@@ -110,7 +108,6 @@ def test_install_pep517_basic(tmpdir: Path, script: PipTestEnvironment) -> None:
     _assert_hook_called(project_dir, "build_wheel")
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_pep660_basic(tmpdir: Path, script: PipTestEnvironment) -> None:
     """
     Test with backend that supports build_editable.
@@ -131,7 +128,6 @@ def test_install_pep660_basic(tmpdir: Path, script: PipTestEnvironment) -> None:
     ), "a .egg-link file should not have been created"
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_no_pep660_setup_py_fallback(
     tmpdir: Path, script: PipTestEnvironment
 ) -> None:
@@ -156,7 +152,6 @@ def test_install_no_pep660_setup_py_fallback(
     ), "a .egg-link file should have been created"
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_no_pep660_setup_cfg_fallback(
     tmpdir: Path, script: PipTestEnvironment
 ) -> None:
@@ -182,7 +177,6 @@ def test_install_no_pep660_setup_cfg_fallback(
     ), ".egg-link file should have been created"
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_wheel_editable_pep660_basic(tmpdir: Path, script: PipTestEnvironment) -> None:
     """
     Test 'pip wheel' of an editable pep 660 project.
@@ -206,7 +200,6 @@ def test_wheel_editable_pep660_basic(tmpdir: Path, script: PipTestEnvironment) -
     assert len(os.listdir(str(wheel_dir))) == 1, "a wheel should have been created"
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_download_editable_pep660_basic(
     tmpdir: Path, script: PipTestEnvironment
 ) -> None:

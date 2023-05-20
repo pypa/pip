@@ -2,23 +2,12 @@ import json
 import os
 import sys
 import tempfile
-import threading
 from contextlib import contextmanager
 from os.path import abspath
 from os.path import join as pjoin
 from subprocess import STDOUT, check_call, check_output
 
-from .in_process import _in_proc_script_path
-
-__all__ = [
-    'BackendUnavailable',
-    'BackendInvalid',
-    'HookMissing',
-    'UnsupportedOperation',
-    'default_subprocess_runner',
-    'quiet_subprocess_runner',
-    'Pep517HookCaller',
-]
+from ._in_process import _in_proc_script_path
 
 
 def write_json(obj, path, **kwargs):
@@ -40,13 +29,13 @@ class BackendUnavailable(Exception):
 class BackendInvalid(Exception):
     """Will be raised if the backend is invalid."""
     def __init__(self, backend_name, backend_path, message):
+        super().__init__(message)
         self.backend_name = backend_name
         self.backend_path = backend_path
-        self.message = message
 
 
 class HookMissing(Exception):
-    """Will be raised on missing hooks."""
+    """Will be raised on missing hooks (if a fallback can't be used)."""
     def __init__(self, hook_name):
         super().__init__(hook_name)
         self.hook_name = hook_name
@@ -59,7 +48,10 @@ class UnsupportedOperation(Exception):
 
 
 def default_subprocess_runner(cmd, cwd=None, extra_environ=None):
-    """The default method of calling the wrapper subprocess."""
+    """The default method of calling the wrapper subprocess.
+
+    This uses :func:`subprocess.check_call` under the hood.
+    """
     env = os.environ.copy()
     if extra_environ:
         env.update(extra_environ)
@@ -68,7 +60,10 @@ def default_subprocess_runner(cmd, cwd=None, extra_environ=None):
 
 
 def quiet_subprocess_runner(cmd, cwd=None, extra_environ=None):
-    """A method of calling the wrapper subprocess while suppressing output."""
+    """Call the subprocess while suppressing output.
+
+    This uses :func:`subprocess.check_output` under the hood.
+    """
     env = os.environ.copy()
     if extra_environ:
         env.update(extra_environ)
@@ -100,26 +95,10 @@ def norm_and_check(source_tree, requested):
     return abs_requested
 
 
-class Pep517HookCaller:
-    """A wrapper around a source directory to be built with a PEP 517 backend.
-
-    :param source_dir: The path to the source directory, containing
-        pyproject.toml.
-    :param build_backend: The build backend spec, as per PEP 517, from
-        pyproject.toml.
-    :param backend_path: The backend path, as per PEP 517, from pyproject.toml.
-    :param runner: A callable that invokes the wrapper subprocess.
-    :param python_executable: The Python executable used to invoke the backend
-
-    The 'runner', if provided, must expect the following:
-
-    - cmd: a list of strings representing the command and arguments to
-      execute, as would be passed to e.g. 'subprocess.check_call'.
-    - cwd: a string representing the working directory that must be
-      used for the subprocess. Corresponds to the provided source_dir.
-    - extra_environ: a dict mapping environment variable names to values
-      which must be set for the subprocess execution.
+class BuildBackendHookCaller:
+    """A wrapper to call the build backend hooks for a source directory.
     """
+
     def __init__(
             self,
             source_dir,
@@ -128,6 +107,14 @@ class Pep517HookCaller:
             runner=None,
             python_executable=None,
     ):
+        """
+        :param source_dir: The source directory to invoke the build backend for
+        :param build_backend: The build backend spec
+        :param backend_path: Additional path entries for the build backend spec
+        :param runner: The :ref:`subprocess runner <Subprocess Runners>` to use
+        :param python_executable:
+            The Python executable used to invoke the build backend
+        """
         if runner is None:
             runner = default_subprocess_runner
 
@@ -145,8 +132,14 @@ class Pep517HookCaller:
 
     @contextmanager
     def subprocess_runner(self, runner):
-        """A context manager for temporarily overriding the default subprocess
-        runner.
+        """A context manager for temporarily overriding the default
+        :ref:`subprocess runner <Subprocess Runners>`.
+
+        .. code-block:: python
+
+            hook_caller = BuildBackendHookCaller(...)
+            with hook_caller.subprocess_runner(quiet_subprocess_runner):
+                ...
         """
         prev = self._subprocess_runner
         self._subprocess_runner = runner
@@ -160,15 +153,15 @@ class Pep517HookCaller:
         return self._call_hook('_supported_features', {})
 
     def get_requires_for_build_wheel(self, config_settings=None):
-        """Identify packages required for building a wheel
+        """Get additional dependencies required for building a wheel.
 
-        Returns a list of dependency specifications, e.g.::
+        :returns: A list of :pep:`dependency specifiers <508>`.
+        :rtype: list[str]
 
-            ["wheel >= 0.25", "setuptools"]
+        .. admonition:: Fallback
 
-        This does not include requirements specified in pyproject.toml.
-        It returns the result of calling the equivalently named hook in a
-        subprocess.
+            If the build backend does not defined a hook with this name, an
+            empty list will be returned.
         """
         return self._call_hook('get_requires_for_build_wheel', {
             'config_settings': config_settings
@@ -179,12 +172,16 @@ class Pep517HookCaller:
             _allow_fallback=True):
         """Prepare a ``*.dist-info`` folder with metadata for this project.
 
-        Returns the name of the newly created folder.
+        :returns: Name of the newly created subfolder within
+                  ``metadata_directory``, containing the metadata.
+        :rtype: str
 
-        If the build backend defines a hook with this name, it will be called
-        in a subprocess. If not, the backend will be asked to build a wheel,
-        and the dist-info extracted from that (unless _allow_fallback is
-        False).
+        .. admonition:: Fallback
+
+            If the build backend does not define a hook with this name and
+            ``_allow_fallback`` is truthy, the backend will be asked to build a
+            wheel via the ``build_wheel`` hook and the dist-info extracted from
+            that will be returned.
         """
         return self._call_hook('prepare_metadata_for_build_wheel', {
             'metadata_directory': abspath(metadata_directory),
@@ -197,12 +194,15 @@ class Pep517HookCaller:
             metadata_directory=None):
         """Build a wheel from this project.
 
-        Returns the name of the newly created file.
+        :returns:
+            The name of the newly created wheel within ``wheel_directory``.
 
-        In general, this will call the 'build_wheel' hook in the backend.
-        However, if that was previously called by
-        'prepare_metadata_for_build_wheel', and the same metadata_directory is
-        used, the previously built wheel will be copied to wheel_directory.
+        .. admonition:: Interaction with fallback
+
+            If the ``build_wheel`` hook was called in the fallback for
+            :meth:`prepare_metadata_for_build_wheel`, the build backend would
+            not be invoked. Instead, the previously built wheel will be copied
+            to ``wheel_directory`` and the name of that file will be returned.
         """
         if metadata_directory is not None:
             metadata_directory = abspath(metadata_directory)
@@ -213,15 +213,15 @@ class Pep517HookCaller:
         })
 
     def get_requires_for_build_editable(self, config_settings=None):
-        """Identify packages required for building an editable wheel
+        """Get additional dependencies required for building an editable wheel.
 
-        Returns a list of dependency specifications, e.g.::
+        :returns: A list of :pep:`dependency specifiers <508>`.
+        :rtype: list[str]
 
-            ["wheel >= 0.25", "setuptools"]
+        .. admonition:: Fallback
 
-        This does not include requirements specified in pyproject.toml.
-        It returns the result of calling the equivalently named hook in a
-        subprocess.
+            If the build backend does not defined a hook with this name, an
+            empty list will be returned.
         """
         return self._call_hook('get_requires_for_build_editable', {
             'config_settings': config_settings
@@ -232,12 +232,16 @@ class Pep517HookCaller:
             _allow_fallback=True):
         """Prepare a ``*.dist-info`` folder with metadata for this project.
 
-        Returns the name of the newly created folder.
+        :returns: Name of the newly created subfolder within
+                  ``metadata_directory``, containing the metadata.
+        :rtype: str
 
-        If the build backend defines a hook with this name, it will be called
-        in a subprocess. If not, the backend will be asked to build an editable
-        wheel, and the dist-info extracted from that (unless _allow_fallback is
-        False).
+        .. admonition:: Fallback
+
+            If the build backend does not define a hook with this name and
+            ``_allow_fallback`` is truthy, the backend will be asked to build a
+            wheel via the ``build_editable`` hook and the dist-info
+            extracted from that will be returned.
         """
         return self._call_hook('prepare_metadata_for_build_editable', {
             'metadata_directory': abspath(metadata_directory),
@@ -250,12 +254,16 @@ class Pep517HookCaller:
             metadata_directory=None):
         """Build an editable wheel from this project.
 
-        Returns the name of the newly created file.
+        :returns:
+            The name of the newly created wheel within ``wheel_directory``.
 
-        In general, this will call the 'build_editable' hook in the backend.
-        However, if that was previously called by
-        'prepare_metadata_for_build_editable', and the same metadata_directory
-        is used, the previously built wheel will be copied to wheel_directory.
+        .. admonition:: Interaction with fallback
+
+            If the ``build_editable`` hook was called in the fallback for
+            :meth:`prepare_metadata_for_build_editable`, the build backend
+            would not be invoked. Instead, the previously built wheel will be
+            copied to ``wheel_directory`` and the name of that file will be
+            returned.
         """
         if metadata_directory is not None:
             metadata_directory = abspath(metadata_directory)
@@ -266,15 +274,10 @@ class Pep517HookCaller:
         })
 
     def get_requires_for_build_sdist(self, config_settings=None):
-        """Identify packages required for building a wheel
+        """Get additional dependencies required for building an sdist.
 
-        Returns a list of dependency specifications, e.g.::
-
-            ["setuptools >= 26"]
-
-        This does not include requirements specified in pyproject.toml.
-        It returns the result of calling the equivalently named hook in a
-        subprocess.
+        :returns: A list of :pep:`dependency specifiers <508>`.
+        :rtype: list[str]
         """
         return self._call_hook('get_requires_for_build_sdist', {
             'config_settings': config_settings
@@ -283,9 +286,8 @@ class Pep517HookCaller:
     def build_sdist(self, sdist_directory, config_settings=None):
         """Build an sdist from this project.
 
-        Returns the name of the newly created file.
-
-        This calls the 'build_sdist' backend hook in a subprocess.
+        :returns:
+            The name of the newly created sdist within ``wheel_directory``.
         """
         return self._call_hook('build_sdist', {
             'sdist_directory': abspath(sdist_directory),
@@ -326,37 +328,3 @@ class Pep517HookCaller:
             if data.get('hook_missing'):
                 raise HookMissing(data.get('missing_hook_name') or hook_name)
             return data['return_val']
-
-
-class LoggerWrapper(threading.Thread):
-    """
-    Read messages from a pipe and redirect them
-    to a logger (see python's logging module).
-    """
-
-    def __init__(self, logger, level):
-        threading.Thread.__init__(self)
-        self.daemon = True
-
-        self.logger = logger
-        self.level = level
-
-        # create the pipe and reader
-        self.fd_read, self.fd_write = os.pipe()
-        self.reader = os.fdopen(self.fd_read)
-
-        self.start()
-
-    def fileno(self):
-        return self.fd_write
-
-    @staticmethod
-    def remove_newline(msg):
-        return msg[:-1] if msg.endswith(os.linesep) else msg
-
-    def run(self):
-        for line in self.reader:
-            self._write(self.remove_newline(line))
-
-    def _write(self, message):
-        self.logger.log(self.level, message)
