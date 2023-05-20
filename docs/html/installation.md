@@ -68,14 +68,14 @@ $ python pip.pyz --help
 If run directly:
 
 ````{tab} Unix/macOS
-```shell
-./pip.pyz
+```console
+$ ./pip.pyz
 ```
 ````
 
 ````{tab} Windows
-```shell
-.\pip.pyz
+```console
+C:\> .\pip.pyz
 ```
 ````
 
