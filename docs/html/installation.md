@@ -67,8 +67,16 @@ $ python pip.pyz --help
 
 If run directly:
 
-````{tab} Unix/macOS
+````{tab} Linux
 ```console
+$ chmod +x ./pip.pyz
+$ ./pip.pyz
+```
+````
+
+````{tab} MacOS
+```console
+$ chmod +x ./pip.pyz
 $ ./pip.pyz
 ```
 ````
