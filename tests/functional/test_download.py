@@ -8,7 +8,7 @@ from enum import Enum
 from hashlib import sha256
 from pathlib import Path
 from textwrap import dedent
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 import pytest
 
@@ -1267,7 +1267,7 @@ class Package:
     # This will override any dependencies specified in the actual dist's METADATA.
     requires_dist: Tuple[str, ...] = ()
     # This will override the Name specified in the actual dist's METADATA.
-    metadata_name: str = None
+    metadata_name: Optional[str] = None
 
     def metadata_filename(self) -> str:
         """This is specified by PEP 658."""
@@ -1501,6 +1501,16 @@ _simple_packages: Dict[str, List[Package]] = {
             "priority", "1.0", "priority-1.0-py2.py3-none-any.whl", MetadataKind.NoFile
         ),
     ],
+    "requires-simple-extra": [
+        # Metadata name is not canonicalized.
+        Package(
+            "requires-simple-extra",
+            "0.1",
+            "requires_simple_extra-0.1-py2.py3-none-any.whl",
+            MetadataKind.Sha256,
+            metadata_name="Requires_Simple.Extra",
+        ),
+    ],
 }
 
 
@@ -1604,5 +1614,34 @@ def test_produces_error_for_mismatched_package_name_in_metadata(
     )
     assert result.returncode != 0
     assert (
-        "simple2-3.0.tar.gz has inconsistent Name: expected 'simple2', but metadata has 'not-simple2'"
+        "simple2-3.0.tar.gz has inconsistent Name: expected 'simple2', but metadata "
+        "has 'not-simple2'"
     ) in result.stdout
+
+
+@pytest.mark.parametrize(
+    "requirement",
+    (
+        "requires-simple-extra==0.1",
+        "REQUIRES_SIMPLE-EXTRA==0.1",
+        "REQUIRES....simple-_-EXTRA==0.1",
+    ),
+)
+def test_canonicalizes_package_name_before_verifying_metadata(
+    download_generated_html_index: Callable[..., Tuple[TestPipResult, Path]],
+    requirement: str,
+) -> None:
+    """Verify that the package name from the command line and the package's
+    METADATA are both canonicalized before comparison.
+
+    Regression test for https://github.com/pypa/pip/issues/12038
+    """
+    result, download_dir = download_generated_html_index(
+        _simple_packages,
+        [requirement],
+        allow_error=True,
+    )
+    assert result.returncode == 0
+    assert os.listdir(download_dir) == [
+        "requires_simple_extra-0.1-py2.py3-none-any.whl",
+    ]
