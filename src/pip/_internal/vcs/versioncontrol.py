@@ -20,11 +20,7 @@ from typing import (
 )
 
 from pip._internal.cli.spinners import SpinnerInterface
-from pip._internal.exceptions import (
-    BadCommand,
-    InstallationError,
-    DiagnosticPipError,
-)
+from pip._internal.exceptions import BadCommand, DiagnosticPipError, InstallationError
 from pip._internal.utils.misc import (
     HiddenText,
     ask_path_exists,
@@ -426,8 +422,8 @@ class VersionControl:
                     "or remove @ from the URL.".format(url)
                 )
         # check for typos in frag
-        parameter_names = [k.split('=')[0] for k in frag.split('&') if k]
-        if not all([p in ('egg', 'subdirectory') for p in parameter_names]):
+        parameter_names = [k.split("=")[0] for k in frag.split("&") if k]
+        if not all([p in ("egg", "subdirectory") for p in parameter_names]):
             raise DiagnosticPipError(
                 reference="test-diagnostic",
                 kind="warning",

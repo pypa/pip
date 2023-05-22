@@ -5,11 +5,7 @@ from unittest import TestCase, mock
 
 import pytest
 
-from pip._internal.exceptions import (
-    BadCommand,
-    InstallationError,
-    DiagnosticPipError,
-)
+from pip._internal.exceptions import BadCommand, DiagnosticPipError, InstallationError
 from pip._internal.utils.misc import HiddenText, hide_url, hide_value
 from pip._internal.utils.subprocess import CommandArgs
 from pip._internal.vcs import make_vcs_requirement_url
