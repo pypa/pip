@@ -4,7 +4,7 @@
 
     Base lexer classes.
 
-    :copyright: Copyright 2006-2021 by the Pygments team, see AUTHORS.
+    :copyright: Copyright 2006-2022 by the Pygments team, see AUTHORS.
     :license: BSD, see LICENSE for details.
 """
 
@@ -14,15 +14,16 @@ import time
 
 from pip._vendor.pygments.filter import apply_filters, Filter
 from pip._vendor.pygments.filters import get_filter_by_name
-from pip._vendor.pygments.token import Error, Text, Other, _TokenType
+from pip._vendor.pygments.token import Error, Text, Other, Whitespace, _TokenType
 from pip._vendor.pygments.util import get_bool_opt, get_int_opt, get_list_opt, \
     make_analysator, Future, guess_decode
 from pip._vendor.pygments.regexopt import regex_opt
 
 __all__ = ['Lexer', 'RegexLexer', 'ExtendedRegexLexer', 'DelegatingLexer',
            'LexerContext', 'include', 'inherit', 'bygroups', 'using', 'this',
-           'default', 'words']
+           'default', 'words', 'line_re']
 
+line_re = re.compile('.*?\n')
 
 _encoding_map = [(b'\xef\xbb\xbf', 'utf-8'),
                  (b'\xff\xfe\0\0', 'utf-32'),
@@ -75,6 +76,9 @@ class Lexer(metaclass=LexerMeta):
 
     #: Name of the lexer
     name = None
+
+    #: URL of the language specification/definition
+    url = None
 
     #: Shortcuts for the lexer
     aliases = []
@@ -618,7 +622,7 @@ class RegexLexer(Lexer, metaclass=RegexLexerMeta):
         """
         Split ``text`` into (tokentype, text) pairs.
 
-        ``stack`` is the inital stack (default: ``['root']``)
+        ``stack`` is the initial stack (default: ``['root']``)
         """
         pos = 0
         tokendefs = self._tokens
@@ -667,7 +671,7 @@ class RegexLexer(Lexer, metaclass=RegexLexerMeta):
                         # at EOL, reset state to "root"
                         statestack = ['root']
                         statetokens = tokendefs['root']
-                        yield pos, Text, '\n'
+                        yield pos, Whitespace, '\n'
                         pos += 1
                         continue
                     yield pos, Error, text[pos]
@@ -738,7 +742,7 @@ class ExtendedRegexLexer(RegexLexer):
                         elif isinstance(new_state, int):
                             # see RegexLexer for why this check is made
                             if abs(new_state) >= len(ctx.stack):
-                                del ctx.state[1:]
+                                del ctx.stack[1:]
                             else:
                                 del ctx.stack[new_state:]
                         elif new_state == '#push':
@@ -792,7 +796,7 @@ def do_insertions(insertions, tokens):
     # iterate over the token stream where we want to insert
     # the tokens from the insertion list.
     for i, t, v in tokens:
-        # first iteration. store the postition of first item
+        # first iteration. store the position of first item
         if realpos is None:
             realpos = i
         oldi = 0

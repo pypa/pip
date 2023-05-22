@@ -1,0 +1,1 @@
+Fix installation of packages with PEP658 metadata using non-canonicalized names

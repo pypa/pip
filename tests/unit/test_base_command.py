@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 from optparse import Values
 from pathlib import Path
 from typing import Callable, Iterator, List, NoReturn, Optional
@@ -15,13 +16,12 @@ from pip._internal.utils.temp_dir import TempDirectory
 
 
 @pytest.fixture
-def fixed_time(utc: None) -> Iterator[None]:
-    with patch("time.time", lambda: 1547704837.040001):
+def fixed_time() -> Iterator[None]:
+    with patch("time.time", lambda: 1547704837.040001 + time.timezone):
         yield
 
 
 class FakeCommand(Command):
-
     _name = "fake"
 
     def __init__(

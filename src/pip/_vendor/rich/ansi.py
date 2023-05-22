@@ -43,6 +43,9 @@ def _ansi_tokenize(ansi_text: str) -> Iterable[_AnsiToken]:
         if start > position:
             yield _AnsiToken(ansi_text[position:start])
         if sgr:
+            if sgr == "(":
+                position = end + 1
+                continue
             if sgr.endswith("m"):
                 yield _AnsiToken("", sgr[1:-1], osc)
         else:
@@ -120,7 +123,7 @@ class AnsiDecoder:
         self.style = Style.null()
 
     def decode(self, terminal_text: str) -> Iterable[Text]:
-        """Decode ANSI codes in an interable of lines.
+        """Decode ANSI codes in an iterable of lines.
 
         Args:
             lines (Iterable[str]): An iterable of lines of terminal output.

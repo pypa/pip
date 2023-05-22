@@ -39,7 +39,6 @@ from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
-from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from tests.lib.venv import VirtualEnvironment
 from tests.lib.wheel import make_wheel
 
@@ -87,7 +86,11 @@ def make_test_search_scope(
     if index_urls is None:
         index_urls = []
 
-    return SearchScope.create(find_links=find_links, index_urls=index_urls)
+    return SearchScope.create(
+        find_links=find_links,
+        index_urls=index_urls,
+        no_index=False,
+    )
 
 
 def make_test_link_collector(
@@ -115,7 +118,6 @@ def make_test_finder(
     allow_all_prereleases: bool = False,
     session: Optional[PipSession] = None,
     target_python: Optional[TargetPython] = None,
-    use_deprecated_html5lib: bool = False,
 ) -> PackageFinder:
     """
     Create a PackageFinder for testing purposes.
@@ -134,7 +136,6 @@ def make_test_finder(
         link_collector=link_collector,
         selection_prefs=selection_prefs,
         target_python=target_python,
-        use_deprecated_html5lib=use_deprecated_html5lib,
     )
 
 
@@ -449,6 +450,7 @@ def _check_stderr(
 
     lines = stderr.splitlines()
     for line in lines:
+        line = line.lstrip()
         # First check for logging errors, which we don't allow during
         # tests even if allow_stderr_error=True (since a logging error
         # would signal a bug in pip's code).
@@ -475,7 +477,7 @@ def _check_stderr(
         if allow_stderr_warning:
             continue
 
-        if line.startswith("WARNING: ") or line.startswith(DEPRECATION_MSG_PREFIX):
+        if line.startswith("WARNING: "):
             reason = (
                 "stderr has an unexpected warning "
                 "(pass allow_stderr_warning=True to permit this)"
@@ -507,6 +509,7 @@ class PipTestEnvironment(TestFileEnvironment):
         *args: Any,
         virtualenv: VirtualEnvironment,
         pip_expect_warning: bool = False,
+        zipapp: Optional[str] = None,
         **kwargs: Any,
     ) -> None:
         # Store paths related to the virtual environment
@@ -553,6 +556,9 @@ class PipTestEnvironment(TestFileEnvironment):
         # (useful for Python version deprecation)
         self.pip_expect_warning = pip_expect_warning
 
+        # The name of an (optional) zipapp to use when running pip
+        self.zipapp = zipapp
+
         # Call the TestFileEnvironment __init__
         super().__init__(base_path, *args, **kwargs)
 
@@ -586,6 +592,10 @@ class PipTestEnvironment(TestFileEnvironment):
 
     def _ignore_file(self, fn: str) -> bool:
         if fn.endswith("__pycache__") or fn.endswith(".pyc"):
+            result = True
+        elif self.zipapp and fn.endswith("cacert.pem"):
+            # Temporary copies of cacert.pem are extracted
+            # when running from a zipapp
             result = True
         else:
             result = super()._ignore_file(fn)
@@ -698,7 +708,10 @@ class PipTestEnvironment(TestFileEnvironment):
         __tracebackhide__ = True
         if self.pip_expect_warning:
             kwargs["allow_stderr_warning"] = True
-        if use_module:
+        if self.zipapp:
+            exe = "python"
+            args = (self.zipapp,) + args
+        elif use_module:
             exe = "python"
             args = ("-m", "pip") + args
         else:
@@ -895,50 +908,57 @@ def _git_commit(
 
 
 def _vcs_add(
-    script: PipTestEnvironment,
+    location: pathlib.Path,
     version_pkg_path: pathlib.Path,
     vcs: str = "git",
 ) -> pathlib.Path:
     if vcs == "git":
-        script.run("git", "init", cwd=version_pkg_path)
-        script.run("git", "add", ".", cwd=version_pkg_path)
-        _git_commit(script, version_pkg_path, message="initial version")
+        subprocess.check_call(["git", "init"], cwd=os.fspath(version_pkg_path))
+        subprocess.check_call(["git", "add", "."], cwd=os.fspath(version_pkg_path))
+        subprocess.check_call(
+            ["git", "commit", "-m", "initial version"], cwd=os.fspath(version_pkg_path)
+        )
     elif vcs == "hg":
-        script.run("hg", "init", cwd=version_pkg_path)
-        script.run("hg", "add", ".", cwd=version_pkg_path)
-        script.run(
-            "hg",
-            "commit",
-            "-q",
-            "--user",
-            "pip <distutils-sig@python.org>",
-            "-m",
-            "initial version",
-            cwd=version_pkg_path,
+        subprocess.check_call(["hg", "init"], cwd=os.fspath(version_pkg_path))
+        subprocess.check_call(["hg", "add", "."], cwd=os.fspath(version_pkg_path))
+        subprocess.check_call(
+            [
+                "hg",
+                "commit",
+                "-q",
+                "--user",
+                "pip <distutils-sig@python.org>",
+                "-m",
+                "initial version",
+            ],
+            cwd=os.fspath(version_pkg_path),
         )
     elif vcs == "svn":
-        repo_url = _create_svn_repo(script, version_pkg_path)
-        script.run(
-            "svn", "checkout", repo_url, "pip-test-package", cwd=script.scratch_path
+        repo_url = _create_svn_repo(location, version_pkg_path)
+        subprocess.check_call(
+            ["svn", "checkout", repo_url, "pip-test-package"], cwd=os.fspath(location)
         )
-        checkout_path = script.scratch_path / "pip-test-package"
+        checkout_path = location / "pip-test-package"
 
         version_pkg_path = checkout_path
     elif vcs == "bazaar":
-        script.run("bzr", "init", cwd=version_pkg_path)
-        script.run("bzr", "add", ".", cwd=version_pkg_path)
-        script.run(
-            "bzr", "whoami", "pip <distutils-sig@python.org>", cwd=version_pkg_path
+        subprocess.check_call(["bzr", "init"], cwd=os.fspath(version_pkg_path))
+        subprocess.check_call(["bzr", "add", "."], cwd=os.fspath(version_pkg_path))
+        subprocess.check_call(
+            ["bzr", "whoami", "pip <distutils-sig@python.org>"],
+            cwd=os.fspath(version_pkg_path),
         )
-        script.run(
-            "bzr",
-            "commit",
-            "-q",
-            "--author",
-            "pip <distutils-sig@python.org>",
-            "-m",
-            "initial version",
-            cwd=version_pkg_path,
+        subprocess.check_call(
+            [
+                "bzr",
+                "commit",
+                "-q",
+                "--author",
+                "pip <distutils-sig@python.org>",
+                "-m",
+                "initial version",
+            ],
+            cwd=os.fspath(version_pkg_path),
         )
     else:
         raise ValueError(f"Unknown vcs: {vcs}")
@@ -995,10 +1015,10 @@ def _create_test_package_with_subdirectory(
 
 
 def _create_test_package_with_srcdir(
-    script: PipTestEnvironment, name: str = "version_pkg", vcs: str = "git"
+    dir_path: pathlib.Path, name: str = "version_pkg", vcs: str = "git"
 ) -> pathlib.Path:
-    script.scratch_path.joinpath(name).mkdir()
-    version_pkg_path = script.scratch_path / name
+    dir_path.joinpath(name).mkdir()
+    version_pkg_path = dir_path / name
     subdir_path = version_pkg_path.joinpath("subdir")
     subdir_path.mkdir()
     src_path = subdir_path.joinpath("src")
@@ -1021,14 +1041,14 @@ def _create_test_package_with_srcdir(
             )
         )
     )
-    return _vcs_add(script, version_pkg_path, vcs)
+    return _vcs_add(dir_path, version_pkg_path, vcs)
 
 
 def _create_test_package(
-    script: PipTestEnvironment, name: str = "version_pkg", vcs: str = "git"
+    dir_path: pathlib.Path, name: str = "version_pkg", vcs: str = "git"
 ) -> pathlib.Path:
-    script.scratch_path.joinpath(name).mkdir()
-    version_pkg_path = script.scratch_path / name
+    dir_path.joinpath(name).mkdir()
+    version_pkg_path = dir_path / name
     _create_main_file(version_pkg_path, name=name, output="0.1")
     version_pkg_path.joinpath("setup.py").write_text(
         textwrap.dedent(
@@ -1046,20 +1066,24 @@ def _create_test_package(
             )
         )
     )
-    return _vcs_add(script, version_pkg_path, vcs)
+    return _vcs_add(dir_path, version_pkg_path, vcs)
 
 
-def _create_svn_repo(script: PipTestEnvironment, version_pkg_path: StrPath) -> str:
-    repo_url = script.scratch_path.joinpath("pip-test-package-repo", "trunk").as_uri()
-    script.run("svnadmin", "create", "pip-test-package-repo", cwd=script.scratch_path)
-    script.run(
-        "svn",
-        "import",
-        str(version_pkg_path),
-        repo_url,
-        "-m",
-        "Initial import of pip-test-package",
-        cwd=script.scratch_path,
+def _create_svn_repo(repo_path: pathlib.Path, version_pkg_path: StrPath) -> str:
+    repo_url = repo_path.joinpath("pip-test-package-repo", "trunk").as_uri()
+    subprocess.check_call(
+        "svnadmin create pip-test-package-repo".split(), cwd=repo_path
+    )
+    subprocess.check_call(
+        [
+            "svn",
+            "import",
+            os.fspath(version_pkg_path),
+            repo_url,
+            "-m",
+            "Initial import of pip-test-package",
+        ],
+        cwd=os.fspath(repo_path),
     )
     return repo_url
 
@@ -1148,7 +1172,7 @@ def create_basic_wheel_for_package(
     name: str,
     version: str,
     depends: Optional[List[str]] = None,
-    extras: Dict[str, List[str]] = None,
+    extras: Optional[Dict[str, List[str]]] = None,
     requires_python: Optional[str] = None,
     extra_files: Optional[Dict[str, Union[bytes, str]]] = None,
 ) -> pathlib.Path:
@@ -1211,11 +1235,16 @@ def create_basic_sdist_for_package(
     *,
     fails_egg_info: bool = False,
     fails_bdist_wheel: bool = False,
+    depends: Optional[List[str]] = None,
+    setup_py_prelude: str = "",
 ) -> pathlib.Path:
     files = {
-        "setup.py": f"""\
+        "setup.py": textwrap.dedent(
+            """\
             import sys
             from setuptools import find_packages, setup
+
+            {setup_py_prelude}
 
             fails_bdist_wheel = {fails_bdist_wheel!r}
             fails_egg_info = {fails_egg_info!r}
@@ -1226,18 +1255,21 @@ def create_basic_sdist_for_package(
             if fails_bdist_wheel and "bdist_wheel" in sys.argv:
                 raise Exception("Simulated failure for building a wheel.")
 
-            setup(name={name!r}, version={version!r})
-        """,
+            setup(name={name!r}, version={version!r},
+                install_requires={depends!r})
+        """
+        ).format(
+            name=name,
+            version=version,
+            depends=depends or [],
+            setup_py_prelude=setup_py_prelude,
+            fails_bdist_wheel=fails_bdist_wheel,
+            fails_egg_info=fails_egg_info,
+        ),
     }
 
     # Some useful shorthands
     archive_name = f"{name}-{version}.tar.gz"
-
-    # Replace key-values with formatted values
-    for key, value in list(files.items()):
-        del files[key]
-        key = key.format(name=name)
-        files[key] = textwrap.dedent(value)
 
     # Add new files after formatting
     if extra_files:

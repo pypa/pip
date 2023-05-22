@@ -150,14 +150,6 @@ def html5_page(text: str) -> str:
     )
 
 
-def index_page(spec: Dict[str, str]) -> "WSGIApplication":
-    def link(name: str, value: str) -> str:
-        return '<a href="{}">{}</a>'.format(value, name)
-
-    links = "".join(link(*kv) for kv in spec.items())
-    return text_html_response(html5_page(links))
-
-
 def package_page(spec: Dict[str, str]) -> "WSGIApplication":
     def link(name: str, value: str) -> str:
         return '<a href="{}">{}</a>'.format(value, name)

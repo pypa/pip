@@ -109,7 +109,7 @@ def test_local_columns_flag(simple_script: PipTestEnvironment) -> None:
     assert "Package" in result.stdout
     assert "Version" in result.stdout
     assert "simple (1.0)" not in result.stdout
-    assert "simple     1.0" in result.stdout, str(result)
+    assert "simple  1.0" in result.stdout, str(result)
 
 
 def test_multiple_exclude_and_normalization(
@@ -129,7 +129,7 @@ def test_multiple_exclude_and_normalization(
 
 
 @pytest.mark.network
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 def test_user_flag(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test the behavior of --user flag in the list command
@@ -144,7 +144,7 @@ def test_user_flag(script: PipTestEnvironment, data: TestData) -> None:
 
 
 @pytest.mark.network
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 def test_user_columns_flag(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test the behavior of --user --format=columns flags in the list command
@@ -577,7 +577,7 @@ def test_outdated_formats(script: PipTestEnvironment, data: TestData) -> None:
     assert "Package Version Latest Type" in result.stdout
     assert "simple  1.0     1.1    wheel" in result.stdout
 
-    # Check freeze
+    # Check that freeze is not allowed
     result = script.pip(
         "list",
         "--no-index",
@@ -585,8 +585,12 @@ def test_outdated_formats(script: PipTestEnvironment, data: TestData) -> None:
         wheelhouse_path,
         "--outdated",
         "--format=freeze",
+        expect_error=True,
     )
-    assert "simple==1.0" in result.stdout
+    assert (
+        "List format 'freeze' cannot be used with the --outdated option."
+        in result.stderr
+    )
 
     # Check json
     result = script.pip(
@@ -652,7 +656,7 @@ def test_list_path(tmpdir: Path, script: PipTestEnvironment, data: TestData) -> 
     assert {"name": "simple", "version": "2.0"} in json_result
 
 
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 def test_list_path_exclude_user(
     tmpdir: Path, script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -730,13 +734,12 @@ def test_list_include_work_dir_pkg(script: PipTestEnvironment) -> None:
     assert {"name": "simple", "version": "1.0"} in json_result
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_list_pep610_editable(script: PipTestEnvironment) -> None:
     """
     Test that a package installed with a direct_url.json with editable=true
     is correctly listed as editable.
     """
-    pkg_path = _create_test_package(script, name="testpkg")
+    pkg_path = _create_test_package(script.scratch_path, name="testpkg")
     result = script.pip("install", pkg_path)
     direct_url_path = get_created_direct_url_path(result, "testpkg")
     assert direct_url_path

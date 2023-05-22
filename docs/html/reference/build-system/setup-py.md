@@ -24,8 +24,6 @@ The overall process for building a package is:
 
 - Generate the package's metadata.
 - Generate a wheel for the package.
-  - If this fails and we're trying to install the package, attempt a direct
-    installation.
 
 The wheel can then be used to perform an installation, if necessary.
 
@@ -57,13 +55,6 @@ by pip to avoid repeated identical builds.
 If this wheel generation fails, pip runs `setup.py clean` to clean up any build
 artifacts that may have been generated. After that, pip will attempt a direct
 installation.
-
-### Direct Installation
-
-When all else fails, pip will invoke `setup.py install` to install a package
-using setuptools' mechanisms to perform the installation. This is currently the
-last-resort fallback for projects that cannot be built into wheels, and may not
-be supported in the future.
 
 ### Editable Installation
 

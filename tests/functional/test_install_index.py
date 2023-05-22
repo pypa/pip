@@ -1,12 +1,9 @@
 import shutil
 import textwrap
 
-import pytest
-
 from tests.lib import PipTestEnvironment, TestData
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_find_links_relative_path(script: PipTestEnvironment, data: TestData) -> None:
     """Test find-links as a relative path."""
     result = script.pip(
@@ -38,7 +35,6 @@ def test_find_links_no_doctype(script: PipTestEnvironment, data: TestData) -> No
     assert not result.stderr
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_find_links_requirements_file_relative_path(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -66,7 +62,6 @@ def test_find_links_requirements_file_relative_path(
     result.did_create(initools_folder)
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_from_file_index_hash_link(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -79,7 +74,6 @@ def test_install_from_file_index_hash_link(
     result.did_create(dist_info_folder)
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_file_index_url_quoting(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test url quoting of file index url with a space

@@ -116,6 +116,12 @@ multiple times, in order to specify multiple settings).
 
 The supplied configuration settings are passed to every backend hook call.
 
+Configuration settings provided via `--config-settings` command line options (or the
+equivalent environment variables or configuration file entries) are passed to the build
+of requirements explicitly provided as pip command line arguments. They are not passed
+to the build of dependencies, or to the build of requirements provided in requirement
+files.
+
 ## Build output
 
 It is the responsibility of the build backend to ensure that the output is

@@ -1,7 +1,9 @@
+import base64
 import csv
-import distutils
+import hashlib
 import os
 import shutil
+import sysconfig
 from pathlib import Path
 from typing import Any
 
@@ -193,7 +195,6 @@ def test_install_from_wheel_with_headers(script: PipTestEnvironment) -> None:
     assert header_path.read_text() == header_text
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_wheel_with_target(
     script: PipTestEnvironment, shared_data: TestData, tmpdir: Path
 ) -> None:
@@ -214,7 +215,6 @@ def test_install_wheel_with_target(
     result.did_create(Path("scratch") / "target" / "simpledist")
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_wheel_with_target_and_data_files(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -282,7 +282,9 @@ def test_install_wheel_with_prefix(
         "--find-links",
         tmpdir,
     )
-    lib = distutils.sysconfig.get_python_lib(prefix=os.path.join("scratch", "prefix"))
+    lib = sysconfig.get_path(
+        "purelib", vars={"base": os.path.join("scratch", "prefix")}
+    )
     result.did_create(lib)
 
 
@@ -364,8 +366,45 @@ def test_wheel_record_lines_have_hash_for_data_files(
     ]
 
 
-@pytest.mark.incompatible_with_test_venv
-@pytest.mark.usefixtures("with_wheel")
+def test_wheel_record_lines_have_updated_hash_for_scripts(
+    script: PipTestEnvironment,
+) -> None:
+    """
+    pip rewrites "#!python" shebang lines in scripts when it installs them;
+    make sure it updates the RECORD file correspondingly.
+    """
+    package = make_wheel(
+        "simple",
+        "0.1.0",
+        extra_data_files={
+            "scripts/dostuff": "#!python\n",
+        },
+    ).save_to_dir(script.scratch_path)
+    script.pip("install", package)
+    record_file = script.site_packages_path / "simple-0.1.0.dist-info" / "RECORD"
+    record_text = record_file.read_text()
+    record_rows = list(csv.reader(record_text.splitlines()))
+    records = {r[0]: r[1:] for r in record_rows}
+
+    script_path = script.bin_path / "dostuff"
+    script_contents = script_path.read_bytes()
+    assert not script_contents.startswith(b"#!python\n")
+
+    script_digest = hashlib.sha256(script_contents).digest()
+    script_digest_b64 = (
+        base64.urlsafe_b64encode(script_digest).decode("US-ASCII").rstrip("=")
+    )
+
+    script_record_path = os.path.relpath(
+        script_path, script.site_packages_path
+    ).replace(os.path.sep, "/")
+    assert records[script_record_path] == [
+        f"sha256={script_digest_b64}",
+        str(len(script_contents)),
+    ]
+
+
+@pytest.mark.usefixtures("enable_user_site")
 def test_install_user_wheel(
     script: PipTestEnvironment, shared_data: TestData, tmpdir: Path
 ) -> None:
@@ -664,7 +703,7 @@ def test_wheel_install_fails_with_unrelated_dist_info(
     package = create_basic_wheel_for_package(script, "simple", "0.1.0")
     new_name = "unrelated-2.0.0-py2.py3-none-any.whl"
     new_package = os.path.join(os.path.dirname(package), new_name)
-    shutil.move(package, new_package)
+    shutil.move(os.fspath(package), new_package)
 
     result = script.pip(
         "install",

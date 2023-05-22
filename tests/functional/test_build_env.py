@@ -4,7 +4,7 @@ from typing import Optional
 
 import pytest
 
-from pip._internal.build_env import BuildEnvironment
+from pip._internal.build_env import BuildEnvironment, _get_system_sitepackages
 from tests.lib import (
     PipTestEnvironment,
     TestPipResult,
@@ -41,7 +41,7 @@ def run_with_build_env(
 
             link_collector = LinkCollector(
                 session=PipSession(),
-                search_scope=SearchScope.create([{scratch!r}], []),
+                search_scope=SearchScope.create([{scratch!r}], [], False),
             )
             selection_prefs = SelectionPreferences(
                 allow_yanked=True,
@@ -49,7 +49,6 @@ def run_with_build_env(
             finder = PackageFinder.create(
                 link_collector=link_collector,
                 selection_prefs=selection_prefs,
-                use_deprecated_html5lib=False,
             )
 
             with global_tempdir_manager():
@@ -107,7 +106,6 @@ def test_build_env_allow_only_one_install(script: PipTestEnvironment) -> None:
 
 
 def test_build_env_requirements_check(script: PipTestEnvironment) -> None:
-
     create_basic_wheel_for_package(script, "foo", "2.0")
     create_basic_wheel_for_package(script, "bar", "1.0")
     create_basic_wheel_for_package(script, "bar", "3.0")
@@ -205,9 +203,8 @@ def test_build_env_overlay_prefix_has_priority(script: PipTestEnvironment) -> No
     assert result.stdout.strip() == "2.0", str(result)
 
 
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 def test_build_env_isolation(script: PipTestEnvironment) -> None:
-
     # Create dummy `pkg` wheel.
     pkg_whl = create_basic_wheel_for_package(script, "pkg", "1.0")
 
@@ -226,6 +223,10 @@ def test_build_env_isolation(script: PipTestEnvironment) -> None:
     target = script.scratch_path / "pypath_install"
     script.pip_install_local("-t", target, pkg_whl)
     script.environ["PYTHONPATH"] = target
+
+    system_sites = _get_system_sitepackages()
+    # there should always be something to exclude
+    assert system_sites
 
     run_with_build_env(
         script,
@@ -248,5 +249,14 @@ def test_build_env_isolation(script: PipTestEnvironment) -> None:
                     })), file=sys.stderr)
             print('sys.path:\n  ' + '\n  '.join(sys.path), file=sys.stderr)
             sys.exit(1)
+        """
+        f"""
+        # second check: direct check of exclusion of system site packages
+        import os
+
+        normalized_path = [os.path.normcase(path) for path in sys.path]
+        for system_path in {system_sites!r}:
+            assert system_path not in normalized_path, \
+            f"{{system_path}} found in {{normalized_path}}"
         """,
     )

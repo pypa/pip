@@ -1363,7 +1363,7 @@ def test_new_resolver_skip_inconsistent_metadata(script: PipTestEnvironment) -> 
     )
 
     assert (
-        " inconsistent version: filename has '3', but metadata has '2'"
+        " inconsistent version: expected '3', but metadata has '2'"
     ) in result.stdout, str(result)
     script.assert_installed(a="1")
 
@@ -2324,26 +2324,6 @@ def test_new_resolver_do_not_backtrack_on_build_failure(
     )
 
     assert "egg_info" in result.stderr
-
-
-def test_new_resolver_flag_permits_backtracking_on_build_failure(
-    script: PipTestEnvironment,
-) -> None:
-    create_basic_sdist_for_package(script, "pkg1", "2.0", fails_egg_info=True)
-    create_basic_wheel_for_package(script, "pkg1", "1.0")
-
-    script.pip(
-        "install",
-        "--use-deprecated=backtrack-on-build-failures",
-        "--no-cache-dir",
-        "--no-index",
-        "--find-links",
-        script.scratch_path,
-        "pkg1",
-        allow_stderr_warning=True,
-    )
-
-    script.assert_installed(pkg1="1.0")
 
 
 def test_new_resolver_works_when_failing_package_builds_are_disallowed(

@@ -1,7 +1,6 @@
 import collections
 import logging
 import os
-import subprocess
 import textwrap
 from optparse import Values
 from pathlib import Path
@@ -60,8 +59,8 @@ def options(session: PipSession) -> mock.Mock:
 def parse_reqfile(
     filename: Union[Path, str],
     session: PipSession,
-    finder: PackageFinder = None,
-    options: Values = None,
+    finder: Optional[PackageFinder] = None,
+    options: Optional[Values] = None,
     constraint: bool = False,
     isolated: bool = False,
 ) -> Iterator[InstallRequirement]:
@@ -74,7 +73,13 @@ def parse_reqfile(
         options=options,
         constraint=constraint,
     ):
-        yield install_req_from_parsed_requirement(parsed_req, isolated=isolated)
+        yield install_req_from_parsed_requirement(
+            parsed_req,
+            isolated=isolated,
+            config_settings=parsed_req.options.get("config_settings")
+            if parsed_req.options
+            else None,
+        )
 
 
 def test_read_file_url(tmp_path: Path, session: PipSession) -> None:
@@ -345,13 +350,13 @@ class TestProcessLine:
 
     def test_options_on_a_requirement_line(self, line_processor: LineProcessor) -> None:
         line = (
-            "SomeProject --install-option=yo1 --install-option yo2 "
-            '--global-option="yo3" --global-option "yo4"'
+            'SomeProject --global-option="yo3" --global-option "yo4" '
+            '--config-settings="yo3=yo4" --config-settings "yo1=yo2"'
         )
         filename = "filename"
         req = line_processor(line, filename, 1)[0]
         assert req.global_options == ["yo3", "yo4"]
-        assert req.install_options == ["yo1", "yo2"]
+        assert req.config_settings == {"yo3": "yo4", "yo1": "yo2"}
 
     def test_hash_options(self, line_processor: LineProcessor) -> None:
         """Test the --hash option: mostly its value storage.
@@ -393,6 +398,13 @@ class TestProcessLine:
         self, line_processor: LineProcessor, finder: PackageFinder
     ) -> None:
         line_processor("--no-index", "file", 1, finder=finder)
+        assert finder.index_urls == []
+
+    def test_set_finder_no_index_is_remembered_for_later_invocations(
+        self, line_processor: LineProcessor, finder: PackageFinder
+    ) -> None:
+        line_processor("--no-index", "file", 1, finder=finder)
+        line_processor("--index-url=url", "file", 1, finder=finder)
         assert finder.index_urls == []
 
     def test_set_finder_index_url(
@@ -452,8 +464,16 @@ class TestProcessLine:
         self, line_processor: LineProcessor, options: mock.Mock
     ) -> None:
         """--use-feature can be set in requirements files."""
-        line_processor("--use-feature=2020-resolver", "filename", 1, options=options)
-        assert "2020-resolver" in options.features_enabled
+        line_processor("--use-feature=fast-deps", "filename", 1, options=options)
+
+    def test_use_feature_with_error(
+        self, line_processor: LineProcessor, options: mock.Mock
+    ) -> None:
+        """--use-feature triggers error when parsing requirements files."""
+        with pytest.raises(RequirementsFileParseError):
+            line_processor(
+                "--use-feature=2020-resolver", "filename", 1, options=options
+            )
 
     def test_relative_local_find_links(
         self,
@@ -602,7 +622,6 @@ class TestBreakOptionsArgs:
 
 
 class TestOptionVariants:
-
     # this suite is really just testing optparse, but added it anyway
 
     def test_variant1(
@@ -779,6 +798,20 @@ class TestParseRequirements:
 
         assert not reqs
 
+    def test_invalid_options(self, tmpdir: Path, finder: PackageFinder) -> None:
+        """
+        Test parsing invalid options such as missing closing quotation
+        """
+        with open(tmpdir.joinpath("req1.txt"), "w") as fp:
+            fp.write("--'data\n")
+
+        with pytest.raises(RequirementsFileParseError):
+            list(
+                parse_reqfile(
+                    tmpdir.joinpath("req1.txt"), finder=finder, session=PipSession()
+                )
+            )
+
     def test_req_file_parse_comment_end_of_line_with_url(
         self, tmpdir: Path, finder: PackageFinder
     ) -> None:
@@ -841,14 +874,12 @@ class TestParseRequirements:
         options: mock.Mock,
     ) -> None:
         global_option = "--dry-run"
-        install_option = "--prefix=/opt"
 
         content = """
         --only-binary :all:
-        INITools==2.0 --global-option="{global_option}" \
-                        --install-option "{install_option}"
+        INITools==2.0 --global-option="{global_option}"
         """.format(
-            global_option=global_option, install_option=install_option
+            global_option=global_option
         )
 
         with requirements_file(content, tmpdir) as reqs_file:
@@ -858,21 +889,4 @@ class TestParseRequirements:
                 )
             )
 
-        req.source_dir = os.curdir
-        with mock.patch.object(subprocess, "Popen") as popen:
-            popen.return_value.stdout.readline.return_value = b""
-            try:
-                req.install([])
-            except Exception:
-                pass
-
-            last_call = popen.call_args_list[-1]
-            args = last_call[0][0]
-            assert (
-                0
-                < args.index(global_option)
-                < args.index("install")
-                < args.index(install_option)
-            )
-        assert options.format_control.no_binary == {":all:"}
-        assert options.format_control.only_binary == set()
+        assert req.global_options == [global_option]

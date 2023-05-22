@@ -252,7 +252,7 @@ class LocalFSAdapter(BaseAdapter):
 
 
 class _SSLContextAdapterMixin:
-    """Mixin to add the ``ssl_context`` contructor argument to HTTP adapters.
+    """Mixin to add the ``ssl_context`` constructor argument to HTTP adapters.
 
     The additional argument is forwarded directly to the pool manager. This allows us
     to dynamically decide what SSL store to use at runtime, which is used to implement
@@ -316,7 +316,6 @@ class InsecureCacheControlAdapter(CacheControlAdapter):
 
 
 class PipSession(requests.Session):
-
     timeout: Optional[int] = None
 
     def __init__(
@@ -465,7 +464,7 @@ class PipSession(requests.Session):
                 continue
 
             try:
-                addr = ipaddress.ip_address(origin_host)
+                addr = ipaddress.ip_address(origin_host or "")
                 network = ipaddress.ip_network(secure_host)
             except ValueError:
                 # We don't have both a valid address or a valid network, so

@@ -2,14 +2,14 @@ diff --git a/src/pip/_vendor/tenacity/__init__.py b/src/pip/_vendor/tenacity/__i
 index 88c28d2d6..086ad46e1 100644
 --- a/src/pip/_vendor/tenacity/__init__.py
 +++ b/src/pip/_vendor/tenacity/__init__.py
-@@ -76,10 +76,12 @@ from .after import after_nothing  # noqa
+@@ -82,10 +82,12 @@ from .after import after_nothing  # noqa
  from .before_sleep import before_sleep_log  # noqa
  from .before_sleep import before_sleep_nothing  # noqa
 
 -try:
--    import tornado  # type: ignore
+-    import tornado
 -except ImportError:
--    tornado = None  # type: ignore
+-    tornado = None
 +# Replace a conditional import with a hard-coded None so that pip does
 +# not attempt to use tornado even if it is present in the environment.
 +# If tornado is non-None, tenacity will attempt to execute some code
@@ -22,7 +22,7 @@ index 88c28d2d6..086ad46e1 100644
 
 --- a/src/pip/_vendor/tenacity/__init__.py
 +++ b/src/pip/_vendor/tenacity/__init__.py
-@@ -190,7 +190,7 @@ class RetryError(Exception):
+@@ -153,7 +153,7 @@ class RetryError(Exception):
          self.last_attempt = last_attempt
          super().__init__(last_attempt)
  
