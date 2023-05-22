@@ -385,7 +385,6 @@ def test_git__get_url_rev__idempotent() -> None:
     "url",
     [
         "https+svn://svn.example.com/MyProject#eggg=myproject",
-        # Test a URL containing a "+" (but not in the scheme).
         "https+svn://svn.example.com/My+Project#foo=myproject",
     ],
 )
