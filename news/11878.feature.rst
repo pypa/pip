@@ -1,0 +1,2 @@
+Raise an Error on misspelled URL fragment, only 'egg' and 'subdirectory' are
+allowed.
