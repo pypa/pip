@@ -5,7 +5,11 @@ from unittest import TestCase, mock
 
 import pytest
 
-from pip._internal.exceptions import BadCommand, InstallationError
+from pip._internal.exceptions import (
+    BadCommand,
+    InstallationError,
+    DiagnosticPipError,
+)
 from pip._internal.utils.misc import HiddenText, hide_url, hide_value
 from pip._internal.utils.subprocess import CommandArgs
 from pip._internal.vcs import make_vcs_requirement_url
@@ -375,6 +379,19 @@ def test_git__get_url_rev__idempotent() -> None:
     expected = ("git@git.example.com:MyProject", None, (None, None))
     assert result1 == expected
     assert result2 == expected
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https+svn://svn.example.com/MyProject#eggg=myproject",
+        # Test a URL containing a "+" (but not in the scheme).
+        "https+svn://svn.example.com/My+Project#foo=myproject",
+    ],
+)
+def test_version_control__get_url_rev_and_auth_typo(url: str) -> None:
+    with pytest.raises(DiagnosticPipError):
+        VersionControl.get_url_rev_and_auth(url)
 
 
 @pytest.mark.parametrize(
