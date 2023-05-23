@@ -422,7 +422,7 @@ class VersionControl:
                     "or remove @ from the URL.".format(url)
                 )
         # check for typos in frag
-        parameter_names = [k.split("=")[0] for k in frag.split("&") if k]
+        parameter_names = urllib.parse.parse_qs(frag).keys()
         if not all([p in ("egg", "subdirectory") for p in parameter_names]):
             raise DiagnosticPipError(
                 reference="test-diagnostic",
