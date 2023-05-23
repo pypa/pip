@@ -473,7 +473,7 @@ Miro Hrončok
 Monica Baluna
 montefra
 Monty Taylor
-Muha Ajjan‮
+Muha Ajjan
 Nadav Wexler
 Nahuel Ambrosini
 Nate Coraor
@@ -725,4 +725,4 @@ Zvezdan Petkovic
 Łukasz Langa
 Роман Донченко
 Семён Марьясин
-‮rekcäH nitraM‮
+Martin Häcker
