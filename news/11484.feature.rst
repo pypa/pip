@@ -1,2 +1,4 @@
-Prevent users from running ``pip install pip install ...``, as this is likely
-unintentional.
+Prevent users from running ``pip install pip install package`` and
+``pip install install package``, as this is likely unintentional. Installing
+the ``install`` package is still possible by running ``pip install install``
+separately.

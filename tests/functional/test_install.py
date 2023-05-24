@@ -2575,4 +2575,50 @@ def test_prevent_pip_install_pip_install(script: PipTestEnvironment) -> None:
         expect_error=True,
     )
 
-    assert "Likely incorrect command: pip install pip install ..." in result.stderr
+    assert (
+        "\n".join(
+            [
+                "Likely incorrect command: pip install pip install ...",
+                'Did you mean "pip install simple_package"?',
+                'To install the "install" package, run '
+                '"pip install install" separately',
+            ]
+        )
+        in result.stderr
+    )
+
+
+def test_prevent_pip_install_install_package(script: PipTestEnvironment) -> None:
+    """
+    Test that an error is given if a user tries to run pip install install ...,
+    as they likely made a mistake with their command
+    """
+    result = script.pip(
+        "install",
+        "install",
+        "simple_package",
+        expect_error=True,
+    )
+
+    assert (
+        "\n".join(
+            [
+                "Likely incorrect command: pip install install ...",
+                'Did you mean "pip install simple_package"?',
+                'To install the "install" package, run '
+                '"pip install install" separately',
+            ]
+        )
+        in result.stderr
+    )
+
+
+def test_allow_pip_install_install(script: PipTestEnvironment) -> None:
+    """
+    Test that users are allowed to install the "install" package explicitly
+    """
+    result = script.pip(
+        "install",
+        "install",
+    )
+    assert "Successfully installed install" in result.stdout
