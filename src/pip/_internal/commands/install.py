@@ -270,7 +270,7 @@ class InstallCommand(RequirementCommand):
         # Prevent users from running pip install pip install, since this likely
         # indicates a mistake with the command
         if args[:2] == ["pip", "install"]:
-            raise CommandError("Likely incorrect command: pip install pip install ...")
+            raise CommandError(f"Likely incorrect command: pip install pip install ... Did you mean \"pip install {' '.join(args[2:-1])}\".")
 
         # Check whether the environment we're installing into is externally
         # managed, as specified in PEP 668. Specifying --root, --target, or
