@@ -281,7 +281,7 @@ class InstallCommand(RequirementCommand):
                 )
             )
         # And the same for pip install install (unless it is the only argument)
-        if args[0] == "install" and len(args) > 1:
+        if len(args) > 1 and args[0] == "install":
             raise CommandError(
                 "\n".join(
                     [
