@@ -20,7 +20,7 @@ from typing import (
 )
 
 from pip._internal.cli.spinners import SpinnerInterface
-from pip._internal.exceptions import BadCommand, TypoInFragmentsError, InstallationError
+from pip._internal.exceptions import BadCommand, InstallationError, TypoInFragmentsError
 from pip._internal.utils.misc import (
     HiddenText,
     ask_path_exists,
