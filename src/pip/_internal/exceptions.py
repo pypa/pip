@@ -274,6 +274,18 @@ class RequirementsFileParseError(InstallationError):
     """Raised when a general error occurs parsing a requirements file line."""
 
 
+class TypoInFragmentsError(DiagnosticPipError):
+    """Raised when a typo in the fragments was found."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(
+            reference="typo-in-fragment",
+            message=message,
+            context="Possible typo in URL fragment.",
+            hint_stmt="Only 'egg' and 'subdirectory' are allowed.",
+        )
+
+
 class BestVersionAlreadyInstalled(PipError):
     """Raised when the most up-to-date version of a package is already
     installed."""

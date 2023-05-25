@@ -20,7 +20,7 @@ from typing import (
 )
 
 from pip._internal.cli.spinners import SpinnerInterface
-from pip._internal.exceptions import BadCommand, DiagnosticPipError, InstallationError
+from pip._internal.exceptions import BadCommand, TypoInFragmentsError, InstallationError
 from pip._internal.utils.misc import (
     HiddenText,
     ask_path_exists,
@@ -428,12 +428,9 @@ class VersionControl:
             if key not in ("egg", "subdirectory")
         }
         if unknown_param_names:
-            raise DiagnosticPipError(
-                reference="typo-in-fragment",
+            raise TypoInFragmentsError(
                 message="At least one of the URL parameters {!r}"
                 "is not supported or has a typo.".format(unknown_param_names),
-                context="Possible typo in URL fragment.",
-                hint_stmt="Only 'egg' and 'subdirectory' are allowed.",
             )
 
         url = urllib.parse.urlunsplit((scheme, netloc, path, query, ""))

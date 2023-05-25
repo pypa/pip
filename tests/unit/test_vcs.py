@@ -5,7 +5,7 @@ from unittest import TestCase, mock
 
 import pytest
 
-from pip._internal.exceptions import BadCommand, DiagnosticPipError, InstallationError
+from pip._internal.exceptions import BadCommand, TypoInFragmentsError, InstallationError
 from pip._internal.utils.misc import HiddenText, hide_url, hide_value
 from pip._internal.utils.subprocess import CommandArgs
 from pip._internal.vcs import make_vcs_requirement_url
@@ -385,7 +385,7 @@ def test_git__get_url_rev__idempotent() -> None:
     ],
 )
 def test_version_control__get_url_rev_and_auth_typo(url: str) -> None:
-    with pytest.raises(DiagnosticPipError):
+    with pytest.raises(TypoInFragmentsError):
         VersionControl.get_url_rev_and_auth(url)
 
 
