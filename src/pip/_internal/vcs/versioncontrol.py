@@ -422,13 +422,16 @@ class VersionControl:
                     "or remove @ from the URL.".format(url)
                 )
         # check for typos in frag
-        parameter_names = urllib.parse.parse_qs(frag).keys()
-        if not all([p in ("egg", "subdirectory") for p in parameter_names]):
+        unknown_param_names = {
+            key
+            for key in urllib.parse.parse_qs(frag)
+            if key not in ("egg", "subdirectory")
+        }
+        if unknown_param_names:
             raise DiagnosticPipError(
-                reference="test-diagnostic",
-                kind="warning",
-                message="At least one of the URL parameters "
-                "is not supported or has a typo.",
+                reference="typo-in-fragment",
+                message="At least one of the URL parameters {!r}"
+                "is not supported or has a typo.".format(unknown_param_names),
                 context="Possible typo in URL fragment.",
                 hint_stmt="Only 'egg' and 'subdirectory' are allowed.",
             )
