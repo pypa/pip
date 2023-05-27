@@ -14,7 +14,7 @@ requests==2.31.0
     urllib3==1.26.15
 rich==13.3.3
     pygments==2.14.0
-    typing_extensions==4.5.0
+    typing_extensions==4.6.0
 resolvelib==1.0.1
 setuptools==67.7.2
 six==1.16.0
