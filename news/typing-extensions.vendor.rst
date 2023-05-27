@@ -1,1 +1,1 @@
-Updated typing-extensions to 4.6.0
+Updated typing_extensions to 4.6.0
