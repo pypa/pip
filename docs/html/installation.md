@@ -72,6 +72,8 @@ If run directly:
 $ chmod +x ./pip.pyz
 $ ./pip.pyz
 ```
+
+then the currently active Python interpreter will be used.
 ````
 
 ````{tab} MacOS
@@ -79,15 +81,19 @@ $ ./pip.pyz
 $ chmod +x ./pip.pyz
 $ ./pip.pyz
 ```
+
+then the currently active Python interpreter will be used.
 ````
 
 ````{tab} Windows
 ```console
 C:\> .\pip.pyz
 ```
-````
 
 then the currently active Python interpreter will be used.
+You may need to configure your system to recognise the ``.pyz`` extension
+before this will work.
+````
 
 ## Alternative Methods
 
