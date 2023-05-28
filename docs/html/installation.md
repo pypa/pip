@@ -86,8 +86,8 @@ then the currently active Python interpreter will be used.
 ````
 
 ````{tab} Windows
-```console
-C:\> .\pip.pyz
+```shell
+C:> .\pip.pyz
 ```
 
 then the currently active Python interpreter will be used.
