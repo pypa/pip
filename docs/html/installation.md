@@ -61,33 +61,39 @@ also zip applications for specific pip versions, named `pip-X.Y.Z.pyz`.
 
 The zip application can be run using any supported version of Python:
 
-```{pip-cli}
+````{tab} Linux
+```console
 $ python pip.pyz --help
 ```
 
 If run directly:
-
-````{tab} Linux
 ```console
 $ chmod +x ./pip.pyz
 $ ./pip.pyz
 ```
+
+then the currently active Python interpreter will be used.
 ````
 
 ````{tab} MacOS
 ```console
+$ python pip.pyz --help
+```
+
+If run directly:
+```console
 $ chmod +x ./pip.pyz
 $ ./pip.pyz
 ```
+
+then the currently active Python interpreter will be used.
 ````
 
 ````{tab} Windows
 ```console
-C:\> .\pip.pyz
+C:> py pip.pyz --help
 ```
 ````
-
-then the currently active Python interpreter will be used.
 
 ## Alternative Methods
 
