@@ -91,6 +91,7 @@ C:\> .\pip.pyz
 ```
 
 then the currently active Python interpreter will be used.
+
 You may need to configure your system to recognise the ``.pyz`` extension
 before this will work.
 ````
