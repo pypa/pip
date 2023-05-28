@@ -86,7 +86,7 @@ then the currently active Python interpreter will be used.
 ````
 
 ````{tab} Windows
-```
+```doscon
 C:> .\pip.pyz
 ```
 
