@@ -445,6 +445,25 @@ class TestRequirementSet:
             assert isinstance(req.download_info.info, ArchiveInfo)
             assert req.download_info.info.hash == hash
 
+    def test_download_info_archive_cache_with_invalid_origin(
+        self, tmp_path: Path, shared_data: TestData, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test an invalid origin.json is ignored."""
+        url = shared_data.packages.joinpath("simple-1.0.tar.gz").as_uri()
+        finder = make_test_finder()
+        wheel_cache = WheelCache(str(tmp_path / "cache"))
+        cache_entry_dir = wheel_cache.get_path_for_link(Link(url))
+        Path(cache_entry_dir).mkdir(parents=True)
+        Path(cache_entry_dir).joinpath("origin.json").write_text("{")  # invalid json
+        wheel.make_wheel(name="simple", version="1.0").save_to_dir(cache_entry_dir)
+        with self._basic_resolver(finder, wheel_cache=wheel_cache) as resolver:
+            ireq = get_processed_req_from_line(f"simple @ {url}")
+            reqset = resolver.resolve([ireq], True)
+            assert len(reqset.all_requirements) == 1
+            req = reqset.all_requirements[0]
+            assert req.is_wheel_from_cache
+            assert "Ignoring invalid cache entry origin file" in caplog.messages[0]
+
     def test_download_info_local_wheel(self, data: TestData) -> None:
         """Test that download_info is set for requirements from a local wheel."""
         finder = make_test_finder()
