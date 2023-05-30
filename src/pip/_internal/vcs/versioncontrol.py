@@ -430,7 +430,8 @@ class VersionControl:
         unknown_param_str = ", ".join(sorted(unknown_param_names))
         if unknown_param_names:
             raise TypoInFragmentsError(
-                message=f"Not all fragments in the URL {url} are valid: {unknown_param_str}",
+                message="Not all fragments in the URL {!r} "
+                "are valid".format(unknown_param_str),
             )
 
         url = urllib.parse.urlunsplit((scheme, netloc, path, query, ""))
