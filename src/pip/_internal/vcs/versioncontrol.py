@@ -427,10 +427,10 @@ class VersionControl:
             for key in urllib.parse.parse_qs(frag)
             if key not in ("egg", "subdirectory")
         }
+        unknown_param_str = ", ".join(sorted(unknown_param_names))
         if unknown_param_names:
             raise TypoInFragmentsError(
-                message="At least one of the URL parameters {!r}"
-                "is not supported or has a typo.".format(unknown_param_names),
+                message=f"Not all fragments in the URL {url} are valid: {unknown_param_str}",
             )
 
         url = urllib.parse.urlunsplit((scheme, netloc, path, query, ""))
