@@ -903,7 +903,8 @@ root_user_action: Callable[..., Option] = partial(
     dest="root_user_action",
     default="warn",
     choices=["warn", "ignore"],
-    help="Action if pip is run as a root user. By default, a warning message is shown.",
+    help="Action if pip is run as a root user ('warn' or 'ignore'). "
+    "By default, a warning message is shown.",
 )
 
 

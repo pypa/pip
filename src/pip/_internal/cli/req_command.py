@@ -221,7 +221,9 @@ def warn_if_run_as_root() -> None:
         "Running pip as the 'root' user can result in broken permissions and "
         "conflicting behaviour with the system package manager. "
         "It is recommended to use a virtual environment instead: "
-        "https://pip.pypa.io/warnings/venv"
+        "https://pip.pypa.io/warnings/venv. "
+        "Use the --root-user-action option if you know what you are doing and "
+        "want to suppress this warning."
     )
 
 
