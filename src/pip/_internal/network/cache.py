@@ -3,7 +3,8 @@
 
 import os
 from contextlib import contextmanager
-from typing import BinaryIO, Generator, Optional
+from datetime import datetime
+from typing import BinaryIO, Generator, Optional, Union
 
 from pip._vendor.cachecontrol.cache import SeparateBodyBaseCache
 from pip._vendor.cachecontrol.caches import SeparateBodyFileCache
@@ -62,7 +63,9 @@ class SafeFileCache(SeparateBodyBaseCache):
 
             replace(f.name, path)
 
-    def set(self, key: str, value: bytes, expires: Optional[int] = None) -> None:
+    def set(
+        self, key: str, value: bytes, expires: Union[int, datetime, None] = None
+    ) -> None:
         path = self._get_cache_path(key)
         self._write(path, value)
 
