@@ -131,6 +131,18 @@ class Command(CommandContextMixIn):
                 ", ".join(sorted(always_enabled_features)),
             )
 
+
+        # Make sure that the --python argument isn't specified after the
+        # subcommand. We can tell, because if --python was specified,
+        # we should only reach this point if we're running in the created
+        # subprocess, which has the _PIP_RUNNING_IN_SUBPROCESS environment
+        # variable set.
+        if options.python and "_PIP_RUNNING_IN_SUBPROCESS" not in os.environ:
+            logger.warning(
+                "The --python option is ignored if placed after "
+                "the pip subcommand name"
+            )
+
         # TODO: Try to get these passing down from the command?
         #       without resorting to os.environ to hold these.
         #       This also affects isolated builds and it should.
