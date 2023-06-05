@@ -73,10 +73,8 @@ distlib = "https://bitbucket.org/pypa/distlib/raw/master/LICENSE.txt"
 webencodings = "https://github.com/SimonSapin/python-webencodings/raw/master/LICENSE"
 
 [tool.ruff]
-exclude = [
+extend-exclude = [
     "./build",
-    ".nox",
-    ".tox",
     ".scratch",
     "_vendor",
     "data",
