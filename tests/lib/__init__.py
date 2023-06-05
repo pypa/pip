@@ -686,7 +686,7 @@ class PipTestEnvironment(TestFileEnvironment):
         kw["expect_stderr"] = True
         # Ignore linter check
         # B026 Star-arg unpacking after a keyword argument is strongly discouraged
-        result = super().run(cwd=cwd, *args, **kw)  # noqa
+        result = super().run(cwd=cwd, *args, **kw)  # noqa: B026
 
         if expect_error and not allow_error:
             if result.returncode == 0:
