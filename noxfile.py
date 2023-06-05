@@ -219,7 +219,7 @@ def vendoring(session: nox.Session) -> None:
         new_version = old_version
         for inner_name, inner_version in pinned_requirements(vendor_txt):
             if inner_name == name:
-                # this is a dedicated assignment, to make flake8 happy
+                # this is a dedicated assignment, to make lint happy
                 new_version = inner_version
                 break
         else:
