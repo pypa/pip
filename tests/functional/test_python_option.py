@@ -40,6 +40,7 @@ def test_python_interpreter(
     result = script.pip("--python", env_path, "list", "--format=json")
     assert json.loads(result.stdout) == before
 
+
 def test_error_python_option_wrong_location(
     script: PipTestEnvironment,
     tmpdir: Path,

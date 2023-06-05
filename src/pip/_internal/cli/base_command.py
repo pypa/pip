@@ -131,7 +131,6 @@ class Command(CommandContextMixIn):
                 ", ".join(sorted(always_enabled_features)),
             )
 
-
         # Make sure that the --python argument isn't specified after the
         # subcommand. We can tell, because if --python was specified,
         # we should only reach this point if we're running in the created
