@@ -27,12 +27,6 @@ repos:
   hooks:
     - id: ruff
 
-- repo: https://github.com/PyCQA/isort
-  rev: 5.12.0
-  hooks:
-  - id: isort
-    files: \.py$
-
 - repo: https://github.com/pre-commit/mirrors-mypy
   rev: v0.961
   hooks:

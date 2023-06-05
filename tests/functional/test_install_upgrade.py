@@ -6,8 +6,13 @@ from pathlib import Path
 
 import pytest
 
-from tests.lib import pyversion  # noqa: F401
-from tests.lib import PipTestEnvironment, ResolverVariant, TestData, assert_all_changes
+from tests.lib import (
+    PipTestEnvironment,
+    ResolverVariant,
+    TestData,
+    assert_all_changes,
+    pyversion,  # noqa: F401
+)
 from tests.lib.local_repos import local_checkout
 from tests.lib.wheel import make_wheel
 

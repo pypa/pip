@@ -94,8 +94,15 @@ select = [
     "W",
     "G",
     "ISC",
+    "I",
 ]
 
 [tool.ruff.per-file-ignores]
 "noxfile.py" = ["G"]
 "tests/*" = ["B011"]
+
+[tool.ruff.isort]
+# We need to explicitly make pip "first party" as it's imported by code in
+# the docs and tests directories.
+known-first-party = ["pip"]
+known-third-party = ["pip._vendor"]
