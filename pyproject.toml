@@ -71,3 +71,38 @@ setuptools = "pkg_resources"
 CacheControl = "https://raw.githubusercontent.com/ionrock/cachecontrol/v0.12.6/LICENSE.txt"
 distlib = "https://bitbucket.org/pypa/distlib/raw/master/LICENSE.txt"
 webencodings = "https://github.com/SimonSapin/python-webencodings/raw/master/LICENSE"
+
+[tool.ruff]
+extend-exclude = [
+    "./build",
+    ".scratch",
+    "_vendor",
+    "data",
+]
+ignore = [
+    "B019",
+    "B020",
+    "B904", # Ruff enables opinionated warnings by default
+    "B905", # Ruff enables opinionated warnings by default
+    "G202",
+]
+line-length = 88
+select = [
+    "B",
+    "E",
+    "F",
+    "W",
+    "G",
+    "ISC",
+    "I",
+]
+
+[tool.ruff.per-file-ignores]
+"noxfile.py" = ["G"]
+"tests/*" = ["B011"]
+
+[tool.ruff.isort]
+# We need to explicitly make pip "first party" as it's imported by code in
+# the docs and tests directories.
+known-first-party = ["pip"]
+known-third-party = ["pip._vendor"]

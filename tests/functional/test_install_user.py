@@ -8,12 +8,12 @@ from pathlib import Path
 
 import pytest
 
-from tests.lib import pyversion  # noqa: F401
 from tests.lib import (
     PipTestEnvironment,
     TestData,
     create_basic_wheel_for_package,
     need_svn,
+    pyversion,  # noqa: F401
 )
 from tests.lib.local_repos import local_checkout
 from tests.lib.venv import VirtualEnvironment
