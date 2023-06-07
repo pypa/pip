@@ -30,6 +30,7 @@ from pip._internal.models.index import PyPI
 from pip._internal.models.link import (
     Link,
     LinkHash,
+    MetadataFile,
     _clean_url_path,
     _ensure_quoted_url,
 )
@@ -527,7 +528,7 @@ def test_parse_links_json() -> None:
             requires_python=">=3.7",
             yanked_reason=None,
             hashes={"sha256": "sha256 hash", "blake2b": "blake2b hash"},
-            dist_info_metadata="sha512=aabdd41",
+            metadata_file_data=MetadataFile({"sha512": "aabdd41"}),
         ),
     ]
 
@@ -603,12 +604,12 @@ _pkg1_requirement = Requirement("pkg1==1.0")
         ),
     ],
 )
-def test_parse_links__dist_info_metadata(
+def test_parse_links__metadata_file_data(
     anchor_html: str,
     expected: Optional[str],
     hashes: Dict[str, str],
 ) -> None:
-    link = _test_parse_links_data_attribute(anchor_html, "dist_info_metadata", expected)
+    link = _test_parse_links_data_attribute(anchor_html, "metadata_file_data", expected)
     assert link._hashes == hashes
 
 
@@ -1080,17 +1081,27 @@ def test_link_hash_parsing(url: str, result: Optional[LinkHash]) -> None:
 
 
 @pytest.mark.parametrize(
-    "dist_info_metadata, result",
+    "metadata_attrib, expected",
     [
-        ("sha256=aa113592bbe", LinkHash("sha256", "aa113592bbe")),
-        ("sha256=", LinkHash("sha256", "")),
-        ("sha500=aa113592bbe", None),
-        ("true", None),
-        ("", None),
-        ("aa113592bbe", None),
+        ("sha256=aa113592bbe", MetadataFile({"sha256": "aa113592bbe"})),
+        ("sha256=", MetadataFile({"sha256": ""})),
+        ("sha500=aa113592bbe", MetadataFile({})),
+        ("true", MetadataFile(None)),
+        (None, None),
+        # TODO: Are these correct?
+        ("", MetadataFile(None)),
+        ("aa113592bbe", MetadataFile(None)),
     ],
 )
-def test_pep658_hash_parsing(
-    dist_info_metadata: str, result: Optional[LinkHash]
+def test_metadata_file_info_parsing_html(
+    metadata_attrib: str, expected: Optional[MetadataFile]
 ) -> None:
-    assert LinkHash.parse_pep658_hash(dist_info_metadata) == result
+    attribs: Dict[str, Optional[str]] = {
+        "href": "something",
+        "data-dist-info-metadata": metadata_attrib,
+    }
+    page_url = "dummy_for_comes_from"
+    base_url = "https://index.url/simple"
+    link = Link.from_element(attribs, page_url, base_url)
+    assert link is not None and link.metadata_file_data == expected
+    # TODO: Do we need to do something for the JSON data?
