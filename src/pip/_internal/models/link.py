@@ -99,10 +99,10 @@ class LinkHash:
 class MetadataFile:
     """Information about a core metadata file associated with a distribution."""
 
-    hashes: Optional[dict[str, str]]
+    hashes: Optional[Dict[str, str]]
 
     # TODO: Do we care about stripping out unsupported hash methods?
-    def __init__(self, hashes: Optional[dict[str, str]]):
+    def __init__(self, hashes: Optional[Dict[str, str]]):
         if hashes:
             hashes = {n: v for n, v in hashes.items() if n in _SUPPORTED_HASHES}
         # We need to use this as this is a frozen dataclass
