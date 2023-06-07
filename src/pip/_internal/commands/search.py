@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 class SearchCommand(Command, SessionCommandMixin):
-    """Search for PyPI packages whose name or summary contains <query>."""
+    """Search for PyPI packages whose name or summary contains <query>. But it has been deprecated, so it is not recommended """
 
     usage = """
       %prog [options] <query>"""
