@@ -492,7 +492,7 @@ def test_parse_links_json() -> None:
                     "url": "/files/holygrail-1.0-py3-none-any.whl",
                     "hashes": {"sha256": "sha256 hash", "blake2b": "blake2b hash"},
                     "requires-python": ">=3.7",
-                    "dist-info-metadata": "sha512=aabdd41",
+                    "dist-info-metadata": {"sha512": "aabdd41"},
                 },
             ],
         }
