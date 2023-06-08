@@ -101,12 +101,20 @@ class MetadataFile:
 
     hashes: Optional[Dict[str, str]]
 
-    # TODO: Do we care about stripping out unsupported hash methods?
-    def __init__(self, hashes: Optional[Dict[str, str]]):
-        if hashes:
-            hashes = {n: v for n, v in hashes.items() if n in _SUPPORTED_HASHES}
-        # We need to use this as this is a frozen dataclass
-        object.__setattr__(self, "hashes", hashes)
+    def __post_init__(self) -> None:
+        if self.hashes is not None:
+            assert all(name in _SUPPORTED_HASHES for name in self.hashes)
+
+
+def supported_hashes(hashes: Optional[Dict[str, str]]) -> Optional[Dict[str, str]]:
+    # Remove any unsupported hash types from the mapping. If this leaves no
+    # supported hashes, return None
+    if hashes is None:
+        return None
+    hashes = {n: v for n, v in hashes.items() if n in _SUPPORTED_HASHES}
+    if len(hashes) > 0:
+        return hashes
+    return None
 
 
 def _clean_url_path_part(part: str) -> str:
@@ -273,7 +281,7 @@ class Link(KeyBasedCompareMixin):
         metadata_info = file_data.get("dist-info-metadata", False)
         if isinstance(metadata_info, dict):
             # The file exists, and hashes have been supplied
-            metadata_file_data = MetadataFile(metadata_info)
+            metadata_file_data = MetadataFile(supported_hashes(metadata_info))
         elif metadata_info:
             # The file exists, but there are no hashes
             metadata_file_data = MetadataFile(None)
@@ -328,7 +336,7 @@ class Link(KeyBasedCompareMixin):
             # The file exists, and hashes have been supplied
             hashname, sep, hashval = metadata_info.partition("=")
             if sep == "=":
-                metadata_file_data = MetadataFile({hashname: hashval})
+                metadata_file_data = MetadataFile(supported_hashes({hashname: hashval}))
             else:
                 # Error - data is wrong. Treat as no hashes supplied.
                 logger.debug(

@@ -1085,10 +1085,10 @@ def test_link_hash_parsing(url: str, result: Optional[LinkHash]) -> None:
     [
         ("sha256=aa113592bbe", MetadataFile({"sha256": "aa113592bbe"})),
         ("sha256=", MetadataFile({"sha256": ""})),
-        ("sha500=aa113592bbe", MetadataFile({})),
+        ("sha500=aa113592bbe", MetadataFile(None)),
         ("true", MetadataFile(None)),
         (None, None),
-        # TODO: Are these correct?
+        # Attribute is present but invalid
         ("", MetadataFile(None)),
         ("aa113592bbe", MetadataFile(None)),
     ],
@@ -1104,4 +1104,3 @@ def test_metadata_file_info_parsing_html(
     base_url = "https://index.url/simple"
     link = Link.from_element(attribs, page_url, base_url)
     assert link is not None and link.metadata_file_data == expected
-    # TODO: Do we need to do something for the JSON data?
