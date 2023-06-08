@@ -486,13 +486,30 @@ def test_parse_links_json() -> None:
                     "requires-python": ">=3.7",
                     "dist-info-metadata": False,
                 },
-                # Same as above, but parsing dist-info-metadata.
+                # Same as above, but parsing core-metadata.
+                {
+                    "filename": "holygrail-1.0-py3-none-any.whl",
+                    "url": "/files/holygrail-1.0-py3-none-any.whl",
+                    "hashes": {"sha256": "sha256 hash", "blake2b": "blake2b hash"},
+                    "requires-python": ">=3.7",
+                    "core-metadata": {"sha512": "aabdd41"},
+                },
+                # Ensure fallback to dist-info-metadata works
                 {
                     "filename": "holygrail-1.0-py3-none-any.whl",
                     "url": "/files/holygrail-1.0-py3-none-any.whl",
                     "hashes": {"sha256": "sha256 hash", "blake2b": "blake2b hash"},
                     "requires-python": ">=3.7",
                     "dist-info-metadata": {"sha512": "aabdd41"},
+                },
+                # Ensure that core-metadata gets priority.
+                {
+                    "filename": "holygrail-1.0-py3-none-any.whl",
+                    "url": "/files/holygrail-1.0-py3-none-any.whl",
+                    "hashes": {"sha256": "sha256 hash", "blake2b": "blake2b hash"},
+                    "requires-python": ">=3.7",
+                    "core-metadata": {"sha512": "aabdd41"},
+                    "dist-info-metadata": {"sha512": "this_is_wrong"},
                 },
             ],
         }
@@ -521,6 +538,22 @@ def test_parse_links_json() -> None:
             requires_python=">=3.7",
             yanked_reason=None,
             hashes={"sha256": "sha256 hash", "blake2b": "blake2b hash"},
+        ),
+        Link(
+            "https://example.com/files/holygrail-1.0-py3-none-any.whl",
+            comes_from=page.url,
+            requires_python=">=3.7",
+            yanked_reason=None,
+            hashes={"sha256": "sha256 hash", "blake2b": "blake2b hash"},
+            metadata_file_data=MetadataFile({"sha512": "aabdd41"}),
+        ),
+        Link(
+            "https://example.com/files/holygrail-1.0-py3-none-any.whl",
+            comes_from=page.url,
+            requires_python=">=3.7",
+            yanked_reason=None,
+            hashes={"sha256": "sha256 hash", "blake2b": "blake2b hash"},
+            metadata_file_data=MetadataFile({"sha512": "aabdd41"}),
         ),
         Link(
             "https://example.com/files/holygrail-1.0-py3-none-any.whl",
@@ -586,21 +619,33 @@ _pkg1_requirement = Requirement("pkg1==1.0")
         ),
         # Test with value "true".
         (
-            '<a href="/pkg1-1.0.tar.gz" data-dist-info-metadata="true"></a>',
+            '<a href="/pkg1-1.0.tar.gz" data-core-metadata="true"></a>',
             MetadataFile(None),
             {},
         ),
         # Test with a provided hash value.
         (
-            '<a href="/pkg1-1.0.tar.gz" data-dist-info-metadata="sha256=aa113592bbe"></a>',  # noqa: E501
+            '<a href="/pkg1-1.0.tar.gz" data-core-metadata="sha256=aa113592bbe"></a>',  # noqa: E501
             MetadataFile({"sha256": "aa113592bbe"}),
             {},
         ),
         # Test with a provided hash value for both the requirement as well as metadata.
         (
-            '<a href="/pkg1-1.0.tar.gz#sha512=abc132409cb" data-dist-info-metadata="sha256=aa113592bbe"></a>',  # noqa: E501
+            '<a href="/pkg1-1.0.tar.gz#sha512=abc132409cb" data-core-metadata="sha256=aa113592bbe"></a>',  # noqa: E501
             MetadataFile({"sha256": "aa113592bbe"}),
             {"sha512": "abc132409cb"},
+        ),
+        # Ensure the fallback to the old name works.
+        (
+            '<a href="/pkg1-1.0.tar.gz" data-dist-info-metadata="sha256=aa113592bbe"></a>',  # noqa: E501
+            MetadataFile({"sha256": "aa113592bbe"}),
+            {},
+        ),
+        # Ensure that the data-core-metadata name gets priority.
+        (
+            '<a href="/pkg1-1.0.tar.gz" data-core-metadata="sha256=aa113592bbe" data-dist-info-metadata="sha256=invalid_value"></a>',  # noqa: E501
+            MetadataFile({"sha256": "aa113592bbe"}),
+            {},
         ),
     ],
 )

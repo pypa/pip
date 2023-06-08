@@ -277,8 +277,13 @@ class Link(KeyBasedCompareMixin):
         yanked_reason = file_data.get("yanked")
         hashes = file_data.get("hashes", {})
 
-        # The dist-info-metadata value may be a boolean, or a dict of hashes.
-        metadata_info = file_data.get("dist-info-metadata", False)
+        # PEP 714: Indexes must use the name core-metadata, but
+        # clients should support the old name as a fallback for compatibility.
+        metadata_info = file_data.get("core-metadata")
+        if metadata_info is None:
+            metadata_info = file_data.get("dist-info-metadata")
+
+        # The metadata info value may be a boolean, or a dict of hashes.
         if isinstance(metadata_info, dict):
             # The file exists, and hashes have been supplied
             metadata_file_data = MetadataFile(supported_hashes(metadata_info))
@@ -286,7 +291,7 @@ class Link(KeyBasedCompareMixin):
             # The file exists, but there are no hashes
             metadata_file_data = MetadataFile(None)
         else:
-            # The file does not exist
+            # False or not present: the file does not exist
             metadata_file_data = None
 
         # The Link.yanked_reason expects an empty string instead of a boolean.
@@ -323,9 +328,13 @@ class Link(KeyBasedCompareMixin):
         pyrequire = anchor_attribs.get("data-requires-python")
         yanked_reason = anchor_attribs.get("data-yanked")
 
-        # The dist-info-metadata value may be the string "true", or a string of
+        # PEP 714: Indexes must use the name data-core-metadata, but
+        # clients should support the old name as a fallback for compatibility.
+        metadata_info = anchor_attribs.get("data-core-metadata")
+        if metadata_info is None:
+            metadata_info = anchor_attribs.get("data-dist-info-metadata")
+        # The metadata info value may be the string "true", or a string of
         # the form "hashname=hashval"
-        metadata_info = anchor_attribs.get("data-dist-info-metadata")
         if metadata_info == "true":
             # The file exists, but there are no hashes
             metadata_file_data = MetadataFile(None)
