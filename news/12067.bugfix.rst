@@ -1,0 +1,1 @@
+Fail with an error if the ``--python`` option is specified after the subcommand name.
