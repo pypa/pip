@@ -1,8 +1,9 @@
 # SPDX-FileCopyrightText: 2015 Eric Larson
 #
 # SPDX-License-Identifier: Apache-2.0
+from __future__ import annotations
 
-from typing import TYPE_CHECKING, Collection, Optional, Type
+from typing import TYPE_CHECKING, Collection
 
 from pip._vendor.cachecontrol.adapter import CacheControlAdapter
 from pip._vendor.cachecontrol.cache import DictCache
@@ -17,15 +18,15 @@ if TYPE_CHECKING:
 
 
 def CacheControl(
-    sess: "requests.Session",
-    cache: Optional["BaseCache"] = None,
+    sess: requests.Session,
+    cache: BaseCache | None = None,
     cache_etags: bool = True,
-    serializer: Optional["Serializer"] = None,
-    heuristic: Optional["BaseHeuristic"] = None,
-    controller_class: Optional[Type["CacheController"]] = None,
-    adapter_class: Optional[Type[CacheControlAdapter]] = None,
-    cacheable_methods: Optional[Collection[str]] = None,
-) -> "requests.Session":
+    serializer: Serializer | None = None,
+    heuristic: BaseHeuristic | None = None,
+    controller_class: type[CacheController] | None = None,
+    adapter_class: type[CacheControlAdapter] | None = None,
+    cacheable_methods: Collection[str] | None = None,
+) -> requests.Session:
     cache = DictCache() if cache is None else cache
     adapter_class = adapter_class or CacheControlAdapter
     adapter = adapter_class(

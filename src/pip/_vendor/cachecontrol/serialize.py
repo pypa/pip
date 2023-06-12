@@ -1,39 +1,27 @@
 # SPDX-FileCopyrightText: 2015 Eric Larson
 #
 # SPDX-License-Identifier: Apache-2.0
+from __future__ import annotations
 
-import base64
 import io
-import json
-import pickle
-import zlib
-from typing import IO, TYPE_CHECKING, Any, Mapping, Optional
+from typing import IO, TYPE_CHECKING, Any, Mapping, cast
 
 from pip._vendor import msgpack
 from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._vendor.urllib3 import HTTPResponse
 
 if TYPE_CHECKING:
-    from pip._vendor.requests import PreparedRequest, Request
+    from pip._vendor.requests import PreparedRequest
 
 
-def _b64_decode_bytes(b: str) -> bytes:
-    return base64.b64decode(b.encode("ascii"))
+class Serializer:
+    serde_version = "4"
 
-
-def _b64_decode_str(s: str) -> str:
-    return _b64_decode_bytes(s).decode("utf8")
-
-
-_default_body_read = object()
-
-
-class Serializer(object):
     def dumps(
         self,
-        request: "PreparedRequest",
+        request: PreparedRequest,
         response: HTTPResponse,
-        body: Optional[bytes] = None,
+        body: bytes | None = None,
     ) -> bytes:
         response_headers: CaseInsensitiveDict[str] = CaseInsensitiveDict(
             response.headers
@@ -50,7 +38,7 @@ class Serializer(object):
         data = {
             "response": {
                 "body": body,  # Empty bytestring if body is stored separately
-                "headers": dict((str(k), str(v)) for k, v in response.headers.items()),  # type: ignore[no-untyped-call]
+                "headers": {str(k): str(v) for k, v in response.headers.items()},  # type: ignore[no-untyped-call]
                 "status": response.status,
                 "version": response.version,
                 "reason": str(response.reason),
@@ -69,14 +57,17 @@ class Serializer(object):
                     header_value = str(header_value)
                 data["vary"][header] = header_value
 
-        return b",".join([b"cc=4", msgpack.dumps(data, use_bin_type=True)])
+        return b",".join([f"cc={self.serde_version}".encode(), self.serialize(data)])
+
+    def serialize(self, data: dict[str, Any]) -> bytes:
+        return cast(bytes, msgpack.dumps(data, use_bin_type=True))
 
     def loads(
         self,
-        request: "PreparedRequest",
+        request: PreparedRequest,
         data: bytes,
-        body_file: Optional["IO[bytes]"] = None,
-    ) -> Optional[HTTPResponse]:
+        body_file: IO[bytes] | None = None,
+    ) -> HTTPResponse | None:
         # Short circuit if we've been given an empty set of data
         if not data:
             return None
@@ -99,7 +90,7 @@ class Serializer(object):
 
         # Dispatch to the actual load method for the given version
         try:
-            return getattr(self, "_loads_v{}".format(verstr))(request, data, body_file)  # type: ignore[no-any-return]
+            return getattr(self, f"_loads_v{verstr}")(request, data, body_file)  # type: ignore[no-any-return]
 
         except AttributeError:
             # This is a version we don't have a loads function for, so we'll
@@ -108,10 +99,10 @@ class Serializer(object):
 
     def prepare_response(
         self,
-        request: "Request",
+        request: PreparedRequest,
         cached: Mapping[str, Any],
-        body_file: Optional["IO[bytes]"] = None,
-    ) -> Optional[HTTPResponse]:
+        body_file: IO[bytes] | None = None,
+    ) -> HTTPResponse | None:
         """Verify our vary headers match and construct a real urllib3
         HTTPResponse object.
         """
@@ -139,7 +130,7 @@ class Serializer(object):
         cached["response"]["headers"] = headers
 
         try:
-            body: "IO[bytes]"
+            body: IO[bytes]
             if body_file is None:
                 body = io.BytesIO(body_raw)
             else:
@@ -160,71 +151,53 @@ class Serializer(object):
 
     def _loads_v0(
         self,
-        request: "Request",
+        request: PreparedRequest,
         data: bytes,
-        body_file: Optional["IO[bytes]"] = None,
+        body_file: IO[bytes] | None = None,
     ) -> None:
         # The original legacy cache data. This doesn't contain enough
         # information to construct everything we need, so we'll treat this as
         # a miss.
-        return
+        return None
 
     def _loads_v1(
         self,
-        request: "Request",
+        request: PreparedRequest,
         data: bytes,
-        body_file: Optional["IO[bytes]"] = None,
-    ) -> Optional[HTTPResponse]:
-        try:
-            cached = pickle.loads(data)
-        except ValueError:
-            return None
-
-        return self.prepare_response(request, cached, body_file)
+        body_file: IO[bytes] | None = None,
+    ) -> HTTPResponse | None:
+        # The "v1" pickled cache format. This is no longer supported
+        # for security reasons, so we treat it as a miss.
+        return None
 
     def _loads_v2(
         self,
-        request: "Request",
+        request: PreparedRequest,
         data: bytes,
-        body_file: Optional["IO[bytes]"] = None,
-    ) -> Optional[HTTPResponse]:
-        assert body_file is None
-        try:
-            cached = json.loads(zlib.decompress(data).decode("utf8"))
-        except (ValueError, zlib.error):
-            return None
-
-        # We need to decode the items that we've base64 encoded
-        cached["response"]["body"] = _b64_decode_bytes(cached["response"]["body"])
-        cached["response"]["headers"] = dict(
-            (_b64_decode_str(k), _b64_decode_str(v))
-            for k, v in cached["response"]["headers"].items()
-        )
-        cached["response"]["reason"] = _b64_decode_str(cached["response"]["reason"])
-        cached["vary"] = dict(
-            (_b64_decode_str(k), _b64_decode_str(v) if v is not None else v)
-            for k, v in cached["vary"].items()
-        )
-
-        return self.prepare_response(request, cached, body_file)
+        body_file: IO[bytes] | None = None,
+    ) -> HTTPResponse | None:
+        # The "v2" compressed base64 cache format.
+        # This has been removed due to age and poor size/performance
+        # characteristics, so we treat it as a miss.
+        return None
 
     def _loads_v3(
         self,
-        request: "Request",
+        request: PreparedRequest,
         data: bytes,
-        body_file: Optional["IO[bytes]"] = None,
+        body_file: IO[bytes] | None = None,
     ) -> None:
         # Due to Python 2 encoding issues, it's impossible to know for sure
         # exactly how to load v3 entries, thus we'll treat these as a miss so
         # that they get rewritten out as v4 entries.
-        return
+        return None
 
     def _loads_v4(
         self,
-        request: "Request",
+        request: PreparedRequest,
         data: bytes,
-        body_file: Optional["IO[bytes]"] = None,
-    ) -> Optional[HTTPResponse]:
+        body_file: IO[bytes] | None = None,
+    ) -> HTTPResponse | None:
         try:
             cached = msgpack.loads(data, raw=False)
         except ValueError:

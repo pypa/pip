@@ -1,11 +1,12 @@
 # SPDX-FileCopyrightText: 2015 Eric Larson
 #
 # SPDX-License-Identifier: Apache-2.0
+from __future__ import annotations
 
 import hashlib
 import os
 from textwrap import dedent
-from typing import IO, TYPE_CHECKING, Optional, Type, Union
+from typing import IO, TYPE_CHECKING
 
 from pip._vendor.cachecontrol.cache import BaseCache, SeparateBodyBaseCache
 from pip._vendor.cachecontrol.controller import CacheController
@@ -16,7 +17,7 @@ if TYPE_CHECKING:
     from filelock import BaseFileLock
 
 
-def _secure_open_write(filename: str, fmode: int) -> "IO[bytes]":
+def _secure_open_write(filename: str, fmode: int) -> IO[bytes]:
     # We only want to write to this file, so open it in write only mode
     flags = os.O_WRONLY
 
@@ -39,7 +40,7 @@ def _secure_open_write(filename: str, fmode: int) -> "IO[bytes]":
     # there
     try:
         os.remove(filename)
-    except (IOError, OSError):
+    except OSError:
         # The file must not exist already, so we can just skip ahead to opening
         pass
 
@@ -66,7 +67,7 @@ class _FileCacheMixin:
         forever: bool = False,
         filemode: int = 0o0600,
         dirmode: int = 0o0700,
-        lock_class: Optional[Type["BaseFileLock"]] = None,
+        lock_class: type[BaseFileLock] | None = None,
     ) -> None:
         try:
             if lock_class is None:
@@ -100,7 +101,7 @@ class _FileCacheMixin:
         parts = list(hashed[:5]) + [hashed]
         return os.path.join(self.directory, *parts)
 
-    def get(self, key: str) -> Optional[bytes]:
+    def get(self, key: str) -> bytes | None:
         name = self._fn(key)
         try:
             with open(name, "rb") as fh:
@@ -110,7 +111,7 @@ class _FileCacheMixin:
             return None
 
     def set(
-        self, key: str, value: bytes, expires: Optional[Union[int, "datetime"]] = None
+        self, key: str, value: bytes, expires: int | datetime | None = None
     ) -> None:
         name = self._fn(key)
         self._write(name, value)
@@ -122,7 +123,7 @@ class _FileCacheMixin:
         # Make sure the directory exists
         try:
             os.makedirs(os.path.dirname(path), self.dirmode)
-        except (IOError, OSError):
+        except OSError:
             pass
 
         with self.lock_class(path + ".lock"):
@@ -155,7 +156,7 @@ class SeparateBodyFileCache(_FileCacheMixin, SeparateBodyBaseCache):
     peak memory usage.
     """
 
-    def get_body(self, key: str) -> Optional["IO[bytes]"]:
+    def get_body(self, key: str) -> IO[bytes] | None:
         name = self._fn(key) + ".body"
         try:
             return open(name, "rb")

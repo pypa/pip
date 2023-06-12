@@ -6,19 +6,21 @@
 The cache object API for implementing caches. The default is a thread
 safe in-memory dictionary.
 """
+from __future__ import annotations
+
 from threading import Lock
-from typing import IO, TYPE_CHECKING, MutableMapping, Optional, Union
+from typing import IO, TYPE_CHECKING, MutableMapping
 
 if TYPE_CHECKING:
     from datetime import datetime
 
 
-class BaseCache(object):
-    def get(self, key: str) -> Optional[bytes]:
+class BaseCache:
+    def get(self, key: str) -> bytes | None:
         raise NotImplementedError()
 
     def set(
-        self, key: str, value: bytes, expires: Optional[Union[int, "datetime"]] = None
+        self, key: str, value: bytes, expires: int | datetime | None = None
     ) -> None:
         raise NotImplementedError()
 
@@ -30,15 +32,15 @@ class BaseCache(object):
 
 
 class DictCache(BaseCache):
-    def __init__(self, init_dict: Optional[MutableMapping[str, bytes]] = None) -> None:
+    def __init__(self, init_dict: MutableMapping[str, bytes] | None = None) -> None:
         self.lock = Lock()
         self.data = init_dict or {}
 
-    def get(self, key: str) -> Optional[bytes]:
+    def get(self, key: str) -> bytes | None:
         return self.data.get(key, None)
 
     def set(
-        self, key: str, value: bytes, expires: Optional[Union[int, "datetime"]] = None
+        self, key: str, value: bytes, expires: int | datetime | None = None
     ) -> None:
         with self.lock:
             self.data.update({key: value})
@@ -65,7 +67,7 @@ class SeparateBodyBaseCache(BaseCache):
     def set_body(self, key: str, body: bytes) -> None:
         raise NotImplementedError()
 
-    def get_body(self, key: str) -> Optional["IO[bytes]"]:
+    def get_body(self, key: str) -> IO[bytes] | None:
         """
         Return the body as file-like object.
         """

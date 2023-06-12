@@ -1,12 +1,13 @@
 # SPDX-FileCopyrightText: 2015 Eric Larson
 #
 # SPDX-License-Identifier: Apache-2.0
+from __future__ import annotations
 
 import calendar
 import time
 from datetime import datetime, timedelta, timezone
 from email.utils import formatdate, parsedate, parsedate_tz
-from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional
+from typing import TYPE_CHECKING, Any, Mapping
 
 if TYPE_CHECKING:
     from pip._vendor.urllib3 import HTTPResponse
@@ -14,7 +15,7 @@ if TYPE_CHECKING:
 TIME_FMT = "%a, %d %b %Y %H:%M:%S GMT"
 
 
-def expire_after(delta: timedelta, date: Optional[datetime] = None) -> datetime:
+def expire_after(delta: timedelta, date: datetime | None = None) -> datetime:
     date = date or datetime.now(timezone.utc)
     return date + delta
 
@@ -23,8 +24,8 @@ def datetime_to_header(dt: datetime) -> str:
     return formatdate(calendar.timegm(dt.timetuple()))
 
 
-class BaseHeuristic(object):
-    def warning(self, response: "HTTPResponse") -> Optional[str]:
+class BaseHeuristic:
+    def warning(self, response: HTTPResponse) -> str | None:
         """
         Return a valid 1xx warning header value describing the cache
         adjustments.
@@ -35,7 +36,7 @@ class BaseHeuristic(object):
         """
         return '110 - "Response is Stale"'
 
-    def update_headers(self, response: "HTTPResponse") -> Dict[str, str]:
+    def update_headers(self, response: HTTPResponse) -> dict[str, str]:
         """Update the response headers with any new headers.
 
         NOTE: This SHOULD always include some Warning header to
@@ -44,7 +45,7 @@ class BaseHeuristic(object):
         """
         return {}
 
-    def apply(self, response: "HTTPResponse") -> "HTTPResponse":
+    def apply(self, response: HTTPResponse) -> HTTPResponse:
         updated_headers = self.update_headers(response)
 
         if updated_headers:
@@ -62,7 +63,7 @@ class OneDayCache(BaseHeuristic):
     future.
     """
 
-    def update_headers(self, response: "HTTPResponse") -> Dict[str, str]:
+    def update_headers(self, response: HTTPResponse) -> dict[str, str]:
         headers = {}
 
         if "expires" not in response.headers:
@@ -81,11 +82,11 @@ class ExpiresAfter(BaseHeuristic):
     def __init__(self, **kw: Any) -> None:
         self.delta = timedelta(**kw)
 
-    def update_headers(self, response: "HTTPResponse") -> Dict[str, str]:
+    def update_headers(self, response: HTTPResponse) -> dict[str, str]:
         expires = expire_after(self.delta)
         return {"expires": datetime_to_header(expires), "cache-control": "public"}
 
-    def warning(self, response: "HTTPResponse") -> Optional[str]:
+    def warning(self, response: HTTPResponse) -> str | None:
         tmpl = "110 - Automatically cached for %s. Response might be stale"
         return tmpl % self.delta
 
@@ -117,7 +118,7 @@ class LastModified(BaseHeuristic):
         501,
     }
 
-    def update_headers(self, resp: "HTTPResponse") -> Dict[str, str]:
+    def update_headers(self, resp: HTTPResponse) -> dict[str, str]:
         headers: Mapping[str, str] = resp.headers
 
         if "expires" in headers:
@@ -149,5 +150,5 @@ class LastModified(BaseHeuristic):
         expires = date + freshness_lifetime
         return {"expires": time.strftime(TIME_FMT, time.gmtime(expires))}
 
-    def warning(self, resp: "HTTPResponse") -> Optional[str]:
+    def warning(self, resp: HTTPResponse) -> str | None:
         return None

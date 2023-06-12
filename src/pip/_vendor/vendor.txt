@@ -1,4 +1,4 @@
-CacheControl==0.13.0  # Make sure to update the license in pyproject.toml for this.
+CacheControl==0.13.1  # Make sure to update the license in pyproject.toml for this.
 colorama==0.4.6
 distlib==0.3.6
 distro==1.8.0

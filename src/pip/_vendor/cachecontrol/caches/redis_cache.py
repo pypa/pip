@@ -1,11 +1,11 @@
 # SPDX-FileCopyrightText: 2015 Eric Larson
 #
 # SPDX-License-Identifier: Apache-2.0
+from __future__ import annotations
 
-from __future__ import division
 
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING
 
 from pip._vendor.cachecontrol.cache import BaseCache
 
@@ -14,14 +14,14 @@ if TYPE_CHECKING:
 
 
 class RedisCache(BaseCache):
-    def __init__(self, conn: "Redis[bytes]") -> None:
+    def __init__(self, conn: Redis[bytes]) -> None:
         self.conn = conn
 
-    def get(self, key: str) -> Optional[bytes]:
+    def get(self, key: str) -> bytes | None:
         return self.conn.get(key)
 
     def set(
-        self, key: str, value: bytes, expires: Optional[Union[int, datetime]] = None
+        self, key: str, value: bytes, expires: int | datetime | None = None
     ) -> None:
         if not expires:
             self.conn.set(key, value)

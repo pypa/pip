@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2015 Eric Larson
 #
 # SPDX-License-Identifier: Apache-2.0
+from __future__ import annotations
 
 import logging
 from argparse import ArgumentParser
@@ -36,7 +37,7 @@ def get_session() -> requests.Session:
     return sess
 
 
-def get_args() -> "Namespace":
+def get_args() -> Namespace:
     parser = ArgumentParser()
     parser.add_argument("url", help="The URL to try and cache")
     return parser.parse_args()
@@ -53,7 +54,7 @@ def main() -> None:
     setup_logging()
 
     # try setting the cache
-    cache_controller: "CacheController" = (
+    cache_controller: CacheController = (
         sess.cache_controller  # type: ignore[attr-defined]
     )
     cache_controller.cache_response(resp.request, resp.raw)

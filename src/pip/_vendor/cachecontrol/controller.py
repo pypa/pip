@@ -5,12 +5,14 @@
 """
 The httplib2 algorithms ported for use with requests.
 """
+from __future__ import annotations
+
 import calendar
 import logging
 import re
 import time
 from email.utils import parsedate_tz
-from typing import TYPE_CHECKING, Collection, Dict, Mapping, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Collection, Mapping
 
 from pip._vendor.requests.structures import CaseInsensitiveDict
 
@@ -32,7 +34,7 @@ URI = re.compile(r"^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?")
 PERMANENT_REDIRECT_STATUSES = (301, 308)
 
 
-def parse_uri(uri: str) -> Tuple[str, str, str, str, str]:
+def parse_uri(uri: str) -> tuple[str, str, str, str, str]:
     """Parses a URI using the regex given in Appendix B of RFC 3986.
 
     (scheme, authority, path, query, fragment) = parse_uri(uri)
@@ -43,15 +45,15 @@ def parse_uri(uri: str) -> Tuple[str, str, str, str, str]:
     return (groups[1], groups[3], groups[4], groups[6], groups[8])
 
 
-class CacheController(object):
+class CacheController:
     """An interface to see if request should cached or not."""
 
     def __init__(
         self,
-        cache: Optional["BaseCache"] = None,
+        cache: BaseCache | None = None,
         cache_etags: bool = True,
-        serializer: Optional[Serializer] = None,
-        status_codes: Optional[Collection[int]] = None,
+        serializer: Serializer | None = None,
+        status_codes: Collection[int] | None = None,
     ):
         self.cache = DictCache() if cache is None else cache
         self.cache_etags = cache_etags
@@ -82,9 +84,7 @@ class CacheController(object):
     def cache_url(cls, uri: str) -> str:
         return cls._urlnorm(uri)
 
-    def parse_cache_control(
-        self, headers: Mapping[str, str]
-    ) -> Dict[str, Optional[int]]:
+    def parse_cache_control(self, headers: Mapping[str, str]) -> dict[str, int | None]:
         known_directives = {
             # https://tools.ietf.org/html/rfc7234#section-5.2
             "max-age": (int, True),
@@ -103,7 +103,7 @@ class CacheController(object):
 
         cc_headers = headers.get("cache-control", headers.get("Cache-Control", ""))
 
-        retval: Dict[str, Optional[int]] = {}
+        retval: dict[str, int | None] = {}
 
         for cc_directive in cc_headers.split(","):
             if not cc_directive.strip():
@@ -138,7 +138,7 @@ class CacheController(object):
 
         return retval
 
-    def _load_from_cache(self, request: "PreparedRequest") -> Optional["HTTPResponse"]:
+    def _load_from_cache(self, request: PreparedRequest) -> HTTPResponse | None:
         """
         Load a cached response, or return None if it's not available.
         """
@@ -159,9 +159,7 @@ class CacheController(object):
             logger.warning("Cache entry deserialization failed, entry ignored")
         return result
 
-    def cached_request(
-        self, request: "PreparedRequest"
-    ) -> Union["HTTPResponse", "Literal[False]"]:
+    def cached_request(self, request: PreparedRequest) -> HTTPResponse | Literal[False]:
         """
         Return a cached response if it exists in the cache, otherwise
         return False.
@@ -271,7 +269,7 @@ class CacheController(object):
         # return the original handler
         return False
 
-    def conditional_headers(self, request: "PreparedRequest") -> Dict[str, str]:
+    def conditional_headers(self, request: PreparedRequest) -> dict[str, str]:
         resp = self._load_from_cache(request)
         new_headers = {}
 
@@ -289,10 +287,10 @@ class CacheController(object):
     def _cache_set(
         self,
         cache_url: str,
-        request: "PreparedRequest",
-        response: "HTTPResponse",
-        body: Optional[bytes] = None,
-        expires_time: Optional[int] = None,
+        request: PreparedRequest,
+        response: HTTPResponse,
+        body: bytes | None = None,
+        expires_time: int | None = None,
     ) -> None:
         """
         Store the data in the cache.
@@ -318,10 +316,10 @@ class CacheController(object):
 
     def cache_response(
         self,
-        request: "PreparedRequest",
-        response: "HTTPResponse",
-        body: Optional[bytes] = None,
-        status_codes: Optional[Collection[int]] = None,
+        request: PreparedRequest,
+        response: HTTPResponse,
+        body: bytes | None = None,
+        status_codes: Collection[int] | None = None,
     ) -> None:
         """
         Algorithm for caching requests.
@@ -400,7 +398,7 @@ class CacheController(object):
 
             expires_time = max(expires_time, 14 * 86400)
 
-            logger.debug("etag object cached for {0} seconds".format(expires_time))
+            logger.debug(f"etag object cached for {expires_time} seconds")
             logger.debug("Caching due to etag")
             self._cache_set(cache_url, request, response, body, expires_time)
 
@@ -441,7 +439,7 @@ class CacheController(object):
                         expires_time = None
 
                     logger.debug(
-                        "Caching b/c of expires header. expires in {0} seconds".format(
+                        "Caching b/c of expires header. expires in {} seconds".format(
                             expires_time
                         )
                     )
@@ -454,8 +452,8 @@ class CacheController(object):
                     )
 
     def update_cached_response(
-        self, request: "PreparedRequest", response: "HTTPResponse"
-    ) -> "HTTPResponse":
+        self, request: PreparedRequest, response: HTTPResponse
+    ) -> HTTPResponse:
         """On a 304 we will get a new set of headers that we want to
         update our cached value with, assuming we have one.
 
@@ -480,11 +478,11 @@ class CacheController(object):
         excluded_headers = ["content-length"]
 
         cached_response.headers.update(
-            dict(
-                (k, v)
+            {
+                k: v
                 for k, v in response.headers.items()  # type: ignore[no-untyped-call]
                 if k.lower() not in excluded_headers
-            )
+            }
         )
 
         # we want a 200 b/c we have content via the cache

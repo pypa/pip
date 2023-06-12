@@ -1,16 +1,17 @@
 # SPDX-FileCopyrightText: 2015 Eric Larson
 #
 # SPDX-License-Identifier: Apache-2.0
+from __future__ import annotations
 
 import mmap
 from tempfile import NamedTemporaryFile
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Callable
 
 if TYPE_CHECKING:
     from http.client import HTTPResponse
 
 
-class CallbackFileWrapper(object):
+class CallbackFileWrapper:
     """
     Small wrapper around a fp object which will tee everything read into a
     buffer, and when that file is closed it will execute a callback with the
@@ -30,7 +31,7 @@ class CallbackFileWrapper(object):
     """
 
     def __init__(
-        self, fp: "HTTPResponse", callback: Optional[Callable[[bytes], None]]
+        self, fp: HTTPResponse, callback: Callable[[bytes], None] | None
     ) -> None:
         self.__buf = NamedTemporaryFile("rb+", delete=True)
         self.__fp = fp
@@ -93,7 +94,7 @@ class CallbackFileWrapper(object):
         # Important when caching big files.
         self.__buf.close()
 
-    def read(self, amt: Optional[int] = None) -> bytes:
+    def read(self, amt: int | None = None) -> bytes:
         data: bytes = self.__fp.read(amt)
         if data:
             # We may be dealing with b'', a sign that things are over:
