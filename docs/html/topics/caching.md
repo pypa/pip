@@ -27,6 +27,12 @@ While this cache attempts to minimize network activity, it does not prevent
 network access altogether. If you want a local install solution that
 circumvents accessing PyPI, see {ref}`Installing from local packages`.
 
+In versions prior to 23.2, this cache was stored in a directory called `http` in
+the main cache directory (see below for its location). In 23.2 and later, a new
+cache format is used, stored in a directory called `http-v2`. If you have
+completely switched to newer versions of `pip`, you may wish to delete the old
+directory.
+
 (wheel-caching)=
 
 ### Locally built wheels
@@ -124,11 +130,11 @@ The {ref}`pip cache` command can be used to manage pip's cache.
 
 ### Removing a single package
 
-`pip cache remove setuptools` removes all wheel files related to setuptools from pip's cache.
+`pip cache remove setuptools` removes all wheel files related to setuptools from pip's cache. HTTP cache files are not removed at this time.
 
 ### Removing the cache
 
-`pip cache purge` will clear all wheel files from pip's cache.
+`pip cache purge` will clear all files from pip's wheel and HTTP caches.
 
 ### Listing cached files
 
