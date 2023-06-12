@@ -1,1 +1,1 @@
-Fix slowness when using ``importlib.metadata`` and there is a large overlap between already installed and to-be-installed packages.  This is the default in Python 3.11, though it can be overridden with the ``_PIP_USE_IMPORTLIB_METADATA`` environment variable.
+Fix slowness when using ``importlib.metadata`` (the default way for pip to read metadata in Python 3.11+) and there is a large overlap between already installed and to-be-installed packages.
