@@ -53,7 +53,7 @@ Deprecations and Removals
   ``--config-settings``. (`#11859 <https://github.com/pypa/pip/issues/11859>`_)
 - Using ``--config-settings`` with projects that don't have a ``pyproject.toml`` now prints
   a deprecation warning. In the future the presence of config settings will automatically
-  enable the default build backend for legacy projects and pass the setttings to it. (`#11915 <https://github.com/pypa/pip/issues/11915>`_)
+  enable the default build backend for legacy projects and pass the settings to it. (`#11915 <https://github.com/pypa/pip/issues/11915>`_)
 - Remove ``setup.py install`` fallback when building a wheel failed for projects without
   ``pyproject.toml``. (`#8368 <https://github.com/pypa/pip/issues/8368>`_)
 - When the ``wheel`` package is not installed, pip now uses the default build backend
