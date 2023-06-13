@@ -1,0 +1,1 @@
+Add a new progress_bar type that allows machine-readable download progress
