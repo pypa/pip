@@ -59,7 +59,7 @@ class _MachineReadableProgress:
     def __init__(
         self, iterable: Iterable[bytes], size: int, filename: Optional[str] = None
     ) -> None:
-        self._iterable = iterable
+        self._iterable = iter(iterable)
         self._size = size
         self._progress = 0
         self._filename = filename
