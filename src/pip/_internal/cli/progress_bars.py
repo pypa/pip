@@ -17,7 +17,6 @@ from pip._vendor.rich.progress import (
 
 from pip._internal.utils.logging import get_indentation
 
-
 DownloadProgressRenderer = Callable[[Iterable[bytes]], Iterator[bytes]]
 
 
