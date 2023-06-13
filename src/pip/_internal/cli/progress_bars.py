@@ -1,5 +1,7 @@
 import functools
 import json
+import logging
+import sys
 from typing import Callable, Generator, Iterable, Iterator, Optional, Tuple
 
 from pip._vendor.rich.progress import (
@@ -16,6 +18,8 @@ from pip._vendor.rich.progress import (
 )
 
 from pip._internal.utils.logging import get_indentation
+
+logger = logging.getLogger(__name__)
 
 DownloadProgressRenderer = Callable[[Iterable[bytes]], Iterator[bytes]]
 
@@ -72,9 +76,9 @@ class _MachineReadableProgress:
             "current": self._progress,
             "total": self._size,
         }
-        print(
-            f"PROGRESS:{json.dumps(progress_info)}",
-            flush=True,
+        logger.info(
+            "PROGRESS:%s",
+            json.dumps(progress_info),
         )
         return chunk
 
@@ -89,6 +93,11 @@ def get_download_progress_renderer(
     if bar_type == "on":
         return functools.partial(_rich_progress_bar, bar_type=bar_type, size=size)
     elif bar_type == "json":
+        # We don't want regular users to use this progress_bar type
+        # so only use if not a TTY
+        assert (
+            not sys.stdout.isatty()
+        ), 'The "json" progress_bar type should only be used inside subprocesses.'
         return functools.partial(_MachineReadableProgress, size=size)
     else:
         return iter  # no-op, when passed an iterator
