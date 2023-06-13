@@ -10,7 +10,10 @@ def test_install_with_json_progress(script: PipTestEnvironment) -> None:
     """
     result = script.pip(
         "install",
-        "pkg==0.1",
+        "simple==1.0",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "--progress-bar=json",
         expect_error=True,
     )
