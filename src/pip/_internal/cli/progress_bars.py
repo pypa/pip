@@ -1,4 +1,5 @@
 import functools
+from json import dumps
 from typing import Callable, Generator, Iterable, Iterator, Optional, Tuple
 
 from pip._vendor.rich.progress import (
@@ -16,7 +17,6 @@ from pip._vendor.rich.progress import (
 
 from pip._internal.utils.logging import get_indentation
 
-from json import dumps
 
 DownloadProgressRenderer = Callable[[Iterable[bytes]], Iterator[bytes]]
 
