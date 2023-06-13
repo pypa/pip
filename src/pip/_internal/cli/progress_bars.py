@@ -1,5 +1,5 @@
 import functools
-from json import dumps
+import json
 from typing import Callable, Generator, Iterable, Iterator, Optional, Tuple
 
 from pip._vendor.rich.progress import (
@@ -57,13 +57,10 @@ def _rich_progress_bar(
 
 
 class _MachineReadableProgress:
-    def __init__(
-        self, iterable: Iterable[bytes], size: int, filename: Optional[str] = None
-    ) -> None:
+    def __init__(self, iterable: Iterable[bytes], size: Optional[int]) -> None:
         self._iterable = iter(iterable)
         self._size = size
         self._progress = 0
-        self._filename = filename
 
     def __iter__(self) -> Iterator[bytes]:
         return self
@@ -72,19 +69,18 @@ class _MachineReadableProgress:
         chunk = next(self._iterable)
         self._progress += len(chunk)
         progress_info = {
-            "file": self._filename,
             "current": self._progress,
             "total": self._size,
         }
         print(
-            f"PROGRESS:{dumps(progress_info)}",
+            f"PROGRESS:{json.dumps(progress_info)}",
             flush=True,
         )
         return chunk
 
 
 def get_download_progress_renderer(
-    *, bar_type: str, size: Optional[int] = None, filename: Optional[str] = None
+    *, bar_type: str, size: Optional[int] = None
 ) -> DownloadProgressRenderer:
     """Get an object that can be used to render the download progress.
 
@@ -93,6 +89,6 @@ def get_download_progress_renderer(
     if bar_type == "on":
         return functools.partial(_rich_progress_bar, bar_type=bar_type, size=size)
     elif bar_type == "json":
-        return functools.partial(_MachineReadableProgress, size=size, filename=filename)
+        return functools.partial(_MachineReadableProgress, size=size)
     else:
         return iter  # no-op, when passed an iterator
