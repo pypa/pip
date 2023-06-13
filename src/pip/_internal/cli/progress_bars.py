@@ -55,8 +55,31 @@ def _rich_progress_bar(
             progress.update(task_id, advance=len(chunk))
 
 
+class _MachineReadableProgress:
+    def __init__(
+        self, iterable: Iterable[bytes], size: int, filename: Optional[str] = None
+    ) -> None:
+        self._iterable = iterable
+        self._size = size
+        self._progress = 0
+        self._filename = filename
+
+    def __iter__(self) -> Iterator[bytes]:
+        return self
+
+    def __next__(self) -> bytes:
+        chunk = next(self._iterable)
+        self._progress += len(chunk)
+        percent = str(round((self._progress / self._size) * 100, 1))
+        print(
+            f"PROGRESS: {self._filename} | {self._progress}/{self._size} | {percent}%",
+            flush=True,
+        )
+        return chunk
+
+
 def get_download_progress_renderer(
-    *, bar_type: str, size: Optional[int] = None
+    *, bar_type: str, size: Optional[int] = None, filename: Optional[str] = None
 ) -> DownloadProgressRenderer:
     """Get an object that can be used to render the download progress.
 
@@ -64,5 +87,7 @@ def get_download_progress_renderer(
     """
     if bar_type == "on":
         return functools.partial(_rich_progress_bar, bar_type=bar_type, size=size)
+    elif bar_type == "machine-readable":
+        return functools.partial(_MachineReadableProgress, size=size, filename=filename)
     else:
         return iter  # no-op, when passed an iterator

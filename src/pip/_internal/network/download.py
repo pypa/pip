@@ -65,7 +65,9 @@ def _prepare_download(
     if not show_progress:
         return chunks
 
-    renderer = get_download_progress_renderer(bar_type=progress_bar, size=total_length)
+    renderer = get_download_progress_renderer(
+        bar_type=progress_bar, size=total_length, filename=link.filename
+    )
     return renderer(chunks)
 
 
