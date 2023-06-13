@@ -855,6 +855,20 @@ We are using `freeze`_ here which outputs installed packages in requirements for
 
   reqs = subprocess.check_output([sys.executable, '-m', 'pip', 'freeze'])
 
+Since pip's progress bar gets hidden when running in a subprocess, you can use
+the ``--progress-bar=json`` option for easily parsable progress information::
+
+  subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'my_package', '--progress-bar=json'])
+
+Which will give the following output after it processes each download chunk:
+
+``PROGRESS:{"current": ######, "total": ######}``
+
+Here, ``PROGRESS:`` indicates it is download progress. The rest of the message is JSON
+with the ``current`` number of bytes downloaded and ``total`` .whl size as key/value pairs.
+This can be used to build your own progress bar, or report progress in other ways.
+This feature cannot be used unless pip is invoked in a subprocess.
+
 If you don't want to use pip's command line functionality, but are rather
 trying to implement code that works with Python packages, their metadata, or
 PyPI, then you should consider other, supported, packages that offer this type
