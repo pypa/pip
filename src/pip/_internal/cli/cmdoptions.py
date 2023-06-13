@@ -229,7 +229,8 @@ progress_bar: Callable[..., Option] = partial(
     choices=["on", "off", "machine-readable"],
     default="on",
     help=(
-        "Specify whether the progress bar should be used [on, off, machine-readable] (default: on)"
+        "Specify whether the progress bar should be used"
+        " [on, off, machine-readable] (default: on)"
     ),
 )
 
