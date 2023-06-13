@@ -226,11 +226,11 @@ progress_bar: Callable[..., Option] = partial(
     "--progress-bar",
     dest="progress_bar",
     type="choice",
-    choices=["on", "off", "machine-readable"],
+    choices=["on", "off", "json"],
     default="on",
     help=(
         "Specify whether the progress bar should be used"
-        " [on, off, machine-readable] (default: on)"
+        " [on, off, json] (default: on)"
     ),
 )
 

@@ -16,6 +16,8 @@ from pip._vendor.rich.progress import (
 
 from pip._internal.utils.logging import get_indentation
 
+from json import dumps
+
 DownloadProgressRenderer = Callable[[Iterable[bytes]], Iterator[bytes]]
 
 
@@ -70,9 +72,13 @@ class _MachineReadableProgress:
     def __next__(self) -> bytes:
         chunk = next(self._iterable)
         self._progress += len(chunk)
-        percent = str(round((self._progress / self._size) * 100, 1))
+        progress_info = {
+            "file": self._filename,
+            "current": self._progress,
+            "total": self._size,
+        }
         print(
-            f"PROGRESS: {self._filename} | {self._progress}/{self._size} | {percent}%",
+            f"PROGRESS:{dumps(progress_info)}",
             flush=True,
         )
         return chunk
@@ -87,7 +93,7 @@ def get_download_progress_renderer(
     """
     if bar_type == "on":
         return functools.partial(_rich_progress_bar, bar_type=bar_type, size=size)
-    elif bar_type == "machine-readable":
+    elif bar_type == "json":
         return functools.partial(_MachineReadableProgress, size=size, filename=filename)
     else:
         return iter  # no-op, when passed an iterator
