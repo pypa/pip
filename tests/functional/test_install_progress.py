@@ -1,8 +1,8 @@
 import pytest
+import subprocess
 from tests.lib import (
     PipTestEnvironment,
 )
-import subprocess
 
 
 @pytest.mark.network
