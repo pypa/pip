@@ -210,8 +210,16 @@ class Configuration:
             # Ensure directory exists.
             ensure_dir(os.path.dirname(fname))
 
-            with open(fname, "w") as f:
-                parser.write(f)
+            # Ensure directory's permission(need to be writeable)
+            if os.access(fname, os.W_OK):
+                with open(fname, "w") as f:
+                    parser.write(f)
+            else:
+                raise ConfigurationError(
+                "Configuation file not writeable".format(
+                    ": ".join(fname)
+                )
+            )
 
     #
     # Private routines
