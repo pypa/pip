@@ -1,22 +1,19 @@
+import pytest
 from tests.lib import (
     PipTestEnvironment,
-    TestData,
 )
 import subprocess
 
 
-def test_install_with_json_progress_cli(
-    script: PipTestEnvironment, data: TestData
-) -> None:
+@pytest.mark.network
+def test_install_with_json_progress_cli(script: PipTestEnvironment) -> None:
     """
     Test installing a package using pip install --progress-bar=json
     but not as a subprocess
     """
     result = script.pip(
         "install",
-        "dinner",
-        "--index-url",
-        data.find_links3,
+        "opencv-python",
         "--progress-bar=json",
         expect_error=True,
     )
@@ -26,9 +23,8 @@ def test_install_with_json_progress_cli(
     )
 
 
-def test_install_with_json_progress_subproc(
-    _script: PipTestEnvironment, data: TestData
-) -> None:
+@pytest.mark.network
+def test_install_with_json_progress_subproc(_script: PipTestEnvironment) -> None:
     """
     Test installing a package using pip install --progress-bar=json
     but not as a subprocess
@@ -39,9 +35,7 @@ def test_install_with_json_progress_subproc(
             "-m",
             "pip",
             "install",
-            "dinner",
-            "--index-url",
-            data.find_links3,
+            "opencv-python",
             "--progress-bar=json",
         ]
     )
