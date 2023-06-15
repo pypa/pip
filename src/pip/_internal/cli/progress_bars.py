@@ -17,9 +17,8 @@ from pip._vendor.rich.progress import (
     TransferSpeedColumn,
 )
 
-from pip._internal.utils.logging import get_indentation
-
 from pip._internal.cli.spinners import RateLimiter
+from pip._internal.utils.logging import get_indentation
 
 logger = logging.getLogger(__name__)
 

@@ -72,6 +72,34 @@ def test_prepare_download__log(
 
 
 @pytest.mark.parametrize(
+    "url, expected",
+    [
+        (
+            "http://example.com/foo.tgz",
+            {},
+            False,
+            'The "json" progress_bar type should only be used inside subprocesses.',
+        ),
+    ],
+)
+def test_prepare_download__json(
+    caplog: pytest.LogCaptureFixture,
+    url: str,
+    expected: str,
+) -> None:
+    caplog.set_level(logging.INFO)
+    resp = MockResponse(b"")
+    resp.url = url
+    link = Link(url)
+    _prepare_download(resp, link, progress_bar="json")
+
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    assert record.levelname == "INFO"
+    assert expected in record.message
+
+
+@pytest.mark.parametrize(
     "filename, expected",
     [
         ("dir/file", "file"),
