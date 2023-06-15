@@ -216,10 +216,8 @@ class Configuration:
                     parser.write(f)
             else:
                 raise ConfigurationError(
-                "Configuation file not writeable".format(
-                    ": ".join(fname)
+                "Configuation file not writeable {}".format(': '.join(fname))
                 )
-            )
 
     #
     # Private routines
