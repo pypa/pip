@@ -19,6 +19,8 @@ from pip._vendor.rich.progress import (
 
 from pip._internal.utils.logging import get_indentation
 
+from pip._internal.cli.spinners import RateLimiter
+
 logger = logging.getLogger(__name__)
 
 DownloadProgressRenderer = Callable[[Iterable[bytes]], Iterator[bytes]]
@@ -61,10 +63,17 @@ def _rich_progress_bar(
 
 
 class _MachineReadableProgress:
-    def __init__(self, iterable: Iterable[bytes], size: Optional[int]) -> None:
+    def __init__(
+        self,
+        iterable: Iterable[bytes],
+        size: Optional[int],
+        # Copying the default from spinners.py
+        min_update_interval_seconds: float = 0.125,
+    ) -> None:
         self._iterable = iter(iterable)
         self._size = size
         self._progress = 0
+        self._rate_limiter = RateLimiter(min_update_interval_seconds)
 
     def __iter__(self) -> Iterator[bytes]:
         return self
@@ -76,10 +85,12 @@ class _MachineReadableProgress:
             "current": self._progress,
             "total": self._size,
         }
-        logger.info(
-            "PROGRESS:%s",
-            json.dumps(progress_info),
-        )
+        if not self._rate_limiter.ready():
+            return chunk
+        # Writing to stdout directly blocks printing out progress in subprocesses
+        # So we have to use print here
+        print(f"Progress: {json.dumps(progress_info)}", flush=True)
+        self._rate_limiter.reset()
         return chunk
 
 
@@ -98,6 +109,10 @@ def get_download_progress_renderer(
         assert (
             not sys.stdout.isatty()
         ), 'The "json" progress_bar type should only be used inside subprocesses.'
-        return functools.partial(_MachineReadableProgress, size=size)
+        # Mimic log level
+        if logger.getEffectiveLevel() <= logging.INFO:
+            return functools.partial(_MachineReadableProgress, size=size)
+        else:
+            return iter
     else:
         return iter  # no-op, when passed an iterator

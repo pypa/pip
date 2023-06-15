@@ -862,12 +862,18 @@ the ``--progress-bar=json`` option for easily parsable progress information::
 
 Which will give the following output after it processes each download chunk:
 
-``PROGRESS:{"current": ######, "total": ######}``
+``Progress: {"current": ######, "total": ######}``
 
-Here, ``PROGRESS:`` indicates it is download progress. The rest of the message is JSON
+Here, ``Progress:`` indicates it is download progress. The rest of the message is JSON
 with the ``current`` number of bytes downloaded and ``total`` .whl size as key/value pairs.
+Note: ``total`` is optional and may be null.
+
 This can be used to build your own progress bar, or report progress in other ways.
 This feature cannot be used unless pip is invoked in a subprocess.
+
+NOTE: Relying on the exact form of pip's output is unsupported, and so should not be used in
+production applications unless you are willing to adapt when pip's output changes.
+
 
 If you don't want to use pip's command line functionality, but are rather
 trying to implement code that works with Python packages, their metadata, or
