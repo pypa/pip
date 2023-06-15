@@ -211,10 +211,10 @@ class Configuration:
             ensure_dir(os.path.dirname(fname))
 
             # Ensure directory's permission(need to be writeable)
-            if os.access(fname, os.W_OK):
+            try:
                 with open(fname, "w") as f:
                     parser.write(f)
-            else:
+            except:
                 raise ConfigurationError(
                 "Configuation file not writeable {}".format(': '.join(fname))
                 )
