@@ -87,9 +87,8 @@ class _MachineReadableProgress:
         }
         if not self._rate_limiter.ready():
             return chunk
-        # Writing to stdout directly blocks printing out progress in subprocesses
-        # So we have to use print here
-        print(f"Progress: {json.dumps(progress_info)}", flush=True)
+        sys.stdout.write(f"Progress: {json.dumps(progress_info)}\n")
+        sys.stdout.flush()
         self._rate_limiter.reset()
         return chunk
 
