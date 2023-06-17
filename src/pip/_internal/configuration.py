@@ -342,10 +342,24 @@ class Configuration:
         # at the base we have any global configuration
         yield kinds.GLOBAL, config_files[kinds.GLOBAL]
 
+        site_accessable = int
+        site_index = 0
+        site_all_accessable = bool
+
+        for fname in config_files[kinds.SITE]:
+            site_index += 1
+            if os.access(fname, os.W_OK):
+                site_accessable += 1
+
+        if site_accessable < site_index:
+            site_all_accessable = False
+        elif site_accessable == site_index:
+            site_all_accessable = True
+        
         # per-user configuration next
         should_load_user_config = not self.isolated and not (
             config_file and os.path.exists(config_file)
-        ) or not os.access(config_files[kinds.SITE], os.W_OK)
+        ) or not site_all_accessable == True
 
         if should_load_user_config:
             # The legacy config file is overridden by the new config file
