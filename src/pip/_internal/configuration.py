@@ -345,7 +345,8 @@ class Configuration:
         # per-user configuration next
         should_load_user_config = not self.isolated and not (
             config_file and os.path.exists(config_file)
-        ) or not os.access(config_file[kinds.SITE], os.W_OK)
+        ) or not os.access(config_files[kinds.SITE], os.W_OK)
+
         if should_load_user_config:
             # The legacy config file is overridden by the new config file
             yield kinds.USER, config_files[kinds.USER]
