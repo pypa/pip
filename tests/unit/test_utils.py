@@ -52,8 +52,7 @@ from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 class Tests_EgglinkPath:
     "util.egg_link_path_from_location() tests"
 
-    def setup(self) -> None:
-
+    def setup_method(self) -> None:
         project = "foo"
 
         self.mock_dist = Mock(project_name=project)
@@ -81,7 +80,7 @@ class Tests_EgglinkPath:
         self.old_isfile = path.isfile
         self.mock_isfile = path.isfile = Mock()
 
-    def teardown(self) -> None:
+    def teardown_method(self) -> None:
         from pip._internal.utils import egg_link as utils
 
         utils.site_packages = self.old_site_packages
@@ -425,6 +424,14 @@ class TestHashes:
         cache = {}
         cache[Hashes({"sha256": ["ab", "cd"]})] = 42
         assert cache[Hashes({"sha256": ["ab", "cd"]})] == 42
+
+    def test_has_one_of(self) -> None:
+        hashes = Hashes({"sha256": ["abcd", "efgh"], "sha384": ["ijkl"]})
+        assert hashes.has_one_of({"sha256": "abcd"})
+        assert hashes.has_one_of({"sha256": "efgh"})
+        assert not hashes.has_one_of({"sha256": "xyzt"})
+        empty_hashes = Hashes()
+        assert not empty_hashes.has_one_of({"sha256": "xyzt"})
 
 
 class TestEncoding:

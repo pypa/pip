@@ -37,12 +37,12 @@ class TestUnpackArchives:
 
     """
 
-    def setup(self) -> None:
+    def setup_method(self) -> None:
         self.tempdir = tempfile.mkdtemp()
         self.old_mask = os.umask(0o022)
         self.symlink_expected_mode = None
 
-    def teardown(self) -> None:
+    def teardown_method(self) -> None:
         os.umask(self.old_mask)
         shutil.rmtree(self.tempdir, ignore_errors=True)
 

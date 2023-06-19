@@ -1,0 +1,19 @@
+digraph G {
+  graph [fontname = "Handlee"];
+  node [fontname = "Handlee"];
+  edge [fontname = "Handlee"];
+
+  bgcolor=transparent;
+
+  A [color=blue fontcolor=blue];
+  A -> B [color=red];
+  A -> C [color=red];
+  node [color=lightgrey fontcolor=lightgrey];
+  edge [color=lightgrey];
+  node [color=lightgrey];
+  B -> B1;
+  B -> B2;
+  C -> C1;
+  C -> C2;
+
+}

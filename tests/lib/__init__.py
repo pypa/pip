@@ -86,7 +86,11 @@ def make_test_search_scope(
     if index_urls is None:
         index_urls = []
 
-    return SearchScope.create(find_links=find_links, index_urls=index_urls)
+    return SearchScope.create(
+        find_links=find_links,
+        index_urls=index_urls,
+        no_index=False,
+    )
 
 
 def make_test_link_collector(
@@ -680,7 +684,9 @@ class PipTestEnvironment(TestFileEnvironment):
         # Pass expect_stderr=True to allow any stderr.  We do this because
         # we do our checking of stderr further on in check_stderr().
         kw["expect_stderr"] = True
-        result = super().run(cwd=cwd, *args, **kw)
+        # Ignore linter check
+        # B026 Star-arg unpacking after a keyword argument is strongly discouraged
+        result = super().run(cwd=cwd, *args, **kw)  # noqa: B026
 
         if expect_error and not allow_error:
             if result.returncode == 0:

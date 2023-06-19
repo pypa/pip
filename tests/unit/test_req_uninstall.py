@@ -21,7 +21,7 @@ from tests.lib import create_file
 
 # Pretend all files are local, so UninstallPathSet accepts files in the tmpdir,
 # outside the virtualenv
-def mock_is_local(path: str) -> bool:
+def mock_permitted(ups: UninstallPathSet, path: str) -> bool:
     return True
 
 
@@ -129,7 +129,11 @@ def test_compressed_listing(tmpdir: Path) -> None:
 
 class TestUninstallPathSet:
     def test_add(self, tmpdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setattr(pip._internal.req.req_uninstall, "is_local", mock_is_local)
+        monkeypatch.setattr(
+            pip._internal.req.req_uninstall.UninstallPathSet,
+            "_permitted",
+            mock_permitted,
+        )
         # Fix case for windows tests
         file_extant = os.path.normcase(os.path.join(tmpdir, "foo"))
         file_nonexistent = os.path.normcase(os.path.join(tmpdir, "nonexistent"))
@@ -145,7 +149,11 @@ class TestUninstallPathSet:
         assert ups._paths == {file_extant}
 
     def test_add_pth(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setattr(pip._internal.req.req_uninstall, "is_local", mock_is_local)
+        monkeypatch.setattr(
+            pip._internal.req.req_uninstall.UninstallPathSet,
+            "_permitted",
+            mock_permitted,
+        )
         # Fix case for windows tests
         tmpdir = os.path.normcase(tmp_path)
         on_windows = sys.platform == "win32"
@@ -175,7 +183,11 @@ class TestUninstallPathSet:
 
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_add_symlink(self, tmpdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setattr(pip._internal.req.req_uninstall, "is_local", mock_is_local)
+        monkeypatch.setattr(
+            pip._internal.req.req_uninstall.UninstallPathSet,
+            "_permitted",
+            mock_permitted,
+        )
         f = os.path.join(tmpdir, "foo")
         with open(f, "w"):
             pass
@@ -187,7 +199,11 @@ class TestUninstallPathSet:
         assert ups._paths == {foo_link}
 
     def test_compact_shorter_path(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setattr(pip._internal.req.req_uninstall, "is_local", mock_is_local)
+        monkeypatch.setattr(
+            pip._internal.req.req_uninstall.UninstallPathSet,
+            "_permitted",
+            mock_permitted,
+        )
         monkeypatch.setattr("os.path.exists", lambda p: True)
         # This deals with nt/posix path differences
         short_path = os.path.normcase(
@@ -202,7 +218,11 @@ class TestUninstallPathSet:
     def test_detect_symlink_dirs(
         self, monkeypatch: pytest.MonkeyPatch, tmpdir: Path
     ) -> None:
-        monkeypatch.setattr(pip._internal.req.req_uninstall, "is_local", mock_is_local)
+        monkeypatch.setattr(
+            pip._internal.req.req_uninstall.UninstallPathSet,
+            "_permitted",
+            mock_permitted,
+        )
 
         # construct 2 paths:
         #  tmpdir/dir/file

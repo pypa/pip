@@ -24,7 +24,6 @@ class TestSafeFileCache:
     """
 
     def test_cache_roundtrip(self, cache_tmpdir: Path) -> None:
-
         cache = SafeFileCache(os.fspath(cache_tmpdir))
         assert cache.get("test key") is None
         cache.set("test key", b"a test string")

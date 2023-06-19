@@ -16,6 +16,7 @@ class TestSearchScope:
         search_scope = SearchScope(
             find_links=find_links,
             index_urls=index_urls,
+            no_index=False,
         )
 
         result = search_scope.get_formatted_locations()
@@ -29,6 +30,7 @@ class TestSearchScope:
         search_scope = SearchScope(
             find_links=[],
             index_urls=["file://index1/", "file://index2"],
+            no_index=False,
         )
         req = install_req_from_line("Complex_Name")
         assert req.name is not None

@@ -1,12 +1,17 @@
 """Tests the presentation style of exceptions."""
 
 import io
+import locale
+import logging
+import pathlib
+import sys
 import textwrap
+from typing import Optional, Tuple
 
 import pytest
 from pip._vendor import rich
 
-from pip._internal.exceptions import DiagnosticPipError
+from pip._internal.exceptions import DiagnosticPipError, ExternallyManagedEnvironment
 
 
 class TestDiagnosticPipErrorCreation:
@@ -472,3 +477,178 @@ class TestDiagnosticPipErrorPresentation_Unicode:
               It broke. :(
             """
         )
+
+
+class TestExternallyManagedEnvironment:
+    default_text = (
+        f"The Python environment under {sys.prefix} is managed externally, "
+        f"and may not be\nmanipulated by the user. Please use specific "
+        f"tooling from the distributor of\nthe Python installation to "
+        f"interact with this environment instead.\n"
+    )
+
+    @pytest.fixture(autouse=True)
+    def patch_locale(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        orig_getlocal = locale.getlocale
+
+        def fake_getlocale(category: int) -> Tuple[Optional[str], Optional[str]]:
+            """Fake getlocale() that always reports zh_Hant for LC_MESSASGES."""
+            result = orig_getlocal(category)
+            if category == getattr(locale, "LC_MESSAGES", None):
+                return "zh_Hant", result[1]
+            return result
+
+        monkeypatch.setattr(locale, "getlocale", fake_getlocale)
+
+    @pytest.fixture()
+    def marker(self, tmp_path: pathlib.Path) -> pathlib.Path:
+        marker = tmp_path.joinpath("EXTERNALLY-MANAGED")
+        marker.touch()
+        return marker
+
+    def test_invalid_config_format(
+        self,
+        caplog: pytest.LogCaptureFixture,
+        marker: pathlib.Path,
+    ) -> None:
+        marker.write_text("invalid", encoding="utf8")
+
+        with caplog.at_level(logging.WARNING, "pip._internal.exceptions"):
+            exc = ExternallyManagedEnvironment.from_config(marker)
+        assert len(caplog.records) == 1
+        assert caplog.records[-1].getMessage() == f"Failed to read {marker}"
+
+        assert str(exc.context) == self.default_text
+
+    @pytest.mark.parametrize(
+        "config",
+        [
+            pytest.param("", id="empty"),
+            pytest.param("[foo]\nblah = blah", id="no-section"),
+            pytest.param("[externally-managed]\nblah = blah", id="no-key"),
+        ],
+    )
+    def test_config_without_key(
+        self,
+        caplog: pytest.LogCaptureFixture,
+        marker: pathlib.Path,
+        config: str,
+    ) -> None:
+        marker.write_text(config, encoding="utf8")
+
+        with caplog.at_level(logging.WARNING, "pip._internal.exceptions"):
+            exc = ExternallyManagedEnvironment.from_config(marker)
+        assert not caplog.records
+        assert str(exc.context) == self.default_text
+
+    @pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="Localization disabled on Windows",
+    )
+    @pytest.mark.parametrize(
+        "config, expected",
+        [
+            pytest.param(
+                """\
+                [externally-managed]
+                Error = 最後
+                Error-en = English
+                Error-zh = 中文
+                Error-zh_Hant = 繁體
+                Error-zh_Hans = 简体
+                """,
+                "繁體",
+                id="full",
+            ),
+            pytest.param(
+                """\
+                [externally-managed]
+                Error = 最後
+                Error-en = English
+                Error-zh = 中文
+                Error-zh_Hans = 简体
+                """,
+                "中文",
+                id="no-variant",
+            ),
+            pytest.param(
+                """\
+                [externally-managed]
+                Error = 最後
+                Error-en = English
+                """,
+                "最後",
+                id="fallback",
+            ),
+        ],
+    )
+    def test_config_canonical(
+        self,
+        caplog: pytest.LogCaptureFixture,
+        marker: pathlib.Path,
+        config: str,
+        expected: str,
+    ) -> None:
+        marker.write_text(
+            textwrap.dedent(config),
+            encoding="utf8",
+        )
+
+        with caplog.at_level(logging.WARNING, "pip._internal.exceptions"):
+            exc = ExternallyManagedEnvironment.from_config(marker)
+        assert not caplog.records
+        assert str(exc.context) == expected
+
+    @pytest.mark.skipif(
+        sys.platform != "win32",
+        reason="Non-Windows should implement localization",
+    )
+    @pytest.mark.parametrize(
+        "config",
+        [
+            pytest.param(
+                """\
+                [externally-managed]
+                Error = 最後
+                Error-en = English
+                Error-zh = 中文
+                Error-zh_Hant = 繁體
+                Error-zh_Hans = 简体
+                """,
+                id="full",
+            ),
+            pytest.param(
+                """\
+                [externally-managed]
+                Error = 最後
+                Error-en = English
+                Error-zh = 中文
+                Error-zh_Hans = 简体
+                """,
+                id="no-variant",
+            ),
+            pytest.param(
+                """\
+                [externally-managed]
+                Error = 最後
+                Error-en = English
+                """,
+                id="fallback",
+            ),
+        ],
+    )
+    def test_config_canonical_no_localization(
+        self,
+        caplog: pytest.LogCaptureFixture,
+        marker: pathlib.Path,
+        config: str,
+    ) -> None:
+        marker.write_text(
+            textwrap.dedent(config),
+            encoding="utf8",
+        )
+
+        with caplog.at_level(logging.WARNING, "pip._internal.exceptions"):
+            exc = ExternallyManagedEnvironment.from_config(marker)
+        assert not caplog.records
+        assert str(exc.context) == "最後"

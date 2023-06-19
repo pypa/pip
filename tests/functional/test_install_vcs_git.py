@@ -3,11 +3,11 @@ from typing import Optional
 
 import pytest
 
-from tests.lib import pyversion  # noqa: F401
 from tests.lib import (
     PipTestEnvironment,
     _change_test_package_version,
     _create_test_package,
+    pyversion,  # noqa: F401
 )
 from tests.lib.git_submodule_helpers import (
     _change_test_package_submodule,
@@ -79,7 +79,7 @@ def _make_version_pkg_url(
     Return a "git+file://" URL to the version_pkg test package.
 
     Args:
-      path: a tests.lib.path.Path object pointing to a Git repository
+      path: a pathlib.Path object pointing to a Git repository
         containing the version_pkg package.
       rev: an optional revision to install like a branch name, tag, or SHA.
     """
@@ -101,7 +101,7 @@ def _install_version_pkg_only(
     the version).
 
     Args:
-      path: a tests.lib.path.Path object pointing to a Git repository
+      path: a pathlib.Path object pointing to a Git repository
         containing the package.
       rev: an optional revision to install like a branch name or tag.
     """
@@ -122,7 +122,7 @@ def _install_version_pkg(
     installed.
 
     Args:
-      path: a tests.lib.path.Path object pointing to a Git repository
+      path: a pathlib.Path object pointing to a Git repository
         containing the package.
       rev: an optional revision to install like a branch name or tag.
     """
@@ -186,7 +186,6 @@ def test_install_editable_from_git_with_https(
 
 
 @pytest.mark.network
-@pytest.mark.usefixtures("with_wheel")
 def test_install_noneditable_git(script: PipTestEnvironment) -> None:
     """
     Test installing from a non-editable git URL with a given tag.
@@ -393,7 +392,7 @@ def test_git_with_non_editable_unpacking(
     )
     result = script.pip(
         "install",
-        "--global-option=--version",
+        "--global-option=--quiet",
         local_url,
         allow_stderr_warning=True,
     )
@@ -544,6 +543,11 @@ def test_reinstalling_works_with_editable_non_master_branch(
 
 # TODO(pnasrat) fix all helpers to do right things with paths on windows.
 @pytest.mark.skipif("sys.platform == 'win32'")
+@pytest.mark.xfail(
+    condition=True,
+    reason="Git submodule against file: is not working; waiting for a good solution",
+    run=True,
+)
 def test_check_submodule_addition(script: PipTestEnvironment) -> None:
     """
     Submodules are pulled in on install and updated on upgrade.
@@ -575,7 +579,6 @@ def test_check_submodule_addition(script: PipTestEnvironment) -> None:
     update_result.did_create(script.venv / "src/version-pkg/testpkg/static/testfile2")
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_git_branch_not_cached(script: PipTestEnvironment) -> None:
     """
     Installing git urls with a branch revision does not cause wheel caching.
@@ -591,7 +594,6 @@ def test_install_git_branch_not_cached(script: PipTestEnvironment) -> None:
     assert f"Successfully built {PKG}" in result.stdout, result.stdout
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_git_sha_cached(script: PipTestEnvironment) -> None:
     """
     Installing git urls with a sha revision does cause wheel caching.

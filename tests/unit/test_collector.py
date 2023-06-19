@@ -6,18 +6,17 @@ import re
 import uuid
 from pathlib import Path
 from textwrap import dedent
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from unittest import mock
 
 import pytest
 from pip._vendor import requests
+from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.index.collector import (
     IndexContent,
     LinkCollector,
-    _clean_link,
-    _clean_url_path,
     _get_index_content,
     _get_simple_response,
     _make_index_content,
@@ -28,7 +27,12 @@ from pip._internal.index.collector import (
 from pip._internal.index.sources import _FlatDirectorySource, _IndexDirectorySource
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.index import PyPI
-from pip._internal.models.link import Link
+from pip._internal.models.link import (
+    Link,
+    LinkHash,
+    _clean_url_path,
+    _ensure_quoted_url,
+)
 from pip._internal.network.session import PipSession
 from tests.lib import TestData, make_test_link_collector
 
@@ -402,13 +406,13 @@ def test_clean_url_path_with_local_path(path: str, expected: str) -> None:
         ),
     ],
 )
-def test_clean_link(url: str, clean_url: str) -> None:
-    assert _clean_link(url) == clean_url
+def test_ensure_quoted_url(url: str, clean_url: str) -> None:
+    assert _ensure_quoted_url(url) == clean_url
 
 
 def _test_parse_links_data_attribute(
     anchor_html: str, attr: str, expected: Optional[str]
-) -> None:
+) -> Link:
     html = (
         "<!DOCTYPE html>"
         '<html><head><meta charset="utf-8"><head>'
@@ -427,6 +431,7 @@ def _test_parse_links_data_attribute(
     (link,) = links
     actual = getattr(link, attr)
     assert actual == expected
+    return link
 
 
 @pytest.mark.parametrize(
@@ -454,6 +459,12 @@ def test_parse_links__requires_python(
     _test_parse_links_data_attribute(anchor_html, "requires_python", expected)
 
 
+# TODO: this test generates its own examples to validate the json client implementation
+# instead of sharing those examples with the html client testing. We expect this won't
+# hide any bugs because operations like resolving PEP 658 metadata should use the same
+# code for both types of indices, but it might be nice to explicitly have all our tests
+# in test_download.py execute over both html and json indices with
+# a pytest.mark.parameterize decorator to ensure nothing slips through the cracks.
 def test_parse_links_json() -> None:
     json_bytes = json.dumps(
         {
@@ -473,6 +484,14 @@ def test_parse_links_json() -> None:
                     "hashes": {"sha256": "sha256 hash", "blake2b": "blake2b hash"},
                     "requires-python": ">=3.7",
                     "dist-info-metadata": False,
+                },
+                # Same as above, but parsing dist-info-metadata.
+                {
+                    "filename": "holygrail-1.0-py3-none-any.whl",
+                    "url": "/files/holygrail-1.0-py3-none-any.whl",
+                    "hashes": {"sha256": "sha256 hash", "blake2b": "blake2b hash"},
+                    "requires-python": ">=3.7",
+                    "dist-info-metadata": "sha512=aabdd41",
                 },
             ],
         }
@@ -502,7 +521,24 @@ def test_parse_links_json() -> None:
             yanked_reason=None,
             hashes={"sha256": "sha256 hash", "blake2b": "blake2b hash"},
         ),
+        Link(
+            "https://example.com/files/holygrail-1.0-py3-none-any.whl",
+            comes_from=page.url,
+            requires_python=">=3.7",
+            yanked_reason=None,
+            hashes={"sha256": "sha256 hash", "blake2b": "blake2b hash"},
+            dist_info_metadata="sha512=aabdd41",
+        ),
     ]
+
+    # Ensure the metadata info can be parsed into the correct link.
+    metadata_link = links[2].metadata_link()
+    assert metadata_link is not None
+    assert (
+        metadata_link.url
+        == "https://example.com/files/holygrail-1.0-py3-none-any.whl.metadata"
+    )
+    assert metadata_link._hashes == {"sha512": "aabdd41"}
 
 
 @pytest.mark.parametrize(
@@ -532,6 +568,48 @@ def test_parse_links_json() -> None:
 )
 def test_parse_links__yanked_reason(anchor_html: str, expected: Optional[str]) -> None:
     _test_parse_links_data_attribute(anchor_html, "yanked_reason", expected)
+
+
+# Requirement objects do not == each other unless they point to the same instance!
+_pkg1_requirement = Requirement("pkg1==1.0")
+
+
+@pytest.mark.parametrize(
+    "anchor_html, expected, hashes",
+    [
+        # Test not present.
+        (
+            '<a href="/pkg1-1.0.tar.gz"></a>',
+            None,
+            {},
+        ),
+        # Test with value "true".
+        (
+            '<a href="/pkg1-1.0.tar.gz" data-dist-info-metadata="true"></a>',
+            "true",
+            {},
+        ),
+        # Test with a provided hash value.
+        (
+            '<a href="/pkg1-1.0.tar.gz" data-dist-info-metadata="sha256=aa113592bbe"></a>',  # noqa: E501
+            "sha256=aa113592bbe",
+            {},
+        ),
+        # Test with a provided hash value for both the requirement as well as metadata.
+        (
+            '<a href="/pkg1-1.0.tar.gz#sha512=abc132409cb" data-dist-info-metadata="sha256=aa113592bbe"></a>',  # noqa: E501
+            "sha256=aa113592bbe",
+            {"sha512": "abc132409cb"},
+        ),
+    ],
+)
+def test_parse_links__dist_info_metadata(
+    anchor_html: str,
+    expected: Optional[str],
+    hashes: Dict[str, str],
+) -> None:
+    link = _test_parse_links_data_attribute(anchor_html, "dist_info_metadata", expected)
+    assert link._hashes == hashes
 
 
 def test_parse_links_caches_same_page_by_url() -> None:
@@ -936,6 +1014,7 @@ def test_link_collector_create_find_links_expansion(
     """
     Test "~" expansion in --find-links paths.
     """
+
     # This is a mock version of expanduser() that expands "~" to the tmpdir.
     def expand_path(path: str) -> str:
         if path.startswith("~/"):
@@ -963,3 +1042,55 @@ def test_link_collector_create_find_links_expansion(
     expected_temp2_dir = os.path.normcase(temp2_dir)
     assert search_scope.find_links == ["~/temp1", expected_temp2_dir]
     assert search_scope.index_urls == ["default_url"]
+
+
+@pytest.mark.parametrize(
+    "url, result",
+    [
+        (
+            "https://pypi.org/pip-18.0.tar.gz#sha256=aa113592bbe",
+            LinkHash("sha256", "aa113592bbe"),
+        ),
+        (
+            "https://pypi.org/pip-18.0.tar.gz#sha256=aa113592bbe&subdirectory=setup",
+            LinkHash("sha256", "aa113592bbe"),
+        ),
+        (
+            "https://pypi.org/pip-18.0.tar.gz#subdirectory=setup&sha256=aa113592bbe",
+            LinkHash("sha256", "aa113592bbe"),
+        ),
+        # "xsha256" is not a valid algorithm, so we discard it.
+        ("https://pypi.org/pip-18.0.tar.gz#xsha256=aa113592bbe", None),
+        # Empty hash.
+        (
+            "https://pypi.org/pip-18.0.tar.gz#sha256=",
+            LinkHash("sha256", ""),
+        ),
+        (
+            "https://pypi.org/pip-18.0.tar.gz#md5=aa113592bbe",
+            LinkHash("md5", "aa113592bbe"),
+        ),
+        ("https://pypi.org/pip-18.0.tar.gz", None),
+        # We don't recognize the "sha500" algorithm, so we discard it.
+        ("https://pypi.org/pip-18.0.tar.gz#sha500=aa113592bbe", None),
+    ],
+)
+def test_link_hash_parsing(url: str, result: Optional[LinkHash]) -> None:
+    assert LinkHash.find_hash_url_fragment(url) == result
+
+
+@pytest.mark.parametrize(
+    "dist_info_metadata, result",
+    [
+        ("sha256=aa113592bbe", LinkHash("sha256", "aa113592bbe")),
+        ("sha256=", LinkHash("sha256", "")),
+        ("sha500=aa113592bbe", None),
+        ("true", None),
+        ("", None),
+        ("aa113592bbe", None),
+    ],
+)
+def test_pep658_hash_parsing(
+    dist_info_metadata: str, result: Optional[LinkHash]
+) -> None:
+    assert LinkHash.parse_pep658_hash(dist_info_metadata) == result

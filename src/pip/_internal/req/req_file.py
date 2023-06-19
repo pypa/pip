@@ -2,6 +2,7 @@
 Requirements file parsing
 """
 
+import logging
 import optparse
 import os
 import re
@@ -69,13 +70,15 @@ SUPPORTED_OPTIONS: List[Callable[..., optparse.Option]] = [
 
 # options to be passed to requirements
 SUPPORTED_OPTIONS_REQ: List[Callable[..., optparse.Option]] = [
-    cmdoptions.install_options,
     cmdoptions.global_options,
     cmdoptions.hash,
+    cmdoptions.config_settings,
 ]
 
 # the 'dest' string values
 SUPPORTED_OPTIONS_REQ_DEST = [str(o().dest) for o in SUPPORTED_OPTIONS_REQ]
+
+logger = logging.getLogger(__name__)
 
 
 class ParsedRequirement:
@@ -166,7 +169,6 @@ def handle_requirement_line(
     line: ParsedLine,
     options: Optional[optparse.Values] = None,
 ) -> ParsedRequirement:
-
     # preserve for the nested code path
     line_comes_from = "{} {} (line {})".format(
         "-c" if line.constraint else "-r",
@@ -186,10 +188,6 @@ def handle_requirement_line(
             constraint=line.constraint,
         )
     else:
-        if options:
-            # Disable wheels if the user has specified build options
-            cmdoptions.check_install_build_global(options, line.opts)
-
         # get the options that apply to requirements
         req_options = {}
         for dest in SUPPORTED_OPTIONS_REQ_DEST:
@@ -215,6 +213,12 @@ def handle_option_line(
     options: Optional[optparse.Values] = None,
     session: Optional[PipSession] = None,
 ) -> None:
+    if opts.hashes:
+        logger.warning(
+            "%s line %s has --hash but no requirement, and will be ignored.",
+            filename,
+            lineno,
+        )
 
     if options:
         # percolate options upward
@@ -229,11 +233,13 @@ def handle_option_line(
     if finder:
         find_links = finder.find_links
         index_urls = finder.index_urls
-        if opts.index_url:
-            index_urls = [opts.index_url]
+        no_index = finder.search_scope.no_index
         if opts.no_index is True:
+            no_index = True
             index_urls = []
-        if opts.extra_index_urls:
+        if opts.index_url and not no_index:
+            index_urls = [opts.index_url]
+        if opts.extra_index_urls and not no_index:
             index_urls.extend(opts.extra_index_urls)
         if opts.find_links:
             # FIXME: it would be nice to keep track of the source
@@ -253,6 +259,7 @@ def handle_option_line(
         search_scope = SearchScope(
             find_links=find_links,
             index_urls=index_urls,
+            no_index=no_index,
         )
         finder.search_scope = search_scope
 
@@ -394,7 +401,12 @@ def get_line_parser(finder: Optional["PackageFinder"]) -> LineParser:
 
         args_str, options_str = break_args_options(line)
 
-        opts, _ = parser.parse_args(shlex.split(options_str), defaults)
+        try:
+            options = shlex.split(options_str)
+        except ValueError as e:
+            raise OptionParsingError(f"Could not split options: {options_str}") from e
+
+        opts, _ = parser.parse_args(options, defaults)
 
         return args_str, opts
 

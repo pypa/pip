@@ -1,16 +1,15 @@
 import os
 from pathlib import Path
 
-from pip._vendor.packaging.tags import Tag
+from pip._vendor.packaging.tags import Tag, interpreter_name, interpreter_version
 
 from pip._internal.cache import WheelCache, _hash_dict
-from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
 from pip._internal.utils.misc import ensure_dir
 
 
 def test_falsey_path_none() -> None:
-    wc = WheelCache("", FormatControl())
+    wc = WheelCache("")
     assert wc.cache_dir is None
 
 
@@ -18,7 +17,7 @@ def test_subdirectory_fragment() -> None:
     """
     Test the subdirectory URL fragment is part of the cache key.
     """
-    wc = WheelCache("/tmp/.foo/", FormatControl())
+    wc = WheelCache("/tmp/.foo/")
     link1 = Link("git+https://g.c/o/r#subdirectory=d1")
     link2 = Link("git+https://g.c/o/r#subdirectory=d2")
     assert wc.get_path_for_link(link1) != wc.get_path_for_link(link2)
@@ -29,7 +28,7 @@ def test_wheel_name_filter(tmpdir: Path) -> None:
     Test the wheel cache filters on wheel name when several wheels
     for different package are stored under the same cache directory.
     """
-    wc = WheelCache(os.fspath(tmpdir), FormatControl())
+    wc = WheelCache(os.fspath(tmpdir))
     link = Link("https://g.c/package.tar.gz")
     cache_path = wc.get_path_for_link(link)
     ensure_dir(cache_path)
@@ -52,8 +51,50 @@ def test_cache_hash() -> None:
     assert h == "f83b32dfa27a426dec08c21bf006065dd003d0aac78e7fc493d9014d"
 
 
+def test_link_to_cache(tmpdir: Path) -> None:
+    """
+    Test that Link.from_json() produces Links with consistent cache
+    locations
+    """
+    wc = WheelCache(os.fspath(tmpdir))
+    # Define our expectations for stable cache path.
+    i_name = interpreter_name()
+    i_version = interpreter_version()
+    key_parts = {
+        "url": "https://files.pythonhosted.org/packages/a6/91/"
+        "86a6eac449ddfae239e93ffc1918cf33fd9bab35c04d1e963b311e347a73/"
+        "netifaces-0.11.0.tar.gz",
+        "sha256": "043a79146eb2907edf439899f262b3dfe41717d34124298ed281139a8b93ca32",
+        "interpreter_name": i_name,
+        "interpreter_version": i_version,
+    }
+    expected_hash = _hash_dict(key_parts)
+    parts = [
+        expected_hash[:2],
+        expected_hash[2:4],
+        expected_hash[4:6],
+        expected_hash[6:],
+    ]
+    pathed_hash = os.path.join(*parts)
+    # Check working from a Link produces the same result.
+    file_data = {
+        "filename": "netifaces-0.11.0.tar.gz",
+        "hashes": {
+            "sha256": key_parts["sha256"],
+        },
+        "requires-python": "",
+        "url": key_parts["url"],
+        "yanked": False,
+    }
+    page_url = "https://pypi.org/simple/netifaces/"
+    link = Link.from_json(file_data=file_data, page_url=page_url)
+    assert link
+    path = wc.get_path_for_link(link)
+    assert pathed_hash in path
+
+
 def test_get_cache_entry(tmpdir: Path) -> None:
-    wc = WheelCache(os.fspath(tmpdir), FormatControl())
+    wc = WheelCache(os.fspath(tmpdir))
     persi_link = Link("https://g.c/o/r/persi")
     persi_path = wc.get_path_for_link(persi_link)
     ensure_dir(persi_path)

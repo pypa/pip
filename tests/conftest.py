@@ -10,6 +10,7 @@ from contextlib import ExitStack, contextmanager
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
+    AnyStr,
     Callable,
     Dict,
     Iterable,
@@ -108,10 +109,6 @@ def pytest_collection_modifyitems(config: Config, items: List[pytest.Function]) 
             if item.get_closest_marker("network") is not None:
                 item.add_marker(pytest.mark.flaky(reruns=3, reruns_delay=2))
 
-        if item.get_closest_marker("incompatible_with_test_venv") and config.getoption(
-            "--use-venv"
-        ):
-            item.add_marker(pytest.mark.skip("Incompatible with test venv"))
         if (
             item.get_closest_marker("incompatible_with_venv")
             and sys.prefix != sys.base_prefix
@@ -432,9 +429,9 @@ def virtualenv_template(
     tmpdir_factory: pytest.TempPathFactory,
     pip_src: Path,
     setuptools_install: Path,
+    wheel_install: Path,
     coverage_install: Path,
 ) -> Iterator[VirtualEnvironment]:
-
     venv_type: VirtualEnvironmentType
     if request.config.getoption("--use-venv"):
         venv_type = "venv"
@@ -445,8 +442,9 @@ def virtualenv_template(
     tmpdir = tmpdir_factory.mktemp("virtualenv")
     venv = VirtualEnvironment(tmpdir.joinpath("venv_orig"), venv_type=venv_type)
 
-    # Install setuptools and pip.
+    # Install setuptools, wheel and pip.
     install_pth_link(venv, "setuptools", setuptools_install)
+    install_pth_link(venv, "wheel", wheel_install)
     pip_editable = tmpdir_factory.mktemp("pip") / "pip"
     shutil.copytree(pip_src, pip_editable, symlinks=True)
     # noxfile.py is Python 3 only
@@ -473,9 +471,6 @@ def virtualenv_template(
             or exe.startswith("libpy")  # Don't remove libpypy-c.so...
         ):
             (venv.bin / exe).unlink()
-
-    # Enable user site packages.
-    venv.user_site_packages = True
 
     # Rename original virtualenv directory to make sure
     # it's not reused by mistake from one of the copies.
@@ -507,14 +502,12 @@ def virtualenv(
     yield virtualenv_factory(tmpdir.joinpath("workspace", "venv"))
 
 
-@pytest.fixture
-def with_wheel(virtualenv: VirtualEnvironment, wheel_install: Path) -> None:
-    install_pth_link(virtualenv, "wheel", wheel_install)
-
-
 class ScriptFactory(Protocol):
     def __call__(
-        self, tmpdir: Path, virtualenv: Optional[VirtualEnvironment] = None
+        self,
+        tmpdir: Path,
+        virtualenv: Optional[VirtualEnvironment] = None,
+        environ: Optional[Dict[AnyStr, AnyStr]] = None,
     ) -> PipTestEnvironment:
         ...
 
@@ -528,7 +521,11 @@ def script_factory(
     def factory(
         tmpdir: Path,
         virtualenv: Optional[VirtualEnvironment] = None,
+        environ: Optional[Dict[AnyStr, AnyStr]] = None,
     ) -> PipTestEnvironment:
+        kwargs = {}
+        if environ:
+            kwargs["environ"] = environ
         if virtualenv is None:
             virtualenv = virtualenv_factory(tmpdir.joinpath("venv"))
         return PipTestEnvironment(
@@ -548,6 +545,7 @@ def script_factory(
             pip_expect_warning=deprecated_python,
             # Tell the Test Environment if we want to run pip via a zipapp
             zipapp=zipapp,
+            **kwargs,
         )
 
     return factory
@@ -742,3 +740,8 @@ def mock_server() -> Iterator[MockServer]:
 @pytest.fixture
 def proxy(request: pytest.FixtureRequest) -> str:
     return request.config.getoption("proxy")
+
+
+@pytest.fixture
+def enable_user_site(virtualenv: VirtualEnvironment) -> None:
+    virtualenv.user_site_packages = True
