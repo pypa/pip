@@ -22,7 +22,7 @@ from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import ensure_dir, hash_file
 from pip._internal.utils.setuptools_build import make_setuptools_clean_args
-from pip._internal.utils.subprocess import call_subprocess
+from pip._internal.utils.subprocess import call_subprocess, log_backend_warnings
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs import vcs
@@ -190,7 +190,7 @@ def _build_one(
         return None
 
     # Install build deps into temporary directory (PEP 518)
-    with req.build_env:
+    with req.build_env, log_backend_warnings():
         wheel_path = _build_one_inside_env(
             req, output_dir, build_options, global_options, editable
         )

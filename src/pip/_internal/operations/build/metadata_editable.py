@@ -10,7 +10,10 @@ from pip._internal.exceptions import (
     InstallationSubprocessError,
     MetadataGenerationFailed,
 )
-from pip._internal.utils.subprocess import runner_with_spinner_message
+from pip._internal.utils.subprocess import (
+    log_backend_warnings,
+    runner_with_spinner_message,
+)
 from pip._internal.utils.temp_dir import TempDirectory
 
 
@@ -25,7 +28,7 @@ def generate_editable_metadata(
 
     metadata_dir = metadata_tmpdir.path
 
-    with build_env:
+    with build_env, log_backend_warnings():
         # Note that BuildBackendHookCaller implements a fallback for
         # prepare_metadata_for_build_wheel/editable, so we don't have to
         # consider the possibility that this hook doesn't exist.

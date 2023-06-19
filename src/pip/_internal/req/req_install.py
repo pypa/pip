@@ -53,7 +53,10 @@ from pip._internal.utils.misc import (
     redact_auth_from_url,
 )
 from pip._internal.utils.packaging import safe_extra
-from pip._internal.utils.subprocess import runner_with_spinner_message
+from pip._internal.utils.subprocess import (
+    log_backend_warnings,
+    runner_with_spinner_message,
+)
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
@@ -235,7 +238,7 @@ class InstallRequirement:
         if not self.use_pep517:
             return False
         assert self.pep517_backend
-        with self.build_env:
+        with self.build_env, log_backend_warnings():
             runner = runner_with_spinner_message(
                 "Checking if build backend supports build_editable"
             )

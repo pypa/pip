@@ -1,18 +1,24 @@
+import contextlib
 import logging
 import os
 import shlex
 import subprocess
+import warnings
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Generator,
     Iterable,
     List,
     Mapping,
     Optional,
+    TextIO,
+    Type,
     Union,
 )
 
+from pip._vendor.pyproject_hooks import BuildBackendWarning
 from pip._vendor.rich.markup import escape
 
 from pip._internal.cli.spinners import SpinnerInterface, open_spinner
@@ -258,3 +264,24 @@ def runner_with_spinner_message(message: str) -> Callable[..., None]:
             )
 
     return runner
+
+
+@contextlib.contextmanager
+def log_backend_warnings() -> Generator[None, None, None]:
+    def showwarning(
+        message: Warning | str,
+        category: Type[Warning],
+        filename: str,
+        lineno: int,
+        file: TextIO | None = None,
+        line: str | None = None,
+    ) -> None:
+        if category == BuildBackendWarning:
+            subprocess_logger.warning(message)
+
+    try:
+        original_showwarning = warnings.showwarning
+        warnings.showwarning = showwarning
+        yield
+    finally:
+        warnings.showwarning = original_showwarning

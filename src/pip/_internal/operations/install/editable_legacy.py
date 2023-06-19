@@ -6,7 +6,7 @@ from typing import Optional, Sequence
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.setuptools_build import make_setuptools_develop_args
-from pip._internal.utils.subprocess import call_subprocess
+from pip._internal.utils.subprocess import call_subprocess, log_backend_warnings
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ def install_editable(
     )
 
     with indent_log():
-        with build_env:
+        with build_env, log_backend_warnings():
             call_subprocess(
                 args,
                 command_desc="python setup.py develop",
