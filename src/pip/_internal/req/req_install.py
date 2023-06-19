@@ -812,7 +812,7 @@ class InstallRequirement:
         assert self.local_file_path
 
         install_wheel(
-            self.name,
+            self.req.name,
             self.local_file_path,
             scheme=scheme,
             req_description=str(self.req),
