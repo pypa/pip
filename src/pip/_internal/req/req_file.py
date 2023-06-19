@@ -193,6 +193,14 @@ def handle_requirement_line(
         req_options = {}
         for dest in SUPPORTED_OPTIONS_REQ_DEST:
             if dest in line.opts.__dict__ and line.opts.__dict__[dest]:
+                if (
+                    dest == "ignore_dependencies"
+                    and options
+                    and "legacy-resolver" in options.deprecated_features_enabled
+                ):
+                    raise RequirementsFileParseError(
+                        "Cannot ignore dependencies with legacy resolver"
+                    )
                 req_options[dest] = line.opts.__dict__[dest]
 
         line_source = f"line {line.lineno} of {line.filename}"
