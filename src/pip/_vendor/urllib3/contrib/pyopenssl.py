@@ -47,10 +47,10 @@ compression in Python 2 (see `CRIME attack`_).
 """
 from __future__ import absolute_import
 
+import OpenSSL.crypto
 import OpenSSL.SSL
 from cryptography import x509
 from cryptography.hazmat.backends.openssl import backend as openssl_backend
-from cryptography.hazmat.backends.openssl.x509 import _Certificate
 
 try:
     from cryptography.x509 import UnsupportedExtension
@@ -73,10 +73,19 @@ except ImportError:  # Platform-specific: Python 3
 import logging
 import ssl
 import sys
+import warnings
 
 from .. import util
 from ..packages import six
 from ..util.ssl_ import PROTOCOL_TLS_CLIENT
+
+warnings.warn(
+    "'urllib3.contrib.pyopenssl' module is deprecated and will be removed "
+    "in a future release of urllib3 2.x. Read more in this issue: "
+    "https://github.com/urllib3/urllib3/issues/2680",
+    category=DeprecationWarning,
+    stacklevel=2,
+)
 
 __all__ = ["inject_into_urllib3", "extract_from_urllib3"]
 
@@ -219,9 +228,8 @@ def get_subj_alt_name(peer_cert):
     if hasattr(peer_cert, "to_cryptography"):
         cert = peer_cert.to_cryptography()
     else:
-        # This is technically using private APIs, but should work across all
-        # relevant versions before PyOpenSSL got a proper API for this.
-        cert = _Certificate(openssl_backend, peer_cert._x509)
+        der = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_ASN1, peer_cert)
+        cert = x509.load_der_x509_certificate(der, openssl_backend)
 
     # We want to find the SAN extension. Ask Cryptography to locate it (it's
     # faster than looping in Python)

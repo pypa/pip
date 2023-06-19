@@ -1,0 +1,1 @@
+Ignore invalid or unreadable ``origin.json`` files in the cache of locally built wheels.
