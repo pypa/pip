@@ -21,22 +21,11 @@ repos:
   hooks:
   - id: black
 
-- repo: https://github.com/PyCQA/flake8
-  rev: 6.0.0
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  # Ruff version.
+  rev: v0.0.270
   hooks:
-  - id: flake8
-    additional_dependencies: [
-        'flake8-bugbear',
-        'flake8-logging-format',
-        'flake8-implicit-str-concat',
-    ]
-    exclude: tests/data
-
-- repo: https://github.com/PyCQA/isort
-  rev: 5.12.0
-  hooks:
-  - id: isort
-    files: \.py$
+    - id: ruff
 
 - repo: https://github.com/pre-commit/mirrors-mypy
   rev: v0.961

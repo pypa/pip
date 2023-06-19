@@ -9,6 +9,35 @@
 
 .. towncrier release notes start
 
+23.1.2 (2023-04-26)
+===================
+
+Vendored Libraries
+------------------
+
+- Upgrade setuptools to 67.7.2
+
+
+23.1.1 (2023-04-22)
+===================
+
+Bug Fixes
+---------
+
+- Revert `#11487 <https://github.com/pypa/pip/pull/11487>`_, as it causes issues with virtualenvs created by the Windows Store distribution of Python. (`#11987 <https://github.com/pypa/pip/issues/11987>`_)
+
+Vendored Libraries
+------------------
+
+- Revert pkg_resources (via setuptools) back to 65.6.3
+
+Improved Documentation
+----------------------
+
+- Update documentation to reflect the new behavior of using the cache of locally
+  built wheels in hash-checking mode. (`#11967 <https://github.com/pypa/pip/issues/11967>`_)
+
+
 23.1 (2023-04-15)
 =================
 
@@ -24,7 +53,7 @@ Deprecations and Removals
   ``--config-settings``. (`#11859 <https://github.com/pypa/pip/issues/11859>`_)
 - Using ``--config-settings`` with projects that don't have a ``pyproject.toml`` now prints
   a deprecation warning. In the future the presence of config settings will automatically
-  enable the default build backend for legacy projects and pass the setttings to it. (`#11915 <https://github.com/pypa/pip/issues/11915>`_)
+  enable the default build backend for legacy projects and pass the settings to it. (`#11915 <https://github.com/pypa/pip/issues/11915>`_)
 - Remove ``setup.py install`` fallback when building a wheel failed for projects without
   ``pyproject.toml``. (`#8368 <https://github.com/pypa/pip/issues/8368>`_)
 - When the ``wheel`` package is not installed, pip now uses the default build backend

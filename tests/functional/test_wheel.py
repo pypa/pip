@@ -7,8 +7,11 @@ from pathlib import Path
 import pytest
 
 from pip._internal.cli.status_codes import ERROR
-from tests.lib import pyversion  # noqa: F401
-from tests.lib import PipTestEnvironment, TestData
+from tests.lib import (
+    PipTestEnvironment,
+    TestData,
+    pyversion,  # noqa: F401
+)
 
 
 def add_files_to_dist_directory(folder: Path) -> None:
