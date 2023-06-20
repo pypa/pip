@@ -608,7 +608,7 @@ class InstallRequirement:
     def assert_source_matches_version(self) -> None:
         assert self.source_dir, f"No source dir for {self}"
         version = self.metadata["version"]
-        if self.req and version not in self.req.specifier:
+        if self.req and self.req.specifier and version not in self.req.specifier:
             logger.warning(
                 "Requested %s, but installing version %s",
                 self,
