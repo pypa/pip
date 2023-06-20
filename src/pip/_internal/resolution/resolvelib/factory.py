@@ -385,8 +385,8 @@ class Factory:
             if ireq is not None:
                 ireqs.append(ireq)
 
-        # If the current identifier contains extras, add explicit candidates
-        # from entries from extra-less identifier.
+        # If the current identifier contains extras, add requires and explicit
+        # candidates from entries from extra-less identifier.
         with contextlib.suppress(InvalidRequirement):
             parsed_requirement = get_requirement(identifier)
             explicit_candidates.update(
@@ -395,6 +395,10 @@ class Factory:
                     frozenset(parsed_requirement.extras),
                 ),
             )
+            for req in requirements.get(parsed_requirement.name, []):
+                _, ireq = req.get_candidate_lookup()
+                if ireq is not None:
+                    ireqs.append(ireq)
 
         # Add explicit candidates from constraints. We only do this if there are
         # known ireqs, which represent requirements not already explicit. If
