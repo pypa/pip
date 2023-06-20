@@ -17,9 +17,12 @@ def glibc_version_string_confstr() -> Optional[str]:
     if sys.platform == "win32":
         return None
     try:
+        gnu_libc_version = os.confstr("CS_GNU_LIBC_VERSION")
+        if gnu_libc_version is None:
+            return None
         # os.confstr("CS_GNU_LIBC_VERSION") returns a string like "glibc 2.17":
-        _, version = os.confstr("CS_GNU_LIBC_VERSION").split()  # type: ignore
-    except (AttributeError, OSError, ValueError):
+        _, version = gnu_libc_version
+    except (OSError, ValueError):
         # os.confstr() or CS_GNU_LIBC_VERSION not available (or a bad value)...
         return None
     return version
