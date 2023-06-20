@@ -22,7 +22,7 @@ def glibc_version_string_confstr() -> Optional[str]:
             return None
         # os.confstr("CS_GNU_LIBC_VERSION") returns a string like "glibc 2.17":
         _, version = gnu_libc_version.split()
-    except (OSError, ValueError):
+    except (AttributeError, OSError, ValueError):
         # os.confstr() or CS_GNU_LIBC_VERSION not available (or a bad value)...
         return None
     return version
