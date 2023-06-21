@@ -36,7 +36,7 @@ from.
 
 `base_command.py <https://github.com/pypa/pip/blob/main/src/pip/_internal/cli/base_command.py>`_
 defines the base ``Command`` class, from which every other command will inherit directly or
-indirectly (see the `command tree` at the end of this section).
+indirectly (see the *command tree* at the end of this section).
 
 Using the ``ConfigOptionParser`` (see `Configuration and CLI "blend" <Configuration and CLI "blend"_>`_),
 this class adds the general options and instantiates the *cmd_opts* group, where every other specific
@@ -91,7 +91,7 @@ The set of shared options are defined in `cmdoptions.py <https://github.com/pypa
 module, as well as the *general options* and *package index options* groups of options
 we see when we call a command's help, or the ``pip index``'s help message respectively.
 All options are defined in terms of functions that return `optparse.Option <https://docs.python.org/3/library/optparse.html#optparse.Option>`_
-instances once called, while specific groups of options, like `Config Options` for 
+instances once called, while specific groups of options, like *Config Options* for 
 ``pip config`` are defined in each specific command file (see for example the 
 `configuration.py <https://github.com/pypa/pip/blob/main/src/pip/_internal/commands/configuration.py>`_).
 
@@ -139,7 +139,7 @@ Argument access
 To access all the options and arguments, ``Command.run()`` takes
 the options as `optparse.Values <https://docs.python.org/3/library/optparse.html#optparse.Values>`_
 and a list of strings for the arguments (parsed in ``Command.main()``). The internal methods of
-the base ``Command`` class are in charge of passing these variables after `parse_args` is
+the base ``Command`` class are in charge of passing these variables after ``parse_args`` is
 called for a specific command.
 
 Configuration and CLI "blend"
@@ -178,7 +178,7 @@ program.
 
   This function (used in `download.py <https://github.com/pypa/pip/blob/main/src/pip/_internal/network/download.py>`_,
   inside the ``Downloader`` class), allows watching the download process when running
-  ``pip install`` on `big` packages.
+  ``pip install`` on *big* packages.
 
 * `spinner.py <https://github.com/pypa/pip/blob/main/src/pip/_internal/cli/spinners.py>`_
 
