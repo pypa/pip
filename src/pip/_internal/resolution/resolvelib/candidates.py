@@ -237,10 +237,11 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._check_metadata_consistency(dist)
         return dist
 
+    # TODO: add Explicit dependency on self to extra reqs can benefit from it?
     def iter_dependencies(self, with_requires: bool) -> Iterable[Optional[Requirement]]:
         requires = self.dist.iter_dependencies() if with_requires else ()
         for r in requires:
-            yield self._factory.make_requirement_from_spec(str(r), self._ireq)
+            yield from self._factory.make_requirements_from_spec(str(r), self._ireq)
         yield self._factory.make_requires_python_requirement(self.dist.requires_python)
 
     def get_install_requirement(self) -> Optional[InstallRequirement]:
@@ -392,7 +393,7 @@ class AlreadyInstalledCandidate(Candidate):
         if not with_requires:
             return
         for r in self.dist.iter_dependencies():
-            yield self._factory.make_requirement_from_spec(str(r), self._ireq)
+            yield from self._factory.make_requirements_from_spec(str(r), self._ireq)
 
     def get_install_requirement(self) -> Optional[InstallRequirement]:
         return None
@@ -502,11 +503,9 @@ class ExtrasCandidate(Candidate):
             )
 
         for r in self.base.dist.iter_dependencies(valid_extras):
-            requirement = factory.make_requirement_from_spec(
+            yield from factory.make_requirements_from_spec(
                 str(r), self.base._ireq, valid_extras
             )
-            if requirement:
-                yield requirement
 
     def get_install_requirement(self) -> Optional[InstallRequirement]:
         # We don't return anything here, because we always

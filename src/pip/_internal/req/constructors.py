@@ -15,7 +15,7 @@ from typing import Dict, List, Optional, Set, Tuple, Union
 
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
-from pip._vendor.packaging.specifiers import Specifier
+from pip._vendor.packaging.specifiers import Specifier, SpecifierSet
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.models.index import PyPI, TestPyPI
@@ -503,4 +503,34 @@ def install_req_from_link_and_ireq(
         hash_options=ireq.hash_options,
         config_settings=ireq.config_settings,
         user_supplied=ireq.user_supplied,
+    )
+
+
+def install_req_without(
+    ireq: InstallRequirement,
+    *,
+    without_extras: bool = False,
+    without_specifier: bool = False,
+) -> InstallRequirement:
+    # TODO: clean up hack
+    req = Requirement(str(ireq.req))
+    if without_extras:
+        req.extras = {}
+    if without_specifier:
+        req.specifier = SpecifierSet(prereleases=req.specifier.prereleases)
+    return InstallRequirement(
+        req=req,
+        comes_from=ireq.comes_from,
+        editable=ireq.editable,
+        link=ireq.link,
+        markers=ireq.markers,
+        use_pep517=ireq.use_pep517,
+        isolated=ireq.isolated,
+        global_options=ireq.global_options,
+        hash_options=ireq.hash_options,
+        constraint=ireq.constraint,
+        extras=ireq.extras if not without_extras else [],
+        config_settings=ireq.config_settings,
+        user_supplied=ireq.user_supplied,
+        permit_editable_wheels=ireq.permit_editable_wheels,
     )

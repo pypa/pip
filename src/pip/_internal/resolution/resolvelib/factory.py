@@ -441,18 +441,35 @@ class Factory:
             and all(req.is_satisfied_by(c) for req in requirements[identifier])
         )
 
-    def _make_requirement_from_install_req(
+    def _make_requirements_from_install_req(
         self, ireq: InstallRequirement, requested_extras: Iterable[str]
-    ) -> Optional[Requirement]:
+    ) -> list[Requirement]:
+        # TODO: docstring
+        """
+        Returns requirement objects associated with the given InstallRequirement. In
+        most cases this will be a single object but the following special cases exist:
+            - the InstallRequirement has markers that do not apply -> result is empty
+            - the InstallRequirement has both a constraint and extras -> result is split
+                in two requirement objects: one with the constraint and one with the
+                extra. This allows centralized constraint handling for the base,
+                resulting in fewer candidate rejections.
+        """
+        # TODO: implement -> split in base req with constraint and extra req without
         if not ireq.match_markers(requested_extras):
             logger.info(
                 "Ignoring %s: markers '%s' don't match your environment",
                 ireq.name,
                 ireq.markers,
             )
-            return None
+            return []
         if not ireq.link:
-            return SpecifierRequirement(ireq)
+            if ireq.extras and ireq.req.specifier:
+                return [
+                    SpecifierRequirement(ireq, drop_extras=True),
+                    SpecifierRequirement(ireq, drop_specifier=True),
+                ]
+            else:
+                return [SpecifierRequirement(ireq)]
         self._fail_if_link_is_unsupported_wheel(ireq.link)
         cand = self._make_candidate_from_link(
             ireq.link,
@@ -470,8 +487,9 @@ class Factory:
             # ResolutionImpossible eventually.
             if not ireq.name:
                 raise self._build_failures[ireq.link]
-            return UnsatisfiableRequirement(canonicalize_name(ireq.name))
-        return self.make_requirement_from_candidate(cand)
+            return [UnsatisfiableRequirement(canonicalize_name(ireq.name))]
+        # TODO: here too
+        return [self.make_requirement_from_candidate(cand)]
 
     def collect_root_requirements(
         self, root_ireqs: List[InstallRequirement]
@@ -492,15 +510,17 @@ class Factory:
                 else:
                     collected.constraints[name] = Constraint.from_ireq(ireq)
             else:
-                req = self._make_requirement_from_install_req(
+                reqs = self._make_requirements_from_install_req(
                     ireq,
                     requested_extras=(),
                 )
-                if req is None:
+                if not reqs:
                     continue
-                if ireq.user_supplied and req.name not in collected.user_requested:
-                    collected.user_requested[req.name] = i
-                collected.requirements.append(req)
+
+                # TODO: clean up reqs[0]?
+                if ireq.user_supplied and reqs[0].name not in collected.user_requested:
+                    collected.user_requested[reqs[0].name] = i
+                collected.requirements.extend(reqs)
         return collected
 
     def make_requirement_from_candidate(
@@ -508,14 +528,17 @@ class Factory:
     ) -> ExplicitRequirement:
         return ExplicitRequirement(candidate)
 
-    def make_requirement_from_spec(
+    def make_requirements_from_spec(
         self,
         specifier: str,
         comes_from: Optional[InstallRequirement],
         requested_extras: Iterable[str] = (),
-    ) -> Optional[Requirement]:
+    ) -> list[Requirement]:
+        # TODO: docstring
+        """
+        """
         ireq = self._make_install_req_from_spec(specifier, comes_from)
-        return self._make_requirement_from_install_req(ireq, requested_extras)
+        return self._make_requirements_from_install_req(ireq, requested_extras)
 
     def make_requires_python_requirement(
         self,

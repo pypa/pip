@@ -2,6 +2,7 @@ from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.req.constructors import install_req_without
 
 from .base import Candidate, CandidateLookup, Requirement, format_name
 
@@ -39,14 +40,27 @@ class ExplicitRequirement(Requirement):
         return candidate == self.candidate
 
 
+# TODO: add some comments
 class SpecifierRequirement(Requirement):
-    def __init__(self, ireq: InstallRequirement) -> None:
+    # TODO: document additional options
+    def __init__(
+        self,
+        ireq: InstallRequirement,
+        *,
+        drop_extras: bool = False,
+        drop_specifier: bool = False,
+    ) -> None:
         assert ireq.link is None, "This is a link, not a specifier"
-        self._ireq = ireq
-        self._extras = frozenset(ireq.extras)
+        self._drop_extras: bool = drop_extras
+        self._original_extras = frozenset(ireq.extras)
+        # TODO: name
+        self._original_req = ireq.req
+        self._ireq = install_req_without(
+            ireq, without_extras=self._drop_extras, without_specifier=drop_specifier
+        )
 
     def __str__(self) -> str:
-        return str(self._ireq.req)
+        return str(self._original_req)
 
     def __repr__(self) -> str:
         return "{class_name}({requirement!r})".format(
@@ -59,9 +73,13 @@ class SpecifierRequirement(Requirement):
         assert self._ireq.req, "Specifier-backed ireq is always PEP 508"
         return canonicalize_name(self._ireq.req.name)
 
+    # TODO: make sure this can still be identified for error reporting purposes
     @property
     def name(self) -> str:
-        return format_name(self.project_name, self._extras)
+        return format_name(
+            self.project_name,
+            self._original_extras if not self._drop_extras else frozenset(),
+        )
 
     def format_for_error(self) -> str:
         # Convert comma-separated specifiers into "A, B, ..., F and G"
