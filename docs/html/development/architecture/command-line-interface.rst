@@ -70,7 +70,7 @@ Lastly, ``RequirementCommand``, which inherits from ``IndexGroupCommand`` is the
 for those commands which make use of requirements in any form, like ``pip install``.
 
 In addition to the previous classes, a last mixin class must be mentioned, from which
-``Command`` as well as ``SessionCommandMixin`` inherit: ``CommandContextMixIn``, in 
+``Command`` as well as ``SessionCommandMixin`` inherit: ``CommandContextMixIn``, in
 charge of the command's context.
 
 In the following command tree we can see the hierarchy defined for the different pip's
@@ -91,14 +91,14 @@ The set of shared options are defined in `cmdoptions.py <https://github.com/pypa
 module, as well as the *general options* and *package index options* groups of options
 we see when we call a command's help, or the ``pip index``'s help message respectively.
 All options are defined in terms of functions that return `optparse.Option <https://docs.python.org/3/library/optparse.html#optparse.Option>`_
-instances once called, while specific groups of options, like *Config Options* for 
-``pip config`` are defined in each specific command file (see for example the 
+instances once called, while specific groups of options, like *Config Options* for
+``pip config`` are defined in each specific command file (see for example the
 `configuration.py <https://github.com/pypa/pip/blob/main/src/pip/_internal/commands/configuration.py>`_).
 
 Argument parsing
 ----------------
 
-The main entrypoint for the application is defined in the ``main`` function in the 
+The main entrypoint for the application is defined in the ``main`` function in the
 `main.py <https://github.com/pypa/pip/blob/main/src/pip/_internal/cli/main.py>`_ module.
 This function is in charge of the `autocompletion <https://github.com/pypa/pip/blob/main/src/pip/_internal/cli/autocompletion.py>`_,
 calling the ``parse_command`` function and creating and running the subprograms
@@ -109,7 +109,7 @@ module, which defines the following two functions:
 
 .. py:function:: parse_command()
 
-  Function in charge of the initial parse of ``pip``'s program. Creates the main parser (see 
+  Function in charge of the initial parse of ``pip``'s program. Creates the main parser (see
   the next function ``create_main_parser``) to extract the general options
   and the remaining arguments. For example, running ``pip --timeout=5 install --user INITools``
   will split ``['--timeout=5']`` as general option and  ``['install', '--user', 'INITools']``
