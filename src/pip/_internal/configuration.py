@@ -216,8 +216,10 @@ class Configuration:
                     parser.write(f)
             except IOError as error:
                 raise ConfigurationError(
-                "An error occurred while writing to the configuration file: {0}\n \
-                Error message: {1}".format(fname, error)
+                    "An error occurred while writing to the configuration file: {0}\n \
+                Error message: {1}".format(
+                        fname, error
+                    )
                 )
 
     #
@@ -346,7 +348,7 @@ class Configuration:
         # per-user configuration next
         should_load_user_config = not self.isolated and not (
             config_file and os.path.exists(config_file)
-        ) 
+        )
 
         if should_load_user_config:
             # The legacy config file is overridden by the new config file
