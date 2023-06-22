@@ -237,7 +237,6 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._check_metadata_consistency(dist)
         return dist
 
-    # TODO: add Explicit dependency on self to extra reqs can benefit from it?
     def iter_dependencies(self, with_requires: bool) -> Iterable[Optional[Requirement]]:
         requires = self.dist.iter_dependencies() if with_requires else ()
         for r in requires:
@@ -428,9 +427,19 @@ class ExtrasCandidate(Candidate):
         self,
         base: BaseCandidate,
         extras: FrozenSet[str],
+        ireq: Optional[InstallRequirement] = None,
     ) -> None:
+        """
+        :param ireq: the InstallRequirement that led to this candidate, if it
+            differs from the base's InstallRequirement. This will often be the
+            case in the sense that this candidate's requirement has the extras
+            while the base's does not. Unlike the InstallRequirement backed
+            candidates, this requirement is used solely for reporting purposes,
+            it does not do any leg work.
+        """
         self.base = base
         self.extras = extras
+        self._ireq = ireq
 
     def __str__(self) -> str:
         name, rest = str(self.base).split(" ", 1)
@@ -504,7 +513,9 @@ class ExtrasCandidate(Candidate):
 
         for r in self.base.dist.iter_dependencies(valid_extras):
             yield from factory.make_requirements_from_spec(
-                str(r), self.base._ireq, valid_extras
+                str(r),
+                self._ireq if self._ireq is not None else self.base._ireq,
+                valid_extras,
             )
 
     def get_install_requirement(self) -> Optional[InstallRequirement]:

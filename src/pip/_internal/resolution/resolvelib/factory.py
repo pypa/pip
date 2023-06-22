@@ -138,13 +138,16 @@ class Factory:
         raise UnsupportedWheel(msg)
 
     def _make_extras_candidate(
-        self, base: BaseCandidate, extras: FrozenSet[str]
+        self,
+        base: BaseCandidate,
+        extras: FrozenSet[str],
+        ireq: Optional[InstallRequirement] = None,
     ) -> ExtrasCandidate:
         cache_key = (id(base), extras)
         try:
             candidate = self._extras_candidate_cache[cache_key]
         except KeyError:
-            candidate = ExtrasCandidate(base, extras)
+            candidate = ExtrasCandidate(base, extras, ireq=ireq)
             self._extras_candidate_cache[cache_key] = candidate
         return candidate
 
@@ -161,7 +164,7 @@ class Factory:
             self._installed_candidate_cache[dist.canonical_name] = base
         if not extras:
             return base
-        return self._make_extras_candidate(base, extras)
+        return self._make_extras_candidate(base, extras, ireq=template)
 
     def _make_candidate_from_link(
         self,
@@ -223,7 +226,7 @@ class Factory:
 
         if not extras:
             return base
-        return self._make_extras_candidate(base, extras)
+        return self._make_extras_candidate(base, extras, ireq=template)
 
     def _iter_found_candidates(
         self,
@@ -389,16 +392,17 @@ class Factory:
         # candidates from entries from extra-less identifier.
         with contextlib.suppress(InvalidRequirement):
             parsed_requirement = get_requirement(identifier)
-            explicit_candidates.update(
-                self._iter_explicit_candidates_from_base(
-                    requirements.get(parsed_requirement.name, ()),
-                    frozenset(parsed_requirement.extras),
-                ),
-            )
-            for req in requirements.get(parsed_requirement.name, []):
-                _, ireq = req.get_candidate_lookup()
-                if ireq is not None:
-                    ireqs.append(ireq)
+            if parsed_requirement.name != identifier:
+                explicit_candidates.update(
+                    self._iter_explicit_candidates_from_base(
+                        requirements.get(parsed_requirement.name, ()),
+                        frozenset(parsed_requirement.extras),
+                    ),
+                )
+                for req in requirements.get(parsed_requirement.name, []):
+                    _, ireq = req.get_candidate_lookup()
+                    if ireq is not None:
+                        ireqs.append(ireq)
 
         # Add explicit candidates from constraints. We only do this if there are
         # known ireqs, which represent requirements not already explicit. If
@@ -444,7 +448,6 @@ class Factory:
     def _make_requirements_from_install_req(
         self, ireq: InstallRequirement, requested_extras: Iterable[str]
     ) -> list[Requirement]:
-        # TODO: docstring
         """
         Returns requirement objects associated with the given InstallRequirement. In
         most cases this will be a single object but the following special cases exist:
@@ -454,7 +457,6 @@ class Factory:
                 extra. This allows centralized constraint handling for the base,
                 resulting in fewer candidate rejections.
         """
-        # TODO: implement -> split in base req with constraint and extra req without
         if not ireq.match_markers(requested_extras):
             logger.info(
                 "Ignoring %s: markers '%s' don't match your environment",
@@ -466,6 +468,10 @@ class Factory:
             if ireq.extras and ireq.req.specifier:
                 return [
                     SpecifierRequirement(ireq, drop_extras=True),
+                    # TODO: put this all the way at the back to have even fewer candidates?
+                    # TODO: probably best to keep specifier as it makes the report
+                    #   slightly more readable -> should also update SpecReq constructor
+                    #   and req.constructors.install_req_without
                     SpecifierRequirement(ireq, drop_specifier=True),
                 ]
             else:

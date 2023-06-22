@@ -520,7 +520,8 @@ def install_req_without(
         req.specifier = SpecifierSet(prereleases=req.specifier.prereleases)
     return InstallRequirement(
         req=req,
-        comes_from=ireq.comes_from,
+        # TODO: document this!!!!
+        comes_from=ireq,
         editable=ireq.editable,
         link=ireq.link,
         markers=ireq.markers,

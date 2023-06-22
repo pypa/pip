@@ -40,7 +40,6 @@ class ExplicitRequirement(Requirement):
         return candidate == self.candidate
 
 
-# TODO: add some comments
 class SpecifierRequirement(Requirement):
     # TODO: document additional options
     def __init__(
@@ -52,15 +51,17 @@ class SpecifierRequirement(Requirement):
     ) -> None:
         assert ireq.link is None, "This is a link, not a specifier"
         self._drop_extras: bool = drop_extras
-        self._original_extras = frozenset(ireq.extras)
-        # TODO: name
-        self._original_req = ireq.req
-        self._ireq = install_req_without(
-            ireq, without_extras=self._drop_extras, without_specifier=drop_specifier
+        self._extras = frozenset(ireq.extras if not drop_extras else ())
+        self._ireq = (
+            ireq
+            if not drop_extras and not drop_specifier
+            else install_req_without(
+                ireq, without_extras=self._drop_extras, without_specifier=drop_specifier
+            )
         )
 
     def __str__(self) -> str:
-        return str(self._original_req)
+        return str(self._ireq)
 
     def __repr__(self) -> str:
         return "{class_name}({requirement!r})".format(
@@ -73,12 +74,11 @@ class SpecifierRequirement(Requirement):
         assert self._ireq.req, "Specifier-backed ireq is always PEP 508"
         return canonicalize_name(self._ireq.req.name)
 
-    # TODO: make sure this can still be identified for error reporting purposes
     @property
     def name(self) -> str:
         return format_name(
             self.project_name,
-            self._original_extras if not self._drop_extras else frozenset(),
+            self._extras,
         )
 
     def format_for_error(self) -> str:
