@@ -477,9 +477,7 @@ class Factory:
         self._fail_if_link_is_unsupported_wheel(ireq.link)
         cand = self._make_candidate_from_link(
             ireq.link,
-            # make just the base candidate so the corresponding requirement can be split
-            # in case of extras (see docstring)
-            extras=frozenset(),
+            extras=frozenset(ireq.extras),
             template=ireq,
             name=canonicalize_name(ireq.name) if ireq.name else None,
             version=None,
@@ -494,12 +492,7 @@ class Factory:
             if not ireq.name:
                 raise self._build_failures[ireq.link]
             return [UnsatisfiableRequirement(canonicalize_name(ireq.name))]
-        return [
-            self.make_requirement_from_candidate(cand),
-            self.make_requirement_from_candidate(
-                self._make_extras_candidate(cand, frozenset(ireq.extras), ireq)
-            ),
-        ]
+        return [self.make_requirement_from_candidate(cand)]
 
     def collect_root_requirements(
         self, root_ireqs: List[InstallRequirement]
