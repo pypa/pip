@@ -468,18 +468,18 @@ class Factory:
             if ireq.extras and ireq.req.specifier:
                 return [
                     SpecifierRequirement(ireq, drop_extras=True),
-                    # TODO: put this all the way at the back to have even fewer candidates?
-                    # TODO: probably best to keep specifier as it makes the report
-                    #   slightly more readable -> should also update SpecReq constructor
-                    #   and req.constructors.install_req_without
-                    SpecifierRequirement(ireq, drop_specifier=True),
+                    # TODO: put this all the way at the back to have even fewer
+                    #   candidates?
+                    SpecifierRequirement(ireq),
                 ]
             else:
                 return [SpecifierRequirement(ireq)]
         self._fail_if_link_is_unsupported_wheel(ireq.link)
         cand = self._make_candidate_from_link(
             ireq.link,
-            extras=frozenset(ireq.extras),
+            # make just the base candidate so the corresponding requirement can be split
+            # in case of extras (see docstring)
+            extras=frozenset(),
             template=ireq,
             name=canonicalize_name(ireq.name) if ireq.name else None,
             version=None,
@@ -494,8 +494,12 @@ class Factory:
             if not ireq.name:
                 raise self._build_failures[ireq.link]
             return [UnsatisfiableRequirement(canonicalize_name(ireq.name))]
-        # TODO: here too
-        return [self.make_requirement_from_candidate(cand)]
+        return [
+            self.make_requirement_from_candidate(cand),
+            self.make_requirement_from_candidate(
+                self._make_extras_candidate(cand, frozenset(ireq.extras), ireq)
+            ),
+        ]
 
     def collect_root_requirements(
         self, root_ireqs: List[InstallRequirement]
@@ -523,9 +527,9 @@ class Factory:
                 if not reqs:
                     continue
 
-                # TODO: clean up reqs[0]?
-                if ireq.user_supplied and reqs[0].name not in collected.user_requested:
-                    collected.user_requested[reqs[0].name] = i
+                template = reqs[0]
+                if ireq.user_supplied and template.name not in collected.user_requested:
+                    collected.user_requested[template.name] = i
                 collected.requirements.extend(reqs)
         return collected
 
@@ -540,8 +544,14 @@ class Factory:
         comes_from: Optional[InstallRequirement],
         requested_extras: Iterable[str] = (),
     ) -> list[Requirement]:
-        # TODO: docstring
         """
+        Returns requirement objects associated with the given specifier. In most cases
+        this will be a single object but the following special cases exist:
+            - the specifier has markers that do not apply -> result is empty
+            - the specifier has both a constraint and extras -> result is split
+                in two requirement objects: one with the constraint and one with the
+                extra. This allows centralized constraint handling for the base,
+                resulting in fewer candidate rejections.
         """
         ireq = self._make_install_req_from_spec(specifier, comes_from)
         return self._make_requirements_from_install_req(ireq, requested_extras)

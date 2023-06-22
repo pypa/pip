@@ -507,20 +507,16 @@ def install_req_from_link_and_ireq(
     )
 
 
-def install_req_without(
-    ireq: InstallRequirement,
-    *,
-    without_extras: bool = False,
-    without_specifier: bool = False,
-) -> InstallRequirement:
+def install_req_drop_extras(ireq: InstallRequirement) -> InstallRequirement:
+    """
+    Creates a new InstallationRequirement using the given template but without
+    any extras. Sets the original requirement as the new one's parent
+    (comes_from).
+    """
     req = Requirement(str(ireq.req))
-    if without_extras:
-        req.extras = {}
-    if without_specifier:
-        req.specifier = SpecifierSet(prereleases=req.specifier.prereleases)
+    req.extras = {}
     return InstallRequirement(
         req=req,
-        # TODO: document this!!!!
         comes_from=ireq,
         editable=ireq.editable,
         link=ireq.link,
@@ -530,7 +526,7 @@ def install_req_without(
         global_options=ireq.global_options,
         hash_options=ireq.hash_options,
         constraint=ireq.constraint,
-        extras=ireq.extras if not without_extras else [],
+        extras=[],
         config_settings=ireq.config_settings,
         user_supplied=ireq.user_supplied,
         permit_editable_wheels=ireq.permit_editable_wheels,

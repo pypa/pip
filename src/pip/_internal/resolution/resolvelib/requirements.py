@@ -2,7 +2,7 @@ from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.req.constructors import install_req_without
+from pip._internal.req.constructors import install_req_drop_extras
 
 from .base import Candidate, CandidateLookup, Requirement, format_name
 
@@ -41,24 +41,20 @@ class ExplicitRequirement(Requirement):
 
 
 class SpecifierRequirement(Requirement):
-    # TODO: document additional options
     def __init__(
         self,
         ireq: InstallRequirement,
         *,
         drop_extras: bool = False,
-        drop_specifier: bool = False,
     ) -> None:
+        """
+        :param drop_extras: Ignore any extras that are part of the install requirement,
+            making this a requirement on the base only.
+        """
         assert ireq.link is None, "This is a link, not a specifier"
         self._drop_extras: bool = drop_extras
-        self._extras = frozenset(ireq.extras if not drop_extras else ())
-        self._ireq = (
-            ireq
-            if not drop_extras and not drop_specifier
-            else install_req_without(
-                ireq, without_extras=self._drop_extras, without_specifier=drop_specifier
-            )
-        )
+        self._ireq = ireq if not drop_extras else install_req_drop_extras(ireq)
+        self._extras = frozenset(self._ireq.extras)
 
     def __str__(self) -> str:
         return str(self._ireq)
