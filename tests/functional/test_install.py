@@ -2465,6 +2465,6 @@ def test_install_pip_prints_req_chain_pypi(script: PipTestEnvironment) -> None:
     )
 
     assert (
-        f"Collecting python-openid "
-        f"(from Paste[openid]==1.7.5.1->-r {req_path} (line 1))" in result.stdout
-    )
+        "Collecting python-openid "
+        f"(from Paste[openid]->Paste[openid]==1.7.5.1->-r {req_path} (line 1))"
+    ) in result.stdout

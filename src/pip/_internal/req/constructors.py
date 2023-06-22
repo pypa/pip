@@ -8,10 +8,11 @@ These are meant to be used elsewhere within pip to create instances of
 InstallRequirement.
 """
 
+import copy
 import logging
 import os
 import re
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Collection, Dict, List, Optional, Set, Tuple, Union
 
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
@@ -512,7 +513,6 @@ def install_req_without(
     without_extras: bool = False,
     without_specifier: bool = False,
 ) -> InstallRequirement:
-    # TODO: clean up hack
     req = Requirement(str(ireq.req))
     if without_extras:
         req.extras = {}
@@ -535,3 +535,19 @@ def install_req_without(
         user_supplied=ireq.user_supplied,
         permit_editable_wheels=ireq.permit_editable_wheels,
     )
+
+
+def install_req_extend_extras(
+    ireq: InstallRequirement,
+    extras: Collection[str],
+) -> InstallRequirement:
+    """
+    Returns a copy of an installation requirement with some additional extras.
+    Makes a shallow copy of the ireq object.
+    """
+    result = copy.copy(ireq)
+    req = Requirement(str(ireq.req))
+    req.extras.update(extras)
+    result.req = req
+    result.extras = {*ireq.extras, *extras}
+    return result
