@@ -184,8 +184,6 @@ class PipProvider(_ProviderBase):
         # the backtracking
         backtrack_cause = self.is_backtrack_cause(identifier, backtrack_causes)
 
-        # TODO: finally prefer base over extra for the same package
-
         return (
             not requires_python,
             not direct,
