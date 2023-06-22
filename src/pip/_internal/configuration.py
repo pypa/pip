@@ -216,7 +216,8 @@ class Configuration:
                     parser.write(f)
             except IOError as error:
                 raise ConfigurationError(
-                "An error occurred while writing to the configuration file: {0}\nError message: {1}".format(fname, error)
+                "An error occurred while writing to the configuration file: {0}\n \
+                Error message: {1}".format(fname, error)
                 )
 
     #
