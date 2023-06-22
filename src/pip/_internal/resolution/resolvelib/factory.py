@@ -468,8 +468,6 @@ class Factory:
             if ireq.extras and ireq.req.specifier:
                 return [
                     SpecifierRequirement(ireq, drop_extras=True),
-                    # TODO: put this all the way at the back to have even fewer
-                    #   candidates?
                     SpecifierRequirement(ireq),
                 ]
             else:
@@ -524,6 +522,15 @@ class Factory:
                 if ireq.user_supplied and template.name not in collected.user_requested:
                     collected.user_requested[template.name] = i
                 collected.requirements.extend(reqs)
+        # Put requirements with extras at the end of the root requires. This does not
+        # affect resolvelib's picking preference but it does affect its initial criteria
+        # population: by putting extras at the end we enable the candidate finder to
+        # present resolvelib with a smaller set of candidates to resolvelib, already
+        # taking into account any non-transient constraints on the associated base. This
+        # means resolvelib will have fewer candidates to visit and reject.
+        # Python's list sort is stable, meaning relative order is kept for objects with
+        # the same key.
+        collected.requirements.sort(key=lambda r: r.name != r.project_name)
         return collected
 
     def make_requirement_from_candidate(
