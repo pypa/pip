@@ -899,7 +899,8 @@ Which will give the following output after it processes each download chunk:
 
 Here, ``Progress:`` indicates it is download progress. The rest of the message is JSON
 with the ``current`` number of bytes downloaded and ``total`` .whl size as key/value pairs.
-Note: ``total`` is optional and may be null.
+Note: ``total`` is may be null if the size of the package cannot be determined. This means
+that it will either be null during the duration of the download, or not be null at all.
 
 This can be used to build your own progress bar, or report progress in other ways.
 In the code example above, we just print the current parsed status of the download.
