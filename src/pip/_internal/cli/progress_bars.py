@@ -104,13 +104,17 @@ def get_download_progress_renderer(
     elif bar_type == "json":
         # We don't want regular users to use this progress_bar type
         # so only use if not a TTY
-        assert (
-            not sys.stdout.isatty()
-        ), 'The "json" progress_bar type should only be used inside subprocesses.'
+        if sys.stdout.isatty():
+            logger.warning(
+                """Using json progress bar type outside a subprocess is not recommended. 
+Using normal progress bar instead."""
+            )
+            return functools.partial(_rich_progress_bar, bar_type="on", size=size)
+
         # Mimic log level
         if logger.getEffectiveLevel() <= logging.INFO:
             return functools.partial(_MachineReadableProgress, size=size)
-        else:
-            return iter
+
+        return iter
     else:
         return iter  # no-op, when passed an iterator
