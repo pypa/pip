@@ -106,8 +106,8 @@ def get_download_progress_renderer(
         # so only use if not a TTY
         if sys.stdout.isatty():
             logger.warning(
-                """Using json progress bar type outside a subprocess is not recommended. 
-Using normal progress bar instead."""
+                """Using json progress bar type outside a subprocess is not recommended.
+ Using normal progress bar instead."""
             )
             return functools.partial(_rich_progress_bar, bar_type="on", size=size)
 
