@@ -858,7 +858,40 @@ We are using `freeze`_ here which outputs installed packages in requirements for
 Since pip's progress bar gets hidden when running in a subprocess, you can use
 the ``--progress-bar=json`` option for easily parsable progress information::
 
-  subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'my_package', '--progress-bar=json'])
+   import subprocess
+   import sys
+   import json
+
+   python_path = sys.executable
+
+   process = subprocess.Popen(
+      [
+         python_path,
+         "-m",
+         "pip",
+         "install",
+         "numpy",
+         "opencv-python",
+         "scipy",
+         "--progress-bar=json",
+      ],
+      stdout=subprocess.PIPE,
+      stderr=subprocess.STDOUT,
+   )
+   while True:
+      nextline = process.stdout.readline()
+      if nextline == b"" and process.poll() is not None:
+         break
+      line = nextline.decode("utf-8").strip()
+
+      if "Progress:" in line:
+         json_line = line.replace("Progress:", "").strip()
+         parsed = json.loads(json_line)
+         current, total = parsed["current"], parsed["total"]
+         if total is not None and total > 0:
+               percent = current / total * 100
+               print(f"Download at: {percent}%")
+
 
 Which will give the following output after it processes each download chunk:
 
@@ -869,7 +902,11 @@ with the ``current`` number of bytes downloaded and ``total`` .whl size as key/v
 Note: ``total`` is optional and may be null.
 
 This can be used to build your own progress bar, or report progress in other ways.
+In the code example above, we just print the current parsed status of the download.
 This feature cannot be used unless pip is invoked in a subprocess.
+
+NOTE: For this to work properly, you may need to run python with the ``-u`` flag
+to ensure that the output is unbuffered.
 
 NOTE: Relying on the exact form of pip's output is unsupported, and so should not be used in
 production applications unless you are willing to adapt when pip's output changes.
