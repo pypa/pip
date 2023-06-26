@@ -1,0 +1,1 @@
+make rejection messages slightly different between 1 and 8, so the user can make the difference.

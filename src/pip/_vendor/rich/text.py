@@ -2,7 +2,6 @@ import re
 from functools import partial, reduce
 from math import gcd
 from operator import itemgetter
-from pip._vendor.rich.emoji import EmojiVariant
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -54,11 +53,7 @@ class Span(NamedTuple):
     """Style associated with the span."""
 
     def __repr__(self) -> str:
-        return (
-            f"Span({self.start}, {self.end}, {self.style!r})"
-            if (isinstance(self.style, Style) and self.style._meta)
-            else f"Span({self.start}, {self.end}, {repr(self.style)})"
-        )
+        return f"Span({self.start}, {self.end}, {self.style!r})"
 
     def __bool__(self) -> bool:
         return self.end > self.start
@@ -141,7 +136,8 @@ class Text(JupyterMixin):
         tab_size: Optional[int] = 8,
         spans: Optional[List[Span]] = None,
     ) -> None:
-        self._text = [strip_control_codes(text)]
+        sanitized_text = strip_control_codes(text)
+        self._text = [sanitized_text]
         self.style = style
         self.justify: Optional["JustifyMethod"] = justify
         self.overflow: Optional["OverflowMethod"] = overflow
@@ -149,7 +145,7 @@ class Text(JupyterMixin):
         self.end = end
         self.tab_size = tab_size
         self._spans: List[Span] = spans or []
-        self._length: int = len(text)
+        self._length: int = len(sanitized_text)
 
     def __len__(self) -> int:
         return self._length
@@ -253,6 +249,7 @@ class Text(JupyterMixin):
         emoji_variant: Optional[EmojiVariant] = None,
         justify: Optional["JustifyMethod"] = None,
         overflow: Optional["OverflowMethod"] = None,
+        end: str = "\n",
     ) -> "Text":
         """Create Text instance from markup.
 
@@ -261,6 +258,7 @@ class Text(JupyterMixin):
             emoji (bool, optional): Also render emoji code. Defaults to True.
             justify (str, optional): Justify method: "left", "center", "full", "right". Defaults to None.
             overflow (str, optional): Overflow method: "crop", "fold", "ellipsis". Defaults to None.
+            end (str, optional): Character to end text with. Defaults to "\\\\n".
 
         Returns:
             Text: A Text instance with markup rendered.
@@ -270,6 +268,7 @@ class Text(JupyterMixin):
         rendered_text = render(text, style, emoji=emoji, emoji_variant=emoji_variant)
         rendered_text.justify = justify
         rendered_text.overflow = overflow
+        rendered_text.end = end
         return rendered_text
 
     @classmethod
@@ -391,9 +390,10 @@ class Text(JupyterMixin):
     def plain(self, new_text: str) -> None:
         """Set the text to a new value."""
         if new_text != self.plain:
-            self._text[:] = [new_text]
+            sanitized_text = strip_control_codes(new_text)
+            self._text[:] = [sanitized_text]
             old_length = self._length
-            self._length = len(new_text)
+            self._length = len(sanitized_text)
             if old_length > self._length:
                 self._trim_spans()
 
@@ -446,7 +446,6 @@ class Text(JupyterMixin):
             style (Union[str, Style]): Style instance or style definition to apply.
             start (int): Start offset (negative indexing is supported). Defaults to 0.
             end (Optional[int], optional): End offset (negative indexing is supported), or None for end of text. Defaults to None.
-
         """
         if style:
             length = len(self)
@@ -460,6 +459,32 @@ class Text(JupyterMixin):
                 # Span not in text or not valid
                 return
             self._spans.append(Span(start, min(length, end), style))
+
+    def stylize_before(
+        self,
+        style: Union[str, Style],
+        start: int = 0,
+        end: Optional[int] = None,
+    ) -> None:
+        """Apply a style to the text, or a portion of the text. Styles will be applied before other styles already present.
+
+        Args:
+            style (Union[str, Style]): Style instance or style definition to apply.
+            start (int): Start offset (negative indexing is supported). Defaults to 0.
+            end (Optional[int], optional): End offset (negative indexing is supported), or None for end of text. Defaults to None.
+        """
+        if style:
+            length = len(self)
+            if start < 0:
+                start = length + start
+            if end is None:
+                end = length
+            if end < 0:
+                end = length + end
+            if start >= length or end <= start:
+                # Span not in text or not valid
+                return
+            self._spans.insert(0, Span(start, min(length, end), style))
 
     def apply_meta(
         self, meta: Dict[str, Any], start: int = 0, end: Optional[int] = None
@@ -903,10 +928,10 @@ class Text(JupyterMixin):
 
         if len(text):
             if isinstance(text, str):
-                text = strip_control_codes(text)
-                self._text.append(text)
+                sanitized_text = strip_control_codes(text)
+                self._text.append(sanitized_text)
                 offset = len(self)
-                text_length = len(text)
+                text_length = len(sanitized_text)
                 if style is not None:
                     self._spans.append(Span(offset, offset + text_length, style))
                 self._length += text_length
@@ -1175,7 +1200,7 @@ class Text(JupyterMixin):
             width (int): Maximum characters in a line.
 
         Returns:
-            Lines: List of lines.
+            Lines: Lines container.
         """
         lines: Lines = Lines()
         append = lines.append

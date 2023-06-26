@@ -2,7 +2,6 @@ from typing import Dict
 
 from .style import Style
 
-
 DEFAULT_STYLES: Dict[str, Style] = {
     "none": Style.null(),
     "reset": Style(
@@ -40,7 +39,9 @@ DEFAULT_STYLES: Dict[str, Style] = {
     "inspect.attr": Style(color="yellow", italic=True),
     "inspect.attr.dunder": Style(color="yellow", italic=True, dim=True),
     "inspect.callable": Style(bold=True, color="red"),
+    "inspect.async_def": Style(italic=True, color="bright_cyan"),
     "inspect.def": Style(italic=True, color="bright_cyan"),
+    "inspect.class": Style(italic=True, color="bright_cyan"),
     "inspect.error": Style(bold=True, color="red"),
     "inspect.equals": Style(),
     "inspect.help": Style(color="cyan"),
@@ -78,6 +79,7 @@ DEFAULT_STYLES: Dict[str, Style] = {
     "repr.attrib_equal": Style(bold=True),
     "repr.attrib_value": Style(color="magenta", italic=False),
     "repr.number": Style(color="cyan", bold=True, italic=False),
+    "repr.number_complex": Style(color="cyan", bold=True, italic=False),  # same
     "repr.bool_true": Style(color="bright_green", italic=True),
     "repr.bool_false": Style(color="bright_red", italic=True),
     "repr.none": Style(color="magenta", italic=True),
@@ -136,10 +138,11 @@ DEFAULT_STYLES: Dict[str, Style] = {
     "tree.line": Style(),
     "markdown.paragraph": Style(),
     "markdown.text": Style(),
-    "markdown.emph": Style(italic=True),
+    "markdown.em": Style(italic=True),
+    "markdown.emph": Style(italic=True),  # For commonmark backwards compatibility
     "markdown.strong": Style(bold=True),
-    "markdown.code": Style(bgcolor="black", color="bright_white"),
-    "markdown.code_block": Style(dim=True, color="cyan", bgcolor="black"),
+    "markdown.code": Style(bold=True, color="cyan", bgcolor="black"),
+    "markdown.code_block": Style(color="cyan", bgcolor="black"),
     "markdown.block_quote": Style(color="magenta"),
     "markdown.list": Style(color="cyan"),
     "markdown.item": Style(),
@@ -155,7 +158,11 @@ DEFAULT_STYLES: Dict[str, Style] = {
     "markdown.h6": Style(italic=True),
     "markdown.h7": Style(italic=True, dim=True),
     "markdown.link": Style(color="bright_blue"),
-    "markdown.link_url": Style(color="blue"),
+    "markdown.link_url": Style(color="blue", underline=True),
+    "markdown.s": Style(strike=True),
+    "iso8601.date": Style(color="blue"),
+    "iso8601.time": Style(color="magenta"),
+    "iso8601.timezone": Style(color="yellow"),
 }
 
 

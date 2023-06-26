@@ -6,12 +6,12 @@ from os.path import isdir, isfile, normcase
 import pytest
 
 from tests.functional.test_install_user import _patch_dist_in_site_packages
-from tests.lib import pyversion  # noqa: F401
 from tests.lib import PipTestEnvironment, TestData, assert_all_changes
 from tests.lib.venv import VirtualEnvironment
+from tests.lib.wheel import make_wheel
 
 
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 class Tests_UninstallUserSite:
     @pytest.mark.network
     def test_uninstall_from_usersite(self, script: PipTestEnvironment) -> None:
@@ -28,14 +28,39 @@ class Tests_UninstallUserSite:
         """
         Test uninstall from usersite (with same dist in global site)
         """
+        entry_points_txt = "[console_scripts]\nscript = pkg:func"
+        make_wheel(
+            "pkg",
+            "0.1",
+            extra_metadata_files={"entry_points.txt": entry_points_txt},
+        ).save_to_dir(script.scratch_path)
+        make_wheel(
+            "pkg",
+            "0.1.1",
+            extra_metadata_files={"entry_points.txt": entry_points_txt},
+        ).save_to_dir(script.scratch_path)
+
         _patch_dist_in_site_packages(virtualenv)
 
-        script.pip_install_local("pip-test-package==0.1", "--no-binary=:all:")
-
-        result2 = script.pip_install_local(
-            "--user", "pip-test-package==0.1.1", "--no-binary=:all:"
+        script.pip(
+            "install",
+            "--no-index",
+            "--find-links",
+            script.scratch_path,
+            "--no-warn-script-location",
+            "pkg==0.1",
         )
-        result3 = script.pip("uninstall", "-vy", "pip-test-package")
+
+        result2 = script.pip(
+            "install",
+            "--no-index",
+            "--find-links",
+            script.scratch_path,
+            "--no-warn-script-location",
+            "--user",
+            "pkg==0.1.1",
+        )
+        result3 = script.pip("uninstall", "-vy", "pkg")
 
         # uninstall console is mentioning user scripts, but not global scripts
         assert normcase(script.user_bin_path) in result3.stdout, str(result3)
@@ -45,13 +70,8 @@ class Tests_UninstallUserSite:
         assert_all_changes(result2, result3, [script.venv / "build", "cache"])
 
         # site still has 0.2 (can't look in result1; have to check)
-        # keep checking for egg-info because no-binary implies setup.py install
-        egg_info_folder = (
-            script.base_path
-            / script.site_packages
-            / f"pip_test_package-0.1-py{pyversion}.egg-info"
-        )
-        assert isdir(egg_info_folder)
+        dist_info_folder = script.base_path / script.site_packages / "pkg-0.1.dist-info"
+        assert isdir(dist_info_folder)
 
     def test_uninstall_editable_from_usersite(
         self, script: PipTestEnvironment, data: TestData

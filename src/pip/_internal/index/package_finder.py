@@ -1,14 +1,11 @@
 """Routines related to PyPI, indexes"""
 
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 import enum
 import functools
 import itertools
 import logging
 import re
-from typing import FrozenSet, Iterable, List, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, FrozenSet, Iterable, List, Optional, Set, Tuple, Union
 
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.tags import Tag
@@ -38,6 +35,9 @@ from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import build_netloc
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.utils.unpacking import SUPPORTED_EXTENSIONS
+
+if TYPE_CHECKING:
+    from pip._vendor.typing_extensions import TypeGuard
 
 __all__ = ["FormatControl", "BestCandidateResult", "PackageFinder"]
 
@@ -251,7 +251,7 @@ class LinkEvaluator:
 
 def filter_unallowed_hashes(
     candidates: List[InstallationCandidate],
-    hashes: Hashes,
+    hashes: Optional[Hashes],
     project_name: str,
 ) -> List[InstallationCandidate]:
     """
@@ -540,6 +540,7 @@ class CandidateEvaluator:
                 binary_preference = 1
             if wheel.build_tag is not None:
                 match = re.match(r"^(\d+)(.*)$", wheel.build_tag)
+                assert match is not None, "guaranteed by filename validation"
                 build_tag_groups = match.groups()
                 build_tag = (int(build_tag_groups[0]), build_tag_groups[1])
         else:  # sdist
@@ -598,7 +599,6 @@ class PackageFinder:
         link_collector: LinkCollector,
         target_python: TargetPython,
         allow_yanked: bool,
-        use_deprecated_html5lib: bool,
         format_control: Optional[FormatControl] = None,
         candidate_prefs: Optional[CandidatePreferences] = None,
         ignore_requires_python: Optional[bool] = None,
@@ -623,7 +623,6 @@ class PackageFinder:
         self._ignore_requires_python = ignore_requires_python
         self._link_collector = link_collector
         self._target_python = target_python
-        self._use_deprecated_html5lib = use_deprecated_html5lib
 
         self.format_control = format_control
 
@@ -640,8 +639,6 @@ class PackageFinder:
         link_collector: LinkCollector,
         selection_prefs: SelectionPreferences,
         target_python: Optional[TargetPython] = None,
-        *,
-        use_deprecated_html5lib: bool,
     ) -> "PackageFinder":
         """Create a PackageFinder.
 
@@ -666,7 +663,6 @@ class PackageFinder:
             allow_yanked=selection_prefs.allow_yanked,
             format_control=selection_prefs.format_control,
             ignore_requires_python=selection_prefs.ignore_requires_python,
-            use_deprecated_html5lib=use_deprecated_html5lib,
         )
 
     @property
@@ -792,11 +788,11 @@ class PackageFinder:
             "Fetching project page and analyzing links: %s",
             project_url,
         )
-        html_page = self._link_collector.fetch_page(project_url)
-        if html_page is None:
+        index_response = self._link_collector.fetch_response(project_url)
+        if index_response is None:
             return []
 
-        page_links = list(parse_links(html_page, self._use_deprecated_html5lib))
+        page_links = list(parse_links(index_response))
 
         with indent_log():
             package_links = self.evaluate_links(
@@ -947,43 +943,46 @@ class PackageFinder:
                 "No matching distribution found for {}".format(req)
             )
 
-        best_installed = False
-        if installed_version and (
-            best_candidate is None or best_candidate.version <= installed_version
-        ):
-            best_installed = True
+        def _should_install_candidate(
+            candidate: Optional[InstallationCandidate],
+        ) -> "TypeGuard[InstallationCandidate]":
+            if installed_version is None:
+                return True
+            if best_candidate is None:
+                return False
+            return best_candidate.version > installed_version
 
         if not upgrade and installed_version is not None:
-            if best_installed:
-                logger.debug(
-                    "Existing installed version (%s) is most up-to-date and "
-                    "satisfies requirement",
-                    installed_version,
-                )
-            else:
+            if _should_install_candidate(best_candidate):
                 logger.debug(
                     "Existing installed version (%s) satisfies requirement "
                     "(most up-to-date version is %s)",
                     installed_version,
                     best_candidate.version,
                 )
+            else:
+                logger.debug(
+                    "Existing installed version (%s) is most up-to-date and "
+                    "satisfies requirement",
+                    installed_version,
+                )
             return None
 
-        if best_installed:
-            # We have an existing version, and its the best version
+        if _should_install_candidate(best_candidate):
             logger.debug(
-                "Installed version (%s) is most up-to-date (past versions: %s)",
-                installed_version,
+                "Using version %s (newest of versions: %s)",
+                best_candidate.version,
                 _format_versions(best_candidate_result.iter_applicable()),
             )
-            raise BestVersionAlreadyInstalled
+            return best_candidate
 
+        # We have an existing version, and its the best version
         logger.debug(
-            "Using version %s (newest of versions: %s)",
-            best_candidate.version,
+            "Installed version (%s) is most up-to-date (past versions: %s)",
+            installed_version,
             _format_versions(best_candidate_result.iter_applicable()),
         )
-        return best_candidate
+        raise BestVersionAlreadyInstalled
 
 
 def _find_name_version_sep(fragment: str, canonical_name: str) -> int:

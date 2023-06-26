@@ -15,7 +15,6 @@ from pip._internal.vcs.mercurial import Mercurial
 from pip._internal.vcs.subversion import Subversion
 from pip._internal.vcs.versioncontrol import RevOptions, VersionControl
 from tests.lib import is_svn_installed, need_svn
-from tests.lib.path import Path
 
 
 @pytest.mark.skipif(
@@ -201,7 +200,7 @@ def test_paths_are_not_mistaken_for_scp_shorthand(url: str, platform: str) -> No
             Git._git_remote_to_pip_url(url)
 
 
-def test_git_remote_local_path(tmpdir: Path) -> None:
+def test_git_remote_local_path(tmpdir: pathlib.Path) -> None:
     path = pathlib.Path(tmpdir, "project.git")
     path.mkdir()
     # Path must exist to be recognised as a local git remote.

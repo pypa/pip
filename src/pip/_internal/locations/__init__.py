@@ -4,14 +4,14 @@ import os
 import pathlib
 import sys
 import sysconfig
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Generator, Optional, Tuple
 
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
-from . import _distutils, _sysconfig
+from . import _sysconfig
 from .base import (
     USER_CACHE_DIR,
     get_major_minor_version,
@@ -27,7 +27,6 @@ __all__ = [
     "get_bin_user",
     "get_major_minor_version",
     "get_platlib",
-    "get_prefixed_libs",
     "get_purelib",
     "get_scheme",
     "get_src_prefix",
@@ -60,6 +59,12 @@ def _should_use_sysconfig() -> bool:
 
 _USE_SYSCONFIG = _should_use_sysconfig()
 
+if not _USE_SYSCONFIG:
+    # Import distutils lazily to avoid deprecation warnings,
+    # but import it soon enough that it is in memory and available during
+    # a pip reinstall.
+    from . import _distutils
+
 # Be noisy about incompatibilities if this platforms "should" be using
 # sysconfig, but is explicitly opting out and using distutils instead.
 if _USE_SYSCONFIG_DEFAULT and not _USE_SYSCONFIG:
@@ -73,7 +78,7 @@ def _looks_like_bpo_44860() -> bool:
 
     See <https://bugs.python.org/issue44860>.
     """
-    from distutils.command.install import INSTALL_SCHEMES  # type: ignore
+    from distutils.command.install import INSTALL_SCHEMES
 
     try:
         unix_user_platlib = INSTALL_SCHEMES["unix_user"]["platlib"]
@@ -98,7 +103,7 @@ def _looks_like_red_hat_lib() -> bool:
 
     This is the only way I can see to tell a Red Hat-patched Python.
     """
-    from distutils.command.install import INSTALL_SCHEMES  # type: ignore
+    from distutils.command.install import INSTALL_SCHEMES
 
     return all(
         k in INSTALL_SCHEMES
@@ -110,7 +115,7 @@ def _looks_like_red_hat_lib() -> bool:
 @functools.lru_cache(maxsize=None)
 def _looks_like_debian_scheme() -> bool:
     """Debian adds two additional schemes."""
-    from distutils.command.install import INSTALL_SCHEMES  # type: ignore
+    from distutils.command.install import INSTALL_SCHEMES
 
     return "deb_system" in INSTALL_SCHEMES and "unix_local" in INSTALL_SCHEMES
 
@@ -169,9 +174,9 @@ def _looks_like_msys2_mingw_scheme() -> bool:
     )
 
 
-def _fix_abiflags(parts: Tuple[str]) -> Iterator[str]:
+def _fix_abiflags(parts: Tuple[str]) -> Generator[str, None, None]:
     ldversion = sysconfig.get_config_var("LDVERSION")
-    abiflags: str = getattr(sys, "abiflags", None)
+    abiflags = getattr(sys, "abiflags", None)
 
     # LDVERSION does not end with sys.abiflags. Just return the path unchanged.
     if not ldversion or not abiflags or not ldversion.endswith(abiflags):
@@ -452,69 +457,11 @@ def get_platlib() -> str:
     if _USE_SYSCONFIG:
         return new
 
+    from . import _distutils
+
     old = _distutils.get_platlib()
     if _looks_like_deb_system_dist_packages(old):
         return old
     if _warn_if_mismatch(pathlib.Path(old), pathlib.Path(new), key="platlib"):
         _log_context()
     return old
-
-
-def _deduplicated(v1: str, v2: str) -> List[str]:
-    """Deduplicate values from a list."""
-    if v1 == v2:
-        return [v1]
-    return [v1, v2]
-
-
-def _looks_like_apple_library(path: str) -> bool:
-    """Apple patches sysconfig to *always* look under */Library/Python*."""
-    if sys.platform[:6] != "darwin":
-        return False
-    return path == f"/Library/Python/{get_major_minor_version()}/site-packages"
-
-
-def get_prefixed_libs(prefix: str) -> List[str]:
-    """Return the lib locations under ``prefix``."""
-    new_pure, new_plat = _sysconfig.get_prefixed_libs(prefix)
-    if _USE_SYSCONFIG:
-        return _deduplicated(new_pure, new_plat)
-
-    old_pure, old_plat = _distutils.get_prefixed_libs(prefix)
-    old_lib_paths = _deduplicated(old_pure, old_plat)
-
-    # Apple's Python (shipped with Xcode and Command Line Tools) hard-code
-    # platlib and purelib to '/Library/Python/X.Y/site-packages'. This will
-    # cause serious build isolation bugs when Apple starts shipping 3.10 because
-    # pip will install build backends to the wrong location. This tells users
-    # who is at fault so Apple may notice it and fix the issue in time.
-    if all(_looks_like_apple_library(p) for p in old_lib_paths):
-        deprecated(
-            reason=(
-                "Python distributed by Apple's Command Line Tools incorrectly "
-                "patches sysconfig to always point to '/Library/Python'. This "
-                "will cause build isolation to operate incorrectly on Python "
-                "3.10 or later. Please help report this to Apple so they can "
-                "fix this. https://developer.apple.com/bug-reporting/"
-            ),
-            replacement=None,
-            gone_in=None,
-        )
-        return old_lib_paths
-
-    warned = [
-        _warn_if_mismatch(
-            pathlib.Path(old_pure),
-            pathlib.Path(new_pure),
-            key="prefixed-purelib",
-        ),
-        _warn_if_mismatch(
-            pathlib.Path(old_plat),
-            pathlib.Path(new_plat),
-            key="prefixed-platlib",
-        ),
-    ]
-    if any(warned):
-        _log_context(prefix=prefix)
-
-    return old_lib_paths

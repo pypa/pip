@@ -35,3 +35,25 @@ index c6e2517df..76255b525 100644
 +    sys.exit(main(sys.argv))
  except KeyboardInterrupt:
      sys.exit(1)
+diff --git a/src/pip/_vendor/pygments/sphinxext.py b/src/pip/_vendor/pygments/sphinxext.py
+index 3ea2e36e1..23c19504c 100644
+--- a/src/pip/_vendor/pygments/sphinxext.py
++++ b/src/pip/_vendor/pygments/sphinxext.py
+@@ -91,7 +91,7 @@ class PygmentsDoc(Directive):
+         The columns are the lexer name, the extensions handled by this lexer
+         (or "None"), the aliases and a link to the lexer class."""
+         from pygments.lexers._mapping import LEXERS
+-        import pygments.lexers
++        from pygments.lexers import find_lexer_class
+         out = []
+ 
+         table = []
+@@ -102,7 +102,7 @@ class PygmentsDoc(Directive):
+             return name
+ 
+         for classname, data in sorted(LEXERS.items(), key=lambda x: x[1][1].lower()):
+-            lexer_cls = pygments.lexers.find_lexer_class(data[1])
++            lexer_cls = find_lexer_class(data[1])
+             extensions = lexer_cls.filenames + lexer_cls.alias_filenames
+ 
+             table.append({

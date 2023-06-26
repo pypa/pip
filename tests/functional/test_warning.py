@@ -1,10 +1,11 @@
+import os
 import sys
 import textwrap
+from pathlib import Path
 
 import pytest
 
 from tests.lib import PipTestEnvironment
-from tests.lib.path import Path
 
 
 @pytest.fixture
@@ -29,7 +30,7 @@ def warnings_demo(tmpdir: Path) -> Path:
 def test_deprecation_warnings_are_correct(
     script: PipTestEnvironment, warnings_demo: Path
 ) -> None:
-    result = script.run("python", warnings_demo, expect_stderr=True)
+    result = script.run("python", os.fspath(warnings_demo), expect_stderr=True)
     expected = "WARNING:pip._internal.deprecations:DEPRECATION: deprecated!\n"
     assert result.stderr == expected
 
@@ -38,7 +39,7 @@ def test_deprecation_warnings_can_be_silenced(
     script: PipTestEnvironment, warnings_demo: Path
 ) -> None:
     script.environ["PYTHONWARNINGS"] = "ignore"
-    result = script.run("python", warnings_demo)
+    result = script.run("python", os.fspath(warnings_demo))
     assert result.stderr == ""
 
 

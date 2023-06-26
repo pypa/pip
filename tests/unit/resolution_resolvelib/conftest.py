@@ -11,9 +11,9 @@ from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.session import PipSession
+from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.constructors import install_req_from_line
-from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.resolution.resolvelib.factory import Factory
 from pip._internal.resolution.resolvelib.provider import PipProvider
 from pip._internal.utils.temp_dir import TempDirectory, global_tempdir_manager
@@ -23,10 +23,10 @@ from tests.lib import TestData
 @pytest.fixture
 def finder(data: TestData) -> Iterator[PackageFinder]:
     session = PipSession()
-    scope = SearchScope([str(data.packages)], [])
+    scope = SearchScope([str(data.packages)], [], False)
     collector = LinkCollector(session, scope)
     prefs = SelectionPreferences(allow_yanked=False)
-    finder = PackageFinder.create(collector, prefs, use_deprecated_html5lib=False)
+    finder = PackageFinder.create(collector, prefs)
     yield finder
 
 
@@ -38,11 +38,11 @@ def preparer(finder: PackageFinder) -> Iterator[RequirementPreparer]:
 
     with global_tempdir_manager():
         with TempDirectory() as tmp:
-            with get_requirement_tracker() as tracker:
+            with get_build_tracker() as tracker:
                 preparer = RequirementCommand.make_requirement_preparer(
                     tmp,
                     options=o[0],
-                    req_tracker=tracker,
+                    build_tracker=tracker,
                     session=session,
                     finder=finder,
                     use_user_site=False,
@@ -63,7 +63,6 @@ def factory(finder: PackageFinder, preparer: RequirementPreparer) -> Iterator[Fa
         force_reinstall=False,
         ignore_installed=False,
         ignore_requires_python=False,
-        suppress_build_failures=False,
         py_version_info=None,
     )
 

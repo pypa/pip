@@ -1,12 +1,12 @@
 import os
 import sys
-from typing import TYPE_CHECKING, Optional, Tuple
+from pathlib import Path
+from typing import TYPE_CHECKING, Tuple, Union
 
 import pytest
 
 from tests.conftest import ScriptFactory
 from tests.lib import PipTestEnvironment, TestData, TestPipResult
-from tests.lib.path import Path
 
 if TYPE_CHECKING:
     from typing import Protocol
@@ -54,17 +54,41 @@ function _pip_completion {
 }
 compctl -K _pip_completion pip""",
     ),
+    (
+        "powershell",
+        """\
+if ((Test-Path Function:\\TabExpansion) -and -not `
+    (Test-Path Function:\\_pip_completeBackup)) {
+    Rename-Item Function:\\TabExpansion _pip_completeBackup
+}
+function TabExpansion($line, $lastWord) {
+    $lastBlock = [regex]::Split($line, '[|;]')[-1].TrimStart()
+    if ($lastBlock.StartsWith("pip ")) {
+        $Env:COMP_WORDS=$lastBlock
+        $Env:COMP_CWORD=$lastBlock.Split().Length - 1
+        $Env:PIP_AUTO_COMPLETE=1
+        (& pip).Split()
+        Remove-Item Env:COMP_WORDS
+        Remove-Item Env:COMP_CWORD
+        Remove-Item Env:PIP_AUTO_COMPLETE
+    }
+    elseif (Test-Path Function:\\_pip_completeBackup) {
+        # Fall back on existing tab expansion
+        _pip_completeBackup $line $lastWord
+    }
+}""",
+    ),
 )
 
 
 @pytest.fixture(scope="session")
 def script_with_launchers(
-    tmpdir_factory: pytest.TempdirFactory,
+    tmpdir_factory: pytest.TempPathFactory,
     script_factory: ScriptFactory,
     common_wheels: Path,
     pip_src: Path,
 ) -> PipTestEnvironment:
-    tmpdir = Path(str(tmpdir_factory.mktemp("script_with_launchers")))
+    tmpdir = tmpdir_factory.mktemp("script_with_launchers")
     script = script_factory(tmpdir.joinpath("workspace"))
     # Re-install pip so we get the launchers.
     script.pip_install_local("-f", common_wheels, pip_src)
@@ -83,20 +107,25 @@ def test_completion_for_supported_shells(
     Test getting completion for bash shell
     """
     result = script_with_launchers.pip("completion", "--" + shell, use_module=False)
-    assert completion in result.stdout, str(result.stdout)
+    actual = str(result.stdout)
+    if script_with_launchers.zipapp:
+        # The zipapp reports its name as "pip.pyz", but the expected
+        # output assumes "pip"
+        actual = actual.replace("pip.pyz", "pip")
+    assert completion in actual, actual
 
 
 @pytest.fixture(scope="session")
 def autocomplete_script(
-    tmpdir_factory: pytest.TempdirFactory, script_factory: ScriptFactory
+    tmpdir_factory: pytest.TempPathFactory, script_factory: ScriptFactory
 ) -> PipTestEnvironment:
-    tmpdir = Path(str(tmpdir_factory.mktemp("autocomplete_script")))
+    tmpdir = tmpdir_factory.mktemp("autocomplete_script")
     return script_factory(tmpdir.joinpath("workspace"))
 
 
 class DoAutocomplete(Protocol):
     def __call__(
-        self, words: str, cword: str, cwd: Optional[str] = None
+        self, words: str, cword: str, cwd: Union[Path, str, None] = None
     ) -> Tuple[TestPipResult, PipTestEnvironment]:
         ...
 
@@ -109,7 +138,7 @@ def autocomplete(
     autocomplete_script.environ["PIP_AUTO_COMPLETE"] = "1"
 
     def do_autocomplete(
-        words: str, cword: str, cwd: Optional[str] = None
+        words: str, cword: str, cwd: Union[Path, str, None] = None
     ) -> Tuple[TestPipResult, PipTestEnvironment]:
         autocomplete_script.environ["COMP_WORDS"] = words
         autocomplete_script.environ["COMP_CWORD"] = cword
@@ -141,9 +170,10 @@ def test_completion_alone(autocomplete_script: PipTestEnvironment) -> None:
     Test getting completion for none shell, just pip completion
     """
     result = autocomplete_script.pip("completion", allow_stderr_error=True)
-    assert "ERROR: You must pass --bash or --fish or --zsh" in result.stderr, (
-        "completion alone failed -- " + result.stderr
-    )
+    assert (
+        "ERROR: You must pass --bash or --fish or --powershell or --zsh"
+        in result.stderr
+    ), ("completion alone failed -- " + result.stderr)
 
 
 def test_completion_for_un_snippet(autocomplete: DoAutocomplete) -> None:
@@ -362,7 +392,7 @@ def test_completion_path_after_option(
     )
 
 
-@pytest.mark.parametrize("flag", ["--bash", "--zsh", "--fish"])
+@pytest.mark.parametrize("flag", ["--bash", "--zsh", "--fish", "--powershell"])
 def test_completion_uses_same_executable_name(
     autocomplete_script: PipTestEnvironment, flag: str, deprecated_python: bool
 ) -> None:

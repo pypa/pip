@@ -2,6 +2,15 @@
 User Guide
 ==========
 
+.. Hello there!
+
+   If you're thinking of adding content to this page... please take a moment
+   to consider if this content can live on its own, within a topic guide or a
+   reference page.
+
+   There is active effort being put toward *reducing* the amount of content on
+   this specific page (https://github.com/pypa/pip/issues/9475) and moving it
+   into more focused single-page documents that cover that specific topic.
 
 Running pip
 ===========
@@ -17,7 +26,7 @@ to your system, which can be run from the command prompt as follows:
 
    ``python -m pip`` executes pip using the Python interpreter you
    specified as python. So ``/usr/bin/python3.7 -m pip`` means
-   you are executing pip for your interpreter located at /usr/bin/python3.7.
+   you are executing pip for your interpreter located at ``/usr/bin/python3.7``.
 
 .. tab:: Windows
 
@@ -59,19 +68,18 @@ For more information and examples, see the :ref:`pip install` reference.
 
 .. _PyPI: https://pypi.org/
 
-
-Basic Authentication Credentials
-================================
-
-This is now covered in :doc:`topics/authentication`.
-
-netrc Support
--------------
+.. _`0-basic-authentication-credentials`:
+.. rubric:: Basic Authentication Credentials
 
 This is now covered in :doc:`topics/authentication`.
 
-Keyring Support
----------------
+.. _`0-netrc-support`:
+.. rubric:: netrc Support
+
+This is now covered in :doc:`topics/authentication`.
+
+.. _`0-keyring-support`:
+.. rubric:: Keyring Support
 
 This is now covered in :doc:`topics/authentication`.
 
@@ -118,6 +126,10 @@ Details on the format of the files are here: :ref:`requirements-file-format`.
 Logically, a Requirements file is just a list of :ref:`pip install` arguments
 placed in a file. Note that you should not rely on the items in the file being
 installed by pip in any particular order.
+
+Requirements files can also be served via a URL, e.g.
+http://example.com/requirements.txt besides as local files, so that they can
+be stored and served in a centralized place.
 
 In practice, there are 4 common uses of Requirements files:
 
@@ -239,6 +251,10 @@ changes 2020` we did a fairly comprehensive overhaul, removing several
 undocumented and unsupported quirks from the previous implementation,
 and stripped constraints files down to being purely a way to specify
 global (version) limits for packages.
+
+Same as requirements files, constraints files can also be served via a URL,
+e.g. http://example.com/constraints.txt, so that your organization can store and
+serve them in a centralized place.
 
 .. _`Installing from Wheels`:
 
@@ -451,33 +467,25 @@ packages.
 
 For more information and examples, see the :ref:`pip search` reference.
 
-.. _`Configuration`:
-
-
-Configuration
-=============
+.. _`0-configuration`:
+.. rubric:: Configuration
 
 This is now covered in :doc:`topics/configuration`.
 
-.. _config-file:
-
-Config file
------------
+.. _`0-config-file`:
+.. rubric:: Config file
 
 This is now covered in :doc:`topics/configuration`.
 
-Environment Variables
----------------------
+.. _`0-environment-variables`:
+.. rubric:: Environment Variables
 
 This is now covered in :doc:`topics/configuration`.
 
-.. _config-precedence:
-
-Config Precedence
------------------
+.. _`0-config-precedence`:
+.. rubric:: Config Precedence
 
 This is now covered in :doc:`topics/configuration`.
-
 
 Command Completion
 ==================
@@ -495,6 +503,10 @@ To setup for zsh::
 To setup for fish::
 
     python -m pip completion --fish > ~/.config/fish/completions/pip.fish
+
+To setup for powershell::
+
+   python -m pip completion --powershell | Out-File -Encoding default -Append $PROFILE
 
 Alternatively, you can use the result of the ``completion`` command directly
 with the eval function of your shell, e.g. by adding the following to your
@@ -629,7 +641,7 @@ Moreover, the "user scheme" can be customized by setting the
 ``PYTHONUSERBASE`` environment variable, which updates the value of
 ``site.USER_BASE``.
 
-To install "SomePackage" into an environment with site.USER_BASE customized to
+To install "SomePackage" into an environment with ``site.USER_BASE`` customized to
 '/myappenv', do the following:
 
 .. tab:: Unix/macOS
@@ -776,18 +788,14 @@ is the latest version:
       [...]
       Successfully installed SomePackage
 
-.. _`Repeatability`:
-
-
-Ensuring Repeatability
-======================
+.. _`0-repeatability`:
+.. _`0-ensuring-repeatability`:
+.. rubric:: Ensuring Repeatability
 
 This is now covered in :doc:`../topics/repeatable-installs`.
 
-.. _`Fixing conflicting dependencies`:
-
-Fixing conflicting dependencies
-===============================
+.. _`0-fixing-conflicting-dependencies`:
+.. rubric:: Fixing conflicting dependencies
 
 This is now covered in :doc:`../topics/dependency-resolution`.
 
@@ -800,7 +808,7 @@ As noted previously, pip is a command line program. While it is implemented in
 Python, and so is available from your Python code via ``import pip``, you must
 not use pip's internal APIs in this way. There are a number of reasons for this:
 
-#. The pip code assumes that is in sole control of the global state of the
+#. The pip code assumes that it is in sole control of the global state of the
    program.
    pip manages things like the logging system configuration, or the values of
    the standard IO streams, without considering the possibility that user code
@@ -1146,3 +1154,8 @@ announcements on the `low-traffic packaging announcements list`_ and
 .. _our survey on upgrades that create conflicts: https://docs.google.com/forms/d/e/1FAIpQLSeBkbhuIlSofXqCyhi3kGkLmtrpPOEBwr6iJA6SzHdxWKfqdA/viewform
 .. _the official Python blog: https://blog.python.org/
 .. _Python Windows launcher: https://docs.python.org/3/using/windows.html#launcher
+
+.. _`0-using-system-trust-stores-for-verifying-https`:
+.. rubric:: Using system trust stores for verifying HTTPS
+
+This is now covered in :doc:`topics/https-certificates`.

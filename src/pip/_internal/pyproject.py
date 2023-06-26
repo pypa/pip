@@ -1,3 +1,4 @@
+import importlib.util
 import os
 from collections import namedtuple
 from typing import Any, List, Optional
@@ -89,9 +90,20 @@ def load_pyproject_toml(
 
     # If we haven't worked out whether to use PEP 517 yet,
     # and the user hasn't explicitly stated a preference,
-    # we do so if the project has a pyproject.toml file.
+    # we do so if the project has a pyproject.toml file
+    # or if we cannot import setuptools or wheels.
+
+    # We fallback to PEP 517 when without setuptools or without the wheel package,
+    # so setuptools can be installed as a default build backend.
+    # For more info see:
+    # https://discuss.python.org/t/pip-without-setuptools-could-the-experience-be-improved/11810/9
+    # https://github.com/pypa/pip/issues/8559
     elif use_pep517 is None:
-        use_pep517 = has_pyproject
+        use_pep517 = (
+            has_pyproject
+            or not importlib.util.find_spec("setuptools")
+            or not importlib.util.find_spec("wheel")
+        )
 
     # At this point, we know whether we're going to use PEP 517.
     assert use_pep517 is not None
@@ -152,9 +164,8 @@ def load_pyproject_toml(
     if backend is None:
         # If the user didn't specify a backend, we assume they want to use
         # the setuptools backend. But we can't be sure they have included
-        # a version of setuptools which supplies the backend, or wheel
-        # (which is needed by the backend) in their requirements. So we
-        # make a note to check that those requirements are present once
+        # a version of setuptools which supplies the backend. So we
+        # make a note to check that this requirement is present once
         # we have set up the environment.
         # This is quite a lot of work to check for a very specific case. But
         # the problem is, that case is potentially quite common - projects that
@@ -163,6 +174,6 @@ def load_pyproject_toml(
         # tools themselves. The original PEP 518 code had a similar check (but
         # implemented in a different way).
         backend = "setuptools.build_meta:__legacy__"
-        check = ["setuptools>=40.8.0", "wheel"]
+        check = ["setuptools>=40.8.0"]
 
     return BuildSystemDetails(requires, backend, check, backend_path)

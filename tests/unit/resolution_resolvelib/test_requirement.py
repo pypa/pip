@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 from typing import Iterator, List, Tuple
 
 import pytest
@@ -6,9 +8,7 @@ from pip._vendor.resolvelib import BaseReporter, Resolver
 from pip._internal.resolution.resolvelib.base import Candidate, Constraint, Requirement
 from pip._internal.resolution.resolvelib.factory import Factory
 from pip._internal.resolution.resolvelib.provider import PipProvider
-from pip._internal.utils.urls import path_to_url
 from tests.lib import TestData
-from tests.lib.path import Path
 
 # NOTE: All tests are prefixed `test_rlr` (for "test resolvelib resolver").
 #       This helps select just these tests using pytest's `-k` option, and
@@ -25,11 +25,14 @@ from tests.lib.path import Path
 
 @pytest.fixture
 def test_cases(data: TestData) -> Iterator[List[Tuple[str, str, int]]]:
-    def data_file(name: str) -> Path:
+    def _data_file(name: str) -> Path:
         return data.packages.joinpath(name)
 
+    def data_file(name: str) -> str:
+        return os.fspath(_data_file(name))
+
     def data_url(name: str) -> str:
-        return path_to_url(data_file(name))
+        return _data_file(name).as_uri()
 
     test_cases = [
         # requirement, name, matches

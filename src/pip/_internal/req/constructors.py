@@ -11,7 +11,7 @@ InstallRequirement.
 import logging
 import os
 import re
-from typing import Any, Dict, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
@@ -201,14 +201,16 @@ def parse_req_from_editable(editable_req: str) -> RequirementParts:
 def install_req_from_editable(
     editable_req: str,
     comes_from: Optional[Union[InstallRequirement, str]] = None,
+    *,
     use_pep517: Optional[bool] = None,
     isolated: bool = False,
-    options: Optional[Dict[str, Any]] = None,
+    global_options: Optional[List[str]] = None,
+    hash_options: Optional[Dict[str, List[str]]] = None,
     constraint: bool = False,
     user_supplied: bool = False,
     permit_editable_wheels: bool = False,
+    config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
 ) -> InstallRequirement:
-
     parts = parse_req_from_editable(editable_req)
 
     return InstallRequirement(
@@ -221,9 +223,9 @@ def install_req_from_editable(
         constraint=constraint,
         use_pep517=use_pep517,
         isolated=isolated,
-        install_options=options.get("install_options", []) if options else [],
-        global_options=options.get("global_options", []) if options else [],
-        hash_options=options.get("hashes", {}) if options else {},
+        global_options=global_options,
+        hash_options=hash_options,
+        config_settings=config_settings,
         extras=parts.extras,
     )
 
@@ -374,12 +376,15 @@ def parse_req_from_line(name: str, line_source: Optional[str]) -> RequirementPar
 def install_req_from_line(
     name: str,
     comes_from: Optional[Union[str, InstallRequirement]] = None,
+    *,
     use_pep517: Optional[bool] = None,
     isolated: bool = False,
-    options: Optional[Dict[str, Any]] = None,
+    global_options: Optional[List[str]] = None,
+    hash_options: Optional[Dict[str, List[str]]] = None,
     constraint: bool = False,
     line_source: Optional[str] = None,
     user_supplied: bool = False,
+    config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
 ) -> InstallRequirement:
     """Creates an InstallRequirement from a name, which might be a
     requirement, directory containing 'setup.py', filename, or URL.
@@ -396,9 +401,9 @@ def install_req_from_line(
         markers=parts.markers,
         use_pep517=use_pep517,
         isolated=isolated,
-        install_options=options.get("install_options", []) if options else [],
-        global_options=options.get("global_options", []) if options else [],
-        hash_options=options.get("hashes", {}) if options else {},
+        global_options=global_options,
+        hash_options=hash_options,
+        config_settings=config_settings,
         constraint=constraint,
         extras=parts.extras,
         user_supplied=user_supplied,
@@ -448,6 +453,7 @@ def install_req_from_parsed_requirement(
     isolated: bool = False,
     use_pep517: Optional[bool] = None,
     user_supplied: bool = False,
+    config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
 ) -> InstallRequirement:
     if parsed_req.is_editable:
         req = install_req_from_editable(
@@ -457,6 +463,7 @@ def install_req_from_parsed_requirement(
             constraint=parsed_req.constraint,
             isolated=isolated,
             user_supplied=user_supplied,
+            config_settings=config_settings,
         )
 
     else:
@@ -465,10 +472,18 @@ def install_req_from_parsed_requirement(
             comes_from=parsed_req.comes_from,
             use_pep517=use_pep517,
             isolated=isolated,
-            options=parsed_req.options,
+            global_options=(
+                parsed_req.options.get("global_options", [])
+                if parsed_req.options
+                else []
+            ),
+            hash_options=(
+                parsed_req.options.get("hashes", {}) if parsed_req.options else {}
+            ),
             constraint=parsed_req.constraint,
             line_source=parsed_req.line_source,
             user_supplied=user_supplied,
+            config_settings=config_settings,
         )
     return req
 
@@ -484,7 +499,8 @@ def install_req_from_link_and_ireq(
         markers=ireq.markers,
         use_pep517=ireq.use_pep517,
         isolated=ireq.isolated,
-        install_options=ireq.install_options,
         global_options=ireq.global_options,
         hash_options=ireq.hash_options,
+        config_settings=ireq.config_settings,
+        user_supplied=ireq.user_supplied,
     )

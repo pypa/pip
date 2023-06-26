@@ -1,7 +1,7 @@
 import json
 import logging
 from optparse import Values
-from typing import TYPE_CHECKING, Iterator, List, Optional, Sequence, Tuple, cast
+from typing import TYPE_CHECKING, Generator, List, Optional, Sequence, Tuple, cast
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -103,7 +103,10 @@ class ListCommand(IndexGroupCommand):
             dest="list_format",
             default="columns",
             choices=("columns", "freeze", "json"),
-            help="Select the output format among: columns (default), freeze, or json",
+            help=(
+                "Select the output format among: columns (default), freeze, or json. "
+                "The 'freeze' format cannot be used with the --outdated option."
+            ),
         )
 
         self.cmd_opts.add_option(
@@ -149,12 +152,16 @@ class ListCommand(IndexGroupCommand):
         return PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=selection_prefs,
-            use_deprecated_html5lib="html5lib" in options.deprecated_features_enabled,
         )
 
     def run(self, options: Values, args: List[str]) -> int:
         if options.outdated and options.uptodate:
             raise CommandError("Options --outdated and --uptodate cannot be combined.")
+
+        if options.outdated and options.list_format == "freeze":
+            raise CommandError(
+                "List format 'freeze' cannot be used with the --outdated option."
+            )
 
         cmdoptions.check_list_path_option(options)
 
@@ -222,7 +229,7 @@ class ListCommand(IndexGroupCommand):
 
     def iter_packages_latest_infos(
         self, packages: "_ProcessedDists", options: Values
-    ) -> Iterator["_DistWithLatestInfo"]:
+    ) -> Generator["_DistWithLatestInfo", None, None]:
         with self._build_session(options) as session:
             finder = self._build_package_finder(options, session)
 

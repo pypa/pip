@@ -2,15 +2,16 @@
 import os
 import re
 import sys
+from pathlib import Path
 
 import pytest
 
 from pip._internal.cli.status_codes import ERROR
-from tests.lib import pyversion  # noqa: F401
-from tests.lib import PipTestEnvironment, TestData
-from tests.lib.path import Path
-
-pytestmark = pytest.mark.usefixtures("with_wheel")
+from tests.lib import (
+    PipTestEnvironment,
+    TestData,
+    pyversion,  # noqa: F401
+)
 
 
 def add_files_to_dist_directory(folder: Path) -> None:
@@ -341,6 +342,15 @@ def test_pip_wheel_with_user_set_in_config(
 @pytest.mark.skipif(
     sys.platform.startswith("win"),
     reason="The empty extension module does not work on Win",
+)
+@pytest.mark.xfail(
+    condition=sys.platform == "darwin" and sys.version_info < (3, 9),
+    reason=(
+        "Unexplained 'no module named platform' in "
+        "https://github.com/pypa/wheel/blob"
+        "/c87e6ed82b58b41b258a3e8c852af8bc1817bb00"
+        "/src/wheel/vendored/packaging/tags.py#L396-L411"
+    ),
 )
 def test_pip_wheel_ext_module_with_tmpdir_inside(
     script: PipTestEnvironment, data: TestData, common_wheels: Path

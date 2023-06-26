@@ -1,3 +1,4 @@
+import importlib.resources
 import locale
 import logging
 import os
@@ -10,7 +11,6 @@ import pip._vendor
 from pip._vendor.certifi import where
 from pip._vendor.packaging.version import parse as parse_version
 
-from pip import __file__ as pip_location
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.cmdoptions import make_target_python
@@ -35,11 +35,7 @@ def show_sys_implementation() -> None:
 
 
 def create_vendor_txt_map() -> Dict[str, str]:
-    vendor_txt_path = os.path.join(
-        os.path.dirname(pip_location), "_vendor", "vendor.txt"
-    )
-
-    with open(vendor_txt_path) as f:
+    with importlib.resources.open_text("pip._vendor", "vendor.txt") as f:
         # Purge non version specifying lines.
         # Also, remove any space prefix or suffixes (including comments).
         lines = [
@@ -47,12 +43,12 @@ def create_vendor_txt_map() -> Dict[str, str]:
         ]
 
     # Transform into "module" -> version dict.
-    return dict(line.split("==", 1) for line in lines)  # type: ignore
+    return dict(line.split("==", 1) for line in lines)
 
 
 def get_module_from_module_name(module_name: str) -> ModuleType:
     # Module name can be uppercase in vendor.txt for some reason...
-    module_name = module_name.lower()
+    module_name = module_name.lower().replace("-", "_")
     # PATCH: setuptools is actually only pkg_resources.
     if module_name == "setuptools":
         module_name = "pkg_resources"
@@ -67,6 +63,7 @@ def get_vendor_version_from_module(module_name: str) -> Optional[str]:
 
     if not version:
         # Try to find version in debundled module info.
+        assert module.__file__ is not None
         env = get_environment([os.path.dirname(module.__file__)])
         dist = env.get_distribution(module_name)
         if dist:

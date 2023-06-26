@@ -1,3 +1,4 @@
+(vcs support)=
 # VCS Support
 
 pip supports installing from various version control systems (VCS).
@@ -17,7 +18,7 @@ The supported schemes are `git+file`, `git+https`, `git+ssh`, `git+http`,
 `git+git` and `git`. Here are some of the supported forms:
 
 ```none
-MyProject @ git+ssh://git.example.com/MyProject
+MyProject @ git+ssh://git@git.example.com/MyProject
 MyProject @ git+file:///home/user/projects/MyProject
 MyProject @ git+https://git.example.com/MyProject
 ```
@@ -72,16 +73,16 @@ The supported schemes are `svn`, `svn+svn`, `svn+http`, `svn+https` and
 `svn+ssh`. Here are some of the supported forms:
 
 ```none
-MyProject @svn+https://svn.example.com/MyProject
-MyProject @svn+ssh://svn.example.com/MyProject
-MyProject @svn+ssh://user@svn.example.com/MyProject
+MyProject @ svn+https://svn.example.com/MyProject
+MyProject @ svn+ssh://svn.example.com/MyProject
+MyProject @ svn+ssh://user@svn.example.com/MyProject
 ```
 
 You can also give specific revisions to an SVN URL, like so:
 
 ```none
-MyProject @ -e svn+http://svn.example.com/svn/MyProject/trunk@2019
-MyProject @ -e svn+http://svn.example.com/svn/MyProject/trunk@{20080101}
+-e svn+http://svn.example.com/svn/MyProject/trunk@2019#egg=MyProject
+-e svn+http://svn.example.com/svn/MyProject/trunk@{20080101}#egg=MyProject
 ```
 
 Note that you need to use [Editable VCS installs](#editable-vcs-installs) for
@@ -129,18 +130,19 @@ VCS source will not overwrite it without an `--upgrade` flag. Further, pip
 looks at the package version, at the target revision to determine what action to
 take on the VCS requirement (not the commit itself).
 
-The {ref}`pip freeze` subcommand will record the VCS requirement specifier
-(referencing a specific commit) only if the install is done with the editable
-option.
-
 ## URL fragments
 
-pip looks at 2 fragments for VCS URLs:
+pip looks at the `subdirectory` fragments of VCS URLs for specifying the path to the
+Python package, when it is not in the root of the VCS directory. eg: `pkg_dir`.
 
-- `egg`: For specifying the "project name" for use in pip's dependency
-  resolution logic. eg: `egg=project_name`
-- `subdirectory`: For specifying the path to the Python package, when it is not
-  in the root of the VCS directory. eg: `pkg_dir`
+pip also looks at the `egg` fragment specifying the "project name". In practice the
+`egg` fragment is only required to help pip determine the VCS clone location in editable
+mode. In all other circumstances, the `egg` fragment is not necessary and its use is
+discouraged.
+
+The `egg` fragment **should** be a bare
+[PEP 508](https://peps.python.org/pep-0508/) project name. Anything else
+is not guaranteed to work.
 
 ````{admonition} Example
 If your repository layout is:
@@ -155,6 +157,12 @@ some_other_file
 ```
 
 Then, to install from this repository, the syntax would be:
+
+```{pip-cli}
+$ pip install "pkg @ vcs+protocol://repo_url/#subdirectory=pkg_dir"
+```
+
+or:
 
 ```{pip-cli}
 $ pip install -e "vcs+protocol://repo_url/#egg=pkg&subdirectory=pkg_dir"

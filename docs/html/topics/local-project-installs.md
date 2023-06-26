@@ -34,7 +34,7 @@ Editable installs allow you to install your project without copying any files. I
 With an editable install, you only need to perform a re-installation if you change the project metadata (eg: version, what scripts need to be generated etc). You will still need to run build commands when you need to perform a compilation for non-Python code in the project (eg: C extensions).
 
 ```{caution}
-It is possible to see behaviour differences between regular installs vs editable installs. In case you distribute the project as a "distribution package", users will see the behaviour of regular installs -- thus, it is important to ensure that regular installs work correctly.
+It is possible to see behaviour differences between regular installs vs editable installs. These differences depend on the build-backend, and you should check the build-backend documentation for the details. In case you distribute the project as a "distribution package", users will see the behaviour of regular installs -- thus, it is important to ensure that regular installs work correctly.
 ```
 
 ```{note}
@@ -51,15 +51,17 @@ There are two advantages over using `setup.py develop` directly:
 ## Build artifacts
 
 ```{versionchanged} 21.3
-The project being installed is no longer copied to a temporary directory before invoking the build system.
+The project being installed is no longer copied to a temporary directory before invoking the build system, by default. A `--use-deprecated=out-of-tree-build` option is provided as a temporary fallback to aid user migrations.
 ```
 
-This behaviour change has several consequences:
+```{versionchanged} 22.1
+The `--use-deprecated=out-of-tree-build` option has been removed.
+```
+
+When provided with a project that's in a local directory, pip will invoke the build system "in place". This behaviour has several consequences:
 
 - Local project builds will now be significantly faster, for certain kinds of projects and on systems with slow I/O (eg: via network attached storage or overly aggressive antivirus software).
 - Certain build backends (eg: `setuptools`) will litter the project directory with secondary build artifacts (eg: `.egg-info` directories).
 - Certain build backends (eg: `setuptools`) may not be able to perform with parallel builds anymore, since they previously relied on the fact that pip invoked them in a separate directory for each build.
-
-A `--use-deprecated=out-of-tree-build` option is available, until pip 22.1, as a mechanism to aid users with transitioning to the newer model of in-tree-builds.
 
 [^1]: Specifically, the current machine's filesystem.

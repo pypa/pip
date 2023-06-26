@@ -1,12 +1,13 @@
 import errno
+import json
 import operator
 import os
 import shutil
 import site
 from optparse import SUPPRESS_HELP, Values
-from typing import Iterable, List, Optional
+from typing import List, Optional
 
-from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.rich import print_json
 
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
@@ -20,16 +21,19 @@ from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.exceptions import CommandError, InstallationError
 from pip._internal.locations import get_scheme
 from pip._internal.metadata import get_environment
-from pip._internal.models.format_control import FormatControl
+from pip._internal.models.installation_report import InstallationReport
+from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.operations.check import ConflictDetails, check_install_conflicts
 from pip._internal.req import install_given_reqs
-from pip._internal.req.req_install import InstallRequirement
-from pip._internal.req.req_tracker import get_requirement_tracker
+from pip._internal.req.req_install import (
+    InstallRequirement,
+    check_legacy_setup_py_options,
+)
 from pip._internal.utils.compat import WINDOWS
-from pip._internal.utils.distutils_args import parse_distutils_args
 from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import (
+    check_externally_managed,
     ensure_dir,
     get_pip_version,
     protect_pip_from_modification_on_windows,
@@ -40,22 +44,9 @@ from pip._internal.utils.virtualenv import (
     running_under_virtualenv,
     virtualenv_no_global,
 )
-from pip._internal.wheel_builder import (
-    BinaryAllowedPredicate,
-    build,
-    should_build_for_install_command,
-)
+from pip._internal.wheel_builder import build, should_build_for_install_command
 
 logger = getLogger(__name__)
-
-
-def get_check_binary_allowed(format_control: FormatControl) -> BinaryAllowedPredicate:
-    def check_binary_allowed(req: InstallRequirement) -> bool:
-        canonical_name = canonicalize_name(req.name or "")
-        allowed_formats = format_control.get_allowed_formats(canonical_name)
-        return "binary" in allowed_formats
-
-    return check_binary_allowed
 
 
 class InstallCommand(RequirementCommand):
@@ -85,6 +76,17 @@ class InstallCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.pre())
 
         self.cmd_opts.add_option(cmdoptions.editable())
+        self.cmd_opts.add_option(
+            "--dry-run",
+            action="store_true",
+            dest="dry_run",
+            default=False,
+            help=(
+                "Don't actually install anything, just print what would be. "
+                "Can be used in combination with --ignore-installed "
+                "to 'resolve' the requirements."
+            ),
+        )
         self.cmd_opts.add_option(
             "-t",
             "--target",
@@ -131,7 +133,12 @@ class InstallCommand(RequirementCommand):
             default=None,
             help=(
                 "Installation prefix where lib, bin and other top-level "
-                "folders are placed"
+                "folders are placed. Note that the resulting installation may "
+                "contain scripts and other resources which reference the "
+                "Python interpreter of pip, and not that of ``--prefix``. "
+                "See also the ``--python`` option if the intention is to "
+                "install packages into another (possibly pip-free) "
+                "environment."
             ),
         )
 
@@ -189,8 +196,10 @@ class InstallCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.no_build_isolation())
         self.cmd_opts.add_option(cmdoptions.use_pep517())
         self.cmd_opts.add_option(cmdoptions.no_use_pep517())
+        self.cmd_opts.add_option(cmdoptions.check_build_deps())
+        self.cmd_opts.add_option(cmdoptions.override_externally_managed())
 
-        self.cmd_opts.add_option(cmdoptions.install_options())
+        self.cmd_opts.add_option(cmdoptions.config_settings())
         self.cmd_opts.add_option(cmdoptions.global_options())
 
         self.cmd_opts.add_option(
@@ -222,12 +231,12 @@ class InstallCommand(RequirementCommand):
             default=True,
             help="Do not warn about broken dependencies",
         )
-
         self.cmd_opts.add_option(cmdoptions.no_binary())
         self.cmd_opts.add_option(cmdoptions.only_binary())
         self.cmd_opts.add_option(cmdoptions.prefer_binary())
         self.cmd_opts.add_option(cmdoptions.require_hashes())
         self.cmd_opts.add_option(cmdoptions.progress_bar())
+        self.cmd_opts.add_option(cmdoptions.root_user_action())
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
@@ -237,19 +246,49 @@ class InstallCommand(RequirementCommand):
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, self.cmd_opts)
 
+        self.cmd_opts.add_option(
+            "--report",
+            dest="json_report_file",
+            metavar="file",
+            default=None,
+            help=(
+                "Generate a JSON file describing what pip did to install "
+                "the provided requirements. "
+                "Can be used in combination with --dry-run and --ignore-installed "
+                "to 'resolve' the requirements. "
+                "When - is used as file name it writes to stdout. "
+                "When writing to stdout, please combine with the --quiet option "
+                "to avoid mixing pip logging output with JSON output."
+            ),
+        )
+
     @with_cleanup
     def run(self, options: Values, args: List[str]) -> int:
         if options.use_user_site and options.target_dir is not None:
             raise CommandError("Can not combine '--user' and '--target'")
 
-        cmdoptions.check_install_build_global(options)
+        # Check whether the environment we're installing into is externally
+        # managed, as specified in PEP 668. Specifying --root, --target, or
+        # --prefix disables the check, since there's no reliable way to locate
+        # the EXTERNALLY-MANAGED file for those cases. An exception is also
+        # made specifically for "--dry-run --report" for convenience.
+        installing_into_current_environment = (
+            not (options.dry_run and options.json_report_file)
+            and options.root_path is None
+            and options.target_dir is None
+            and options.prefix_path is None
+        )
+        if (
+            installing_into_current_environment
+            and not options.override_externally_managed
+        ):
+            check_externally_managed()
+
         upgrade_strategy = "to-satisfy-only"
         if options.upgrade:
             upgrade_strategy = options.upgrade_strategy
 
         cmdoptions.check_dist_restriction(options, check_target=True)
-
-        install_options = options.install_options or []
 
         logger.verbose("Using %s", get_pip_version())
         options.use_user_site = decide_user_install(
@@ -291,9 +330,7 @@ class InstallCommand(RequirementCommand):
             target_python=target_python,
             ignore_requires_python=options.ignore_requires_python,
         )
-        wheel_cache = WheelCache(options.cache_dir, options.format_control)
-
-        req_tracker = self.enter_context(get_requirement_tracker())
+        build_tracker = self.enter_context(get_build_tracker())
 
         directory = TempDirectory(
             delete=not options.no_clean,
@@ -303,6 +340,9 @@ class InstallCommand(RequirementCommand):
 
         try:
             reqs = self.get_requirements(args, options, finder, session)
+            check_legacy_setup_py_options(options, reqs)
+
+            wheel_cache = WheelCache(options.cache_dir)
 
             # Only when installing is it permitted to use PEP 660.
             # In other circumstances (pip wheel, pip download) we generate
@@ -310,12 +350,10 @@ class InstallCommand(RequirementCommand):
             for req in reqs:
                 req.permit_editable_wheels = True
 
-            reject_location_related_install_options(reqs, options.install_options)
-
             preparer = self.make_requirement_preparer(
                 temp_build_dir=directory,
                 options=options,
-                req_tracker=req_tracker,
+                build_tracker=build_tracker,
                 session=session,
                 finder=finder,
                 use_user_site=options.use_user_site,
@@ -340,6 +378,26 @@ class InstallCommand(RequirementCommand):
                 reqs, check_supported_wheels=not options.target_dir
             )
 
+            if options.json_report_file:
+                report = InstallationReport(requirement_set.requirements_to_install)
+                if options.json_report_file == "-":
+                    print_json(data=report.to_dict())
+                else:
+                    with open(options.json_report_file, "w", encoding="utf-8") as f:
+                        json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)
+
+            if options.dry_run:
+                would_install_items = sorted(
+                    (r.metadata["name"], r.metadata["version"])
+                    for r in requirement_set.requirements_to_install
+                )
+                if would_install_items:
+                    write_output(
+                        "Would install %s",
+                        " ".join("-".join(item) for item in would_install_items),
+                    )
+                return SUCCESS
+
             try:
                 pip_req = requirement_set.get_requirement("pip")
             except KeyError:
@@ -350,12 +408,10 @@ class InstallCommand(RequirementCommand):
                 modifying_pip = pip_req.satisfied_by is None
             protect_pip_from_modification_on_windows(modifying_pip=modifying_pip)
 
-            check_binary_allowed = get_check_binary_allowed(finder.format_control)
-
             reqs_to_build = [
                 r
                 for r in requirement_set.requirements.values()
-                if should_build_for_install_command(r, check_binary_allowed)
+                if should_build_for_install_command(r)
             ]
 
             _, build_failures = build(
@@ -363,28 +419,16 @@ class InstallCommand(RequirementCommand):
                 wheel_cache=wheel_cache,
                 verify=True,
                 build_options=[],
-                global_options=[],
+                global_options=global_options,
             )
 
-            # If we're using PEP 517, we cannot do a legacy setup.py install
-            # so we fail here.
-            pep517_build_failure_names: List[str] = [
-                r.name for r in build_failures if r.use_pep517  # type: ignore
-            ]
-            if pep517_build_failure_names:
+            if build_failures:
                 raise InstallationError(
                     "Could not build wheels for {}, which is required to "
                     "install pyproject.toml-based projects".format(
-                        ", ".join(pep517_build_failure_names)
+                        ", ".join(r.name for r in build_failures)  # type: ignore
                     )
                 )
-
-            # For now, we just warn about failures building legacy
-            # requirements, as we'll fall through to a setup.py install for
-            # those.
-            for r in build_failures:
-                if not r.use_pep517:
-                    r.legacy_install_reason = 8368
 
             to_install = resolver.get_installation_order(requirement_set)
 
@@ -404,7 +448,6 @@ class InstallCommand(RequirementCommand):
 
             installed = install_given_reqs(
                 to_install,
-                install_options,
                 global_options,
                 root=options.root_path,
                 home=target_temp_dir_path,
@@ -464,8 +507,8 @@ class InstallCommand(RequirementCommand):
             self._handle_target_dir(
                 options.target_dir, target_temp_dir, options.upgrade
             )
-
-        warn_if_run_as_root()
+        if options.root_user_action == "warn":
+            warn_if_run_as_root()
         return SUCCESS
 
     def _handle_target_dir(
@@ -673,45 +716,6 @@ def decide_user_install(
         "is not writeable"
     )
     return True
-
-
-def reject_location_related_install_options(
-    requirements: List[InstallRequirement], options: Optional[List[str]]
-) -> None:
-    """If any location-changing --install-option arguments were passed for
-    requirements or on the command-line, then show a deprecation warning.
-    """
-
-    def format_options(option_names: Iterable[str]) -> List[str]:
-        return ["--{}".format(name.replace("_", "-")) for name in option_names]
-
-    offenders = []
-
-    for requirement in requirements:
-        install_options = requirement.install_options
-        location_options = parse_distutils_args(install_options)
-        if location_options:
-            offenders.append(
-                "{!r} from {}".format(
-                    format_options(location_options.keys()), requirement
-                )
-            )
-
-    if options:
-        location_options = parse_distutils_args(options)
-        if location_options:
-            offenders.append(
-                "{!r} from command line".format(format_options(location_options.keys()))
-            )
-
-    if not offenders:
-        return
-
-    raise CommandError(
-        "Location-changing options found in --install-option: {}."
-        " This is unsupported, use pip-level options like --user,"
-        " --prefix, --root, and --target instead.".format("; ".join(offenders))
-    )
 
 
 def create_os_error_message(
