@@ -43,7 +43,7 @@ class TestSearchScope:
             find_links=[],
             index_urls=["file://index1/", "file://index2"],
             no_index=False,
-            index_lookup={"complex_name": "file://index2"},
+            index_lookup={"Complex_Name": "file://index2"},
         )
         req = install_req_from_line("Complex_Name")
         assert req.name is not None
