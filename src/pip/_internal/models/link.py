@@ -112,9 +112,9 @@ def supported_hashes(hashes: Optional[Dict[str, str]]) -> Optional[Dict[str, str
     if hashes is None:
         return None
     hashes = {n: v for n, v in hashes.items() if n in _SUPPORTED_HASHES}
-    if len(hashes) > 0:
-        return hashes
-    return None
+    if not hashes:
+        return None
+    return hashes
 
 
 def _clean_url_path_part(part: str) -> str:
