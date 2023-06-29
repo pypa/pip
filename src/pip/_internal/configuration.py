@@ -214,7 +214,7 @@ class Configuration:
             try:
                 with open(fname, "w") as f:
                     parser.write(f)
-            except IOError as error:
+            except OSError as error:
                 raise ConfigurationError(
                     f"An error occurred while writing to the configuration file "
                     f"{fname}: {error}"
