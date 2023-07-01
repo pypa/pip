@@ -471,6 +471,7 @@ class RequirementPreparer:
             logger.debug("Downloading link %s to %s", link, filepath)
             req = links_to_fully_download[link]
             req.local_file_path = filepath
+            self._downloaded[req.link.url] = filepath
 
         # This step is necessary to ensure all lazy wheels are processed
         # successfully by the 'download', 'wheel', and 'install' commands.
