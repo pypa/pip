@@ -35,7 +35,7 @@ Additionally, environment variables can be specified which will override any of 
 pip's configuration files are located in fairly standard locations. This
 location is different on different operating systems, and has some additional
 complexity for backwards compatibility reasons. Note that if user config files
-exist in both the legacy and current locations, values in the current file 
+exist in both the legacy and current locations, values in the current file
 will override values in the legacy file.
 
 ```{tab} Unix

@@ -327,7 +327,7 @@ class Configuration:
     def iter_config_files(self) -> Iterable[Tuple[Kind, List[str]]]:
         """Yields variant and configuration files associated with it.
 
-        This should be treated like items of a dictionary. The order 
+        This should be treated like items of a dictionary. The order
         here doesn't affect what gets overridden. That is controlled
         by OVERRIDE_ORDER. However this does control the order they are
         displayed to the user. It's probably most ergononmic to display
@@ -355,7 +355,6 @@ class Configuration:
             yield kinds.ENV, [env_config_file]
         else:
             yield kinds.ENV, []
-
 
     def get_values_in_config(self, variant: Kind) -> Dict[str, Any]:
         """Get values present in a config file"""
