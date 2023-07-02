@@ -130,6 +130,13 @@ dealing with [the same challenges as pip has for legacy builds](build-output).
 
 ## Fallback Behaviour
 
+```{warning}
+The following snippet merely describes the fallback behavior. For valid
+examples of `pyproject.toml` to use with setuptools, please refer to
+[the setuptools documentation](
+https://setuptools.pypa.io/en/stable/userguide/quickstart.html#basic-use).
+```
+
 If a project does not have a `pyproject.toml` file containing a `build-system`
 section, it will be assumed to have the following backend settings:
 
