@@ -24,6 +24,11 @@ MyProject @ git+https://git.example.com/MyProject
 ```
 
 ```{warning}
+Currently, the `MyProject @ git+file` format does not work and the fix requires multiple deprecations.
+See https://github.com/pypa/pip/issues/12124.
+```
+
+```{warning}
 The use of `git`, `git+git`, and `git+http` schemes is discouraged.
 The former two use [the Git Protocol], which lacks authentication, and HTTP is
 insecure due to lack of TLS based encryption.
