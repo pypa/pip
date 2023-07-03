@@ -53,7 +53,10 @@ def make_setuptools_shim_args(
     unbuffered_output: bool = False,
 ) -> List[str]:
     """
-    Get setuptools command arguments with shim wrapped setup file invocation.
+    Get setuptools command arguments with (optionally) shim wrapped invocation.
+
+    This invocation is wrapped in a shim that imports setuptools prior to execution, if
+    running on a lower version than Python 3.12.
 
     :param setup_py_path: The path to setup.py to be wrapped.
     :param global_options: Additional global options.
@@ -64,7 +67,10 @@ def make_setuptools_shim_args(
     args = [sys.executable]
     if unbuffered_output:
         args += ["-u"]
-    args += ["-c", _SETUPTOOLS_SHIM.format(setup_py_path)]
+    if sys.version_info[:2] >= (3, 12):
+        args += [setup_py_path]
+    else:
+        args += ["-c", _SETUPTOOLS_SHIM.format(setup_py_path)]
     if global_options:
         args += global_options
     if no_user_config:
