@@ -1,0 +1,1 @@
+Add warning about the ``MyProject @ git+file`` VCS format not working
