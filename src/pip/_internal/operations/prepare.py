@@ -476,7 +476,7 @@ class RequirementPreparer:
             # distributions get downloaded twice when metadata is loaded
             # from a PEP 658 standalone metadata file. Setting _downloaded
             # fixes this for wheels, but breaks the sdist case (tests
-            # test_download_metadata). As PyPI is currently not serving
+            # test_download_metadata). As PyPI is currently only serving
             # metadata for wheels, this is not an immediate issue.
             # Fixing the problem properly looks like it will require a
             # complete refactoring of the `prepare_linked_requirements_more`
