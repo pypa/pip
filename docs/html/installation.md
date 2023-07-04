@@ -103,7 +103,7 @@ $ pip install --upgrade pip
 The current version of pip works on:
 
 - Windows, Linux and MacOS.
-- CPython 3.7, 3.8, 3.9, 3.10 and latest PyPy3.
+- CPython 3.7, 3.8, 3.9, 3.10, 3.11, 3.12, and latest PyPy3.
 
 pip is tested to work on the latest patch version of the Python interpreter,
 for each of the minor versions listed above. Previous patch versions are
