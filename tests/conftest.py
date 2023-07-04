@@ -49,7 +49,7 @@ from .lib.compat import nullcontext
 if TYPE_CHECKING:
     from typing import Protocol
 
-    from wsgi import WSGIApplication
+    from _typeshed.wsgi import WSGIApplication
 else:
     # TODO: Protocol was introduced in Python 3.8. Remove this branch when
     # dropping support for Python 3.7.
@@ -645,7 +645,12 @@ class InMemoryPip:
         try:
             returncode = pip_entry_point([os.fspath(a) for a in args])
         except SystemExit as e:
-            returncode = e.code or 0
+            if isinstance(e.code, int):
+                returncode = e.code
+            elif e.code:
+                returncode = 1
+            else:
+                returncode = 0
         finally:
             sys.stdout = orig_stdout
         return InMemoryPipResult(returncode, stdout.getvalue())
