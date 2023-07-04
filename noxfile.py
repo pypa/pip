@@ -89,6 +89,7 @@ def test(session: nox.Session) -> None:
         shutil.rmtree(sdist_dir, ignore_errors=True)
 
     # fmt: off
+    session.install("setuptools")
     session.run(
         "python", "setup.py", "sdist", "--formats=zip", "--dist-dir", sdist_dir,
         silent=True,
@@ -351,6 +352,7 @@ def build_dists(session: nox.Session) -> List[str]:
         )
 
     session.log("# Build distributions")
+    session.install("setuptools", "wheel")
     session.run("python", "setup.py", "sdist", "bdist_wheel", silent=True)
     produced_dists = glob.glob("dist/*")
 
