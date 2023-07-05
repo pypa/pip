@@ -130,6 +130,7 @@ class DownloadCommand(RequirementCommand):
         self.trace_basic_info(finder)
 
         requirement_set = resolver.resolve(reqs, check_supported_wheels=True)
+        requirement_set.warn_legacy_versions_and_specifiers()
 
         downloaded: List[str] = []
         for req in requirement_set.requirements.values():

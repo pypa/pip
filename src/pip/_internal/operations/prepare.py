@@ -471,6 +471,19 @@ class RequirementPreparer:
             logger.debug("Downloading link %s to %s", link, filepath)
             req = links_to_fully_download[link]
             req.local_file_path = filepath
+            # TODO: This needs fixing for sdists
+            # This is an emergency fix for #11847, which reports that
+            # distributions get downloaded twice when metadata is loaded
+            # from a PEP 658 standalone metadata file. Setting _downloaded
+            # fixes this for wheels, but breaks the sdist case (tests
+            # test_download_metadata). As PyPI is currently only serving
+            # metadata for wheels, this is not an immediate issue.
+            # Fixing the problem properly looks like it will require a
+            # complete refactoring of the `prepare_linked_requirements_more`
+            # logic, and I haven't a clue where to start on that, so for now
+            # I have fixed the issue *just* for wheels.
+            if req.is_wheel:
+                self._downloaded[req.link.url] = filepath
 
         # This step is necessary to ensure all lazy wheels are processed
         # successfully by the 'download', 'wheel', and 'install' commands.

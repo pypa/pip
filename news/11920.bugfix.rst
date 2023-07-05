@@ -1,0 +1,1 @@
+Add permission check before configuration
