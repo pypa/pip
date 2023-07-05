@@ -343,15 +343,6 @@ def test_pip_wheel_with_user_set_in_config(
     sys.platform.startswith("win"),
     reason="The empty extension module does not work on Win",
 )
-@pytest.mark.xfail(
-    condition=sys.platform == "darwin" and sys.version_info < (3, 9),
-    reason=(
-        "Unexplained 'no module named platform' in "
-        "https://github.com/pypa/wheel/blob"
-        "/c87e6ed82b58b41b258a3e8c852af8bc1817bb00"
-        "/src/wheel/vendored/packaging/tags.py#L396-L411"
-    ),
-)
 def test_pip_wheel_ext_module_with_tmpdir_inside(
     script: PipTestEnvironment, data: TestData, common_wheels: Path
 ) -> None:
