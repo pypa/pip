@@ -145,6 +145,7 @@ class WheelCommand(RequirementCommand):
         self.trace_basic_info(finder)
 
         requirement_set = resolver.resolve(reqs, check_supported_wheels=True)
+        requirement_set.warn_legacy_versions_and_specifiers()
 
         reqs_to_build: List[InstallRequirement] = []
         for req in requirement_set.requirements.values():
