@@ -1,0 +1,4 @@
+``freeze`` no longer excludes the ``setuptools``, ``distribute``, and ``wheel``
+from the output when running on Python 3.12 or later, where they are not
+included in a virtual environment by default. Use ``--exclude`` if you wish to
+exclude any of these packages.
