@@ -16,7 +16,7 @@ rich==13.4.2
     pygments==2.15.1
     typing_extensions==4.7.1
 resolvelib==1.0.1
-setuptools==67.7.2
+setuptools==68.0.0
 six==1.16.0
 tenacity==8.2.2
 tomli==2.0.1
