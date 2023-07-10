@@ -1,0 +1,1 @@
+Avoid downloading wheels when performing a ``--dry-run`` install when .metadata files are used.

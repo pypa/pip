@@ -375,7 +375,9 @@ class InstallCommand(RequirementCommand):
             self.trace_basic_info(finder)
 
             requirement_set = resolver.resolve(
-                reqs, check_supported_wheels=not options.target_dir
+                reqs,
+                check_supported_wheels=not options.target_dir,
+                dry_run=options.dry_run,
             )
 
             if options.json_report_file:
