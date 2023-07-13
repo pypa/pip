@@ -65,7 +65,7 @@ def _set_requirement_extras(req: Requirement, new_extras: Set[str]) -> Requireme
     are given).
     """
     match: re.Match = re.fullmatch(r"([^;\[<>~=]+)(\[[^\]]*\])?(.*)", str(req))
-    # ireq.req is a valid requirement so the regex should match
+    # ireq.req is a valid requirement so the regex should always match
     assert match is not None
     pre: Optional[str] = match.group(1)
     post: Optional[str] = match.group(3)
