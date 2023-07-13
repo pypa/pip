@@ -58,6 +58,26 @@ def convert_extras(extras: Optional[str]) -> Set[str]:
     return get_requirement("placeholder" + extras.lower()).extras
 
 
+def _set_requirement_extras(req: Requirement, new_extras: Set[str]) -> Requirement:
+    """
+    Returns a new requirement based on the given one, with the supplied extras. If the
+    given requirement already has extras those are replaced (or dropped if no new extras
+    are given).
+    """
+    match: re.Match = re.fullmatch(r"([^;\[<>~=]+)(\[[^\]]*\])?(.*)", str(req))
+    # ireq.req is a valid requirement so the regex should match
+    assert match is not None
+    pre: Optional[str] = match.group(1)
+    post: Optional[str] = match.group(3)
+    assert pre is not None and post is not None
+    extras: str = (
+        "[%s]" % ",".join(sorted(new_extras))
+        if new_extras
+        else ""
+    )
+    return Requirement(pre + extras + post)
+
+
 def parse_editable(editable_req: str) -> Tuple[Optional[str], str, Set[str]]:
     """Parses an editable requirement into:
         - a requirement name
@@ -513,10 +533,8 @@ def install_req_drop_extras(ireq: InstallRequirement) -> InstallRequirement:
     any extras. Sets the original requirement as the new one's parent
     (comes_from).
     """
-    req = Requirement(str(ireq.req))
-    req.extras = {}
     return InstallRequirement(
-        req=req,
+        req=_set_requirement_extras(ireq.req, set()),
         comes_from=ireq,
         editable=ireq.editable,
         link=ireq.link,
@@ -542,8 +560,6 @@ def install_req_extend_extras(
     Makes a shallow copy of the ireq object.
     """
     result = copy.copy(ireq)
-    req = Requirement(str(ireq.req))
-    req.extras.update(extras)
-    result.req = req
     result.extras = {*ireq.extras, *extras}
+    result.req = _set_requirement_extras(ireq.req, result.extras)
     return result
