@@ -52,7 +52,6 @@ class SpecifierRequirement(Requirement):
             making this a requirement on the base only.
         """
         assert ireq.link is None, "This is a link, not a specifier"
-        self._drop_extras: bool = drop_extras
         self._ireq = ireq if not drop_extras else install_req_drop_extras(ireq)
         self._extras = frozenset(self._ireq.extras)
 
