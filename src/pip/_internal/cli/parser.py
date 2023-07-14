@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
     """A prettier/less verbose help formatter for optparse."""
 
-    styles: dict[str, StyleType] = {
+    styles: Dict[str, StyleType] = {
         "optparse.args": "cyan",
         "optparse.groups": "dark_orange",
         "optparse.help": "default",
@@ -32,7 +32,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         "optparse.syntax": "bold",
         "optparse.text": "default",
     }
-    highlights: list[str] = [
+    highlights: List[str] = [
         r"(?:^|\s)(?P<args>-{1,2}[\w]+[\w-]*)",  # highlight --words-with-dashes as args
         r"`(?P<syntax>[^`]*)`",  # highlight `text in backquotes` as syntax
     ]
@@ -44,7 +44,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         kwargs["width"] = shutil.get_terminal_size()[0] - 2
         super().__init__(*args, **kwargs)
         self.console: Console = Console(theme=Theme(self.styles))
-        self.rich_option_strings: dict[optparse.Option, Text] = {}
+        self.rich_option_strings: Dict[optparse.Option, Text] = {}
 
     def stringify(self, text: RenderableType) -> str:
         """Render a rich object as a string."""
@@ -115,7 +115,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
 
     def format_option(self, option: optparse.Option) -> str:
         # Overridden to call the rich methods.
-        result: list[Text] = []
+        result: List[Text] = []
         opts = self.rich_option_strings[option]
         opt_width = self.help_position - self.current_indent - 2
         if len(opts) > opt_width:
@@ -166,7 +166,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
 
     def rich_format_option_strings(self, option: optparse.Option) -> Text:
         # `HelpFormatter.format_option_strings()` equivalent that returns a `Text`.
-        opts: list[Text] = []
+        opts: List[Text] = []
 
         if option._short_opts:
             opts.append(Text(option._short_opts[0], "optparse.args"))
