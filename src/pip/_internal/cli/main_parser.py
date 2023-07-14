@@ -6,6 +6,8 @@ import subprocess
 import sys
 from typing import List, Optional, Tuple
 
+from pip._vendor.rich.text import Text
+
 from pip._internal.build_env import get_runnable_pip
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
@@ -39,7 +41,12 @@ def create_main_parser() -> ConfigOptionParser:
 
     # create command listing for description
     description = [""] + [
-        f"{name:27} {command_info.summary}"
+        parser.formatter.stringify(  # type: ignore
+            Text()
+            .append(name, "optparse.args")
+            .append(" " * (28 - len(name)))
+            .append(command_info.summary, "optparse.help")
+        )
         for name, command_info in commands_dict.items()
     ]
     parser.description = "\n".join(description)
