@@ -1,0 +1,1 @@
+Fix deprecation warnings in Python 3.12 for usage of shutil.rmtree
