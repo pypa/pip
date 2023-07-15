@@ -1,1 +1,0 @@
-Correctly parse ``dist-info-metadata`` values from JSON-format index data.
