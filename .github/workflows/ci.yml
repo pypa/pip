@@ -110,7 +110,7 @@ jobs:
           - "3.10"
           - "3.11"
           - key: "3.12"
-            full: "3.12.0-dev"
+            full: "3.12-dev"
 
     steps:
       - uses: actions/checkout@v3
