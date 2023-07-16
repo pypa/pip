@@ -35,7 +35,7 @@ Features
 Bug Fixes
 ---------
 
-- Fix ``pip completion --zsh``. (`#11416 <https://github.com/pypa/pip/issues/11416>`_)
+- Fix ``pip completion --zsh``. (`#11417 <https://github.com/pypa/pip/issues/11417>`_)
 - Prevent downloading files twice when PEP 658 metadata is present (`#11847 <https://github.com/pypa/pip/issues/11847>`_)
 - Add permission check before configuration (`#11920 <https://github.com/pypa/pip/issues/11920>`_)
 - Fix deprecation warnings in Python 3.12 for usage of shutil.rmtree (`#11957 <https://github.com/pypa/pip/issues/11957>`_)
