@@ -827,9 +827,11 @@ def test_install_options_no_deps(
     )
     create_basic_wheel_for_package(script, "B", "0.1.0")
     create_basic_wheel_for_package(script, "C", "0.1.0")
+    create_basic_wheel_for_package(script, "D", "0.1.0", depends=["E==0.1.0"])
+    create_basic_wheel_for_package(script, "E", "0.1.0")
 
     requirements_txt = script.scratch_path / "requirements.txt"
-    requirements_txt.write_text("A[C] --no-deps")
+    requirements_txt.write_text("A[C] --no-deps\nD")
 
     result = script.pip(
         "install",
@@ -845,7 +847,7 @@ def test_install_options_no_deps(
     if resolver_variant == "legacy":
         assert "Cannot ignore dependencies with legacy resolver" in result.stderr
     else:
-        script.assert_installed(A="0.1.0")
+        script.assert_installed(A="0.1.0", D="0.1.0", E="0.1.0")
         script.assert_not_installed("B", "C")
 
     # AlreadyInstalledCandidate should not install dependencies
@@ -863,4 +865,5 @@ def test_install_options_no_deps(
     if resolver_variant == "legacy":
         assert "Cannot ignore dependencies with legacy resolver" in result.stderr
     else:
+        script.assert_installed(A="0.1.0", D="0.1.0", E="0.1.0")
         script.assert_not_installed("B", "C")
