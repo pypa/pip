@@ -253,11 +253,15 @@ def coverage(session: nox.Session) -> None:
 
     if not os.path.exists(".coverage-output"):
         os.mkdir(".coverage-output")
+    
+    # parallelize coverage as much as possible, by default.
+    arguments = session.posargs or ["-n", "auto"]
+    
     session.run(
         "pytest",
         "--cov=pip",
         "--cov-config=./setup.cfg",
-        *session.posargs,
+        *arguments,
         env={
             "COVERAGE_OUTPUT_DIR": "./.coverage-output",
             "COVERAGE_PROCESS_START": os.fsdecode(Path("setup.cfg").resolve()),
