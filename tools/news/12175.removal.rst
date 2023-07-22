@@ -1,0 +1,1 @@
+Drop a fallback to using SecureTransport on macOS as it is not needed anymore.
