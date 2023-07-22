@@ -1,1 +1,0 @@
-Disable PEP 658 metadata fetching with the legacy resolver.
