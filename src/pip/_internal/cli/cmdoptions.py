@@ -19,6 +19,7 @@ from optparse import SUPPRESS_HELP, Option, OptionGroup, OptionParser, Values
 from textwrap import dedent
 from typing import Any, Callable, Dict, Optional, Tuple
 
+from pip._vendor.packaging.tags import Tag
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cli.parser import ConfigOptionParser
@@ -78,6 +79,9 @@ def check_dist_restriction(options: Values, check_target: bool = False) -> None:
     sdist_dependencies_allowed = (
         options.format_control != binary_only and not options.ignore_dependencies
     )
+
+    if getattr(options, "dry_run", False):
+        return
 
     # Installations or downloads using dist restrictions must not combine
     # source distributions and dist-specific wheels, as they are not
@@ -646,19 +650,47 @@ abis: Callable[..., Option] = partial(
 )
 
 
+def _convert_compatibility_tag(value: str) -> Tag:
+    interpreter, abi, platform = value.split("-")
+    return Tag(interpreter, abi, platform)
+
+
+compatibility_tag: Callable[..., Option] = partial(
+    Option,
+    "--compatibility-tag",
+    dest="compatibility_tags",
+    metavar="compatibility_tags",
+    action="append",
+    type="str",
+    default=None,
+    help=dedent(
+        """\
+    List of compatibility tags; trumps --python-version, --abi, --platform, and
+    --implementation.
+    """
+    ),
+)
+
+
 def add_target_python_options(cmd_opts: OptionGroup) -> None:
     cmd_opts.add_option(platforms())
     cmd_opts.add_option(python_version())
     cmd_opts.add_option(implementation())
     cmd_opts.add_option(abis())
+    cmd_opts.add_option(compatibility_tag())
 
 
 def make_target_python(options: Values) -> TargetPython:
+    compatibility_tags = [
+        _convert_compatibility_tag(tag) for tag in options.compatibility_tags or []
+    ]
+
     target_python = TargetPython(
         platforms=options.platforms,
         py_version_info=options.python_version,
         abis=options.abis,
         implementation=options.implementation,
+        compatibility_tags=compatibility_tags or None,
     )
 
     return target_python

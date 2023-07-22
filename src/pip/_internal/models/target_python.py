@@ -30,6 +30,7 @@ class TargetPython:
         py_version_info: Optional[Tuple[int, ...]] = None,
         abis: Optional[List[str]] = None,
         implementation: Optional[str] = None,
+        compatibility_tags: Optional[List[Tag]] = None,
     ) -> None:
         """
         :param platforms: A list of strings or None. If None, searches for
@@ -62,7 +63,7 @@ class TargetPython:
         self.py_version_info = py_version_info
 
         # This is used to cache the return value of get_tags().
-        self._valid_tags: Optional[List[Tag]] = None
+        self._valid_tags: Optional[List[Tag]] = compatibility_tags
 
     def format_given(self) -> str:
         """
