@@ -9,6 +9,15 @@
 
 .. towncrier release notes start
 
+23.2.1 (2023-07-22)
+===================
+
+Bug Fixes
+---------
+
+- Disable PEP 658 metadata fetching with the legacy resolver. (`#12156 <https://github.com/pypa/pip/issues/12156>`_)
+
+
 23.2 (2023-07-15)
 =================
 
