@@ -447,7 +447,7 @@ class Factory:
 
     def _make_requirements_from_install_req(
         self, ireq: InstallRequirement, requested_extras: Iterable[str]
-    ) -> list[Requirement]:
+    ) -> List[Requirement]:
         """
         Returns requirement objects associated with the given InstallRequirement. In
         most cases this will be a single object but the following special cases exist:
@@ -543,7 +543,7 @@ class Factory:
         specifier: str,
         comes_from: Optional[InstallRequirement],
         requested_extras: Iterable[str] = (),
-    ) -> list[Requirement]:
+    ) -> List[Requirement]:
         """
         Returns requirement objects associated with the given specifier. In most cases
         this will be a single object but the following special cases exist:
