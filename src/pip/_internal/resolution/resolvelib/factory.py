@@ -465,7 +465,7 @@ class Factory:
             )
             return []
         if not ireq.link:
-            if ireq.extras and ireq.req.specifier:
+            if ireq.extras and ireq.req is not None and ireq.req.specifier:
                 return [
                     SpecifierRequirement(ireq, drop_extras=True),
                     SpecifierRequirement(ireq),

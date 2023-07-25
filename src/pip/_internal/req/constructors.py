@@ -64,7 +64,9 @@ def _set_requirement_extras(req: Requirement, new_extras: Set[str]) -> Requireme
     given requirement already has extras those are replaced (or dropped if no new extras
     are given).
     """
-    match: re.Match = re.fullmatch(r"([^;\[<>~=]+)(\[[^\]]*\])?(.*)", str(req))
+    match: Optional[re.Match[str]] = re.fullmatch(
+        r"([^;\[<>~=]+)(\[[^\]]*\])?(.*)", str(req)
+    )
     # ireq.req is a valid requirement so the regex should always match
     assert match is not None
     pre: Optional[str] = match.group(1)
@@ -534,7 +536,11 @@ def install_req_drop_extras(ireq: InstallRequirement) -> InstallRequirement:
     (comes_from).
     """
     return InstallRequirement(
-        req=_set_requirement_extras(ireq.req, set()),
+        req=(
+            _set_requirement_extras(ireq.req, set())
+            if ireq.req is not None
+            else None
+        ),
         comes_from=ireq,
         editable=ireq.editable,
         link=ireq.link,
@@ -561,5 +567,9 @@ def install_req_extend_extras(
     """
     result = copy.copy(ireq)
     result.extras = {*ireq.extras, *extras}
-    result.req = _set_requirement_extras(ireq.req, result.extras)
+    result.req = (
+        _set_requirement_extras(ireq.req, result.extras)
+        if ireq.req is not None
+        else None
+    )
     return result
