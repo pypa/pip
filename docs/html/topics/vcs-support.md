@@ -164,7 +164,8 @@ $ pip install "pkg @ vcs+protocol://repo_url/#subdirectory=pkg_dir"
 
 or:
 
-```{pip-cli}
+```{pip-cli}[connecting-a-repository-to-a-package.md](https://github.com/pypa/pip/files/12158531/connecting-a-repository-to-a-package.md)
+
 $ pip install -e "vcs+protocol://repo_url/#egg=pkg&subdirectory=pkg_dir"
 ```
 ````
