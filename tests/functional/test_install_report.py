@@ -1,7 +1,7 @@
 import json
 import textwrap
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 import pytest
 from packaging.utils import canonicalize_name
@@ -76,7 +76,7 @@ def test_install_report_dep(
 )
 @pytest.mark.network
 def test_install_report_index(
-    script: PipTestEnvironment, tmp_path: Path, specifiers: tuple[str, ...]
+    script: PipTestEnvironment, tmp_path: Path, specifiers: Tuple[str, ...]
 ) -> None:
     """Test report for sdist obtained from index."""
     report_path = tmp_path / "report.json"
