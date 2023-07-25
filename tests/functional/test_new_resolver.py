@@ -2429,3 +2429,31 @@ def test_new_resolver_works_when_failing_package_builds_are_disallowed(
     )
 
     script.assert_installed(pkg2="1.0", pkg1="1.0")
+
+
+@pytest.mark.parametrize("swap_order", (True, False))
+def test_new_resolver_comes_from_with_extra(
+    script: PipTestEnvironment, swap_order: bool
+) -> None:
+    """
+    Verify that reporting where a dependency comes from is accurate when it comes
+    from a package with an extra.
+
+    :param swap_order: swap the order the install specifiers appear in
+    """
+    create_basic_wheel_for_package(script, "dep", "1.0")
+    create_basic_wheel_for_package(script, "pkg", "1.0", extras={"ext": ["dep"]})
+
+    to_install: tuple[str, str] = ("pkg", "pkg[ext]")
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        *(to_install if not swap_order else reversed(to_install)),
+    )
+    assert "(from pkg[ext])" in result.stdout
+    assert "(from pkg)" not in result.stdout
+    script.assert_installed(pkg="1.0", dep="1.0")
