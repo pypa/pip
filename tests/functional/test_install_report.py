@@ -106,6 +106,26 @@ def test_install_report_index(
 
 
 @pytest.mark.network
+def test_install_report_index_multiple_extras(
+    script: PipTestEnvironment, tmp_path: Path
+) -> None:
+    """Test report for sdist obtained from index, with multiple extras requested."""
+    report_path = tmp_path / "report.json"
+    script.pip(
+        "install",
+        "--dry-run",
+        "Paste[openid]",
+        "Paste[subprocess]",
+        "--report",
+        str(report_path),
+    )
+    report = json.loads(report_path.read_text())
+    install_dict = _install_dict(report)
+    assert "paste" in install_dict
+    assert install_dict["paste"]["requested_extras"] == ["openid", "subprocess"]
+
+
+@pytest.mark.network
 def test_install_report_direct_archive(
     script: PipTestEnvironment, tmp_path: Path, shared_data: TestData
 ) -> None:
