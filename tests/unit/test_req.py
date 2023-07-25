@@ -105,6 +105,7 @@ class TestRequirementSet:
                 use_user_site=False,
                 lazy_wheel=False,
                 verbosity=0,
+                legacy_resolver=True,
             )
             yield Resolver(
                 preparer=preparer,

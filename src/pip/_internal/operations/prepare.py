@@ -226,6 +226,7 @@ class RequirementPreparer:
         use_user_site: bool,
         lazy_wheel: bool,
         verbosity: int,
+        legacy_resolver: bool,
     ) -> None:
         super().__init__()
 
@@ -258,6 +259,9 @@ class RequirementPreparer:
 
         # How verbose should underlying tooling be?
         self.verbosity = verbosity
+
+        # Are we using the legacy resolver?
+        self.legacy_resolver = legacy_resolver
 
         # Memoized downloaded files, as mapping of url: path.
         self._downloaded: Dict[str, str] = {}
@@ -365,6 +369,11 @@ class RequirementPreparer:
         self,
         req: InstallRequirement,
     ) -> Optional[BaseDistribution]:
+        if self.legacy_resolver:
+            logger.debug(
+                "Metadata-only fetching is not used in the legacy resolver",
+            )
+            return None
         if self.require_hashes:
             logger.debug(
                 "Metadata-only fetching is not used as hash checking is required",
@@ -471,6 +480,19 @@ class RequirementPreparer:
             logger.debug("Downloading link %s to %s", link, filepath)
             req = links_to_fully_download[link]
             req.local_file_path = filepath
+            # TODO: This needs fixing for sdists
+            # This is an emergency fix for #11847, which reports that
+            # distributions get downloaded twice when metadata is loaded
+            # from a PEP 658 standalone metadata file. Setting _downloaded
+            # fixes this for wheels, but breaks the sdist case (tests
+            # test_download_metadata). As PyPI is currently only serving
+            # metadata for wheels, this is not an immediate issue.
+            # Fixing the problem properly looks like it will require a
+            # complete refactoring of the `prepare_linked_requirements_more`
+            # logic, and I haven't a clue where to start on that, so for now
+            # I have fixed the issue *just* for wheels.
+            if req.is_wheel:
+                self._downloaded[req.link.url] = filepath
 
         # This step is necessary to ensure all lazy wheels are processed
         # successfully by the 'download', 'wheel', and 'install' commands.

@@ -44,15 +44,10 @@ complete -fa "(__fish_complete_pip)" -c pip""",
     (
         "zsh",
         """\
-function _pip_completion {
-  local words cword
-  read -Ac words
-  read -cn cword
-  reply=( $( COMP_WORDS="$words[*]" \\
-             COMP_CWORD=$(( cword-1 )) \\
-             PIP_AUTO_COMPLETE=1 $words[1] 2>/dev/null ))
-}
-compctl -K _pip_completion pip""",
+#compdef -P pip[0-9.]#
+compadd $( COMP_WORDS="$words[*]" \\
+           COMP_CWORD=$((CURRENT-1)) \\
+           PIP_AUTO_COMPLETE=1 $words[1] 2>/dev/null )""",
     ),
     (
         "powershell",
@@ -392,7 +387,8 @@ def test_completion_path_after_option(
     )
 
 
-@pytest.mark.parametrize("flag", ["--bash", "--zsh", "--fish", "--powershell"])
+# zsh completion script doesn't contain pip3
+@pytest.mark.parametrize("flag", ["--bash", "--fish", "--powershell"])
 def test_completion_uses_same_executable_name(
     autocomplete_script: PipTestEnvironment, flag: str, deprecated_python: bool
 ) -> None:
