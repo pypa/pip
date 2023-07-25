@@ -64,14 +64,26 @@ def test_install_report_dep(
     assert _install_dict(report)["simple"]["requested"] is False
 
 
+@pytest.mark.parametrize(
+    "specifiers",
+    [
+        # result should be the same regardless of the method and order in which
+        # extras are specified
+        ("Paste[openid]==1.7.5.1",),
+        ("Paste==1.7.5.1", "Paste[openid]==1.7.5.1"),
+        ("Paste[openid]==1.7.5.1", "Paste==1.7.5.1"),
+    ],
+)
 @pytest.mark.network
-def test_install_report_index(script: PipTestEnvironment, tmp_path: Path) -> None:
+def test_install_report_index(
+    script: PipTestEnvironment, tmp_path: Path, specifiers: tuple[str, ...]
+) -> None:
     """Test report for sdist obtained from index."""
     report_path = tmp_path / "report.json"
     script.pip(
         "install",
         "--dry-run",
-        "Paste[openid]==1.7.5.1",
+        *specifiers,
         "--report",
         str(report_path),
     )
