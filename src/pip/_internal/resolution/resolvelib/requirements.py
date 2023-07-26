@@ -56,7 +56,7 @@ class SpecifierRequirement(Requirement):
         self._extras = frozenset(self._ireq.extras)
 
     def __str__(self) -> str:
-        return str(self._ireq)
+        return str(self._ireq.req)
 
     def __repr__(self) -> str:
         return "{class_name}({requirement!r})".format(
@@ -71,10 +71,7 @@ class SpecifierRequirement(Requirement):
 
     @property
     def name(self) -> str:
-        return format_name(
-            self.project_name,
-            self._extras,
-        )
+        return format_name(self.project_name, self._extras)
 
     def format_for_error(self) -> str:
         # Convert comma-separated specifiers into "A, B, ..., F and G"
