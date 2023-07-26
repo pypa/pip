@@ -2294,7 +2294,8 @@ def test_new_resolver_dont_backtrack_on_extra_if_base_constrained_in_requirement
     )
 
     to_install: tuple[str, str] = (
-        "pkg[ext1]", "pkg[ext2]==1.0" if two_extras else "pkg==1.0"
+        "pkg[ext1]",
+        "pkg[ext2]==1.0" if two_extras else "pkg==1.0",
     )
 
     result = script.pip(
@@ -2331,7 +2332,8 @@ def test_new_resolver_dont_backtrack_on_conflicting_constraints_on_extras(
     )
 
     to_install: tuple[str, str] = (
-        "pkg[ext1]>1", "pkg[ext2]==1.0" if two_extras else "pkg==1.0"
+        "pkg[ext1]>1",
+        "pkg[ext2]==1.0" if two_extras else "pkg==1.0",
     )
 
     result = script.pip(
@@ -2343,15 +2345,15 @@ def test_new_resolver_dont_backtrack_on_conflicting_constraints_on_extras(
         *(to_install if not swap_order else reversed(to_install)),
         expect_error=True,
     )
-    assert "pkg-2.0" not in result.stdout or "pkg-1.0" not in result.stdout, (
-        "Should only try one of 1.0, 2.0 depending on order"
-    )
-    assert "looking at multiple versions" not in result.stdout, (
-        "Should not have to look at multiple versions to conclude conflict"
-    )
-    assert "conflict is caused by" in result.stdout, (
-        "Resolver should be trivially able to find conflict cause"
-    )
+    assert (
+        "pkg-2.0" not in result.stdout or "pkg-1.0" not in result.stdout
+    ), "Should only try one of 1.0, 2.0 depending on order"
+    assert (
+        "looking at multiple versions" not in result.stdout
+    ), "Should not have to look at multiple versions to conclude conflict"
+    assert (
+        "conflict is caused by" in result.stdout
+    ), "Resolver should be trivially able to find conflict cause"
 
 
 def test_new_resolver_respect_user_requested_if_extra_is_installed(

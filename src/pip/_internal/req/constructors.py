@@ -16,7 +16,7 @@ from typing import Collection, Dict, List, Optional, Set, Tuple, Union
 
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
-from pip._vendor.packaging.specifiers import Specifier, SpecifierSet
+from pip._vendor.packaging.specifiers import Specifier
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.models.index import PyPI, TestPyPI
@@ -72,11 +72,7 @@ def _set_requirement_extras(req: Requirement, new_extras: Set[str]) -> Requireme
     pre: Optional[str] = match.group(1)
     post: Optional[str] = match.group(3)
     assert pre is not None and post is not None
-    extras: str = (
-        "[%s]" % ",".join(sorted(new_extras))
-        if new_extras
-        else ""
-    )
+    extras: str = "[%s]" % ",".join(sorted(new_extras)) if new_extras else ""
     return Requirement(pre + extras + post)
 
 
@@ -537,9 +533,7 @@ def install_req_drop_extras(ireq: InstallRequirement) -> InstallRequirement:
     """
     return InstallRequirement(
         req=(
-            _set_requirement_extras(ireq.req, set())
-            if ireq.req is not None
-            else None
+            _set_requirement_extras(ireq.req, set()) if ireq.req is not None else None
         ),
         comes_from=ireq,
         editable=ireq.editable,
