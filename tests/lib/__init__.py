@@ -645,7 +645,7 @@ class PipTestEnvironment(TestFileEnvironment):
         cwd = cwd or self.cwd
         if sys.platform == "win32":
             # Partial fix for ScriptTest.run using `shell=True` on Windows.
-            args = tuple(re.sub("([&|()<>^])", r"^\1", str(a)) for a in args)
+            args = tuple(re.sub("([&|<>^])", r"^\1", str(a)) for a in args)
 
         if allow_error:
             kw["expect_error"] = True
