@@ -65,7 +65,10 @@ def _set_requirement_extras(req: Requirement, new_extras: Set[str]) -> Requireme
     are given).
     """
     match: Optional[re.Match[str]] = re.fullmatch(
-        r"([^;\[<>~=]+)(\[[^\]]*\])?(.*)", str(req)
+        # see https://peps.python.org/pep-0508/#complete-grammar
+        r"([\w\t .-]+)(\[[^\]]*\])?(.*)",
+        str(req),
+        flags=re.ASCII,
     )
     # ireq.req is a valid requirement so the regex should always match
     assert match is not None
