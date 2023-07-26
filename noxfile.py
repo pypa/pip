@@ -67,7 +67,7 @@ def should_update_common_wheels() -> bool:
 # -----------------------------------------------------------------------------
 # Development Commands
 # -----------------------------------------------------------------------------
-@nox.session(python=["3.7", "3.8", "3.9", "3.10", "3.11", "pypy3"])
+@nox.session(python=["3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "pypy3"])
 def test(session: nox.Session) -> None:
     # Get the common wheels.
     if should_update_common_wheels():
@@ -89,6 +89,7 @@ def test(session: nox.Session) -> None:
         shutil.rmtree(sdist_dir, ignore_errors=True)
 
     # fmt: off
+    session.install("setuptools")
     session.run(
         "python", "setup.py", "sdist", "--formats=zip", "--dist-dir", sdist_dir,
         silent=True,
@@ -351,6 +352,7 @@ def build_dists(session: nox.Session) -> List[str]:
         )
 
     session.log("# Build distributions")
+    session.install("setuptools", "wheel")
     session.run("python", "setup.py", "sdist", "bdist_wheel", silent=True)
     produced_dists = glob.glob("dist/*")
 
