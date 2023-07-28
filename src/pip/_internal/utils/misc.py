@@ -1,6 +1,5 @@
 import contextlib
 import errno
-import functools
 import getpass
 import hashlib
 import io
@@ -125,26 +124,6 @@ def get_prog() -> str:
     return "pip"
 
 
-def bare_exc_to_onexc(exc_val: BaseException) -> ExcInfo:
-    exc_ty = type(exc_val)
-    tb = exc_val.__traceback__
-    if tb is None:
-        import inspect
-
-        frame = inspect.currentframe()
-        assert frame is not None
-        tb = TracebackType(None, frame, frame.f_lasti, frame.f_lineno)
-    return (exc_ty, exc_val, tb)
-
-
-def extract_exc_info_arg(f: OnErr) -> OnExc:
-    def g(fn: FunctionType, p: Path, e: BaseException) -> Any:
-        info = bare_exc_to_onexc(e)
-        return f(fn, p, info)
-
-    return functools.update_wrapper(g, f)
-
-
 # Retry every half second for up to 3 seconds
 # Tenacity raises RetryError by default, explicitly raise the original exception
 @retry(reraise=True, stop=stop_after_delay(3), wait=wait_fixed(0.5))
@@ -157,10 +136,15 @@ def rmtree(
         onexc = _onerror_ignore
     if onexc is None:
         onexc = _onerror_reraise
-    handler: OnErr = partial(rmtree_errorhandler, onexc=onexc)
+    handler: OnErr = partial(
+        # `[func, path, Union[ExcInfo, BaseException]] -> Any` is equivalent to
+        # `Union[([func, path, ExcInfo] -> Any), ([func, path, BaseException] -> Any)]`.
+        cast(Union[OnExc, OnErr], rmtree_errorhandler),
+        onexc=onexc,
+    )
     if sys.version_info >= (3, 12):
-        exc_handler = extract_exc_info_arg(handler)
-        shutil.rmtree(dir, onexc=exc_handler)
+        # See https://docs.python.org/3.12/whatsnew/3.12.html#shutil.
+        shutil.rmtree(dir, onexc=handler)
     else:
         shutil.rmtree(dir, onerror=handler)
 
@@ -178,7 +162,7 @@ def rmtree_errorhandler(
     path: str,
     exc_info: Union[ExcInfo, BaseException],
     *,
-    onexc: Callable[..., Any] = _onerror_reraise,
+    onexc: OnExc = _onerror_reraise,
 ) -> None:
     """
     `rmtree` error handler to 'force' a file remove (i.e. like `rm -f`).
