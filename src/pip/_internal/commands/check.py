@@ -1,4 +1,6 @@
+import functools
 import logging
+import operator
 from optparse import Values
 from typing import Callable, List, Optional
 
@@ -41,7 +43,7 @@ class CheckCommand(Command):
         package_set, parsing_probs = create_package_set_from_installed()
         warn_legacy_versions_and_specifiers(package_set)
         should_ignore: Optional[Callable[[str], bool]] = (
-            (lambda p: p in options.ignore_packages)
+            functools.partial(operator.contains, options.ignore_packages)
             if options.ignore_packages
             else None
         )
