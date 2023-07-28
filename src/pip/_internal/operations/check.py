@@ -79,6 +79,7 @@ def check_package_set(
             name = canonicalize_name(req.name)
 
             if should_ignore_dependencies and should_ignore_dependencies(name):
+                logger.debug("%s was ignored because --recursive-ignore is set", name)
                 continue
 
             # Check if it's missing
