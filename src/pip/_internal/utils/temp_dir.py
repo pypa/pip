@@ -6,15 +6,13 @@ import tempfile
 import traceback
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
+from types import FunctionType
 from typing import (
     Any,
-    Callable,
     Dict,
     Generator,
     List,
     Optional,
-    Tuple,
-    Type,
     TypeVar,
     Union,
 )
@@ -189,22 +187,24 @@ class TempDirectory:
         errors: List[BaseException] = []
 
         def onerror(
-            func: Callable[[str], Any],
+            func: FunctionType,
             path: Path,
-            exc_info: Tuple[Type[BaseException], BaseException, Any],
+            exc_val: BaseException,
         ) -> None:
             """Log a warning for a `rmtree` error and continue"""
-            exc_val = "\n".join(traceback.format_exception_only(*exc_info[:2]))
-            exc_val = exc_val.rstrip()  # remove trailing new line
+            formatted_exc = "\n".join(
+                traceback.format_exception_only(type(exc_val), exc_val)
+            )
+            formatted_exc = formatted_exc.rstrip()  # remove trailing new line
             if func in (os.unlink, os.remove, os.rmdir):
                 logger.debug(
                     "Failed to remove a temporary file '%s' due to %s.\n",
                     path,
-                    exc_val,
+                    formatted_exc,
                 )
             else:
-                logger.debug("%s failed with %s.", func.__qualname__, exc_val)
-            errors.append(exc_info[1])
+                logger.debug("%s failed with %s.", func.__qualname__, formatted_exc)
+            errors.append(exc_val)
 
         if self.ignore_cleanup_errors:
             try:

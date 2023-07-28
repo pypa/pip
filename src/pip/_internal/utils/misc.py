@@ -130,7 +130,7 @@ def get_prog() -> str:
 def rmtree(
     dir: str,
     ignore_errors: bool = False,
-    onexc: Optional[OnErr] = None,
+    onexc: Optional[OnExc] = None,
 ) -> None:
     if ignore_errors:
         onexc = _onerror_ignore
@@ -158,8 +158,8 @@ def _onerror_reraise(*_args: Any) -> None:
 
 
 def rmtree_errorhandler(
-    func: Callable[..., Any],
-    path: str,
+    func: FunctionType,
+    path: Path,
     exc_info: Union[ExcInfo, BaseException],
     *,
     onexc: OnExc = _onerror_reraise,
@@ -193,6 +193,8 @@ def rmtree_errorhandler(
             except OSError:
                 pass
 
+    if not isinstance(exc_info, BaseException):
+        _, exc_info, _ = exc_info
     onexc(func, path, exc_info)
 
 
