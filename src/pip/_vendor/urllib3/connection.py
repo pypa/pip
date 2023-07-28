@@ -68,7 +68,7 @@ port_by_scheme = {"http": 80, "https": 443}
 
 # When it comes time to update this value as a part of regular maintenance
 # (ie test_recent_date is failing) update it to ~6 months before the current date.
-RECENT_DATE = datetime.date(2020, 7, 1)
+RECENT_DATE = datetime.date(2022, 1, 1)
 
 _CONTAINS_CONTROL_CHAR_RE = re.compile(r"[^-!#$%&'*+.^_`|~0-9a-zA-Z]")
 
@@ -229,6 +229,11 @@ class HTTPConnection(_HTTPConnection, object):
             )
 
     def request(self, method, url, body=None, headers=None):
+        # Update the inner socket's timeout value to send the request.
+        # This only triggers if the connection is re-used.
+        if getattr(self, "sock", None) is not None:
+            self.sock.settimeout(self.timeout)
+
         if headers is None:
             headers = {}
         else:

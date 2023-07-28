@@ -47,7 +47,6 @@ class Resolver(BaseResolver):
         ignore_requires_python: bool,
         force_reinstall: bool,
         upgrade_strategy: str,
-        suppress_build_failures: bool,
         py_version_info: Optional[Tuple[int, ...]] = None,
     ):
         super().__init__()
@@ -62,7 +61,6 @@ class Resolver(BaseResolver):
             force_reinstall=force_reinstall,
             ignore_installed=ignore_installed,
             ignore_requires_python=ignore_requires_python,
-            suppress_build_failures=suppress_build_failures,
             py_version_info=py_version_info,
         )
         self.ignore_dependencies = ignore_dependencies
@@ -90,9 +88,9 @@ class Resolver(BaseResolver):
         )
 
         try:
-            try_to_avoid_resolution_too_deep = 2000000
+            limit_how_complex_resolution_can_be = 200000
             result = self._result = resolver.resolve(
-                collected.requirements, max_rounds=try_to_avoid_resolution_too_deep
+                collected.requirements, max_rounds=limit_how_complex_resolution_can_be
             )
 
         except ResolutionImpossible as e:
@@ -161,6 +159,9 @@ class Resolver(BaseResolver):
 
         reqs = req_set.all_requirements
         self.factory.preparer.prepare_linked_requirements_more(reqs)
+        for req in reqs:
+            req.prepared = True
+            req.needs_more_preparation = False
         return req_set
 
     def get_installation_order(

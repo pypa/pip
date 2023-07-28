@@ -1,6 +1,5 @@
 import os
-
-from tests.lib.path import Path
+from pathlib import Path
 
 
 def make_file(path: str) -> None:

@@ -59,31 +59,6 @@ def make_option_group(group: Dict[str, Any], parser: ConfigOptionParser) -> Opti
     return option_group
 
 
-def check_install_build_global(
-    options: Values, check_options: Optional[Values] = None
-) -> None:
-    """Disable wheels if per-setup.py call options are set.
-
-    :param options: The OptionParser options to update.
-    :param check_options: The options to check, if not supplied defaults to
-        options.
-    """
-    if check_options is None:
-        check_options = options
-
-    def getname(n: str) -> Optional[Any]:
-        return getattr(check_options, n, None)
-
-    names = ["build_options", "global_options", "install_options"]
-    if any(map(getname, names)):
-        control = options.format_control
-        control.disallow_binaries()
-        logger.warning(
-            "Disabling all use of wheels due to the use of --build-option "
-            "/ --global-option / --install-option.",
-        )
-
-
 def check_dist_restriction(options: Values, check_target: bool = False) -> None:
     """Function for determining if custom platform options are allowed.
 
@@ -189,6 +164,21 @@ require_virtualenv: Callable[..., Option] = partial(
     ),
 )
 
+override_externally_managed: Callable[..., Option] = partial(
+    Option,
+    "--break-system-packages",
+    dest="override_externally_managed",
+    action="store_true",
+    help="Allow pip to modify an EXTERNALLY-MANAGED Python installation",
+)
+
+python: Callable[..., Option] = partial(
+    Option,
+    "--python",
+    dest="python",
+    help="Run pip with the specified Python interpreter.",
+)
+
 verbose: Callable[..., Option] = partial(
     Option,
     "-v",
@@ -260,6 +250,19 @@ no_input: Callable[..., Option] = partial(
     action="store_true",
     default=False,
     help="Disable prompting for input.",
+)
+
+keyring_provider: Callable[..., Option] = partial(
+    Option,
+    "--keyring-provider",
+    dest="keyring_provider",
+    choices=["auto", "disabled", "import", "subprocess"],
+    default="auto",
+    help=(
+        "Enable the credential lookup via the keyring library if user input is allowed."
+        " Specify which mechanism to use [disabled, import, subprocess]."
+        " (default: disabled)"
+    ),
 )
 
 proxy: Callable[..., Option] = partial(
@@ -780,10 +783,14 @@ def _handle_no_use_pep517(
         """
         raise_option_error(parser, option=option, msg=msg)
 
-    # If user doesn't wish to use pep517, we check if setuptools is installed
+    # If user doesn't wish to use pep517, we check if setuptools and wheel are installed
     # and raise error if it is not.
-    if not importlib.util.find_spec("setuptools"):
-        msg = "It is not possible to use --no-use-pep517 without setuptools installed."
+    packages = ("setuptools", "wheel")
+    if not all(importlib.util.find_spec(package) for package in packages):
+        msg = (
+            f"It is not possible to use --no-use-pep517 "
+            f"without {' and '.join(packages)} installed."
+        )
         raise_option_error(parser, option=option, msg=msg)
 
     # Otherwise, --no-use-pep517 was passed via the command-line.
@@ -821,11 +828,18 @@ def _handle_config_settings(
     if dest is None:
         dest = {}
         setattr(parser.values, option.dest, dest)
-    dest[key] = val
+    if key in dest:
+        if isinstance(dest[key], list):
+            dest[key].append(val)
+        else:
+            dest[key] = [dest[key], val]
+    else:
+        dest[key] = val
 
 
 config_settings: Callable[..., Option] = partial(
     Option,
+    "-C",
     "--config-settings",
     dest="config_settings",
     type=str,
@@ -835,19 +849,6 @@ config_settings: Callable[..., Option] = partial(
     help="Configuration settings to be passed to the PEP 517 build backend. "
     "Settings take the form KEY=VALUE. Use multiple --config-settings options "
     "to pass multiple keys to the backend.",
-)
-
-install_options: Callable[..., Option] = partial(
-    Option,
-    "--install-option",
-    dest="install_options",
-    action="append",
-    metavar="options",
-    help="Extra arguments to be supplied to the setup.py install "
-    'command (use like --install-option="--install-scripts=/usr/local/'
-    'bin"). Use multiple --install-option options to pass multiple '
-    "options to setup.py install. If you are using an option with a "
-    "directory path, be sure to use absolute path.",
 )
 
 build_options: Callable[..., Option] = partial(
@@ -993,6 +994,11 @@ no_python_version_warning: Callable[..., Option] = partial(
 )
 
 
+# Features that are now always on. A warning is printed if they are used.
+ALWAYS_ENABLED_FEATURES = [
+    "no-binary-enable-wheel-cache",  # always on since 23.1
+]
+
 use_new_feature: Callable[..., Option] = partial(
     Option,
     "--use-feature",
@@ -1000,7 +1006,11 @@ use_new_feature: Callable[..., Option] = partial(
     metavar="feature",
     action="append",
     default=[],
-    choices=["2020-resolver", "fast-deps", "truststore"],
+    choices=[
+        "fast-deps",
+        "truststore",
+    ]
+    + ALWAYS_ENABLED_FEATURES,
     help="Enable new functionality, that may be backward incompatible.",
 )
 
@@ -1013,8 +1023,6 @@ use_deprecated_feature: Callable[..., Option] = partial(
     default=[],
     choices=[
         "legacy-resolver",
-        "backtrack-on-build-failures",
-        "html5lib",
     ],
     help=("Enable deprecated functionality, that will be removed in the future."),
 )
@@ -1031,11 +1039,13 @@ general_group: Dict[str, Any] = {
         debug_mode,
         isolated_mode,
         require_virtualenv,
+        python,
         verbose,
         version,
         quiet,
         log,
         no_input,
+        keyring_provider,
         proxy,
         retries,
         timeout,

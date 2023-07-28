@@ -1,5 +1,6 @@
 import os
 import tempfile
+from pathlib import Path
 
 import pytest
 from pip._vendor.packaging.requirements import Requirement
@@ -10,7 +11,6 @@ from pip._internal.req.constructors import (
     install_req_from_req_string,
 )
 from pip._internal.req.req_install import InstallRequirement
-from tests.lib.path import Path
 
 
 class TestInstallRequirementBuildDirectory:
@@ -46,9 +46,7 @@ class TestInstallRequirementBuildDirectory:
         with open(setup_py_path, "w") as f:
             f.write("")
 
-        requirement = install_req_from_line(
-            str(install_dir).replace(os.sep, os.altsep or os.sep)
-        )
+        requirement = install_req_from_line(install_dir.as_posix())
 
         assert requirement.link is not None
 

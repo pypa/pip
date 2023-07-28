@@ -1,6 +1,7 @@
 """Automation using nox.
 """
 
+import argparse
 import glob
 import os
 import shutil
@@ -66,7 +67,7 @@ def should_update_common_wheels() -> bool:
 # -----------------------------------------------------------------------------
 # Development Commands
 # -----------------------------------------------------------------------------
-@nox.session(python=["3.7", "3.8", "3.9", "3.10", "pypy3"])
+@nox.session(python=["3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "pypy3"])
 def test(session: nox.Session) -> None:
     # Get the common wheels.
     if should_update_common_wheels():
@@ -88,6 +89,7 @@ def test(session: nox.Session) -> None:
         shutil.rmtree(sdist_dir, ignore_errors=True)
 
     # fmt: off
+    session.install("setuptools")
     session.run(
         "python", "setup.py", "sdist", "--formats=zip", "--dist-dir", sdist_dir,
         silent=True,
@@ -115,7 +117,6 @@ def test(session: nox.Session) -> None:
         *arguments,
         env={
             "LC_CTYPE": "en_US.UTF-8",
-            "SETUPTOOLS_USE_DISTUTILS": "stdlib",
         },
     )
 
@@ -133,6 +134,7 @@ def docs(session: nox.Session) -> None:
         # fmt: off
         return [
             "sphinx-build",
+            "--keep-going",
             "-W",
             "-c", "docs/html",  # see note above
             "-d", "docs/build/doctrees/" + kind,
@@ -173,11 +175,24 @@ def lint(session: nox.Session) -> None:
     session.run("pre-commit", "run", *args)
 
 
+# NOTE: This session will COMMIT upgrades to vendored libraries.
+# You should therefore not run it directly against `main`. If you
+# do (assuming you started with a clean main), you can run:
+#
+# git checkout -b vendoring-updates
+# git checkout main
+# git reset --hard origin/main
 @nox.session
 def vendoring(session: nox.Session) -> None:
     session.install("vendoring~=1.2.0")
 
-    if "--upgrade" not in session.posargs:
+    parser = argparse.ArgumentParser(prog="nox -s vendoring")
+    parser.add_argument("--upgrade-all", action="store_true")
+    parser.add_argument("--upgrade", action="append", default=[])
+    parser.add_argument("--skip", action="append", default=[])
+    args = parser.parse_args(session.posargs)
+
+    if not (args.upgrade or args.upgrade_all):
         session.run("vendoring", "sync", "-v")
         return
 
@@ -193,7 +208,9 @@ def vendoring(session: nox.Session) -> None:
 
     vendor_txt = Path("src/pip/_vendor/vendor.txt")
     for name, old_version in pinned_requirements(vendor_txt):
-        if name == "setuptools":
+        if name in args.skip:
+            continue
+        if args.upgrade and name not in args.upgrade:
             continue
 
         # update requirements.txt
@@ -203,7 +220,7 @@ def vendoring(session: nox.Session) -> None:
         new_version = old_version
         for inner_name, inner_version in pinned_requirements(vendor_txt):
             if inner_name == name:
-                # this is a dedicated assignment, to make flake8 happy
+                # this is a dedicated assignment, to make lint happy
                 new_version = inner_version
                 break
         else:
@@ -229,15 +246,22 @@ def vendoring(session: nox.Session) -> None:
 
 @nox.session
 def coverage(session: nox.Session) -> None:
-    if not os.path.exists("./.coverage-output"):
-        os.mkdir("./.coverage-output")
+    # Install source distribution
+    run_with_protected_pip(session, "install", ".")
+
+    # Install test dependencies
+    run_with_protected_pip(session, "install", "-r", REQUIREMENTS["tests"])
+
+    if not os.path.exists(".coverage-output"):
+        os.mkdir(".coverage-output")
     session.run(
         "pytest",
         "--cov=pip",
         "--cov-config=./setup.cfg",
+        *session.posargs,
         env={
             "COVERAGE_OUTPUT_DIR": "./.coverage-output",
-            "COVERAGE_PROCESS_START": "./setup.cfg",
+            "COVERAGE_PROCESS_START": os.fsdecode(Path("setup.cfg").resolve()),
         },
     )
 
@@ -328,6 +352,7 @@ def build_dists(session: nox.Session) -> List[str]:
         )
 
     session.log("# Build distributions")
+    session.install("setuptools", "wheel")
     session.run("python", "setup.py", "sdist", "bdist_wheel", silent=True)
     produced_dists = glob.glob("dist/*")
 

@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import pytest
@@ -10,9 +12,7 @@ from tests.lib import (
     TestData,
     create_basic_wheel_for_package,
     make_test_finder,
-    path_to_url,
 )
-from tests.lib.path import Path
 
 
 def make_project(
@@ -38,7 +38,7 @@ def test_backend(tmpdir: Path, data: TestData) -> None:
     """Check we can call a requirement's backend successfully"""
     project_dir = make_project(tmpdir, backend="dummy_backend")
     req = InstallRequirement(None, None)
-    req.source_dir = project_dir  # make req believe it has been unpacked
+    req.source_dir = os.fspath(project_dir)  # make req believe it has been unpacked
     req.load_pyproject_toml()
     env = BuildEnvironment()
     finder = make_test_finder(find_links=[data.backends])
@@ -66,7 +66,7 @@ def test_backend_path(tmpdir: Path, data: TestData) -> None:
     project_dir = make_project(tmpdir, backend="dummy_backend", backend_path=["."])
     (project_dir / "dummy_backend.py").write_text(dummy_backend_code)
     req = InstallRequirement(None, None)
-    req.source_dir = project_dir  # make req believe it has been unpacked
+    req.source_dir = os.fspath(project_dir)  # make req believe it has been unpacked
     req.load_pyproject_toml()
 
     env = BuildEnvironment()
@@ -85,7 +85,7 @@ def test_backend_path_and_dep(tmpdir: Path, data: TestData) -> None:
         "from dummy_backend import build_wheel"
     )
     req = InstallRequirement(None, None)
-    req.source_dir = project_dir  # make req believe it has been unpacked
+    req.source_dir = os.fspath(project_dir)  # make req believe it has been unpacked
     req.load_pyproject_toml()
     env = BuildEnvironment()
     finder = make_test_finder(find_links=[data.backends])
@@ -161,7 +161,7 @@ def test_conflicting_pep517_backend_requirements(
     msg = (
         "Some build dependencies for {url} conflict with the backend "
         "dependencies: simplewheel==1.0 is incompatible with "
-        "simplewheel==2.0.".format(url=path_to_url(project_dir))
+        "simplewheel==2.0.".format(url=project_dir.as_uri())
     )
     assert result.returncode != 0 and msg in result.stderr, str(result)
 
@@ -206,7 +206,7 @@ def test_validate_missing_pep517_backend_requirements(
     )
     msg = (
         "Some build dependencies for {url} are missing: "
-        "'simplewheel==1.0', 'test_backend'.".format(url=path_to_url(project_dir))
+        "'simplewheel==1.0', 'test_backend'.".format(url=project_dir.as_uri())
     )
     assert result.returncode != 0 and msg in result.stderr, str(result)
 
@@ -233,7 +233,7 @@ def test_validate_conflicting_pep517_backend_requirements(
     msg = (
         "Some build dependencies for {url} conflict with the backend "
         "dependencies: simplewheel==2.0 is incompatible with "
-        "simplewheel==1.0.".format(url=path_to_url(project_dir))
+        "simplewheel==1.0.".format(url=project_dir.as_uri())
     )
     assert result.returncode != 0 and msg in result.stderr, str(result)
 

@@ -9,6 +9,7 @@ import stat
 import sys
 import time
 from io import BytesIO
+from pathlib import Path
 from typing import Any, Callable, Iterator, List, NoReturn, Optional, Tuple, Type
 from unittest.mock import Mock, patch
 
@@ -46,14 +47,12 @@ from pip._internal.utils.misc import (
     tabulate,
 )
 from pip._internal.utils.setuptools_build import make_setuptools_shim_args
-from tests.lib.path import Path
 
 
 class Tests_EgglinkPath:
     "util.egg_link_path_from_location() tests"
 
-    def setup(self) -> None:
-
+    def setup_method(self) -> None:
         project = "foo"
 
         self.mock_dist = Mock(project_name=project)
@@ -81,7 +80,7 @@ class Tests_EgglinkPath:
         self.old_isfile = path.isfile
         self.mock_isfile = path.isfile = Mock()
 
-    def teardown(self) -> None:
+    def teardown_method(self) -> None:
         from pip._internal.utils import egg_link as utils
 
         utils.site_packages = self.old_site_packages
@@ -258,9 +257,13 @@ def test_rmtree_errorhandler_reraises_error(tmpdir: Path) -> None:
     except RuntimeError:
         # Make sure the handler reraises an exception
         with pytest.raises(RuntimeError, match="test message"):
-            # Argument 3 to "rmtree_errorhandler" has incompatible type "None"; expected
-            # "Tuple[Type[BaseException], BaseException, TracebackType]"
-            rmtree_errorhandler(mock_func, path, None)  # type: ignore[arg-type]
+            # Argument 3 to "rmtree_errorhandler" has incompatible type
+            # "Union[Tuple[Type[BaseException], BaseException, TracebackType],
+            # Tuple[None, None, None]]"; expected "Tuple[Type[BaseException],
+            # BaseException, TracebackType]"
+            rmtree_errorhandler(
+                mock_func, path, sys.exc_info()  # type: ignore[arg-type]
+            )
 
     mock_func.assert_not_called()
 
@@ -389,7 +392,7 @@ class TestHashes:
                 "md5": ["5d41402abc4b2a76b9719d911017c592"],
             }
         )
-        hashes.check_against_path(file)
+        hashes.check_against_path(os.fspath(file))
 
     def test_failure(self) -> None:
         """Hashes should raise HashMismatch when no hashes match."""
@@ -425,6 +428,14 @@ class TestHashes:
         cache = {}
         cache[Hashes({"sha256": ["ab", "cd"]})] = 42
         assert cache[Hashes({"sha256": ["ab", "cd"]})] == 42
+
+    def test_has_one_of(self) -> None:
+        hashes = Hashes({"sha256": ["abcd", "efgh"], "sha384": ["ijkl"]})
+        assert hashes.has_one_of({"sha256": "abcd"})
+        assert hashes.has_one_of({"sha256": "efgh"})
+        assert not hashes.has_one_of({"sha256": "xyzt"})
+        empty_hashes = Hashes()
+        assert not empty_hashes.has_one_of({"sha256": "xyzt"})
 
 
 class TestEncoding:

@@ -4,13 +4,13 @@ Contains functional tests of the Bazaar class.
 
 import os
 import sys
+from pathlib import Path
 
 import pytest
 
 from pip._internal.vcs.bazaar import Bazaar
 from pip._internal.vcs.versioncontrol import RemoteNotFoundError
 from tests.lib import PipTestEnvironment, is_bzr_installed, need_bzr
-from tests.lib.path import Path
 
 
 @pytest.mark.skipif(
@@ -27,7 +27,7 @@ def test_get_remote_url__no_remote(script: PipTestEnvironment, tmpdir: Path) -> 
     repo_dir = tmpdir / "temp-repo"
     repo_dir.mkdir()
 
-    script.run("bzr", "init", repo_dir)
+    script.run("bzr", "init", os.fspath(repo_dir))
 
     with pytest.raises(RemoteNotFoundError):
-        Bazaar().get_remote_url(repo_dir)
+        Bazaar().get_remote_url(os.fspath(repo_dir))

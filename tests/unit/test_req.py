@@ -5,6 +5,7 @@ import shutil
 import sys
 import tempfile
 from functools import partial
+from pathlib import Path
 from typing import Iterator, Optional, Tuple, cast
 from unittest import mock
 
@@ -24,7 +25,6 @@ from pip._internal.exceptions import (
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import select_backend
 from pip._internal.models.direct_url import ArchiveInfo, DirectUrl, DirInfo, VcsInfo
-from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
 from pip._internal.network.session import PipSession
 from pip._internal.operations.build.build_tracker import get_build_tracker
@@ -45,9 +45,7 @@ from pip._internal.req.req_file import (
     handle_requirement_line,
 )
 from pip._internal.resolution.legacy.resolver import Resolver
-from pip._internal.utils.urls import path_to_url
 from tests.lib import TestData, make_test_finder, requirements_file, wheel
-from tests.lib.path import Path
 
 
 def get_processed_req_from_line(
@@ -72,10 +70,10 @@ def get_processed_req_from_line(
 class TestRequirementSet:
     """RequirementSet tests"""
 
-    def setup(self) -> None:
+    def setup_method(self) -> None:
         self.tempdir = tempfile.mkdtemp()
 
-    def teardown(self) -> None:
+    def teardown_method(self) -> None:
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
     @contextlib.contextmanager
@@ -107,6 +105,7 @@ class TestRequirementSet:
                 use_user_site=False,
                 lazy_wheel=False,
                 verbosity=0,
+                legacy_resolver=True,
             )
             yield Resolver(
                 preparer=preparer,
@@ -150,7 +149,9 @@ class TestRequirementSet:
         non-wheel installs.
         """
         reqset = RequirementSet()
-        req = install_req_from_editable(data.packages.joinpath("LocalEnvironMarker"))
+        req = install_req_from_editable(
+            os.fspath(data.packages.joinpath("LocalEnvironMarker")),
+        )
         req.user_supplied = True
         reqset.add_unnamed_requirement(req)
         finder = make_test_finder(find_links=[data.find_links])
@@ -191,7 +192,7 @@ class TestRequirementSet:
         session = finder._link_collector.session
         command = cast(InstallCommand, create_command("install"))
         with requirements_file("--require-hashes", tmpdir) as reqs_file:
-            options, args = command.parse_args(["-r", reqs_file])
+            options, args = command.parse_args(["-r", os.fspath(reqs_file)])
             command.get_requirements(args, options, finder, session)
         assert options.require_hashes
 
@@ -275,7 +276,7 @@ class TestRequirementSet:
 
     def test_hash_mismatch(self, data: TestData) -> None:
         """A hash mismatch should raise an error."""
-        file_url = path_to_url((data.packages / "simple-1.0.tar.gz").resolve())
+        file_url = data.packages.joinpath("simple-1.0.tar.gz").resolve().as_uri()
         reqset = RequirementSet()
         reqset.add_unnamed_requirement(
             get_processed_req_from_line(
@@ -400,9 +401,9 @@ class TestRequirementSet:
         self, tmp_path: Path, shared_data: TestData
     ) -> None:
         """Test download_info hash is not set for an archive with legacy cache entry."""
-        url = path_to_url(shared_data.packages / "simple-1.0.tar.gz")
+        url = shared_data.packages.joinpath("simple-1.0.tar.gz").as_uri()
         finder = make_test_finder()
-        wheel_cache = WheelCache(str(tmp_path / "cache"), FormatControl())
+        wheel_cache = WheelCache(str(tmp_path / "cache"))
         cache_entry_dir = wheel_cache.get_path_for_link(Link(url))
         Path(cache_entry_dir).mkdir(parents=True)
         wheel.make_wheel(name="simple", version="1.0").save_to_dir(cache_entry_dir)
@@ -411,7 +412,8 @@ class TestRequirementSet:
             reqset = resolver.resolve([ireq], True)
             assert len(reqset.all_requirements) == 1
             req = reqset.all_requirements[0]
-            assert req.original_link_is_in_wheel_cache
+            assert req.is_wheel_from_cache
+            assert req.cached_wheel_source_link
             assert req.download_info
             assert req.download_info.url == url
             assert isinstance(req.download_info.info, ArchiveInfo)
@@ -422,10 +424,10 @@ class TestRequirementSet:
     ) -> None:
         """Test download_info hash is set for a web archive with cache entry
         that has origin.json."""
-        url = path_to_url(shared_data.packages / "simple-1.0.tar.gz")
+        url = shared_data.packages.joinpath("simple-1.0.tar.gz").as_uri()
         hash = "sha256=ad977496000576e1b6c41f6449a9897087ce9da6db4f15b603fe8372af4bf3c6"
         finder = make_test_finder()
-        wheel_cache = WheelCache(str(tmp_path / "cache"), FormatControl())
+        wheel_cache = WheelCache(str(tmp_path / "cache"))
         cache_entry_dir = wheel_cache.get_path_for_link(Link(url))
         Path(cache_entry_dir).mkdir(parents=True)
         Path(cache_entry_dir).joinpath("origin.json").write_text(
@@ -437,11 +439,31 @@ class TestRequirementSet:
             reqset = resolver.resolve([ireq], True)
             assert len(reqset.all_requirements) == 1
             req = reqset.all_requirements[0]
-            assert req.original_link_is_in_wheel_cache
+            assert req.is_wheel_from_cache
+            assert req.cached_wheel_source_link
             assert req.download_info
             assert req.download_info.url == url
             assert isinstance(req.download_info.info, ArchiveInfo)
             assert req.download_info.info.hash == hash
+
+    def test_download_info_archive_cache_with_invalid_origin(
+        self, tmp_path: Path, shared_data: TestData, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test an invalid origin.json is ignored."""
+        url = shared_data.packages.joinpath("simple-1.0.tar.gz").as_uri()
+        finder = make_test_finder()
+        wheel_cache = WheelCache(str(tmp_path / "cache"))
+        cache_entry_dir = wheel_cache.get_path_for_link(Link(url))
+        Path(cache_entry_dir).mkdir(parents=True)
+        Path(cache_entry_dir).joinpath("origin.json").write_text("{")  # invalid json
+        wheel.make_wheel(name="simple", version="1.0").save_to_dir(cache_entry_dir)
+        with self._basic_resolver(finder, wheel_cache=wheel_cache) as resolver:
+            ireq = get_processed_req_from_line(f"simple @ {url}")
+            reqset = resolver.resolve([ireq], True)
+            assert len(reqset.all_requirements) == 1
+            req = reqset.all_requirements[0]
+            assert req.is_wheel_from_cache
+            assert "Ignoring invalid cache entry origin file" in caplog.messages[0]
 
     def test_download_info_local_wheel(self, data: TestData) -> None:
         """Test that download_info is set for requirements from a local wheel."""
@@ -465,7 +487,7 @@ class TestRequirementSet:
         """Test that download_info is set for requirements from a local dir."""
         finder = make_test_finder()
         with self._basic_resolver(finder) as resolver:
-            ireq_url = path_to_url(data.packages / "FSPkg")
+            ireq_url = data.packages.joinpath("FSPkg").as_uri()
             ireq = get_processed_req_from_line(f"FSPkg @ {ireq_url}")
             reqset = resolver.resolve([ireq], True)
             assert len(reqset.all_requirements) == 1
@@ -478,7 +500,7 @@ class TestRequirementSet:
         """Test that download_info is set for requirements from a local editable dir."""
         finder = make_test_finder()
         with self._basic_resolver(finder) as resolver:
-            ireq_url = path_to_url(data.packages / "FSPkg")
+            ireq_url = data.packages.joinpath("FSPkg").as_uri()
             ireq = get_processed_req_from_line(f"-e {ireq_url}#egg=FSPkg")
             reqset = resolver.resolve([ireq], True)
             assert len(reqset.all_requirements) == 1
@@ -506,10 +528,10 @@ class TestRequirementSet:
 
 
 class TestInstallRequirement:
-    def setup(self) -> None:
+    def setup_method(self) -> None:
         self.tempdir = tempfile.mkdtemp()
 
-    def teardown(self) -> None:
+    def teardown_method(self) -> None:
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
     def test_url_with_query(self) -> None:
@@ -909,9 +931,8 @@ def test_get_url_from_path__archive_file(
     isdir_mock.return_value = False
     isfile_mock.return_value = True
     name = "simple-0.1-py2.py3-none-any.whl"
-    path = os.path.join("/path/to/" + name)
-    url = path_to_url(path)
-    assert _get_url_from_path(path, name) == url
+    url = Path(f"/path/to/{name}").resolve(strict=False).as_uri()
+    assert _get_url_from_path(f"/path/to/{name}", name) == url
 
 
 @mock.patch("pip._internal.req.req_install.os.path.isdir")
@@ -922,9 +943,8 @@ def test_get_url_from_path__installable_dir(
     isdir_mock.return_value = True
     isfile_mock.return_value = True
     name = "some/setuptools/project"
-    path = os.path.join("/path/to/" + name)
-    url = path_to_url(path)
-    assert _get_url_from_path(path, name) == url
+    url = Path(f"/path/to/{name}").resolve(strict=False).as_uri()
+    assert _get_url_from_path(f"/path/to/{name}", name) == url
 
 
 @mock.patch("pip._internal.req.req_install.os.path.isdir")

@@ -133,7 +133,7 @@ class UpgradePrompt:
         return Group(
             Text(),
             Text.from_markup(
-                f"{notice} A new release of pip available: "
+                f"{notice} A new release of pip is available: "
                 f"[red]{self.old}[reset] -> [green]{self.new}[reset]"
             ),
             Text.from_markup(
@@ -155,7 +155,7 @@ def was_installed_by_pip(pkg: str) -> bool:
 
 def _get_current_remote_pip_version(
     session: PipSession, options: optparse.Values
-) -> str:
+) -> Optional[str]:
     # Lets use PackageFinder to see what the latest pip version is
     link_collector = LinkCollector.create(
         session,
@@ -173,11 +173,10 @@ def _get_current_remote_pip_version(
     finder = PackageFinder.create(
         link_collector=link_collector,
         selection_prefs=selection_prefs,
-        use_deprecated_html5lib=("html5lib" in options.deprecated_features_enabled),
     )
     best_candidate = finder.find_best_candidate("pip").best_candidate
     if best_candidate is None:
-        return
+        return None
 
     return str(best_candidate.version)
 
@@ -187,11 +186,14 @@ def _self_version_check_logic(
     state: SelfCheckState,
     current_time: datetime.datetime,
     local_version: DistributionVersion,
-    get_remote_version: Callable[[], str],
+    get_remote_version: Callable[[], Optional[str]],
 ) -> Optional[UpgradePrompt]:
     remote_version_str = state.get(current_time)
     if remote_version_str is None:
         remote_version_str = get_remote_version()
+        if remote_version_str is None:
+            logger.debug("No remote pip version found")
+            return None
         state.set(remote_version_str, current_time)
 
     remote_version = parse_version(remote_version_str)
@@ -234,7 +236,7 @@ def pip_self_version_check(session: PipSession, options: optparse.Values) -> Non
             ),
         )
         if upgrade_prompt is not None:
-            logger.info("[present-rich] %s", upgrade_prompt)
+            logger.warning("[present-rich] %s", upgrade_prompt)
     except Exception:
         logger.warning("There was an error checking the latest version of pip.")
         logger.debug("See below for error", exc_info=True)

@@ -1,9 +1,9 @@
 import inspect
-import io
 import os
 import platform
 import sys
 import threading
+import zlib
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -12,6 +12,7 @@ from getpass import getpass
 from html import escape
 from inspect import isclass
 from itertools import islice
+from math import ceil
 from time import monotonic
 from types import FrameType, ModuleType, TracebackType
 from typing import (
@@ -32,6 +33,8 @@ from typing import (
     cast,
 )
 
+from pip._vendor.rich._null_file import NULL_FILE
+
 if sys.version_info >= (3, 8):
     from typing import Literal, Protocol, runtime_checkable
 else:
@@ -43,9 +46,11 @@ else:
 
 from . import errors, themes
 from ._emoji_replace import _emoji_replace
+from ._export_format import CONSOLE_HTML_FORMAT, CONSOLE_SVG_FORMAT
+from ._fileno import get_fileno
 from ._log_render import FormatTimeCallable, LogRender
 from .align import Align, AlignMethod
-from .color import ColorSystem
+from .color import ColorSystem, blend_rgb
 from .control import Control
 from .emoji import EmojiVariant
 from .highlighter import NullHighlighter, ReprHighlighter
@@ -69,6 +74,8 @@ if TYPE_CHECKING:
     from .live import Live
     from .status import Status
 
+JUPYTER_DEFAULT_COLUMNS = 115
+JUPYTER_DEFAULT_LINES = 100
 WINDOWS = platform.system() == "Windows"
 
 HighlighterType = Callable[[Union[str, "Text"]], "Text"]
@@ -83,160 +90,27 @@ class NoChange:
 NO_CHANGE = NoChange()
 
 try:
+    _STDIN_FILENO = sys.__stdin__.fileno()
+except Exception:
+    _STDIN_FILENO = 0
+try:
     _STDOUT_FILENO = sys.__stdout__.fileno()
 except Exception:
     _STDOUT_FILENO = 1
-
 try:
     _STDERR_FILENO = sys.__stderr__.fileno()
 except Exception:
     _STDERR_FILENO = 2
 
-_STD_STREAMS = (_STDOUT_FILENO, _STDERR_FILENO)
+_STD_STREAMS = (_STDIN_FILENO, _STDOUT_FILENO, _STDERR_FILENO)
+_STD_STREAMS_OUTPUT = (_STDOUT_FILENO, _STDERR_FILENO)
 
-CONSOLE_HTML_FORMAT = """\
-<!DOCTYPE html>
-<head>
-<meta charset="UTF-8">
-<style>
-{stylesheet}
-body {{
-    color: {foreground};
-    background-color: {background};
-}}
-</style>
-</head>
-<html>
-<body>
-    <code>
-        <pre style="font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">{code}</pre>
-    </code>
-</body>
-</html>
-"""
 
-CONSOLE_SVG_FORMAT = """\
-<svg width="{total_width}" height="{total_height}" viewBox="0 0 {total_width} {total_height}"
-     xmlns="http://www.w3.org/2000/svg">
-    <style>
-        @font-face {{
-            font-family: "Fira Code";
-            src: local("FiraCode-Regular"),
-                 url("https://cdnjs.cloudflare.com/ajax/libs/firacode/6.2.0/woff2/FiraCode-Regular.woff2") format("woff2"),
-                 url("https://cdnjs.cloudflare.com/ajax/libs/firacode/6.2.0/woff/FiraCode-Regular.woff") format("woff");
-            font-style: normal;
-            font-weight: 400;
-        }}
-        @font-face {{
-            font-family: "Fira Code";
-            src: local("FiraCode-Bold"),
-                 url("https://cdnjs.cloudflare.com/ajax/libs/firacode/6.2.0/woff2/FiraCode-Bold.woff2") format("woff2"),
-                 url("https://cdnjs.cloudflare.com/ajax/libs/firacode/6.2.0/woff/FiraCode-Bold.woff") format("woff");
-            font-style: bold;
-            font-weight: 700;
-        }}
-        span {{
-            display: inline-block;
-            white-space: pre;
-            vertical-align: top;
-            font-size: {font_size}px;
-            font-family:'Fira Code','Cascadia Code',Monaco,Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace;
-        }}
-        a {{
-            text-decoration: none;
-            color: inherit;
-        }}
-        .blink {{
-           animation: blinker 1s infinite;
-        }}
-        @keyframes blinker {{
-            from {{ opacity: 1.0; }}
-            50% {{ opacity: 0.3; }}
-            to {{ opacity: 1.0; }}
-        }}
-        #wrapper {{
-            padding: {margin}px;
-            padding-top: 100px;
-        }}
-        #terminal {{
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background-color: {theme_background_color};
-            border-radius: 14px;
-            outline: 1px solid #484848;
-        }}
-        #terminal:after {{
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            content: '';
-            border-radius: 14px;
-            background: rgb(71,77,102);
-            background: linear-gradient(90deg, #804D69 0%, #4E4B89 100%);
-            transform: rotate(-4.5deg);
-            z-index: -1;
-        }}
-        #terminal-header {{
-            position: relative;
-            width: 100%;
-            background-color: #2e2e2e;
-            margin-bottom: 12px;
-            font-weight: bold;
-            border-radius: 14px 14px 0 0;
-            color: {theme_foreground_color};
-            font-size: 18px;
-            box-shadow: inset 0px -1px 0px 0px #4e4e4e,
-                        inset 0px -4px 8px 0px #1a1a1a;
-        }}
-        #terminal-title-tab {{
-            display: inline-block;
-            margin-top: 14px;
-            margin-left: 124px;
-            font-family: sans-serif;
-            padding: 14px 28px;
-            border-radius: 6px 6px 0 0;
-            background-color: {theme_background_color};
-            box-shadow: inset 0px 1px 0px 0px #4e4e4e,
-                        0px -4px 4px 0px #1e1e1e,
-                        inset 1px 0px 0px 0px #4e4e4e,
-                        inset -1px 0px 0px 0px #4e4e4e;
-        }}
-        #terminal-traffic-lights {{
-            position: absolute;
-            top: 24px;
-            left: 20px;
-        }}
-        #terminal-body {{
-            line-height: {line_height}px;
-            padding: 14px;
-        }}
-        {stylesheet}
-    </style>
-    <foreignObject x="0" y="0" width="100%" height="100%">
-        <body xmlns="http://www.w3.org/1999/xhtml">
-            <div id="wrapper">
-                <div id="terminal">
-                    <div id='terminal-header'>
-                        <svg id="terminal-traffic-lights" width="90" height="21" viewBox="0 0 90 21" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="14" cy="8" r="8" fill="#ff6159"/>
-                            <circle cx="38" cy="8" r="8" fill="#ffbd2e"/>
-                            <circle cx="62" cy="8" r="8" fill="#28c941"/>
-                        </svg>
-                        <div id="terminal-title-tab">{title}</div>
-                    </div>
-                    <div id='terminal-body'>
-                        {code}
-                    </div>
-                </div>
-            </div>
-        </body>
-    </foreignObject>
-</svg>
-"""
-
-_TERM_COLORS = {"256color": ColorSystem.EIGHT_BIT, "16color": ColorSystem.STANDARD}
+_TERM_COLORS = {
+    "kitty": ColorSystem.EIGHT_BIT,
+    "256color": ColorSystem.EIGHT_BIT,
+    "16color": ColorSystem.STANDARD,
+}
 
 
 class ConsoleDimensions(NamedTuple):
@@ -648,7 +522,11 @@ def _is_jupyter() -> bool:  # pragma: no cover
         return False
     ipython = get_ipython()  # type: ignore[name-defined]
     shell = ipython.__class__.__name__
-    if "google.colab" in str(ipython.__class__) or shell == "ZMQInteractiveShell":
+    if (
+        "google.colab" in str(ipython.__class__)
+        or os.getenv("DATABRICKS_RUNTIME_VERSION")
+        or shell == "ZMQInteractiveShell"
+    ):
         return True  # Jupyter notebook or qtconsole
     elif shell == "TerminalInteractiveShell":
         return False  # Terminal running IPython
@@ -790,12 +668,19 @@ class Console:
 
         self.is_jupyter = _is_jupyter() if force_jupyter is None else force_jupyter
         if self.is_jupyter:
-            width = width or 93
-            height = height or 100
+            if width is None:
+                jupyter_columns = self._environ.get("JUPYTER_COLUMNS")
+                if jupyter_columns is not None and jupyter_columns.isdigit():
+                    width = int(jupyter_columns)
+                else:
+                    width = JUPYTER_DEFAULT_COLUMNS
+            if height is None:
+                jupyter_lines = self._environ.get("JUPYTER_LINES")
+                if jupyter_lines is not None and jupyter_lines.isdigit():
+                    height = int(jupyter_lines)
+                else:
+                    height = JUPYTER_DEFAULT_LINES
 
-        self.soft_wrap = soft_wrap
-        self._width = width
-        self._height = height
         self.tab_size = tab_size
         self.record = record
         self._markup = markup
@@ -807,6 +692,7 @@ class Console:
             if legacy_windows is None
             else legacy_windows
         )
+
         if width is None:
             columns = self._environ.get("COLUMNS")
             if columns is not None and columns.isdigit():
@@ -821,7 +707,11 @@ class Console:
         self._height = height
 
         self._color_system: Optional[ColorSystem]
-        self._force_terminal = force_terminal
+
+        self._force_terminal = None
+        if force_terminal is not None:
+            self._force_terminal = force_terminal
+
         self._file = file
         self.quiet = quiet
         self.stderr = stderr
@@ -863,13 +753,15 @@ class Console:
         self._is_alt_screen = False
 
     def __repr__(self) -> str:
-        return f"<console width={self.width} {str(self._color_system)}>"
+        return f"<console width={self.width} {self._color_system!s}>"
 
     @property
     def file(self) -> IO[str]:
         """Get the file object to write to."""
         file = self._file or (sys.stderr if self.stderr else sys.stdout)
         file = getattr(file, "rich_proxied_file", file)
+        if file is None:
+            file = NULL_FILE
         return file
 
     @file.setter
@@ -1045,6 +937,23 @@ class Console:
         """
         if self._force_terminal is not None:
             return self._force_terminal
+
+        if hasattr(sys.stdin, "__module__") and sys.stdin.__module__.startswith(
+            "idlelib"
+        ):
+            # Return False for Idle which claims to be a tty but can't handle ansi codes
+            return False
+
+        if self.is_jupyter:
+            # return False for Jupyter, which may have FORCE_COLOR set
+            return False
+
+        # If FORCE_COLOR env var has any value at all, we assume a terminal.
+        force_color = self._environ.get("FORCE_COLOR")
+        if force_color is not None:
+            self._force_terminal = True
+            return True
+
         isatty: Optional[Callable[[], bool]] = getattr(self.file, "isatty", None)
         try:
             return False if isatty is None else isatty()
@@ -1099,16 +1008,16 @@ class Console:
         if WINDOWS:  # pragma: no cover
             try:
                 width, height = os.get_terminal_size()
-            except OSError:  # Probably not a terminal
+            except (AttributeError, ValueError, OSError):  # Probably not a terminal
                 pass
         else:
-            try:
-                width, height = os.get_terminal_size(sys.__stdin__.fileno())
-            except (AttributeError, ValueError, OSError):
+            for file_descriptor in _STD_STREAMS:
                 try:
-                    width, height = os.get_terminal_size(sys.__stdout__.fileno())
+                    width, height = os.get_terminal_size(file_descriptor)
                 except (AttributeError, ValueError, OSError):
                     pass
+                else:
+                    break
 
         columns = self._environ.get("COLUMNS")
         if columns is not None and columns.isdigit():
@@ -1242,7 +1151,7 @@ class Console:
         status: RenderableType,
         *,
         spinner: str = "dots",
-        spinner_style: str = "status.spinner",
+        spinner_style: StyleType = "status.spinner",
         speed: float = 1.0,
         refresh_per_second: float = 12.5,
     ) -> "Status":
@@ -1310,6 +1219,38 @@ class Console:
             bool: True if the alt screen was enabled, otherwise False.
         """
         return self._is_alt_screen
+
+    def set_window_title(self, title: str) -> bool:
+        """Set the title of the console terminal window.
+
+        Warning: There is no means within Rich of "resetting" the window title to its
+        previous value, meaning the title you set will persist even after your application
+        exits.
+
+        ``fish`` shell resets the window title before and after each command by default,
+        negating this issue. Windows Terminal and command prompt will also reset the title for you.
+        Most other shells and terminals, however, do not do this.
+
+        Some terminals may require configuration changes before you can set the title.
+        Some terminals may not support setting the title at all.
+
+        Other software (including the terminal itself, the shell, custom prompts, plugins, etc.)
+        may also set the terminal window title. This could result in whatever value you write
+        using this method being overwritten.
+
+        Args:
+            title (str): The new title of the terminal window.
+
+        Returns:
+            bool: True if the control code to change the terminal title was
+                written, otherwise False. Note that a return value of True
+                does not guarantee that the window title has actually changed,
+                since the feature may be unsupported/disabled in some terminals.
+        """
+        if self.is_terminal:
+            self.control(Control.title(title))
+            return True
+        return False
 
     def screen(
         self, hide_cursor: bool = True, style: Optional[StyleType] = None
@@ -1422,6 +1363,11 @@ class Console:
             _rendered = self.render(renderable, render_options)
             if style:
                 _rendered = Segment.apply_style(_rendered, style)
+
+            render_height = render_options.height
+            if render_height is not None:
+                render_height = max(0, render_height)
+
             lines = list(
                 islice(
                     Segment.split_and_crop_lines(
@@ -1429,9 +1375,10 @@ class Console:
                         render_options.max_width,
                         include_new_lines=new_lines,
                         pad=pad,
+                        style=style,
                     ),
                     None,
-                    render_options.height,
+                    render_height,
                 )
             )
             if render_options.height is not None:
@@ -1581,7 +1528,7 @@ class Console:
             if text:
                 sep_text = Text(sep, justify=justify, end=end)
                 append(sep_text.join(text))
-                del text[:]
+                text.clear()
 
         for renderable in objects:
             renderable = rich_cast(renderable)
@@ -1780,7 +1727,7 @@ class Console:
         indent: Union[None, int, str] = 2,
         highlight: bool = True,
         skip_keys: bool = False,
-        ensure_ascii: bool = True,
+        ensure_ascii: bool = False,
         check_circular: bool = True,
         allow_nan: bool = True,
         default: Optional[Callable[[Any], Any]] = None,
@@ -1901,7 +1848,7 @@ class Console:
         """Prints a rich render of the last exception and traceback.
 
         Args:
-            width (Optional[int], optional): Number of characters used to render code. Defaults to 88.
+            width (Optional[int], optional): Number of characters used to render code. Defaults to 100.
             extra_lines (int, optional): Additional lines of code to render. Defaults to 3.
             theme (str, optional): Override pygments theme used in traceback
             word_wrap (bool, optional): Enable word wrapping of long lines. Defaults to False.
@@ -1947,7 +1894,7 @@ class Console:
         frame = currentframe()
         if frame is not None:
             # Use the faster currentframe where implemented
-            while offset and frame:
+            while offset and frame is not None:
                 frame = frame.f_back
                 offset -= 1
             assert frame is not None
@@ -2049,12 +1996,11 @@ class Console:
             del self._buffer[:]
             return
         with self._lock:
+            if self.record:
+                with self._record_buffer_lock:
+                    self._record_buffer.extend(self._buffer[:])
+
             if self._buffer_index == 0:
-
-                if self.record:
-                    with self._record_buffer_lock:
-                        self._record_buffer.extend(self._buffer[:])
-
                 if self.is_jupyter:  # pragma: no cover
                     from .jupyter import display
 
@@ -2064,31 +2010,50 @@ class Console:
                     if WINDOWS:
                         use_legacy_windows_render = False
                         if self.legacy_windows:
-                            try:
+                            fileno = get_fileno(self.file)
+                            if fileno is not None:
                                 use_legacy_windows_render = (
-                                    self.file.fileno() in _STD_STREAMS
+                                    fileno in _STD_STREAMS_OUTPUT
                                 )
-                            except (ValueError, io.UnsupportedOperation):
-                                pass
 
                         if use_legacy_windows_render:
                             from pip._vendor.rich._win32_console import LegacyWindowsTerm
                             from pip._vendor.rich._windows_renderer import legacy_windows_render
 
-                            legacy_windows_render(
-                                self._buffer[:], LegacyWindowsTerm(self.file)
-                            )
+                            buffer = self._buffer[:]
+                            if self.no_color and self._color_system:
+                                buffer = list(Segment.remove_color(buffer))
+
+                            legacy_windows_render(buffer, LegacyWindowsTerm(self.file))
                         else:
                             # Either a non-std stream on legacy Windows, or modern Windows.
                             text = self._render_buffer(self._buffer[:])
                             # https://bugs.python.org/issue37871
+                            # https://github.com/python/cpython/issues/82052
+                            # We need to avoid writing more than 32Kb in a single write, due to the above bug
                             write = self.file.write
-                            for line in text.splitlines(True):
-                                try:
-                                    write(line)
-                                except UnicodeEncodeError as error:
-                                    error.reason = f"{error.reason}\n*** You may need to add PYTHONIOENCODING=utf-8 to your environment ***"
-                                    raise
+                            # Worse case scenario, every character is 4 bytes of utf-8
+                            MAX_WRITE = 32 * 1024 // 4
+                            try:
+                                if len(text) <= MAX_WRITE:
+                                    write(text)
+                                else:
+                                    batch: List[str] = []
+                                    batch_append = batch.append
+                                    size = 0
+                                    for line in text.splitlines(True):
+                                        if size + len(line) > MAX_WRITE and batch:
+                                            write("".join(batch))
+                                            batch.clear()
+                                            size = 0
+                                        batch_append(line)
+                                        size += len(line)
+                                    if batch:
+                                        write("".join(batch))
+                                        batch.clear()
+                            except UnicodeEncodeError as error:
+                                error.reason = f"{error.reason}\n*** You may need to add PYTHONIOENCODING=utf-8 to your environment ***"
+                                raise
                     else:
                         text = self._render_buffer(self._buffer[:])
                         try:
@@ -2317,136 +2282,249 @@ class Console:
         theme: Optional[TerminalTheme] = None,
         clear: bool = True,
         code_format: str = CONSOLE_SVG_FORMAT,
+        font_aspect_ratio: float = 0.61,
+        unique_id: Optional[str] = None,
     ) -> str:
-        """Generate an SVG string from the console contents (requires record=True in Console constructor)
+        """
+        Generate an SVG from the console contents (requires record=True in Console constructor).
 
         Args:
-            title (str): The title of the tab in the output image
+            title (str, optional): The title of the tab in the output image
             theme (TerminalTheme, optional): The ``TerminalTheme`` object to use to style the terminal
             clear (bool, optional): Clear record buffer after exporting. Defaults to ``True``
-            code_format (str): Format string used to generate the SVG. Rich will inject a number of variables
+            code_format (str, optional): Format string used to generate the SVG. Rich will inject a number of variables
                 into the string in order to form the final SVG output. The default template used and the variables
                 injected by Rich can be found by inspecting the ``console.CONSOLE_SVG_FORMAT`` variable.
-
-        Returns:
-            str: The string representation of the SVG. That is, the ``code_format`` template with content injected.
+            font_aspect_ratio (float, optional): The width to height ratio of the font used in the ``code_format``
+                string. Defaults to 0.61, which is the width to height ratio of Fira Code (the default font).
+                If you aren't specifying a different font inside ``code_format``, you probably don't need this.
+            unique_id (str, optional): unique id that is used as the prefix for various elements (CSS styles, node
+                ids). If not set, this defaults to a computed value based on the recorded content.
         """
-        assert (
-            self.record
-        ), "To export console contents set record=True in the constructor or instance"
+
+        from pip._vendor.rich.cells import cell_len
+
+        style_cache: Dict[Style, str] = {}
+
+        def get_svg_style(style: Style) -> str:
+            """Convert a Style to CSS rules for SVG."""
+            if style in style_cache:
+                return style_cache[style]
+            css_rules = []
+            color = (
+                _theme.foreground_color
+                if (style.color is None or style.color.is_default)
+                else style.color.get_truecolor(_theme)
+            )
+            bgcolor = (
+                _theme.background_color
+                if (style.bgcolor is None or style.bgcolor.is_default)
+                else style.bgcolor.get_truecolor(_theme)
+            )
+            if style.reverse:
+                color, bgcolor = bgcolor, color
+            if style.dim:
+                color = blend_rgb(color, bgcolor, 0.4)
+            css_rules.append(f"fill: {color.hex}")
+            if style.bold:
+                css_rules.append("font-weight: bold")
+            if style.italic:
+                css_rules.append("font-style: italic;")
+            if style.underline:
+                css_rules.append("text-decoration: underline;")
+            if style.strike:
+                css_rules.append("text-decoration: line-through;")
+
+            css = ";".join(css_rules)
+            style_cache[style] = css
+            return css
 
         _theme = theme or SVG_EXPORT_THEME
 
-        with self._record_buffer_lock:
-            segments = Segment.simplify(self._record_buffer)
-            segments = Segment.filter_control(segments)
-            parts = [(text, style or Style.null()) for text, style, _ in segments]
-            terminal_text = Text.assemble(*parts)
-            lines = terminal_text.wrap(self, width=self.width, overflow="fold")
-            segments = self.render(lines, options=self.options)
-            segment_lines = list(
-                Segment.split_and_crop_lines(
-                    segments, length=self.width, include_new_lines=False
-                )
+        width = self.width
+        char_height = 20
+        char_width = char_height * font_aspect_ratio
+        line_height = char_height * 1.22
+
+        margin_top = 1
+        margin_right = 1
+        margin_bottom = 1
+        margin_left = 1
+
+        padding_top = 40
+        padding_right = 8
+        padding_bottom = 8
+        padding_left = 8
+
+        padding_width = padding_left + padding_right
+        padding_height = padding_top + padding_bottom
+        margin_width = margin_left + margin_right
+        margin_height = margin_top + margin_bottom
+
+        text_backgrounds: List[str] = []
+        text_group: List[str] = []
+        classes: Dict[str, int] = {}
+        style_no = 1
+
+        def escape_text(text: str) -> str:
+            """HTML escape text and replace spaces with nbsp."""
+            return escape(text).replace(" ", "&#160;")
+
+        def make_tag(
+            name: str, content: Optional[str] = None, **attribs: object
+        ) -> str:
+            """Make a tag from name, content, and attributes."""
+
+            def stringify(value: object) -> str:
+                if isinstance(value, (float)):
+                    return format(value, "g")
+                return str(value)
+
+            tag_attribs = " ".join(
+                f'{k.lstrip("_").replace("_", "-")}="{stringify(v)}"'
+                for k, v in attribs.items()
+            )
+            return (
+                f"<{name} {tag_attribs}>{content}</{name}>"
+                if content
+                else f"<{name} {tag_attribs}/>"
             )
 
-            fragments: List[str] = []
-            theme_foreground_color = _theme.foreground_color.hex
-            theme_background_color = _theme.background_color.hex
-
-            theme_foreground_css = f"color: {theme_foreground_color}; text-decoration-color: {theme_foreground_color};"
-            theme_background_css = f"background-color: {theme_background_color};"
-
-            theme_css = theme_foreground_css + theme_background_css
-
-            styles: Dict[str, int] = {}
-            styles[theme_css] = 1
-
-            for line in segment_lines:
-                line_spans = []
-                for segment in line:
-                    text, style, _ = segment
-                    text = escape(text)
-                    if style:
-                        rules = style.get_html_style(_theme)
-                        if style.link:
-                            text = f'<a href="{style.link}">{text}</a>'
-
-                        if style.blink or style.blink2:
-                            text = f'<span class="blink">{text}</span>'
-
-                        # If the style doesn't contain a color, we still
-                        # need to make sure we output the default foreground color
-                        # from the TerminalTheme.
-                        if not style.reverse:
-                            foreground_css = theme_foreground_css
-                            background_css = theme_background_css
-                        else:
-                            foreground_css = f"color: {theme_background_color}; text-decoration-color: {theme_background_color};"
-                            background_css = (
-                                f"background-color: {theme_foreground_color};"
-                            )
-
-                        if style.color is None:
-                            rules += f";{foreground_css}"
-                        if style.bgcolor is None:
-                            rules += f";{background_css}"
-
-                        style_number = styles.setdefault(rules, len(styles) + 1)
-                        text = f'<span class="r{style_number}">{text}</span>'
-                    else:
-                        text = f'<span class="r1">{text}</span>'
-                    line_spans.append(text)
-
-                fragments.append(f"<div>{''.join(line_spans)}</div>")
-
-            stylesheet_rules = []
-            for style_rule, style_number in styles.items():
-                if style_rule:
-                    stylesheet_rules.append(f".r{style_number} {{{ style_rule }}}")
-            stylesheet = "\n".join(stylesheet_rules)
-
+        with self._record_buffer_lock:
+            segments = list(Segment.filter_control(self._record_buffer))
             if clear:
                 self._record_buffer.clear()
 
-        # These values are the ones that I found to work well after experimentation.
-        # Many of them can be tweaked, but too much variation from these values could
-        # result in visually broken output/clipping issues.
-        terminal_padding = 12
-        font_size = 18
-        line_height = font_size + 4
-        code_start_y = 60
-        required_code_height = line_height * len(lines)
-        margin = 140
+        if unique_id is None:
+            unique_id = "terminal-" + str(
+                zlib.adler32(
+                    ("".join(repr(segment) for segment in segments)).encode(
+                        "utf-8",
+                        "ignore",
+                    )
+                    + title.encode("utf-8", "ignore")
+                )
+            )
+        y = 0
+        for y, line in enumerate(Segment.split_and_crop_lines(segments, length=width)):
+            x = 0
+            for text, style, _control in line:
+                style = style or Style()
+                rules = get_svg_style(style)
+                if rules not in classes:
+                    classes[rules] = style_no
+                    style_no += 1
+                class_name = f"r{classes[rules]}"
 
-        # Monospace fonts are generally around 0.5-0.55 width/height ratio, but I've
-        # added extra width to ensure that the output SVG is big enough.
-        monospace_font_width_scale = 0.60
+                if style.reverse:
+                    has_background = True
+                    background = (
+                        _theme.foreground_color.hex
+                        if style.color is None
+                        else style.color.get_truecolor(_theme).hex
+                    )
+                else:
+                    bgcolor = style.bgcolor
+                    has_background = bgcolor is not None and not bgcolor.is_default
+                    background = (
+                        _theme.background_color.hex
+                        if style.bgcolor is None
+                        else style.bgcolor.get_truecolor(_theme).hex
+                    )
 
-        # This works out as a good heuristic for the final size of the drawn terminal.
-        terminal_height = required_code_height + code_start_y
-        terminal_width = (
-            self.width * monospace_font_width_scale * font_size
-            + 2 * terminal_padding
-            + self.width
+                text_length = cell_len(text)
+                if has_background:
+                    text_backgrounds.append(
+                        make_tag(
+                            "rect",
+                            fill=background,
+                            x=x * char_width,
+                            y=y * line_height + 1.5,
+                            width=char_width * text_length,
+                            height=line_height + 0.25,
+                            shape_rendering="crispEdges",
+                        )
+                    )
+
+                if text != " " * len(text):
+                    text_group.append(
+                        make_tag(
+                            "text",
+                            escape_text(text),
+                            _class=f"{unique_id}-{class_name}",
+                            x=x * char_width,
+                            y=y * line_height + char_height,
+                            textLength=char_width * len(text),
+                            clip_path=f"url(#{unique_id}-line-{y})",
+                        )
+                    )
+                x += cell_len(text)
+
+        line_offsets = [line_no * line_height + 1.5 for line_no in range(y)]
+        lines = "\n".join(
+            f"""<clipPath id="{unique_id}-line-{line_no}">
+    {make_tag("rect", x=0, y=offset, width=char_width * width, height=line_height + 0.25)}
+            </clipPath>"""
+            for line_no, offset in enumerate(line_offsets)
         )
-        total_height = terminal_height + 2 * margin
-        total_width = terminal_width + 2 * margin
 
-        rendered_code = code_format.format(
-            code="\n".join(fragments),
-            total_height=total_height,
-            total_width=total_width,
-            theme_foreground_color=theme_foreground_color,
-            theme_background_color=theme_background_color,
-            margin=margin,
-            font_size=font_size,
+        styles = "\n".join(
+            f".{unique_id}-r{rule_no} {{ {css} }}" for css, rule_no in classes.items()
+        )
+        backgrounds = "".join(text_backgrounds)
+        matrix = "".join(text_group)
+
+        terminal_width = ceil(width * char_width + padding_width)
+        terminal_height = (y + 1) * line_height + padding_height
+        chrome = make_tag(
+            "rect",
+            fill=_theme.background_color.hex,
+            stroke="rgba(255,255,255,0.35)",
+            stroke_width="1",
+            x=margin_left,
+            y=margin_top,
+            width=terminal_width,
+            height=terminal_height,
+            rx=8,
+        )
+
+        title_color = _theme.foreground_color.hex
+        if title:
+            chrome += make_tag(
+                "text",
+                escape_text(title),
+                _class=f"{unique_id}-title",
+                fill=title_color,
+                text_anchor="middle",
+                x=terminal_width // 2,
+                y=margin_top + char_height + 6,
+            )
+        chrome += f"""
+            <g transform="translate(26,22)">
+            <circle cx="0" cy="0" r="7" fill="#ff5f57"/>
+            <circle cx="22" cy="0" r="7" fill="#febc2e"/>
+            <circle cx="44" cy="0" r="7" fill="#28c840"/>
+            </g>
+        """
+
+        svg = code_format.format(
+            unique_id=unique_id,
+            char_width=char_width,
+            char_height=char_height,
             line_height=line_height,
-            title=title,
-            stylesheet=stylesheet,
+            terminal_width=char_width * width - 1,
+            terminal_height=(y + 1) * line_height - 1,
+            width=terminal_width + margin_width,
+            height=terminal_height + margin_height,
+            terminal_x=margin_left + padding_left,
+            terminal_y=margin_top + padding_top,
+            styles=styles,
+            chrome=chrome,
+            backgrounds=backgrounds,
+            matrix=matrix,
+            lines=lines,
         )
-
-        return rendered_code
+        return svg
 
     def save_svg(
         self,
@@ -2456,23 +2534,47 @@ class Console:
         theme: Optional[TerminalTheme] = None,
         clear: bool = True,
         code_format: str = CONSOLE_SVG_FORMAT,
+        font_aspect_ratio: float = 0.61,
+        unique_id: Optional[str] = None,
     ) -> None:
         """Generate an SVG file from the console contents (requires record=True in Console constructor).
 
         Args:
             path (str): The path to write the SVG to.
-            title (str): The title of the tab in the output image
+            title (str, optional): The title of the tab in the output image
             theme (TerminalTheme, optional): The ``TerminalTheme`` object to use to style the terminal
             clear (bool, optional): Clear record buffer after exporting. Defaults to ``True``
-            code_format (str): Format string used to generate the SVG. Rich will inject a number of variables
+            code_format (str, optional): Format string used to generate the SVG. Rich will inject a number of variables
                 into the string in order to form the final SVG output. The default template used and the variables
                 injected by Rich can be found by inspecting the ``console.CONSOLE_SVG_FORMAT`` variable.
+            font_aspect_ratio (float, optional): The width to height ratio of the font used in the ``code_format``
+                string. Defaults to 0.61, which is the width to height ratio of Fira Code (the default font).
+                If you aren't specifying a different font inside ``code_format``, you probably don't need this.
+            unique_id (str, optional): unique id that is used as the prefix for various elements (CSS styles, node
+                ids). If not set, this defaults to a computed value based on the recorded content.
         """
         svg = self.export_svg(
-            title=title, theme=theme, clear=clear, code_format=code_format
+            title=title,
+            theme=theme,
+            clear=clear,
+            code_format=code_format,
+            font_aspect_ratio=font_aspect_ratio,
+            unique_id=unique_id,
         )
         with open(path, "wt", encoding="utf-8") as write_file:
             write_file.write(svg)
+
+
+def _svg_hash(svg_main_code: str) -> str:
+    """Returns a unique hash for the given SVG main code.
+
+    Args:
+        svg_main_code (str): The content we're going to inject in the SVG envelope.
+
+    Returns:
+        str: a hash of the given content
+    """
+    return str(zlib.adler32(svg_main_code.encode()))
 
 
 if __name__ == "__main__":  # pragma: no cover

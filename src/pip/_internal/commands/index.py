@@ -24,6 +24,7 @@ class IndexCommand(IndexGroupCommand):
     Inspect information available from package indexes.
     """
 
+    ignore_require_venv = True
     usage = """
         %prog versions <package>
     """
@@ -97,7 +98,6 @@ class IndexCommand(IndexGroupCommand):
             link_collector=link_collector,
             selection_prefs=selection_prefs,
             target_python=target_python,
-            use_deprecated_html5lib="html5lib" in options.deprecated_features_enabled,
         )
 
     def get_available_package_versions(self, options: Values, args: List[Any]) -> None:

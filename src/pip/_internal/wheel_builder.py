@@ -5,7 +5,7 @@ import logging
 import os.path
 import re
 import shutil
-from typing import Any, Callable, Iterable, List, Optional, Tuple
+from typing import Iterable, List, Optional, Tuple
 
 from pip._vendor.packaging.utils import canonicalize_name, canonicalize_version
 from pip._vendor.packaging.version import InvalidVersion, Version
@@ -20,7 +20,7 @@ from pip._internal.operations.build.wheel_editable import build_wheel_editable
 from pip._internal.operations.build.wheel_legacy import build_wheel_legacy
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import ensure_dir, hash_file, is_wheel_installed
+from pip._internal.utils.misc import ensure_dir, hash_file
 from pip._internal.utils.setuptools_build import make_setuptools_clean_args
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory
@@ -31,7 +31,6 @@ logger = logging.getLogger(__name__)
 
 _egg_info_re = re.compile(r"([a-z0-9_.]+)-([a-z0-9_.!+-]+)", re.IGNORECASE)
 
-BinaryAllowedPredicate = Callable[[InstallRequirement], bool]
 BuildResult = Tuple[List[InstallRequirement], List[InstallRequirement]]
 
 
@@ -46,7 +45,6 @@ def _contains_egg_info(s: str) -> bool:
 def _should_build(
     req: InstallRequirement,
     need_wheel: bool,
-    check_binary_allowed: BinaryAllowedPredicate,
 ) -> bool:
     """Return whether an InstallRequirement should be built into a wheel."""
     if req.constraint:
@@ -74,41 +72,19 @@ def _should_build(
         # we only build PEP 660 editable requirements
         return req.supports_pyproject_editable()
 
-    if req.use_pep517:
-        return True
-
-    if not check_binary_allowed(req):
-        logger.info(
-            "Skipping wheel build for %s, due to binaries being disabled for it.",
-            req.name,
-        )
-        return False
-
-    if not is_wheel_installed():
-        # we don't build legacy requirements if wheel is not installed
-        logger.info(
-            "Using legacy 'setup.py install' for %s, "
-            "since package 'wheel' is not installed.",
-            req.name,
-        )
-        return False
-
     return True
 
 
 def should_build_for_wheel_command(
     req: InstallRequirement,
 ) -> bool:
-    return _should_build(req, need_wheel=True, check_binary_allowed=_always_true)
+    return _should_build(req, need_wheel=True)
 
 
 def should_build_for_install_command(
     req: InstallRequirement,
-    check_binary_allowed: BinaryAllowedPredicate,
 ) -> bool:
-    return _should_build(
-        req, need_wheel=False, check_binary_allowed=check_binary_allowed
-    )
+    return _should_build(req, need_wheel=False)
 
 
 def _should_cache(
@@ -157,10 +133,6 @@ def _get_cache_dir(
     else:
         cache_dir = wheel_cache.get_ephem_path_for_link(req.link)
     return cache_dir
-
-
-def _always_true(_: Any) -> bool:
-    return True
 
 
 def _verify_one(req: InstallRequirement, wheel_path: str) -> None:

@@ -1,5 +1,6 @@
 import fnmatch
 import json
+import os
 import pathlib
 from os.path import basename
 from typing import Iterable
@@ -60,7 +61,7 @@ def test_download_from_pypi(
 
 @mark.network
 def test_build_wheel_with_deps(data: TestData, script: PipTestEnvironment) -> None:
-    result = pip(script, "wheel", data.packages / "requiresPaste")
+    result = pip(script, "wheel", os.fspath(data.packages / "requiresPaste"))
     created = [basename(f) for f in result.files_created]
     assert fnmatch.filter(created, "requirespaste-3.1.4-*.whl")
     assert fnmatch.filter(created, "Paste-3.4.2-*.whl")

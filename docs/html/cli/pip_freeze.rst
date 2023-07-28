@@ -84,7 +84,7 @@ This error occurs, for instance, when the command is installed only for another
 user, and the current user doesn't have the permission to execute the other
 user's command.
 
-To solve that issue, you can try one of the followings:
+To solve that issue, you can try one of the following:
 
 - Install the command for yourself (e.g. in your home directory).
 - Ask the system admin to allow this command for all users.

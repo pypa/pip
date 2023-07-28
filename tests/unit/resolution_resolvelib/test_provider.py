@@ -28,7 +28,7 @@ def build_requirement_information(
 
 def test_provider_known_depths(factory: Factory) -> None:
     # Root requirement is specified by the user
-    # therefore has an infered depth of 1
+    # therefore has an inferred depth of 1
     root_requirement_name = "my-package"
     provider = PipProvider(
         factory=factory,
@@ -51,7 +51,7 @@ def test_provider_known_depths(factory: Factory) -> None:
     assert provider._known_depths == {root_requirement_name: 1.0}
 
     # Transative requirement is a dependency of root requirement
-    # theforefore has an infered depth of 2
+    # theforefore has an inferred depth of 2
     root_package_candidate = InstallationCandidate(
         root_requirement_name,
         "1.0",

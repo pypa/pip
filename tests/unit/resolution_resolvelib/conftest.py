@@ -23,10 +23,10 @@ from tests.lib import TestData
 @pytest.fixture
 def finder(data: TestData) -> Iterator[PackageFinder]:
     session = PipSession()
-    scope = SearchScope([str(data.packages)], [])
+    scope = SearchScope([str(data.packages)], [], False)
     collector = LinkCollector(session, scope)
     prefs = SelectionPreferences(allow_yanked=False)
-    finder = PackageFinder.create(collector, prefs, use_deprecated_html5lib=False)
+    finder = PackageFinder.create(collector, prefs)
     yield finder
 
 
@@ -63,7 +63,6 @@ def factory(finder: PackageFinder, preparer: RequirementPreparer) -> Iterator[Fa
         force_reinstall=False,
         ignore_installed=False,
         ignore_requires_python=False,
-        suppress_build_failures=False,
         py_version_info=None,
     )
 

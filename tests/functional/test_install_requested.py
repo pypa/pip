@@ -6,7 +6,7 @@ from tests.lib import PipTestEnvironment, TestData, TestPipResult
 def _assert_requested_present(
     script: PipTestEnvironment, result: TestPipResult, name: str, version: str
 ) -> None:
-    dist_info = script.site_packages / name + "-" + version + ".dist-info"
+    dist_info = script.site_packages / f"{name}-{version}.dist-info"
     requested = dist_info / "REQUESTED"
     assert dist_info in result.files_created
     assert requested in result.files_created
@@ -15,13 +15,12 @@ def _assert_requested_present(
 def _assert_requested_absent(
     script: PipTestEnvironment, result: TestPipResult, name: str, version: str
 ) -> None:
-    dist_info = script.site_packages / name + "-" + version + ".dist-info"
+    dist_info = script.site_packages / f"{name}-{version}.dist-info"
     requested = dist_info / "REQUESTED"
     assert dist_info in result.files_created
     assert requested not in result.files_created
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_requested_basic(script: PipTestEnvironment, data: TestData) -> None:
     result = script.pip(
         "install", "--no-index", "-f", data.find_links, "require_simple"
@@ -31,7 +30,6 @@ def test_install_requested_basic(script: PipTestEnvironment, data: TestData) -> 
     _assert_requested_absent(script, result, "simple", "3.0")
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_requested_requirements(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -48,7 +46,6 @@ def test_install_requested_requirements(
     _assert_requested_absent(script, result, "simple", "3.0")
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_requested_dep_in_requirements(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -68,7 +65,6 @@ def test_install_requested_dep_in_requirements(
     _assert_requested_present(script, result, "simple", "2.0")
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_requested_reqs_and_constraints(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -89,7 +85,6 @@ def test_install_requested_reqs_and_constraints(
     _assert_requested_absent(script, result, "simple", "2.0")
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_requested_in_reqs_and_constraints(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -112,7 +107,6 @@ def test_install_requested_in_reqs_and_constraints(
     _assert_requested_present(script, result, "simple", "2.0")
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_requested_from_cli_with_constraint(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -130,7 +124,6 @@ def test_install_requested_from_cli_with_constraint(
     _assert_requested_present(script, result, "simple", "2.0")
 
 
-@pytest.mark.usefixtures("with_wheel")
 @pytest.mark.network
 def test_install_requested_from_cli_with_url_constraint(
     script: PipTestEnvironment, data: TestData

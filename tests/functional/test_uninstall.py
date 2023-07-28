@@ -3,6 +3,7 @@ import os
 import sys
 import textwrap
 from os.path import join, normpath
+from pathlib import Path
 from tempfile import mkdtemp
 from typing import Any, Iterator
 from unittest.mock import Mock
@@ -19,7 +20,6 @@ from tests.lib import (
     need_svn,
 )
 from tests.lib.local_repos import local_checkout, local_repo
-from tests.lib.path import Path
 
 
 @pytest.mark.network
@@ -37,6 +37,10 @@ def test_basic_uninstall(script: PipTestEnvironment) -> None:
     assert_all_changes(result, result2, [script.venv / "build", "cache"])
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 12),
+    reason="distutils is no longer available in Python 3.12+",
+)
 def test_basic_uninstall_distutils(script: PipTestEnvironment) -> None:
     """
     Test basic install and uninstall.
@@ -55,7 +59,7 @@ def test_basic_uninstall_distutils(script: PipTestEnvironment) -> None:
     """
         )
     )
-    result = script.run("python", pkg_path / "setup.py", "install")
+    result = script.run("python", os.fspath(pkg_path / "setup.py"), "install")
     result = script.pip("list", "--format=json")
     script.assert_installed(distutils_install="0.1")
     result = script.pip(
@@ -68,6 +72,10 @@ def test_basic_uninstall_distutils(script: PipTestEnvironment) -> None:
     ) in result.stderr
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 12),
+    reason="Setuptools<64 does not support Python 3.12+",
+)
 @pytest.mark.network
 def test_basic_uninstall_with_scripts(script: PipTestEnvironment) -> None:
     """
@@ -80,7 +88,7 @@ def test_basic_uninstall_with_scripts(script: PipTestEnvironment) -> None:
     result = script.easy_install("PyLogo", expect_stderr=True)
     easy_install_pth = script.site_packages / "easy-install.pth"
     pylogo = sys.platform == "win32" and "pylogo" or "PyLogo"
-    assert pylogo in result.files_updated[easy_install_pth].bytes
+    assert pylogo in result.files_updated[os.fspath(easy_install_pth)].bytes
     result2 = script.pip("uninstall", "pylogo", "-y")
     assert_all_changes(
         result,
@@ -101,6 +109,10 @@ def test_uninstall_invalid_parameter(
     assert expected_message in result.stderr
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 12),
+    reason="Setuptools<64 does not support Python 3.12+",
+)
 @pytest.mark.network
 def test_uninstall_easy_install_after_import(script: PipTestEnvironment) -> None:
     """
@@ -126,6 +138,10 @@ def test_uninstall_easy_install_after_import(script: PipTestEnvironment) -> None
     )
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 12),
+    reason="Setuptools<64 does not support Python 3.12+",
+)
 @pytest.mark.network
 def test_uninstall_trailing_newline(script: PipTestEnvironment) -> None:
     """
@@ -219,7 +235,16 @@ def test_uninstall_overlapping_package(
 
 
 @pytest.mark.parametrize(
-    "console_scripts", ["test_ = distutils_install", "test_:test_ = distutils_install"]
+    "console_scripts",
+    [
+        "test_ = distutils_install:test",
+        pytest.param(
+            "test_:test_ = distutils_install:test_test",
+            marks=pytest.mark.xfail(
+                reason="colon not supported in wheel entry point name?"
+            ),
+        ),
+    ],
 )
 def test_uninstall_entry_point_colon_in_name(
     script: PipTestEnvironment, console_scripts: str
@@ -245,7 +270,7 @@ def test_uninstall_entry_point_colon_in_name(
     )
     script_name = script.bin_path.joinpath(console_scripts.split("=")[0].strip())
     if sys.platform == "win32":
-        script_name += ".exe"
+        script_name = script_name.with_suffix(".exe")
     script.pip("install", pkg_path)
     assert script_name.exists()
     script.assert_installed(ep_install="0.1")
@@ -266,13 +291,13 @@ def test_uninstall_gui_scripts(script: PipTestEnvironment) -> None:
         version="0.1",
         entry_points={
             "gui_scripts": [
-                "test_ = distutils_install",
+                "test_ = distutils_install:test",
             ],
         },
     )
     script_name = script.bin_path.joinpath("test_")
     if sys.platform == "win32":
-        script_name += ".exe"
+        script_name = script_name.with_suffix(".exe")
     script.pip("install", pkg_path)
     assert script_name.exists()
     script.pip("uninstall", pkg_name, "-y")
@@ -291,15 +316,16 @@ def test_uninstall_console_scripts(script: PipTestEnvironment) -> None:
         entry_points={"console_scripts": ["discover = discover:main"]},
     )
     result = script.pip("install", pkg_path)
-    result.did_create(script.bin / "discover" + script.exe)
+    result.did_create(script.bin / f"discover{script.exe}")
     result2 = script.pip("uninstall", "discover", "-y")
     assert_all_changes(
         result,
         result2,
         [
-            script.venv / "build",
+            os.path.join(script.venv, "build"),
             "cache",
-            Path("scratch") / "discover" / "discover.egg-info",
+            os.path.join("scratch", "discover", "discover.egg-info"),
+            os.path.join("scratch", "discover", "build"),
         ],
     )
 
@@ -314,7 +340,7 @@ def test_uninstall_console_scripts_uppercase_name(script: PipTestEnvironment) ->
         version="0.1",
         entry_points={
             "console_scripts": [
-                "Test = distutils_install",
+                "Test = distutils_install:Test",
             ],
         },
     )
@@ -327,6 +353,10 @@ def test_uninstall_console_scripts_uppercase_name(script: PipTestEnvironment) ->
     assert not script_name.exists()
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 12),
+    reason="Setuptools<64 does not support Python 3.12+",
+)
 @pytest.mark.network
 def test_uninstall_easy_installed_console_scripts(script: PipTestEnvironment) -> None:
     """
@@ -337,7 +367,7 @@ def test_uninstall_easy_installed_console_scripts(script: PipTestEnvironment) ->
     script.pip("install", "setuptools==51.3.3", use_module=True)
 
     result = script.easy_install("discover", allow_stderr_warning=True)
-    result.did_create(script.bin / "discover" + script.exe)
+    result.did_create(script.bin / f"discover{script.exe}")
     result2 = script.pip("uninstall", "discover", "-y")
     assert_all_changes(
         result,
@@ -615,9 +645,7 @@ def test_uninstall_setuptools_develop_install(
     script.assert_installed(FSPkg="0.1.dev0")
     # Uninstall both develop and install
     uninstall = script.pip("uninstall", "FSPkg", "-y")
-    assert any(filename.endswith(".egg") for filename in uninstall.files_deleted), str(
-        uninstall
-    )
+    assert any(p.suffix == ".egg" for p in uninstall.files_deleted), str(uninstall)
     uninstall2 = script.pip("uninstall", "FSPkg", "-y")
     assert (
         join(script.site_packages, "FSPkg.egg-link") in uninstall2.files_deleted
@@ -641,9 +669,7 @@ def test_uninstall_editable_and_pip_install(
     script.assert_installed(FSPkg="0.1.dev0")
     # Uninstall both develop and install
     uninstall = script.pip("uninstall", "FSPkg", "-y")
-    assert not any(
-        filename.endswith(".egg-link") for filename in uninstall.files_deleted.keys()
-    )
+    assert not any(p.suffix == ".egg-link" for p in uninstall.files_deleted)
     uninstall2 = script.pip("uninstall", "FSPkg", "-y")
     assert (
         join(script.site_packages, "FSPkg.egg-link") in uninstall2.files_deleted
@@ -688,7 +714,7 @@ def test_uninstall_editable_and_pip_install_easy_install_remove(
     os.remove(pip_test_fspkg_pth)
 
     # Uninstall will fail with given warning
-    uninstall = script.pip("uninstall", "FSPkg", "-y")
+    uninstall = script.pip("uninstall", "FSPkg", "-y", allow_stderr_warning=True)
     assert "Cannot remove entries from nonexistent file" in uninstall.stderr
 
     assert (

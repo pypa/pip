@@ -10,7 +10,10 @@ from pip._internal.cli.req_command import RequirementCommand, with_cleanup
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.exceptions import CommandError
 from pip._internal.operations.build.build_tracker import get_build_tracker
-from pip._internal.req.req_install import InstallRequirement
+from pip._internal.req.req_install import (
+    InstallRequirement,
+    check_legacy_setup_py_options,
+)
 from pip._internal.utils.misc import ensure_dir, normalize_path
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.wheel_builder import build, should_build_for_wheel_command
@@ -39,7 +42,6 @@ class WheelCommand(RequirementCommand):
       %prog [options] <archive url/path> ..."""
 
     def add_options(self) -> None:
-
         self.cmd_opts.add_option(
             "-w",
             "--wheel-dir",
@@ -100,12 +102,9 @@ class WheelCommand(RequirementCommand):
 
     @with_cleanup
     def run(self, options: Values, args: List[str]) -> int:
-        cmdoptions.check_install_build_global(options)
-
         session = self.get_default_session(options)
 
         finder = self._build_package_finder(options, session)
-        wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
         options.wheel_dir = normalize_path(options.wheel_dir)
         ensure_dir(options.wheel_dir)
@@ -119,6 +118,9 @@ class WheelCommand(RequirementCommand):
         )
 
         reqs = self.get_requirements(args, options, finder, session)
+        check_legacy_setup_py_options(options, reqs)
+
+        wheel_cache = WheelCache(options.cache_dir)
 
         preparer = self.make_requirement_preparer(
             temp_build_dir=directory,
@@ -150,6 +152,9 @@ class WheelCommand(RequirementCommand):
                 preparer.save_linked_requirement(req)
             elif should_build_for_wheel_command(req):
                 reqs_to_build.append(req)
+
+        preparer.prepare_linked_requirements_more(requirement_set.requirements.values())
+        requirement_set.warn_legacy_versions_and_specifiers()
 
         # build wheels
         build_successes, build_failures = build(

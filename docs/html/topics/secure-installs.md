@@ -59,13 +59,13 @@ It is possible to use multiple hashes for each package. This is important when a
 
 ### Interaction with caching
 
-The {ref}`locally-built wheel cache <wheel-caching>` is disabled in hash-checking mode to prevent spurious hash mismatch errors.
+```{versionchanged} 23.1
+The {ref}`locally-built wheel cache <wheel-caching>` is used in hash-checking mode too.
+```
 
-These would otherwise occur while installing sdists that had already been automatically built into cached wheels: those wheels would be selected for installation, but their hashes would not match the sdist ones from the requirements file.
-
-A further complication is that locally built wheels are nondeterministic: contemporary modification times make their way into the archive, making hashes unpredictable across machines and cache flushes. Compilation of C code adds further nondeterminism, as many compilers include random-seeded values in their output.
-
-However, wheels fetched from index servers are required to be the same every time. They land in pip's HTTP cache, not its wheel cache, and are used normally in hash-checking mode. The only downside of having the wheel cache disabled is thus extra build time for sdists, and this can be solved by making sure pre-built wheels are available from the index server.
+When installing from the cache of locally built wheels in hash-checking mode, pip verifies
+the hashes against those of the original source distribution that was used to build the wheel.
+These original hashes are obtained from a `origin.json` file stored in each cache entry.
 
 ### Using hashes from PyPI (or other index servers)
 

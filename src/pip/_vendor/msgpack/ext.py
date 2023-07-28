@@ -56,10 +56,10 @@ class Timestamp(object):
         Note: Negative times (before the UNIX epoch) are represented as negative seconds + positive ns.
         """
         if not isinstance(seconds, int_types):
-            raise TypeError("seconds must be an interger")
+            raise TypeError("seconds must be an integer")
         if not isinstance(nanoseconds, int_types):
             raise TypeError("nanoseconds must be an integer")
-        if not (0 <= nanoseconds < 10 ** 9):
+        if not (0 <= nanoseconds < 10**9):
             raise ValueError(
                 "nanoseconds must be a non-negative integer less than 999999999."
             )
@@ -143,7 +143,7 @@ class Timestamp(object):
         :type unix_float: int or float.
         """
         seconds = int(unix_sec // 1)
-        nanoseconds = int((unix_sec % 1) * 10 ** 9)
+        nanoseconds = int((unix_sec % 1) * 10**9)
         return Timestamp(seconds, nanoseconds)
 
     def to_unix(self):
@@ -161,7 +161,7 @@ class Timestamp(object):
         :param int unix_ns: Posix timestamp in nanoseconds.
         :rtype: Timestamp
         """
-        return Timestamp(*divmod(unix_ns, 10 ** 9))
+        return Timestamp(*divmod(unix_ns, 10**9))
 
     def to_unix_nano(self):
         """Get the timestamp as a unixtime in nanoseconds.
@@ -169,7 +169,7 @@ class Timestamp(object):
         :returns: posix timestamp in nanoseconds
         :rtype: int
         """
-        return self.seconds * 10 ** 9 + self.nanoseconds
+        return self.seconds * 10**9 + self.nanoseconds
 
     def to_datetime(self):
         """Get the timestamp as a UTC datetime.

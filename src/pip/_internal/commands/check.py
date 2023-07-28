@@ -7,6 +7,7 @@ from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.operations.check import (
     check_package_set,
     create_package_set_from_installed,
+    warn_legacy_versions_and_specifiers,
 )
 from pip._internal.utils.misc import write_output
 
@@ -37,8 +38,8 @@ class CheckCommand(Command):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options: Values, args: List[str]) -> int:
-
         package_set, parsing_probs = create_package_set_from_installed()
+        warn_legacy_versions_and_specifiers(package_set)
         should_ignore: Optional[Callable[[str], bool]] = (
             (lambda p: p in options.ignore_packages)
             if options.ignore_packages

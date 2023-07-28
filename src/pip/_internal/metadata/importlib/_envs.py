@@ -1,5 +1,6 @@
 import functools
 import importlib.metadata
+import logging
 import os
 import pathlib
 import sys
@@ -10,10 +11,24 @@ from typing import Iterator, List, Optional, Sequence, Set, Tuple
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 
 from pip._internal.metadata.base import BaseDistribution, BaseEnvironment
+from pip._internal.models.wheel import Wheel
 from pip._internal.utils.deprecation import deprecated
+from pip._internal.utils.filetypes import WHEEL_EXTENSION
 
-from ._compat import BasePath, get_dist_name, get_info_location
+from ._compat import BadMetadata, BasePath, get_dist_name, get_info_location
 from ._dists import Distribution
+
+logger = logging.getLogger(__name__)
+
+
+def _looks_like_wheel(location: str) -> bool:
+    if not location.endswith(WHEEL_EXTENSION):
+        return False
+    if not os.path.isfile(location):
+        return False
+    if not Wheel.wheel_file_re.match(os.path.basename(location)):
+        return False
+    return zipfile.is_zipfile(location)
 
 
 class _DistributionFinder:
@@ -36,14 +51,24 @@ class _DistributionFinder:
 
     def _find_impl(self, location: str) -> Iterator[FoundResult]:
         """Find distributions in a location."""
+        # Skip looking inside a wheel. Since a package inside a wheel is not
+        # always valid (due to .data directories etc.), its .dist-info entry
+        # should not be considered an installed distribution.
+        if _looks_like_wheel(location):
+            return
         # To know exactly where we find a distribution, we have to feed in the
         # paths one by one, instead of dumping the list to importlib.metadata.
         for dist in importlib.metadata.distributions(path=[location]):
-            normalized_name = canonicalize_name(get_dist_name(dist))
+            info_location = get_info_location(dist)
+            try:
+                raw_name = get_dist_name(dist)
+            except BadMetadata as e:
+                logger.warning("Skipping %s due to %s", info_location, e.reason)
+                continue
+            normalized_name = canonicalize_name(raw_name)
             if normalized_name in self._found_names:
                 continue
             self._found_names.add(normalized_name)
-            info_location = get_info_location(dist)
             yield dist, info_location
 
     def find(self, location: str) -> Iterator[BaseDistribution]:
@@ -126,7 +151,7 @@ def _emit_egg_deprecation(location: Optional[str]) -> None:
     deprecated(
         reason=f"Loading egg at {location} is deprecated.",
         replacement="to use pip for package installation.",
-        gone_in=None,
+        gone_in="23.3",
     )
 
 
@@ -149,7 +174,7 @@ class Environment(BaseEnvironment):
         for location in self._paths:
             yield from finder.find(location)
             for dist in finder.find_eggs(location):
-                # _emit_egg_deprecation(dist.location)  # TODO: Enable this.
+                _emit_egg_deprecation(dist.location)
                 yield dist
             # This must go last because that's how pkg_resources tie-breaks.
             yield from finder.find_linked(location)

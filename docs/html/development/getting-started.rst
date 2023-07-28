@@ -27,16 +27,7 @@ Development Environment
 pip is a command line application written in Python. For developing pip,
 you should `install Python`_ on your computer.
 
-For developing pip, you need to install :pypi:`nox`. Often, you can run
-``python -m pip install nox`` to install and use it.
-
-
-Running pip From Source Tree
-============================
-
-To run the pip executable from your source tree during development, install pip
-locally using editable installation (inside a virtualenv).
-You can then invoke your local source tree pip normally.
+For developing pip, you need to install :pypi:`nox`. The full development setup would then be:
 
 .. tab:: Unix/macOS
 
@@ -44,8 +35,7 @@ You can then invoke your local source tree pip normally.
 
         python -m venv .venv
         source .venv/bin/activate
-        python -m pip install -e .
-        python -m pip --version
+        python -m pip install nox
 
 .. tab:: Windows
 
@@ -53,6 +43,26 @@ You can then invoke your local source tree pip normally.
 
         py -m venv .venv
         .venv\Scripts\activate
+        py -m pip install nox
+
+Running pip From Source Tree
+============================
+
+To run the pip executable from your source tree during development, install pip
+locally using editable installation (inside a virtualenv).
+You can then invoke your local source tree pip normally (be sure virtualenv is active).
+
+.. tab:: Unix/macOS
+
+    .. code-block:: shell
+
+        python -m pip install -e .
+        python -m pip --version
+
+.. tab:: Windows
+
+    .. code-block:: shell
+
         py -m pip install -e .
         py -m pip --version
 

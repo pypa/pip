@@ -252,7 +252,7 @@ class LocalFSAdapter(BaseAdapter):
 
 
 class _SSLContextAdapterMixin:
-    """Mixin to add the ``ssl_context`` contructor argument to HTTP adapters.
+    """Mixin to add the ``ssl_context`` constructor argument to HTTP adapters.
 
     The additional argument is forwarded directly to the pool manager. This allows us
     to dynamically decide what SSL store to use at runtime, which is used to implement
@@ -316,7 +316,6 @@ class InsecureCacheControlAdapter(CacheControlAdapter):
 
 
 class PipSession(requests.Session):
-
     timeout: Optional[int] = None
 
     def __init__(
@@ -420,15 +419,17 @@ class PipSession(requests.Session):
                 msg += f" (from {source})"
             logger.info(msg)
 
-        host_port = parse_netloc(host)
-        if host_port not in self.pip_trusted_origins:
-            self.pip_trusted_origins.append(host_port)
+        parsed_host, parsed_port = parse_netloc(host)
+        if parsed_host is None:
+            raise ValueError(f"Trusted host URL must include a host part: {host!r}")
+        if (parsed_host, parsed_port) not in self.pip_trusted_origins:
+            self.pip_trusted_origins.append((parsed_host, parsed_port))
 
         self.mount(
             build_url_from_netloc(host, scheme="http") + "/", self._trusted_host_adapter
         )
         self.mount(build_url_from_netloc(host) + "/", self._trusted_host_adapter)
-        if not host_port[1]:
+        if not parsed_port:
             self.mount(
                 build_url_from_netloc(host, scheme="http") + ":",
                 self._trusted_host_adapter,
@@ -465,7 +466,7 @@ class PipSession(requests.Session):
                 continue
 
             try:
-                addr = ipaddress.ip_address(origin_host)
+                addr = ipaddress.ip_address(origin_host or "")
                 network = ipaddress.ip_network(secure_host)
             except ValueError:
                 # We don't have both a valid address or a valid network, so
