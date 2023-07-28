@@ -5,6 +5,7 @@ import os.path
 import tempfile
 import traceback
 from contextlib import ExitStack, contextmanager
+from pathlib import Path
 from typing import (
     Any,
     Callable,
@@ -189,7 +190,7 @@ class TempDirectory:
 
         def onerror(
             func: Callable[[str], Any],
-            path: str,
+            path: Path,
             exc_info: Tuple[Type[BaseException], BaseException, Any],
         ) -> None:
             """Log a warning for a `rmtree` error and continue"""
