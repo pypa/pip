@@ -14,7 +14,8 @@ import urllib.parse
 from functools import partial
 from io import StringIO
 from itertools import filterfalse, tee, zip_longest
-from types import TracebackType
+from pathlib import Path
+from types import FunctionType, TracebackType
 from typing import (
     Any,
     BinaryIO,
@@ -67,6 +68,8 @@ T = TypeVar("T")
 ExcInfo = Tuple[Type[BaseException], BaseException, TracebackType]
 VersionInfo = Tuple[int, int, int]
 NetlocTuple = Tuple[str, Tuple[Optional[str], Optional[str]]]
+OnExc = Callable[[FunctionType, Path, BaseException], Any]
+OnErr = Callable[[FunctionType, Path, ExcInfo], Any]
 
 
 def get_pip_version() -> str:
@@ -127,16 +130,23 @@ def get_prog() -> str:
 def rmtree(
     dir: str,
     ignore_errors: bool = False,
-    onexc: Optional[Callable[[Any, Any, Any], Any]] = None,
+    onexc: Optional[OnExc] = None,
 ) -> None:
     if ignore_errors:
         onexc = _onerror_ignore
-    elif onexc is None:
+    if onexc is None:
         onexc = _onerror_reraise
+    handler: OnErr = partial(
+        # `[func, path, Union[ExcInfo, BaseException]] -> Any` is equivalent to
+        # `Union[([func, path, ExcInfo] -> Any), ([func, path, BaseException] -> Any)]`.
+        cast(Union[OnExc, OnErr], rmtree_errorhandler),
+        onexc=onexc,
+    )
     if sys.version_info >= (3, 12):
-        shutil.rmtree(dir, onexc=partial(rmtree_errorhandler, onexc=onexc))
+        # See https://docs.python.org/3.12/whatsnew/3.12.html#shutil.
+        shutil.rmtree(dir, onexc=handler)
     else:
-        shutil.rmtree(dir, onerror=partial(rmtree_errorhandler, onexc=onexc))
+        shutil.rmtree(dir, onerror=handler)
 
 
 def _onerror_ignore(*_args: Any) -> None:
@@ -148,11 +158,11 @@ def _onerror_reraise(*_args: Any) -> None:
 
 
 def rmtree_errorhandler(
-    func: Callable[..., Any],
-    path: str,
+    func: FunctionType,
+    path: Path,
     exc_info: Union[ExcInfo, BaseException],
     *,
-    onexc: Callable[..., Any] = _onerror_reraise,
+    onexc: OnExc = _onerror_reraise,
 ) -> None:
     """
     `rmtree` error handler to 'force' a file remove (i.e. like `rm -f`).
@@ -183,6 +193,8 @@ def rmtree_errorhandler(
             except OSError:
                 pass
 
+    if not isinstance(exc_info, BaseException):
+        _, exc_info, _ = exc_info
     onexc(func, path, exc_info)
 
 
