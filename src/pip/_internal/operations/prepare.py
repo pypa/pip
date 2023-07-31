@@ -4,7 +4,6 @@
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
 
-import logging
 import mimetypes
 import os
 import shutil
@@ -37,6 +36,7 @@ from pip._internal.network.lazy_wheel import (
 from pip._internal.network.session import PipSession
 from pip._internal.operations.build.build_tracker import BuildTracker
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils._log import getLogger
 from pip._internal.utils.direct_url_helpers import (
     direct_url_for_editable,
     direct_url_from_link,
@@ -53,7 +53,7 @@ from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
 def _get_prepared_distribution(
@@ -394,7 +394,7 @@ class RequirementPreparer:
         if metadata_link is None:
             return None
         assert req.req is not None
-        logger.info(
+        logger.verbose(
             "Obtaining dependency information for %s from %s",
             req.req,
             metadata_link,
