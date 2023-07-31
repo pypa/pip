@@ -2,12 +2,14 @@ import fnmatch
 import json
 import os
 import pathlib
+import re
 from os.path import basename
 from typing import Iterable
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pytest import mark
 
+from pip._internal.utils.misc import hash_file
 from tests.lib import PipTestEnvironment, TestData, TestPipResult
 
 
@@ -101,3 +103,31 @@ def test_hash_mismatch(script: PipTestEnvironment, tmp_path: pathlib.Path) -> No
         expect_error=True,
     )
     assert "DO NOT MATCH THE HASHES" in result.stderr
+
+
+@mark.network
+def test_hash_mismatch_existing_download(
+    script: PipTestEnvironment, tmp_path: pathlib.Path
+) -> None:
+    reqs = tmp_path / "requirements.txt"
+    reqs.write_text("idna==2.10")
+    dl_dir = tmp_path / "downloads"
+    dl_dir.mkdir()
+    idna_wheel = dl_dir / "idna-2.10-py2.py3-none-any.whl"
+    idna_wheel.write_text("asdf")
+    result = script.pip(
+        "download",
+        "--use-feature=fast-deps",
+        "-r",
+        str(reqs),
+        "-d",
+        str(dl_dir),
+        allow_stderr_warning=True,
+    )
+    assert re.search(
+        r"WARNING: Previously-downloaded file.*has bad hash", result.stderr
+    )
+    assert (
+        hash_file(str(idna_wheel))[0].hexdigest()
+        == "b97d804b1e9b523befed77c48dacec60e6dcb0b5391d57af6a65a312a90648c0"
+    )
