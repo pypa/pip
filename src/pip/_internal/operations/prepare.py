@@ -65,10 +65,12 @@ def _get_prepared_distribution(
 ) -> BaseDistribution:
     """Prepare a distribution for installation."""
     abstract_dist = make_distribution_for_install_requirement(req)
-    with build_tracker.track(req):
-        abstract_dist.prepare_distribution_metadata(
-            finder, build_isolation, check_build_deps
-        )
+    tracker_id = abstract_dist.build_tracker_id
+    if tracker_id is not None:
+        with build_tracker.track(req, tracker_id):
+            abstract_dist.prepare_distribution_metadata(
+                finder, build_isolation, check_build_deps
+            )
     return abstract_dist.get_metadata_distribution()
 
 
