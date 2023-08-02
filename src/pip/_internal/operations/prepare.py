@@ -7,7 +7,7 @@
 import mimetypes
 import os
 import shutil
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, Iterable, List, Optional, Set
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -474,6 +474,8 @@ class RequirementPreparer:
             assert req.link
             links_to_fully_download[req.link] = req
 
+        reqs_with_newly_unpacked_source_dirs: Set[Link] = set()
+
         batch_download = self._batch_download(
             links_to_fully_download.keys(),
             temp_dir,
@@ -481,25 +483,35 @@ class RequirementPreparer:
         for link, (filepath, _) in batch_download:
             logger.debug("Downloading link %s to %s", link, filepath)
             req = links_to_fully_download[link]
+            # Record the downloaded file path so wheel reqs can extract a Distribution
+            # in .get_dist().
             req.local_file_path = filepath
-            # TODO: This needs fixing for sdists
-            # This is an emergency fix for #11847, which reports that
-            # distributions get downloaded twice when metadata is loaded
-            # from a PEP 658 standalone metadata file. Setting _downloaded
-            # fixes this for wheels, but breaks the sdist case (tests
-            # test_download_metadata). As PyPI is currently only serving
-            # metadata for wheels, this is not an immediate issue.
-            # Fixing the problem properly looks like it will require a
-            # complete refactoring of the `prepare_linked_requirements_more`
-            # logic, and I haven't a clue where to start on that, so for now
-            # I have fixed the issue *just* for wheels.
-            if req.is_wheel:
-                self._downloaded[req.link.url] = filepath
+            # Record that the file is downloaded so we don't do it again in
+            # _prepare_linked_requirement().
+            self._downloaded[req.link.url] = filepath
+
+            # If this is an sdist, we need to unpack it and set the .source_dir
+            # immediately after downloading, as _prepare_linked_requirement() assumes
+            # the req is either not downloaded at all, or both downloaded and
+            # unpacked. The downloading and unpacking is is typically done with
+            # unpack_url(), but we separate the downloading and unpacking steps here in
+            # order to use the BatchDownloader.
+            if not req.is_wheel:
+                hashes = self._get_linked_req_hashes(req)
+                assert filepath == _check_download_dir(req.link, temp_dir, hashes)
+                self._ensure_link_req_src_dir(req, parallel_builds)
+                unpack_file(filepath, req.source_dir)
+                reqs_with_newly_unpacked_source_dirs.add(req.link)
 
         # This step is necessary to ensure all lazy wheels are processed
         # successfully by the 'download', 'wheel', and 'install' commands.
         for req in partially_downloaded_reqs:
-            self._prepare_linked_requirement(req, parallel_builds)
+            self._prepare_linked_requirement(
+                req,
+                parallel_builds,
+                source_dir_exists_already=req.link
+                in reqs_with_newly_unpacked_source_dirs,
+            )
 
     def prepare_linked_requirement(
         self, req: InstallRequirement, parallel_builds: bool = False
@@ -570,7 +582,10 @@ class RequirementPreparer:
         )
 
     def _prepare_linked_requirement(
-        self, req: InstallRequirement, parallel_builds: bool
+        self,
+        req: InstallRequirement,
+        parallel_builds: bool,
+        source_dir_exists_already: bool = False,
     ) -> BaseDistribution:
         assert req.link
         link = req.link
@@ -602,7 +617,8 @@ class RequirementPreparer:
                 req.link = req.cached_wheel_source_link
                 link = req.link
 
-        self._ensure_link_req_src_dir(req, parallel_builds)
+        if not source_dir_exists_already:
+            self._ensure_link_req_src_dir(req, parallel_builds)
 
         if link.is_existing_dir():
             local_file = None
