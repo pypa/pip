@@ -1,14 +1,11 @@
+import http.server
 import os
 import re
 import shutil
 import textwrap
-import uuid
-from dataclasses import dataclass
-from enum import Enum
 from hashlib import sha256
 from pathlib import Path
-from textwrap import dedent
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, List, Tuple
 
 import pytest
 
@@ -1237,181 +1234,16 @@ def test_download_use_pep517_propagation(
     assert len(downloads) == 2
 
 
-class MetadataKind(Enum):
-    """All the types of values we might be provided for the data-dist-info-metadata
-    attribute from PEP 658."""
-
-    # Valid: will read metadata from the dist instead.
-    No = "none"
-    # Valid: will read the .metadata file, but won't check its hash.
-    Unhashed = "unhashed"
-    # Valid: will read the .metadata file and check its hash matches.
-    Sha256 = "sha256"
-    # Invalid: will error out after checking the hash.
-    WrongHash = "wrong-hash"
-    # Invalid: will error out after failing to fetch the .metadata file.
-    NoFile = "no-file"
-
-
-@dataclass(frozen=True)
-class Package:
-    """Mock package structure used to generate a PyPI repository.
-
-    Package name and version should correspond to sdists (.tar.gz files) in our test
-    data."""
-
-    name: str
-    version: str
-    filename: str
-    metadata: MetadataKind
-    # This will override any dependencies specified in the actual dist's METADATA.
-    requires_dist: Tuple[str, ...] = ()
-    # This will override the Name specified in the actual dist's METADATA.
-    metadata_name: Optional[str] = None
-
-    def metadata_filename(self) -> str:
-        """This is specified by PEP 658."""
-        return f"{self.filename}.metadata"
-
-    def generate_additional_tag(self) -> str:
-        """This gets injected into the <a> tag in the generated PyPI index page for this
-        package."""
-        if self.metadata == MetadataKind.No:
-            return ""
-        if self.metadata in [MetadataKind.Unhashed, MetadataKind.NoFile]:
-            return 'data-dist-info-metadata="true"'
-        if self.metadata == MetadataKind.WrongHash:
-            return 'data-dist-info-metadata="sha256=WRONG-HASH"'
-        assert self.metadata == MetadataKind.Sha256
-        checksum = sha256(self.generate_metadata()).hexdigest()
-        return f'data-dist-info-metadata="sha256={checksum}"'
-
-    def requires_str(self) -> str:
-        if not self.requires_dist:
-            return ""
-        joined = " and ".join(self.requires_dist)
-        return f"Requires-Dist: {joined}"
-
-    def generate_metadata(self) -> bytes:
-        """This is written to `self.metadata_filename()` and will override the actual
-        dist's METADATA, unless `self.metadata == MetadataKind.NoFile`."""
-        return dedent(
-            f"""\
-        Metadata-Version: 2.1
-        Name: {self.metadata_name or self.name}
-        Version: {self.version}
-        {self.requires_str()}
-        """
-        ).encode("utf-8")
-
-
 @pytest.fixture(scope="function")
-def write_index_html_content(tmpdir: Path) -> Callable[[str], Path]:
-    """Generate a PyPI package index.html within a temporary local directory."""
-    html_dir = tmpdir / "index_html_content"
-    html_dir.mkdir()
-
-    def generate_index_html_subdir(index_html: str) -> Path:
-        """Create a new subdirectory after a UUID and write an index.html."""
-        new_subdir = html_dir / uuid.uuid4().hex
-        new_subdir.mkdir()
-
-        with open(new_subdir / "index.html", "w") as f:
-            f.write(index_html)
-
-        return new_subdir
-
-    return generate_index_html_subdir
-
-
-@pytest.fixture(scope="function")
-def html_index_for_packages(
-    shared_data: TestData,
-    write_index_html_content: Callable[[str], Path],
-) -> Callable[..., Path]:
-    """Generate a PyPI HTML package index within a local directory pointing to
-    blank data."""
-
-    def generate_html_index_for_packages(packages: Dict[str, List[Package]]) -> Path:
-        """
-        Produce a PyPI directory structure pointing to the specified packages.
-        """
-        # (1) Generate the content for a PyPI index.html.
-        pkg_links = "\n".join(
-            f'    <a href="{pkg}/index.html">{pkg}</a>' for pkg in packages.keys()
-        )
-        index_html = f"""\
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta name="pypi:repository-version" content="1.0">
-    <title>Simple index</title>
-  </head>
-  <body>
-{pkg_links}
-  </body>
-</html>"""
-        # (2) Generate the index.html in a new subdirectory of the temp directory.
-        index_html_subdir = write_index_html_content(index_html)
-
-        # (3) Generate subdirectories for individual packages, each with their own
-        # index.html.
-        for pkg, links in packages.items():
-            pkg_subdir = index_html_subdir / pkg
-            pkg_subdir.mkdir()
-
-            download_links: List[str] = []
-            for package_link in links:
-                # (3.1) Generate the <a> tag which pip can crawl pointing to this
-                # specific package version.
-                download_links.append(
-                    f'    <a href="{package_link.filename}" {package_link.generate_additional_tag()}>{package_link.filename}</a><br/>'  # noqa: E501
-                )
-                # (3.2) Copy over the corresponding file in `shared_data.packages`.
-                shutil.copy(
-                    shared_data.packages / package_link.filename,
-                    pkg_subdir / package_link.filename,
-                )
-                # (3.3) Write a metadata file, if applicable.
-                if package_link.metadata != MetadataKind.NoFile:
-                    with open(pkg_subdir / package_link.metadata_filename(), "wb") as f:
-                        f.write(package_link.generate_metadata())
-
-            # (3.4) After collating all the download links and copying over the files,
-            # write an index.html with the generated download links for each
-            # copied file for this specific package name.
-            download_links_str = "\n".join(download_links)
-            pkg_index_content = f"""\
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta name="pypi:repository-version" content="1.0">
-    <title>Links for {pkg}</title>
-  </head>
-  <body>
-    <h1>Links for {pkg}</h1>
-{download_links_str}
-  </body>
-</html>"""
-            with open(pkg_subdir / "index.html", "w") as f:
-                f.write(pkg_index_content)
-
-        return index_html_subdir
-
-    return generate_html_index_for_packages
-
-
-@pytest.fixture(scope="function")
-def download_generated_html_index(
+def download_local_html_index(
     script: PipTestEnvironment,
-    html_index_for_packages: Callable[[Dict[str, List[Package]]], Path],
+    html_index_for_packages: Path,
     tmpdir: Path,
 ) -> Callable[..., Tuple[TestPipResult, Path]]:
     """Execute `pip download` against a generated PyPI index."""
     download_dir = tmpdir / "download_dir"
 
     def run_for_generated_index(
-        packages: Dict[str, List[Package]],
         args: List[str],
         allow_error: bool = False,
     ) -> Tuple[TestPipResult, Path]:
@@ -1419,13 +1251,12 @@ def download_generated_html_index(
         Produce a PyPI directory structure pointing to the specified packages, then
         execute `pip download -i ...` pointing to our generated index.
         """
-        index_dir = html_index_for_packages(packages)
         pip_args = [
             "download",
             "-d",
             str(download_dir),
             "-i",
-            path_to_url(str(index_dir)),
+            path_to_url(str(html_index_for_packages)),
             *args,
         ]
         result = script.pip(*pip_args, allow_error=allow_error)
@@ -1434,84 +1265,35 @@ def download_generated_html_index(
     return run_for_generated_index
 
 
-# The package database we generate for testing PEP 658 support.
-_simple_packages: Dict[str, List[Package]] = {
-    "simple": [
-        Package("simple", "1.0", "simple-1.0.tar.gz", MetadataKind.Sha256),
-        Package("simple", "2.0", "simple-2.0.tar.gz", MetadataKind.No),
-        # This will raise a hashing error.
-        Package("simple", "3.0", "simple-3.0.tar.gz", MetadataKind.WrongHash),
-    ],
-    "simple2": [
-        # Override the dependencies here in order to force pip to download
-        # simple-1.0.tar.gz as well.
-        Package(
-            "simple2",
-            "1.0",
-            "simple2-1.0.tar.gz",
-            MetadataKind.Unhashed,
-            ("simple==1.0",),
-        ),
-        # This will raise an error when pip attempts to fetch the metadata file.
-        Package("simple2", "2.0", "simple2-2.0.tar.gz", MetadataKind.NoFile),
-        # This has a METADATA file with a mismatched name.
-        Package(
-            "simple2",
-            "3.0",
-            "simple2-3.0.tar.gz",
-            MetadataKind.Sha256,
-            metadata_name="not-simple2",
-        ),
-    ],
-    "colander": [
-        # Ensure we can read the dependencies from a metadata file within a wheel
-        # *without* PEP 658 metadata.
-        Package(
-            "colander", "0.9.9", "colander-0.9.9-py2.py3-none-any.whl", MetadataKind.No
-        ),
-    ],
-    "compilewheel": [
-        # Ensure we can override the dependencies of a wheel file by injecting PEP
-        # 658 metadata.
-        Package(
-            "compilewheel",
-            "1.0",
-            "compilewheel-1.0-py2.py3-none-any.whl",
-            MetadataKind.Unhashed,
-            ("simple==1.0",),
-        ),
-    ],
-    "has-script": [
-        # Ensure we check PEP 658 metadata hashing errors for wheel files.
-        Package(
-            "has-script",
-            "1.0",
-            "has.script-1.0-py2.py3-none-any.whl",
-            MetadataKind.WrongHash,
-        ),
-    ],
-    "translationstring": [
-        Package(
-            "translationstring", "1.1", "translationstring-1.1.tar.gz", MetadataKind.No
-        ),
-    ],
-    "priority": [
-        # Ensure we check for a missing metadata file for wheels.
-        Package(
-            "priority", "1.0", "priority-1.0-py2.py3-none-any.whl", MetadataKind.NoFile
-        ),
-    ],
-    "requires-simple-extra": [
-        # Metadata name is not canonicalized.
-        Package(
-            "requires-simple-extra",
-            "0.1",
-            "requires_simple_extra-0.1-py2.py3-none-any.whl",
-            MetadataKind.Sha256,
-            metadata_name="Requires_Simple.Extra",
-        ),
-    ],
-}
+@pytest.fixture(scope="function")
+def download_server_html_index(
+    script: PipTestEnvironment,
+    tmpdir: Path,
+    html_index_with_onetime_server: http.server.ThreadingHTTPServer,
+) -> Callable[..., Tuple[TestPipResult, Path]]:
+    """Execute `pip download` against a generated PyPI index."""
+    download_dir = tmpdir / "download_dir"
+
+    def run_for_generated_index(
+        args: List[str],
+        allow_error: bool = False,
+    ) -> Tuple[TestPipResult, Path]:
+        """
+        Produce a PyPI directory structure pointing to the specified packages, then
+        execute `pip download -i ...` pointing to our generated index.
+        """
+        pip_args = [
+            "download",
+            "-d",
+            str(download_dir),
+            "-i",
+            "http://localhost:8000",
+            *args,
+        ]
+        result = script.pip(*pip_args, allow_error=allow_error)
+        return (result, download_dir)
+
+    return run_for_generated_index
 
 
 @pytest.mark.parametrize(
@@ -1530,14 +1312,13 @@ _simple_packages: Dict[str, List[Package]] = {
     ],
 )
 def test_download_metadata(
-    download_generated_html_index: Callable[..., Tuple[TestPipResult, Path]],
+    download_local_html_index: Callable[..., Tuple[TestPipResult, Path]],
     requirement_to_download: str,
     expected_outputs: List[str],
 ) -> None:
     """Verify that if a data-dist-info-metadata attribute is present, then it is used
     instead of the actual dist's METADATA."""
-    _, download_dir = download_generated_html_index(
-        _simple_packages,
+    _, download_dir = download_local_html_index(
         [requirement_to_download],
     )
     assert sorted(os.listdir(download_dir)) == expected_outputs
@@ -1557,14 +1338,13 @@ def test_download_metadata(
     ],
 )
 def test_incorrect_metadata_hash(
-    download_generated_html_index: Callable[..., Tuple[TestPipResult, Path]],
+    download_local_html_index: Callable[..., Tuple[TestPipResult, Path]],
     requirement_to_download: str,
     real_hash: str,
 ) -> None:
     """Verify that if a hash for data-dist-info-metadata is provided, it must match the
     actual hash of the metadata file."""
-    result, _ = download_generated_html_index(
-        _simple_packages,
+    result, _ = download_local_html_index(
         [requirement_to_download],
         allow_error=True,
     )
@@ -1583,15 +1363,14 @@ def test_incorrect_metadata_hash(
     ],
 )
 def test_metadata_not_found(
-    download_generated_html_index: Callable[..., Tuple[TestPipResult, Path]],
+    download_local_html_index: Callable[..., Tuple[TestPipResult, Path]],
     requirement_to_download: str,
     expected_url: str,
 ) -> None:
     """Verify that if a data-dist-info-metadata attribute is provided, that pip will
     fetch the .metadata file at the location specified by PEP 658, and error
     if unavailable."""
-    result, _ = download_generated_html_index(
-        _simple_packages,
+    result, _ = download_local_html_index(
         [requirement_to_download],
         allow_error=True,
     )
@@ -1604,11 +1383,10 @@ def test_metadata_not_found(
 
 
 def test_produces_error_for_mismatched_package_name_in_metadata(
-    download_generated_html_index: Callable[..., Tuple[TestPipResult, Path]],
+    download_local_html_index: Callable[..., Tuple[TestPipResult, Path]],
 ) -> None:
     """Verify that the package name from the metadata matches the requested package."""
-    result, _ = download_generated_html_index(
-        _simple_packages,
+    result, _ = download_local_html_index(
         ["simple2==3.0"],
         allow_error=True,
     )
@@ -1628,7 +1406,7 @@ def test_produces_error_for_mismatched_package_name_in_metadata(
     ),
 )
 def test_canonicalizes_package_name_before_verifying_metadata(
-    download_generated_html_index: Callable[..., Tuple[TestPipResult, Path]],
+    download_local_html_index: Callable[..., Tuple[TestPipResult, Path]],
     requirement: str,
 ) -> None:
     """Verify that the package name from the command line and the package's
@@ -1636,8 +1414,7 @@ def test_canonicalizes_package_name_before_verifying_metadata(
 
     Regression test for https://github.com/pypa/pip/issues/12038
     """
-    result, download_dir = download_generated_html_index(
-        _simple_packages,
+    result, download_dir = download_local_html_index(
         [requirement],
         allow_error=True,
     )
