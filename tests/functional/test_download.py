@@ -1325,6 +1325,57 @@ def test_download_metadata(
 
 
 @pytest.mark.parametrize(
+    "requirement_to_download, expected_outputs, doubled_path",
+    [
+        (
+            "simple2==1.0",
+            ["simple-1.0.tar.gz", "simple2-1.0.tar.gz"],
+            "/simple2/simple2-1.0.tar.gz",
+        ),
+        ("simple==2.0", ["simple-2.0.tar.gz"], "/simple/simple-2.0.tar.gz"),
+        (
+            "colander",
+            ["colander-0.9.9-py2.py3-none-any.whl", "translationstring-1.1.tar.gz"],
+            "/colander/colander-0.9.9-py2.py3-none-any.whl",
+        ),
+        (
+            "compilewheel",
+            [
+                "compilewheel-1.0-py2.py3-none-any.whl",
+                "simple-1.0.tar.gz",
+            ],
+            "/compilewheel/compilewheel-1.0-py2.py3-none-any.whl",
+        ),
+    ],
+)
+def test_download_metadata_server(
+    download_server_html_index: Callable[..., Tuple[TestPipResult, Path]],
+    requirement_to_download: str,
+    expected_outputs: List[str],
+    doubled_path: str,
+) -> None:
+    """Verify that if a data-dist-info-metadata attribute is present, then it is used
+    instead of the actual dist's METADATA.
+
+    Additionally, verify that each dist is downloaded exactly once using a mock server.
+
+    This is a regression test for issue https://github.com/pypa/pip/issues/11847.
+    """
+    _, download_dir = download_server_html_index(
+        [requirement_to_download, "--no-cache-dir"],
+    )
+    assert sorted(os.listdir(download_dir)) == expected_outputs
+    shutil.rmtree(download_dir)
+    result, _ = download_server_html_index(
+        [requirement_to_download, "--no-cache-dir"],
+        allow_error=True,
+    )
+    assert result.returncode != 0
+    expected_msg = f"File {doubled_path} not available more than once!"
+    assert expected_msg in result.stderr
+
+
+@pytest.mark.parametrize(
     "requirement_to_download, real_hash",
     [
         (

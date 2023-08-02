@@ -992,3 +992,51 @@ def html_index_for_packages(
             f.write(pkg_index_content)
 
     return html_dir
+
+
+class OneTimeDownloadHandler(http.server.SimpleHTTPRequestHandler):
+    """Serve files from the current directory, but error if a file is downloaded more
+    than once."""
+
+    _seen_paths: ClassVar[Set[str]] = set()
+
+    def do_GET(self) -> None:
+        if self.path in self._seen_paths:
+            self.send_error(
+                http.HTTPStatus.NOT_FOUND,
+                f"File {self.path} not available more than once!",
+            )
+            return
+        super().do_GET()
+        if not (self.path.endswith("/") or self.path.endswith(".metadata")):
+            self._seen_paths.add(self.path)
+
+
+@pytest.fixture(scope="function")
+def html_index_with_onetime_server(
+    html_index_for_packages: Path,
+) -> Iterator[http.server.ThreadingHTTPServer]:
+    """Serve files from a generated pypi index, erroring if a file is downloaded more
+    than once.
+
+    Provide `-i http://localhost:8000` to pip invocations to point them at this server.
+    """
+
+    class InDirectoryServer(http.server.ThreadingHTTPServer):
+        def finish_request(self, request: Any, client_address: Any) -> None:
+            self.RequestHandlerClass(
+                request, client_address, self, directory=str(html_index_for_packages)  # type: ignore[call-arg] # noqa: E501
+            )
+
+    class Handler(OneTimeDownloadHandler):
+        _seen_paths: ClassVar[Set[str]] = set()
+
+    with InDirectoryServer(("", 8000), Handler) as httpd:
+        server_thread = threading.Thread(target=httpd.serve_forever)
+        server_thread.start()
+
+        try:
+            yield httpd
+        finally:
+            httpd.shutdown()
+            server_thread.join()
