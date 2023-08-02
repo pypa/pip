@@ -19,8 +19,6 @@ We release updates regularly, with a new version every 3 months. Find more detai
 * `Release notes`_
 * `Release process`_
 
-In pip 20.3, we've `made a big improvement to the heart of pip`_; `learn more`_. We want your input, so `sign up for our user experience research studies`_ to help us do it right.
-
 **Note**: pip 21.0, in January 2021, removed Python 2 support, per pip's `Python 2 support policy`_. Please migrate to Python 3.
 
 If you find bugs, need help, or want to talk to the developers, please use our mailing lists or chat rooms:
@@ -49,9 +47,6 @@ rooms, and mailing lists is expected to follow the `PSF Code of Conduct`_.
 .. _Release process: https://pip.pypa.io/en/latest/development/release-process/
 .. _GitHub page: https://github.com/pypa/pip
 .. _Development documentation: https://pip.pypa.io/en/latest/development
-.. _made a big improvement to the heart of pip: https://pyfound.blogspot.com/2020/11/pip-20-3-new-resolver.html
-.. _learn more: https://pip.pypa.io/en/latest/user_guide/#changes-to-the-pip-dependency-resolver-in-20-3-2020
-.. _sign up for our user experience research studies: https://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
 .. _Python 2 support policy: https://pip.pypa.io/en/latest/development/release-process/#python-2-support
 .. _Issue tracking: https://github.com/pypa/pip/issues
 .. _Discourse channel: https://discuss.python.org/c/packaging
