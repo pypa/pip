@@ -114,7 +114,7 @@ class Configuration:
         self._parsers: Dict[Kind, List[Tuple[str, RawConfigParser]]] = {
             variant: [] for variant in OVERRIDE_ORDER
         }
-        self._config: Dict[Kind, Dict[str, Any]] = {
+        self._config: Dict[Kind, Dict[str, Dict[str, Any]]] = {
             variant: {} for variant in OVERRIDE_ORDER
         }
         self._modified_parsers: List[Tuple[str, RawConfigParser]] = []
@@ -145,7 +145,14 @@ class Configuration:
         orig_key = key
         key = _normalize_name(key)
         try:
-            return self._dictionary[key]
+            clean_config = {}
+            for k, value in self._dictionary.items():
+                if isinstance(value, dict):
+                    for k, v in value.items():
+                        clean_config[k] = v
+                else:
+                    clean_config[k] = value
+            return clean_config[key]
         except KeyError:
             # disassembling triggers a more useful error message than simply
             # "No such key" in the case that the key isn't in the form command.option
@@ -168,7 +175,11 @@ class Configuration:
                 parser.add_section(section)
             parser.set(section, name, value)
 
-        self._config[self.load_only][key] = value
+        exists = self._config[self.load_only].get(fname)
+        if not exists:
+            self._config[self.load_only][fname] = {}
+
+        self._config[self.load_only][fname][key] = value
         self._mark_as_modified(fname, parser)
 
     def unset_value(self, key: str) -> None:
@@ -178,10 +189,13 @@ class Configuration:
         self._ensure_have_load_only()
 
         assert self.load_only
-        if key not in self._config[self.load_only]:
-            raise ConfigurationError(f"No such key - {orig_key}")
-
         fname, parser = self._get_parser_to_modify()
+
+        if (
+            key not in self._config[self.load_only][fname]
+            and key not in self._config[self.load_only]
+        ):
+            raise ConfigurationError(f"No such key - {orig_key}")
 
         if parser is not None:
             section, name = _disassemble_key(key)
@@ -197,8 +211,10 @@ class Configuration:
             if not parser.items(section):
                 parser.remove_section(section)
             self._mark_as_modified(fname, parser)
-
-        del self._config[self.load_only][key]
+        try:
+            del self._config[self.load_only][fname][key]
+        except KeyError:
+            del self._config[self.load_only][key]
 
     def save(self) -> None:
         """Save the current in-memory state."""
@@ -270,7 +286,10 @@ class Configuration:
 
         for section in parser.sections():
             items = parser.items(section)
-            self._config[variant].update(self._normalized_keys(section, items))
+            exists = self._config[variant].get(fname)
+            if not exists:
+                self._config[variant][fname] = {}
+            self._config[variant][fname].update(self._normalized_keys(section, items))
 
         return parser
 

@@ -185,23 +185,38 @@ class ConfigOptionParser(CustomOptionParser):
         section_items: Dict[str, List[Tuple[str, Any]]] = {
             name: [] for name in override_order
         }
-        for section_key, val in self.config.items():
-            # ignore empty values
-            if not val:
-                logger.debug(
-                    "Ignoring configuration key '%s' as it's value is empty.",
-                    section_key,
-                )
-                continue
 
-            section, key = section_key.split(".", 1)
-            if section in override_order:
-                section_items[section].append((key, val))
+        for key, value in self.config.items():
+            if not isinstance(value, dict):
+                # ignore empty values
+                if not value:
+                    logger.debug(
+                        "Ignoring configuration key '%s' as it's value is empty.",
+                        key,
+                    )
+                    continue
 
-        # Yield each group in their override order
-        for section in override_order:
-            for key, val in section_items[section]:
-                yield key, val
+                section, key = key.split(".", 1)
+                if section in override_order:
+                    section_items[section].append((key, value))
+            else:
+                for section_key, val in value.items():
+                    # ignore empty values
+                    if not val:
+                        logger.debug(
+                            "Ignoring configuration key '%s' as it's value is empty.",
+                            section_key,
+                        )
+                        continue
+
+                    section, key = section_key.split(".", 1)
+                    if section in override_order:
+                        section_items[section].append((key, val))
+
+            # Yield each group in their override order
+            for section in override_order:
+                for key, val in section_items[section]:
+                    yield key, val
 
     def _update_defaults(self, defaults: Dict[str, Any]) -> Dict[str, Any]:
         """Updates the given defaults with values from the config files and
