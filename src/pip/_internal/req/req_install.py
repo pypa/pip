@@ -6,6 +6,7 @@ import sys
 import uuid
 import zipfile
 from optparse import Values
+from pathlib import Path
 from typing import Any, Collection, Dict, Iterable, List, Optional, Sequence, Union
 
 from pip._vendor.packaging.markers import Marker
@@ -17,7 +18,7 @@ from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.pyproject_hooks import BuildBackendHookCaller
 
 from pip._internal.build_env import BuildEnvironment, NoOpBuildEnvironment
-from pip._internal.exceptions import InstallationError
+from pip._internal.exceptions import InstallationError, PreviousBuildDirError
 from pip._internal.locations import get_scheme
 from pip._internal.metadata import (
     BaseDistribution,
@@ -47,11 +48,13 @@ from pip._internal.utils.misc import (
     backup_dir,
     display_path,
     hide_url,
+    is_installable_dir,
     redact_auth_from_url,
 )
 from pip._internal.utils.packaging import safe_extra
 from pip._internal.utils.subprocess import runner_with_spinner_message
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
+from pip._internal.utils.unpacking import unpack_file
 from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
 
@@ -179,6 +182,9 @@ class InstallRequirement:
 
         # This requirement needs more preparation before it can be built
         self.needs_more_preparation = False
+
+        # This requirement needs to be unpacked before it can be installed.
+        self._archive_source: Optional[Path] = None
 
     def __str__(self) -> str:
         if self.req:
@@ -643,6 +649,27 @@ class InstallRequirement:
                 parent_dir,
                 autodelete=autodelete,
                 parallel_builds=parallel_builds,
+            )
+
+    def needs_unpacked_archive(self, archive_source: Path) -> None:
+        assert self._archive_source is None
+        self._archive_source = archive_source
+
+    def ensure_pristine_source_checkout(self) -> None:
+        """Ensure the source directory has not yet been built in."""
+        assert self.source_dir is not None
+        if self._archive_source is not None:
+            unpack_file(str(self._archive_source), self.source_dir)
+        elif is_installable_dir(self.source_dir):
+            # If a checkout exists, it's unwise to keep going.
+            # version inconsistencies are logged later, but do not fail
+            # the installation.
+            raise PreviousBuildDirError(
+                "pip can't proceed with requirements '{}' due to a "
+                "pre-existing build directory ({}). This is likely "
+                "due to a previous installation that failed . pip is "
+                "being responsible and not assuming it can delete this. "
+                "Please delete it and try again.".format(self, self.source_dir)
             )
 
     # For editable installations

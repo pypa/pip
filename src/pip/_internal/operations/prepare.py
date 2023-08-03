@@ -7,7 +7,8 @@
 import mimetypes
 import os
 import shutil
-from typing import Dict, Iterable, List, Optional, Set
+from pathlib import Path
+from typing import Dict, Iterable, List, Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -20,7 +21,6 @@ from pip._internal.exceptions import (
     InstallationError,
     MetadataInconsistent,
     NetworkConnectionError,
-    PreviousBuildDirError,
     VcsHashUnsupported,
 )
 from pip._internal.index.package_finder import PackageFinder
@@ -47,7 +47,6 @@ from pip._internal.utils.misc import (
     display_path,
     hash_file,
     hide_url,
-    is_installable_dir,
 )
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.unpacking import unpack_file
@@ -319,21 +318,7 @@ class RequirementPreparer:
             autodelete=True,
             parallel_builds=parallel_builds,
         )
-
-        # If a checkout exists, it's unwise to keep going.  version
-        # inconsistencies are logged later, but do not fail the
-        # installation.
-        # FIXME: this won't upgrade when there's an existing
-        # package unpacked in `req.source_dir`
-        # TODO: this check is now probably dead code
-        if is_installable_dir(req.source_dir):
-            raise PreviousBuildDirError(
-                "pip can't proceed with requirements '{}' due to a"
-                "pre-existing build directory ({}). This is likely "
-                "due to a previous installation that failed . pip is "
-                "being responsible and not assuming it can delete this. "
-                "Please delete it and try again.".format(req, req.source_dir)
-            )
+        req.ensure_pristine_source_checkout()
 
     def _get_linked_req_hashes(self, req: InstallRequirement) -> Hashes:
         # By the time this is called, the requirement's link should have
@@ -474,8 +459,6 @@ class RequirementPreparer:
             assert req.link
             links_to_fully_download[req.link] = req
 
-        reqs_with_newly_unpacked_source_dirs: Set[Link] = set()
-
         batch_download = self._batch_download(
             links_to_fully_download.keys(),
             temp_dir,
@@ -490,28 +473,17 @@ class RequirementPreparer:
             # _prepare_linked_requirement().
             self._downloaded[req.link.url] = filepath
 
-            # If this is an sdist, we need to unpack it and set the .source_dir
-            # immediately after downloading, as _prepare_linked_requirement() assumes
-            # the req is either not downloaded at all, or both downloaded and
-            # unpacked. The downloading and unpacking is is typically done with
-            # unpack_url(), but we separate the downloading and unpacking steps here in
-            # order to use the BatchDownloader.
+            # If this is an sdist, we need to unpack it after downloading, but the
+            # .source_dir won't be set up until we are in _prepare_linked_requirement().
+            # Add the downloaded archive to the install requirement to unpack after
+            # preparing the source dir.
             if not req.is_wheel:
-                hashes = self._get_linked_req_hashes(req)
-                assert filepath == _check_download_dir(req.link, temp_dir, hashes)
-                self._ensure_link_req_src_dir(req, parallel_builds)
-                unpack_file(filepath, req.source_dir)
-                reqs_with_newly_unpacked_source_dirs.add(req.link)
+                req.needs_unpacked_archive(Path(filepath))
 
         # This step is necessary to ensure all lazy wheels are processed
         # successfully by the 'download', 'wheel', and 'install' commands.
         for req in partially_downloaded_reqs:
-            self._prepare_linked_requirement(
-                req,
-                parallel_builds,
-                source_dir_exists_already=req.link
-                in reqs_with_newly_unpacked_source_dirs,
-            )
+            self._prepare_linked_requirement(req, parallel_builds)
 
     def prepare_linked_requirement(
         self, req: InstallRequirement, parallel_builds: bool = False
@@ -582,10 +554,7 @@ class RequirementPreparer:
         )
 
     def _prepare_linked_requirement(
-        self,
-        req: InstallRequirement,
-        parallel_builds: bool,
-        source_dir_exists_already: bool = False,
+        self, req: InstallRequirement, parallel_builds: bool
     ) -> BaseDistribution:
         assert req.link
         link = req.link
@@ -617,8 +586,7 @@ class RequirementPreparer:
                 req.link = req.cached_wheel_source_link
                 link = req.link
 
-        if not source_dir_exists_already:
-            self._ensure_link_req_src_dir(req, parallel_builds)
+        self._ensure_link_req_src_dir(req, parallel_builds)
 
         if link.is_existing_dir():
             local_file = None

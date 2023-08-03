@@ -935,17 +935,21 @@ def html_index_for_packages(
     pkg_links = "\n".join(
         f'    <a href="{pkg}/index.html">{pkg}</a>' for pkg in fake_packages.keys()
     )
-    index_html = f"""\
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta name="pypi:repository-version" content="1.0">
-    <title>Simple index</title>
-  </head>
-  <body>
-{pkg_links}
-  </body>
-</html>"""
+    # Output won't be nicely indented because dedent() acts after f-string
+    # arg insertion.
+    index_html = dedent(
+        f"""\
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta name="pypi:repository-version" content="1.0">
+            <title>Simple index</title>
+          </head>
+          <body>
+          {pkg_links}
+          </body>
+        </html>"""
+    )
     # (2) Generate the index.html in a new subdirectory of the temp directory.
     (html_dir / "index.html").write_text(index_html)
 
@@ -976,18 +980,20 @@ def html_index_for_packages(
         # write an index.html with the generated download links for each
         # copied file for this specific package name.
         download_links_str = "\n".join(download_links)
-        pkg_index_content = f"""\
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta name="pypi:repository-version" content="1.0">
-    <title>Links for {pkg}</title>
-  </head>
-  <body>
-    <h1>Links for {pkg}</h1>
-{download_links_str}
-  </body>
-</html>"""
+        pkg_index_content = dedent(
+            f"""\
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <meta name="pypi:repository-version" content="1.0">
+                <title>Links for {pkg}</title>
+              </head>
+              <body>
+                <h1>Links for {pkg}</h1>
+                {download_links_str}
+              </body>
+            </html>"""
+        )
         with open(pkg_subdir / "index.html", "w") as f:
             f.write(pkg_index_content)
 
