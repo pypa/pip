@@ -37,8 +37,9 @@ class ConfigurationMixin:
             )
             old()
 
-        # https://github.com/python/mypy/issues/2427
-        self.configuration._load_config_files = overridden  # type: ignore[assignment]
+        self.configuration._load_config_files = (  # type: ignore[method-assign]
+            overridden
+        )
 
     @contextlib.contextmanager
     def tmpfile(self, contents: str) -> Iterator[str]:

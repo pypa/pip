@@ -252,7 +252,7 @@ class TestCheckDistRequiresPython:
             def metadata(self) -> email.message.Message:
                 raise FileNotFoundError(metadata_name)
 
-        dist = make_fake_dist(klass=NotWorkingFakeDist)
+        dist = make_fake_dist(klass=NotWorkingFakeDist)  # type: ignore[type-abstract]
 
         with pytest.raises(NoneMetadataError) as exc:
             _check_dist_requires_python(

@@ -1,6 +1,6 @@
 """Tests for all things related to the configuration
 """
-
+# mypy: disable-error-code="method-assign"
 import re
 from unittest.mock import MagicMock
 
@@ -214,8 +214,7 @@ class TestConfigurationModification(ConfigurationMixin):
 
         # Mock out the method
         mymock = MagicMock(spec=self.configuration._mark_as_modified)
-        # https://github.com/python/mypy/issues/2427
-        self.configuration._mark_as_modified = mymock  # type: ignore[assignment]
+        self.configuration._mark_as_modified = mymock
 
         self.configuration.set_value("test.hello", "10")
 
@@ -231,7 +230,7 @@ class TestConfigurationModification(ConfigurationMixin):
         # Mock out the method
         mymock = MagicMock(spec=self.configuration._mark_as_modified)
         # https://github.com/python/mypy/issues/2427
-        self.configuration._mark_as_modified = mymock  # type: ignore[assignment]
+        self.configuration._mark_as_modified = mymock
 
         self.configuration.set_value("test.hello", "10")
 
@@ -249,8 +248,7 @@ class TestConfigurationModification(ConfigurationMixin):
 
         # Mock out the method
         mymock = MagicMock(spec=self.configuration._mark_as_modified)
-        # https://github.com/python/mypy/issues/2427
-        self.configuration._mark_as_modified = mymock  # type: ignore[assignment]
+        self.configuration._mark_as_modified = mymock
 
         self.configuration.set_value("test.hello", "10")
 

@@ -1031,7 +1031,7 @@ def html_index_with_onetime_server(
     class InDirectoryServer(http.server.ThreadingHTTPServer):
         def finish_request(self, request: Any, client_address: Any) -> None:
             self.RequestHandlerClass(
-                request, client_address, self, directory=str(html_index_for_packages)  # type: ignore[call-arg] # noqa: E501
+                request, client_address, self, directory=str(html_index_for_packages)  # type: ignore[call-arg, arg-type] # noqa: E501
             )
 
     class Handler(OneTimeDownloadHandler):

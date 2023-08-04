@@ -33,7 +33,9 @@ class PipXmlrpcTransport(xmlrpc.client.Transport):
         self,
         host: "_HostType",
         handler: str,
-        request_body: bytes,
+        # Should ideally be typed with SizedBuffer,
+        # but that's not easily usable till Python 3.11
+        request_body: bytes,  # type: ignore[override]
         verbose: bool = False,
     ) -> Tuple["_Marshallable", ...]:
         assert isinstance(host, str)

@@ -69,7 +69,7 @@ ExcInfo = Tuple[Type[BaseException], BaseException, TracebackType]
 VersionInfo = Tuple[int, int, int]
 NetlocTuple = Tuple[str, Tuple[Optional[str], Optional[str]]]
 OnExc = Callable[[FunctionType, Path, BaseException], Any]
-OnErr = Callable[[FunctionType, Path, ExcInfo], Any]
+OnErr = Callable[[Callable[..., Any], str, ExcInfo], Any]
 
 
 def get_pip_version() -> str:
