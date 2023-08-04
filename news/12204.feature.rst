@@ -1,1 +1,1 @@
-Improve use of datastructures to speed up candidate selection by 40%
+Improve use of datastructures to make candidate selection 1.6x faster

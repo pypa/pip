@@ -88,7 +88,7 @@ class TestTargetPython:
             ((3, 7, 3), "37"),
             # Check a minor version with two digits.
             ((3, 10, 1), "310"),
-            # Check that versions=None is passed to get_tags().
+            # Check that versions=None is passed to get_sorted_tags().
             (None, None),
         ],
     )
@@ -113,7 +113,7 @@ class TestTargetPython:
 
     def test_get_unsorted_tags__uses_cached_value(self) -> None:
         """
-        Test that get_tags() uses the cached value.
+        Test that get_unsorted_tags() uses the cached value.
         """
         target_python = TargetPython(py_version_info=None)
         target_python._valid_tags_set = {
