@@ -5,11 +5,10 @@ import os
 import sys
 from optparse import Values
 from types import ModuleType
-from typing import Any, Collection, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import pip._vendor
 from pip._vendor.certifi import where
-from pip._vendor.packaging.tags import Tag
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.cli import cmdoptions
@@ -106,7 +105,7 @@ def show_tags(options: Values) -> None:
     tag_limit = 10
 
     target_python = make_target_python(options)
-    tags: Collection[Tag] = target_python.get_tags()
+    tags = target_python.get_sorted_tags()
 
     # Display the target options that were explicitly provided.
     formatted_target = target_python.format_given()
@@ -119,7 +118,7 @@ def show_tags(options: Values) -> None:
 
     if options.verbose < 1 and len(tags) > tag_limit:
         tags_limited = True
-        tags = list(tags)[:tag_limit]
+        tags = tags[:tag_limit]
     else:
         tags_limited = False
 

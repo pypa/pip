@@ -137,7 +137,7 @@ class TestWheel:
         req = install_req_from_line("simple.dist")
         target_python = TargetPython()
         # Make sure no tags will match.
-        target_python._valid_tags = set()
+        target_python._valid_tags = []
         finder = make_test_finder(
             find_links=[data.find_links],
             target_python=target_python,
