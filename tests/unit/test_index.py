@@ -220,7 +220,7 @@ class TestLinkEvaluator:
         """
         target_python = TargetPython(py_version_info=(3, 6, 4))
         # Set the valid tags to an empty list to make sure nothing matches.
-        target_python._valid_tags = []
+        target_python._valid_tags = set()
         evaluator = LinkEvaluator(
             project_name="sample",
             canonical_name="sample",
@@ -373,7 +373,7 @@ class TestCandidateEvaluator:
     )
     def test_create(self, allow_all_prereleases: bool, prefer_binary: bool) -> None:
         target_python = TargetPython()
-        target_python._valid_tags = [Tag("py36", "none", "any")]
+        target_python._valid_tags = {Tag("py36", "none", "any")}
         specifier = SpecifierSet()
         evaluator = CandidateEvaluator.create(
             project_name="my-project",
@@ -786,7 +786,7 @@ class TestPackageFinder:
         prefer_binary: bool,
     ) -> None:
         target_python = TargetPython()
-        target_python._valid_tags = [Tag("py36", "none", "any")]
+        target_python._valid_tags = {Tag("py36", "none", "any")}
         candidate_prefs = CandidatePreferences(
             prefer_binary=prefer_binary,
             allow_all_prereleases=allow_all_prereleases,

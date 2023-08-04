@@ -93,7 +93,7 @@ class TestTargetPython:
         ],
     )
     @mock.patch("pip._internal.models.target_python.get_supported")
-    def test_get_tags(
+    def test_get_sorted_tags(
         self,
         mock_get_supported: mock.Mock,
         py_version_info: Optional[Tuple[int, ...]],
@@ -111,14 +111,14 @@ class TestTargetPython:
         # Check that the value was cached.
         assert target_python._valid_tags == ["tag-1", "tag-2"]
 
-    def test_get_tags__uses_cached_value(self) -> None:
+    def test_get_unsorted_tags__uses_cached_value(self) -> None:
         """
         Test that get_tags() uses the cached value.
         """
         target_python = TargetPython(py_version_info=None)
-        target_python._valid_tags = [
+        target_python._valid_tags = {
             Tag("py2", "none", "any"),
             Tag("py3", "none", "any"),
-        ]
-        actual = target_python.get_sorted_tags()
-        assert actual == [Tag("py2", "none", "any"), Tag("py3", "none", "any")]
+        }
+        actual = target_python.get_unsorted_tags()
+        assert actual == {Tag("py2", "none", "any"), Tag("py3", "none", "any")}
