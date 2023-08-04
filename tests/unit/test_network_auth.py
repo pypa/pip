@@ -352,7 +352,7 @@ class KeyringModuleV2:
     ),
 )
 def test_keyring_get_credential(
-    monkeypatch: pytest.MonkeyPatch, url: str, expect: str
+    monkeypatch: pytest.MonkeyPatch, url: str, expect: Tuple[str, str]
 ) -> None:
     monkeypatch.setitem(sys.modules, "keyring", KeyringModuleV2())
     auth = MultiDomainBasicAuth(

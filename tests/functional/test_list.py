@@ -601,8 +601,7 @@ def test_outdated_formats(script: PipTestEnvironment, data: TestData) -> None:
         "--outdated",
         "--format=json",
     )
-    data = json.loads(result.stdout)
-    assert data == [
+    assert json.loads(result.stdout) == [
         {
             "name": "simple",
             "version": "1.0",

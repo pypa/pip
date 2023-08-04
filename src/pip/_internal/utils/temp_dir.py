@@ -196,7 +196,11 @@ class TempDirectory:
                 traceback.format_exception_only(type(exc_val), exc_val)
             )
             formatted_exc = formatted_exc.rstrip()  # remove trailing new line
-            if func in (os.unlink, os.remove, os.rmdir):
+            if func in (
+                os.unlink,
+                os.remove,
+                os.rmdir,
+            ):  # type: ignore[comparison-overlap]
                 logger.debug(
                     "Failed to remove a temporary file '%s' due to %s.\n",
                     path,

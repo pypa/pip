@@ -99,17 +99,17 @@ class TestTargetPython:
         py_version_info: Optional[Tuple[int, ...]],
         expected_version: Optional[str],
     ) -> None:
-        mock_get_supported.return_value = ["tag-1", "tag-2"]
+        dummy_tags = [Tag("py4", "none", "any"), Tag("py5", "none", "any")]
+        mock_get_supported.return_value = dummy_tags
 
         target_python = TargetPython(py_version_info=py_version_info)
         actual = target_python.get_sorted_tags()
-        assert actual == ["tag-1", "tag-2"]
+        assert actual == dummy_tags
 
-        actual = mock_get_supported.call_args[1]["version"]
-        assert actual == expected_version
+        assert mock_get_supported.call_args[1]["version"] == expected_version
 
         # Check that the value was cached.
-        assert target_python._valid_tags == ["tag-1", "tag-2"]
+        assert target_python._valid_tags == dummy_tags
 
     def test_get_unsorted_tags__uses_cached_value(self) -> None:
         """
