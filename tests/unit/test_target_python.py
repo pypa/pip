@@ -109,7 +109,7 @@ class TestTargetPython:
         assert actual == expected_version
 
         # Check that the value was cached.
-        assert target_python._valid_tags == ["tag-1", "tag-2"]
+        assert target_python._valid_tags == {"tag-1", "tag-2"}
 
     def test_get_tags__uses_cached_value(self) -> None:
         """
