@@ -116,9 +116,9 @@ class TestTargetPython:
         Test that get_tags() uses the cached value.
         """
         target_python = TargetPython(py_version_info=None)
-        target_python._valid_tags = [
+        target_python._valid_tags = {
             Tag("py2", "none", "any"),
             Tag("py3", "none", "any"),
-        ]
+        }
         actual = target_python.get_tags()
         assert actual == [Tag("py2", "none", "any"), Tag("py3", "none", "any")]

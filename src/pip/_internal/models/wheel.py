@@ -2,7 +2,7 @@
 name that have meaning.
 """
 import re
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, Set
 
 from pip._vendor.packaging.tags import Tag
 
@@ -64,7 +64,7 @@ class Wheel:
             raise ValueError()
 
     def find_most_preferred_tag(
-        self, tags: List[Tag], tag_to_priority: Dict[Tag, int]
+        self, tags: Set[Tag], tag_to_priority: Dict[Tag, int]
     ) -> int:
         """Return the priority of the most preferred tag that one of the wheel's file
         tag combinations achieves in the given list of supported tags using the given

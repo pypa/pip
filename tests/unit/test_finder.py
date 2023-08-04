@@ -137,7 +137,7 @@ class TestWheel:
         req = install_req_from_line("simple.dist")
         target_python = TargetPython()
         # Make sure no tags will match.
-        target_python._valid_tags = []
+        target_python._valid_tags = set()
         finder = make_test_finder(
             find_links=[data.find_links],
             target_python=target_python,
@@ -221,11 +221,11 @@ class TestCandidateEvaluator:
                 Link("simple-1.0.tar.gz"),
             ),
         ]
-        valid_tags = [
+        valid_tags = {
             Tag("pyT", "none", "TEST"),
             Tag("pyT", "TEST", "any"),
             Tag("pyT", "none", "any"),
-        ]
+        }
         specifier = SpecifierSet()
         evaluator = CandidateEvaluator(
             "my-project",
@@ -289,11 +289,11 @@ class TestCandidateEvaluator:
                 Link("simple-1.0.tar.gz"),
             ),
         ]
-        valid_tags = [
+        valid_tags = {
             Tag("py3", "abi3", "linux_x86_64"),
             Tag("py3", "abi3", "linux_i386"),
             Tag("py3", "any", "none"),
-        ]
+        }
         evaluator = CandidateEvaluator(
             "my-project",
             supported_tags=valid_tags,

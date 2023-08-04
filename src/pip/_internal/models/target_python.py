@@ -1,5 +1,5 @@
 import sys
-from typing import List, Optional, Tuple
+from typing import List, Optional, Set, Tuple
 
 from pip._vendor.packaging.tags import Tag
 
@@ -62,7 +62,7 @@ class TargetPython:
         self.py_version_info = py_version_info
 
         # This is used to cache the return value of get_tags().
-        self._valid_tags: Optional[List[Tag]] = None
+        self._valid_tags: Optional[Set[Tag]] = None
 
     def format_given(self) -> str:
         """
@@ -84,7 +84,7 @@ class TargetPython:
             f"{key}={value!r}" for key, value in key_values if value is not None
         )
 
-    def get_tags(self) -> List[Tag]:
+    def get_tags(self) -> Set[Tag]:
         """
         Return the supported PEP 425 tags to check wheel candidates against.
 
@@ -105,6 +105,6 @@ class TargetPython:
                 abis=self.abis,
                 impl=self.implementation,
             )
-            self._valid_tags = tags
+            self._valid_tags = set(tags)
 
         return self._valid_tags
