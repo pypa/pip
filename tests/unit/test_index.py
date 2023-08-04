@@ -385,14 +385,14 @@ class TestCandidateEvaluator:
         assert evaluator._allow_all_prereleases == allow_all_prereleases
         assert evaluator._prefer_binary == prefer_binary
         assert evaluator._specifier is specifier
-        assert evaluator._supported_tags == [Tag("py36", "none", "any")]
+        assert evaluator._supported_tags == {Tag("py36", "none", "any")}
 
     def test_create__target_python_none(self) -> None:
         """
         Test passing target_python=None.
         """
         evaluator = CandidateEvaluator.create("my-project")
-        expected_tags = get_supported()
+        expected_tags = set(get_supported())
         assert evaluator._supported_tags == expected_tags
 
     def test_create__specifier_none(self) -> None:
@@ -815,7 +815,7 @@ class TestPackageFinder:
         assert evaluator._prefer_binary == prefer_binary
         assert evaluator._project_name == "my-project"
         assert evaluator._specifier is specifier
-        assert evaluator._supported_tags == [Tag("py36", "none", "any")]
+        assert evaluator._supported_tags == {Tag("py36", "none", "any")}
 
 
 @pytest.mark.parametrize(
