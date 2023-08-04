@@ -220,7 +220,7 @@ class TestLinkEvaluator:
         """
         target_python = TargetPython(py_version_info=(3, 6, 4))
         # Set the valid tags to an empty list to make sure nothing matches.
-        target_python._valid_tags = set()
+        target_python._valid_tags = []
         evaluator = LinkEvaluator(
             project_name="sample",
             canonical_name="sample",
@@ -373,7 +373,7 @@ class TestCandidateEvaluator:
     )
     def test_create(self, allow_all_prereleases: bool, prefer_binary: bool) -> None:
         target_python = TargetPython()
-        target_python._valid_tags = {Tag("py36", "none", "any")}
+        target_python._valid_tags = [Tag("py36", "none", "any")]
         specifier = SpecifierSet()
         evaluator = CandidateEvaluator.create(
             project_name="my-project",
@@ -385,14 +385,14 @@ class TestCandidateEvaluator:
         assert evaluator._allow_all_prereleases == allow_all_prereleases
         assert evaluator._prefer_binary == prefer_binary
         assert evaluator._specifier is specifier
-        assert evaluator._supported_tags == {Tag("py36", "none", "any")}
+        assert evaluator._supported_tags == [Tag("py36", "none", "any")]
 
     def test_create__target_python_none(self) -> None:
         """
         Test passing target_python=None.
         """
         evaluator = CandidateEvaluator.create("my-project")
-        expected_tags = set(get_supported())
+        expected_tags = get_supported()
         assert evaluator._supported_tags == expected_tags
 
     def test_create__specifier_none(self) -> None:
@@ -786,7 +786,7 @@ class TestPackageFinder:
         prefer_binary: bool,
     ) -> None:
         target_python = TargetPython()
-        target_python._valid_tags = {Tag("py36", "none", "any")}
+        target_python._valid_tags = [Tag("py36", "none", "any")]
         candidate_prefs = CandidatePreferences(
             prefer_binary=prefer_binary,
             allow_all_prereleases=allow_all_prereleases,
@@ -815,7 +815,7 @@ class TestPackageFinder:
         assert evaluator._prefer_binary == prefer_binary
         assert evaluator._project_name == "my-project"
         assert evaluator._specifier is specifier
-        assert evaluator._supported_tags == {Tag("py36", "none", "any")}
+        assert evaluator._supported_tags == [Tag("py36", "none", "any")]
 
 
 @pytest.mark.parametrize(

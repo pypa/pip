@@ -414,7 +414,7 @@ class CandidateEvaluator:
         if specifier is None:
             specifier = specifiers.SpecifierSet()
 
-        supported_tags = target_python.get_unsorted_tags()
+        supported_tags = target_python.get_sorted_tags()
 
         return cls(
             project_name=project_name,
@@ -428,7 +428,7 @@ class CandidateEvaluator:
     def __init__(
         self,
         project_name: str,
-        supported_tags: Set[Tag],
+        supported_tags: List[Tag],
         specifier: specifiers.BaseSpecifier,
         prefer_binary: bool = False,
         allow_all_prereleases: bool = False,

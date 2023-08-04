@@ -64,7 +64,7 @@ class Wheel:
             raise ValueError()
 
     def find_most_preferred_tag(
-        self, tags: Set[Tag], tag_to_priority: Dict[Tag, int]
+        self, tags: List[Tag], tag_to_priority: Dict[Tag, int]
     ) -> int:
         """Return the priority of the most preferred tag that one of the wheel's file
         tag combinations achieves in the given list of supported tags using the given

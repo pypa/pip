@@ -108,12 +108,15 @@ class TestTargetPython:
         actual = mock_get_supported.call_args[1]["version"]
         assert actual == expected_version
 
+        # Check that the value was cached.
+        assert target_python._valid_tags == ["tag-1", "tag-2"]
+
     def test_get_unsorted_tags__uses_cached_value(self) -> None:
         """
         Test that get_tags() uses the cached value.
         """
         target_python = TargetPython(py_version_info=None)
-        target_python._valid_tags = {
+        target_python._valid_tags_set = {
             Tag("py2", "none", "any"),
             Tag("py3", "none", "any"),
         }
