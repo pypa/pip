@@ -6,9 +6,9 @@ import shutil
 import sys
 import textwrap
 from contextlib import suppress
-from typing import Any, Dict, Generator, List, Tuple
+from typing import IO, Any, Dict, Generator, List, Optional, Tuple
 
-from pip._vendor.rich.console import Console, RenderableType
+from pip._vendor.rich.console import Console, RenderableType, detect_legacy_windows
 from pip._vendor.rich.markup import escape
 from pip._vendor.rich.style import StyleType
 from pip._vendor.rich.text import Text
@@ -240,6 +240,22 @@ class CustomOptionParser(optparse.OptionParser):
             res.extend(i.option_list)
 
         return res
+
+    def _print_ansi(self, text: str, file: Optional[IO[str]] = None) -> None:
+        if file is None:
+            file = sys.stdout
+        if detect_legacy_windows():
+            console = Console(file=file)
+            console.print(Text.from_ansi(text), soft_wrap=True)
+        else:
+            file.write(text)
+
+    def print_usage(self, file: Optional[IO[str]] = None) -> None:
+        if self.usage:
+            self._print_ansi(self.get_usage(), file=file)
+
+    def print_help(self, file: Optional[IO[str]] = None) -> None:
+        self._print_ansi(self.format_help(), file=file)
 
 
 class ConfigOptionParser(CustomOptionParser):
