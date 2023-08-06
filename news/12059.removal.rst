@@ -1,1 +1,1 @@
-This change is aimed to remove the pip-search entry shown when executing `pip help` command as the pip search is deprecated.
+This change is aimed to remove the pip-search entry shown when executing pip help command as the pip search is deprecated.
