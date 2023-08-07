@@ -6,9 +6,9 @@ import tempfile
 import traceback
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
-from types import FunctionType
 from typing import (
     Any,
+    Callable,
     Dict,
     Generator,
     List,
@@ -187,7 +187,7 @@ class TempDirectory:
         errors: List[BaseException] = []
 
         def onerror(
-            func: FunctionType,
+            func: Callable[..., Any],
             path: Path,
             exc_val: BaseException,
         ) -> None:
@@ -196,11 +196,7 @@ class TempDirectory:
                 traceback.format_exception_only(type(exc_val), exc_val)
             )
             formatted_exc = formatted_exc.rstrip()  # remove trailing new line
-            if func in (
-                os.unlink,
-                os.remove,
-                os.rmdir,
-            ):  # type: ignore[comparison-overlap]
+            if func in (os.unlink, os.remove, os.rmdir):
                 logger.debug(
                     "Failed to remove a temporary file '%s' due to %s.\n",
                     path,
