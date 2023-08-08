@@ -1,0 +1,1 @@
+Fix unnecessary error when using ``--dry-run`` and ``--python-version`` without ``--target``
