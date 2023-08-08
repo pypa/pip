@@ -7,7 +7,7 @@ import shutil
 import stat
 import tarfile
 import zipfile
-from typing import Iterable, List, Optional
+from typing import Callable, Iterable, List, Optional
 from zipfile import ZipInfo
 
 from pip._internal.exceptions import InstallationError
@@ -85,12 +85,16 @@ def is_within_directory(directory: str, target: str) -> bool:
     return prefix == abs_directory
 
 
+def _get_default_mode_plus_executable() -> int:
+    return 0o777 & ~current_umask() | 0o111
+
+
 def set_extracted_file_to_default_mode_plus_executable(path: str) -> None:
     """
     Make file present at path have execute for user/group/world
     (chmod +x) is no-op on windows per python docs
     """
-    os.chmod(path, (0o777 & ~current_umask() | 0o111))
+    os.chmod(path, _get_default_mode_plus_executable())
 
 
 def zip_item_is_executable(info: ZipInfo) -> bool:
@@ -151,8 +155,8 @@ def untar_file(filename: str, location: str) -> None:
     Untar the file (with path `filename`) to the destination `location`.
     All files are written based on system defaults and umask (i.e. permissions
     are not preserved), except that regular file members with any execute
-    permissions (user, group, or world) have "chmod +x" applied after being
-    written.  Note that for windows, any execute changes using os.chmod are
+    permissions (user, group, or world) have "chmod +x" applied on top of the
+    default.  Note that for windows, any execute changes using os.chmod are
     no-ops per the python docs.
     """
     ensure_dir(location)
@@ -170,58 +174,106 @@ def untar_file(filename: str, location: str) -> None:
             filename,
         )
         mode = "r:*"
+
     tar = tarfile.open(filename, mode, encoding="utf-8")
     try:
         leading = has_leading_dir([member.name for member in tar.getmembers()])
-        for member in tar.getmembers():
-            fn = member.name
-            if leading:
-                fn = split_leading_dir(fn)[1]
-            path = os.path.join(location, fn)
-            if not is_within_directory(location, path):
-                message = (
-                    "The tar file ({}) has a file ({}) trying to install "
-                    "outside target directory ({})"
-                )
-                raise InstallationError(message.format(filename, path, location))
-            if member.isdir():
-                ensure_dir(path)
-            elif member.issym():
-                try:
-                    tar._extract_member(member, path)
-                except Exception as exc:
-                    # Some corrupt tar files seem to produce this
-                    # (specifically bad symlinks)
-                    logger.warning(
-                        "In the tar file %s the member %s is invalid: %s",
-                        filename,
-                        member.name,
-                        exc,
+
+        # PEP 706 added `tarfile.data_filter`, and made some other changes to
+        # Python's tarfile module (see below). The features were backported to
+        # security releases in a way that mypy doesn't know if they are
+        # available.
+        # At runtime we need to use `hasattr` rather than a version check;
+        # mypy will need extra type info and a few "type: ignore" comments.
+        data_filter: Callable[
+            [tarfile.TarInfo, str],
+            tarfile.TarInfo,
+        ]
+        try:
+            data_filter = tarfile.data_filter  # type: ignore [attr-defined]
+        except AttributeError:
+            # Fallback for Python without tarfile.data_filter
+
+            for member in tar.getmembers():
+                fn = member.name
+                if leading:
+                    fn = split_leading_dir(fn)[1]
+                path = os.path.join(location, fn)
+                if not is_within_directory(location, path):
+                    message = (
+                        "The tar file ({}) has a file ({}) trying to install "
+                        "outside target directory ({})"
                     )
-                    continue
-            else:
+                    raise InstallationError(message.format(filename, path, location))
+                if member.isdir():
+                    ensure_dir(path)
+                elif member.issym():
+                    try:
+                        tar._extract_member(member, path)
+                    except Exception as exc:
+                        # Some corrupt tar files seem to produce this
+                        # (specifically bad symlinks)
+                        logger.warning(
+                            "In the tar file %s the member %s is invalid: %s",
+                            filename,
+                            member.name,
+                            exc,
+                        )
+                        continue
+                else:
+                    try:
+                        fp = tar.extractfile(member)
+                    except (KeyError, AttributeError) as exc:
+                        # Some corrupt tar files seem to produce this
+                        # (specifically bad symlinks)
+                        logger.warning(
+                            "In the tar file %s the member %s is invalid: %s",
+                            filename,
+                            member.name,
+                            exc,
+                        )
+                        continue
+                    ensure_dir(os.path.dirname(path))
+                    assert fp is not None
+                    with open(path, "wb") as destfp:
+                        shutil.copyfileobj(fp, destfp)
+                    fp.close()
+                    # Update the timestamp (useful for cython compiled files)
+                    tar.utime(member, path)
+                    # member have any execute permissions for user/group/world?
+                    if member.mode & 0o111:
+                        set_extracted_file_to_default_mode_plus_executable(path)
+
+        else:
+            default_mode_plus_executable = _get_default_mode_plus_executable()
+
+            def pip_filter(member: tarfile.TarInfo, path: str) -> tarfile.TarInfo:
+                if leading:
+                    member.name = split_leading_dir(member.name)[1]
+                orig_mode = member.mode
                 try:
-                    fp = tar.extractfile(member)
-                except (KeyError, AttributeError) as exc:
-                    # Some corrupt tar files seem to produce this
-                    # (specifically bad symlinks)
-                    logger.warning(
-                        "In the tar file %s the member %s is invalid: %s",
-                        filename,
-                        member.name,
-                        exc,
+                    member = data_filter(member, location)
+                except tarfile.TarError as exc:
+                    message = "Invalid member in the tar file {}: {}"
+                    # Filter error messages mention the member name.
+                    # No need to add it here.
+                    raise InstallationError(
+                        message.format(
+                            filename,
+                            exc,
+                        )
                     )
-                    continue
-                ensure_dir(os.path.dirname(path))
-                assert fp is not None
-                with open(path, "wb") as destfp:
-                    shutil.copyfileobj(fp, destfp)
-                fp.close()
-                # Update the timestamp (useful for cython compiled files)
-                tar.utime(member, path)
-                # member have any execute permissions for user/group/world?
-                if member.mode & 0o111:
-                    set_extracted_file_to_default_mode_plus_executable(path)
+                if member.isfile() and orig_mode & 0o111:
+                    member.mode = default_mode_plus_executable
+                else:
+                    # See PEP 706 note above.
+                    # The PEP canged this this from `int` to `Optional[int]`
+                    member.mode = None  # type: ignore [assignment]
+                return member
+
+            # See PEP 706 note above. The PEP adds the `filter` argument.
+            tar.extractall(location, filter=pip_filter)  # type: ignore [call-arg]
+
     finally:
         tar.close()
 
