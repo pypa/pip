@@ -1,7 +1,10 @@
 [codespell]
 skip = .git,*.pdf,*.svg,_vendor,AUTHORS.txt
+# case sensitive matching of a class name or a string in tests
+ignore-regex = Failer|Building wheel for requir"
 # Wil - is a name
 # falsy - terminology used to describe bool eval to False values
 # uptodate - used as a word in options etc
 # lousily - as in a bad manner
-ignore-words-list = wil,falsy,uptodate,lousily
+# afile - common variable
+ignore-words-list = wil,falsy,uptodate,lousily,afile
