@@ -1,0 +1,3 @@
+Add `codespell <https://github.com/codespell-project/codespell>`_ support:
+configuration and github action to ensure that no new typos sneak in. A few
+typos were found and fixed throughout the codebase.
