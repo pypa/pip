@@ -85,7 +85,7 @@ class InstallRequirement:
         permit_editable_wheels: bool = False,
     ) -> None:
         assert req is None or isinstance(req, Requirement), req
-        self.req = req
+        self._req = req
         self.comes_from = comes_from
         self.constraint = constraint
         self.editable = editable
@@ -187,6 +187,23 @@ class InstallRequirement:
 
         # This requirement needs to be unpacked before it can be installed.
         self._archive_source: Optional[Path] = None
+
+    @property
+    def req(self) -> Optional[Requirement]:
+        """Calculate a requirement from the cached dist, if populated.
+
+        The cached dist can be populated by either
+        ``self.cache_virtual_metadata_only_dist()`` or
+        ``self.cache_concrete_dist()`` and can also be retrieved with
+        ``self.get_dist()``."""
+        if self._req is not None:
+            return self._req
+        if self._dist is not None:
+            name = self._dist.canonical_name
+            version = str(self._dist.version)
+            self._req = Requirement(f"{name}=={version}")
+            return self._req
+        return None
 
     def __str__(self) -> str:
         if self.req:
@@ -381,7 +398,7 @@ class InstallRequirement:
 
     def _set_requirement(self) -> None:
         """Set requirement after generating metadata."""
-        assert self.req is None
+        assert self._req is None
         assert self.metadata is not None
         assert self.source_dir is not None
 
@@ -391,7 +408,7 @@ class InstallRequirement:
         else:
             op = "==="
 
-        self.req = Requirement(
+        self._req = Requirement(
             "".join(
                 [
                     self.metadata["Name"],
@@ -417,7 +434,7 @@ class InstallRequirement:
             metadata_name,
             self.name,
         )
-        self.req = Requirement(metadata_name)
+        self._req = Requirement(metadata_name)
 
     def check_if_exists(self, use_user_site: bool) -> None:
         """Find an installed distribution that satisfies or conflicts

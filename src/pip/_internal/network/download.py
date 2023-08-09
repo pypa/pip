@@ -113,7 +113,7 @@ def _get_http_response_filename(resp: Response, link: Link) -> str:
 
 
 def _http_get_download(session: PipSession, link: Link) -> Response:
-    target_url = link.url.split("#", 1)[0]
+    target_url = link.url_without_fragment
     resp = session.get(target_url, headers=HEADERS, stream=True)
     raise_for_status(resp)
     return resp

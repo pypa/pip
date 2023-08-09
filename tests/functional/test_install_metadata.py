@@ -210,7 +210,10 @@ def test_canonicalizes_package_name_before_verifying_metadata(
     (
         # It's important that we verify pip won't even attempt to fetch the file, so we
         # construct an input that will cause it to error if it tries at all.
-        ("complex-dist==0.1", "404 Client Error: FileNotFoundError"),
+        (
+            "complex-dist==0.1",
+            "Could not install packages due to an OSError: [Errno 2] No such file or directory",  # noqa: E501
+        ),
         ("corruptwheel==1.0", ".whl is invalid."),
     ),
 )

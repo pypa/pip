@@ -1,6 +1,9 @@
 import csv
+import email.generator
 import email.message
+import email.policy
 import functools
+import io
 import json
 import logging
 import pathlib
@@ -95,6 +98,18 @@ def _convert_installed_files_path(
             info = info[:-1]
         entry = entry[1:]
     return str(pathlib.Path(*info, *entry))
+
+
+def serialize_metadata(msg: email.message.Message) -> str:
+    """Write a dist's metadata to a string.
+
+    Calling ``str(dist.metadata)`` may raise an error by misinterpreting RST directives
+    as email headers. This method uses the more robust ``email.policy.EmailPolicy`` to
+    avoid those parsing errors."""
+    out = io.StringIO()
+    g = email.generator.Generator(out, policy=email.policy.EmailPolicy())
+    g.flatten(msg)
+    return out.getvalue()
 
 
 class RequiresEntry(NamedTuple):
