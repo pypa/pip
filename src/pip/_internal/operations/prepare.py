@@ -4,6 +4,8 @@
 # mypy: strict-optional=False
 from __future__ import annotations
 
+import bz2
+import json
 import mimetypes
 import os
 import shutil
@@ -13,10 +15,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.requests.exceptions import InvalidSchema
 
 from pip._internal.build_env import BuildEnvironmentInstaller
+from pip._internal.cache import LinkMetadataCache, should_cache
 from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.exceptions import (
+    CacheMetadataError,
     DirectoryUrlHashUnsupported,
     HashMismatch,
     HashUnpinned,
@@ -26,7 +31,11 @@ from pip._internal.exceptions import (
     VcsHashUnsupported,
 )
 from pip._internal.index.package_finder import PackageFinder
-from pip._internal.metadata import BaseDistribution, get_metadata_distribution
+from pip._internal.metadata import (
+    BaseDistribution,
+    get_metadata_distribution,
+    serialize_metadata,
+)
 from pip._internal.models.direct_url import ArchiveInfo
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
@@ -67,7 +76,7 @@ def _get_prepared_distribution(
     build_env_installer: BuildEnvironmentInstaller,
     build_isolation: bool,
     check_build_deps: bool,
-) -> BaseDistribution:
+) -> tuple[bool, BaseDistribution]:
     """Prepare a distribution for installation.
 
     This method will only be called by the preparer at the end of the resolve, and only
@@ -78,15 +87,20 @@ def _get_prepared_distribution(
     This method will execute ``req.cache_concrete_dist()``, so that after invocation,
     ``req.is_concrete`` will be True, because ``req.get_dist()`` will return a concrete
     ``Distribution``.
+
+    :returns: a 2-tuple:
+        - (bool): whether the metadata had to be constructed (e.g. from an sdist build),
+        - (BaseDistribution): the concrete distribution which is ready to be installed.
     """
     abstract_dist = make_distribution_for_install_requirement(req)
     tracker_id = abstract_dist.build_tracker_id
-    if tracker_id is not None:
+    builds_metadata = tracker_id is not None
+    if builds_metadata:
         with build_tracker.track(req, tracker_id):
             abstract_dist.prepare_distribution_metadata(
                 build_env_installer, build_isolation, check_build_deps
             )
-    return abstract_dist.get_metadata_distribution()
+    return (builds_metadata, abstract_dist.get_metadata_distribution())
 
 
 def unpack_vcs_link(link: Link, location: str, verbosity: int) -> None:
@@ -233,6 +247,45 @@ def _check_download_dir(
     return download_path
 
 
+@dataclass(frozen=True)
+class CacheableDist:
+    metadata: str
+    filename: Path
+    canonical_name: str
+
+    @classmethod
+    def from_dist(cls, link: Link, dist: BaseDistribution) -> CacheableDist:
+        """Extract the serializable data necessary to generate a metadata-only dist."""
+        return cls(
+            metadata=serialize_metadata(dist.metadata),
+            filename=Path(link.filename),
+            canonical_name=dist.canonical_name,
+        )
+
+    def to_dist(self) -> BaseDistribution:
+        """Return a metadata-only dist from the deserialized cache entry."""
+        return get_metadata_distribution(
+            metadata_contents=self.metadata.encode("utf-8"),
+            filename=str(self.filename),
+            canonical_name=self.canonical_name,
+        )
+
+    def to_json(self) -> dict[str, str]:
+        return {
+            "metadata": self.metadata,
+            "filename": str(self.filename),
+            "canonical_name": self.canonical_name,
+        }
+
+    @classmethod
+    def from_json(cls, args: dict[str, str]) -> CacheableDist:
+        return cls(
+            metadata=args["metadata"],
+            filename=Path(args["filename"]),
+            canonical_name=args["canonical_name"],
+        )
+
+
 class RequirementPreparer:
     """Prepares a Requirement"""
 
@@ -255,6 +308,7 @@ class RequirementPreparer:
         verbosity: int,
         legacy_resolver: bool,
         resume_retries: int,
+        metadata_cache: LinkMetadataCache | None = None,
     ) -> None:
         super().__init__()
 
@@ -296,6 +350,8 @@ class RequirementPreparer:
 
         # Previous "header" printed for a link-based InstallRequirement
         self._previous_requirement_header = ("", "")
+
+        self._metadata_cache = metadata_cache
 
     def _log_preparing_link(self, req: InstallRequirement) -> None:
         """Provide context for the requirement being prepared."""
@@ -426,14 +482,96 @@ class RequirementPreparer:
             )
             return None
         if self.require_hashes:
+            # Hash checking also means hashes are provided for all reqs, so no resolve
+            # is necessary and metadata-only fetching provides no speedup.
             logger.debug(
                 "Metadata-only fetching is not used as hash checking is required",
             )
             return None
-        # Try PEP 658 metadata first, then fall back to lazy wheel if unavailable.
-        return self._fetch_metadata_using_link_data_attr(
-            req
-        ) or self._fetch_metadata_using_lazy_wheel(req.link)
+
+        if cached_dist := self._fetch_cached_metadata(req):
+            return cached_dist
+        # If we've used the lazy wheel approach, then PEP 658 metadata is not available.
+        # If the wheel is very large (>1GB), then retrieving it from the CacheControl
+        # HTTP cache may take multiple seconds, even on a fast computer, and the
+        # preparer will unnecessarily copy the cached response to disk before deleting
+        # it at the end of the run. Caching the dist metadata in LinkMetadataCache means
+        # later pip executions can retrieve metadata within milliseconds and avoid
+        # thrashing the disk.
+        # Even if we do employ PEP 658 metadata, we would still have to ping PyPI to
+        # ensure the .metadata file hasn't changed if we relied on CacheControl, even
+        # though PEP 658 metadata is guaranteed to be immutable. We optimize for this
+        # case by referring to our local cache.
+        if cached_dist := (
+            self._fetch_metadata_using_link_data_attr(req)
+            or self._fetch_metadata_using_lazy_wheel(req)
+        ):
+            self._cache_metadata(req, cached_dist)
+            return cached_dist
+        return None
+
+    def _locate_metadata_cache_entry(self, link: Link) -> Path | None:
+        """If the metadata cache is active, generate a filesystem path from the hash of
+        the given Link."""
+        if self._metadata_cache is None:
+            return None
+
+        return self._metadata_cache.cache_path(link)
+
+    def _fetch_cached_metadata(
+        self, req: InstallRequirement
+    ) -> BaseDistribution | None:
+        cached_path = self._locate_metadata_cache_entry(req.link)
+        if cached_path is None:
+            return None
+
+        # Quietly continue if the cache entry does not exist.
+        if not os.path.isfile(cached_path):
+            logger.debug(
+                "no cached metadata for link %s at %s",
+                req.link,
+                cached_path,
+            )
+            return None
+
+        try:
+            with bz2.open(cached_path, mode="rt", encoding="utf-8") as f:
+                logger.debug(
+                    "found cached metadata for link %s at %s", req.link, cached_path
+                )
+                args = json.load(f)
+            cached_dist = CacheableDist.from_json(args)
+            return cached_dist.to_dist()
+        except Exception:
+            raise CacheMetadataError(req, "error reading cached metadata")
+
+    def _cache_metadata(
+        self,
+        req: InstallRequirement,
+        metadata_dist: BaseDistribution,
+    ) -> None:
+        cached_path = self._locate_metadata_cache_entry(req.link)
+        if cached_path is None:
+            return
+
+        # The cache file exists already, so we have nothing to do.
+        if os.path.isfile(cached_path):
+            logger.debug(
+                "metadata for link %s is already cached at %s", req.link, cached_path
+            )
+            return
+
+        # The metadata cache is split across several subdirectories, so ensure the
+        # containing directory for the cache file exists before writing.
+        os.makedirs(str(cached_path.parent), exist_ok=True)
+        try:
+            cacheable_dist = CacheableDist.from_dist(req.link, metadata_dist)
+            args = cacheable_dist.to_json()
+            logger.debug("caching metadata for link %s at %s", req.link, cached_path)
+            with bz2.open(cached_path, mode="wt", encoding="utf-8") as f:
+                json.dump(args, f)
+        except Exception:
+            raise CacheMetadataError(req, "failed to serialize metadata")
 
     def _fetch_metadata_using_link_data_attr(
         self,
@@ -451,6 +589,9 @@ class RequirementPreparer:
             metadata_link,
         )
         # (2) Download the contents of the METADATA file, separate from the dist itself.
+        #     NB: this request will hit the CacheControl HTTP cache, which will be very
+        #     quick since the METADATA file is very small. Therefore, we can rely on
+        #     HTTP caching instead of LinkMetadataCache.
         metadata_file = get_http_url(
             metadata_link,
             self._download,
@@ -478,36 +619,38 @@ class RequirementPreparer:
 
     def _fetch_metadata_using_lazy_wheel(
         self,
-        link: Link,
+        req: InstallRequirement,
     ) -> BaseDistribution | None:
         """Fetch metadata using lazy wheel, if possible."""
         # --use-feature=fast-deps must be provided.
         if not self.use_lazy_wheel:
             return None
-        if link.is_file or not link.is_wheel:
+        if req.link.is_file or not req.link.is_wheel:
             logger.debug(
                 "Lazy wheel is not used as %r does not point to a remote wheel",
-                link,
+                req.link,
             )
             return None
 
-        wheel = Wheel(link.filename)
+        wheel = Wheel(req.link.filename)
         name = canonicalize_name(wheel.name)
         logger.info(
             "Obtaining dependency information from %s %s",
             name,
             wheel.version,
         )
-        url = link.url.split("#", 1)[0]
+
         try:
-            return dist_from_wheel_url(name, url, self._session)
+            return dist_from_wheel_url(
+                name, req.link.url_without_fragment, self._session
+            )
         except HTTPRangeRequestUnsupported:
-            logger.debug("%s does not support range requests", url)
+            logger.debug("%s does not support range requests", req.link)
             return None
 
     def _complete_partial_requirements(
         self,
-        metadata_only_reqs: Iterable[InstallRequirement],
+        metadata_only_reqs: list[InstallRequirement],
         parallel_builds: bool = False,
     ) -> None:
         """Download any requirements which were only fetched by metadata."""
@@ -518,9 +661,24 @@ class RequirementPreparer:
         # Map each link to the requirement that owns it. This allows us to set
         # `req.local_file_path` on the appropriate requirement after passing
         # all the links at once into BatchDownloader.
-        links_to_fully_download: dict[Link, InstallRequirement] = {
-            req.link: req for req in metadata_only_reqs
-        }
+        links_to_fully_download: dict[Link, InstallRequirement] = {}
+        for req in metadata_only_reqs:
+            assert req.link
+
+            # (1) File URLs don't need to be downloaded, so skip them.
+            if req.link.scheme == "file":
+                continue
+            # (2) If this is e.g. a git url, we don't know how to handle that in the
+            #     BatchDownloader, so leave it for self._prepare_linked_requirement() at
+            #     the end of this method, which knows how to handle any URL.
+            can_simply_download = True
+            try:
+                # This will raise InvalidSchema if our Session can't download it.
+                self._session.get_adapter(req.link.url)
+            except InvalidSchema:
+                can_simply_download = False
+            if can_simply_download:
+                links_to_fully_download[req.link] = req
 
         batch_download = self._download.batch(links_to_fully_download.keys(), temp_dir)
         for link, (filepath, _) in batch_download:
@@ -695,7 +853,7 @@ class RequirementPreparer:
             req.local_file_path = local_file.path
 
     def _prepare_and_finalize_dist(self, req: InstallRequirement) -> BaseDistribution:
-        dist = _get_prepared_distribution(
+        (builds_metadata, dist) = _get_prepared_distribution(
             req,
             self.build_tracker,
             self.build_env_installer,
@@ -705,6 +863,10 @@ class RequirementPreparer:
         assert dist.is_concrete
         assert req.is_concrete
         assert req.get_dist() is dist
+
+        if builds_metadata and should_cache(req):
+            self._cache_metadata(req, dist)
+
         return dist
 
     def _prepare_linked_requirement(

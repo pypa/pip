@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import abc
 import hashlib
 import json
 import logging
 import os
+import re
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any
 
 from pip._vendor.packaging.tags import Tag, interpreter_name, interpreter_version
 from pip._vendor.packaging.utils import canonicalize_name
@@ -16,12 +18,62 @@ from pip._internal.exceptions import InvalidWheelFilename
 from pip._internal.models.direct_url import DirectUrl
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
+from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 from pip._internal.utils.urls import path_to_url
+from pip._internal.vcs import vcs
 
 logger = logging.getLogger(__name__)
 
+_egg_info_re = re.compile(r"([a-z0-9_.]+)-([a-z0-9_.!+-]+)", re.IGNORECASE)
+
 ORIGIN_JSON_NAME = "origin.json"
+
+
+def _contains_egg_info(s: str) -> bool:
+    """Determine whether the string looks like an egg_info.
+
+    :param s: The string to parse. E.g. foo-2.1
+    """
+    return bool(_egg_info_re.search(s))
+
+
+def should_cache(
+    req: InstallRequirement,
+) -> bool:
+    """
+    Return whether a built InstallRequirement can be stored in the persistent
+    wheel cache, assuming the wheel cache is available, and _should_build()
+    has determined a wheel needs to be built.
+    """
+    if not req.link:
+        return False
+
+    if req.link.is_wheel:
+        return False
+
+    if req.editable or not req.source_dir:
+        # never cache editable requirements
+        return False
+
+    if req.link and req.link.is_vcs:
+        # VCS checkout. Do not cache
+        # unless it points to an immutable commit hash.
+        assert not req.editable
+        assert req.source_dir
+        vcs_backend = vcs.get_backend_for_scheme(req.link.scheme)
+        assert vcs_backend
+        if vcs_backend.is_immutable_rev_checkout(req.link.url, req.source_dir):
+            return True
+        return False
+
+    assert req.link
+    base, ext = req.link.splitext()
+    if _contains_egg_info(base):
+        return True
+
+    # Otherwise, do not cache.
+    return False
 
 
 def _hash_dict(d: dict[str, str]) -> str:
@@ -30,7 +82,7 @@ def _hash_dict(d: dict[str, str]) -> str:
     return hashlib.sha224(s.encode("ascii")).hexdigest()
 
 
-class Cache:
+class Cache(abc.ABC):
     """An abstract class - provides cache directories for data from links
 
     :param cache_dir: The root of the cache.
@@ -74,20 +126,28 @@ class Cache:
 
         return parts
 
-    def _get_candidates(self, link: Link, canonical_package_name: str) -> list[Any]:
-        can_not_cache = not self.cache_dir or not canonical_package_name or not link
-        if can_not_cache:
-            return []
-
-        path = self.get_path_for_link(link)
-        if os.path.isdir(path):
-            return [(candidate, path) for candidate in os.listdir(path)]
-        return []
-
+    @abc.abstractmethod
     def get_path_for_link(self, link: Link) -> str:
         """Return a directory to store cached items in for link."""
-        raise NotImplementedError()
+        ...
 
+    def cache_path(self, link: Link) -> Path:
+        return Path(self.get_path_for_link(link))
+
+
+class LinkMetadataCache(Cache):
+    """Persistently store the metadata of dists found at each link."""
+
+    def get_path_for_link(self, link: Link) -> str:
+        parts = self._get_cache_path_parts(link)
+        assert self.cache_dir
+        return os.path.join(self.cache_dir, "link-metadata", *parts)
+
+
+class WheelCacheBase(Cache):
+    """Specializations to the cache concept for wheels."""
+
+    @abc.abstractmethod
     def get(
         self,
         link: Link,
@@ -97,10 +157,27 @@ class Cache:
         """Returns a link to a cached item if it exists, otherwise returns the
         passed link.
         """
-        raise NotImplementedError()
+        ...
+
+    def _can_cache(self, link: Link, canonical_package_name: str) -> bool:
+        return bool(self.cache_dir and canonical_package_name and link)
+
+    def _get_candidates(
+        self, link: Link, canonical_package_name: str
+    ) -> Iterator[tuple[str, str]]:
+        if not self._can_cache(link, canonical_package_name):
+            return
+
+        path = self.get_path_for_link(link)
+        if not os.path.isdir(path):
+            return
+
+        for candidate in os.scandir(path):
+            if candidate.is_file():
+                yield (candidate.name, path)
 
 
-class SimpleWheelCache(Cache):
+class SimpleWheelCache(WheelCacheBase):
     """A cache of wheels for future installs."""
 
     def __init__(self, cache_dir: str) -> None:
@@ -132,7 +209,7 @@ class SimpleWheelCache(Cache):
         package_name: str | None,
         supported_tags: list[Tag],
     ) -> Link:
-        candidates = []
+        candidates: list[tuple[int, str, str]] = []
 
         if not package_name:
             return link
@@ -206,7 +283,7 @@ class CacheEntry:
                 )
 
 
-class WheelCache(Cache):
+class WheelCache(WheelCacheBase):
     """Wraps EphemWheelCache and SimpleWheelCache into a single Cache
 
     This Cache allows for gracefully degradation, using the ephem wheel cache
@@ -223,6 +300,15 @@ class WheelCache(Cache):
 
     def get_ephem_path_for_link(self, link: Link) -> str:
         return self._ephem_cache.get_path_for_link(link)
+
+    def resolve_cache_dir(self, req: InstallRequirement) -> str:
+        """Return the persistent or temporary cache directory where the built or
+        downloaded wheel should be stored."""
+        cache_available = bool(self.cache_dir)
+        assert req.link, req
+        if cache_available and should_cache(req):
+            return self.get_path_for_link(req.link)
+        return self.get_ephem_path_for_link(req.link)
 
     def get(
         self,

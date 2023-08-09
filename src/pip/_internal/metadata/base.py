@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import csv
+import email.generator
 import email.message
+import email.policy
+import email.utils
 import functools
 import json
 import logging
@@ -11,10 +14,10 @@ import zipfile
 from collections.abc import Collection, Container, Iterable, Iterator
 from typing import (
     IO,
+    TYPE_CHECKING,
     Any,
     NamedTuple,
     Protocol,
-    Union,
 )
 
 from pip._vendor.packaging.requirements import Requirement
@@ -36,7 +39,8 @@ from pip._internal.utils.urls import url_to_path
 
 from ._json import msg_to_json
 
-InfoPath = Union[str, pathlib.PurePath]
+if TYPE_CHECKING:
+    InfoPath = str | pathlib.PurePath
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +87,20 @@ def _convert_installed_files_path(
             info = info[:-1]
         entry = entry[1:]
     return str(pathlib.Path(*info, *entry))
+
+
+def serialize_metadata(msg: email.message.Message) -> str:
+    """Write a dist's metadata to a string.
+
+    Calling ``str(dist.metadata)`` may raise an error by misinterpreting RST directives
+    as email headers. This method uses the more robust ``email.policy.EmailPolicy`` to
+    avoid those parsing errors."""
+    # Packages such as google_pasta-0.2.0 trigger a particular encoding behavior that
+    # required an upstream fix (https://github.com/python/cpython/pull/117369):
+    #
+    # > email.errors.HeaderWriteError: folded header
+    # > contains newline: 'Description: UNKNOWN\n\n\n'
+    return msg.as_string(policy=email.policy.HTTP.clone(refold_source="all"))
 
 
 class RequiresEntry(NamedTuple):

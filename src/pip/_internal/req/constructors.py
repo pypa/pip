@@ -554,7 +554,7 @@ def install_req_extend_extras(
     """
     result = copy.copy(ireq)
     result.extras = {*ireq.extras, *extras}
-    result.req = (
+    result._req = (
         _set_requirement_extras(ireq.req, result.extras)
         if ireq.req is not None
         else None

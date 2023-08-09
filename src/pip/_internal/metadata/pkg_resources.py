@@ -7,6 +7,7 @@ import os
 import zipfile
 from collections.abc import Collection, Iterable, Iterator, Mapping
 from typing import (
+    TYPE_CHECKING,
     NamedTuple,
 )
 
@@ -25,9 +26,11 @@ from .base import (
     BaseDistribution,
     BaseEntryPoint,
     BaseEnvironment,
-    InfoPath,
     Wheel,
 )
+
+if TYPE_CHECKING:
+    from .base import InfoPath
 
 __all__ = ["NAME", "Distribution", "Environment"]
 

@@ -7,6 +7,7 @@ import zipfile
 from collections.abc import Collection, Iterable, Iterator, Mapping, Sequence
 from os import PathLike
 from typing import (
+    TYPE_CHECKING,
     cast,
 )
 
@@ -19,7 +20,6 @@ from pip._internal.exceptions import InvalidWheel, UnsupportedWheel
 from pip._internal.metadata.base import (
     BaseDistribution,
     BaseEntryPoint,
-    InfoPath,
     Wheel,
 )
 from pip._internal.utils.misc import normalize_path
@@ -32,6 +32,9 @@ from ._compat import (
     get_dist_canonical_name,
     parse_name_and_version_from_info_directory,
 )
+
+if TYPE_CHECKING:
+    from pip._internal.metadata.base import InfoPath
 
 
 class WheelDistribution(importlib.metadata.Distribution):
