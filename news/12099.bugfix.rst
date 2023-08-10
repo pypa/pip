@@ -1,1 +1,1 @@
-This change will fix incorrect output of the ``pip config debug`` command.
+This change will fix the incorrect assignment of configuration values to files by ``pip config debug``
