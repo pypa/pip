@@ -12,7 +12,7 @@ from functools import partial
 from optparse import Values
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
-from pip._internal.cache import LinkMetadataCache, WheelCache
+from pip._internal.cache import FetchResolveCache, LinkMetadataCache, WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.command_context import CommandContextMixIn
@@ -509,8 +509,13 @@ class RequirementCommand(IndexGroupCommand):
             ignore_requires_python=ignore_requires_python,
         )
 
+        if bool(options.cache_dir) and ("metadata-cache" in options.features_enabled):
+            fetch_resolve_cache = FetchResolveCache(options.cache_dir)
+        else:
+            fetch_resolve_cache = None
         return PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=selection_prefs,
             target_python=target_python,
+            fetch_resolve_cache=fetch_resolve_cache,
         )

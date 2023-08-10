@@ -92,7 +92,9 @@ class Cache(abc.ABC):
         assert not cache_dir or os.path.isabs(cache_dir)
         self.cache_dir = cache_dir or None
 
-    def _get_cache_path_parts(self, link: Link) -> List[str]:
+    def _get_cache_path_parts(
+        self, link: Link, *, interpreter_dependent: bool
+    ) -> List[str]:
         """Get parts of part that must be os.path.joined with cache_dir"""
 
         # We want to generate an url to use as our cache key, we don't want to
@@ -104,13 +106,14 @@ class Cache(abc.ABC):
         if link.subdirectory_fragment:
             key_parts["subdirectory"] = link.subdirectory_fragment
 
-        # Include interpreter name, major and minor version in cache key
-        # to cope with ill-behaved sdists that build a different wheel
-        # depending on the python version their setup.py is being run on,
-        # and don't encode the difference in compatibility tags.
-        # https://github.com/pypa/pip/issues/7296
-        key_parts["interpreter_name"] = interpreter_name()
-        key_parts["interpreter_version"] = interpreter_version()
+        if interpreter_dependent:
+            # Include interpreter name, major and minor version in cache key
+            # to cope with ill-behaved sdists that build a different wheel
+            # depending on the python version their setup.py is being run on,
+            # and don't encode the difference in compatibility tags.
+            # https://github.com/pypa/pip/issues/7296
+            key_parts["interpreter_name"] = interpreter_name()
+            key_parts["interpreter_version"] = interpreter_version()
 
         # Encode our key url with sha224, we'll use this because it has similar
         # security properties to sha256, but with a shorter total output (and
@@ -138,9 +141,18 @@ class LinkMetadataCache(Cache):
     """Persistently store the metadata of dists found at each link."""
 
     def get_path_for_link(self, link: Link) -> str:
-        parts = self._get_cache_path_parts(link)
+        parts = self._get_cache_path_parts(link, interpreter_dependent=True)
         assert self.cache_dir
         return os.path.join(self.cache_dir, "link-metadata", *parts)
+
+
+class FetchResolveCache(Cache):
+    def get_path_for_link(self, link: Link) -> str:
+        # We are reading index links to extract other links from, not executing any
+        # python code, so these caches are interpreter-independent.
+        parts = self._get_cache_path_parts(link, interpreter_dependent=False)
+        assert self.cache_dir
+        return os.path.join(self.cache_dir, "fetch-resolve", *parts)
 
 
 class WheelCacheBase(Cache):
@@ -197,7 +209,7 @@ class SimpleWheelCache(WheelCacheBase):
 
         :param link: The link of the sdist for which this will cache wheels.
         """
-        parts = self._get_cache_path_parts(link)
+        parts = self._get_cache_path_parts(link, interpreter_dependent=True)
         assert self.cache_dir
         # Store wheels within the root cache_dir
         return os.path.join(self.cache_dir, "wheels", *parts)

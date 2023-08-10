@@ -264,6 +264,7 @@ class Link(KeyBasedCompareMixin):
         cls,
         file_data: Dict[str, Any],
         page_url: str,
+        page_content: Optional["IndexContent"] = None,
     ) -> Optional["Link"]:
         """
         Convert an pypi json document from a simple repository page into a Link.
@@ -303,7 +304,7 @@ class Link(KeyBasedCompareMixin):
 
         return cls(
             url,
-            comes_from=page_url,
+            comes_from=page_content or page_url,
             requires_python=pyrequire,
             yanked_reason=yanked_reason,
             hashes=hashes,
@@ -316,6 +317,7 @@ class Link(KeyBasedCompareMixin):
         anchor_attribs: Dict[str, Optional[str]],
         page_url: str,
         base_url: str,
+        page_content: Optional["IndexContent"] = None,
     ) -> Optional["Link"]:
         """
         Convert an anchor element's attributes in a simple repository page to a Link.
@@ -356,7 +358,7 @@ class Link(KeyBasedCompareMixin):
 
         return cls(
             url,
-            comes_from=page_url,
+            comes_from=page_content or page_url,
             requires_python=pyrequire,
             yanked_reason=yanked_reason,
             metadata_file_data=metadata_file_data,

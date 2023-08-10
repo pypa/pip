@@ -4,8 +4,21 @@ import enum
 import functools
 import itertools
 import logging
+import os
 import re
-from typing import TYPE_CHECKING, FrozenSet, Iterable, List, Optional, Set, Tuple, Union
+from hashlib import sha256
+from pathlib import Path
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    FrozenSet,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.tags import Tag
@@ -13,13 +26,14 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import _BaseVersion
 from pip._vendor.packaging.version import parse as parse_version
 
+from pip._internal.cache import FetchResolveCache
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled,
     DistributionNotFound,
     InvalidWheelFilename,
     UnsupportedWheel,
 )
-from pip._internal.index.collector import LinkCollector, parse_links
+from pip._internal.index.collector import IndexContent, LinkCollector, parse_links
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
@@ -602,6 +616,7 @@ class PackageFinder:
         format_control: Optional[FormatControl] = None,
         candidate_prefs: Optional[CandidatePreferences] = None,
         ignore_requires_python: Optional[bool] = None,
+        fetch_resolve_cache: Optional[FetchResolveCache] = None,
     ) -> None:
         """
         This constructor is primarily meant to be used by the create() class
@@ -629,6 +644,8 @@ class PackageFinder:
         # These are boring links that have already been logged somehow.
         self._logged_links: Set[Tuple[Link, LinkType, str]] = set()
 
+        self._fetch_resolve_cache = fetch_resolve_cache
+
     # Don't include an allow_yanked default value to make sure each call
     # site considers whether yanked releases are allowed. This also causes
     # that decision to be made explicit in the calling code, which helps
@@ -639,6 +656,7 @@ class PackageFinder:
         link_collector: LinkCollector,
         selection_prefs: SelectionPreferences,
         target_python: Optional[TargetPython] = None,
+        fetch_resolve_cache: Optional[FetchResolveCache] = None,
     ) -> "PackageFinder":
         """Create a PackageFinder.
 
@@ -663,6 +681,7 @@ class PackageFinder:
             allow_yanked=selection_prefs.allow_yanked,
             format_control=selection_prefs.format_control,
             ignore_requires_python=selection_prefs.ignore_requires_python,
+            fetch_resolve_cache=fetch_resolve_cache,
         )
 
     @property
@@ -781,18 +800,174 @@ class PackageFinder:
 
         return candidates
 
-    def process_project_url(
+    @staticmethod
+    def _try_load_http_cache_headers(
+        etag_path: Path,
+        date_path: Path,
+        checksum_path: Path,
+        project_url: Link,
+        headers: Dict[str, str],
+    ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+        etag: Optional[str] = None
+        try:
+            etag = etag_path.read_text()
+            logger.debug(
+                "found cached etag for url %s at %s: %s",
+                project_url,
+                etag_path,
+                etag,
+            )
+            headers["If-None-Match"] = etag
+        except OSError as e:
+            logger.debug("no etag found for url %s (%s)", project_url, str(e))
+
+        date: Optional[str] = None
+        try:
+            date = date_path.read_text()
+            logger.debug(
+                "found cached date for url %s at %s: %s",
+                project_url,
+                date_path,
+                date,
+            )
+            headers["If-Modified-Since"] = date
+        except OSError as e:
+            logger.debug("no date found for url %s (%s)", project_url, str(e))
+
+        checksum: Optional[str] = None
+        try:
+            checksum = checksum_path.read_text()
+            logger.debug(
+                "found checksum for url %s at %s: %s",
+                project_url,
+                checksum_path,
+                checksum,
+            )
+        except OSError as e:
+            logger.debug("no checksum found for url %s (%s)", project_url, str(e))
+
+        return (etag, date, checksum)
+
+    @staticmethod
+    def _write_http_cache_info(
+        etag_path: Path,
+        date_path: Path,
+        checksum_path: Path,
+        project_url: Link,
+        index_response: IndexContent,
+        prev_etag: Optional[str],
+        prev_checksum: Optional[str],
+    ) -> Tuple[Optional[str], Optional[str], str, bool]:
+        hasher = sha256()
+        hasher.update(index_response.content)
+        new_checksum = hasher.hexdigest()
+        checksum_path.write_text(new_checksum)
+        page_unmodified = new_checksum == prev_checksum
+
+        new_etag = index_response.etag
+        if new_etag is None:
+            logger.debug("no etag returned from fetch for url %s", project_url.url)
+            try:
+                etag_path.unlink()
+            except OSError:
+                pass
+        elif new_etag != prev_etag:
+            logger.debug(
+                "etag for url %s updated from %s -> %s",
+                project_url.url,
+                prev_etag,
+                new_etag,
+            )
+            etag_path.write_text(new_etag)
+        else:
+            logger.debug(
+                "etag was unmodified for url %s (%s)", project_url.url, prev_etag
+            )
+            assert page_unmodified
+
+        new_date = index_response.date
+        if new_date is None:
+            logger.debug(
+                "no date could be parsed from response for url %s", project_url
+            )
+            try:
+                date_path.unlink()
+            except OSError:
+                pass
+        else:
+            logger.debug('date "%s" written for url %s', new_date, project_url)
+            date_path.write_text(new_date)
+
+        return (new_etag, new_date, new_checksum, page_unmodified)
+
+    def _process_project_url_uncached(
         self, project_url: Link, link_evaluator: LinkEvaluator
     ) -> List[InstallationCandidate]:
         logger.debug(
             "Fetching project page and analyzing links: %s",
             project_url,
         )
+
         index_response = self._link_collector.fetch_response(project_url)
         if index_response is None:
             return []
 
-        page_links = list(parse_links(index_response))
+        page_links = parse_links(index_response)
+
+        with indent_log():
+            package_links = self.evaluate_links(link_evaluator, links=page_links)
+        return package_links
+
+    @functools.lru_cache(maxsize=None)
+    def process_project_url(
+        self, project_url: Link, link_evaluator: LinkEvaluator
+    ) -> List[InstallationCandidate]:
+        if self._fetch_resolve_cache is None:
+            return self._process_project_url_uncached(project_url, link_evaluator)
+
+        cached_path = self._fetch_resolve_cache.cache_path(project_url)
+        os.makedirs(str(cached_path), exist_ok=True)
+
+        etag_path = cached_path / "etag"
+        date_path = cached_path / "modified-since-date"
+        checksum_path = cached_path / "checksum"
+
+        headers: Dict[str, str] = {}
+        # NB: mutates headers!
+        prev_etag, _prev_date, prev_checksum = self._try_load_http_cache_headers(
+            etag_path, date_path, checksum_path, project_url, headers
+        )
+
+        logger.debug(
+            "Fetching project page and analyzing links: %s",
+            project_url,
+        )
+
+        # A 304 Not Modified is converted into the re-use of a cached response from the
+        # Cache-Control library, so we won't explicitly check for a 304.
+        index_response = self._link_collector.fetch_response(
+            project_url,
+            headers=headers,
+        )
+        if index_response is None:
+            return []
+
+        (
+            _new_etag,
+            _new_date,
+            _new_checksum,
+            page_unmodified,
+        ) = self._write_http_cache_info(
+            etag_path,
+            date_path,
+            checksum_path,
+            project_url,
+            index_response,
+            prev_etag=prev_etag,
+            prev_checksum=prev_checksum,
+        )
+
+        page_links = parse_links(index_response)
 
         with indent_log():
             package_links = self.evaluate_links(
