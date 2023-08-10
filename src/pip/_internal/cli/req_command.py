@@ -13,7 +13,7 @@ from optparse import Values
 from typing import Any
 
 from pip._internal.build_env import SubprocessBuildEnvironmentInstaller
-from pip._internal.cache import LinkMetadataCache, WheelCache
+from pip._internal.cache import FetchResolveCache, LinkMetadataCache, WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.index_command import IndexGroupCommand
 from pip._internal.cli.index_command import SessionCommandMixin as SessionCommandMixin
@@ -355,8 +355,13 @@ class RequirementCommand(IndexGroupCommand):
             ignore_requires_python=ignore_requires_python,
         )
 
+        if bool(options.cache_dir) and ("metadata-cache" in options.features_enabled):
+            fetch_resolve_cache = FetchResolveCache(options.cache_dir)
+        else:
+            fetch_resolve_cache = None
         return PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=selection_prefs,
             target_python=target_python,
+            fetch_resolve_cache=fetch_resolve_cache,
         )
