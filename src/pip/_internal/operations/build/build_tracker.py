@@ -60,7 +60,9 @@ class BuildTracker:
 
     When an sdist is prepared, it identifies its setup requirements in the
     context of ``BuildTracker.track()``. If a requirement shows up recursively, this
-    raises an exception. This stops fork bombs embedded in malicious packages."""
+    raises an exception.
+
+    This stops fork bombs embedded in malicious packages."""
 
     def __init__(self, root: str) -> None:
         self._root = root
