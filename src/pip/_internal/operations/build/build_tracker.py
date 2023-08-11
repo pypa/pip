@@ -59,7 +59,7 @@ class BuildTracker:
     """Ensure that an sdist cannot request itself as a setup requirement.
 
     When an sdist is prepared, it identifies its setup requirements in the
-    context of ``BuildTracker#track()``. If a requirement shows up recursively, this
+    context of ``BuildTracker.track()``. If a requirement shows up recursively, this
     raises an exception. This stops fork bombs embedded in malicious packages."""
 
     def __init__(self, root: str) -> None:
