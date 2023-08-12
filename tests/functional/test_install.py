@@ -7,7 +7,7 @@ import sysconfig
 import textwrap
 from os.path import curdir, join, pardir
 from pathlib import Path
-from typing import Callable, Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 
 import pytest
 
@@ -2372,32 +2372,30 @@ def test_install_logs_pip_version_in_debug(
     assert_re_match(pattern, result.stdout)
 
 
-@pytest.fixture
 def install_find_links(
     script: PipTestEnvironment,
     data: TestData,
-) -> Callable[[Iterable[str], bool, Optional[Path]], TestPipResult]:
-    def install(
-        args: Iterable[str], dry_run: bool, target_dir: Optional[Path]
-    ) -> TestPipResult:
-        return script.pip(
-            "install",
-            *(
-                (
-                    "--target",
-                    str(target_dir),
-                )
-                if target_dir is not None
-                else ()
-            ),
-            *(("--dry-run",) if dry_run else ()),
-            "--no-index",
-            "--find-links",
-            data.find_links,
-            *args,
-        )
-
-    return install
+    args: Iterable[str],
+    *,
+    dry_run: bool,
+    target_dir: Optional[Path],
+) -> TestPipResult:
+    return script.pip(
+        "install",
+        *(
+            (
+                "--target",
+                str(target_dir),
+            )
+            if target_dir is not None
+            else ()
+        ),
+        *(("--dry-run",) if dry_run else ()),
+        "--no-index",
+        "--find-links",
+        data.find_links,
+        *args,
+    )
 
 
 @pytest.mark.parametrize(
@@ -2406,8 +2404,8 @@ def install_find_links(
 )
 def test_install_dry_run_nothing_installed(
     script: PipTestEnvironment,
+    data: TestData,
     tmpdir: Path,
-    install_find_links: Callable[[Iterable[str], bool, Optional[Path]], TestPipResult],
     with_target_dir: bool,
 ) -> None:
     """Test that pip install --dry-run logs what it would install, but doesn't actually
@@ -2418,7 +2416,9 @@ def test_install_dry_run_nothing_installed(
     else:
         install_dir = None
 
-    result = install_find_links(["simple"], True, install_dir)
+    result = install_find_links(
+        script, data, ["simple"], dry_run=True, target_dir=install_dir
+    )
     assert "Would install simple-3.0" in result.stdout
     assert "Successfully installed" not in result.stdout
 
@@ -2428,7 +2428,7 @@ def test_install_dry_run_nothing_installed(
 
     # Ensure that the same install command would normally have worked if not for
     # --dry-run.
-    install_find_links(["simple"], False, install_dir)
+    install_find_links(script, data, ["simple"], dry_run=False, target_dir=install_dir)
     if with_target_dir:
         assert os.listdir(install_dir)
     else:
