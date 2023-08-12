@@ -106,9 +106,12 @@ def test_hash_mismatch(script: PipTestEnvironment, tmp_path: pathlib.Path) -> No
 
 
 @mark.network
-def test_hash_mismatch_existing_download(
+def test_hash_mismatch_existing_download_for_metadata_only_wheel(
     script: PipTestEnvironment, tmp_path: pathlib.Path
 ) -> None:
+    """Metadata-only wheels from PEP 658 or fast-deps check for hash matching in
+    a separate code path than when the wheel is downloaded all at once. Make sure we
+    still check for hash mismatches."""
     reqs = tmp_path / "requirements.txt"
     reqs.write_text("idna==2.10")
     dl_dir = tmp_path / "downloads"
@@ -117,6 +120,7 @@ def test_hash_mismatch_existing_download(
     idna_wheel.write_text("asdf")
     result = script.pip(
         "download",
+        # Ensure that we have a metadata-only dist for idna.
         "--use-feature=fast-deps",
         "-r",
         str(reqs),
@@ -127,6 +131,7 @@ def test_hash_mismatch_existing_download(
     assert re.search(
         r"WARNING: Previously-downloaded file.*has bad hash", result.stderr
     )
+    # This is the correct hash for idna==2.10.
     assert (
         hash_file(str(idna_wheel))[0].hexdigest()
         == "b97d804b1e9b523befed77c48dacec60e6dcb0b5391d57af6a65a312a90648c0"
