@@ -665,11 +665,11 @@ class InstallRequirement:
             # version inconsistencies are logged later, but do not fail
             # the installation.
             raise PreviousBuildDirError(
-                "pip can't proceed with requirements '{}' due to a "
-                "pre-existing build directory ({}). This is likely "
+                f"pip can't proceed with requirements '{self}' due to a "
+                f"pre-existing build directory ({self.source_dir}). This is likely "
                 "due to a previous installation that failed . pip is "
                 "being responsible and not assuming it can delete this. "
-                "Please delete it and try again.".format(self, self.source_dir)
+                "Please delete it and try again."
             )
 
     # For editable installations
