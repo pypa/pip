@@ -7,7 +7,7 @@ import sysconfig
 import textwrap
 from os.path import curdir, join, pardir
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 
 import pytest
 
@@ -20,6 +20,7 @@ from tests.lib import (
     PipTestEnvironment,
     ResolverVariant,
     TestData,
+    TestPipResult,
     _create_svn_repo,
     _create_test_package,
     create_basic_wheel_for_package,
@@ -2371,13 +2372,67 @@ def test_install_logs_pip_version_in_debug(
     assert_re_match(pattern, result.stdout)
 
 
-def test_install_dry_run(script: PipTestEnvironment, data: TestData) -> None:
-    """Test that pip install --dry-run logs what it would install."""
-    result = script.pip(
-        "install", "--dry-run", "--find-links", data.find_links, "simple"
+def install_find_links(
+    script: PipTestEnvironment,
+    data: TestData,
+    args: Iterable[str],
+    *,
+    dry_run: bool,
+    target_dir: Optional[Path],
+) -> TestPipResult:
+    return script.pip(
+        "install",
+        *(
+            (
+                "--target",
+                str(target_dir),
+            )
+            if target_dir is not None
+            else ()
+        ),
+        *(("--dry-run",) if dry_run else ()),
+        "--no-index",
+        "--find-links",
+        data.find_links,
+        *args,
+    )
+
+
+@pytest.mark.parametrize(
+    "with_target_dir",
+    (True, False),
+)
+def test_install_dry_run_nothing_installed(
+    script: PipTestEnvironment,
+    data: TestData,
+    tmpdir: Path,
+    with_target_dir: bool,
+) -> None:
+    """Test that pip install --dry-run logs what it would install, but doesn't actually
+    install anything."""
+    if with_target_dir:
+        install_dir = tmpdir / "fake-install"
+        install_dir.mkdir()
+    else:
+        install_dir = None
+
+    result = install_find_links(
+        script, data, ["simple"], dry_run=True, target_dir=install_dir
     )
     assert "Would install simple-3.0" in result.stdout
     assert "Successfully installed" not in result.stdout
+
+    script.assert_not_installed("simple")
+    if with_target_dir:
+        assert not os.listdir(install_dir)
+
+    # Ensure that the same install command would normally have worked if not for
+    # --dry-run.
+    install_find_links(script, data, ["simple"], dry_run=False, target_dir=install_dir)
+    if with_target_dir:
+        assert os.listdir(install_dir)
+    else:
+        script.assert_installed(simple="3.0")
 
 
 @pytest.mark.skipif(
