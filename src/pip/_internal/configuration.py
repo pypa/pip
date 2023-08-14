@@ -148,8 +148,7 @@ class Configuration:
             clean_config = {}
             for k, value in self._dictionary.items():
                 if isinstance(value, dict):
-                    for k, v in value.items():
-                        clean_config[k] = v
+                    clean_config.update(value)
                 else:
                     clean_config[k] = value
             return clean_config[key]
@@ -175,10 +174,7 @@ class Configuration:
                 parser.add_section(section)
             parser.set(section, name, value)
 
-        exists = self._config[self.load_only].get(fname)
-        if not exists:
-            self._config[self.load_only][fname] = {}
-
+        self._config[self.load_only].setdefault(fname, {})
         self._config[self.load_only][fname][key] = value
         self._mark_as_modified(fname, parser)
 
@@ -286,9 +282,7 @@ class Configuration:
 
         for section in parser.sections():
             items = parser.items(section)
-            exists = self._config[variant].get(fname)
-            if not exists:
-                self._config[variant][fname] = {}
+            self._config[variant].setdefault(fname, {})
             self._config[variant][fname].update(self._normalized_keys(section, items))
 
         return parser
