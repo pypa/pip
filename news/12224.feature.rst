@@ -1,0 +1,1 @@
+Add ``is_yanked`` boolean entry to the installation report (``--report``) to indicate whether the requirement was yanked from the index, but still was selected by pip conform PEP 592.
