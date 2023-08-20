@@ -22,15 +22,15 @@ Some key outcomes from the 2020 work are:
 
 This work was made possible through the [pip donor funded roadmap](https://wiki.python.org/psf/Pip2020DonorFundedRoadmap).
 
-### Research Methods
+## Research Methods
 
-#### Outreach
+### Outreach
 
 We [recruited participants](https://www.ei8fdb.org/thoughts/2020/03/pip-ux-study-recruitment/) for a user research panel that we could contact when we wanted to run surveys and interviews about pip. In total 472 people signed up to the panel, although some unsubscribed during the research period.
 
 At the end of the 2020 research, we asked users to opt-in to a [long-term panel](https://mail.python.org/mailman3/lists/pip-ux-studies.python.org/), where they can be contacted for future UX studies. Should the pip team wish to continue to build this panel, we recommend translating the sign-up form into multiple languages and better leveraging local communities and outreach groups (e.g. PyLadies) to increase the diversity of the participants.
 
-#### User Interviews
+### User Interviews
 
 In total, we **interviewed 48 pip users**, recruited from the user panel, and through social media channels.
 
@@ -51,138 +51,140 @@ During the interviews, we asked users about:
 - What other technical documentation they value, and how the pip docs could take inspiration from these
 - What other resources the pip team could provide to help pip users solve their problems
 
-#### <a name="survey-results"></a>Surveys
+### <a name="survey-results"></a>Surveys
 
 We **published 10 surveys** to gather feedback about pip's users and their preferences:
 
-<table>
-  <thead>
-    <tr>
-     <th>Title</th>
-     <th>Purpose</th>
-     <th>Results</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>
-        Pip research panel survey
-      </th>
-      <td>
-        Recruit pip users to participate in user research, user tests and participate in future surveys. See <a href="https://bit.ly/pip-ux-studies">associated blog post</a> for more information.
-      </td>
-      <td>
-        472 full sign-ups
-      </td>
-    </tr>
-    <tr>
-      <td>
-        Feedback for testing the new pip resolver
-      </td>
-      <td>
-        Understand use cases where the new resolver fails due to dependency conflicts. See <a href="https://bit.ly/pip-ux-test-the-new-resolver">associated blog post</a> for more information.
-      </td>
-      <td>
-        459 responses via the feedback form, approx. 8 issues transferred to issue tracker
-      </td>
-    </tr>
-    <tr>
-      <td>
-        How should pip handle conflicts with already installed packages when updating other packages?
-      </td>
-      <td>
-        Determine if the way that pip handles package upgrades is in-line with user's expectations/needs. See <a href="https://www.ei8fdb.org/thoughts/2020/07/how-should-pip-handle-conflicts-when-updating-already-installed-packages/">related blog post</a> and <a href="https://github.com/pypa/pip/issues/7744">GitHub issue</a> for more information.
-      </td>
-      <td>
-        See <a href="../2020-research-outputs/pip-upgrade-conflict">write up, including recommendations</a>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        Learning about our users
-      </td>
-      <td>
-        Learn about pip's users, including:
-        <ul>
-          <li>their usage of Python and pip</li>
-          <li>why and how they started using Python</li>
-          <li>if they are living with any disabilities, and if so what effect (if any) this has on their usage of Python and pip</li>
-          <li>if they use assistive technologies when using Python and pip and how this work for them</li>
-          <li>where they get support when you have issues with pip</li>
-        </ul>
-      </td>
-      <td>
-        See <a href="../2020-research-outputs/about-our-users">write up</a>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        Buy a pip feature
-      </td>
-      <td>
-        Establish which features are most important to pip's users
-      </td>
-      <td>
-        See <a href="../2020-research-outputs/prioritizing-features">write up</a>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        Should pip install conflicting dependencies?
-      </td>
-      <td>
-        Establish whether pip should provide an override that allows users to install packages with conflicting dependencies
-      </td>
-      <td>
-        See <a href="../2020-research-outputs/override-conflicting-dependencies">write up</a>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        How should pip force reinstall work?
-      </td>
-      <td>
-        Establish whether or not pip force reinstall should continue to behave the way it currently does, if the functionality should be changed, or if the option should be removed
-      </td>
-      <td>
-        See <a href="../2020-research-outputs/pip-force-reinstall">write up</a>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        Feedback on pip search
-      </td>
-      <td>
-        To establish whether or not to remove or redesign pip search. See <a href="https://github.com/pypa/pip/issues/5216">this GitHub issue</a> for more information.
-      </td>
-      <td>
-        See <a href="../2020-research-outputs/pip-search">write up</a>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        Design brief for pip's logo
-      </td>
-      <td>
-        To gather information and inspiration from the community to form the basis of a design brief for pip's logo.
-      </td>
-      <td>
-        See <a href="../2020-research-outputs/pip-logo">design brief</a>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        Feedback on pip's docs
-      </td>
-      <td>
-        To gather feedback on pip's docs, supplementing feedback gathered in user interviews
-      </td>
-      <td>
-        See <a href="../2020-research-outputs/improving-pips-documentation">write up</a>
-      </td>
-    </tr>
-  </tbody>
-</table>
+<div class="wy-table-responsive">
+  <table class="colwidths-auto docutils align-left">
+    <thead>
+      <tr>
+      <th>Title</th>
+      <th>Purpose</th>
+      <th>Results</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>
+          Pip research panel survey
+        </th>
+        <td>
+          Recruit pip users to participate in user research, user tests and participate in future surveys. See <a href="https://bit.ly/pip-ux-studies">associated blog post</a> for more information.
+        </td>
+        <td>
+          472 full sign-ups
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Feedback for testing the new pip resolver
+        </td>
+        <td>
+          Understand use cases where the new resolver fails due to dependency conflicts. See <a href="https://bit.ly/pip-ux-test-the-new-resolver">associated blog post</a> for more information.
+        </td>
+        <td>
+          459 responses via the feedback form, approx. 8 issues transferred to issue tracker
+        </td>
+      </tr>
+      <tr>
+        <td>
+          How should pip handle conflicts with already installed packages when updating other packages?
+        </td>
+        <td>
+          Determine if the way that pip handles package upgrades is in-line with user's expectations/needs. See <a href="https://www.ei8fdb.org/thoughts/2020/07/how-should-pip-handle-conflicts-when-updating-already-installed-packages/">related blog post</a> and <a href="https://github.com/pypa/pip/issues/7744">GitHub issue</a> for more information.
+        </td>
+        <td>
+          See <a href="../2020-research-outputs/pip-upgrade-conflict">write up, including recommendations</a>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Learning about our users
+        </td>
+        <td>
+          Learn about pip's users, including:
+          <ul>
+            <li>their usage of Python and pip</li>
+            <li>why and how they started using Python</li>
+            <li>if they are living with any disabilities, and if so what effect (if any) this has on their usage of Python and pip</li>
+            <li>if they use assistive technologies when using Python and pip and how this work for them</li>
+            <li>where they get support when you have issues with pip</li>
+          </ul>
+        </td>
+        <td>
+          See <a href="../2020-research-outputs/about-our-users">write up</a>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Buy a pip feature
+        </td>
+        <td>
+          Establish which features are most important to pip's users
+        </td>
+        <td>
+          See <a href="../2020-research-outputs/prioritizing-features">write up</a>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Should pip install conflicting dependencies?
+        </td>
+        <td>
+          Establish whether pip should provide an override that allows users to install packages with conflicting dependencies
+        </td>
+        <td>
+          See <a href="../2020-research-outputs/override-conflicting-dependencies">write up</a>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          How should pip force reinstall work?
+        </td>
+        <td>
+          Establish whether or not pip force reinstall should continue to behave the way it currently does, if the functionality should be changed, or if the option should be removed
+        </td>
+        <td>
+          See <a href="../2020-research-outputs/pip-force-reinstall">write up</a>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Feedback on pip search
+        </td>
+        <td>
+          To establish whether or not to remove or redesign pip search. See <a href="https://github.com/pypa/pip/issues/5216">this GitHub issue</a> for more information.
+        </td>
+        <td>
+          See <a href="../2020-research-outputs/pip-search">write up</a>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Design brief for pip's logo
+        </td>
+        <td>
+          To gather information and inspiration from the community to form the basis of a design brief for pip's logo.
+        </td>
+        <td>
+          See <a href="../2020-research-outputs/pip-logo">design brief</a>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Feedback on pip's docs
+        </td>
+        <td>
+          To gather feedback on pip's docs, supplementing feedback gathered in user interviews
+        </td>
+        <td>
+          See <a href="../2020-research-outputs/improving-pips-documentation">write up</a>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
 #### Research Results
 
@@ -191,7 +193,7 @@ Below is a compiled list of all research outputs and recommendations made by the
 We are currently looking for volunteers to take recommendations made by the UX team and move them into pip's issue tracker. This will ensure that the research conducted in 2020 is leveraged by the pip development team.
 
 <div class="wy-table-responsive">
-  <table class="colwidths-auto docutils align-default">
+  <table class="colwidths-auto docutils align-left">
     <thead>
       <tr>
         <th>Title</th>

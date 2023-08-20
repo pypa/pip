@@ -10,9 +10,11 @@ We asked participants to tell us how often they:
 2. Think about the security and integrity of the (Python) software they install (with pip)
 3. Think about the security and integrity of the (Python) code they create
 
-## Summary
+[Skip to recommendations](#recommendations)
 
-While the security and integrity of the software they install (51%) and they make (71%) is important to research participants, less than 7% of them do code audits of the packages or code they install with pip.
+## Results
+
+While the security and integrity of the software users install (51%) and make (71%) is important to research participants, less than 7% do code audits of the packages or code they install with pip.
 
 This is due to lack of time to audit large packages, lack of expertise, reliance on widely adopted Python packages, the expectation that pip automatically checks hashes, and reliance of the wider Python community to act as canary in the coalmine.
 
@@ -21,6 +23,38 @@ This behaviour was common across all user types, and baselines of software devel
 These results - particularly the lack of expertise in auditing packages fits in with the overall findings that the majority of participants, pip users, are not "classically trained" (i.e. having formally learned software development) software developers and so lack the expertise, the formal training in software development practices.
 
 There is a gulf between what the maintainers expect users to think, and worry about, and what the users actually worry and think about. Right now, pip leaves them to "fend for themselves" in terms of providing them with assurance of the software they install. This isn't meant as a criticism, but an observation.
+
+### Responses to question: before I install any Python software with pip, I carry out a code audit
+
+The vast majority of participants, 82%, do not (rarely or never) do a code audit of the software packages they install using pip, the reasons are explained below.
+
+| Before I install any Python software with pip, I carry out a code audit: | Number of responses |
+|-|-|
+| Always | 3 |
+| Frequently | 9 |
+| Rarely | 66 |
+| Never | 68 |
+| I'm not sure what this means | 5 |
+| No opinion | 13 |
+| **Total number of participants** | **164** |
+
+#### Selected quotes
+
+> Never. I should but I never do. I don't stray, I am risk adverse. I install packages that are good already. I consider my risk surface small. I don't have time or resources to audit them. I have sufficient faith in the ecosystem to be self-auditing. If something turned up in a well known package, the community is well known for making a stink. And anyway a code audit wouldn't pick it up.
+— 240326752 (Professional Python developer)
+
+### Responses to question: I think about the security and integrity of the software I install
+
+![](https://i.imgur.com/wy4lGwJ.png)
+
+
+The vast majority of participants did think about the security and integrity of the software they installed - and unlike responses about code audits, in some cases participants made attempts to verify the security and integrity of the software they installed.
+
+Most attempts were made by those who had experience in software development, however in some cases, people gave up.
+
+Those who were not classically trained software developers did not know where to start.
+
+Both of these groups identified their "sphere of influence" and did their best to cover this.
 
 ## Recommendations
 
@@ -44,106 +78,10 @@ Right now pip's output is overwhelming and while it contains a lot of informatio
 
 Pip's output must be redesigned to provide users with the right information at the right time.
 
-## Results
-
-### Before I install any Python software with pip, I carry out a code audit
-
-The vast majority of participants, 82%, do not (rarely or never) do a code audit of the software packages they install using pip, the reasons are explained below.
-
-<p id="gdcalert1" ><span style="color: red; font-weight: bold">>>>>>  gd2md-html alert: inline image link here (to images/image1.png). Store image on your image server and adjust path/filename/extension if necessary. </span><br>(<a href="#">Back to top</a>)(<a href="#gdcalert2">Next alert</a>)<br><span style="color: red; font-weight: bold">>>>>> </span></p>
-
-
-![alt_text](images/image1.png "image_tooltip")
 
 
 
-<table>
-  <tr>
-   <td><strong>Before I install any Python software with pip, I carry out a code audit:</strong>
-   </td>
-   <td><p style="text-align: right">
-<strong>Number of responses:</strong></p>
 
-   </td>
-  </tr>
-  <tr>
-   <td>Always
-   </td>
-   <td><p style="text-align: right">
-3</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Frequently
-   </td>
-   <td><p style="text-align: right">
-9</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>I'm not sure what this means
-   </td>
-   <td><p style="text-align: right">
-5</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Never
-   </td>
-   <td><p style="text-align: right">
-68</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>No opinion
-   </td>
-   <td><p style="text-align: right">
-13</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td>Rarely
-   </td>
-   <td><p style="text-align: right">
-66</p>
-
-   </td>
-  </tr>
-  <tr>
-   <td><strong>Number of participants</strong>
-   </td>
-   <td><p style="text-align: right">
-<strong>164</strong></p>
-
-   </td>
-  </tr>
-</table>
-
-### Selected quotes
-
-> Never I should but I never do. I don't stray, I am risk adverse. I install packages that are good already. I consider my risk surface small. I don't have time or resources to audit them. I have sufficient faith in the ecosystem to be self-auditing. If something turned up in a well known package, the community is well known for making a stink. And anyway a code audit wouldn't pick it up.
-— 240326752 (Professional Python developer)
-
-
-
-<p id="gdcalert2" ><span style="color: red; font-weight: bold">>>>>>  gd2md-html alert: inline image link here (to images/image2.png). Store image on your image server and adjust path/filename/extension if necessary. </span><br>(<a href="#">Back to top</a>)(<a href="#gdcalert3">Next alert</a>)<br><span style="color: red; font-weight: bold">>>>>> </span></p>
-
-
-![alt_text](images/image2.png "image_tooltip")
-
-
-The vast majority of participants did think about the security and integrity of the software they installed - and unlike responses about code audits, in some cases participants made attempts to verify the security and integrity of the software they installed.
-
-Most attempts were made by those who had experience in software development, however in some cases, people gave up.
-
-Those who were not classically trained software developers did not know where to start.
-
-Both of these groups identified their "sphere of influence" and did their best to cover this.
 
 <p id="gdcalert3" ><span style="color: red; font-weight: bold">>>>>>  gd2md-html alert: inline image link here (to images/image3.png). Store image on your image server and adjust path/filename/extension if necessary. </span><br>(<a href="#">Back to top</a>)(<a href="#gdcalert4">Next alert</a>)<br><span style="color: red; font-weight: bold">>>>>> </span></p>
 
