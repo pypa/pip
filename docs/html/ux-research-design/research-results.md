@@ -339,18 +339,18 @@ We are currently looking for volunteers to take recommendations made by the UX t
 </div>
 
 ```{toctree}
-about-our-users
-ci-cd
-improving-pip-documentation
-mental-models
-override-conflicting-dependencies
-personas
-pip-force-reinstall
-pip-logo
-pip-search
-pip-upgrade-conflict
-prioritizing-features
-users-and-security
+/2020-research-outputs/about-our-users
+/2020-research-outputs/ci-cd
+/2020-research-outputs/improving-pip-documentation
+/2020-research-outputs/mental-models
+/2020-research-outputs/override-conflicting-dependencies
+/2020-research-outputs/personas
+/2020-research-outputs/pip-force-reinstall
+/2020-research-outputs/pip-logo
+/2020-research-outputs/pip-search
+/2020-research-outputs/pip-upgrade-conflict
+/2020-research-outputs/prioritizing-features
+/2020-research-outputs/users-and-security
 ```
 
 ## Read More
@@ -364,7 +364,7 @@ users-and-security
 - [pip UX studies: response data (blog, March 2020)](https://www.ei8fdb.org/thoughts/2020/03/pip-ux-studies-response-data/)
 - Other PyPA UX work:
   - [PyPI User Research (blog, July 2018)](https://whoisnicoleharris.com/2018/07/22/pypi-user-research.html)
-  - [Warehouse - The Future of PyPI](https://whoisnicoleharris.com/warehouse/)<span style="text-decoration:underline;"> (overview)</span>
+  - [Warehouse - The Future of PyPI](https://whoisnicoleharris.com/warehouse/)
   - [Accessibility on Warehouse (PyPI) (blog, May 2018)](https://whoisnicoleharris.com/2018/05/17/warehouse-accessibility.html)
   - [User Testing Warehouse (blog, Mar 2018)](https://whoisnicoleharris.com/2018/03/13/user-testing-warehouse.html)
   - [Designing Warehouse - An Overview (blog, Dec 2015)](https://whoisnicoleharris.com/2015/12/31/designing-warehouse-an-overview.html)
