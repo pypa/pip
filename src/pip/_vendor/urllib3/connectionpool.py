@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import errno
 import logging
+import re
 import socket
 import sys
 import warnings
@@ -35,7 +36,6 @@ from .exceptions import (
 )
 from .packages import six
 from .packages.six.moves import queue
-from .packages.ssl_match_hostname import CertificateError
 from .request import RequestMethods
 from .response import HTTPResponse
 from .util.connection import is_connection_dropped
@@ -44,10 +44,18 @@ from .util.queue import LifoQueue
 from .util.request import set_file_position
 from .util.response import assert_header_parsing
 from .util.retry import Retry
+from .util.ssl_match_hostname import CertificateError
 from .util.timeout import Timeout
 from .util.url import Url, _encode_target
 from .util.url import _normalize_host as normalize_host
 from .util.url import get_host, parse_url
+
+try:  # Platform-specific: Python 3
+    import weakref
+
+    weakref_finalize = weakref.finalize
+except AttributeError:  # Platform-specific: Python 2
+    from .packages.backports.weakref_finalize import weakref_finalize
 
 xrange = six.moves.xrange
 
@@ -219,6 +227,16 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
             self.conn_kw["proxy"] = self.proxy
             self.conn_kw["proxy_config"] = self.proxy_config
 
+        # Do not pass 'self' as callback to 'finalize'.
+        # Then the 'finalize' would keep an endless living (leak) to self.
+        # By just passing a reference to the pool allows the garbage collector
+        # to free self if nobody else has a reference to it.
+        pool = self.pool
+
+        # Close all the HTTPConnections in the pool before the
+        # HTTPConnectionPool object is garbage collected.
+        weakref_finalize(self, _close_pool_connections, pool)
+
     def _new_conn(self):
         """
         Return a fresh :class:`HTTPConnection`.
@@ -301,8 +319,11 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
             pass
         except queue.Full:
             # This should never happen if self.block == True
-            log.warning("Connection pool is full, discarding connection: %s", self.host)
-
+            log.warning(
+                "Connection pool is full, discarding connection: %s. Connection pool size: %s",
+                self.host,
+                self.pool.qsize(),
+            )
         # Connection never got put back into the pool, close it.
         if conn:
             conn.close()
@@ -375,7 +396,7 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
 
         timeout_obj = self._get_timeout(timeout)
         timeout_obj.start_connect()
-        conn.timeout = timeout_obj.connect_timeout
+        conn.timeout = Timeout.resolve_default_timeout(timeout_obj.connect_timeout)
 
         # Trigger any extra validation we need to do.
         try:
@@ -485,14 +506,8 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
         # Disable access to the pool
         old_pool, self.pool = self.pool, None
 
-        try:
-            while True:
-                conn = old_pool.get(block=False)
-                if conn:
-                    conn.close()
-
-        except queue.Empty:
-            pass  # Done.
+        # Close all the HTTPConnections in the pool.
+        _close_pool_connections(old_pool)
 
     def is_same_host(self, url):
         """
@@ -745,7 +760,35 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
             # Discard the connection for these exceptions. It will be
             # replaced during the next _get_conn() call.
             clean_exit = False
-            if isinstance(e, (BaseSSLError, CertificateError)):
+
+            def _is_ssl_error_message_from_http_proxy(ssl_error):
+                # We're trying to detect the message 'WRONG_VERSION_NUMBER' but
+                # SSLErrors are kinda all over the place when it comes to the message,
+                # so we try to cover our bases here!
+                message = " ".join(re.split("[^a-z]", str(ssl_error).lower()))
+                return (
+                    "wrong version number" in message or "unknown protocol" in message
+                )
+
+            # Try to detect a common user error with proxies which is to
+            # set an HTTP proxy to be HTTPS when it should be 'http://'
+            # (ie {'http': 'http://proxy', 'https': 'https://proxy'})
+            # Instead we add a nice error message and point to a URL.
+            if (
+                isinstance(e, BaseSSLError)
+                and self.proxy
+                and _is_ssl_error_message_from_http_proxy(e)
+                and conn.proxy
+                and conn.proxy.scheme == "https"
+            ):
+                e = ProxyError(
+                    "Your proxy appears to only use HTTP and not HTTPS, "
+                    "try changing your proxy URL to be HTTP. See: "
+                    "https://urllib3.readthedocs.io/en/1.26.x/advanced-usage.html"
+                    "#https-proxy-error-http-proxy",
+                    SSLError(e),
+                )
+            elif isinstance(e, (BaseSSLError, CertificateError)):
                 e = SSLError(e)
             elif isinstance(e, (SocketError, NewConnectionError)) and self.proxy:
                 e = ProxyError("Cannot connect to proxy.", e)
@@ -830,7 +873,7 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
             )
 
         # Check if we should retry the HTTP response.
-        has_retry_after = bool(response.getheader("Retry-After"))
+        has_retry_after = bool(response.headers.get("Retry-After"))
         if retries.is_retry(method, response.status, has_retry_after):
             try:
                 retries = retries.increment(method, url, response=response, _pool=self)
@@ -1076,3 +1119,14 @@ def _normalize_host(host, scheme):
     if host.startswith("[") and host.endswith("]"):
         host = host[1:-1]
     return host
+
+
+def _close_pool_connections(pool):
+    """Drains a queue of connections and closes each one."""
+    try:
+        while True:
+            conn = pool.get(block=False)
+            if conn:
+                conn.close()
+    except queue.Empty:
+        pass  # Done.

@@ -1,4 +1,4 @@
-sphinx ~= 4.2
+sphinx ~= 6.0
 towncrier
 furo
 myst_parser

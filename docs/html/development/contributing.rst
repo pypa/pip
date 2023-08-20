@@ -88,7 +88,7 @@ The contents of this file are reStructuredText formatted text that
 will be used as the content of the news file entry. You do not need to
 reference the issue or PR numbers in the entry, since ``towncrier``
 will automatically add a reference to all of the affected issues when
-rendering the NEWS file.
+rendering the NEWS file. There must be a newline at the end of the file.
 
 In order to maintain a consistent style in the ``NEWS.rst`` file, it is
 preferred to keep the news entry to the point, in sentence case, shorter than

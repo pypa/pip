@@ -1,5 +1,6 @@
 import os
 import shutil
+from pathlib import Path
 from shutil import rmtree
 from tempfile import mkdtemp
 from typing import Any, Dict
@@ -11,12 +12,9 @@ from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
 from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
-from pip._internal.operations.prepare import _copy_source_tree, unpack_url
+from pip._internal.operations.prepare import unpack_url
 from pip._internal.utils.hashes import Hashes
-from pip._internal.utils.urls import path_to_url
 from tests.lib import TestData
-from tests.lib.filesystem import get_filelist, make_socket_file, make_unreadable_file
-from tests.lib.path import Path
 from tests.lib.requests_mocks import MockResponse
 
 
@@ -35,7 +33,7 @@ def test_unpack_url_with_urllib_response_without_content_type(data: TestData) ->
     session.get = _fake_session_get
     download = Downloader(session, progress_bar="on")
 
-    uri = path_to_url(data.packages.joinpath("simple-1.0.tar.gz"))
+    uri = data.packages.joinpath("simple-1.0.tar.gz").as_uri()
     link = Link(uri)
     temp_dir = mkdtemp()
     try:
@@ -44,6 +42,7 @@ def test_unpack_url_with_urllib_response_without_content_type(data: TestData) ->
             temp_dir,
             download=download,
             download_dir=None,
+            verbosity=0,
         )
         assert set(os.listdir(temp_dir)) == {
             "PKG-INFO",
@@ -80,7 +79,7 @@ def test_download_http_url__no_directory_traversal(
     session.get.return_value = resp
     download = Downloader(session, progress_bar="on")
 
-    download_dir = tmpdir.joinpath("download")
+    download_dir = os.fspath(tmpdir.joinpath("download"))
     os.mkdir(download_dir)
     file_path, content_type = download(link, download_dir)
     # The file should be downloaded to download_dir.
@@ -90,91 +89,17 @@ def test_download_http_url__no_directory_traversal(
 
 
 @pytest.fixture
-def clean_project(tmpdir_factory: pytest.TempdirFactory, data: TestData) -> Path:
-    tmpdir = Path(str(tmpdir_factory.mktemp("clean_project")))
+def clean_project(tmpdir_factory: pytest.TempPathFactory, data: TestData) -> Path:
+    tmpdir = tmpdir_factory.mktemp("clean_project")
     new_project_dir = tmpdir.joinpath("FSPkg")
     path = data.packages.joinpath("FSPkg")
     shutil.copytree(path, new_project_dir)
     return new_project_dir
 
 
-def test_copy_source_tree(clean_project: Path, tmpdir: Path) -> None:
-    target = tmpdir.joinpath("target")
-    expected_files = get_filelist(clean_project)
-    assert len(expected_files) == 3
-
-    _copy_source_tree(clean_project, target)
-
-    copied_files = get_filelist(target)
-    assert expected_files == copied_files
-
-
-@pytest.mark.skipif("sys.platform == 'win32'")
-def test_copy_source_tree_with_socket(
-    clean_project: Path, tmpdir: Path, caplog: pytest.LogCaptureFixture
-) -> None:
-    target = tmpdir.joinpath("target")
-    expected_files = get_filelist(clean_project)
-    socket_path = str(clean_project.joinpath("aaa"))
-    make_socket_file(socket_path)
-
-    _copy_source_tree(clean_project, target)
-
-    copied_files = get_filelist(target)
-    assert expected_files == copied_files
-
-    # Warning should have been logged.
-    assert len(caplog.records) == 1
-    record = caplog.records[0]
-    assert record.levelname == "WARNING"
-    assert socket_path in record.message
-
-
-@pytest.mark.skipif("sys.platform == 'win32'")
-def test_copy_source_tree_with_socket_fails_with_no_socket_error(
-    clean_project: Path, tmpdir: Path
-) -> None:
-    target = tmpdir.joinpath("target")
-    expected_files = get_filelist(clean_project)
-    make_socket_file(clean_project.joinpath("aaa"))
-    unreadable_file = clean_project.joinpath("bbb")
-    make_unreadable_file(unreadable_file)
-
-    with pytest.raises(shutil.Error) as e:
-        _copy_source_tree(clean_project, target)
-
-    errored_files = [err[0] for err in e.value.args[0]]
-    assert len(errored_files) == 1
-    assert unreadable_file in errored_files
-
-    copied_files = get_filelist(target)
-    # All files without errors should have been copied.
-    assert expected_files == copied_files
-
-
-def test_copy_source_tree_with_unreadable_dir_fails(
-    clean_project: Path, tmpdir: Path
-) -> None:
-    target = tmpdir.joinpath("target")
-    expected_files = get_filelist(clean_project)
-    unreadable_file = clean_project.joinpath("bbb")
-    make_unreadable_file(unreadable_file)
-
-    with pytest.raises(shutil.Error) as e:
-        _copy_source_tree(clean_project, target)
-
-    errored_files = [err[0] for err in e.value.args[0]]
-    assert len(errored_files) == 1
-    assert unreadable_file in errored_files
-
-    copied_files = get_filelist(target)
-    # All files without errors should have been copied.
-    assert expected_files == copied_files
-
-
 class Test_unpack_url:
     def prep(self, tmpdir: Path, data: TestData) -> None:
-        self.build_dir = tmpdir.joinpath("build")
+        self.build_dir = os.fspath(tmpdir.joinpath("build"))
         self.download_dir = tmpdir.joinpath("download")
         os.mkdir(self.build_dir)
         os.mkdir(self.download_dir)
@@ -182,13 +107,13 @@ class Test_unpack_url:
         self.dist_file2 = "simple-2.0.tar.gz"
         self.dist_path = data.packages.joinpath(self.dist_file)
         self.dist_path2 = data.packages.joinpath(self.dist_file2)
-        self.dist_url = Link(path_to_url(self.dist_path))
-        self.dist_url2 = Link(path_to_url(self.dist_path2))
+        self.dist_url = Link(self.dist_path.as_uri())
+        self.dist_url2 = Link(self.dist_path2.as_uri())
         self.no_download = Mock(side_effect=AssertionError)
 
     def test_unpack_url_no_download(self, tmpdir: Path, data: TestData) -> None:
         self.prep(tmpdir, data)
-        unpack_url(self.dist_url, self.build_dir, self.no_download)
+        unpack_url(self.dist_url, self.build_dir, self.no_download, verbosity=0)
         assert os.path.isdir(os.path.join(self.build_dir, "simple"))
         assert not os.path.isfile(os.path.join(self.download_dir, self.dist_file))
 
@@ -205,44 +130,5 @@ class Test_unpack_url:
                 self.build_dir,
                 download=self.no_download,
                 hashes=Hashes({"md5": ["bogus"]}),
+                verbosity=0,
             )
-
-    def test_unpack_url_thats_a_dir(self, tmpdir: Path, data: TestData) -> None:
-        self.prep(tmpdir, data)
-        dist_path = data.packages.joinpath("FSPkg")
-        dist_url = Link(path_to_url(dist_path))
-        unpack_url(
-            dist_url,
-            self.build_dir,
-            download=self.no_download,
-            download_dir=self.download_dir,
-        )
-        assert os.path.isdir(os.path.join(self.build_dir, "fspkg"))
-
-
-@pytest.mark.parametrize("exclude_dir", [".nox", ".tox"])
-def test_unpack_url_excludes_expected_dirs(tmpdir: Path, exclude_dir: str) -> None:
-    src_dir = tmpdir / "src"
-    dst_dir = tmpdir / "dst"
-    src_included_file = src_dir.joinpath("file.txt")
-    src_excluded_dir = src_dir.joinpath(exclude_dir)
-    src_excluded_file = src_dir.joinpath(exclude_dir, "file.txt")
-    src_included_dir = src_dir.joinpath("subdir", exclude_dir)
-
-    # set up source directory
-    src_excluded_dir.mkdir(parents=True)
-    src_included_dir.mkdir(parents=True)
-    src_included_file.touch()
-    src_excluded_file.touch()
-
-    dst_included_file = dst_dir.joinpath("file.txt")
-    dst_excluded_dir = dst_dir.joinpath(exclude_dir)
-    dst_excluded_file = dst_dir.joinpath(exclude_dir, "file.txt")
-    dst_included_dir = dst_dir.joinpath("subdir", exclude_dir)
-
-    src_link = Link(path_to_url(src_dir))
-    unpack_url(src_link, dst_dir, Mock(side_effect=AssertionError), download_dir=None)
-    assert not os.path.isdir(dst_excluded_dir)
-    assert not os.path.isfile(dst_excluded_file)
-    assert os.path.isfile(dst_included_file)
-    assert os.path.isdir(dst_included_dir)

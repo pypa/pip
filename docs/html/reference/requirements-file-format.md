@@ -15,13 +15,38 @@ consumption by pip, and other tools should take that into account before using
 it for their own purposes.
 ```
 
+## Example
+
+```
+# This is a comment, to show how #-prefixed lines are ignored.
+# It is possible to specify requirements as plain names.
+pytest
+pytest-cov
+beautifulsoup4
+
+# The syntax supported here is the same as that of requirement specifiers.
+docopt == 0.6.1
+requests [security] >= 2.8.1, == 2.8.* ; python_version < "2.7"
+urllib3 @ https://github.com/urllib3/urllib3/archive/refs/tags/1.26.8.zip
+
+# It is possible to refer to other requirement files or constraints files.
+-r other-requirements.txt
+-c constraints.txt
+
+# It is possible to refer to specific local distribution paths.
+./downloads/numpy-1.9.2-cp34-none-win32.whl
+
+# It is possible to refer to URLs.
+http://wxpython.org/Phoenix/snapshot-builds/wxPython_Phoenix-3.0.3.dev1820+49a8884-cp34-none-win_amd64.whl
+```
+
 ## Structure
 
 Each line of the requirements file indicates something to be installed,
 or arguments to {ref}`pip install`. The following forms are supported:
 
 - `[[--option]...]`
-- `<requirement specifier> [; markers] [[--option]...]`
+- `<requirement specifier>`
 - `<archive url/path>`
 - `[-e] <local project path>`
 - `[-e] <vcs project url>`
@@ -74,13 +99,21 @@ and two {ref}`--find-links <install_--find-links>` locations:
 ```
 ````
 
+(per-requirement-options)=
+
 ### Per-requirement options
+
+```{versionadded} 7.0
+
+```
 
 The options which can be applied to individual requirements are:
 
-- {ref}`--install-option <install_--install-option>`
 - {ref}`--global-option <install_--global-option>`
-- `--hash` (for {ref}`Hash-Checking mode`)
+- {ref}`--config-settings <install_--config-settings>`
+- `--hash` (for {ref}`Hash-checking mode`)
+
+## Referring to other requirements files
 
 If you wish, you can refer to other requirements files, like this:
 
@@ -118,30 +151,29 @@ and only specify the variable name for your requirements, letting pip lookup
 the value at runtime. This approach aligns with the commonly used
 [12-factor configuration pattern](https://12factor.net/config).
 
-## Example
 
+## Influencing the build system
+
+```{danger}
+This disables the use of wheels (cached or otherwise). This could mean that builds will be slower, less deterministic, less reliable and may not behave correctly upon installation.
+
+This mechanism is only preserved for backwards compatibility and should be considered deprecated. A future release of pip may drop these options.
 ```
-###### Requirements without Version Specifiers ######
-pytest
-pytest-cov
-beautifulsoup4
 
-###### Requirements with Version Specifiers ######
-#   See https://www.python.org/dev/peps/pep-0440/#version-specifiers
-docopt == 0.6.1             # Version Matching. Must be version 0.6.1
-keyring >= 4.1.1            # Minimum version 4.1.1
-coverage != 3.5             # Version Exclusion. Anything except version 3.5
-Mopidy-Dirble ~= 1.1        # Compatible release. Same as >= 1.1, == 1.*
+The `--global-option` option is used to pass options to `setup.py`.
 
-###### Refer to other requirements files ######
--r other-requirements.txt
+```{attention}
+These options are highly coupled with how pip invokes setuptools using the {doc}`../reference/build-system/setup-py` build system interface. It is not compatible with newer {doc}`../reference/build-system/pyproject-toml` build system interface.
 
-###### A particular file ######
-./downloads/numpy-1.9.2-cp34-none-win32.whl
-http://wxpython.org/Phoenix/snapshot-builds/wxPython_Phoenix-3.0.3.dev1820+49a8884-cp34-none-win_amd64.whl
-
-###### Additional Requirements without Version Specifiers ######
-#   Same as 1st section, just here to show that you can put things in any order.
-rejected
-green
+This is will not work with other build-backends or newer setup.cfg-only projects.
 ```
+
+If you have a declaration like:
+
+    FooProject >= 1.2 --global-option="--no-user-cfg"
+
+The above translates roughly into running FooProject's `setup.py` script as:
+
+    python setup.py --no-user-cfg install
+
+Note that the only way of giving more than one option to `setup.py` is through multiple `--global-option` options.

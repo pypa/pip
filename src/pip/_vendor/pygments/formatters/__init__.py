@@ -4,7 +4,7 @@
 
     Pygments formatters.
 
-    :copyright: Copyright 2006-2021 by the Pygments team, see AUTHORS.
+    :copyright: Copyright 2006-2023 by the Pygments team, see AUTHORS.
     :license: BSD, see LICENSE for details.
 """
 
@@ -68,9 +68,12 @@ def find_formatter_class(alias):
 
 
 def get_formatter_by_name(_alias, **options):
-    """Lookup and instantiate a formatter by alias.
+    """
+    Return an instance of a :class:`.Formatter` subclass that has `alias` in its
+    aliases list. The formatter is given the `options` at its instantiation.
 
-    Raises ClassNotFound if not found.
+    Will raise :exc:`pygments.util.ClassNotFound` if no formatter with that
+    alias is found.
     """
     cls = find_formatter_class(_alias)
     if cls is None:
@@ -78,19 +81,18 @@ def get_formatter_by_name(_alias, **options):
     return cls(**options)
 
 
-def load_formatter_from_file(filename, formattername="CustomFormatter",
-                             **options):
-    """Load a formatter from a file.
+def load_formatter_from_file(filename, formattername="CustomFormatter", **options):
+    """
+    Return a `Formatter` subclass instance loaded from the provided file, relative
+    to the current directory.
 
-    This method expects a file located relative to the current working
-    directory, which contains a class named CustomFormatter. By default,
-    it expects the Formatter to be named CustomFormatter; you can specify
-    your own class name as the second argument to this function.
+    The file is expected to contain a Formatter class named ``formattername``
+    (by default, CustomFormatter). Users should be very careful with the input, because
+    this method is equivalent to running ``eval()`` on the input file. The formatter is
+    given the `options` at its instantiation.
 
-    Users should be very careful with the input, because this method
-    is equivalent to running eval on the input file.
-
-    Raises ClassNotFound if there are any problems importing the Formatter.
+    :exc:`pygments.util.ClassNotFound` is raised if there are any errors loading
+    the formatter.
 
     .. versionadded:: 2.2
     """
@@ -115,9 +117,12 @@ def load_formatter_from_file(filename, formattername="CustomFormatter",
 
 
 def get_formatter_for_filename(fn, **options):
-    """Lookup and instantiate a formatter by filename pattern.
+    """
+    Return a :class:`.Formatter` subclass instance that has a filename pattern
+    matching `fn`. The formatter is given the `options` at its instantiation.
 
-    Raises ClassNotFound if not found.
+    Will raise :exc:`pygments.util.ClassNotFound` if no formatter for that filename
+    is found.
     """
     fn = basename(fn)
     for modname, name, _, filenames, _ in FORMATTERS.values():

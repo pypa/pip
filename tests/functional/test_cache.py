@@ -107,7 +107,7 @@ def list_matches_wheel(wheel_name: str, result: TestPipResult) -> bool:
           `- foo-1.2.3-py3-none-any.whl `."""
     lines = result.stdout.splitlines()
     expected = f" - {wheel_name}-py3-none-any.whl "
-    return any(map(lambda l: l.startswith(expected), lines))
+    return any(map(lambda line: line.startswith(expected), lines))
 
 
 def list_matches_wheel_abspath(wheel_name: str, result: TestPipResult) -> bool:
@@ -121,7 +121,9 @@ def list_matches_wheel_abspath(wheel_name: str, result: TestPipResult) -> bool:
     expected = f"{wheel_name}-py3-none-any.whl"
     return any(
         map(
-            lambda l: os.path.basename(l).startswith(expected) and os.path.exists(l),
+            lambda line: (
+                os.path.basename(line).startswith(expected) and os.path.exists(line)
+            ),
             lines,
         )
     )
@@ -210,9 +212,9 @@ def test_cache_info(
     result = script.pip("cache", "info")
 
     assert f"Package index page cache location: {http_cache_dir}" in result.stdout
-    assert f"Wheels location: {wheel_cache_dir}" in result.stdout
+    assert f"Locally built wheels location: {wheel_cache_dir}" in result.stdout
     num_wheels = len(wheel_cache_files)
-    assert f"Number of wheels: {num_wheels}" in result.stdout
+    assert f"Number of locally built wheels: {num_wheels}" in result.stdout
 
 
 @pytest.mark.usefixtures("populate_wheel_cache")
@@ -242,9 +244,9 @@ def test_cache_list_abspath(script: PipTestEnvironment) -> None:
 @pytest.mark.usefixtures("empty_wheel_cache")
 def test_cache_list_with_empty_cache(script: PipTestEnvironment) -> None:
     """Running `pip cache list` with an empty cache should print
-    "Nothing cached." and exit."""
+    "No locally built wheels cached." and exit."""
     result = script.pip("cache", "list")
-    assert result.stdout == "Nothing cached.\n"
+    assert result.stdout == "No locally built wheels cached.\n"
 
 
 @pytest.mark.usefixtures("empty_wheel_cache")

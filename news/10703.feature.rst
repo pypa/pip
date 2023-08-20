@@ -1,1 +1,0 @@
-Start using Rich for presenting error messages in a consistent format.

@@ -87,7 +87,7 @@ class Subversion(VersionControl):
 
     @classmethod
     def get_url_rev_and_auth(cls, url: str) -> Tuple[str, Optional[str], AuthInfo]:
-        # hotfix the URL scheme after removing svn+ from svn+ssh:// readd it
+        # hotfix the URL scheme after removing svn+ from svn+ssh:// re-add it
         url, rev, user_pass = super().get_url_rev_and_auth(url)
         if url.startswith("ssh://"):
             url = "svn+" + url
@@ -184,7 +184,7 @@ class Subversion(VersionControl):
         """Always assume the versions don't match"""
         return False
 
-    def __init__(self, use_interactive: bool = None) -> None:
+    def __init__(self, use_interactive: Optional[bool] = None) -> None:
         if use_interactive is None:
             use_interactive = is_console_interactive()
         self.use_interactive = use_interactive
@@ -277,7 +277,9 @@ class Subversion(VersionControl):
 
         return []
 
-    def fetch_new(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
+    def fetch_new(
+        self, dest: str, url: HiddenText, rev_options: RevOptions, verbosity: int
+    ) -> None:
         rev_display = rev_options.to_display()
         logger.info(
             "Checking out %s%s to %s",
@@ -285,9 +287,13 @@ class Subversion(VersionControl):
             rev_display,
             display_path(dest),
         )
+        if verbosity <= 0:
+            flag = "--quiet"
+        else:
+            flag = ""
         cmd_args = make_command(
             "checkout",
-            "-q",
+            flag,
             self.get_remote_call_options(),
             rev_options.to_args(),
             url,

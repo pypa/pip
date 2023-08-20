@@ -1,4 +1,4 @@
-import os
+import pathlib
 import ssl
 import threading
 from base64 import b64encode
@@ -150,14 +150,6 @@ def html5_page(text: str) -> str:
     )
 
 
-def index_page(spec: Dict[str, str]) -> "WSGIApplication":
-    def link(name: str, value: str) -> str:
-        return '<a href="{}">{}</a>'.format(value, name)
-
-    links = "".join(link(*kv) for kv in spec.items())
-    return text_html_response(html5_page(links))
-
-
 def package_page(spec: Dict[str, str]) -> "WSGIApplication":
     def link(name: str, value: str) -> str:
         return '<a href="{}">{}</a>'.format(value, name)
@@ -166,46 +158,34 @@ def package_page(spec: Dict[str, str]) -> "WSGIApplication":
     return text_html_response(html5_page(links))
 
 
-def file_response(path: str) -> "WSGIApplication":
+def file_response(path: pathlib.Path) -> "WSGIApplication":
     def responder(environ: "WSGIEnvironment", start_response: "StartResponse") -> Body:
-        size = os.stat(path).st_size
         start_response(
             "200 OK",
             [
                 ("Content-Type", "application/octet-stream"),
-                ("Content-Length", str(size)),
+                ("Content-Length", str(path.stat().st_size)),
             ],
         )
-
-        with open(path, "rb") as f:
-            return [f.read()]
+        return [path.read_bytes()]
 
     return responder
 
 
-def authorization_response(path: str) -> "WSGIApplication":
+def authorization_response(path: pathlib.Path) -> "WSGIApplication":
     correct_auth = "Basic " + b64encode(b"USERNAME:PASSWORD").decode("ascii")
 
     def responder(environ: "WSGIEnvironment", start_response: "StartResponse") -> Body:
-
-        if environ.get("HTTP_AUTHORIZATION") == correct_auth:
-            size = os.stat(path).st_size
-            start_response(
-                "200 OK",
-                [
-                    ("Content-Type", "application/octet-stream"),
-                    ("Content-Length", str(size)),
-                ],
-            )
-        else:
-            start_response(
-                "401 Unauthorized",
-                [
-                    ("WWW-Authenticate", "Basic"),
-                ],
-            )
-
-        with open(path, "rb") as f:
-            return [f.read()]
+        if environ.get("HTTP_AUTHORIZATION") != correct_auth:
+            start_response("401 Unauthorized", [("WWW-Authenticate", "Basic")])
+            return ()
+        start_response(
+            "200 OK",
+            [
+                ("Content-Type", "application/octet-stream"),
+                ("Content-Length", str(path.stat().st_size)),
+            ],
+        )
+        return [path.read_bytes()]
 
     return responder

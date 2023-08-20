@@ -1,5 +1,4 @@
 import sys
-
 from dataclasses import dataclass
 
 
@@ -15,7 +14,6 @@ class WindowsConsoleFeatures:
 
 try:
     import ctypes
-    from ctypes import wintypes
     from ctypes import LibraryLoader
 
     if sys.platform == "win32":
@@ -23,6 +21,14 @@ try:
     else:
         windll = None
         raise ImportError("Not windows")
+
+    from pip._vendor.rich._win32_console import (
+        ENABLE_VIRTUAL_TERMINAL_PROCESSING,
+        GetConsoleMode,
+        GetStdHandle,
+        LegacyWindowsError,
+    )
+
 except (AttributeError, ImportError, ValueError):
 
     # Fallback if we can't load the Windows DLL
@@ -30,20 +36,7 @@ except (AttributeError, ImportError, ValueError):
         features = WindowsConsoleFeatures()
         return features
 
-
 else:
-
-    STDOUT = -11
-    ENABLE_VIRTUAL_TERMINAL_PROCESSING = 4
-    _GetConsoleMode = windll.kernel32.GetConsoleMode
-    _GetConsoleMode.argtypes = [wintypes.HANDLE, wintypes.LPDWORD]
-    _GetConsoleMode.restype = wintypes.BOOL
-
-    _GetStdHandle = windll.kernel32.GetStdHandle
-    _GetStdHandle.argtypes = [
-        wintypes.DWORD,
-    ]
-    _GetStdHandle.restype = wintypes.HANDLE
 
     def get_windows_console_features() -> WindowsConsoleFeatures:
         """Get windows console features.
@@ -51,10 +44,14 @@ else:
         Returns:
             WindowsConsoleFeatures: An instance of WindowsConsoleFeatures.
         """
-        handle = _GetStdHandle(STDOUT)
-        console_mode = wintypes.DWORD()
-        result = _GetConsoleMode(handle, console_mode)
-        vt = bool(result and console_mode.value & ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+        handle = GetStdHandle()
+        try:
+            console_mode = GetConsoleMode(handle)
+            success = True
+        except LegacyWindowsError:
+            console_mode = 0
+            success = False
+        vt = bool(success and console_mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING)
         truecolor = False
         if vt:
             win_version = sys.getwindowsversion()

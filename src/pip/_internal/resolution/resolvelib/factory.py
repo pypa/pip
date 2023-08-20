@@ -27,7 +27,6 @@ from pip._internal.cache import CacheEntry, WheelCache
 from pip._internal.exceptions import (
     DistributionNotFound,
     InstallationError,
-    InstallationSubprocessError,
     MetadataInconsistent,
     UnsupportedPythonVersion,
     UnsupportedWheel,
@@ -133,7 +132,7 @@ class Factory:
         if not link.is_wheel:
             return
         wheel = Wheel(link.filename)
-        if wheel.supported(self._finder.target_python.get_tags()):
+        if wheel.supported(self._finder.target_python.get_unsorted_tags()):
             return
         msg = f"{link.filename} is not a supported wheel on this platform."
         raise UnsupportedWheel(msg)
@@ -190,10 +189,16 @@ class Factory:
                         name=name,
                         version=version,
                     )
-                except (InstallationSubprocessError, MetadataInconsistent) as e:
-                    logger.warning("Discarding %s. %s", link, e)
+                except MetadataInconsistent as e:
+                    logger.info(
+                        "Discarding [blue underline]%s[/]: [yellow]%s[reset]",
+                        link,
+                        e,
+                        extra={"markup": True},
+                    )
                     self._build_failures[link] = e
                     return None
+
             base: BaseCandidate = self._editable_candidate_cache[link]
         else:
             if link not in self._link_candidate_cache:
@@ -205,8 +210,13 @@ class Factory:
                         name=name,
                         version=version,
                     )
-                except (InstallationSubprocessError, MetadataInconsistent) as e:
-                    logger.warning("Discarding %s. %s", link, e)
+                except MetadataInconsistent as e:
+                    logger.info(
+                        "Discarding [blue underline]%s[/]: [yellow]%s[reset]",
+                        link,
+                        e,
+                        extra={"markup": True},
+                    )
                     self._build_failures[link] = e
                     return None
             base = self._link_candidate_cache[link]
@@ -273,14 +283,27 @@ class Factory:
             )
             icans = list(result.iter_applicable())
 
-            # PEP 592: Yanked releases must be ignored unless only yanked
-            # releases can satisfy the version range. So if this is false,
-            # all yanked icans need to be skipped.
+            # PEP 592: Yanked releases are ignored unless the specifier
+            # explicitly pins a version (via '==' or '===') that can be
+            # solely satisfied by a yanked release.
             all_yanked = all(ican.link.is_yanked for ican in icans)
+
+            def is_pinned(specifier: SpecifierSet) -> bool:
+                for sp in specifier:
+                    if sp.operator == "===":
+                        return True
+                    if sp.operator != "==":
+                        continue
+                    if sp.version.endswith(".*"):
+                        continue
+                    return True
+                return False
+
+            pinned = is_pinned(specifier)
 
             # PackageFinder returns earlier versions first, so we reverse.
             for ican in reversed(icans):
-                if not all_yanked and ican.link.is_yanked:
+                if not (all_yanked and pinned) and ican.link.is_yanked:
                     continue
                 func = functools.partial(
                     self._make_candidate_from_link,
@@ -512,7 +535,7 @@ class Factory:
         hash mismatches. Furthermore, cached wheels at present have
         nondeterministic contents due to file modification times.
         """
-        if self._wheel_cache is None or self.preparer.require_hashes:
+        if self._wheel_cache is None:
             return None
         return self._wheel_cache.get_cache_entry(
             link=link,
@@ -579,8 +602,15 @@ class Factory:
             req_disp = f"{req} (from {parent.name})"
 
         cands = self._finder.find_all_candidates(req.project_name)
+        skipped_by_requires_python = self._finder.requires_python_skipped_reasons()
         versions = [str(v) for v in sorted({c.version for c in cands})]
 
+        if skipped_by_requires_python:
+            logger.critical(
+                "Ignored the following versions that require a different python "
+                "version: %s",
+                "; ".join(skipped_by_requires_python) or "none",
+            )
         logger.critical(
             "Could not find a version that satisfies the requirement %s "
             "(from versions: %s)",
@@ -602,7 +632,6 @@ class Factory:
         e: "ResolutionImpossible[Requirement, Candidate]",
         constraints: Dict[str, Constraint],
     ) -> InstallationError:
-
         assert e.causes, "Installation error reported with no cause"
 
         # If one of the things we can't solve is "we need Python X.Y",

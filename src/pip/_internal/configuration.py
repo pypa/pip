@@ -142,13 +142,19 @@ class Configuration:
 
     def get_value(self, key: str) -> Any:
         """Get a value from the configuration."""
+        orig_key = key
+        key = _normalize_name(key)
         try:
             return self._dictionary[key]
         except KeyError:
-            raise ConfigurationError(f"No such key - {key}")
+            # disassembling triggers a more useful error message than simply
+            # "No such key" in the case that the key isn't in the form command.option
+            _disassemble_key(key)
+            raise ConfigurationError(f"No such key - {orig_key}")
 
     def set_value(self, key: str, value: Any) -> None:
         """Modify a value in the configuration."""
+        key = _normalize_name(key)
         self._ensure_have_load_only()
 
         assert self.load_only
@@ -167,11 +173,13 @@ class Configuration:
 
     def unset_value(self, key: str) -> None:
         """Unset a value in the configuration."""
+        orig_key = key
+        key = _normalize_name(key)
         self._ensure_have_load_only()
 
         assert self.load_only
         if key not in self._config[self.load_only]:
-            raise ConfigurationError(f"No such key - {key}")
+            raise ConfigurationError(f"No such key - {orig_key}")
 
         fname, parser = self._get_parser_to_modify()
 
@@ -202,8 +210,15 @@ class Configuration:
             # Ensure directory exists.
             ensure_dir(os.path.dirname(fname))
 
-            with open(fname, "w") as f:
-                parser.write(f)
+            # Ensure directory's permission(need to be writeable)
+            try:
+                with open(fname, "w") as f:
+                    parser.write(f)
+            except OSError as error:
+                raise ConfigurationError(
+                    f"An error occurred while writing to the configuration file "
+                    f"{fname}: {error}"
+                )
 
     #
     # Private routines

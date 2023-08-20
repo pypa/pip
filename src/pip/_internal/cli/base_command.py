@@ -10,6 +10,8 @@ import traceback
 from optparse import Values
 from typing import Any, Callable, List, Optional, Tuple
 
+from pip._vendor.rich import traceback as rich_traceback
+
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.command_context import CommandContextMixIn
 from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
@@ -120,6 +122,26 @@ class Command(CommandContextMixIn):
             user_log_file=options.log,
         )
 
+        always_enabled_features = set(options.features_enabled) & set(
+            cmdoptions.ALWAYS_ENABLED_FEATURES
+        )
+        if always_enabled_features:
+            logger.warning(
+                "The following features are always enabled: %s. ",
+                ", ".join(sorted(always_enabled_features)),
+            )
+
+        # Make sure that the --python argument isn't specified after the
+        # subcommand. We can tell, because if --python was specified,
+        # we should only reach this point if we're running in the created
+        # subprocess, which has the _PIP_RUNNING_IN_SUBPROCESS environment
+        # variable set.
+        if options.python and "_PIP_RUNNING_IN_SUBPROCESS" not in os.environ:
+            logger.critical(
+                "The --python option must be placed before the pip subcommand name"
+            )
+            sys.exit(ERROR)
+
         # TODO: Try to get these passing down from the command?
         #       without resorting to os.environ to hold these.
         #       This also affects isolated builds and it should.
@@ -149,13 +171,6 @@ class Command(CommandContextMixIn):
                 )
                 options.cache_dir = None
 
-        if "2020-resolver" in options.features_enabled:
-            logger.warning(
-                "--use-feature=2020-resolver no longer has any effect, "
-                "since it is now the default dependency resolver in pip. "
-                "This will become an error in pip 21.0."
-            )
-
         def intercepts_unhandled_exc(
             run_func: Callable[..., int]
         ) -> Callable[..., int]:
@@ -166,7 +181,7 @@ class Command(CommandContextMixIn):
                     assert isinstance(status, int)
                     return status
                 except DiagnosticPipError as exc:
-                    logger.error("[present-diagnostic]", exc)
+                    logger.error("[present-rich] %s", exc)
                     logger.debug("Exception information:", exc_info=True)
 
                     return ERROR
@@ -215,6 +230,7 @@ class Command(CommandContextMixIn):
                 run = intercepts_unhandled_exc(self.run)
             else:
                 run = self.run
+                rich_traceback.install(show_locals=True)
             return run(options, args)
         finally:
             self.handle_pip_version_check(options)

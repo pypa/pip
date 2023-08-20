@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2015 Eric Larson
+#
+# SPDX-License-Identifier: Apache-2.0
+
 from __future__ import division
 
 from datetime import datetime
@@ -15,9 +19,11 @@ class RedisCache(BaseCache):
     def set(self, key, value, expires=None):
         if not expires:
             self.conn.set(key, value)
-        else:
+        elif isinstance(expires, datetime):
             expires = expires - datetime.utcnow()
             self.conn.setex(key, int(expires.total_seconds()), value)
+        else:
+            self.conn.setex(key, expires, value)
 
     def delete(self, key):
         self.conn.delete(key)

@@ -11,7 +11,7 @@ from pip._internal.exceptions import UnsupportedWheel
 from pip._internal.metadata.pkg_resources import (
     Distribution,
     Environment,
-    WheelMetadata,
+    InMemoryMetadata,
 )
 
 pkg_resources = pytest.importorskip("pip._vendor.pkg_resources")
@@ -99,7 +99,7 @@ def test_wheel_metadata_works() -> None:
     dist = Distribution(
         pkg_resources.DistInfoDistribution(
             location="<in-memory>",
-            metadata=WheelMetadata({"METADATA": metadata.as_bytes()}, "<in-memory>"),
+            metadata=InMemoryMetadata({"METADATA": metadata.as_bytes()}, "<in-memory>"),
             project_name=name,
         ),
     )
@@ -116,7 +116,7 @@ def test_wheel_metadata_works() -> None:
 
 
 def test_wheel_metadata_throws_on_bad_unicode() -> None:
-    metadata = WheelMetadata({"METADATA": b"\xff"}, "<in-memory>")
+    metadata = InMemoryMetadata({"METADATA": b"\xff"}, "<in-memory>")
 
     with pytest.raises(UnsupportedWheel) as e:
         metadata.get_metadata("METADATA")

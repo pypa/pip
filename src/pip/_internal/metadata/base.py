@@ -1,5 +1,6 @@
 import csv
 import email.message
+import functools
 import json
 import logging
 import pathlib
@@ -8,11 +9,14 @@ import zipfile
 from typing import (
     IO,
     TYPE_CHECKING,
+    Any,
     Collection,
     Container,
+    Dict,
     Iterable,
     Iterator,
     List,
+    NamedTuple,
     Optional,
     Tuple,
     Union,
@@ -31,12 +35,12 @@ from pip._internal.models.direct_url import (
     DirectUrlValidationError,
 )
 from pip._internal.utils.compat import stdlib_pkgs  # TODO: Move definition here.
-from pip._internal.utils.egg_link import (
-    egg_link_path_from_location,
-    egg_link_path_from_sys_path,
-)
+from pip._internal.utils.egg_link import egg_link_path_from_sys_path
 from pip._internal.utils.misc import is_local, normalize_path
+from pip._internal.utils.packaging import safe_extra
 from pip._internal.utils.urls import url_to_path
+
+from ._json import msg_to_json
 
 if TYPE_CHECKING:
     from typing import Protocol
@@ -45,7 +49,7 @@ else:
 
 DistributionVersion = Union[LegacyVersion, Version]
 
-InfoPath = Union[str, pathlib.PurePosixPath]
+InfoPath = Union[str, pathlib.PurePath]
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +98,53 @@ def _convert_installed_files_path(
     return str(pathlib.Path(*info, *entry))
 
 
+class RequiresEntry(NamedTuple):
+    requirement: str
+    extra: str
+    marker: str
+
+
 class BaseDistribution(Protocol):
+    @classmethod
+    def from_directory(cls, directory: str) -> "BaseDistribution":
+        """Load the distribution from a metadata directory.
+
+        :param directory: Path to a metadata directory, e.g. ``.dist-info``.
+        """
+        raise NotImplementedError()
+
+    @classmethod
+    def from_metadata_file_contents(
+        cls,
+        metadata_contents: bytes,
+        filename: str,
+        project_name: str,
+    ) -> "BaseDistribution":
+        """Load the distribution from the contents of a METADATA file.
+
+        This is used to implement PEP 658 by generating a "shallow" dist object that can
+        be used for resolution without downloading or building the actual dist yet.
+
+        :param metadata_contents: The contents of a METADATA file.
+        :param filename: File name for the dist with this metadata.
+        :param project_name: Name of the project this dist represents.
+        """
+        raise NotImplementedError()
+
+    @classmethod
+    def from_wheel(cls, wheel: "Wheel", name: str) -> "BaseDistribution":
+        """Load the distribution from a given wheel.
+
+        :param wheel: A concrete wheel definition.
+        :param name: File name of the wheel.
+
+        :raises InvalidWheel: Whenever loading of the wheel causes a
+            :py:exc:`zipfile.BadZipFile` exception to be thrown.
+        :raises UnsupportedWheel: If the wheel is a valid zip, but malformed
+            internally.
+        """
+        raise NotImplementedError()
+
     def __repr__(self) -> str:
         return f"{self.raw_name} {self.version} ({self.location})"
 
@@ -148,14 +198,7 @@ class BaseDistribution(Protocol):
 
         The returned location is normalized (in particular, with symlinks removed).
         """
-        egg_link = egg_link_path_from_location(self.raw_name)
-        if egg_link:
-            location = egg_link
-        elif self.location:
-            location = self.location
-        else:
-            return None
-        return normalize_path(location)
+        raise NotImplementedError()
 
     @property
     def info_location(self) -> Optional[str]:
@@ -287,6 +330,10 @@ class BaseDistribution(Protocol):
         return ""
 
     @property
+    def requested(self) -> bool:
+        return self.is_file("REQUESTED")
+
+    @property
     def editable(self) -> bool:
         return bool(self.editable_project_location)
 
@@ -316,27 +363,36 @@ class BaseDistribution(Protocol):
         """Check whether an entry in the info directory is a file."""
         raise NotImplementedError()
 
-    def iterdir(self, path: InfoPath) -> Iterator[pathlib.PurePosixPath]:
-        """Iterate through a directory in the info directory.
+    def iter_distutils_script_names(self) -> Iterator[str]:
+        """Find distutils 'scripts' entries metadata.
 
-        Each item yielded would be a path relative to the info directory.
-
-        :raise FileNotFoundError: If ``name`` does not exist in the directory.
-        :raise NotADirectoryError: If ``name`` does not point to a directory.
+        If 'scripts' is supplied in ``setup.py``, distutils records those in the
+        installed distribution's ``scripts`` directory, a file for each script.
         """
         raise NotImplementedError()
 
     def read_text(self, path: InfoPath) -> str:
         """Read a file in the info directory.
 
-        :raise FileNotFoundError: If ``name`` does not exist in the directory.
-        :raise NoneMetadataError: If ``name`` exists in the info directory, but
+        :raise FileNotFoundError: If ``path`` does not exist in the directory.
+        :raise NoneMetadataError: If ``path`` exists in the info directory, but
             cannot be read.
         """
         raise NotImplementedError()
 
     def iter_entry_points(self) -> Iterable[BaseEntryPoint]:
         raise NotImplementedError()
+
+    def _metadata_impl(self) -> email.message.Message:
+        raise NotImplementedError()
+
+    @functools.lru_cache(maxsize=1)
+    def _metadata_cached(self) -> email.message.Message:
+        # When we drop python 3.7 support, move this to the metadata property and use
+        # functools.cached_property instead of lru_cache.
+        metadata = self._metadata_impl()
+        self._add_egg_info_requires(metadata)
+        return metadata
 
     @property
     def metadata(self) -> email.message.Message:
@@ -347,7 +403,18 @@ class BaseDistribution(Protocol):
         :raises NoneMetadataError: If the metadata file is available, but does
             not contain valid metadata.
         """
-        raise NotImplementedError()
+        return self._metadata_cached()
+
+    @property
+    def metadata_dict(self) -> Dict[str, Any]:
+        """PEP 566 compliant JSON-serializable representation of METADATA or PKG-INFO.
+
+        This should return an empty dict if the metadata file is unavailable.
+
+        :raises NoneMetadataError: If the metadata file is available, but does
+            not contain valid metadata.
+        """
+        return msg_to_json(self.metadata)
 
     @property
     def metadata_version(self) -> Optional[str]:
@@ -426,7 +493,7 @@ class BaseDistribution(Protocol):
         )
 
     def iter_declared_entries(self) -> Optional[Iterator[str]]:
-        """Iterate through file entires declared in this distribution.
+        """Iterate through file entries declared in this distribution.
 
         For modern .dist-info distributions, this is the files listed in the
         ``RECORD`` metadata file. For legacy setuptools distributions, this
@@ -440,6 +507,76 @@ class BaseDistribution(Protocol):
             self._iter_declared_entries_from_record()
             or self._iter_declared_entries_from_legacy()
         )
+
+    def _iter_requires_txt_entries(self) -> Iterator[RequiresEntry]:
+        """Parse a ``requires.txt`` in an egg-info directory.
+
+        This is an INI-ish format where an egg-info stores dependencies. A
+        section name describes extra other environment markers, while each entry
+        is an arbitrary string (not a key-value pair) representing a dependency
+        as a requirement string (no markers).
+
+        There is a construct in ``importlib.metadata`` called ``Sectioned`` that
+        does mostly the same, but the format is currently considered private.
+        """
+        try:
+            content = self.read_text("requires.txt")
+        except FileNotFoundError:
+            return
+        extra = marker = ""  # Section-less entries don't have markers.
+        for line in content.splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):  # Comment; ignored.
+                continue
+            if line.startswith("[") and line.endswith("]"):  # A section header.
+                extra, _, marker = line.strip("[]").partition(":")
+                continue
+            yield RequiresEntry(requirement=line, extra=extra, marker=marker)
+
+    def _iter_egg_info_extras(self) -> Iterable[str]:
+        """Get extras from the egg-info directory."""
+        known_extras = {""}
+        for entry in self._iter_requires_txt_entries():
+            if entry.extra in known_extras:
+                continue
+            known_extras.add(entry.extra)
+            yield entry.extra
+
+    def _iter_egg_info_dependencies(self) -> Iterable[str]:
+        """Get distribution dependencies from the egg-info directory.
+
+        To ease parsing, this converts a legacy dependency entry into a PEP 508
+        requirement string. Like ``_iter_requires_txt_entries()``, there is code
+        in ``importlib.metadata`` that does mostly the same, but not do exactly
+        what we need.
+
+        Namely, ``importlib.metadata`` does not normalize the extra name before
+        putting it into the requirement string, which causes marker comparison
+        to fail because the dist-info format do normalize. This is consistent in
+        all currently available PEP 517 backends, although not standardized.
+        """
+        for entry in self._iter_requires_txt_entries():
+            if entry.extra and entry.marker:
+                marker = f'({entry.marker}) and extra == "{safe_extra(entry.extra)}"'
+            elif entry.extra:
+                marker = f'extra == "{safe_extra(entry.extra)}"'
+            elif entry.marker:
+                marker = entry.marker
+            else:
+                marker = ""
+            if marker:
+                yield f"{entry.requirement} ; {marker}"
+            else:
+                yield entry.requirement
+
+    def _add_egg_info_requires(self, metadata: email.message.Message) -> None:
+        """Add egg-info requires.txt information to the metadata."""
+        if not metadata.get_all("Requires-Dist"):
+            for dep in self._iter_egg_info_dependencies():
+                metadata["Requires-Dist"] = dep
+        if not metadata.get_all("Provides-Extra"):
+            for extra in self._iter_egg_info_extras():
+                metadata["Provides-Extra"] = extra
 
 
 class BaseEnvironment:
@@ -470,8 +607,8 @@ class BaseEnvironment:
         """
         raise NotImplementedError()
 
-    def iter_distributions(self) -> Iterator["BaseDistribution"]:
-        """Iterate through installed distributions."""
+    def iter_all_distributions(self) -> Iterator[BaseDistribution]:
+        """Iterate through all installed distributions without any filtering."""
         for dist in self._iter_distributions():
             # Make sure the distribution actually comes from a valid Python
             # packaging distribution. Pip's AdjacentTempDirectory leaves folders
@@ -501,6 +638,11 @@ class BaseEnvironment:
     ) -> Iterator[BaseDistribution]:
         """Return a list of installed distributions.
 
+        This is based on ``iter_all_distributions()`` with additional filtering
+        options. Note that ``iter_installed_distributions()`` without arguments
+        is *not* equal to ``iter_all_distributions()``, since some of the
+        configurations exclude packages by default.
+
         :param local_only: If True (default), only return installations
         local to the current virtualenv, if in a virtualenv.
         :param skip: An iterable of canonicalized project names to ignore;
@@ -510,7 +652,7 @@ class BaseEnvironment:
         :param user_only: If True, only report installations in the user
         site directory.
         """
-        it = self.iter_distributions()
+        it = self.iter_all_distributions()
         if local_only:
             it = (d for d in it if d.local)
         if not include_editables:

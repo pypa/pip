@@ -1,6 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 import functools
 import logging
 import os
@@ -8,6 +5,7 @@ import shutil
 import sys
 import uuid
 import zipfile
+from optparse import Values
 from typing import Any, Collection, Dict, Iterable, List, Optional, Sequence, Union
 
 from pip._vendor.packaging.markers import Marker
@@ -16,7 +14,7 @@ from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
-from pip._vendor.pep517.wrappers import Pep517HookCaller
+from pip._vendor.pyproject_hooks import BuildBackendHookCaller
 
 from pip._internal.build_env import BuildEnvironment, NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError
@@ -25,7 +23,10 @@ from pip._internal.metadata import (
     BaseDistribution,
     get_default_environment,
     get_directory_distribution,
+    get_wheel_distribution,
 )
+from pip._internal.metadata.base import FilesystemWheel
+from pip._internal.models.direct_url import DirectUrl
 from pip._internal.models.link import Link
 from pip._internal.operations.build.metadata import generate_metadata
 from pip._internal.operations.build.metadata_editable import generate_editable_metadata
@@ -35,18 +36,13 @@ from pip._internal.operations.build.metadata_legacy import (
 from pip._internal.operations.install.editable_legacy import (
     install_editable as install_editable_legacy,
 )
-from pip._internal.operations.install.legacy import LegacyInstallFailure
-from pip._internal.operations.install.legacy import install as install_legacy
 from pip._internal.operations.install.wheel import install_wheel
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.deprecation import deprecated
-from pip._internal.utils.direct_url_helpers import (
-    direct_url_for_editable,
-    direct_url_from_link,
-)
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.misc import (
+    ConfiguredBuildBackendHookCaller,
     ask_path_exists,
     backup_dir,
     display_path,
@@ -78,9 +74,10 @@ class InstallRequirement:
         markers: Optional[Marker] = None,
         use_pep517: Optional[bool] = None,
         isolated: bool = False,
-        install_options: Optional[List[str]] = None,
+        *,
         global_options: Optional[List[str]] = None,
         hash_options: Optional[Dict[str, List[str]]] = None,
+        config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
         constraint: bool = False,
         extras: Collection[str] = (),
         user_supplied: bool = False,
@@ -92,7 +89,6 @@ class InstallRequirement:
         self.constraint = constraint
         self.editable = editable
         self.permit_editable_wheels = permit_editable_wheels
-        self.legacy_install_reason: Optional[int] = None
 
         # source_dir is the local directory where the linked requirement is
         # located, or unpacked. In case unpacking is needed, creating and
@@ -105,11 +101,21 @@ class InstallRequirement:
             if link.is_file:
                 self.source_dir = os.path.normpath(os.path.abspath(link.file_path))
 
+        # original_link is the direct URL that was provided by the user for the
+        # requirement, either directly or via a constraints file.
         if link is None and req and req.url:
             # PEP 508 URL requirement
             link = Link(req.url)
         self.link = self.original_link = link
-        self.original_link_is_in_wheel_cache = False
+
+        # When this InstallRequirement is a wheel obtained from the cache of locally
+        # built wheels, this is the source link corresponding to the cache entry, which
+        # was used to download and build the cached wheel.
+        self.cached_wheel_source_link: Optional[Link] = None
+
+        # Information about the location of the artifact that was downloaded . This
+        # property is guaranteed to be set in resolver results.
+        self.download_info: Optional[DirectUrl] = None
 
         # Path to any downloaded or already-existing package.
         self.local_file_path: Optional[str] = None
@@ -136,9 +142,9 @@ class InstallRequirement:
         # Set to True after successful installation
         self.install_succeeded: Optional[bool] = None
         # Supplied options
-        self.install_options = install_options if install_options else []
         self.global_options = global_options if global_options else []
         self.hash_options = hash_options if hash_options else {}
+        self.config_settings = config_settings
         # Set to True after successful preparation of this requirement
         self.prepared = False
         # User supplied requirement are explicitly requested for installation
@@ -162,7 +168,7 @@ class InstallRequirement:
         self.requirements_to_check: List[str] = []
 
         # The PEP 517 backend we should use to build the project
-        self.pep517_backend: Optional[Pep517HookCaller] = None
+        self.pep517_backend: Optional[BuildBackendHookCaller] = None
 
         # Are we using PEP 517 for this requirement?
         # After pyproject.toml has been loaded, the only valid values are True
@@ -184,7 +190,11 @@ class InstallRequirement:
         else:
             s = "<InstallRequirement>"
         if self.satisfied_by is not None:
-            s += " in {}".format(display_path(self.satisfied_by.location))
+            if self.satisfied_by.location is not None:
+                location = display_path(self.satisfied_by.location)
+            else:
+                location = "<memory>"
+            s += f" in {location}"
         if self.comes_from:
             if isinstance(self.comes_from, str):
                 comes_from: Optional[str] = self.comes_from
@@ -231,7 +241,13 @@ class InstallRequirement:
 
     @property
     def specifier(self) -> SpecifierSet:
+        assert self.req is not None
         return self.req.specifier
+
+    @property
+    def is_direct(self) -> bool:
+        """Whether this requirement was specified as a direct URL."""
+        return self.original_link is not None
 
     @property
     def is_pinned(self) -> bool:
@@ -239,7 +255,8 @@ class InstallRequirement:
 
         For example, some-package==1.2 is pinned; some-package>1.2 is not.
         """
-        specifiers = self.specifier
+        assert self.req is not None
+        specifiers = self.req.specifier
         return len(specifiers) == 1 and next(iter(specifiers)).operator in {"==", "==="}
 
     def match_markers(self, extras_requested: Optional[Iterable[str]] = None) -> bool:
@@ -280,8 +297,14 @@ class InstallRequirement:
 
         """
         good_hashes = self.hash_options.copy()
-        link = self.link if trust_internet else self.original_link
+        if trust_internet:
+            link = self.link
+        elif self.is_direct and self.user_supplied:
+            link = self.original_link
+        else:
+            link = None
         if link and link.hash:
+            assert link.hash_name is not None
             good_hashes.setdefault(link.hash_name, []).append(link.hash)
         return Hashes(good_hashes)
 
@@ -291,6 +314,7 @@ class InstallRequirement:
             return None
         s = str(self.req)
         if self.comes_from:
+            comes_from: Optional[str]
             if isinstance(self.comes_from, str):
                 comes_from = self.comes_from
             else:
@@ -322,7 +346,7 @@ class InstallRequirement:
 
         # When parallel builds are enabled, add a UUID to the build directory
         # name so multiple builds do not interfere with each other.
-        dir_name: str = canonicalize_name(self.name)
+        dir_name: str = canonicalize_name(self.req.name)
         if parallel_builds:
             dir_name = f"{dir_name}_{uuid.uuid4().hex}"
 
@@ -365,6 +389,7 @@ class InstallRequirement:
         )
 
     def warn_on_mismatching_name(self) -> None:
+        assert self.req is not None
         metadata_name = canonicalize_name(self.metadata["Name"])
         if canonicalize_name(self.req.name) == metadata_name:
             # Everything is fine.
@@ -425,9 +450,16 @@ class InstallRequirement:
             return False
         return self.link.is_wheel
 
+    @property
+    def is_wheel_from_cache(self) -> bool:
+        # When True, it means that this InstallRequirement is a local wheel file in the
+        # cache of locally built wheels.
+        return self.cached_wheel_source_link is not None
+
     # Things valid for sdists
     @property
     def unpacked_source_directory(self) -> str:
+        assert self.source_dir, f"No source dir for {self}"
         return os.path.join(
             self.source_dir, self.link and self.link.subdirectory_fragment or ""
         )
@@ -464,6 +496,15 @@ class InstallRequirement:
         )
 
         if pyproject_toml_data is None:
+            if self.config_settings:
+                deprecated(
+                    reason=f"Config settings are ignored for project {self}.",
+                    replacement=(
+                        "to use --use-pep517 or add a "
+                        "pyproject.toml file to the project"
+                    ),
+                    gone_in="23.3",
+                )
             self.use_pep517 = False
             return
 
@@ -471,7 +512,8 @@ class InstallRequirement:
         requires, backend, check, backend_path = pyproject_toml_data
         self.requirements_to_check = check
         self.pyproject_requires = requires
-        self.pep517_backend = Pep517HookCaller(
+        self.pep517_backend = ConfiguredBuildBackendHookCaller(
+            self,
             self.unpacked_source_directory,
             backend,
             backend_path=backend_path,
@@ -504,7 +546,8 @@ class InstallRequirement:
         Under PEP 517 and PEP 660, call the backend hook to prepare the metadata.
         Under legacy processing, call setup.py egg-info.
         """
-        assert self.source_dir
+        assert self.source_dir, f"No source dir for {self}"
+        details = self.name or f"from {self.link}"
 
         if self.use_pep517:
             assert self.pep517_backend is not None
@@ -516,11 +559,13 @@ class InstallRequirement:
                 self.metadata_directory = generate_editable_metadata(
                     build_env=self.build_env,
                     backend=self.pep517_backend,
+                    details=details,
                 )
             else:
                 self.metadata_directory = generate_metadata(
                     build_env=self.build_env,
                     backend=self.pep517_backend,
+                    details=details,
                 )
         else:
             self.metadata_directory = generate_metadata_legacy(
@@ -528,7 +573,7 @@ class InstallRequirement:
                 setup_py_path=self.setup_py_path,
                 source_dir=self.unpacked_source_directory,
                 isolated=self.isolated,
-                details=self.name or f"from {self.link}",
+                details=details,
             )
 
         # Act on the newly generated metadata, based on the name and version.
@@ -547,12 +592,23 @@ class InstallRequirement:
         return self._metadata
 
     def get_dist(self) -> BaseDistribution:
-        return get_directory_distribution(self.metadata_directory)
+        if self.metadata_directory:
+            return get_directory_distribution(self.metadata_directory)
+        elif self.local_file_path and self.is_wheel:
+            assert self.req is not None
+            return get_wheel_distribution(
+                FilesystemWheel(self.local_file_path),
+                canonicalize_name(self.req.name),
+            )
+        raise AssertionError(
+            f"InstallRequirement {self} has no metadata directory and no wheel: "
+            f"can't make a distribution."
+        )
 
     def assert_source_matches_version(self) -> None:
-        assert self.source_dir
+        assert self.source_dir, f"No source dir for {self}"
         version = self.metadata["version"]
-        if self.req.specifier and version not in self.req.specifier:
+        if self.req and self.req.specifier and version not in self.req.specifier:
             logger.warning(
                 "Requested %s, but installing version %s",
                 self,
@@ -607,7 +663,7 @@ class InstallRequirement:
         # So here, if it's neither a path nor a valid VCS URL, it's a bug.
         assert vcs_backend, f"Unsupported VCS URL {self.link.url}"
         hidden_url = hide_url(self.link.url)
-        vcs_backend.obtain(self.source_dir, url=hidden_url)
+        vcs_backend.obtain(self.source_dir, url=hidden_url, verbosity=0)
 
     # Top-level Actions
     def uninstall(
@@ -645,9 +701,10 @@ class InstallRequirement:
             name = name.replace(os.path.sep, "/")
             return name
 
+        assert self.req is not None
         path = os.path.join(parentdir, path)
         name = _clean_zip_name(path, rootdir)
-        return self.name + "/" + name
+        return self.req.name + "/" + name
 
     def archive(self, build_dir: Optional[str]) -> None:
         """Saves archive to provided build_dir.
@@ -718,7 +775,6 @@ class InstallRequirement:
 
     def install(
         self,
-        install_options: List[str],
         global_options: Optional[Sequence[str]] = None,
         root: Optional[str] = None,
         home: Optional[str] = None,
@@ -727,8 +783,9 @@ class InstallRequirement:
         use_user_site: bool = False,
         pycompile: bool = True,
     ) -> None:
+        assert self.req is not None
         scheme = get_scheme(
-            self.name,
+            self.req.name,
             user=use_user_site,
             home=home,
             root=root,
@@ -736,15 +793,13 @@ class InstallRequirement:
             prefix=prefix,
         )
 
-        global_options = global_options if global_options is not None else []
         if self.editable and not self.is_wheel:
             install_editable_legacy(
-                install_options,
-                global_options,
+                global_options=global_options if global_options is not None else [],
                 prefix=prefix,
                 home=home,
                 use_user_site=use_user_site,
-                name=self.name,
+                name=self.req.name,
                 setup_py_path=self.setup_py_path,
                 isolated=self.isolated,
                 build_env=self.build_env,
@@ -753,82 +808,23 @@ class InstallRequirement:
             self.install_succeeded = True
             return
 
-        if self.is_wheel:
-            assert self.local_file_path
-            direct_url = None
-            if self.editable:
-                direct_url = direct_url_for_editable(self.unpacked_source_directory)
-            elif self.original_link:
-                direct_url = direct_url_from_link(
-                    self.original_link,
-                    self.source_dir,
-                    self.original_link_is_in_wheel_cache,
-                )
-            install_wheel(
-                self.name,
-                self.local_file_path,
-                scheme=scheme,
-                req_description=str(self.req),
-                pycompile=pycompile,
-                warn_script_location=warn_script_location,
-                direct_url=direct_url,
-                requested=self.user_supplied,
-            )
-            self.install_succeeded = True
-            return
+        assert self.is_wheel
+        assert self.local_file_path
 
-        # TODO: Why don't we do this for editable installs?
-
-        # Extend the list of global and install options passed on to
-        # the setup.py call with the ones from the requirements file.
-        # Options specified in requirements file override those
-        # specified on the command line, since the last option given
-        # to setup.py is the one that is used.
-        global_options = list(global_options) + self.global_options
-        install_options = list(install_options) + self.install_options
-
-        try:
-            success = install_legacy(
-                install_options=install_options,
-                global_options=global_options,
-                root=root,
-                home=home,
-                prefix=prefix,
-                use_user_site=use_user_site,
-                pycompile=pycompile,
-                scheme=scheme,
-                setup_py_path=self.setup_py_path,
-                isolated=self.isolated,
-                req_name=self.name,
-                build_env=self.build_env,
-                unpacked_source_directory=self.unpacked_source_directory,
-                req_description=str(self.req),
-            )
-        except LegacyInstallFailure as exc:
-            self.install_succeeded = False
-            raise exc.__cause__
-        except Exception:
-            self.install_succeeded = True
-            raise
-
-        self.install_succeeded = success
-
-        if success and self.legacy_install_reason == 8368:
-            deprecated(
-                reason=(
-                    "{} was installed using the legacy 'setup.py install' "
-                    "method, because a wheel could not be built for it.".format(
-                        self.name
-                    )
-                ),
-                replacement="to fix the wheel build issue reported above",
-                gone_in=None,
-                issue=8368,
-            )
+        install_wheel(
+            self.req.name,
+            self.local_file_path,
+            scheme=scheme,
+            req_description=str(self.req),
+            pycompile=pycompile,
+            warn_script_location=warn_script_location,
+            direct_url=self.download_info if self.is_direct else None,
+            requested=self.user_supplied,
+        )
+        self.install_succeeded = True
 
 
 def check_invalid_constraint_type(req: InstallRequirement) -> str:
-
     # Check for unsupported forms
     problem = ""
     if not req.name:
@@ -854,3 +850,32 @@ def check_invalid_constraint_type(req: InstallRequirement) -> str:
         )
 
     return problem
+
+
+def _has_option(options: Values, reqs: List[InstallRequirement], option: str) -> bool:
+    if getattr(options, option, None):
+        return True
+    for req in reqs:
+        if getattr(req, option, None):
+            return True
+    return False
+
+
+def check_legacy_setup_py_options(
+    options: Values,
+    reqs: List[InstallRequirement],
+) -> None:
+    has_build_options = _has_option(options, reqs, "build_options")
+    has_global_options = _has_option(options, reqs, "global_options")
+    if has_build_options or has_global_options:
+        deprecated(
+            reason="--build-option and --global-option are deprecated.",
+            issue=11859,
+            replacement="to use --config-settings",
+            gone_in="23.3",
+        )
+        logger.warning(
+            "Implying --no-binary=:all: due to the presence of "
+            "--build-option / --global-option. "
+        )
+        options.format_control.disallow_binaries()
