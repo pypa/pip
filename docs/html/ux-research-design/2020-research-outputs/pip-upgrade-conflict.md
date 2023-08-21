@@ -1,12 +1,14 @@
 # pip upgrade conflict
 
 ## Problem
-Currently, pip does *not* take into account packages that are already installed when a user asks pip to upgrade a package. This can cause dependency conflicts for pip's users.
 
-[Skip to recommendations](#recommendations)
+Currently, pip does _not_ take into account packages that are already installed when a user asks pip to upgrade a package. This can cause dependency conflicts for pip's users.
 
 ## Research
+
 We published a [survey](https://bit.ly/2ZqJijr) asking users how they would solve the following scenario:
+
+<!--- TODO: don't use a code block here -->
 
 ```
 Imagine you have package tea and coffee with the following dependencies:
@@ -48,6 +50,7 @@ In total, we received 693 responses, 407 of which included an explanation of why
 - 15 responses (2.2%) preferred option 3: that pip should install nothing and tell the user that everything is up to date
 
 From the 407 responses that answered "why" a particular solution was best, the following key themes emerged:
+
 - "explicit is better than implicit" - pip should not create "side effects" that the user does not understand, has not anticipated, and has not consented to
 - pip should do everything in its power to avoid introducing conflicts (pip should not "break" the development environment)
 - Telling the user that everything is up to date (option 3) is misleading / dishonest

@@ -4,11 +4,10 @@
 
 By default, `pip search` searches packages on PyPI.org from the command line. However, the team are [considering removing it](https://github.com/pypa/pip/issues/5216), because they think it's not that useful and using too many resources on PyPI ([PyPI XMLRPC search has been disabled](https://status.python.org/incidents/grk0k7sz6zkp) because of abuse/overuse).
 
-[Skip to recommendations](#recommendations)
-
 ## Research
 
 Prior to PyPI XMLRPC search being disabled, we:
+
 - Gathered feedback on pip search via the "buy a feature" survey
 - Published a survey specifically about pip search, asking users about:
   - Their current use of pip search
@@ -24,34 +23,36 @@ In total, we received 1070 responses to the buy a feature survey, with 541 (50.4
 
 However, search ranked lower than the following features:
 
-1. Run pip without requiring any user input (e.g. in CI) *718*
-2. Show information about all installed packages *707*
-3. Show information about a single installed package *596*
+1. Run pip without requiring any user input (e.g. in CI) _718_
+2. Show information about all installed packages _707_
+3. Show information about a single installed package _596_
 
 We received 302 responses to the pip search survey, with 62 of the 302 (20.5%) respondents either not knowing that the command existed, never using it, or using it "rarely".
 
 We found that the remaining ~80% of respondents who do use pip search use it to:
 
 - Find/search for the right/new/alternate packages to install:
-    - Checking package name (verify correct spelling)
-    - Assessing functionality (check a package's description)
-    - Verifying availability (check if such package exists)
+  - Checking package name (verify correct spelling)
+  - Assessing functionality (check a package's description)
+  - Verifying availability (check if such package exists)
 - Search for the latest version of a package (verify version)
 - Find package libraries and new modules
 
 In general, pip search is regarded as:
+
 - more useful than not useful
 - more clear than not clear
 
 When asked if pip should search on items _other_ than the package name, respondents most commonly asked to search the package description:
 
-![](https://i.imgur.com/lxS2TG6.png)
+![wordcloud of common search terms](https://i.imgur.com/lxS2TG6.png)
 
 Some users also mentioned that they would like the search to be configurable, e.g. by passing flags/options.
 
 When asked how they would improve pip search, users said they would improve:
 
 **1. Search methods:**
+
 - fuzzy search and insensitive case should be acceptable
 - users should have the option to filter/sort by description, name, tag
 
@@ -68,7 +69,6 @@ When asked how they would improve pip search, users said they would improve:
 - distinguish exact match search results from others: by highlighting, or using a different color
 - indicate version compatibility
 
-
 ## Recommendations
 
 ### Deprecation strategy
@@ -81,9 +81,9 @@ To search PyPI, open your browser to search for packages at https://pypi.org
 Alternatively, you can search a different index using the --index command.
 ```
 
-In the longer term, **we recommend that the PyPI team investigate alternative methods of serving search results  (e.g. via caching)** that would enable pip search to work again. This recommendation is supported by our research which suggests that many pip users find this functionality useful.
+In the longer term, **we recommend that the PyPI team investigate alternative methods of serving search results (e.g. via caching)** that would enable pip search to work again. This recommendation is supported by our research which suggests that many pip users find this functionality useful.
 
-If this is not possible, the pip team should create clear  instructions that tells users what to use instead.  Some suggestions (based on common user flows) are listed below:
+If this is not possible, the pip team should create clear instructions that tells users what to use instead. Some suggestions (based on common user flows) are listed below:
 
 #### Finding a new package based on tags and keywords
 

@@ -10,14 +10,13 @@ As a result, some users may feel that newer versions of pip are "broken" when pi
 
 For this reason, the pip team wanted to know if they should provide an override that allows users to install conflicting packages.
 
-[Skip to recommendations](#recommendations)
-
 ## Research
 
 We published a survey with the following introduction:
 
-```
+<!--- TODO: don't use a code block here -->
 
+```
 Imagine you have packages tea and coffee:
 
 tea 1.0.0 depends on water <1.12.
@@ -30,9 +29,10 @@ The pip team has recently changed the way that pip resolves dependency conflicts
 The purpose of this survey is to gather feedback on providing a way to override this behaviour.
 
 All questions are optional - please provide as much information as you can.
-
 ```
+
 We then asked users:
+
 - If pip should provide an override that allows users to install packages when there are dependency conflicts
 - Why they answered yes or no
 - For users that answered yes, we asked:
@@ -54,7 +54,8 @@ Most respondents suggested that installing the latest version by default is safe
 ## Recommendations
 
 Based on this research we recommend that the pip team:
+
 - Implement an `--ignore-conflicts` option, that allows users to install packages with conflicting dependencies
-- Ensure that `--ignore-conflicts` installs the most recent version of the conflicting package. For example, for conflicting package water<1.1.2 and water≥1.1.2, pip should prefer to install water≥1.1.2.
+- Ensure that `--ignore-conflicts` installs the most recent version of the conflicting package. For example, for conflicting package `water<1.1.2` and `water≥1.1.2`, pip should prefer to install `water≥1.1.2`.
 - Allow users to override this default behavior by specifying the version of the conflicting packages. For example, `pip install tea coffee water==1.1.1 --ignore-conflicts`
 - Warn users that they used the `--ignore-conflicts` flag and that this may cause unexpected behavior in their program

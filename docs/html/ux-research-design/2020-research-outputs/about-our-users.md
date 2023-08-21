@@ -4,16 +4,14 @@
 
 We want to understand users' background, their cultural environment, and how they experience the world, so that we can find better ways to serve them.
 
-[Skip to recommendations](#recommendations)
-
 ## Research
 
 To develop our understanding about pip's users, we published a "Who uses pip?" survey that asked users about:
 
-* Their location in the world
-* Their spoken language
-* If they identified as members of an underrepresented group in the Python community
-* Their disabilities and if those disabilities affected their usage of pip
+- Their location in the world
+- Their spoken language
+- If they identified as members of an underrepresented group in the Python community
+- Their disabilities and if those disabilities affected their usage of pip
 
 ## Results
 
@@ -21,7 +19,7 @@ To develop our understanding about pip's users, we published a "Who uses pip?" s
 
 Approx. 60% did not identify as members of an underrepresented group. The majority of participants who did identify as underrepresented did so for gender reasons.
 
-The majority of participants (94%) responded that they did not have a disability. Of those that did have a disability, the majority were cognitive disabilities (Attention Deficit Hyperactivity Disorder (ADHD), Autism, Aspergers, Dyslexia) or a hearing disability.
+The majority of participants (94%) responded that they did not have a disability. Of those that did have a disability, the majority were cognitive disabilities (Attention Deficit Hyperactivity Disorder aka ADHD, Autism, Aspergers, Dyslexia) or a hearing disability.
 
 ### Participant Demographics
 
@@ -33,79 +31,79 @@ The majority of participants came from North America and Western Europe. Partici
 
 Fig. X: Global distribution of pip research participants.
 
-|Country Name|Number of participants|
-|--- |--- |
-|United States of America|42|
-|United Kingdom|17|
-|France|12|
-|Germany|11|
-|Canada|10|
-|Netherlands|8|
-|Spain|6|
-|Switzerland|5|
-|Nigeria|4|
-|India|4|
-|Czech Republic|4|
-|Argentina|4|
-|Sweden|3|
-|Australia|3|
-|Ukraine|2|
-|Taiwan|2|
-|Russia|2|
-|Greece|2|
-|Colombia|2|
-|Chile|2|
-|Brazil|2|
-|Belgium|2|
-|Uganda|1|
-|Turkey|1|
-|Singapore|1|
-|Serbia|1|
-|Norway|1|
-|Luxembourg|1|
-|Japan|1|
-|Italy|1|
-|Israel|1|
-|Ireland|1|
-|Hungary|1|
-|Ghana|1|
-|Finland|1|
-|Bulgaria|1|
-|Austria|1|
-|Total|164|
+| Country Name             | Number of participants |
+| ------------------------ | ---------------------- |
+| United States of America | 42                     |
+| United Kingdom           | 17                     |
+| France                   | 12                     |
+| Germany                  | 11                     |
+| Canada                   | 10                     |
+| Netherlands              | 8                      |
+| Spain                    | 6                      |
+| Switzerland              | 5                      |
+| Nigeria                  | 4                      |
+| India                    | 4                      |
+| Czech Republic           | 4                      |
+| Argentina                | 4                      |
+| Sweden                   | 3                      |
+| Australia                | 3                      |
+| Ukraine                  | 2                      |
+| Taiwan                   | 2                      |
+| Russia                   | 2                      |
+| Greece                   | 2                      |
+| Colombia                 | 2                      |
+| Chile                    | 2                      |
+| Brazil                   | 2                      |
+| Belgium                  | 2                      |
+| Uganda                   | 1                      |
+| Turkey                   | 1                      |
+| Singapore                | 1                      |
+| Serbia                   | 1                      |
+| Norway                   | 1                      |
+| Luxembourg               | 1                      |
+| Japan                    | 1                      |
+| Italy                    | 1                      |
+| Israel                   | 1                      |
+| Ireland                  | 1                      |
+| Hungary                  | 1                      |
+| Ghana                    | 1                      |
+| Finland                  | 1                      |
+| Bulgaria                 | 1                      |
+| Austria                  | 1                      |
+| Total                    | 164                    |
 
 ### Participant's First Language
 
 Even though the research was carried out mainly in English, 51% of participants spoke languages other than English.
 
-|What spoken language do you feel is your first?|Number of participants|
-|--- |--- |
-|English|79|
-|French|18|
-|Spanish|12|
-|German|11|
-|Russian|5|
-|Czech|4|
-|Italian|4|
-|Portuguese|3|
-|Dutch|3|
-|Ukrainian|2|
-|Swedish|2|
-|Greek|2|
-|Catalan|2|
-|Mandarin|2|
-|Hungarian|2|
-|Bengali|1|
-|Luxembourgish|1|
-|Bulgarian|1|
-|Romanian|1|
-|Chinese|1|
-|Norwegian|1|
-|Serbian|1|
-|Polish|1|
-|Hebrew|1|
-|Indonesian|1|
-|Malayalam|1|
+| What spoken language do you feel is your first? | Number of participants |
+| ----------------------------------------------- | ---------------------- |
+| English                                         | 79                     |
+| French                                          | 18                     |
+| Spanish                                         | 12                     |
+| German                                          | 11                     |
+| Russian                                         | 5                      |
+| Czech                                           | 4                      |
+| Italian                                         | 4                      |
+| Portuguese                                      | 3                      |
+| Dutch                                           | 3                      |
+| Ukrainian                                       | 2                      |
+| Swedish                                         | 2                      |
+| Greek                                           | 2                      |
+| Catalan                                         | 2                      |
+| Mandarin                                        | 2                      |
+| Hungarian                                       | 2                      |
+| Bengali                                         | 1                      |
+| Luxembourgish                                   | 1                      |
+| Bulgarian                                       | 1                      |
+| Romanian                                        | 1                      |
+| Chinese                                         | 1                      |
+| Norwegian                                       | 1                      |
+| Serbian                                         | 1                      |
+| Polish                                          | 1                      |
+| Hebrew                                          | 1                      |
+| Indonesian                                      | 1                      |
+| Malayalam                                       | 1                      |
 
 NB: English includes British English and American English. Some participants gave more than one answer, their first answer is included here.
 
@@ -119,15 +117,15 @@ The wording of this question was deliberately broad to discover participants' un
 
 Of the 22.6% that responded "Yes" the answers were classified as follows :
 
-|Underrepresentation category|Count|
-|--- |--- |
-|Gender|9|
-|Cultural|3|
-|Age|3|
-|Immigration status|2|
-|Neurodiversity|3|
-|Other|6|
-|No answer|8|
+| Underrepresentation category | Count |
+| ---------------------------- | ----- |
+| Gender                       | 9     |
+| Cultural                     | 3     |
+| Age                          | 3     |
+| Immigration status           | 2     |
+| Neurodiversity               | 3     |
+| Other                        | 6     |
+| No answer                    | 8     |
 
 NB: This question was included after the survey was published. Total participants was 106, as opposed to all other questions which had 164.
 
@@ -142,12 +140,15 @@ Here is a sample of noteworthy comments from these different groups:
 ###### Related to Gender
 
 > "(I am) LGBTQ/IA+" - Participant 242608909
+
 > "I am a 25 year old female Colombian developer." - Participant 242611698
+
 > "Female, 39, no computer science background whatsoever, self taught." - Participant 242614039
 
 ###### Related to Culture
 
 > "The hispanic community is quite underrepresented in the web in general" - Participant 242599212
+
 > "I am a 1st generation Dominican-American. My parents are from the Dominican Republic." - Participant 242769361
 
 ###### Related to Age
@@ -178,11 +179,11 @@ The majority of participants (91%) responded that they did not have a disability
 
 #### How many participants identified as having a disability?
 
-|Do you self-identify as someone who has a disability?|Number of responses|
-|--- |--- |
-|No|150|
-|Yes|14|
-|Grand Total|164|
+| Do you self-identify as someone who has a disability? | Number of responses |
+| ----------------------------------------------------- | ------------------- |
+| No                                                    | 150                 |
+| Yes                                                   | 14                  |
+| Grand Total                                           | 164                 |
 
 #### Types of disabilities mentioned by participants
 
@@ -218,19 +219,19 @@ The term "assistive technology" (AT) is used to describe products or systems tha
 
 The majority of participants (94%) said that they have never used assistive technology.
 
-|Do you use assistive technology (AT) when using computers?|Number of responses|
-|--- |--- |
-|No, I have never used it|128|
-|I only use it when needed|3|
-|I use it everyday|1|
-|I have used it in the past, but not anymore|4|
+| Do you use assistive technology (AT) when using computers? | Number of responses |
+| ---------------------------------------------------------- | ------------------- |
+| No, I have never used it                                   | 128                 |
+| I only use it when needed                                  | 3                   |
+| I use it everyday                                          | 1                   |
+| I have used it in the past, but not anymore                | 4                   |
 
 Of the eight participants who have used assistive technology, one participant uses assistive technology every day with:
 
-* Text-to-speech output as "text to speech allow(s) me to listen and learn when my eyes get strained."
-* Speech-to-text input as they like using their "tablet and makes typing easier"
-* On-screen keyboards
-* Input switches/touch screens
+- Text-to-speech output as "text to speech allow(s) me to listen and learn when my eyes get strained."
+- Speech-to-text input as they like using their "tablet and makes typing easier"
+- On-screen keyboards
+- Input switches/touch screens
 
 A further seven participants use assistive technology only as needed:
 
@@ -250,7 +251,7 @@ Participants use assistive technology across the three most popular desktop oper
 
 We asked participants how well their assistive technologies worked when they use pip. All participants using assistive technology with pip said it worked well for them.
 
-We received some feedback about screen readers not coping well with long output, with users experiencing difficulties accessing content at the top of the current terminal window.  Therefore, commands or actions (e.g. pip help, pip install, failed builds) that generate a lot of content can be a problem for screenreader users.
+We received some feedback about screen readers not coping well with long output, with users experiencing difficulties accessing content at the top of the current terminal window. Therefore, commands or actions (e.g. pip help, pip install, failed builds) that generate a lot of content can be a problem for screenreader users.
 
 ## Recommendations
 
@@ -266,8 +267,8 @@ Pip's operation is generally very good for users with disabilities. Being a comm
 
 To better support pip's users with disabilities, the pip team should:
 
-* Ensure any future video or audio support materials are provided with captions
-* Improve pip's output (see below)
+- Ensure any future video or audio support materials are provided with captions
+- Improve pip's output (see below)
 
 ### Improving pip output
 
@@ -275,21 +276,20 @@ Pip's output is currently too verbose, generating an unhelpful amount of output 
 
 Pip's output should be improved by:
 
-* Retaining only the information that is important to users in their current moment (e.g. at install of a package)
-* Removing unimportant information from the terminal output. The information can still be logged to the log files if needed.
-* Reducing the number of verbosity levels to three. Right now there are seven levels of verbosity, which is overwhelming and in no way useful.  We recommend:
-  * Verbosity 0 - shows only what packages are to be installed, notifications identified as important about the operation, any errors and the final outcome
-  * Verbosity 1 - shows more detail about the packages being installed
-  * Verbosity 2 - shows full information which is also logged to logfiles
-
+- Retaining only the information that is important to users in their current moment (e.g. at install of a package)
+- Removing unimportant information from the terminal output. The information can still be logged to the log files if needed.
+- Reducing the number of verbosity levels to three. Right now there are seven levels of verbosity, which is overwhelming and in no way useful. We recommend:
+  - Verbosity 0 - shows only what packages are to be installed, notifications identified as important about the operation, any errors and the final outcome
+  - Verbosity 1 - shows more detail about the packages being installed
+  - Verbosity 2 - shows full information which is also logged to logfiles
 
 ## Further reading
 
 Designing for people with disabilities:
 
-* [An Introduction to inclusive design](https://www.nomensa.com/blog/2011/introduction-inclusive-design)
-* [How ADHD and dyslexia teach you to do better UX design](https://themasters.io/blog/posts/how-adhd-dyslexia-teach-better-ux-design)
-* [Improve User Experience by Designing with Cognitive Differences in Mind](https://noti.st/elizabethschafer/fg3BR4)
-* [Designing accessible software - guidelines for different disabilities](https://ukhomeoffice.github.io/accessibility-posters/)
-* [Designing  for Children  with ADHD: The Search for Guidelines for Non-Experts](https://uxpamagazine.org/designing_children_adhd/) (written for children however applicable generally)
-* [Designing for dyslexia](https://uxplanet.org/designing-for-dyslexia-6d12e8c41cd7)
+- [An Introduction to inclusive design](https://www.nomensa.com/blog/2011/introduction-inclusive-design)
+- [How ADHD and dyslexia teach you to do better UX design](https://themasters.io/blog/posts/how-adhd-dyslexia-teach-better-ux-design)
+- [Improve User Experience by Designing with Cognitive Differences in Mind](https://noti.st/elizabethschafer/fg3BR4)
+- [Designing accessible software - guidelines for different disabilities](https://ukhomeoffice.github.io/accessibility-posters/)
+- [Designing for Children with ADHD: The Search for Guidelines for Non-Experts](https://uxpamagazine.org/designing_children_adhd/) (written for children however applicable generally)
+- [Designing for dyslexia](https://uxplanet.org/designing-for-dyslexia-6d12e8c41cd7)

@@ -1,3 +1,18 @@
+```{toctree}
+/2020-research-outputs/about-our-users
+/2020-research-outputs/ci-cd
+/2020-research-outputs/improving-pip-documentation
+/2020-research-outputs/mental-models
+/2020-research-outputs/override-conflicting-dependencies
+/2020-research-outputs/personas
+/2020-research-outputs/pip-force-reinstall
+/2020-research-outputs/pip-logo
+/2020-research-outputs/pip-search
+/2020-research-outputs/pip-upgrade-conflict
+/2020-research-outputs/prioritizing-features
+/2020-research-outputs/users-and-security
+```
+
 # UX Research Results
 
 ## <a name="2020-research"></a>2020 Research Synthesis
@@ -190,8 +205,6 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
 
 Below is a compiled list of all research outputs and recommendations made by the pip UX team based on the research conducted in 2020.
 
-We are currently looking for volunteers to take recommendations made by the UX team and move them into pip's issue tracker. This will ensure that the research conducted in 2020 is leveraged by the pip development team.
-
 <div class="wy-table-responsive">
   <table class="colwidths-auto docutils align-left">
     <thead>
@@ -337,21 +350,6 @@ We are currently looking for volunteers to take recommendations made by the UX t
     </tbody>
   </table>
 </div>
-
-```{toctree}
-/2020-research-outputs/about-our-users
-/2020-research-outputs/ci-cd
-/2020-research-outputs/improving-pip-documentation
-/2020-research-outputs/mental-models
-/2020-research-outputs/override-conflicting-dependencies
-/2020-research-outputs/personas
-/2020-research-outputs/pip-force-reinstall
-/2020-research-outputs/pip-logo
-/2020-research-outputs/pip-search
-/2020-research-outputs/pip-upgrade-conflict
-/2020-research-outputs/prioritizing-features
-/2020-research-outputs/users-and-security
-```
 
 ## Read More
 
