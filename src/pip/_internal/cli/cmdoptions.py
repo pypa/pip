@@ -174,7 +174,7 @@ def validate_platform_options(options: Values) -> None:
         # will enter here if this was a match. Otherwise, we do need
         # to check if the architecture matches amd64.
         win_re = re.compile(r"(?P<arch>)")
-        match = win_re.full_match(suffix)
+        match = win_re.fullmatch(suffix)
         if match:
             if match.group("arch") != "amd64":
                 return False
