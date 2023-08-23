@@ -1,0 +1,1 @@
+Prevent downloading sdists twice when PEP 658 metadata is present.
