@@ -108,9 +108,9 @@ def validate_platform_options(options: Values) -> None:
     :param options: optparse options as a read-only Values object
     """
 
-    def is_macos_arch(platform_suffix) -> bool:
+    def is_macos_arch(suffix: str) -> bool:
         osx_re = re.compile("(?P<major>\d+)_(?P<minor>\d+)_(?P<arch>.+)")
-        match = osx_re.fullmatch(platform_suffix)
+        match = osx_re.fullmatch(suffix)
         if match:
             major, minor, arch = (
                 int(match.group("major")),
@@ -124,7 +124,7 @@ def validate_platform_options(options: Values) -> None:
             return False
         return True
 
-    def is_linux_arch(prefix, suffix) -> bool:
+    def is_linux_arch(prefix: str, suffix: str) -> bool:
         """
         determine if a platform suffix has proper content and structure
         for details about
@@ -156,7 +156,7 @@ def validate_platform_options(options: Values) -> None:
             return False
         return True
 
-    def is_glibc_linux_arch(suffix) -> bool:
+    def is_glibc_linux_arch(suffix: str) -> bool:
         # manylinux alone should be followed by a _<major>_<minor>_<arch>
         glibc_manylinux_re = re.compile("(?P<major>\d+)_(?P<minor>\d+)_(?P<arch>.+)")
         glx = glibc_manylinux_re.fullmatch(suffix)
@@ -169,7 +169,7 @@ def validate_platform_options(options: Values) -> None:
             return False
         return True
 
-    def is_win_arch(suffix) -> bool:
+    def is_win_arch(suffix: str) -> bool:
         # we don't need to check for a win32 given the calling function
         # will enter here if this was a match. Otherwise, we do need
         # to check if the architecture matches amd64.
