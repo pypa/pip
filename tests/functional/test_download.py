@@ -1647,7 +1647,10 @@ def test_canonicalizes_package_name_before_verifying_metadata(
     ]
 
 
-def test_download_warning_message_on_improper_platform_tag(script, data):
+def test_download_warning_message_on_improper_platform_tag(
+    script: PipTestEnvironment, 
+    data: TestData
+) -> None:
     fake_wheel(data, "fake-9.9-py3-anabi-bad_platform.whl")
     result = script.pip(
         "download", "--only-binary=:all:", "--platform", "bad_platform", "fake"
