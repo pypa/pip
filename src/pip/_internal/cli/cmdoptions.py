@@ -109,7 +109,7 @@ def validate_platform_options(options: Values) -> None:
     """
 
     def is_macos_arch(suffix: str) -> bool:
-        osx_re = re.compile("(?P<major>\d+)_(?P<minor>\d+)_(?P<arch>.+)")
+        osx_re = re.compile(r"(?P<major>\d+)_(?P<minor>\d+)_(?P<arch>.+)")
         match = osx_re.fullmatch(suffix)
         if match:
             major, minor, arch = (
@@ -131,7 +131,7 @@ def validate_platform_options(options: Values) -> None:
         """
         # manylinux1, manylinux2010, manylinux2014, and linux should be followed
         # by _<architecture>
-        linux_re = re.compile("(?P<arch>.+)")
+        linux_re = re.compile(r"(?P<arch>.+)")
         match = linux_re.fullmatch(suffix)
         if match:
             arch = match.group("arch")
@@ -158,7 +158,7 @@ def validate_platform_options(options: Values) -> None:
 
     def is_glibc_linux_arch(suffix: str) -> bool:
         # manylinux alone should be followed by a _<major>_<minor>_<arch>
-        glibc_manylinux_re = re.compile("(?P<major>\d+)_(?P<minor>\d+)_(?P<arch>.+)")
+        glibc_manylinux_re = re.compile(r"(?P<major>\d+)_(?P<minor>\d+)_(?P<arch>.+)")
         glx = glibc_manylinux_re.fullmatch(suffix)
         if not glx:
             # PEP 600 recommends any tag of the form "manylinux_[0-9]+_[0-9]+_(.*)"
@@ -173,7 +173,7 @@ def validate_platform_options(options: Values) -> None:
         # we don't need to check for a win32 given the calling function
         # will enter here if this was a match. Otherwise, we do need
         # to check if the architecture matches amd64.
-        win_re = re.compile("(?P<arch>)")
+        win_re = re.compile(r"(?P<arch>)")
         match = win_re.full_match(suffix)
         if match:
             if match.group("arch") != "amd64":
