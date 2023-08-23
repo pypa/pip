@@ -100,7 +100,123 @@ def check_dist_restriction(options: Values, check_target: bool = False) -> None:
             )
 
 
+def validate_platform_options(options: Values) -> None:
+    """
+    Determine if platform options follow standard structures provided
+    in PEPs 425, 513, 571, 599, and 600
 
+    :param options: optparse options as a read-only Values object
+    """
+
+    def is_macos_arch(suffix: str) -> bool:
+        osx_re = re.compile(r"(?P<major>\d+)_(?P<minor>\d+)_(?P<arch>.+)")
+        match = osx_re.fullmatch(suffix)
+        if match:
+            major, minor, arch = (
+                int(match.group("major")),
+                int(match.group("minor")),
+                match.group("arch"),
+            )
+
+            if (major, minor) < (10, 0) or arch not in ["arm64", "intel", "x86_64"]:
+                return False
+        else:
+            return False
+        return True
+
+    def is_linux_arch(prefix: str, suffix: str) -> bool:
+        """
+        determine if a platform suffix has proper content and structure
+        for details about
+        """
+        # manylinux1, manylinux2010, manylinux2014, and linux should be followed
+        # by _<architecture>
+        linux_re = re.compile(r"(?P<arch>.+)")
+        match = linux_re.fullmatch(suffix)
+        if match:
+            arch = match.group("arch")
+            if prefix in ["manylinux1", "manylinux2010"]:
+                if arch not in ["x86_64", "i686"]:
+                    return False
+            elif prefix == "manylinux2014":
+                if arch not in [
+                    "x86_64",
+                    "i686",
+                    "aarch64",
+                    "armv71",
+                    "ppc64",
+                    "ppc64le",
+                    "s390x",
+                ]:
+                    return False
+            elif prefix == "linux":
+                if arch not in ["x86_64", "i386"]:
+                    return False
+        else:
+            return False
+        return True
+
+    def is_glibc_linux_arch(suffix: str) -> bool:
+        # manylinux alone should be followed by a _<major>_<minor>_<arch>
+        glibc_manylinux_re = re.compile(r"(?P<major>\d+)_(?P<minor>\d+)_(?P<arch>.+)")
+        glx = glibc_manylinux_re.fullmatch(suffix)
+        if not glx:
+            # PEP 600 recommends any tag of the form "manylinux_[0-9]+_[0-9]+_(.*)"
+            # be accepted by package indexes. Therefore, as long as the glibc
+            # major and minor versions are digits and there exists a value for
+            # the architecture, we should accept it. If they do not exist
+            # return False as improper input
+            return False
+        return True
+
+    def is_win_arch(suffix: str) -> bool:
+        # we don't need to check for a win32 given the calling function
+        # will enter here if this was a match. Otherwise, we do need
+        # to check if the architecture matches amd64.
+        win_re = re.compile(r"(?P<arch>)")
+        match = win_re.fullmatch(suffix)
+        if match:
+            if match.group("arch") != "amd64":
+                return False
+        else:
+            return False
+        return True
+
+    if not options.platforms:
+        return
+
+    invalid_platforms = []
+    for platform in options.platforms:
+        platform_prefix, _, platform_suffix = platform.partition("_")
+        if platform_prefix == "macosx":
+            if not is_macos_arch(platform_suffix):
+                invalid_platforms.append(platform)
+        elif platform_prefix in [
+            "manylinux2014",
+            "manylinux2010",
+            "manylinux1",
+            "linux",
+        ]:
+            if not is_linux_arch(platform_prefix, platform_suffix):
+                invalid_platforms.append(platform)
+        elif platform_prefix == "manylinux":
+            if not is_glibc_linux_arch(platform_suffix):
+                invalid_platforms.append(platform)
+        elif platform_prefix in ["win", "win32"]:
+            if not is_win_arch(platform_suffix):
+                invalid_platforms.append(platform)
+        elif platform_prefix == "any":
+            pass
+        else:
+            # no standard values have been encountered and it seems
+            # safe to assume this is potentially improper input
+            invalid_platforms.append(platform)
+    if invalid_platforms:
+        logger.warning(
+            "Some platform options provided do not match standard platform "
+            "structure and may not result in a package hit (use help for more): %s",
+            ", ".join(invalid_platforms),
+        )
 
 
 def _path_option_check(option: Option, opt: str, value: str) -> str:
