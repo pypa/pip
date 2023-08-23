@@ -83,7 +83,7 @@ class DownloadCommand(RequirementCommand):
 
         cmdoptions.check_dist_restriction(options)
         cmdoptions.validate_platform_options(options)
-        
+
         options.download_dir = normalize_path(options.download_dir)
         ensure_dir(options.download_dir)
 

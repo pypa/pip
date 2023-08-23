@@ -109,13 +109,16 @@ def validate_platform_options(options: Values):
     """
 
     def is_macos_arch(platform_suffix):
-        osx_re = re.compile('(?P<major>\d+)_(?P<minor>\d+)_(?P<arch>.+)')
+        osx_re = re.compile("(?P<major>\d+)_(?P<minor>\d+)_(?P<arch>.+)")
         match = osx_re.fullmatch(platform_suffix)
         if match:
-            major, minor, arch = \
-                int(match.group('major')), int(match.group('minor')), match.group('arch')
+            major, minor, arch = (
+                int(match.group("major")),
+                int(match.group("minor")),
+                match.group("arch"),
+            )
 
-            if (major, minor) < (10, 0) or arch not in ['arm64', 'intel', 'x86_64']:
+            if (major, minor) < (10, 0) or arch not in ["arm64", "intel", "x86_64"]:
                 return False
         else:
             return False
@@ -128,19 +131,26 @@ def validate_platform_options(options: Values):
         """
         # manylinux1, manylinux2010, manylinux2014, and linux should be followed
         # by _<architecture>
-        linux_re = re.compile('(?P<arch>.+)')
+        linux_re = re.compile("(?P<arch>.+)")
         match = linux_re.fullmatch(suffix)
         if match:
-            arch = match.group('arch')
-            if prefix in ['manylinux1', 'manylinux2010']:
-                if arch not in ['x86_64', 'i686']:
+            arch = match.group("arch")
+            if prefix in ["manylinux1", "manylinux2010"]:
+                if arch not in ["x86_64", "i686"]:
                     return False
-            elif prefix == 'manylinux2014':
-                if arch not in \
-                        ['x86_64', 'i686', 'aarch64', 'armv71', 'ppc64', 'ppc64le', 's390x']:
+            elif prefix == "manylinux2014":
+                if arch not in [
+                    "x86_64",
+                    "i686",
+                    "aarch64",
+                    "armv71",
+                    "ppc64",
+                    "ppc64le",
+                    "s390x",
+                ]:
                     return False
-            elif prefix == 'linux':
-                if arch not in ['x86_64', 'i386']:
+            elif prefix == "linux":
+                if arch not in ["x86_64", "i386"]:
                     return False
         else:
             return False
@@ -148,7 +158,7 @@ def validate_platform_options(options: Values):
 
     def is_glibc_linux_arch(suffix):
         # manylinux alone should be followed by a _<major>_<minor>_<arch>
-        glibc_manylinux_re = re.compile('(?P<major>\d+)_(?P<minor>\d+)_(?P<arch>.+)')
+        glibc_manylinux_re = re.compile("(?P<major>\d+)_(?P<minor>\d+)_(?P<arch>.+)")
         glx = glibc_manylinux_re.fullmatch(suffix)
         if not glx:
             # PEP 600 recommends any tag of the form "manylinux_[0-9]+_[0-9]+_(.*)"
@@ -163,10 +173,10 @@ def validate_platform_options(options: Values):
         # we don't need to check for a win32 given the calling function
         # will enter here if this was a match. Otherwise, we do need
         # to check if the architecture matches amd64.
-        win_re = re.compile('(?P<arch>)')
+        win_re = re.compile("(?P<arch>)")
         match = win_re.full_match(suffix)
         if match:
-            if match.group('arch') != 'amd64':
+            if match.group("arch") != "amd64":
                 return False
         else:
             return False
@@ -178,19 +188,24 @@ def validate_platform_options(options: Values):
     invalid_platforms = []
     for platform in options.platforms:
         platform_prefix, _, platform_suffix = platform.partition("_")
-        if platform_prefix == 'macosx':
+        if platform_prefix == "macosx":
             if not is_macos_arch(platform_suffix):
                 invalid_platforms.append(platform)
-        elif platform_prefix in ["manylinux2014", "manylinux2010", "manylinux1", "linux"]:
+        elif platform_prefix in [
+            "manylinux2014",
+            "manylinux2010",
+            "manylinux1",
+            "linux",
+        ]:
             if not is_linux_arch(platform_prefix, platform_suffix):
                 invalid_platforms.append(platform)
-        elif platform_prefix == 'manylinux':
+        elif platform_prefix == "manylinux":
             if not is_glibc_linux_arch(platform_suffix):
                 invalid_platforms.append(platform)
-        elif platform_prefix in ['win', 'win32']:
+        elif platform_prefix in ["win", "win32"]:
             if not is_win_arch(platform_suffix):
                 invalid_platforms.append(platform)
-        elif platform_prefix == 'any':
+        elif platform_prefix == "any":
             pass
         else:
             # no standard values have been encountered and it seems
@@ -200,7 +215,7 @@ def validate_platform_options(options: Values):
         logger.warning(
             "Some platform options provided do not match standard platform "
             "structure and may not result in a package hit (use help for more): %s",
-            ', '.join(invalid_platforms)
+            ", ".join(invalid_platforms),
         )
 
 
@@ -646,10 +661,13 @@ platforms: Callable[..., Option] = partial(
         "platform of the running system. Use this option multiple times to "
         "specify multiple platforms supported by the target interpreter."
         "Some possible options include: 'any', "
-        "'manylinux2014_(x86_64|aarch64|armv71)', 'manylinux_x_y_(x86_64|aarch64|armv71)' "
-        "- x and y are glibc major and minor version numbers, 'linux_x86_64', 'linux_i386', "
-        "'win32', 'win_amd64', 'macosx_x_y_(x86_64|i386|intel|arm64)' "
-        "- x and y are major and minor version numbers. See PEPS 425, 513, 571, 599, and 600"
+        "'manylinux2014_(x86_64|aarch64|armv71)', "
+        "'manylinux_x_y_(x86_64|aarch64|armv71)' "
+        "- x and y are glibc major and minor version numbers, 'linux_x86_64', "
+        "'linux_i386', 'win32', 'win_amd64', "
+        "'macosx_x_y_(x86_64|i386|intel|arm64)' "
+        "- x and y are major and minor version numbers. "
+        "See PEPS 425, 513, 571, 599, and 600"
     ),
 )
 
