@@ -13,9 +13,9 @@ pass on state. To be consistent, all options will follow this design.
 import importlib.util
 import logging
 import os
+import platform
 import re
 import textwrap
-import platform
 from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup, OptionParser, Values
 from textwrap import dedent
@@ -101,7 +101,7 @@ def check_dist_restriction(options: Values, check_target: bool = False) -> None:
             )
 
 
-def validate_platform_options(options: list[str]) -> None:
+def validate_platform_options(platform_options: list[str]) -> None:
     """
     Determine if platform options follow standard structures provided
     in PEPs 425, 513, 571, 599, and 600
@@ -183,17 +183,17 @@ def validate_platform_options(options: list[str]) -> None:
             return False
         return True
 
-    if not options.platforms:
+    if not platform_options:
         return
 
-    current_platform, *_ = platform.platform().lower().partition('-')
+    current_platform, *_ = platform.platform().lower().partition("-")
     current_machine = platform.machine()
     invalid_platforms = []
-    for platform in options:
-        platform_prefix, _, platform_suffix = platform.partition("_")
+    for platform_tag in platform_options:
+        platform_prefix, _, platform_suffix = platform_tag.partition("_")
         if platform_prefix == "macosx":
             if not is_macos_arch(platform_suffix):
-                invalid_platforms.append(platform)
+                invalid_platforms.append(platform_tag)
         elif platform_prefix in [
             "manylinux2014",
             "manylinux2010",
@@ -201,31 +201,33 @@ def validate_platform_options(options: list[str]) -> None:
             "linux",
         ]:
             if not is_linux_arch(platform_prefix, platform_suffix):
-                invalid_platforms.append(platform)
+                invalid_platforms.append(platform_tag)
         elif platform_prefix == "manylinux":
             if not is_glibc_linux_arch(platform_suffix):
-                invalid_platforms.append(platform)
+                invalid_platforms.append(platform_tag)
         elif platform_prefix in ["win", "win32"]:
             if not is_win_arch(platform_suffix):
-                invalid_platforms.append(platform)
+                invalid_platforms.append(platform_tag)
         elif platform_prefix == "any":
             pass
         else:
             # no standard values have been encountered and it seems
             # safe to assume this is potentially improper input
-            invalid_platforms.append(platform)
+            invalid_platforms.append(platform_tag)
     if invalid_platforms:
-        logger.warning(
+        message = (
             "Some platform options provided do not match standard platform "
             "structure and may not result in a package hit (see help for more): %s",
-            f"{', '.join(invalid_platforms)}. Consider using the current system specs: "
-            f"{current_machine} and {current_platform}"
+            f"{', '.join(invalid_platforms)}. Consider using current system specs: "
+            f"{current_machine} and {current_platform}",
         )
+        logger.warning(message)
 
 
-def validate_user_options(options: Values):
+def validate_user_options(options: Values) -> None:
     if options.platforms:
         validate_platform_options(options.platforms)
+
 
 def _path_option_check(option: Option, opt: str, value: str) -> str:
     return os.path.expanduser(value)

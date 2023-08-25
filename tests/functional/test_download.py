@@ -1,9 +1,9 @@
 import os
+import platform
 import re
 import shutil
 import textwrap
 import uuid
-import platform
 from dataclasses import dataclass
 from enum import Enum
 from hashlib import sha256
@@ -1651,7 +1651,7 @@ def test_canonicalizes_package_name_before_verifying_metadata(
 def test_download_warning_message_on_improper_platform_tag(
     script: PipTestEnvironment, data: TestData
 ) -> None:
-    current_platform, *_ = platform.platform().lower().partition('-')
+    current_platform, *_ = platform.platform().lower().partition("-")
     current_machine = platform.machine()
     fake_wheel(data, "fake-9.9-py3-anabi-bad_platform.whl")
     result = script.pip(
