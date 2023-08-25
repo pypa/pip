@@ -1,0 +1,1 @@
+If there is only one package in the ``/usr/local/bin`` directory, the ``/usr/local/bin`` directory is deleted when the package is uninstalled.

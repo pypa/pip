@@ -361,7 +361,7 @@ def renames(old: str, new: str) -> None:
     shutil.move(old, new)
 
     head, tail = os.path.split(old)
-    if head and tail:
+    if head and tail and head != "/usr/local/bin":
         try:
             os.removedirs(head)
         except OSError:

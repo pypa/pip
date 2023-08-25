@@ -141,7 +141,7 @@ def compress_for_rename(paths: Iterable[str]) -> Set[str]:
         # If all the files we found are in our remaining set of files to
         # remove, then remove them from the latter set and add a wildcard
         # for the directory.
-        if not (all_files - remaining):
+        if not (all_files - remaining) and root != "/usr/local/bin":
             remaining.difference_update(all_files)
             wildcards.add(root + os.sep)
 
