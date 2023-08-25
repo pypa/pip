@@ -7,6 +7,7 @@
 import mimetypes
 import os
 import shutil
+from pathlib import Path
 from typing import Dict, Iterable, List, Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
@@ -20,7 +21,6 @@ from pip._internal.exceptions import (
     InstallationError,
     MetadataInconsistent,
     NetworkConnectionError,
-    PreviousBuildDirError,
     VcsHashUnsupported,
 )
 from pip._internal.index.package_finder import PackageFinder
@@ -47,7 +47,6 @@ from pip._internal.utils.misc import (
     display_path,
     hash_file,
     hide_url,
-    is_installable_dir,
 )
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.unpacking import unpack_file
@@ -319,21 +318,7 @@ class RequirementPreparer:
             autodelete=True,
             parallel_builds=parallel_builds,
         )
-
-        # If a checkout exists, it's unwise to keep going.  version
-        # inconsistencies are logged later, but do not fail the
-        # installation.
-        # FIXME: this won't upgrade when there's an existing
-        # package unpacked in `req.source_dir`
-        # TODO: this check is now probably dead code
-        if is_installable_dir(req.source_dir):
-            raise PreviousBuildDirError(
-                "pip can't proceed with requirements '{}' due to a"
-                "pre-existing build directory ({}). This is likely "
-                "due to a previous installation that failed . pip is "
-                "being responsible and not assuming it can delete this. "
-                "Please delete it and try again.".format(req, req.source_dir)
-            )
+        req.ensure_pristine_source_checkout()
 
     def _get_linked_req_hashes(self, req: InstallRequirement) -> Hashes:
         # By the time this is called, the requirement's link should have
@@ -481,20 +466,19 @@ class RequirementPreparer:
         for link, (filepath, _) in batch_download:
             logger.debug("Downloading link %s to %s", link, filepath)
             req = links_to_fully_download[link]
+            # Record the downloaded file path so wheel reqs can extract a Distribution
+            # in .get_dist().
             req.local_file_path = filepath
-            # TODO: This needs fixing for sdists
-            # This is an emergency fix for #11847, which reports that
-            # distributions get downloaded twice when metadata is loaded
-            # from a PEP 658 standalone metadata file. Setting _downloaded
-            # fixes this for wheels, but breaks the sdist case (tests
-            # test_download_metadata). As PyPI is currently only serving
-            # metadata for wheels, this is not an immediate issue.
-            # Fixing the problem properly looks like it will require a
-            # complete refactoring of the `prepare_linked_requirements_more`
-            # logic, and I haven't a clue where to start on that, so for now
-            # I have fixed the issue *just* for wheels.
-            if req.is_wheel:
-                self._downloaded[req.link.url] = filepath
+            # Record that the file is downloaded so we don't do it again in
+            # _prepare_linked_requirement().
+            self._downloaded[req.link.url] = filepath
+
+            # If this is an sdist, we need to unpack it after downloading, but the
+            # .source_dir won't be set up until we are in _prepare_linked_requirement().
+            # Add the downloaded archive to the install requirement to unpack after
+            # preparing the source dir.
+            if not req.is_wheel:
+                req.needs_unpacked_archive(Path(filepath))
 
         # This step is necessary to ensure all lazy wheels are processed
         # successfully by the 'download', 'wheel', and 'install' commands.
