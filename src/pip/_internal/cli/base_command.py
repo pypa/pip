@@ -225,7 +225,7 @@ class Command(CommandContextMixIn):
 
             return exc_logging_wrapper
 
-        cmdoptions.validate_platform_options(options)
+        cmdoptions.validate_user_options(options)
 
         try:
             if not options.debug_mode:
