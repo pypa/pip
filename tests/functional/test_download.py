@@ -3,7 +3,6 @@ import os
 import re
 import shutil
 import textwrap
-import uuid
 from dataclasses import dataclass
 from enum import Enum
 from hashlib import sha256
