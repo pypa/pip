@@ -2242,6 +2242,33 @@ def test_install_yanked_file_and_print_warning(
     assert "Successfully installed simple-3.0\n" in result.stdout, str(result)
 
 
+def test_yanked_version_missing_from_availble_versions_error_message(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """
+    Test yanked version is missing from available versions error message.
+
+    Yanked files are always ignored, unless they are the only file that
+    matches a version specifier that "pins" to an exact version (PEP 592).
+    """
+    result = script.pip(
+        "install",
+        "simple==",
+        "--index-url",
+        data.index_url("yanked"),
+        expect_error=True,
+    )
+    # the yanked version (3.0) is filtered out from the output:
+    expected_warning = (
+        "Could not find a version that satisfies the requirement simple== "
+        "(from versions: 1.0, 2.0)"
+    )
+    assert expected_warning in result.stderr, str(result)
+    # and mentioned in a separate warning:
+    expected_warning = "Ignored the following yanked versions: 3.0"
+    assert expected_warning in result.stderr, str(result)
+
+
 def test_error_all_yanked_files_and_no_pin(
     script: PipTestEnvironment, data: TestData
 ) -> None:
