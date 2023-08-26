@@ -19,7 +19,7 @@ import textwrap
 from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup, OptionParser, Values
 from textwrap import dedent
-from typing import Any, Callable, Dict, Optional, Tuple, List
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from pip._vendor.packaging.utils import canonicalize_name
 
