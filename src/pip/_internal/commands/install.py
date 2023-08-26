@@ -289,6 +289,7 @@ class InstallCommand(RequirementCommand):
             upgrade_strategy = options.upgrade_strategy
 
         cmdoptions.check_dist_restriction(options, check_target=True)
+        cmdoptions.validate_user_options(options)
 
         logger.verbose("Using %s", get_pip_version())
         options.use_user_site = decide_user_install(

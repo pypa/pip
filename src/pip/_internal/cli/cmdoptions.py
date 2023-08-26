@@ -215,13 +215,13 @@ def validate_platform_options(platform_options: list[str]) -> None:
             # safe to assume this is potentially improper input
             invalid_platforms.append(platform_tag)
     if invalid_platforms:
-        message = (
-            "Some platform options provided do not match standard platform "
-            "structure and may not result in a package hit (see help for more): %s",
-            f"{', '.join(invalid_platforms)}. Consider using current system specs: "
-            f"{current_machine} and {current_platform}",
-        )
-        logger.warning(message)
+        message = \
+            "Some platform options provided do not match standard platform "\
+            "structure and may not result in a package hit (see help for more): "\
+            f"{', '.join(invalid_platforms)}. Consider using current system specs: "\
+            f"{current_platform} and {current_machine}"
+        
+        print(message)
 
 
 def validate_user_options(options: Values) -> None:

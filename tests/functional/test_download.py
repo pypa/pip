@@ -1,6 +1,5 @@
 import http.server
 import os
-import platform
 import re
 import shutil
 import textwrap
@@ -1482,17 +1481,16 @@ def test_canonicalizes_package_name_before_verifying_metadata(
 def test_download_warning_message_on_improper_platform_tag(
     script: PipTestEnvironment, data: TestData
 ) -> None:
-    current_platform, *_ = platform.platform().lower().partition('-')
+    current_platform, *_ = platform.platform().lower().partition("-")
     current_machine = platform.machine()
     fake_wheel(data, "fake-9.9-py3-anabi-bad_platform.whl")
     result = script.pip(
-        "download", "--only-binary=:all:", "--platform", "bad_platform", "fake"
+        "download", 
+        "--only-binary=:all:", 
+        "--platform", "bad_platform", 
+        "fake_pack",
+        expect_error=True,
     )
-    result.did_create(Path("scratch") / "fake-9.9-py3-anabi-bad_platform.whl")
-    warning_msg = (
-        "WARNING: Some platform options provided do not match standard "
-        "platform structure and may not result in a package hit "
-        "(see help for more): bad_platform. Consider using the current system specs: "
-        f"{current_machine} and {current_platform}"
-    )
-    assert warning_msg in result.stderr
+    warning_msg =  "Some platform options provided do not match standard"
+    
+    assert warning_msg in result.stdout

@@ -225,8 +225,6 @@ class Command(CommandContextMixIn):
 
             return exc_logging_wrapper
 
-        cmdoptions.validate_user_options(options)
-
         try:
             if not options.debug_mode:
                 run = intercepts_unhandled_exc(self.run)
