@@ -73,7 +73,7 @@ def test_rev_options_repr() -> None:
             Git,
             ["HEAD", "opt1", "opt2"],
             ["123", "opt1", "opt2"],
-            dict(extra_args=["opt1", "opt2"]),
+            {"extra_args": ["opt1", "opt2"]},
         ),
     ],
 )

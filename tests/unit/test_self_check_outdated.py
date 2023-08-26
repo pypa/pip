@@ -40,7 +40,7 @@ def test_pip_self_version_check_calls_underlying_implementation(
 ) -> None:
     # GIVEN
     mock_session = Mock()
-    fake_options = Values(dict(cache_dir=str(tmpdir)))
+    fake_options = Values({"cache_dir": str(tmpdir)})
 
     # WHEN
     self_outdated_check.pip_self_version_check(mock_session, fake_options)
