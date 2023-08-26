@@ -19,7 +19,7 @@ import textwrap
 from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup, OptionParser, Values
 from textwrap import dedent
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple, List
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -101,7 +101,7 @@ def check_dist_restriction(options: Values, check_target: bool = False) -> None:
             )
 
 
-def validate_platform_options(platform_options: list[str]) -> None:
+def validate_platform_options(platform_options: List[str]) -> None:
     """
     Determine if platform options follow standard structures provided
     in PEPs 425, 513, 571, 599, and 600
