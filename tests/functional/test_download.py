@@ -1480,12 +1480,13 @@ def test_download_warning_message_on_improper_platform_tag(
 ) -> None:
     fake_wheel(data, "fake-9.9-py3-anabi-bad_platform.whl")
     result = script.pip(
-        "download", 
-        "--only-binary=:all:", 
-        "--platform", "bad_platform", 
+        "download",
+        "--only-binary=:all:",
+        "--platform",
+        "bad_platform",
         "fake_pack",
         expect_error=True,
     )
-    warning_msg =  "Some platform options provided do not match standard"
-    
+    warning_msg = "Some platform options provided do not match standard"
+
     assert warning_msg in result.stdout
