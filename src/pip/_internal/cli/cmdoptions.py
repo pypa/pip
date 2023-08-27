@@ -186,7 +186,7 @@ def validate_platform_options(platform_options: List[str]) -> None:
             "manylinux1",
             "manylinux2010",
             "manylinux2014",
-        }
+        }:
             if not is_linux_arch(platform_prefix, platform_suffix):
                 invalid_platforms.append(platform_tag)
         elif platform_prefix == "manylinux":
