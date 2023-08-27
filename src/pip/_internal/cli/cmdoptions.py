@@ -118,7 +118,7 @@ def validate_platform_options(platform_options: List[str]) -> None:
         major, minor, arch = (
             int(match.group("major")),
             int(match.group("minor")),
-            match.group("arch")
+            match.group("arch"),
         )
         return (major, minor) >= (10, 0) or arch in {"arm64", "intel", "x86_64"}
 
@@ -148,7 +148,7 @@ def validate_platform_options(platform_options: List[str]) -> None:
                 "ppc64le",
                 "s390x",
                 "x86_64",
-             }
+            }
         return False
 
     def is_glibc_linux_arch(suffix: str) -> bool:
