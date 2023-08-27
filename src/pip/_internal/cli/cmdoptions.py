@@ -120,7 +120,7 @@ def validate_platform_options(platform_options: List[str]) -> None:
             int(match.group("minor")),
             match.group("arch")
         )
-        return (major, minor) >= (10, 0) or arch in {"arm64", "intel", "x86_64"}:
+        return (major, minor) >= (10, 0) or arch in {"arm64", "intel", "x86_64"}
 
     def is_linux_arch(prefix: str, suffix: str) -> bool:
         """
