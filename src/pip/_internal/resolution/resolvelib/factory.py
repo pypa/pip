@@ -603,8 +603,26 @@ class Factory:
 
         cands = self._finder.find_all_candidates(req.project_name)
         skipped_by_requires_python = self._finder.requires_python_skipped_reasons()
-        versions = [str(v) for v in sorted({c.version for c in cands})]
 
+        versions_set: Set[CandidateVersion] = set()
+        yanked_versions_set: Set[CandidateVersion] = set()
+        for c in cands:
+            is_yanked = c.link.is_yanked if c.link else False
+            if is_yanked:
+                yanked_versions_set.add(c.version)
+            else:
+                versions_set.add(c.version)
+
+        versions = [str(v) for v in sorted(versions_set)]
+        yanked_versions = [str(v) for v in sorted(yanked_versions_set)]
+
+        if yanked_versions:
+            # Saying "version X is yanked" isn't entirely accurate.
+            # https://github.com/pypa/pip/issues/11745#issuecomment-1402805842
+            logger.critical(
+                "Ignored the following yanked versions: %s",
+                ", ".join(yanked_versions) or "none",
+            )
         if skipped_by_requires_python:
             logger.critical(
                 "Ignored the following versions that require a different python "
