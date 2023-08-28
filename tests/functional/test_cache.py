@@ -101,7 +101,7 @@ def list_matches_wheel(wheel_name: str, result: TestPipResult) -> bool:
           `- foo-1.2.3-py3-none-any.whl `."""
     lines = result.stdout.splitlines()
     expected = f" - {wheel_name}-py3-none-any.whl "
-    return any((line.startswith(expected) for line in lines))
+    return any(line.startswith(expected) for line in lines)
 
 
 def list_matches_wheel_abspath(wheel_name: str, result: TestPipResult) -> bool:

@@ -234,7 +234,7 @@ class TestCandidateEvaluator:
         )
         sort_key = evaluator._sort_key
         results = sorted(links, key=sort_key, reverse=True)
-        results2 = sorted(links, key=sort_key, reverse=True)
+        results2 = sorted(reversed(links), key=sort_key, reverse=True)
 
         assert links == results, results
         assert links == results2, results2
@@ -261,7 +261,7 @@ class TestCandidateEvaluator:
         candidate_evaluator = CandidateEvaluator.create("my-project")
         sort_key = candidate_evaluator._sort_key
         results = sorted(links, key=sort_key, reverse=True)
-        results2 = sorted(links, key=sort_key, reverse=True)
+        results2 = sorted(reversed(links), key=sort_key, reverse=True)
 
         assert links == results, results
         assert links == results2, results2
@@ -301,7 +301,7 @@ class TestCandidateEvaluator:
         )
         sort_key = evaluator._sort_key
         results = sorted(links, key=sort_key, reverse=True)
-        results2 = sorted(links, key=sort_key, reverse=True)
+        results2 = sorted(reversed(links), key=sort_key, reverse=True)
 
         assert links == results, results
         assert links == results2, results2

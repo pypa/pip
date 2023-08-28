@@ -116,6 +116,7 @@ max-complexity = 33  # default is 10
 "noxfile.py" = ["G"]
 "src/pip/_internal/*" = ["PERF203"]
 "tests/*" = ["B011"]
+"tests/unit/test_finder.py" = ["C414"]
 
 [tool.ruff.pylint]
 max-args = 15  # default is 5

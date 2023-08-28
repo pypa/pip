@@ -134,10 +134,7 @@ def show_tags(options: Values) -> None:
 
 
 def ca_bundle_info(config: Configuration) -> str:
-    levels = set()
-    for key, _ in config.items():  # noqa: PERF102 Configuration has no keys() method.
-        levels.add(key.split(".")[0])
-
+    levels = {key.split(".")[0] for key, _ in config.items()}  # noqa: PERF102
     if not levels:
         return "Not specified"
 
