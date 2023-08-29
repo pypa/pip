@@ -1,0 +1,2 @@
+Check for duplicate entries in the ``RECORD`` file when installing wheels.
+Reject the wheel if the entries are different, warn otherwise.

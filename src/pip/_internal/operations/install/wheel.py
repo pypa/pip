@@ -4,7 +4,6 @@
 import collections
 import compileall
 import contextlib
-import csv
 import importlib
 import logging
 import os.path
@@ -12,7 +11,6 @@ import re
 import shutil
 import sys
 import warnings
-from base64 import urlsafe_b64encode
 from email.message import Message
 from itertools import chain, filterfalse, starmap
 from typing import (
@@ -23,15 +21,12 @@ from typing import (
     Callable,
     Dict,
     Generator,
-    Iterable,
     Iterator,
     List,
-    NewType,
     Optional,
     Sequence,
     Set,
     Tuple,
-    Union,
     cast,
 )
 from zipfile import ZipFile, ZipInfo
@@ -40,7 +35,7 @@ from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
 from pip._vendor.packaging.utils import canonicalize_name
 
-from pip._internal.exceptions import InstallationError
+from pip._internal.exceptions import InstallationError, UnsupportedWheel
 from pip._internal.locations import get_major_minor_version
 from pip._internal.metadata import (
     BaseDistribution,
@@ -48,9 +43,17 @@ from pip._internal.metadata import (
     get_wheel_distribution,
 )
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
+from pip._internal.models.record import (
+    BrokenRecord,
+    FileIntegrity,
+    FileIntegrityMap,
+    RecordPath,
+    parse_record,
+    serialize_record,
+)
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
-from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file, partition
+from pip._internal.utils.misc import captured_stdout, ensure_dir, partition
 from pip._internal.utils.unpacking import (
     current_umask,
     is_within_directory,
@@ -72,23 +75,6 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
-
-RecordPath = NewType("RecordPath", str)
-InstalledCSVRow = Tuple[RecordPath, str, Union[int, str]]
-
-
-def rehash(path: str, blocksize: int = 1 << 20) -> Tuple[str, str]:
-    """Return (encoded_digest, length) for path using hashlib.sha256()"""
-    h, length = hash_file(path, blocksize)
-    digest = "sha256=" + urlsafe_b64encode(h.digest()).decode("latin1").rstrip("=")
-    return (digest, str(length))
-
-
-def csv_io_kwargs(mode: str) -> Dict[str, Any]:
-    """Return keyword arguments to properly open a CSV file
-    in the given mode.
-    """
-    return {"mode": mode, "newline": "", "encoding": "utf-8"}
 
 
 def fix_script(path: str) -> bool:
@@ -200,32 +186,6 @@ def message_about_scripts_not_on_PATH(scripts: Sequence[str]) -> Optional[str]:
     return "\n".join(msg_lines)
 
 
-def _normalized_outrows(
-    outrows: Iterable[InstalledCSVRow],
-) -> List[Tuple[str, str, str]]:
-    """Normalize the given rows of a RECORD file.
-
-    Items in each row are converted into str. Rows are then sorted to make
-    the value more predictable for tests.
-
-    Each row is a 3-tuple (path, hash, size) and corresponds to a record of
-    a RECORD file (see PEP 376 and PEP 427 for details).  For the rows
-    passed to this function, the size can be an integer as an int or string,
-    or the empty string.
-    """
-    # Normally, there should only be one row per path, in which case the
-    # second and third elements don't come into play when sorting.
-    # However, in cases in the wild where a path might happen to occur twice,
-    # we don't want the sort operation to trigger an error (but still want
-    # determinism).  Since the third element can be an int or string, we
-    # coerce each element to a string to avoid a TypeError in this case.
-    # For additional background, see--
-    # https://github.com/pypa/pip/issues/5868
-    return sorted(
-        (record_path, hash_, str(size)) for record_path, hash_, size in outrows
-    )
-
-
 def _record_to_fs_path(record_path: RecordPath, lib_dir: str) -> str:
     return os.path.join(lib_dir, record_path)
 
@@ -240,36 +200,37 @@ def _fs_to_record_path(path: str, lib_dir: str) -> RecordPath:
     return cast("RecordPath", path)
 
 
-def get_csv_rows_for_installed(
-    old_csv_rows: List[List[str]],
+def get_installed_integrity_map(
+    wheel_integrity_map: FileIntegrityMap,
     installed: Dict[RecordPath, RecordPath],
     changed: Set[RecordPath],
     generated: List[str],
     lib_dir: str,
-) -> List[InstalledCSVRow]:
+) -> FileIntegrityMap:
     """
     :param installed: A map from archive RECORD path to installation RECORD
         path.
     """
-    installed_rows: List[InstalledCSVRow] = []
-    for row in old_csv_rows:
-        if len(row) > 3:
-            logger.warning("RECORD line has more than three elements: %s", row)
-        old_record_path = cast("RecordPath", row[0])
+    installed_integrity_map: FileIntegrityMap = {}
+
+    for old_record_path, old_integrity in wheel_integrity_map.items():
         new_record_path = installed.pop(old_record_path, old_record_path)
         if new_record_path in changed:
-            digest, length = rehash(_record_to_fs_path(new_record_path, lib_dir))
+            new_integrity = FileIntegrity.generate_for_file(
+                _record_to_fs_path(new_record_path, lib_dir)
+            )
         else:
-            digest = row[1] if len(row) > 1 else ""
-            length = row[2] if len(row) > 2 else ""
-        installed_rows.append((new_record_path, digest, length))
+            new_integrity = old_integrity
+        installed_integrity_map[new_record_path] = new_integrity
+
     for f in generated:
         path = _fs_to_record_path(f, lib_dir)
-        digest, length = rehash(f)
-        installed_rows.append((path, digest, length))
+        installed_integrity_map[path] = FileIntegrity.generate_for_file(f)
+
     for installed_record_path in installed.values():
-        installed_rows.append((installed_record_path, "", ""))
-    return installed_rows
+        installed_integrity_map[installed_record_path] = FileIntegrity(None, None)
+
+    return installed_integrity_map
 
 
 def get_console_script_specs(console: Dict[str, str]) -> List[str]:
@@ -461,6 +422,18 @@ def _install_wheel(
     else:
         lib_dir = scheme.platlib
 
+    distribution = get_wheel_distribution(
+        FilesystemWheel(wheel_path),
+        canonicalize_name(name),
+    )
+
+    try:
+        wheel_integrity_map = parse_record(
+            distribution.read_text("RECORD"), f"{wheel_path}:{info_dir}/RECORD"
+        )
+    except BrokenRecord as ex:
+        raise UnsupportedWheel(ex.args[0]) from ex
+
     # Record details of the files moved
     #   installed = files copied from the wheel to the destination
     #   changed = files changed while installing (scripts #! line typically)
@@ -558,10 +531,6 @@ def _install_wheel(
     files = chain(files, other_scheme_files)
 
     # Get the defined entry points
-    distribution = get_wheel_distribution(
-        FilesystemWheel(wheel_path),
-        canonicalize_name(name),
-    )
     console, gui = get_entrypoints(distribution)
 
     def is_entrypoint_wrapper(file: "File") -> bool:
@@ -686,11 +655,8 @@ def _install_wheel(
             pass
         generated.append(requested_path)
 
-    record_text = distribution.read_text("RECORD")
-    record_rows = list(csv.reader(record_text.splitlines()))
-
-    rows = get_csv_rows_for_installed(
-        record_rows,
+    installed_integrity_map = get_installed_integrity_map(
+        wheel_integrity_map,
         installed=installed,
         changed=changed,
         generated=generated,
@@ -700,11 +666,12 @@ def _install_wheel(
     # Record details of all files installed
     record_path = os.path.join(dest_info_dir, "RECORD")
 
-    with _generate_file(record_path, **csv_io_kwargs("w")) as record_file:
+    with _generate_file(
+        record_path, mode="w", newline="", encoding="utf-8"
+    ) as record_file:
         # Explicitly cast to typing.IO[str] as a workaround for the mypy error:
         # "writer" has incompatible type "BinaryIO"; expected "_Writer"
-        writer = csv.writer(cast("IO[str]", record_file))
-        writer.writerows(_normalized_outrows(rows))
+        serialize_record(installed_integrity_map, cast("IO[str]", record_file))
 
 
 @contextlib.contextmanager

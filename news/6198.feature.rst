@@ -1,0 +1,1 @@
+Validate ``RECORD`` file syntax when installing wheels.
