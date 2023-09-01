@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Tuple
 
 from cryptography import x509
@@ -23,8 +23,8 @@ def make_tls_cert(hostname: str) -> Tuple[x509.Certificate, rsa.RSAPrivateKey]:
         .issuer_name(issuer)
         .public_key(key.public_key())
         .serial_number(x509.random_serial_number())
-        .not_valid_before(datetime.utcnow())
-        .not_valid_after(datetime.utcnow() + timedelta(days=10))
+        .not_valid_before(datetime.now(timezone.utc))
+        .not_valid_after(datetime.now(timezone.utc) + timedelta(days=10))
         .add_extension(
             x509.SubjectAlternativeName([x509.DNSName(hostname)]),
             critical=False,
