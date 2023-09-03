@@ -231,7 +231,6 @@ def build_source(
     candidates_from_page: CandidatesFromPage,
     page_validator: PageValidator,
     expand_dir: bool,
-    cache_link_parsing: bool,
     project_name: str,
 ) -> tuple[str | None, LinkSource | None]:
     path: str | None = None
@@ -257,7 +256,7 @@ def build_source(
         source: LinkSource = _RemoteFileSource(
             candidates_from_page=candidates_from_page,
             page_validator=page_validator,
-            link=Link(url, cache_link_parsing=cache_link_parsing),
+            link=Link(url),
         )
         return (url, source)
 
@@ -271,13 +270,13 @@ def build_source(
         else:
             source = _IndexDirectorySource(
                 candidates_from_page=candidates_from_page,
-                link=Link(url, cache_link_parsing=cache_link_parsing),
+                link=Link(url),
             )
         return (url, source)
     elif os.path.isfile(path):
         source = _LocalFileSource(
             candidates_from_page=candidates_from_page,
-            link=Link(url, cache_link_parsing=cache_link_parsing),
+            link=Link(url),
         )
         return (url, source)
     logger.warning(
