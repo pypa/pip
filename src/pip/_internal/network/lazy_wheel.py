@@ -219,49 +219,41 @@ class ReadOnlyIOWrapper(BinaryIO):
 
 
 class LazyRemoteResource(ReadOnlyIOWrapper):
-    """Abstract class for a binary file object that lazily downloads its contents."""
+    """Abstract class for a binary file object that lazily downloads its contents.
+
+    This class uses a ``MergeIntervals`` instance to keep track of what it's downloaded.
+    """
 
     def __init__(self, inner: BinaryIO) -> None:
         super().__init__(inner)
         self._merge_intervals: MergeIntervals | None = None
-        self._length: int | None = None
 
     @abc.abstractmethod
-    def _fetch_content_length(self) -> int:
-        """Query the remote resource for the total length of the file.
+    def fetch_content_range(self, start: int, end: int) -> Iterator[bytes]:
+        """Call to the remote backend to provide this byte range in one or more chunks.
 
-        This method may also mutate internal state, such as truncating or writing to the
-        file. It's marked private because it will only be called within this class's
-        ``__enter__`` implementation to populate an internal length field.
+        NB: For compatibility with HTTP range requests, the range provided to this
+        method must *include* the byte indexed at argument ``end`` (so e.g. ``0-1`` is 2
+        bytes long, and the range can never be empty).
 
-        :raises Exception: implementations may raise any type of exception if the length
-                           value could not be parsed, or any other issue which might
-                           cause valid calls to ``self.fetch_content_range()`` to fail.
+        :raises Exception: implementations may raise an exception for e.g. intermittent
+                           errors accessing the remote resource.
         """
         ...
 
     def _setup_content(self) -> None:
-        """Populate the internal length field and other bookkeeping.
+        """Ensure ``self._merge_intervals`` is initialized.
 
-        Called in ``__enter__``, and should make recursive invocations into a no-op."""
+        Called in ``__enter__``, and should make recursive invocations into a no-op.
+        Subclasses may override this method."""
         if self._merge_intervals is None:
             self._merge_intervals = MergeIntervals()
 
-        if self._length is None:
-            with indent_log():
-                logger.debug("begin fetching content length")
-                self._length = self._fetch_content_length()
-                logger.debug("done fetching content length (is: %d)", self._length)
-        else:
-            logger.debug("content length already fetched (is: %d)", self._length)
-
     def _reset_content(self) -> None:
-        """Unset the internal length field and other bookkeeping.
+        """Unset ``self._merge_intervals``.
 
-        Called in ``__exit__``, and should make recursive invocations into a no-op."""
-        if self._length is not None:
-            logger.debug("unsetting content length (was: %d)", self._length)
-            self._length = None
+        Called in ``__exit__``, and should make recursive invocations into a no-op.
+        Subclasses may override this method."""
         if self._merge_intervals is not None:
             logger.debug(
                 "unsetting merge intervals (were: %s)", repr(self._merge_intervals)
@@ -269,36 +261,15 @@ class LazyRemoteResource(ReadOnlyIOWrapper):
             self._merge_intervals = None
 
     def __enter__(self) -> LazyRemoteResource:
-        """Ensure the length of the remote resource is populated, then return self.
-
-        NB: The length calculation is removed upon ``__exit__``, and will be
-        recalculated upon any subsequent ``__enter__``.
-        """
+        """Call ``self._setup_content()``, then return self."""
         super().__enter__()
         self._setup_content()
         return self
 
     def __exit__(self, *exc: Any) -> None:
-        """Delete the cached length calculation from ``__enter__``, if applicable."""
+        """Call ``self._reset_content()``."""
         self._reset_content()
         super().__exit__(*exc)
-
-    @abc.abstractmethod
-    def fetch_content_range(self, start: int, end: int) -> Iterator[bytes]:
-        """Call to the remote backend to provide exactly this byte range in chunks.
-
-        NB: For compatibility with HTTP range requests, this range must *include* the
-        byte indexed at argument ``end``.
-
-        Implementations should ensure that any validation is performed within the body
-        of ``self._fetch_content_length()`` such that any later calls to this method
-        within the range ``0 <= x <= self._fetch_content_length() - 1`` will succeed
-        unless e.g. the connection is flaky.
-
-        :raises Exception: implementations may raise an exception for e.g. intermittent
-                           errors accessing the remote resource.
-        """
-        ...
 
     @contextmanager
     def _stay(self) -> Iterator[None]:
@@ -313,7 +284,8 @@ class LazyRemoteResource(ReadOnlyIOWrapper):
             self.seek(pos)
 
     def ensure_downloaded(self, start: int, end: int) -> None:
-        """Ensures bytes start to end (inclusive) have been downloaded.
+        """Ensures bytes start to end (inclusive) have been downloaded and written to
+        the backing file.
 
         :raises ValueError: if ``__enter__`` was not called beforehand.
         """
@@ -328,6 +300,63 @@ class LazyRemoteResource(ReadOnlyIOWrapper):
                 self.seek(start)
                 for chunk in self.fetch_content_range(start, end):
                     self._file.write(chunk)
+
+
+class FixedSizeLazyResource(LazyRemoteResource):
+    """Fetches a fixed content length from the remote server when initialized in order
+    to support ``.read(-1)`` and seek calls against ``io.SEEK_END``."""
+
+    def __init__(self, inner: BinaryIO) -> None:
+        super().__init__(inner)
+        self._length: int | None = None
+
+    @abc.abstractmethod
+    def _fetch_content_length(self) -> int:
+        """Query the remote resource for the total length of the file.
+
+        This method may also mutate internal state, such as writing to the backing
+        file. It's marked private because it will only be called within this class's
+        ``__enter__`` implementation to populate an internal length field.
+
+        :raises Exception: implementations may raise any type of exception if the length
+                           value could not be parsed, or any other issue which might
+                           cause valid calls to ``self.fetch_content_range()`` to fail.
+        """
+        ...
+
+    def _setup_content(self) -> None:
+        """Initialize the internal length field and other bookkeeping.
+
+        After parsing the remote file length with ``self._fetch_content_length()``,
+        this method will truncate the underlying file from parent abstract class
+        ``ReadOnlyIOWrapper`` to that size in order to support seek operations against
+        ``io.SEEK_END`` in ``self.read()``.
+
+        This method is called in ``__enter__``.
+        """
+        super()._setup_content()
+
+        if self._length is None:
+            logger.debug("begin fetching content length")
+            with indent_log():
+                self._length = self._fetch_content_length()
+            logger.debug("done fetching content length (is: %d)", self._length)
+        else:
+            logger.debug("content length already fetched (is: %d)", self._length)
+
+        # Enable us to seek and write anywhere in the backing file up to this
+        # known length.
+        self.truncate(self._length)
+
+    def _reset_content(self) -> None:
+        """Unset the internal length field and other bookkeeping.
+
+        This method is called in ``__exit__``."""
+        super()._reset_content()
+
+        if self._length is not None:
+            logger.debug("unsetting content length (was: %d)", self._length)
+            self._length = None
 
     def read(self, size: int = -1) -> bytes:
         """Read up to size bytes from the object and return them.
@@ -354,17 +383,12 @@ class LazyRemoteResource(ReadOnlyIOWrapper):
         return super().read(download_size)
 
 
-class LazyWheelOverHTTP(LazyRemoteResource):
-    """File-like object mapped to a ZIP file over HTTP.
+class LazyHTTPFile(FixedSizeLazyResource):
+    """File-like object representing a fixed-length file over HTTP.
 
-    This uses HTTP range requests to lazily fetch the file's content, which should be
-    provided as the first argument to a ``ZipFile``.  If such requests are not supported
-    by the server, raise ``HTTPRangeRequestUnsupported`` in the ``__enter__`` method.
-    """
-
-    # Cache this on the type to avoid trying and failing our initial lazy wheel request
-    # multiple times in the same pip invocation against an index without this support.
-    _domains_without_negative_range: ClassVar[set[str]] = set()
+    This uses HTTP range requests to lazily fetch the file's content into a temporary
+    file. If such requests are not supported by the server, raises
+    ``HTTPRangeRequestUnsupported`` in the ``__enter__`` method."""
 
     def __init__(
         self,
@@ -379,29 +403,145 @@ class LazyWheelOverHTTP(LazyRemoteResource):
         self._url = url
 
     def _fetch_content_length(self) -> int:
+        """Get the remote file's length from a HEAD request."""
+        # NB: This is currently dead code, as _fetch_content_length() is overridden
+        #     again in LazyWheelOverHTTP.
+        return self._content_length_from_head()
+
+    def fetch_content_range(self, start: int, end: int) -> Iterator[bytes]:
+        """Perform a series of HTTP range requests to cover the specified byte range."""
+        for chunk in self._stream_response(start, end).iter_content(CONTENT_CHUNK_SIZE):
+            yield chunk
+
+    def __enter__(self) -> LazyHTTPFile:
+        """Fetch the remote file length and reset the log of downloaded intervals.
+
+        This method must be called before ``.read()``.
+
+        :raises HTTPRangeRequestUnsupported: if the remote server fails to indicate
+                                             support for "bytes" ranges.
+        """
+        super().__enter__()
+        return self
+
+    def __exit__(self, *exc: Any) -> None:
+        """Logs request count to quickly identify any pathological cases in log data."""
+        logger.debug("%d requests for url %s", self._request_count, self._url)
+        super().__exit__(*exc)
+
+    def _content_length_from_head(self) -> int:
+        """Performs a HEAD request to extract the Content-Length.
+
+        :raises HTTPRangeRequestUnsupported: if the response fails to indicate support
+                                             for "bytes" ranges."""
+        self._request_count += 1
+        head = self._session.head(self._url, headers=self._uncached_headers())
+        head.raise_for_status()
+        assert head.status_code == codes.ok
+        accepted_range = head.headers.get("Accept-Ranges", None)
+        if accepted_range != "bytes":
+            raise HTTPRangeRequestUnsupported(
+                f"server does not support byte ranges: header was '{accepted_range}'"
+            )
+        return int(head.headers["Content-Length"])
+
+    def _stream_response(self, start: int, end: int) -> Response:
+        """Return streaming HTTP response to a range request from start to end."""
+        headers = self._uncached_headers()
+        headers["Range"] = f"bytes={start}-{end}"
+        logger.debug("streamed bytes request: %s", headers["Range"])
+        self._request_count += 1
+        response = self._session.get(self._url, headers=headers, stream=True)
+        response.raise_for_status()
+        assert int(response.headers["Content-Length"]) == (end - start + 1)
+        return response
+
+    @classmethod
+    def _uncached_headers(cls) -> dict[str, str]:
+        """HTTP headers to bypass any HTTP caching.
+
+        The requests we perform in this file are intentionally small, and any caching
+        should be done at a higher level e.g. https://github.com/pypa/pip/issues/12184.
+        """
+        # "no-cache" is the correct value for "up to date every time", so this will also
+        # ensure we get the most recent value from the server:
+        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching#provide_up-to-date_content_every_time
+        return {**HEADERS, "Cache-Control": "no-cache"}
+
+
+class LazyWheelOverHTTP(LazyHTTPFile):
+    """File-like object mapped to a ZIP file over HTTP.
+
+    This uses HTTP range requests to lazily fetch the file's content, which should be
+    provided as the first argument to a ``ZipFile``.
+    """
+
+    # Cache this on the type to avoid trying and failing our initial lazy wheel request
+    # multiple times in the same pip invocation against an index without this support.
+    _domains_without_negative_range: ClassVar[set[str]] = set()
+
+    # This override is needed for mypy so we can call .prefetch_contiguous_dist_info()
+    # within a `with` block.
+    def __enter__(self) -> LazyWheelOverHTTP:
+        """Fetch the remote file length and reset the log of downloaded intervals.
+
+        This method must be called before ``.read()`` or
+        ``.prefetch_contiguous_dist_info()``.
+        """
+        super().__enter__()
+        return self
+
+    @classmethod
+    def _initial_chunk_length(cls) -> int:
+        """Return the size of the chunk (in bytes) to download from the end of the file.
+
+        This method is called in ``self._fetch_content_length()``. As noted in that
+        method's docstring, this should be set high enough to cover the central
+        directory sizes of the *largest* wheels you expect to see, in order to avoid
+        further requests before being able to process the zip file's contents at all. If
+        the chunk size from this method is larger than the size of an entire wheel, that
+        may raise an HTTP error, but this is gracefully handled in
+        ``self._fetch_content_length()`` with an extremely small performance penalty.
+
+        The other reason to set this to a very high value is to attempt to pull in the
+        ``*.dist-info/`` directory's file contents along with the central directory
+        record as part of that single initial request, because those files are almost
+        always at the end of the zip file. This means that the entire lazy wheel
+        strategy can be executed for most wheels with a single ranged GET request, and
+        ``self.prefetch_contiguous_dist_info()`` becomes a no-op.
+        """
+        # The central directory for
+        # tensorflow_gpu-2.5.3-cp38-cp38-manylinux2010_x86_64.whl is 944931 bytes, for
+        # a 459424488 byte file (about 486x as large), so 1MB will always download the
+        # entire central directory. However, this particular tensorflow release also has
+        # the peculiar property of putting its dist-info dir at the *front* of the zip,
+        # so it will still require a separate request.
+        return 1_000_000
+
+    def _fetch_content_length(self) -> int:
         """Get the total remote file length, but also download a chunk from the end.
 
-        This method retrieves a chunk from the end of the file because it is attempting
-        to resolve the central directory record at the end of the remote zip file, which
-        must be downloaded in order to virtualize its contents. It performs this fetch
-        in the same operation along with resolving the content length as an attempted
-        optimization, in order to avoid a separate HEAD request against hosts which
-        support negative byte ranges.
+        This method is called within ``__enter__``. In an attempt to reduce
+        the total number of requests needed to populate this lazy file's contents, this
+        method will also attempt to fetch a chunk of the file's actual content. This
+        chunk will be ``self._initial_chunk_length()`` bytes in size, or just the remote
+        file's length if that's smaller, and the chunk will come from the *end* of
+        the file.
 
         This method will first attempt to download with a negative byte range request,
-        i.e. a GET with the headers ``Range: bytes=-N`` for some positive integer ``N``.
-        If negative offsets are unsupported, it will instead fall back to making a HEAD
-        request first to extract the length, followed by a GET request with
-        a double-ended range header ``Range: bytes=M-N`` to extract the final ``N``
-        bytes from the remote resource.
-
-        NB: After parsing the remote file length, this method will truncate the
-        underlying file from ``ReadOnlyIOWrapper`` to that size in order to support seek
-        operations against ``io.SEEK_END`` when writing out that initial chunk.
+        i.e. a GET with the headers ``Range: bytes=-N`` for ``N`` equal to
+        ``self._initial_chunk_length()``. If negative offsets are unsupported, it will
+        instead fall back to making a HEAD request first to extract the length, followed
+        by a GET request with the double-ended range header ``Range: bytes=X-Y`` to
+        extract the final ``N`` bytes from the remote resource.
         """
         initial_chunk_size = self._initial_chunk_length()
         ret_length, tail = self._extract_content_length(initial_chunk_size)
+
+        # Need to explicitly truncate here in order to perform the write and seek
+        # operations below when we write the chunk of file contents to disk.
         self.truncate(ret_length)
+
         if tail is None:
             # If we could not download any file contents yet (e.g. if negative byte
             # ranges were not supported, or the requested range was larger than the file
@@ -437,42 +577,6 @@ class LazyWheelOverHTTP(LazyRemoteResource):
                     )
                 )
         return ret_length
-
-    def fetch_content_range(self, start: int, end: int) -> Iterator[bytes]:
-        for chunk in self._stream_response(start, end).iter_content(CONTENT_CHUNK_SIZE):
-            yield chunk
-
-    # This override is needed for mypy so we can call .prefetch_contiguous_dist_info()
-    # within a `with` block.
-    def __enter__(self) -> LazyWheelOverHTTP:
-        """Fetch the remote file length and reset the log of downloaded intervals.
-
-        This method must be called before ``.read()`` or
-        ``.prefetch_contiguous_dist_info()``.
-        """
-        super().__enter__()
-        return self
-
-    def __exit__(self, *exc: Any) -> None:
-        """Logs request count to quickly identify any pathological cases in log data."""
-        logger.debug("%d requests for url %s", self._request_count, self._url)
-        super().__exit__(*exc)
-
-    def _content_length_from_head(self) -> int:
-        """Performs a HEAD request to extract the Content-Length.
-
-        :raises HTTPRangeRequestUnsupported: if the response fails to indicate support
-                                             for "bytes" ranges."""
-        self._request_count += 1
-        head = self._session.head(self._url, headers=self._uncached_headers())
-        head.raise_for_status()
-        assert head.status_code == codes.ok
-        accepted_range = head.headers.get("Accept-Ranges", None)
-        if accepted_range != "bytes":
-            raise HTTPRangeRequestUnsupported(
-                f"server does not support byte ranges: header was '{accepted_range}'"
-            )
-        return int(head.headers["Content-Length"])
 
     @staticmethod
     def _parse_full_length_from_content_range(arg: str) -> int:
@@ -555,57 +659,6 @@ class LazyWheelOverHTTP(LazyRemoteResource):
             # also fail, so we error out here and let the user figure it out.
             raise
 
-    def _stream_response(self, start: int, end: int) -> Response:
-        """Return streaming HTTP response to a range request from start to end."""
-        headers = self._uncached_headers()
-        headers["Range"] = f"bytes={start}-{end}"
-        logger.debug("streamed bytes request: %s", headers["Range"])
-        self._request_count += 1
-        response = self._session.get(self._url, headers=headers, stream=True)
-        response.raise_for_status()
-        assert int(response.headers["Content-Length"]) == (end - start + 1)
-        return response
-
-    @classmethod
-    def _uncached_headers(cls) -> dict[str, str]:
-        """HTTP headers to bypass any HTTP caching.
-
-        The requests we perform in this file are intentionally small, and any caching
-        should be done at a higher level e.g. https://github.com/pypa/pip/issues/12184.
-        """
-        # "no-cache" is the correct value for "up to date every time", so this will also
-        # ensure we get the most recent value from the server:
-        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching#provide_up-to-date_content_every_time
-        return {**HEADERS, "Cache-Control": "no-cache"}
-
-    # TODO: consider making this a CLI flag/env var?
-    @classmethod
-    def _initial_chunk_length(cls) -> int:
-        """Return the size of the chunk (in bytes) to download from the end of the file.
-
-        This method is called in ``self._fetch_content_length()``. As noted in that
-        method's docstring, this should be set high enough to cover the central
-        directory sizes of the *largest* wheels you expect to see, in order to avoid
-        further requests before being able to process the zip file's contents at all. If
-        the chunk size from this method is larger than the size of an entire wheel, that
-        may raise an HTTP error, but this is gracefully handled in
-        ``self._fetch_content_length()`` with an extremely small performance penalty.
-
-        The other reason to set this to a very high value is to attempt to pull in the
-        ``*.dist-info/`` directory's file contents along with the central directory
-        record as part of that single initial request, because those files are almost
-        always at the end of the zip file. This means that the entire lazy wheel
-        strategy can be executed for most wheels with a single ranged GET request, and
-        ``self.prefetch_contiguous_dist_info()`` becomes a no-op.
-        """
-        # The central directory for
-        # tensorflow_gpu-2.5.3-cp38-cp38-manylinux2010_x86_64.whl is 944931 bytes, for
-        # a 459424488 byte file (about 486x as large), so 1MB will always download the
-        # entire central directory. However, this particular tensorflow release also has
-        # the peculiar property of putting its dist-info dir at the *front* of the zip,
-        # so it will still require a separate request.
-        return 1_000_000
-
     def prefetch_contiguous_dist_info(self, name: str) -> None:
         """Read contents of entire dist-info section of wheel.
 
@@ -615,10 +668,10 @@ class LazyWheelOverHTTP(LazyRemoteResource):
         """
         # Clarify in debug output which requests were sent during __init__, which during
         # the prefetch, and which during the dist metadata generation.
+        logger.debug("begin prefetching dist-info for %s", name)
         with indent_log():
-            logger.debug("begin prefetching dist-info for %s", name)
             self._prefetch_contiguous_dist_info(name)
-            logger.debug("done prefetching dist-info for %s", name)
+        logger.debug("done prefetching dist-info for %s", name)
 
     def _prefetch_contiguous_dist_info(self, name: str) -> None:
         """Locate the *.dist-info/ entries from a temporary ``ZipFile`` wrapper, and
