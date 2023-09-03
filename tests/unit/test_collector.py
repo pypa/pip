@@ -4,7 +4,6 @@ import itertools
 import json
 import logging
 import os
-import re
 import uuid
 from pathlib import Path
 from textwrap import dedent
@@ -670,55 +669,6 @@ def test_parse_links__metadata_file_data(
 ) -> None:
     link = _test_parse_links_data_attribute(anchor_html, "metadata_file_data", expected)
     assert link._hashes == hashes
-
-
-def test_parse_links_caches_same_page_by_url() -> None:
-    raise Exception("todo!")
-    html = (
-        "<!DOCTYPE html>"
-        '<html><head><meta charset="utf-8"><head>'
-        '<body><a href="/pkg1-1.0.tar.gz"></a></body></html>'
-    )
-    html_bytes = html.encode("utf-8")
-
-    url = "https://example.com/simple/"
-
-    page_1 = IndexContent(
-        html_bytes,
-        "text/html",
-        encoding=None,
-        url=url,
-    )
-    # Make a second page with zero content, to ensure that it's not accessed,
-    # because the page was cached by url.
-    page_2 = IndexContent(
-        b"",
-        "text/html",
-        encoding=None,
-        url=url,
-    )
-    # Make a third page which represents an index url, which should not be
-    # cached, even for the same url. We modify the page content slightly to
-    # verify that the result is not cached.
-    page_3 = IndexContent(
-        re.sub(b"pkg1", b"pkg2", html_bytes),
-        "text/html",
-        encoding=None,
-        url=url,
-        # cache_link_parsing=False,
-    )
-
-    parsed_links_1 = list(parse_links(page_1))
-    assert len(parsed_links_1) == 1
-    assert "pkg1" in parsed_links_1[0].url
-
-    parsed_links_2 = list(parse_links(page_2))
-    assert parsed_links_2 == parsed_links_1
-
-    parsed_links_3 = list(parse_links(page_3))
-    assert len(parsed_links_3) == 1
-    assert parsed_links_3 != parsed_links_1
-    assert "pkg2" in parsed_links_3[0].url
 
 
 @mock.patch("pip._internal.index.collector.raise_for_status")

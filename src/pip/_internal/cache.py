@@ -10,6 +10,7 @@ import os
 import re
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 from pip._vendor.packaging.tags import Tag, interpreter_name, interpreter_version
 from pip._vendor.packaging.utils import canonicalize_name
@@ -147,6 +148,15 @@ class LinkMetadataCache(Cache):
         return os.path.join(self.cache_dir, "link-metadata", *parts)
 
 
+class SerializableEntry(abc.ABC):
+    @classmethod
+    @abc.abstractmethod
+    def suffix(cls) -> str: ...
+
+    @abc.abstractmethod
+    def serialize(self) -> dict[str, Any]: ...
+
+
 class FetchResolveCache(Cache):
     def get_path_for_link(self, link: Link) -> str:
         # We are reading index links to extract other links from, not executing any
@@ -154,6 +164,19 @@ class FetchResolveCache(Cache):
         parts = self._get_cache_path_parts(link, interpreter_dependent=False)
         assert self.cache_dir
         return os.path.join(self.cache_dir, "fetch-resolve", *parts)
+
+    def hashed_entry_path(self, link: Link, entry: SerializableEntry) -> Path:
+        hashed = _hash_dict(entry.serialize())
+        return self.cache_path(link) / f"{hashed}{entry.suffix()}"
+
+    def clear_hashed_entries(
+        self, link: Link, entry_type: type[SerializableEntry]
+    ) -> None:
+        for hashed_entry in self.cache_path(link).glob(f"*{entry_type.suffix()}"):
+            logger.debug(
+                "unlinking invalidated hashed link eval cache entry %s", hashed_entry
+            )
+            hashed_entry.unlink()
 
 
 class WheelCacheBase(Cache):

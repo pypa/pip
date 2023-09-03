@@ -317,10 +317,8 @@ def test_finder_priority_file_over_page(data: TestData) -> None:
         find_links=[data.find_links],
         index_urls=["http://pypi.org/simple/"],
     )
-    name = req.name
-    assert name == "gmpy"
-
-    all_versions = finder.find_all_candidates(name)
+    assert req.name == "gmpy"
+    all_versions = finder.find_all_candidates(req.name)
     # 1 file InstallationCandidate followed by all https ones
     assert all_versions[0].link.scheme == "file"
     assert all(
@@ -336,11 +334,10 @@ def test_finder_priority_nonegg_over_eggfragments() -> None:
     """Test PackageFinder prefers non-egg links over "#egg=" links"""
     req = install_req_from_line("bar==1.0")
     links = ["http://foo/bar.py#egg=bar-1.0", "http://foo/bar-1.0.tar.gz"]
-    name = req.name
-    assert name == "bar"
+    assert req.name == "bar"
 
     finder = make_test_finder(links)
-    all_versions = finder.find_all_candidates(name)
+    all_versions = finder.find_all_candidates(req.name)
     assert all_versions[0].link.url.endswith("tar.gz")
     assert all_versions[1].link.url.endswith("#egg=bar-1.0")
 
@@ -352,7 +349,7 @@ def test_finder_priority_nonegg_over_eggfragments() -> None:
     links.reverse()
 
     finder = make_test_finder(links)
-    all_versions = finder.find_all_candidates(name)
+    all_versions = finder.find_all_candidates(req.name)
     assert all_versions[0].link.url.endswith("tar.gz")
     assert all_versions[1].link.url.endswith("#egg=bar-1.0")
     found = finder.find_requirement(req, False)
@@ -552,6 +549,17 @@ def test_find_all_candidates_nothing() -> None:
     """Find nothing without anything"""
     finder = make_test_finder()
     assert not finder.find_all_candidates("pip")
+
+
+def test_find_all_candidates_cached(data: TestData) -> None:
+    """Ensure the exact same list of candidates is returned when called twice for the
+    same project name."""
+    finder = make_test_finder(find_links=[data.find_links])
+    versions = finder.find_all_candidates("simple")
+    # Check that the exact same list is reused for a second call.
+    assert versions is finder.find_all_candidates("simple")
+    # Check that the project name is canonicalized before caching.
+    assert versions is finder.find_all_candidates("Simple")
 
 
 def test_find_all_candidates_find_links(data: TestData) -> None:

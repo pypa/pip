@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import binascii
+import bz2
 import datetime
 import enum
 import functools
 import itertools
+import json
 import logging
 import os
 import re
@@ -17,6 +19,8 @@ from hashlib import sha256
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
+    Any,
+    Callable,
 )
 
 from pip._vendor.packaging import specifiers
@@ -25,7 +29,7 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import InvalidVersion, _BaseVersion
 from pip._vendor.packaging.version import parse as parse_version
 
-from pip._internal.cache import FetchResolveCache
+from pip._internal.cache import FetchResolveCache, SerializableEntry
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled,
     DistributionNotFound,
@@ -35,7 +39,7 @@ from pip._internal.exceptions import (
 from pip._internal.index.collector import IndexContent, LinkCollector, parse_links
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.format_control import FormatControl
-from pip._internal.models.link import Link
+from pip._internal.models.link import Link, PersistentLinkCacheArgs
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
@@ -118,12 +122,27 @@ class LinkType(enum.Enum):
     requires_python_mismatch = enum.auto()
 
 
-class LinkEvaluator:
+class LinkEvaluator(SerializableEntry):
     """
     Responsible for evaluating links for a particular project.
     """
 
     _py_version_re = re.compile(r"-py([123]\.?[0-9]?)$")
+
+    @classmethod
+    def suffix(cls) -> str:
+        return ".evaluation"
+
+    def serialize(self) -> dict[str, Any]:
+        return {
+            "project_name": self.project_name,
+            "canonical_name": self._canonical_name,
+            # Sort these for determinism.
+            "formats": sorted(self._formats),
+            "target_python": self._target_python.format_given(),
+            "allow_yanked": self._allow_yanked,
+            "ignore_requires_python": self._ignore_requires_python,
+        }
 
     # Don't include an allow_yanked default value to make sure each call
     # site considers whether yanked releases are allowed. This also causes
@@ -583,6 +602,17 @@ class CandidateEvaluator:
         )
 
 
+_FindCandidates = Callable[["PackageFinder", str], list[InstallationCandidate]]
+
+
+def _canonicalize_arg(func: _FindCandidates) -> _FindCandidates:
+    @functools.wraps(func)
+    def wrapper(self: PackageFinder, project_name: str) -> list[InstallationCandidate]:
+        return func(self, canonicalize_name(project_name))
+
+    return wrapper
+
+
 class PackageFinder:
     """This finds packages.
 
@@ -968,6 +998,91 @@ class PackageFinder:
 
         return (new_etag, new_date, new_checksum, page_unmodified)
 
+    @staticmethod
+    def _try_load_parsed_links_cache(parsed_links_path: Path) -> list[Link] | None:
+        page_links: list[Link] | None = None
+        try:
+            with bz2.open(parsed_links_path, mode="rt", encoding="utf-8") as f:
+                logger.debug("reading page links from cache %s", parsed_links_path)
+                cached_links = json.load(f)
+                page_links = []
+                for cache_info in cached_links:
+                    link = Link.from_cache_args(
+                        PersistentLinkCacheArgs.from_json(cache_info)
+                    )
+                    assert link is not None
+                    page_links.append(link)
+        except (OSError, json.decoder.JSONDecodeError, KeyError) as e:
+            logger.debug(
+                "could not read page links from cache file %s %s(%s)",
+                parsed_links_path,
+                e.__class__.__name__,
+                str(e),
+            )
+        return page_links
+
+    @staticmethod
+    def _write_parsed_links_cache(
+        parsed_links_path: Path, links: Iterable[Link]
+    ) -> list[Link]:
+        cacheable_links: list[dict[str, Any]] = []
+        page_links: list[Link] = []
+        for link in links:
+            cache_info = link.cache_args()
+            assert cache_info is not None
+            cacheable_links.append(cache_info.to_json())
+            page_links.append(link)
+
+        logger.debug("writing page links to %s", parsed_links_path)
+        with bz2.open(parsed_links_path, mode="wt", encoding="utf-8") as f:
+            json.dump(cacheable_links, f)
+
+        return page_links
+
+    @staticmethod
+    def _try_load_installation_candidate_cache(
+        cached_candidates_path: Path,
+    ) -> list[InstallationCandidate] | None:
+        try:
+            with bz2.open(cached_candidates_path, mode="rt", encoding="utf-8") as f:
+                serialized_candidates = json.load(f)
+            logger.debug("read serialized candidates from %s", cached_candidates_path)
+            package_links: list[InstallationCandidate] = []
+            for cand in serialized_candidates:
+                link_cache_args = PersistentLinkCacheArgs.from_json(cand["link"])
+                link = Link.from_cache_args(link_cache_args)
+                package_links.append(
+                    InstallationCandidate(cand["name"], cand["version"], link)
+                )
+            return package_links
+        except (OSError, json.decoder.JSONDecodeError, KeyError) as e:
+            logger.debug(
+                "could not read cached candidates at %s %s(%s)",
+                cached_candidates_path,
+                e.__class__.__name__,
+                str(e),
+            )
+        return None
+
+    @staticmethod
+    def _write_installation_candidate_cache(
+        cached_candidates_path: Path,
+        candidates: Iterable[InstallationCandidate],
+    ) -> list[InstallationCandidate]:
+        candidates = list(candidates)
+        serialized_candidates = [
+            {
+                "name": candidate.name,
+                "version": str(candidate.version),
+                "link": candidate.link.cache_args().to_json(),
+            }
+            for candidate in candidates
+        ]
+        with bz2.open(cached_candidates_path, mode="wt", encoding="utf-8") as f:
+            logger.debug("writing serialized candidates to %s", cached_candidates_path)
+            json.dump(serialized_candidates, f)
+        return candidates
+
     def _process_project_url_uncached(
         self, project_url: Link, link_evaluator: LinkEvaluator
     ) -> list[InstallationCandidate]:
@@ -998,6 +1113,10 @@ class PackageFinder:
         etag_path = cached_path / "etag"
         date_path = cached_path / "modified-since-date"
         checksum_path = cached_path / "checksum"
+        parsed_links_path = cached_path / "parsed-links"
+        cached_candidates_path = self._fetch_resolve_cache.hashed_entry_path(
+            project_url, link_evaluator
+        )
 
         headers: dict[str, str] = {
             # Wipe any other Cache-Control headers away--we are explicitly managing the
@@ -1038,16 +1157,46 @@ class PackageFinder:
             prev_checksum=prev_checksum,
         )
 
-        page_links = parse_links(index_response)
+        page_links: list[Link] | None = None
+        # Only try our persistent link parsing and evaluation caches if we know the page
+        # was unmodified via checksum.
+        if page_unmodified:
+            cached_candidates = self._try_load_installation_candidate_cache(
+                cached_candidates_path
+            )
+            if cached_candidates is not None:
+                return cached_candidates
+
+            page_links = self._try_load_parsed_links_cache(parsed_links_path)
+        else:
+            try:
+                parsed_links_path.unlink()
+            except OSError:
+                pass
+            self._fetch_resolve_cache.clear_hashed_entries(project_url, LinkEvaluator)
+
+        if page_links is None:
+            logger.debug(
+                "extracting new parsed links from index response %s", index_response
+            )
+            page_links = self._write_parsed_links_cache(
+                parsed_links_path,
+                parse_links(index_response),
+            )
 
         with indent_log():
-            package_links = self.evaluate_links(
-                link_evaluator,
-                links=page_links,
+            package_links = self._write_installation_candidate_cache(
+                cached_candidates_path,
+                self.evaluate_links(
+                    link_evaluator,
+                    links=page_links,
+                ),
             )
 
         return package_links
 
+    @_canonicalize_arg
+    @functools.cache
     def find_all_candidates(self, project_name: str) -> list[InstallationCandidate]:
         """Find all available InstallationCandidate for project_name
 
