@@ -190,7 +190,6 @@ class Link(KeyBasedCompareMixin):
         "requires_python",
         "yanked_reason",
         "metadata_file_data",
-        "cache_link_parsing",
         "egg_fragment",
     ]
 
@@ -201,7 +200,6 @@ class Link(KeyBasedCompareMixin):
         requires_python: Optional[str] = None,
         yanked_reason: Optional[str] = None,
         metadata_file_data: Optional[MetadataFile] = None,
-        cache_link_parsing: bool = True,
         hashes: Optional[Mapping[str, str]] = None,
     ) -> None:
         """
@@ -222,9 +220,6 @@ class Link(KeyBasedCompareMixin):
             no such metadata is provided. This argument, if not None, indicates
             that a separate metadata file exists, and also optionally supplies
             hashes for that file.
-        :param cache_link_parsing: A flag that is used elsewhere to determine
-            whether resources retrieved from this link should be cached. PyPI
-            URLs should generally have this set to False, for example.
         :param hashes: A mapping of hash names to digests to allow us to
             determine the validity of a download.
         """
@@ -256,7 +251,6 @@ class Link(KeyBasedCompareMixin):
 
         super().__init__(key=url, defining_class=Link)
 
-        self.cache_link_parsing = cache_link_parsing
         self.egg_fragment = self._egg_fragment()
 
     @classmethod

@@ -4,7 +4,6 @@ The main purpose of this module is to expose LinkCollector.collect_sources().
 
 import collections
 import email.message
-import functools
 import itertools
 import json
 import logging
@@ -196,44 +195,6 @@ def _get_encoding_from_headers(headers: ResponseHeaders) -> Optional[str]:
     return None
 
 
-class CacheablePageContent:
-    def __init__(self, page: "IndexContent") -> None:
-        assert page.cache_link_parsing
-        self.page = page
-
-    def __eq__(self, other: object) -> bool:
-        return isinstance(other, type(self)) and self.page.url == other.page.url
-
-    def __hash__(self) -> int:
-        return hash(self.page.url)
-
-
-class ParseLinks(Protocol):
-    def __call__(self, page: "IndexContent") -> Iterable[Link]:
-        ...
-
-
-def with_cached_index_content(fn: ParseLinks) -> ParseLinks:
-    """
-    Given a function that parses an Iterable[Link] from an IndexContent, cache the
-    function's result (keyed by CacheablePageContent), unless the IndexContent
-    `page` has `page.cache_link_parsing == False`.
-    """
-
-    @functools.lru_cache(maxsize=None)
-    def wrapper(cacheable_page: CacheablePageContent) -> List[Link]:
-        return list(fn(cacheable_page.page))
-
-    @functools.wraps(fn)
-    def wrapper_wrapper(page: "IndexContent") -> List[Link]:
-        if page.cache_link_parsing:
-            return wrapper(CacheablePageContent(page))
-        return list(fn(page))
-
-    return wrapper_wrapper
-
-
-@with_cached_index_content
 def parse_links(page: "IndexContent") -> Iterable[Link]:
     """
     Parse a Simple API's Index Content, and yield its anchor elements as Link objects.
@@ -273,7 +234,6 @@ class IndexContent:
         content_type: str,
         encoding: Optional[str],
         url: str,
-        cache_link_parsing: bool = True,
         etag: Optional[str] = None,
         date: Optional[str] = None,
     ) -> None:
@@ -290,7 +250,6 @@ class IndexContent:
         self.content_type = content_type
         self.encoding = encoding
         self.url = url
-        self.cache_link_parsing = cache_link_parsing
         self.etag = etag
         self.date = date
 
@@ -346,7 +305,6 @@ def _make_index_content(
         response.headers["Content-Type"],
         encoding=encoding,
         url=response.url,
-        cache_link_parsing=cache_link_parsing,
         etag=response.headers.get("ETag", None),
         date=response.headers.get("Date", None),
     )
@@ -409,7 +367,7 @@ def _get_index_content(
     except requests.Timeout:
         _handle_get_simple_fail(link, "timed out")
     else:
-        return _make_index_content(resp, cache_link_parsing=link.cache_link_parsing)
+        return _make_index_content(resp)
     return None
 
 
@@ -494,7 +452,6 @@ class LinkCollector:
                 candidates_from_page=candidates_from_page,
                 page_validator=self.session.is_secure_origin,
                 expand_dir=False,
-                cache_link_parsing=False,
             )
             for loc in self.search_scope.get_index_urls_locations(project_name)
         ).values()
@@ -504,7 +461,6 @@ class LinkCollector:
                 candidates_from_page=candidates_from_page,
                 page_validator=self.session.is_secure_origin,
                 expand_dir=True,
-                cache_link_parsing=True,
             )
             for loc in self.find_links
         ).values()
