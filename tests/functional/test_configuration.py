@@ -1,5 +1,6 @@
 """Tests for the config command
 """
+import os
 import re
 import textwrap
 
@@ -147,3 +148,37 @@ class TestBasicLoading(ConfigurationMixin):
             "config", "edit", "--editor", "notrealeditor", expect_error=True
         )
         assert "notrealeditor" in result.stderr
+
+    def test_config_separated(
+        self, script: PipTestEnvironment, virtualenv: VirtualEnvironment
+    ) -> None:
+        """Test that the pip configuration values in the different config sections
+        are correctly assigned to their origin files.
+        """
+
+        # Use new config file
+        new_config_file = get_configuration_files()[kinds.USER][1]
+
+        # Get legacy config file and touch it for testing purposes
+        legacy_config_file = get_configuration_files()[kinds.USER][0]
+        os.makedirs(legacy_config_file.rsplit("/", 1)[0])
+        open(legacy_config_file, "a").close()
+
+        # Site config file
+        site_config_file = virtualenv.location / CONFIG_BASENAME
+
+        script.pip("config", "--user", "set", "global.timeout", "60")
+        script.pip("config", "--site", "set", "freeze.timeout", "10")
+
+        result = script.pip("config", "debug")
+
+        assert (
+            f"{site_config_file}, exists: True\n    freeze.timeout: 10" in result.stdout
+        )
+        assert (
+            f"{new_config_file}, exists: True\n    global.timeout: 60" in result.stdout
+        )
+        assert re.search(
+            rf"{legacy_config_file}, exists: True\n(  {new_config_file}.+\n)+",
+            result.stdout,
+        )
