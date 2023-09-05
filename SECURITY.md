@@ -1,13 +1,5 @@
 # Security Policy
 
-## Supported Versions
-
-The pip team applies security fixes to the latest version of pip [available on PyPI](https://pypi.org/project/pip/)
-and doesn't backport security fixes to previous versions.
-
-The pip team doesn't apply security fixes to pip distributions maintained by third-party redistributors.
-Please contact your corresponding distribution security team for more information.
-
 ## Reporting a Vulnerability
 
 Please read the guidelines on reporting security issues [on the
