@@ -8,4 +8,3 @@ instructions on how to report a security-related problem to
 the Python Security Response Team responsibly.
 
 To reach the response team, email `security at python dot org`.
-
