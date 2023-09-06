@@ -257,9 +257,13 @@ def test_rmtree_errorhandler_reraises_error(tmpdir: Path) -> None:
     except RuntimeError:
         # Make sure the handler reraises an exception
         with pytest.raises(RuntimeError, match="test message"):
-            # Argument 3 to "rmtree_errorhandler" has incompatible type "None"; expected
-            # "Tuple[Type[BaseException], BaseException, TracebackType]"
-            rmtree_errorhandler(mock_func, path, None)  # type: ignore[arg-type]
+            # Argument 3 to "rmtree_errorhandler" has incompatible type
+            # "Union[Tuple[Type[BaseException], BaseException, TracebackType],
+            # Tuple[None, None, None]]"; expected "Tuple[Type[BaseException],
+            # BaseException, TracebackType]"
+            rmtree_errorhandler(
+                mock_func, path, sys.exc_info()  # type: ignore[arg-type]
+            )
 
     mock_func.assert_not_called()
 
