@@ -96,18 +96,19 @@ class CacheCommand(Command):
         http_cache_location = self._cache_dir(options, "http-v2")
         old_http_cache_location = self._cache_dir(options, "http")
         wheels_cache_location = self._cache_dir(options, "wheels")
-        http_cache_size = filesystem.format_directory_size(http_cache_location)
-        old_http_cache_size = filesystem.format_directory_size(old_http_cache_location)
+        http_cache_size = (
+            filesystem.format_directory_size(http_cache_location) +
+            filesystem.format_directory_size(old_http_cache_location)
+        )
         wheels_cache_size = filesystem.format_directory_size(wheels_cache_location)
 
         message = (
             textwrap.dedent(
                 """
-                    Package index page cache location (new): {http_cache_location}
-                    Package index page cache location (old): {old_http_cache_location}
-                    Package index page cache size (new): {http_cache_size}
-                    Package index page cache size (old): {old_http_cache_size}
-                    Number of HTTP files (old+new cache): {num_http_files}
+                    Package index page cache location (pip v23.3+): {http_cache_location}
+                    Package index page cache location (older pips): {old_http_cache_location}
+                    Package index page cache size: {http_cache_size}
+                    Number of HTTP files: {num_http_files}
                     Locally built wheels location: {wheels_cache_location}
                     Locally built wheels size: {wheels_cache_size}
                     Number of locally built wheels: {package_count}
@@ -117,7 +118,6 @@ class CacheCommand(Command):
                 http_cache_location=http_cache_location,
                 old_http_cache_location=old_http_cache_location,
                 http_cache_size=http_cache_size,
-                old_http_cache_size=old_http_cache_size,
                 num_http_files=num_http_files,
                 wheels_cache_location=wheels_cache_location,
                 package_count=num_packages,
