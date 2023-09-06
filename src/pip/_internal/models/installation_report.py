@@ -36,7 +36,7 @@ class InstallationReport:
         }
         if ireq.user_supplied and ireq.extras:
             # For top level requirements, the list of requested extras, if any.
-            res["requested_extras"] = list(sorted(ireq.extras))
+            res["requested_extras"] = sorted(ireq.extras)
         return res
 
     def to_dict(self) -> Dict[str, Any]:

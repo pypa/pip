@@ -36,10 +36,7 @@ def http_cache_files(http_cache_dir: str) -> List[str]:
         return []
 
     filenames = glob(os.path.join(destination, "*"))
-    files = []
-    for filename in filenames:
-        files.append(os.path.join(destination, filename))
-    return files
+    return [os.path.join(destination, filename) for filename in filenames]
 
 
 @pytest.fixture
@@ -50,10 +47,7 @@ def wheel_cache_files(wheel_cache_dir: str) -> List[str]:
         return []
 
     filenames = glob(os.path.join(destination, "*.whl"))
-    files = []
-    for filename in filenames:
-        files.append(os.path.join(destination, filename))
-    return files
+    return [os.path.join(destination, filename) for filename in filenames]
 
 
 @pytest.fixture
@@ -107,7 +101,7 @@ def list_matches_wheel(wheel_name: str, result: TestPipResult) -> bool:
           `- foo-1.2.3-py3-none-any.whl `."""
     lines = result.stdout.splitlines()
     expected = f" - {wheel_name}-py3-none-any.whl "
-    return any(map(lambda line: line.startswith(expected), lines))
+    return any(line.startswith(expected) for line in lines)
 
 
 def list_matches_wheel_abspath(wheel_name: str, result: TestPipResult) -> bool:
@@ -120,11 +114,9 @@ def list_matches_wheel_abspath(wheel_name: str, result: TestPipResult) -> bool:
     lines = result.stdout.splitlines()
     expected = f"{wheel_name}-py3-none-any.whl"
     return any(
-        map(
-            lambda line: (
-                os.path.basename(line).startswith(expected) and os.path.exists(line)
-            ),
-            lines,
+        (
+            (os.path.basename(line).startswith(expected) and os.path.exists(line))
+            for line in lines
         )
     )
 
