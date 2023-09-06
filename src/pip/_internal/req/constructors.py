@@ -71,10 +71,10 @@ def _set_requirement_extras(req: Requirement, new_extras: Set[str]) -> Requireme
         flags=re.ASCII,
     )
     # ireq.req is a valid requirement so the regex should always match
-    assert match is not None
+    assert match is not None, f"regex match on requirement {req} failed, this should never happen"
     pre: Optional[str] = match.group(1)
     post: Optional[str] = match.group(3)
-    assert pre is not None and post is not None
+    assert pre is not None and post is not None, f"regex group selection for requirement {req} failed, this should never happen"
     extras: str = "[%s]" % ",".join(sorted(new_extras)) if new_extras else ""
     return Requirement(f"{pre}{extras}{post}")
 
