@@ -191,7 +191,7 @@ class ConfigOptionParser(CustomOptionParser):
                 # ignore empty values
                 if not value:
                     logger.debug(
-                        "Ignoring configuration key '%s' as it's value is empty.",
+                        "Ignoring configuration key '%s' as its value is empty.",
                         key,
                     )
                     continue
@@ -204,7 +204,7 @@ class ConfigOptionParser(CustomOptionParser):
                     # ignore empty values
                     if not val:
                         logger.debug(
-                            "Ignoring configuration key '%s' as it's value is empty.",
+                            "Ignoring configuration key '%s' as its value is empty.",
                             section_key,
                         )
                         continue

@@ -111,6 +111,9 @@ class TestBasicLoading(ConfigurationMixin):
         assert "freeze.timeout: 10" in result.stdout
         assert re.search(r"user:\n(  .+\n)+", result.stdout)
 
+        # Avoid state leaking for tests re-using the new config file
+        os.remove(new_config_file)
+
     def test_site_values(
         self, script: PipTestEnvironment, virtualenv: VirtualEnvironment
     ) -> None:
@@ -161,7 +164,7 @@ class TestBasicLoading(ConfigurationMixin):
 
         # Get legacy config file and touch it for testing purposes
         legacy_config_file = get_configuration_files()[kinds.USER][0]
-        os.makedirs(legacy_config_file.rsplit("/", 1)[0])
+        os.makedirs(os.path.dirname(legacy_config_file))
         open(legacy_config_file, "a").close()
 
         # Site config file
