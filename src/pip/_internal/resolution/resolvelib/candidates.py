@@ -427,10 +427,11 @@ class ExtrasCandidate(Candidate):
         self,
         base: BaseCandidate,
         extras: FrozenSet[str],
-        ireq: Optional[InstallRequirement] = None,
+        *,
+        comes_from: Optional[InstallRequirement] = None,
     ) -> None:
         """
-        :param ireq: the InstallRequirement that led to this candidate, if it
+        :param ireq: the InstallRequirement that led to this candidate if it
             differs from the base's InstallRequirement. This will often be the
             case in the sense that this candidate's requirement has the extras
             while the base's does not. Unlike the InstallRequirement backed
@@ -439,7 +440,7 @@ class ExtrasCandidate(Candidate):
         """
         self.base = base
         self.extras = extras
-        self._ireq = ireq
+        self._comes_from = comes_from if comes_from is not None else self.base._ireq
 
     def __str__(self) -> str:
         name, rest = str(self.base).split(" ", 1)
@@ -514,7 +515,7 @@ class ExtrasCandidate(Candidate):
         for r in self.base.dist.iter_dependencies(valid_extras):
             yield from factory.make_requirements_from_spec(
                 str(r),
-                self._ireq if self._ireq is not None else self.base._ireq,
+                self._comes_from,
                 valid_extras,
             )
 

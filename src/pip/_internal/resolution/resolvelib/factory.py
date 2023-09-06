@@ -142,13 +142,14 @@ class Factory:
         self,
         base: BaseCandidate,
         extras: FrozenSet[str],
-        ireq: Optional[InstallRequirement] = None,
+        *,
+        comes_from: Optional[InstallRequirement] = None,
     ) -> ExtrasCandidate:
         cache_key = (id(base), extras)
         try:
             candidate = self._extras_candidate_cache[cache_key]
         except KeyError:
-            candidate = ExtrasCandidate(base, extras, ireq=ireq)
+            candidate = ExtrasCandidate(base, extras, comes_from=comes_from)
             self._extras_candidate_cache[cache_key] = candidate
         return candidate
 
@@ -165,7 +166,7 @@ class Factory:
             self._installed_candidate_cache[dist.canonical_name] = base
         if not extras:
             return base
-        return self._make_extras_candidate(base, extras, ireq=template)
+        return self._make_extras_candidate(base, extras, comes_from=template)
 
     def _make_candidate_from_link(
         self,
@@ -227,7 +228,7 @@ class Factory:
 
         if not extras:
             return base
-        return self._make_extras_candidate(base, extras, ireq=template)
+        return self._make_extras_candidate(base, extras, comes_from=template)
 
     def _iter_found_candidates(
         self,
