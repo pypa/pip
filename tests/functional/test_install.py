@@ -2541,6 +2541,40 @@ def test_install_pip_prints_req_chain_local(script: PipTestEnvironment) -> None:
     )
 
 
+def test_install_dist_restriction_without_target(script: PipTestEnvironment) -> None:
+    result = script.pip(
+        "install", "--python-version=3.1", "--only-binary=:all:", expect_error=True
+    )
+    assert (
+        "Can not use any platform or abi specific options unless installing "
+        "via '--target'" in result.stderr
+    ), str(result)
+
+
+def test_install_dist_restriction_dry_run_doesnt_require_target(
+    script: PipTestEnvironment,
+) -> None:
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+    )
+
+    result = script.pip(
+        "install",
+        "--python-version=3.1",
+        "--only-binary=:all:",
+        "--dry-run",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "base",
+    )
+
+    assert not result.stderr, str(result)
+
+
 @pytest.mark.network
 def test_install_pip_prints_req_chain_pypi(script: PipTestEnvironment) -> None:
     """

@@ -92,10 +92,10 @@ def check_dist_restriction(options: Values, check_target: bool = False) -> None:
         )
 
     if check_target:
-        if dist_restriction_set and not options.target_dir:
+        if not options.dry_run and dist_restriction_set and not options.target_dir:
             raise CommandError(
                 "Can not use any platform or abi specific options unless "
-                "installing via '--target'"
+                "installing via '--target' or using '--dry-run'"
             )
 
 
