@@ -76,7 +76,7 @@ def _set_requirement_extras(req: Requirement, new_extras: Set[str]) -> Requireme
     post: Optional[str] = match.group(3)
     assert pre is not None and post is not None
     extras: str = "[%s]" % ",".join(sorted(new_extras)) if new_extras else ""
-    return Requirement(pre + extras + post)
+    return Requirement(f"{pre}{extras}{post}")
 
 
 def parse_editable(editable_req: str) -> Tuple[Optional[str], str, Set[str]]:
