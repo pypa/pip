@@ -41,18 +41,9 @@ class ExplicitRequirement(Requirement):
 
 
 class SpecifierRequirement(Requirement):
-    def __init__(
-        self,
-        ireq: InstallRequirement,
-        *,
-        drop_extras: bool = False,
-    ) -> None:
-        """
-        :param drop_extras: Ignore any extras that are part of the install requirement,
-            making this a requirement on the base only.
-        """
+    def __init__(self, ireq: InstallRequirement) -> None:
         assert ireq.link is None, "This is a link, not a specifier"
-        self._ireq = ireq if not drop_extras else install_req_drop_extras(ireq)
+        self._ireq = ireq
         self._extras = frozenset(self._ireq.extras)
 
     def __str__(self) -> str:
@@ -100,6 +91,17 @@ class SpecifierRequirement(Requirement):
         assert self._ireq.req, "Specifier-backed ireq is always PEP 508"
         spec = self._ireq.req.specifier
         return spec.contains(candidate.version, prereleases=True)
+
+
+class SpecifierWithoutExtrasRequirement(SpecifierRequirement):
+    """
+    Requirement backed by an install requirement on a base package. Trims extras from its install requirement if there are any.
+    """
+
+    def __init__(self, ireq: InstallRequirement) -> None:
+        assert ireq.link is None, "This is a link, not a specifier"
+        self._ireq = install_req_drop_extras(ireq)
+        self._extras = frozenset(self._ireq.extras)
 
 
 class RequiresPythonRequirement(Requirement):
