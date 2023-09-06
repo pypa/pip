@@ -429,6 +429,7 @@ def test_new_resolver_requires_python_ok_with_python_version_flag(
         "--no-index",
         "--find-links",
         script.scratch_path,
+        "--dry-run",
         "--python-version=2",
         "--only-binary=:all:",
         "base",
