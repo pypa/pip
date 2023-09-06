@@ -4,10 +4,10 @@
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
 
-import logging
 import mimetypes
 import os
 import shutil
+from pathlib import Path
 from typing import Dict, Iterable, List, Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
@@ -21,7 +21,6 @@ from pip._internal.exceptions import (
     InstallationError,
     MetadataInconsistent,
     NetworkConnectionError,
-    PreviousBuildDirError,
     VcsHashUnsupported,
 )
 from pip._internal.index.package_finder import PackageFinder
@@ -37,6 +36,7 @@ from pip._internal.network.lazy_wheel import (
 from pip._internal.network.session import PipSession
 from pip._internal.operations.build.build_tracker import BuildTracker
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils._log import getLogger
 from pip._internal.utils.direct_url_helpers import (
     direct_url_for_editable,
     direct_url_from_link,
@@ -47,13 +47,12 @@ from pip._internal.utils.misc import (
     display_path,
     hash_file,
     hide_url,
-    is_installable_dir,
 )
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
 def _get_prepared_distribution(
@@ -65,10 +64,12 @@ def _get_prepared_distribution(
 ) -> BaseDistribution:
     """Prepare a distribution for installation."""
     abstract_dist = make_distribution_for_install_requirement(req)
-    with build_tracker.track(req):
-        abstract_dist.prepare_distribution_metadata(
-            finder, build_isolation, check_build_deps
-        )
+    tracker_id = abstract_dist.build_tracker_id
+    if tracker_id is not None:
+        with build_tracker.track(req, tracker_id):
+            abstract_dist.prepare_distribution_metadata(
+                finder, build_isolation, check_build_deps
+            )
     return abstract_dist.get_metadata_distribution()
 
 
@@ -226,6 +227,7 @@ class RequirementPreparer:
         use_user_site: bool,
         lazy_wheel: bool,
         verbosity: int,
+        legacy_resolver: bool,
     ) -> None:
         super().__init__()
 
@@ -258,6 +260,9 @@ class RequirementPreparer:
 
         # How verbose should underlying tooling be?
         self.verbosity = verbosity
+
+        # Are we using the legacy resolver?
+        self.legacy_resolver = legacy_resolver
 
         # Memoized downloaded files, as mapping of url: path.
         self._downloaded: Dict[str, str] = {}
@@ -313,21 +318,7 @@ class RequirementPreparer:
             autodelete=True,
             parallel_builds=parallel_builds,
         )
-
-        # If a checkout exists, it's unwise to keep going.  version
-        # inconsistencies are logged later, but do not fail the
-        # installation.
-        # FIXME: this won't upgrade when there's an existing
-        # package unpacked in `req.source_dir`
-        # TODO: this check is now probably dead code
-        if is_installable_dir(req.source_dir):
-            raise PreviousBuildDirError(
-                "pip can't proceed with requirements '{}' due to a"
-                "pre-existing build directory ({}). This is likely "
-                "due to a previous installation that failed . pip is "
-                "being responsible and not assuming it can delete this. "
-                "Please delete it and try again.".format(req, req.source_dir)
-            )
+        req.ensure_pristine_source_checkout()
 
     def _get_linked_req_hashes(self, req: InstallRequirement) -> Hashes:
         # By the time this is called, the requirement's link should have
@@ -365,6 +356,11 @@ class RequirementPreparer:
         self,
         req: InstallRequirement,
     ) -> Optional[BaseDistribution]:
+        if self.legacy_resolver:
+            logger.debug(
+                "Metadata-only fetching is not used in the legacy resolver",
+            )
+            return None
         if self.require_hashes:
             logger.debug(
                 "Metadata-only fetching is not used as hash checking is required",
@@ -385,7 +381,7 @@ class RequirementPreparer:
         if metadata_link is None:
             return None
         assert req.req is not None
-        logger.info(
+        logger.verbose(
             "Obtaining dependency information for %s from %s",
             req.req,
             metadata_link,
@@ -470,7 +466,19 @@ class RequirementPreparer:
         for link, (filepath, _) in batch_download:
             logger.debug("Downloading link %s to %s", link, filepath)
             req = links_to_fully_download[link]
+            # Record the downloaded file path so wheel reqs can extract a Distribution
+            # in .get_dist().
             req.local_file_path = filepath
+            # Record that the file is downloaded so we don't do it again in
+            # _prepare_linked_requirement().
+            self._downloaded[req.link.url] = filepath
+
+            # If this is an sdist, we need to unpack it after downloading, but the
+            # .source_dir won't be set up until we are in _prepare_linked_requirement().
+            # Add the downloaded archive to the install requirement to unpack after
+            # preparing the source dir.
+            if not req.is_wheel:
+                req.needs_unpacked_archive(Path(filepath))
 
         # This step is necessary to ensure all lazy wheels are processed
         # successfully by the 'download', 'wheel', and 'install' commands.

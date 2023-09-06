@@ -9,6 +9,69 @@
 
 .. towncrier release notes start
 
+23.2.1 (2023-07-22)
+===================
+
+Bug Fixes
+---------
+
+- Disable PEP 658 metadata fetching with the legacy resolver. (`#12156 <https://github.com/pypa/pip/issues/12156>`_)
+
+
+23.2 (2023-07-15)
+=================
+
+Process
+-------
+
+- Deprecate support for eggs for Python 3.11 or later, when the new ``importlib.metadata`` backend is used to load distribution metadata. This only affects the egg *distribution format* (with the ``.egg`` extension); distributions using the ``.egg-info`` *metadata format* (but are not actually eggs) are not affected. For more information about eggs, see `relevant section in the setuptools documentation <https://setuptools.pypa.io/en/stable/deprecated/python_eggs.html>`__.
+
+Deprecations and Removals
+-------------------------
+
+- Deprecate legacy version and version specifiers that don't conform to `PEP 440
+  <https://peps.python.org/pep-0440/>`_ (`#12063 <https://github.com/pypa/pip/issues/12063>`_)
+- ``freeze`` no longer excludes the ``setuptools``, ``distribute``, and ``wheel``
+  from the output when running on Python 3.12 or later, where they are not
+  included in a virtual environment by default. Use ``--exclude`` if you wish to
+  exclude any of these packages. (`#4256 <https://github.com/pypa/pip/issues/4256>`_)
+
+Features
+--------
+
+- make rejection messages slightly different between 1 and 8, so the user can make the difference. (`#12040 <https://github.com/pypa/pip/issues/12040>`_)
+
+Bug Fixes
+---------
+
+- Fix ``pip completion --zsh``. (`#11417 <https://github.com/pypa/pip/issues/11417>`_)
+- Prevent downloading files twice when PEP 658 metadata is present (`#11847 <https://github.com/pypa/pip/issues/11847>`_)
+- Add permission check before configuration (`#11920 <https://github.com/pypa/pip/issues/11920>`_)
+- Fix deprecation warnings in Python 3.12 for usage of shutil.rmtree (`#11957 <https://github.com/pypa/pip/issues/11957>`_)
+- Ignore invalid or unreadable ``origin.json`` files in the cache of locally built wheels. (`#11985 <https://github.com/pypa/pip/issues/11985>`_)
+- Fix installation of packages with PEP658 metadata using non-canonicalized names (`#12038 <https://github.com/pypa/pip/issues/12038>`_)
+- Correctly parse ``dist-info-metadata`` values from JSON-format index data. (`#12042 <https://github.com/pypa/pip/issues/12042>`_)
+- Fail with an error if the ``--python`` option is specified after the subcommand name. (`#12067 <https://github.com/pypa/pip/issues/12067>`_)
+- Fix slowness when using ``importlib.metadata`` (the default way for pip to read metadata in Python 3.11+) and there is a large overlap between already installed and to-be-installed packages. (`#12079 <https://github.com/pypa/pip/issues/12079>`_)
+- Pass the ``-r`` flag to mercurial to be explicit that a revision is passed and protect
+  against ``hg`` options injection as part of VCS URLs. Users that do not have control on
+  VCS URLs passed to pip are advised to upgrade. (`#12119 <https://github.com/pypa/pip/issues/12119>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade certifi to 2023.5.7
+- Upgrade platformdirs to 3.8.1
+- Upgrade pygments to 2.15.1
+- Upgrade pyparsing to 3.1.0
+- Upgrade Requests to 2.31.0
+- Upgrade rich to 13.4.2
+- Upgrade setuptools to 68.0.0
+- Updated typing_extensions to 4.6.0
+- Upgrade typing_extensions to 4.7.1
+- Upgrade urllib3 to 1.26.16
+
+
 23.1.2 (2023-04-26)
 ===================
 

@@ -105,7 +105,7 @@ def show_tags(options: Values) -> None:
     tag_limit = 10
 
     target_python = make_target_python(options)
-    tags = target_python.get_tags()
+    tags = target_python.get_sorted_tags()
 
     # Display the target options that were explicitly provided.
     formatted_target = target_python.format_given()
@@ -134,10 +134,9 @@ def show_tags(options: Values) -> None:
 
 
 def ca_bundle_info(config: Configuration) -> str:
-    levels = set()
-    for key, _ in config.items():
-        levels.add(key.split(".")[0])
-
+    # Ruff misidentifies config as a dict.
+    # Configuration does not have support the mapping interface.
+    levels = {key.split(".", 1)[0] for key, _ in config.items()}  # noqa: PERF102
     if not levels:
         return "Not specified"
 
