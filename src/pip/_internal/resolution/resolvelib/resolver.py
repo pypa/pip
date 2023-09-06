@@ -104,9 +104,13 @@ class Resolver(BaseResolver):
             raise error from e
 
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)
-        # process candidates with extras last to ensure their base equivalent is already in the req_set if appropriate
-        # Python's sort is stable so using a binary key function keeps relative order within both subsets
-        for candidate in sorted(result.mapping.values(), key=lambda c: c.name != c.project_name):
+        # process candidates with extras last to ensure their base equivalent is
+        # already in the req_set if appropriate.
+        # Python's sort is stable so using a binary key function keeps relative order
+        # within both subsets.
+        for candidate in sorted(
+            result.mapping.values(), key=lambda c: c.name != c.project_name
+        ):
             ireq = candidate.get_install_requirement()
             if ireq is None:
                 if candidate.name != candidate.project_name:

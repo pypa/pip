@@ -95,7 +95,8 @@ class SpecifierRequirement(Requirement):
 
 class SpecifierWithoutExtrasRequirement(SpecifierRequirement):
     """
-    Requirement backed by an install requirement on a base package. Trims extras from its install requirement if there are any.
+    Requirement backed by an install requirement on a base package.
+    Trims extras from its install requirement if there are any.
     """
 
     def __init__(self, ireq: InstallRequirement) -> None:

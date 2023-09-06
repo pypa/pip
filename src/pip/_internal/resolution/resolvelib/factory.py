@@ -468,7 +468,7 @@ class Factory:
             yield from ()
         elif not ireq.link:
             if ireq.extras and ireq.req is not None and ireq.req.specifier:
-                yield SpecifierWithoutExtrasRequirement(ireq),
+                yield SpecifierWithoutExtrasRequirement(ireq)
             yield SpecifierRequirement(ireq)
         else:
             self._fail_if_link_is_unsupported_wheel(ireq.link)
