@@ -124,7 +124,7 @@ class VirtualEnvironment:
                 )
             elif self._venv_type == "venv":
                 builder = _venv.EnvBuilder()
-                context = builder.ensure_directories(self.location)
+                context = builder.ensure_directories(os.fspath(self.location))
                 builder.create_configuration(context)
                 builder.setup_python(context)
                 self.site.mkdir(parents=True, exist_ok=True)

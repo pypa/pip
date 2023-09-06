@@ -64,6 +64,59 @@ def test_install_report_dep(
     assert _install_dict(report)["simple"]["requested"] is False
 
 
+def test_yanked_version(
+    script: PipTestEnvironment, data: TestData, tmp_path: Path
+) -> None:
+    """
+    Test is_yanked is True when explicitly requesting a yanked package.
+    Yanked files are always ignored, unless they are the only file that
+    matches a version specifier that "pins" to an exact version (PEP 592).
+    """
+    report_path = tmp_path / "report.json"
+    script.pip(
+        "install",
+        "simple==3.0",
+        "--index-url",
+        data.index_url("yanked"),
+        "--dry-run",
+        "--report",
+        str(report_path),
+        allow_stderr_warning=True,
+    )
+    report = json.loads(report_path.read_text())
+    simple_report = _install_dict(report)["simple"]
+    assert simple_report["requested"] is True
+    assert simple_report["is_direct"] is False
+    assert simple_report["is_yanked"] is True
+    assert simple_report["metadata"]["version"] == "3.0"
+
+
+def test_skipped_yanked_version(
+    script: PipTestEnvironment, data: TestData, tmp_path: Path
+) -> None:
+    """
+    Test is_yanked is False when not explicitly requesting a yanked package.
+    Yanked files are always ignored, unless they are the only file that
+    matches a version specifier that "pins" to an exact version (PEP 592).
+    """
+    report_path = tmp_path / "report.json"
+    script.pip(
+        "install",
+        "simple",
+        "--index-url",
+        data.index_url("yanked"),
+        "--dry-run",
+        "--report",
+        str(report_path),
+    )
+    report = json.loads(report_path.read_text())
+    simple_report = _install_dict(report)["simple"]
+    assert simple_report["requested"] is True
+    assert simple_report["is_direct"] is False
+    assert simple_report["is_yanked"] is False
+    assert simple_report["metadata"]["version"] == "2.0"
+
+
 @pytest.mark.network
 def test_install_report_index(script: PipTestEnvironment, tmp_path: Path) -> None:
     """Test report for sdist obtained from index."""

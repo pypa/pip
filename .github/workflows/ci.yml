@@ -91,7 +91,7 @@ jobs:
       - run: git diff --exit-code
 
   tests-unix:
-    name: tests / ${{ matrix.python }} / ${{ matrix.os }}
+    name: tests / ${{ matrix.python.key || matrix.python }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}-latest
 
     needs: [packaging, determine-changes]
@@ -109,12 +109,14 @@ jobs:
           - "3.9"
           - "3.10"
           - "3.11"
+          - "3.12"
 
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
+          allow-prereleases: true
 
       - name: Install Ubuntu dependencies
         if: matrix.os == 'Ubuntu'
@@ -129,12 +131,12 @@ jobs:
       # Main check
       - name: Run unit tests
         run: >-
-          nox -s test-${{ matrix.python }} --
+          nox -s test-${{ matrix.python.key || matrix.python }} --
           -m unit
           --verbose --numprocesses auto --showlocals
       - name: Run integration tests
         run: >-
-          nox -s test-${{ matrix.python }} --
+          nox -s test-${{ matrix.python.key || matrix.python }} --
           -m integration
           --verbose --numprocesses auto --showlocals
           --durations=5

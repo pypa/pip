@@ -8,7 +8,7 @@ platformdirs==3.8.1
 pyparsing==3.1.0
 pyproject-hooks==1.0.0
 requests==2.31.0
-    certifi==2023.5.7
+    certifi==2023.7.22
     chardet==5.1.0
     idna==3.4
     urllib3==1.26.16
