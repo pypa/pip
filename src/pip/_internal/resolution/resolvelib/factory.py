@@ -1,4 +1,5 @@
 import contextlib
+import itertools
 import functools
 import logging
 from typing import (
@@ -447,7 +448,7 @@ class Factory:
 
     def _make_requirements_from_install_req(
         self, ireq: InstallRequirement, requested_extras: Iterable[str]
-    ) -> List[Requirement]:
+    ) -> Iterator[Requirement]:
         """
         Returns requirement objects associated with the given InstallRequirement. In
         most cases this will be a single object but the following special cases exist:
@@ -463,34 +464,32 @@ class Factory:
                 ireq.name,
                 ireq.markers,
             )
-            return []
-        if not ireq.link:
+            yield from ()
+        elif not ireq.link:
             if ireq.extras and ireq.req is not None and ireq.req.specifier:
-                return [
-                    SpecifierRequirement(ireq, drop_extras=True),
-                    SpecifierRequirement(ireq),
-                ]
+                yield SpecifierRequirement(ireq, drop_extras=True),
+            yield SpecifierRequirement(ireq)
+        else:
+            self._fail_if_link_is_unsupported_wheel(ireq.link)
+            cand = self._make_candidate_from_link(
+                ireq.link,
+                extras=frozenset(ireq.extras),
+                template=ireq,
+                name=canonicalize_name(ireq.name) if ireq.name else None,
+                version=None,
+            )
+            if cand is None:
+                # There's no way we can satisfy a URL requirement if the underlying
+                # candidate fails to build. An unnamed URL must be user-supplied, so
+                # we fail eagerly. If the URL is named, an unsatisfiable requirement
+                # can make the resolver do the right thing, either backtrack (and
+                # maybe find some other requirement that's buildable) or raise a
+                # ResolutionImpossible eventually.
+                if not ireq.name:
+                    raise self._build_failures[ireq.link]
+                yield UnsatisfiableRequirement(canonicalize_name(ireq.name))
             else:
-                return [SpecifierRequirement(ireq)]
-        self._fail_if_link_is_unsupported_wheel(ireq.link)
-        cand = self._make_candidate_from_link(
-            ireq.link,
-            extras=frozenset(ireq.extras),
-            template=ireq,
-            name=canonicalize_name(ireq.name) if ireq.name else None,
-            version=None,
-        )
-        if cand is None:
-            # There's no way we can satisfy a URL requirement if the underlying
-            # candidate fails to build. An unnamed URL must be user-supplied, so
-            # we fail eagerly. If the URL is named, an unsatisfiable requirement
-            # can make the resolver do the right thing, either backtrack (and
-            # maybe find some other requirement that's buildable) or raise a
-            # ResolutionImpossible eventually.
-            if not ireq.name:
-                raise self._build_failures[ireq.link]
-            return [UnsatisfiableRequirement(canonicalize_name(ireq.name))]
-        return [self.make_requirement_from_candidate(cand)]
+                yield self.make_requirement_from_candidate(cand)
 
     def collect_root_requirements(
         self, root_ireqs: List[InstallRequirement]
@@ -511,13 +510,14 @@ class Factory:
                 else:
                     collected.constraints[name] = Constraint.from_ireq(ireq)
             else:
-                reqs = self._make_requirements_from_install_req(
-                    ireq,
-                    requested_extras=(),
+                reqs = list(
+                    self._make_requirements_from_install_req(
+                        ireq,
+                        requested_extras=(),
+                    )
                 )
                 if not reqs:
                     continue
-
                 template = reqs[0]
                 if ireq.user_supplied and template.name not in collected.user_requested:
                     collected.user_requested[template.name] = i
@@ -543,7 +543,7 @@ class Factory:
         specifier: str,
         comes_from: Optional[InstallRequirement],
         requested_extras: Iterable[str] = (),
-    ) -> List[Requirement]:
+    ) -> Iterator[Requirement]:
         """
         Returns requirement objects associated with the given specifier. In most cases
         this will be a single object but the following special cases exist:
