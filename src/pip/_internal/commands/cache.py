@@ -3,10 +3,10 @@ import textwrap
 from optparse import Values
 from typing import Any, List
 
-import pip._internal.utils.filesystem as filesystem
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.exceptions import CommandError, PipError
+from pip._internal.utils import filesystem
 from pip._internal.utils.logging import getLogger
 
 logger = getLogger(__name__)
@@ -151,14 +151,8 @@ class CacheCommand(Command):
         logger.info("\n".join(sorted(results)))
 
     def format_for_abspath(self, files: List[str]) -> None:
-        if not files:
-            return
-
-        results = []
-        for filename in files:
-            results.append(filename)
-
-        logger.info("\n".join(sorted(results)))
+        if files:
+            logger.info("\n".join(sorted(files)))
 
     def remove_cache_items(self, options: Values, args: List[Any]) -> None:
         if len(args) > 1:
