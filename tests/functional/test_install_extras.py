@@ -167,6 +167,8 @@ def test_install_special_extra(script: PipTestEnvironment) -> None:
         )
     )
 
+    print(script.pip("list").stdout)
+
     result = script.pip(
         "install", "--no-index", f"{pkga_path}[Hop_hOp-hoP]", expect_error=True
     )
