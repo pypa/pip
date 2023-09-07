@@ -23,7 +23,6 @@ from pip._internal.exceptions import (
     PreviousBuildDirError,
 )
 from pip._internal.index.package_finder import PackageFinder
-from pip._internal.metadata import select_backend
 from pip._internal.models.direct_url import ArchiveInfo, DirectUrl, DirInfo, VcsInfo
 from pip._internal.models.link import Link
 from pip._internal.network.session import PipSession
@@ -599,22 +598,6 @@ class TestInstallRequirement:
         req = install_req_from_editable(url)
         assert req.link is not None
         assert req.link.url == url
-
-    @pytest.mark.parametrize(
-        "path",
-        (
-            "/path/to/foo.egg-info".replace("/", os.path.sep),
-            # Tests issue fixed by https://github.com/pypa/pip/pull/2530
-            "/path/to/foo.egg-info/".replace("/", os.path.sep),
-        ),
-    )
-    def test_get_dist(self, path: str) -> None:
-        req = install_req_from_line("foo")
-        req.metadata_directory = path
-        dist = req.get_dist()
-        assert isinstance(dist, select_backend().Distribution)
-        assert dist.raw_name == dist.canonical_name == "foo"
-        assert dist.location == "/path/to".replace("/", os.path.sep)
 
     def test_markers(self) -> None:
         for line in (

@@ -273,25 +273,19 @@ def test_outdated_flag(script: PipTestEnvironment, data: TestData) -> None:
         "latest_version": "3.0",
         "latest_filetype": "sdist",
     } in json_output
-    assert (
-        dict(
-            name="simplewheel",
-            version="1.0",
-            latest_version="2.0",
-            latest_filetype="wheel",
-        )
-        in json_output
-    )
-    assert (
-        dict(
-            name="pip-test-package",
-            version="0.1",
-            latest_version="0.1.1",
-            latest_filetype="sdist",
-            editable_project_location="<location>",
-        )
-        in json_output
-    )
+    assert {
+        "name": "simplewheel",
+        "version": "1.0",
+        "latest_version": "2.0",
+        "latest_filetype": "wheel",
+    } in json_output
+    assert {
+        "name": "pip-test-package",
+        "version": "0.1",
+        "latest_version": "0.1.1",
+        "latest_filetype": "sdist",
+        "editable_project_location": "<location>",
+    } in json_output
     assert "simple2" not in {p["name"] for p in json_output}
 
 

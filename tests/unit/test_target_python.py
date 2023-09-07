@@ -54,18 +54,18 @@ class TestTargetPython:
         "kwargs, expected",
         [
             ({}, ""),
-            (dict(py_version_info=(3, 6)), "version_info='3.6'"),
+            ({"py_version_info": (3, 6)}, "version_info='3.6'"),
             (
-                dict(platforms=["darwin"], py_version_info=(3, 6)),
+                {"platforms": ["darwin"], "py_version_info": (3, 6)},
                 "platforms=['darwin'] version_info='3.6'",
             ),
             (
-                dict(
-                    platforms=["darwin"],
-                    py_version_info=(3, 6),
-                    abis=["cp36m"],
-                    implementation="cp",
-                ),
+                {
+                    "platforms": ["darwin"],
+                    "py_version_info": (3, 6),
+                    "abis": ["cp36m"],
+                    "implementation": "cp",
+                },
                 (
                     "platforms=['darwin'] version_info='3.6' abis=['cp36m'] "
                     "implementation='cp'"
