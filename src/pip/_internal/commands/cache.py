@@ -97,8 +97,8 @@ class CacheCommand(Command):
         old_http_cache_location = self._cache_dir(options, "http")
         wheels_cache_location = self._cache_dir(options, "wheels")
         http_cache_size = (
-            filesystem.format_directory_size(http_cache_location) +
-            filesystem.format_directory_size(old_http_cache_location)
+            filesystem.format_size(filesystem.directory_size(http_cache_location) +
+            filesystem.directory_size(old_http_cache_location))
         )
         wheels_cache_size = filesystem.format_directory_size(wheels_cache_location)
 
