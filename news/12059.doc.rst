@@ -1,0 +1,1 @@
+Document that ``pip search`` support has been removed from PyPI
