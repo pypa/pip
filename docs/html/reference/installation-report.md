@@ -56,6 +56,9 @@ package with the following properties:
   URL reference. `false` if the requirements was provided as a name and version
   specifier.
 
+- `is_yanked`: `true` if the requirement was yanked from the index, but was still
+  selected by pip conform to [PEP 592](https://peps.python.org/pep-0592/#installers).
+
 - `download_info`: Information about the artifact (to be) downloaded for installation,
   using the [direct URL data
   structure](https://packaging.python.org/en/latest/specifications/direct-url-data-structure/).
@@ -106,6 +109,7 @@ will produce an output similar to this (metadata abriged for brevity):
         }
       },
       "is_direct": false,
+      "is_yanked": false,
       "requested": true,
       "metadata": {
         "name": "pydantic",
@@ -133,6 +137,7 @@ will produce an output similar to this (metadata abriged for brevity):
         }
       },
       "is_direct": true,
+      "is_yanked": false,
       "requested": true,
       "metadata": {
         "name": "packaging",

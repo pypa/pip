@@ -23,7 +23,6 @@ from pip._internal.exceptions import (
     PreviousBuildDirError,
 )
 from pip._internal.index.package_finder import PackageFinder
-from pip._internal.metadata import select_backend
 from pip._internal.models.direct_url import ArchiveInfo, DirectUrl, DirInfo, VcsInfo
 from pip._internal.models.link import Link
 from pip._internal.network.session import PipSession
@@ -105,6 +104,7 @@ class TestRequirementSet:
                 use_user_site=False,
                 lazy_wheel=False,
                 verbosity=0,
+                legacy_resolver=True,
             )
             yield Resolver(
                 preparer=preparer,
@@ -445,6 +445,25 @@ class TestRequirementSet:
             assert isinstance(req.download_info.info, ArchiveInfo)
             assert req.download_info.info.hash == hash
 
+    def test_download_info_archive_cache_with_invalid_origin(
+        self, tmp_path: Path, shared_data: TestData, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test an invalid origin.json is ignored."""
+        url = shared_data.packages.joinpath("simple-1.0.tar.gz").as_uri()
+        finder = make_test_finder()
+        wheel_cache = WheelCache(str(tmp_path / "cache"))
+        cache_entry_dir = wheel_cache.get_path_for_link(Link(url))
+        Path(cache_entry_dir).mkdir(parents=True)
+        Path(cache_entry_dir).joinpath("origin.json").write_text("{")  # invalid json
+        wheel.make_wheel(name="simple", version="1.0").save_to_dir(cache_entry_dir)
+        with self._basic_resolver(finder, wheel_cache=wheel_cache) as resolver:
+            ireq = get_processed_req_from_line(f"simple @ {url}")
+            reqset = resolver.resolve([ireq], True)
+            assert len(reqset.all_requirements) == 1
+            req = reqset.all_requirements[0]
+            assert req.is_wheel_from_cache
+            assert "Ignoring invalid cache entry origin file" in caplog.messages[0]
+
     def test_download_info_local_wheel(self, data: TestData) -> None:
         """Test that download_info is set for requirements from a local wheel."""
         finder = make_test_finder()
@@ -579,22 +598,6 @@ class TestInstallRequirement:
         req = install_req_from_editable(url)
         assert req.link is not None
         assert req.link.url == url
-
-    @pytest.mark.parametrize(
-        "path",
-        (
-            "/path/to/foo.egg-info".replace("/", os.path.sep),
-            # Tests issue fixed by https://github.com/pypa/pip/pull/2530
-            "/path/to/foo.egg-info/".replace("/", os.path.sep),
-        ),
-    )
-    def test_get_dist(self, path: str) -> None:
-        req = install_req_from_line("foo")
-        req.metadata_directory = path
-        dist = req.get_dist()
-        assert isinstance(dist, select_backend().Distribution)
-        assert dist.raw_name == dist.canonical_name == "foo"
-        assert dist.location == "/path/to".replace("/", os.path.sep)
 
     def test_markers(self) -> None:
         for line in (

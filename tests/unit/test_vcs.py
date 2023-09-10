@@ -66,14 +66,14 @@ def test_rev_options_repr() -> None:
         # First check VCS-specific RevOptions behavior.
         (Bazaar, [], ["-r", "123"], {}),
         (Git, ["HEAD"], ["123"], {}),
-        (Mercurial, [], ["123"], {}),
+        (Mercurial, [], ["-r", "123"], {}),
         (Subversion, [], ["-r", "123"], {}),
         # Test extra_args.  For this, test using a single VersionControl class.
         (
             Git,
             ["HEAD", "opt1", "opt2"],
             ["123", "opt1", "opt2"],
-            dict(extra_args=["opt1", "opt2"]),
+            {"extra_args": ["opt1", "opt2"]},
         ),
     ],
 )

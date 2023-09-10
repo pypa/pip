@@ -88,9 +88,47 @@ def test_basic_freeze(script: PipTestEnvironment) -> None:
 
 
 def test_freeze_with_pip(script: PipTestEnvironment) -> None:
-    """Test pip shows itself"""
+    """Test that pip shows itself only when --all is used"""
+    result = script.pip("freeze")
+    assert "pip==" not in result.stdout
     result = script.pip("freeze", "--all")
     assert "pip==" in result.stdout
+
+
+def test_freeze_with_setuptools(script: PipTestEnvironment) -> None:
+    """
+    Test that pip shows setuptools only when --all is used
+    or _should_suppress_build_backends() returns false
+    """
+
+    result = script.pip("freeze", "--all")
+    assert "setuptools==" in result.stdout
+
+    (script.site_packages_path / "mock.pth").write_text("import mock\n")
+
+    (script.site_packages_path / "mock.py").write_text(
+        textwrap.dedent(
+            """\
+                import pip._internal.commands.freeze as freeze
+                freeze._should_suppress_build_backends = lambda: False
+            """
+        )
+    )
+
+    result = script.pip("freeze")
+    assert "setuptools==" in result.stdout
+
+    (script.site_packages_path / "mock.py").write_text(
+        textwrap.dedent(
+            """\
+                import pip._internal.commands.freeze as freeze
+                freeze._should_suppress_build_backends = lambda: True
+            """
+        )
+    )
+
+    result = script.pip("freeze")
+    assert "setuptools==" not in result.stdout
 
 
 def test_exclude_and_normalization(script: PipTestEnvironment, tmpdir: Path) -> None:
