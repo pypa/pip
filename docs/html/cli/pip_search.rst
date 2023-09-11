@@ -21,6 +21,12 @@ Usage
 Description
 ===========
 
+.. attention::
+    PyPI no longer supports ``pip search`` (or XML-RPC search). Please use https://pypi.org/search (via a browser)
+    instead. See https://warehouse.pypa.io/api-reference/xml-rpc.html#deprecated-methods for more information.
+
+    However, XML-RPC search (and this command) may still be supported by indexes other than PyPI.
+
 .. pip-command-description:: search
 
 
