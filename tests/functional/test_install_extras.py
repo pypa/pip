@@ -159,7 +159,19 @@ def test_install_fails_if_extra_at_end(
     "specified_extra, requested_extra",
     [
         ("Hop_hOp-hoP", "Hop_hOp-hoP"),
-        ("Hop_hOp-hoP", "hop-hop-hop"),
+        pytest.param(
+            "Hop_hOp-hoP",
+            "hop-hop-hop",
+            marks=pytest.mark.xfail(
+                "sys.version_info < (3, 8)",
+                reason=(
+                    "matching a normalized extra request against an"
+                    "unnormalized extra in metadata requires PEP 685 support "
+                    "in either packaging or the build tool. Setuptools "
+                    "implements this in 68.2, which requires 3.8+"
+                ),
+            ),
+        ),
         ("hop-hop-hop", "Hop_hOp-hoP"),
     ],
 )
