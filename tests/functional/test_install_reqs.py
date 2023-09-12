@@ -817,3 +817,53 @@ def test_config_settings_local_to_package(
     assert "--verbose" not in simple3_args
     simple2_args = simple2_sdist.args()
     assert "--verbose" not in simple2_args
+
+
+def test_install_options_no_deps(
+    script: PipTestEnvironment, resolver_variant: ResolverVariant
+) -> None:
+    create_basic_wheel_for_package(
+        script, "A", "0.1.0", depends=["B==0.1.0"], extras={"C": ["C"]}
+    )
+    create_basic_wheel_for_package(script, "B", "0.1.0")
+    create_basic_wheel_for_package(script, "C", "0.1.0")
+    create_basic_wheel_for_package(script, "D", "0.1.0", depends=["E==0.1.0"])
+    create_basic_wheel_for_package(script, "E", "0.1.0")
+
+    requirements_txt = script.scratch_path / "requirements.txt"
+    requirements_txt.write_text("A[C] --no-deps\nD")
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--find-links",
+        script.scratch_path,
+        "-r",
+        requirements_txt,
+        "--only-binary=:all:",
+        expect_error=(resolver_variant == "legacy"),
+        allow_stderr_warning=True,
+    )
+    if resolver_variant == "legacy":
+        assert "Cannot ignore dependencies with legacy resolver" in result.stderr
+    else:
+        script.assert_installed(A="0.1.0", D="0.1.0", E="0.1.0")
+        script.assert_not_installed("B", "C")
+
+    # AlreadyInstalledCandidate should not install dependencies
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--find-links",
+        script.scratch_path,
+        "-r",
+        requirements_txt,
+        "--only-binary=:all:",
+        expect_error=(resolver_variant == "legacy"),
+        allow_stderr_warning=True,
+    )
+    if resolver_variant == "legacy":
+        assert "Cannot ignore dependencies with legacy resolver" in result.stderr
+    else:
+        script.assert_installed(A="0.1.0", D="0.1.0", E="0.1.0")
+        script.assert_not_installed("B", "C")

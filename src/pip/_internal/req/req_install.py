@@ -81,6 +81,7 @@ class InstallRequirement:
         global_options: Optional[List[str]] = None,
         hash_options: Optional[Dict[str, List[str]]] = None,
         config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
+        ignore_dependencies: bool = False,
         constraint: bool = False,
         extras: Collection[str] = (),
         user_supplied: bool = False,
@@ -148,6 +149,12 @@ class InstallRequirement:
         self.global_options = global_options if global_options else []
         self.hash_options = hash_options if hash_options else {}
         self.config_settings = config_settings
+        self.ignore_dependencies = ignore_dependencies
+        if (
+            isinstance(comes_from, InstallRequirement)
+            and comes_from.ignore_dependencies
+        ):
+            self.ignore_dependencies = True
         # Set to True after successful preparation of this requirement
         self.prepared = False
         # User supplied requirement are explicitly requested for installation

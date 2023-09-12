@@ -131,6 +131,10 @@ class Candidate:
     def source_link(self) -> Optional[Link]:
         raise NotImplementedError("Override in subclass")
 
+    @property
+    def ignore_dependencies(self) -> bool:
+        raise NotImplementedError("Override in subclass")
+
     def iter_dependencies(self, with_requires: bool) -> Iterable[Optional[Requirement]]:
         raise NotImplementedError("Override in subclass")
 

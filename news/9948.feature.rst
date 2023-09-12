@@ -1,0 +1,1 @@
+Add per-requirement ``--no-deps`` option support in requirements.txt.

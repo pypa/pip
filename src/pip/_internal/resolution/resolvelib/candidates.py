@@ -68,6 +68,7 @@ def make_install_req_from_link(
         global_options=template.global_options,
         hash_options=template.hash_options,
         config_settings=template.config_settings,
+        ignore_dependencies=template.ignore_dependencies,
     )
     ireq.original_link = template.original_link
     ireq.link = link
@@ -90,6 +91,7 @@ def make_install_req_from_editable(
         global_options=template.global_options,
         hash_options=template.hash_options,
         config_settings=template.config_settings,
+        ignore_dependencies=template.ignore_dependencies,
     )
     ireq.extras = template.extras
     return ireq
@@ -114,6 +116,7 @@ def _make_install_req_from_dist(
         global_options=template.global_options,
         hash_options=template.hash_options,
         config_settings=template.config_settings,
+        ignore_dependencies=template.ignore_dependencies,
     )
     ireq.satisfied_by = dist
     return ireq
@@ -236,6 +239,10 @@ class _InstallRequirementBackedCandidate(Candidate):
 
         self._check_metadata_consistency(dist)
         return dist
+
+    @property
+    def ignore_dependencies(self) -> bool:
+        return self._ireq.ignore_dependencies
 
     def iter_dependencies(self, with_requires: bool) -> Iterable[Optional[Requirement]]:
         requires = self.dist.iter_dependencies() if with_requires else ()
@@ -385,6 +392,10 @@ class AlreadyInstalledCandidate(Candidate):
     def is_editable(self) -> bool:
         return self.dist.editable
 
+    @property
+    def ignore_dependencies(self) -> bool:
+        return self._ireq.ignore_dependencies
+
     def format_for_error(self) -> str:
         return f"{self.name} {self.version} (Installed)"
 
@@ -480,6 +491,10 @@ class ExtrasCandidate(Candidate):
     def source_link(self) -> Optional[Link]:
         return self.base.source_link
 
+    @property
+    def ignore_dependencies(self) -> bool:
+        return self.base.ignore_dependencies
+
     def iter_dependencies(self, with_requires: bool) -> Iterable[Optional[Requirement]]:
         factory = self.base._factory
 
@@ -518,6 +533,7 @@ class ExtrasCandidate(Candidate):
 class RequiresPythonCandidate(Candidate):
     is_installed = False
     source_link = None
+    ignore_dependencies = False
 
     def __init__(self, py_version_info: Optional[Tuple[int, ...]]) -> None:
         if py_version_info is not None:
