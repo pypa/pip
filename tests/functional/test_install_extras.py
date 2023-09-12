@@ -4,7 +4,12 @@ from os.path import join
 
 import pytest
 
-from tests.lib import PipTestEnvironment, ResolverVariant, TestData
+from tests.lib import (
+    PipTestEnvironment,
+    ResolverVariant,
+    TestData,
+    create_basic_wheel_for_package,
+)
 
 
 @pytest.mark.network
@@ -223,3 +228,26 @@ def test_install_extra_merging(
     if not fails_on_legacy or resolver_variant == "2020-resolver":
         expected = f"Successfully installed pkga-0.1 simple-{simple_version}"
         assert expected in result.stdout
+
+
+def test_install_extra_from_url_constraint(script: PipTestEnvironment) -> None:
+    create_basic_wheel_for_package(script, name="fake", version="0")
+    pkg = create_basic_wheel_for_package(
+        script,
+        name="pkg",
+        version="2.0.1",
+        extras={"ext": ["fake"]},
+    )
+
+    constraints_path = script.scratch_path.joinpath("constraints.txt")
+    constraints_path.write_text(f"pkg @ {pkg.as_uri()}")
+    requirements_path = script.scratch_path.joinpath("requirements.txt")
+    requirements_path.write_text("pkg[ext]")
+    script.pip(
+        "install",
+        "--no-index",
+        "--no-cache",
+        f"--find-links={script.scratch_path}",
+        f"-r{requirements_path}",
+        f"-c{constraints_path}",
+    )

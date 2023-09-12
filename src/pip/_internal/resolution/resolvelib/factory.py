@@ -1,4 +1,3 @@
-import contextlib
 import functools
 import logging
 from typing import (
@@ -346,7 +345,8 @@ class Factory:
 
     def _iter_candidates_from_constraints(
         self,
-        identifier: str,
+        name: NormalizedName,
+        extras: FrozenSet[str],
         constraint: Constraint,
         template: InstallRequirement,
     ) -> Iterator[Candidate]:
@@ -359,9 +359,9 @@ class Factory:
             self._fail_if_link_is_unsupported_wheel(link)
             candidate = self._make_candidate_from_link(
                 link,
-                extras=frozenset(),
+                extras=extras,
                 template=install_req_from_link_and_ireq(link, template),
-                name=canonicalize_name(identifier),
+                name=name,
                 version=None,
             )
             if candidate:
@@ -385,15 +385,26 @@ class Factory:
             if ireq is not None:
                 ireqs.append(ireq)
 
+        try:
+            parsed_requirement = get_requirement(identifier)
+            assert (
+                not parsed_requirement.marker
+                and not list(parsed_requirement.specifier)
+                and not parsed_requirement.url
+            )
+        except InvalidRequirement:
+            name = identifier
+            extras: FrozenSet[str] = frozenset()
+        else:
+            name = parsed_requirement.name
+            extras = frozenset(parsed_requirement.extras)
+
         # If the current identifier contains extras, add explicit candidates
         # from entries from extra-less identifier.
-        with contextlib.suppress(InvalidRequirement):
-            parsed_requirement = get_requirement(identifier)
+        if extras:
+            reqs_for_name = requirements.get(name, ())
             explicit_candidates.update(
-                self._iter_explicit_candidates_from_base(
-                    requirements.get(parsed_requirement.name, ()),
-                    frozenset(parsed_requirement.extras),
-                ),
+                self._iter_explicit_candidates_from_base(reqs_for_name, extras),
             )
 
         # Add explicit candidates from constraints. We only do this if there are
@@ -404,7 +415,8 @@ class Factory:
             try:
                 explicit_candidates.update(
                     self._iter_candidates_from_constraints(
-                        identifier,
+                        canonicalize_name(name),
+                        extras,
                         constraint,
                         template=ireqs[0],
                     ),
