@@ -1,1 +1,1 @@
-Add truststore 0.7.0
+Add truststore 0.8.0
