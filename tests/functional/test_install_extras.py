@@ -150,6 +150,10 @@ def test_install_fails_if_extra_at_end(
     assert "Extras after version" in result.stderr
 
 
+@pytest.mark.skipif(
+    "sys.version_info >= (3, 11)",
+    reason="Setuptools incompatibility with importlib.metadata; see GH-12267",
+)
 def test_install_special_extra(script: PipTestEnvironment) -> None:
     # Check that uppercase letters and '-' are dealt with
     # make a dummy project
