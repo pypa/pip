@@ -159,17 +159,7 @@ def test_install_fails_if_extra_at_end(
     "specified_extra, requested_extra",
     [
         ("Hop_hOp-hoP", "Hop_hOp-hoP"),
-        pytest.param(
-            "Hop_hOp-hoP",
-            "hop-hop-hop",
-            marks=pytest.mark.xfail(
-                reason=(
-                    "matching a normalized extra request against an"
-                    "unnormalized extra in metadata requires PEP 685 support "
-                    "in packaging (see pypa/pip#11445)."
-                ),
-            ),
-        ),
+        ("Hop_hOp-hoP", "hop-hop-hop"),
         ("hop-hop-hop", "Hop_hOp-hoP"),
     ],
 )
