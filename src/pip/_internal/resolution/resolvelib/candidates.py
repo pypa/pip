@@ -435,7 +435,8 @@ class ExtrasCandidate(Candidate):
         # since PEP 685 has not been implemented for marker-matching, and using
         # the non-normalized extra for lookup ensures the user can select a
         # non-normalized extra in a package with its non-normalized form.
-        # TODO: Remove this when packaging is upgraded to support PEP 685.
+        # TODO: Remove this attribute when packaging is upgraded to support the
+        # marker comparison logic specified in PEP 685.
         self._unnormalized_extras = extras.difference(self.extras)
 
     def __str__(self) -> str:
@@ -490,18 +491,20 @@ class ExtrasCandidate(Candidate):
     def _warn_invalid_extras(
         self,
         requested: FrozenSet[str],
-        provided: FrozenSet[str],
+        valid: FrozenSet[str],
     ) -> None:
         """Emit warnings for invalid extras being requested.
 
         This emits a warning for each requested extra that is not in the
         candidate's ``Provides-Extra`` list.
         """
-        invalid_extras_to_warn = requested.difference(
-            provided,
+        invalid_extras_to_warn = frozenset(
+            extra
+            for extra in requested
+            if extra not in valid
             # If an extra is requested in an unnormalized form, skip warning
             # about the normalized form being missing.
-            (canonicalize_name(e) for e in self._unnormalized_extras),
+            and extra in self.extras
         )
         if not invalid_extras_to_warn:
             return
@@ -521,9 +524,13 @@ class ExtrasCandidate(Candidate):
         cause a warning to be logged here.
         """
         requested_extras = self.extras.union(self._unnormalized_extras)
-        provided_extras = frozenset(self.base.dist.iter_provided_extras())
-        self._warn_invalid_extras(requested_extras, provided_extras)
-        return requested_extras.intersection(provided_extras)
+        valid_extras = frozenset(
+            extra
+            for extra in requested_extras
+            if self.base.dist.is_extra_provided(extra)
+        )
+        self._warn_invalid_extras(requested_extras, valid_extras)
+        return valid_extras
 
     def iter_dependencies(self, with_requires: bool) -> Iterable[Optional[Requirement]]:
         factory = self.base._factory

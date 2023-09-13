@@ -207,7 +207,13 @@ class Distribution(BaseDistribution):
         return cast(email.message.Message, self._dist.metadata)
 
     def iter_provided_extras(self) -> Iterable[str]:
-        return (extra for extra in self.metadata.get_all("Provides-Extra", []))
+        return self.metadata.get_all("Provides-Extra", [])
+
+    def is_extra_provided(self, extra: str) -> bool:
+        return any(
+            canonicalize_name(provided_extra) == canonicalize_name(extra)
+            for provided_extra in self.metadata.get_all("Provides-Extra", [])
+        )
 
     def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
         contexts: Sequence[Dict[str, str]] = [{"extra": e} for e in extras]
