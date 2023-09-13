@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Callable, Dict, List, Tuple
 
 import pytest
 
+from tests.conftest import ScriptFactory
 from tests.lib import (
     PipTestEnvironment,
     create_basic_sdist_for_package,
@@ -13,6 +14,7 @@ from tests.lib import (
     create_test_package_with_setup,
 )
 from tests.lib.direct_url import get_created_direct_url
+from tests.lib.venv import VirtualEnvironment
 from tests.lib.wheel import make_wheel
 
 if TYPE_CHECKING:
@@ -2313,7 +2315,11 @@ def test_new_resolver_dont_backtrack_on_extra_if_base_constrained_in_requirement
 @pytest.mark.parametrize("swap_order", (True, False))
 @pytest.mark.parametrize("two_extras", (True, False))
 def test_new_resolver_dont_backtrack_on_conflicting_constraints_on_extras(
-    script: PipTestEnvironment, swap_order: bool, two_extras: bool
+    tmpdir: pathlib.Path,
+    virtualenv: VirtualEnvironment,
+    script_factory: ScriptFactory,
+    swap_order: bool,
+    two_extras: bool,
 ) -> None:
     """
     Verify that conflicting constraints on the same package with different
@@ -2323,6 +2329,11 @@ def test_new_resolver_dont_backtrack_on_conflicting_constraints_on_extras(
     :param swap_order: swap the order the install specifiers appear in
     :param two_extras: also add an extra for the second specifier
     """
+    script: PipTestEnvironment = script_factory(
+        tmpdir.joinpath("workspace"),
+        virtualenv,
+        {**os.environ, "PIP_RESOLVER_DEBUG": "1"},
+    )
     create_basic_wheel_for_package(script, "dep", "1.0")
     create_basic_wheel_for_package(
         script, "pkg", "1.0", extras={"ext1": ["dep"], "ext2": ["dep"]}
@@ -2348,9 +2359,13 @@ def test_new_resolver_dont_backtrack_on_conflicting_constraints_on_extras(
     assert (
         "pkg-2.0" not in result.stdout or "pkg-1.0" not in result.stdout
     ), "Should only try one of 1.0, 2.0 depending on order"
+    assert "Reporter.starting()" in result.stdout, (
+        "This should never fail unless the debug reporting format has changed,"
+        " in which case the other assertions in this test need to be reviewed."
+    )
     assert (
-        "looking at multiple versions" not in result.stdout
-    ), "Should not have to look at multiple versions to conclude conflict"
+        "Reporter.rejecting_candidate" not in result.stdout
+    ), "Should be able to conclude conflict before even selecting a candidate"
     assert (
         "conflict is caused by" in result.stdout
     ), "Resolver should be trivially able to find conflict cause"
