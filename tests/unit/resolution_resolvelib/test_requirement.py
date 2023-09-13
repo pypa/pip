@@ -109,5 +109,5 @@ def test_new_resolver_full_resolve(factory: Factory, provider: PipProvider) -> N
     reqs = list(factory.make_requirements_from_spec("simplewheel", comes_from=None))
     assert len(reqs) == 1
     r: Resolver[Requirement, Candidate, str] = Resolver(provider, BaseReporter())
-    result = r.resolve([reqs[0]])
+    result = r.resolve(reqs)
     assert set(result.mapping.keys()) == {"simplewheel"}

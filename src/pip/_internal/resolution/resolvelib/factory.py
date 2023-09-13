@@ -465,7 +465,6 @@ class Factory:
                 ireq.name,
                 ireq.markers,
             )
-            yield from ()
         elif not ireq.link:
             if ireq.extras and ireq.req is not None and ireq.req.specifier:
                 yield SpecifierWithoutExtrasRequirement(ireq)
