@@ -44,7 +44,7 @@ class SpecifierRequirement(Requirement):
     def __init__(self, ireq: InstallRequirement) -> None:
         assert ireq.link is None, "This is a link, not a specifier"
         self._ireq = ireq
-        self._extras = frozenset(self._ireq.extras)
+        self._extras = frozenset(canonicalize_name(e) for e in self._ireq.extras)
 
     def __str__(self) -> str:
         return str(self._ireq.req)
@@ -102,7 +102,7 @@ class SpecifierWithoutExtrasRequirement(SpecifierRequirement):
     def __init__(self, ireq: InstallRequirement) -> None:
         assert ireq.link is None, "This is a link, not a specifier"
         self._ireq = install_req_drop_extras(ireq)
-        self._extras = frozenset(self._ireq.extras)
+        self._extras = frozenset(canonicalize_name(e) for e in self._ireq.extras)
 
 
 class RequiresPythonRequirement(Requirement):
