@@ -431,7 +431,7 @@ class ExtrasCandidate(Candidate):
         comes_from: Optional[InstallRequirement] = None,
     ) -> None:
         """
-        :param ireq: the InstallRequirement that led to this candidate if it
+        :param comes_from: the InstallRequirement that led to this candidate if it
             differs from the base's InstallRequirement. This will often be the
             case in the sense that this candidate's requirement has the extras
             while the base's does not. Unlike the InstallRequirement backed
