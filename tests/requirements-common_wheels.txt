@@ -5,11 +5,7 @@
 # 4. Replacing the `setuptools` entry below with a `file:///...` URL
 # (Adjust artifact directory used based on preference and operating system)
 
-# Implements new extra normalization.
-setuptools >= 68.2 ; python_version >= '3.8'
-setuptools >= 40.8.0, != 60.6.0 ; python_version < '3.8'
-
+setuptools >= 40.8.0, != 60.6.0
 wheel
-
 # As required by pytest-cov.
 coverage >= 4.4

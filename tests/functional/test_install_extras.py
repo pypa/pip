@@ -163,12 +163,10 @@ def test_install_fails_if_extra_at_end(
             "Hop_hOp-hoP",
             "hop-hop-hop",
             marks=pytest.mark.xfail(
-                "sys.version_info < (3, 8)",
                 reason=(
                     "matching a normalized extra request against an"
                     "unnormalized extra in metadata requires PEP 685 support "
-                    "in either packaging or the build tool. Setuptools "
-                    "implements this in 68.2, which requires 3.8+"
+                    "in packaging (see pypa/pip#11445)."
                 ),
             ),
         ),
@@ -180,26 +178,18 @@ def test_install_special_extra(
     specified_extra: str,
     requested_extra: str,
 ) -> None:
-    # Check that uppercase letters and '-' are dealt with
-    # make a dummy project
-    pkga_path = script.scratch_path / "pkga"
-    pkga_path.mkdir()
-    pkga_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            f"""
-        from setuptools import setup
-        setup(name='pkga',
-              version='0.1',
-              extras_require={{'{specified_extra}': ['missing_pkg']}},
-        )
-    """
-        )
+    """Check extra normalization is implemented according to specification."""
+    pkga_path = create_basic_wheel_for_package(
+        script,
+        name="pkga",
+        version="0.1",
+        extras={specified_extra: ["missing_pkg"]},
     )
 
     result = script.pip(
         "install",
         "--no-index",
-        f"{pkga_path}[{requested_extra}]",
+        f"pkga[{requested_extra}] @ {pkga_path.as_uri()}",
         expect_error=True,
     )
     assert (
