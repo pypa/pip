@@ -128,7 +128,7 @@ class InstallRequirement:
         if extras:
             self.extras = extras
         elif req:
-            self.extras = {safe_extra(extra) for extra in req.extras}
+            self.extras = req.extras
         else:
             self.extras = set()
         if markers is None and req:
@@ -272,7 +272,12 @@ class InstallRequirement:
             extras_requested = ("",)
         if self.markers is not None:
             return any(
-                self.markers.evaluate({"extra": extra}) for extra in extras_requested
+                self.markers.evaluate({"extra": extra})
+                # TODO: Remove these two variants when packaging is upgraded to
+                # support the marker comparison logic specified in PEP 685.
+                or self.markers.evaluate({"extra": safe_extra(extra)})
+                or self.markers.evaluate({"extra": canonicalize_name(extra)})
+                for extra in extras_requested
             )
         else:
             return True
