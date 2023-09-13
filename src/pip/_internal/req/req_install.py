@@ -128,7 +128,7 @@ class InstallRequirement:
         if extras:
             self.extras = extras
         elif req:
-            self.extras = {safe_extra(extra) for extra in req.extras}
+            self.extras = req.extras
         else:
             self.extras = set()
         if markers is None and req:
@@ -272,7 +272,8 @@ class InstallRequirement:
             extras_requested = ("",)
         if self.markers is not None:
             return any(
-                self.markers.evaluate({"extra": extra}) for extra in extras_requested
+                self.markers.evaluate({"extra": safe_extra(extra)})
+                for extra in extras_requested
             )
         else:
             return True
