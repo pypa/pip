@@ -31,6 +31,7 @@ from typing import (
     Set,
     Tuple,
     Type,
+    Union,
 )
 from unittest.mock import patch
 from zipfile import ZipFile
@@ -59,6 +60,7 @@ from tests.lib import (
     PipTestEnvironment,
     ScriptFactory,
     TestData,
+    create_basic_wheel_for_package,
 )
 from tests.lib.server import MockServer, make_mock_server
 from tests.lib.venv import VirtualEnvironment, VirtualEnvironmentType
@@ -652,6 +654,22 @@ def script(
 
 
 @pytest.fixture(scope="session")
+def session_script(
+    request: pytest.FixtureRequest,
+    tmpdir_factory: pytest.TempPathFactory,
+    virtualenv_factory: Callable[[Path], VirtualEnvironment],
+    script_factory: ScriptFactory,
+) -> PipTestEnvironment:
+    """
+    Return a PipTestEnvironment which is shared across the whole session.
+    """
+    virtualenv = virtualenv_factory(
+        tmpdir_factory.mktemp("session_venv").joinpath("venv")
+    )
+    return script_factory(tmpdir_factory.mktemp("session_workspace"), virtualenv)
+
+
+@pytest.fixture(scope="session")
 def common_wheels() -> Path:
     """Provide a directory with latest setuptools and wheel wheels"""
     return DATA_DIR.joinpath("common_wheels")
@@ -742,12 +760,18 @@ class FakePackage:
 
     name: str
     version: str
-    filename: str
+    source_file: Union[str, Path]
     metadata: MetadataKind
     # This will override any dependencies specified in the actual dist's METADATA.
     requires_dist: Tuple[str, ...] = ()
     # This will override the Name specified in the actual dist's METADATA.
     metadata_name: Optional[str] = None
+
+    @property
+    def filename(self) -> str:
+        if isinstance(self.source_file, str):
+            return self.source_file
+        return self.source_file.name
 
     def metadata_filename(self) -> str:
         """This is specified by PEP 658."""
@@ -786,8 +810,28 @@ class FakePackage:
 
 
 @pytest.fixture(scope="session")
-def fake_packages() -> Dict[str, List[FakePackage]]:
+def fake_packages(session_script: PipTestEnvironment) -> Dict[str, List[FakePackage]]:
     """The package database we generate for testing PEP 658 support."""
+    large_compilewheel_metadata_first = create_basic_wheel_for_package(
+        session_script,
+        "compilewheel",
+        "2.0",
+        extra_files={"asdf.txt": b"a" * 10_000},
+        metadata_first=True,
+    )
+    # This wheel must be larger than 10KB to trigger the lazy wheel behavior we want
+    # to test.
+    assert large_compilewheel_metadata_first.stat().st_size > 10_000
+
+    large_translationstring_metadata_last = create_basic_wheel_for_package(
+        session_script,
+        "translationstring",
+        "0.1",
+        extra_files={"asdf.txt": b"a" * 10_000},
+        metadata_first=False,
+    )
+    assert large_translationstring_metadata_last.stat().st_size > 10_000
+
     return {
         "simple": [
             FakePackage("simple", "1.0", "simple-1.0.tar.gz", MetadataKind.Sha256),
@@ -836,13 +880,13 @@ def fake_packages() -> Dict[str, List[FakePackage]]:
                 MetadataKind.Unhashed,
                 ("simple==1.0",),
             ),
-            # This inserts a very large wheel, larger than the default fast-deps
-            # request size.
+            # This inserts a wheel larger than the default fast-deps request size with
+            # .dist-info metadata at the front.
             FakePackage(
                 "compilewheel",
                 "2.0",
-                "compilewheel-2.0-py2.py3-none-any.whl",
-                MetadataKind.Unhashed,
+                large_compilewheel_metadata_first,
+                MetadataKind.No,
             ),
         ],
         "has-script": [
@@ -855,6 +899,14 @@ def fake_packages() -> Dict[str, List[FakePackage]]:
             ),
         ],
         "translationstring": [
+            # This inserts a wheel larger than the default fast-deps request size with
+            # .dist-info metadata at the back.
+            FakePackage(
+                "translationstring",
+                "0.1",
+                large_translationstring_metadata_last,
+                MetadataKind.No,
+            ),
             FakePackage(
                 "translationstring",
                 "1.1",
@@ -929,9 +981,14 @@ def html_index_for_packages(
             download_links.append(
                 f'    <a href="{package_link.filename}" {package_link.generate_additional_tag()}>{package_link.filename}</a><br/>'  # noqa: E501
             )
-            # (3.2) Copy over the corresponding file in `shared_data.packages`.
+            # (3.2) Copy over the corresponding file in `shared_data.packages`, or the
+            #       generated wheel path if provided.
+            if isinstance(package_link.source_file, Path):
+                source_path = package_link.source_file
+            else:
+                source_path = shared_data.packages / package_link.filename
             shutil.copy(
-                shared_data.packages / package_link.filename,
+                source_path,
                 pkg_subdir / package_link.filename,
             )
             # (3.3) Write a metadata file, if applicable.

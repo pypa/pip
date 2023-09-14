@@ -168,15 +168,21 @@ def test_download_range(
         return script.pip(*pip_args, allow_stderr_warning=True)
 
     with html_index_with_range_server(range_handler) as handler:
-        run_for_generated_index(["colander", "compilewheel==2.0", "has-script"])
+        run_for_generated_index(
+            ["colander", "compilewheel==2.0", "has-script", "translationstring==0.1"]
+        )
         generated_files = os.listdir(download_dir)
         assert fnmatch.filter(generated_files, "colander*.whl")
         assert fnmatch.filter(generated_files, "compilewheel*.whl")
         assert fnmatch.filter(generated_files, "has.script*.whl")
+        assert fnmatch.filter(generated_files, "translationstring*.whl")
 
         colander_wheel_path = "/colander/colander-0.9.9-py2.py3-none-any.whl"
         compile_wheel_path = "/compilewheel/compilewheel-2.0-py2.py3-none-any.whl"
         has_script_path = "/has-script/has.script-1.0-py2.py3-none-any.whl"
+        translationstring_path = (
+            "/translationstring/translationstring-0.1-py2.py3-none-any.whl"
+        )
 
         if range_handler == RangeHandler.Always200OK:
             assert not handler.head_request_paths
@@ -186,46 +192,59 @@ def test_download_range(
             assert handler.get_request_counts[colander_wheel_path] == 2
             assert handler.get_request_counts[compile_wheel_path] == 1
             assert handler.get_request_counts[has_script_path] == 1
+            assert handler.get_request_counts[translationstring_path] == 1
         elif range_handler == RangeHandler.NoNegativeRange:
             assert {
                 colander_wheel_path,
                 compile_wheel_path,
                 has_script_path,
+                translationstring_path,
             } == handler.head_request_paths
             assert {
                 colander_wheel_path,
                 compile_wheel_path,
                 has_script_path,
+                translationstring_path,
             } == handler.positive_range_request_paths
             # Tries this first, finds that negative offsets are unsupported, so doesn't
             # try it again.
             assert {colander_wheel_path} == handler.negative_range_request_paths
-            # One more for the first wheel, because it has the failing negative
-            # byte request.
-            assert handler.get_request_counts[colander_wheel_path] == 3
+            # Two more for the first wheel, because it has the failing negative
+            # byte request and is larger than the initial chunk size.
+            assert handler.get_request_counts[colander_wheel_path] == 4
+            # The .dist-info dir at the start requires an additional ranged GET vs
+            # translationstring.
+            assert handler.get_request_counts[compile_wheel_path] == 3
+            # The entire file should have been pulled in with a single ranged GET.
+            assert handler.get_request_counts[has_script_path] == 2
             # The entire .dist-info dir should have been pulled in with a single
             # ranged GET. The second GET is for the end of the download, pulling down
             # the entire file contents.
-            assert handler.get_request_counts[compile_wheel_path] == 2
-            # The entire file should have been pulled in with a single ranged GET.
-            assert handler.get_request_counts[has_script_path] == 2
+            assert handler.get_request_counts[translationstring_path] == 2
         else:
             assert range_handler == RangeHandler.SupportsNegativeRange
             # The negative byte index worked, so no head requests.
             assert not handler.head_request_paths
             # The negative range request was in bounds and pulled in the entire
-            # .dist-info directory for compile-wheel==2.0, so we didn't need another
-            # range request.
+            # .dist-info directory (at the end of the zip) for translationstring==0.1,
+            # so we didn't need another range request for it. compilewheel==2.0 has the
+            # .dist-info dir at the start of the zip, so we still need another request
+            # for that.
             assert {
                 colander_wheel_path,
                 has_script_path,
+                compile_wheel_path,
             } == handler.positive_range_request_paths
             assert {
                 colander_wheel_path,
                 compile_wheel_path,
                 has_script_path,
+                translationstring_path,
             } == handler.negative_range_request_paths
             assert handler.get_request_counts[colander_wheel_path] == 3
-            assert handler.get_request_counts[compile_wheel_path] == 2
+            # One more than translationstring, because the .dist-info dir is at the
+            # front of the wheel.
+            assert handler.get_request_counts[compile_wheel_path] == 3
             # One more than last time, because the negative byte index failed.
             assert handler.get_request_counts[has_script_path] == 3
+            assert handler.get_request_counts[translationstring_path] == 2
