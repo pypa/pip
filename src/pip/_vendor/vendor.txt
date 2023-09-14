@@ -20,4 +20,5 @@ setuptools==68.0.0
 six==1.16.0
 tenacity==8.2.2
 tomli==2.0.1
+truststore==0.7.0
 webencodings==0.5.1

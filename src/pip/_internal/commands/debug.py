@@ -58,7 +58,15 @@ def get_module_from_module_name(module_name: str) -> ModuleType:
 
 
 def get_vendor_version_from_module(module_name: str) -> Optional[str]:
-    module = get_module_from_module_name(module_name)
+    try:
+        module = get_module_from_module_name(module_name)
+    except ImportError:
+        # Truststore only supports Python 3.10+ so this ImportError
+        # is expected for only the 'truststore' module.
+        if module_name == "truststore" and sys.version_info < (3, 10):
+            return None
+        raise
+
     version = getattr(module, "__version__", None)
 
     if not version:
