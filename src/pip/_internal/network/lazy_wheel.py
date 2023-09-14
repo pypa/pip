@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-__all__ = ["HTTPRangeRequestUnsupported", "dist_from_wheel_url", "LazyWheelOverHTTP"]
-
 import abc
 import io
 import logging
@@ -21,9 +19,11 @@ from pip._vendor.requests.status_codes import codes
 
 from pip._internal.exceptions import InvalidWheel, UnsupportedWheel
 from pip._internal.metadata import BaseDistribution, MemoryWheel, get_wheel_distribution
-from pip._internal.network.session import PipSession as Session
+from pip._internal.network.session import PipSession
 from pip._internal.network.utils import HEADERS
 from pip._internal.utils.logging import indent_log
+
+__all__ = ["HTTPRangeRequestUnsupported", "dist_from_wheel_url", "LazyWheelOverHTTP"]
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ class HTTPRangeRequestUnsupported(Exception):
     """Raised when the remote server appears unable to support byte ranges."""
 
 
-def dist_from_wheel_url(name: str, url: str, session: Session) -> BaseDistribution:
+def dist_from_wheel_url(name: str, url: str, session: PipSession) -> BaseDistribution:
     """Return a distribution object from the given wheel URL.
 
     This uses HTTP range requests to only fetch the portion of the wheel
@@ -393,7 +393,7 @@ class LazyHTTPFile(FixedSizeLazyResource):
     def __init__(
         self,
         url: str,
-        session: Session,
+        session: PipSession,
         delete_backing_file: bool = True,
     ) -> None:
         super().__init__(cast(BinaryIO, NamedTemporaryFile(delete=delete_backing_file)))
