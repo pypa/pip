@@ -501,22 +501,9 @@ class LazyWheelOverHTTP(LazyHTTPFile):
         further requests before being able to process the zip file's contents at all. If
         the chunk size from this method is larger than the size of an entire wheel, that
         may raise an HTTP error, but this is gracefully handled in
-        ``self._fetch_content_length()`` with an extremely small performance penalty.
-
-        The other reason to set this to a very high value is to attempt to pull in the
-        ``*.dist-info/`` directory's file contents along with the central directory
-        record as part of that single initial request, because those files are almost
-        always at the end of the zip file. This means that the entire lazy wheel
-        strategy can be executed for most wheels with a single ranged GET request, and
-        ``self.prefetch_contiguous_dist_info()`` becomes a no-op.
+        ``self._fetch_content_length()`` with a small performance penalty.
         """
-        # The central directory for
-        # tensorflow_gpu-2.5.3-cp38-cp38-manylinux2010_x86_64.whl is 944931 bytes, for
-        # a 459424488 byte file (about 486x as large), so 1MB will always download the
-        # entire central directory. However, this particular tensorflow release also has
-        # the peculiar property of putting its dist-info dir at the *front* of the zip,
-        # so it will still require a separate request.
-        return 1_000_000
+        return 10_000
 
     def _fetch_content_length(self) -> int:
         """Get the total remote file length, but also download a chunk from the end.
