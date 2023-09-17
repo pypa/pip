@@ -599,6 +599,21 @@ def test_get_git_version() -> None:
 
 
 @pytest.mark.parametrize(
+    ("version", "expected"),
+    [
+        ("git version 2.17", (2, 17)),
+        ("git version 2.18.1", (2, 18)),
+        ("git version 2.35.GIT", (2, 35)),  # gh:12280
+        ("oh my git version 2.37.GIT", ()),  #  invalid version
+        ("git version 2.GIT", ()),  # invalid version
+    ],
+)
+def test_get_git_version_parser(version: str, expected: Tuple[int, int]) -> None:
+    with mock.patch("pip._internal.vcs.git.Git.run_command", return_value=version):
+        assert Git().get_git_version() == expected
+
+
+@pytest.mark.parametrize(
     "use_interactive,is_atty,expected",
     [
         (None, False, False),
