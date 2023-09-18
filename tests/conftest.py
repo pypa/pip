@@ -660,8 +660,10 @@ def session_script(
     virtualenv_factory: Callable[[Path], VirtualEnvironment],
     script_factory: ScriptFactory,
 ) -> PipTestEnvironment:
-    """
-    Return a PipTestEnvironment which is shared across the whole session.
+    """PipTestEnvironment shared across the whole session.
+
+    This is used by session-scoped fixtures. Tests should use the
+    function-scoped ``script`` fixture instead.
     """
     virtualenv = virtualenv_factory(
         tmpdir_factory.mktemp("session_venv").joinpath("venv")
