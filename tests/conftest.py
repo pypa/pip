@@ -754,6 +754,39 @@ class MetadataKind(Enum):
 
 
 @dataclass(frozen=True)
+class FakePackageSource:
+    """A test package file which may be hardcoded or generated dynamically."""
+
+    source_file: Union[str, Path]
+
+    @classmethod
+    def shared_data_package(cls, name: str) -> "FakePackageSource":
+        return cls(source_file=name)
+
+    @property
+    def _is_shared_data(self) -> bool:
+        return isinstance(self.source_file, str)
+
+    @classmethod
+    def generated_wheel(cls, path: Path) -> "FakePackageSource":
+        return cls(source_file=path)
+
+    @property
+    def filename(self) -> str:
+        if self._is_shared_data:
+            assert isinstance(self.source_file, str)
+            return self.source_file
+        assert isinstance(self.source_file, Path)
+        return self.source_file.name
+
+    def source_path(self, shared_data: TestData) -> Path:
+        if self._is_shared_data:
+            return shared_data.packages / self.filename
+        assert isinstance(self.source_file, Path)
+        return self.source_file
+
+
+@dataclass(frozen=True)
 class FakePackage:
     """Mock package structure used to generate a PyPI repository.
 
@@ -762,7 +795,7 @@ class FakePackage:
 
     name: str
     version: str
-    source_file: Union[str, Path]
+    source_file: FakePackageSource
     metadata: MetadataKind
     # This will override any dependencies specified in the actual dist's METADATA.
     requires_dist: Tuple[str, ...] = ()
@@ -771,9 +804,10 @@ class FakePackage:
 
     @property
     def filename(self) -> str:
-        if isinstance(self.source_file, str):
-            return self.source_file
-        return self.source_file.name
+        return self.source_file.filename
+
+    def source_path(self, shared_data: TestData) -> Path:
+        return self.source_file.source_path(shared_data)
 
     def metadata_filename(self) -> str:
         """This is specified by PEP 658."""
@@ -836,10 +870,25 @@ def fake_packages(session_script: PipTestEnvironment) -> Dict[str, List[FakePack
 
     return {
         "simple": [
-            FakePackage("simple", "1.0", "simple-1.0.tar.gz", MetadataKind.Sha256),
-            FakePackage("simple", "2.0", "simple-2.0.tar.gz", MetadataKind.No),
+            FakePackage(
+                "simple",
+                "1.0",
+                FakePackageSource.shared_data_package("simple-1.0.tar.gz"),
+                MetadataKind.Sha256,
+            ),
+            FakePackage(
+                "simple",
+                "2.0",
+                FakePackageSource.shared_data_package("simple-2.0.tar.gz"),
+                MetadataKind.No,
+            ),
             # This will raise a hashing error.
-            FakePackage("simple", "3.0", "simple-3.0.tar.gz", MetadataKind.WrongHash),
+            FakePackage(
+                "simple",
+                "3.0",
+                FakePackageSource.shared_data_package("simple-3.0.tar.gz"),
+                MetadataKind.WrongHash,
+            ),
         ],
         "simple2": [
             # Override the dependencies here in order to force pip to download
@@ -847,17 +896,22 @@ def fake_packages(session_script: PipTestEnvironment) -> Dict[str, List[FakePack
             FakePackage(
                 "simple2",
                 "1.0",
-                "simple2-1.0.tar.gz",
+                FakePackageSource.shared_data_package("simple2-1.0.tar.gz"),
                 MetadataKind.Unhashed,
                 ("simple==1.0",),
             ),
             # This will raise an error when pip attempts to fetch the metadata file.
-            FakePackage("simple2", "2.0", "simple2-2.0.tar.gz", MetadataKind.NoFile),
+            FakePackage(
+                "simple2",
+                "2.0",
+                FakePackageSource.shared_data_package("simple2-2.0.tar.gz"),
+                MetadataKind.NoFile,
+            ),
             # This has a METADATA file with a mismatched name.
             FakePackage(
                 "simple2",
                 "3.0",
-                "simple2-3.0.tar.gz",
+                FakePackageSource.shared_data_package("simple2-3.0.tar.gz"),
                 MetadataKind.Sha256,
                 metadata_name="not-simple2",
             ),
@@ -868,7 +922,9 @@ def fake_packages(session_script: PipTestEnvironment) -> Dict[str, List[FakePack
             FakePackage(
                 "colander",
                 "0.9.9",
-                "colander-0.9.9-py2.py3-none-any.whl",
+                FakePackageSource.shared_data_package(
+                    "colander-0.9.9-py2.py3-none-any.whl"
+                ),
                 MetadataKind.No,
             ),
         ],
@@ -878,7 +934,9 @@ def fake_packages(session_script: PipTestEnvironment) -> Dict[str, List[FakePack
             FakePackage(
                 "compilewheel",
                 "1.0",
-                "compilewheel-1.0-py2.py3-none-any.whl",
+                FakePackageSource.shared_data_package(
+                    "compilewheel-1.0-py2.py3-none-any.whl"
+                ),
                 MetadataKind.Unhashed,
                 ("simple==1.0",),
             ),
@@ -887,7 +945,7 @@ def fake_packages(session_script: PipTestEnvironment) -> Dict[str, List[FakePack
             FakePackage(
                 "compilewheel",
                 "2.0",
-                large_compilewheel_metadata_first,
+                FakePackageSource.generated_wheel(large_compilewheel_metadata_first),
                 MetadataKind.No,
             ),
         ],
@@ -896,7 +954,9 @@ def fake_packages(session_script: PipTestEnvironment) -> Dict[str, List[FakePack
             FakePackage(
                 "has-script",
                 "1.0",
-                "has.script-1.0-py2.py3-none-any.whl",
+                FakePackageSource.shared_data_package(
+                    "has.script-1.0-py2.py3-none-any.whl"
+                ),
                 MetadataKind.WrongHash,
             ),
         ],
@@ -906,13 +966,15 @@ def fake_packages(session_script: PipTestEnvironment) -> Dict[str, List[FakePack
             FakePackage(
                 "translationstring",
                 "0.1",
-                large_translationstring_metadata_last,
+                FakePackageSource.generated_wheel(
+                    large_translationstring_metadata_last
+                ),
                 MetadataKind.No,
             ),
             FakePackage(
                 "translationstring",
                 "1.1",
-                "translationstring-1.1.tar.gz",
+                FakePackageSource.shared_data_package("translationstring-1.1.tar.gz"),
                 MetadataKind.No,
             ),
         ],
@@ -921,7 +983,9 @@ def fake_packages(session_script: PipTestEnvironment) -> Dict[str, List[FakePack
             FakePackage(
                 "priority",
                 "1.0",
-                "priority-1.0-py2.py3-none-any.whl",
+                FakePackageSource.shared_data_package(
+                    "priority-1.0-py2.py3-none-any.whl"
+                ),
                 MetadataKind.NoFile,
             ),
         ],
@@ -930,7 +994,9 @@ def fake_packages(session_script: PipTestEnvironment) -> Dict[str, List[FakePack
             FakePackage(
                 "requires-simple-extra",
                 "0.1",
-                "requires_simple_extra-0.1-py2.py3-none-any.whl",
+                FakePackageSource.shared_data_package(
+                    "requires_simple_extra-0.1-py2.py3-none-any.whl"
+                ),
                 MetadataKind.Sha256,
                 metadata_name="Requires_Simple.Extra",
             ),
@@ -985,10 +1051,7 @@ def html_index_for_packages(
             )
             # (3.2) Copy over the corresponding file in `shared_data.packages`, or the
             #       generated wheel path if provided.
-            if isinstance(package_link.source_file, Path):
-                source_path = package_link.source_file
-            else:
-                source_path = shared_data.packages / package_link.filename
+            source_path = package_link.source_path(shared_data)
             shutil.copy(
                 source_path,
                 pkg_subdir / package_link.filename,
