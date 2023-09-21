@@ -134,9 +134,7 @@ def show_tags(options: Values) -> None:
 
 
 def ca_bundle_info(config: Configuration) -> str:
-    # Ruff misidentifies config as a dict.
-    # Configuration does not have support the mapping interface.
-    levels = {key.split(".", 1)[0] for key, _ in config.items()}  # noqa: PERF102
+    levels = {key.split(".", 1)[0] for key, _ in config.items()}
     if not levels:
         return "Not specified"
 

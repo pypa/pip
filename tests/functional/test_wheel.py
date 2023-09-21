@@ -10,7 +10,7 @@ from pip._internal.cli.status_codes import ERROR
 from tests.lib import (
     PipTestEnvironment,
     TestData,
-    pyversion,  # noqa: F401
+    pyversion,
 )
 
 
