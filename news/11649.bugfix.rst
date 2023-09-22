@@ -1,0 +1,5 @@
+Normalize extras according to :pep:`685` from package metadata in the resolver
+for comparison. This ensures extras are correctly compared and merged as long
+as the package providing the extra(s) is built with values normalized according
+to the standard. Note, however, that this *does not* solve cases where the
+package itself contains unnormalized extra values in the metadata.

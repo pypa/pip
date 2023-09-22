@@ -4,7 +4,12 @@ from os.path import join
 
 import pytest
 
-from tests.lib import PipTestEnvironment, ResolverVariant, TestData
+from tests.lib import (
+    PipTestEnvironment,
+    ResolverVariant,
+    TestData,
+    create_basic_wheel_for_package,
+)
 
 
 @pytest.mark.network
@@ -150,25 +155,42 @@ def test_install_fails_if_extra_at_end(
     assert "Extras after version" in result.stderr
 
 
-def test_install_special_extra(script: PipTestEnvironment) -> None:
-    # Check that uppercase letters and '-' are dealt with
-    # make a dummy project
-    pkga_path = script.scratch_path / "pkga"
-    pkga_path.mkdir()
-    pkga_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
-        from setuptools import setup
-        setup(name='pkga',
-              version='0.1',
-              extras_require={'Hop_hOp-hoP': ['missing_pkg']},
-        )
-    """
-        )
+@pytest.mark.parametrize(
+    "specified_extra, requested_extra",
+    [
+        ("Hop_hOp-hoP", "Hop_hOp-hoP"),
+        pytest.param(
+            "Hop_hOp-hoP",
+            "hop-hop-hop",
+            marks=pytest.mark.xfail(
+                reason=(
+                    "matching a normalized extra request against an"
+                    "unnormalized extra in metadata requires PEP 685 support "
+                    "in packaging (see pypa/pip#11445)."
+                ),
+            ),
+        ),
+        ("hop-hop-hop", "Hop_hOp-hoP"),
+    ],
+)
+def test_install_special_extra(
+    script: PipTestEnvironment,
+    specified_extra: str,
+    requested_extra: str,
+) -> None:
+    """Check extra normalization is implemented according to specification."""
+    pkga_path = create_basic_wheel_for_package(
+        script,
+        name="pkga",
+        version="0.1",
+        extras={specified_extra: ["missing_pkg"]},
     )
 
     result = script.pip(
-        "install", "--no-index", f"{pkga_path}[Hop_hOp-hoP]", expect_error=True
+        "install",
+        "--no-index",
+        f"pkga[{requested_extra}] @ {pkga_path.as_uri()}",
+        expect_error=True,
     )
     assert (
         "Could not find a version that satisfies the requirement missing_pkg"
@@ -223,3 +245,20 @@ def test_install_extra_merging(
     if not fails_on_legacy or resolver_variant == "2020-resolver":
         expected = f"Successfully installed pkga-0.1 simple-{simple_version}"
         assert expected in result.stdout
+
+
+def test_install_extras(script: PipTestEnvironment) -> None:
+    create_basic_wheel_for_package(script, "a", "1", depends=["b", "dep[x-y]"])
+    create_basic_wheel_for_package(script, "b", "1", depends=["dep[x_y]"])
+    create_basic_wheel_for_package(script, "dep", "1", extras={"x-y": ["meh"]})
+    create_basic_wheel_for_package(script, "meh", "1")
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "a",
+    )
+    script.assert_installed(a="1", b="1", dep="1", meh="1")
