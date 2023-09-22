@@ -23,12 +23,22 @@ commands_dict: Dict[str, CommandInfo] = {
         "InstallCommand",
         "Install packages.",
     ),
+    "i": CommandInfo(
+        "pip._internal.commands.install",
+        "InstallCommand",
+        "Install packages.",
+    ),
     "download": CommandInfo(
         "pip._internal.commands.download",
         "DownloadCommand",
         "Download packages.",
     ),
     "uninstall": CommandInfo(
+        "pip._internal.commands.uninstall",
+        "UninstallCommand",
+        "Uninstall packages.",
+    ),
+    "u": CommandInfo(
         "pip._internal.commands.uninstall",
         "UninstallCommand",
         "Uninstall packages.",
