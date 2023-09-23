@@ -76,8 +76,8 @@ def pytest_addoption(parser: Parser) -> None:
     parser.addoption(
         "--resolver",
         action="store",
-        default="2020-resolver",
-        choices=["2020-resolver", "legacy"],
+        default="resolvelib",
+        choices=["resolvelib", "legacy"],
         help="use given resolver in tests",
     )
     parser.addoption(

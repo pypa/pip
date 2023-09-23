@@ -46,9 +46,7 @@ if TYPE_CHECKING:
     # Literal was introduced in Python 3.8.
     from typing import Literal
 
-    ResolverVariant = Literal[
-        "resolvelib", "legacy", "2020-resolver", "legacy-resolver"
-    ]
+    ResolverVariant = Literal["resolvelib", "legacy"]
 else:
     ResolverVariant = str
 

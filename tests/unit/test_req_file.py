@@ -471,9 +471,7 @@ class TestProcessLine:
     ) -> None:
         """--use-feature triggers error when parsing requirements files."""
         with pytest.raises(RequirementsFileParseError):
-            line_processor(
-                "--use-feature=2020-resolver", "filename", 1, options=options
-            )
+            line_processor("--use-feature=resolvelib", "filename", 1, options=options)
 
     def test_relative_local_find_links(
         self,

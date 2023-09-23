@@ -242,7 +242,7 @@ def test_install_extra_merging(
         expect_error=(fails_on_legacy and resolver_variant == "legacy"),
     )
 
-    if not fails_on_legacy or resolver_variant == "2020-resolver":
+    if not fails_on_legacy or resolver_variant == "resolvelib":
         expected = f"Successfully installed pkga-0.1 simple-{simple_version}"
         assert expected in result.stdout
 
