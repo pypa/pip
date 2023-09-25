@@ -112,7 +112,7 @@ class Factory:
         self._editable_candidate_cache: Cache[EditableCandidate] = {}
         self._installed_candidate_cache: Dict[str, AlreadyInstalledCandidate] = {}
         self._extras_candidate_cache: Dict[
-            Tuple[int, FrozenSet[str]], ExtrasCandidate
+            Tuple[int, FrozenSet[NormalizedName]], ExtrasCandidate
         ] = {}
 
         if not ignore_installed:
@@ -138,9 +138,11 @@ class Factory:
         raise UnsupportedWheel(msg)
 
     def _make_extras_candidate(
-        self, base: BaseCandidate, extras: FrozenSet[str]
+        self,
+        base: BaseCandidate,
+        extras: FrozenSet[str],
     ) -> ExtrasCandidate:
-        cache_key = (id(base), extras)
+        cache_key = (id(base), frozenset(canonicalize_name(e) for e in extras))
         try:
             candidate = self._extras_candidate_cache[cache_key]
         except KeyError:
