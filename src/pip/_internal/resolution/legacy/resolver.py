@@ -10,8 +10,6 @@ for sub-dependencies
     a. "first found, wins" (where the order is breadth first)
 """
 
-# The following comment should be removed at some point in the future.
-
 import logging
 import sys
 from collections import defaultdict
