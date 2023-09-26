@@ -96,9 +96,9 @@ class CacheCommand(Command):
         http_cache_location = self._cache_dir(options, "http-v2")
         old_http_cache_location = self._cache_dir(options, "http")
         wheels_cache_location = self._cache_dir(options, "wheels")
-        http_cache_size = (
-            filesystem.format_size(filesystem.directory_size(http_cache_location) +
-            filesystem.directory_size(old_http_cache_location))
+        http_cache_size = filesystem.format_size(
+            filesystem.directory_size(http_cache_location)
+            + filesystem.directory_size(old_http_cache_location)
         )
         wheels_cache_size = filesystem.format_directory_size(wheels_cache_location)
 
@@ -112,7 +112,7 @@ class CacheCommand(Command):
                     Locally built wheels location: {wheels_cache_location}
                     Locally built wheels size: {wheels_cache_size}
                     Number of locally built wheels: {package_count}
-                """
+                """  # noqa: E501
             )
             .format(
                 http_cache_location=http_cache_location,
