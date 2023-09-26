@@ -46,22 +46,29 @@ def create_vendor_txt_map() -> Dict[str, str]:
     return dict(line.split("==", 1) for line in lines)
 
 
-def get_module_from_module_name(module_name: str) -> ModuleType:
+def get_module_from_module_name(module_name: str) -> Optional[ModuleType]:
     # Module name can be uppercase in vendor.txt for some reason...
     module_name = module_name.lower().replace("-", "_")
     # PATCH: setuptools is actually only pkg_resources.
     if module_name == "setuptools":
         module_name = "pkg_resources"
 
-    __import__(f"pip._vendor.{module_name}", globals(), locals(), level=0)
-    return getattr(pip._vendor, module_name)
+    try:
+        __import__(f"pip._vendor.{module_name}", globals(), locals(), level=0)
+        return getattr(pip._vendor, module_name)
+    except ImportError:
+        # We allow 'truststore' to fail to import due
+        # to being unavailable on Python 3.9 and earlier.
+        if module_name == "truststore" and sys.version_info < (3, 10):
+            return None
+        raise
 
 
 def get_vendor_version_from_module(module_name: str) -> Optional[str]:
     module = get_module_from_module_name(module_name)
     version = getattr(module, "__version__", None)
 
-    if not version:
+    if module and not version:
         # Try to find version in debundled module info.
         assert module.__file__ is not None
         env = get_environment([os.path.dirname(module.__file__)])
