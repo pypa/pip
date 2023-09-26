@@ -364,6 +364,7 @@ def test_show_deduplicate_requirements(script: PipTestEnvironment) -> None:
         name="simple",
         version="1.0",
         install_requires=[
+            "pip >= 19.0.1",
             'pip >= 19.3.1; python_version < "3.8"',
             'pip >= 23.0.1; python_version < "3.9"',
         ],

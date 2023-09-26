@@ -100,11 +100,11 @@ def search_packages_info(query: List[str]) -> Generator[_PackageInfo, None, None
         except KeyError:
             continue
 
-        requires = []
+        requires = set()
         # Avoid duplicates in requirements due to environment markers
         for req in dist.iter_dependencies():
             if req.name not in requires:
-                requires.append(req.name)
+                requires.add(req.name)
         requires = sorted(requires, key=str.lower)
         required_by = sorted(_get_requiring_packages(dist), key=str.lower)
 
