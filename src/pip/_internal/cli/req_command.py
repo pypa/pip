@@ -58,12 +58,9 @@ def _create_truststore_ssl_context() -> Optional["SSLContext"]:
         return None
 
     try:
-        import truststore
-    except ImportError:
-        raise CommandError(
-            "To use the truststore feature, 'truststore' must be installed into "
-            "pip's current environment."
-        )
+        from pip._vendor import truststore
+    except ImportError as e:
+        raise CommandError(f"The truststore feature is unavailable: {e}")
 
     return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 
