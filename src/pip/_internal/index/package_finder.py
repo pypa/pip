@@ -706,8 +706,8 @@ class PackageFinder:
 
     def requires_python_skipped_reasons(self) -> List[str]:
         reasons = {
-            detail
-            for _, result, detail in self._logged_links
+            "{} {}".format(link.filename, detail)
+            for link, result, detail in self._logged_links
             if result == LinkType.requires_python_mismatch
         }
         return sorted(reasons)
