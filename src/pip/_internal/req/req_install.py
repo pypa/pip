@@ -52,7 +52,6 @@ from pip._internal.utils.misc import (
     redact_auth_from_requirement,
     redact_auth_from_url,
 )
-from pip._internal.utils.packaging import safe_extra
 from pip._internal.utils.subprocess import runner_with_spinner_message
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 from pip._internal.utils.unpacking import unpack_file
@@ -284,12 +283,7 @@ class InstallRequirement:
             extras_requested = ("",)
         if self.markers is not None:
             return any(
-                self.markers.evaluate({"extra": extra})
-                # TODO: Remove these two variants when packaging is upgraded to
-                # support the marker comparison logic specified in PEP 685.
-                or self.markers.evaluate({"extra": safe_extra(extra)})
-                or self.markers.evaluate({"extra": canonicalize_name(extra)})
-                for extra in extras_requested
+                self.markers.evaluate({"extra": extra}) for extra in extras_requested
             )
         else:
             return True

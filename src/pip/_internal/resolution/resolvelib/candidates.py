@@ -438,14 +438,6 @@ class ExtrasCandidate(Candidate):
         """
         self.base = base
         self.extras = frozenset(canonicalize_name(e) for e in extras)
-        # If any extras are requested in their non-normalized forms, keep track
-        # of their raw values. This is needed when we look up dependencies
-        # since PEP 685 has not been implemented for marker-matching, and using
-        # the non-normalized extra for lookup ensures the user can select a
-        # non-normalized extra in a package with its non-normalized form.
-        # TODO: Remove this attribute when packaging is upgraded to support the
-        # marker comparison logic specified in PEP 685.
-        self._unnormalized_extras = extras.difference(self.extras)
         self._comes_from = comes_from if comes_from is not None else self.base._ireq
 
     def __str__(self) -> str:
@@ -528,7 +520,7 @@ class ExtrasCandidate(Candidate):
         candidate doesn't support. Any unsupported extras are dropped, and each
         cause a warning to be logged here.
         """
-        requested_extras = self.extras.union(self._unnormalized_extras)
+        requested_extras = self.extras
         valid_extras = frozenset(
             extra
             for extra in requested_extras

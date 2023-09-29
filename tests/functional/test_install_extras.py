@@ -152,24 +152,14 @@ def test_install_fails_if_extra_at_end(
         script.scratch_path / "requirements.txt",
         expect_error=True,
     )
-    assert "Extras after version" in result.stderr
+    assert "Invalid requirement: 'requires_simple_extra>=0.1[extra]'" in result.stderr
 
 
 @pytest.mark.parametrize(
     "specified_extra, requested_extra",
     [
         ("Hop_hOp-hoP", "Hop_hOp-hoP"),
-        pytest.param(
-            "Hop_hOp-hoP",
-            "hop-hop-hop",
-            marks=pytest.mark.xfail(
-                reason=(
-                    "matching a normalized extra request against an"
-                    "unnormalized extra in metadata requires PEP 685 support "
-                    "in packaging (see pypa/pip#11445)."
-                ),
-            ),
-        ),
+        ("Hop_hOp-hoP", "hop-hop-hop"),
         ("hop-hop-hop", "Hop_hOp-hoP"),
     ],
 )
