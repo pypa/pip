@@ -295,7 +295,7 @@ def test_uninstall_rollback(script: PipTestEnvironment, data: TestData) -> None:
         "-f",
         data.find_links,
         "--no-index",
-        "broken===0.2broken",
+        "broken===0.2+broken",
         expect_error=True,
     )
     assert result2.returncode == 1, str(result2)
