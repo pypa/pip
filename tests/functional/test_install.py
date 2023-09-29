@@ -2253,14 +2253,14 @@ def test_yanked_version_missing_from_availble_versions_error_message(
     """
     result = script.pip(
         "install",
-        "simple==",
+        "simple==0.1",
         "--index-url",
         data.index_url("yanked"),
         expect_error=True,
     )
     # the yanked version (3.0) is filtered out from the output:
     expected_warning = (
-        "Could not find a version that satisfies the requirement simple== "
+        "Could not find a version that satisfies the requirement simple==0.1 "
         "(from versions: 1.0, 2.0)"
     )
     assert expected_warning in result.stderr, str(result)
