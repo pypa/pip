@@ -854,25 +854,6 @@ config_settings: Callable[..., Option] = partial(
     "to pass multiple keys to the backend.",
 )
 
-build_options: Callable[..., Option] = partial(
-    Option,
-    "--build-option",
-    dest="build_options",
-    metavar="options",
-    action="append",
-    help="Extra arguments to be supplied to 'setup.py bdist_wheel'.",
-)
-
-global_options: Callable[..., Option] = partial(
-    Option,
-    "--global-option",
-    dest="global_options",
-    action="append",
-    metavar="options",
-    help="Extra global options to be supplied to the setup.py "
-    "call before the install or bdist_wheel command.",
-)
-
 no_clean: Callable[..., Option] = partial(
     Option,
     "--no-clean",

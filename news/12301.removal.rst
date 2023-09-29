@@ -1,0 +1,1 @@
+Remove the deprecated ``--global-option`` and ``--build-option`` flags.

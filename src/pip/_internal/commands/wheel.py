@@ -10,10 +10,7 @@ from pip._internal.cli.req_command import RequirementCommand, with_cleanup
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.exceptions import CommandError
 from pip._internal.operations.build.build_tracker import get_build_tracker
-from pip._internal.req.req_install import (
-    InstallRequirement,
-    check_legacy_setup_py_options,
-)
+from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.misc import ensure_dir, normalize_path
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.wheel_builder import build, should_build_for_wheel_command
@@ -77,8 +74,6 @@ class WheelCommand(RequirementCommand):
         )
 
         self.cmd_opts.add_option(cmdoptions.config_settings())
-        self.cmd_opts.add_option(cmdoptions.build_options())
-        self.cmd_opts.add_option(cmdoptions.global_options())
 
         self.cmd_opts.add_option(
             "--pre",
@@ -118,7 +113,6 @@ class WheelCommand(RequirementCommand):
         )
 
         reqs = self.get_requirements(args, options, finder, session)
-        check_legacy_setup_py_options(options, reqs)
 
         wheel_cache = WheelCache(options.cache_dir)
 
@@ -161,8 +155,6 @@ class WheelCommand(RequirementCommand):
             reqs_to_build,
             wheel_cache=wheel_cache,
             verify=(not options.no_verify),
-            build_options=options.build_options or [],
-            global_options=options.global_options or [],
         )
         for req in build_successes:
             assert req.link and req.link.is_wheel

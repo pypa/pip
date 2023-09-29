@@ -1,7 +1,7 @@
 """Legacy editable installation process, i.e. `setup.py develop`.
 """
 import logging
-from typing import Optional, Sequence
+from typing import Optional
 
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.utils.logging import indent_log
@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 def install_editable(
     *,
-    global_options: Sequence[str],
     prefix: Optional[str],
     home: Optional[str],
     use_user_site: bool,
@@ -30,7 +29,6 @@ def install_editable(
 
     args = make_setuptools_develop_args(
         setup_py_path,
-        global_options=global_options,
         no_user_config=isolated,
         prefix=prefix,
         home=home,

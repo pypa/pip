@@ -1,6 +1,6 @@
 import sys
 import textwrap
-from typing import List, Optional, Sequence
+from typing import List, Optional
 
 # Shim to wrap setup.py invocation with setuptools
 # Note that __file__ is handled via two {!r} *and* %r, to ensure that paths on
@@ -48,7 +48,6 @@ _SETUPTOOLS_SHIM = textwrap.dedent(
 
 def make_setuptools_shim_args(
     setup_py_path: str,
-    global_options: Optional[Sequence[str]] = None,
     no_user_config: bool = False,
     unbuffered_output: bool = False,
 ) -> List[str]:
@@ -56,7 +55,6 @@ def make_setuptools_shim_args(
     Get setuptools command arguments with shim wrapped setup file invocation.
 
     :param setup_py_path: The path to setup.py to be wrapped.
-    :param global_options: Additional global options.
     :param no_user_config: If True, disables personal user configuration.
     :param unbuffered_output: If True, adds the unbuffered switch to the
      argument list.
@@ -65,8 +63,6 @@ def make_setuptools_shim_args(
     if unbuffered_output:
         args += ["-u"]
     args += ["-c", _SETUPTOOLS_SHIM.format(setup_py_path)]
-    if global_options:
-        args += global_options
     if no_user_config:
         args += ["--no-user-cfg"]
     return args
@@ -74,29 +70,19 @@ def make_setuptools_shim_args(
 
 def make_setuptools_bdist_wheel_args(
     setup_py_path: str,
-    global_options: Sequence[str],
-    build_options: Sequence[str],
     destination_dir: str,
 ) -> List[str]:
     # NOTE: Eventually, we'd want to also -S to the flags here, when we're
     # isolating. Currently, it breaks Python in virtualenvs, because it
     # relies on site.py to find parts of the standard library outside the
     # virtualenv.
-    args = make_setuptools_shim_args(
-        setup_py_path, global_options=global_options, unbuffered_output=True
-    )
+    args = make_setuptools_shim_args(setup_py_path, unbuffered_output=True)
     args += ["bdist_wheel", "-d", destination_dir]
-    args += build_options
     return args
 
 
-def make_setuptools_clean_args(
-    setup_py_path: str,
-    global_options: Sequence[str],
-) -> List[str]:
-    args = make_setuptools_shim_args(
-        setup_py_path, global_options=global_options, unbuffered_output=True
-    )
+def make_setuptools_clean_args(setup_py_path: str) -> List[str]:
+    args = make_setuptools_shim_args(setup_py_path, unbuffered_output=True)
     args += ["clean", "--all"]
     return args
 
@@ -104,7 +90,6 @@ def make_setuptools_clean_args(
 def make_setuptools_develop_args(
     setup_py_path: str,
     *,
-    global_options: Sequence[str],
     no_user_config: bool,
     prefix: Optional[str],
     home: Optional[str],
@@ -114,7 +99,6 @@ def make_setuptools_develop_args(
 
     args = make_setuptools_shim_args(
         setup_py_path,
-        global_options=global_options,
         no_user_config=no_user_config,
     )
 

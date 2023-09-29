@@ -69,40 +69,6 @@ To support projects that directly use `distutils`, pip injects `setuptools` into
 `sys.modules` before invoking `setup.py`. This injection should be transparent
 to `distutils`-based projects.
 
-## Customising the build
-
-The `--global-option` and `--build-option` arguments to the `pip install`
-and `pip wheel` inject additional arguments into the `setup.py` command
-(`--build-option` is only available in `pip wheel`).
-
-```{attention}
-The use of `--global-option` and `--build-option` is highly setuptools
-specific, and is considered more an accident of the current implementation than
-a supported interface. It is documented here for completeness. These flags will
-not be supported, once this build system interface is dropped.
-```
-
-These arguments are included in the command as follows:
-
-```
-python setup.py <global_options> BUILD COMMAND <build_options>
-```
-
-The options are passed unmodified, and presently offer direct access to the
-distutils command line. For example:
-
-```{pip-cli}
-$ pip wheel --global-option bdist_ext --global-option -DFOO wheel
-```
-
-will result in pip invoking:
-
-```
-setup.py bdist_ext -DFOO bdist_wheel -d TARGET
-```
-
-This passes a preprocessor symbol to the extension build.
-
 (build-output)=
 
 ## Build Output

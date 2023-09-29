@@ -353,7 +353,6 @@ def test_git_with_tag_name_and_update(script: PipTestEnvironment, tmpdir: Path) 
     new_local_url = f"{base_local_url}@0.1.2#egg=pip-test-package"
     result = script.pip(
         "install",
-        "--global-option=--version",
         "-e",
         new_local_url,
         allow_stderr_warning=True,
@@ -392,7 +391,6 @@ def test_git_with_non_editable_unpacking(
     )
     result = script.pip(
         "install",
-        "--global-option=--quiet",
         local_url,
         allow_stderr_warning=True,
     )

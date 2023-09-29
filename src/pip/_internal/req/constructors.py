@@ -204,7 +204,6 @@ def install_req_from_editable(
     *,
     use_pep517: Optional[bool] = None,
     isolated: bool = False,
-    global_options: Optional[List[str]] = None,
     hash_options: Optional[Dict[str, List[str]]] = None,
     constraint: bool = False,
     user_supplied: bool = False,
@@ -223,7 +222,6 @@ def install_req_from_editable(
         constraint=constraint,
         use_pep517=use_pep517,
         isolated=isolated,
-        global_options=global_options,
         hash_options=hash_options,
         config_settings=config_settings,
         extras=parts.extras,
@@ -379,7 +377,6 @@ def install_req_from_line(
     *,
     use_pep517: Optional[bool] = None,
     isolated: bool = False,
-    global_options: Optional[List[str]] = None,
     hash_options: Optional[Dict[str, List[str]]] = None,
     constraint: bool = False,
     line_source: Optional[str] = None,
@@ -401,7 +398,6 @@ def install_req_from_line(
         markers=parts.markers,
         use_pep517=use_pep517,
         isolated=isolated,
-        global_options=global_options,
         hash_options=hash_options,
         config_settings=config_settings,
         constraint=constraint,
@@ -472,11 +468,6 @@ def install_req_from_parsed_requirement(
             comes_from=parsed_req.comes_from,
             use_pep517=use_pep517,
             isolated=isolated,
-            global_options=(
-                parsed_req.options.get("global_options", [])
-                if parsed_req.options
-                else []
-            ),
             hash_options=(
                 parsed_req.options.get("hashes", {}) if parsed_req.options else {}
             ),
@@ -499,7 +490,6 @@ def install_req_from_link_and_ireq(
         markers=ireq.markers,
         use_pep517=ireq.use_pep517,
         isolated=ireq.isolated,
-        global_options=ireq.global_options,
         hash_options=ireq.hash_options,
         config_settings=ireq.config_settings,
         user_supplied=ireq.user_supplied,

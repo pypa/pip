@@ -60,8 +60,6 @@ def build_wheel_legacy(
     name: str,
     setup_py_path: str,
     source_dir: str,
-    global_options: List[str],
-    build_options: List[str],
     tempd: str,
 ) -> Optional[str]:
     """Build one unpacked package using the "legacy" build process.
@@ -70,8 +68,6 @@ def build_wheel_legacy(
     """
     wheel_args = make_setuptools_bdist_wheel_args(
         setup_py_path,
-        global_options=global_options,
-        build_options=build_options,
         destination_dir=tempd,
     )
 

@@ -169,8 +169,6 @@ def _build_one(
     req: InstallRequirement,
     output_dir: str,
     verify: bool,
-    build_options: List[str],
-    global_options: List[str],
     editable: bool,
 ) -> Optional[str]:
     """Build one wheel.
@@ -191,9 +189,7 @@ def _build_one(
 
     # Install build deps into temporary directory (PEP 518)
     with req.build_env:
-        wheel_path = _build_one_inside_env(
-            req, output_dir, build_options, global_options, editable
-        )
+        wheel_path = _build_one_inside_env(req, output_dir, editable)
     if wheel_path and verify:
         try:
             _verify_one(req, wheel_path)
@@ -206,8 +202,6 @@ def _build_one(
 def _build_one_inside_env(
     req: InstallRequirement,
     output_dir: str,
-    build_options: List[str],
-    global_options: List[str],
     editable: bool,
 ) -> Optional[str]:
     with TempDirectory(kind="wheel") as temp_dir:
@@ -215,14 +209,6 @@ def _build_one_inside_env(
         if req.use_pep517:
             assert req.metadata_directory
             assert req.pep517_backend
-            if global_options:
-                logger.warning(
-                    "Ignoring --global-option when building %s using PEP 517", req.name
-                )
-            if build_options:
-                logger.warning(
-                    "Ignoring --build-option when building %s using PEP 517", req.name
-                )
             if editable:
                 wheel_path = build_wheel_editable(
                     name=req.name,
@@ -242,8 +228,6 @@ def _build_one_inside_env(
                 name=req.name,
                 setup_py_path=req.setup_py_path,
                 source_dir=req.unpacked_source_directory,
-                global_options=global_options,
-                build_options=build_options,
                 tempd=temp_dir.path,
             )
 
@@ -270,15 +254,12 @@ def _build_one_inside_env(
                 )
         # Ignore return, we can't do anything else useful.
         if not req.use_pep517:
-            _clean_one_legacy(req, global_options)
+            _clean_one_legacy(req)
         return None
 
 
-def _clean_one_legacy(req: InstallRequirement, global_options: List[str]) -> bool:
-    clean_args = make_setuptools_clean_args(
-        req.setup_py_path,
-        global_options=global_options,
-    )
+def _clean_one_legacy(req: InstallRequirement) -> bool:
+    clean_args = make_setuptools_clean_args(req.setup_py_path)
 
     logger.info("Running setup.py clean for %s", req.name)
     try:
@@ -295,8 +276,6 @@ def build(
     requirements: Iterable[InstallRequirement],
     wheel_cache: WheelCache,
     verify: bool,
-    build_options: List[str],
-    global_options: List[str],
 ) -> BuildResult:
     """Build wheels.
 
@@ -321,8 +300,6 @@ def build(
                 req,
                 cache_dir,
                 verify,
-                build_options,
-                global_options,
                 req.editable and req.permit_editable_wheels,
             )
             if wheel_file:

@@ -948,36 +948,18 @@ def test_make_setuptools_shim_args() -> None:
     # Test all arguments at once, including the overall ordering.
     args = make_setuptools_shim_args(
         "/dir/path/setup.py",
-        global_options=["--some", "--option"],
         no_user_config=True,
         unbuffered_output=True,
     )
 
     assert args[1:3] == ["-u", "-c"]
-    assert args[4:] == ["--some", "--option", "--no-user-cfg"]
+    assert args[4:] == ["--no-user-cfg"]
 
     shim = args[3]
     # Spot-check key aspects of the command string.
     assert "import setuptools" in shim
     assert "'/dir/path/setup.py'" in args[3]
     assert "sys.argv[0] = __file__" in args[3]
-
-
-@pytest.mark.parametrize("global_options", [None, [], ["--some", "--option"]])
-def test_make_setuptools_shim_args__global_options(
-    global_options: Optional[List[str]],
-) -> None:
-    args = make_setuptools_shim_args(
-        "/dir/path/setup.py",
-        global_options=global_options,
-    )
-
-    if global_options:
-        assert len(args) == 5
-        for option in global_options:
-            assert option in args
-    else:
-        assert len(args) == 3
 
 
 @pytest.mark.parametrize("no_user_config", [False, True])

@@ -7,7 +7,7 @@ import uuid
 import zipfile
 from optparse import Values
 from pathlib import Path
-from typing import Any, Collection, Dict, Iterable, List, Optional, Sequence, Union
+from typing import Any, Collection, Dict, Iterable, List, Optional, Union
 
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
@@ -78,7 +78,6 @@ class InstallRequirement:
         use_pep517: Optional[bool] = None,
         isolated: bool = False,
         *,
-        global_options: Optional[List[str]] = None,
         hash_options: Optional[Dict[str, List[str]]] = None,
         config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
         constraint: bool = False,
@@ -145,7 +144,6 @@ class InstallRequirement:
         # Set to True after successful installation
         self.install_succeeded: Optional[bool] = None
         # Supplied options
-        self.global_options = global_options if global_options else []
         self.hash_options = hash_options if hash_options else {}
         self.config_settings = config_settings
         # Set to True after successful preparation of this requirement
@@ -807,7 +805,6 @@ class InstallRequirement:
 
     def install(
         self,
-        global_options: Optional[Sequence[str]] = None,
         root: Optional[str] = None,
         home: Optional[str] = None,
         prefix: Optional[str] = None,
@@ -827,7 +824,6 @@ class InstallRequirement:
 
         if self.editable and not self.is_wheel:
             install_editable_legacy(
-                global_options=global_options if global_options is not None else [],
                 prefix=prefix,
                 home=home,
                 use_user_site=use_user_site,
@@ -891,23 +887,3 @@ def _has_option(options: Values, reqs: List[InstallRequirement], option: str) ->
         if getattr(req, option, None):
             return True
     return False
-
-
-def check_legacy_setup_py_options(
-    options: Values,
-    reqs: List[InstallRequirement],
-) -> None:
-    has_build_options = _has_option(options, reqs, "build_options")
-    has_global_options = _has_option(options, reqs, "global_options")
-    if has_build_options or has_global_options:
-        deprecated(
-            reason="--build-option and --global-option are deprecated.",
-            issue=11859,
-            replacement="to use --config-settings",
-            gone_in="23.3",
-        )
-        logger.warning(
-            "Implying --no-binary=:all: due to the presence of "
-            "--build-option / --global-option. "
-        )
-        options.format_control.disallow_binaries()

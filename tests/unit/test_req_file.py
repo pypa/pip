@@ -27,7 +27,7 @@ from pip._internal.req.req_file import (
     preprocess,
 )
 from pip._internal.req.req_install import InstallRequirement
-from tests.lib import TestData, make_test_finder, requirements_file
+from tests.lib import TestData, make_test_finder
 
 if TYPE_CHECKING:
     from typing import Protocol
@@ -350,13 +350,14 @@ class TestProcessLine:
 
     def test_options_on_a_requirement_line(self, line_processor: LineProcessor) -> None:
         line = (
-            'SomeProject --global-option="yo3" --global-option "yo4" '
-            '--config-settings="yo3=yo4" --config-settings "yo1=yo2"'
+            "SomeProject"
+            ' --config-settings="yo3=yo4"'
+            ' --config-settings "yo1=yo2"'
+            ' --config-settings "yo1=yo2.1"'
         )
         filename = "filename"
         req = line_processor(line, filename, 1)[0]
-        assert req.global_options == ["yo3", "yo4"]
-        assert req.config_settings == {"yo3": "yo4", "yo1": "yo2"}
+        assert req.config_settings == {"yo3": "yo4", "yo1": ["yo2", "yo2.1"]}
 
     def test_hash_options(self, line_processor: LineProcessor) -> None:
         """Test the --hash option: mostly its value storage.
@@ -865,28 +866,3 @@ class TestParseRequirements:
             )
 
         parse_reqfile(tmpdir.joinpath("req.txt"), session=PipSession())
-
-    def test_install_requirements_with_options(
-        self,
-        tmpdir: Path,
-        finder: PackageFinder,
-        session: PipSession,
-        options: mock.Mock,
-    ) -> None:
-        global_option = "--dry-run"
-
-        content = """
-        --only-binary :all:
-        INITools==2.0 --global-option="{global_option}"
-        """.format(
-            global_option=global_option
-        )
-
-        with requirements_file(content, tmpdir) as reqs_file:
-            req = next(
-                parse_reqfile(
-                    reqs_file.resolve(), finder=finder, options=options, session=session
-                )
-            )
-
-        assert req.global_options == [global_option]

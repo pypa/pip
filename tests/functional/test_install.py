@@ -982,24 +982,6 @@ def test_install_pardir(script: PipTestEnvironment, data: TestData) -> None:
     result.did_create(dist_info_folder)
 
 
-@pytest.mark.network
-def test_install_global_option(script: PipTestEnvironment) -> None:
-    """
-    Test using global distutils options.
-    (In particular those that disable the actual install action)
-    """
-    result = script.pip(
-        "install",
-        "--global-option=--version",
-        "INITools==0.1",
-        expect_error=True,  # build is going to fail because of --version
-    )
-    assert "INITools==0.1\n" in result.stdout
-    assert not result.files_created
-    assert "Implying --no-binary=:all:" in result.stderr
-    assert "A possible replacement is to use --config-settings" in result.stderr
-
-
 def test_install_with_hacked_egg_info(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -1009,26 +991,6 @@ def test_install_with_hacked_egg_info(
     run_from = data.packages.joinpath("HackedEggInfo")
     result = script.pip("install", ".", cwd=run_from)
     assert "Successfully installed hackedegginfo-0.0.0\n" in result.stdout
-
-
-@pytest.mark.xfail
-@pytest.mark.network
-@need_mercurial
-def test_install_global_option_using_editable(
-    script: PipTestEnvironment, tmpdir: Path
-) -> None:
-    """
-    Test using global distutils options, but in an editable installation
-    """
-    url = "hg+http://bitbucket.org/runeh/anyjson"
-    result = script.pip(
-        "install",
-        "--global-option=--version",
-        "-e",
-        f"{local_checkout(url, tmpdir)}@0.2.5#egg=anyjson",
-        expect_stderr=True,
-    )
-    assert "Successfully installed anyjson" in result.stdout
 
 
 @pytest.mark.network
@@ -1662,16 +1624,18 @@ def test_install_subprocess_output_handling(
 
     # If the install fails, then we *should* show the output... but only once,
     # even if --verbose is given.
-    result = script.pip(*(args + ["--global-option=--fail"]), expect_error=True)
-    # This error is emitted 3 times:
-    # - by setup.py bdist_wheel
-    # - by setup.py clean
-    assert 2 == result.stderr.count("I DIE, I DIE")
+    result = script.pip(
+        *(args + ["--use-pep517", "-C", "--global-option=--fail"]),
+        expect_error=True,
+    )
+    # This error is emitted by setup.py bdist_wheel
+    assert 1 == result.stderr.count("I DIE, I DIE")
 
     result = script.pip(
-        *(args + ["--global-option=--fail", "--verbose"]), expect_error=True
+        *(args + ["--use-pep517", "-C", "--global-option=--fail", "--verbose"]),
+        expect_error=True,
     )
-    assert 2 == result.stderr.count("I DIE, I DIE")
+    assert 1 == result.stderr.count("I DIE, I DIE")
 
 
 def test_install_log(script: PipTestEnvironment, data: TestData, tmpdir: Path) -> None:

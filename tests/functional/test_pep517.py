@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-import pytest
 import tomli_w
 
 from pip._internal.build_env import BuildEnvironment
@@ -380,45 +379,3 @@ def test_explicit_setuptools_backend(
         project_dir,
     )
     result.assert_installed(name, editable=False)
-
-
-@pytest.mark.network
-def test_pep517_and_build_options(
-    script: PipTestEnvironment, tmpdir: Path, data: TestData, common_wheels: Path
-) -> None:
-    """Backend generated requirements are installed in the build env"""
-    project_dir, name = make_pyproject_with_setup(tmpdir)
-    result = script.pip(
-        "wheel",
-        "--wheel-dir",
-        tmpdir,
-        "--build-option",
-        "foo",
-        "-f",
-        common_wheels,
-        project_dir,
-        allow_stderr_warning=True,
-    )
-    assert "Ignoring --build-option when building" in result.stderr
-    assert "using PEP 517" in result.stderr
-
-
-@pytest.mark.network
-def test_pep517_and_global_options(
-    script: PipTestEnvironment, tmpdir: Path, data: TestData, common_wheels: Path
-) -> None:
-    """Backend generated requirements are installed in the build env"""
-    project_dir, name = make_pyproject_with_setup(tmpdir)
-    result = script.pip(
-        "wheel",
-        "--wheel-dir",
-        tmpdir,
-        "--global-option",
-        "foo",
-        "-f",
-        common_wheels,
-        project_dir,
-        allow_stderr_warning=True,
-    )
-    assert "Ignoring --global-option when building" in result.stderr
-    assert "using PEP 517" in result.stderr

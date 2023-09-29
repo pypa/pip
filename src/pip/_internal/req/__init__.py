@@ -1,6 +1,6 @@
 import collections
 import logging
-from typing import Generator, List, Optional, Sequence, Tuple
+from typing import Generator, List, Optional, Tuple
 
 from pip._internal.utils.logging import indent_log
 
@@ -36,7 +36,6 @@ def _validate_requirements(
 
 def install_given_reqs(
     requirements: List[InstallRequirement],
-    global_options: Sequence[str],
     root: Optional[str],
     home: Optional[str],
     prefix: Optional[str],
@@ -70,7 +69,6 @@ def install_given_reqs(
 
             try:
                 requirement.install(
-                    global_options,
                     root=root,
                     home=home,
                     prefix=prefix,
