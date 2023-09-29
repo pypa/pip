@@ -1,5 +1,6 @@
 import json
 import logging
+from collections import defaultdict
 from optparse import Values
 from typing import TYPE_CHECKING, Generator, List, Optional, Sequence, Tuple, cast
 
@@ -29,6 +30,7 @@ if TYPE_CHECKING:
 
         latest_version: DistributionVersion
         latest_filetype: str
+        required_by: Sequence[str]
 
     _ProcessedDists = Sequence[_DistWithLatestInfo]
 
@@ -180,6 +182,8 @@ class ListCommand(IndexGroupCommand):
             )
         ]
 
+        self.attach_required_by(packages)
+
         # get_not_required must be called firstly in order to find and
         # filter out all dependencies correctly. Otherwise a package
         # can't be identified as requirement because some parent packages
@@ -226,6 +230,14 @@ class ListCommand(IndexGroupCommand):
         # to keep the return type consistent with get_outdated and
         # get_uptodate
         return list({pkg for pkg in packages if pkg.canonical_name not in dep_keys})
+
+    def attach_required_by(self, packages: "_ProcessedDists"):
+        dependencies = defaultdict(set)
+        for pkg in packages:
+            for dep in pkg.iter_dependencies(extras=pkg._dist.extras):
+                dependencies[dep.key].add(pkg.canonical_name)
+        for pkg in packages:
+            pkg.required_by = dependencies[pkg.canonical_name]
 
     def iter_packages_latest_infos(
         self, packages: "_ProcessedDists", options: Values
@@ -322,8 +334,8 @@ def format_for_columns(
 
     if options.verbose >= 1:
         header.append("Location")
-    if options.verbose >= 1:
         header.append("Installer")
+        header.append("Required By")
 
     data = []
     for proj in pkgs:
@@ -340,8 +352,8 @@ def format_for_columns(
 
         if options.verbose >= 1:
             row.append(proj.location or "")
-        if options.verbose >= 1:
             row.append(proj.installer)
+            row.append(";".join(proj.required_by))
 
         data.append(row)
 
@@ -358,6 +370,7 @@ def format_for_json(packages: "_ProcessedDists", options: Values) -> str:
         if options.verbose >= 1:
             info["location"] = dist.location or ""
             info["installer"] = dist.installer
+            info["required_by"] = list(dist.required_by)
         if options.outdated:
             info["latest_version"] = str(dist.latest_version)
             info["latest_filetype"] = dist.latest_filetype
