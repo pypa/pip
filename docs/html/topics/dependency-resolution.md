@@ -175,22 +175,24 @@ When you get a `ResolutionImpossible` error, you might see something
 like this:
 
 ```{pip-cli}
-$ pip install "pytest < 4.6" pytest-cov==2.12.1
+$ pip install package_coffee==0.44.1 package_tea==4.3.0
 [regular pip output]
-ERROR: Cannot install pytest-cov==2.12.1 and pytest<4.6 because these package versions have conflicting dependencies.
+ERROR: Cannot install package_coffee==0.44.1 and package_tea==4.3.0 because these package versions have conflicting dependencies.
 
 The conflict is caused by:
-    The user requested pytest<4.6
-    pytest-cov 2.12.1 depends on pytest>=4.6
+    package_coffee 0.44.1 depends on package_water<3.0.0,>=2.4.2
+    package_tea 4.3.0 depends on package_water==2.3.1
 ```
 
-In this example, pip cannot install the packages requested because they are
-asking for conflicting versions of pytest.
+In this example, pip cannot install the packages you have requested,
+because they each depend on different versions of the same package
+(``package_water``):
 
-- `pytest-cov` version `2.12.1`, requires `pytest` with a version or equal to
-  `4.6`.
-- `package_tea` version `4.3.0` depends on version `2.3.1` of
-  `package_water`
+- ``package_coffee`` version ``0.44.1`` depends on a version of
+  ``package_water`` that is less than ``3.0.0`` but greater than or equal to
+  ``2.4.2``
+- ``package_tea`` version ``4.3.0`` depends on version ``2.3.1`` of
+  ``package_water``
 
 Sometimes these messages are straightforward to read, because they use
 commonly understood comparison operators to specify the required version
@@ -199,16 +201,16 @@ commonly understood comparison operators to specify the required version
 However, Python packaging also supports some more complex ways for
 specifying package versions (e.g. `~=` or `*`):
 
-| Operator | Description                                                    | Example                                             |
-| -------- | -------------------------------------------------------------- | --------------------------------------------------- |
-| `>`      | Any version greater than the specified version.                | `>3.1`: any version greater than `3.1`.             |
-| `<`      | Any version less than the specified version.                   | `<3.1`: any version less than `3.1`.                |
-| `<=`     | Any version less than or equal to the specified version.       | `<=3.1`: any version less than or equal to `3.1`.   |
-| `>=`     | Any version greater than or equal to the specified version.    | `>=3.1`: version `3.1` and greater.                 |
-| `==`     | Exactly the specified version.                                 | `==3.1`: only `3.1`.                                |
-| `!=`     | Any version not equal to the specified version.                | `!=3.1`: any version other than `3.1`.              |
-| `~=`     | Any compatible{sup}`1` version.                                | `~=3.1`: any version compatible{sup}`1` with `3.1`. |
-| `*`      | Can be used at the end of a version number to represent _all_. | `==3.1.*`: any version that starts with `3.1`.      |
+| Operator | Description                                                    | Example                                              |
+| -------- | -------------------------------------------------------------- | ---------------------------------------------------- |
+| `>`      | Any version greater than the specified version.                | `>3.1`: any version greater than `3.1`.              |
+| `<`      | Any version less than the specified version.                   | `<3.1`: any version less than `3.1`.                 |
+| `<=`     | Any version less than or equal to the specified version.       | `<=3.1`: any version less than or equal to `3.1`.    |
+| `>=`     | Any version greater than or equal to the specified version.    | `>=3.1`: any version greater than or equal to `3.1`. |
+| `==`     | Exactly the specified version.                                 | `==3.1`: only version `3.1`.                         |
+| `!=`     | Any version not equal to the specified version.                | `!=3.1`: any version other than `3.1`.               |
+| `~=`     | Any compatible{sup}`1` version.                                | `~=3.1`: any version compatible{sup}`1` with `3.1`.  |
+| `*`      | Can be used at the end of a version number to represent _all_. | `==3.1.*`: any version that starts with `3.1`.       |
 
 {sup}`1` Compatible versions are higher versions that only differ in the final segment.
 `~=3.1.2` is equivalent to `>=3.1.2, ==3.1.*`. `~=3.1` is equivalent to `>=3.1, ==3.*`.
@@ -237,7 +239,7 @@ package version.
 
 In our first example both `package_coffee` and `package_tea` have been
 _pinned_ to use specific versions
-(`package_coffee==0.44.1b0 package_tea==4.3.0`).
+(`package_coffee==0.44.1 package_tea==4.3.0`).
 
 To find a version of both `package_coffee` and `package_tea` that depend on
 the same version of `package_water`, you might consider:
@@ -252,20 +254,20 @@ In the second case, pip will automatically find a version of both
 `package_coffee` and `package_tea` that depend on the same version of
 `package_water`, installing:
 
-- `package_coffee 0.46.0b0`, which depends on `package_water 2.6.1`
-- `package_tea 4.3.0` which _also_ depends on `package_water 2.6.1`
+- `package_coffee 0.44.1`, which depends on `package_water 2.6.1`
+- `package_tea 4.4.3` which _also_ depends on `package_water 2.6.1`
 
 If you want to prioritize one package over another, you can add version
 specifiers to _only_ the more important package:
 
 ```{pip-cli}
-$ pip install package_coffee==0.44.1b0 package_tea
+$ pip install package_coffee==0.44.1 package_tea
 ```
 
 This will result in:
 
-- `package_coffee 0.44.1b0`, which depends on `package_water 2.6.1`
-- `package_tea 4.1.3` which also depends on `package_water 2.6.1`
+- `package_coffee 0.44.1`, which depends on `package_water 2.6.1`
+- `package_tea 4.4.3` which _also_ depends on `package_water 2.6.1`
 
 Now that you have resolved the issue, you can repin the compatible
 package versions as required.
