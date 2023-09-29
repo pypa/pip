@@ -82,7 +82,7 @@ def test_wheel_metadata_works() -> None:
     name = "simple"
     version = "0.1.0"
     require_a = "a==1.0"
-    require_b = 'b==1.1; extra == "also_b"'
+    require_b = 'b==1.1; extra == "also-b"'
     requires = [require_a, require_b, 'c==1.2; extra == "also_c"']
     extras = ["also_b", "also_c"]
     requires_python = ">=3"
