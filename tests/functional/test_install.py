@@ -391,7 +391,7 @@ def test_install_editable_uninstalls_existing(
     https://github.com/pypa/pip/issues/1548
     https://github.com/pypa/pip/pull/1552
     """
-    to_install = data.packages.joinpath("pip-test-package-0.1.tar.gz")
+    to_install = data.packages.joinpath("pip_test_package-0.1.tar.gz")
     result = script.pip_install_local(to_install)
     assert "Successfully installed pip-test-package" in result.stdout
     result.assert_installed("piptestpackage", editable=False)
