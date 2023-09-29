@@ -6,9 +6,9 @@ broken-0.1.tar.gz
 -----------------
 This package exists for testing uninstall-rollback.
 
-broken-0.2broken.tar.gz
------------------------
-Version 0.2broken has a setup.py crafted to fail on install (and only on
+broken-0.2+broken.tar.gz
+------------------------
+Version 0.2+broken has a setup.py crafted to fail on install (and only on
 install). If any earlier step would fail (i.e. egg-info-generation), the
 already-installed version would never be uninstalled, so uninstall-rollback
 would not come into play.
