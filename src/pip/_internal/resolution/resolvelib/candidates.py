@@ -21,7 +21,7 @@ from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.direct_url_helpers import direct_url_from_link
 from pip._internal.utils.misc import normalize_version_info
 
-from .base import Candidate, CandidateVersion, Requirement, format_name
+from .base import Candidate, Requirement, format_name
 
 if TYPE_CHECKING:
     from .factory import Factory
@@ -145,7 +145,7 @@ class _InstallRequirementBackedCandidate(Candidate):
         ireq: InstallRequirement,
         factory: "Factory",
         name: Optional[NormalizedName] = None,
-        version: Optional[CandidateVersion] = None,
+        version: Optional[Version] = None,
     ) -> None:
         self._link = link
         self._source_link = source_link
@@ -190,7 +190,7 @@ class _InstallRequirementBackedCandidate(Candidate):
         return self.project_name
 
     @property
-    def version(self) -> CandidateVersion:
+    def version(self) -> Version:
         if self._version is None:
             self._version = self.dist.version
         return self._version
@@ -257,7 +257,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
         template: InstallRequirement,
         factory: "Factory",
         name: Optional[NormalizedName] = None,
-        version: Optional[CandidateVersion] = None,
+        version: Optional[Version] = None,
     ) -> None:
         source_link = link
         cache_entry = factory.get_wheel_cache_entry(source_link, name)
@@ -314,7 +314,7 @@ class EditableCandidate(_InstallRequirementBackedCandidate):
         template: InstallRequirement,
         factory: "Factory",
         name: Optional[NormalizedName] = None,
-        version: Optional[CandidateVersion] = None,
+        version: Optional[Version] = None,
     ) -> None:
         super().__init__(
             link=link,
@@ -374,7 +374,7 @@ class AlreadyInstalledCandidate(Candidate):
         return self.project_name
 
     @property
-    def version(self) -> CandidateVersion:
+    def version(self) -> Version:
         if self._version is None:
             self._version = self.dist.version
         return self._version
@@ -473,7 +473,7 @@ class ExtrasCandidate(Candidate):
         return format_name(self.base.project_name, self.extras)
 
     @property
-    def version(self) -> CandidateVersion:
+    def version(self) -> Version:
         return self.base.version
 
     def format_for_error(self) -> str:
@@ -588,7 +588,7 @@ class RequiresPythonCandidate(Candidate):
         return REQUIRES_PYTHON_IDENTIFIER
 
     @property
-    def version(self) -> CandidateVersion:
+    def version(self) -> Version:
         return self._version
 
     def format_for_error(self) -> str:
