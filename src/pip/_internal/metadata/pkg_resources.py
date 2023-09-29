@@ -8,6 +8,7 @@ from typing import Collection, Iterable, Iterator, List, Mapping, NamedTuple, Op
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
+from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.exceptions import InvalidWheel, NoneMetadataError, UnsupportedWheel
@@ -19,7 +20,6 @@ from .base import (
     BaseDistribution,
     BaseEntryPoint,
     BaseEnvironment,
-    DistributionVersion,
     InfoPath,
     Wheel,
 )
@@ -168,7 +168,7 @@ class Distribution(BaseDistribution):
         return canonicalize_name(self._dist.project_name)
 
     @property
-    def version(self) -> DistributionVersion:
+    def version(self) -> Version:
         return parse_version(self._dist.version)
 
     def is_file(self, path: InfoPath) -> bool:
