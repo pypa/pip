@@ -1,0 +1,1 @@
+Validate .metadata files using the canonical name.
