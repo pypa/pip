@@ -41,6 +41,32 @@ Changelog = "https://pip.pypa.io/en/stable/news/"
 requires = ["setuptools>=67.6.1", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = false
+
+[tool.setuptools.dynamic]
+version = {attr = "pip.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = ["contrib", "docs", "tests*", "tasks"]
+
+[tool.setuptools.package-data]
+"pip" = ["py.typed"]
+"pip._vendor" = ["vendor.txt"]
+"pip._vendor.certifi" = ["*.pem"]
+"pip._vendor.requests" = ["*.pem"]
+"pip._vendor.distlib._backport" = ["sysconfig.cfg"]
+"pip._vendor.distlib" = [
+    "t32.exe",
+    "t64.exe",
+    "t64-arm.exe",
+    "w32.exe",
+    "w64.exe",
+    "w64-arm.exe",
+]
+
 [tool.towncrier]
 # For finding the __version__
 package = "pip"
