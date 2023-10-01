@@ -216,7 +216,9 @@ class Distribution(BaseDistribution):
     def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
         contexts: Sequence[Dict[str, str]] = [{"extra": e} for e in extras]
         for req_string in self.metadata.get_all("Requires-Dist", []):
-            req = Requirement(req_string)
+            # strip() because email.message.Message.get_all() may return a leading \n
+            # in case a long header was wrapped.
+            req = Requirement(req_string.strip())
             if not req.marker:
                 yield req
             elif not extras and req.marker.evaluate({"extra": ""}):
