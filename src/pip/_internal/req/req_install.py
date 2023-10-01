@@ -514,7 +514,7 @@ class InstallRequirement:
                         "to use --use-pep517 or add a "
                         "pyproject.toml file to the project"
                     ),
-                    gone_in="23.3",
+                    gone_in="24.0",
                 )
             self.use_pep517 = False
             return
@@ -904,7 +904,7 @@ def check_legacy_setup_py_options(
             reason="--build-option and --global-option are deprecated.",
             issue=11859,
             replacement="to use --config-settings",
-            gone_in="23.3",
+            gone_in="24.0",
         )
         logger.warning(
             "Implying --no-binary=:all: due to the presence of "
