@@ -826,7 +826,7 @@ def _handle_config_settings(
 ) -> None:
     key, sep, val = value.partition("=")
     if sep != "=":
-        parser.error(f"Arguments to {opt_str} must be of the form KEY=VAL")  # noqa
+        parser.error(f"Arguments to {opt_str} must be of the form KEY=VAL")
     dest = getattr(parser.values, option.dest)
     if dest is None:
         dest = {}
@@ -921,13 +921,13 @@ def _handle_merge_hash(
         algo, digest = value.split(":", 1)
     except ValueError:
         parser.error(
-            "Arguments to {} must be a hash name "  # noqa
+            "Arguments to {} must be a hash name "
             "followed by a value, like --hash=sha256:"
             "abcde...".format(opt_str)
         )
     if algo not in STRONG_HASHES:
         parser.error(
-            "Allowed hash algorithms for {} are {}.".format(  # noqa
+            "Allowed hash algorithms for {} are {}.".format(
                 opt_str, ", ".join(STRONG_HASHES)
             )
         )
