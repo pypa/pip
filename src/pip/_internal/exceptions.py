@@ -502,7 +502,7 @@ class VcsHashUnsupported(HashError):
 
 
 class CacheEntryTypeHashNotSupported(HashError):
-    """A wheel cache entry was build from a URL that does not support hash checking."""
+    """A wheel cache entry was built from a URL that does not support hash checking."""
 
     order = 0
     head = (
