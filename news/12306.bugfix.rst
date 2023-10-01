@@ -1,0 +1,1 @@
+Use ``-r=...`` instead of ``-r ...`` to specify references with Mercurial.
