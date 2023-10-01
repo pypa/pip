@@ -1,11 +1,9 @@
-import functools
 import importlib.metadata
 import logging
 import os
 import pathlib
 import sys
 import zipfile
-import zipimport
 from typing import Iterator, List, Optional, Sequence, Set, Tuple
 
 from pip._vendor.packaging.utils import (
@@ -16,7 +14,6 @@ from pip._vendor.packaging.utils import (
 )
 
 from pip._internal.metadata.base import BaseDistribution, BaseEnvironment
-from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
 
 from ._compat import BadMetadata, BasePath, get_dist_canonical_name, get_info_location
@@ -112,54 +109,6 @@ class _DistributionFinder:
             for dist, info_location in self._find_impl(target_location):
                 yield Distribution(dist, info_location, path)
 
-    def _find_eggs_in_dir(self, location: str) -> Iterator[BaseDistribution]:
-        from pip._vendor.pkg_resources import find_distributions
-
-        from pip._internal.metadata import pkg_resources as legacy
-
-        with os.scandir(location) as it:
-            for entry in it:
-                if not entry.name.endswith(".egg"):
-                    continue
-                for dist in find_distributions(entry.path):
-                    yield legacy.Distribution(dist)
-
-    def _find_eggs_in_zip(self, location: str) -> Iterator[BaseDistribution]:
-        from pip._vendor.pkg_resources import find_eggs_in_zip
-
-        from pip._internal.metadata import pkg_resources as legacy
-
-        try:
-            importer = zipimport.zipimporter(location)
-        except zipimport.ZipImportError:
-            return
-        for dist in find_eggs_in_zip(importer, location):
-            yield legacy.Distribution(dist)
-
-    def find_eggs(self, location: str) -> Iterator[BaseDistribution]:
-        """Find eggs in a location.
-
-        This actually uses the old *pkg_resources* backend. We likely want to
-        deprecate this so we can eventually remove the *pkg_resources*
-        dependency entirely. Before that, this should first emit a deprecation
-        warning for some versions when using the fallback since importing
-        *pkg_resources* is slow for those who don't need it.
-        """
-        if os.path.isdir(location):
-            yield from self._find_eggs_in_dir(location)
-        if zipfile.is_zipfile(location):
-            yield from self._find_eggs_in_zip(location)
-
-
-@functools.lru_cache(maxsize=None)  # Warn a distribution exactly once.
-def _emit_egg_deprecation(location: Optional[str]) -> None:
-    deprecated(
-        reason=f"Loading egg at {location} is deprecated.",
-        replacement="to use pip for package installation",
-        gone_in="25.1",
-        issue=12330,
-    )
-
 
 class Environment(BaseEnvironment):
     def __init__(self, paths: Sequence[str]) -> None:
@@ -179,11 +128,6 @@ class Environment(BaseEnvironment):
         finder = _DistributionFinder()
         for location in self._paths:
             yield from finder.find(location)
-            if sys.version_info < (3, 14):
-                for dist in finder.find_eggs(location):
-                    _emit_egg_deprecation(dist.location)
-                    yield dist
-            # This must go last because that's how pkg_resources tie-breaks.
             yield from finder.find_linked(location)
 
     def get_distribution(self, name: str) -> Optional[BaseDistribution]:
