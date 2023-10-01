@@ -265,7 +265,7 @@ class RequirementCommand(IndexGroupCommand):
         if "legacy-resolver" in options.deprecated_features_enabled:
             return "legacy"
 
-        return "2020-resolver"
+        return "resolvelib"
 
     @classmethod
     def make_requirement_preparer(
@@ -287,7 +287,7 @@ class RequirementCommand(IndexGroupCommand):
         legacy_resolver = False
 
         resolver_variant = cls.determine_resolver_variant(options)
-        if resolver_variant == "2020-resolver":
+        if resolver_variant == "resolvelib":
             lazy_wheel = "fast-deps" in options.features_enabled
             if lazy_wheel:
                 logger.warning(
@@ -349,7 +349,7 @@ class RequirementCommand(IndexGroupCommand):
         # The long import name and duplicated invocation is needed to convince
         # Mypy into correctly typechecking. Otherwise it would complain the
         # "Resolver" class being redefined.
-        if resolver_variant == "2020-resolver":
+        if resolver_variant == "resolvelib":
             import pip._internal.resolution.resolvelib.resolver
 
             return pip._internal.resolution.resolvelib.resolver.Resolver(

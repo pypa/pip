@@ -595,7 +595,7 @@ class InstallCommand(RequirementCommand):
                 "source of the following dependency conflicts."
             )
         else:
-            assert resolver_variant == "2020-resolver"
+            assert resolver_variant == "resolvelib"
             parts.append(
                 "pip's dependency resolver does not currently take into account "
                 "all the packages that are installed. This behaviour is the "
@@ -628,7 +628,7 @@ class InstallCommand(RequirementCommand):
                     requirement=req,
                     dep_name=dep_name,
                     dep_version=dep_version,
-                    you=("you" if resolver_variant == "2020-resolver" else "you'll"),
+                    you=("you" if resolver_variant == "resolvelib" else "you'll"),
                 )
                 parts.append(message)
 
