@@ -343,7 +343,7 @@ class RequirementPreparer:
         # (For example, we can raise VcsHashUnsupported for a VCS URL
         # rather than HashMissing.)
 
-        # Check that --hash is not used with VCS and local directories direct URLs.
+        # Check that --hash is not used with VCS and local directory direct URLs.
         if req.original_link:
             if req.original_link.is_vcs and req.hashes(trust_internet=False):
                 raise VcsHashUnsupported()
