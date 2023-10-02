@@ -7,7 +7,7 @@ import sysconfig
 import textwrap
 from os.path import curdir, join, pardir
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 
 import pytest
 
@@ -20,6 +20,7 @@ from tests.lib import (
     PipTestEnvironment,
     ResolverVariant,
     TestData,
+    TestPipResult,
     _create_svn_repo,
     _create_test_package,
     create_basic_wheel_for_package,
@@ -1208,9 +1209,9 @@ def test_install_nonlocal_compatible_wheel_path(
         "--no-index",
         "--only-binary=:all:",
         Path(data.packages) / "simplewheel-2.0-py3-fakeabi-fakeplat.whl",
-        expect_error=(resolver_variant == "2020-resolver"),
+        expect_error=(resolver_variant == "resolvelib"),
     )
-    if resolver_variant == "2020-resolver":
+    if resolver_variant == "resolvelib":
         assert result.returncode == ERROR
     else:
         assert result.returncode == SUCCESS
@@ -1824,14 +1825,14 @@ def test_install_editable_with_wrong_egg_name(
         "install",
         "--editable",
         f"file://{pkga_path}#egg=pkgb",
-        expect_error=(resolver_variant == "2020-resolver"),
+        expect_error=(resolver_variant == "resolvelib"),
     )
     assert (
         "Generating metadata for package pkgb produced metadata "
         "for project name pkga. Fix your #egg=pkgb "
         "fragments."
     ) in result.stderr
-    if resolver_variant == "2020-resolver":
+    if resolver_variant == "resolvelib":
         assert "has inconsistent" in result.stdout, str(result)
     else:
         assert "Successfully installed pkga" in str(result), str(result)
@@ -2241,6 +2242,33 @@ def test_install_yanked_file_and_print_warning(
     assert "Successfully installed simple-3.0\n" in result.stdout, str(result)
 
 
+def test_yanked_version_missing_from_availble_versions_error_message(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """
+    Test yanked version is missing from available versions error message.
+
+    Yanked files are always ignored, unless they are the only file that
+    matches a version specifier that "pins" to an exact version (PEP 592).
+    """
+    result = script.pip(
+        "install",
+        "simple==",
+        "--index-url",
+        data.index_url("yanked"),
+        expect_error=True,
+    )
+    # the yanked version (3.0) is filtered out from the output:
+    expected_warning = (
+        "Could not find a version that satisfies the requirement simple== "
+        "(from versions: 1.0, 2.0)"
+    )
+    assert expected_warning in result.stderr, str(result)
+    # and mentioned in a separate warning:
+    expected_warning = "Ignored the following yanked versions: 3.0"
+    assert expected_warning in result.stderr, str(result)
+
+
 def test_error_all_yanked_files_and_no_pin(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -2371,13 +2399,67 @@ def test_install_logs_pip_version_in_debug(
     assert_re_match(pattern, result.stdout)
 
 
-def test_install_dry_run(script: PipTestEnvironment, data: TestData) -> None:
-    """Test that pip install --dry-run logs what it would install."""
-    result = script.pip(
-        "install", "--dry-run", "--find-links", data.find_links, "simple"
+def install_find_links(
+    script: PipTestEnvironment,
+    data: TestData,
+    args: Iterable[str],
+    *,
+    dry_run: bool,
+    target_dir: Optional[Path],
+) -> TestPipResult:
+    return script.pip(
+        "install",
+        *(
+            (
+                "--target",
+                str(target_dir),
+            )
+            if target_dir is not None
+            else ()
+        ),
+        *(("--dry-run",) if dry_run else ()),
+        "--no-index",
+        "--find-links",
+        data.find_links,
+        *args,
+    )
+
+
+@pytest.mark.parametrize(
+    "with_target_dir",
+    (True, False),
+)
+def test_install_dry_run_nothing_installed(
+    script: PipTestEnvironment,
+    data: TestData,
+    tmpdir: Path,
+    with_target_dir: bool,
+) -> None:
+    """Test that pip install --dry-run logs what it would install, but doesn't actually
+    install anything."""
+    if with_target_dir:
+        install_dir = tmpdir / "fake-install"
+        install_dir.mkdir()
+    else:
+        install_dir = None
+
+    result = install_find_links(
+        script, data, ["simple"], dry_run=True, target_dir=install_dir
     )
     assert "Would install simple-3.0" in result.stdout
     assert "Successfully installed" not in result.stdout
+
+    script.assert_not_installed("simple")
+    if with_target_dir:
+        assert not os.listdir(install_dir)
+
+    # Ensure that the same install command would normally have worked if not for
+    # --dry-run.
+    install_find_links(script, data, ["simple"], dry_run=False, target_dir=install_dir)
+    if with_target_dir:
+        assert os.listdir(install_dir)
+    else:
+        script.assert_installed(simple="3.0")
 
 
 @pytest.mark.skipif(
@@ -2457,6 +2539,40 @@ def test_install_pip_prints_req_chain_local(script: PipTestEnvironment) -> None:
         rf"\(from base==0.1.0->-r {re.escape(str(req_path))} \(line 1\)\)",
         result.stdout,
     )
+
+
+def test_install_dist_restriction_without_target(script: PipTestEnvironment) -> None:
+    result = script.pip(
+        "install", "--python-version=3.1", "--only-binary=:all:", expect_error=True
+    )
+    assert (
+        "Can not use any platform or abi specific options unless installing "
+        "via '--target'" in result.stderr
+    ), str(result)
+
+
+def test_install_dist_restriction_dry_run_doesnt_require_target(
+    script: PipTestEnvironment,
+) -> None:
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+    )
+
+    result = script.pip(
+        "install",
+        "--python-version=3.1",
+        "--only-binary=:all:",
+        "--dry-run",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "base",
+    )
+
+    assert not result.stderr, str(result)
 
 
 @pytest.mark.network

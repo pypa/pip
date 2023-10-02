@@ -112,7 +112,7 @@ class Factory:
         self._editable_candidate_cache: Cache[EditableCandidate] = {}
         self._installed_candidate_cache: Dict[str, AlreadyInstalledCandidate] = {}
         self._extras_candidate_cache: Dict[
-            Tuple[int, FrozenSet[str]], ExtrasCandidate
+            Tuple[int, FrozenSet[NormalizedName]], ExtrasCandidate
         ] = {}
 
         if not ignore_installed:
@@ -132,15 +132,17 @@ class Factory:
         if not link.is_wheel:
             return
         wheel = Wheel(link.filename)
-        if wheel.supported(self._finder.target_python.get_tags()):
+        if wheel.supported(self._finder.target_python.get_unsorted_tags()):
             return
         msg = f"{link.filename} is not a supported wheel on this platform."
         raise UnsupportedWheel(msg)
 
     def _make_extras_candidate(
-        self, base: BaseCandidate, extras: FrozenSet[str]
+        self,
+        base: BaseCandidate,
+        extras: FrozenSet[str],
     ) -> ExtrasCandidate:
-        cache_key = (id(base), extras)
+        cache_key = (id(base), frozenset(canonicalize_name(e) for e in extras))
         try:
             candidate = self._extras_candidate_cache[cache_key]
         except KeyError:
@@ -603,8 +605,26 @@ class Factory:
 
         cands = self._finder.find_all_candidates(req.project_name)
         skipped_by_requires_python = self._finder.requires_python_skipped_reasons()
-        versions = [str(v) for v in sorted({c.version for c in cands})]
 
+        versions_set: Set[CandidateVersion] = set()
+        yanked_versions_set: Set[CandidateVersion] = set()
+        for c in cands:
+            is_yanked = c.link.is_yanked if c.link else False
+            if is_yanked:
+                yanked_versions_set.add(c.version)
+            else:
+                versions_set.add(c.version)
+
+        versions = [str(v) for v in sorted(versions_set)]
+        yanked_versions = [str(v) for v in sorted(yanked_versions_set)]
+
+        if yanked_versions:
+            # Saying "version X is yanked" isn't entirely accurate.
+            # https://github.com/pypa/pip/issues/11745#issuecomment-1402805842
+            logger.critical(
+                "Ignored the following yanked versions: %s",
+                ", ".join(yanked_versions) or "none",
+            )
         if skipped_by_requires_python:
             logger.critical(
                 "Ignored the following versions that require a different python "

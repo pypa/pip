@@ -1,0 +1,1 @@
+Fix crash when the git version number contains something else than digits and dots.
