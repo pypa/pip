@@ -5,8 +5,7 @@ from typing import TYPE_CHECKING, Tuple, Union
 
 import pytest
 
-from tests.conftest import ScriptFactory
-from tests.lib import PipTestEnvironment, TestData, TestPipResult
+from tests.lib import PipTestEnvironment, ScriptFactory, TestData, TestPipResult
 
 if TYPE_CHECKING:
     from typing import Protocol

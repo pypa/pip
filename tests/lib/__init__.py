@@ -10,11 +10,12 @@ import textwrap
 from base64 import urlsafe_b64encode
 from contextlib import contextmanager
 from hashlib import sha256
-from io import BytesIO
+from io import BytesIO, StringIO
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
+    AnyStr,
     Callable,
     Dict,
     Iterable,
@@ -32,6 +33,7 @@ import pytest
 from pip._vendor.packaging.utils import canonicalize_name
 from scripttest import FoundDir, FoundFile, ProcResult, TestFileEnvironment
 
+from pip._internal.cli.main import main as pip_entry_point
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.locations import get_major_minor_version
@@ -43,12 +45,12 @@ from tests.lib.venv import VirtualEnvironment
 from tests.lib.wheel import make_wheel
 
 if TYPE_CHECKING:
-    # Literal was introduced in Python 3.8.
-    from typing import Literal
+    from typing import Literal, Protocol
 
     ResolverVariant = Literal["resolvelib", "legacy"]
-else:
-    ResolverVariant = str
+else:  # TODO: Remove this branch when dropping support for Python 3.7.
+    Protocol = object  # Protocol was introduced in Python 3.8.
+    ResolverVariant = str  # Literal was introduced in Python 3.8.
 
 DATA_DIR = pathlib.Path(__file__).parent.parent.joinpath("data").resolve()
 SRC_DIR = pathlib.Path(__file__).resolve().parent.parent.parent
@@ -1334,3 +1336,41 @@ def need_svn(fn: _Test) -> _Test:
 
 def need_mercurial(fn: _Test) -> _Test:
     return pytest.mark.mercurial(need_executable("Mercurial", ("hg", "version"))(fn))
+
+
+class InMemoryPipResult:
+    def __init__(self, returncode: int, stdout: str) -> None:
+        self.returncode = returncode
+        self.stdout = stdout
+
+
+class InMemoryPip:
+    def pip(self, *args: Union[str, pathlib.Path]) -> InMemoryPipResult:
+        orig_stdout = sys.stdout
+        stdout = StringIO()
+        sys.stdout = stdout
+        try:
+            returncode = pip_entry_point([os.fspath(a) for a in args])
+        except SystemExit as e:
+            if isinstance(e.code, int):
+                returncode = e.code
+            elif e.code:
+                returncode = 1
+            else:
+                returncode = 0
+        finally:
+            sys.stdout = orig_stdout
+        return InMemoryPipResult(returncode, stdout.getvalue())
+
+
+class ScriptFactory(Protocol):
+    def __call__(
+        self,
+        tmpdir: pathlib.Path,
+        virtualenv: Optional[VirtualEnvironment] = None,
+        environ: Optional[Dict[AnyStr, AnyStr]] = None,
+    ) -> PipTestEnvironment:
+        ...
+
+
+CertFactory = Callable[[], str]

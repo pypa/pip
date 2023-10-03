@@ -11,15 +11,15 @@ import pytest
 
 from pip._internal.cli.status_codes import ERROR
 from pip._internal.utils.urls import path_to_url
-from tests.conftest import MockServer, ScriptFactory
 from tests.lib import (
     PipTestEnvironment,
+    ScriptFactory,
     TestData,
     TestPipResult,
     create_basic_sdist_for_package,
     create_really_basic_wheel,
 )
-from tests.lib.server import file_response
+from tests.lib.server import MockServer, file_response
 
 
 def fake_wheel(data: TestData, wheel_path: str) -> None:
