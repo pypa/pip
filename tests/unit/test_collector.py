@@ -625,7 +625,7 @@ _pkg1_requirement = Requirement("pkg1==1.0")
         ),
         # Test with a provided hash value.
         (
-            '<a href="/pkg1-1.0.tar.gz" data-core-metadata="sha256=aa113592bbe"></a>',  # noqa: E501
+            '<a href="/pkg1-1.0.tar.gz" data-core-metadata="sha256=aa113592bbe"></a>',
             MetadataFile({"sha256": "aa113592bbe"}),
             {},
         ),
