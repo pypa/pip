@@ -14,6 +14,7 @@ recursive-include  src/pip/_vendor *COPYING*
 include docs/docutils.conf
 include docs/requirements.txt
 
+exclude .git-blame-ignore-revs
 exclude .coveragerc
 exclude .mailmap
 exclude .appveyor.yml

@@ -387,6 +387,9 @@ class InstallCommand(RequirementCommand):
                         json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)
 
             if options.dry_run:
+                # In non dry-run mode, the legacy versions and specifiers check
+                # will be done as part of conflict detection.
+                requirement_set.warn_legacy_versions_and_specifiers()
                 would_install_items = sorted(
                     (r.metadata["name"], r.metadata["version"])
                     for r in requirement_set.requirements_to_install
@@ -498,7 +501,7 @@ class InstallCommand(RequirementCommand):
                 show_traceback,
                 options.use_user_site,
             )
-            logger.error(message, exc_info=show_traceback)  # noqa
+            logger.error(message, exc_info=show_traceback)
 
             return ERROR
 
@@ -592,7 +595,7 @@ class InstallCommand(RequirementCommand):
                 "source of the following dependency conflicts."
             )
         else:
-            assert resolver_variant == "2020-resolver"
+            assert resolver_variant == "resolvelib"
             parts.append(
                 "pip's dependency resolver does not currently take into account "
                 "all the packages that are installed. This behaviour is the "
@@ -625,7 +628,7 @@ class InstallCommand(RequirementCommand):
                     requirement=req,
                     dep_name=dep_name,
                     dep_version=dep_version,
-                    you=("you" if resolver_variant == "2020-resolver" else "you'll"),
+                    you=("you" if resolver_variant == "resolvelib" else "you'll"),
                 )
                 parts.append(message)
 

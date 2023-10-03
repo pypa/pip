@@ -71,6 +71,7 @@ atse
 Atsushi Odagiri
 Avinash Karhana
 Avner Cohen
+Awit (Ah-Wit) Ghirmai
 Baptiste Mispelon
 Barney Gale
 barneygale
@@ -126,6 +127,7 @@ Chih-Hsuan Yen
 Chris Brinker
 Chris Hunt
 Chris Jerdonek
+Chris Kuehl
 Chris McDonough
 Chris Pawley
 Chris Pryer
@@ -330,6 +332,8 @@ Jarek Potiuk
 jarondl
 Jason Curtis
 Jason R. Coombs
+JasonMo
+JasonMo1
 Jay Graves
 Jean-Christophe Fillion-Robin
 Jeff Barber
@@ -344,6 +348,7 @@ Jim Fisher
 Jim Garrison
 Jiun Bae
 Jivan Amara
+Joe Bylund
 Joe Michelini
 John Paton
 John T. Wodder II
@@ -441,6 +446,7 @@ Matthew Einhorn
 Matthew Feickert
 Matthew Gilliard
 Matthew Iversen
+Matthew Treinish
 Matthew Trumbell
 Matthew Willson
 Matthias Bussonnier
@@ -582,6 +588,7 @@ Rishi
 RobberPhex
 Robert Collins
 Robert McGibbon
+Robert Pollak
 Robert T. McGibbon
 robin elisha robinson
 Roey Berman
@@ -614,6 +621,7 @@ SeongSoo Cho
 Sergey Vasilyev
 Seth Michael Larson
 Seth Woodworth
+Shantanu
 shireenrao
 Shivansh-007
 Shlomi Fish
@@ -638,6 +646,7 @@ Steve Barnes
 Steve Dower
 Steve Kowalik
 Steven Myint
+Steven Silvester
 stonebig
 Stéphane Bidoul
 Stéphane Bidoul (ACSONE)
@@ -707,6 +716,7 @@ Wilson Mo
 wim glenn
 Winson Luk
 Wolfgang Maier
+Wu Zhenyu
 XAMES3
 Xavier Fernandez
 xoviat

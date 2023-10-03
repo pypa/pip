@@ -1,0 +1,6 @@
+The metadata-fetching log message is moved to the VERBOSE level and now hidden
+by default. The more significant information in this message to most users are
+already available in surrounding logs (the package name and version of the
+metadata being fetched), while the URL to the exact metadata file is generally
+too long and clutters the output. The message can be brought back with
+``--verbose``.

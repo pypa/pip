@@ -686,7 +686,9 @@ class PipTestEnvironment(TestFileEnvironment):
         # Pass expect_stderr=True to allow any stderr.  We do this because
         # we do our checking of stderr further on in check_stderr().
         kw["expect_stderr"] = True
-        result = super().run(cwd=cwd, *args, **kw)
+        # Ignore linter check
+        # B026 Star-arg unpacking after a keyword argument is strongly discouraged
+        result = super().run(cwd=cwd, *args, **kw)  # noqa: B026
 
         if expect_error and not allow_error:
             if result.returncode == 0:
@@ -740,21 +742,19 @@ class PipTestEnvironment(TestFileEnvironment):
 
     def assert_installed(self, **kwargs: str) -> None:
         ret = self.pip("list", "--format=json")
-        installed = set(
+        installed = {
             (canonicalize_name(val["name"]), val["version"])
             for val in json.loads(ret.stdout)
-        )
-        expected = set((canonicalize_name(k), v) for k, v in kwargs.items())
+        }
+        expected = {(canonicalize_name(k), v) for k, v in kwargs.items()}
         assert expected <= installed, "{!r} not all in {!r}".format(expected, installed)
 
     def assert_not_installed(self, *args: str) -> None:
         ret = self.pip("list", "--format=json")
-        installed = set(
-            canonicalize_name(val["name"]) for val in json.loads(ret.stdout)
-        )
+        installed = {canonicalize_name(val["name"]) for val in json.loads(ret.stdout)}
         # None of the given names should be listed as installed, i.e. their
         # intersection should be empty.
-        expected = set(canonicalize_name(k) for k in args)
+        expected = {canonicalize_name(k) for k in args}
         assert not (expected & installed), "{!r} contained in {!r}".format(
             expected, installed
         )
@@ -797,17 +797,15 @@ def diff_states(
         prefix = prefix.rstrip(os.path.sep) + os.path.sep
         return path.startswith(prefix)
 
-    start_keys = {
-        k for k in start.keys() if not any([prefix_match(k, i) for i in ignore])
-    }
-    end_keys = {k for k in end.keys() if not any([prefix_match(k, i) for i in ignore])}
+    start_keys = {k for k in start if not any(prefix_match(k, i) for i in ignore)}
+    end_keys = {k for k in end if not any(prefix_match(k, i) for i in ignore)}
     deleted = {k: start[k] for k in start_keys.difference(end_keys)}
     created = {k: end[k] for k in end_keys.difference(start_keys)}
     updated = {}
     for k in start_keys.intersection(end_keys):
         if start[k].size != end[k].size:
             updated[k] = end[k]
-    return dict(deleted=deleted, created=created, updated=updated)
+    return {"deleted": deleted, "created": created, "updated": updated}
 
 
 def assert_all_changes(
@@ -1187,7 +1185,7 @@ def create_basic_wheel_for_package(
 
     # Fix wheel distribution name by replacing runs of non-alphanumeric
     # characters with an underscore _ as per PEP 491
-    name = re.sub(r"[^\w\d.]+", "_", name, re.UNICODE)
+    name = re.sub(r"[^\w\d.]+", "_", name)
     archive_name = f"{name}-{version}-py2.py3-none-any.whl"
     archive_path = script.scratch_path / archive_name
 
@@ -1356,8 +1354,10 @@ class InMemoryPip:
         except SystemExit as e:
             if isinstance(e.code, int):
                 returncode = e.code
+            elif e.code:
+                returncode = 1
             else:
-                returncode = int(bool(e.code))
+                returncode = 0
         finally:
             sys.stdout = orig_stdout
         return InMemoryPipResult(returncode, stdout.getvalue())

@@ -31,6 +31,17 @@ class TestSafeFileCache:
         cache.delete("test key")
         assert cache.get("test key") is None
 
+    def test_cache_roundtrip_body(self, cache_tmpdir: Path) -> None:
+        cache = SafeFileCache(os.fspath(cache_tmpdir))
+        assert cache.get_body("test key") is None
+        cache.set_body("test key", b"a test string")
+        body = cache.get_body("test key")
+        assert body is not None
+        with body:
+            assert body.read() == b"a test string"
+        cache.delete("test key")
+        assert cache.get_body("test key") is None
+
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_safe_get_no_perms(
         self, cache_tmpdir: Path, monkeypatch: pytest.MonkeyPatch
