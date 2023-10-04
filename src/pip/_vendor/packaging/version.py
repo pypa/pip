@@ -3,6 +3,7 @@
 # for complete details.
 
 import collections
+import functools
 import itertools
 import re
 import warnings
@@ -253,39 +254,43 @@ VERSION_PATTERN = r"""
     (?:\+(?P<local>[a-z0-9]+(?:[-_\.][a-z0-9]+)*))?       # local version
 """
 
+_VERSION_REGEX = re.compile(r"^\s*" + VERSION_PATTERN + r"\s*$", re.VERBOSE | re.IGNORECASE)
+
+@functools.lru_cache(maxsize=4096)
+def _cached_version(version: str) -> Tuple[_Version, CmpKey]:
+    # Validate the version and parse it into pieces
+    match = _VERSION_REGEX.search(version)
+    if not match:
+        raise InvalidVersion(f"Invalid version: '{version}'")
+
+    # Store the parsed out pieces of the version
+    _version = _Version(
+        epoch=int(match.group("epoch")) if match.group("epoch") else 0,
+        release=tuple(int(i) for i in match.group("release").split(".")),
+        pre=_parse_letter_version(match.group("pre_l"), match.group("pre_n")),
+        post=_parse_letter_version(
+            match.group("post_l"), match.group("post_n1") or match.group("post_n2")
+        ),
+        dev=_parse_letter_version(match.group("dev_l"), match.group("dev_n")),
+        local=_parse_local_version(match.group("local")),
+    )
+
+    # Generate a key which will be used for sorting
+    key = _cmpkey(
+        _version.epoch,
+        _version.release,
+        _version.pre,
+        _version.post,
+        _version.dev,
+        _version.local,
+    )
+
+    return _version, key
 
 class Version(_BaseVersion):
 
-    _regex = re.compile(r"^\s*" + VERSION_PATTERN + r"\s*$", re.VERBOSE | re.IGNORECASE)
-
     def __init__(self, version: str) -> None:
-
-        # Validate the version and parse it into pieces
-        match = self._regex.search(version)
-        if not match:
-            raise InvalidVersion(f"Invalid version: '{version}'")
-
-        # Store the parsed out pieces of the version
-        self._version = _Version(
-            epoch=int(match.group("epoch")) if match.group("epoch") else 0,
-            release=tuple(int(i) for i in match.group("release").split(".")),
-            pre=_parse_letter_version(match.group("pre_l"), match.group("pre_n")),
-            post=_parse_letter_version(
-                match.group("post_l"), match.group("post_n1") or match.group("post_n2")
-            ),
-            dev=_parse_letter_version(match.group("dev_l"), match.group("dev_n")),
-            local=_parse_local_version(match.group("local")),
-        )
-
-        # Generate a key which will be used for sorting
-        self._key = _cmpkey(
-            self._version.epoch,
-            self._version.release,
-            self._version.pre,
-            self._version.post,
-            self._version.dev,
-            self._version.local,
-        )
+        self._version, self._key = _cached_version(version)
 
     def __repr__(self) -> str:
         return f"<Version('{self}')>"
