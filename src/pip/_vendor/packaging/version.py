@@ -391,15 +391,15 @@ class Version(_BaseVersion):
 
     @property
     def is_prerelease(self) -> bool:
-        return self.dev is not None or self.pre is not None
+        return self._version.dev is not None or self._version.pre is not None
 
     @property
     def is_postrelease(self) -> bool:
-        return self.post is not None
+        return self._version.post is not None
 
     @property
     def is_devrelease(self) -> bool:
-        return self.dev is not None
+        return self._version.dev is not None
 
     @property
     def major(self) -> int:
