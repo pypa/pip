@@ -143,7 +143,7 @@ class _IndividualSpecifier(BaseSpecifier):
 
     def _coerce_version(self, version: UnparsedVersion) -> ParsedVersion:
         if not isinstance(version, (LegacyVersion, Version)):
-            version = parse(version)
+            return parse(version)
         return version
 
     @property
