@@ -486,7 +486,7 @@ class Specifier(_IndividualSpecifier):
         # NB: Local version identifiers are NOT permitted in the version
         # specifier, so local version labels can be universally removed from
         # the prospective version.
-        return Version(prospective.public) >= Version(spec)
+        return parse_version(prospective.public) >= parse_version(spec)
 
     @_require_version_compare
     def _compare_less_than(self, prospective: ParsedVersion, spec_str: str) -> bool:
