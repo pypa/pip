@@ -349,6 +349,7 @@ class AlreadyInstalledCandidate(Candidate):
         # TODO: Supply reason based on force_reinstall and upgrade_strategy.
         skip_reason = "already satisfied"
         factory.preparer.prepare_installed_requirement(self._ireq, skip_reason)
+        self._name: Optional[NormalizedName] = None
 
     def __str__(self) -> str:
         return str(self.dist)
@@ -369,7 +370,9 @@ class AlreadyInstalledCandidate(Candidate):
 
     @property
     def project_name(self) -> NormalizedName:
-        return self.dist.canonical_name
+        if self._name is None:
+            self._name = self.dist.canonical_name
+        return self._name
 
     @property
     def name(self) -> str:
