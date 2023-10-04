@@ -2,6 +2,7 @@
 # 2.0, and the BSD License. See the LICENSE file in the root of this repository
 # for complete details.
 
+import functools
 import re
 from typing import FrozenSet, NewType, Tuple, Union, cast
 
@@ -35,6 +36,7 @@ def canonicalize_name(name: str) -> NormalizedName:
     return cast(NormalizedName, value)
 
 
+@functools.lru_cache(maxsize=4096)
 def canonicalize_version(version: Union[Version, str]) -> str:
     """
     This is very similar to Version.__str__, but has one subtle difference

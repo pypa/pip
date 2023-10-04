@@ -22,7 +22,7 @@ from typing import (
 )
 
 from .utils import canonicalize_version
-from .version import LegacyVersion, Version, parse
+from .version import LegacyVersion, Version, parse, parse_legacy_version, parse_version
 
 ParsedVersion = Union[Version, LegacyVersion]
 UnparsedVersion = Union[Version, LegacyVersion, str]
@@ -260,7 +260,7 @@ class LegacySpecifier(_IndividualSpecifier):
 
     def _coerce_version(self, version: UnparsedVersion) -> LegacyVersion:
         if not isinstance(version, LegacyVersion):
-            version = LegacyVersion(str(version))
+            version = parse_legacy_version(str(version))
         return version
 
     def _compare_equal(self, prospective: LegacyVersion, spec: str) -> bool:
@@ -432,7 +432,7 @@ class Specifier(_IndividualSpecifier):
         # We need special logic to handle prefix matching
         if spec.endswith(".*"):
             # In the case of prefix matching we want to ignore local segment.
-            prospective = Version(prospective.public)
+            prospective = parse_version(prospective.public)
             # Split the spec out by dots, and pretend that there is an implicit
             # dot in between a release segment and a pre-release segment.
             split_spec = _version_split(spec[:-2])  # Remove the trailing .*
@@ -456,13 +456,13 @@ class Specifier(_IndividualSpecifier):
             return padded_prospective == padded_spec
         else:
             # Convert our spec string into a Version
-            spec_version = Version(spec)
+            spec_version = parse_version(spec)
 
             # If the specifier does not have a local segment, then we want to
             # act as if the prospective version also does not have a local
             # segment.
             if not spec_version.local:
-                prospective = Version(prospective.public)
+                prospective = parse_version(prospective.public)
 
             return prospective == spec_version
 
@@ -476,7 +476,7 @@ class Specifier(_IndividualSpecifier):
         # NB: Local version identifiers are NOT permitted in the version
         # specifier, so local version labels can be universally removed from
         # the prospective version.
-        return Version(prospective.public) <= Version(spec)
+        return parse_version(prospective.public) <= parse_version(spec)
 
     @_require_version_compare
     def _compare_greater_than_equal(
@@ -493,7 +493,7 @@ class Specifier(_IndividualSpecifier):
 
         # Convert our spec to a Version instance, since we'll want to work with
         # it as a version.
-        spec = Version(spec_str)
+        spec = parse_version(spec_str)
 
         # Check to see if the prospective version is less than the spec
         # version. If it's not we can short circuit and just return False now
@@ -506,7 +506,7 @@ class Specifier(_IndividualSpecifier):
         # versions for the version mentioned in the specifier (e.g. <3.1 should
         # not match 3.1.dev0, but should match 3.0.dev0).
         if not spec.is_prerelease and prospective.is_prerelease:
-            if Version(prospective.base_version) == Version(spec.base_version):
+            if parse_version(prospective.base_version) == parse_version(spec.base_version):
                 return False
 
         # If we've gotten to here, it means that prospective version is both
@@ -519,7 +519,7 @@ class Specifier(_IndividualSpecifier):
 
         # Convert our spec to a Version instance, since we'll want to work with
         # it as a version.
-        spec = Version(spec_str)
+        spec = parse_version(spec_str)
 
         # Check to see if the prospective version is greater than the spec
         # version. If it's not we can short circuit and just return False now
@@ -532,13 +532,13 @@ class Specifier(_IndividualSpecifier):
         # post-release versions for the version mentioned in the specifier
         # (e.g. >3.1 should not match 3.0.post0, but should match 3.2.post0).
         if not spec.is_postrelease and prospective.is_postrelease:
-            if Version(prospective.base_version) == Version(spec.base_version):
+            if parse_version(prospective.base_version) == parse_version(spec.base_version):
                 return False
 
         # Ensure that we do not allow a local version of the version mentioned
         # in the specifier, which is technically greater than, to match.
         if prospective.local is not None:
-            if Version(prospective.base_version) == Version(spec.base_version):
+            if parse_version(prospective.base_version) == parse_version(spec.base_version):
                 return False
 
         # If we've gotten to here, it means that prospective version is both

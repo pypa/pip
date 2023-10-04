@@ -3,6 +3,7 @@
 # for complete details.
 
 import collections
+import functools
 import itertools
 import re
 import warnings
@@ -10,7 +11,7 @@ from typing import Callable, Iterator, List, Optional, SupportsInt, Tuple, Union
 
 from ._structures import Infinity, InfinityType, NegativeInfinity, NegativeInfinityType
 
-__all__ = ["parse", "Version", "LegacyVersion", "InvalidVersion", "VERSION_PATTERN"]
+__all__ = ["parse", "parse_legacy_version", "parse_version", "Version", "LegacyVersion", "InvalidVersion", "VERSION_PATTERN"]
 
 InfiniteTypes = Union[InfinityType, NegativeInfinityType]
 PrePostDevType = Union[InfiniteTypes, Tuple[str, int]]
@@ -38,7 +39,6 @@ _Version = collections.namedtuple(
     "_Version", ["epoch", "release", "dev", "pre", "post", "local"]
 )
 
-
 def parse(version: str) -> Union["LegacyVersion", "Version"]:
     """
     Parse the given version string and return either a :class:`Version` object
@@ -46,10 +46,25 @@ def parse(version: str) -> Union["LegacyVersion", "Version"]:
     a valid PEP 440 version or a legacy version.
     """
     try:
-        return Version(version)
+        return parse_version(version)
     except InvalidVersion:
-        return LegacyVersion(version)
+        return parse_legacy_version(version)
 
+
+@functools.lru_cache(maxsize=4096)
+def parse_legacy_version(version: str) -> "LegacyVersion":
+    """
+    Parse the given version string and return a :class:`LegacyVersion` object.
+    """
+    return LegacyVersion(version)
+
+
+@functools.lru_cache(maxsize=4096)
+def parse_version(version: str) -> "Version":
+    """
+    Parse the given version string and return a :class:`Version` object.
+    """
+    return Version(version)
 
 class InvalidVersion(ValueError):
     """
@@ -287,10 +302,19 @@ class Version(_BaseVersion):
             self._version.local,
         )
 
+        # Pre-compute the version string since
+        # its almost always called anyways and
+        # we want to cache it to avoid the cost
+        # of re-computing it.
+        self._str = self._version_string()
+
     def __repr__(self) -> str:
         return f"<Version('{self}')>"
 
     def __str__(self) -> str:
+        return self._str
+
+    def _version_string(self) -> str:
         parts = []
 
         # Epoch
