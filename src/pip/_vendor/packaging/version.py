@@ -257,7 +257,7 @@ VERSION_PATTERN = r"""
 _VERSION_REGEX = re.compile(r"^\s*" + VERSION_PATTERN + r"\s*$", re.VERBOSE | re.IGNORECASE)
 
 @functools.lru_cache(maxsize=4096)
-def _cached_version(version: str) -> Tuple[_Version, CmpKey]:
+def _cached_version(version: str) -> Tuple[_Version, CmpKey, str]:
     # Validate the version and parse it into pieces
     match = _VERSION_REGEX.search(version)
     if not match:
@@ -285,43 +285,45 @@ def _cached_version(version: str) -> Tuple[_Version, CmpKey]:
         _version.local,
     )
 
-    return _version, key
+    parts = []
+
+    # Epoch
+    if _version.epoch != 0:
+        parts.append(f"{_version.epoch}!")
+
+    # Release segment
+    parts.append(".".join(str(x) for x in _version.release))
+
+    # Pre-release
+    if _version.pre is not None:
+        parts.append("".join(str(x) for x in _version.pre))
+
+    # Post-release
+    if _version.post is not None:
+        parts.append(f".post{_version.post}")
+
+    # Development release
+    if _version.dev is not None:
+        parts.append(f".dev{_version.dev}")
+
+    # Local version segment
+    if _version.local is not None:
+        parts.append(f"+{_version.local}")
+
+    _str = "".join(parts)
+
+    return _version, key, _str
 
 class Version(_BaseVersion):
 
     def __init__(self, version: str) -> None:
-        self._version, self._key = _cached_version(version)
+        self._version, self._key, self._str = _cached_version(version)
 
     def __repr__(self) -> str:
         return f"<Version('{self}')>"
 
     def __str__(self) -> str:
-        parts = []
-
-        # Epoch
-        if self.epoch != 0:
-            parts.append(f"{self.epoch}!")
-
-        # Release segment
-        parts.append(".".join(str(x) for x in self.release))
-
-        # Pre-release
-        if self.pre is not None:
-            parts.append("".join(str(x) for x in self.pre))
-
-        # Post-release
-        if self.post is not None:
-            parts.append(f".post{self.post}")
-
-        # Development release
-        if self.dev is not None:
-            parts.append(f".dev{self.dev}")
-
-        # Local version segment
-        if self.local is not None:
-            parts.append(f"+{self.local}")
-
-        return "".join(parts)
+        return self._str
 
     @property
     def epoch(self) -> int:
