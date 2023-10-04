@@ -7,7 +7,7 @@ import re
 from typing import FrozenSet, NewType, Tuple, Union, cast
 
 from .tags import Tag, parse_tag
-from .version import InvalidVersion, Version
+from .version import parse_version, InvalidVersion, Version
 
 BuildTag = Union[Tuple[()], Tuple[int, str]]
 NormalizedName = NewType("NormalizedName", str)
@@ -30,6 +30,7 @@ _canonicalize_regex = re.compile(r"[-_.]+")
 _build_tag_regex = re.compile(r"(\d+)(.*)")
 
 
+@functools.lru_cache(maxsize=4096)
 def canonicalize_name(name: str) -> NormalizedName:
     # This is taken from PEP 503.
     value = _canonicalize_regex.sub("-", name).lower()
@@ -44,7 +45,7 @@ def canonicalize_version(version: Union[Version, str]) -> str:
     """
     if isinstance(version, str):
         try:
-            parsed = Version(version)
+            parsed = parse_version(version)
         except InvalidVersion:
             # Legacy versions cannot be normalized
             return version

@@ -102,6 +102,7 @@ class Distribution(BaseDistribution):
         self._dist = dist
         self._info_location = info_location
         self._installed_location = installed_location
+        self._cached_canonical_name: Optional[NormalizedName] = None
 
     @classmethod
     def from_directory(cls, directory: str) -> BaseDistribution:
@@ -169,8 +170,10 @@ class Distribution(BaseDistribution):
 
     @property
     def canonical_name(self) -> NormalizedName:
-        name = self._get_dist_name_from_location() or get_dist_name(self._dist)
-        return canonicalize_name(name)
+        if self._cached_canonical_name is None:
+            name = self._get_dist_name_from_location() or get_dist_name(self._dist)
+            self._cached_canonical_name = canonicalize_name(name)
+        return self._cached_canonical_name
 
     @property
     def version(self) -> DistributionVersion:
