@@ -180,7 +180,7 @@ class _IndividualSpecifier(BaseSpecifier):
         # Determine if we should be supporting prereleases in this specifier
         # or not, if we do not support prereleases than we can short circuit
         # logic if this version is a prereleases.
-        if normalized_item.is_prerelease and not prereleases:
+        if not prereleases and normalized_item.is_prerelease:
             return False
 
         # Actually do the comparison to determine if this item is contained
