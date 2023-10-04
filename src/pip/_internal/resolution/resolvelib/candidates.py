@@ -3,7 +3,7 @@ import sys
 from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, Optional, Tuple, Union, cast
 
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
-from pip._vendor.packaging.version import Version
+from pip._vendor.packaging.version import parse_version
 
 from pip._internal.exceptions import (
     HashError,
@@ -271,7 +271,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
             assert name == wheel_name, f"{name!r} != {wheel_name!r} for wheel"
             # Version may not be present for PEP 508 direct URLs
             if version is not None:
-                wheel_version = Version(wheel.version)
+                wheel_version = parse_version(wheel.version)
                 assert version == wheel_version, "{!r} != {!r} for wheel {}".format(
                     version, wheel_version, name
                 )
@@ -565,7 +565,7 @@ class RequiresPythonCandidate(Candidate):
             version_info = normalize_version_info(py_version_info)
         else:
             version_info = sys.version_info[:3]
-        self._version = Version(".".join(str(c) for c in version_info))
+        self._version = parse_version(".".join(str(c) for c in version_info))
 
     # We don't need to implement __eq__() and __ne__() since there is always
     # only one RequiresPythonCandidate in a resolution, i.e. the host Python.
