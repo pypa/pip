@@ -1,0 +1,1 @@
+Significantly improve performance when installing hundreds of packages
