@@ -6,7 +6,7 @@ import sys
 import tempfile
 from functools import partial
 from pathlib import Path
-from typing import Iterator, Optional, Tuple, cast
+from typing import Iterator, Optional, Set, Tuple, cast
 from unittest import mock
 
 import pytest
@@ -32,6 +32,8 @@ from pip._internal.req import InstallRequirement, RequirementSet
 from pip._internal.req.constructors import (
     _get_url_from_path,
     _looks_like_path,
+    install_req_drop_extras,
+    install_req_extend_extras,
     install_req_from_editable,
     install_req_from_line,
     install_req_from_parsed_requirement,
@@ -745,6 +747,89 @@ class TestInstallRequirement:
         assert "It looks like a path. The path does exist." in err_msg
         assert "appears to be a requirements file." in err_msg
         assert "If that is the case, use the '-r' flag to install" in err_msg
+
+    @pytest.mark.parametrize(
+        "inp, out",
+        [
+            ("pkg", "pkg"),
+            ("pkg==1.0", "pkg==1.0"),
+            ("pkg ; python_version<='3.6'", "pkg"),
+            ("pkg[ext]", "pkg"),
+            ("pkg [ ext1, ext2 ]", "pkg"),
+            ("pkg [ ext1, ext2 ] @ https://example.com/", "pkg@ https://example.com/"),
+            ("pkg [ext] == 1.0; python_version<='3.6'", "pkg==1.0"),
+            ("pkg-all.allowed_chars0 ~= 2.0", "pkg-all.allowed_chars0~=2.0"),
+            ("pkg-all.allowed_chars0 [ext] ~= 2.0", "pkg-all.allowed_chars0~=2.0"),
+        ],
+    )
+    def test_install_req_drop_extras(self, inp: str, out: str) -> None:
+        """
+        Test behavior of install_req_drop_extras
+        """
+        req = install_req_from_line(inp)
+        without_extras = install_req_drop_extras(req)
+        assert not without_extras.extras
+        assert str(without_extras.req) == out
+        # should always be a copy
+        assert req is not without_extras
+        assert req.req is not without_extras.req
+        # comes_from should point to original
+        assert without_extras.comes_from is req
+        # all else should be the same
+        assert without_extras.link == req.link
+        assert without_extras.markers == req.markers
+        assert without_extras.use_pep517 == req.use_pep517
+        assert without_extras.isolated == req.isolated
+        assert without_extras.global_options == req.global_options
+        assert without_extras.hash_options == req.hash_options
+        assert without_extras.constraint == req.constraint
+        assert without_extras.config_settings == req.config_settings
+        assert without_extras.user_supplied == req.user_supplied
+        assert without_extras.permit_editable_wheels == req.permit_editable_wheels
+
+    @pytest.mark.parametrize(
+        "inp, extras, out",
+        [
+            ("pkg", {}, "pkg"),
+            ("pkg==1.0", {}, "pkg==1.0"),
+            ("pkg[ext]", {}, "pkg[ext]"),
+            ("pkg", {"ext"}, "pkg[ext]"),
+            ("pkg==1.0", {"ext"}, "pkg[ext]==1.0"),
+            ("pkg==1.0", {"ext1", "ext2"}, "pkg[ext1,ext2]==1.0"),
+            ("pkg; python_version<='3.6'", {"ext"}, "pkg[ext]"),
+            ("pkg[ext1,ext2]==1.0", {"ext2", "ext3"}, "pkg[ext1,ext2,ext3]==1.0"),
+            (
+                "pkg-all.allowed_chars0 [ ext1 ] @ https://example.com/",
+                {"ext2"},
+                "pkg-all.allowed_chars0[ext1,ext2]@ https://example.com/",
+            ),
+        ],
+    )
+    def test_install_req_extend_extras(
+        self, inp: str, extras: Set[str], out: str
+    ) -> None:
+        """
+        Test behavior of install_req_extend_extras
+        """
+        req = install_req_from_line(inp)
+        extended = install_req_extend_extras(req, extras)
+        assert str(extended.req) == out
+        assert extended.req is not None
+        assert set(extended.extras) == set(extended.req.extras)
+        # should always be a copy
+        assert req is not extended
+        assert req.req is not extended.req
+        # all else should be the same
+        assert extended.link == req.link
+        assert extended.markers == req.markers
+        assert extended.use_pep517 == req.use_pep517
+        assert extended.isolated == req.isolated
+        assert extended.global_options == req.global_options
+        assert extended.hash_options == req.hash_options
+        assert extended.constraint == req.constraint
+        assert extended.config_settings == req.config_settings
+        assert extended.user_supplied == req.user_supplied
+        assert extended.permit_editable_wheels == req.permit_editable_wheels
 
 
 @mock.patch("pip._internal.req.req_install.os.path.abspath")

@@ -240,7 +240,7 @@ class _InstallRequirementBackedCandidate(Candidate):
     def iter_dependencies(self, with_requires: bool) -> Iterable[Optional[Requirement]]:
         requires = self.dist.iter_dependencies() if with_requires else ()
         for r in requires:
-            yield self._factory.make_requirement_from_spec(str(r), self._ireq)
+            yield from self._factory.make_requirements_from_spec(str(r), self._ireq)
         yield self._factory.make_requires_python_requirement(self.dist.requires_python)
 
     def get_install_requirement(self) -> Optional[InstallRequirement]:
@@ -392,7 +392,7 @@ class AlreadyInstalledCandidate(Candidate):
         if not with_requires:
             return
         for r in self.dist.iter_dependencies():
-            yield self._factory.make_requirement_from_spec(str(r), self._ireq)
+            yield from self._factory.make_requirements_from_spec(str(r), self._ireq)
 
     def get_install_requirement(self) -> Optional[InstallRequirement]:
         return None
@@ -427,7 +427,17 @@ class ExtrasCandidate(Candidate):
         self,
         base: BaseCandidate,
         extras: FrozenSet[str],
+        *,
+        comes_from: Optional[InstallRequirement] = None,
     ) -> None:
+        """
+        :param comes_from: the InstallRequirement that led to this candidate if it
+            differs from the base's InstallRequirement. This will often be the
+            case in the sense that this candidate's requirement has the extras
+            while the base's does not. Unlike the InstallRequirement backed
+            candidates, this requirement is used solely for reporting purposes,
+            it does not do any leg work.
+        """
         self.base = base
         self.extras = frozenset(canonicalize_name(e) for e in extras)
         # If any extras are requested in their non-normalized forms, keep track
@@ -438,6 +448,7 @@ class ExtrasCandidate(Candidate):
         # TODO: Remove this attribute when packaging is upgraded to support the
         # marker comparison logic specified in PEP 685.
         self._unnormalized_extras = extras.difference(self.extras)
+        self._comes_from = comes_from if comes_from is not None else self.base._ireq
 
     def __str__(self) -> str:
         name, rest = str(self.base).split(" ", 1)
@@ -543,11 +554,11 @@ class ExtrasCandidate(Candidate):
 
         valid_extras = self._calculate_valid_requested_extras()
         for r in self.base.dist.iter_dependencies(valid_extras):
-            requirement = factory.make_requirement_from_spec(
-                str(r), self.base._ireq, valid_extras
+            yield from factory.make_requirements_from_spec(
+                str(r),
+                self._comes_from,
+                valid_extras,
             )
-            if requirement:
-                yield requirement
 
     def get_install_requirement(self) -> Optional[InstallRequirement]:
         # We don't return anything here, because we always

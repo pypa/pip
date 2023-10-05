@@ -1,7 +1,7 @@
 import json
 import textwrap
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 import pytest
 from packaging.utils import canonicalize_name
@@ -117,14 +117,26 @@ def test_skipped_yanked_version(
     assert simple_report["metadata"]["version"] == "2.0"
 
 
+@pytest.mark.parametrize(
+    "specifiers",
+    [
+        # result should be the same regardless of the method and order in which
+        # extras are specified
+        ("Paste[openid]==1.7.5.1",),
+        ("Paste==1.7.5.1", "Paste[openid]==1.7.5.1"),
+        ("Paste[openid]==1.7.5.1", "Paste==1.7.5.1"),
+    ],
+)
 @pytest.mark.network
-def test_install_report_index(script: PipTestEnvironment, tmp_path: Path) -> None:
+def test_install_report_index(
+    script: PipTestEnvironment, tmp_path: Path, specifiers: Tuple[str, ...]
+) -> None:
     """Test report for sdist obtained from index."""
     report_path = tmp_path / "report.json"
     script.pip(
         "install",
         "--dry-run",
-        "Paste[openid]==1.7.5.1",
+        *specifiers,
         "--report",
         str(report_path),
     )
@@ -144,6 +156,26 @@ def test_install_report_index(script: PipTestEnvironment, tmp_path: Path) -> Non
     )
     assert paste_report["requested_extras"] == ["openid"]
     assert "requires_dist" in paste_report["metadata"]
+
+
+@pytest.mark.network
+def test_install_report_index_multiple_extras(
+    script: PipTestEnvironment, tmp_path: Path
+) -> None:
+    """Test report for sdist obtained from index, with multiple extras requested."""
+    report_path = tmp_path / "report.json"
+    script.pip(
+        "install",
+        "--dry-run",
+        "Paste[openid]",
+        "Paste[subprocess]",
+        "--report",
+        str(report_path),
+    )
+    report = json.loads(report_path.read_text())
+    install_dict = _install_dict(report)
+    assert "paste" in install_dict
+    assert install_dict["paste"]["requested_extras"] == ["openid", "subprocess"]
 
 
 @pytest.mark.network
