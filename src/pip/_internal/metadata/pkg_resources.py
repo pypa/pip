@@ -75,6 +75,9 @@ class InMemoryMetadata:
 class Distribution(BaseDistribution):
     def __init__(self, dist: pkg_resources.Distribution) -> None:
         self._dist = dist
+        self._extra_mapping = {
+            canonicalize_name(extra): extra for extra in self._dist.extras
+        }
 
     @classmethod
     def from_directory(cls, directory: str) -> BaseDistribution:
@@ -215,16 +218,21 @@ class Distribution(BaseDistribution):
         return feed_parser.close()
 
     def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
-        if extras:  # pkg_resources raises on invalid extras, so we sanitize.
-            extras = frozenset(pkg_resources.safe_extra(e) for e in extras)
-            extras = extras.intersection(self._dist.extras)
+        if extras:
+            sanitised_extras = {canonicalize_name(e) for e in extras} & set(
+                self._extra_mapping
+            )
+            extras = [
+                self._extra_mapping[canonicalize_name(extra)]
+                for extra in sanitised_extras
+            ]
         return self._dist.requires(extras)
 
     def iter_provided_extras(self) -> Iterable[str]:
-        return self._dist.extras
+        return self._extra_mapping.keys()
 
     def is_extra_provided(self, extra: str) -> bool:
-        return pkg_resources.safe_extra(extra) in self._dist.extras
+        return canonicalize_name(extra) in self._extra_mapping
 
 
 class Environment(BaseEnvironment):
