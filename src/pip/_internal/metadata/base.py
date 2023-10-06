@@ -441,24 +441,15 @@ class BaseDistribution(Protocol):
         """
         raise NotImplementedError()
 
-    def iter_provided_extras(self) -> Iterable[str]:
+    def iter_provided_extras(self) -> Iterable[NormalizedName]:
         """Extras provided by this distribution.
 
         For modern .dist-info distributions, this is the collection of
         "Provides-Extra:" entries in distribution metadata.
 
-        The return value of this function is not particularly useful other than
-        display purposes due to backward compatibility issues and the extra
-        names being poorly normalized prior to PEP 685. If you want to perform
-        logic operations on extras, use :func:`is_extra_provided` instead.
-        """
-        raise NotImplementedError()
-
-    def is_extra_provided(self, extra: str) -> bool:
-        """Check whether an extra is provided by this distribution.
-
-        This is needed mostly for compatibility issues with pkg_resources not
-        following the extra normalization rules defined in PEP 685.
+        The return value of this function is expected to be normalised names,
+        per PEP 685, with the returned value being handled appropriately by
+        `iter_dependencies`.
         """
         raise NotImplementedError()
 

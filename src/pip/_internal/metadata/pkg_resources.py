@@ -3,7 +3,16 @@ import email.parser
 import logging
 import os
 import zipfile
-from typing import Collection, Iterable, Iterator, List, Mapping, NamedTuple, Optional
+from typing import (
+    Collection,
+    Iterable,
+    Iterator,
+    List,
+    Mapping,
+    NamedTuple,
+    Optional,
+    cast,
+)
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.requirements import Requirement
@@ -83,7 +92,7 @@ class Distribution(BaseDistribution):
     def _extra_mapping(self) -> Mapping[NormalizedName, str]:
         if self.__extra_mapping is None:
             self.__extra_mapping = {
-                canonicalize_name(extra): pkg_resources.safe_extra(extra)
+                canonicalize_name(extra): pkg_resources.safe_extra(cast(str, extra))
                 for extra in self.metadata.get_all("Provides-Extra", [])
             }
 
@@ -235,11 +244,8 @@ class Distribution(BaseDistribution):
             extras = [self._extra_mapping[extra] for extra in relevant_extras]
         return self._dist.requires(extras)
 
-    def iter_provided_extras(self) -> Iterable[str]:
-        return self._dist.extras
-
-    def is_extra_provided(self, extra: str) -> bool:
-        return canonicalize_name(extra) in self._extra_mapping
+    def iter_provided_extras(self) -> Iterable[NormalizedName]:
+        return list(self._extra_mapping.keys())
 
 
 class Environment(BaseEnvironment):
