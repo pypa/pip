@@ -485,50 +485,6 @@ class ExtrasCandidate(Candidate):
     def source_link(self) -> Optional[Link]:
         return self.base.source_link
 
-    def _warn_invalid_extras(
-        self,
-        requested: FrozenSet[str],
-        valid: FrozenSet[str],
-    ) -> None:
-        """Emit warnings for invalid extras being requested.
-
-        This emits a warning for each requested extra that is not in the
-        candidate's ``Provides-Extra`` list.
-        """
-        invalid_extras_to_warn = frozenset(
-            extra
-            for extra in requested
-            if extra not in valid
-            # If an extra is requested in an unnormalized form, skip warning
-            # about the normalized form being missing.
-            and extra in self.extras
-        )
-        if not invalid_extras_to_warn:
-            return
-        for extra in sorted(invalid_extras_to_warn):
-            logger.warning(
-                "%s %s does not provide the extra '%s'",
-                self.base.name,
-                self.version,
-                extra,
-            )
-
-    def _calculate_valid_requested_extras(self) -> FrozenSet[str]:
-        """Get a list of valid extras requested by this candidate.
-
-        The user (or upstream dependent) may have specified extras that the
-        candidate doesn't support. Any unsupported extras are dropped, and each
-        cause a warning to be logged here.
-        """
-        requested_extras = self.extras
-        valid_extras = frozenset(
-            extra
-            for extra in requested_extras
-            if self.base.dist.is_extra_provided(extra)
-        )
-        self._warn_invalid_extras(requested_extras, valid_extras)
-        return valid_extras
-
     def iter_dependencies(self, with_requires: bool) -> Iterable[Optional[Requirement]]:
         factory = self.base._factory
 
@@ -538,7 +494,18 @@ class ExtrasCandidate(Candidate):
         if not with_requires:
             return
 
-        valid_extras = self._calculate_valid_requested_extras()
+        # The user may have specified extras that the candidate doesn't
+        # support. We ignore any unsupported extras here.
+        valid_extras = self.extras.intersection(self.base.dist.iter_provided_extras())
+        invalid_extras = self.extras.difference(self.base.dist.iter_provided_extras())
+        for extra in sorted(invalid_extras):
+            logger.warning(
+                "%s %s does not provide the extra '%s'",
+                self.base.name,
+                self.version,
+                extra,
+            )
+
         for r in self.base.dist.iter_dependencies(valid_extras):
             yield from factory.make_requirements_from_spec(
                 str(r),
