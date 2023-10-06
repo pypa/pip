@@ -39,17 +39,17 @@ class _MockWorkingSet(List[mock.Mock]):
 
 workingset = _MockWorkingSet(
     (
-        mock.Mock(test_name="global", project_name="global", extras=[]),
-        mock.Mock(test_name="editable", project_name="editable", extras=[]),
-        mock.Mock(test_name="normal", project_name="normal", extras=[]),
-        mock.Mock(test_name="user", project_name="user", extras=[]),
+        mock.Mock(test_name="global", project_name="global"),
+        mock.Mock(test_name="editable", project_name="editable"),
+        mock.Mock(test_name="normal", project_name="normal"),
+        mock.Mock(test_name="user", project_name="user"),
     )
 )
 
 workingset_stdlib = _MockWorkingSet(
     (
-        mock.Mock(test_name="normal", project_name="argparse", extras=[]),
-        mock.Mock(test_name="normal", project_name="wsgiref", extras=[]),
+        mock.Mock(test_name="normal", project_name="argparse"),
+        mock.Mock(test_name="normal", project_name="wsgiref"),
     )
 )
 
