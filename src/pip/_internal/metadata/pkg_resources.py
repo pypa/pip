@@ -229,7 +229,7 @@ class Distribution(BaseDistribution):
         return self._dist.requires(extras)
 
     def iter_provided_extras(self) -> Iterable[str]:
-        return self._extra_mapping.keys()
+        return self._dist.extras
 
     def is_extra_provided(self, extra: str) -> bool:
         return canonicalize_name(extra) in self._extra_mapping
