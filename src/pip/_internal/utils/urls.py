@@ -15,13 +15,21 @@ def get_url_scheme(url: str) -> Optional[str]:
 
 
 @lru_cache(maxsize=None)
+def _normalized_abs_path_to_url(abs_path: str) -> str:
+    """
+    Convert a normalized absolute path to a file: URL.
+    """
+    url = urllib.parse.urljoin("file:", urllib.request.pathname2url(abs_path))
+    return url
+
+
 def path_to_url(path: str) -> str:
     """
     Convert a path to a file: URL.  The path will be made absolute and have
     quoted path parts.
     """
     path = os.path.normpath(os.path.abspath(path))
-    url = urllib.parse.urljoin("file:", urllib.request.pathname2url(path))
+    url = _normalized_abs_path_to_url(path)
     return url
 
 
