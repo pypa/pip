@@ -1,0 +1,1 @@
+Fix completion script for zsh
