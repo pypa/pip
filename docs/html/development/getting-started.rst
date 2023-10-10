@@ -110,7 +110,7 @@ can select tests using the various ways that pytest provides:
     functional tests may fail due to potential patches introduced by the distribution.
     For all tests to pass consider:
 
-    - Installing Python from `Python.org`_ or compile from source
+    - Installing Python from `python.org`_ or compile from source
     - Or, using `pyenv`_ to assist with source compilation
 
 Running pip's entire test suite requires supported version control tools
