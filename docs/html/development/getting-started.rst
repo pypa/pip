@@ -111,7 +111,7 @@ can select tests using the various ways that pytest provides:
     For all tests to pass consider:
 
     - Installing Python from `Python.org`_ or compile from source
-    - Or, using `pyenv`_ to assust for source compilation
+    - Or, using `pyenv`_ to assist with source compilation
 
 Running pip's entire test suite requires supported version control tools
 (subversion, bazaar, git, and mercurial) to be installed. If you are missing
