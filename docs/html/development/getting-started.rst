@@ -107,7 +107,7 @@ can select tests using the various ways that pytest provides:
 .. note::
 
     When running pip's tests with OS distribution Python versions, be aware that some
-    functional tests may fail due to potential Pip patches introduced by the distribution.
+    functional tests may fail due to potential patches introduced by the distribution.
     For all tests to pass consider:
 
     - Installing Python from `Python.org`_ or compile from source
