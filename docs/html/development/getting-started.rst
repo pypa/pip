@@ -123,7 +123,7 @@ explicitly tell pytest to skip those tests:
     $ nox -s test-3.10 -- -k "not svn"
     $ nox -s test-3.10 -- -k "not (svn or git)"
 
-.. _Python.org: https://www.python.org/downloads/
+.. _python.org: https://www.python.org/downloads/
 .. _pyenv: https://github.com/pyenv/pyenv
 
 
