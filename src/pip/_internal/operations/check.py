@@ -58,8 +58,11 @@ def check_package_set(
 ) -> CheckResult:
     """Check if a package set is consistent
 
-    If should_ignore is passed, it should be a callable that takes a
-    package name and returns a boolean.
+    If should_ignore/should_ignore_dependencies is passed, it should
+    be a callable that takes a package name and returns a boolean.
+
+    should_ignore_dependencies should be used to filter out dependencies
+    of packages specified in package_set.
     """
 
     warn_legacy_versions_and_specifiers(package_set)
