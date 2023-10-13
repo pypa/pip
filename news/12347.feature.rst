@@ -1,0 +1,1 @@
+Warn users when installing to the global Python site-packages directory.
