@@ -17,7 +17,7 @@ from pip._internal.cli.req_command import (
     warn_if_run_as_root,
     with_cleanup,
 )
-from pip._internal.cli.status_codes import ERROR, SUCCESS
+from pip._internal.cli.status_codes import ERROR, SUCCESS, VIRTUALENV_NOT_FOUND
 from pip._internal.exceptions import CommandError, InstallationError
 from pip._internal.locations import get_scheme
 from pip._internal.metadata import get_environment
@@ -38,6 +38,7 @@ from pip._internal.utils.misc import (
     get_pip_version,
     protect_pip_from_modification_on_windows,
     write_output,
+    ask_input,
 )
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.virtualenv import (
@@ -283,6 +284,13 @@ class InstallCommand(RequirementCommand):
             and not options.override_externally_managed
         ):
             check_externally_managed()
+
+        no_active_venv = not running_under_virtualenv()
+        if no_active_venv:
+            logger.warning("No active virtual environment found.")
+            get_user_input = ask_input("Proceed (Y/n)? ")
+            if get_user_input.lower() in ["n", "no"]:
+                return VIRTUALENV_NOT_FOUND
 
         upgrade_strategy = "to-satisfy-only"
         if options.upgrade:

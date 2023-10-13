@@ -564,6 +564,7 @@ Prashant Sharma
 Pratik Mallya
 pre-commit-ci[bot]
 Preet Thakkar
+Priyank Panchal
 Preston Holmes
 Przemek Wrzos
 Pulkit Goyal
