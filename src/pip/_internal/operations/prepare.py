@@ -47,6 +47,7 @@ from pip._internal.utils.misc import (
     display_path,
     hash_file,
     hide_url,
+    redact_auth_from_requirement,
 )
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.unpacking import unpack_file
@@ -277,7 +278,7 @@ class RequirementPreparer:
             information = str(display_path(req.link.file_path))
         else:
             message = "Collecting %s"
-            information = str(req.req or req)
+            information = redact_auth_from_requirement(req.req) if req.req else str(req)
 
         # If we used req.req, inject requirement source if available (this
         # would already be included if we used req directly)

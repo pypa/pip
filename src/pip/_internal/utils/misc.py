@@ -35,6 +35,7 @@ from typing import (
     cast,
 )
 
+from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.pyproject_hooks import BuildBackendHookCaller
 from pip._vendor.tenacity import retry, stop_after_delay, wait_fixed
 
@@ -576,6 +577,13 @@ def remove_auth_from_url(url: str) -> str:
 def redact_auth_from_url(url: str) -> str:
     """Replace the password in a given url with ****."""
     return _transform_url(url, _redact_netloc)[0]
+
+
+def redact_auth_from_requirement(req: Requirement) -> str:
+    """Replace the password in a given requirement url with ****."""
+    if not req.url:
+        return str(req)
+    return str(req).replace(req.url, redact_auth_from_url(req.url))
 
 
 class HiddenText:
