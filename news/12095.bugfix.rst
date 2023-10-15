@@ -1,1 +1,0 @@
-Consistently report whether a dependency comes from an extra.
