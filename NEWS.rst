@@ -26,9 +26,9 @@ Features
 --------
 
 - Improve extras resolution for multiple constraints on same base package. (`#11924 <https://github.com/pypa/pip/issues/11924>`_)
-- Improve use of datastructures to make candidate selection 1.6x faster (`#12204 <https://github.com/pypa/pip/issues/12204>`_)
-- Allow ``pip install --dry-run`` to use platform and ABI overriding options similar to ``--target``. (`#12215 <https://github.com/pypa/pip/issues/12215>`_)
-- Add ``is_yanked`` boolean entry to the installation report (``--report``) to indicate whether the requirement was yanked from the index, but was still selected by pip conform to PEP 592. (`#12224 <https://github.com/pypa/pip/issues/12224>`_)
+- Improve use of datastructures to make candidate selection 1.6x faster. (`#12204 <https://github.com/pypa/pip/issues/12204>`_)
+- Allow ``pip install --dry-run`` to use platform and ABI overriding options. (`#12215 <https://github.com/pypa/pip/issues/12215>`_)
+- Add ``is_yanked`` boolean entry to the installation report (``--report``) to indicate whether the requirement was yanked from the index, but was still selected by pip conform to :pep:`592`. (`#12224 <https://github.com/pypa/pip/issues/12224>`_)
 
 Bug Fixes
 ---------
@@ -39,7 +39,7 @@ Bug Fixes
   as the package providing the extra(s) is built with values normalized according
   to the standard. Note, however, that this *does not* solve cases where the
   package itself contains unnormalized extra values in the metadata. (`#11649 <https://github.com/pypa/pip/issues/11649>`_)
-- Prevent downloading sdists twice when PEP 658 metadata is present. (`#11847 <https://github.com/pypa/pip/issues/11847>`_)
+- Prevent downloading sdists twice when :pep:`658` metadata is present. (`#11847 <https://github.com/pypa/pip/issues/11847>`_)
 - Include all requested extras in the install report (``--report``). (`#11924 <https://github.com/pypa/pip/issues/11924>`_)
 - Removed uses of ``datetime.datetime.utcnow`` from non-vendored code. (`#12005 <https://github.com/pypa/pip/issues/12005>`_)
 - Consistently report whether a dependency comes from an extra. (`#12095 <https://github.com/pypa/pip/issues/12095>`_)
@@ -72,7 +72,7 @@ Improved Documentation
 Bug Fixes
 ---------
 
-- Disable PEP 658 metadata fetching with the legacy resolver. (`#12156 <https://github.com/pypa/pip/issues/12156>`_)
+- Disable :pep:`658` metadata fetching with the legacy resolver. (`#12156 <https://github.com/pypa/pip/issues/12156>`_)
 
 
 23.2 (2023-07-15)
@@ -102,11 +102,11 @@ Bug Fixes
 ---------
 
 - Fix ``pip completion --zsh``. (`#11417 <https://github.com/pypa/pip/issues/11417>`_)
-- Prevent downloading files twice when PEP 658 metadata is present (`#11847 <https://github.com/pypa/pip/issues/11847>`_)
+- Prevent downloading files twice when :pep:`658` metadata is present (`#11847 <https://github.com/pypa/pip/issues/11847>`_)
 - Add permission check before configuration (`#11920 <https://github.com/pypa/pip/issues/11920>`_)
 - Fix deprecation warnings in Python 3.12 for usage of shutil.rmtree (`#11957 <https://github.com/pypa/pip/issues/11957>`_)
 - Ignore invalid or unreadable ``origin.json`` files in the cache of locally built wheels. (`#11985 <https://github.com/pypa/pip/issues/11985>`_)
-- Fix installation of packages with PEP658 metadata using non-canonicalized names (`#12038 <https://github.com/pypa/pip/issues/12038>`_)
+- Fix installation of packages with :pep:`658` metadata using non-canonicalized names (`#12038 <https://github.com/pypa/pip/issues/12038>`_)
 - Correctly parse ``dist-info-metadata`` values from JSON-format index data. (`#12042 <https://github.com/pypa/pip/issues/12042>`_)
 - Fail with an error if the ``--python`` option is specified after the subcommand name. (`#12067 <https://github.com/pypa/pip/issues/12067>`_)
 - Fix slowness when using ``importlib.metadata`` (the default way for pip to read metadata in Python 3.11+) and there is a large overlap between already installed and to-be-installed packages. (`#12079 <https://github.com/pypa/pip/issues/12079>`_)
@@ -277,7 +277,7 @@ Features
 
 - Change the hashes in the installation report to be a mapping. Emit the
   ``archive_info.hashes`` dictionary in ``direct_url.json``. (`#11312 <https://github.com/pypa/pip/issues/11312>`_)
-- Implement logic to read the ``EXTERNALLY-MANAGED`` file as specified in PEP 668.
+- Implement logic to read the ``EXTERNALLY-MANAGED`` file as specified in :pep:`668`.
   This allows a downstream Python distributor to prevent users from using pip to
   modify the externally managed environment. (`#11381 <https://github.com/pypa/pip/issues/11381>`_)
 - Enable the use of ``keyring`` found on ``PATH``. This allows ``keyring``
@@ -293,7 +293,7 @@ Bug Fixes
 - Use the "venv" scheme if available to obtain prefixed lib paths. (`#11598 <https://github.com/pypa/pip/issues/11598>`_)
 - Deprecated a historical ambiguity in how ``egg`` fragments in URL-style
   requirements are formatted and handled. ``egg`` fragments that do not look
-  like PEP 508 names now produce a deprecation warning. (`#11617 <https://github.com/pypa/pip/issues/11617>`_)
+  like :pep:`508` names now produce a deprecation warning. (`#11617 <https://github.com/pypa/pip/issues/11617>`_)
 - Fix scripts path in isolated build environment on Debian. (`#11623 <https://github.com/pypa/pip/issues/11623>`_)
 - Make ``pip show`` show the editable location if package is editable (`#11638 <https://github.com/pypa/pip/issues/11638>`_)
 - Stop checking that ``wheel`` is present when ``build-system.requires``
