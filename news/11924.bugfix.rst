@@ -1,1 +1,0 @@
-Include all requested extras in the install report (``--report``).

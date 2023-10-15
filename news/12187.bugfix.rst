@@ -1,1 +1,0 @@
-Fix improper handling of the new onexc argument of ``shutil.rmtree()`` in Python 3.12.

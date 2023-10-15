@@ -1,1 +1,0 @@
-Document that using OS-provided Python can cause pip's test suite to report false failures.
