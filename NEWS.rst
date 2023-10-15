@@ -26,8 +26,8 @@ Features
 --------
 
 - Improve extras resolution for multiple constraints on same base package. (`#11924 <https://github.com/pypa/pip/issues/11924>`_)
-- Improve use of datastructures to make candidate selection 1.6x faster (`#12204 <https://github.com/pypa/pip/issues/12204>`_)
-- Allow ``pip install --dry-run`` to use platform and ABI overriding options similar to ``--target``. (`#12215 <https://github.com/pypa/pip/issues/12215>`_)
+- Improve use of datastructures to make candidate selection 1.6x faster. (`#12204 <https://github.com/pypa/pip/issues/12204>`_)
+- Allow ``pip install --dry-run`` to use platform and ABI overriding options. (`#12215 <https://github.com/pypa/pip/issues/12215>`_)
 - Add ``is_yanked`` boolean entry to the installation report (``--report``) to indicate whether the requirement was yanked from the index, but was still selected by pip conform to PEP 592. (`#12224 <https://github.com/pypa/pip/issues/12224>`_)
 
 Bug Fixes
