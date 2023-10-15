@@ -49,6 +49,7 @@ from pip._internal.utils.misc import (
     display_path,
     hide_url,
     is_installable_dir,
+    redact_auth_from_requirement,
     redact_auth_from_url,
 )
 from pip._internal.utils.packaging import safe_extra
@@ -188,7 +189,7 @@ class InstallRequirement:
 
     def __str__(self) -> str:
         if self.req:
-            s = str(self.req)
+            s = redact_auth_from_requirement(self.req)
             if self.link:
                 s += " from {}".format(redact_auth_from_url(self.link.url))
         elif self.link:
