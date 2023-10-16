@@ -24,6 +24,10 @@ from .version import NormalizedVersion as NV
 __all__ = ['interpret']
 
 _VERSION_PATTERN = re.compile(r'((\d+(\.\d+)*\w*)|\'(\d+(\.\d+)*\w*)\'|\"(\d+(\.\d+)*\w*)\")')
+_VERSION_MARKERS = {'python_version', 'python_full_version'}
+
+def _is_version_marker(s):
+    return isinstance(s, string_types) and s in _VERSION_MARKERS
 
 def _is_literal(o):
     if not isinstance(o, string_types) or not o:
@@ -31,14 +35,11 @@ def _is_literal(o):
     return o[0] in '\'"'
 
 def _get_versions(s):
-    result = []
-    for m in _VERSION_PATTERN.finditer(s):
-        result.append(NV(m.groups()[0]))
-    return set(result)
+    return {NV(m.groups()[0]) for m in _VERSION_PATTERN.finditer(s)}
 
 class Evaluator(object):
     """
-    This class is used to evaluate marker expessions.
+    This class is used to evaluate marker expressions.
     """
 
     operations = {
@@ -80,11 +81,11 @@ class Evaluator(object):
 
             lhs = self.evaluate(elhs, context)
             rhs = self.evaluate(erhs, context)
-            if ((elhs == 'python_version' or erhs == 'python_version') and
+            if ((_is_version_marker(elhs) or _is_version_marker(erhs)) and
                 op in ('<', '<=', '>', '>=', '===', '==', '!=', '~=')):
                 lhs = NV(lhs)
                 rhs = NV(rhs)
-            elif elhs == 'python_version' and op in ('in', 'not in'):
+            elif _is_version_marker(elhs) and op in ('in', 'not in'):
                 lhs = NV(lhs)
                 rhs = _get_versions(rhs)
             result = self.operations[op](lhs, rhs)

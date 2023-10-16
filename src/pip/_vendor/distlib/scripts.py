@@ -168,15 +168,16 @@ class ScriptMaker(object):
             executable = os.path.join(sysconfig.get_path('scripts'),
                             'python%s' % sysconfig.get_config_var('EXE'))
         else:  # pragma: no cover
-            executable = os.path.join(
-                sysconfig.get_config_var('BINDIR'),
-               'python%s%s' % (sysconfig.get_config_var('VERSION'),
-                               sysconfig.get_config_var('EXE')))
-            if not os.path.isfile(executable):
+            if os.name == 'nt':
                 # for Python builds from source on Windows, no Python executables with
                 # a version suffix are created, so we use python.exe
                 executable = os.path.join(sysconfig.get_config_var('BINDIR'),
                                 'python%s' % (sysconfig.get_config_var('EXE')))
+            else:
+                executable = os.path.join(
+                    sysconfig.get_config_var('BINDIR'),
+                   'python%s%s' % (sysconfig.get_config_var('VERSION'),
+                                   sysconfig.get_config_var('EXE')))
         if options:
             executable = self._get_alternate_executable(executable, options)
 

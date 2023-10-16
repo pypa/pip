@@ -707,7 +707,7 @@ class ExportEntry(object):
     __hash__ = object.__hash__
 
 
-ENTRY_RE = re.compile(r'''(?P<name>(\w|[-.+])+)
+ENTRY_RE = re.compile(r'''(?P<name>([^\[]\S*))
                       \s*=\s*(?P<callable>(\w+)([:\.]\w+)*)
                       \s*(\[\s*(?P<flags>[\w-]+(=\w+)?(,\s*\w+(=\w+)?)*)\s*\])?
                       ''', re.VERBOSE)
@@ -1249,6 +1249,19 @@ def unarchive(archive_filename, dest_dir, format=None, check=True):
             for tarinfo in archive.getmembers():
                 if not isinstance(tarinfo.name, text_type):
                     tarinfo.name = tarinfo.name.decode('utf-8')
+
+        # Limit extraction of dangerous items, if this Python
+        # allows it easily. If not, just trust the input.
+        # See: https://docs.python.org/3/library/tarfile.html#extraction-filters
+        def extraction_filter(member, path):
+            """Run tarfile.tar_filter, but raise the expected ValueError"""
+            # This is only called if the current Python has tarfile filters
+            try:
+                return tarfile.tar_filter(member, path)
+            except tarfile.FilterError as exc:
+                raise ValueError(str(exc))
+        archive.extraction_filter = extraction_filter
+
         archive.extractall(dest_dir)
 
     finally:
@@ -1435,7 +1448,7 @@ if ssl:
             context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
             if hasattr(ssl, 'OP_NO_SSLv2'):
                 context.options |= ssl.OP_NO_SSLv2
-            if self.cert_file:
+            if getattr(self, 'cert_file', None):
                 context.load_cert_chain(self.cert_file, self.key_file)
             kwargs = {}
             if self.ca_certs:
@@ -1908,9 +1921,13 @@ def get_host_platform():
         if m:
             release = m.group()
     elif osname[:6] == 'darwin':
-        import _osx_support, distutils.sysconfig
+        import _osx_support
+        try:
+            from distutils import sysconfig
+        except ImportError:
+            import sysconfig
         osname, release, machine = _osx_support.get_platform_osx(
-                                        distutils.sysconfig.get_config_vars(),
+                                        sysconfig.get_config_vars(),
                                         osname, release, machine)
 
     return '%s-%s-%s' % (osname, release, machine)

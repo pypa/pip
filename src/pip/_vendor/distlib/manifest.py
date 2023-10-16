@@ -35,8 +35,9 @@ _COMMENTED_LINE = re.compile('#.*?(?=\n)|\n(?=$)', re.M | re.S)
 _PYTHON_VERSION = sys.version_info[:2]
 
 class Manifest(object):
-    """A list of files built by on exploring the filesystem and filtered by
-    applying various patterns to what we find there.
+    """
+    A list of files built by exploring the filesystem and filtered by applying various
+    patterns to what we find there.
     """
 
     def __init__(self, base=None):
