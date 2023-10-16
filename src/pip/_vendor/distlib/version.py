@@ -176,9 +176,9 @@ class Matcher(object):
         return self._string
 
 
-PEP440_VERSION_RE = re.compile(r'^v?(\d+!)?(\d+(\.\d+)*)((a|b|c|rc)(\d+))?'
-                               r'(\.(post)(\d+))?(\.(dev)(\d+))?'
-                               r'(\+([a-zA-Z\d]+(\.[a-zA-Z\d]+)?))?$')
+PEP440_VERSION_RE = re.compile(r'^v?(\d+!)?(\d+(\.\d+)*)((a|alpha|b|beta|c|rc|pre|preview)(\d+)?)?'
+                               r'(\.(post|r|rev)(\d+)?)?([._-]?(dev)(\d+)?)?'
+                               r'(\+([a-zA-Z\d]+(\.[a-zA-Z\d]+)?))?$', re.I)
 
 
 def _pep_440_key(s):
@@ -202,15 +202,24 @@ def _pep_440_key(s):
     if pre == (None, None):
         pre = ()
     else:
-        pre = pre[0], int(pre[1])
+        if pre[1] is None:
+            pre = pre[0], 0
+        else:
+            pre = pre[0], int(pre[1])
     if post == (None, None):
         post = ()
     else:
-        post = post[0], int(post[1])
+        if post[1] is None:
+            post = post[0], 0
+        else:
+            post = post[0], int(post[1])
     if dev == (None, None):
         dev = ()
     else:
-        dev = dev[0], int(dev[1])
+        if dev[1] is None:
+            dev = dev[0], 0
+        else:
+            dev = dev[0], int(dev[1])
     if local is None:
         local = ()
     else:

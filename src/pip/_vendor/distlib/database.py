@@ -903,15 +903,18 @@ class EggInfoDistribution(BaseInstalledDistribution):
             lines = data.splitlines()
             for line in lines:
                 line = line.strip()
-                if line.startswith('['):
+                # sectioned files have bare newlines (separating sections)
+                if not line:  # pragma: no cover
+                    continue
+                if line.startswith('['):  # pragma: no cover
                     logger.warning('Unexpected line: quitting requirement scan: %r',
                                    line)
                     break
                 r = parse_requirement(line)
-                if not r:
+                if not r:  # pragma: no cover
                     logger.warning('Not recognised as a requirement: %r', line)
                     continue
-                if r.extras:
+                if r.extras:  # pragma: no cover
                     logger.warning('extra requirements in requires.txt are '
                                    'not supported')
                 if not r.constraints:
