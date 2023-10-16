@@ -64,6 +64,9 @@ def test_comma_separated_values() -> None:
         ({"fred"}, {":all:"}, "fred", frozenset(["source"])),
         (set(), {"fred"}, "fred", frozenset(["binary"])),
         ({":all:"}, {"fred"}, "fred", frozenset(["binary"])),
+        # nothing in binary except foo as binary or source
+        ({":all:", "~foo"}, set(), "bar", frozenset(["binary"])),
+        ({":all:", "~foo"}, set(), "foo", frozenset(["binary", "source"])),
     ],
 )
 def test_fmt_ctl_matches(

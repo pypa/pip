@@ -37,6 +37,22 @@ class FormatControl:
             self.__class__.__name__, self.no_binary, self.only_binary
         )
 
+    @classmethod
+    def handle_no_binary(cls, value: str, existing: "FormatControl") -> None:
+        cls.handle_mutual_excludes(
+            value,
+            existing.no_binary,
+            existing.only_binary,
+        )
+
+    @classmethod
+    def handle_only_binary(cls, value: str, existing: "FormatControl") -> None:
+        cls.handle_mutual_excludes(
+            value,
+            existing.only_binary,
+            existing.no_binary,
+        )
+
     @staticmethod
     def handle_mutual_excludes(value: str, target: Set[str], other: Set[str]) -> None:
         if value.startswith("-"):
@@ -49,9 +65,6 @@ class FormatControl:
             target.clear()
             target.add(":all:")
             del new[: new.index(":all:") + 1]
-            # Without a none, we want to discard everything as :all: covers it
-            if ":none:" not in new:
-                return
         for name in new:
             if name == ":none:":
                 target.clear()
@@ -66,9 +79,12 @@ class FormatControl:
             result.discard("source")
         elif canonical_name in self.no_binary:
             result.discard("binary")
-        elif ":all:" in self.only_binary:
+        elif (
+            ":all:" in self.only_binary
+            and ("~" + canonical_name) not in self.only_binary
+        ):
             result.discard("source")
-        elif ":all:" in self.no_binary:
+        elif ":all:" in self.no_binary and ("~" + canonical_name) not in self.no_binary:
             result.discard("binary")
         return frozenset(result)
 
