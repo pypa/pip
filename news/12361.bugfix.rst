@@ -1,0 +1,1 @@
+Fix bug where installing the same package at the same time with multiple pip processes could fail.
