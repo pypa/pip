@@ -862,7 +862,7 @@ def test_collect_sources__file_expand_dir(data: TestData) -> None:
     )
     sources = collector.collect_sources(
         # Shouldn't be used.
-        project_name=None,  # type: ignore[arg-type]
+        project_name="",
         candidates_from_page=None,  # type: ignore[arg-type]
     )
     assert (
@@ -960,7 +960,7 @@ class TestLinkCollector:
             session=link_collector.session,
         )
 
-    def test_collect_sources(
+    def test_collect_page_sources(
         self, caplog: pytest.LogCaptureFixture, data: TestData
     ) -> None:
         caplog.set_level(logging.DEBUG)
@@ -993,9 +993,8 @@ class TestLinkCollector:
         files = list(files_it)
         pages = list(pages_it)
 
-        # Spot-check the returned sources.
-        assert len(files) > 20
-        check_links_include(files, names=["simple-1.0.tar.gz"])
+        # Only "twine" should return from collecting sources
+        assert len(files) == 1
 
         assert [page.link for page in pages] == [Link("https://pypi.org/simple/twine/")]
         # Check that index URLs are marked as *un*cacheable.
@@ -1005,6 +1004,52 @@ class TestLinkCollector:
             """\
         1 location(s) to search for versions of twine:
         * https://pypi.org/simple/twine/"""
+        )
+        assert caplog.record_tuples == [
+            ("pip._internal.index.collector", logging.DEBUG, expected_message),
+        ]
+
+    def test_collect_file_sources(
+        self, caplog: pytest.LogCaptureFixture, data: TestData
+    ) -> None:
+        caplog.set_level(logging.DEBUG)
+
+        link_collector = make_test_link_collector(
+            find_links=[data.find_links],
+            # Include two copies of the URL to check that the second one
+            # is skipped.
+            index_urls=[PyPI.simple_url, PyPI.simple_url],
+        )
+        collected_sources = link_collector.collect_sources(
+            "singlemodule",
+            candidates_from_page=lambda link: [
+                InstallationCandidate("singlemodule", "0.0.1", link)
+            ],
+        )
+
+        files_it = itertools.chain.from_iterable(
+            source.file_links()
+            for sources in collected_sources
+            for source in sources
+            if source is not None
+        )
+        pages_it = itertools.chain.from_iterable(
+            source.page_candidates()
+            for sources in collected_sources
+            for source in sources
+            if source is not None
+        )
+        files = list(files_it)
+        _ = list(pages_it)
+
+        # singlemodule should return files
+        assert len(files) > 0
+        check_links_include(files, names=["singlemodule-0.0.1.tar.gz"])
+
+        expected_message = dedent(
+            """\
+        1 location(s) to search for versions of singlemodule:
+        * https://pypi.org/simple/singlemodule/"""
         )
         assert caplog.record_tuples == [
             ("pip._internal.index.collector", logging.DEBUG, expected_message),
