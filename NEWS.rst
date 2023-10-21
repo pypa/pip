@@ -9,6 +9,16 @@
 
 .. towncrier release notes start
 
+23.3.1 (2023-10-21)
+===================
+
+Bug Fixes
+---------
+
+- Handle a timezone indicator of Z when parsing dates in the self check. (`#12338 <https://github.com/pypa/pip/issues/12338>`_)
+- Fix bug where installing the same package at the same time with multiple pip processes could fail. (`#12361 <https://github.com/pypa/pip/issues/12361>`_)
+
+
 23.3 (2023-10-15)
 =================
 
