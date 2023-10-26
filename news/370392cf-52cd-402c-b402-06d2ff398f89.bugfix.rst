@@ -1,1 +1,1 @@
-fix mercurial revision parse error: use two hypen argument --rev= instead of -r=
+Fix mercurial revision "parse error": use ``--rev={ref}`` instead of ``-r={ref}``
