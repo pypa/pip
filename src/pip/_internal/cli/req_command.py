@@ -118,6 +118,10 @@ class SessionCommandMixin(CommandContextMixIn):
                 ssl_context = None
         else:
             ssl_context = None
+        if "parallel_downloads" in options.__dict__:
+            parallel_downloads = options.parallel_downloads
+        else:
+            parallel_downloads = None
 
         session = PipSession(
             cache=os.path.join(cache_dir, "http-v2") if cache_dir else None,
@@ -125,6 +129,7 @@ class SessionCommandMixin(CommandContextMixIn):
             trusted_hosts=options.trusted_hosts,
             index_urls=self._get_index_urls(options),
             ssl_context=ssl_context,
+            parallel_downloads=parallel_downloads,
         )
 
         # Handle custom ca-bundles from the user

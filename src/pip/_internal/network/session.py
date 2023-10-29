@@ -326,6 +326,7 @@ class PipSession(requests.Session):
         trusted_hosts: Sequence[str] = (),
         index_urls: Optional[List[str]] = None,
         ssl_context: Optional["SSLContext"] = None,
+        parallel_downloads: Optional[int] = None,
         **kwargs: Any,
     ) -> None:
         """
@@ -362,12 +363,24 @@ class PipSession(requests.Session):
             backoff_factor=0.25,
         )  # type: ignore
 
+        # Used to set numbers of parallel downloads in
+        # pip._internal.network.BatchDownloader and to set pool_connection in
+        # the HTTPAdapter to prevent connection pool from hitting the default(10)
+        # limit and throwing 'Connection pool is full' warnings
+        self.parallel_downloads = (
+            parallel_downloads if (parallel_downloads is not None) else 1
+        )
+        pool_maxsize = max(self.parallel_downloads, 10)
         # Our Insecure HTTPAdapter disables HTTPS validation. It does not
         # support caching so we'll use it for all http:// URLs.
         # If caching is disabled, we will also use it for
         # https:// hosts that we've marked as ignoring
         # TLS errors for (trusted-hosts).
-        insecure_adapter = InsecureHTTPAdapter(max_retries=retries)
+        insecure_adapter = InsecureHTTPAdapter(
+            max_retries=retries,
+            pool_connections=pool_maxsize,
+            pool_maxsize=pool_maxsize,
+        )
 
         # We want to _only_ cache responses on securely fetched origins or when
         # the host is specified as trusted. We do this because
@@ -385,7 +398,12 @@ class PipSession(requests.Session):
                 max_retries=retries,
             )
         else:
-            secure_adapter = HTTPAdapter(max_retries=retries, ssl_context=ssl_context)
+            secure_adapter = HTTPAdapter(
+                max_retries=retries,
+                ssl_context=ssl_context,
+                pool_connections=pool_maxsize,
+                pool_maxsize=pool_maxsize,
+            )
             self._trusted_host_adapter = insecure_adapter
 
         self.mount("https://", secure_adapter)
