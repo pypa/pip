@@ -74,6 +74,7 @@ class InstallCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.constraints())
         self.cmd_opts.add_option(cmdoptions.no_deps())
         self.cmd_opts.add_option(cmdoptions.pre())
+        self.cmd_opts.add_option(cmdoptions.parallel_downloads())
 
         self.cmd_opts.add_option(cmdoptions.editable())
         self.cmd_opts.add_option(
