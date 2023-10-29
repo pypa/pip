@@ -764,6 +764,19 @@ check_build_deps: Callable[..., Option] = partial(
     help="Check the build dependencies when PEP517 is used.",
 )
 
+parallel_downloads: Callable[..., Option] = partial(
+    Option,
+    "--parallel-downloads",
+    dest="parallel_downloads",
+    type="int",
+    metavar="n",
+    default=None,
+    help=(
+        "Use upto <n> threads to download packages in parallel."
+        "<n> must be greater than 0"
+    ),
+)
+
 
 def _handle_no_use_pep517(
     option: Option, opt: str, value: str, parser: OptionParser
