@@ -119,6 +119,27 @@ def _http_get_download(session: PipSession, link: Link) -> Response:
     return resp
 
 
+def _download(
+    link: Link, location: str, session: PipSession, progress_bar: str
+) -> Tuple[str, str]:
+    try:
+        resp = _http_get_download(session, link)
+    except NetworkConnectionError as e:
+        assert e.response is not None
+        logger.critical("HTTP error %s while getting %s", e.response.status_code, link)
+        raise
+
+    filename = _get_http_response_filename(resp, link)
+    filepath = os.path.join(location, filename)
+
+    chunks = _prepare_download(resp, link, progress_bar)
+    with open(filepath, "wb") as content_file:
+        for chunk in chunks:
+            content_file.write(chunk)
+    content_type = resp.headers.get("Content-Type", "")
+    return filepath, content_type
+
+
 class Downloader:
     def __init__(
         self,
@@ -130,24 +151,7 @@ class Downloader:
 
     def __call__(self, link: Link, location: str) -> Tuple[str, str]:
         """Download the file given by link into location."""
-        try:
-            resp = _http_get_download(self._session, link)
-        except NetworkConnectionError as e:
-            assert e.response is not None
-            logger.critical(
-                "HTTP error %s while getting %s", e.response.status_code, link
-            )
-            raise
-
-        filename = _get_http_response_filename(resp, link)
-        filepath = os.path.join(location, filename)
-
-        chunks = _prepare_download(resp, link, self._progress_bar)
-        with open(filepath, "wb") as content_file:
-            for chunk in chunks:
-                content_file.write(chunk)
-        content_type = resp.headers.get("Content-Type", "")
-        return filepath, content_type
+        return _download(link, location, self._session, self._progress_bar)
 
 
 class BatchDownloader:
@@ -159,28 +163,17 @@ class BatchDownloader:
         self._session = session
         self._progress_bar = progress_bar
 
+    def _sequential_download(
+        self, link: Link, location: str, progress_bar: str
+    ) -> Tuple[Link, Tuple[str, str]]:
+        filepath, content_type = _download(
+            link, location, self._session, self._progress_bar
+        )
+        return link, (filepath, content_type)
+
     def __call__(
         self, links: Iterable[Link], location: str
     ) -> Iterable[Tuple[Link, Tuple[str, str]]]:
         """Download the files given by links into location."""
         for link in links:
-            try:
-                resp = _http_get_download(self._session, link)
-            except NetworkConnectionError as e:
-                assert e.response is not None
-                logger.critical(
-                    "HTTP error %s while getting %s",
-                    e.response.status_code,
-                    link,
-                )
-                raise
-
-            filename = _get_http_response_filename(resp, link)
-            filepath = os.path.join(location, filename)
-
-            chunks = _prepare_download(resp, link, self._progress_bar)
-            with open(filepath, "wb") as content_file:
-                for chunk in chunks:
-                    content_file.write(chunk)
-            content_type = resp.headers.get("Content-Type", "")
-            yield link, (filepath, content_type)
+            yield self._sequential_download(link, location, self._progress_bar)
