@@ -129,6 +129,12 @@ class ListCommand(IndexGroupCommand):
             help="Include editable package from output.",
             default=True,
         )
+        self.cmd_opts.add_option(
+            "--exclude-dependencies",
+            dest="exclude_dependencies",
+            action="store_true",
+            help="Exclude dependency packages from output.",
+        )
         self.cmd_opts.add_option(cmdoptions.list_exclude())
         index_opts = cmdoptions.make_option_group(cmdoptions.index_group, self.parser)
 
@@ -176,6 +182,7 @@ class ListCommand(IndexGroupCommand):
                 user_only=options.user,
                 editables_only=options.editable,
                 include_editables=options.include_editable,
+                exclude_dependencies=options.exclude_dependencies,
                 skip=skip,
             )
         ]
