@@ -650,6 +650,7 @@ class BaseEnvironment:
         editables_only: bool = False,
         user_only: bool = False,
         exclude_dependencies: bool = False,
+        user_requested: bool = False,
     ) -> Iterator[BaseDistribution]:
         """Return a list of installed distributions.
 
@@ -668,6 +669,9 @@ class BaseEnvironment:
         site directory.
         :param exclude_dependencies: If True, dont't report distributions
         that are dependencies of other installed distributions.
+        :param user_requested: If True, report only distributions that were
+        explicitly requested by user, either directly via a command line argument
+        or indirectly via a requirements file.
         """
         if exclude_dependencies:
             dists = list(self.iter_all_distributions())
@@ -680,6 +684,8 @@ class BaseEnvironment:
             it = (d for d in it if d.canonical_name not in dep_keys)
         else:
             it = self.iter_all_distributions()
+        if user_requested:
+            it = (d for d in it if d.requested)
         if local_only:
             it = (d for d in it if d.local)
         if not include_editables:
