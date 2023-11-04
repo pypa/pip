@@ -4,6 +4,8 @@ import email.message
 import logging
 import mimetypes
 import os
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 from typing import Iterable, Optional, Tuple
 
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
@@ -166,14 +168,30 @@ class BatchDownloader:
     def _sequential_download(
         self, link: Link, location: str, progress_bar: str
     ) -> Tuple[Link, Tuple[str, str]]:
-        filepath, content_type = _download(
-            link, location, self._session, self._progress_bar
-        )
+        filepath, content_type = _download(link, location, self._session, progress_bar)
         return link, (filepath, content_type)
+
+    def _download_parallel(
+        self, links: Iterable[Link], location: str, max_workers: int
+    ) -> Iterable[Tuple[Link, Tuple[str, str]]]:
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            _download_parallel = partial(
+                self._sequential_download, location=location, progress_bar="off"
+            )
+            results = list(pool.map(_download_parallel, links))
+        return results
 
     def __call__(
         self, links: Iterable[Link], location: str
     ) -> Iterable[Tuple[Link, Tuple[str, str]]]:
         """Download the files given by links into location."""
-        for link in links:
-            yield self._sequential_download(link, location, self._progress_bar)
+        links = list(links)
+        max_workers = self._session.parallel_downloads
+        if max_workers == 1 or len(links) == 1:
+            # TODO: set minimum number of links to perform parallel download
+            for link in links:
+                yield self._sequential_download(link, location, self._progress_bar)
+        else:
+            results = self._download_parallel(links, location, max_workers)
+            for result in results:
+                yield result
