@@ -147,7 +147,7 @@ def rmtree(
         # See https://docs.python.org/3.12/whatsnew/3.12.html#shutil.
         shutil.rmtree(dir, onexc=handler)  # type: ignore
     else:
-        shutil.rmtree(dir, onerror=handler)
+        shutil.rmtree(dir, onerror=handler)  # type: ignore
 
 
 def _onerror_ignore(*_args: Any) -> None:
