@@ -56,7 +56,6 @@ def distutils_scheme(
         try:
             d.parse_config_files()
         except UnicodeDecodeError:
-            # Typeshed does not include find_config_files() for some reason.
             paths = d.find_config_files()
             logger.warning(
                 "Ignore distutils configs in %s due to encoding errors.",
