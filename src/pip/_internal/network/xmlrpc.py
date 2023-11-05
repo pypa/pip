@@ -35,7 +35,7 @@ class PipXmlrpcTransport(xmlrpc.client.Transport):
         self,
         host: "_HostType",
         handler: str,
-        request_body: SizedBuffer,
+        request_body: "SizedBuffer",
         verbose: bool = False,
     ) -> Tuple["_Marshallable", ...]:
         assert isinstance(host, str)
