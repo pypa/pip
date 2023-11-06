@@ -2406,6 +2406,27 @@ def test_new_resolver_respect_user_requested_if_extra_is_installed(
     script.assert_installed(pkg3="1.0", pkg2="2.0", pkg1="1.0")
 
 
+def test_new_resolver_constraint_on_link_with_extra(
+    script: PipTestEnvironment,
+) -> None:
+    """
+    Verify that installing works from a link with both an extra and a constraint.
+    """
+    wheel: pathlib.Path = create_basic_wheel_for_package(
+        script, "pkg", "1.0", extras={"ext": []}
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        # no index, no --find-links: only the explicit path
+        "--no-index",
+        f"{wheel}[ext]",
+        "pkg==1",
+    )
+    script.assert_installed(pkg="1.0")
+
+
 def test_new_resolver_do_not_backtrack_on_build_failure(
     script: PipTestEnvironment,
 ) -> None:
