@@ -1,1 +1,1 @@
-Update to using mypy 1.6.1 and fix/ignore types
+Update mypy to 1.6.1 and fix/ignore types
