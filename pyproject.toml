@@ -102,6 +102,7 @@ select = [
     "PLR0",
     "W",
     "RUF100",
+    "UP032",
 ]
 
 [tool.ruff.isort]
