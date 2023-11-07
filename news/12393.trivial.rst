@@ -1,0 +1,1 @@
+Enforce and update code to use f-strings via Ruff rule UP032

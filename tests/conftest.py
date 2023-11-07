@@ -141,7 +141,7 @@ def pytest_collection_modifyitems(config: Config, items: List[pytest.Function]) 
             if "script" in item.fixturenames:
                 raise RuntimeError(
                     "Cannot use the ``script`` funcarg in a unit test: "
-                    "(filename = {}, item = {})".format(module_path, item)
+                    f"(filename = {module_path}, item = {item})"
                 )
         else:
             raise RuntimeError(f"Unknown test type (filename = {module_path})")

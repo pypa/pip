@@ -261,8 +261,8 @@ class TestCheckDistRequiresPython:
                 ignore_requires_python=False,
             )
         assert str(exc.value) == (
-            "None {} metadata found for distribution: "
-            "<distribution 'my-project'>".format(metadata_name)
+            f"None {metadata_name} metadata found for distribution: "
+            "<distribution 'my-project'>"
         )
 
 

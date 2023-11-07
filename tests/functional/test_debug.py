@@ -68,7 +68,7 @@ def test_debug__tags(script: PipTestEnvironment, args: List[str]) -> None:
     stdout = result.stdout
 
     tags = compatibility_tags.get_supported()
-    expected_tag_header = "Compatible tags: {}".format(len(tags))
+    expected_tag_header = f"Compatible tags: {len(tags)}"
     assert expected_tag_header in stdout
 
     show_verbose_note = "--verbose" not in args

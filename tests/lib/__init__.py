@@ -747,7 +747,7 @@ class PipTestEnvironment(TestFileEnvironment):
             for val in json.loads(ret.stdout)
         }
         expected = {(canonicalize_name(k), v) for k, v in kwargs.items()}
-        assert expected <= installed, "{!r} not all in {!r}".format(expected, installed)
+        assert expected <= installed, f"{expected!r} not all in {installed!r}"
 
     def assert_not_installed(self, *args: str) -> None:
         ret = self.pip("list", "--format=json")
@@ -755,9 +755,7 @@ class PipTestEnvironment(TestFileEnvironment):
         # None of the given names should be listed as installed, i.e. their
         # intersection should be empty.
         expected = {canonicalize_name(k) for k in args}
-        assert not (expected & installed), "{!r} contained in {!r}".format(
-            expected, installed
-        )
+        assert not (expected & installed), f"{expected!r} contained in {installed!r}"
 
 
 # FIXME ScriptTest does something similar, but only within a single
@@ -1028,7 +1026,7 @@ def _create_test_package_with_srcdir(
     pkg_path.joinpath("__init__.py").write_text("")
     subdir_path.joinpath("setup.py").write_text(
         textwrap.dedent(
-            """
+            f"""
                 from setuptools import setup, find_packages
                 setup(
                     name="{name}",
@@ -1036,9 +1034,7 @@ def _create_test_package_with_srcdir(
                     packages=find_packages(),
                     package_dir={{"": "src"}},
                 )
-            """.format(
-                name=name
-            )
+            """
         )
     )
     return _vcs_add(dir_path, version_pkg_path, vcs)
@@ -1052,7 +1048,7 @@ def _create_test_package(
     _create_main_file(version_pkg_path, name=name, output="0.1")
     version_pkg_path.joinpath("setup.py").write_text(
         textwrap.dedent(
-            """
+            f"""
                 from setuptools import setup, find_packages
                 setup(
                     name="{name}",
@@ -1061,9 +1057,7 @@ def _create_test_package(
                     py_modules=["{name}"],
                     entry_points=dict(console_scripts=["{name}={name}:main"]),
                 )
-            """.format(
-                name=name
-            )
+            """
         )
     )
     return _vcs_add(dir_path, version_pkg_path, vcs)
@@ -1137,7 +1131,7 @@ def urlsafe_b64encode_nopad(data: bytes) -> str:
 
 def create_really_basic_wheel(name: str, version: str) -> bytes:
     def digest(contents: bytes) -> str:
-        return "sha256={}".format(urlsafe_b64encode_nopad(sha256(contents).digest()))
+        return f"sha256={urlsafe_b64encode_nopad(sha256(contents).digest())}"
 
     def add_file(path: str, text: str) -> None:
         contents = text.encode("utf-8")
@@ -1153,13 +1147,11 @@ def create_really_basic_wheel(name: str, version: str) -> bytes:
         add_file(
             f"{dist_info}/METADATA",
             dedent(
-                """\
+                f"""\
                 Metadata-Version: 2.1
-                Name: {}
-                Version: {}
-                """.format(
-                    name, version
-                )
+                Name: {name}
+                Version: {version}
+                """
             ),
         )
         z.writestr(record_path, "\n".join(",".join(r) for r in records))
