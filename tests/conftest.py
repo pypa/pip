@@ -14,6 +14,7 @@ from hashlib import sha256
 from pathlib import Path
 from textwrap import dedent
 from typing import (
+    TYPE_CHECKING,
     Any,
     AnyStr,
     Callable,
@@ -57,6 +58,9 @@ from tests.lib import (
 )
 from tests.lib.server import MockServer, make_mock_server
 from tests.lib.venv import VirtualEnvironment, VirtualEnvironmentType
+
+if TYPE_CHECKING:
+    from pip._vendor.typing_extensions import Self
 
 
 def pytest_addoption(parser: Parser) -> None:
@@ -941,7 +945,7 @@ def html_index_with_onetime_server(
     """
 
     class InDirectoryServer(http.server.ThreadingHTTPServer):
-        def finish_request(self, request: Any, client_address: Any) -> None:
+        def finish_request(self: "Self", request: Any, client_address: Any) -> None:
             self.RequestHandlerClass(
                 request,
                 client_address,
