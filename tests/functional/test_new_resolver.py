@@ -1185,7 +1185,7 @@ def test_new_resolver_presents_messages_when_backtracking_a_lot(
     for index in range(1, N + 1):
         A_version = f"{index}.0.0"
         B_version = f"{index}.0.0"
-        C_version = "{index_minus_one}.0.0".format(index_minus_one=index - 1)
+        C_version = f"{index - 1}.0.0"
 
         depends = ["B == " + B_version]
         if index != 1:

@@ -106,10 +106,10 @@ def test_pep518_refuses_conflicting_requires(
     assert (
         result.returncode != 0
         and (
-            "Some build dependencies for {url} conflict "
+            f"Some build dependencies for {project_dir.as_uri()} conflict "
             "with PEP 517/518 supported "
             "requirements: setuptools==1.0 is incompatible with "
-            "setuptools>=40.8.0.".format(url=project_dir.as_uri())
+            "setuptools>=40.8.0."
         )
         in result.stderr
     ), str(result)
@@ -595,8 +595,8 @@ def test_hashed_install_success(
     with requirements_file(
         "simple2==1.0 --hash=sha256:9336af72ca661e6336eb87bc7de3e8844d853e"
         "3848c2b9bbd2e8bf01db88c2c7\n"
-        "{simple} --hash=sha256:393043e672415891885c9a2a0929b1af95fb866d6c"
-        "a016b42d2e6ce53619b653".format(simple=file_url),
+        f"{file_url} --hash=sha256:393043e672415891885c9a2a0929b1af95fb866d6c"
+        "a016b42d2e6ce53619b653",
         tmpdir,
     ) as reqs_file:
         script.pip_install_local("-r", reqs_file.resolve())
@@ -1735,7 +1735,7 @@ def test_install_builds_wheels(script: PipTestEnvironment, data: TestData) -> No
     # into the cache
     assert wheels != [], str(res)
     assert wheels == [
-        "Upper-2.0-py{}-none-any.whl".format(sys.version_info[0]),
+        f"Upper-2.0-py{sys.version_info[0]}-none-any.whl",
     ]
 
 
@@ -2387,7 +2387,7 @@ def test_install_verify_package_name_normalization(
     assert "Successfully installed simple-package" in result.stdout
 
     result = script.pip("install", package_name)
-    assert "Requirement already satisfied: {}".format(package_name) in result.stdout
+    assert f"Requirement already satisfied: {package_name}" in result.stdout
 
 
 def test_install_logs_pip_version_in_debug(

@@ -59,8 +59,8 @@ def _disassemble_key(name: str) -> List[str]:
     if "." not in name:
         error_message = (
             "Key does not contain dot separated section and key. "
-            "Perhaps you wanted to use 'global.{}' instead?"
-        ).format(name)
+            f"Perhaps you wanted to use 'global.{name}' instead?"
+        )
         raise ConfigurationError(error_message)
     return name.split(".", 1)
 

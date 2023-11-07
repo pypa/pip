@@ -400,7 +400,7 @@ def test_completion_path_after_option(
 def test_completion_uses_same_executable_name(
     autocomplete_script: PipTestEnvironment, flag: str, deprecated_python: bool
 ) -> None:
-    executable_name = "pip{}".format(sys.version_info[0])
+    executable_name = f"pip{sys.version_info[0]}"
     # Deprecated python versions produce an extra deprecation warning
     result = autocomplete_script.run(
         executable_name,
