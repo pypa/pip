@@ -1,0 +1,1 @@
+Allow ``pip install`` to avoid useless HTTPS requests in case the file is in cache and corresponds to the provided hash.

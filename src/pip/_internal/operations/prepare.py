@@ -105,10 +105,22 @@ def get_http_url(
         from_path = already_downloaded_path
         content_type = None
     else:
-        # let's download to a tmp dir
-        from_path, content_type = download(link, temp_dir.path)
-        if hashes:
-            hashes.check_against_path(from_path)
+        if hashes:  # bypass http headers only in case we have a hash
+            content_type = None
+            from_path = download.check_cache(link, temp_dir.path)
+            if from_path:
+                try:
+                    hashes.check_against_path(from_path)
+                except HashMismatch:
+                    from_path = None
+        else:
+            from_path = None
+
+        if from_path is None:
+            # let's download to a tmp dir
+            from_path, content_type = download(link, temp_dir.path)
+            if hashes:
+                hashes.check_against_path(from_path)
 
     return File(from_path, content_type)
 

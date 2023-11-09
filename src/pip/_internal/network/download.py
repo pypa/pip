@@ -128,6 +128,21 @@ class Downloader:
         self._session = session
         self._progress_bar = progress_bar
 
+    def check_cache(self, link: Link, location: str) -> Optional[str]:
+        target_url = link.url.split("#", 1)[0]
+        adapter = self._session.get_adapter(target_url)
+        try:
+            data = adapter.cache.get(target_url)
+            if data:
+                resp = adapter.controller.serializer.loads(None, data)
+                filepath = os.path.join(location, link.filename)
+                with open(filepath, 'wb') as content_file:
+                    content_file.write(resp.data)
+                return filepath
+        except Exception:
+            pass
+        return None
+
     def __call__(self, link: Link, location: str) -> Tuple[str, str]:
         """Download the file given by link into location."""
         try:
