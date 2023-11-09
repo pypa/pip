@@ -136,7 +136,7 @@ class Downloader:
             if data:
                 resp = adapter.controller.serializer.loads(None, data)
                 filepath = os.path.join(location, link.filename)
-                with open(filepath, 'wb') as content_file:
+                with open(filepath, "wb") as content_file:
                     content_file.write(resp.data)
                 return filepath
         except Exception:
