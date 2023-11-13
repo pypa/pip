@@ -5,6 +5,7 @@ import logging
 import os
 import shutil
 import stat
+import sys
 import tarfile
 import zipfile
 from typing import Callable, Iterable, List, Optional
@@ -201,7 +202,23 @@ def untar_file(filename: str, location: str) -> None:
                     member.name = split_leading_dir(member.name)[1]
                 orig_mode = member.mode
                 try:
-                    member = data_filter(member, location)
+                    try:
+                        member = data_filter(member, location)
+                    except tarfile.LinkOutsideDestinationError:
+                        if sys.version_info[:3] in {
+                            (3, 8, 17),
+                            (3, 9, 17),
+                            (3, 10, 12),
+                            (3, 11, 4),
+                        }:
+                            # The tarfile filter in specific Python versions
+                            # raises LinkOutsideDestinationError on valid input
+                            # (https://github.com/python/cpython/issues/107845)
+                            # Ignore the error there, but do use the
+                            # more lax `tar_filter`
+                            member = tarfile.tar_filter(member, location)
+                        else:
+                            raise
                 except tarfile.TarError as exc:
                     message = "Invalid member in the tar file {}: {}"
                     # Filter error messages mention the member name.
@@ -225,6 +242,7 @@ def untar_file(filename: str, location: str) -> None:
 
     finally:
         tar.close()
+
 
 def _untar_without_filter(
     filename: str,
