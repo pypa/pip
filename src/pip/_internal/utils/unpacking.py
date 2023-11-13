@@ -8,7 +8,7 @@ import stat
 import sys
 import tarfile
 import zipfile
-from typing import Callable, Iterable, List, Optional
+from typing import Iterable, List, Optional
 from zipfile import ZipInfo
 
 from pip._internal.exceptions import InstallationError
@@ -182,16 +182,9 @@ def untar_file(filename: str, location: str) -> None:
 
         # PEP 706 added `tarfile.data_filter`, and made some other changes to
         # Python's tarfile module (see below). The features were backported to
-        # security releases in a way that mypy doesn't know if they are
-        # available.
-        # At runtime we need to use `hasattr` rather than a version check;
-        # mypy will need extra type info and a few "type: ignore" comments.
-        data_filter: Callable[
-            [tarfile.TarInfo, str],
-            tarfile.TarInfo,
-        ]
+        # security releases.
         try:
-            data_filter = tarfile.data_filter  # type: ignore [attr-defined]
+            data_filter = tarfile.data_filter
         except AttributeError:
             _untar_without_filter(filename, location, tar, leading)
         else:
@@ -233,12 +226,13 @@ def untar_file(filename: str, location: str) -> None:
                     member.mode = default_mode_plus_executable
                 else:
                     # See PEP 706 note above.
-                    # The PEP canged this this from `int` to `Optional[int]`
+                    # The PEP changed this from `int` to `Optional[int]`,
+                    # where None means "use the default". Mypy doesn't
+                    # know this yet.
                     member.mode = None  # type: ignore [assignment]
                 return member
 
-            # See PEP 706 note above. The PEP adds the `filter` argument.
-            tar.extractall(location, filter=pip_filter)  # type: ignore [call-arg]
+            tar.extractall(location, filter=pip_filter)
 
     finally:
         tar.close()
