@@ -67,7 +67,7 @@ class PipProgress(Progress):
         the file is known.
         """
         return (
-            TextColumn(" " * (get_indentation() + 2)),
+            TextColumn(" " * (get_indentation() + 3)),
             BarColumn(),
             DownloadColumn(),
             TransferSpeedColumn(),
@@ -82,6 +82,7 @@ class PipProgress(Progress):
         is unknown.
         """
         return (
+            TextColumn(" " * (get_indentation() + 3)),
             SpinnerColumn("line", speed=1.5),
             FileSizeColumn(),
             TransferSpeedColumn(),
@@ -93,12 +94,18 @@ class PipProgress(Progress):
         """
         Get the columns to use for the log message, i.e. the task description
         """
-        # This will be the "Downloading"/"Using cached" message
-        # This needs to be column since, logging this message interferes with
-        # parallel progress bars
-        return (
-            TextColumn("{task.description}"),
-        )
+        # These columns will be the "Downloading"/"Using cached" message
+        # This message needs to be columns because,logging this message interferes
+        # with parallel progress bars, and if we want the message to remain next
+        # to the progress bar even when there are multiple tasks, then it needs
+        # to be a part of the progress bar
+        indentation = get_indentation()
+        if indentation:
+            return (
+                TextColumn(" " * get_indentation()),
+                TextColumn("{task.description}"),
+            )
+        return (TextColumn("{task.description}"),)
 
     def get_renderable(self) -> RenderableType:
         """
@@ -168,6 +175,26 @@ class PipProgress(Progress):
             merged_row.append(Text.from_markup(merged_markup))
         return merged_row
 
+    def sort_tasks(self) -> None:
+        """
+        Sort tasks
+        Remove completed tasks and print them
+        """
+        # Removal of completed items reduces the number of items to be rendered
+        # thus reducing amount of computation
+        tasks = []
+        for task_id in self._tasks:
+            task = self._tasks[task_id]
+            if task.finished:
+                # Log the completed progress bar to prevent it from disappearing
+                task_group = self.make_task_group(task)
+                self.console.print(task_group)
+            else:
+                tasks.append((task_id, self._tasks[task_id]))
+        # Sorting by finished ensures that all active downloads remain together
+        tasks = sorted(tasks, key=lambda x: not x[1].finished)
+        self._tasks = dict(tasks)
+
     def update(
         self,
         task_id: TaskID,
@@ -217,7 +244,7 @@ class PipProgress(Progress):
                 and task.finished_time is None
             ):
                 task.finished_time = task.elapsed
-                self.tasks.sort(key=lambda x: not x.finished)
+                self.sort_tasks()
 
         if refresh:
             self.refresh()
