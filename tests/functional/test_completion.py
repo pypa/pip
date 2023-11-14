@@ -14,7 +14,6 @@ else:
     # dropping support for Python 3.7.
     Protocol = object
 
-
 COMPLETION_FOR_SUPPORTED_SHELLS_TESTS = (
     (
         "bash",
@@ -133,6 +132,7 @@ class DoAutocomplete(Protocol):
         cword: str,
         cwd: Union[Path, str, None] = None,
         include_env: bool = True,
+        expect_error: bool = True,
     ) -> Tuple[TestPipResult, PipTestEnvironment]:
         ...
 
@@ -149,6 +149,7 @@ def autocomplete(
         cword: str,
         cwd: Union[Path, str, None] = None,
         include_env: bool = True,
+        expect_error: bool = True,
     ) -> Tuple[TestPipResult, PipTestEnvironment]:
         if include_env:
             autocomplete_script.environ["COMP_WORDS"] = words
@@ -158,7 +159,7 @@ def autocomplete(
             "-c",
             "from pip._internal.cli.autocompletion import autocomplete;"
             "autocomplete()",
-            expect_error=True,
+            expect_error=expect_error,
             cwd=cwd,
         )
 
@@ -174,6 +175,17 @@ def test_completion_for_unknown_shell(autocomplete_script: PipTestEnvironment) -
     error_msg = "no such option: --myfooshell"
     result = autocomplete_script.pip("completion", "--myfooshell", expect_error=True)
     assert error_msg in result.stderr, "tests for an unknown shell failed"
+
+
+def test_completion_without_env_vars(autocomplete: DoAutocomplete) -> None:
+    """
+    Test getting completion <path> after options in command
+    given absolute path
+    """
+    res, env = autocomplete(
+        words="pip install ", cword="", include_env=False, expect_error=False
+    )
+    assert res.stdout == "", "autocomplete function did not complete"
 
 
 def test_completion_alone(autocomplete_script: PipTestEnvironment) -> None:
@@ -417,16 +429,3 @@ def test_completion_uses_same_executable_name(
         expect_stderr=deprecated_python,
     )
     assert executable_name in result.stdout
-
-
-def test_completion_without_env_vars(autocomplete: DoAutocomplete) -> None:
-    """
-    Test getting completion <path> after options in command
-    given absolute path
-    """
-    res, env = autocomplete(
-        words="pip install ",
-        cword="",
-        include_env=False,
-    )
-    assert res.stdout == ""
