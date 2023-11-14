@@ -73,7 +73,7 @@ pip's tests are written using the :pypi:`pytest` test framework and
 :mod:`unittest.mock`. :pypi:`nox` is used to automate the setup and execution
 of pip's tests.
 
-It is preferable to run the tests in parallel for better experience during development,
+It is preferable to run the tests in parallel for a better experience during development,
 since the tests can take a long time to finish when run sequentially.
 
 To run tests:
@@ -104,6 +104,15 @@ can select tests using the various ways that pytest provides:
     $ # Using keywords
     $ nox -s test-3.10 -- -k "install and not wheel"
 
+.. note::
+
+    When running pip's tests with OS distribution Python versions, be aware that some
+    functional tests may fail due to potential patches introduced by the distribution.
+    For all tests to pass consider:
+
+    - Installing Python from `python.org`_ or compile from source
+    - Or, using `pyenv`_ to assist with source compilation
+
 Running pip's entire test suite requires supported version control tools
 (subversion, bazaar, git, and mercurial) to be installed. If you are missing
 any of these VCS, those tests should be skipped automatically. You can also
@@ -113,6 +122,9 @@ explicitly tell pytest to skip those tests:
 
     $ nox -s test-3.10 -- -k "not svn"
     $ nox -s test-3.10 -- -k "not (svn or git)"
+
+.. _python.org: https://www.python.org/downloads/
+.. _pyenv: https://github.com/pyenv/pyenv
 
 
 Running Linters

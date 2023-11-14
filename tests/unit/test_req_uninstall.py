@@ -59,10 +59,9 @@ def test_uninstallation_paths() -> None:
 
 def test_compressed_listing(tmpdir: Path) -> None:
     def in_tmpdir(paths: List[str]) -> List[str]:
-        li = []
-        for path in paths:
-            li.append(str(os.path.join(tmpdir, path.replace("/", os.path.sep))))
-        return li
+        return [
+            str(os.path.join(tmpdir, path.replace("/", os.path.sep))) for path in paths
+        ]
 
     sample = in_tmpdir(
         [

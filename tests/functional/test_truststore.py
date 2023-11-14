@@ -28,20 +28,6 @@ def test_truststore_error_on_old_python(pip: PipRunner) -> None:
 
 
 @pytest.mark.skipif(sys.version_info < (3, 10), reason="3.10+ required for truststore")
-def test_truststore_error_without_preinstalled(pip: PipRunner) -> None:
-    result = pip(
-        "install",
-        "--no-index",
-        "does-not-matter",
-        expect_error=True,
-    )
-    assert (
-        "To use the truststore feature, 'truststore' must be installed into "
-        "pip's current environment."
-    ) in result.stderr
-
-
-@pytest.mark.skipif(sys.version_info < (3, 10), reason="3.10+ required for truststore")
 @pytest.mark.network
 @pytest.mark.parametrize(
     "package",
@@ -56,6 +42,5 @@ def test_trustore_can_install(
     pip: PipRunner,
     package: str,
 ) -> None:
-    script.pip("install", "truststore")
     result = pip("install", package)
     assert "Successfully installed" in result.stdout

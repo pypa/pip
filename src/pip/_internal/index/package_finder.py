@@ -533,8 +533,8 @@ class CandidateEvaluator:
                 )
             except ValueError:
                 raise UnsupportedWheel(
-                    "{} is not a supported wheel for this platform. It "
-                    "can't be sorted.".format(wheel.filename)
+                    f"{wheel.filename} is not a supported wheel for this platform. It "
+                    "can't be sorted."
                 )
             if self._prefer_binary:
                 binary_preference = 1
@@ -939,9 +939,7 @@ class PackageFinder:
                 _format_versions(best_candidate_result.iter_all()),
             )
 
-            raise DistributionNotFound(
-                "No matching distribution found for {}".format(req)
-            )
+            raise DistributionNotFound(f"No matching distribution found for {req}")
 
         def _should_install_candidate(
             candidate: Optional[InstallationCandidate],

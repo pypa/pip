@@ -107,8 +107,8 @@ class TestPipTestEnvironment:
         """
         command = (
             "import logging; logging.basicConfig(level='INFO'); "
-            "logging.getLogger().info('sub: {}', 'foo')"
-        ).format(sub_string)
+            f"logging.getLogger().info('sub: {sub_string}', 'foo')"
+        )
         args = [sys.executable, "-c", command]
         script.run(*args, **kwargs)
 

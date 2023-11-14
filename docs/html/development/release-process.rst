@@ -145,8 +145,8 @@ Creating a new release
 #. Push the tag created by ``prepare-release``.
 #. Regenerate the ``get-pip.py`` script in the `get-pip repository`_ (as
    documented there) and commit the results.
-#. Submit a Pull Request to `CPython`_ adding the new version of pip (and upgrading
-   setuptools) to ``Lib/ensurepip/_bundled``, removing the existing version, and
+#. Submit a Pull Request to `CPython`_ adding the new version of pip
+   to ``Lib/ensurepip/_bundled``, removing the existing version, and
    adjusting the versions listed in ``Lib/ensurepip/__init__.py``.
 
 

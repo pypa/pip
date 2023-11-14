@@ -68,7 +68,7 @@ man pages][netrc-docs].
 pip supports loading credentials stored in your keyring using the
 {pypi}`keyring` library, which can be enabled py passing `--keyring-provider`
 with a value of `auto`, `disabled`, `import`, or `subprocess`. The default
-value `auto` respects `--no-input` and not query keyring at all if the option
+value `auto` respects `--no-input` and does not query keyring at all if the option
 is used; otherwise it tries the `import`, `subprocess`, and `disabled`
 providers (in this order) and uses the first one that works.
 

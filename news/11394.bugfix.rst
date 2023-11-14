@@ -1,1 +1,0 @@
-Ignore errors in temporary directory cleanup (show a warning instead).

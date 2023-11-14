@@ -1,0 +1,1 @@
+Update mypy to 1.6.1 and fix/ignore types

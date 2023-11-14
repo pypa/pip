@@ -9,13 +9,80 @@
 
 .. towncrier release notes start
 
+23.3.1 (2023-10-21)
+===================
+
+Bug Fixes
+---------
+
+- Handle a timezone indicator of Z when parsing dates in the self check. (`#12338 <https://github.com/pypa/pip/issues/12338>`_)
+- Fix bug where installing the same package at the same time with multiple pip processes could fail. (`#12361 <https://github.com/pypa/pip/issues/12361>`_)
+
+
+23.3 (2023-10-15)
+=================
+
+Process
+-------
+
+- Added reference to `vulnerability reporting guidelines <https://www.python.org/dev/security/>`_ to pip's security policy.
+
+Deprecations and Removals
+-------------------------
+
+- Drop a fallback to using SecureTransport on macOS. It was useful when pip detected OpenSSL older than 1.0.1, but the current pip does not support any Python version supporting such old OpenSSL versions. (`#12175 <https://github.com/pypa/pip/issues/12175>`_)
+
+Features
+--------
+
+- Improve extras resolution for multiple constraints on same base package. (`#11924 <https://github.com/pypa/pip/issues/11924>`_)
+- Improve use of datastructures to make candidate selection 1.6x faster. (`#12204 <https://github.com/pypa/pip/issues/12204>`_)
+- Allow ``pip install --dry-run`` to use platform and ABI overriding options. (`#12215 <https://github.com/pypa/pip/issues/12215>`_)
+- Add ``is_yanked`` boolean entry to the installation report (``--report``) to indicate whether the requirement was yanked from the index, but was still selected by pip conform to :pep:`592`. (`#12224 <https://github.com/pypa/pip/issues/12224>`_)
+
+Bug Fixes
+---------
+
+- Ignore errors in temporary directory cleanup (show a warning instead). (`#11394 <https://github.com/pypa/pip/issues/11394>`_)
+- Normalize extras according to :pep:`685` from package metadata in the resolver
+  for comparison. This ensures extras are correctly compared and merged as long
+  as the package providing the extra(s) is built with values normalized according
+  to the standard. Note, however, that this *does not* solve cases where the
+  package itself contains unnormalized extra values in the metadata. (`#11649 <https://github.com/pypa/pip/issues/11649>`_)
+- Prevent downloading sdists twice when :pep:`658` metadata is present. (`#11847 <https://github.com/pypa/pip/issues/11847>`_)
+- Include all requested extras in the install report (``--report``). (`#11924 <https://github.com/pypa/pip/issues/11924>`_)
+- Removed uses of ``datetime.datetime.utcnow`` from non-vendored code. (`#12005 <https://github.com/pypa/pip/issues/12005>`_)
+- Consistently report whether a dependency comes from an extra. (`#12095 <https://github.com/pypa/pip/issues/12095>`_)
+- Fix completion script for zsh (`#12166 <https://github.com/pypa/pip/issues/12166>`_)
+- Fix improper handling of the new onexc argument of ``shutil.rmtree()`` in Python 3.12. (`#12187 <https://github.com/pypa/pip/issues/12187>`_)
+- Filter out yanked links from the available versions error message: "(from versions: 1.0, 2.0, 3.0)" will not contain yanked versions conform PEP 592. The yanked versions (if any) will be mentioned in a separate error message. (`#12225 <https://github.com/pypa/pip/issues/12225>`_)
+- Fix crash when the git version number contains something else than digits and dots. (`#12280 <https://github.com/pypa/pip/issues/12280>`_)
+- Use ``-r=...`` instead of ``-r ...`` to specify references with Mercurial. (`#12306 <https://github.com/pypa/pip/issues/12306>`_)
+- Redact password from URLs in some additional places. (`#12350 <https://github.com/pypa/pip/issues/12350>`_)
+- pip uses less memory when caching large packages. As a result, there is a new on-disk cache format stored in a new directory ($PIP_CACHE_DIR/http-v2). (`#2984 <https://github.com/pypa/pip/issues/2984>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade certifi to 2023.7.22
+- Add truststore 0.8.0
+- Upgrade urllib3 to 1.26.17
+
+Improved Documentation
+----------------------
+
+- Document that ``pip search`` support has been removed from PyPI (`#12059 <https://github.com/pypa/pip/issues/12059>`_)
+- Clarify --prefer-binary in CLI and docs (`#12122 <https://github.com/pypa/pip/issues/12122>`_)
+- Document that using OS-provided Python can cause pip's test suite to report false failures. (`#12334 <https://github.com/pypa/pip/issues/12334>`_)
+
+
 23.2.1 (2023-07-22)
 ===================
 
 Bug Fixes
 ---------
 
-- Disable PEP 658 metadata fetching with the legacy resolver. (`#12156 <https://github.com/pypa/pip/issues/12156>`_)
+- Disable :pep:`658` metadata fetching with the legacy resolver. (`#12156 <https://github.com/pypa/pip/issues/12156>`_)
 
 
 23.2 (2023-07-15)
@@ -45,11 +112,11 @@ Bug Fixes
 ---------
 
 - Fix ``pip completion --zsh``. (`#11417 <https://github.com/pypa/pip/issues/11417>`_)
-- Prevent downloading files twice when PEP 658 metadata is present (`#11847 <https://github.com/pypa/pip/issues/11847>`_)
+- Prevent downloading files twice when :pep:`658` metadata is present (`#11847 <https://github.com/pypa/pip/issues/11847>`_)
 - Add permission check before configuration (`#11920 <https://github.com/pypa/pip/issues/11920>`_)
 - Fix deprecation warnings in Python 3.12 for usage of shutil.rmtree (`#11957 <https://github.com/pypa/pip/issues/11957>`_)
 - Ignore invalid or unreadable ``origin.json`` files in the cache of locally built wheels. (`#11985 <https://github.com/pypa/pip/issues/11985>`_)
-- Fix installation of packages with PEP658 metadata using non-canonicalized names (`#12038 <https://github.com/pypa/pip/issues/12038>`_)
+- Fix installation of packages with :pep:`658` metadata using non-canonicalized names (`#12038 <https://github.com/pypa/pip/issues/12038>`_)
 - Correctly parse ``dist-info-metadata`` values from JSON-format index data. (`#12042 <https://github.com/pypa/pip/issues/12042>`_)
 - Fail with an error if the ``--python`` option is specified after the subcommand name. (`#12067 <https://github.com/pypa/pip/issues/12067>`_)
 - Fix slowness when using ``importlib.metadata`` (the default way for pip to read metadata in Python 3.11+) and there is a large overlap between already installed and to-be-installed packages. (`#12079 <https://github.com/pypa/pip/issues/12079>`_)
@@ -220,7 +287,7 @@ Features
 
 - Change the hashes in the installation report to be a mapping. Emit the
   ``archive_info.hashes`` dictionary in ``direct_url.json``. (`#11312 <https://github.com/pypa/pip/issues/11312>`_)
-- Implement logic to read the ``EXTERNALLY-MANAGED`` file as specified in PEP 668.
+- Implement logic to read the ``EXTERNALLY-MANAGED`` file as specified in :pep:`668`.
   This allows a downstream Python distributor to prevent users from using pip to
   modify the externally managed environment. (`#11381 <https://github.com/pypa/pip/issues/11381>`_)
 - Enable the use of ``keyring`` found on ``PATH``. This allows ``keyring``
@@ -236,7 +303,7 @@ Bug Fixes
 - Use the "venv" scheme if available to obtain prefixed lib paths. (`#11598 <https://github.com/pypa/pip/issues/11598>`_)
 - Deprecated a historical ambiguity in how ``egg`` fragments in URL-style
   requirements are formatted and handled. ``egg`` fragments that do not look
-  like PEP 508 names now produce a deprecation warning. (`#11617 <https://github.com/pypa/pip/issues/11617>`_)
+  like :pep:`508` names now produce a deprecation warning. (`#11617 <https://github.com/pypa/pip/issues/11617>`_)
 - Fix scripts path in isolated build environment on Debian. (`#11623 <https://github.com/pypa/pip/issues/11623>`_)
 - Make ``pip show`` show the editable location if package is editable (`#11638 <https://github.com/pypa/pip/issues/11638>`_)
 - Stop checking that ``wheel`` is present when ``build-system.requires``

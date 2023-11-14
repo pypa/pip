@@ -21,13 +21,13 @@ class TestIndentingFormatter:
 
     def make_record(self, msg: str, level_name: str) -> logging.LogRecord:
         level_number = getattr(logging, level_name)
-        attrs = dict(
-            msg=msg,
-            created=1547704837.040001 + time.timezone,
-            msecs=40,
-            levelname=level_name,
-            levelno=level_number,
-        )
+        attrs = {
+            "msg": msg,
+            "created": 1547704837.040001 + time.timezone,
+            "msecs": 40,
+            "levelname": level_name,
+            "levelno": level_number,
+        }
         record = logging.makeLogRecord(attrs)
 
         return record

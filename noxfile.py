@@ -184,6 +184,12 @@ def lint(session: nox.Session) -> None:
 # git reset --hard origin/main
 @nox.session
 def vendoring(session: nox.Session) -> None:
+    # Ensure that the session Python is running 3.10+
+    # so that truststore can be installed correctly.
+    session.run(
+        "python", "-c", "import sys; sys.exit(1 if sys.version_info < (3, 10) else 0)"
+    )
+
     session.install("vendoring~=1.2.0")
 
     parser = argparse.ArgumentParser(prog="nox -s vendoring")
@@ -316,7 +322,7 @@ def build_release(session: nox.Session) -> None:
         )
 
     session.log("# Install dependencies")
-    session.install("setuptools", "wheel", "twine")
+    session.install("build", "twine")
 
     with release.isolated_temporary_checkout(session, version) as build_dir:
         session.log(
@@ -352,8 +358,7 @@ def build_dists(session: nox.Session) -> List[str]:
         )
 
     session.log("# Build distributions")
-    session.install("setuptools", "wheel")
-    session.run("python", "setup.py", "sdist", "bdist_wheel", silent=True)
+    session.run("python", "-m", "build", silent=True)
     produced_dists = glob.glob("dist/*")
 
     session.log(f"# Verify distributions: {', '.join(produced_dists)}")

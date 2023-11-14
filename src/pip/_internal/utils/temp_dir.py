@@ -6,9 +6,9 @@ import tempfile
 import traceback
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
-from types import FunctionType
 from typing import (
     Any,
+    Callable,
     Dict,
     Generator,
     List,
@@ -187,7 +187,7 @@ class TempDirectory:
         errors: List[BaseException] = []
 
         def onerror(
-            func: FunctionType,
+            func: Callable[..., Any],
             path: Path,
             exc_val: BaseException,
         ) -> None:

@@ -172,7 +172,7 @@ def test_upgrade_with_newest_already_installed(
         "install", "--upgrade", "-f", data.find_links, "--no-index", "simple"
     )
     assert not result.files_created, "simple upgraded when it should not have"
-    if resolver_variant == "2020-resolver":
+    if resolver_variant == "resolvelib":
         msg = "Requirement already satisfied"
     else:
         msg = "already up-to-date"

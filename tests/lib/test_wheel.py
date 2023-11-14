@@ -19,12 +19,12 @@ from tests.lib.wheel import (
 
 def test_message_from_dict_one_value() -> None:
     message = message_from_dict({"a": "1"})
-    assert set(message.get_all("a")) == {"1"}
+    assert set(message.get_all("a")) == {"1"}  # type: ignore
 
 
 def test_message_from_dict_multiple_values() -> None:
     message = message_from_dict({"a": ["1", "2"]})
-    assert set(message.get_all("a")) == {"1", "2"}
+    assert set(message.get_all("a")) == {"1", "2"}  # type: ignore
 
 
 def message_from_bytes(contents: bytes) -> Message:
@@ -67,7 +67,7 @@ def test_make_metadata_file_custom_value_list() -> None:
     f = default_make_metadata(updates={"a": ["1", "2"]})
     assert f is not None
     message = default_metadata_checks(f)
-    assert set(message.get_all("a")) == {"1", "2"}
+    assert set(message.get_all("a")) == {"1", "2"}  # type: ignore
 
 
 def test_make_metadata_file_custom_value_overrides() -> None:
@@ -101,7 +101,7 @@ def default_wheel_metadata_checks(f: File) -> Message:
     assert message.get_all("Wheel-Version") == ["1.0"]
     assert message.get_all("Generator") == ["pip-test-suite"]
     assert message.get_all("Root-Is-Purelib") == ["true"]
-    assert set(message.get_all("Tag")) == {"py2-none-any", "py3-none-any"}
+    assert set(message.get_all("Tag")) == {"py2-none-any", "py3-none-any"}  # type: ignore
     return message
 
 
@@ -122,7 +122,7 @@ def test_make_wheel_metadata_file_custom_value_list() -> None:
     f = default_make_wheel_metadata(updates={"a": ["1", "2"]})
     assert f is not None
     message = default_wheel_metadata_checks(f)
-    assert set(message.get_all("a")) == {"1", "2"}
+    assert set(message.get_all("a")) == {"1", "2"}  # type: ignore
 
 
 def test_make_wheel_metadata_file_custom_value_override() -> None:

@@ -2,7 +2,7 @@ import os
 from contextlib import contextmanager
 from optparse import Values
 from tempfile import NamedTemporaryFile
-from typing import Any, Dict, Iterator, List, Tuple, Union, cast
+from typing import Any, Dict, Iterator, List, Tuple, Type, Union, cast
 
 import pytest
 
@@ -605,7 +605,7 @@ class TestOptionsConfigFiles:
         self,
         monkeypatch: pytest.MonkeyPatch,
         args: List[str],
-        expect: Union[None, str, PipError],
+        expect: Union[None, str, Type[PipError]],
     ) -> None:
         cmd = cast(ConfigurationCommand, create_command("config"))
         # Replace a handler with a no-op to avoid side effects

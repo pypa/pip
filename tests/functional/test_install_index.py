@@ -41,13 +41,11 @@ def test_find_links_requirements_file_relative_path(
     """Test find-links as a relative path to a reqs file."""
     script.scratch_path.joinpath("test-req.txt").write_text(
         textwrap.dedent(
-            """
+            f"""
         --no-index
-        --find-links={}
+        --find-links={data.packages.as_posix()}
         parent==0.1
-        """.format(
-                data.packages.as_posix()
-            )
+        """
         )
     )
     result = script.pip(

@@ -1,1 +1,0 @@
-Drop a fallback to using SecureTransport on macOS. It was useful when pip detected OpenSSL older than 1.0.1, but the current pip does not support any Python version supporting such old OpenSSL versions.
