@@ -124,6 +124,9 @@ class PipProgress(Progress):
         """
         columns = self.columns if task.total else self.get_indefinite_columns()
         description_row = self.make_task_row(self.get_description_columns(), task)
+        # Only print description if download isn't large enough
+        if task.total is not None and not task.total > (40 * 1000):
+            return Group(description_row)
         progress_row = self.make_task_row(columns, task)
         return Group(description_row, progress_row)
 
