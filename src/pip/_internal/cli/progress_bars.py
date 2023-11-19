@@ -14,7 +14,6 @@ from typing import (
 from pip._vendor.rich.console import (
     Console,
     ConsoleOptions,
-    Group,
     RenderableType,
     RenderResult,
 )
@@ -56,7 +55,19 @@ class RenderableLine:
                 if isinstance(seg, Segment) and seg.text != "\n"
             ]
             yield from segments
-        yield Segment.line()
+
+
+class RenderableLines:
+    def __init__(self, lines: List[RenderableLine]):
+        self.lines = lines
+
+    def __rich_console__(
+        self, console: Console, options: ConsoleOptions
+    ) -> RenderResult:
+        for idx, line in enumerate(self.lines):
+            if idx != 0:
+                yield Segment.line()
+            yield from line.__rich_console__(console, options)
 
 
 class PipProgress(Progress):
@@ -111,13 +122,13 @@ class PipProgress(Progress):
         """
         Get the renderable representation of the progress bars of all tasks
         """
-        renderables = [
-            self.make_task_group(task) for task in self.tasks if task.visible
-        ]
-        renderable = Group(*renderables)
-        return renderable
+        renderables: List[RenderableLine] = []
+        for task in self.tasks:
+            if task.visible:
+                renderables.extend(self.make_task_group(task))
+        return RenderableLines(renderables)
 
-    def make_task_group(self, task: Task) -> Group:
+    def make_task_group(self, task: Task) -> Iterable[RenderableLine]:
         """
         Create a representation for a task, including both the description line
         and the progress line.
@@ -133,9 +144,9 @@ class PipProgress(Progress):
         description_row = self.make_task_row(self.get_description_columns(), task)
         # Only print description if download isn't large enough
         if task.total is not None and not task.total > (40 * 1000):
-            return Group(description_row)
+            return (description_row,)
         progress_row = self.make_task_row(columns, task)
-        return Group(description_row, progress_row)
+        return (description_row, progress_row)
 
     def make_task_row(
         self, columns: Tuple[Union[str, ProgressColumn], ...], task: Task
