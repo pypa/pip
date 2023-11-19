@@ -227,19 +227,19 @@ class PipProgress(Progress):
         A copy of Progress' implementation of update, with sorting of self.tasks
         when a task is completed
         """
-        task = self._tasks[task_id]
-        initial_finish_time = task.finished_time
-        super().update(
-            task_id,
-            total=total,
-            completed=completed,
-            advance=advance,
-            description=description,
-            visible=visible,
-            refresh=refresh,
-            **fields,
-        )
         with self._lock:
+            task = self._tasks[task_id]
+            initial_finish_time = task.finished_time
+            super().update(
+                task_id,
+                total=total,
+                completed=completed,
+                advance=advance,
+                description=description,
+                visible=visible,
+                refresh=refresh,
+                **fields,
+            )
             # If at the start of the update, the finish time is None and after
             # calling super.update the finish time is not None, it means the
             # task was just finished
