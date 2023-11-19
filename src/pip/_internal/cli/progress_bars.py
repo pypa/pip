@@ -23,7 +23,6 @@ from pip._vendor.rich.progress import (
     FileSizeColumn,
     Progress,
     ProgressColumn,
-    ProgressSample,
     SpinnerColumn,
     Task,
     TaskID,
@@ -222,43 +221,25 @@ class PipProgress(Progress):
         A copy of Progress' implementation of update, with sorting of self.tasks
         when a task is completed
         """
+        task = self._tasks[task_id]
+        initial_finish_time = task.finished_time
+        super().update(
+            task_id,
+            total=total,
+            completed=completed,
+            advance=advance,
+            description=description,
+            visible=visible,
+            refresh=refresh,
+            **fields,
+        )
         with self._lock:
+            # If at the start of the update, the finish time is None and after
+            # calling super.update the finish time is not None, it means the
+            # task was just finished
             task = self._tasks[task_id]
-            completed_start = task.completed
-
-            if total is not None and total != task.total:
-                task.total = total
-                task._reset()
-            if advance is not None:
-                task.completed += advance
-            if completed is not None:
-                task.completed = completed
-            if description is not None:
-                task.description = description
-            if visible is not None:
-                task.visible = visible
-            task.fields.update(fields)
-            update_completed = task.completed - completed_start
-
-            current_time = self.get_time()
-            old_sample_time = current_time - self.speed_estimate_period
-            _progress = task._progress
-
-            popleft = _progress.popleft
-            while _progress and _progress[0].timestamp < old_sample_time:
-                popleft()
-            if update_completed > 0:
-                _progress.append(ProgressSample(current_time, update_completed))
-            if (
-                task.total is not None
-                and task.completed >= task.total
-                and task.finished_time is None
-            ):
-                task.finished_time = task.elapsed
+            if initial_finish_time is None and task.finished_time is not None:
                 self.sort_tasks()
-
-        if refresh:
-            self.refresh()
 
 
 def _rich_progress_bar(
