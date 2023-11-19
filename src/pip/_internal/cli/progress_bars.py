@@ -137,7 +137,8 @@ class PipProgress(Progress):
         - task (Task): The task for which to generate the representation.
 
         Returns:
-        - Optional[Group]: A Group containing the description and progress lines,
+        - Iterable[RenderableLine]: An iterable of renderable lines containing the
+        description and (optionally) progress lines,
         """
         columns = self.columns if task.total else self.get_indefinite_columns()
         description_row = self.make_task_row(self.get_description_columns(), task)
