@@ -57,7 +57,7 @@ class RenderableLine:
 
 
 class RenderableLines:
-    def __init__(self, lines: List[RenderableLine]):
+    def __init__(self, lines: Iterable[RenderableLine]):
         self.lines = lines
 
     def __rich_console__(
@@ -137,7 +137,6 @@ class PipProgress(Progress):
 
         Returns:
         - Optional[Group]: A Group containing the description and progress lines,
-          or None if the task is not visible.
         """
         columns = self.columns if task.total else self.get_indefinite_columns()
         description_row = self.make_task_row(self.get_description_columns(), task)
@@ -195,10 +194,17 @@ class PipProgress(Progress):
         tasks = []
         for task_id in self._tasks:
             task = self._tasks[task_id]
-            if task.finished:
-                # Log the completed progress bar to prevent it from disappearing
-                task_group = self.make_task_group(task)
-                self.console.print(task_group)
+            if task.finished and len(self._tasks) > 3:
+                # Remove and log the finished task if there are too many active
+                # tasks to reduce the number of things to be rendered
+                # If there are too many actice tasks on screen rich renders the
+                #  overflow as a ... at the bottom of the screen which makes it
+                # difficult for a user to see whats happening
+                # If we remove every task on completion, it adds an extra newline
+                # for sequential downloads due to self.live on __exit__
+                if task.visible:
+                    task_group = RenderableLines(self.make_task_group(task))
+                    self.console.print(task_group)
             else:
                 tasks.append((task_id, self._tasks[task_id]))
         # Sorting by finished ensures that all active downloads remain together
