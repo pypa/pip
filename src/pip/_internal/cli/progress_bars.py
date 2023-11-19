@@ -67,6 +67,7 @@ class RenderableLines:
             if idx != 0:
                 yield Segment.line()
             yield from line.__rich_console__(console, options)
+        yield Segment.line()
 
 
 class PipProgress(Progress):
