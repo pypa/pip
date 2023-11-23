@@ -37,6 +37,10 @@ def test_basic_uninstall(script: PipTestEnvironment) -> None:
     assert_all_changes(result, result2, [script.venv / "build", "cache"])
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 12),
+    reason="distutils is no longer available in Python 3.12+",
+)
 def test_basic_uninstall_distutils(script: PipTestEnvironment) -> None:
     """
     Test basic install and uninstall.
@@ -68,6 +72,10 @@ def test_basic_uninstall_distutils(script: PipTestEnvironment) -> None:
     ) in result.stderr
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 12),
+    reason="Setuptools<64 does not support Python 3.12+",
+)
 @pytest.mark.network
 def test_basic_uninstall_with_scripts(script: PipTestEnvironment) -> None:
     """
@@ -101,6 +109,10 @@ def test_uninstall_invalid_parameter(
     assert expected_message in result.stderr
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 12),
+    reason="Setuptools<64 does not support Python 3.12+",
+)
 @pytest.mark.network
 def test_uninstall_easy_install_after_import(script: PipTestEnvironment) -> None:
     """
@@ -126,6 +138,10 @@ def test_uninstall_easy_install_after_import(script: PipTestEnvironment) -> None
     )
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 12),
+    reason="Setuptools<64 does not support Python 3.12+",
+)
 @pytest.mark.network
 def test_uninstall_trailing_newline(script: PipTestEnvironment) -> None:
     """
@@ -337,6 +353,10 @@ def test_uninstall_console_scripts_uppercase_name(script: PipTestEnvironment) ->
     assert not script_name.exists()
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 12),
+    reason="Setuptools<64 does not support Python 3.12+",
+)
 @pytest.mark.network
 def test_uninstall_easy_installed_console_scripts(script: PipTestEnvironment) -> None:
     """
@@ -584,9 +604,7 @@ def test_uninstall_without_record_fails(
             "simple.dist==0.1'."
         )
     elif installer:
-        expected_error_message += " Hint: The package was installed by {}.".format(
-            installer
-        )
+        expected_error_message += f" Hint: The package was installed by {installer}."
     assert result2.stderr.rstrip() == expected_error_message
     assert_all_changes(result.files_after, result2, ignore_changes)
 

@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: "3.x"
@@ -57,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: "3.x"
@@ -81,7 +81,7 @@ jobs:
       github.event_name != 'pull_request'
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: "3.x"
@@ -91,7 +91,7 @@ jobs:
       - run: git diff --exit-code
 
   tests-unix:
-    name: tests / ${{ matrix.python }} / ${{ matrix.os }}
+    name: tests / ${{ matrix.python.key || matrix.python }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}-latest
 
     needs: [packaging, determine-changes]
@@ -109,12 +109,14 @@ jobs:
           - "3.9"
           - "3.10"
           - "3.11"
+          - "3.12"
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
+          allow-prereleases: true
 
       - name: Install Ubuntu dependencies
         if: matrix.os == 'Ubuntu'
@@ -129,12 +131,12 @@ jobs:
       # Main check
       - name: Run unit tests
         run: >-
-          nox -s test-${{ matrix.python }} --
+          nox -s test-${{ matrix.python.key || matrix.python }} --
           -m unit
           --verbose --numprocesses auto --showlocals
       - name: Run integration tests
         run: >-
-          nox -s test-${{ matrix.python }} --
+          nox -s test-${{ matrix.python.key || matrix.python }} --
           -m integration
           --verbose --numprocesses auto --showlocals
           --durations=5
@@ -162,29 +164,18 @@ jobs:
         group: [1, 2]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
 
-      # We use a RAMDisk on Windows, since filesystem IO is a big slowdown
-      # for our tests.
-      - name: Create a RAMDisk
-        run: ./tools/ci/New-RAMDisk.ps1 -Drive R -Size 1GB
-
-      - name: Setup RAMDisk permissions
-        run: |
-          mkdir R:\Temp
-          $acl = Get-Acl "R:\Temp"
-          $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
-              "Everyone", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow"
-          )
-          $acl.AddAccessRule($rule)
-          Set-Acl "R:\Temp" $acl
-
+      # We use C:\Temp (which is already available on the worker)
+      # as a temporary directory for all of the tests because the
+      # default value (under the user dir) is more deeply nested
+      # and causes tests to fail with "path too long" errors.
       - run: pip install nox
         env:
-          TEMP: "R:\\Temp"
+          TEMP: "C:\\Temp"
 
       # Main check
       - name: Run unit tests
@@ -194,7 +185,7 @@ jobs:
           -m unit
           --verbose --numprocesses auto --showlocals
         env:
-          TEMP: "R:\\Temp"
+          TEMP: "C:\\Temp"
 
       - name: Run integration tests (group 1)
         if: matrix.group == 1
@@ -203,7 +194,7 @@ jobs:
           -m integration -k "not test_install"
           --verbose --numprocesses auto --showlocals
         env:
-          TEMP: "R:\\Temp"
+          TEMP: "C:\\Temp"
 
       - name: Run integration tests (group 2)
         if: matrix.group == 2
@@ -212,7 +203,7 @@ jobs:
           -m integration -k "test_install"
           --verbose --numprocesses auto --showlocals
         env:
-          TEMP: "R:\\Temp"
+          TEMP: "C:\\Temp"
 
   tests-zipapp:
     name: tests / zipapp
@@ -224,7 +215,7 @@ jobs:
       github.event_name != 'pull_request'
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: "3.10"

@@ -67,7 +67,7 @@ def should_update_common_wheels() -> bool:
 # -----------------------------------------------------------------------------
 # Development Commands
 # -----------------------------------------------------------------------------
-@nox.session(python=["3.7", "3.8", "3.9", "3.10", "3.11", "pypy3"])
+@nox.session(python=["3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "pypy3"])
 def test(session: nox.Session) -> None:
     # Get the common wheels.
     if should_update_common_wheels():
@@ -89,6 +89,7 @@ def test(session: nox.Session) -> None:
         shutil.rmtree(sdist_dir, ignore_errors=True)
 
     # fmt: off
+    session.install("setuptools")
     session.run(
         "python", "setup.py", "sdist", "--formats=zip", "--dist-dir", sdist_dir,
         silent=True,
@@ -183,6 +184,12 @@ def lint(session: nox.Session) -> None:
 # git reset --hard origin/main
 @nox.session
 def vendoring(session: nox.Session) -> None:
+    # Ensure that the session Python is running 3.10+
+    # so that truststore can be installed correctly.
+    session.run(
+        "python", "-c", "import sys; sys.exit(1 if sys.version_info < (3, 10) else 0)"
+    )
+
     session.install("vendoring~=1.2.0")
 
     parser = argparse.ArgumentParser(prog="nox -s vendoring")
@@ -219,7 +226,7 @@ def vendoring(session: nox.Session) -> None:
         new_version = old_version
         for inner_name, inner_version in pinned_requirements(vendor_txt):
             if inner_name == name:
-                # this is a dedicated assignment, to make flake8 happy
+                # this is a dedicated assignment, to make lint happy
                 new_version = inner_version
                 break
         else:
@@ -315,7 +322,7 @@ def build_release(session: nox.Session) -> None:
         )
 
     session.log("# Install dependencies")
-    session.install("setuptools", "wheel", "twine")
+    session.install("build", "twine")
 
     with release.isolated_temporary_checkout(session, version) as build_dir:
         session.log(
@@ -351,7 +358,7 @@ def build_dists(session: nox.Session) -> List[str]:
         )
 
     session.log("# Build distributions")
-    session.run("python", "setup.py", "sdist", "bdist_wheel", silent=True)
+    session.run("python", "-m", "build", silent=True)
     produced_dists = glob.glob("dist/*")
 
     session.log(f"# Verify distributions: {', '.join(produced_dists)}")

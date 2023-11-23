@@ -3,11 +3,11 @@ from typing import Optional
 
 import pytest
 
-from tests.lib import pyversion  # noqa: F401
 from tests.lib import (
     PipTestEnvironment,
     _change_test_package_version,
     _create_test_package,
+    pyversion,  # noqa: F401
 )
 from tests.lib.git_submodule_helpers import (
     _change_test_package_submodule,

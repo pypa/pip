@@ -20,6 +20,7 @@ Albert-Guan
 albertg
 Alberto Sottile
 Aleks Bunin
+Ales Erjavec
 Alethea Flowers
 Alex Gaynor
 Alex Grönholm
@@ -30,6 +31,7 @@ Alex Stachowiak
 Alexander Shtyrov
 Alexandre Conrad
 Alexey Popravka
+Aleš Erjavec
 Alli
 Ami Fischman
 Ananya Maiti
@@ -71,6 +73,7 @@ atse
 Atsushi Odagiri
 Avinash Karhana
 Avner Cohen
+Awit (Ah-Wit) Ghirmai
 Baptiste Mispelon
 Barney Gale
 barneygale
@@ -126,6 +129,7 @@ Chih-Hsuan Yen
 Chris Brinker
 Chris Hunt
 Chris Jerdonek
+Chris Kuehl
 Chris McDonough
 Chris Pawley
 Chris Pryer
@@ -194,9 +198,11 @@ David Runge
 David Tucker
 David Wales
 Davidovich
+ddelange
 Deepak Sharma
 Deepyaman Datta
 Denise Yu
+dependabot[bot]
 derwolfe
 Desetude
 Devesh Kumar Singh
@@ -310,6 +316,7 @@ Ilya Baryshev
 Inada Naoki
 Ionel Cristian Mărieș
 Ionel Maries Cristian
+Itamar Turner-Trauring
 Ivan Pozdeev
 Jacob Kim
 Jacob Walls
@@ -330,10 +337,13 @@ Jarek Potiuk
 jarondl
 Jason Curtis
 Jason R. Coombs
+JasonMo
+JasonMo1
 Jay Graves
 Jean-Christophe Fillion-Robin
 Jeff Barber
 Jeff Dairiki
+Jeff Widman
 Jelmer Vernooĳ
 jenix21
 Jeremy Stanley
@@ -344,6 +354,7 @@ Jim Fisher
 Jim Garrison
 Jiun Bae
 Jivan Amara
+Joe Bylund
 Joe Michelini
 John Paton
 John T. Wodder II
@@ -362,6 +373,7 @@ Joseph Long
 Josh Bronson
 Josh Hansen
 Josh Schneier
+Joshua
 Juan Luis Cano Rodríguez
 Juanjo Bazán
 Judah Rand
@@ -392,6 +404,7 @@ KOLANICH
 kpinc
 Krishna Oza
 Kumar McMillan
+Kurt McKee
 Kyle Persohn
 lakshmanaram
 Laszlo Kiss-Kollar
@@ -408,6 +421,7 @@ lorddavidiii
 Loren Carvalho
 Lucas Cimon
 Ludovic Gasc
+Lukas Geiger
 Lukas Juhrich
 Luke Macken
 Luo Jiebin
@@ -441,6 +455,7 @@ Matthew Einhorn
 Matthew Feickert
 Matthew Gilliard
 Matthew Iversen
+Matthew Treinish
 Matthew Trumbell
 Matthew Willson
 Matthias Bussonnier
@@ -523,6 +538,7 @@ Patrick Jenkins
 Patrick Lawson
 patricktokeeffe
 Patrik Kopkan
+Paul Ganssle
 Paul Kehrer
 Paul Moore
 Paul Nasrat
@@ -582,6 +598,7 @@ Rishi
 RobberPhex
 Robert Collins
 Robert McGibbon
+Robert Pollak
 Robert T. McGibbon
 robin elisha robinson
 Roey Berman
@@ -602,6 +619,7 @@ ryneeverett
 Sachi King
 Salvatore Rinchiera
 sandeepkiran-js
+Sander Van Balen
 Savio Jomton
 schlamar
 Scott Kitterman
@@ -614,6 +632,8 @@ SeongSoo Cho
 Sergey Vasilyev
 Seth Michael Larson
 Seth Woodworth
+Shahar Epstein
+Shantanu
 shireenrao
 Shivansh-007
 Shlomi Fish
@@ -638,7 +658,9 @@ Steve Barnes
 Steve Dower
 Steve Kowalik
 Steven Myint
+Steven Silvester
 stonebig
+studioj
 Stéphane Bidoul
 Stéphane Bidoul (ACSONE)
 Stéphane Klein
@@ -707,6 +729,7 @@ Wilson Mo
 wim glenn
 Winson Luk
 Wolfgang Maier
+Wu Zhenyu
 XAMES3
 Xavier Fernandez
 xoviat

@@ -8,7 +8,7 @@ and this article is intended to help readers understand what is happening
 ```{note}
 This document is a work in progress. The details included are accurate (at the
 time of writing), but there is additional information, in particular around
-pip's interface with resolvelib, which have not yet been included.
+pip's interface with resolvelib, which has not yet been included.
 
 Contributions to improve this document are welcome.
 ```
@@ -26,7 +26,7 @@ The practical implication of that is that there will always be some situations
 where pip cannot determine what to install in a reasonable length of time. We
 make every effort to ensure that such situations happen rarely, but eliminating
 them altogether isn't even theoretically possible. We'll discuss what options
-yopu have if you hit a problem situation like this a little later.
+you have if you hit a problem situation like this a little later.
 
 ## Python specific issues
 
@@ -136,7 +136,7 @@ operations:
   that satisfy them. This is essentially where the finder interacts with the
   resolver.
 * `is_satisfied_by` - checks if a candidate satisfies a requirement. This is
-  basically the implementation of what a requirement meams.
+  basically the implementation of what a requirement means.
 * `get_dependencies` - get the dependency metadata for a candidate. This is
   the implementation of the process of getting and reading package metadata.
 
