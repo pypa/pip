@@ -263,15 +263,14 @@ class PipParallelProgress(PipProgress):
         Sort tasks
         Remove completed tasks and print them
         """
-        # Removal of completed items reduces the number of items to be rendered
-        # thus reducing amount of computation
+        # Removal of completed tasks reduces the number of tasks to be rendered
         tasks = []
         for task_id in self._tasks:
             task = self._tasks[task_id]
             if task.finished and len(self._tasks) > 1:
                 # Remove and log the finished task if there are too many active
                 # tasks to reduce the number of things to be rendered
-                # If there are too many actice tasks on screen rich renders the
+                # If there are too many active tasks on screen rich renders the
                 #  overflow as a ... at the bottom of the screen which makes it
                 # difficult for a user to see whats happening
                 # If we remove every task on completion, it adds an extra newline
