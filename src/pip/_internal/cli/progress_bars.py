@@ -224,9 +224,6 @@ class PipParallelProgress(PipProgress):
         )
         # Overrides behaviour of logging description on add_task from PipProgress
         self.log_download_description = False
-        super().__init__(refresh_per_second=refresh_per_second)
-        # Overrides behaviour of logging description on add_task from PipProgress
-        self.log_download_description = False
 
     @classmethod
     def get_description_columns(cls) -> Tuple[ProgressColumn, ...]:
