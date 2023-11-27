@@ -219,6 +219,11 @@ class PipProgress(Progress):
 
 class PipParallelProgress(PipProgress):
     def __init__(self, refresh_per_second: int, progress_disabled: bool = True):
+        super().__init__(
+            refresh_per_second=refresh_per_second, progress_disabled=progress_disabled
+        )
+        # Overrides behaviour of logging description on add_task from PipProgress
+        self.log_download_description = False
         super().__init__(refresh_per_second=refresh_per_second)
         # Overrides behaviour of logging description on add_task from PipProgress
         self.log_download_description = False
