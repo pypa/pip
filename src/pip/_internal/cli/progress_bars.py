@@ -210,6 +210,7 @@ class PipProgress(Progress):
             self.logger.info(log_statement)
         return super().add_task(
             description=description,
+            start=start,
             total=total,
             visible=visible,
             completed=completed,
