@@ -45,8 +45,8 @@ When looking at the items to be installed, pip checks what type of item
 each is, in the following order:
 
 1. Project or archive URL.
-2. Local directory (which must contain a ``setup.py``, or pip will report
-   an error).
+2. Local directory (which must contain a ``pyproject.toml`` or ``setup.py``,
+   otherwise pip will report an error).
 3. Local file (a sdist or wheel format archive, following the naming
    conventions for those formats).
 4. A requirement, as specified in :pep:`440`.
