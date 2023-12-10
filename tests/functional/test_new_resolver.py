@@ -2427,6 +2427,30 @@ def test_new_resolver_constraint_on_link_with_extra(
     script.assert_installed(pkg="1.0")
 
 
+def test_new_resolver_constraint_on_link_with_extra_indirect(
+    script: PipTestEnvironment,
+) -> None:
+    """
+    Verify that installing works from a link with an extra if there is an indirect
+    dependency on that same package with the same extra (#12372).
+    """
+    wheel_one: pathlib.Path = create_basic_wheel_for_package(
+        script, "pkg1", "1.0", extras={"ext": []}
+    )
+    wheel_two: pathlib.Path = create_basic_wheel_for_package(
+        script, "pkg2", "1.0", depends=["pkg1[ext]==1.0"]
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        # no index, no --find-links: only the explicit path
+        wheel_two,
+        f"{wheel_one}[ext]",
+    )
+    script.assert_installed(pkg1="1.0", pkg2="1.0")
+
+
 def test_new_resolver_do_not_backtrack_on_build_failure(
     script: PipTestEnvironment,
 ) -> None:
