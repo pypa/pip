@@ -206,7 +206,6 @@ in order to start contributing.
 
 .. _`open an issue`: https://github.com/pypa/pip/issues/new?title=Trouble+with+pip+development+environment
 .. _`install Python`: https://realpython.com/installing-python/
-.. _`PEP 484 type-comments`: https://www.python.org/dev/peps/pep-0484/#suggested-syntax-for-python-2-7-and-straddling-code
 .. _`rich CLI`: https://docs.pytest.org/en/latest/usage.html#specifying-tests-selecting-tests
 .. _`GitHub`: https://github.com/pypa/pip
 .. _`good first issues`: https://github.com/pypa/pip/labels/good%20first%20issue
