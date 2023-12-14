@@ -236,6 +236,7 @@ def ask(message: str, options: Iterable[str]) -> str:
         _check_no_input(message)
         response = input(message)
         response = response.strip().lower()
+        response = "n" if response == "" else response
         if response not in options:
             print(
                 "Your response ({!r}) was not one of the expected responses: "
