@@ -190,7 +190,7 @@ def urlsafe_b64encode_nopad(data: bytes) -> str:
 
 
 def digest(contents: bytes) -> str:
-    return "sha256={}".format(urlsafe_b64encode_nopad(sha256(contents).digest()))
+    return f"sha256={urlsafe_b64encode_nopad(sha256(contents).digest())}"
 
 
 def record_file_maker_wrapper(

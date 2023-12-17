@@ -84,8 +84,8 @@ ignore = [
     "B020",
     "B904", # Ruff enables opinionated warnings by default
     "B905", # Ruff enables opinionated warnings by default
-    "G202",
 ]
+target-version = "py37"
 line-length = 88
 select = [
     "ASYNC",
@@ -102,6 +102,7 @@ select = [
     "PLR0",
     "W",
     "RUF100",
+    "UP032",
 ]
 
 [tool.ruff.isort]

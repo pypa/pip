@@ -23,7 +23,7 @@ def test_dist_get_direct_url_no_metadata(mock_read_text: mock.Mock) -> None:
     class FakeDistribution(BaseDistribution):
         pass
 
-    dist = FakeDistribution()
+    dist = FakeDistribution()  # type: ignore
     assert dist.direct_url is None
     mock_read_text.assert_called_once_with(DIRECT_URL_METADATA_NAME)
 
@@ -35,7 +35,7 @@ def test_dist_get_direct_url_invalid_json(
     class FakeDistribution(BaseDistribution):
         canonical_name = cast(NormalizedName, "whatever")  # Needed for error logging.
 
-    dist = FakeDistribution()
+    dist = FakeDistribution()  # type: ignore
     with caplog.at_level(logging.WARNING):
         assert dist.direct_url is None
 
@@ -84,7 +84,7 @@ def test_dist_get_direct_url_valid_metadata(mock_read_text: mock.Mock) -> None:
     class FakeDistribution(BaseDistribution):
         pass
 
-    dist = FakeDistribution()
+    dist = FakeDistribution()  # type: ignore
     direct_url = dist.direct_url
     assert direct_url is not None
     mock_read_text.assert_called_once_with(DIRECT_URL_METADATA_NAME)

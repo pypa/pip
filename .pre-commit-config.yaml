@@ -22,25 +22,26 @@ repos:
   - id: black
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.0.292
+  rev: v0.1.4
   hooks:
     - id: ruff
+      args: [--fix, --exit-non-zero-on-fix]
 
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v0.961
+  rev: v1.6.1
   hooks:
   - id: mypy
     exclude: tests/data
     args: ["--pretty", "--show-error-codes"]
     additional_dependencies: [
-        'keyring==23.0.1',
-        'nox==2021.6.12',
+        'keyring==24.2.0',
+        'nox==2023.4.22',
         'pytest',
-        'types-docutils==0.18.3',
-        'types-setuptools==57.4.14',
-        'types-freezegun==1.1.9',
-        'types-six==1.16.15',
-        'types-pyyaml==6.0.12.2',
+        'types-docutils==0.20.0.3',
+        'types-setuptools==68.2.0.0',
+        'types-freezegun==1.1.10',
+        'types-six==1.16.21.9',
+        'types-pyyaml==6.0.12.12',
     ]
 
 - repo: https://github.com/pre-commit/pygrep-hooks

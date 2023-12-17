@@ -152,7 +152,7 @@ def html5_page(text: str) -> str:
 
 def package_page(spec: Dict[str, str]) -> "WSGIApplication":
     def link(name: str, value: str) -> str:
-        return '<a href="{}">{}</a>'.format(value, name)
+        return f'<a href="{value}">{name}</a>'
 
     links = "".join(link(*kv) for kv in spec.items())
     return text_html_response(html5_page(links))
