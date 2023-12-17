@@ -9,6 +9,16 @@
 
 .. towncrier release notes start
 
+23.3.2 (2023-12-17)
+===================
+
+Bug Fixes
+---------
+
+- Fix a bug in extras handling for link requirements (`#12372 <https://github.com/pypa/pip/issues/12372>`_)
+- Fix mercurial revision "parse error": use ``--rev={ref}`` instead of ``-r={ref}`` (`#12373 <https://github.com/pypa/pip/issues/12373>`_)
+
+
 23.3.1 (2023-10-21)
 ===================
 
