@@ -2295,7 +2295,7 @@ def test_new_resolver_dont_backtrack_on_extra_if_base_constrained_in_requirement
         script, "pkg", "2.0", extras={"ext1": ["dep"], "ext2": ["dep"]}
     )
 
-    to_install: tuple[str, str] = (
+    to_install: Tuple[str, str] = (
         "pkg[ext1]",
         "pkg[ext2]==1.0" if two_extras else "pkg==1.0",
     )
@@ -2342,7 +2342,7 @@ def test_new_resolver_dont_backtrack_on_conflicting_constraints_on_extras(
         script, "pkg", "2.0", extras={"ext1": ["dep"], "ext2": ["dep"]}
     )
 
-    to_install: tuple[str, str] = (
+    to_install: Tuple[str, str] = (
         "pkg[ext1]>1",
         "pkg[ext2]==1.0" if two_extras else "pkg==1.0",
     )
@@ -2506,7 +2506,7 @@ def test_new_resolver_comes_from_with_extra(
     create_basic_wheel_for_package(script, "dep", "1.0")
     create_basic_wheel_for_package(script, "pkg", "1.0", extras={"ext": ["dep"]})
 
-    to_install: tuple[str, str] = ("pkg", "pkg[ext]")
+    to_install: Tuple[str, str] = ("pkg", "pkg[ext]")
 
     result = script.pip(
         "install",
