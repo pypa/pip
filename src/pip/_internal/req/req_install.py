@@ -148,7 +148,7 @@ class InstallRequirement:
         # Supplied options
         self.global_options = global_options if global_options else []
         self.hash_options = hash_options if hash_options else {}
-        self.config_settings = config_settings
+        self.config_settings = config_settings if config_settings else {}
         # Set to True after successful preparation of this requirement
         self.prepared = False
         # User supplied requirement are explicitly requested for installation
@@ -844,6 +844,9 @@ class InstallRequirement:
         assert self.is_wheel
         assert self.local_file_path
 
+        python_executable = self.config_settings.get("python_executable")
+        assert python_executable is None or isinstance(python_executable, str)
+
         install_wheel(
             self.req.name,
             self.local_file_path,
@@ -853,6 +856,7 @@ class InstallRequirement:
             warn_script_location=warn_script_location,
             direct_url=self.download_info if self.is_direct else None,
             requested=self.user_supplied,
+            python_executable=python_executable,
         )
         self.install_succeeded = True
 

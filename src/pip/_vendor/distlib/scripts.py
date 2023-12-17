@@ -75,8 +75,6 @@ class ScriptMaker(object):
     """
     script_template = SCRIPT_TEMPLATE
 
-    executable = None  # for shebangs
-
     def __init__(self, source_dir, target_dir, add_launchers=True,
                  dry_run=False, fileop=None):
         self.source_dir = source_dir
@@ -93,6 +91,8 @@ class ScriptMaker(object):
         self._is_nt = os.name == 'nt' or (
             os.name == 'java' and os._name == 'nt')
         self.version_info = sys.version_info
+
+        self.executable = None  # for shebangs
 
     def _get_alternate_executable(self, executable, options):
         if options.get('gui', False) and self._is_nt:  # pragma: no cover

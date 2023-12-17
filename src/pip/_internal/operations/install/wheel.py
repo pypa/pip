@@ -432,6 +432,7 @@ def _install_wheel(
     warn_script_location: bool = True,
     direct_url: Optional[DirectUrl] = None,
     requested: bool = False,
+    python_executable: Optional[str] = None,
 ) -> None:
     """Install a wheel.
 
@@ -634,6 +635,9 @@ def _install_wheel(
     # See https://bitbucket.org/pypa/distlib/issue/32/
     maker.set_mode = True
 
+    if python_executable is not None:
+        maker.executable = python_executable
+
     # Generate the console and GUI entry points specified in the wheel
     scripts_to_generate = get_console_script_specs(console)
 
@@ -719,6 +723,7 @@ def install_wheel(
     warn_script_location: bool = True,
     direct_url: Optional[DirectUrl] = None,
     requested: bool = False,
+    python_executable: Optional[str] = None,
 ) -> None:
     with ZipFile(wheel_path, allowZip64=True) as z:
         with req_error_context(req_description):
@@ -731,4 +736,5 @@ def install_wheel(
                 warn_script_location=warn_script_location,
                 direct_url=direct_url,
                 requested=requested,
+                python_executable=python_executable,
             )

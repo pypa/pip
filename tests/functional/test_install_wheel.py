@@ -800,3 +800,29 @@ def test_wheel_with_unknown_subdir_in_data_dir_has_reasonable_error(
 
     result = script.pip("install", "--no-index", str(wheel_path), expect_error=True)
     assert "simple-0.1.0.data/unknown/hello.txt" in result.stderr
+
+
+def test_install_wheel_with_python_executable(
+    script: PipTestEnvironment, shared_data: TestData, tmpdir: Path
+) -> None:
+    """
+    Test installing a wheel using:
+    pip install --config-settings=python_executable=/foo/bar/python
+    """
+    shutil.copy(
+        shared_data.packages / "console_scripts_uppercase-1.0-py2.py3-none-any.whl",
+        tmpdir,
+    )
+    result = script.pip(
+        "install",
+        "console_scripts_uppercase==1.0",
+        "--no-index",
+        "--find-links",
+        tmpdir,
+        "--config-settings=python_executable=/foo/bar/python",
+    )
+    dist_info_folder = script.site_packages / "console_scripts_uppercase-1.0.dist-info"
+    result.did_create(dist_info_folder)
+    script_file = script.bin / "cmdName"
+    result.did_create(script_file)
+    assert result.files_created[script_file].bytes.split("\n")[0] == "#!/foo/bar/python"
