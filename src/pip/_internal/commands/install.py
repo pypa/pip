@@ -141,6 +141,16 @@ class InstallCommand(RequirementCommand):
                 "environment."
             ),
         )
+        self.cmd_opts.add_option(
+            "--override-python-executable",
+            dest="override_python_executable",
+            default=None,
+            help=(
+                "When installing scripts, overrides the python executable "
+                "in the shebang. Can be used when installing and relocating "
+                "to another environment."
+            ),
+        )
 
         self.cmd_opts.add_option(cmdoptions.src())
 
@@ -458,6 +468,7 @@ class InstallCommand(RequirementCommand):
                 warn_script_location=warn_script_location,
                 use_user_site=options.use_user_site,
                 pycompile=options.compile,
+                override_python_executable=options.override_python_executable,
             )
 
             lib_locations = get_lib_location_guesses(

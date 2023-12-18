@@ -416,9 +416,9 @@ def _raise_for_invalid_entrypoint(specification: str) -> None:
 
 
 class PipScriptMaker(ScriptMaker):
-    def __init__(self, source_dir, target_dir, python_executable=None):
+    def __init__(self, source_dir, target_dir, override_python_executable=None):
         super().__init__(source_dir, target_dir)
-        self.executable = python_executable
+        self.executable = override_python_executable
 
     def make(
         self, specification: str, options: Optional[Dict[str, Any]] = None
@@ -436,7 +436,7 @@ def _install_wheel(
     warn_script_location: bool = True,
     direct_url: Optional[DirectUrl] = None,
     requested: bool = False,
-    python_executable: Optional[str] = None,
+    override_python_executable: Optional[str] = None,
 ) -> None:
     """Install a wheel.
 
@@ -623,7 +623,11 @@ def _install_wheel(
                         record_installed(pyc_record_path, pyc_path)
         logger.debug(stdout.getvalue())
 
-    maker = PipScriptMaker(None, scheme.scripts, python_executable=python_executable)
+    maker = PipScriptMaker(
+        None,
+        scheme.scripts,
+        override_python_executable=override_python_executable,
+    )
 
     # Ensure old scripts are overwritten.
     # See https://github.com/pypa/pip/issues/1800
@@ -724,7 +728,7 @@ def install_wheel(
     warn_script_location: bool = True,
     direct_url: Optional[DirectUrl] = None,
     requested: bool = False,
-    python_executable: Optional[str] = None,
+    override_python_executable: Optional[str] = None,
 ) -> None:
     with ZipFile(wheel_path, allowZip64=True) as z:
         with req_error_context(req_description):
@@ -737,5 +741,5 @@ def install_wheel(
                 warn_script_location=warn_script_location,
                 direct_url=direct_url,
                 requested=requested,
-                python_executable=python_executable,
+                override_python_executable=override_python_executable,
             )

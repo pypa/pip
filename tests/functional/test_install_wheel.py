@@ -807,7 +807,7 @@ def test_install_wheel_with_python_executable(
 ) -> None:
     """
     Test installing a wheel using:
-    pip install --config-settings=python_executable=/foo/bar/python
+    pip install --override_python_executable=/foo/bar/python
     """
     shutil.copy(
         shared_data.packages / "console_scripts_uppercase-1.0-py2.py3-none-any.whl",
@@ -817,9 +817,9 @@ def test_install_wheel_with_python_executable(
         "install",
         "console_scripts_uppercase==1.0",
         "--no-index",
+        "--override-python-executable=/foo/bar/python",
         "--find-links",
         tmpdir,
-        "--config-settings=python_executable=/foo/bar/python",
     )
     dist_info_folder = script.site_packages / "console_scripts_uppercase-1.0.dist-info"
     result.did_create(dist_info_folder)

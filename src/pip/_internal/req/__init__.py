@@ -43,6 +43,7 @@ def install_given_reqs(
     warn_script_location: bool,
     use_user_site: bool,
     pycompile: bool,
+    override_python_executable: Optional[str],
 ) -> List[InstallationResult]:
     """
     Install everything in the given list.
@@ -77,6 +78,7 @@ def install_given_reqs(
                     warn_script_location=warn_script_location,
                     use_user_site=use_user_site,
                     pycompile=pycompile,
+                    override_python_executable=override_python_executable,
                 )
             except Exception:
                 # if install did not succeed, rollback previous uninstall
