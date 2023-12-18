@@ -416,9 +416,14 @@ def _raise_for_invalid_entrypoint(specification: str) -> None:
 
 
 class PipScriptMaker(ScriptMaker):
-    def __init__(self, source_dir, target_dir, override_python_executable=None):
+    def __init__(
+        self,
+        source_dir: Optional[str],
+        target_dir: str,
+        override_python_executable: Optional[str] = None,
+    ) -> None:
         super().__init__(source_dir, target_dir)
-        self.executable = override_python_executable
+        self.executable = override_python_executable  # type: ignore
 
     def make(
         self, specification: str, options: Optional[Dict[str, Any]] = None
