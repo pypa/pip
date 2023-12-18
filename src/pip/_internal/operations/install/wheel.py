@@ -416,6 +416,10 @@ def _raise_for_invalid_entrypoint(specification: str) -> None:
 
 
 class PipScriptMaker(ScriptMaker):
+    def __init__(self, source_dir, target_dir, python_executable=None):
+        super().__init__(source_dir, target_dir)
+        self.executable = python_executable
+
     def make(
         self, specification: str, options: Optional[Dict[str, Any]] = None
     ) -> List[str]:
@@ -619,7 +623,7 @@ def _install_wheel(
                         record_installed(pyc_record_path, pyc_path)
         logger.debug(stdout.getvalue())
 
-    maker = PipScriptMaker(None, scheme.scripts)
+    maker = PipScriptMaker(None, scheme.scripts, python_executable=python_executable)
 
     # Ensure old scripts are overwritten.
     # See https://github.com/pypa/pip/issues/1800
@@ -634,9 +638,6 @@ def _install_wheel(
     # executable.
     # See https://bitbucket.org/pypa/distlib/issue/32/
     maker.set_mode = True
-
-    if python_executable is not None:
-        maker.executable = python_executable
 
     # Generate the console and GUI entry points specified in the wheel
     scripts_to_generate = get_console_script_specs(console)
