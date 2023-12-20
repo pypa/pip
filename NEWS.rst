@@ -106,8 +106,9 @@ Process
 Deprecations and Removals
 -------------------------
 
-- Deprecate legacy version and version specifiers that don't conform to `PEP 440
-  <https://peps.python.org/pep-0440/>`_ (`#12063 <https://github.com/pypa/pip/issues/12063>`_)
+- Deprecate legacy version and version specifiers that don't conform to the
+  :ref:`specification <pypug:version-specifiers>`.
+  (`#12063 <https://github.com/pypa/pip/issues/12063>`_)
 - ``freeze`` no longer excludes the ``setuptools``, ``distribute``, and ``wheel``
   from the output when running on Python 3.12 or later, where they are not
   included in a virtual environment by default. Use ``--exclude`` if you wish to
