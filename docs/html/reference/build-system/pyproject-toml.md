@@ -141,7 +141,7 @@ build-backend = "setuptools.build_meta:__legacy__"
 
 If a project has a `build-system` section but no `build-backend`, then:
 
-- It is expected to include `setuptools` and `wheel` as build requirements. An
+- It is expected to include `setuptools` as a build requirement. An
   error is reported if the available version of `setuptools` is not recent
   enough.
 
