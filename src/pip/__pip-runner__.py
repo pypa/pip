@@ -8,7 +8,7 @@ an import statement.
 
 import sys
 
-# Copied from setup.py
+# Copied from pyproject.toml
 PYTHON_REQUIRES = (3, 8)
 
 
