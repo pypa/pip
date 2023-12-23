@@ -1,0 +1,1 @@
+Align Python version support with CPython timelines, instead of PyPI usage numbers.

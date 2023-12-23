@@ -93,7 +93,8 @@ issues by pip's maintainers.
 Python Support Policy
 ---------------------
 
-In general, a given Python version is supported until its usage on PyPI falls below 5%.
+In general, a given Python version is supported until the end of life for the
+corresponding CPython release.
 This is at the maintainers' discretion, in case extraordinary circumstances arise.
 
 .. _`Feature Flags`:
