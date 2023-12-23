@@ -127,6 +127,10 @@ Logically, a Requirements file is just a list of :ref:`pip install` arguments
 placed in a file. Note that you should not rely on the items in the file being
 installed by pip in any particular order.
 
+Requirements files can also be served via a URL, e.g.
+http://example.com/requirements.txt besides as local files, so that they can
+be stored and served in a centralized place.
+
 In practice, there are 4 common uses of Requirements files:
 
 1. Requirements files are used to hold the result from :ref:`pip freeze` for the
@@ -248,6 +252,10 @@ undocumented and unsupported quirks from the previous implementation,
 and stripped constraints files down to being purely a way to specify
 global (version) limits for packages.
 
+Same as requirements files, constraints files can also be served via a URL,
+e.g. http://example.com/constraints.txt, so that your organization can store and
+serve them in a centralized place.
+
 .. _`Installing from Wheels`:
 
 
@@ -256,7 +264,7 @@ Installing from Wheels
 
 "Wheel" is a built, archive format that can greatly speed installation compared
 to building and installing from source archives. For more information, see the
-`Wheel docs <https://wheel.readthedocs.io>`_ , :pep:`427`, and :pep:`425`.
+:ref:`specification <pypug:binary-distribution-format>`.
 
 pip prefers Wheels where they are available. To disable this, use the
 :ref:`--no-binary <install_--no-binary>` flag for :ref:`pip install`.
@@ -298,7 +306,8 @@ name:
 .. note::
 
     In the future, the ``path[extras]`` syntax may become deprecated. It is
-    recommended to use PEP 508 syntax wherever possible.
+    recommended to use :ref:`standard <pypug:dependency-specifiers>`
+    syntax wherever possible.
 
 For the cases where wheels are not available, pip offers :ref:`pip wheel` as a
 convenience, to build wheels for all your requirements and dependencies.

@@ -27,16 +27,7 @@ Development Environment
 pip is a command line application written in Python. For developing pip,
 you should `install Python`_ on your computer.
 
-For developing pip, you need to install :pypi:`nox`. Often, you can run
-``python -m pip install nox`` to install and use it.
-
-
-Running pip From Source Tree
-============================
-
-To run the pip executable from your source tree during development, install pip
-locally using editable installation (inside a virtualenv).
-You can then invoke your local source tree pip normally.
+For developing pip, you need to install :pypi:`nox`. The full development setup would then be:
 
 .. tab:: Unix/macOS
 
@@ -44,8 +35,7 @@ You can then invoke your local source tree pip normally.
 
         python -m venv .venv
         source .venv/bin/activate
-        python -m pip install -e .
-        python -m pip --version
+        python -m pip install nox
 
 .. tab:: Windows
 
@@ -53,6 +43,26 @@ You can then invoke your local source tree pip normally.
 
         py -m venv .venv
         .venv\Scripts\activate
+        py -m pip install nox
+
+Running pip From Source Tree
+============================
+
+To run the pip executable from your source tree during development, install pip
+locally using editable installation (inside a virtualenv).
+You can then invoke your local source tree pip normally (be sure virtualenv is active).
+
+.. tab:: Unix/macOS
+
+    .. code-block:: shell
+
+        python -m pip install -e .
+        python -m pip --version
+
+.. tab:: Windows
+
+    .. code-block:: shell
+
         py -m pip install -e .
         py -m pip --version
 
@@ -63,7 +73,7 @@ pip's tests are written using the :pypi:`pytest` test framework and
 :mod:`unittest.mock`. :pypi:`nox` is used to automate the setup and execution
 of pip's tests.
 
-It is preferable to run the tests in parallel for better experience during development,
+It is preferable to run the tests in parallel for a better experience during development,
 since the tests can take a long time to finish when run sequentially.
 
 To run tests:
@@ -94,6 +104,15 @@ can select tests using the various ways that pytest provides:
     $ # Using keywords
     $ nox -s test-3.10 -- -k "install and not wheel"
 
+.. note::
+
+    When running pip's tests with OS distribution Python versions, be aware that some
+    functional tests may fail due to potential patches introduced by the distribution.
+    For all tests to pass consider:
+
+    - Installing Python from `python.org`_ or compile from source
+    - Or, using `pyenv`_ to assist with source compilation
+
 Running pip's entire test suite requires supported version control tools
 (subversion, bazaar, git, and mercurial) to be installed. If you are missing
 any of these VCS, those tests should be skipped automatically. You can also
@@ -103,6 +122,9 @@ explicitly tell pytest to skip those tests:
 
     $ nox -s test-3.10 -- -k "not svn"
     $ nox -s test-3.10 -- -k "not (svn or git)"
+
+.. _python.org: https://www.python.org/downloads/
+.. _pyenv: https://github.com/pyenv/pyenv
 
 
 Running Linters
@@ -184,7 +206,6 @@ in order to start contributing.
 
 .. _`open an issue`: https://github.com/pypa/pip/issues/new?title=Trouble+with+pip+development+environment
 .. _`install Python`: https://realpython.com/installing-python/
-.. _`PEP 484 type-comments`: https://www.python.org/dev/peps/pep-0484/#suggested-syntax-for-python-2-7-and-straddling-code
 .. _`rich CLI`: https://docs.pytest.org/en/latest/usage.html#specifying-tests-selecting-tests
 .. _`GitHub`: https://github.com/pypa/pip
 .. _`good first issues`: https://github.com/pypa/pip/labels/good%20first%20issue

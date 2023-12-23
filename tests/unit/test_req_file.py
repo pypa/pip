@@ -291,7 +291,7 @@ class TestProcessLine:
     def test_yield_line_constraint(self, line_processor: LineProcessor) -> None:
         line = "SomeProject"
         filename = "filename"
-        comes_from = "-c {} (line {})".format(filename, 1)
+        comes_from = f"-c {filename} (line {1})"
         req = install_req_from_line(line, comes_from=comes_from, constraint=True)
         found_req = line_processor(line, filename, 1, constraint=True)[0]
         assert repr(found_req) == repr(req)
@@ -320,7 +320,7 @@ class TestProcessLine:
         url = "git+https://url#egg=SomeProject"
         line = f"-e {url}"
         filename = "filename"
-        comes_from = "-c {} (line {})".format(filename, 1)
+        comes_from = f"-c {filename} (line {1})"
         req = install_req_from_editable(url, comes_from=comes_from, constraint=True)
         found_req = line_processor(line, filename, 1, constraint=True)[0]
         assert repr(found_req) == repr(req)
@@ -465,9 +465,7 @@ class TestProcessLine:
     ) -> None:
         """--use-feature triggers error when parsing requirements files."""
         with pytest.raises(RequirementsFileParseError):
-            line_processor(
-                "--use-feature=2020-resolver", "filename", 1, options=options
-            )
+            line_processor("--use-feature=resolvelib", "filename", 1, options=options)
 
     def test_relative_local_find_links(
         self,
@@ -869,12 +867,10 @@ class TestParseRequirements:
     ) -> None:
         global_option = "--dry-run"
 
-        content = """
+        content = f"""
         --only-binary :all:
         INITools==2.0 --global-option="{global_option}"
-        """.format(
-            global_option=global_option
-        )
+        """
 
         with requirements_file(content, tmpdir) as reqs_file:
             req = next(

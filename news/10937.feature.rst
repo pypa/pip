@@ -1,1 +1,0 @@
-Present conflict information during installation after each choice that is rejected (pass ``-vv`` to ``pip install`` to show it)

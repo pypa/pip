@@ -90,7 +90,7 @@ def test_requirements_file(script: PipTestEnvironment) -> None:
     result.did_create(script.site_packages / "INITools-0.2.dist-info")
     result.did_create(script.site_packages / "initools")
     assert result.files_created[script.site_packages / other_lib_name].dir
-    fn = "{}-{}.dist-info".format(other_lib_name, other_lib_version)
+    fn = f"{other_lib_name}-{other_lib_version}.dist-info"
     assert result.files_created[script.site_packages / fn].dir
 
 
@@ -255,13 +255,13 @@ def test_respect_order_in_requirements_file(
 
     assert (
         "parent" in downloaded[0]
-    ), 'First download should be "parent" but was "{}"'.format(downloaded[0])
+    ), f'First download should be "parent" but was "{downloaded[0]}"'
     assert (
         "child" in downloaded[1]
-    ), 'Second download should be "child" but was "{}"'.format(downloaded[1])
+    ), f'Second download should be "child" but was "{downloaded[1]}"'
     assert (
         "simple" in downloaded[2]
-    ), 'Third download should be "simple" but was "{}"'.format(downloaded[2])
+    ), f'Third download should be "simple" but was "{downloaded[2]}"'
 
 
 def test_install_local_editable_with_extras(
@@ -387,11 +387,8 @@ def test_constraints_local_editable_install_causes_error(
         to_install,
         expect_error=True,
     )
-    if resolver_variant == "legacy-resolver":
-        assert "Could not satisfy constraints" in result.stderr, str(result)
-    else:
-        # Because singlemodule only has 0.0.1 available.
-        assert "Cannot install singlemodule 0.0.1" in result.stderr, str(result)
+    # Because singlemodule only has 0.0.1 available.
+    assert "Cannot install singlemodule 0.0.1" in result.stderr, str(result)
 
 
 @pytest.mark.network
@@ -421,11 +418,8 @@ def test_constraints_local_install_causes_error(
         to_install,
         expect_error=True,
     )
-    if resolver_variant == "legacy-resolver":
-        assert "Could not satisfy constraints" in result.stderr, str(result)
-    else:
-        # Because singlemodule only has 0.0.1 available.
-        assert "Cannot install singlemodule 0.0.1" in result.stderr, str(result)
+    # Because singlemodule only has 0.0.1 available.
+    assert "Cannot install singlemodule 0.0.1" in result.stderr, str(result)
 
 
 def test_constraints_constrain_to_local_editable(
@@ -446,9 +440,9 @@ def test_constraints_constrain_to_local_editable(
         script.scratch_path / "constraints.txt",
         "singlemodule",
         allow_stderr_warning=True,
-        expect_error=(resolver_variant == "2020-resolver"),
+        expect_error=(resolver_variant == "resolvelib"),
     )
-    if resolver_variant == "2020-resolver":
+    if resolver_variant == "resolvelib":
         assert "Editable requirements are not allowed as constraints" in result.stderr
     else:
         assert "Running setup.py develop for singlemodule" in result.stdout
@@ -546,9 +540,9 @@ def test_install_with_extras_from_constraints(
         script.scratch_path / "constraints.txt",
         "LocalExtras",
         allow_stderr_warning=True,
-        expect_error=(resolver_variant == "2020-resolver"),
+        expect_error=(resolver_variant == "resolvelib"),
     )
-    if resolver_variant == "2020-resolver":
+    if resolver_variant == "resolvelib":
         assert "Constraints cannot have extras" in result.stderr
     else:
         result.did_create(script.site_packages / "simple")
@@ -584,9 +578,9 @@ def test_install_with_extras_joined(
         script.scratch_path / "constraints.txt",
         "LocalExtras[baz]",
         allow_stderr_warning=True,
-        expect_error=(resolver_variant == "2020-resolver"),
+        expect_error=(resolver_variant == "resolvelib"),
     )
-    if resolver_variant == "2020-resolver":
+    if resolver_variant == "resolvelib":
         assert "Constraints cannot have extras" in result.stderr
     else:
         result.did_create(script.site_packages / "simple")
@@ -605,9 +599,9 @@ def test_install_with_extras_editable_joined(
         script.scratch_path / "constraints.txt",
         "LocalExtras[baz]",
         allow_stderr_warning=True,
-        expect_error=(resolver_variant == "2020-resolver"),
+        expect_error=(resolver_variant == "resolvelib"),
     )
-    if resolver_variant == "2020-resolver":
+    if resolver_variant == "resolvelib":
         assert "Editable requirements are not allowed as constraints" in result.stderr
     else:
         result.did_create(script.site_packages / "simple")
@@ -649,9 +643,9 @@ def test_install_distribution_union_with_constraints(
         script.scratch_path / "constraints.txt",
         f"{to_install}[baz]",
         allow_stderr_warning=True,
-        expect_error=(resolver_variant == "2020-resolver"),
+        expect_error=(resolver_variant == "resolvelib"),
     )
-    if resolver_variant == "2020-resolver":
+    if resolver_variant == "resolvelib":
         msg = "Unnamed requirements are not allowed as constraints"
         assert msg in result.stderr
     else:
@@ -669,12 +663,12 @@ def test_install_distribution_union_with_versions(
     result = script.pip_install_local(
         f"{to_install_001}[bar]",
         f"{to_install_002}[baz]",
-        expect_error=(resolver_variant == "2020-resolver"),
+        expect_error=(resolver_variant == "resolvelib"),
     )
-    if resolver_variant == "2020-resolver":
-        assert "Cannot install localextras[bar]" in result.stderr
-        assert ("localextras[bar] 0.0.1 depends on localextras 0.0.1") in result.stdout
-        assert ("localextras[baz] 0.0.2 depends on localextras 0.0.2") in result.stdout
+    if resolver_variant == "resolvelib":
+        assert "Cannot install localextras" in result.stderr
+        assert ("The user requested localextras 0.0.1") in result.stdout
+        assert ("The user requested localextras 0.0.2") in result.stdout
     else:
         assert (
             "Successfully installed LocalExtras-0.0.1 simple-3.0 singlemodule-0.0.1"

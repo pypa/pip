@@ -140,3 +140,33 @@ def test_redact_url() -> None:
         == "https://${PIP_TOKEN}@g.c/u/p.git"
     )
     assert _redact_git("ssh://git@g.c/u/p.git") == "ssh://git@g.c/u/p.git"
+
+
+def test_hash_to_hashes() -> None:
+    direct_url = DirectUrl(url="https://e.c/archive.tar.gz", info=ArchiveInfo())
+    assert isinstance(direct_url.info, ArchiveInfo)
+    direct_url.info.hash = "sha256=abcdef"
+    assert direct_url.info.hashes == {"sha256": "abcdef"}
+
+
+def test_hash_to_hashes_constructor() -> None:
+    direct_url = DirectUrl(
+        url="https://e.c/archive.tar.gz", info=ArchiveInfo(hash="sha256=abcdef")
+    )
+    assert isinstance(direct_url.info, ArchiveInfo)
+    assert direct_url.info.hashes == {"sha256": "abcdef"}
+    direct_url = DirectUrl(
+        url="https://e.c/archive.tar.gz",
+        info=ArchiveInfo(hash="sha256=abcdef", hashes={"sha512": "123456"}),
+    )
+    assert isinstance(direct_url.info, ArchiveInfo)
+    assert direct_url.info.hashes == {"sha256": "abcdef", "sha512": "123456"}
+    # In case of conflict between hash and hashes, hashes wins.
+    direct_url = DirectUrl(
+        url="https://e.c/archive.tar.gz",
+        info=ArchiveInfo(
+            hash="sha256=abcdef", hashes={"sha256": "012345", "sha512": "123456"}
+        ),
+    )
+    assert isinstance(direct_url.info, ArchiveInfo)
+    assert direct_url.info.hashes == {"sha256": "012345", "sha512": "123456"}

@@ -88,9 +88,47 @@ def test_basic_freeze(script: PipTestEnvironment) -> None:
 
 
 def test_freeze_with_pip(script: PipTestEnvironment) -> None:
-    """Test pip shows itself"""
+    """Test that pip shows itself only when --all is used"""
+    result = script.pip("freeze")
+    assert "pip==" not in result.stdout
     result = script.pip("freeze", "--all")
     assert "pip==" in result.stdout
+
+
+def test_freeze_with_setuptools(script: PipTestEnvironment) -> None:
+    """
+    Test that pip shows setuptools only when --all is used
+    or _should_suppress_build_backends() returns false
+    """
+
+    result = script.pip("freeze", "--all")
+    assert "setuptools==" in result.stdout
+
+    (script.site_packages_path / "mock.pth").write_text("import mock\n")
+
+    (script.site_packages_path / "mock.py").write_text(
+        textwrap.dedent(
+            """\
+                import pip._internal.commands.freeze as freeze
+                freeze._should_suppress_build_backends = lambda: False
+            """
+        )
+    )
+
+    result = script.pip("freeze")
+    assert "setuptools==" in result.stdout
+
+    (script.site_packages_path / "mock.py").write_text(
+        textwrap.dedent(
+            """\
+                import pip._internal.commands.freeze as freeze
+                freeze._should_suppress_build_backends = lambda: True
+            """
+        )
+    )
+
+    result = script.pip("freeze")
+    assert "setuptools==" not in result.stdout
 
 
 def test_exclude_and_normalization(script: PipTestEnvironment, tmpdir: Path) -> None:
@@ -128,13 +166,11 @@ def test_freeze_with_invalid_names(script: PipTestEnvironment) -> None:
         with open(egg_info_path, "w") as egg_info_file:
             egg_info_file.write(
                 textwrap.dedent(
-                    """\
+                    f"""\
                 Metadata-Version: 1.0
-                Name: {}
+                Name: {pkgname}
                 Version: 1.0
-                """.format(
-                        pkgname
-                    )
+                """
                 )
             )
 
@@ -183,12 +219,10 @@ def test_freeze_editable_not_vcs(script: PipTestEnvironment) -> None:
     # We need to apply os.path.normcase() to the path since that is what
     # the freeze code does.
     expected = textwrap.dedent(
-        """\
+        f"""\
     ...# Editable install with no version control (version-pkg==0.1)
-    -e {}
-    ...""".format(
-            os.path.normcase(pkg_path)
-        )
+    -e {os.path.normcase(pkg_path)}
+    ..."""
     )
     _check_output(result.stdout, expected)
 
@@ -210,12 +244,10 @@ def test_freeze_editable_git_with_no_remote(
     # We need to apply os.path.normcase() to the path since that is what
     # the freeze code does.
     expected = textwrap.dedent(
-        """\
+        f"""\
     ...# Editable Git install with no remote (version-pkg==0.1)
-    -e {}
-    ...""".format(
-            os.path.normcase(pkg_path)
-        )
+    -e {os.path.normcase(pkg_path)}
+    ..."""
     )
     _check_output(result.stdout, expected)
 
@@ -591,7 +623,7 @@ _freeze_req_opts = textwrap.dedent(
     --extra-index-url http://ignore
     --find-links http://ignore
     --index-url http://ignore
-    --use-feature 2020-resolver
+    --use-feature resolvelib
 """
 )
 
@@ -615,9 +647,9 @@ def test_freeze_with_requirement_option_file_url_egg_not_installed(
         expect_stderr=True,
     )
     expected_err = (
-        "WARNING: Requirement file [requirements.txt] contains {}, "
+        f"WARNING: Requirement file [requirements.txt] contains {url}, "
         "but package 'Does.Not-Exist' is not installed\n"
-    ).format(url)
+    )
     if deprecated_python:
         assert expected_err in result.stderr
     else:

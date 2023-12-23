@@ -5,8 +5,7 @@ from typing import Protocol, Tuple, Union
 
 import pytest
 
-from tests.conftest import ScriptFactory
-from tests.lib import PipTestEnvironment, TestData, TestPipResult
+from tests.lib import PipTestEnvironment, ScriptFactory, TestData, TestPipResult
 
 COMPLETION_FOR_SUPPORTED_SHELLS_TESTS = (
     (
@@ -36,15 +35,19 @@ complete -fa "(__fish_complete_pip)" -c pip""",
     (
         "zsh",
         """\
-function _pip_completion {
-  local words cword
-  read -Ac words
-  read -cn cword
-  reply=( $( COMP_WORDS="$words[*]" \\
-             COMP_CWORD=$(( cword-1 )) \\
-             PIP_AUTO_COMPLETE=1 $words[1] 2>/dev/null ))
+#compdef -P pip[0-9.]#
+__pip() {
+  compadd $( COMP_WORDS="$words[*]" \\
+             COMP_CWORD=$((CURRENT-1)) \\
+             PIP_AUTO_COMPLETE=1 $words[1] 2>/dev/null )
 }
-compctl -K _pip_completion pip""",
+if [[ $zsh_eval_context[-1] == loadautofunc ]]; then
+  # autoload from fpath, call function directly
+  __pip "$@"
+else
+  # eval/source/. command, register function for later
+  compdef __pip -P 'pip[0-9.]#'
+fi""",
     ),
     (
         "powershell",
@@ -384,11 +387,12 @@ def test_completion_path_after_option(
     )
 
 
-@pytest.mark.parametrize("flag", ["--bash", "--zsh", "--fish", "--powershell"])
+# zsh completion script doesn't contain pip3
+@pytest.mark.parametrize("flag", ["--bash", "--fish", "--powershell"])
 def test_completion_uses_same_executable_name(
     autocomplete_script: PipTestEnvironment, flag: str, deprecated_python: bool
 ) -> None:
-    executable_name = "pip{}".format(sys.version_info[0])
+    executable_name = f"pip{sys.version_info[0]}"
     # Deprecated python versions produce an extra deprecation warning
     result = autocomplete_script.run(
         executable_name,

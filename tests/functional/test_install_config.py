@@ -7,9 +7,9 @@ from typing import Callable, List
 
 import pytest
 
-from tests.conftest import CertFactory, MockServer, ScriptFactory
-from tests.lib import PipTestEnvironment, TestData
+from tests.lib import CertFactory, PipTestEnvironment, ScriptFactory, TestData
 from tests.lib.server import (
+    MockServer,
     authorization_response,
     file_response,
     make_mock_server,
@@ -183,12 +183,10 @@ def test_config_file_override_stack(
 
     config_file.write_text(
         textwrap.dedent(
-            """\
+            f"""\
         [global]
-        index-url = {}/simple1
-        """.format(
-                base_address
-            )
+        index-url = {base_address}/simple1
+        """
         )
     )
     script.pip("install", "-vvv", "INITools", expect_error=True)
@@ -196,14 +194,12 @@ def test_config_file_override_stack(
 
     config_file.write_text(
         textwrap.dedent(
-            """\
+            f"""\
         [global]
-        index-url = {address}/simple1
+        index-url = {base_address}/simple1
         [install]
-        index-url = {address}/simple2
-        """.format(
-                address=base_address
-            )
+        index-url = {base_address}/simple2
+        """
         )
     )
     script.pip("install", "-vvv", "INITools", expect_error=True)
@@ -361,7 +357,7 @@ def auth_needed(request: pytest.FixtureRequest) -> bool:
     return request.param
 
 
-@pytest.fixture(params=("disabled", "import", "subprocess", "auto"))
+@pytest.fixture(params=(None, "disabled", "import", "subprocess", "auto"))
 def keyring_provider(request: pytest.FixtureRequest) -> str:
     return request.param
 
@@ -380,17 +376,20 @@ def flags(
     keyring_provider_implementation: str,
 ) -> List[str]:
     if (
-        keyring_provider != "auto"
+        keyring_provider not in [None, "auto"]
         and keyring_provider_implementation != keyring_provider
     ):
         pytest.skip()
 
-    flags = ["--keyring-provider", keyring_provider]
+    flags = []
+    if keyring_provider is not None:
+        flags.append("--keyring-provider")
+        flags.append(keyring_provider)
     if not interactive:
         flags.append("--no-input")
     if auth_needed:
         if keyring_provider_implementation == "disabled" or (
-            not interactive and keyring_provider == "auto"
+            not interactive and keyring_provider in [None, "auto"]
         ):
             request.applymarker(pytest.mark.xfail())
     return flags
@@ -428,7 +427,10 @@ def test_prompt_for_keyring_if_needed(
     virtualenv = virtualenv_factory(workspace.joinpath("venv"))
     script = script_factory(workspace.joinpath("venv"), virtualenv, environ=environ)
 
-    if keyring_provider != "auto" or keyring_provider_implementation != "subprocess":
+    if (
+        keyring_provider not in [None, "auto"]
+        or keyring_provider_implementation != "subprocess"
+    ):
         script.pip(
             "install",
             "keyring",

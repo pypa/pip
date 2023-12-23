@@ -30,6 +30,7 @@ from pip._internal.models.index import PyPI
 from pip._internal.models.link import (
     Link,
     LinkHash,
+    MetadataFile,
     _clean_url_path,
     _ensure_quoted_url,
 )
@@ -118,8 +119,8 @@ def test_get_index_content_invalid_content_type_archive(
     assert (
         "pip._internal.index.collector",
         logging.WARNING,
-        "Skipping page {} because it looks like an archive, and cannot "
-        "be checked by a HTTP HEAD request.".format(url),
+        f"Skipping page {url} because it looks like an archive, and cannot "
+        "be checked by a HTTP HEAD request.",
     ) in caplog.record_tuples
 
 
@@ -416,8 +417,8 @@ def _test_parse_links_data_attribute(
     html = (
         "<!DOCTYPE html>"
         '<html><head><meta charset="utf-8"><head>'
-        "<body>{}</body></html>"
-    ).format(anchor_html)
+        f"<body>{anchor_html}</body></html>"
+    )
     html_bytes = html.encode("utf-8")
     page = IndexContent(
         html_bytes,
@@ -485,13 +486,30 @@ def test_parse_links_json() -> None:
                     "requires-python": ">=3.7",
                     "dist-info-metadata": False,
                 },
-                # Same as above, but parsing dist-info-metadata.
+                # Same as above, but parsing core-metadata.
                 {
                     "filename": "holygrail-1.0-py3-none-any.whl",
                     "url": "/files/holygrail-1.0-py3-none-any.whl",
                     "hashes": {"sha256": "sha256 hash", "blake2b": "blake2b hash"},
                     "requires-python": ">=3.7",
-                    "dist-info-metadata": "sha512=aabdd41",
+                    "core-metadata": {"sha512": "aabdd41"},
+                },
+                # Ensure fallback to dist-info-metadata works
+                {
+                    "filename": "holygrail-1.0-py3-none-any.whl",
+                    "url": "/files/holygrail-1.0-py3-none-any.whl",
+                    "hashes": {"sha256": "sha256 hash", "blake2b": "blake2b hash"},
+                    "requires-python": ">=3.7",
+                    "dist-info-metadata": {"sha512": "aabdd41"},
+                },
+                # Ensure that core-metadata gets priority.
+                {
+                    "filename": "holygrail-1.0-py3-none-any.whl",
+                    "url": "/files/holygrail-1.0-py3-none-any.whl",
+                    "hashes": {"sha256": "sha256 hash", "blake2b": "blake2b hash"},
+                    "requires-python": ">=3.7",
+                    "core-metadata": {"sha512": "aabdd41"},
+                    "dist-info-metadata": {"sha512": "this_is_wrong"},
                 },
             ],
         }
@@ -527,7 +545,23 @@ def test_parse_links_json() -> None:
             requires_python=">=3.7",
             yanked_reason=None,
             hashes={"sha256": "sha256 hash", "blake2b": "blake2b hash"},
-            dist_info_metadata="sha512=aabdd41",
+            metadata_file_data=MetadataFile({"sha512": "aabdd41"}),
+        ),
+        Link(
+            "https://example.com/files/holygrail-1.0-py3-none-any.whl",
+            comes_from=page.url,
+            requires_python=">=3.7",
+            yanked_reason=None,
+            hashes={"sha256": "sha256 hash", "blake2b": "blake2b hash"},
+            metadata_file_data=MetadataFile({"sha512": "aabdd41"}),
+        ),
+        Link(
+            "https://example.com/files/holygrail-1.0-py3-none-any.whl",
+            comes_from=page.url,
+            requires_python=">=3.7",
+            yanked_reason=None,
+            hashes={"sha256": "sha256 hash", "blake2b": "blake2b hash"},
+            metadata_file_data=MetadataFile({"sha512": "aabdd41"}),
         ),
     ]
 
@@ -585,30 +619,42 @@ _pkg1_requirement = Requirement("pkg1==1.0")
         ),
         # Test with value "true".
         (
-            '<a href="/pkg1-1.0.tar.gz" data-dist-info-metadata="true"></a>',
-            "true",
+            '<a href="/pkg1-1.0.tar.gz" data-core-metadata="true"></a>',
+            MetadataFile(None),
             {},
         ),
         # Test with a provided hash value.
         (
-            '<a href="/pkg1-1.0.tar.gz" data-dist-info-metadata="sha256=aa113592bbe"></a>',  # noqa: E501
-            "sha256=aa113592bbe",
+            '<a href="/pkg1-1.0.tar.gz" data-core-metadata="sha256=aa113592bbe"></a>',
+            MetadataFile({"sha256": "aa113592bbe"}),
             {},
         ),
         # Test with a provided hash value for both the requirement as well as metadata.
         (
-            '<a href="/pkg1-1.0.tar.gz#sha512=abc132409cb" data-dist-info-metadata="sha256=aa113592bbe"></a>',  # noqa: E501
-            "sha256=aa113592bbe",
+            '<a href="/pkg1-1.0.tar.gz#sha512=abc132409cb" data-core-metadata="sha256=aa113592bbe"></a>',  # noqa: E501
+            MetadataFile({"sha256": "aa113592bbe"}),
             {"sha512": "abc132409cb"},
+        ),
+        # Ensure the fallback to the old name works.
+        (
+            '<a href="/pkg1-1.0.tar.gz" data-dist-info-metadata="sha256=aa113592bbe"></a>',  # noqa: E501
+            MetadataFile({"sha256": "aa113592bbe"}),
+            {},
+        ),
+        # Ensure that the data-core-metadata name gets priority.
+        (
+            '<a href="/pkg1-1.0.tar.gz" data-core-metadata="sha256=aa113592bbe" data-dist-info-metadata="sha256=invalid_value"></a>',  # noqa: E501
+            MetadataFile({"sha256": "aa113592bbe"}),
+            {},
         ),
     ],
 )
-def test_parse_links__dist_info_metadata(
+def test_parse_links__metadata_file_data(
     anchor_html: str,
     expected: Optional[str],
     hashes: Dict[str, str],
 ) -> None:
-    link = _test_parse_links_data_attribute(anchor_html, "dist_info_metadata", expected)
+    link = _test_parse_links_data_attribute(anchor_html, "metadata_file_data", expected)
     assert link._hashes == hashes
 
 
@@ -718,8 +764,8 @@ def test_get_index_content_invalid_scheme(
         (
             "pip._internal.index.collector",
             logging.WARNING,
-            "Cannot look at {} URL {} because it does not support "
-            "lookup as web pages.".format(vcs_scheme, url),
+            f"Cannot look at {vcs_scheme} URL {url} because it does not support "
+            "lookup as web pages.",
         ),
     ]
 
@@ -1052,6 +1098,21 @@ def test_link_collector_create_find_links_expansion(
             LinkHash("sha256", "aa113592bbe"),
         ),
         (
+            "https://pypi.org/pip-18.0.tar.gz#sha256=aa113592bbe&subdirectory=setup",
+            LinkHash("sha256", "aa113592bbe"),
+        ),
+        (
+            "https://pypi.org/pip-18.0.tar.gz#subdirectory=setup&sha256=aa113592bbe",
+            LinkHash("sha256", "aa113592bbe"),
+        ),
+        # "xsha256" is not a valid algorithm, so we discard it.
+        ("https://pypi.org/pip-18.0.tar.gz#xsha256=aa113592bbe", None),
+        # Empty hash.
+        (
+            "https://pypi.org/pip-18.0.tar.gz#sha256=",
+            LinkHash("sha256", ""),
+        ),
+        (
             "https://pypi.org/pip-18.0.tar.gz#md5=aa113592bbe",
             LinkHash("md5", "aa113592bbe"),
         ),
@@ -1061,4 +1122,30 @@ def test_link_collector_create_find_links_expansion(
     ],
 )
 def test_link_hash_parsing(url: str, result: Optional[LinkHash]) -> None:
-    assert LinkHash.split_hash_name_and_value(url) == result
+    assert LinkHash.find_hash_url_fragment(url) == result
+
+
+@pytest.mark.parametrize(
+    "metadata_attrib, expected",
+    [
+        ("sha256=aa113592bbe", MetadataFile({"sha256": "aa113592bbe"})),
+        ("sha256=", MetadataFile({"sha256": ""})),
+        ("sha500=aa113592bbe", MetadataFile(None)),
+        ("true", MetadataFile(None)),
+        (None, None),
+        # Attribute is present but invalid
+        ("", MetadataFile(None)),
+        ("aa113592bbe", MetadataFile(None)),
+    ],
+)
+def test_metadata_file_info_parsing_html(
+    metadata_attrib: str, expected: Optional[MetadataFile]
+) -> None:
+    attribs: Dict[str, Optional[str]] = {
+        "href": "something",
+        "data-dist-info-metadata": metadata_attrib,
+    }
+    page_url = "dummy_for_comes_from"
+    base_url = "https://index.url/simple"
+    link = Link.from_element(attribs, page_url, base_url)
+    assert link is not None and link.metadata_file_data == expected

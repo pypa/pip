@@ -20,20 +20,23 @@ and how they are related to pip's various command line options.
 ## Configuration Files
 
 Configuration files can change the default values for command line options.
-They are written using standard INI style configuration files.
+The files are written using standard INI format.
 
-pip has 4 "levels" of configuration files:
+pip has 3 "levels" of configuration files:
 
-- `global`: system-wide configuration file, shared across all users.
-- `user`: per-user configuration file, shared across all environments.
-- `base` : per-base environment configuration file, shared across all virtualenvs with the same base. (available since pip 23.0)
+- `global`: system-wide configuration file, shared across users.
+- `user`: per-user configuration file.
 - `site`: per-environment configuration file; i.e. per-virtualenv.
+
+Additionally, environment variables can be specified which will override any of the above.
 
 ### Location
 
 pip's configuration files are located in fairly standard locations. This
 location is different on different operating systems, and has some additional
-complexity for backwards compatibility reasons.
+complexity for backwards compatibility reasons. Note that if user config files
+exist in both the legacy and current locations, values in the current file
+will override values in the legacy file.
 
 ```{tab} Unix
 
@@ -47,9 +50,6 @@ User
 : {file}`$HOME/.config/pip/pip.conf`, which respects the `XDG_CONFIG_HOME` environment variable.
 
   The legacy "per-user" configuration file is also loaded, if it exists: {file}`$HOME/.pip/pip.conf`.
-
-Base
-: {file}`\{sys.base_prefix\}/pip.conf`
 
 Site
 : {file}`$VIRTUAL_ENV/pip.conf`
@@ -66,9 +66,6 @@ User
   else {file}`$HOME/.config/pip/pip.conf`
 
   The legacy "per-user" configuration file is also loaded, if it exists: {file}`$HOME/.pip/pip.conf`.
-
-Base
-: {file}`\{sys.base_prefix\}/pip.conf`
 
 Site
 : {file}`$VIRTUAL_ENV/pip.conf`
@@ -88,9 +85,6 @@ User
 
   The legacy "per-user" configuration file is also loaded, if it exists: {file}`%HOME%\\pip\\pip.ini`
 
-Base
-: {file}`\{sys.base_prefix\}\\pip.ini`
-
 Site
 : {file}`%VIRTUAL_ENV%\\pip.ini`
 ```
@@ -98,9 +92,10 @@ Site
 ### `PIP_CONFIG_FILE`
 
 Additionally, the environment variable `PIP_CONFIG_FILE` can be used to specify
-a configuration file that's loaded first, and whose values are overridden by
-the values set in the aforementioned files. Setting this to {any}`os.devnull`
-disables the loading of _all_ configuration files.
+a configuration file that's loaded last, and whose values override the values
+set in the aforementioned files. Setting this to {any}`os.devnull`
+disables the loading of _all_ configuration files. Note that if a file exists
+at the location that this is set to, the user config file will not be loaded.
 
 (config-precedence)=
 
@@ -109,11 +104,10 @@ disables the loading of _all_ configuration files.
 When multiple configuration files are found, pip combines them in the following
 order:
 
-- `PIP_CONFIG_FILE`, if given.
 - Global
 - User
-- Base
 - Site
+- `PIP_CONFIG_FILE`, if given.
 
 Each file read overrides any values read from previous files, so if the
 global timeout is specified in both the global file and the per-user file
