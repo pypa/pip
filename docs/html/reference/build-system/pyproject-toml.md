@@ -135,7 +135,7 @@ section, it will be assumed to have the following backend settings:
 
 ```toml
 [build-system]
-requires = ["setuptools>=40.8.0", "wheel"]
+requires = ["setuptools>=40.8.0"]
 build-backend = "setuptools.build_meta:__legacy__"
 ```
 
