@@ -1,5 +1,6 @@
 import collections
 import math
+from functools import lru_cache
 from typing import (
     TYPE_CHECKING,
     Dict,
@@ -236,6 +237,7 @@ class PipProvider(_ProviderBase):
             incompatibilities=incompatibilities,
         )
 
+    @lru_cache(maxsize=None)
     def is_satisfied_by(self, requirement: Requirement, candidate: Candidate) -> bool:
         return requirement.is_satisfied_by(candidate)
 

@@ -1,8 +1,11 @@
+from typing import Any
+
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 
 from pip._internal.req.constructors import install_req_drop_extras
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.models import KeyBasedCompareMixin
 
 from .base import Candidate, CandidateLookup, Requirement, format_name
 
@@ -16,6 +19,14 @@ class ExplicitRequirement(Requirement):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.candidate!r})"
+
+    def __hash__(self) -> int:
+        return hash(self.candidate)
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, ExplicitRequirement):
+            return False
+        return self.candidate == other.candidate
 
     @property
     def project_name(self) -> NormalizedName:
@@ -37,11 +48,14 @@ class ExplicitRequirement(Requirement):
         return candidate == self.candidate
 
 
-class SpecifierRequirement(Requirement):
+class SpecifierRequirement(Requirement, KeyBasedCompareMixin):
     def __init__(self, ireq: InstallRequirement) -> None:
         assert ireq.link is None, "This is a link, not a specifier"
         self._ireq = ireq
         self._extras = frozenset(canonicalize_name(e) for e in self._ireq.extras)
+        KeyBasedCompareMixin.__init__(
+            self, key=str(ireq), defining_class=SpecifierRequirement
+        )
 
     def __str__(self) -> str:
         return str(self._ireq.req)
@@ -97,6 +111,9 @@ class SpecifierWithoutExtrasRequirement(SpecifierRequirement):
         assert ireq.link is None, "This is a link, not a specifier"
         self._ireq = install_req_drop_extras(ireq)
         self._extras = frozenset(canonicalize_name(e) for e in self._ireq.extras)
+        KeyBasedCompareMixin.__init__(
+            self, key=str(ireq), defining_class=SpecifierRequirement
+        )
 
 
 class RequiresPythonRequirement(Requirement):
@@ -104,6 +121,7 @@ class RequiresPythonRequirement(Requirement):
 
     def __init__(self, specifier: SpecifierSet, match: Candidate) -> None:
         self.specifier = specifier
+        self._specifier_string = str(specifier)  # for faster __eq__
         self._candidate = match
 
     def __str__(self) -> str:
@@ -111,6 +129,17 @@ class RequiresPythonRequirement(Requirement):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({str(self.specifier)!r})"
+
+    def __hash__(self) -> int:
+        return hash((self._specifier_string, self._candidate))
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, RequiresPythonRequirement):
+            return False
+        return (
+            self._specifier_string == other._specifier_string
+            and self._candidate == other._candidate
+        )
 
     @property
     def project_name(self) -> NormalizedName:
@@ -136,11 +165,14 @@ class RequiresPythonRequirement(Requirement):
         return self.specifier.contains(candidate.version, prereleases=True)
 
 
-class UnsatisfiableRequirement(Requirement):
+class UnsatisfiableRequirement(Requirement, KeyBasedCompareMixin):
     """A requirement that cannot be satisfied."""
 
     def __init__(self, name: NormalizedName) -> None:
         self._name = name
+        KeyBasedCompareMixin.__init__(
+            self, key=str(name), defining_class=UnsatisfiableRequirement
+        )
 
     def __str__(self) -> str:
         return f"{self._name} (unavailable)"
