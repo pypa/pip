@@ -20,6 +20,7 @@ from pip._internal.req.constructors import (
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.direct_url_helpers import direct_url_from_link
 from pip._internal.utils.misc import normalize_version_info
+from pip._internal.utils.models import KeyBasedCompareMixin
 
 from .base import Candidate, CandidateVersion, Requirement, format_name
 
@@ -324,7 +325,7 @@ class EditableCandidate(_InstallRequirementBackedCandidate):
         return self._factory.preparer.prepare_editable_requirement(self._ireq)
 
 
-class AlreadyInstalledCandidate(Candidate):
+class AlreadyInstalledCandidate(Candidate, KeyBasedCompareMixin):
     is_installed = True
     source_link = None
 
@@ -346,19 +347,15 @@ class AlreadyInstalledCandidate(Candidate):
         skip_reason = "already satisfied"
         factory.preparer.prepare_installed_requirement(self._ireq, skip_reason)
 
+        KeyBasedCompareMixin.__init__(
+            self, key=(self.name, self.version), defining_class=self.__class__
+        )
+
     def __str__(self) -> str:
         return str(self.dist)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.dist!r})"
-
-    def __hash__(self) -> int:
-        return hash((self.__class__, self.name, self.version))
-
-    def __eq__(self, other: Any) -> bool:
-        if isinstance(other, self.__class__):
-            return self.name == other.name and self.version == other.version
-        return False
 
     @property
     def project_name(self) -> NormalizedName:
