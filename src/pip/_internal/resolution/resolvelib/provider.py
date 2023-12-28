@@ -235,6 +235,7 @@ class PipProvider(_ProviderBase):
             constraint=constraint,
             prefers_installed=(not _eligible_for_upgrade(identifier)),
             incompatibilities=incompatibilities,
+            is_satisfied_by=self.is_satisfied_by,
         )
 
     @lru_cache(maxsize=None)
