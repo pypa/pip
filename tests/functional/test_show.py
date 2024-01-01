@@ -277,7 +277,7 @@ def test_show_required_by_packages_basic(
     lines = result.stdout.splitlines()
 
     assert "Name: simple" in lines
-    assert "Required-by: requires-simple" in lines
+    assert "Required-by: requires_simple" in lines
 
 
 def test_show_required_by_packages_capitalized(
@@ -294,7 +294,7 @@ def test_show_required_by_packages_capitalized(
     lines = result.stdout.splitlines()
 
     assert "Name: simple" in lines
-    assert "Required-by: Requires-Capitalized" in lines
+    assert "Required-by: Requires_Capitalized" in lines
 
 
 def test_show_required_by_packages_requiring_capitalized(
@@ -314,8 +314,8 @@ def test_show_required_by_packages_requiring_capitalized(
     lines = result.stdout.splitlines()
     print(lines)
 
-    assert "Name: Requires-Capitalized" in lines
-    assert "Required-by: requires-requires-capitalized" in lines
+    assert "Name: Requires_Capitalized" in lines
+    assert "Required-by: requires_requires_capitalized" in lines
 
 
 def test_show_skip_work_dir_pkg(script: PipTestEnvironment) -> None:
