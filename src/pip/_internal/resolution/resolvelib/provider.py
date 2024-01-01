@@ -253,3 +253,13 @@ class PipProvider(_ProviderBase):
             if backtrack_cause.parent and identifier == backtrack_cause.parent.name:
                 return True
         return False
+
+    def filter_unsatisfied_names(
+        self,
+        unsatisfied_names: Iterable[str],
+        resolutions: Mapping[str, Candidate],
+        candidates: Mapping[str, Iterator[Candidate]],
+        information: Mapping[str, Iterable["PreferenceInformation"]],
+        backtrack_causes: Sequence["PreferenceInformation"],
+    ) -> Iterable[str]:
+        return unsatisfied_names

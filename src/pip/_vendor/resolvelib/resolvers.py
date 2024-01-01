@@ -377,6 +377,12 @@ class Resolution(object):
 
         # No way to backtrack anymore.
         return False
+    
+    def _extract_causes(self, criteron):
+        """Extract causes from list of criterion and deduplicate"""
+        return list(
+            {id(i): i for c in criteron for i in c.information}.values()
+        )
 
     def resolve(self, requirements, max_rounds):
         if self._states:
@@ -418,16 +424,37 @@ class Resolution(object):
                 return self.state
 
             # keep track of satisfied names to calculate diff after pinning
-            satisfied_names = set(self.state.criteria.keys()) - set(
-                unsatisfied_names
+            unsatisfied_names_set = set(unsatisfied_names)
+            satisfied_names = (
+                set(self.state.criteria.keys()) - unsatisfied_names_set
             )
 
-            # Choose the most preferred unpinned criterion to try.
-            name = min(unsatisfied_names, key=self._get_preference)
-            failure_causes = self._attempt_to_pin_criterion(name)
+            filtered_unstatisfied_names = list(
+                self._p.filter_unsatisfied_names(
+                    unsatisfied_names_set,
+                    resolutions=self.state.mapping,
+                    candidates=IteratorMapping(
+                        self.state.criteria,
+                        operator.attrgetter("candidates"),
+                    ),
+                    information=IteratorMapping(
+                        self.state.criteria,
+                        operator.attrgetter("information"),
+                    ),
+                    backtrack_causes=self.state.backtrack_causes,
+                    )
+                )
 
-            if failure_causes:
-                causes = [i for c in failure_causes for i in c.information]
+            # Choose the most preferred unpinned criterion to try.
+            if len(filtered_unstatisfied_names) > 1:
+                name = min(filtered_unstatisfied_names, key=self._get_preference)
+            else:
+                name = filtered_unstatisfied_names[0]
+
+            failure_criterion = self._attempt_to_pin_criterion(name)
+
+            if failure_criterion:
+                causes = self._extract_causes(failure_criterion)
                 # Backjump if pinning fails. The backjump process puts us in
                 # an unpinned state, so we can work on it in the next round.
                 self._r.resolving_conflicts(causes=causes)
