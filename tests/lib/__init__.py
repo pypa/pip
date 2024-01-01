@@ -320,7 +320,7 @@ class TestPipResult:
         e = self.test_env
 
         if editable:
-            pkg_dir = e.venv / "src" / pkg_name.lower()
+            pkg_dir = e.venv / "src" / canonicalize_name(pkg_name)
             # If package was installed in a sub directory
             if sub_dir:
                 pkg_dir = pkg_dir / sub_dir

@@ -1847,7 +1847,7 @@ def test_new_resolver_succeeds_on_matching_constraint_and_requirement(
 
     script.assert_installed(test_pkg="0.1.0")
     if editable:
-        assert_editable(script, "test-pkg")
+        assert_editable(script, "test_pkg")
 
 
 def test_new_resolver_applies_url_constraint_to_dep(script: PipTestEnvironment) -> None:
