@@ -179,16 +179,10 @@ class PipProvider(_ProviderBase):
         # free, so we always do it first to avoid needless work if it fails.
         requires_python = identifier == REQUIRES_PYTHON_IDENTIFIER
 
-        # Prefer the causes of backtracking on the assumption that the problem
-        # resolving the dependency tree is related to the failures that caused
-        # the backtracking
-        backtrack_cause = self.is_backtrack_cause(identifier, backtrack_causes)
-
         return (
             not requires_python,
             not direct,
             not pinned,
-            not backtrack_cause,
             inferred_depth,
             requested_order,
             not unfree,
@@ -243,17 +237,6 @@ class PipProvider(_ProviderBase):
         with_requires = not self._ignore_dependencies
         return [r for r in candidate.iter_dependencies(with_requires) if r is not None]
 
-    @staticmethod
-    def is_backtrack_cause(
-        identifier: str, backtrack_causes: Sequence["PreferenceInformation"]
-    ) -> bool:
-        for backtrack_cause in backtrack_causes:
-            if identifier == backtrack_cause.requirement.name:
-                return True
-            if backtrack_cause.parent and identifier == backtrack_cause.parent.name:
-                return True
-        return False
-
     def filter_unsatisfied_names(
         self,
         unsatisfied_names: Iterable[str],
@@ -262,4 +245,22 @@ class PipProvider(_ProviderBase):
         information: Mapping[str, Iterable["PreferenceInformation"]],
         backtrack_causes: Sequence["PreferenceInformation"],
     ) -> Iterable[str]:
+        """
+        Prefer backtracking on unsatisfied names that are causes
+        """
+        if not backtrack_causes:
+            return unsatisfied_names
+
+        # Extract the causes and parents names
+        causes_names = set()
+        for cause in backtrack_causes:
+            causes_names.add(cause.requirement.name)
+            if cause.parent:
+                causes_names.add(cause.parent.name)
+
+        unsatisfied_causes_names = set(unsatisfied_names) & causes_names
+
+        if unsatisfied_causes_names:
+            return unsatisfied_causes_names
+
         return unsatisfied_names
