@@ -75,6 +75,98 @@ def _get_with_identifier(
     return default
 
 
+def causes_with_conflicting_parent(
+    causes: Sequence["PreferenceInformation"],
+) -> Sequence["PreferenceInformation"]:
+    """Given causes return which causes conflict because their parent
+    is not satisfied by another cause, or another causes's parent is
+    not satisfied by them
+    """
+    # To avoid duplication keeps track of already found conflicting cause by it's id
+    conflicting_causes_by_id: dict[int, "PreferenceInformation"] = {}
+    all_causes_by_id = {id(c): c for c in causes}
+
+    # Build a relationship between causes, cause ids, and cause parent names
+    causes_ids_and_parents_by_parent_name: dict[
+        str, list[tuple[int, Candidate]]
+    ] = collections.defaultdict(list)
+    for cause_id, cause in all_causes_by_id.items():
+        if cause.parent:
+            causes_ids_and_parents_by_parent_name[cause.parent.name].append(
+                (cause_id, cause.parent)
+            )
+
+    # Check each cause and see if conflicts with the parent of another cause
+    for cause_id, cause in all_causes_by_id.items():
+        if cause_id in conflicting_causes_by_id:
+            continue
+
+        cause_id_and_parents = causes_ids_and_parents_by_parent_name.get(
+            cause.requirement.name
+        )
+        if not cause_id_and_parents:
+            continue
+
+        for other_cause_id, parent in cause_id_and_parents:
+            if not cause.requirement.is_satisfied_by(parent):
+                conflicting_causes_by_id[cause_id] = cause
+                conflicting_causes_by_id[other_cause_id] = all_causes_by_id[
+                    other_cause_id
+                ]
+
+    return list(conflicting_causes_by_id.values())
+
+
+def causes_with_no_candidates(
+    causes: Sequence["PreferenceInformation"],
+    candidates: Mapping[str, Iterator[Candidate]],
+) -> Sequence["PreferenceInformation"]:
+    """Given causes return a cause pair that has no possible candidates,
+    if such a cause pair exists
+
+    Does not return all possible causes that have no possible candidates
+    because searching candidates can be expensive and throw exceptions"""
+    # Group causes by name first to avoid large O(n^2) comparison
+    causes_by_name: dict[str, list["PreferenceInformation"]] = collections.defaultdict(
+        list
+    )
+    for cause in causes:
+        causes_by_name[cause.requirement.project_name].append(cause)
+
+    # Check each cause that has the same name, and check if their
+    # their combined specifiers have no candidates
+    for cause_name, causes_list in causes_by_name.items():
+        if len(causes_list) < 2:
+            continue
+
+        while causes_list:
+            cause = causes_list.pop()
+            candidate = cause.requirement.get_candidate_lookup()[1]
+            if candidate is None:
+                continue
+
+            for other_cause in causes_list:
+                other_candidate = other_cause.requirement.get_candidate_lookup()[1]
+                if other_candidate is None:
+                    continue
+
+                # Check if no candidate can match the combined specifier
+                combined_specifier = candidate.specifier & other_candidate.specifier
+                possible_candidates = candidates.get(cause_name)
+
+                # If no candidates have been provided then by default
+                # the causes have no candidates
+                if possible_candidates is None:
+                    return [cause, other_cause]
+
+                if not any(
+                    combined_specifier.contains(c.version) for c in possible_candidates
+                ):
+                    return [cause, other_cause]
+
+    return []
+
+
 class PipProvider(_ProviderBase):
     """Pip's provider implementation for resolvelib.
 
@@ -246,10 +338,27 @@ class PipProvider(_ProviderBase):
         backtrack_causes: Sequence["PreferenceInformation"],
     ) -> Iterable[str]:
         """
-        Prefer backtracking on unsatisfied names that are causes
+        Prefer backtracking on unsatisfied names that are conficting
+        causes, or secondly are causes
         """
         if not backtrack_causes:
             return unsatisfied_names
+
+        # Check if causes are conflicting, conflicting parents are
+        # checked before no candidates because "causes_with_no_candidates"
+        # may download additional candidates and extract their metadata,
+        # which could be large wheels or sdists which fail to compile
+        if len(backtrack_causes) > 2:
+            _conflicting_causes = causes_with_conflicting_parent(backtrack_causes)
+            if _conflicting_causes:
+                backtrack_causes = _conflicting_causes
+            else:
+                _conflicting_causes = causes_with_no_candidates(
+                    backtrack_causes, candidates
+                )
+                if _conflicting_causes:
+                    backtrack_causes = _conflicting_causes
+            del _conflicting_causes
 
         # Extract the causes and parents names
         causes_names = set()
