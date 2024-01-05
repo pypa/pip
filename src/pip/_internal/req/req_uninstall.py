@@ -5,7 +5,7 @@ import sysconfig
 from importlib.util import cache_from_source
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Set, Tuple
 
-from pip._internal.exceptions import UninstallationError
+from pip._internal.exceptions import LegacyDistutilsInstall, UninstallMissingRecord
 from pip._internal.locations import get_bin_prefix, get_bin_user
 from pip._internal.metadata import BaseDistribution
 from pip._internal.utils.compat import WINDOWS
@@ -61,7 +61,7 @@ def uninstallation_paths(dist: BaseDistribution) -> Generator[str, None, None]:
 
     UninstallPathSet.add() takes care of the __pycache__ .py[co].
 
-    If RECORD is not found, raises UninstallationError,
+    If RECORD is not found, raises an error,
     with possible information from the INSTALLER file.
 
     https://packaging.python.org/specifications/recording-installed-packages/
@@ -71,17 +71,7 @@ def uninstallation_paths(dist: BaseDistribution) -> Generator[str, None, None]:
 
     entries = dist.iter_declared_entries()
     if entries is None:
-        msg = f"Cannot uninstall {dist}, RECORD file not found."
-        installer = dist.installer
-        if not installer or installer == "pip":
-            dep = f"{dist.raw_name}=={dist.version}"
-            msg += (
-                " You might be able to recover from this via: "
-                f"'pip install --force-reinstall --no-deps {dep}'."
-            )
-        else:
-            msg += f" Hint: The package was installed by {installer}."
-        raise UninstallationError(msg)
+        raise UninstallMissingRecord(distribution=dist)
 
     for entry in entries:
         path = os.path.join(location, entry)
@@ -509,11 +499,7 @@ class UninstallPathSet:
                     paths_to_remove.add(f"{path}.pyo")
 
         elif dist.installed_by_distutils:
-            raise UninstallationError(
-                f"Cannot uninstall {dist.raw_name!r}. It is a distutils installed "
-                "project and thus we cannot accurately determine which files belong "
-                "to it which would lead to only a partial uninstall."
-            )
+            raise LegacyDistutilsInstall(distribution=dist)
 
         elif dist.installed_as_egg:
             # package installed by easy_install
