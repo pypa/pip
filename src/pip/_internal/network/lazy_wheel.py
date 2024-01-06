@@ -541,28 +541,45 @@ class LazyWheelOverHTTP(LazyHTTPFile):
             # the file and set up our bisect boundaries by hand.
             with self._stay():
                 response_length = int(tail.headers["Content-Length"])
-                assert response_length == initial_chunk_size
-                self.seek(-response_length, io.SEEK_END)
-                # Default initial chunk size is currently 1MB, but streaming content
-                # here allows it to be set arbitrarily large.
-                for chunk in tail.iter_content(CONTENT_CHUNK_SIZE):
-                    self._file.write(chunk)
 
-                # We now need to update our bookkeeping to cover the interval we just
-                # wrote to file so we know not to do it in later read()s.
-                init_chunk_start = ret_length - response_length
-                # MergeIntervals uses inclusive boundaries i.e. start <= x <= end.
-                init_chunk_end = ret_length - 1
-                assert self._merge_intervals is not None
-                assert ((init_chunk_start, init_chunk_end),) == tuple(
-                    # NB: We expect LazyRemoteResource to reset `self._merge_intervals`
-                    # just before it calls the current method, so our assertion here
-                    # checks that indeed no prior overlapping intervals have
-                    # been covered.
-                    self._merge_intervals.minimal_intervals_covering(
-                        init_chunk_start, init_chunk_end
+                # Some servers return a 200 OK in response to an overflowing negative
+                # range request. In that case we want to write the entire file contents.
+                if tail.status_code == codes.ok:
+                    assert ret_length == response_length
+                    assert ret_length > 0
+                    assert response_length <= initial_chunk_size
+                    for chunk in tail.iter_content(CONTENT_CHUNK_SIZE):
+                        self._file.write(chunk)
+                    assert self._merge_intervals is not None
+                    assert ((0, response_length - 1),) == tuple(
+                        self._merge_intervals.minimal_intervals_covering(
+                            0, response_length - 1
+                        )
                     )
-                )
+                    return response_length
+                else:
+                    assert response_length == initial_chunk_size
+                    self.seek(-response_length, io.SEEK_END)
+                    # Default initial chunk size is currently 1MB, but streaming content
+                    # here allows it to be set arbitrarily large.
+                    for chunk in tail.iter_content(CONTENT_CHUNK_SIZE):
+                        self._file.write(chunk)
+
+                    # We now need to update our bookkeeping to cover the interval we
+                    # just wrote to file so we know not to do it in later read()s.
+                    init_chunk_start = ret_length - response_length
+                    # MergeIntervals uses inclusive boundaries i.e. start <= x <= end.
+                    init_chunk_end = ret_length - 1
+                    assert self._merge_intervals is not None
+                    assert ((init_chunk_start, init_chunk_end),) == tuple(
+                        # NB: We expect LazyRemoteResource to reset
+                        # `self._merge_intervals` just before it calls the current
+                        # method, so our assertion here checks that indeed no prior
+                        # overlapping intervals have been covered.
+                        self._merge_intervals.minimal_intervals_covering(
+                            init_chunk_start, init_chunk_end
+                        )
+                    )
         return ret_length
 
     @staticmethod
@@ -596,6 +613,13 @@ class LazyWheelOverHTTP(LazyHTTPFile):
             # https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests, a 200 OK
             # implies that range requests are not supported, regardless of the
             # requested size.
+            # However, some servers that support negative range requests also return a
+            # 200 OK if the requested range from the end was larger than the file size.
+            if code == codes.ok:
+                accept_ranges = tail.headers.get("Accept-Ranges", None)
+                content_length = int(tail.headers["Content-Length"])
+                if accept_ranges == "bytes" and content_length <= initial_chunk_size:
+                    return content_length, tail
             raise HTTPRangeRequestUnsupported(
                 f"did not receive partial content: got code {code}"
             )
