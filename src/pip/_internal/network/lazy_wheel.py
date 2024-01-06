@@ -198,10 +198,10 @@ class ReadOnlyIOWrapper(BinaryIO):
         """Return False."""
         return False
 
-    def write(self, s: bytes) -> int:
+    def write(self, s: bytes) -> int:  # type: ignore[override]
         raise NotImplementedError
 
-    def writelines(self, lines: Iterable[bytes]) -> None:
+    def writelines(self, lines: Iterable[bytes]) -> None:  # type: ignore[override]
         raise NotImplementedError
 
     def __enter__(self) -> ReadOnlyIOWrapper:
