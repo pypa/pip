@@ -597,7 +597,7 @@ class LazyWheelOverHTTP(LazyHTTPFile):
             # implies that range requests are not supported, regardless of the
             # requested size.
             raise HTTPRangeRequestUnsupported(
-                "did not receive partial content: got code {code}"
+                f"did not receive partial content: got code {code}"
             )
 
         file_length = self._parse_full_length_from_content_range(
