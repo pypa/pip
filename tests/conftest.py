@@ -1143,12 +1143,23 @@ class RangeHandler(Enum):
     Always200OK = "always-200-ok"
     NoNegativeRange = "no-negative-range"
     SupportsNegativeRange = "supports-negative-range"
+    NegativeRangeOverflowing = "negative-range-overflowing"
 
     def supports_range(self) -> bool:
-        return self in [type(self).NoNegativeRange, type(self).SupportsNegativeRange]
+        return self in [
+            type(self).NoNegativeRange,
+            type(self).SupportsNegativeRange,
+            type(self).NegativeRangeOverflowing,
+        ]
 
     def supports_negative_range(self) -> bool:
-        return self == type(self).SupportsNegativeRange
+        return self in [
+            type(self).SupportsNegativeRange,
+            type(self).NegativeRangeOverflowing,
+        ]
+
+    def overflows_negative_range(self) -> bool:
+        return self == type(self).NegativeRangeOverflowing
 
 
 class ContentRangeDownloadHandler(
@@ -1165,6 +1176,7 @@ class ContentRangeDownloadHandler(
     positive_range_request_paths: ClassVar[Set[str]] = set()
     negative_range_request_paths: ClassVar[Set[str]] = set()
     head_request_paths: ClassVar[Set[str]] = set()
+    ok_response_counts: ClassVar[Dict[str, int]] = {}
 
     @contextmanager
     def _translate_path(self) -> Iterator[Optional[Tuple[BinaryIO, str, int]]]:
@@ -1198,6 +1210,8 @@ class ContentRangeDownloadHandler(
 
     def _send_full_file_headers(self, ctype: str, full_file_length: int) -> None:
         self.send_response(http.HTTPStatus.OK)
+        self.ok_response_counts.setdefault(self.path, 0)
+        self.ok_response_counts[self.path] += 1
         self._send_basic_headers(ctype)
         self.send_header("Content-Length", str(full_file_length))
         self.end_headers()
@@ -1251,6 +1265,10 @@ class ContentRangeDownloadHandler(
                 start = end - int(m.group(2)) + 1
                 was_out_of_bounds = start < 0
             if was_out_of_bounds:
+                if self.range_handler.overflows_negative_range():
+                    self._send_full_file_headers(ctype, full_file_length)
+                    self.copyfile(f, self.wfile)  # type: ignore[misc]
+                    return
                 self.send_response(http.HTTPStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
                 self._send_basic_headers(ctype)
                 self.send_header("Content-Range", f"bytes */{full_file_length}")
@@ -1320,6 +1338,7 @@ def html_index_with_range_server(
             positive_range_request_paths: ClassVar[Set[str]] = set()
             negative_range_request_paths: ClassVar[Set[str]] = set()
             head_request_paths: ClassVar[Set[str]] = set()
+            ok_response_counts: ClassVar[Dict[str, int]] = {}
 
         with InDirectoryServer(("", 8000), Handler) as httpd:
             server_thread = threading.Thread(target=httpd.serve_forever)
