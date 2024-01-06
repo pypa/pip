@@ -1230,7 +1230,7 @@ class ContentRangeDownloadHandler(
             # If no range given, return the whole file.
             if range_arg is None or not self.range_handler.supports_range():
                 self._send_full_file_headers(ctype, full_file_length)
-                self.copyfile(f, self.wfile)
+                self.copyfile(f, self.wfile)  # type: ignore[misc]
                 return
             # Otherwise, return the requested contents.
             assert m is not None
@@ -1304,7 +1304,7 @@ def html_index_with_range_server(
     class InDirectoryServer(http.server.ThreadingHTTPServer):
         def finish_request(self, request: Any, client_address: Any) -> None:
             self.RequestHandlerClass(
-                request, client_address, self, directory=str(html_index_no_metadata)  # type: ignore[call-arg]
+                request, client_address, self, directory=str(html_index_no_metadata)  # type: ignore[call-arg,arg-type]
             )
 
     @contextmanager
