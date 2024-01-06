@@ -1142,12 +1142,14 @@ class RangeHandler(Enum):
 
     Always200OK = "always-200-ok"
     NoNegativeRange = "no-negative-range"
+    SneakilyCoerceNegativeRange = "sneakily-coerce-negative-range"
     SupportsNegativeRange = "supports-negative-range"
     NegativeRangeOverflowing = "negative-range-overflowing"
 
     def supports_range(self) -> bool:
         return self in [
             type(self).NoNegativeRange,
+            type(self).SneakilyCoerceNegativeRange,
             type(self).SupportsNegativeRange,
             type(self).NegativeRangeOverflowing,
         ]
@@ -1157,6 +1159,9 @@ class RangeHandler(Enum):
             type(self).SupportsNegativeRange,
             type(self).NegativeRangeOverflowing,
         ]
+
+    def sneakily_coerces_negative_range(self) -> bool:
+        return self == type(self).SneakilyCoerceNegativeRange
 
     def overflows_negative_range(self) -> bool:
         return self == type(self).NegativeRangeOverflowing
@@ -1256,6 +1261,18 @@ class ContentRangeDownloadHandler(
                 was_out_of_bounds = (end + 1) > full_file_length
             else:
                 # This is a "-end" range.
+                if self.range_handler.sneakily_coerces_negative_range():
+                    end = int(m.group(2))
+                    self.send_response(http.HTTPStatus.PARTIAL_CONTENT)
+                    self._send_basic_headers(ctype)
+                    self.send_header("Content-Length", str(end + 1))
+                    self.send_header(
+                        "Content-Range", f"bytes 0-{end}/{full_file_length}"
+                    )
+                    self.end_headers()
+                    f.seek(0)
+                    self.wfile.write(f.read(end + 1))
+                    return
                 if not self.range_handler.supports_negative_range():
                     self.send_response(http.HTTPStatus.NOT_IMPLEMENTED)
                     self._send_basic_headers(ctype)
