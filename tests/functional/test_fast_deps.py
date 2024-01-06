@@ -50,6 +50,31 @@ def test_install_from_pypi(
 
 @mark.network
 @mark.parametrize(
+    ("requirement", "url", "expected"),
+    (
+        (
+            "wcwidth==0.2.1",
+            "https://files.pythonhosted.org/packages/6c/a6/cdb485093ad4017d874d7a2e6a736d02720258f57876548eea2bf04c76f0/wcwidth-0.2.1-py2.py3-none-any.whl",
+            "multiple .dist-info directories found",
+        ),
+    ),
+)
+def test_invalid_wheel_parse_error(
+    requirement: str, url: str, expected: str, script: PipTestEnvironment
+) -> None:
+    """Check for both the full download URL and the reason for the error."""
+    result = script.pip(
+        "install",
+        "--use-feature=fast-deps",
+        requirement,
+        expect_error=True,
+    )
+    assert url in result.stderr
+    assert expected in result.stderr
+
+
+@mark.network
+@mark.parametrize(
     ("requirement", "expected"),
     (
         ("Paste==3.4.2", ("Paste-3.4.2-*.whl", "six-*.whl")),

@@ -49,11 +49,11 @@ def dist_from_wheel_url(name: str, url: str, session: PipSession) -> BaseDistrib
 
             wheel = MemoryWheel(lazy_file.name, lazy_file)
             return get_wheel_distribution(wheel, canonicalize_name(name))
-    except (BadZipFile, UnsupportedWheel):
+    except (BadZipFile, UnsupportedWheel) as e:
         # We assume that these errors have occurred because the wheel contents themself
         # are invalid, not because we've messed up our bookkeeping and produced an
         # invalid file that pip would otherwise process normally.
-        raise InvalidWheel(url, name)
+        raise InvalidWheel(url, name, context=str(e))
 
 
 class MergeIntervals:
