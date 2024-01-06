@@ -254,6 +254,38 @@ def test_download_range(
             # the entire file contents.
             assert handler.get_request_counts[translationstring_path] == 2
             assert handler.ok_response_counts[translationstring_path] == 2
+        elif range_handler == RangeHandler.SneakilyCoerceNegativeRange:
+            assert {
+                colander_wheel_path,
+                compile_wheel_path,
+                has_script_path,
+                translationstring_path,
+            } == handler.head_request_paths
+            assert {
+                colander_wheel_path,
+                compile_wheel_path,
+                has_script_path,
+                translationstring_path,
+            } == handler.positive_range_request_paths
+            # Tries this first, finds that negative offsets are unsupported, so doesn't
+            # try it again.
+            assert {colander_wheel_path} == handler.negative_range_request_paths
+            # Two more for the first wheel, because it has the failing negative
+            # byte request and is larger than the initial chunk size.
+            assert handler.get_request_counts[colander_wheel_path] == 4
+            assert handler.ok_response_counts[colander_wheel_path] == 2
+            # The .dist-info dir at the start requires an additional ranged GET vs
+            # translationstring.
+            assert handler.get_request_counts[compile_wheel_path] == 3
+            assert handler.ok_response_counts[compile_wheel_path] == 2
+            # The entire file should have been pulled in with a single ranged GET.
+            assert handler.get_request_counts[has_script_path] == 2
+            assert handler.ok_response_counts[has_script_path] == 2
+            # The entire .dist-info dir should have been pulled in with a single
+            # ranged GET. The second GET is for the end of the download, pulling down
+            # the entire file contents.
+            assert handler.get_request_counts[translationstring_path] == 2
+            assert handler.ok_response_counts[translationstring_path] == 2
         elif range_handler == RangeHandler.SupportsNegativeRange:
             # The negative byte index worked, so no head requests.
             assert not handler.head_request_paths

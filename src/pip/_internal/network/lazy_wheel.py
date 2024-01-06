@@ -639,7 +639,7 @@ class LazyWheelOverHTTP(LazyHTTPFile):
 
         try:
             # Initial range request for just the end of the file.
-            return self._try_initial_chunk_request(initial_chunk_size)
+            file_length, tail = self._try_initial_chunk_request(initial_chunk_size)
         except HTTPError as e:
             resp = e.response
             code = resp.status_code
@@ -669,6 +669,27 @@ class LazyWheelOverHTTP(LazyHTTPFile):
             # If we get some other error, then we expect that non-range requests will
             # also fail, so we error out here and let the user figure it out.
             raise
+
+        # Some servers do not actually support negative offsets, but instead sneakily
+        # coerce a negative offset like "-10" into "0-10", which is a *positive* offset!
+        tail_length = int(tail.headers["Content-Length"])
+        tail_range = tail.headers.get("Content-Range", "")
+        if (tail_length == initial_chunk_size + 1) and tail_range.startswith(
+            f"bytes 0-{initial_chunk_size}"
+        ):
+            logger.debug(
+                "an intended negative range -%d was converted to 0-%d for domain %s: "
+                "using HEAD request before lazy wheel from now on",
+                initial_chunk_size,
+                initial_chunk_size,
+                domain,
+            )
+            # Avoid trying a negative byte range request against this domain for the
+            # rest of the resolve.
+            self._domains_without_negative_range.add(domain)
+            # Apply a HEAD request to get the real size, and nothing else for now.
+            return (self._content_length_from_head(), None)
+        return file_length, tail
 
     def prefetch_contiguous_dist_info(self, name: str) -> None:
         """Read contents of entire dist-info section of wheel.
