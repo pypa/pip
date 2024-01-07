@@ -9,6 +9,7 @@ import configparser
 import contextlib
 import locale
 import logging
+import os
 import pathlib
 import re
 import sys
@@ -774,4 +775,43 @@ class LegacyDistutilsInstall(DiagnosticPipError):
                 "uninstall."
             ),
             hint_stmt=None,
+        )
+
+
+class InvalidEditableRequirement(DiagnosticPipError):
+    reference = "invalid-editable-requirement"
+
+    def __init__(self, *, requirement: str, vcs_schemes: List[str]) -> None:
+        if os.path.sep in requirement and "://" not in requirement:
+            hint = (
+                "It appears to be a path, but does not exist. Was the right path given?"
+            )
+        else:
+            hint = (
+                "It should either be a path to a local project or a VCS URL "
+                f"(beginning with {', '.join(vcs_schemes)})."
+            )
+
+        super().__init__(
+            message=Text(f"{requirement} is not a valid editable requirement"),
+            context=(
+                "There would be no source tree that can be edited after installation."
+            ),
+            hint_stmt=hint,
+        )
+
+
+class EditableUnsupportedByBackend(DiagnosticPipError):
+    reference = "editable-mode-unsupported-by-backend"
+
+    def __init__(self, *, requirement: "InstallRequirement", backend: str) -> None:
+        super().__init__(
+            message=f"Cannot install {requirement} in editable mode",
+            context=(
+                f"The project's build backend ([magenta]{backend}[/]) does "
+                "not support editable installs.\n"
+                "Falling back to a setuptools legacy editable install is "
+                "unsupported as neither a 'setup.py' nor a 'setup.cfg' was found."
+            ),
+            hint_stmt=Text("Consider using a build backend that supports PEP 660."),
         )
