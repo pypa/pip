@@ -62,11 +62,17 @@ def build_editable(wheel_directory, config_settings=None, metadata_directory=Non
 
 
 def _make_project(
-    tmpdir: Path, backend_code: str, with_setup_py: bool, with_pyproject: bool = True
+    tmpdir: Path,
+    backend_code: str,
+    *,
+    with_setup_py: bool,
+    with_setup_cfg: bool = True,
+    with_pyproject: bool = True,
 ) -> Path:
     project_dir = tmpdir / "project"
     project_dir.mkdir()
-    project_dir.joinpath("setup.cfg").write_text(SETUP_CFG)
+    if with_setup_cfg:
+        project_dir.joinpath("setup.cfg").write_text(SETUP_CFG)
     if with_setup_py:
         project_dir.joinpath("setup.py").write_text(SETUP_PY)
     if backend_code:
@@ -223,3 +229,19 @@ def test_download_editable_pep660_basic(
     _assert_hook_not_called(project_dir, "prepare_metadata_for_build_editable")
     _assert_hook_called(project_dir, "prepare_metadata_for_build_wheel")
     assert len(os.listdir(str(download_dir))) == 1, "a zip should have been created"
+
+
+def test_install_editable_unsupported_by_backend(
+    tmpdir: Path, script: PipTestEnvironment
+) -> None:
+    """
+    Check that pip errors out when installing a project whose backend does not
+    support PEP 660 and falling back to a legacy editable install is impossible
+    (no 'setup.py' or 'setup.py.cfg').
+    """
+    project_dir = _make_project(
+        tmpdir, BACKEND_WITHOUT_PEP660, with_setup_py=False, with_setup_cfg=False
+    )
+    result = script.pip("install", "--editable", project_dir, expect_error=True)
+    assert "editable-mode-unsupported-by-backend" in result.stderr
+    assert "Consider using a build backend that supports PEP 660" in result.stderr

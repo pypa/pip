@@ -346,7 +346,8 @@ def test_basic_editable_install(script: PipTestEnvironment) -> None:
     Test editable installation.
     """
     result = script.pip("install", "-e", "INITools==0.2", expect_error=True)
-    assert "INITools==0.2 is not a valid editable requirement" in result.stderr
+    assert "Cannot install INITools==0.2 in editable mode" in result.stderr
+    assert "It is not a valid editable requirement" in result.stderr
     assert not result.files_created
 
 

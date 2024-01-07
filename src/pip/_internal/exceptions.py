@@ -726,3 +726,36 @@ class ExternallyManagedEnvironment(DiagnosticPipError):
             exc_info = logger.isEnabledFor(VERBOSE)
             logger.warning("Failed to read %s", config, exc_info=exc_info)
         return cls(None)
+
+
+class InvalidEditableRequirement(DiagnosticPipError):
+    reference = "invalid-editable-requirement"
+
+    def __init__(self, *, requirement: str, vcs_schemes: List[str]) -> None:
+        super().__init__(
+            message=Text(f"Cannot install {requirement} in editable mode."),
+            context=(
+                "It is not a valid editable requirement. There would be no source tree "
+                "that can be edited after installation."
+            ),
+            hint_stmt=(
+                "It should either be a path to a local project or a VCS URL "
+                f"(beginning with {', '.join(vcs_schemes)})."
+            ),
+        )
+
+
+class EditableUnsupportedByBackend(DiagnosticPipError):
+    reference = "editable-mode-unsupported-by-backend"
+
+    def __init__(self, *, requirement: "InstallRequirement") -> None:
+        super().__init__(
+            message=Text(f"Cannot install {requirement} in editable mode."),
+            context=(
+                "The project has a 'pyproject.toml' and its build backend is missing "
+                "the 'build_editable' hook.\n"
+                "Since it does not have a 'setup.py' nor a 'setup.cfg', "
+                "it cannot be installed in editable mode. "
+            ),
+            hint_stmt=Text("Consider using a build backend that supports PEP 660."),
+        )
