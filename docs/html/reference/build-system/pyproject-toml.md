@@ -135,13 +135,13 @@ section, it will be assumed to have the following backend settings:
 
 ```toml
 [build-system]
-requires = ["setuptools>=40.8.0", "wheel"]
+requires = ["setuptools>=40.8.0"]
 build-backend = "setuptools.build_meta:__legacy__"
 ```
 
 If a project has a `build-system` section but no `build-backend`, then:
 
-- It is expected to include `setuptools` and `wheel` as build requirements. An
+- It is expected to include `setuptools` as a build requirement. An
   error is reported if the available version of `setuptools` is not recent
   enough.
 
