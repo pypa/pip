@@ -184,8 +184,6 @@ class InstallRequirement:
         # a "virtual" dist without a physical location on the filesystem, or
         # a "concrete" dist which has been fully downloaded.
         self._dist: Optional[BaseDistribution] = None
-        # Strictly used in testing: allow calling .cache_concrete_dist() twice.
-        self.allow_concrete_dist_overwrite = False
 
         # This requirement needs to be unpacked before it can be installed.
         self._archive_source: Optional[Path] = None
@@ -644,8 +642,7 @@ class InstallRequirement:
             # If we set a dist twice for the same requirement, we must be hydrating
             # a concrete dist for what was previously virtual. This will occur in the
             # case of `install --dry-run` when PEP 658 metadata is available.
-            if not self.allow_concrete_dist_overwrite:
-                assert not self._dist.is_concrete
+            assert not self._dist.is_concrete
         assert dist.is_concrete
         self._dist = dist
 
