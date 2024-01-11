@@ -683,24 +683,26 @@ class RequirementPreparer:
 
     def _populate_download_info(self, req: InstallRequirement) -> None:
         # If download_info is set, we got it from the wheel cache.
-        if req.download_info is None:
-            # Editables don't go through this function (see
-            # prepare_editable_requirement).
-            assert not req.editable
-            req.download_info = direct_url_from_link(req.link, req.source_dir)
-            # Make sure we have a hash in download_info. If we got it as part of the
-            # URL, it will have been verified and we can rely on it. Otherwise we
-            # compute it from the downloaded file.
-            # FIXME: https://github.com/pypa/pip/issues/11943
-            if (
-                isinstance(req.download_info.info, ArchiveInfo)
-                and not req.download_info.info.hashes
-                and req.local_file_path
-            ):
-                hash = hash_file(req.local_file_path)[0].hexdigest()
-                # We populate info.hash for backward compatibility.
-                # This will automatically populate info.hashes.
-                req.download_info.info.hash = f"sha256={hash}"
+        if req.download_info is not None:
+            return
+
+        # Editables don't go through this function (see
+        # prepare_editable_requirement).
+        assert not req.editable
+        req.download_info = direct_url_from_link(req.link, req.source_dir)
+        # Make sure we have a hash in download_info. If we got it as part of the
+        # URL, it will have been verified and we can rely on it. Otherwise we
+        # compute it from the downloaded file.
+        # FIXME: https://github.com/pypa/pip/issues/11943
+        if (
+            isinstance(req.download_info.info, ArchiveInfo)
+            and not req.download_info.info.hashes
+            and req.local_file_path
+        ):
+            hash = hash_file(req.local_file_path)[0].hexdigest()
+            # We populate info.hash for backward compatibility.
+            # This will automatically populate info.hashes.
+            req.download_info.info.hash = f"sha256={hash}"
 
     def save_linked_requirement(self, req: InstallRequirement) -> None:
         assert self.download_dir is not None
