@@ -495,13 +495,17 @@ class LazyWheelOverHTTP(LazyHTTPFile):
     def _initial_chunk_length(cls) -> int:
         """Return the size of the chunk (in bytes) to download from the end of the file.
 
-        This method is called in ``self._fetch_content_length()``. As noted in that
-        method's docstring, this should be set high enough to cover the central
-        directory sizes of the *largest* wheels you expect to see, in order to avoid
-        further requests before being able to process the zip file's contents at all. If
+        This method is called in ``self._fetch_content_length()``. If
         the chunk size from this method is larger than the size of an entire wheel, that
         may raise an HTTP error, but this is gracefully handled in
         ``self._fetch_content_length()`` with a small performance penalty.
+
+        Performance testing for values returned by this method (radoering):
+        https://github.com/pypa/pip/pull/12208#discussion_r1434335276
+        > could not find any significant differences for values between 1.000 and
+        > 100.000 in a real-world example with more than 300 dependencies. Values below
+        > 1.000 resulted in a slightly worse performance, larger values like 1.000.000
+        > resulted in a significant worse performance.
         """
         return 10_000
 
