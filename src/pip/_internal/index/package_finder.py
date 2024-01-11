@@ -1,11 +1,14 @@
 """Routines related to PyPI, indexes"""
 
+import binascii
+import datetime
 import enum
 import functools
 import itertools
 import logging
 import os
 import re
+import time
 from hashlib import sha256
 from pathlib import Path
 from typing import (
@@ -800,37 +803,43 @@ class PackageFinder:
 
         return candidates
 
-    @staticmethod
+    _HTTP_DATE_FORMAT = "%a, %d %b %Y %H:%M:%S %Z"
+
+    @classmethod
     def _try_load_http_cache_headers(
+        cls,
         etag_path: Path,
         date_path: Path,
         checksum_path: Path,
         project_url: Link,
         headers: Dict[str, str],
-    ) -> Tuple[Optional[str], Optional[str], Optional[bytes]]:
+    ) -> Tuple[Optional[str], Optional[datetime.datetime], Optional[bytes]]:
         etag: Optional[str] = None
         try:
             etag = etag_path.read_text()
+            etag = f'"{etag}"'
             logger.debug(
                 "found cached etag for url %s at %s: %s",
                 project_url,
                 etag_path,
                 etag,
             )
-            headers["If-None-Match"] = f'"{etag}"'
+            headers["If-None-Match"] = etag
         except OSError as e:
             logger.debug("no etag found for url %s (%s)", project_url, str(e))
 
-        date: Optional[str] = None
+        date: Optional[datetime.datetime] = None
         try:
-            date = date_path.read_text()
+            date_bytes = date_path.read_bytes()
+            date_int = int.from_bytes(date_bytes, byteorder="big", signed=False)
+            date = datetime.datetime.fromtimestamp(date_int, tz=datetime.timezone.utc)
             logger.debug(
-                "found cached date for url %s at %s: %s",
+                "found cached date for url %s at %s: '%s'",
                 project_url,
                 date_path,
                 date,
             )
-            headers["If-Modified-Since"] = date
+            headers["If-Modified-Since"] = date.strftime(cls._HTTP_DATE_FORMAT)
         except OSError as e:
             logger.debug("no date found for url %s (%s)", project_url, str(e))
 
@@ -838,10 +847,10 @@ class PackageFinder:
         try:
             checksum = checksum_path.read_bytes()
             logger.debug(
-                "found checksum for url %s at %s: %s",
+                "found checksum for url %s at %s: '%s'",
                 project_url,
                 checksum_path,
-                checksum,
+                binascii.b2a_base64(checksum, newline=False).decode("ascii"),
             )
         except OSError as e:
             logger.debug("no checksum found for url %s (%s)", project_url, str(e))
@@ -854,6 +863,11 @@ class PackageFinder:
     def _strip_quoted_value(cls, value: str) -> str:
         return cls._quoted_value.sub(r"\1", value)
 
+    _now_local = datetime.datetime.now().astimezone()
+    _local_tz = _now_local.tzinfo
+    assert _local_tz is not None
+    _local_tz_name = _local_tz.tzname(_now_local)
+
     @classmethod
     def _write_http_cache_info(
         cls,
@@ -864,7 +878,7 @@ class PackageFinder:
         index_response: IndexContent,
         prev_etag: Optional[str],
         prev_checksum: Optional[bytes],
-    ) -> Tuple[Optional[str], Optional[str], bytes, bool]:
+    ) -> Tuple[Optional[str], Optional[datetime.datetime], bytes, bool]:
         hasher = sha256()
         hasher.update(index_response.content)
         new_checksum = hasher.digest()
@@ -894,18 +908,56 @@ class PackageFinder:
                 )
                 assert page_unmodified
 
-        new_date: Optional[str] = index_response.date
-        if new_date is None:
+        new_date: Optional[datetime.datetime] = None
+        date_str: Optional[str] = index_response.date
+        if date_str is None:
             logger.debug(
-                "no date could be parsed from response for url %s", project_url
+                "no date header was provided in response for url %s", project_url
             )
+        else:
+            date_str = date_str.strip()
+            new_time = time.strptime(date_str, cls._HTTP_DATE_FORMAT)
+            new_date = datetime.datetime.strptime(date_str, cls._HTTP_DATE_FORMAT)
+            # strptime() doesn't set the timezone according to the parsed %Z arg, which
+            # may be any of "UTC", "GMT", or any element of `time.tzname`.
+            if new_time.tm_zone in ["UTC", "GMT"]:
+                logger.debug(
+                    "a UTC timezone was found in response for url %s", project_url
+                )
+                new_date = new_date.replace(tzinfo=datetime.timezone.utc)
+            else:
+                assert new_time.tm_zone in time.tzname, new_time
+                logger.debug(
+                    "a local timezone %s was found in response for url %s",
+                    new_time.tm_zone,
+                    project_url,
+                )
+                if new_time.tm_zone == cls._local_tz_name:
+                    new_date = new_date.replace(tzinfo=cls._local_tz)
+                else:
+                    logger.debug(
+                        "a local timezone %s had to be discarded in response %s",
+                        new_time.tm_zone,
+                        project_url,
+                    )
+                    new_date = None
+
+            if new_date is not None:
+                timestamp = new_date.timestamp()
+                # The timestamp will only have second resolution according to the parse
+                # format string _HTTP_DATE_FORMAT.
+                assert not (timestamp % 1), (new_date, timestamp)
+                epoch = int(timestamp)
+                assert epoch >= 0, (new_date, timestamp, epoch)
+                date_bytes = epoch.to_bytes(length=4, byteorder="big", signed=False)
+                date_path.write_bytes(date_bytes)
+
+                logger.debug('date "%s" written for url %s', new_date, project_url)
+        if new_date is None:
             try:
                 date_path.unlink()
             except OSError:
                 pass
-        else:
-            logger.debug('date "%s" written for url %s', new_date, project_url)
-            date_path.write_text(new_date)
 
         return (new_etag, new_date, new_checksum, page_unmodified)
 
