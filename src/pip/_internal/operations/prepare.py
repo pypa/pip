@@ -530,7 +530,7 @@ class RequirementPreparer:
             # None of the optimizations worked, fully prepare the requirement
             return self._prepare_linked_requirement(req, parallel_builds)
 
-    def _ensure_download_info(self, reqs: Iterable[InstallRequirement]) -> None:
+    def _extract_download_info(self, reqs: Iterable[InstallRequirement]) -> None:
         """
         `pip install --report` extracts the download info from each requirement for its
         JSON output, so we need to make sure every requirement has this before finishing
@@ -556,33 +556,12 @@ class RequirementPreparer:
             if assert_has_dist_files:
                 assert req.is_concrete
 
-    def finalize_linked_requirements(
+    def _ensure_dist_files(
         self,
         reqs: Iterable[InstallRequirement],
-        require_dist_files: bool,
         parallel_builds: bool = False,
     ) -> None:
-        """Prepare linked requirements more, if needed.
-
-        Neighboring .metadata files as per PEP 658 or lazy wheels via fast-deps will be
-        preferred to extract metadata from any concrete requirement (one that has been
-        mapped to a Link) without downloading the underlying wheel or sdist. When ``pip
-        install --dry-run`` is called, we want to avoid ever downloading the underlying
-        dist, but we still need to provide all of the results that pip commands expect
-        from the typical resolve process.
-
-        Those expectations vary, but one distinction lies in whether the command needs
-        an actual physical dist somewhere on the filesystem, or just the metadata about
-        it from the resolver (as in ``pip install --report``). If the command requires
-        actual physical filesystem locations for the resolved dists, it must call this
-        method with ``require_dist_files=True`` to fully download anything
-        that remains.
-        """
-        if not require_dist_files:
-            self._ensure_download_info(reqs)
-            self._force_fully_prepared(reqs, assert_has_dist_files=False)
-            return
-
+        """Download any metadata-only linked requirements."""
         partially_downloaded_reqs: List[InstallRequirement] = []
         for req in reqs:
             if req.is_concrete:
@@ -606,8 +585,34 @@ class RequirementPreparer:
             partially_downloaded_reqs,
             parallel_builds=parallel_builds,
         )
-        # NB: Must call this method before returning!
-        self._force_fully_prepared(reqs, assert_has_dist_files=True)
+
+    def finalize_linked_requirements(
+        self,
+        reqs: Iterable[InstallRequirement],
+        require_dist_files: bool,
+        parallel_builds: bool = False,
+    ) -> None:
+        """Prepare linked requirements more, if needed.
+
+        Neighboring .metadata files as per PEP 658 or lazy wheels via fast-deps will be
+        preferred to extract metadata from any concrete requirement (one that has been
+        mapped to a Link) without downloading the underlying wheel or sdist. When ``pip
+        install --dry-run`` is called, we want to avoid ever downloading the underlying
+        dist, but we still need to provide all of the results that pip commands expect
+        from the typical resolve process.
+
+        Those expectations vary, but one distinction lies in whether the command needs
+        an actual physical dist somewhere on the filesystem, or just the metadata about
+        it from the resolver (as in ``pip install --report``). If the command requires
+        actual physical filesystem locations for the resolved dists, it must call this
+        method with ``require_dist_files=True`` to fully download anything
+        that remains.
+        """
+        if require_dist_files:
+            self._ensure_dist_files(reqs, parallel_builds=parallel_builds)
+        else:
+            self._extract_download_info(reqs)
+        self._force_fully_prepared(reqs, assert_has_dist_files=require_dist_files)
 
     def _prepare_linked_requirement(
         self, req: InstallRequirement, parallel_builds: bool
