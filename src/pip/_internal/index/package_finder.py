@@ -807,7 +807,7 @@ class PackageFinder:
         checksum_path: Path,
         project_url: Link,
         headers: Dict[str, str],
-    ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+    ) -> Tuple[Optional[str], Optional[str], Optional[bytes]]:
         etag: Optional[str] = None
         try:
             etag = etag_path.read_text()
@@ -817,7 +817,7 @@ class PackageFinder:
                 etag_path,
                 etag,
             )
-            headers["If-None-Match"] = etag
+            headers["If-None-Match"] = f'"{etag}"'
         except OSError as e:
             logger.debug("no etag found for url %s (%s)", project_url, str(e))
 
@@ -834,9 +834,9 @@ class PackageFinder:
         except OSError as e:
             logger.debug("no date found for url %s (%s)", project_url, str(e))
 
-        checksum: Optional[str] = None
+        checksum: Optional[bytes] = None
         try:
-            checksum = checksum_path.read_text()
+            checksum = checksum_path.read_bytes()
             logger.debug(
                 "found checksum for url %s at %s: %s",
                 project_url,
@@ -848,44 +848,53 @@ class PackageFinder:
 
         return (etag, date, checksum)
 
-    @staticmethod
+    _quoted_value = re.compile(r'^"([^"]*)"$')
+
+    @classmethod
+    def _strip_quoted_value(cls, value: str) -> str:
+        return cls._quoted_value.sub(r"\1", value)
+
+    @classmethod
     def _write_http_cache_info(
+        cls,
         etag_path: Path,
         date_path: Path,
         checksum_path: Path,
         project_url: Link,
         index_response: IndexContent,
         prev_etag: Optional[str],
-        prev_checksum: Optional[str],
-    ) -> Tuple[Optional[str], Optional[str], str, bool]:
+        prev_checksum: Optional[bytes],
+    ) -> Tuple[Optional[str], Optional[str], bytes, bool]:
         hasher = sha256()
         hasher.update(index_response.content)
-        new_checksum = hasher.hexdigest()
-        checksum_path.write_text(new_checksum)
+        new_checksum = hasher.digest()
+        checksum_path.write_bytes(new_checksum)
         page_unmodified = new_checksum == prev_checksum
 
-        new_etag = index_response.etag
+        new_etag: Optional[str] = index_response.etag
         if new_etag is None:
             logger.debug("no etag returned from fetch for url %s", project_url.url)
             try:
                 etag_path.unlink()
             except OSError:
                 pass
-        elif new_etag != prev_etag:
-            logger.debug(
-                "etag for url %s updated from %s -> %s",
-                project_url.url,
-                prev_etag,
-                new_etag,
-            )
-            etag_path.write_text(new_etag)
         else:
-            logger.debug(
-                "etag was unmodified for url %s (%s)", project_url.url, prev_etag
-            )
-            assert page_unmodified
+            new_etag = cls._strip_quoted_value(new_etag)
+            if new_etag != prev_etag:
+                logger.debug(
+                    "etag for url %s updated from %s -> %s",
+                    project_url.url,
+                    prev_etag,
+                    new_etag,
+                )
+                etag_path.write_text(new_etag)
+            else:
+                logger.debug(
+                    "etag was unmodified for url %s (%s)", project_url.url, prev_etag
+                )
+                assert page_unmodified
 
-        new_date = index_response.date
+        new_date: Optional[str] = index_response.date
         if new_date is None:
             logger.debug(
                 "no date could be parsed from response for url %s", project_url
