@@ -183,7 +183,7 @@ class InstallRequirement:
         # everywhere within pip and isn't computed more than once. This may be
         # a "virtual" dist without a physical location on the filesystem, or
         # a "concrete" dist which has been fully downloaded.
-        self._cached_dist: Optional[BaseDistribution] = None
+        self._dist: Optional[BaseDistribution] = None
         # Strictly used in testing: allow calling .cache_concrete_dist() twice.
         self.allow_concrete_dist_overwrite = False
 
@@ -605,19 +605,18 @@ class InstallRequirement:
     def metadata(self) -> Any:
         # TODO: use cached_property in python 3.8+
         if not hasattr(self, "_metadata"):
-            self._metadata = self.cached_dist.metadata
+            self._metadata = self.get_dist().metadata
 
         return self._metadata
 
-    @property
-    def cached_dist(self) -> BaseDistribution:
+    def get_dist(self) -> BaseDistribution:
         """Retrieve the dist resolved from this requirement.
 
         :raises AssertionError: if the resolver has not yet been executed.
         """
-        if self._cached_dist is None:
+        if self._dist is None:
             raise AssertionError(f"{self!r} has no dist associated.")
-        return self._cached_dist
+        return self._dist
 
     def cache_virtual_metadata_only_dist(self, dist: BaseDistribution) -> None:
         """Associate a "virtual" metadata-only dist to this requirement.
@@ -629,9 +628,9 @@ class InstallRequirement:
         :raises AssertionError: if the provided dist is "concrete", i.e. exists
                                 somewhere on the filesystem.
         """
-        assert self._cached_dist is None, self
+        assert self._dist is None, self
         assert not dist.is_concrete, dist
-        self._cached_dist = dist
+        self._dist = dist
 
     def cache_concrete_dist(self, dist: BaseDistribution) -> None:
         """Associate a "concrete" dist to this requirement.
@@ -641,18 +640,18 @@ class InstallRequirement:
         :raises AssertionError: if a concrete dist has already been associated.
         :raises AssertionError: if the provided dist is not concrete.
         """
-        if self._cached_dist is not None:
+        if self._dist is not None:
             # If we set a dist twice for the same requirement, we must be hydrating
             # a concrete dist for what was previously virtual. This will occur in the
             # case of `install --dry-run` when PEP 658 metadata is available.
             if not self.allow_concrete_dist_overwrite:
-                assert not self._cached_dist.is_concrete
+                assert not self._dist.is_concrete
         assert dist.is_concrete
-        self._cached_dist = dist
+        self._dist = dist
 
     @property
     def is_concrete(self) -> bool:
-        return self._cached_dist is not None and self._cached_dist.is_concrete
+        return self._dist is not None and self._dist.is_concrete
 
     def assert_source_matches_version(self) -> None:
         assert self.source_dir, f"No source dir for {self}"

@@ -127,7 +127,7 @@ def _simulate_installation_of(
     # Modify it as installing requirement_set would (assuming no errors)
     for inst_req in to_install:
         assert inst_req.is_concrete
-        dist = inst_req.cached_dist
+        dist = inst_req.get_dist()
         name = dist.canonical_name
         package_set[name] = PackageDetails(dist.version, list(dist.iter_dependencies()))
 
