@@ -376,6 +376,11 @@ def keyring_provider_implementation(request: pytest.FixtureRequest) -> str:
     return request.param
 
 
+@pytest.fixture(params=(True, False), ids=("keyring_forced", "keyring_not_forced"))
+def force_keyring(request: pytest.FixtureRequest) -> bool:
+    return request.param
+
+
 @pytest.fixture()
 def flags(
     request: pytest.FixtureRequest,
@@ -383,6 +388,7 @@ def flags(
     auth_needed: bool,
     keyring_provider: str,
     keyring_provider_implementation: str,
+    force_keyring: bool,
 ) -> List[str]:
     if (
         keyring_provider not in [None, "auto"]
@@ -398,9 +404,11 @@ def flags(
         flags.append("--no-input")
     if auth_needed:
         if keyring_provider_implementation == "disabled" or (
-            not interactive and keyring_provider in [None, "auto"]
+            not interactive and keyring_provider in [None, "auto"] and not force_keyring
         ):
             request.applymarker(pytest.mark.xfail())
+    if force_keyring:
+        flags.append("--force-keyring")
     return flags
 
 
@@ -415,6 +423,7 @@ def test_prompt_for_keyring_if_needed(
     flags: List[str],
     keyring_provider: str,
     keyring_provider_implementation: str,
+    force_keyring: bool,
     tmpdir: Path,
     script_factory: ScriptFactory,
     virtualenv_factory: Callable[[Path], VirtualEnvironment],
@@ -525,7 +534,7 @@ def test_prompt_for_keyring_if_needed(
         if keyring_provider_implementation == "import"
         else "get_password"
     )
-    if auth_needed:
+    if auth_needed or (force_keyring and keyring_provider_implementation != "disabled"):
         assert function_name + " was called" in result.stderr
     else:
         assert function_name + " was called" not in result.stderr
