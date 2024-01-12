@@ -513,6 +513,16 @@ class TestGeneralOptions(AddFakeCommandMixin):
         assert options1.no_input
         assert options2.no_input
 
+    def test_keyring_provider(self) -> None:
+        # FakeCommand intentionally returns the wrong type.
+        options1, args1 = cast(
+            Tuple[Values, List[str]], main(["--keyring-provider", "import", "fake"])
+        )
+        options2, args2 = cast(
+            Tuple[Values, List[str]], main(["fake", "--keyring-provider", "import"])
+        )
+        assert options1.keyring_provider == options2.keyring_provider == "import"
+
     def test_force_keyring(self) -> None:
         # FakeCommand intentionally returns the wrong type.
         options1, args1 = cast(
