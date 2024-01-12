@@ -265,6 +265,17 @@ keyring_provider: Callable[..., Option] = partial(
     ),
 )
 
+force_keyring: Callable[..., Option] = partial(
+    Option,
+    "--force-keyring",
+    dest="force_keyring",
+    action="store_true",
+    default=False,
+    help=(
+        "Always lookup credential via the keyring library before contacting the server."
+    ),
+)
+
 proxy: Callable[..., Option] = partial(
     Option,
     "--proxy",
@@ -1046,6 +1057,7 @@ general_group: Dict[str, Any] = {
         log,
         no_input,
         keyring_provider,
+        force_keyring,
         proxy,
         retries,
         timeout,
