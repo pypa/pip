@@ -129,11 +129,11 @@ def test_prioritize_longest_path_prefix_match_organization() -> None:
     )
 
     # Inspired by Azure DevOps URL structure, GitLab should look similar
-    assert get("http://example.com/org-name-alpha/repo-guid/dowbload/") == (
+    assert get("http://example.com/org-name-alpha/repo-guid/download/") == (
         "foo",
         "bar",
     )
-    assert get("http://example.com/org-name-beta/repo-guid/dowbload/") == ("bar", "foo")
+    assert get("http://example.com/org-name-beta/repo-guid/download/") == ("bar", "foo")
 
 
 def test_prioritize_longest_path_prefix_match_project() -> None:
@@ -149,10 +149,10 @@ def test_prioritize_longest_path_prefix_match_project() -> None:
 
     # Inspired by Azure DevOps URL structure, GitLab should look similar
     assert get(
-        "http://example.com/org-alpha/project-name-alpha/repo-guid/dowbload/"
+        "http://example.com/org-alpha/project-name-alpha/repo-guid/download/"
     ) == ("foo", "bar")
     assert get(
-        "http://example.com/org-alpha/project-name-beta/repo-guid/dowbload/"
+        "http://example.com/org-alpha/project-name-beta/repo-guid/download/"
     ) == ("bar", "foo")
 
 
