@@ -1,0 +1,1 @@
+pre-commit: Upgrade to the current mypy v1.8.0
