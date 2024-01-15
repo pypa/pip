@@ -249,8 +249,7 @@ def test_rmtree_errorhandler_reraises_error(tmpdir: Path) -> None:
     # Create directory without read permission
     subdir_path = tmpdir / "subdir"
     subdir_path.mkdir()
-    path = str(subdir_path)
-    os.chmod(path, stat.S_IWRITE)
+    os.chmod(subdir_path, stat.S_IWRITE)
 
     mock_func = Mock()
 
@@ -265,7 +264,7 @@ def test_rmtree_errorhandler_reraises_error(tmpdir: Path) -> None:
             # BaseException, TracebackType]"
             rmtree_errorhandler(
                 mock_func,
-                path,  # type: ignore[arg-type]
+                subdir_path,
                 sys.exc_info(),  # type: ignore[arg-type]
             )
 
