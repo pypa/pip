@@ -49,6 +49,7 @@ from pip._internal.utils.misc import (
     display_path,
     hide_url,
     is_installable_dir,
+    redact_auth_from_requirement,
     redact_auth_from_url,
 )
 from pip._internal.utils.packaging import safe_extra
@@ -188,9 +189,9 @@ class InstallRequirement:
 
     def __str__(self) -> str:
         if self.req:
-            s = str(self.req)
+            s = redact_auth_from_requirement(self.req)
             if self.link:
-                s += " from {}".format(redact_auth_from_url(self.link.url))
+                s += f" from {redact_auth_from_url(self.link.url)}"
         elif self.link:
             s = redact_auth_from_url(self.link.url)
         else:
@@ -220,7 +221,7 @@ class InstallRequirement:
         attributes = vars(self)
         names = sorted(attributes)
 
-        state = ("{}={!r}".format(attr, attributes[attr]) for attr in sorted(names))
+        state = (f"{attr}={attributes[attr]!r}" for attr in sorted(names))
         return "<{name} object: {{{state}}}>".format(
             name=self.__class__.__name__,
             state=", ".join(state),
@@ -753,8 +754,8 @@ class InstallRequirement:
 
         if os.path.exists(archive_path):
             response = ask_path_exists(
-                "The file {} exists. (i)gnore, (w)ipe, "
-                "(b)ackup, (a)bort ".format(display_path(archive_path)),
+                f"The file {display_path(archive_path)} exists. (i)gnore, (w)ipe, "
+                "(b)ackup, (a)bort ",
                 ("i", "w", "b", "a"),
             )
             if response == "i":

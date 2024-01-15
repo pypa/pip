@@ -20,6 +20,7 @@ Albert-Guan
 albertg
 Alberto Sottile
 Aleks Bunin
+Ales Erjavec
 Alethea Flowers
 Alex Gaynor
 Alex Grönholm
@@ -30,6 +31,7 @@ Alex Stachowiak
 Alexander Shtyrov
 Alexandre Conrad
 Alexey Popravka
+Aleš Erjavec
 Alli
 Ami Fischman
 Ananya Maiti
@@ -196,9 +198,11 @@ David Runge
 David Tucker
 David Wales
 Davidovich
+ddelange
 Deepak Sharma
 Deepyaman Datta
 Denise Yu
+dependabot[bot]
 derwolfe
 Desetude
 Devesh Kumar Singh
@@ -223,6 +227,8 @@ Dwayne Bailey
 Ed Morley
 Edgar Ramírez
 Ee Durbin
+Efflam Lemaillet
+efflamlemaillet
 Eitan Adler
 ekristina
 elainechan
@@ -312,6 +318,7 @@ Ilya Baryshev
 Inada Naoki
 Ionel Cristian Mărieș
 Ionel Maries Cristian
+Itamar Turner-Trauring
 Ivan Pozdeev
 Jacob Kim
 Jacob Walls
@@ -338,6 +345,7 @@ Jay Graves
 Jean-Christophe Fillion-Robin
 Jeff Barber
 Jeff Dairiki
+Jeff Widman
 Jelmer Vernooĳ
 jenix21
 Jeremy Stanley
@@ -367,6 +375,7 @@ Joseph Long
 Josh Bronson
 Josh Hansen
 Josh Schneier
+Joshua
 Juan Luis Cano Rodríguez
 Juanjo Bazán
 Judah Rand
@@ -397,6 +406,7 @@ KOLANICH
 kpinc
 Krishna Oza
 Kumar McMillan
+Kurt McKee
 Kyle Persohn
 lakshmanaram
 Laszlo Kiss-Kollar
@@ -413,6 +423,7 @@ lorddavidiii
 Loren Carvalho
 Lucas Cimon
 Ludovic Gasc
+Lukas Geiger
 Lukas Juhrich
 Luke Macken
 Luo Jiebin
@@ -529,6 +540,7 @@ Patrick Jenkins
 Patrick Lawson
 patricktokeeffe
 Patrik Kopkan
+Paul Ganssle
 Paul Kehrer
 Paul Moore
 Paul Nasrat
@@ -609,6 +621,7 @@ ryneeverett
 Sachi King
 Salvatore Rinchiera
 sandeepkiran-js
+Sander Van Balen
 Savio Jomton
 schlamar
 Scott Kitterman
@@ -621,6 +634,7 @@ SeongSoo Cho
 Sergey Vasilyev
 Seth Michael Larson
 Seth Woodworth
+Shahar Epstein
 Shantanu
 shireenrao
 Shivansh-007
@@ -648,6 +662,7 @@ Steve Kowalik
 Steven Myint
 Steven Silvester
 stonebig
+studioj
 Stéphane Bidoul
 Stéphane Bidoul (ACSONE)
 Stéphane Klein

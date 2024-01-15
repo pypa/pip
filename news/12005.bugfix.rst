@@ -1,1 +1,0 @@
-Removed uses of ``datetime.datetime.utcnow`` from non-vendored code.

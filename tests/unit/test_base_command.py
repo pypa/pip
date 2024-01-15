@@ -151,7 +151,7 @@ def test_base_command_provides_tempdir_helpers() -> None:
 
     c = Command("fake", "fake")
     # https://github.com/python/mypy/issues/2427
-    c.run = Mock(side_effect=assert_helpers_set)  # type: ignore[assignment]
+    c.run = Mock(side_effect=assert_helpers_set)  # type: ignore[method-assign]
     assert c.main(["fake"]) == SUCCESS
     c.run.assert_called_once()
 
@@ -176,7 +176,7 @@ def test_base_command_global_tempdir_cleanup(kind: str, exists: bool) -> None:
 
     c = Command("fake", "fake")
     # https://github.com/python/mypy/issues/2427
-    c.run = Mock(side_effect=create_temp_dirs)  # type: ignore[assignment]
+    c.run = Mock(side_effect=create_temp_dirs)  # type: ignore[method-assign]
     assert c.main(["fake"]) == SUCCESS
     c.run.assert_called_once()
     assert os.path.exists(Holder.value) == exists
@@ -200,6 +200,6 @@ def test_base_command_local_tempdir_cleanup(kind: str, exists: bool) -> None:
 
     c = Command("fake", "fake")
     # https://github.com/python/mypy/issues/2427
-    c.run = Mock(side_effect=create_temp_dirs)  # type: ignore[assignment]
+    c.run = Mock(side_effect=create_temp_dirs)  # type: ignore[method-assign]
     assert c.main(["fake"]) == SUCCESS
     c.run.assert_called_once()

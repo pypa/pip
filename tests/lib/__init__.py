@@ -41,6 +41,7 @@ from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
+from pip._internal.utils.egg_link import _egg_link_names
 from tests.lib.venv import VirtualEnvironment
 from tests.lib.wheel import make_wheel
 
@@ -305,6 +306,12 @@ class TestPipResult:
     def files_deleted(self) -> FoundFiles:
         return FoundFiles(self._impl.files_deleted)
 
+    def _get_egg_link_path_created(self, egg_link_paths: List[str]) -> Optional[str]:
+        for egg_link_path in egg_link_paths:
+            if egg_link_path in self.files_created:
+                return egg_link_path
+        return None
+
     def assert_installed(
         self,
         pkg_name: str,
@@ -320,7 +327,7 @@ class TestPipResult:
         e = self.test_env
 
         if editable:
-            pkg_dir = e.venv / "src" / pkg_name.lower()
+            pkg_dir = e.venv / "src" / canonicalize_name(pkg_name)
             # If package was installed in a sub directory
             if sub_dir:
                 pkg_dir = pkg_dir / sub_dir
@@ -329,22 +336,30 @@ class TestPipResult:
             pkg_dir = e.site_packages / pkg_name
 
         if use_user_site:
-            egg_link_path = e.user_site / f"{pkg_name}.egg-link"
+            egg_link_paths = [
+                e.user_site / egg_link_name
+                for egg_link_name in _egg_link_names(pkg_name)
+            ]
         else:
-            egg_link_path = e.site_packages / f"{pkg_name}.egg-link"
+            egg_link_paths = [
+                e.site_packages / egg_link_name
+                for egg_link_name in _egg_link_names(pkg_name)
+            ]
 
+        egg_link_path_created = self._get_egg_link_path_created(egg_link_paths)
         if without_egg_link:
-            if egg_link_path in self.files_created:
+            if egg_link_path_created:
                 raise TestFailure(
-                    f"unexpected egg link file created: {egg_link_path!r}\n{self}"
+                    f"unexpected egg link file created: {egg_link_path_created!r}\n"
+                    f"{self}"
                 )
         else:
-            if egg_link_path not in self.files_created:
+            if not egg_link_path_created:
                 raise TestFailure(
-                    f"expected egg link file missing: {egg_link_path!r}\n{self}"
+                    f"expected egg link file missing: {egg_link_paths!r}\n{self}"
                 )
 
-            egg_link_file = self.files_created[egg_link_path]
+            egg_link_file = self.files_created[egg_link_path_created]
             egg_link_contents = egg_link_file.bytes.replace(os.linesep, "\n")
 
             # FIXME: I don't understand why there's a trailing . here
@@ -747,7 +762,7 @@ class PipTestEnvironment(TestFileEnvironment):
             for val in json.loads(ret.stdout)
         }
         expected = {(canonicalize_name(k), v) for k, v in kwargs.items()}
-        assert expected <= installed, "{!r} not all in {!r}".format(expected, installed)
+        assert expected <= installed, f"{expected!r} not all in {installed!r}"
 
     def assert_not_installed(self, *args: str) -> None:
         ret = self.pip("list", "--format=json")
@@ -755,9 +770,7 @@ class PipTestEnvironment(TestFileEnvironment):
         # None of the given names should be listed as installed, i.e. their
         # intersection should be empty.
         expected = {canonicalize_name(k) for k in args}
-        assert not (expected & installed), "{!r} contained in {!r}".format(
-            expected, installed
-        )
+        assert not (expected & installed), f"{expected!r} contained in {installed!r}"
 
 
 # FIXME ScriptTest does something similar, but only within a single
@@ -1028,7 +1041,7 @@ def _create_test_package_with_srcdir(
     pkg_path.joinpath("__init__.py").write_text("")
     subdir_path.joinpath("setup.py").write_text(
         textwrap.dedent(
-            """
+            f"""
                 from setuptools import setup, find_packages
                 setup(
                     name="{name}",
@@ -1036,9 +1049,7 @@ def _create_test_package_with_srcdir(
                     packages=find_packages(),
                     package_dir={{"": "src"}},
                 )
-            """.format(
-                name=name
-            )
+            """
         )
     )
     return _vcs_add(dir_path, version_pkg_path, vcs)
@@ -1052,7 +1063,7 @@ def _create_test_package(
     _create_main_file(version_pkg_path, name=name, output="0.1")
     version_pkg_path.joinpath("setup.py").write_text(
         textwrap.dedent(
-            """
+            f"""
                 from setuptools import setup, find_packages
                 setup(
                     name="{name}",
@@ -1061,9 +1072,7 @@ def _create_test_package(
                     py_modules=["{name}"],
                     entry_points=dict(console_scripts=["{name}={name}:main"]),
                 )
-            """.format(
-                name=name
-            )
+            """
         )
     )
     return _vcs_add(dir_path, version_pkg_path, vcs)
@@ -1137,7 +1146,7 @@ def urlsafe_b64encode_nopad(data: bytes) -> str:
 
 def create_really_basic_wheel(name: str, version: str) -> bytes:
     def digest(contents: bytes) -> str:
-        return "sha256={}".format(urlsafe_b64encode_nopad(sha256(contents).digest()))
+        return f"sha256={urlsafe_b64encode_nopad(sha256(contents).digest())}"
 
     def add_file(path: str, text: str) -> None:
         contents = text.encode("utf-8")
@@ -1153,13 +1162,11 @@ def create_really_basic_wheel(name: str, version: str) -> bytes:
         add_file(
             f"{dist_info}/METADATA",
             dedent(
-                """\
+                f"""\
                 Metadata-Version: 2.1
-                Name: {}
-                Version: {}
-                """.format(
-                    name, version
-                )
+                Name: {name}
+                Version: {version}
+                """
             ),
         )
         z.writestr(record_path, "\n".join(",".join(r) for r in records))

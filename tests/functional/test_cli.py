@@ -23,7 +23,7 @@ def test_entrypoints_work(entrypoint: str, script: PipTestEnvironment) -> None:
     fake_pkg.mkdir()
     fake_pkg.joinpath("setup.py").write_text(
         dedent(
-            """
+            f"""
     from setuptools import setup
 
     setup(
@@ -31,13 +31,11 @@ def test_entrypoints_work(entrypoint: str, script: PipTestEnvironment) -> None:
         version="0.1.0",
         entry_points={{
             "console_scripts": [
-                {!r}
+                {entrypoint!r}
             ]
         }}
     )
-    """.format(
-                entrypoint
-            )
+    """
         )
     )
 

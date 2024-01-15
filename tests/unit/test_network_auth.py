@@ -406,7 +406,7 @@ class KeyringSubprocessResult(KeyringModuleV1):
         stdin: Optional[Any] = None,
         stdout: Optional[Any] = None,
         input: Optional[bytes] = None,
-        check: Optional[bool] = None
+        check: Optional[bool] = None,
     ) -> Any:
         if cmd[1] == "get":
             assert stdin == -3  # subprocess.DEVNULL

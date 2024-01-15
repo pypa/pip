@@ -44,9 +44,18 @@ complete -fa "(__fish_complete_pip)" -c pip""",
         "zsh",
         """\
 #compdef -P pip[0-9.]#
-compadd $( COMP_WORDS="$words[*]" \\
-           COMP_CWORD=$((CURRENT-1)) \\
-           PIP_AUTO_COMPLETE=1 $words[1] 2>/dev/null )""",
+__pip() {
+  compadd $( COMP_WORDS="$words[*]" \\
+             COMP_CWORD=$((CURRENT-1)) \\
+             PIP_AUTO_COMPLETE=1 $words[1] 2>/dev/null )
+}
+if [[ $zsh_eval_context[-1] == loadautofunc ]]; then
+  # autoload from fpath, call function directly
+  __pip "$@"
+else
+  # eval/source/. command, register function for later
+  compdef __pip -P 'pip[0-9.]#'
+fi""",
     ),
     (
         "powershell",
@@ -391,7 +400,7 @@ def test_completion_path_after_option(
 def test_completion_uses_same_executable_name(
     autocomplete_script: PipTestEnvironment, flag: str, deprecated_python: bool
 ) -> None:
-    executable_name = "pip{}".format(sys.version_info[0])
+    executable_name = f"pip{sys.version_info[0]}"
     # Deprecated python versions produce an extra deprecation warning
     result = autocomplete_script.run(
         executable_name,

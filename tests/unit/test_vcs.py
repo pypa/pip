@@ -66,7 +66,7 @@ def test_rev_options_repr() -> None:
         # First check VCS-specific RevOptions behavior.
         (Bazaar, [], ["-r", "123"], {}),
         (Git, ["HEAD"], ["123"], {}),
-        (Mercurial, [], ["-r=123"], {}),
+        (Mercurial, [], ["--rev=123"], {}),
         (Subversion, [], ["-r", "123"], {}),
         # Test extra_args.  For this, test using a single VersionControl class.
         (
@@ -458,8 +458,7 @@ def test_version_control__run_command__fails(
     with mock.patch("pip._internal.vcs.versioncontrol.call_subprocess") as call:
         call.side_effect = exc_cls
         with pytest.raises(BadCommand, match=msg_re.format(name=vcs_cls.name)):
-            # https://github.com/python/mypy/issues/3283
-            vcs_cls.run_command([])  # type: ignore[arg-type]
+            vcs_cls.run_command([])
 
 
 @pytest.mark.parametrize(
