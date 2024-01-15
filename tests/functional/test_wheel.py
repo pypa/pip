@@ -59,9 +59,7 @@ def test_pip_wheel_success(script: PipTestEnvironment, data: TestData) -> None:
     wheel_file_path = script.scratch / wheel_file_name
     assert re.search(
         r"Created wheel for simple: "
-        r"filename={filename} size=\d+ sha256=[A-Fa-f0-9]{{64}}".format(
-            filename=re.escape(wheel_file_name)
-        ),
+        rf"filename={re.escape(wheel_file_name)} size=\d+ sha256=[A-Fa-f0-9]{{64}}",
         result.stdout,
     )
     assert re.search(r"^\s+Stored in directory: ", result.stdout, re.M)

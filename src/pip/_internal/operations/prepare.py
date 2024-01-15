@@ -47,6 +47,7 @@ from pip._internal.utils.misc import (
     display_path,
     hash_file,
     hide_url,
+    redact_auth_from_requirement,
 )
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.unpacking import unpack_file
@@ -277,7 +278,7 @@ class RequirementPreparer:
             information = str(display_path(req.link.file_path))
         else:
             message = "Collecting %s"
-            information = str(req.req or req)
+            information = redact_auth_from_requirement(req.req) if req.req else str(req)
 
         # If we used req.req, inject requirement source if available (this
         # would already be included if we used req directly)
@@ -602,8 +603,8 @@ class RequirementPreparer:
                 )
             except NetworkConnectionError as exc:
                 raise InstallationError(
-                    "Could not install requirement {} because of HTTP "
-                    "error {} for URL {}".format(req, exc, link)
+                    f"Could not install requirement {req} because of HTTP "
+                    f"error {exc} for URL {link}"
                 )
         else:
             file_path = self._downloaded[link.url]
@@ -683,9 +684,9 @@ class RequirementPreparer:
         with indent_log():
             if self.require_hashes:
                 raise InstallationError(
-                    "The editable requirement {} cannot be installed when "
+                    f"The editable requirement {req} cannot be installed when "
                     "requiring hashes, because there is no single file to "
-                    "hash.".format(req)
+                    "hash."
                 )
             req.ensure_has_source_dir(self.src_dir)
             req.update_editable()
@@ -713,7 +714,7 @@ class RequirementPreparer:
         assert req.satisfied_by, "req should have been satisfied but isn't"
         assert skip_reason is not None, (
             "did not get skip reason skipped but req.satisfied_by "
-            "is set to {}".format(req.satisfied_by)
+            f"is set to {req.satisfied_by}"
         )
         logger.info(
             "Requirement %s: %s (%s)", skip_reason, req, req.satisfied_by.version

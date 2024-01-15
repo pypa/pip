@@ -194,22 +194,17 @@ class PipReqFileOptionsReference(PipOptions):
             opt = option()
             opt_name = opt._long_opts[0]
             if opt._short_opts:
-                short_opt_name = "{}, ".format(opt._short_opts[0])
+                short_opt_name = f"{opt._short_opts[0]}, "
             else:
                 short_opt_name = ""
 
             if option in cmdoptions.general_group["options"]:
                 prefix = ""
             else:
-                prefix = "{}_".format(self.determine_opt_prefix(opt_name))
+                prefix = f"{self.determine_opt_prefix(opt_name)}_"
 
             self.view_list.append(
-                "*  :ref:`{short}{long}<{prefix}{opt_name}>`".format(
-                    short=short_opt_name,
-                    long=opt_name,
-                    prefix=prefix,
-                    opt_name=opt_name,
-                ),
+                f"*  :ref:`{short_opt_name}{opt_name}<{prefix}{opt_name}>`",
                 "\n",
             )
 

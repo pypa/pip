@@ -1,1 +1,0 @@
-Add ruff rules ASYNC,C4,C90,PERF,PLE,PLR for minor optimizations and to set upper limits on code complexity.

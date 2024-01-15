@@ -264,7 +264,7 @@ Installing from Wheels
 
 "Wheel" is a built, archive format that can greatly speed installation compared
 to building and installing from source archives. For more information, see the
-`Wheel docs <https://wheel.readthedocs.io>`_ , :pep:`427`, and :pep:`425`.
+:ref:`specification <pypug:binary-distribution-format>`.
 
 pip prefers Wheels where they are available. To disable this, use the
 :ref:`--no-binary <install_--no-binary>` flag for :ref:`pip install`.
@@ -306,7 +306,8 @@ name:
 .. note::
 
     In the future, the ``path[extras]`` syntax may become deprecated. It is
-    recommended to use PEP 508 syntax wherever possible.
+    recommended to use :ref:`standard <pypug:dependency-specifiers>`
+    syntax wherever possible.
 
 For the cases where wheels are not available, pip offers :ref:`pip wheel` as a
 convenience, to build wheels for all your requirements and dependencies.

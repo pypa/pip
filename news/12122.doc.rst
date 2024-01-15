@@ -1,1 +1,0 @@
-Clarify --prefer-binary in CLI and docs

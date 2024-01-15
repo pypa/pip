@@ -95,7 +95,7 @@ def test_requirements_file(script: PipTestEnvironment) -> None:
     result.did_create(script.site_packages / "INITools-0.2.dist-info")
     result.did_create(script.site_packages / "initools")
     assert result.files_created[script.site_packages / other_lib_name].dir
-    fn = "{}-{}.dist-info".format(other_lib_name, other_lib_version)
+    fn = f"{other_lib_name}-{other_lib_version}.dist-info"
     assert result.files_created[script.site_packages / fn].dir
 
 
@@ -260,13 +260,13 @@ def test_respect_order_in_requirements_file(
 
     assert (
         "parent" in downloaded[0]
-    ), 'First download should be "parent" but was "{}"'.format(downloaded[0])
+    ), f'First download should be "parent" but was "{downloaded[0]}"'
     assert (
         "child" in downloaded[1]
-    ), 'Second download should be "child" but was "{}"'.format(downloaded[1])
+    ), f'Second download should be "child" but was "{downloaded[1]}"'
     assert (
         "simple" in downloaded[2]
-    ), 'Third download should be "simple" but was "{}"'.format(downloaded[2])
+    ), f'Third download should be "simple" but was "{downloaded[2]}"'
 
 
 def test_install_local_editable_with_extras(
@@ -300,7 +300,7 @@ def test_install_local_editable_with_subdirectory(script: PipTestEnvironment) ->
         ),
     )
 
-    result.assert_installed("version-subpkg", sub_dir="version_subdir")
+    result.assert_installed("version_subpkg", sub_dir="version_subdir")
 
 
 @pytest.mark.network
@@ -671,9 +671,9 @@ def test_install_distribution_union_with_versions(
         expect_error=(resolver_variant == "resolvelib"),
     )
     if resolver_variant == "resolvelib":
-        assert "Cannot install localextras[bar]" in result.stderr
-        assert ("localextras[bar] 0.0.1 depends on localextras 0.0.1") in result.stdout
-        assert ("localextras[baz] 0.0.2 depends on localextras 0.0.2") in result.stdout
+        assert "Cannot install localextras" in result.stderr
+        assert ("The user requested localextras 0.0.1") in result.stdout
+        assert ("The user requested localextras 0.0.2") in result.stdout
     else:
         assert (
             "Successfully installed LocalExtras-0.0.1 simple-3.0 singlemodule-0.0.1"

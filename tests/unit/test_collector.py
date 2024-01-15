@@ -119,8 +119,8 @@ def test_get_index_content_invalid_content_type_archive(
     assert (
         "pip._internal.index.collector",
         logging.WARNING,
-        "Skipping page {} because it looks like an archive, and cannot "
-        "be checked by a HTTP HEAD request.".format(url),
+        f"Skipping page {url} because it looks like an archive, and cannot "
+        "be checked by a HTTP HEAD request.",
     ) in caplog.record_tuples
 
 
@@ -417,8 +417,8 @@ def _test_parse_links_data_attribute(
     html = (
         "<!DOCTYPE html>"
         '<html><head><meta charset="utf-8"><head>'
-        "<body>{}</body></html>"
-    ).format(anchor_html)
+        f"<body>{anchor_html}</body></html>"
+    )
     html_bytes = html.encode("utf-8")
     page = IndexContent(
         html_bytes,
@@ -764,8 +764,8 @@ def test_get_index_content_invalid_scheme(
         (
             "pip._internal.index.collector",
             logging.WARNING,
-            "Cannot look at {} URL {} because it does not support "
-            "lookup as web pages.".format(vcs_scheme, url),
+            f"Cannot look at {vcs_scheme} URL {url} because it does not support "
+            "lookup as web pages.",
         ),
     ]
 

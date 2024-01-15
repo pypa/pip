@@ -178,12 +178,10 @@ def test_config_file_override_stack(
 
     config_file.write_text(
         textwrap.dedent(
-            """\
+            f"""\
         [global]
-        index-url = {}/simple1
-        """.format(
-                base_address
-            )
+        index-url = {base_address}/simple1
+        """
         )
     )
     script.pip("install", "-vvv", "INITools", expect_error=True)
@@ -191,14 +189,12 @@ def test_config_file_override_stack(
 
     config_file.write_text(
         textwrap.dedent(
-            """\
+            f"""\
         [global]
-        index-url = {address}/simple1
+        index-url = {base_address}/simple1
         [install]
-        index-url = {address}/simple2
-        """.format(
-                address=base_address
-            )
+        index-url = {base_address}/simple2
+        """
         )
     )
     script.pip("install", "-vvv", "INITools", expect_error=True)
