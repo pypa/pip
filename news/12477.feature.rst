@@ -1,0 +1,2 @@
+Make pip freeze and pip uninstall of legacy editable installs of packages whose name
+contains ``_`` compatible with ``setuptools>=69``.

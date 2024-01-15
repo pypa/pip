@@ -358,7 +358,7 @@ def test_basic_install_editable_from_svn(script: PipTestEnvironment) -> None:
     checkout_path = _create_test_package(script.scratch_path)
     repo_url = _create_svn_repo(script.scratch_path, checkout_path)
     result = script.pip("install", "-e", "svn+" + repo_url + "#egg=version-pkg")
-    result.assert_installed("version-pkg", with_files=[".svn"])
+    result.assert_installed("version_pkg", with_files=[".svn"])
 
 
 def _test_install_editable_from_git(script: PipTestEnvironment) -> None:
