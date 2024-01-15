@@ -71,8 +71,9 @@ class FreezeCommand(Command):
             dest="freeze_all",
             action="store_true",
             help=(
-                "Do not skip these packages in the output:"
-                " {}".format(", ".join(_dev_pkgs()))
+                "Do not skip these packages in the output: {}".format(
+                    ", ".join(_dev_pkgs())
+                )
             ),
         )
         self.cmd_opts.add_option(

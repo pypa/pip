@@ -264,7 +264,9 @@ def test_rmtree_errorhandler_reraises_error(tmpdir: Path) -> None:
             # Tuple[None, None, None]]"; expected "Tuple[Type[BaseException],
             # BaseException, TracebackType]"
             rmtree_errorhandler(
-                mock_func, path, sys.exc_info()  # type: ignore[arg-type]
+                mock_func,
+                path,  # type: ignore[arg-type]
+                sys.exc_info(),  # type: ignore[arg-type]
             )
 
     mock_func.assert_not_called()

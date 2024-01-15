@@ -149,6 +149,7 @@ ignore = [
     "B020",
     "B904", # Ruff enables opinionated warnings by default
     "B905", # Ruff enables opinionated warnings by default
+    "ISC001", # Avoid conflict with ruff formatter
 ]
 target-version = "py37"
 line-length = 88

@@ -54,9 +54,7 @@ def run_with_build_env(
 
             with global_tempdir_manager():
                 build_env = BuildEnvironment()
-            """.format(
-                scratch=str(script.scratch_path)
-            )
+            """.format(scratch=str(script.scratch_path))
         )
         + indent(dedent(setup_script_contents), "    ")
         + indent(

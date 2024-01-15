@@ -237,9 +237,12 @@ class TestConfigurationModification(ConfigurationMixin):
 
         # get the path to user config file
         assert mymock.call_count == 1
-        assert mymock.call_args[0][0] == (
-            # Use new config file
-            get_configuration_files()[kinds.USER][1]
+        assert (
+            mymock.call_args[0][0]
+            == (
+                # Use new config file
+                get_configuration_files()[kinds.USER][1]
+            )
         )
 
     def test_global_modification(self) -> None:

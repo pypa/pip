@@ -176,7 +176,7 @@ def test_completion_alone(autocomplete_script: PipTestEnvironment) -> None:
     assert (
         "ERROR: You must pass --bash or --fish or --powershell or --zsh"
         in result.stderr
-    ), ("completion alone failed -- " + result.stderr)
+    ), "completion alone failed -- " + result.stderr
 
 
 def test_completion_for_un_snippet(autocomplete: DoAutocomplete) -> None:
@@ -251,10 +251,7 @@ def test_completion_files_after_option(
     ), "autocomplete function could not complete <dir> after options in command"
     assert not any(
         out in res.stdout for out in (os.path.join("REPLAY", ""), "README.txt")
-    ), (
-        "autocomplete function completed <file> or <dir> that "
-        "should not be completed"
-    )
+    ), "autocomplete function completed <file> or <dir> that should not be completed"
     if sys.platform != "win32":
         return
     assert (

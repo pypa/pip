@@ -135,10 +135,7 @@ class Tests_UserSite:
         dist_info_folder = script.user_site / "INITools-0.1.dist-info"
         initools_v3_file = (
             # file only in 0.3
-            script.base_path
-            / script.user_site
-            / "initools"
-            / "configparser.py"
+            script.base_path / script.user_site / "initools" / "configparser.py"
         )
         result2.did_create(dist_info_folder)
         assert not isfile(initools_v3_file), initools_v3_file
