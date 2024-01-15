@@ -300,7 +300,7 @@ def test_install_local_editable_with_subdirectory(script: PipTestEnvironment) ->
         ),
     )
 
-    result.assert_installed("version-subpkg", sub_dir="version_subdir")
+    result.assert_installed("version_subpkg", sub_dir="version_subdir")
 
 
 @pytest.mark.network
