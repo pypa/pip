@@ -470,7 +470,7 @@ class MultiDomainBasicAuth(AuthBase):
             or not self.keyring_provider.has_keyring
         ):
             return False
-        return ask("Save credentials to keyring [y/N]: ", ["y", "n"]) == "y"
+        return ask("Save credentials to keyring [y/n]: ", ["y", "n"]) == "y"
 
     def handle_401(self, resp: Response, **kwargs: Any) -> Response:
         # We only care about 401 responses, anything else we want to just
