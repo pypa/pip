@@ -172,8 +172,7 @@ def compress_for_output_listing(paths: Iterable[str]) -> Tuple[Set[str], Set[str
             folders.add(os.path.dirname(path))
         files.add(path)
 
-    # probably this one https://github.com/python/mypy/issues/390
-    _normcased_files = set(map(os.path.normcase, files))  # type: ignore
+    _normcased_files = set(map(os.path.normcase, files))
 
     folders = compact(folders)
 
