@@ -183,13 +183,6 @@ know beforehand that the server requires it. It can also prevent issues with
 Artifactory or other servers with overly strict security policies that blocks
 user (temporarily) on the first failed attempt.
 
-```{warning}
-Be careful when doing this since it could cause tools such as pipx and Pipenv
-to appear to hang. They show their own progress indicator while hiding output
-from the subprocess in which they run Pip. You won't know whether the keyring
-backend is waiting the user input or not in such situations.
-```
-
 Note that `keyring` (the Python package) needs to be installed separately from
 pip. This can create a bootstrapping issue if you need the credentials stored in
 the keyring to download and install keyring.
