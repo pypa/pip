@@ -65,7 +65,8 @@ class PipDebuggingReporter(BaseReporter):
         logger.info("Reporter.starting_round(%r)", index)
 
     def ending_round(self, index: int, state: Any) -> None:
-        logger.info("Reporter.ending_round(%r, %r)", index, state)
+        logger.info("Reporter.ending_round(%r, state)", index)
+        logger.debug("Reporter.ending_round(%r, %r)", index, state)
 
     def ending(self, state: Any) -> None:
         logger.info("Reporter.ending(%r)", state)
