@@ -57,7 +57,7 @@ class AbstractDistribution(metaclass=abc.ABCMeta):
         """Generate the information necessary to extract metadata from the artifact.
 
         This method will be executed within the context of ``BuildTracker#track()``, so
-        it needs to fully identify any seutp requirements so they can be added to the
+        it needs to fully identify any setup requirements so they can be added to the
         same active set of tracked builds, while ``.get_metadata_distribution()`` takes
         care of generating and caching the ``BaseDistribution`` to expose to the rest of
         the resolve."""
