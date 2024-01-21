@@ -733,10 +733,9 @@ class InvalidEditableRequirement(DiagnosticPipError):
 
     def __init__(self, *, requirement: str, vcs_schemes: List[str]) -> None:
         super().__init__(
-            message=Text(f"Cannot install {requirement} in editable mode."),
+            message=Text(f"{requirement} is not a valid editable requirement."),
             context=(
-                "It is not a valid editable requirement. There would be no source tree "
-                "that can be edited after installation."
+                "There would be no source tree that can be edited after installation."
             ),
             hint_stmt=(
                 "It should either be a path to a local project or a VCS URL "
