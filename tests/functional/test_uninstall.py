@@ -726,7 +726,7 @@ def test_uninstall_editable_and_pip_install_easy_install_remove(
 def test_uninstall_ignores_missing_packages(
     script: PipTestEnvironment, data: TestData
 ) -> None:
-    """Uninstall of a non existent package prints a warning and exits cleanly"""
+    """Uninstall of a non existent package prints a warning and exits with error code 1"""
     result = script.pip(
         "uninstall",
         "-y",
@@ -735,7 +735,7 @@ def test_uninstall_ignores_missing_packages(
     )
 
     assert "Skipping non-existent-pkg as it is not installed." in result.stderr
-    assert result.returncode == 0, "Expected clean exit"
+    assert result.returncode == 1, "Expected error code 1"
 
 
 def test_uninstall_ignores_missing_packages_and_uninstalls_rest(
