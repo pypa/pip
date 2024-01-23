@@ -685,7 +685,7 @@ class PipTestEnvironment(TestFileEnvironment):
 
         # Pass expect_stderr=True to allow any stderr.  We do this because
         # we do our checking of stderr further on in check_stderr().
-        kw["expect_stderr"] = False
+        kw["expect_stderr"] = True
         # Ignore linter check
         # B026 Star-arg unpacking after a keyword argument is strongly discouraged
         result = super().run(cwd=cwd, *args, **kw)  # noqa: B026
