@@ -632,7 +632,7 @@ class PipTestEnvironment(TestFileEnvironment):
         self,
         *args: str,
         cwd: Optional[StrPath] = None,
-        allow_stderr_error: Optional[bool] = None,
+        allow_stderr_error: Optional[bool] = True,
         allow_stderr_warning: Optional[bool] = None,
         allow_error: bool = True,
         **kw: Any,
