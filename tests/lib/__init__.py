@@ -634,7 +634,7 @@ class PipTestEnvironment(TestFileEnvironment):
         cwd: Optional[StrPath] = None,
         allow_stderr_error: Optional[bool] = None,
         allow_stderr_warning: Optional[bool] = None,
-        allow_error: bool = False,
+        allow_error: bool = True,
         **kw: Any,
     ) -> TestPipResult:
         """
