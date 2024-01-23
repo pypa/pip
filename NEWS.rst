@@ -9,6 +9,16 @@
 
 .. towncrier release notes start
 
+23.3.2 (2023-12-17)
+===================
+
+Bug Fixes
+---------
+
+- Fix a bug in extras handling for link requirements (`#12372 <https://github.com/pypa/pip/issues/12372>`_)
+- Fix mercurial revision "parse error": use ``--rev={ref}`` instead of ``-r={ref}`` (`#12373 <https://github.com/pypa/pip/issues/12373>`_)
+
+
 23.3.1 (2023-10-21)
 ===================
 
@@ -96,8 +106,9 @@ Process
 Deprecations and Removals
 -------------------------
 
-- Deprecate legacy version and version specifiers that don't conform to `PEP 440
-  <https://peps.python.org/pep-0440/>`_ (`#12063 <https://github.com/pypa/pip/issues/12063>`_)
+- Deprecate legacy version and version specifiers that don't conform to the
+  :ref:`specification <pypug:version-specifiers>`.
+  (`#12063 <https://github.com/pypa/pip/issues/12063>`_)
 - ``freeze`` no longer excludes the ``setuptools``, ``distribute``, and ``wheel``
   from the output when running on Python 3.12 or later, where they are not
   included in a virtual environment by default. Use ``--exclude`` if you wish to
