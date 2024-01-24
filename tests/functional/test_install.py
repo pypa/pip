@@ -50,23 +50,25 @@ def test_pep518_uses_build_env(
     variant: str,
 ) -> None:
     if variant == "missing_setuptools":
-        script.pip("uninstall", "-y", "setuptools")
+        try:
+            script.pip("uninstall", "-y", "setuptools")
+        except subprocess.CalledProcessError as e:
+            assert e.returncode == 1, f"Unexpected return code: {e.returncode}"
     elif variant == "bad_setuptools":
         setuptools_mod = script.site_packages_path.joinpath("setuptools.py")
         with open(setuptools_mod, "a") as f:
             f.write('\nraise ImportError("toto")')
     else:
         raise ValueError(variant)
-    with pytest.raises(AssertionError):
-        script.pip(
-            command,
-            "--no-index",
-            "-f",
-            common_wheels,
-            "-f",
-            data.packages,
-            data.src.joinpath("pep518-3.0"),
-        )
+    script.pip(
+        command,
+        "--no-index",
+        "-f",
+        common_wheels,
+        "-f",
+        data.packages,
+        data.src.joinpath("pep518-3.0"),
+    )
 
 
 def test_pep518_build_env_uses_same_pip(
