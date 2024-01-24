@@ -5,6 +5,7 @@ import ssl
 import sys
 import sysconfig
 import textwrap
+import subprocess
 from os.path import curdir, join, pardir
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
@@ -52,7 +53,7 @@ def test_pep518_uses_build_env(
     if variant == "missing_setuptools":
         try:
             script.pip("uninstall", "-y", "setuptools")
-        except subprocess.CalledProcessError as e:
+        except CalledProcessError as e:
             assert e.returncode == 1, f"Unexpected return code: {e.returncode}"
     elif variant == "bad_setuptools":
         setuptools_mod = script.site_packages_path.joinpath("setuptools.py")
