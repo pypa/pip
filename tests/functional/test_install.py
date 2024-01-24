@@ -50,7 +50,7 @@ def test_pep518_uses_build_env(
     variant: str,
 ) -> None:
     if variant == "missing_setuptools":
-        script.pip("uninstall", "-y", "setuptools",expect_error=True)
+        script.pip("uninstall", "-y", "setuptools", expect_error=True)
     elif variant == "bad_setuptools":
         setuptools_mod = script.site_packages_path.joinpath("setuptools.py")
         with open(setuptools_mod, "a") as f:
