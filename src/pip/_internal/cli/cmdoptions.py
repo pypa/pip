@@ -980,7 +980,7 @@ list_exclude: Callable[..., Option] = partial(
     action="append",
     metavar="package",
     type="package_name",
-    help="Exclude specified package from the output",
+    help="Exclude specified package from the output.",
 )
 
 
