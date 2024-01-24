@@ -5,7 +5,6 @@ import ssl
 import sys
 import sysconfig
 import textwrap
-import subprocess
 from os.path import curdir, join, pardir
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
