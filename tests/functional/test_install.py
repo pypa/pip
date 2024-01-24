@@ -53,7 +53,7 @@ def test_pep518_uses_build_env(
     if variant == "missing_setuptools":
         try:
             script.pip("uninstall", "-y", "setuptools")
-        except CalledProcessError as e:
+        except subprocess.CalledProcessError as e:
             assert e.returncode == 1, f"Unexpected return code: {e.returncode}"
     elif variant == "bad_setuptools":
         setuptools_mod = script.site_packages_path.joinpath("setuptools.py")
