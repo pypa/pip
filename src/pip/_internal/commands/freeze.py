@@ -82,6 +82,16 @@ class FreezeCommand(Command):
             help="Exclude editable package from output.",
         )
         self.cmd_opts.add_option(cmdoptions.list_exclude())
+        self.cmd_opts.add_option(
+            "--with-blanklines",
+            dest="preserve_blanklines",
+            action="store_true",
+            default=False,
+            help=(
+                "If the given requirements file contains multiple blank lines, they "
+                "will be preserved."
+            ),
+        )
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
@@ -103,6 +113,7 @@ class FreezeCommand(Command):
             isolated=options.isolated_mode,
             skip=skip,
             exclude_editable=options.exclude_editable,
+            preserve_blanklines=options.preserve_blanklines,
         ):
             sys.stdout.write(line + "\n")
         return SUCCESS
