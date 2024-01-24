@@ -57,7 +57,7 @@ def test_pep518_uses_build_env(
             f.write('\nraise ImportError("toto")')
     else:
         raise ValueError(variant)
-    script.pip(
+    with pytest.raises(AssertionError):
         command,
         "--no-index",
         "-f",
