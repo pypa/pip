@@ -58,14 +58,15 @@ def test_pep518_uses_build_env(
     else:
         raise ValueError(variant)
     with pytest.raises(AssertionError):
-        command,
-        "--no-index",
-        "-f",
-        common_wheels,
-        "-f",
-        data.packages,
-        data.src.joinpath("pep518-3.0"),
-    )
+        script.pip(
+            command,
+            "--no-index",
+            "-f",
+            common_wheels,
+            "-f",
+            data.packages,
+            data.src.joinpath("pep518-3.0"),
+        )
 
 
 def test_pep518_build_env_uses_same_pip(
