@@ -892,7 +892,9 @@ def test_freeze_with_requirement_option_package_repeated_multi_file(
     assert result.stderr.count("is not installed") == 1
 
 
-def test_freeze_with_requirement_and_preserve_blanklines_option(script: PipTestEnvironment) -> None:
+def test_freeze_with_requirement_and_preserve_blanklines_option(
+    script: PipTestEnvironment,
+) -> None:
     """
     Test freezing with requirements file and
     enabled --with-blanklines option
@@ -902,10 +904,10 @@ def test_freeze_with_requirement_and_preserve_blanklines_option(script: PipTestE
             """\
             # first
             INITools==0.2
-            
+
             # second
             simple==1.0
-            
+
             # third
             simple2==1.0
             """
