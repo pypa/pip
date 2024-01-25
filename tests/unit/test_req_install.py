@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import tempfile
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 from pip._vendor.packaging.requirements import Requirement
@@ -13,6 +13,9 @@ from pip._internal.req.constructors import (
     install_req_from_req_string,
 )
 from pip._internal.req.req_install import InstallRequirement
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestInstallRequirementBuildDirectory:

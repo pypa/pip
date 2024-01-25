@@ -5,11 +5,14 @@ from __future__ import annotations
 
 import configparser
 import os
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pip._internal.utils.misc import hide_url
 from pip._internal.vcs.mercurial import Mercurial
 from tests.lib import need_mercurial
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @need_mercurial

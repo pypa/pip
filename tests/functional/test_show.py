@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import os
-import pathlib
 import re
 import textwrap
+from typing import TYPE_CHECKING
 
 from pip import __version__
 from pip._internal.commands.show import search_packages_info
@@ -14,6 +14,9 @@ from tests.lib import (
     create_test_package_with_setup,
     pyversion,
 )
+
+if TYPE_CHECKING:
+    import pathlib
 
 
 def test_basic_show(script: PipTestEnvironment) -> None:

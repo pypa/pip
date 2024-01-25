@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import logging
-from optparse import Values
-from typing import List
+from typing import TYPE_CHECKING, List
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
@@ -12,6 +11,9 @@ from pip._internal.operations.check import (
     warn_legacy_versions_and_specifiers,
 )
 from pip._internal.utils.misc import write_output
+
+if TYPE_CHECKING:
+    from optparse import Values
 
 logger = logging.getLogger(__name__)
 

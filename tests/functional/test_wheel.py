@@ -4,7 +4,7 @@ from __future__ import annotations
 import os
 import re
 import sys
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -14,6 +14,9 @@ from tests.lib import (
     TestData,
     pyversion,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def add_files_to_dist_directory(folder: Path) -> None:

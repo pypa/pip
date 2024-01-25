@@ -5,8 +5,7 @@ from __future__ import annotations
 
 import logging
 import os
-import pathlib
-from typing import List, Optional, Tuple
+from typing import TYPE_CHECKING, List, Optional, Tuple
 from unittest.mock import Mock, patch
 
 import pytest
@@ -15,6 +14,9 @@ from pip._internal.utils.misc import HiddenText
 from pip._internal.vcs import vcs
 from pip._internal.vcs.git import Git, RemoteNotFoundError
 from tests.lib import PipTestEnvironment, _create_test_package, _git_commit
+
+if TYPE_CHECKING:
+    import pathlib
 
 
 def test_get_backend_for_scheme() -> None:

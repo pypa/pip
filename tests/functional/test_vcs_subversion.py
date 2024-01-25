@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from pip._internal.vcs.subversion import Subversion
 from pip._internal.vcs.versioncontrol import RemoteNotFoundError
 from tests.lib import PipTestEnvironment, _create_svn_repo, need_svn
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @need_svn

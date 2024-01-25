@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import http.server
 import os
 import re
 import shutil
 import textwrap
 from hashlib import sha256
 from pathlib import Path
-from typing import Callable, List, Tuple
+from typing import TYPE_CHECKING, Callable, List, Tuple
 
 import pytest
 
@@ -22,6 +21,9 @@ from tests.lib import (
     create_really_basic_wheel,
 )
 from tests.lib.server import MockServer, file_response
+
+if TYPE_CHECKING:
+    import http.server
 
 
 def fake_wheel(data: TestData, wheel_path: str) -> None:

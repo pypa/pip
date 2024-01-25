@@ -10,7 +10,6 @@ import configparser
 import contextlib
 import locale
 import logging
-import pathlib
 import re
 import sys
 from itertools import chain, groupby, repeat
@@ -20,6 +19,7 @@ from pip._vendor.rich.markup import escape
 from pip._vendor.rich.text import Text
 
 if TYPE_CHECKING:
+    import pathlib
     from hashlib import _Hash
     from typing import Literal
 

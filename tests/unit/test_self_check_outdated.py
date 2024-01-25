@@ -6,8 +6,7 @@ import logging
 import os
 import sys
 from optparse import Values
-from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 from unittest.mock import ANY, Mock, patch
 
 import pytest
@@ -15,6 +14,9 @@ from freezegun import freeze_time
 from pip._vendor.packaging.version import Version
 
 from pip._internal import self_outdated_check
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.mark.parametrize(

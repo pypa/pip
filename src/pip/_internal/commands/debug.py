@@ -5,8 +5,6 @@ import locale
 import logging
 import os
 import sys
-from optparse import Values
-from types import ModuleType
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import pip._vendor
@@ -22,6 +20,9 @@ from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import get_pip_version
 
 if TYPE_CHECKING:
+    from optparse import Values
+    from types import ModuleType
+
     from pip._internal.configuration import Configuration
 
 logger = logging.getLogger(__name__)

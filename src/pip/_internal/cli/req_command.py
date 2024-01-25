@@ -10,7 +10,6 @@ import logging
 import os
 import sys
 from functools import partial
-from optparse import Values
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 from pip._internal.cli import cmdoptions
@@ -38,6 +37,7 @@ from pip._internal.utils.temp_dir import (
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 if TYPE_CHECKING:
+    from optparse import Values
     from ssl import SSLContext
 
     from pip._internal.cache import WheelCache

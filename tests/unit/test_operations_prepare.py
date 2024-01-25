@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import shutil
-from pathlib import Path
 from shutil import rmtree
 from tempfile import mkdtemp
 from typing import TYPE_CHECKING, Any, Dict
@@ -19,6 +18,8 @@ from pip._internal.utils.hashes import Hashes
 from tests.lib.requests_mocks import MockResponse
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from tests.lib import TestData
 
 

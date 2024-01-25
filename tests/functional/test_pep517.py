@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 import pytest
 import tomli_w
@@ -15,6 +14,9 @@ from tests.lib import (
     create_basic_wheel_for_package,
     make_test_finder,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def make_project(

@@ -4,8 +4,6 @@ import collections
 import logging
 import os
 import textwrap
-from optparse import Values
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterator, List, Optional, Tuple, Union
 from unittest import mock
 
@@ -30,6 +28,8 @@ from pip._internal.req.req_file import (
 from tests.lib import TestData, make_test_finder, requirements_file
 
 if TYPE_CHECKING:
+    from optparse import Values
+    from pathlib import Path
     from typing import Protocol
 
     from pip._internal.index.package_finder import PackageFinder

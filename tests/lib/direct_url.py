@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import os
 import re
-from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from tests.lib import TestPipResult
 
 

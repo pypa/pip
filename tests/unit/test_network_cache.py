@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
-from typing import Iterator
+from typing import TYPE_CHECKING, Iterator
 from unittest.mock import Mock
 
 import pytest
 from pip._vendor.cachecontrol.caches import FileCache
 
 from pip._internal.network.cache import SafeFileCache
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.fixture(scope="function")

@@ -3,7 +3,6 @@ from __future__ import annotations
 import fnmatch
 import json
 import os
-import pathlib
 import re
 from os.path import basename
 from typing import TYPE_CHECKING, Iterable
@@ -14,6 +13,8 @@ from pytest import mark
 from pip._internal.utils.misc import hash_file
 
 if TYPE_CHECKING:
+    import pathlib
+
     from tests.lib import PipTestEnvironment, TestData, TestPipResult
 
 

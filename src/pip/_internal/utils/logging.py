@@ -8,9 +8,8 @@ import os
 import sys
 import threading
 from dataclasses import dataclass
-from io import TextIOWrapper
 from logging import Filter
-from typing import Any, ClassVar, Generator, List, Optional, TextIO, Type
+from typing import TYPE_CHECKING, Any, ClassVar, Generator, List, Optional, TextIO, Type
 
 from pip._vendor.rich.console import (
     Console,
@@ -29,6 +28,9 @@ from pip._internal.utils._log import VERBOSE, getLogger
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from pip._internal.utils.misc import ensure_dir
+
+if TYPE_CHECKING:
+    from io import TextIOWrapper
 
 _log_state = threading.local()
 subprocess_logger = getLogger("pip.subprocessor")

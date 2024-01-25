@@ -2,12 +2,14 @@
 """
 from __future__ import annotations
 
-from optparse import Values
-from typing import List, Tuple
+from typing import TYPE_CHECKING, List, Tuple
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.commands import CommandInfo, commands_dict
+
+if TYPE_CHECKING:
+    from optparse import Values
 
 
 class FakeCommand(Command):

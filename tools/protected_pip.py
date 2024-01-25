@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import os
-import pathlib
 import shutil
 import subprocess
 import sys
 from glob import glob
-from typing import Iterable, Union
+from typing import TYPE_CHECKING, Iterable, Union
+
+if TYPE_CHECKING:
+    import pathlib
 
 VIRTUAL_ENV = os.environ["VIRTUAL_ENV"]
 TOX_PIP_DIR = os.path.join(VIRTUAL_ENV, "pip")

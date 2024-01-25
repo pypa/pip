@@ -4,15 +4,17 @@ from __future__ import annotations
 import io
 import locale
 import logging
-import pathlib
 import sys
 import textwrap
-from typing import Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
 
 import pytest
 from pip._vendor import rich
 
 from pip._internal.exceptions import DiagnosticPipError, ExternallyManagedEnvironment
+
+if TYPE_CHECKING:
+    import pathlib
 
 
 class TestDiagnosticPipErrorCreation:

@@ -11,8 +11,17 @@ import stat
 import sys
 import time
 from io import BytesIO
-from pathlib import Path
-from typing import Any, Callable, Iterator, List, NoReturn, Optional, Tuple, Type
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Iterator,
+    List,
+    NoReturn,
+    Optional,
+    Tuple,
+    Type,
+)
 from unittest.mock import Mock, patch
 
 import pytest
@@ -51,6 +60,9 @@ from pip._internal.utils.misc import (
     tabulate,
 )
 from pip._internal.utils.setuptools_build import make_setuptools_shim_args
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class Tests_EgglinkPath:

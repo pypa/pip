@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-import importlib.metadata
-from typing import Any, Optional, Protocol, cast
+from typing import TYPE_CHECKING, Any, Optional, Protocol, cast
+
+if TYPE_CHECKING:
+    import importlib.metadata
 
 
 class BadMetadata(ValueError):

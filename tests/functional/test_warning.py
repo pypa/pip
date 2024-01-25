@@ -3,12 +3,13 @@ from __future__ import annotations
 import os
 import sys
 import textwrap
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from tests.lib import PipTestEnvironment
 
 

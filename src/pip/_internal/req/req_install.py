@@ -7,8 +7,6 @@ import shutil
 import sys
 import uuid
 import zipfile
-from optparse import Values
-from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -68,6 +66,9 @@ from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
 
 if TYPE_CHECKING:
+    from optparse import Values
+    from pathlib import Path
+
     from pip._vendor.packaging.markers import Marker
     from pip._vendor.packaging.specifiers import SpecifierSet
     from pip._vendor.pyproject_hooks import BuildBackendHookCaller

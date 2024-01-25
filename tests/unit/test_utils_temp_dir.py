@@ -4,8 +4,7 @@ import itertools
 import os
 import stat
 import tempfile
-from pathlib import Path
-from typing import Any, Iterator, Optional, Union
+from typing import TYPE_CHECKING, Any, Iterator, Optional, Union
 from unittest import mock
 
 import pytest
@@ -20,6 +19,9 @@ from pip._internal.utils.temp_dir import (
     global_tempdir_manager,
     tempdir_registry,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 # No need to test symlinked directories on Windows

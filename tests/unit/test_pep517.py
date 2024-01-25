@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
@@ -11,6 +10,8 @@ from pip._internal.exceptions import InstallationError, InvalidPyProjectBuildReq
 from pip._internal.req import InstallRequirement
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from tests.lib import TestData
 
 

@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
-from pathlib import Path
-from typing import Optional, cast
+from typing import TYPE_CHECKING, Optional, cast
 
 import pytest
 
@@ -13,6 +12,9 @@ from pip._internal.operations.build.wheel_legacy import format_command_result
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.vcs.git import Git
 from tests.lib import _create_test_package
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.mark.parametrize(

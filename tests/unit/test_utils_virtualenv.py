@@ -4,12 +4,14 @@ import logging
 import os
 import site
 import sys
-from pathlib import Path
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 import pytest
 
 from pip._internal.utils import virtualenv
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.mark.parametrize(

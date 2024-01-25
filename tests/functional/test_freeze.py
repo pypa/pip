@@ -5,7 +5,6 @@ import re
 import sys
 import textwrap
 from doctest import ELLIPSIS, OutputChecker
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -28,6 +27,8 @@ from tests.lib import (
 from tests.lib.direct_url import get_created_direct_url_path
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from tests.lib.venv import VirtualEnvironment
 
 distribute_re = re.compile("^distribute==[0-9.]+\n", re.MULTILINE)

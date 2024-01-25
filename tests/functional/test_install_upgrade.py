@@ -4,7 +4,7 @@ import itertools
 import os
 import sys
 import textwrap
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -17,6 +17,9 @@ from tests.lib import (
 )
 from tests.lib.local_repos import local_checkout
 from tests.lib.wheel import make_wheel
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.mark.network

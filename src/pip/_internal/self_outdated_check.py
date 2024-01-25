@@ -5,7 +5,6 @@ import functools
 import hashlib
 import json
 import logging
-import optparse
 import os.path
 import sys
 from dataclasses import dataclass
@@ -29,6 +28,8 @@ from pip._internal.utils.filesystem import adjacent_tmp_file, check_path_owner, 
 from pip._internal.utils.misc import ensure_dir
 
 if TYPE_CHECKING:
+    import optparse
+
     from pip._internal.metadata.base import DistributionVersion
     from pip._internal.network.session import PipSession
 

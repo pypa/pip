@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
-from pathlib import Path
-from typing import Any, List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional
 from urllib.parse import urlparse
 from urllib.request import getproxies
 
@@ -13,6 +12,9 @@ from pip._vendor import requests
 from pip import __version__
 from pip._internal.models.link import Link
 from pip._internal.network.session import CI_ENVIRONMENT_VARIABLES, PipSession
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def get_user_agent() -> str:

@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import json
 import tarfile
-from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import TYPE_CHECKING, List, Optional, Tuple
 from zipfile import ZipFile
 
 from pip._internal.utils.urls import path_to_url
 from tests.lib import PipTestEnvironment, create_basic_sdist_for_package
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 PYPROJECT_TOML = """\
 [build-system]

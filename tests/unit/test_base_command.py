@@ -3,9 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import time
-from optparse import Values
-from pathlib import Path
-from typing import Callable, Iterator, List, NoReturn, Optional
+from typing import TYPE_CHECKING, Callable, Iterator, List, NoReturn, Optional
 from unittest.mock import Mock, patch
 
 import pytest
@@ -15,6 +13,10 @@ from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.utils import temp_dir
 from pip._internal.utils.logging import BrokenStdoutLoggingError
 from pip._internal.utils.temp_dir import TempDirectory
+
+if TYPE_CHECKING:
+    from optparse import Values
+    from pathlib import Path
 
 
 @pytest.fixture

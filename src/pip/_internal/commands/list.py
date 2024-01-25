@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import logging
-from optparse import Values
 from typing import TYPE_CHECKING, Generator, List, Optional, Sequence, Tuple, cast
 
 from pip._vendor.packaging.utils import canonicalize_name
@@ -19,6 +18,8 @@ from pip._internal.utils.compat import stdlib_pkgs
 from pip._internal.utils.misc import tabulate, write_output
 
 if TYPE_CHECKING:
+    from optparse import Values
+
     from pip._internal.metadata.base import DistributionVersion
     from pip._internal.network.session import PipSession
 

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 import pytest
 
@@ -17,6 +16,9 @@ from tests.lib.git_submodule_helpers import (
     _pull_in_submodule_changes_to_module,
 )
 from tests.lib.local_repos import local_checkout
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _get_editable_repo_dir(script: PipTestEnvironment, package_name: str) -> Path:

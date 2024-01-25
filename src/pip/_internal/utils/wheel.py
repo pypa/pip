@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import logging
-from email.message import Message
 from email.parser import Parser
-from typing import Tuple
+from typing import TYPE_CHECKING, Tuple
 from zipfile import BadZipFile, ZipFile
 
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import UnsupportedWheel
+
+if TYPE_CHECKING:
+    from email.message import Message
 
 VERSION_COMPATIBLE = (1, 0)
 

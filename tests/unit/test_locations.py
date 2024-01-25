@@ -10,13 +10,15 @@ import shutil
 import sys
 import sysconfig
 import tempfile
-from pathlib import Path
-from typing import Any, Dict
+from typing import TYPE_CHECKING, Any, Dict
 from unittest.mock import Mock
 
 import pytest
 
 from pip._internal.locations import SCHEME_KEYS, _should_use_sysconfig, get_scheme
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 if sys.platform == "win32":
     pwd = Mock()

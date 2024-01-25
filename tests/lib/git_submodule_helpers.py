@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import os
 import textwrap
-from pathlib import Path
-from typing import Tuple
+from typing import TYPE_CHECKING, Tuple
 
 from tests.lib import PipTestEnvironment, _create_main_file, _git_commit
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _create_test_package_submodule(env: PipTestEnvironment) -> Path:

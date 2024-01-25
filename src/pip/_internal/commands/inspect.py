@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import logging
-from optparse import Values
-from typing import Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List
 
 from pip._vendor.packaging.markers import default_environment
 from pip._vendor.rich import print_json
@@ -14,6 +13,9 @@ from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.metadata import BaseDistribution, get_environment
 from pip._internal.utils.compat import stdlib_pkgs
 from pip._internal.utils.urls import path_to_url
+
+if TYPE_CHECKING:
+    from optparse import Values
 
 logger = logging.getLogger(__name__)
 

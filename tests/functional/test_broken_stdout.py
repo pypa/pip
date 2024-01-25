@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import os
 import subprocess
-from pathlib import Path
-from typing import List, Tuple
+from typing import TYPE_CHECKING, List, Tuple
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 _BROKEN_STDOUT_RETURN_CODE = 120
 

@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import os
 import textwrap
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pytest
@@ -21,6 +20,7 @@ from tests.lib import (
 from tests.lib.local_repos import local_checkout
 
 if TYPE_CHECKING:
+    from pathlib import Path
     from typing import Protocol
 else:
     Protocol = object

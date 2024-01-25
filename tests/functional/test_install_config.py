@@ -5,7 +5,6 @@ import ssl
 import sys
 import tempfile
 import textwrap
-from pathlib import Path
 from typing import TYPE_CHECKING, Callable, List
 
 import pytest
@@ -20,6 +19,8 @@ from tests.lib.server import (
 )
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from tests.lib import CertFactory, PipTestEnvironment, ScriptFactory, TestData
     from tests.lib.venv import VirtualEnvironment
 

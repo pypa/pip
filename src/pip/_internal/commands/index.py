@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from optparse import Values
 from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Union
 
 from pip._internal.cli import cmdoptions
@@ -15,6 +14,8 @@ from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.utils.misc import write_output
 
 if TYPE_CHECKING:
+    from optparse import Values
+
     from pip._vendor.packaging.version import LegacyVersion, Version
 
     from pip._internal.models.target_python import TargetPython

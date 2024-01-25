@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
-from pathlib import Path
-from typing import Iterator, List, Optional, Tuple
+from typing import TYPE_CHECKING, Iterator, List, Optional, Tuple
 from unittest.mock import Mock
 
 import pytest
@@ -19,6 +18,9 @@ from pip._internal.req.req_uninstall import (
     uninstallation_paths,
 )
 from tests.lib import create_file
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 # Pretend all files are local, so UninstallPathSet accepts files in the tmpdir,

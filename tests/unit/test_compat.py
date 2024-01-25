@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from pip._internal.utils.compat import get_path_uid
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_get_path_uid() -> None:

@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import csv
 from email import message_from_string
-from email.message import Message
 from functools import partial
-from pathlib import Path
+from typing import TYPE_CHECKING
 from zipfile import ZipFile
 
 from tests.lib.wheel import (
@@ -17,6 +16,10 @@ from tests.lib.wheel import (
     make_wheel_metadata_file,
     message_from_dict,
 )
+
+if TYPE_CHECKING:
+    from email.message import Message
+    from pathlib import Path
 
 
 def test_message_from_dict_one_value() -> None:

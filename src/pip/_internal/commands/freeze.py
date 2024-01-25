@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import sys
-from optparse import Values
-from typing import AbstractSet, List
+from typing import TYPE_CHECKING, AbstractSet, List
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.operations.freeze import freeze
 from pip._internal.utils.compat import stdlib_pkgs
+
+if TYPE_CHECKING:
+    from optparse import Values
 
 
 def _should_suppress_build_backends() -> bool:

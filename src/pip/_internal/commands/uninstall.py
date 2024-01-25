@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import logging
-from optparse import Values
-from typing import List
+from typing import TYPE_CHECKING, List
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -20,6 +19,9 @@ from pip._internal.utils.misc import (
     check_externally_managed,
     protect_pip_from_modification_on_windows,
 )
+
+if TYPE_CHECKING:
+    from optparse import Values
 
 logger = logging.getLogger(__name__)
 

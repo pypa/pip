@@ -9,7 +9,6 @@ import site
 import sys
 import textwrap
 from collections import OrderedDict
-from types import TracebackType
 from typing import TYPE_CHECKING, Iterable, List, Optional, Set, Tuple, Type, Union
 
 from pip._vendor.certifi import where
@@ -24,6 +23,8 @@ from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     from pip._internal.index.package_finder import PackageFinder
 
 logger = logging.getLogger(__name__)

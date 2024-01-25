@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import pathlib
 import ssl
 import threading
 from base64 import b64encode
@@ -15,6 +14,8 @@ from werkzeug.serving import make_server as _make_server
 from .compat import blocked_signals
 
 if TYPE_CHECKING:
+    import pathlib
+
     from _typeshed.wsgi import StartResponse, WSGIApplication, WSGIEnvironment
 
 Body = Iterable[bytes]

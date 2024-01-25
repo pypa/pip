@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pip._vendor.packaging.tags import Tag, interpreter_name, interpreter_version
 
 from pip._internal.cache import WheelCache, _hash_dict
 from pip._internal.models.link import Link
 from pip._internal.utils.misc import ensure_dir
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_falsey_path_none() -> None:

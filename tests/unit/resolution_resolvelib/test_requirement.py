@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 from typing import TYPE_CHECKING, Iterator, List, Tuple
 
 import pytest
@@ -10,6 +9,8 @@ from pip._vendor.resolvelib import BaseReporter, Resolver
 from pip._internal.resolution.resolvelib.base import Candidate, Constraint, Requirement
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from pip._internal.resolution.resolvelib.factory import Factory
     from pip._internal.resolution.resolvelib.provider import PipProvider
     from tests.lib import TestData

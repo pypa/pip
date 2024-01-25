@@ -4,12 +4,10 @@ from __future__ import annotations
 import csv
 import logging
 import os
-import pathlib
 import sys
 import textwrap
 from email import message_from_string
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, cast
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, cast
 from unittest.mock import patch
 
 import pytest
@@ -35,6 +33,10 @@ from pip._internal.utils.misc import hash_file
 from pip._internal.utils.unpacking import unpack_file
 from tests.lib import DATA_DIR, TestData, assert_paths_equal
 from tests.lib.wheel import make_wheel
+
+if TYPE_CHECKING:
+    import pathlib
+    from pathlib import Path
 
 
 def call_get_legacy_build_wheel_path(

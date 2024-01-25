@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 from email.header import Header, decode_header, make_header
-from email.message import Message
-from typing import Any, Dict, List, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Union
+
+if TYPE_CHECKING:
+    from email.message import Message
 
 METADATA_FIELDS = [
     # Name, Multiple-Use

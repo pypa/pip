@@ -6,7 +6,6 @@ from __future__ import annotations
 import os
 import textwrap
 from os.path import curdir, isdir, isfile
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -21,6 +20,8 @@ from tests.lib import (
 from tests.lib.local_repos import local_checkout
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from tests.lib.venv import VirtualEnvironment
 
 

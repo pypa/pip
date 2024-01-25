@@ -14,7 +14,6 @@ import shutil
 import sys
 import warnings
 from base64 import urlsafe_b64encode
-from email.message import Message
 from itertools import chain, filterfalse, starmap
 from typing import (
     IO,
@@ -61,6 +60,7 @@ from pip._internal.utils.unpacking import (
 from pip._internal.utils.wheel import parse_wheel
 
 if TYPE_CHECKING:
+    from email.message import Message
     from typing import Protocol
 
     class File(Protocol):

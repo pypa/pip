@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from optparse import Values
-from typing import FrozenSet, List, Set
+from typing import TYPE_CHECKING, FrozenSet, List, Set
 
 import pytest
 
@@ -9,6 +8,9 @@ from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.models.format_control import FormatControl
+
+if TYPE_CHECKING:
+    from optparse import Values
 
 
 class SimpleCommand(Command):

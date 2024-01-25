@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import json
 import textwrap
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Tuple
 
 import pytest
 from packaging.utils import canonicalize_name
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from ..lib import PipTestEnvironment, TestData
 
 

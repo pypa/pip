@@ -13,7 +13,6 @@ import os
 import urllib.parse
 import urllib.request
 from html.parser import HTMLParser
-from optparse import Values
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -42,6 +41,7 @@ from pip._internal.vcs import vcs
 from .sources import CandidatesFromPage, LinkSource, build_source
 
 if TYPE_CHECKING:
+    from optparse import Values
     from typing import Protocol
 
     from pip._vendor.requests import Response

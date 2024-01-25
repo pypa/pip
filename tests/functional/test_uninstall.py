@@ -5,9 +5,8 @@ import os
 import sys
 import textwrap
 from os.path import join, normpath
-from pathlib import Path
 from tempfile import mkdtemp
-from typing import Any, Iterator
+from typing import TYPE_CHECKING, Any, Iterator
 from unittest.mock import Mock
 
 import pytest
@@ -22,6 +21,9 @@ from tests.lib import (
     need_svn,
 )
 from tests.lib.local_repos import local_checkout, local_repo
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.mark.network

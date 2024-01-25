@@ -5,13 +5,16 @@ from __future__ import annotations
 
 import os
 import sys
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from pip._internal.vcs.bazaar import Bazaar
 from pip._internal.vcs.versioncontrol import RemoteNotFoundError
 from tests.lib import PipTestEnvironment, is_bzr_installed, need_bzr
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.mark.skipif(

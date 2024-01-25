@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import csv
-import email.message
 import functools
 import json
 import logging
@@ -43,6 +42,7 @@ from pip._internal.utils.urls import url_to_path
 from ._json import msg_to_json
 
 if TYPE_CHECKING:
+    import email.message
     from typing import Protocol
 
     from pip._vendor.packaging.requirements import Requirement

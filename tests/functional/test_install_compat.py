@@ -5,7 +5,7 @@ Tests for compatibility workarounds.
 from __future__ import annotations
 
 import os
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -15,6 +15,9 @@ from tests.lib import (
     assert_all_changes,
     pyversion,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.mark.network

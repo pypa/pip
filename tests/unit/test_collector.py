@@ -6,9 +6,8 @@ import logging
 import os
 import re
 import uuid
-from pathlib import Path
 from textwrap import dedent
-from typing import Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 from unittest import mock
 
 import pytest
@@ -38,6 +37,9 @@ from pip._internal.models.link import (
 )
 from pip._internal.network.session import PipSession
 from tests.lib import TestData, make_test_link_collector
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 ACCEPT = ", ".join(
     [
