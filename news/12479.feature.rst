@@ -1,0 +1,1 @@
+Add --with-blanklines option to `pip freeze` command. If the given requirements file contains multiple blank lines, they will be preserved.
