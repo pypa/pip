@@ -5,6 +5,7 @@ an import statement.
 """
 
 # /!\ This version compatibility check section must be Python 2 compatible. /!\
+from __future__ import annotations
 
 import sys
 

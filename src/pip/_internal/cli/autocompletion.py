@@ -1,5 +1,6 @@
 """Logic that powers autocompletion installed by ``pip completion``.
 """
+from __future__ import annotations
 
 import optparse
 import os

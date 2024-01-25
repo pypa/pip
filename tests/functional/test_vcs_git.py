@@ -1,6 +1,8 @@
 """
 Contains functional tests of the Git class.
 """
+from __future__ import annotations
+
 import logging
 import os
 import pathlib

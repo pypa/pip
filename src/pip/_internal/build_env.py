@@ -1,5 +1,6 @@
 """Build Environment used for isolation during sdist building
 """
+from __future__ import annotations
 
 import logging
 import os

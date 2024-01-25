@@ -1,5 +1,6 @@
 """Stuff that differs in different Python versions and platform
 distributions."""
+from __future__ import annotations
 
 import logging
 import os

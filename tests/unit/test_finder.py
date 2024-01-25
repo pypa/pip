@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from typing import Iterable
 from unittest.mock import Mock, patch

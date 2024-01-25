@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 from typing import Callable, Generator, Iterable, Iterator, Optional, Tuple
 

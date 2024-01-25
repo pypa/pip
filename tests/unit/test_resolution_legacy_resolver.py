@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import email.message
 import logging
 import os

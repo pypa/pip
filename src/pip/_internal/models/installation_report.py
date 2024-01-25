@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, Dict, Sequence
 
 from pip._vendor.packaging.markers import default_environment

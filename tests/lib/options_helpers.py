@@ -1,5 +1,6 @@
 """Provides helper classes for testing option handling in pip
 """
+from __future__ import annotations
 
 from optparse import Values
 from typing import List, Tuple

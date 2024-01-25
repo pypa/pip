@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 SUCCESS = 0
 ERROR = 1
 UNKNOWN_ERROR = 2

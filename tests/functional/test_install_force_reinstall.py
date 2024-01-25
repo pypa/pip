@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 
 from tests.lib import PipTestEnvironment, assert_all_changes

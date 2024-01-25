@@ -10,6 +10,7 @@ Some terminology:
 - variant
   A single word describing where the configuration key-value pair came from
 """
+from __future__ import annotations
 
 import configparser
 import locale

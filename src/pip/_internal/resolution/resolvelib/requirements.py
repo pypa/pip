@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 

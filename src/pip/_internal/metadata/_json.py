@@ -1,4 +1,5 @@
 # Extracted from https://github.com/pfmoore/pkg_metadata
+from __future__ import annotations
 
 from email.header import Header, decode_header, make_header
 from email.message import Message

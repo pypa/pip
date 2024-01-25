@@ -1,6 +1,7 @@
 """
 Package containing all pip commands
 """
+from __future__ import annotations
 
 import importlib
 from collections import namedtuple

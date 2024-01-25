@@ -1,4 +1,5 @@
 """Handles all VCS (version control) support"""
+from __future__ import annotations
 
 import logging
 import os

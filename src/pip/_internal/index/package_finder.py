@@ -1,4 +1,5 @@
 """Routines related to PyPI, indexes"""
+from __future__ import annotations
 
 import enum
 import functools

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, List, Optional
 
 from pip._vendor.resolvelib.resolvers import RequirementInformation

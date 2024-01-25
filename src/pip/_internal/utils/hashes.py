@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 from typing import TYPE_CHECKING, BinaryIO, Dict, Iterable, List, Optional
 

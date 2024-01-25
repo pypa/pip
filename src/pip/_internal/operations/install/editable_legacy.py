@@ -1,5 +1,7 @@
 """Legacy editable installation process, i.e. `setup.py develop`.
 """
+from __future__ import annotations
+
 import logging
 from typing import Optional, Sequence
 

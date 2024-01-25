@@ -1,4 +1,5 @@
 """Sphinx configuration file for pip's documentation."""
+from __future__ import annotations
 
 import glob
 import os

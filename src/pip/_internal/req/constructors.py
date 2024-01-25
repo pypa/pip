@@ -7,6 +7,7 @@ helps creates for better understandability for the rest of the code.
 These are meant to be used elsewhere within pip to create instances of
 InstallRequirement.
 """
+from __future__ import annotations
 
 import copy
 import logging

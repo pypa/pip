@@ -1,5 +1,6 @@
 """Utilities for defining models
 """
+from __future__ import annotations
 
 import operator
 from typing import Any, Callable, Type

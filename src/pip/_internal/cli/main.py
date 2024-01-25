@@ -1,5 +1,7 @@
 """Primary application entrypoint.
 """
+from __future__ import annotations
+
 import locale
 import logging
 import os

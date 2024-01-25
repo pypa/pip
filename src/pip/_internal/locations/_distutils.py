@@ -9,6 +9,8 @@
 #
 # See https://github.com/pypa/pip/issues/8761 for the original discussion and
 # rationale for why this is done within pip.
+from __future__ import annotations
+
 try:
     __import__("_distutils_hack").remove_shim()
 except (ImportError, AttributeError):

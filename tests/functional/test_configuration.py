@@ -1,5 +1,7 @@
 """Tests for the config command
 """
+from __future__ import annotations
+
 import re
 import textwrap
 

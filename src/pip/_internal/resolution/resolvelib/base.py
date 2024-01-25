@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import FrozenSet, Iterable, Optional, Tuple, Union
 
 from pip._vendor.packaging.specifiers import SpecifierSet

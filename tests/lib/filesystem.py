@@ -1,5 +1,7 @@
 """Helpers for filesystem-dependent tests.
 """
+from __future__ import annotations
+
 import os
 from functools import partial
 from itertools import chain

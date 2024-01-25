@@ -1,6 +1,7 @@
 """
 A module that implements tooling to enable easy warnings about deprecations.
 """
+from __future__ import annotations
 
 import logging
 import warnings

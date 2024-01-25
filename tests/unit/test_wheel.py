@@ -1,4 +1,6 @@
 """Tests for wheel binary packages and .dist-info."""
+from __future__ import annotations
+
 import csv
 import logging
 import os

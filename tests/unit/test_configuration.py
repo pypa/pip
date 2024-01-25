@@ -1,5 +1,6 @@
 """Tests for all things related to the configuration
 """
+from __future__ import annotations
 
 import re
 from unittest.mock import MagicMock

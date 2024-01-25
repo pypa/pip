@@ -1,5 +1,6 @@
 """A single place for constructing and exposing the main parser
 """
+from __future__ import annotations
 
 import os
 import subprocess

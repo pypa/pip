@@ -2,6 +2,8 @@
 
 Relevant API reference: https://docs.readthedocs.io/en/stable/api/v3.html#redirects
 """
+from __future__ import annotations
+
 import operator
 import os
 import sys

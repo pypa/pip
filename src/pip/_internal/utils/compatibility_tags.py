@@ -1,5 +1,6 @@
 """Generate and work with PEP 425 Compatibility Tags.
 """
+from __future__ import annotations
 
 import re
 from typing import List, Optional, Tuple

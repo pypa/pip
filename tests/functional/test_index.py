@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 from pip._internal.cli.status_codes import ERROR, SUCCESS

@@ -7,6 +7,7 @@ everything here lazy all the way down, so we only touch candidates that we
 absolutely need, and not "download the world" when we only need one version of
 something.
 """
+from __future__ import annotations
 
 import functools
 from collections.abc import Sequence

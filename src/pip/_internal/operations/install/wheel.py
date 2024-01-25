@@ -1,5 +1,6 @@
 """Support for installing and building the "wheel" binary package format.
 """
+from __future__ import annotations
 
 import collections
 import compileall

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.models.link import Link

@@ -1,5 +1,6 @@
 """Orchestrator for building wheels from InstallRequirements.
 """
+from __future__ import annotations
 
 import logging
 import os.path

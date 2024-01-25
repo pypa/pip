@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import locale
 import sys
 from logging import DEBUG, ERROR, INFO, WARNING

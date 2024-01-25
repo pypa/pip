@@ -1,5 +1,7 @@
 """Tests for wheel helper.
 """
+from __future__ import annotations
+
 import csv
 from email import message_from_string
 from email.message import Message

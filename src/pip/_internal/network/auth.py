@@ -3,6 +3,8 @@
 Contains interface (MultiDomainBasicAuth) and associated glue code for
 providing credentials in the context of network requests.
 """
+from __future__ import annotations
+
 import logging
 import os
 import shutil

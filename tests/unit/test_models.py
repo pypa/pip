@@ -1,5 +1,6 @@
 """Tests for various classes in pip._internal.models
 """
+from __future__ import annotations
 
 from pip._vendor.packaging.version import parse as parse_version
 

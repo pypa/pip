@@ -4,6 +4,7 @@ Defines custom logger class for the `logger.verbose(...)` method.
 
 init_logging() must be called before any other modules that call logging.getLogger.
 """
+from __future__ import annotations
 
 import logging
 from typing import Any, cast

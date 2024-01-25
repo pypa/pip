@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import FrozenSet, Optional, Set
 
 from pip._vendor.packaging.utils import canonicalize_name

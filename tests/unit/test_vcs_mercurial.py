@@ -1,6 +1,7 @@
 """
 Contains functional tests of the Mercurial class.
 """
+from __future__ import annotations
 
 import configparser
 import os

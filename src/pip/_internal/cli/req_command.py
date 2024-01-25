@@ -4,6 +4,7 @@ The classes in this module are in a separate module so the commands not
 needing download / PackageFinder capability don't unnecessarily import the
 PackageFinder machinery and all its vendored dependencies, etc.
 """
+from __future__ import annotations
 
 import logging
 import os

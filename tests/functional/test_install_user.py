@@ -1,6 +1,8 @@
 """
 tests specific to "pip install --user"
 """
+from __future__ import annotations
+
 import os
 import textwrap
 from os.path import curdir, isdir, isfile

@@ -1,4 +1,5 @@
 """Base Command class, and related routines"""
+from __future__ import annotations
 
 import functools
 import logging

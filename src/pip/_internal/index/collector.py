@@ -1,6 +1,7 @@
 """
 The main purpose of this module is to expose LinkCollector.collect_sources().
 """
+from __future__ import annotations
 
 import collections
 import email.message

@@ -1,5 +1,7 @@
 """Helper for building wheels as would be in test cases.
 """
+from __future__ import annotations
+
 import csv
 import itertools
 from base64 import urlsafe_b64encode

@@ -1,6 +1,8 @@
 """
 tests specific to uninstalling --user installs
 """
+from __future__ import annotations
+
 from os.path import isdir, isfile, normcase
 
 import pytest

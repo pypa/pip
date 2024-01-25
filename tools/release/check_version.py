@@ -1,5 +1,6 @@
 """Checks if the version is acceptable, as per this project's release process.
 """
+from __future__ import annotations
 
 import sys
 from datetime import datetime

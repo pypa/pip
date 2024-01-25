@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import email.message
 import os

@@ -1,5 +1,7 @@
 """Download files with progress indicators.
 """
+from __future__ import annotations
+
 import email.message
 import logging
 import mimetypes

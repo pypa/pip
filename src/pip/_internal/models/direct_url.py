@@ -1,4 +1,6 @@
 """ PEP 610 """
+from __future__ import annotations
+
 import json
 import re
 import urllib.parse

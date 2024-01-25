@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sysconfig
 from typing import Any, Callable, Dict, List, Tuple
 from unittest.mock import patch

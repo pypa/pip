@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 from pip._internal.models.direct_url import (

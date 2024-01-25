@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Iterator
 
 from pip._vendor.packaging.version import Version

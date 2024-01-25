@@ -1,5 +1,6 @@
 """Helper classes as mocks for requests objects.
 """
+from __future__ import annotations
 
 from io import BytesIO
 from typing import Any, Callable, Dict, Iterator, List, Optional

@@ -4,7 +4,7 @@ For types associated with installation schemes.
 For a general overview of available schemes and their context, see
 https://docs.python.org/3/install/index.html#alternate-installation.
 """
-
+from __future__ import annotations
 
 SCHEME_KEYS = ["platlib", "purelib", "headers", "scripts", "data"]
 

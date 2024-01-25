@@ -1,4 +1,6 @@
 """Test the test support."""
+from __future__ import annotations
+
 import filecmp
 import pathlib
 import re

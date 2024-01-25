@@ -1,6 +1,7 @@
 """PipSession and supporting code, containing all pip-specific
 network request configuration and behavior.
 """
+from __future__ import annotations
 
 import email.utils
 import io

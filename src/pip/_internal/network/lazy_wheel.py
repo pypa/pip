@@ -1,4 +1,5 @@
 """Lazy ZIP over HTTP"""
+from __future__ import annotations
 
 __all__ = ["HTTPRangeRequestUnsupported", "dist_from_wheel_url"]
 

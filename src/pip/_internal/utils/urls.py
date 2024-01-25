@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import string
 import urllib.parse

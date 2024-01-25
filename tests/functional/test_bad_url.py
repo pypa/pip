@@ -1,5 +1,6 @@
 # test the error message returned by pip when
 # a bad "file:" URL is passed to it.
+from __future__ import annotations
 
 from typing import Any
 

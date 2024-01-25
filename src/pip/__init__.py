@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import List, Optional
 
 __version__ = "24.0.dev0"

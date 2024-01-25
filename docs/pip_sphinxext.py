@@ -1,4 +1,5 @@
 """pip sphinx extensions"""
+from __future__ import annotations
 
 import optparse
 import pathlib
