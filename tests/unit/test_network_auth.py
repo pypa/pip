@@ -19,88 +19,6 @@ def reset_keyring() -> Iterable[None]:
     pip._internal.network.auth.get_keyring_provider.cache_clear()
 
 
-@pytest.mark.parametrize(
-    ["input_url", "url", "username", "password"],
-    [
-        (
-            "http://user%40email.com:password@example.com/path",
-            "http://example.com/path",
-            "user@email.com",
-            "password",
-        ),
-        (
-            "http://username:password@example.com/path",
-            "http://example.com/path",
-            "username",
-            "password",
-        ),
-        (
-            "http://token@example.com/path",
-            "http://example.com/path",
-            "token",
-            "",
-        ),
-        (
-            "http://example.com/path",
-            "http://example.com/path",
-            None,
-            None,
-        ),
-    ],
-)
-def test_get_credentials_parses_correctly(
-    input_url: str, url: str, username: Optional[str], password: Optional[str]
-) -> None:
-    auth = MultiDomainBasicAuth()
-    get = auth._get_url_and_credentials
-
-    # Check URL parsing
-    assert get(input_url) == (url, username, password)
-    assert (
-        # There are no credentials in the URL
-        (username is None and password is None)
-        or
-        # Credentials were found and "cached" appropriately
-        auth.passwords["example.com"] == (username, password)
-    )
-
-
-def test_get_credentials_not_to_uses_cached_credentials() -> None:
-    auth = MultiDomainBasicAuth()
-    auth.passwords["example.com"] = ("user", "pass")
-
-    got = auth._get_url_and_credentials("http://foo:bar@example.com/path")
-    expected = ("http://example.com/path", "foo", "bar")
-    assert got == expected
-
-
-def test_get_credentials_not_to_uses_cached_credentials_only_username() -> None:
-    auth = MultiDomainBasicAuth()
-    auth.passwords["example.com"] = ("user", "pass")
-
-    got = auth._get_url_and_credentials("http://foo@example.com/path")
-    expected = ("http://example.com/path", "foo", "")
-    assert got == expected
-
-
-def test_get_credentials_uses_cached_credentials() -> None:
-    auth = MultiDomainBasicAuth()
-    auth.passwords["example.com"] = ("user", "pass")
-
-    got = auth._get_url_and_credentials("http://example.com/path")
-    expected = ("http://example.com/path", "user", "pass")
-    assert got == expected
-
-
-def test_get_credentials_uses_cached_credentials_only_username() -> None:
-    auth = MultiDomainBasicAuth()
-    auth.passwords["example.com"] = ("user", "pass")
-
-    got = auth._get_url_and_credentials("http://user@example.com/path")
-    expected = ("http://example.com/path", "user", "pass")
-    assert got == expected
-
-
 def test_get_index_url_credentials() -> None:
     auth = MultiDomainBasicAuth(
         index_urls=[
@@ -296,7 +214,6 @@ def test_keyring_set_password(
     keyring = KeyringModuleV1()
     monkeypatch.setitem(sys.modules, "keyring", keyring)
     auth = MultiDomainBasicAuth(prompting=True, keyring_provider="import")
-    monkeypatch.setattr(auth, "_get_url_and_credentials", lambda u: (u, None, None))
     monkeypatch.setattr(auth, "_prompt_for_password", lambda *a: creds)
     if creds[2]:
         # when _prompt_for_password indicates to save, we should save
@@ -526,7 +443,6 @@ def test_keyring_cli_set_password(
     keyring = KeyringSubprocessResult()
     monkeypatch.setattr(pip._internal.network.auth.subprocess, "run", keyring)
     auth = MultiDomainBasicAuth(prompting=True, keyring_provider="subprocess")
-    monkeypatch.setattr(auth, "_get_url_and_credentials", lambda u: (u, None, None))
     monkeypatch.setattr(auth, "_prompt_for_password", lambda *a: creds)
     if creds[2]:
         # when _prompt_for_password indicates to save, we should save
