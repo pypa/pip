@@ -175,6 +175,7 @@ select = [
 # the docs and tests directories.
 known-first-party = ["pip"]
 known-third-party = ["pip._vendor"]
+required-imports = ["from __future__ import annotations"]
 
 [tool.ruff.mccabe]
 max-complexity = 33  # default is 10
