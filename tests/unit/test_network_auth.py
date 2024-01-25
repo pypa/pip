@@ -19,6 +19,48 @@ def reset_keyring() -> Iterable[None]:
     pip._internal.network.auth.get_keyring_provider.cache_clear()
 
 
+def test_cache_required_credentials_maintains_url_prefix_specificity() -> None:
+    auth = MultiDomainBasicAuth()
+    save = auth._cache_required_credentials
+    expected = [
+        ("http://longest.example.com/prefix/", ("user1", "pass1")),
+        ("https://example.com/other/prefix/", ("user2", "pass2")),
+        ("http://shorter.example.com/", ("user3", "pass3")),
+        ("https://short.example.com/", ("user4", "pass4")),
+        ("http://example.com/short/", ("user5", "pass5")),
+    ]
+
+    # Save credentials in any wrong order
+    wrongly_ordered = [expected[3], expected[1], expected[2], expected[0], expected[4]]
+    for url_prefix, credentials in wrongly_ordered:
+        save(url_prefix, credentials)
+
+    assert auth._required_credentials == expected
+
+
+@pytest.mark.parametrize(
+    ["input_url", "username", "password"],
+    [
+        ("http://unknown.example.com/path", None, None),
+        ("http://required.example.com/path/subpath", "username", "password"),
+        ("http://required.example.com/different/subpath", "token", None),
+    ],
+)
+def test_get_required_credentials(
+    input_url: str, username: Optional[str], password: Optional[str]
+) -> None:
+    auth = MultiDomainBasicAuth()
+    for url_prefix, credentials in (
+        ("http://required.example.com/path/", ("username", "password")),
+        ("http://required.example.com/different/", ("token", None)),
+    ):
+        auth._cache_required_credentials(url_prefix, credentials)
+
+    get = auth._get_required_credentials
+
+    assert get(input_url) == (username, password)
+
+
 def test_get_index_url_credentials() -> None:
     auth = MultiDomainBasicAuth(
         index_urls=[
