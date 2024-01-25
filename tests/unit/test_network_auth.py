@@ -108,13 +108,17 @@ def test_get_index_url_credentials() -> None:
             "http://foo:bar@example.com/path",
         ]
     )
-    get = functools.partial(
-        auth._get_new_credentials, allow_netrc=False, allow_keyring=False
-    )
+    get = functools.partial(auth._get_new_credentials)
 
     # Check resolution of indexes
-    assert get("http://example.com/path/path2") == ("foo", "bar")
-    assert get("http://example.com/path3/path2") == (None, None)
+    assert get("http://example.com/path/path2") == (
+        "http://example.com/path/",
+        ("foo", "bar"),
+    )
+    assert get("http://example.com/path3/path2") == (
+        "http://example.com/",
+        (None, None),
+    )
 
 
 def test_prioritize_longest_path_prefix_match_organization() -> None:
@@ -124,16 +128,17 @@ def test_prioritize_longest_path_prefix_match_organization() -> None:
             "http://bar:foo@example.com/org-name-beta/repo-alias/simple",
         ]
     )
-    get = functools.partial(
-        auth._get_new_credentials, allow_netrc=False, allow_keyring=False
-    )
+    get = functools.partial(auth._get_new_credentials)
 
     # Inspired by Azure DevOps URL structure, GitLab should look similar
     assert get("http://example.com/org-name-alpha/repo-guid/download/") == (
-        "foo",
-        "bar",
+        "http://example.com/org-name-alpha/",
+        ("foo", "bar"),
     )
-    assert get("http://example.com/org-name-beta/repo-guid/download/") == ("bar", "foo")
+    assert get("http://example.com/org-name-beta/repo-guid/download/") == (
+        "http://example.com/org-name-beta/",
+        ("bar", "foo"),
+    )
 
 
 def test_prioritize_longest_path_prefix_match_project() -> None:
@@ -143,17 +148,15 @@ def test_prioritize_longest_path_prefix_match_project() -> None:
             "http://bar:foo@example.com/org-alpha/project-name-beta/repo-alias/simple",
         ]
     )
-    get = functools.partial(
-        auth._get_new_credentials, allow_netrc=False, allow_keyring=False
-    )
+    get = functools.partial(auth._get_new_credentials)
 
     # Inspired by Azure DevOps URL structure, GitLab should look similar
     assert get(
         "http://example.com/org-alpha/project-name-alpha/repo-guid/download/"
-    ) == ("foo", "bar")
+    ) == ("http://example.com/org-alpha/project-name-alpha/", ("foo", "bar"))
     assert get(
         "http://example.com/org-alpha/project-name-beta/repo-guid/download/"
-    ) == ("bar", "foo")
+    ) == ("http://example.com/org-alpha/project-name-beta/", ("bar", "foo"))
 
 
 class KeyringModuleV1:
@@ -178,19 +181,28 @@ class KeyringModuleV1:
 @pytest.mark.parametrize(
     "url, expect",
     (
-        ("http://example.com/path1", (None, None)),
+        ("http://example.com/path1", ("http://example.com/", (None, None))),
         # path1 URLs will be resolved by netloc
-        ("http://user@example.com/path3", ("user", "user!netloc")),
-        ("http://user2@example.com/path3", ("user2", "user2!netloc")),
+        (
+            "http://user@example.com/path3",
+            ("http://example.com/", ("user", "user!netloc")),
+        ),
+        (
+            "http://user2@example.com/path3",
+            ("http://example.com/", ("user2", "user2!netloc")),
+        ),
         # path2 URLs will be resolved by index URL
-        ("http://example.com/path2/path3", (None, None)),
-        ("http://foo@example.com/path2/path3", ("foo", "foo!url")),
+        ("http://example.com/path2/path3", ("http://example.com/", (None, None))),
+        (
+            "http://foo@example.com/path2/path3",
+            ("http://example.com/path2/", ("foo", "foo!url")),
+        ),
     ),
 )
 def test_keyring_get_password(
     monkeypatch: pytest.MonkeyPatch,
     url: str,
-    expect: Tuple[Optional[str], Optional[str]],
+    expect: Tuple[str, Tuple[Optional[str], Optional[str]]],
 ) -> None:
     keyring = KeyringModuleV1()
     monkeypatch.setitem(sys.modules, "keyring", keyring)
@@ -199,7 +211,7 @@ def test_keyring_get_password(
         keyring_provider="import",
     )
 
-    actual = auth._get_new_credentials(url, allow_netrc=False, allow_keyring=True)
+    actual = auth._get_new_credentials(url)
     assert actual == expect
 
 
@@ -247,12 +259,16 @@ def test_keyring_get_password_username_in_index(
         index_urls=["http://user@example.com/path2", "http://example.com/path4"],
         keyring_provider="import",
     )
-    get = functools.partial(
-        auth._get_new_credentials, allow_netrc=False, allow_keyring=True
-    )
+    get = functools.partial(auth._get_new_credentials)
 
-    assert get("http://example.com/path2/path3") == ("user", "user!url")
-    assert get("http://example.com/path4/path1") == (None, None)
+    assert get("http://example.com/path2/path3") == (
+        "http://example.com/path2/",
+        ("user", "user!url"),
+    )
+    assert get("http://example.com/path4/path1") == (
+        "http://example.com/",
+        (None, None),
+    )
 
 
 @pytest.mark.parametrize(
@@ -346,13 +362,22 @@ class KeyringModuleV2:
 @pytest.mark.parametrize(
     "url, expect",
     (
-        ("http://example.com/path1", ("username", "netloc")),
-        ("http://example.com/path2/path3", ("username", "url")),
-        ("http://user2@example.com/path2/path3", ("username", "url")),
+        (
+            "http://example.com/",
+            ("http://example.com/", ("username", "netloc")),
+        ),
+        (
+            "http://example.com/path2/path3",
+            ("http://example.com/path2/", ("username", "url")),
+        ),
+        (
+            "http://user2@example.com/path2/path3",
+            ("http://example.com/", ("user2", None)),
+        ),
     ),
 )
 def test_keyring_get_credential(
-    monkeypatch: pytest.MonkeyPatch, url: str, expect: Tuple[str, str]
+    monkeypatch: pytest.MonkeyPatch, url: str, expect: Tuple[str, Tuple[str, str]]
 ) -> None:
     monkeypatch.setitem(sys.modules, "keyring", KeyringModuleV2())
     auth = MultiDomainBasicAuth(
@@ -360,9 +385,7 @@ def test_keyring_get_credential(
         keyring_provider="import",
     )
 
-    assert (
-        auth._get_new_credentials(url, allow_netrc=False, allow_keyring=True) == expect
-    )
+    assert auth._get_new_credentials(url) == expect
 
 
 class KeyringModuleBroken:
@@ -387,9 +410,7 @@ def test_broken_keyring_disables_keyring(monkeypatch: pytest.MonkeyPatch) -> Non
     assert keyring_broken._call_count == 0
     for i in range(5):
         url = "http://example.com/path" + str(i)
-        assert auth._get_new_credentials(
-            url, allow_netrc=False, allow_keyring=True
-        ) == (None, None)
+        assert auth._get_new_credentials(url) == ("http://example.com/", (None, None))
         assert keyring_broken._call_count == 1
 
 
@@ -443,19 +464,28 @@ class KeyringSubprocessResult(KeyringModuleV1):
 @pytest.mark.parametrize(
     "url, expect",
     (
-        ("http://example.com/path1", (None, None)),
+        ("http://example.com/path1", ("http://example.com/", (None, None))),
         # path1 URLs will be resolved by netloc
-        ("http://user@example.com/path3", ("user", "user!netloc")),
-        ("http://user2@example.com/path3", ("user2", "user2!netloc")),
+        (
+            "http://user@example.com/path3/",
+            ("http://example.com/", ("user", "user!netloc")),
+        ),
+        (
+            "http://user2@example.com/path3",
+            ("http://example.com/", ("user2", "user2!netloc")),
+        ),
         # path2 URLs will be resolved by index URL
-        ("http://example.com/path2/path3", (None, None)),
-        ("http://foo@example.com/path2/path3", ("foo", "foo!url")),
+        ("http://example.com/path2/path3", ("http://example.com/", (None, None))),
+        (
+            "http://foo@example.com/path2/path3",
+            ("http://example.com/path2/", ("foo", "foo!url")),
+        ),
     ),
 )
 def test_keyring_cli_get_password(
     monkeypatch: pytest.MonkeyPatch,
     url: str,
-    expect: Tuple[Optional[str], Optional[str]],
+    expect: Tuple[str, Tuple[Optional[str], Optional[str]]],
 ) -> None:
     monkeypatch.setattr(pip._internal.network.auth.shutil, "which", lambda x: "keyring")
     monkeypatch.setattr(
@@ -466,7 +496,7 @@ def test_keyring_cli_get_password(
         keyring_provider="subprocess",
     )
 
-    actual = auth._get_new_credentials(url, allow_netrc=False, allow_keyring=True)
+    actual = auth._get_new_credentials(url)
     assert actual == expect
 
 
