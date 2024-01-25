@@ -7,7 +7,7 @@ import os
 import sys
 from optparse import Values
 from types import ModuleType
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import pip._vendor
 from pip._vendor.certifi import where
@@ -17,10 +17,12 @@ from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.status_codes import SUCCESS
-from pip._internal.configuration import Configuration
 from pip._internal.metadata import get_environment
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import get_pip_version
+
+if TYPE_CHECKING:
+    from pip._internal.configuration import Configuration
 
 logger = logging.getLogger(__name__)
 

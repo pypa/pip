@@ -6,13 +6,15 @@ import os
 import pathlib
 import re
 from os.path import basename
-from typing import Iterable
+from typing import TYPE_CHECKING, Iterable
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pytest import mark
 
 from pip._internal.utils.misc import hash_file
-from tests.lib import PipTestEnvironment, TestData, TestPipResult
+
+if TYPE_CHECKING:
+    from tests.lib import PipTestEnvironment, TestData, TestPipResult
 
 
 def pip(script: PipTestEnvironment, command: str, requirement: str) -> TestPipResult:

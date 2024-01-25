@@ -5,14 +5,16 @@ from contextlib import ExitStack
 from email import message_from_string
 from io import BytesIO
 from pathlib import Path
-from typing import Callable, Iterator
+from typing import TYPE_CHECKING, Callable, Iterator
 from zipfile import ZipFile
 
 import pytest
 
 from pip._internal.exceptions import UnsupportedWheel
 from pip._internal.utils import wheel
-from tests.lib import TestData
+
+if TYPE_CHECKING:
+    from tests.lib import TestData
 
 _ZipDir = Callable[[Path], ZipFile]
 

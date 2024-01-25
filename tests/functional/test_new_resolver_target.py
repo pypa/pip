@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Callable, Optional
+from typing import TYPE_CHECKING, Callable, Optional
 
 import pytest
 
 from pip._internal.cli.status_codes import ERROR, SUCCESS
-from tests.lib import PipTestEnvironment
 from tests.lib.wheel import make_wheel
+
+if TYPE_CHECKING:
+    from tests.lib import PipTestEnvironment
 
 MakeFakeWheel = Callable[[str], str]
 

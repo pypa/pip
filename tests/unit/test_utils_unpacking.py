@@ -10,13 +10,15 @@ import tempfile
 import time
 import zipfile
 from pathlib import Path
-from typing import List, Tuple
+from typing import TYPE_CHECKING, List, Tuple
 
 import pytest
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.unpacking import is_within_directory, untar_file, unzip_file
-from tests.lib import TestData
+
+if TYPE_CHECKING:
+    from tests.lib import TestData
 
 
 class TestUnpackArchives:

@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pip import __version__
-from tests.lib import PipTestEnvironment
+
+if TYPE_CHECKING:
+    from tests.lib import PipTestEnvironment
 
 
 def test_runner_work_in_environments_with_no_pip(

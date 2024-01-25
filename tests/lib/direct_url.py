@@ -3,10 +3,12 @@ from __future__ import annotations
 import os
 import re
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
-from tests.lib import TestPipResult
+
+if TYPE_CHECKING:
+    from tests.lib import TestPipResult
 
 
 def get_created_direct_url_path(result: TestPipResult, pkg: str) -> Optional[Path]:

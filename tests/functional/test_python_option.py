@@ -3,9 +3,11 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 from venv import EnvBuilder
 
-from tests.lib import PipTestEnvironment, TestData
+if TYPE_CHECKING:
+    from tests.lib import PipTestEnvironment, TestData
 
 
 def test_python_interpreter(

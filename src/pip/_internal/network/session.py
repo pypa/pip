@@ -40,7 +40,6 @@ from pip._vendor.urllib3.exceptions import InsecureRequestWarning
 
 from pip import __version__
 from pip._internal.metadata import get_default_environment
-from pip._internal.models.link import Link
 from pip._internal.network.auth import MultiDomainBasicAuth
 from pip._internal.network.cache import SafeFileCache
 
@@ -54,6 +53,8 @@ if TYPE_CHECKING:
     from ssl import SSLContext
 
     from pip._vendor.urllib3.poolmanager import PoolManager
+
+    from pip._internal.models.link import Link
 
 
 logger = logging.getLogger(__name__)

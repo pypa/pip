@@ -9,10 +9,10 @@ import pytest
 from pip._internal.cli.status_codes import NO_MATCHES_FOUND, SUCCESS
 from pip._internal.commands import create_command
 from pip._internal.commands.search import highest_version, print_results, transform_hits
-from tests.lib import PipTestEnvironment
 
 if TYPE_CHECKING:
     from pip._internal.commands.search import TransformedHit
+    from tests.lib import PipTestEnvironment
 
 
 def test_version_compare() -> None:

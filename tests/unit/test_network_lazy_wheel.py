@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterator
+from typing import TYPE_CHECKING, Iterator
 
 from pip._vendor.packaging.version import Version
 from pytest import fixture, mark, raises
@@ -11,8 +11,10 @@ from pip._internal.network.lazy_wheel import (
     dist_from_wheel_url,
 )
 from pip._internal.network.session import PipSession
-from tests.lib import TestData
 from tests.lib.server import MockServer, file_response
+
+if TYPE_CHECKING:
+    from tests.lib import TestData
 
 MYPY_0_782_WHL = (
     "https://files.pythonhosted.org/packages/9d/65/"

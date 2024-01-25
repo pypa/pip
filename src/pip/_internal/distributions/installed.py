@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from pip._internal.distributions.base import AbstractDistribution
-from pip._internal.index.package_finder import PackageFinder
-from pip._internal.metadata import BaseDistribution
+
+if TYPE_CHECKING:
+    from pip._internal.index.package_finder import PackageFinder
+    from pip._internal.metadata import BaseDistribution
 
 
 class InstalledDistribution(AbstractDistribution):

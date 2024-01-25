@@ -17,11 +17,12 @@ from pip._vendor.resolvelib.providers import AbstractProvider
 
 from .base import Candidate, Constraint, Requirement
 from .candidates import REQUIRES_PYTHON_IDENTIFIER
-from .factory import Factory
 
 if TYPE_CHECKING:
     from pip._vendor.resolvelib.providers import Preference
     from pip._vendor.resolvelib.resolvers import RequirementInformation
+
+    from .factory import Factory
 
     PreferenceInformation = RequirementInformation[Requirement, Candidate]
 

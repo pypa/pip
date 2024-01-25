@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+from typing import TYPE_CHECKING
 
 import pytest
 
-from tests.lib import PipTestEnvironment, ScriptFactory, TestData
+if TYPE_CHECKING:
+    from tests.lib import PipTestEnvironment, ScriptFactory, TestData
 
 
 @pytest.fixture(scope="session")

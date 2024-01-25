@@ -3,7 +3,7 @@ from __future__ import annotations
 import email.message
 import logging
 import os
-from typing import List, Optional, Type, TypeVar, cast
+from typing import TYPE_CHECKING, List, Optional, Type, TypeVar, cast
 from unittest import mock
 
 import pytest
@@ -16,7 +16,6 @@ from pip._internal.exceptions import (
     UnsupportedPythonVersion,
 )
 from pip._internal.metadata import BaseDistribution
-from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.legacy.resolver import (
@@ -25,6 +24,9 @@ from pip._internal.resolution.legacy.resolver import (
 )
 from tests.lib import TestData, make_test_finder
 from tests.lib.index import make_mock_candidate
+
+if TYPE_CHECKING:
+    from pip._internal.models.candidate import InstallationCandidate
 
 T = TypeVar("T")
 

@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import re
-from typing import List
+from typing import TYPE_CHECKING, List
 
 import pytest
 from pip._vendor.packaging.version import Version
 
 from pip._internal.commands.debug import create_vendor_txt_map
 from pip._internal.utils import compatibility_tags
-from tests.lib import PipTestEnvironment
+
+if TYPE_CHECKING:
+    from tests.lib import PipTestEnvironment
 
 
 @pytest.mark.parametrize(

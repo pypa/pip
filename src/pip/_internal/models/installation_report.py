@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Sequence
+from typing import TYPE_CHECKING, Any, Dict, Sequence
 
 from pip._vendor.packaging.markers import default_environment
 
 from pip import __version__
-from pip._internal.req.req_install import InstallRequirement
+
+if TYPE_CHECKING:
+    from pip._internal.req.req_install import InstallRequirement
 
 
 class InstallationReport:

@@ -8,13 +8,14 @@ import xmlrpc.client
 from typing import TYPE_CHECKING, Tuple
 
 from pip._internal.exceptions import NetworkConnectionError
-from pip._internal.network.session import PipSession
 from pip._internal.network.utils import raise_for_status
 
 if TYPE_CHECKING:
     from xmlrpc.client import _HostType, _Marshallable
 
     from _typeshed import SizedBuffer
+
+    from pip._internal.network.session import PipSession
 
 logger = logging.getLogger(__name__)
 

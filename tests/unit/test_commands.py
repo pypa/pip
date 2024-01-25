@@ -1,17 +1,19 @@
 from __future__ import annotations
 
-from typing import Callable, List
+from typing import TYPE_CHECKING, Callable, List
 from unittest import mock
 
 import pytest
 
-from pip._internal.cli.base_command import Command
 from pip._internal.cli.req_command import (
     IndexGroupCommand,
     RequirementCommand,
     SessionCommandMixin,
 )
 from pip._internal.commands import commands_dict, create_command
+
+if TYPE_CHECKING:
+    from pip._internal.cli.base_command import Command
 
 # These are the expected names of the commands whose classes inherit from
 # IndexGroupCommand.

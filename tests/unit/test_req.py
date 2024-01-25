@@ -8,7 +8,7 @@ import sys
 import tempfile
 from functools import partial
 from pathlib import Path
-from typing import Iterator, Optional, Set, Tuple, cast
+from typing import TYPE_CHECKING, Iterator, Optional, Set, Tuple, cast
 from unittest import mock
 
 import pytest
@@ -24,7 +24,6 @@ from pip._internal.exceptions import (
     InvalidWheelFilename,
     PreviousBuildDirError,
 )
-from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.direct_url import ArchiveInfo, DirectUrl, DirInfo, VcsInfo
 from pip._internal.models.link import Link
 from pip._internal.network.session import PipSession
@@ -49,6 +48,9 @@ from pip._internal.req.req_file import (
 )
 from pip._internal.resolution.legacy.resolver import Resolver
 from tests.lib import TestData, make_test_finder, requirements_file, wheel
+
+if TYPE_CHECKING:
+    from pip._internal.index.package_finder import PackageFinder
 
 
 def get_processed_req_from_line(

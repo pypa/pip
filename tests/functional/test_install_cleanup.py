@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from os.path import exists
+from typing import TYPE_CHECKING
 
 import pytest
 
-from tests.lib import PipTestEnvironment, TestData
+if TYPE_CHECKING:
+    from tests.lib import PipTestEnvironment, TestData
 
 
 @pytest.mark.network

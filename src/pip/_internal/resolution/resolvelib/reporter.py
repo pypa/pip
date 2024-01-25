@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from collections import defaultdict
 from logging import getLogger
-from typing import Any, DefaultDict
+from typing import TYPE_CHECKING, Any, DefaultDict
 
 from pip._vendor.resolvelib.reporters import BaseReporter
 
-from .base import Candidate, Requirement
+if TYPE_CHECKING:
+    from .base import Candidate, Requirement
 
 logger = getLogger(__name__)
 

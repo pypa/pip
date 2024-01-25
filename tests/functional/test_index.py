@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pytest
 
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.commands import create_command
-from tests.lib import PipTestEnvironment
+
+if TYPE_CHECKING:
+    from tests.lib import PipTestEnvironment
 
 
 @pytest.mark.network

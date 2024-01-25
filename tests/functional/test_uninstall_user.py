@@ -4,13 +4,16 @@ tests specific to uninstalling --user installs
 from __future__ import annotations
 
 from os.path import isdir, isfile, normcase
+from typing import TYPE_CHECKING
 
 import pytest
 
 from tests.functional.test_install_user import _patch_dist_in_site_packages
 from tests.lib import PipTestEnvironment, TestData, assert_all_changes
-from tests.lib.venv import VirtualEnvironment
 from tests.lib.wheel import make_wheel
+
+if TYPE_CHECKING:
+    from tests.lib.venv import VirtualEnvironment
 
 
 @pytest.mark.usefixtures("enable_user_site")

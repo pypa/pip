@@ -18,12 +18,11 @@ import logging
 import sys
 from collections import defaultdict
 from itertools import chain
-from typing import DefaultDict, Iterable, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, DefaultDict, Iterable, List, Optional, Set, Tuple
 
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.requirements import Requirement
 
-from pip._internal.cache import WheelCache
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled,
     DistributionNotFound,
@@ -33,11 +32,7 @@ from pip._internal.exceptions import (
     NoneMetadataError,
     UnsupportedPythonVersion,
 )
-from pip._internal.index.package_finder import PackageFinder
-from pip._internal.metadata import BaseDistribution
-from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
-from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.req_install import (
     InstallRequirement,
     check_invalid_constraint_type,
@@ -50,6 +45,13 @@ from pip._internal.utils.direct_url_helpers import direct_url_from_link
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import normalize_version_info
 from pip._internal.utils.packaging import check_requires_python
+
+if TYPE_CHECKING:
+    from pip._internal.cache import WheelCache
+    from pip._internal.index.package_finder import PackageFinder
+    from pip._internal.metadata import BaseDistribution
+    from pip._internal.models.link import Link
+    from pip._internal.operations.prepare import RequirementPreparer
 
 logger = logging.getLogger(__name__)
 

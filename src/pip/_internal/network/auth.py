@@ -30,7 +30,9 @@ from pip._internal.utils.misc import (
     remove_auth_from_url,
     split_auth_netloc_from_url,
 )
-from pip._internal.vcs.versioncontrol import AuthInfo
+
+if typing.TYPE_CHECKING:
+    from pip._internal.vcs.versioncontrol import AuthInfo
 
 logger = getLogger(__name__)
 

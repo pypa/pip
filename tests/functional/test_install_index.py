@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import shutil
 import textwrap
+from typing import TYPE_CHECKING
 
-from tests.lib import PipTestEnvironment, TestData
+if TYPE_CHECKING:
+    from tests.lib import PipTestEnvironment, TestData
 
 
 def test_find_links_relative_path(script: PipTestEnvironment, data: TestData) -> None:

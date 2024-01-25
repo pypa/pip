@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Callable, Dict, List, Tuple
 import pytest
 from packaging.utils import canonicalize_name
 
-from tests.conftest import ScriptFactory
 from tests.lib import (
     PipTestEnvironment,
     create_basic_sdist_for_package,
@@ -17,11 +16,13 @@ from tests.lib import (
     create_test_package_with_setup,
 )
 from tests.lib.direct_url import get_created_direct_url
-from tests.lib.venv import VirtualEnvironment
 from tests.lib.wheel import make_wheel
 
 if TYPE_CHECKING:
     from typing import Protocol
+
+    from tests.conftest import ScriptFactory
+    from tests.lib.venv import VirtualEnvironment
 
 MakeFakeWheel = Callable[[str, str, str], pathlib.Path]
 

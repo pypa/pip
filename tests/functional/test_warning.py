@@ -4,10 +4,12 @@ import os
 import sys
 import textwrap
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
-from tests.lib import PipTestEnvironment
+if TYPE_CHECKING:
+    from tests.lib import PipTestEnvironment
 
 
 @pytest.fixture

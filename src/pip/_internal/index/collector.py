@@ -35,7 +35,6 @@ from pip._vendor.requests.exceptions import RetryError, SSLError
 from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
-from pip._internal.network.session import PipSession
 from pip._internal.network.utils import raise_for_status
 from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import redact_auth_from_url
@@ -45,6 +44,8 @@ from .sources import CandidatesFromPage, LinkSource, build_source
 
 if TYPE_CHECKING:
     from typing import Protocol
+
+    from pip._internal.network.session import PipSession
 else:
     Protocol = object
 

@@ -5,7 +5,7 @@ import shutil
 from pathlib import Path
 from shutil import rmtree
 from tempfile import mkdtemp
-from typing import Any, Dict
+from typing import TYPE_CHECKING, Any, Dict
 from unittest.mock import Mock, patch
 
 import pytest
@@ -16,8 +16,10 @@ from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import unpack_url
 from pip._internal.utils.hashes import Hashes
-from tests.lib import TestData
 from tests.lib.requests_mocks import MockResponse
+
+if TYPE_CHECKING:
+    from tests.lib import TestData
 
 
 def test_unpack_url_with_urllib_response_without_content_type(data: TestData) -> None:

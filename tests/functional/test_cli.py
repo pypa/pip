@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from textwrap import dedent
+from typing import TYPE_CHECKING
 
 import pytest
 
-from tests.lib import PipTestEnvironment
+if TYPE_CHECKING:
+    from tests.lib import PipTestEnvironment
 
 
 @pytest.mark.parametrize(

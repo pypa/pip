@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pytest
 
-from tests.lib import PipTestEnvironment, TestData, TestPipResult
+if TYPE_CHECKING:
+    from tests.lib import PipTestEnvironment, TestData, TestPipResult
 
 
 def _assert_requested_present(

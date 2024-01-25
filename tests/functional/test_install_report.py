@@ -3,12 +3,13 @@ from __future__ import annotations
 import json
 import textwrap
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Tuple
 
 import pytest
 from packaging.utils import canonicalize_name
 
-from ..lib import PipTestEnvironment, TestData
+if TYPE_CHECKING:
+    from ..lib import PipTestEnvironment, TestData
 
 
 def _install_dict(report: Dict[str, Any]) -> Dict[str, Any]:

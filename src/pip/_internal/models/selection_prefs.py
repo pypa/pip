@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
-from pip._internal.models.format_control import FormatControl
+if TYPE_CHECKING:
+    from pip._internal.models.format_control import FormatControl
 
 
 class SelectionPreferences:

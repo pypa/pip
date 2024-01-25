@@ -6,6 +6,7 @@ import sys
 import textwrap
 from doctest import ELLIPSIS, OutputChecker
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 from pip._vendor.packaging.utils import canonicalize_name
@@ -25,7 +26,9 @@ from tests.lib import (
     wheel,
 )
 from tests.lib.direct_url import get_created_direct_url_path
-from tests.lib.venv import VirtualEnvironment
+
+if TYPE_CHECKING:
+    from tests.lib.venv import VirtualEnvironment
 
 distribute_re = re.compile("^distribute==[0-9.]+\n", re.MULTILINE)
 

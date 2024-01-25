@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from tests.lib import PipTestEnvironment
+if TYPE_CHECKING:
+    from tests.lib import PipTestEnvironment
 
 
 def test_basic_hash(script: PipTestEnvironment, tmpdir: Path) -> None:

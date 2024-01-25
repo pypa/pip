@@ -15,12 +15,12 @@ from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution, get_environment
 from pip._internal.models.selection_prefs import SelectionPreferences
-from pip._internal.network.session import PipSession
 from pip._internal.utils.compat import stdlib_pkgs
 from pip._internal.utils.misc import tabulate, write_output
 
 if TYPE_CHECKING:
     from pip._internal.metadata.base import DistributionVersion
+    from pip._internal.network.session import PipSession
 
     class _DistWithLatestInfo(BaseDistribution):
         """Give the distribution object a couple of extra fields.

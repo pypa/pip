@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from unittest.mock import Mock
 
 import pytest
@@ -7,7 +8,9 @@ import pytest
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.commands import commands_dict, create_command
 from pip._internal.exceptions import CommandError
-from tests.lib import InMemoryPip, PipTestEnvironment
+
+if TYPE_CHECKING:
+    from tests.lib import InMemoryPip, PipTestEnvironment
 
 
 def test_run_method_should_return_success_when_finds_command_name() -> None:

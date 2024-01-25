@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from typing import Callable, List, Optional
+from typing import TYPE_CHECKING, Callable, List, Optional
 
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.req.req_set import RequirementSet
+
+if TYPE_CHECKING:
+    from pip._internal.req.req_set import RequirementSet
 
 InstallRequirementProvider = Callable[
     [str, Optional[InstallRequirement]], InstallRequirement

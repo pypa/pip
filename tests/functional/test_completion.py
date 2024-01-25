@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING, Tuple, Union
 
 import pytest
 
-from tests.lib import PipTestEnvironment, ScriptFactory, TestData, TestPipResult
-
 if TYPE_CHECKING:
     from typing import Protocol
+
+    from tests.lib import PipTestEnvironment, ScriptFactory, TestData, TestPipResult
 else:
     # TODO: Protocol was introduced in Python 3.8. Remove this branch when
     # dropping support for Python 3.7.

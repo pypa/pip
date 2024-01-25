@@ -6,11 +6,10 @@ import sys
 import tempfile
 import textwrap
 from pathlib import Path
-from typing import Callable, List
+from typing import TYPE_CHECKING, Callable, List
 
 import pytest
 
-from tests.lib import CertFactory, PipTestEnvironment, ScriptFactory, TestData
 from tests.lib.server import (
     MockServer,
     authorization_response,
@@ -19,7 +18,10 @@ from tests.lib.server import (
     package_page,
     server_running,
 )
-from tests.lib.venv import VirtualEnvironment
+
+if TYPE_CHECKING:
+    from tests.lib import CertFactory, PipTestEnvironment, ScriptFactory, TestData
+    from tests.lib.venv import VirtualEnvironment
 
 TEST_PYPI_INITOOLS = "https://test.pypi.org/simple/initools/"
 

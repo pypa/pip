@@ -3,12 +3,14 @@ from __future__ import annotations
 import json
 import pathlib
 import textwrap
-from typing import List
+from typing import TYPE_CHECKING, List
 
 import pytest
 
 from tests.lib import PipTestEnvironment, create_basic_wheel_for_package
-from tests.lib.venv import VirtualEnvironment
+
+if TYPE_CHECKING:
+    from tests.lib.venv import VirtualEnvironment
 
 
 @pytest.fixture()

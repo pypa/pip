@@ -12,20 +12,21 @@ from pip._internal.exceptions import (
     InstallationSubprocessError,
     MetadataInconsistent,
 )
-from pip._internal.metadata import BaseDistribution
 from pip._internal.models.link import Link, links_equivalent
 from pip._internal.models.wheel import Wheel
 from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
 )
-from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.direct_url_helpers import direct_url_from_link
 from pip._internal.utils.misc import normalize_version_info
 
 from .base import Candidate, CandidateVersion, Requirement, format_name
 
 if TYPE_CHECKING:
+    from pip._internal.metadata import BaseDistribution
+    from pip._internal.req.req_install import InstallRequirement
+
     from .factory import Factory
 
 logger = logging.getLogger(__name__)

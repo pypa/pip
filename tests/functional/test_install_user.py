@@ -7,6 +7,7 @@ import os
 import textwrap
 from os.path import curdir, isdir, isfile
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -18,7 +19,9 @@ from tests.lib import (
     pyversion,  # noqa: F401
 )
 from tests.lib.local_repos import local_checkout
-from tests.lib.venv import VirtualEnvironment
+
+if TYPE_CHECKING:
+    from tests.lib.venv import VirtualEnvironment
 
 
 def _patch_dist_in_site_packages(virtualenv: VirtualEnvironment) -> None:

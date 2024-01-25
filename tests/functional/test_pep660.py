@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any, Dict
+from typing import TYPE_CHECKING, Any, Dict
 
 import tomli_w
 
-from tests.lib import PipTestEnvironment
+if TYPE_CHECKING:
+    from tests.lib import PipTestEnvironment
 
 SETUP_PY = """
 from setuptools import setup

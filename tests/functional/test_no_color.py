@@ -7,10 +7,12 @@ import os
 import shutil
 import subprocess
 import sys
+from typing import TYPE_CHECKING
 
 import pytest
 
-from tests.lib import PipTestEnvironment
+if TYPE_CHECKING:
+    from tests.lib import PipTestEnvironment
 
 
 @pytest.mark.skipif(shutil.which("script") is None, reason="no 'script' executable")

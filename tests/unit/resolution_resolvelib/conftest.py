@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterator
+from typing import TYPE_CHECKING, Iterator
 
 import pytest
 
@@ -14,12 +14,14 @@ from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.session import PipSession
 from pip._internal.operations.build.build_tracker import get_build_tracker
-from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.resolution.resolvelib.factory import Factory
 from pip._internal.resolution.resolvelib.provider import PipProvider
 from pip._internal.utils.temp_dir import TempDirectory, global_tempdir_manager
-from tests.lib import TestData
+
+if TYPE_CHECKING:
+    from pip._internal.operations.prepare import RequirementPreparer
+    from tests.lib import TestData
 
 
 @pytest.fixture

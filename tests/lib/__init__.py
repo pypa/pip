@@ -41,14 +41,15 @@ from pip._internal.index.package_finder import PackageFinder
 from pip._internal.locations import get_major_minor_version
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
-from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
 from pip._internal.utils.egg_link import _egg_link_names
-from tests.lib.venv import VirtualEnvironment
 from tests.lib.wheel import make_wheel
 
 if TYPE_CHECKING:
     from typing import Literal, Protocol
+
+    from pip._internal.models.target_python import TargetPython
+    from tests.lib.venv import VirtualEnvironment
 
     ResolverVariant = Literal["resolvelib", "legacy"]
 else:  # TODO: Remove this branch when dropping support for Python 3.7.

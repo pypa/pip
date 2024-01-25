@@ -3,12 +3,15 @@ from __future__ import annotations
 import os
 from pathlib import Path
 from textwrap import dedent
+from typing import TYPE_CHECKING
 
 import pytest
 
 from pip._internal.exceptions import InstallationError, InvalidPyProjectBuildRequires
 from pip._internal.req import InstallRequirement
-from tests.lib import TestData
+
+if TYPE_CHECKING:
+    from tests.lib import TestData
 
 
 @pytest.mark.parametrize(

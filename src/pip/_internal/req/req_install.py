@@ -9,7 +9,17 @@ import uuid
 import zipfile
 from optparse import Values
 from pathlib import Path
-from typing import Any, Collection, Dict, Iterable, List, Optional, Sequence, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Collection,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Union,
+)
 
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
@@ -29,7 +39,6 @@ from pip._internal.metadata import (
     get_wheel_distribution,
 )
 from pip._internal.metadata.base import FilesystemWheel
-from pip._internal.models.direct_url import DirectUrl
 from pip._internal.models.link import Link
 from pip._internal.operations.build.metadata import generate_metadata
 from pip._internal.operations.build.metadata_editable import generate_editable_metadata
@@ -60,6 +69,9 @@ from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
+
+if TYPE_CHECKING:
+    from pip._internal.models.direct_url import DirectUrl
 
 logger = logging.getLogger(__name__)
 

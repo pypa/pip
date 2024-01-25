@@ -20,7 +20,6 @@ from typing import (
     Union,
 )
 
-from pip._internal.cli.spinners import SpinnerInterface
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import (
     HiddenText,
@@ -45,6 +44,8 @@ if TYPE_CHECKING:
     #
     # TODO: Remove `if TYPE_CHECKING` when dropping support for Python 3.7.
     from typing import Literal
+
+    from pip._internal.cli.spinners import SpinnerInterface
 
 
 __all__ = ["vcs"]
