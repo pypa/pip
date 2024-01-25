@@ -892,6 +892,59 @@ def test_freeze_with_requirement_option_package_repeated_multi_file(
     assert result.stderr.count("is not installed") == 1
 
 
+def test_freeze_with_requirement_and_preserve_blanklines_option(script: PipTestEnvironment) -> None:
+    """
+    Test freezing with requirements file and
+    enabled --with-blanklines option
+    """
+    script.scratch_path.joinpath("hint1.txt").write_text(
+        textwrap.dedent(
+            """\
+            # first
+            INITools==0.2
+            
+            # second
+            simple==1.0
+            
+            # third
+            simple2==1.0
+            """
+        )
+        + _freeze_req_opts
+    )
+    result = script.pip_install_local("simple==1.0")
+    result = script.pip_install_local("simple2==1.0")
+    result = script.pip_install_local("initools==0.2")
+    result = script.pip_install_local("meta")
+    result = script.pip(
+        "freeze",
+        "--requirement",
+        "hint1.txt",
+        "--with-blanklines",
+        expect_stderr=True,
+    )
+    expected_out = textwrap.dedent(
+        """\
+        # first
+        INITools==0.2
+
+        # second
+        simple==1.0
+
+        # third
+        simple2==1.0
+        """
+    )
+    expected_out += _freeze_req_opts
+    expected_out += "## The following requirements were added by pip freeze:"
+    expected_out += "\n" + textwrap.dedent(
+        """\
+        ...meta==1.0...
+        """
+    )
+    _check_output(result.stdout, expected_out)
+
+
 @pytest.mark.network
 @pytest.mark.usefixtures("enable_user_site")
 def test_freeze_user(
