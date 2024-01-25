@@ -14,10 +14,10 @@ from pip._internal.exceptions import BestVersionAlreadyInstalled, DistributionNo
 from pip._internal.index.package_finder import (
     CandidateEvaluator,
     InstallationCandidate,
-    Link,
     LinkEvaluator,
     LinkType,
 )
+from pip._internal.models.link import Link
 from pip._internal.models.target_python import TargetPython
 from pip._internal.req.constructors import install_req_from_line
 from tests.lib import TestData, make_test_finder
