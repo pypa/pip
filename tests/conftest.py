@@ -37,11 +37,8 @@ import pytest
 
 # Config will be available from the public API in pytest >= 7.0.0:
 # https://github.com/pytest-dev/pytest/commit/88d84a57916b592b070f4201dc84f0286d1f9fef
-from _pytest.config import Config
-
 # Parser will be available from the public API in pytest >= 7.0.0:
 # https://github.com/pytest-dev/pytest/commit/538b5c24999e9ebb4fab43faabc8bcc28737bcdf
-from _pytest.config.argparsing import Parser
 from installer import install
 from installer.destinations import SchemeDictionaryDestination
 from installer.sources import WheelFile
@@ -62,6 +59,8 @@ from tests.lib.server import MockServer, make_mock_server
 from tests.lib.venv import VirtualEnvironment, VirtualEnvironmentType
 
 if TYPE_CHECKING:
+    from _pytest.config import Config
+    from _pytest.config.argparsing import Parser
     from pip._vendor.typing_extensions import Self
 
 

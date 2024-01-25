@@ -29,7 +29,6 @@ from typing import (
 )
 
 from pip._vendor import requests
-from pip._vendor.requests import Response
 from pip._vendor.requests.exceptions import RetryError, SSLError
 
 from pip._internal.exceptions import NetworkConnectionError
@@ -44,6 +43,8 @@ from .sources import CandidatesFromPage, LinkSource, build_source
 
 if TYPE_CHECKING:
     from typing import Protocol
+
+    from pip._vendor.requests import Response
 
     from pip._internal.network.session import PipSession
 else:

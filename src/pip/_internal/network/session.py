@@ -35,7 +35,6 @@ from pip._vendor.requests.adapters import DEFAULT_POOLBLOCK, BaseAdapter
 from pip._vendor.requests.adapters import HTTPAdapter as _BaseHTTPAdapter
 from pip._vendor.requests.models import PreparedRequest, Response
 from pip._vendor.requests.structures import CaseInsensitiveDict
-from pip._vendor.urllib3.connectionpool import ConnectionPool
 from pip._vendor.urllib3.exceptions import InsecureRequestWarning
 
 from pip import __version__
@@ -52,6 +51,7 @@ from pip._internal.utils.urls import url_to_path
 if TYPE_CHECKING:
     from ssl import SSLContext
 
+    from pip._vendor.urllib3.connectionpool import ConnectionPool
     from pip._vendor.urllib3.poolmanager import PoolManager
 
     from pip._internal.models.link import Link

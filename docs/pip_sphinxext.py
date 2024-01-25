@@ -6,16 +6,18 @@ import pathlib
 import re
 import sys
 from textwrap import dedent
-from typing import Dict, Iterable, Iterator, List, Optional, Union
+from typing import TYPE_CHECKING, Dict, Iterable, Iterator, List, Optional, Union
 
 from docutils import nodes, statemachine
 from docutils.parsers import rst
 from docutils.statemachine import StringList, ViewList
-from sphinx.application import Sphinx
 
 from pip._internal.cli import cmdoptions
 from pip._internal.commands import commands_dict, create_command
 from pip._internal.req.req_file import SUPPORTED_OPTIONS
+
+if TYPE_CHECKING:
+    from sphinx.application import Sphinx
 
 
 class PipNewsInclude(rst.Directive):

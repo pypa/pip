@@ -5,10 +5,18 @@ import email.parser
 import logging
 import os
 import zipfile
-from typing import Collection, Iterable, Iterator, List, Mapping, NamedTuple, Optional
+from typing import (
+    TYPE_CHECKING,
+    Collection,
+    Iterable,
+    Iterator,
+    List,
+    Mapping,
+    NamedTuple,
+    Optional,
+)
 
 from pip._vendor import pkg_resources
-from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
 
@@ -25,6 +33,9 @@ from .base import (
     InfoPath,
     Wheel,
 )
+
+if TYPE_CHECKING:
+    from pip._vendor.packaging.requirements import Requirement
 
 __all__ = ["NAME", "Distribution", "Environment"]
 

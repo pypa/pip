@@ -19,7 +19,6 @@ from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
-from pip._vendor.requests.models import Request, Response
 from pip._vendor.requests.utils import get_netrc_auth
 
 from pip._internal.utils.logging import getLogger
@@ -32,6 +31,8 @@ from pip._internal.utils.misc import (
 )
 
 if typing.TYPE_CHECKING:
+    from pip._vendor.requests.models import Request, Response
+
     from pip._internal.vcs.versioncontrol import AuthInfo
 
 logger = getLogger(__name__)

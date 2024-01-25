@@ -9,9 +9,10 @@ import os
 import pathlib
 import subprocess
 import tempfile
-from typing import Iterator, List, Optional, Set
+from typing import TYPE_CHECKING, Iterator, List, Optional, Set
 
-from nox.sessions import Session
+if TYPE_CHECKING:
+    from nox.sessions import Session
 
 
 def get_version_from_arguments(session: Session) -> Optional[str]:

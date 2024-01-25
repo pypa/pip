@@ -24,7 +24,6 @@ from typing import (
     Union,
 )
 
-from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.packaging.version import LegacyVersion, Version
@@ -45,6 +44,8 @@ from ._json import msg_to_json
 
 if TYPE_CHECKING:
     from typing import Protocol
+
+    from pip._vendor.packaging.requirements import Requirement
 else:
     Protocol = object
 

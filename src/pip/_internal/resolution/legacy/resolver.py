@@ -21,7 +21,6 @@ from itertools import chain
 from typing import TYPE_CHECKING, DefaultDict, Iterable, List, Optional, Set, Tuple
 
 from pip._vendor.packaging import specifiers
-from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled,
@@ -47,6 +46,8 @@ from pip._internal.utils.misc import normalize_version_info
 from pip._internal.utils.packaging import check_requires_python
 
 if TYPE_CHECKING:
+    from pip._vendor.packaging.requirements import Requirement
+
     from pip._internal.cache import WheelCache
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.metadata import BaseDistribution
