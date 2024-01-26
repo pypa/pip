@@ -1,0 +1,2 @@
+Wait until the index server tells us that authentication is required before trying
+to make sense of the userinfo section of the URLs and potentially query ``keyring``.
