@@ -46,7 +46,7 @@ class RequirementSet:
         self.unnamed_requirements.append(install_req)
 
     def add_named_requirement(self, install_req: InstallRequirement) -> None:
-        assert install_req.name
+        assert install_req.name, install_req
 
         project_name = canonicalize_name(install_req.name)
         self.requirements[project_name] = install_req

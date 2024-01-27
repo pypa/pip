@@ -5,30 +5,12 @@ from typing import Optional, cast
 
 import pytest
 
-from pip._internal import wheel_builder
+from pip._internal import cache, wheel_builder
 from pip._internal.models.link import Link
 from pip._internal.operations.build.wheel_legacy import format_command_result
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.vcs.git import Git
 from tests.lib import _create_test_package
-
-
-@pytest.mark.parametrize(
-    "s, expected",
-    [
-        # Trivial.
-        ("pip-18.0", True),
-        # Ambiguous.
-        ("foo-2-2", True),
-        ("im-valid", True),
-        # Invalid.
-        ("invalid", False),
-        ("im_invalid", False),
-    ],
-)
-def test_contains_egg_info(s: str, expected: bool) -> None:
-    result = wheel_builder._contains_egg_info(s)
-    assert result == expected
 
 
 class ReqMock:
@@ -128,7 +110,7 @@ def test_should_build_for_wheel_command(req: ReqMock, expected: bool) -> None:
     ],
 )
 def test_should_cache(req: ReqMock, expected: bool) -> None:
-    assert wheel_builder._should_cache(cast(InstallRequirement, req)) is expected
+    assert cache.should_cache(cast(InstallRequirement, req)) is expected
 
 
 def test_should_cache_git_sha(tmpdir: Path) -> None:
@@ -138,12 +120,12 @@ def test_should_cache_git_sha(tmpdir: Path) -> None:
     # a link referencing a sha should be cached
     url = "git+https://g.c/o/r@" + commit + "#egg=mypkg"
     req = ReqMock(link=Link(url), source_dir=repo_path)
-    assert wheel_builder._should_cache(cast(InstallRequirement, req))
+    assert cache.should_cache(cast(InstallRequirement, req))
 
     # a link not referencing a sha should not be cached
     url = "git+https://g.c/o/r@master#egg=mypkg"
     req = ReqMock(link=Link(url), source_dir=repo_path)
-    assert not wheel_builder._should_cache(cast(InstallRequirement, req))
+    assert not cache.should_cache(cast(InstallRequirement, req))
 
 
 def test_format_command_result__INFO(caplog: pytest.LogCaptureFixture) -> None:
