@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2012-2013 Python Software Foundation.
+# Copyright (C) 2012-2023 Python Software Foundation.
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
 """
@@ -33,6 +33,7 @@ _COMMENTED_LINE = re.compile('#.*?(?=\n)|\n(?=$)', re.M | re.S)
 # to be brought in for Python 3.6 onwards.
 #
 _PYTHON_VERSION = sys.version_info[:2]
+
 
 class Manifest(object):
     """
@@ -155,10 +156,7 @@ class Manifest(object):
 
         elif action == 'exclude':
             for pattern in patterns:
-                found = self._exclude_pattern(pattern, anchor=True)
-                #if not found:
-                #    logger.warning('no previously-included files '
-                #                   'found matching %r', pattern)
+                self._exclude_pattern(pattern, anchor=True)
 
         elif action == 'global-include':
             for pattern in patterns:
@@ -168,11 +166,7 @@ class Manifest(object):
 
         elif action == 'global-exclude':
             for pattern in patterns:
-                found = self._exclude_pattern(pattern, anchor=False)
-                #if not found:
-                #    logger.warning('no previously-included files '
-                #                   'matching %r found anywhere in '
-                #                   'distribution', pattern)
+                self._exclude_pattern(pattern, anchor=False)
 
         elif action == 'recursive-include':
             for pattern in patterns:
@@ -182,11 +176,7 @@ class Manifest(object):
 
         elif action == 'recursive-exclude':
             for pattern in patterns:
-                found = self._exclude_pattern(pattern, prefix=thedir)
-                #if not found:
-                #    logger.warning('no previously-included files '
-                #                   'matching %r found under directory %r',
-                #                   pattern, thedir)
+                self._exclude_pattern(pattern, prefix=thedir)
 
         elif action == 'graft':
             if not self._include_pattern(None, prefix=dirpattern):
