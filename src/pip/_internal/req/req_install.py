@@ -829,6 +829,13 @@ class InstallRequirement:
         )
 
         if self.editable and not self.is_wheel:
+            if self.config_settings:
+                logger.warning(
+                    "--config-settings ignored for legacy editable install of %s. "
+                    "Consider upgrading to a version of setuptools "
+                    "that supports PEP 660.",
+                    self,
+                )
             install_editable_legacy(
                 global_options=global_options if global_options is not None else [],
                 prefix=prefix,
