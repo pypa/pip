@@ -184,12 +184,12 @@ class InstallRequirement:
         # If config settings are provided, enforce PEP 517.
         if self.config_settings:
             if self.use_pep517 is False:
-                raise InstallationError(
-                    f"Disabling PEP 517 processing is not allowed for {self} "
-                    f"when --config-settings are specified."
+                logger.warning(
+                    "--no-use-pep517 ignored for %s "
+                    "because --config-settings are specified.",
+                    self,
                 )
-            else:
-                self.use_pep517 = True
+            self.use_pep517 = True
 
         # This requirement needs more preparation before it can be built
         self.needs_more_preparation = False
