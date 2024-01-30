@@ -102,6 +102,7 @@ def test_wheel_metadata_works() -> None:
             metadata=InMemoryMetadata({"METADATA": metadata.as_bytes()}, "<in-memory>"),
             project_name=name,
         ),
+        concrete=False,
     )
 
     assert name == dist.canonical_name == dist.raw_name
