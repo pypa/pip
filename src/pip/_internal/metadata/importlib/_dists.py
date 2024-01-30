@@ -98,16 +98,22 @@ class Distribution(BaseDistribution):
         dist: importlib.metadata.Distribution,
         info_location: Optional[BasePath],
         installed_location: Optional[BasePath],
+        concrete: bool,
     ) -> None:
         self._dist = dist
         self._info_location = info_location
         self._installed_location = installed_location
+        self._concrete = concrete
+
+    @property
+    def is_concrete(self) -> bool:
+        return self._concrete
 
     @classmethod
     def from_directory(cls, directory: str) -> BaseDistribution:
         info_location = pathlib.Path(directory)
         dist = importlib.metadata.Distribution.at(info_location)
-        return cls(dist, info_location, info_location.parent)
+        return cls(dist, info_location, info_location.parent, concrete=True)
 
     @classmethod
     def from_metadata_file_contents(
@@ -124,7 +130,7 @@ class Distribution(BaseDistribution):
         metadata_path.write_bytes(metadata_contents)
         # Construct dist pointing to the newly created directory.
         dist = importlib.metadata.Distribution.at(metadata_path.parent)
-        return cls(dist, metadata_path.parent, None)
+        return cls(dist, metadata_path.parent, None, concrete=False)
 
     @classmethod
     def from_wheel(cls, wheel: Wheel, name: str) -> BaseDistribution:
@@ -135,7 +141,12 @@ class Distribution(BaseDistribution):
             raise InvalidWheel(wheel.location, name) from e
         except UnsupportedWheel as e:
             raise UnsupportedWheel(f"{name} has an invalid wheel, {e}")
-        return cls(dist, dist.info_location, pathlib.PurePosixPath(wheel.location))
+        return cls(
+            dist,
+            dist.info_location,
+            pathlib.PurePosixPath(wheel.location),
+            concrete=wheel.is_concrete,
+        )
 
     @property
     def location(self) -> Optional[str]:

@@ -81,7 +81,7 @@ class _DistributionFinder:
                 installed_location: Optional[BasePath] = None
             else:
                 installed_location = info_location.parent
-            yield Distribution(dist, info_location, installed_location)
+            yield Distribution(dist, info_location, installed_location, concrete=True)
 
     def find_linked(self, location: str) -> Iterator[BaseDistribution]:
         """Read location in egg-link files and return distributions in there.
@@ -105,7 +105,7 @@ class _DistributionFinder:
                 continue
             target_location = str(path.joinpath(target_rel))
             for dist, info_location in self._find_impl(target_location):
-                yield Distribution(dist, info_location, path)
+                yield Distribution(dist, info_location, path, concrete=True)
 
     def _find_eggs_in_dir(self, location: str) -> Iterator[BaseDistribution]:
         from pip._vendor.pkg_resources import find_distributions
@@ -117,7 +117,7 @@ class _DistributionFinder:
                 if not entry.name.endswith(".egg"):
                     continue
                 for dist in find_distributions(entry.path):
-                    yield legacy.Distribution(dist)
+                    yield legacy.Distribution(dist, concrete=True)
 
     def _find_eggs_in_zip(self, location: str) -> Iterator[BaseDistribution]:
         from pip._vendor.pkg_resources import find_eggs_in_zip
@@ -129,7 +129,7 @@ class _DistributionFinder:
         except zipimport.ZipImportError:
             return
         for dist in find_eggs_in_zip(importer, location):
-            yield legacy.Distribution(dist)
+            yield legacy.Distribution(dist, concrete=True)
 
     def find_eggs(self, location: str) -> Iterator[BaseDistribution]:
         """Find eggs in a location.

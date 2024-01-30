@@ -29,7 +29,9 @@ class WheelDistribution(AbstractDistribution):
         assert self.req.local_file_path, "Set as part of preparation during download"
         assert self.req.name, "Wheels are never unnamed"
         wheel = FilesystemWheel(self.req.local_file_path)
-        return get_wheel_distribution(wheel, canonicalize_name(self.req.name))
+        dist = get_wheel_distribution(wheel, canonicalize_name(self.req.name))
+        self.req.cache_concrete_dist(dist)
+        return dist
 
     def prepare_distribution_metadata(
         self,

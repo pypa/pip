@@ -17,8 +17,10 @@ class InstalledDistribution(AbstractDistribution):
         return None
 
     def get_metadata_distribution(self) -> BaseDistribution:
-        assert self.req.satisfied_by is not None, "not actually installed"
-        return self.req.satisfied_by
+        dist = self.req.satisfied_by
+        assert dist is not None, "not actually installed"
+        self.req.cache_concrete_dist(dist)
+        return dist
 
     def prepare_distribution_metadata(
         self,
