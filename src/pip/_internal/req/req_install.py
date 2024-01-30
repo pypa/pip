@@ -181,6 +181,16 @@ class InstallRequirement:
         # but after loading this flag should be treated as read only.
         self.use_pep517 = use_pep517
 
+        # If config settings are provided, enforce PEP 517.
+        if self.config_settings:
+            if self.use_pep517 is False:
+                logger.warning(
+                    "--no-use-pep517 ignored for %s "
+                    "because --config-settings are specified.",
+                    self,
+                )
+            self.use_pep517 = True
+
         # This requirement needs more preparation before it can be built
         self.needs_more_preparation = False
 
@@ -508,15 +518,7 @@ class InstallRequirement:
         )
 
         if pyproject_toml_data is None:
-            if self.config_settings:
-                deprecated(
-                    reason=f"Config settings are ignored for project {self}.",
-                    replacement=(
-                        "to use --use-pep517 or add a "
-                        "pyproject.toml file to the project"
-                    ),
-                    gone_in="24.0",
-                )
+            assert not self.config_settings
             self.use_pep517 = False
             return
 
@@ -827,6 +829,13 @@ class InstallRequirement:
         )
 
         if self.editable and not self.is_wheel:
+            if self.config_settings:
+                logger.warning(
+                    "--config-settings ignored for legacy editable install of %s. "
+                    "Consider upgrading to a version of setuptools "
+                    "that supports PEP 660 (>= 64).",
+                    self,
+                )
             install_editable_legacy(
                 global_options=global_options if global_options is not None else [],
                 prefix=prefix,
