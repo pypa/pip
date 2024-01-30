@@ -833,7 +833,7 @@ class InstallRequirement:
                 logger.warning(
                     "--config-settings ignored for legacy editable install of %s. "
                     "Consider upgrading to a version of setuptools "
-                    "that supports PEP 660.",
+                    "that supports PEP 660 (>= 64).",
                     self,
                 )
             install_editable_legacy(
