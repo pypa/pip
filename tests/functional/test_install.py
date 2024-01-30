@@ -2071,7 +2071,7 @@ def test_install_conflict_results_in_warning(
 
     # Install pkgA without its dependency
     result1 = script.pip("install", "--no-index", pkgA_path, "--no-deps")
-    assert "Successfully installed pkgA-1.0" in result1.stdout, str(result1)
+    assert "Successfully installed pkga-1.0" in result1.stdout, str(result1)
 
     # Then install an incorrect version of the dependency
     result2 = script.pip(
@@ -2081,7 +2081,7 @@ def test_install_conflict_results_in_warning(
         allow_stderr_error=True,
     )
     assert "pkga 1.0 requires pkgb==1.0" in result2.stderr, str(result2)
-    assert "Successfully installed pkgB-2.0" in result2.stdout, str(result2)
+    assert "Successfully installed pkgb-2.0" in result2.stdout, str(result2)
 
 
 def test_install_conflict_warning_can_be_suppressed(
@@ -2101,11 +2101,11 @@ def test_install_conflict_warning_can_be_suppressed(
 
     # Install pkgA without its dependency
     result1 = script.pip("install", "--no-index", pkgA_path, "--no-deps")
-    assert "Successfully installed pkgA-1.0" in result1.stdout, str(result1)
+    assert "Successfully installed pkga-1.0" in result1.stdout, str(result1)
 
     # Then install an incorrect version of the dependency; suppressing warning
     result2 = script.pip("install", "--no-index", pkgB_path, "--no-warn-conflicts")
-    assert "Successfully installed pkgB-2.0" in result2.stdout, str(result2)
+    assert "Successfully installed pkgb-2.0" in result2.stdout, str(result2)
 
 
 def test_target_install_ignores_distutils_config_install_prefix(
