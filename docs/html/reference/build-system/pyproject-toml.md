@@ -29,7 +29,7 @@ that build requirements are handled independently of the user's runtime
 environment.
 
 For example, a project that needs an older version of setuptools to build can
-still be installed, even if the user has an newer version installed (and
+still be installed, even if the user has a newer version installed (and
 without silently replacing that version).
 
 ### Build-time dependencies
