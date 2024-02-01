@@ -1,1 +1,1 @@
-Support per requirement options for editable installs.
+Support per requirement ``--config-settings`` for editable installs.
