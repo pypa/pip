@@ -1,4 +1,4 @@
-# Pip is not a workflow tool
+# Pip is not a workflow management tool
 
 The core purpose of pip is to *install packages*. Whilst installing packages is
 an important part of most Python development workflows, it is only one part.
