@@ -17,9 +17,10 @@ from pip._internal.utils.temp_dir import TempDirectory
 
 @pytest.fixture
 def fixed_time() -> Iterator[None]:
-    with patch("time.time", lambda: 1547704837.040001 + time.timezone):
+    with patch("time.time", lambda: 1547704837.040001):
         yield
 
+logging.Formatter.converter = time.gmtime
 
 class FakeCommand(Command):
     _name = "fake"
@@ -109,7 +110,8 @@ def test_log_command_success(fixed_time: None, tmpdir: Path) -> None:
     log_path = os.path.join(tmpdir, "log")
     cmd.main(["fake", "--log", log_path])
     with open(log_path) as f:
-        assert f.read().rstrip() == "2019-01-17T06:00:37,040 fake"
+        log_message = f.read().rstrip()
+        assert log_message == "2019-01-17T06:00:37,040 fake"
 
 
 def test_log_command_error(fixed_time: None, tmpdir: Path) -> None:
