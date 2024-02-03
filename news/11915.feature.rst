@@ -1,2 +1,0 @@
-Automatically use the setuptools PEP 517 build backend when ``--config-settings`` is
-used for projects without ``pyproject.toml``.
