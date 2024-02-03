@@ -110,8 +110,7 @@ def test_log_command_success(fixed_time: None, tmpdir: Path) -> None:
     log_path = os.path.join(tmpdir, "log")
     cmd.main(["fake", "--log", log_path])
     with open(log_path) as f:
-        log_message = f.read().rstrip()
-        assert log_message == "2019-01-17T06:00:37,040 fake"
+        assert f.read().rstrip() == "2019-01-17T06:00:37,040 fake"
 
 
 def test_log_command_error(fixed_time: None, tmpdir: Path) -> None:
