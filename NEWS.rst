@@ -12,11 +12,6 @@
 24.0 (2024-02-03)
 =================
 
-Process
--------
-
-- Most project metadata is now defined statically via pip's ``pyproject.toml`` file.
-
 Features
 --------
 
@@ -48,6 +43,12 @@ Improved Documentation
 - Updated the ``pyproject.toml`` document to stop suggesting
   to depend on ``wheel`` as a build dependency directly. (`#12449 <https://github.com/pypa/pip/issues/12449>`_)
 - Update supported interpreters in development docs (`#12475 <https://github.com/pypa/pip/issues/12475>`_)
+
+Process
+-------
+
+- Most project metadata is now defined statically via pip's ``pyproject.toml`` file.
+
 23.3.2 (2023-12-17)
 ===================
 
