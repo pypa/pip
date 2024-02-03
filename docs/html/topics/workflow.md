@@ -18,4 +18,4 @@ used to gain access to all of the various tools and libraries available on PyPI.
 In particular, this includes a number of workflow tools.
 
 This "bootstrapping" mechanism was proposed (and accepted) in [PEP
-453](https://www.python.org/dev/peps/pep-0453/).
+453](https://peps.python.org/pep-0453/).
