@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 logging.Formatter.converter = time.gmtime
 
+
 class TestIndentingFormatter:
     """Test ``pip._internal.utils.logging.IndentingFormatter``."""
 

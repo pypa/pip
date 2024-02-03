@@ -20,7 +20,9 @@ def fixed_time() -> Iterator[None]:
     with patch("time.time", lambda: 1547704837.040001):
         yield
 
+
 logging.Formatter.converter = time.gmtime
+
 
 class FakeCommand(Command):
     _name = "fake"
