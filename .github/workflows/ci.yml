@@ -11,6 +11,11 @@ on:
   schedule:
     - cron: 0 0 * * MON # Run every Monday at 00:00 UTC
 
+env:
+  # The "FORCE_COLOR" variable, when set to 1,
+  # tells Nox to colorize itself.
+  FORCE_COLOR: "1"
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
