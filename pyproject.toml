@@ -138,6 +138,7 @@ distlib = "https://bitbucket.org/pypa/distlib/raw/master/LICENSE.txt"
 webencodings = "https://github.com/SimonSapin/python-webencodings/raw/master/LICENSE"
 
 [tool.ruff]
+src = ["src"]
 target-version = "py37"
 line-length = 88
 extend-exclude = [
@@ -173,9 +174,8 @@ select = [
 ]
 
 [tool.ruff.lint.isort]
-# We need to explicitly make pip "first party" as it's imported by code in
-# the docs and tests directories.
-known-first-party = ["pip"]
+# Explicitly make tests "first party" as it's not in the "src" directory
+known-first-party = ["tests"]
 known-third-party = ["pip._vendor"]
 
 [tool.ruff.lint.mccabe]
