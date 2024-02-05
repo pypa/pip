@@ -1,1 +1,0 @@
-Optimized usage of ``--find-links=<path-to-dir>``, by only scanning the relevant directory once, only considering file names that are valid wheel or sdist names, and only considering files in the directory that are related to the install.

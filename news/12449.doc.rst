@@ -1,2 +1,0 @@
-Updated the ``pyproject.toml`` document to stop suggesting
-to depend on ``wheel`` as a build dependency directly.
