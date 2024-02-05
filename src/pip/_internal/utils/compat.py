@@ -5,7 +5,7 @@ import importlib.resources
 import logging
 import os
 import sys
-from typing import TextIO
+from typing import IO
 
 __all__ = ["get_path_uid", "stdlib_pkgs", "WINDOWS"]
 
@@ -61,7 +61,7 @@ else:
 
     def open_text_resource(
         package: str, resource: str, encoding: str = "utf-8", errors: str = "strict"
-    ) -> TextIO:
+    ) -> IO[str]:
         return (importlib.resources.files(package) / resource).open(
             "r", encoding=encoding, errors=errors
         )
