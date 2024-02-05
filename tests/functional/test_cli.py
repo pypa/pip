@@ -1,5 +1,6 @@
 """Basic CLI functionality checks.
 """
+
 from textwrap import dedent
 
 import pytest

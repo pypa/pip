@@ -34,8 +34,7 @@ class ArgRecordingSdist:
 
 
 class ArgRecordingSdistMaker(Protocol):
-    def __call__(self, name: str, **kwargs: Any) -> ArgRecordingSdist:
-        ...
+    def __call__(self, name: str, **kwargs: Any) -> ArgRecordingSdist: ...
 
 
 @pytest.fixture()
