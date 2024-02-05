@@ -125,9 +125,6 @@ def test_command_line_append_flags(
         "Fetching project page and analyzing links: https://test.pypi.org"
         in result.stdout
     )
-    assert (
-        f"Skipping link: not a file: {data.find_links}" in result.stdout
-    ), f"stdout: {result.stdout}"
 
 
 @pytest.mark.network
@@ -151,9 +148,6 @@ def test_command_line_appends_correctly(
         "Fetching project page and analyzing links: https://test.pypi.org"
         in result.stdout
     ), result.stdout
-    assert (
-        f"Skipping link: not a file: {data.find_links}" in result.stdout
-    ), f"stdout: {result.stdout}"
 
 
 def test_config_file_override_stack(

@@ -5,6 +5,7 @@ import textwrap
 from typing import TYPE_CHECKING, Callable, Dict, List, Tuple
 
 import pytest
+from packaging.utils import canonicalize_name
 
 from tests.conftest import ScriptFactory
 from tests.lib import (
@@ -27,9 +28,13 @@ def assert_editable(script: PipTestEnvironment, *args: str) -> None:
     # This simply checks whether all of the listed packages have a
     # corresponding .egg-link file installed.
     # TODO: Implement a more rigorous way to test for editable installations.
-    egg_links = {f"{arg}.egg-link" for arg in args}
-    assert egg_links <= set(
-        os.listdir(script.site_packages_path)
+    egg_links = {f"{canonicalize_name(arg)}.egg-link" for arg in args}
+    actual_egg_links = {
+        f"{canonicalize_name(p.stem)}.egg-link"
+        for p in script.site_packages_path.glob("*.egg-link")
+    }
+    assert (
+        egg_links <= actual_egg_links
     ), f"{args!r} not all found in {script.site_packages_path!r}"
 
 
@@ -1847,7 +1852,7 @@ def test_new_resolver_succeeds_on_matching_constraint_and_requirement(
 
     script.assert_installed(test_pkg="0.1.0")
     if editable:
-        assert_editable(script, "test-pkg")
+        assert_editable(script, "test_pkg")
 
 
 def test_new_resolver_applies_url_constraint_to_dep(script: PipTestEnvironment) -> None:
