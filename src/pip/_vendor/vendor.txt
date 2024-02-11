@@ -12,7 +12,7 @@ requests==2.31.0
     chardet==5.1.0
     idna==3.4
     urllib3==1.26.17
-rich==13.4.2
+rich==13.7.0
     pygments==2.15.1
     typing_extensions==4.7.1
 resolvelib==1.0.1
