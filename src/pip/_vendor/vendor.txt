@@ -13,7 +13,7 @@ requests==2.31.0
     idna==3.6
     urllib3==1.26.17
 rich==13.7.0
-    pygments==2.15.1
+    pygments==2.17.2
     typing_extensions==4.7.1
 resolvelib==1.0.1
 setuptools==68.0.0
