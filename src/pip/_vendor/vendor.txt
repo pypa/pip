@@ -18,7 +18,7 @@ rich==13.7.0
 resolvelib==1.0.1
 setuptools==69.1.1
 six==1.16.0
-tenacity==8.2.2
+tenacity==8.2.3
 tomli==2.0.1
 truststore==0.8.0
 webencodings==0.5.1
