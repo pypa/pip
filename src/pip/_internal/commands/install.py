@@ -92,10 +92,9 @@ class InstallCommand(RequirementCommand):
             metavar="dir",
             default=None,
             help=(
-                "Install packages into <dir>. "
-                "By default this will not replace existing files/folders in "
-                "<dir>. Use --upgrade to replace existing packages in <dir> "
-                "with new versions."
+                "Install packages into <dir>."
+                "The directory should also be in python's path to aviod "
+                "un-intential upgrading of packages."
             ),
         )
         cmdoptions.add_target_python_options(self.cmd_opts)
@@ -299,7 +298,6 @@ class InstallCommand(RequirementCommand):
 
         target_dir = None
         if options.target_dir:
-            # options.ignore_installed = True
             options.target_dir = os.path.abspath(options.target_dir)
             if (
                 # fmt: off
