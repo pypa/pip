@@ -818,6 +818,7 @@ class InstallRequirement:
         warn_script_location: bool = True,
         use_user_site: bool = False,
         pycompile: bool = True,
+        target: bool = False,
     ) -> None:
         assert self.req is not None
         scheme = get_scheme(
@@ -828,6 +829,10 @@ class InstallRequirement:
             isolated=self.isolated,
             prefix=prefix,
         )
+        if target and home is not None:
+            scheme.purelib = home
+            scheme.platlib = home
+            scheme.data = home
 
         if self.editable and not self.is_wheel:
             if self.config_settings:
