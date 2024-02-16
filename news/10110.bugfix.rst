@@ -1,0 +1,4 @@
+Pip install's ``--target`` works more like the other 'install schemas'. This
+fixes installing namespaced packages. A caviate is that the directory must be
+in python's path to avoid un-intential upgrades. This logic now works the same
+way as ``--prefix`` when it comes to upgrading pacakges.
