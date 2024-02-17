@@ -93,8 +93,13 @@ issues by pip's maintainers.
 Python Support Policy
 ---------------------
 
-In general, a given Python version is supported until its usage on PyPI falls below 5%.
-This is at the maintainers' discretion, in case extraordinary circumstances arise.
+pip supports `CPython versions that are not end-of-life`_. Older versions of CPython may
+be supported at the discretion of pip maintainers (based on criteria such as download
+statistics on PyPI, Python versions supported by the vendored dependencies and
+maintenance burden).
+
+pip maintainers accept pull requests to support other Python implementations, but the
+pip CI does not test for compatibility with them.
 
 .. _`Feature Flags`:
 
@@ -196,3 +201,4 @@ for creating a new release can be used, simply changing the version number.
 .. _`get-pip repository`: https://github.com/pypa/get-pip
 .. _`psf-salt repository`: https://github.com/python/psf-salt
 .. _`CPython`: https://github.com/python/cpython
+.. _`CPython versions that are not end-of-life`: https://devguide.python.org/versions/
