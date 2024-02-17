@@ -13,7 +13,7 @@ import nox
 
 # fmt: off
 sys.path.append(".")
-from tools import release  # isort:skip  # noqa
+from tools import release  # isort:skip
 sys.path.pop()
 # fmt: on
 
