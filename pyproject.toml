@@ -13,7 +13,6 @@ classifiers = [
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.7",
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
@@ -28,7 +27,7 @@ authors = [
 
 # NOTE: requires-python is duplicated in __pip-runner__.py.
 # When changing this value, please change the other copy as well.
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 
 [project.urls]
 Homepage = "https://pip.pypa.io/"
@@ -139,7 +138,7 @@ webencodings = "https://github.com/SimonSapin/python-webencodings/raw/master/LIC
 
 [tool.ruff]
 src = ["src"]
-target-version = "py37"
+target-version = "py38"
 line-length = 88
 extend-exclude = [
     "_vendor",

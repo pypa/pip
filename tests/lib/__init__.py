@@ -13,7 +13,6 @@ from hashlib import sha256
 from io import BytesIO, StringIO
 from textwrap import dedent
 from typing import (
-    TYPE_CHECKING,
     Any,
     AnyStr,
     Callable,
@@ -21,8 +20,10 @@ from typing import (
     Iterable,
     Iterator,
     List,
+    Literal,
     Mapping,
     Optional,
+    Protocol,
     Tuple,
     Union,
     cast,
@@ -45,13 +46,7 @@ from pip._internal.utils.egg_link import _egg_link_names
 from tests.lib.venv import VirtualEnvironment
 from tests.lib.wheel import make_wheel
 
-if TYPE_CHECKING:
-    from typing import Literal, Protocol
-
-    ResolverVariant = Literal["resolvelib", "legacy"]
-else:  # TODO: Remove this branch when dropping support for Python 3.7.
-    Protocol = object  # Protocol was introduced in Python 3.8.
-    ResolverVariant = str  # Literal was introduced in Python 3.8.
+ResolverVariant = Literal["resolvelib", "legacy"]
 
 DATA_DIR = pathlib.Path(__file__).parent.parent.joinpath("data").resolve()
 SRC_DIR = pathlib.Path(__file__).resolve().parent.parent.parent

@@ -104,7 +104,6 @@ jobs:
       matrix:
         os: [Ubuntu, MacOS]
         python:
-          - "3.7"
           - "3.8"
           - "3.9"
           - "3.10"
@@ -155,9 +154,8 @@ jobs:
       matrix:
         os: [Windows]
         python:
-          - "3.7"
+          - "3.8"
           # Commented out, since Windows tests are expensively slow.
-          # - "3.8"
           # - "3.9"
           # - "3.10"
           - "3.11"
