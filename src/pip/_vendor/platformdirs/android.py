@@ -1,4 +1,5 @@
 """Android."""
+
 from __future__ import annotations
 
 import os
@@ -93,6 +94,11 @@ class Android(PlatformDirsABC):
         return _android_music_folder()
 
     @property
+    def user_desktop_dir(self) -> str:
+        """:return: desktop directory tied to the user e.g. ``/storage/emulated/0/Desktop``"""
+        return "/storage/emulated/0/Desktop"
+
+    @property
     def user_runtime_dir(self) -> str:
         """
         :return: runtime directory tied to the user, same as `user_cache_dir` if not opinionated else ``tmp`` in it,
@@ -102,6 +108,11 @@ class Android(PlatformDirsABC):
         if self.opinion:
             path = os.path.join(path, "tmp")  # noqa: PTH118
         return path
+
+    @property
+    def site_runtime_dir(self) -> str:
+        """:return: runtime directory shared by users, same as `user_runtime_dir`"""
+        return self.user_runtime_dir
 
 
 @lru_cache(maxsize=1)
