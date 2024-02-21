@@ -1107,18 +1107,8 @@ def test_install_package_with_target(script: PipTestEnvironment) -> None:
     result = script.pip_install_local("-t", target_dir, "simple==1.0")
     result.did_create(Path("scratch") / "target" / "simple")
 
-    # When the target location is not in the path packages are installed over
-    # eachother.
-    result = script.pip_install_local(
-        "-t",
-        target_dir,
-        "simple==1.0",
-    )
-    result.did_update(Path("scratch") / "target" / "simple")
-
-    # When target directory is in python path repeated call without --upgrade,
+    # When using target directory repeated call without --upgrade,
     # no files should have changed
-    script.environ["PYTHONPATH"] = target_dir
     result = script.pip_install_local(
         "-t",
         target_dir,
