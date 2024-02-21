@@ -3,6 +3,7 @@ import json
 import operator
 import os
 import site
+import sys
 from optparse import SUPPRESS_HELP, Values
 from typing import List, Optional
 
@@ -91,11 +92,7 @@ class InstallCommand(RequirementCommand):
             dest="target_dir",
             metavar="dir",
             default=None,
-            help=(
-                "Install packages into <dir>."
-                "The directory should also be in python's path to aviod "
-                "un-intential upgrading of packages."
-            ),
+            help=("Install packages into <dir>."),
         )
         cmdoptions.add_target_python_options(self.cmd_opts)
 
@@ -313,6 +310,9 @@ class InstallCommand(RequirementCommand):
 
         global_options = options.global_options or []
 
+        if options.target_dir is not None and options.target_dir not in sys.path:
+            sys.path.append(options.target_dir)
+
         session = self.get_default_session(options)
 
         target_python = make_target_python(options)
@@ -365,7 +365,6 @@ class InstallCommand(RequirementCommand):
             )
 
             self.trace_basic_info(finder)
-
             requirement_set = resolver.resolve(
                 reqs, check_supported_wheels=not options.target_dir
             )
