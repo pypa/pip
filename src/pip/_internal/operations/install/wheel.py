@@ -288,17 +288,15 @@ def get_console_script_specs(console: Dict[str, str]) -> List[str]:
     # the wheel metadata at build time, and so if the wheel is installed with
     # a *different* version of Python the entry points will be wrong. The
     # correct fix for this is to enhance the metadata to be able to describe
-    # such versioned entry points, but that won't happen till Metadata 2.0 is
-    # available.
-    # In the meantime, projects using versioned entry points will either have
+    # such versioned entry points.
+    # Currently, projects using versioned entry points will either have
     # incorrect versioned entry points, or they will not be able to distribute
     # "universal" wheels (i.e., they will need a wheel per Python version).
     #
     # Because setuptools and pip are bundled with _ensurepip and virtualenv,
-    # we need to use universal wheels. So, as a stopgap until Metadata 2.0, we
+    # we need to use universal wheels. As a workaround, we
     # override the versioned entry points in the wheel and generate the
-    # correct ones. This code is purely a short-term measure until Metadata 2.0
-    # is available.
+    # correct ones.
     #
     # To add the level of hack in this section of code, in order to support
     # ensurepip this code will look for an ``ENSUREPIP_OPTIONS`` environment
