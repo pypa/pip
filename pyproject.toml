@@ -240,3 +240,24 @@ follow_imports = "skip"
 [[tool.mypy.overrides]]
 module = "pip._vendor.requests.*"
 follow_imports = "skip"
+
+######################################################################################
+# pytest
+#
+
+[tool.pytest.ini_options]
+addopts = "--ignore src/pip/_vendor --ignore tests/tests_cache -r aR --color=yes"
+xfail_strict = true
+markers = [
+    "network: tests that need network",
+    "incompatible_with_sysconfig",
+    "incompatible_with_venv",
+    "no_auto_tempdir_manager",
+    "unit: unit tests",
+    "integration: integration tests",
+    "bzr: VCS: Bazaar",
+    "svn: VCS: Subversion",
+    "mercurial: VCS: Mercurial",
+    "git: VCS: git",
+    "search: tests for 'pip search'",
+]
