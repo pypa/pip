@@ -1,5 +1,5 @@
 [project]
-dynamic = ["version", "scripts"]
+dynamic = ["version"]
 
 name = "pip"
 description = "The PyPA recommended tool for installing Python packages."
@@ -28,6 +28,10 @@ authors = [
 # NOTE: requires-python is duplicated in __pip-runner__.py.
 # When changing this value, please change the other copy as well.
 requires-python = ">=3.8"
+
+[project.scripts]
+pip = "pip._internal.cli.main:main"
+pip3 = "pip._internal.cli.main:main"
 
 [project.urls]
 Homepage = "https://pip.pypa.io/"
