@@ -70,6 +70,10 @@ exclude = ["contrib", "docs", "tests*", "tasks"]
     "w64-arm.exe",
 ]
 
+######################################################################################
+# towncrier
+#
+
 [tool.towncrier]
 # For finding the __version__
 package = "pip"
@@ -93,6 +97,10 @@ type = [
   { name = "Improved Documentation",    directory = "doc",     showcontent = true },
   { name = "Trivial Changes",           directory = "trivial", showcontent = false },
 ]
+
+######################################################################################
+# vendoring
+#
 
 [tool.vendoring]
 destination = "src/pip/_vendor/"
@@ -139,6 +147,10 @@ setuptools = "pkg_resources"
 CacheControl = "https://raw.githubusercontent.com/ionrock/cachecontrol/v0.12.6/LICENSE.txt"
 distlib = "https://bitbucket.org/pypa/distlib/raw/master/LICENSE.txt"
 webencodings = "https://github.com/SimonSapin/python-webencodings/raw/master/LICENSE"
+
+######################################################################################
+# ruff
+#
 
 [tool.ruff]
 src = ["src"]
