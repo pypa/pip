@@ -70,6 +70,10 @@ exclude = ["contrib", "docs", "tests*", "tasks"]
     "w64-arm.exe",
 ]
 
+######################################################################################
+# towncrier
+#
+
 [tool.towncrier]
 # For finding the __version__
 package = "pip"
@@ -93,6 +97,10 @@ type = [
   { name = "Improved Documentation",    directory = "doc",     showcontent = true },
   { name = "Trivial Changes",           directory = "trivial", showcontent = false },
 ]
+
+######################################################################################
+# vendoring
+#
 
 [tool.vendoring]
 destination = "src/pip/_vendor/"
@@ -139,6 +147,10 @@ setuptools = "pkg_resources"
 CacheControl = "https://raw.githubusercontent.com/ionrock/cachecontrol/v0.12.6/LICENSE.txt"
 distlib = "https://bitbucket.org/pypa/distlib/raw/master/LICENSE.txt"
 webencodings = "https://github.com/SimonSapin/python-webencodings/raw/master/LICENSE"
+
+######################################################################################
+# ruff
+#
 
 [tool.ruff]
 src = ["src"]
@@ -195,3 +207,99 @@ max-args = 15  # default is 5
 max-branches = 28  # default is 12
 max-returns = 13  # default is 6
 max-statements = 134  # default is 50
+
+######################################################################################
+# mypy
+#
+
+[tool.mypy]
+mypy_path = "$MYPY_CONFIG_FILE_DIR/src"
+strict = true
+no_implicit_reexport = false
+disallow_subclassing_any = false
+disallow_untyped_calls = false
+warn_return_any = false
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "pip._internal.utils._jaraco_text"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "pip._vendor.*"
+ignore_errors = true
+
+# These vendored libraries use runtime magic to populate things and don't sit
+# well with static typing out of the box. Eventually we should provide correct
+# typing information for their public interface and remove these configs.
+
+[[tool.mypy.overrides]]
+module = "pip._vendor.pkg_resources"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "pip._vendor.requests.*"
+follow_imports = "skip"
+
+######################################################################################
+# pytest
+#
+
+[tool.pytest.ini_options]
+addopts = "--ignore src/pip/_vendor --ignore tests/tests_cache -r aR --color=yes"
+xfail_strict = true
+markers = [
+    "network: tests that need network",
+    "incompatible_with_sysconfig",
+    "incompatible_with_venv",
+    "no_auto_tempdir_manager",
+    "unit: unit tests",
+    "integration: integration tests",
+    "bzr: VCS: Bazaar",
+    "svn: VCS: Subversion",
+    "mercurial: VCS: Mercurial",
+    "git: VCS: git",
+    "search: tests for 'pip search'",
+]
+
+######################################################################################
+# coverage
+#
+
+[tool.coverage.run]
+branch = true
+# Do not gather coverage for vendored libraries.
+omit = "*/_vendor/*"
+# Centralized absolute file prefix for coverage files.
+data_file = "${COVERAGE_OUTPUT_DIR}/.coverage"
+# By default, each covered process will try to truncate and then write to
+# `data_file`, but with `parallel`, they will write to separate files suffixed
+# with hostname, pid, and a timestamp.
+parallel = true
+# If not set, then at the termination of each worker (when using pytest-xdist),
+# the following is traced: "Coverage.py warning: Module pip was previously
+# imported, but not measured (module-not-measured)"
+disable_warnings = "module-not-measured"
+
+[tool.coverage.paths]
+# We intentionally use "source0" here because pytest-cov unconditionally sets
+# "source" after loading the config.
+source0 = [
+    # The primary source code path which other paths will be combined into.
+    "src/pip/",
+    # Unit test source directory e.g.
+    # `.tox/coverage-py3/lib/pythonX.Y/site-packages/pip/...`
+    "*/site-packages/pip/",
+    # Functional test virtual environment directories, which look like
+    # `tmpdir/pip0/pip/src/pip/...`
+    "*/pip/src/pip/",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    # We must re-state the default because the `exclude_lines` option overrides
+    # it.
+    "pragma: no cover",
+    # This excludes typing-specific code, which will be validated by mypy anyway.
+    "if TYPE_CHECKING",
+]
