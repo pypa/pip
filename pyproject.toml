@@ -207,3 +207,36 @@ max-args = 15  # default is 5
 max-branches = 28  # default is 12
 max-returns = 13  # default is 6
 max-statements = 134  # default is 50
+
+######################################################################################
+# mypy
+#
+
+[tool.mypy]
+mypy_path = "$MYPY_CONFIG_FILE_DIR/src"
+strict = true
+no_implicit_reexport = false
+allow_subclassing_any = true
+allow_untyped_calls = true
+warn_return_any = false
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "pip._internal.utils._jaraco_text"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "pip._vendor.*"
+ignore_errors = true
+
+# These vendored libraries use runtime magic to populate things and don't sit
+# well with static typing out of the box. Eventually we should provide correct
+# typing information for their public interface and remove these configs.
+
+[[tool.mypy.overrides]]
+module = "pip._vendor.pkg_resources"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "pip._vendor.requests.*"
+follow_imports = "skip"
