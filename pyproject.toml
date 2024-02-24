@@ -216,8 +216,8 @@ max-statements = 134  # default is 50
 mypy_path = "$MYPY_CONFIG_FILE_DIR/src"
 strict = true
 no_implicit_reexport = false
-allow_subclassing_any = true
-allow_untyped_calls = true
+disallow_subclassing_any = false
+disallow_untyped_calls = false
 warn_return_any = false
 ignore_missing_imports = true
 
