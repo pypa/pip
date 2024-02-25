@@ -74,7 +74,7 @@ class RenderableLines:
     ) -> RenderResult:
         for idx, line in enumerate(self.lines):
             if idx != 0:
-                yield Segment.line() # Render newline
+                yield Segment.line()  # Render newline
             yield from line.__rich_console__(console, options)
         yield Segment.line()
 
@@ -204,17 +204,17 @@ class PipProgress(Progress):
         """
         Reimplementation of Progress.add_task with description logging
 
-        Adds a task to the progress bar and prints the `Collecting x` or 
-        `Using Cached x` message 
+        Adds a task to the progress bar and prints the `Collecting x` or
+        `Using Cached x` message
 
         The logging feature is disabled for parallel progress bars. This is
         because in order to keep the logged message adjacent to its related download
         progress bar, it must be added into the rendering progress bar. But doing
         so causes rendering issues specifically in Jupyter notebooks.
 
-        To prevent such rendering issues while maintaining compatibility with 
-        the default behavior (i.e., sequential downloads), two separate strategies 
-        are employed for rendering progress bars: one for sequential downloads 
+        To prevent such rendering issues while maintaining compatibility with
+        the default behavior (i.e., sequential downloads), two separate strategies
+        are employed for rendering progress bars: one for sequential downloads
         and another for parallel downloads.
 
         For more information see PR #12404
