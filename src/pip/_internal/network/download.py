@@ -183,10 +183,9 @@ class BatchDownloader:
     def _download_parallel(
         self, links: Iterable[Link], location: str, max_workers: int
     ) -> Iterable[Tuple[Link, Tuple[str, str]]]:
-
         """
         Wraps the _sequential_download method in a ThreadPoolExecutor. `rich`
-        progress bar doesn't support naive parallelism, hence the progress bar 
+        progress bar doesn't support naive parallelism, hence the progress bar
         is disabled for parallel downloads. For more info see PR #12388
         """
         with ThreadPoolExecutor(max_workers=max_workers) as pool:
