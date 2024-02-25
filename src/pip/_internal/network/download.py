@@ -124,6 +124,15 @@ def _http_get_download(session: PipSession, link: Link) -> Response:
 def _download(
     link: Link, location: str, session: PipSession, progress_bar: str
 ) -> Tuple[str, str]:
+    """
+    Common download logic across Downloader and BatchDownloader classes
+
+    :param link: The Link object to be downloaded
+    :param location: path to download to
+    :param session: PipSession object
+    :param progress_bar: creates a `rich` progress bar is set to "on"
+    :return: the path to the downloaded file and the content-type
+    """
     try:
         resp = _http_get_download(session, link)
     except NetworkConnectionError as e:
@@ -174,6 +183,12 @@ class BatchDownloader:
     def _download_parallel(
         self, links: Iterable[Link], location: str, max_workers: int
     ) -> Iterable[Tuple[Link, Tuple[str, str]]]:
+
+        """
+        Wraps the _sequential_download method in a ThreadPoolExecutor. `rich`
+        progress bar doesn't support naive parallelism, hence the progress bar 
+        is disabled for parallel downloads. For more info see PR #12388
+        """
         with ThreadPoolExecutor(max_workers=max_workers) as pool:
             _download_parallel = partial(
                 self._sequential_download, location=location, progress_bar="off"
@@ -188,7 +203,6 @@ class BatchDownloader:
         links = list(links)
         max_workers = self._session.parallel_downloads
         if max_workers == 1 or len(links) == 1:
-            # TODO: set minimum number of links to perform parallel download
             for link in links:
                 yield self._sequential_download(link, location, self._progress_bar)
         else:
