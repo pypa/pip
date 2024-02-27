@@ -5,7 +5,6 @@ import http.server
 import os
 import re
 import shutil
-import subprocess
 import sys
 import threading
 from dataclasses import dataclass
@@ -454,15 +453,14 @@ def virtualenv_template(
     install_pth_link(venv, "wheel", wheel_install)
     pip_editable = tmpdir_factory.mktemp("pip") / "pip"
     shutil.copytree(pip_src, pip_editable, symlinks=True)
+
     # noxfile.py is Python 3 only
     assert compileall.compile_dir(
         str(pip_editable),
         quiet=1,
         rx=re.compile("noxfile.py$"),
     )
-    subprocess.check_call(
-        [os.fspath(venv.bin / "python"), "setup.py", "-q", "develop"], cwd=pip_editable
-    )
+    install_pth_link(venv, "pip", pip_editable / "src")
 
     # Install coverage and pth file for executing it in any spawned processes
     # in this virtual environment.
