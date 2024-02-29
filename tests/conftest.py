@@ -5,6 +5,7 @@ import http.server
 import os
 import re
 import shutil
+import subprocess
 import sys
 import threading
 from dataclasses import dataclass
@@ -371,6 +372,37 @@ def pip_src(tmpdir_factory: pytest.TempPathFactory) -> Path:
     return pip_src
 
 
+@pytest.fixture(scope="session")
+def pip_editable_parts(
+    pip_src: Path, tmpdir_factory: pytest.TempPathFactory
+) -> Tuple[Path, Path, str]:
+    pip_editable = tmpdir_factory.mktemp("pip") / "pip"
+    shutil.copytree(pip_src, pip_editable, symlinks=True)
+    # noxfile.py is Python 3 only
+    assert compileall.compile_dir(
+        pip_editable,
+        quiet=1,
+        rx=re.compile("noxfile.py$"),
+    )
+    pip_self_install_path = tmpdir_factory.mktemp("pip_self_install")
+    subprocess.check_call(
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "--target",
+            pip_self_install_path,
+            "-e",
+            pip_editable,
+        ]
+    )
+    pth = next(pip_self_install_path.glob("*pip*.pth"))
+    dist_info = next(pip_self_install_path.glob("*.dist-info"))
+    dist_info_name = os.path.basename(dist_info)
+    return (pth, dist_info, dist_info_name)
+
+
 def _common_wheel_editable_install(
     tmpdir_factory: pytest.TempPathFactory, common_wheels: Path, package: str
 ) -> Path:
@@ -434,6 +466,7 @@ def virtualenv_template(
     request: pytest.FixtureRequest,
     tmpdir_factory: pytest.TempPathFactory,
     pip_src: Path,
+    pip_editable_parts: Tuple[Path, Path, str],
     setuptools_install: Path,
     wheel_install: Path,
     coverage_install: Path,
@@ -451,16 +484,16 @@ def virtualenv_template(
     # Install setuptools, wheel and pip.
     install_pth_link(venv, "setuptools", setuptools_install)
     install_pth_link(venv, "wheel", wheel_install)
-    pip_editable = tmpdir_factory.mktemp("pip") / "pip"
-    shutil.copytree(pip_src, pip_editable, symlinks=True)
 
-    # noxfile.py is Python 3 only
-    assert compileall.compile_dir(
-        str(pip_editable),
-        quiet=1,
-        rx=re.compile("noxfile.py$"),
-    )
-    install_pth_link(venv, "pip", pip_editable / "src")
+    pth, dist_info, dist_info_name = pip_editable_parts
+
+    # Preserve ``.dist-info`` directory inside ``site-packages``
+    dist_info_path = os.path.join(venv.site, dist_info_name)
+    os.mkdir(dist_info_path)
+
+    shutil.copy(pth, venv.site)
+    shutil.copytree(dist_info, dist_info_path, dirs_exist_ok=True, symlinks=True)
+    venv.site.joinpath("easy-install.pth").touch()
 
     # Install coverage and pth file for executing it in any spawned processes
     # in this virtual environment.

@@ -91,7 +91,7 @@ def test(session: nox.Session) -> None:
     # fmt: off
     session.install("build")
     session.run(
-        "python", "-m", "build", "--sdist", "--outdir", sdist_dir,
+        "python", "-I", "-m", "build", "--sdist", "--outdir", sdist_dir,
         silent=True,
     )
     # fmt: on
