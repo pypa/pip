@@ -375,7 +375,7 @@ def pip_src(tmpdir_factory: pytest.TempPathFactory) -> Path:
 @pytest.fixture(scope="session")
 def pip_editable_parts(
     pip_src: Path, tmpdir_factory: pytest.TempPathFactory
-) -> Tuple[Path, Path, str]:
+) -> Tuple[Path, ...]:
     pip_editable = tmpdir_factory.mktemp("pip") / "pip"
     shutil.copytree(pip_src, pip_editable, symlinks=True)
     # noxfile.py is Python 3 only
@@ -399,8 +399,7 @@ def pip_editable_parts(
     )
     pth = next(pip_self_install_path.glob("*pip*.pth"))
     dist_info = next(pip_self_install_path.glob("*.dist-info"))
-    dist_info_name = os.path.basename(dist_info)
-    return (pth, dist_info, dist_info_name)
+    return (pth, dist_info)
 
 
 def _common_wheel_editable_install(
@@ -466,7 +465,7 @@ def virtualenv_template(
     request: pytest.FixtureRequest,
     tmpdir_factory: pytest.TempPathFactory,
     pip_src: Path,
-    pip_editable_parts: Tuple[Path, Path, str],
+    pip_editable_parts: Tuple[Path, ...],
     setuptools_install: Path,
     wheel_install: Path,
     coverage_install: Path,
@@ -485,14 +484,15 @@ def virtualenv_template(
     install_pth_link(venv, "setuptools", setuptools_install)
     install_pth_link(venv, "wheel", wheel_install)
 
-    pth, dist_info, dist_info_name = pip_editable_parts
-
-    # Preserve ``.dist-info`` directory inside ``site-packages``
-    dist_info_path = os.path.join(venv.site, dist_info_name)
-    os.mkdir(dist_info_path)
+    pth, dist_info = pip_editable_parts
 
     shutil.copy(pth, venv.site)
-    shutil.copytree(dist_info, dist_info_path, dirs_exist_ok=True, symlinks=True)
+    shutil.copytree(
+        dist_info, venv.site / dist_info.name, dirs_exist_ok=True, symlinks=True
+    )
+    # Create placeholder ``easy-install.pth``, as several tests depend on its
+    # existance.  TODO: Ensure ``tests.lib.TestPipResult.files_updated`` correctly
+    # detects changed files.
     venv.site.joinpath("easy-install.pth").touch()
 
     # Install coverage and pth file for executing it in any spawned processes
