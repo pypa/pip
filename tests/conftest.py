@@ -318,6 +318,10 @@ def isolate(tmpdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     # Make sure tests don't share a requirements tracker.
     monkeypatch.delenv("PIP_BUILD_TRACKER", False)
 
+    # Make sure color control variables don't affect internal output.
+    monkeypatch.delenv("FORCE_COLOR", False)
+    monkeypatch.delenv("NO_COLOR", False)
+
     # FIXME: Windows...
     os.makedirs(os.path.join(home_dir, ".config", "git"))
     with open(os.path.join(home_dir, ".config", "git", "config"), "wb") as fp:
