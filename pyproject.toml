@@ -89,12 +89,12 @@ template = "tools/news/template.rst"
 
 # Grouping of entries, within our changelog
 type = [
-  { name = "Process",                   directory = "process", showcontent = true },
   { name = "Deprecations and Removals", directory = "removal", showcontent = true },
   { name = "Features",                  directory = "feature", showcontent = true },
   { name = "Bug Fixes",                 directory = "bugfix",  showcontent = true },
   { name = "Vendored Libraries",        directory = "vendor",  showcontent = true },
   { name = "Improved Documentation",    directory = "doc",     showcontent = true },
+  { name = "Process",                   directory = "process", showcontent = true },
   { name = "Trivial Changes",           directory = "trivial", showcontent = false },
 ]
 
