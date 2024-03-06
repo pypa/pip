@@ -770,7 +770,7 @@ parallel_downloads: Callable[..., Option] = partial(
     dest="parallel_downloads",
     type="int",
     metavar="n",
-    default=None,
+    default=1,
     help=(
         "Use upto <n> threads to download packages in parallel."
         "<n> must be greater than 0"

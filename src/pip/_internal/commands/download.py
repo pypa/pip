@@ -78,9 +78,7 @@ class DownloadCommand(RequirementCommand):
 
     @with_cleanup
     def run(self, options: Values, args: List[str]) -> int:
-        if (options.parallel_downloads is not None) and (
-            options.parallel_downloads < 1
-        ):
+        if options.parallel_downloads < 1:
             raise CommandError("Value of '--parallel-downloads' must be greater than 0")
 
         options.ignore_installed = True

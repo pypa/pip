@@ -326,7 +326,7 @@ class PipSession(requests.Session):
         trusted_hosts: Sequence[str] = (),
         index_urls: Optional[List[str]] = None,
         ssl_context: Optional["SSLContext"] = None,
-        parallel_downloads: Optional[int] = None,
+        parallel_downloads: int = 1,
         **kwargs: Any,
     ) -> None:
         """
@@ -367,9 +367,7 @@ class PipSession(requests.Session):
         # pip._internal.network.BatchDownloader and to set pool_connection in
         # the HTTPAdapter to prevent connection pool from hitting the default(10)
         # limit and throwing 'Connection pool is full' warnings
-        self.parallel_downloads = (
-            parallel_downloads if (parallel_downloads is not None) else 1
-        )
+        self.parallel_downloads = parallel_downloads
         pool_maxsize = max(self.parallel_downloads, 10)
         # Our Insecure HTTPAdapter disables HTTPS validation. It does not
         # support caching so we'll use it for all http:// URLs.
