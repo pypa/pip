@@ -376,6 +376,36 @@ def pip_src(tmpdir_factory: pytest.TempPathFactory) -> Path:
     return pip_src
 
 
+@pytest.fixture(scope="session")
+def pip_editable_parts(
+    pip_src: Path, tmpdir_factory: pytest.TempPathFactory
+) -> Tuple[Path, ...]:
+    pip_editable = tmpdir_factory.mktemp("pip") / "pip"
+    shutil.copytree(pip_src, pip_editable, symlinks=True)
+    # noxfile.py is Python 3 only
+    assert compileall.compile_dir(
+        pip_editable,
+        quiet=1,
+        rx=re.compile("noxfile.py$"),
+    )
+    pip_self_install_path = tmpdir_factory.mktemp("pip_self_install")
+    subprocess.check_call(
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "--target",
+            pip_self_install_path,
+            "-e",
+            pip_editable,
+        ]
+    )
+    pth = next(pip_self_install_path.glob("*pip*.pth"))
+    dist_info = next(pip_self_install_path.glob("*.dist-info"))
+    return (pth, dist_info)
+
+
 def _common_wheel_editable_install(
     tmpdir_factory: pytest.TempPathFactory, common_wheels: Path, package: str
 ) -> Path:
@@ -439,6 +469,7 @@ def virtualenv_template(
     request: pytest.FixtureRequest,
     tmpdir_factory: pytest.TempPathFactory,
     pip_src: Path,
+    pip_editable_parts: Tuple[Path, ...],
     setuptools_install: Path,
     wheel_install: Path,
     coverage_install: Path,
@@ -456,17 +487,17 @@ def virtualenv_template(
     # Install setuptools, wheel and pip.
     install_pth_link(venv, "setuptools", setuptools_install)
     install_pth_link(venv, "wheel", wheel_install)
-    pip_editable = tmpdir_factory.mktemp("pip") / "pip"
-    shutil.copytree(pip_src, pip_editable, symlinks=True)
-    # noxfile.py is Python 3 only
-    assert compileall.compile_dir(
-        str(pip_editable),
-        quiet=1,
-        rx=re.compile("noxfile.py$"),
+
+    pth, dist_info = pip_editable_parts
+
+    shutil.copy(pth, venv.site)
+    shutil.copytree(
+        dist_info, venv.site / dist_info.name, dirs_exist_ok=True, symlinks=True
     )
-    subprocess.check_call(
-        [os.fspath(venv.bin / "python"), "setup.py", "-q", "develop"], cwd=pip_editable
-    )
+    # Create placeholder ``easy-install.pth``, as several tests depend on its
+    # existance.  TODO: Ensure ``tests.lib.TestPipResult.files_updated`` correctly
+    # detects changed files.
+    venv.site.joinpath("easy-install.pth").touch()
 
     # Install coverage and pth file for executing it in any spawned processes
     # in this virtual environment.
