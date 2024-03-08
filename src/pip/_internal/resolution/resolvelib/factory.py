@@ -799,7 +799,7 @@ class Factory:
             + "\n\n"
             + "To fix this you could try to:\n"
             + "1. loosen the range of package versions you've specified\n"
-            + "2. remove package versions to allow pip attempt to solve "
+            + "2. remove package versions to allow pip to attempt to solve "
             + "the dependency conflict\n"
         )
 
