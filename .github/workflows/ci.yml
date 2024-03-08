@@ -124,7 +124,9 @@ jobs:
 
       - name: Install Ubuntu dependencies
         if: matrix.os == 'Ubuntu'
-        run: sudo apt-get install bzr
+        run: |
+          sudo apt-get update
+          sudo apt-get install bzr
 
       - name: Install MacOS dependencies
         if: matrix.os == 'MacOS'
@@ -224,7 +226,9 @@ jobs:
           python-version: "3.10"
 
       - name: Install Ubuntu dependencies
-        run: sudo apt-get install bzr
+        run: |
+          sudo apt-get update
+          sudo apt-get install bzr
 
       - run: pip install nox 'virtualenv<20' 'setuptools != 60.6.0'
 
