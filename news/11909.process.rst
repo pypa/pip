@@ -1,1 +1,0 @@
-Most project metadata is now defined statically via pip's ``pyproject.toml`` file.

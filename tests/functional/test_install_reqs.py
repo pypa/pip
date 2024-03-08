@@ -2,7 +2,7 @@ import json
 import os
 import textwrap
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any, Protocol
 
 import pytest
 
@@ -17,11 +17,6 @@ from tests.lib import (
     requirements_file,
 )
 from tests.lib.local_repos import local_checkout
-
-if TYPE_CHECKING:
-    from typing import Protocol
-else:
-    Protocol = object
 
 
 class ArgRecordingSdist:
@@ -300,7 +295,7 @@ def test_install_local_editable_with_subdirectory(script: PipTestEnvironment) ->
         ),
     )
 
-    result.assert_installed("version-subpkg", sub_dir="version_subdir")
+    result.assert_installed("version_subpkg", sub_dir="version_subdir")
 
 
 @pytest.mark.network

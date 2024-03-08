@@ -160,6 +160,7 @@ Cristina Muñoz
 Curtis Doty
 cytolentino
 Daan De Meyer
+Dale
 Damian
 Damian Quiroga
 Damian Shaw
@@ -226,6 +227,7 @@ Dustin Ingram
 Dwayne Bailey
 Ed Morley
 Edgar Ramírez
+Edgar Ramírez Mondragón
 Ee Durbin
 Efflam Lemaillet
 efflamlemaillet
@@ -258,6 +260,7 @@ Filip Kokosiński
 Filipe Laíns
 Finn Womack
 finnagin
+Flavio Amurrio
 Florian Briand
 Florian Rathgeber
 Francesco
@@ -320,6 +323,7 @@ Ionel Cristian Mărieș
 Ionel Maries Cristian
 Itamar Turner-Trauring
 Ivan Pozdeev
+J. Nick Koston
 Jacob Kim
 Jacob Walls
 Jaime Sanz
@@ -342,6 +346,7 @@ Jason R. Coombs
 JasonMo
 JasonMo1
 Jay Graves
+Jean Abou Samra
 Jean-Christophe Fillion-Robin
 Jeff Barber
 Jeff Dairiki
@@ -581,6 +586,7 @@ Przemek Wrzos
 Pulkit Goyal
 q0w
 Qiangning Hong
+Qiming Xu
 Quentin Lee
 Quentin Pradet
 R. David Murray
@@ -719,6 +725,7 @@ Vincent Philippon
 Vinicyus Macedo
 Vipul Kumar
 Vitaly Babiy
+Vladimir Fokow
 Vladimir Rutsky
 W. Trevor King
 Wil Tan

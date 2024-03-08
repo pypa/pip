@@ -1,5 +1,6 @@
 import logging
 import os
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, cast
 
@@ -31,29 +32,16 @@ def test_contains_egg_info(s: str, expected: bool) -> None:
     assert result == expected
 
 
+@dataclass
 class ReqMock:
-    def __init__(
-        self,
-        name: str = "pendulum",
-        is_wheel: bool = False,
-        editable: bool = False,
-        link: Optional[Link] = None,
-        constraint: bool = False,
-        source_dir: Optional[str] = "/tmp/pip-install-123/pendulum",
-        use_pep517: bool = True,
-        supports_pyproject_editable: bool = False,
-    ) -> None:
-        self.name = name
-        self.is_wheel = is_wheel
-        self.editable = editable
-        self.link = link
-        self.constraint = constraint
-        self.source_dir = source_dir
-        self.use_pep517 = use_pep517
-        self._supports_pyproject_editable = supports_pyproject_editable
-
-    def supports_pyproject_editable(self) -> bool:
-        return self._supports_pyproject_editable
+    name: str = "pendulum"
+    is_wheel: bool = False
+    editable: bool = False
+    link: Optional[Link] = None
+    constraint: bool = False
+    source_dir: Optional[str] = "/tmp/pip-install-123/pendulum"
+    use_pep517: bool = True
+    supports_pyproject_editable: bool = False
 
 
 @pytest.mark.parametrize(
