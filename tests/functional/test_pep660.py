@@ -37,7 +37,7 @@ def prepare_metadata_for_build_wheel(metadata_directory, config_settings=None):
 
 def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     with open("log.txt", "a") as f:
-        print(":build_wheel called", file=f)
+        print(f":build_wheel called with config_settings={config_settings}", file=f)
     return _build_wheel(wheel_directory, config_settings, metadata_directory)
 """
 
@@ -55,7 +55,7 @@ def prepare_metadata_for_build_editable(metadata_directory, config_settings=None
 
 def build_editable(wheel_directory, config_settings=None, metadata_directory=None):
     with open("log.txt", "a") as f:
-        print(":build_editable called", file=f)
+        print(f":build_editable called with config_settings={config_settings}", file=f)
     return _build_wheel(wheel_directory, config_settings, metadata_directory)
 """
 # fmt: on
@@ -86,6 +86,16 @@ def _make_project(
 def _assert_hook_called(project_dir: Path, hook: str) -> None:
     log = project_dir.joinpath("log.txt").read_text()
     assert f":{hook} called" in log, f"{hook} has not been called"
+
+
+def _assert_hook_called_with_config_settings(
+    project_dir: Path, hook: str, config_settings: Dict[str, str]
+) -> None:
+    log = project_dir.joinpath("log.txt").read_text()
+    assert f":{hook} called" in log, f"{hook} has not been called"
+    assert (
+        f":{hook} called with config_settings={config_settings}" in log
+    ), f"{hook} has not been called with the expected config settings:\n{log}"
 
 
 def _assert_hook_not_called(project_dir: Path, hook: str) -> None:
@@ -119,9 +129,35 @@ def test_install_pep660_basic(tmpdir: Path, script: PipTestEnvironment) -> None:
         "--no-build-isolation",
         "--editable",
         project_dir,
+        "--config-setting",
+        "x=y",
     )
     _assert_hook_called(project_dir, "prepare_metadata_for_build_editable")
-    _assert_hook_called(project_dir, "build_editable")
+    _assert_hook_called_with_config_settings(project_dir, "build_editable", {"x": "y"})
+    assert (
+        result.test_env.site_packages.joinpath("project.egg-link")
+        not in result.files_created
+    ), "a .egg-link file should not have been created"
+
+
+def test_install_pep660_from_reqs_file(
+    tmpdir: Path, script: PipTestEnvironment
+) -> None:
+    """
+    Test with backend that supports build_editable.
+    """
+    project_dir = _make_project(tmpdir, BACKEND_WITH_PEP660, with_setup_py=False)
+    reqs_file = tmpdir / "requirements.txt"
+    reqs_file.write_text(f"-e {project_dir.as_uri()} --config-setting x=y\n")
+    result = script.pip(
+        "install",
+        "--no-index",
+        "--no-build-isolation",
+        "-r",
+        reqs_file,
+    )
+    _assert_hook_called(project_dir, "prepare_metadata_for_build_editable")
+    _assert_hook_called_with_config_settings(project_dir, "build_editable", {"x": "y"})
     assert (
         result.test_env.site_packages.joinpath("project.egg-link")
         not in result.files_created

@@ -449,7 +449,7 @@ def test_git_with_ambiguous_revs(script: PipTestEnvironment) -> None:
     assert "Could not find a tag or branch" not in result.stdout
     # it is 'version-pkg' instead of 'version_pkg' because
     # egg-link name is version-pkg.egg-link because it is a single .py module
-    result.assert_installed("version-pkg", with_files=[".git"])
+    result.assert_installed("version_pkg", with_files=[".git"])
 
 
 def test_editable__no_revision(script: PipTestEnvironment) -> None:

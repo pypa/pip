@@ -458,8 +458,7 @@ def test_version_control__run_command__fails(
     with mock.patch("pip._internal.vcs.versioncontrol.call_subprocess") as call:
         call.side_effect = exc_cls
         with pytest.raises(BadCommand, match=msg_re.format(name=vcs_cls.name)):
-            # https://github.com/python/mypy/issues/3283
-            vcs_cls.run_command([])  # type: ignore[arg-type]
+            vcs_cls.run_command([])
 
 
 @pytest.mark.parametrize(

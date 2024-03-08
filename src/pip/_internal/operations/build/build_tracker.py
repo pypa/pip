@@ -99,7 +99,7 @@ class BuildTracker:
         except FileNotFoundError:
             pass
         else:
-            message = "{} is already being built: {}".format(req.link, contents)
+            message = f"{req.link} is already being built: {contents}"
             raise LookupError(message)
 
         # If we're here, req should really not be building already.

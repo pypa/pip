@@ -1,19 +1,11 @@
 import os
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Tuple, Union
+from typing import Protocol, Tuple, Union
 
 import pytest
 
 from tests.lib import PipTestEnvironment, ScriptFactory, TestData, TestPipResult
-
-if TYPE_CHECKING:
-    from typing import Protocol
-else:
-    # TODO: Protocol was introduced in Python 3.8. Remove this branch when
-    # dropping support for Python 3.7.
-    Protocol = object
-
 
 COMPLETION_FOR_SUPPORTED_SHELLS_TESTS = (
     (

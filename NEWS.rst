@@ -9,6 +9,46 @@
 
 .. towncrier release notes start
 
+24.0 (2024-02-03)
+=================
+
+Features
+--------
+
+- Retry on HTTP status code 502 (`#11843 <https://github.com/pypa/pip/issues/11843>`_)
+- Automatically use the setuptools PEP 517 build backend when ``--config-settings`` is
+  used for projects without ``pyproject.toml``. (`#11915 <https://github.com/pypa/pip/issues/11915>`_)
+- Make pip freeze and pip uninstall of legacy editable installs of packages whose name
+  contains ``_`` compatible with ``setuptools>=69.0.3``. (`#12477 <https://github.com/pypa/pip/issues/12477>`_)
+- Support per requirement ``--config-settings`` for editable installs. (`#12480 <https://github.com/pypa/pip/issues/12480>`_)
+
+Bug Fixes
+---------
+
+- Optimized usage of ``--find-links=<path-to-dir>``, by only scanning the relevant directory once, only considering file names that are valid wheel or sdist names, and only considering files in the directory that are related to the install. (`#12327 <https://github.com/pypa/pip/issues/12327>`_)
+- Removed ``wheel`` from the ``[build-system].requires`` list fallback
+  that is used when ``pyproject.toml`` is absent. (`#12449 <https://github.com/pypa/pip/issues/12449>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade distlib to 0.3.8
+
+Improved Documentation
+----------------------
+
+- Fix explanation of how PIP_CONFIG_FILE works (`#11815 <https://github.com/pypa/pip/issues/11815>`_)
+- Fix outdated pip install argument description in documentation. (`#12417 <https://github.com/pypa/pip/issues/12417>`_)
+- Replace some links to PEPs with links to the canonical specifications on the :doc:`pypug:index` (`#12434 <https://github.com/pypa/pip/issues/12434>`_)
+- Updated the ``pyproject.toml`` document to stop suggesting
+  to depend on ``wheel`` as a build dependency directly. (`#12449 <https://github.com/pypa/pip/issues/12449>`_)
+- Update supported interpreters in development docs (`#12475 <https://github.com/pypa/pip/issues/12475>`_)
+
+Process
+-------
+
+- Most project metadata is now defined statically via pip's ``pyproject.toml`` file.
+
 23.3.2 (2023-12-17)
 ===================
 

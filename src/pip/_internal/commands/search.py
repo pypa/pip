@@ -5,7 +5,7 @@ import textwrap
 import xmlrpc.client
 from collections import OrderedDict
 from optparse import Values
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional, TypedDict
 
 from pip._vendor.packaging.version import parse as parse_version
 
@@ -20,7 +20,6 @@ from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import write_output
 
 if TYPE_CHECKING:
-    from typing import TypedDict
 
     class TransformedHit(TypedDict):
         name: str

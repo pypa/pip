@@ -8,7 +8,6 @@ import re
 import zipfile
 from typing import (
     IO,
-    TYPE_CHECKING,
     Any,
     Collection,
     Container,
@@ -18,6 +17,7 @@ from typing import (
     List,
     NamedTuple,
     Optional,
+    Protocol,
     Tuple,
     Union,
 )
@@ -40,11 +40,6 @@ from pip._internal.utils.misc import is_local, normalize_path
 from pip._internal.utils.urls import url_to_path
 
 from ._json import msg_to_json
-
-if TYPE_CHECKING:
-    from typing import Protocol
-else:
-    Protocol = object
 
 DistributionVersion = Union[LegacyVersion, Version]
 
@@ -385,15 +380,7 @@ class BaseDistribution(Protocol):
     def _metadata_impl(self) -> email.message.Message:
         raise NotImplementedError()
 
-    @functools.lru_cache(maxsize=1)
-    def _metadata_cached(self) -> email.message.Message:
-        # When we drop python 3.7 support, move this to the metadata property and use
-        # functools.cached_property instead of lru_cache.
-        metadata = self._metadata_impl()
-        self._add_egg_info_requires(metadata)
-        return metadata
-
-    @property
+    @functools.cached_property
     def metadata(self) -> email.message.Message:
         """Metadata of distribution parsed from e.g. METADATA or PKG-INFO.
 
@@ -402,7 +389,9 @@ class BaseDistribution(Protocol):
         :raises NoneMetadataError: If the metadata file is available, but does
             not contain valid metadata.
         """
-        return self._metadata_cached()
+        metadata = self._metadata_impl()
+        self._add_egg_info_requires(metadata)
+        return metadata
 
     @property
     def metadata_dict(self) -> Dict[str, Any]:

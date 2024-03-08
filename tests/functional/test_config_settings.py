@@ -107,6 +107,26 @@ def make_project(
     return name, version, project_dir
 
 
+def test_config_settings_implies_pep517(
+    script: PipTestEnvironment, tmp_path: Path
+) -> None:
+    """Test that setup.py bdist_wheel is not used when config settings are."""
+    pkg_path = tmp_path / "pkga"
+    pkg_path.mkdir()
+    pkg_path.joinpath("setup.py").write_text(
+        "from setuptools import setup; setup(name='pkga')\n"
+    )
+    result = script.pip(
+        "wheel",
+        "--config-settings",
+        "FOO=Hello",
+        pkg_path,
+        cwd=tmp_path,
+    )
+    assert "Successfully built pkga" in result.stdout
+    assert "Preparing metadata (pyproject.toml)" in result.stdout
+
+
 def test_backend_sees_config(script: PipTestEnvironment) -> None:
     name, version, project_dir = make_project(script.scratch_path)
     script.pip(

@@ -17,6 +17,7 @@ from typing import (
     Generator,
     Iterable,
     List,
+    NoReturn,
     Optional,
     Tuple,
 )
@@ -30,10 +31,6 @@ from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.urls import get_url_scheme
 
 if TYPE_CHECKING:
-    # NoReturn introduced in 3.6.2; imported only for type checking to maintain
-    # pip compatibility with older patch versions of Python 3.6
-    from typing import NoReturn
-
     from pip._internal.index.package_finder import PackageFinder
 
 __all__ = ["parse_requirements"]
@@ -75,8 +72,16 @@ SUPPORTED_OPTIONS_REQ: List[Callable[..., optparse.Option]] = [
     cmdoptions.config_settings,
 ]
 
+SUPPORTED_OPTIONS_EDITABLE_REQ: List[Callable[..., optparse.Option]] = [
+    cmdoptions.config_settings,
+]
+
+
 # the 'dest' string values
 SUPPORTED_OPTIONS_REQ_DEST = [str(o().dest) for o in SUPPORTED_OPTIONS_REQ]
+SUPPORTED_OPTIONS_EDITABLE_REQ_DEST = [
+    str(o().dest) for o in SUPPORTED_OPTIONS_EDITABLE_REQ
+]
 
 logger = logging.getLogger(__name__)
 
@@ -178,31 +183,25 @@ def handle_requirement_line(
 
     assert line.is_requirement
 
+    # get the options that apply to requirements
     if line.is_editable:
-        # For editable requirements, we don't support per-requirement
-        # options, so just return the parsed requirement.
-        return ParsedRequirement(
-            requirement=line.requirement,
-            is_editable=line.is_editable,
-            comes_from=line_comes_from,
-            constraint=line.constraint,
-        )
+        supported_dest = SUPPORTED_OPTIONS_EDITABLE_REQ_DEST
     else:
-        # get the options that apply to requirements
-        req_options = {}
-        for dest in SUPPORTED_OPTIONS_REQ_DEST:
-            if dest in line.opts.__dict__ and line.opts.__dict__[dest]:
-                req_options[dest] = line.opts.__dict__[dest]
+        supported_dest = SUPPORTED_OPTIONS_REQ_DEST
+    req_options = {}
+    for dest in supported_dest:
+        if dest in line.opts.__dict__ and line.opts.__dict__[dest]:
+            req_options[dest] = line.opts.__dict__[dest]
 
-        line_source = f"line {line.lineno} of {line.filename}"
-        return ParsedRequirement(
-            requirement=line.requirement,
-            is_editable=line.is_editable,
-            comes_from=line_comes_from,
-            constraint=line.constraint,
-            options=req_options,
-            line_source=line_source,
-        )
+    line_source = f"line {line.lineno} of {line.filename}"
+    return ParsedRequirement(
+        requirement=line.requirement,
+        is_editable=line.is_editable,
+        comes_from=line_comes_from,
+        constraint=line.constraint,
+        options=req_options,
+        line_source=line_source,
+    )
 
 
 def handle_option_line(

@@ -5,7 +5,7 @@ import pytest
 from tests.lib import PipTestEnvironment, ScriptFactory, TestData
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def simple_script(
     tmpdir_factory: pytest.TempPathFactory,
     script_factory: ScriptFactory,

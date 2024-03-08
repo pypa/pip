@@ -117,7 +117,7 @@ class SourceDistribution(AbstractDistribution):
         if (
             self.req.editable
             and self.req.permit_editable_wheels
-            and self.req.supports_pyproject_editable()
+            and self.req.supports_pyproject_editable
         ):
             build_reqs = self._get_build_requires_editable()
         else:

@@ -1,0 +1,4 @@
+This change will use ``build`` to create the ``pip`` sdist for testing.
+
+It will also remove a direct ``setup.py`` invocation to install ``pip`` in
+editable mode to run from tests.

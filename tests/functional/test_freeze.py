@@ -220,7 +220,7 @@ def test_freeze_editable_not_vcs(script: PipTestEnvironment) -> None:
     # the freeze code does.
     expected = textwrap.dedent(
         f"""\
-    ...# Editable install with no version control (version-pkg==0.1)
+    ...# Editable install with no version control (version...pkg==0.1)
     -e {os.path.normcase(pkg_path)}
     ..."""
     )
@@ -245,7 +245,7 @@ def test_freeze_editable_git_with_no_remote(
     # the freeze code does.
     expected = textwrap.dedent(
         f"""\
-    ...# Editable Git install with no remote (version-pkg==0.1)
+    ...# Editable Git install with no remote (version...pkg==0.1)
     -e {os.path.normcase(pkg_path)}
     ..."""
     )
@@ -483,7 +483,7 @@ def test_freeze_git_remote(script: PipTestEnvironment) -> None:
     expected = os.path.normcase(
         textwrap.dedent(
             f"""
-            ...# Editable Git...(version-pkg...)...
+            ...# Editable Git...(version...pkg...)...
             # '{other_remote}'
             -e {repo_dir}...
         """

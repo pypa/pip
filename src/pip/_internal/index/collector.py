@@ -14,7 +14,6 @@ import urllib.request
 from html.parser import HTMLParser
 from optparse import Values
 from typing import (
-    TYPE_CHECKING,
     Callable,
     Dict,
     Iterable,
@@ -22,6 +21,7 @@ from typing import (
     MutableMapping,
     NamedTuple,
     Optional,
+    Protocol,
     Sequence,
     Tuple,
     Union,
@@ -41,11 +41,6 @@ from pip._internal.utils.misc import redact_auth_from_url
 from pip._internal.vcs import vcs
 
 from .sources import CandidatesFromPage, LinkSource, build_source
-
-if TYPE_CHECKING:
-    from typing import Protocol
-else:
-    Protocol = object
 
 logger = logging.getLogger(__name__)
 
@@ -473,6 +468,7 @@ class LinkCollector:
                 page_validator=self.session.is_secure_origin,
                 expand_dir=False,
                 cache_link_parsing=False,
+                project_name=project_name,
             )
             for loc in self.search_scope.get_index_urls_locations(project_name)
         ).values()
@@ -483,6 +479,7 @@ class LinkCollector:
                 page_validator=self.session.is_secure_origin,
                 expand_dir=True,
                 cache_link_parsing=True,
+                project_name=project_name,
             )
             for loc in self.find_links
         ).values()
