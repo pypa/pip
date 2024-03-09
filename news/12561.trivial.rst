@@ -1,0 +1,1 @@
+Remove virtualenv and setuptools installs from zipapp CI tests
