@@ -1,0 +1,1 @@
+Update CI tests for Windows to run on Python 3.12
