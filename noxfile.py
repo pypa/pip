@@ -89,9 +89,9 @@ def test(session: nox.Session) -> None:
         shutil.rmtree(sdist_dir, ignore_errors=True)
 
     # fmt: off
-    session.install("setuptools")
+    session.install("build")
     session.run(
-        "python", "setup.py", "sdist", "--formats=zip", "--dist-dir", sdist_dir,
+        "python", "-I", "-m", "build", "--sdist", "--outdir", sdist_dir,
         silent=True,
     )
     # fmt: on
