@@ -31,9 +31,9 @@ has to backtrack, which means also discarding some of the work that has already
 been done, and going back to choose another path.
 
 This can look like pip downloading multiple versions of the same package,
-since pip explicitly presents each download to the user. The backtracking 
-of choices made during this step is not unexpected behavior or a bug; it is part 
-of how dependency resolution for Python packages works.
+since pip explicitly presents each download to the user. The backtracking of
+choices made during this step is not unexpected behaviour or a bug. It is part of how
+dependency resolution for Python packages works.
 
 ````{admonition} Example
 The user requests `pip install tea`. The package `tea` declares a dependency on
