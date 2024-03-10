@@ -1,4 +1,5 @@
 """Base API."""
+
 from __future__ import annotations
 
 import os
@@ -7,12 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    import sys
-
-    if sys.version_info >= (3, 8):  # pragma: no cover (py38+)
-        from typing import Literal
-    else:  # pragma: no cover (py38+)
-        from pip._vendor.typing_extensions import Literal
+    from typing import Iterator, Literal
 
 
 class PlatformDirsABC(ABC):
@@ -58,8 +54,8 @@ class PlatformDirsABC(ABC):
         """
         self.multipath = multipath
         """
-        An optional parameter only applicable to Unix/Linux which indicates that the entire list of data dirs should be
-        returned. By default, the first item would only be returned.
+        An optional parameter which indicates that the entire list of data dirs should be returned.
+        By default, the first item would only be returned.
         """
         self.opinion = opinion  #: A flag to indicating to use opinionated values.
         self.ensure_exists = ensure_exists
@@ -149,8 +145,18 @@ class PlatformDirsABC(ABC):
 
     @property
     @abstractmethod
+    def user_desktop_dir(self) -> str:
+        """:return: desktop directory tied to the user"""
+
+    @property
+    @abstractmethod
     def user_runtime_dir(self) -> str:
         """:return: runtime directory tied to the user"""
+
+    @property
+    @abstractmethod
+    def site_runtime_dir(self) -> str:
+        """:return: runtime directory shared by users"""
 
     @property
     def user_data_path(self) -> Path:
@@ -218,6 +224,56 @@ class PlatformDirsABC(ABC):
         return Path(self.user_music_dir)
 
     @property
+    def user_desktop_path(self) -> Path:
+        """:return: desktop path tied to the user"""
+        return Path(self.user_desktop_dir)
+
+    @property
     def user_runtime_path(self) -> Path:
         """:return: runtime path tied to the user"""
         return Path(self.user_runtime_dir)
+
+    @property
+    def site_runtime_path(self) -> Path:
+        """:return: runtime path shared by users"""
+        return Path(self.site_runtime_dir)
+
+    def iter_config_dirs(self) -> Iterator[str]:
+        """:yield: all user and site configuration directories."""
+        yield self.user_config_dir
+        yield self.site_config_dir
+
+    def iter_data_dirs(self) -> Iterator[str]:
+        """:yield: all user and site data directories."""
+        yield self.user_data_dir
+        yield self.site_data_dir
+
+    def iter_cache_dirs(self) -> Iterator[str]:
+        """:yield: all user and site cache directories."""
+        yield self.user_cache_dir
+        yield self.site_cache_dir
+
+    def iter_runtime_dirs(self) -> Iterator[str]:
+        """:yield: all user and site runtime directories."""
+        yield self.user_runtime_dir
+        yield self.site_runtime_dir
+
+    def iter_config_paths(self) -> Iterator[Path]:
+        """:yield: all user and site configuration paths."""
+        for path in self.iter_config_dirs():
+            yield Path(path)
+
+    def iter_data_paths(self) -> Iterator[Path]:
+        """:yield: all user and site data paths."""
+        for path in self.iter_data_dirs():
+            yield Path(path)
+
+    def iter_cache_paths(self) -> Iterator[Path]:
+        """:yield: all user and site cache paths."""
+        for path in self.iter_cache_dirs():
+            yield Path(path)
+
+    def iter_runtime_paths(self) -> Iterator[Path]:
+        """:yield: all user and site runtime paths."""
+        for path in self.iter_runtime_dirs():
+            yield Path(path)

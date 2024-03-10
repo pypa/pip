@@ -2,6 +2,7 @@
 Utilities for determining application-specific dirs. See <https://github.com/platformdirs/platformdirs> for details and
 usage.
 """
+
 from __future__ import annotations
 
 import os
@@ -14,11 +15,7 @@ from .version import __version_tuple__ as __version_info__
 
 if TYPE_CHECKING:
     from pathlib import Path
-
-    if sys.version_info >= (3, 8):  # pragma: no cover (py38+)
-        from typing import Literal
-    else:  # pragma: no cover (py38+)
-        from pip._vendor.typing_extensions import Literal
+    from typing import Literal
 
 
 def _set_platform_dir_class() -> type[PlatformDirsABC]:
@@ -264,6 +261,11 @@ def user_music_dir() -> str:
     return PlatformDirs().user_music_dir
 
 
+def user_desktop_dir() -> str:
+    """:returns: desktop directory tied to the user"""
+    return PlatformDirs().user_desktop_dir
+
+
 def user_runtime_dir(
     appname: str | None = None,
     appauthor: str | None | Literal[False] = None,
@@ -286,6 +288,30 @@ def user_runtime_dir(
         opinion=opinion,
         ensure_exists=ensure_exists,
     ).user_runtime_dir
+
+
+def site_runtime_dir(
+    appname: str | None = None,
+    appauthor: str | None | Literal[False] = None,
+    version: str | None = None,
+    opinion: bool = True,  # noqa: FBT001, FBT002
+    ensure_exists: bool = False,  # noqa: FBT001, FBT002
+) -> str:
+    """
+    :param appname: See `appname <platformdirs.api.PlatformDirsABC.appname>`.
+    :param appauthor: See `appauthor <platformdirs.api.PlatformDirsABC.appauthor>`.
+    :param version: See `version <platformdirs.api.PlatformDirsABC.version>`.
+    :param opinion: See `opinion <platformdirs.api.PlatformDirsABC.opinion>`.
+    :param ensure_exists: See `ensure_exists <platformdirs.api.PlatformDirsABC.ensure_exists>`.
+    :returns: runtime directory shared by users
+    """
+    return PlatformDirs(
+        appname=appname,
+        appauthor=appauthor,
+        version=version,
+        opinion=opinion,
+        ensure_exists=ensure_exists,
+    ).site_runtime_dir
 
 
 def user_data_path(
@@ -505,6 +531,11 @@ def user_music_path() -> Path:
     return PlatformDirs().user_music_path
 
 
+def user_desktop_path() -> Path:
+    """:returns: desktop path tied to the user"""
+    return PlatformDirs().user_desktop_path
+
+
 def user_runtime_path(
     appname: str | None = None,
     appauthor: str | None | Literal[False] = None,
@@ -529,6 +560,30 @@ def user_runtime_path(
     ).user_runtime_path
 
 
+def site_runtime_path(
+    appname: str | None = None,
+    appauthor: str | None | Literal[False] = None,
+    version: str | None = None,
+    opinion: bool = True,  # noqa: FBT001, FBT002
+    ensure_exists: bool = False,  # noqa: FBT001, FBT002
+) -> Path:
+    """
+    :param appname: See `appname <platformdirs.api.PlatformDirsABC.appname>`.
+    :param appauthor: See `appauthor <platformdirs.api.PlatformDirsABC.appauthor>`.
+    :param version: See `version <platformdirs.api.PlatformDirsABC.version>`.
+    :param opinion: See `opinion <platformdirs.api.PlatformDirsABC.opinion>`.
+    :param ensure_exists: See `ensure_exists <platformdirs.api.PlatformDirsABC.ensure_exists>`.
+    :returns: runtime path shared by users
+    """
+    return PlatformDirs(
+        appname=appname,
+        appauthor=appauthor,
+        version=version,
+        opinion=opinion,
+        ensure_exists=ensure_exists,
+    ).site_runtime_path
+
+
 __all__ = [
     "__version__",
     "__version_info__",
@@ -545,10 +600,12 @@ __all__ = [
     "user_pictures_dir",
     "user_videos_dir",
     "user_music_dir",
+    "user_desktop_dir",
     "user_runtime_dir",
     "site_data_dir",
     "site_config_dir",
     "site_cache_dir",
+    "site_runtime_dir",
     "user_data_path",
     "user_config_path",
     "user_cache_path",
@@ -559,8 +616,10 @@ __all__ = [
     "user_pictures_path",
     "user_videos_path",
     "user_music_path",
+    "user_desktop_path",
     "user_runtime_path",
     "site_data_path",
     "site_config_path",
     "site_cache_path",
+    "site_runtime_path",
 ]
