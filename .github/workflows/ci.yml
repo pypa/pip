@@ -162,10 +162,12 @@ jobs:
         os: [Windows]
         python:
           - "3.8"
-          # Commented out, since Windows tests are expensively slow.
+          # Commented out, since Windows tests are expensively slow,
+          # only test the oldest and newest Python supported by pip
           # - "3.9"
           # - "3.10"
-          - "3.11"
+          # - "3.11"
+          - "3.12"
         group: [1, 2]
 
     steps:
