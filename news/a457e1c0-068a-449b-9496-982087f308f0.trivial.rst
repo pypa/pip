@@ -1,0 +1,3 @@
+Stop raising an InstallationError when a direct URL requirement comes from a
+PyPI package. The check is redundant as PyPI has been rejecting uploads of
+packages which depend on external packages for at least the past 8 years.
