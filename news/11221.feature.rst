@@ -1,4 +1,3 @@
-Fallback to displaying "Home-page" Project-URL when the Home-Page metadata field is not set in ``pip show``.
+Display the Project-URL value under key "Home-page" in ``pip show`` when the Home-Page metadata field is not set.
 
-The Project-URL fallback is case-insensitive and ignores any dashes or
-underscores that may be present.
+The Project-URL key detection is case-insensitive, and ignores any dashes and underscores.
