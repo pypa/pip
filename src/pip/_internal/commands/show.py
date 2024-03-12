@@ -1,6 +1,6 @@
 import logging
 from optparse import Values
-from typing import Dict, Generator, Iterable, Iterator, List, NamedTuple, Optional
+from typing import Generator, Iterable, Iterator, List, NamedTuple, Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -61,7 +61,7 @@ class _PackageInfo(NamedTuple):
     classifiers: List[str]
     summary: str
     homepage: str
-    project_urls: Dict[str, str]
+    project_urls: List[str]
     author: str
     author_email: str
     license: str
@@ -121,23 +121,20 @@ def search_packages_info(query: List[str]) -> Generator[_PackageInfo, None, None
 
         metadata = dist.metadata
 
-        project_urls = {}
-        for url in metadata.get_all("Project-URL", []):
-            url_label, url = url.split(",", maxsplit=1)
-            project_urls[url_label.strip()] = url.strip()
-
+        project_urls = metadata.get_all("Project-URL", [])
         homepage = metadata.get("Home-page", "")
         if not homepage:
             # It's common that there is a "homepage" Project-URL, but Home-page
             # remains unset (especially as PEP 621 doesn't surface the field).
             #
             # This logic was taken from PyPI's codebase.
-            for url_label, url in project_urls.items():
+            for url in project_urls:
+                url_label, url = url.split(",", maxsplit=1)
                 normalized_label = (
-                    url_label.casefold().replace("-", "").replace("_", "")
+                    url_label.casefold().replace("-", "").replace("_", "").strip()
                 )
                 if normalized_label == "homepage":
-                    homepage = url
+                    homepage = url.strip()
                     break
 
         yield _PackageInfo(
@@ -200,8 +197,8 @@ def print_results(
             for entry in dist.entry_points:
                 write_output("  %s", entry.strip())
             write_output("Project-URLs:")
-            for label, url in dist.project_urls.items():
-                write_output(f"  {label}, {url}")
+            for project_url in dist.project_urls:
+                write_output("  %s", project_url)
         if list_files:
             write_output("Files:")
             if dist.files is None:
