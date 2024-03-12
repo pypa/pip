@@ -155,7 +155,13 @@ class TestUnpackArchives:
         test_tar = self.make_tar_file("test_tar.tar", files)
         with pytest.raises(InstallationError) as e:
             untar_file(test_tar, self.tempdir)
-        assert "trying to install outside target directory" in str(e.value)
+
+        # The error message comes from tarfile.data_filter when it is available,
+        # otherwise from pip's own check.
+        if hasattr(tarfile, "data_filter"):
+            assert "is outside the destination" in str(e.value)
+        else:
+            assert "trying to install outside target directory" in str(e.value)
 
     def test_unpack_tar_success(self) -> None:
         """
@@ -170,6 +176,26 @@ class TestUnpackArchives:
         ]
         test_tar = self.make_tar_file("test_tar.tar", files)
         untar_file(test_tar, self.tempdir)
+
+    @pytest.mark.skipif(
+        not hasattr(tarfile, "data_filter"),
+        reason="tarfile filters (PEP-721) not available",
+    )
+    def test_unpack_tar_filter(self) -> None:
+        """
+        Test that the tarfile.data_filter is used to disallow dangerous
+        behaviour (PEP-721)
+        """
+        test_tar = os.path.join(self.tempdir, "test_tar_filter.tar")
+        with tarfile.open(test_tar, "w") as mytar:
+            file_tarinfo = tarfile.TarInfo("bad-link")
+            file_tarinfo.type = tarfile.SYMTYPE
+            file_tarinfo.linkname = "../../../../pwn"
+            mytar.addfile(file_tarinfo, io.BytesIO(b""))
+        with pytest.raises(InstallationError) as e:
+            untar_file(test_tar, self.tempdir)
+
+        assert "is outside the destination" in str(e.value)
 
 
 def test_unpack_tar_unicode(tmpdir: Path) -> None:
