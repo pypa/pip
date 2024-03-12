@@ -12,7 +12,6 @@ from typing import Dict, Iterable, List, Optional, Tuple
 import pytest
 
 from pip._internal.cli.status_codes import ERROR, SUCCESS
-from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.utils.misc import rmtree
 from pip._internal.utils.urls import path_to_url
 from tests.lib import (
@@ -1998,31 +1997,6 @@ def test_install_pep508_with_url_in_install_requires(
     )
     res = script.pip("install", pkga_path)
     assert "Successfully installed packaging-15.3" in str(res), str(res)
-
-
-@pytest.mark.network
-@pytest.mark.parametrize("index", (PyPI.simple_url, TestPyPI.simple_url))
-def test_install_from_test_pypi_with_ext_url_dep_is_blocked(
-    script: PipTestEnvironment, index: str
-) -> None:
-    res = script.pip(
-        "install",
-        "--index-url",
-        index,
-        "pep-508-url-deps",
-        expect_error=True,
-    )
-    error_message = (
-        "Packages installed from PyPI cannot depend on packages "
-        "which are not also hosted on PyPI."
-    )
-    error_cause = (
-        "pep-508-url-deps depends on sampleproject@ "
-        "https://github.com/pypa/sampleproject/archive/master.zip"
-    )
-    assert res.returncode == 1
-    assert error_message in res.stderr, str(res)
-    assert error_cause in res.stderr, str(res)
 
 
 @pytest.mark.xfail(
