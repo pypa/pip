@@ -1,6 +1,6 @@
 import logging
 from optparse import Values
-from typing import Generator, Iterable, Iterator, List, NamedTuple, Optional
+from typing import Dict, Generator, Iterable, Iterator, List, NamedTuple, Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -61,7 +61,7 @@ class _PackageInfo(NamedTuple):
     classifiers: List[str]
     summary: str
     homepage: str
-    project_urls: List[str]
+    project_urls: Dict[str, str]
     author: str
     author_email: str
     license: str
@@ -121,6 +121,25 @@ def search_packages_info(query: List[str]) -> Generator[_PackageInfo, None, None
 
         metadata = dist.metadata
 
+        project_urls = {}
+        for url in metadata.get_all("Project-URL", []):
+            url_label, url = url.split(",", maxsplit=1)
+            project_urls[url_label.strip()] = url.strip()
+
+        homepage = metadata.get("Home-page", "")
+        if not homepage:
+            # It's common that there is a "homepage" Project-URL, but Home-page
+            # remains unset (especially as PEP 621 doesn't surface the field).
+            #
+            # This logic was taken from PyPI's codebase.
+            for url_label, url in project_urls.items():
+                normalized_label = (
+                    url_label.casefold().replace("-", "").replace("_", "")
+                )
+                if normalized_label == "homepage":
+                    homepage = url
+                    break
+
         yield _PackageInfo(
             name=dist.raw_name,
             version=str(dist.version),
@@ -132,8 +151,8 @@ def search_packages_info(query: List[str]) -> Generator[_PackageInfo, None, None
             metadata_version=dist.metadata_version or "",
             classifiers=metadata.get_all("Classifier", []),
             summary=metadata.get("Summary", ""),
-            homepage=metadata.get("Home-page", ""),
-            project_urls=metadata.get_all("Project-URL", []),
+            homepage=homepage,
+            project_urls=project_urls,
             author=metadata.get("Author", ""),
             author_email=metadata.get("Author-email", ""),
             license=metadata.get("License", ""),
@@ -181,8 +200,8 @@ def print_results(
             for entry in dist.entry_points:
                 write_output("  %s", entry.strip())
             write_output("Project-URLs:")
-            for project_url in dist.project_urls:
-                write_output("  %s", project_url)
+            for label, url in dist.project_urls.items():
+                write_output(f"  {label}, {url}")
         if list_files:
             write_output("Files:")
             if dist.files is None:
