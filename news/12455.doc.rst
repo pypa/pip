@@ -1,0 +1,1 @@
+Removed section about non-existing ``--force-keyring`` flag.
