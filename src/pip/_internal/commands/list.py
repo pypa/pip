@@ -155,6 +155,7 @@ class ListCommand(IndexGroupCommand):
         )
 
     def run(self, options: Values, args: List[str]) -> int:
+        self.allow_pip_version_check = options.outdated or options.uptodate
         if options.outdated and options.uptodate:
             raise CommandError("Options --outdated and --uptodate cannot be combined.")
 
