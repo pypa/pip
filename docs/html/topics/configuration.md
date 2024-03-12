@@ -118,7 +118,7 @@ then the latter value will be used.
 The names of the settings are derived from the long command line option.
 
 As an example, if you want to use a different package index (`--index-url`) and
-set the HTTP timeout (`--default-timeout`) to 60 seconds, your config file would
+set the HTTP timeout (`--timeout`) to 60 seconds, your config file would
 look like this:
 
 ```ini
@@ -205,7 +205,7 @@ pip's command line options can be set with environment variables using the
 format `PIP_<UPPER_LONG_NAME>` . Dashes (`-`) have to be replaced with
 underscores (`_`).
 
-- `PIP_DEFAULT_TIMEOUT=60` is the same as `--default-timeout=60`
+- `PIP_TIMEOUT=60` is the same as `--timeout=60`
 - ```
   PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
   ```
