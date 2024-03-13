@@ -15,6 +15,7 @@ include docs/docutils.conf
 include docs/requirements.txt
 
 exclude .git-blame-ignore-revs
+exclude .codespellrc
 exclude .coveragerc
 exclude .mailmap
 exclude .appveyor.yml
