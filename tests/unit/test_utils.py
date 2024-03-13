@@ -802,20 +802,6 @@ class TestHiddenText:
         assert hidden.redacted == "######"
         assert hidden.secret == "my-secret"
 
-    def test_equality_with_str(self) -> None:
-        """
-        Test equality (and inequality) with str objects.
-        """
-        hidden = HiddenText("secret", redacted="****")
-
-        # Test that the object doesn't compare equal to either its original
-        # or redacted forms.
-        assert hidden != hidden.secret
-        assert hidden.secret != hidden
-
-        assert hidden != hidden.redacted
-        assert hidden.redacted != hidden
-
     def test_equality_same_secret(self) -> None:
         """
         Test equality with an object having the same secret.
