@@ -1,6 +1,7 @@
 from typing import Dict, Generator
 
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
+from pip._vendor.urllib3.exceptions import NewConnectionError, ReadTimeoutError
 
 from pip._internal.exceptions import NetworkConnectionError
 
@@ -94,3 +95,8 @@ def response_chunks(
             if not chunk:
                 break
             yield chunk
+    except (NewConnectionError, ReadTimeoutError) as exc:
+        raise NetworkConnectionError(
+            "Failed to get address for host! Check your network connectivity "
+            "and DNS settings.\nDetails: {}".format(exc)
+        )
