@@ -7,6 +7,7 @@ import random
 import sys
 from collections.abc import Generator
 from contextlib import contextmanager
+from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Any, BinaryIO, cast
 
@@ -150,3 +151,71 @@ def directory_size(path: str) -> int | float:
 
 def format_directory_size(path: str) -> str:
     return format_size(directory_size(path))
+
+
+def subdirs_without_files(path: str) -> Generator[Path]:
+    """Yields every subdirectory of +path+ that has no files under it."""
+
+    def inner(path: Path, parents: list[Path]) -> Generator[Path]:
+        path_obj = Path(path)
+
+        if not path_obj.exists():
+            return
+
+        subdirs = []
+        for item in path_obj.iterdir():
+            if item.is_dir():
+                subdirs.append(item)
+            else:
+                # If we find a file, we want to preserve the whole subtree,
+                # so bail immediately.
+                return
+
+        # If we get to this point, we didn't find a file yet.
+
+        if parents is None:
+            parents = []
+        else:
+            parents += [path_obj]
+
+        if subdirs:
+            for subdir in subdirs:
+                yield from inner(subdir, parents)
+        else:
+            yield from parents
+
+    yield from sorted(set(inner(Path(path), [])), reverse=True)
+
+
+def subdirs_without_wheels(path: str) -> Generator[Path]:
+    """Yields every subdirectory of +path+ that has no .whl files under it."""
+
+    def inner(path: str | Path, parents: list[Path]) -> Generator[Path]:
+        path_obj = Path(path)
+
+        if not path_obj.exists():
+            return
+
+        subdirs = []
+        for item in path_obj.iterdir():
+            if item.is_dir():
+                subdirs.append(item)
+            elif item.name.endswith(".whl"):
+                # If we found a wheel, we want to preserve this whole subtree,
+                # so we bail immediately and don't return any results.
+                return
+
+        # If we get to this point, we didn't find a wheel yet.
+
+        if parents is None:
+            parents = []
+        else:
+            parents += [path_obj]
+
+        if subdirs:
+            for subdir in subdirs:
+                yield from inner(subdir, parents)
+        else:
+            yield from parents
+
+    yield from sorted(set(inner(path, [])), reverse=True)
