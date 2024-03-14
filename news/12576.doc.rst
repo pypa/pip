@@ -1,1 +1,1 @@
-Display env vars for pip options in docs
+Document the environment variables that correspond with CLI options
