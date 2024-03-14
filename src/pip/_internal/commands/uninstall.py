@@ -9,11 +9,13 @@ from pip._internal.cli.base_command import Command
 from pip._internal.cli.req_command import SessionCommandMixin, warn_if_run_as_root
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.exceptions import InstallationError
+from pip._internal.metadata import get_default_environment
 from pip._internal.req import parse_requirements
 from pip._internal.req.constructors import (
     install_req_from_line,
     install_req_from_parsed_requirement,
 )
+from pip._internal.utils.compat import stdlib_pkgs
 from pip._internal.utils.misc import (
     check_externally_managed,
     protect_pip_from_modification_on_windows,
@@ -35,7 +37,8 @@ class UninstallCommand(Command, SessionCommandMixin):
 
     usage = """
       %prog [options] <package> ...
-      %prog [options] -r <requirements file> ..."""
+      %prog [options] -r <requirements file> ...
+      %prog [options] -a"""
 
     def add_options(self) -> None:
         self.cmd_opts.add_option(
@@ -56,6 +59,13 @@ class UninstallCommand(Command, SessionCommandMixin):
             dest="yes",
             action="store_true",
             help="Don't ask for confirmation of uninstall deletions.",
+        )
+        self.cmd_opts.add_option(
+            "-a",
+            "--all",
+            dest="all",
+            action="store_true",
+            help="Uninstall all Installed packages.",
         )
         self.cmd_opts.add_option(cmdoptions.root_user_action())
         self.cmd_opts.add_option(cmdoptions.override_externally_managed())
@@ -88,6 +98,15 @@ class UninstallCommand(Command, SessionCommandMixin):
                 )
                 if req.name:
                     reqs_to_uninstall[canonicalize_name(req.name)] = req
+        if options.all:
+            env = get_default_environment()
+            for dist in env.iter_installed_distributions(
+                local_only=False, skip=stdlib_pkgs | {"pip"}
+            ):
+                reqs_to_uninstall[dist.canonical_name] = install_req_from_line(
+                    dist.canonical_name,
+                    isolated=options.isolated_mode,
+                )
         if not reqs_to_uninstall:
             raise InstallationError(
                 f"You must give at least one requirement to {self.name} (see "
