@@ -150,7 +150,7 @@ class PipOptions(rst.Directive):
             "",
             line,
             "",
-            "    " + opt_help,
+            f"    {opt_help}",
             "",
             f"    (environment variable: {env_var_names_src})",
             "",
