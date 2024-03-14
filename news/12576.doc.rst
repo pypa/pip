@@ -1,1 +1,1 @@
-Document the environment variables that correspond to CLI options
+Document the environment variables that correspond with CLI options.
