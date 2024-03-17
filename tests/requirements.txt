@@ -1,6 +1,7 @@
 cryptography
 freezegun
 installer
+packse[serve] ; python_version >= '3.12'
 pytest
 pytest-cov
 pytest-rerunfailures
