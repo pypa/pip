@@ -95,8 +95,15 @@ def start_packse_server() -> Generator[None, None, None]:
 
 def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
     """Dynamically parameterize tests based on scenarios fetched from packse."""
+
+    if sys.version_info < (3, 12):
+        return
+
     if "scenario" in metafunc.fixturenames:
         # Fetch scenarios using packse
+        run_command(["packse", "fetch", "--force"])
+
+        # Inspect scenarios using packse
         scenarios_json: str = run_command(["packse", "inspect", "scenarios"])
         scenarios = json.loads(scenarios_json)
 
