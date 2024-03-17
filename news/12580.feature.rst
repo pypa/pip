@@ -1,0 +1,1 @@
+Add packse scenarios as pip tests
