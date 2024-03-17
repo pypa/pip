@@ -1,0 +1,2 @@
+- Removed mention of un-implemented ``--force-keyring`` option.
+- Detailed the pros and cons of using the ``import`` and ``subprocess`` keyring providers.
