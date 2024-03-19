@@ -1,6 +1,7 @@
 import functools
 from typing import Callable, Generator, Iterable, Iterator, Optional, Tuple
 
+from pip._vendor.rich.console import Console
 from pip._vendor.rich.progress import (
     BarColumn,
     DownloadColumn,
@@ -25,7 +26,9 @@ def _rich_progress_bar(
     bar_type: str,
     size: int,
 ) -> Generator[bytes, None, None]:
-    assert bar_type == "on", "This should only be used in the default mode."
+    assert (
+        bar_type == "on" or bar_type == "forced"
+    ), "This should only be used in the default mode or if forced."
 
     if not size:
         total = float("inf")
@@ -47,7 +50,13 @@ def _rich_progress_bar(
             TimeRemainingColumn(),
         )
 
-    progress = Progress(*columns, refresh_per_second=30)
+    progress = Progress(
+        *columns,
+        refresh_per_second=30,
+        console=Console(
+            force_terminal=bar_type == "forced",
+        ),
+    )
     task_id = progress.add_task(" " * (get_indentation() + 2), total=total)
     with progress:
         for chunk in iterable:
@@ -62,7 +71,7 @@ def get_download_progress_renderer(
 
     Returns a callable, that takes an iterable to "wrap".
     """
-    if bar_type == "on":
+    if bar_type == "on" or bar_type == "forced":
         return functools.partial(_rich_progress_bar, bar_type=bar_type, size=size)
     else:
         return iter  # no-op, when passed an iterator
