@@ -56,12 +56,12 @@ def _rich_progress_bar(
             yield chunk
             progress.update(task_id, advance=len(chunk))
 
+
 def _raw_progress_bar(
     iterable: Iterable[bytes],
     *,
     size: Optional[int],
 ) -> Generator[bytes, None, None]:
-
     def write_progress(current, total):
         sys.stdout.write("Progress %d of %d\n" % (current, total))
         sys.stdout.flush()
@@ -77,6 +77,7 @@ def _raw_progress_bar(
             write_progress(current, total)
             rate_limiter.reset()
         yield chunk
+
 
 def get_download_progress_renderer(
     *, bar_type: str, size: Optional[int] = None
