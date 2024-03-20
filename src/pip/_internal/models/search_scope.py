@@ -3,7 +3,7 @@ import logging
 import os
 import posixpath
 import urllib.parse
-from typing import List
+from typing import Dict, List, Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -20,7 +20,7 @@ class SearchScope:
     Encapsulates the locations that pip is configured to search.
     """
 
-    __slots__ = ["find_links", "index_urls", "no_index"]
+    __slots__ = ["find_links", "index_urls", "no_index", "index_lookup"]
 
     @classmethod
     def create(
@@ -28,6 +28,7 @@ class SearchScope:
         find_links: List[str],
         index_urls: List[str],
         no_index: bool,
+        index_lookup: Optional[Dict[str, str]] = None,
     ) -> "SearchScope":
         """
         Create a SearchScope object after normalizing the `find_links`.
@@ -62,6 +63,7 @@ class SearchScope:
             find_links=built_find_links,
             index_urls=index_urls,
             no_index=no_index,
+            index_lookup=index_lookup,
         )
 
     def __init__(
@@ -69,10 +71,12 @@ class SearchScope:
         find_links: List[str],
         index_urls: List[str],
         no_index: bool,
+        index_lookup: Optional[Dict[str, str]] = None,
     ) -> None:
         self.find_links = find_links
         self.index_urls = index_urls
         self.no_index = no_index
+        self.index_lookup = index_lookup if index_lookup else {}
 
     def get_formatted_locations(self) -> str:
         lines = []
@@ -129,4 +133,9 @@ class SearchScope:
                 loc = loc + "/"
             return loc
 
-        return [mkurl_pypi_url(url) for url in self.index_urls]
+        index_urls = self.index_urls
+        if project_name in self.index_lookup:
+            index_urls = [self.index_lookup[project_name]]
+        elif self.index_urls:
+            index_urls = [self.index_urls[0]]
+        return [mkurl_pypi_url(url) for url in index_urls]
