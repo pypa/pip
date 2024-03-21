@@ -1,0 +1,1 @@
+Add the PipProgress class, a rich progress bar supporting parallel downloads
