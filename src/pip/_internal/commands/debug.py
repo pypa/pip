@@ -5,7 +5,7 @@ import os
 import sys
 from optparse import Values
 from types import ModuleType
-from typing import Any, Dict, List, Optional
+from typing import IO, Any, Dict, List, Optional
 
 import pip._vendor
 from pip._vendor.certifi import where
@@ -34,8 +34,19 @@ def show_sys_implementation() -> None:
         show_value("name", implementation_name)
 
 
+if sys.version_info < (3, 9):
+    # Python 3.8 compatibility
+    def _open_text(package: str, resource: str) -> IO[str]:
+        return importlib.resources.open_text(package, resource)
+
+else:
+
+    def _open_text(package: str, resource: str) -> IO[str]:
+        return importlib.resources.files(package).joinpath(resource).open("r")
+
+
 def create_vendor_txt_map() -> Dict[str, str]:
-    with importlib.resources.files("pip._vendor").joinpath("vendor.txt").open("r") as f:
+    with _open_text("pip._vendor", "vendor.txt") as f:
         # Purge non version specifying lines.
         # Also, remove any space prefix or suffixes (including comments).
         lines = [
