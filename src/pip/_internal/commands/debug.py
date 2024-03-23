@@ -35,7 +35,7 @@ def show_sys_implementation() -> None:
 
 
 def create_vendor_txt_map() -> Dict[str, str]:
-    with importlib.resources.open_text("pip._vendor", "vendor.txt") as f:
+    with importlib.resources.files("pip._vendor").joinpath("vendor.txt").open("r") as f:
         # Purge non version specifying lines.
         # Also, remove any space prefix or suffixes (including comments).
         lines = [
