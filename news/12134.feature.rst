@@ -1,0 +1,1 @@
+Render the output of pip's command line help using rich.
