@@ -107,7 +107,9 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest, macos-12]
+        # Run on both x86 and Arm MacOS according to:
+        # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
+        os: [ubuntu-latest, macos-12, macos-latest]
         python:
           - "3.8"
           - "3.9"
@@ -115,6 +117,12 @@ jobs:
           - "3.11"
           - "3.12"
           - "3.13"
+        exclude:
+          # MacOS Arm failing on Python < 3.10
+          - os: macos-latest
+            python: "3.8"
+          - os: macos-latest
+            python: "3.9"
 
     steps:
       - uses: actions/checkout@v4
@@ -129,9 +137,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install bzr
 
-      - name: Install MacOS dependencies
+      - name: Install MacOS x86 dependencies
         if: matrix.os == 'macos-12'
         run: brew install breezy
+
+      - name: Install MacOS Arm dependencies
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install breezy
+          brew install subversion
 
       - run: pip install nox
 
@@ -150,7 +164,7 @@ jobs:
 
   tests-windows:
     name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group }}
-    runs-on: ${{ matrix.os }}-latest
+    runs-on: ${{ matrix.os }}
 
     needs: [packaging, determine-changes]
     if: >-
@@ -160,7 +174,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [Windows]
+        os: [windows-latest]
         python:
           - "3.8"
           # Commented out, since Windows tests are expensively slow,
