@@ -136,13 +136,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install bzr
 
-      - name: Install MacOS dependencies
+      - name: Install MacOS x86 dependencies
         if: matrix.os == 'macos-12'
         run: brew install breezy
 
-      - name: Install MacOS dependencies
+      - name: Install MacOS Arm dependencies
         if: matrix.os == 'macos-14'
-        run: brew install breezy
+        run: |
+          brew install breezy
+          brew install subversion
 
       - run: pip install nox
 
