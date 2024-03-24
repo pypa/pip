@@ -97,7 +97,7 @@ jobs:
 
   tests-unix:
     name: tests / ${{ matrix.python.key || matrix.python }} / ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}-latest
+    runs-on: ${{ matrix.os }}
 
     needs: [packaging, determine-changes]
     if: >-
@@ -125,13 +125,17 @@ jobs:
           allow-prereleases: true
 
       - name: Install Ubuntu dependencies
-        if: matrix.os == 'Ubuntu'
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install bzr
 
       - name: Install MacOS dependencies
-        if: matrix.os == 'MacOS'
+        if: matrix.os == 'macos-12'
+        run: brew install breezy
+
+      - name: Install MacOS dependencies
+        if: matrix.os == 'macos-14'
         run: brew install breezy
 
       - run: pip install nox
@@ -151,7 +155,7 @@ jobs:
 
   tests-windows:
     name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group }}
-    runs-on: ${{ matrix.os }}-latest
+    runs-on: ${{ matrix.os }}
 
     needs: [packaging, determine-changes]
     if: >-
@@ -161,7 +165,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [Windows]
+        os: [windows-latest]
         python:
           - "3.8"
           # Commented out, since Windows tests are expensively slow,
