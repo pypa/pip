@@ -222,7 +222,10 @@ class InstallRequirement:
         return s
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} object: {str(self)} editable={self.editable!r}>"
+        return (
+            f"<{self.__class__.__name__} object: "
+            f"{str(self)} editable={self.editable!r}>"
+        )
 
     def format_debug(self) -> str:
         """An un-tested helper for getting state, for debugging."""
