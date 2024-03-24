@@ -104,7 +104,8 @@ def _check_dist_requires_python(
         return
 
     raise UnsupportedPythonVersion(
-        f"Package {dist.raw_name!r} requires a different Python: {version} not in {requires_python!r}"
+        f"Package {dist.raw_name!r} requires a different Python: "
+        f"{version} not in {requires_python!r}"
     )
 
 
@@ -261,7 +262,8 @@ class Resolver(BaseResolver):
         )
         if has_conflicting_requirement:
             raise InstallationError(
-                f"Double requirement given: {install_req} (already in {existing_req}, name={install_req.name!r})"
+                f"Double requirement given: {install_req} "
+                f"(already in {existing_req}, name={install_req.name!r})"
             )
 
         # When no existing requirement exists, add the requirement as a

@@ -802,8 +802,8 @@ def test_get_index_content_invalid_content_type(
     assert (
         "pip._internal.index.collector",
         logging.WARNING,
-        f"Skipping page {url} because the GET request got Content-Type: {content_type}. "
-        "The only supported Content-Types are application/vnd.pypi.simple.v1+json, "
+        f"Skipping page {url} because the GET request got Content-Type: {content_type}."
+        " The only supported Content-Types are application/vnd.pypi.simple.v1+json, "
         "application/vnd.pypi.simple.v1+html, and text/html",
     ) in caplog.record_tuples
 

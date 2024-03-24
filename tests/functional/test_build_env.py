@@ -24,6 +24,7 @@ def run_with_build_env(
     test_script_contents: Optional[str] = None,
 ) -> TestPipResult:
     build_env_script = script.scratch_path / "build_env.py"
+    scratch_path = str(script.scratch_path)
     build_env_script.write_text(
         dedent(
             f"""
@@ -42,7 +43,7 @@ def run_with_build_env(
 
             link_collector = LinkCollector(
                 session=PipSession(),
-                search_scope=SearchScope.create([{str(script.scratch_path)!r}], [], False),
+                search_scope=SearchScope.create([{scratch_path!r}], [], False),
             )
             selection_prefs = SelectionPreferences(
                 allow_yanked=True,
