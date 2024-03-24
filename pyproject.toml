@@ -201,6 +201,7 @@ max-complexity = 33  # default is 10
 "src/pip/_internal/*" = ["PERF203"]
 "tests/*" = ["B011"]
 "tests/unit/test_finder.py" = ["C414"]
+"src/pip/__pip-runner__.py" = ["UP"] # Must be compatible with Python 2.7
 
 [tool.ruff.lint.pylint]
 max-args = 15  # default is 5
