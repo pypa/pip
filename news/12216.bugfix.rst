@@ -1,0 +1,1 @@
+Fix resolution to respect ``--python-version`` when checking ``Requires-Python``.
