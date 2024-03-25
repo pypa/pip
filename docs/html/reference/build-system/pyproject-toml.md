@@ -1,4 +1,4 @@
-# `pyproject.toml`
+# Backend API
 
 ```{versionadded} 10.0
 
@@ -168,3 +168,6 @@ changes and improvements in it.
 - Prior to pip 18.1, build dependencies using `.pth` files are not properly
   supported; as a result namespace packages do not work under Python 3.2 and
   earlier.
+- Starting from version 23.1, pip uses the fallback behaviour of
+  `setuptools.build_meta:__legacy__` when `wheel` or `setuptools` are not
+  installed.
