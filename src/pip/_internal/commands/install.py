@@ -268,9 +268,7 @@ class InstallCommand(RequirementCommand):
         if options.use_user_site and options.target_dir is not None:
             raise CommandError("Can not combine '--user' and '--target'")
 
-        if (options.parallel_downloads is not None) and (
-            options.parallel_downloads < 1
-        ):
+        if options.parallel_downloads < 1:
             raise CommandError("Value of '--parallel-downloads' must be greater than 0")
         # Check whether the environment we're installing into is externally
         # managed, as specified in PEP 668. Specifying --root, --target, or
