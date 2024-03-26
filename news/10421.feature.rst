@@ -1,0 +1,1 @@
+Reword and improve presentation of uninstallation errors.
