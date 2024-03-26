@@ -1,3 +1,5 @@
+import subprocess
+import sys
 from typing import Callable, List
 from unittest import mock
 
@@ -120,3 +122,35 @@ def test_requirement_commands() -> None:
         return isinstance(command, RequirementCommand)
 
     check_commands(is_requirement_command, ["download", "install", "wheel"])
+
+
+@pytest.mark.parametrize(
+    "command", ["cache", "check", "config", "freeze", "hash", "help", "inspect", "show"]
+)
+def test_no_network_imports(command: str) -> None:
+    """
+    Verify that commands that don't access the network do NOT import network code.
+
+    This helps to reduce the startup time of these commands.
+
+    Note: This won't catch lazy network imports, but it'll catch top-level
+    network imports which were accidently added (which is the most likely way
+    to regress anyway).
+    """
+    code = f"""
+import sys
+from pip._internal.commands import create_command
+
+command = create_command("{command}")
+names = sorted(mod.__name__ for mod in sys.modules.values())
+for mod in names:
+    print(mod)
+    """
+    proc = subprocess.run(
+        [sys.executable], encoding="utf-8", input=code, capture_output=True, check=True
+    )
+    imported = proc.stdout.splitlines()
+    assert not any("pip._internal.index" in mod for mod in imported)
+    assert not any("pip._internal.network" in mod for mod in imported)
+    assert not any("requests" in mod for mod in imported)
+    assert not any("urllib3" in mod for mod in imported)

@@ -15,13 +15,14 @@ import sys
 from itertools import chain, groupby, repeat
 from typing import TYPE_CHECKING, Dict, Iterator, List, Literal, Optional, Union
 
-from pip._vendor.requests.models import Request, Response
 from pip._vendor.rich.console import Console, ConsoleOptions, RenderResult
 from pip._vendor.rich.markup import escape
 from pip._vendor.rich.text import Text
 
 if TYPE_CHECKING:
     from hashlib import _Hash
+
+    from pip._vendor.requests.models import Request, Response
 
     from pip._internal.metadata import BaseDistribution
     from pip._internal.req.req_install import InstallRequirement
@@ -293,8 +294,8 @@ class NetworkConnectionError(PipError):
     def __init__(
         self,
         error_msg: str,
-        response: Optional[Response] = None,
-        request: Optional[Request] = None,
+        response: Optional["Response"] = None,
+        request: Optional["Request"] = None,
     ) -> None:
         """
         Initialize NetworkConnectionError with  `request` and `response`
