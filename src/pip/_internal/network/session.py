@@ -3,6 +3,7 @@ network request configuration and behavior.
 """
 
 import email.utils
+import functools
 import io
 import ipaddress
 import json
@@ -106,6 +107,7 @@ def looks_like_ci() -> bool:
     return any(name in os.environ for name in CI_ENVIRONMENT_VARIABLES)
 
 
+@functools.lru_cache(maxsize=1)
 def user_agent() -> str:
     """
     Return a string representing the user agent.
