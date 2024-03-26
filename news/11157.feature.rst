@@ -1,0 +1,1 @@
+Add ``--ignore-packages`` flag to ``pip check`` to ignore specific packages.

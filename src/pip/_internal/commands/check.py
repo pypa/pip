@@ -1,6 +1,8 @@
+import functools
 import logging
+import operator
 from optparse import Values
-from typing import List
+from typing import Callable, List, Optional
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
@@ -20,10 +22,36 @@ class CheckCommand(Command):
     usage = """
       %prog [options]"""
 
+    def add_options(self) -> None:
+        self.cmd_opts.add_option(
+            "--ignore-packages",
+            dest="ignore_packages",
+            action="append",
+            default=[],
+            help="Ignore packages.",
+        )
+        self.cmd_opts.add_option(
+            "--recursive-ignore",
+            dest="recursive_ignore",
+            action="store_true",
+            default=False,
+            help="Ignore sub-dependencies.",
+        )
+        self.parser.insert_option_group(0, self.cmd_opts)
+
     def run(self, options: Values, args: List[str]) -> int:
         package_set, parsing_probs = create_package_set_from_installed()
         warn_legacy_versions_and_specifiers(package_set)
-        missing, conflicting = check_package_set(package_set)
+        should_ignore: Optional[Callable[[str], bool]] = (
+            functools.partial(operator.contains, options.ignore_packages)
+            if options.ignore_packages
+            else None
+        )
+        missing, conflicting = check_package_set(
+            package_set,
+            should_ignore,
+            should_ignore if options.recursive_ignore else None,
+        )
 
         for project_name in missing:
             version = package_set[project_name].version

@@ -52,12 +52,17 @@ def create_package_set_from_installed() -> Tuple[PackageSet, bool]:
 
 
 def check_package_set(
-    package_set: PackageSet, should_ignore: Optional[Callable[[str], bool]] = None
+    package_set: PackageSet,
+    should_ignore: Optional[Callable[[str], bool]] = None,
+    should_ignore_dependencies: Optional[Callable[[str], bool]] = None,
 ) -> CheckResult:
     """Check if a package set is consistent
 
-    If should_ignore is passed, it should be a callable that takes a
-    package name and returns a boolean.
+    If should_ignore/should_ignore_dependencies is passed, it should
+    be a callable that takes a package name and returns a boolean.
+
+    should_ignore_dependencies should be used to filter out dependencies
+    of packages specified in package_set.
     """
 
     warn_legacy_versions_and_specifiers(package_set)
@@ -75,6 +80,10 @@ def check_package_set(
 
         for req in package_detail.dependencies:
             name = canonicalize_name(req.name)
+
+            if should_ignore_dependencies and should_ignore_dependencies(name):
+                logger.debug("%s was ignored because --recursive-ignore is set", name)
+                continue
 
             # Check if it's missing
             if name not in package_set:
