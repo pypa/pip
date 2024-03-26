@@ -12,6 +12,7 @@ import copy
 import logging
 import os
 import re
+from dataclasses import dataclass
 from typing import Collection, Dict, List, Optional, Set, Tuple, Union
 
 from pip._vendor.packaging.markers import Marker
@@ -191,18 +192,12 @@ def deduce_helpful_msg(req: str) -> str:
     return msg
 
 
+@dataclass(frozen=True)
 class RequirementParts:
-    def __init__(
-        self,
-        requirement: Optional[Requirement],
-        link: Optional[Link],
-        markers: Optional[Marker],
-        extras: Set[str],
-    ):
-        self.requirement = requirement
-        self.link = link
-        self.markers = markers
-        self.extras = extras
+    requirement: Optional[Requirement]
+    link: Optional[Link]
+    markers: Optional[Marker]
+    extras: Set[str]
 
 
 def parse_req_from_editable(editable_req: str) -> RequirementParts:

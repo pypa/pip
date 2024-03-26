@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import FrozenSet, Iterable, Optional, Tuple, Union
 
 from pip._vendor.packaging.specifiers import SpecifierSet
@@ -19,13 +20,11 @@ def format_name(project: NormalizedName, extras: FrozenSet[NormalizedName]) -> s
     return f"{project}[{extras_expr}]"
 
 
+@dataclass(frozen=True)
 class Constraint:
-    def __init__(
-        self, specifier: SpecifierSet, hashes: Hashes, links: FrozenSet[Link]
-    ) -> None:
-        self.specifier = specifier
-        self.hashes = hashes
-        self.links = links
+    specifier: SpecifierSet
+    hashes: Hashes
+    links: FrozenSet[Link]
 
     @classmethod
     def empty(cls) -> "Constraint":
