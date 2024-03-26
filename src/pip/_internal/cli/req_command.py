@@ -161,6 +161,10 @@ class IndexGroupCommand(Command, SessionCommandMixin):
     This also corresponds to the commands that permit the pip version check.
     """
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.allow_pip_version_check = True
+
     def handle_pip_version_check(self, options: Values) -> None:
         """
         Do the pip version check if not disabled.
@@ -170,7 +174,11 @@ class IndexGroupCommand(Command, SessionCommandMixin):
         # Make sure the index_group options are present.
         assert hasattr(options, "no_index")
 
-        if options.disable_pip_version_check or options.no_index:
+        if (
+            options.disable_pip_version_check
+            or options.no_index
+            or not self.allow_pip_version_check
+        ):
             return
 
         # Otherwise, check if we're using the latest version of pip available.
