@@ -3,7 +3,7 @@ colorama==0.4.6
 distlib==0.3.8
 distro==1.9.0
 msgpack==1.0.8
-packaging==21.3
+packaging==24.0
 platformdirs==4.2.0
 pyparsing==3.1.0
 pyproject-hooks==1.0.0
