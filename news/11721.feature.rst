@@ -1,0 +1,2 @@
+Add the option --force-keyring to force password lookup before attempting to
+contact the server.

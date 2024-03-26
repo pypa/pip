@@ -226,10 +226,12 @@ class MultiDomainBasicAuth(AuthBase):
         prompting: bool = True,
         index_urls: Optional[List[str]] = None,
         keyring_provider: str = "auto",
+        force_keyring: bool = False,
     ) -> None:
         self.prompting = prompting
         self.index_urls = index_urls
         self.keyring_provider = keyring_provider  # type: ignore[assignment]
+        self.force_keyring = force_keyring
         self.passwords: Dict[str, AuthInfo] = {}
         # When the user is prompted to enter credentials and keyring is
         # available, we will offer to save them. If the user accepts,
@@ -399,7 +401,9 @@ class MultiDomainBasicAuth(AuthBase):
         url, netloc, _ = split_auth_netloc_from_url(original_url)
 
         # Try to get credentials from original url
-        username, password = self._get_new_credentials(original_url)
+        username, password = self._get_new_credentials(
+            original_url, allow_keyring=self.force_keyring
+        )
 
         # If credentials not found, use any stored credentials for this netloc.
         # Do this if either the username or the password is missing.

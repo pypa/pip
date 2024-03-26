@@ -260,8 +260,19 @@ keyring_provider: Callable[..., Option] = partial(
     default="auto",
     help=(
         "Enable the credential lookup via the keyring library if user input is allowed."
-        " Specify which mechanism to use [disabled, import, subprocess]."
-        " (default: disabled)"
+        " Specify which mechanism to use [auto, disabled, import, subprocess]."
+        " (default: %default)"
+    ),
+)
+
+force_keyring: Callable[..., Option] = partial(
+    Option,
+    "--force-keyring",
+    dest="force_keyring",
+    action="store_true",
+    default=False,
+    help=(
+        "Always lookup credential via the keyring library before contacting the server."
     ),
 )
 
@@ -1046,6 +1057,7 @@ general_group: Dict[str, Any] = {
         log,
         no_input,
         keyring_provider,
+        force_keyring,
         proxy,
         retries,
         timeout,

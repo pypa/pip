@@ -165,7 +165,9 @@ backend is waiting the user input or not in such situations.
 
 pip is conservative and does not query keyring at all when `--no-input` is used
 because the keyring might require user interaction such as prompting the user
-on the console. You can force keyring usage by passing `--force-keyring` or one
+on the console.
+
+You can nevertheless force keyring usage by passing `--force-keyring` or one
 of the following:
 
 ```bash
@@ -175,12 +177,11 @@ $ pip config set global.force-keyring true
 $ export PIP_FORCE_KEYRING=1
 ```
 
-```{warning}
-Be careful when doing this since it could cause tools such as pipx and Pipenv
-to appear to hang. They show their own progress indicator while hiding output
-from the subprocess in which they run Pip. You won't know whether the keyring
-backend is waiting the user input or not in such situations.
-```
+Doing so will ensure that keyring is queried before contacting the server thus
+resulting in requests being authenticated. This can save a round-trip when you
+know beforehand that the server requires it. It can also prevent issues with
+Artifactory or other servers with overly strict security policies that blocks
+user (temporarily) on the first failed attempt.
 
 Note that `keyring` (the Python package) needs to be installed separately from
 pip. This can create a bootstrapping issue if you need the credentials stored in
