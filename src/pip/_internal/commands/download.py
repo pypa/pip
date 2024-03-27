@@ -7,6 +7,7 @@ from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.req_command import RequirementCommand, with_cleanup
 from pip._internal.cli.status_codes import SUCCESS
+from pip._internal.exceptions import CommandError
 from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.req.req_install import check_legacy_setup_py_options
 from pip._internal.utils.misc import ensure_dir, normalize_path, write_output
@@ -52,6 +53,7 @@ class DownloadCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.no_use_pep517())
         self.cmd_opts.add_option(cmdoptions.check_build_deps())
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
+        self.cmd_opts.add_option(cmdoptions.parallel_downloads())
 
         self.cmd_opts.add_option(
             "-d",
@@ -76,6 +78,9 @@ class DownloadCommand(RequirementCommand):
 
     @with_cleanup
     def run(self, options: Values, args: List[str]) -> int:
+        if options.parallel_downloads < 1:
+            raise CommandError("Value of '--parallel-downloads' must be greater than 0")
+
         options.ignore_installed = True
         # editable doesn't really make sense for `pip download`, but the bowels
         # of the RequirementSet code require that property.

@@ -4,6 +4,8 @@ import email.message
 import logging
 import mimetypes
 import os
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 from typing import Iterable, Optional, Tuple
 
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
@@ -119,6 +121,36 @@ def _http_get_download(session: PipSession, link: Link) -> Response:
     return resp
 
 
+def _download(
+    link: Link, location: str, session: PipSession, progress_bar: str
+) -> Tuple[str, str]:
+    """
+    Common download logic across Downloader and BatchDownloader classes
+
+    :param link: The Link object to be downloaded
+    :param location: path to download to
+    :param session: PipSession object
+    :param progress_bar: creates a `rich` progress bar is set to "on"
+    :return: the path to the downloaded file and the content-type
+    """
+    try:
+        resp = _http_get_download(session, link)
+    except NetworkConnectionError as e:
+        assert e.response is not None
+        logger.critical("HTTP error %s while getting %s", e.response.status_code, link)
+        raise
+
+    filename = _get_http_response_filename(resp, link)
+    filepath = os.path.join(location, filename)
+
+    chunks = _prepare_download(resp, link, progress_bar)
+    with open(filepath, "wb") as content_file:
+        for chunk in chunks:
+            content_file.write(chunk)
+    content_type = resp.headers.get("Content-Type", "")
+    return filepath, content_type
+
+
 class Downloader:
     def __init__(
         self,
@@ -130,24 +162,7 @@ class Downloader:
 
     def __call__(self, link: Link, location: str) -> Tuple[str, str]:
         """Download the file given by link into location."""
-        try:
-            resp = _http_get_download(self._session, link)
-        except NetworkConnectionError as e:
-            assert e.response is not None
-            logger.critical(
-                "HTTP error %s while getting %s", e.response.status_code, link
-            )
-            raise
-
-        filename = _get_http_response_filename(resp, link)
-        filepath = os.path.join(location, filename)
-
-        chunks = _prepare_download(resp, link, self._progress_bar)
-        with open(filepath, "wb") as content_file:
-            for chunk in chunks:
-                content_file.write(chunk)
-        content_type = resp.headers.get("Content-Type", "")
-        return filepath, content_type
+        return _download(link, location, self._session, self._progress_bar)
 
 
 class BatchDownloader:
@@ -159,28 +174,37 @@ class BatchDownloader:
         self._session = session
         self._progress_bar = progress_bar
 
+    def _sequential_download(
+        self, link: Link, location: str, progress_bar: str
+    ) -> Tuple[Link, Tuple[str, str]]:
+        filepath, content_type = _download(link, location, self._session, progress_bar)
+        return link, (filepath, content_type)
+
+    def _download_parallel(
+        self, links: Iterable[Link], location: str, max_workers: int
+    ) -> Iterable[Tuple[Link, Tuple[str, str]]]:
+        """
+        Wraps the _sequential_download method in a ThreadPoolExecutor. `rich`
+        progress bar doesn't support naive parallelism, hence the progress bar
+        is disabled for parallel downloads. For more info see PR #12388
+        """
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            _download_parallel = partial(
+                self._sequential_download, location=location, progress_bar="off"
+            )
+            results = list(pool.map(_download_parallel, links))
+        return results
+
     def __call__(
         self, links: Iterable[Link], location: str
     ) -> Iterable[Tuple[Link, Tuple[str, str]]]:
         """Download the files given by links into location."""
-        for link in links:
-            try:
-                resp = _http_get_download(self._session, link)
-            except NetworkConnectionError as e:
-                assert e.response is not None
-                logger.critical(
-                    "HTTP error %s while getting %s",
-                    e.response.status_code,
-                    link,
-                )
-                raise
-
-            filename = _get_http_response_filename(resp, link)
-            filepath = os.path.join(location, filename)
-
-            chunks = _prepare_download(resp, link, self._progress_bar)
-            with open(filepath, "wb") as content_file:
-                for chunk in chunks:
-                    content_file.write(chunk)
-            content_type = resp.headers.get("Content-Type", "")
-            yield link, (filepath, content_type)
+        links = list(links)
+        max_workers = self._session.parallel_downloads
+        if max_workers == 1 or len(links) == 1:
+            for link in links:
+                yield self._sequential_download(link, location, self._progress_bar)
+        else:
+            results = self._download_parallel(links, location, max_workers)
+            for result in results:
+                yield result
