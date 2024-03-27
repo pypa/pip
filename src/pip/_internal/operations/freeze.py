@@ -25,6 +25,7 @@ class _EditableInfo(NamedTuple):
 
 def freeze(
     requirement: Optional[List[str]] = None,
+    preserve_blanklines: bool = False,
     local_only: bool = False,
     user_only: bool = False,
     paths: Optional[List[str]] = None,
@@ -57,6 +58,9 @@ def freeze(
         for req_file_path in requirement:
             with open(req_file_path) as req_file:
                 for line in req_file:
+                    if preserve_blanklines and not line.strip():
+                        yield line.rstrip()
+                        continue
                     if (
                         not line.strip()
                         or line.strip().startswith("#")
