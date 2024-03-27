@@ -30,6 +30,8 @@ def freeze(
     paths: Optional[List[str]] = None,
     isolated: bool = False,
     exclude_editable: bool = False,
+    exclude_dependencies: bool = False,
+    user_requested: bool = False,
     skip: Container[str] = (),
 ) -> Generator[str, None, None]:
     installations: Dict[str, FrozenRequirement] = {}
@@ -38,6 +40,8 @@ def freeze(
         local_only=local_only,
         skip=(),
         user_only=user_only,
+        exclude_dependencies=exclude_dependencies,
+        user_requested=user_requested,
     )
     for dist in dists:
         req = FrozenRequirement.from_dist(dist)
