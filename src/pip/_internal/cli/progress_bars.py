@@ -16,9 +16,13 @@ from pip._vendor.rich.progress import (
 )
 
 from pip._internal.cli.spinners import RateLimiter
+from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.logging import get_indentation
 
-ProgressRenderer = Callable[[Iterable[bytes]], Iterator[bytes]]
+DownloadProgressRenderer = Callable[[Iterable[bytes]], Iterator[bytes]]
+InstallProgressRenderer = Callable[
+    [Iterable[str, InstallRequirement]], Iterator[str, InstallRequirement]
+]
 
 
 def _rich_progress_bar(
@@ -82,7 +86,7 @@ def _raw_progress_bar(
 
 def get_download_progress_renderer(
     *, bar_type: str, size: Optional[int] = None
-) -> ProgressRenderer:
+) -> DownloadProgressRenderer:
     """Get an object that can be used to render the download progress.
 
     Returns a callable, that takes an iterable to "wrap".
@@ -97,7 +101,7 @@ def get_download_progress_renderer(
 
 def get_install_progress_renderer(
     *, bar_type: str, total: Optional[int] = None
-) -> ProgressRenderer:
+) -> InstallProgressRenderer:
     """Get an object that can be used to render the install progress.
 
     Returns a callable, that takes an iterable to "wrap".
