@@ -1,0 +1,1 @@
+Add a 'raw' progress_bar type for simple and parsable download progress reports

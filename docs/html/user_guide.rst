@@ -856,6 +856,12 @@ We are using `freeze`_ here which outputs installed packages in requirements for
 
   reqs = subprocess.check_output([sys.executable, '-m', 'pip', 'freeze'])
 
+To programmatically monitor download progress use the ``--progress-bar=raw`` option.
+This will print lines to stdout in the format ``Progress CURRENT of TOTAL``, where
+``CURRENT`` and ``TOTAL`` are integers and the unit is bytes.
+If the real total is unknown then ``TOTAL`` is set to ``0``. Be aware that the
+specific formatting of pip's outputs are *not* guaranteed to be the same in future versions.
+
 If you don't want to use pip's command line functionality, but are rather
 trying to implement code that works with Python packages, their metadata, or
 PyPI, then you should consider other, supported, packages that offer this type
