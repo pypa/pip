@@ -1,0 +1,1 @@
+Improve error message on Windows for upgrading pip in place

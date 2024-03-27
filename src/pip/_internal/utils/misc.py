@@ -628,7 +628,10 @@ def protect_pip_from_modification_on_windows(modifying_pip: bool) -> None:
     )
 
     if should_show_use_python_msg:
-        new_command = [sys.executable, "-m", "pip"] + sys.argv[1:]
+        sys_executable = sys.executable
+        if " " in sys_executable:
+            sys_executable = f'"{sys_executable}"'
+        new_command = [sys_executable, "-m", "pip"] + sys.argv[1:]
         raise CommandError(
             "To modify pip, please run the following command:\n{}".format(
                 " ".join(new_command)
