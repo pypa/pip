@@ -1371,8 +1371,7 @@ class ScriptFactory(Protocol):
         tmpdir: pathlib.Path,
         virtualenv: Optional[VirtualEnvironment] = None,
         environ: Optional[Dict[AnyStr, AnyStr]] = None,
-    ) -> PipTestEnvironment:
-        ...
+    ) -> PipTestEnvironment: ...
 
 
 CertFactory = Callable[[], str]

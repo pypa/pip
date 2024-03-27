@@ -2,6 +2,7 @@
 
 Relevant API reference: https://docs.readthedocs.io/en/stable/api/v3.html#redirects
 """
+
 import operator
 import os
 import sys

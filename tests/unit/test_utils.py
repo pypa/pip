@@ -2,6 +2,7 @@
 util tests
 
 """
+
 import codecs
 import os
 import shutil

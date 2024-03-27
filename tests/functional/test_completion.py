@@ -121,8 +121,7 @@ def autocomplete_script(
 class DoAutocomplete(Protocol):
     def __call__(
         self, words: str, cword: str, cwd: Union[Path, str, None] = None
-    ) -> Tuple[TestPipResult, PipTestEnvironment]:
-        ...
+    ) -> Tuple[TestPipResult, PipTestEnvironment]: ...
 
 
 @pytest.fixture

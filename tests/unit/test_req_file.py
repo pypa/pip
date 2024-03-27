@@ -70,9 +70,11 @@ def parse_reqfile(
         yield install_req_from_parsed_requirement(
             parsed_req,
             isolated=isolated,
-            config_settings=parsed_req.options.get("config_settings")
-            if parsed_req.options
-            else None,
+            config_settings=(
+                parsed_req.options.get("config_settings")
+                if parsed_req.options
+                else None
+            ),
         )
 
 
@@ -196,8 +198,7 @@ class LineProcessor(Protocol):
         options: Optional[Values] = None,
         session: Optional[PipSession] = None,
         constraint: bool = False,
-    ) -> List[InstallRequirement]:
-        ...
+    ) -> List[InstallRequirement]: ...
 
 
 @pytest.fixture
