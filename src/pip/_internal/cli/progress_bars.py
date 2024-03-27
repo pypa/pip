@@ -21,7 +21,7 @@ from pip._internal.utils.logging import get_indentation
 
 DownloadProgressRenderer = Callable[[Iterable[bytes]], Iterator[bytes]]
 InstallProgressRenderer = Callable[
-    [Iterable[str, InstallRequirement]], Iterator[str, InstallRequirement]
+    [Iterable[Tuple[str, InstallRequirement]]], Iterator[Tuple[str, InstallRequirement]]
 ]
 
 
