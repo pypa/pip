@@ -18,7 +18,7 @@ from pip._vendor.rich.progress import (
 from pip._internal.cli.spinners import RateLimiter
 from pip._internal.utils.logging import get_indentation
 
-DownloadProgressRenderer = Callable[[Iterable[bytes]], Iterator[bytes]]
+ProgressRenderer = Callable[[Iterable[bytes]], Iterator[bytes]]
 
 
 def _rich_progress_bar(
@@ -61,6 +61,7 @@ def _raw_progress_bar(
     iterable: Iterable[bytes],
     *,
     size: Optional[int],
+    chunk_size: Optional[int],
 ) -> Generator[bytes, None, None]:
     def write_progress(current: int, total: int) -> None:
         sys.stdout.write("Progress %d of %d\n" % (current, total))
@@ -72,7 +73,7 @@ def _raw_progress_bar(
 
     write_progress(current, total)
     for chunk in iterable:
-        current += len(chunk)
+        current += chunk_size or len(chunk)
         if rate_limiter.ready() or current == total:
             write_progress(current, total)
             rate_limiter.reset()
@@ -81,7 +82,7 @@ def _raw_progress_bar(
 
 def get_download_progress_renderer(
     *, bar_type: str, size: Optional[int] = None
-) -> DownloadProgressRenderer:
+) -> ProgressRenderer:
     """Get an object that can be used to render the download progress.
 
     Returns a callable, that takes an iterable to "wrap".
@@ -90,5 +91,18 @@ def get_download_progress_renderer(
         return functools.partial(_rich_progress_bar, bar_type=bar_type, size=size)
     elif bar_type == "raw":
         return functools.partial(_raw_progress_bar, size=size)
+    else:
+        return iter  # no-op, when passed an iterator
+
+
+def get_install_progress_renderer(
+    *, bar_type: str, total: Optional[int] = None
+) -> ProgressRenderer:
+    """Get an object that can be used to render the install progress.
+
+    Returns a callable, that takes an iterable to "wrap".
+    """
+    if bar_type == "raw":
+        return functools.partial(_raw_progress_bar, size=total, chunk_size=1)
     else:
         return iter  # no-op, when passed an iterator

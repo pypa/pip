@@ -2,6 +2,7 @@ import collections
 import logging
 from typing import Generator, List, Optional, Sequence, Tuple
 
+from pip._internal.cli.progress_bars import get_install_progress_renderer
 from pip._internal.utils.logging import indent_log
 
 from .req_file import parse_requirements
@@ -43,6 +44,7 @@ def install_given_reqs(
     warn_script_location: bool,
     use_user_site: bool,
     pycompile: bool,
+    progress_bar: str,
 ) -> List[InstallationResult]:
     """
     Install everything in the given list.
@@ -59,8 +61,17 @@ def install_given_reqs(
 
     installed = []
 
+    show_progress = logger.getEffectiveLevel() <= logging.INFO
+
+    items = to_install.items()
+    if show_progress:
+        renderer = get_install_progress_renderer(
+            bar_type=progress_bar, total=len(to_install)
+        )
+        items = renderer(items)
+
     with indent_log():
-        for req_name, requirement in to_install.items():
+        for req_name, requirement in items:
             if requirement.should_reinstall:
                 logger.info("Attempting uninstall: %s", req_name)
                 with indent_log():
