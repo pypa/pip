@@ -58,6 +58,10 @@ commands_dict: Dict[str, CommandInfo] = {
         "CheckCommand",
         "Verify installed packages have compatible dependencies.",
     ),
+    'upgrade-all': CommandInfo(
+        'pip._internal.commands.upgrade_all', 'UpgradeAllCommand',
+        'Upgrade all packages to latest version',
+    ),
     "config": CommandInfo(
         "pip._internal.commands.configuration",
         "ConfigurationCommand",
