@@ -63,7 +63,7 @@ def install_given_reqs(
 
     show_progress = logger.getEffectiveLevel() <= logging.INFO
 
-    items = to_install.items()
+    items = iter(to_install.items())
     if show_progress:
         renderer = get_install_progress_renderer(
             bar_type=progress_bar, total=len(to_install)
