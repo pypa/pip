@@ -1,6 +1,6 @@
 import functools
 import sys
-from typing import Callable, Generator, Iterable, Iterator, Optional, Tuple
+from typing import Any, Callable, Generator, Iterable, Iterator, Optional, Tuple
 
 from pip._vendor.rich.progress import (
     BarColumn,
@@ -66,7 +66,7 @@ def _raw_progress_bar(
     *,
     size: Optional[int],
     chunk_size: Optional[int],
-) -> Generator[bytes, None, None]:
+) -> Generator[Any, None, None]:
     def write_progress(current: int, total: int) -> None:
         sys.stdout.write("Progress %d of %d\n" % (current, total))
         sys.stdout.flush()
