@@ -222,8 +222,9 @@ class InstallRequirement:
         return s
 
     def __repr__(self) -> str:
-        return "<{} object: {} editable={!r}>".format(
-            self.__class__.__name__, str(self), self.editable
+        return (
+            f"<{self.__class__.__name__} object: "
+            f"{str(self)} editable={self.editable!r}>"
         )
 
     def format_debug(self) -> str:
