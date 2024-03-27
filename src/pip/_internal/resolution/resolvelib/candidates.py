@@ -21,7 +21,7 @@ from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.direct_url_helpers import direct_url_from_link
 from pip._internal.utils.misc import normalize_version_info
 
-from .base import Candidate, CandidateVersion, Requirement, format_name
+from .base import Candidate, Requirement, format_name
 
 if TYPE_CHECKING:
     from .factory import Factory
@@ -145,7 +145,7 @@ class _InstallRequirementBackedCandidate(Candidate):
         ireq: InstallRequirement,
         factory: "Factory",
         name: Optional[NormalizedName] = None,
-        version: Optional[CandidateVersion] = None,
+        version: Optional[Version] = None,
     ) -> None:
         self._link = link
         self._source_link = source_link
@@ -185,7 +185,7 @@ class _InstallRequirementBackedCandidate(Candidate):
         return self.project_name
 
     @property
-    def version(self) -> CandidateVersion:
+    def version(self) -> Version:
         if self._version is None:
             self._version = self.dist.version
         return self._version
@@ -253,7 +253,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
         template: InstallRequirement,
         factory: "Factory",
         name: Optional[NormalizedName] = None,
-        version: Optional[CandidateVersion] = None,
+        version: Optional[Version] = None,
     ) -> None:
         source_link = link
         cache_entry = factory.get_wheel_cache_entry(source_link, name)
@@ -310,7 +310,7 @@ class EditableCandidate(_InstallRequirementBackedCandidate):
         template: InstallRequirement,
         factory: "Factory",
         name: Optional[NormalizedName] = None,
-        version: Optional[CandidateVersion] = None,
+        version: Optional[Version] = None,
     ) -> None:
         super().__init__(
             link=link,
@@ -370,7 +370,7 @@ class AlreadyInstalledCandidate(Candidate):
         return self.project_name
 
     @property
-    def version(self) -> CandidateVersion:
+    def version(self) -> Version:
         if self._version is None:
             self._version = self.dist.version
         return self._version
@@ -434,14 +434,6 @@ class ExtrasCandidate(Candidate):
         """
         self.base = base
         self.extras = frozenset(canonicalize_name(e) for e in extras)
-        # If any extras are requested in their non-normalized forms, keep track
-        # of their raw values. This is needed when we look up dependencies
-        # since PEP 685 has not been implemented for marker-matching, and using
-        # the non-normalized extra for lookup ensures the user can select a
-        # non-normalized extra in a package with its non-normalized form.
-        # TODO: Remove this attribute when packaging is upgraded to support the
-        # marker comparison logic specified in PEP 685.
-        self._unnormalized_extras = extras.difference(self.extras)
         self._comes_from = comes_from if comes_from is not None else self.base._ireq
 
     def __str__(self) -> str:
@@ -469,7 +461,7 @@ class ExtrasCandidate(Candidate):
         return format_name(self.base.project_name, self.extras)
 
     @property
-    def version(self) -> CandidateVersion:
+    def version(self) -> Version:
         return self.base.version
 
     def format_for_error(self) -> str:
@@ -489,50 +481,6 @@ class ExtrasCandidate(Candidate):
     def source_link(self) -> Optional[Link]:
         return self.base.source_link
 
-    def _warn_invalid_extras(
-        self,
-        requested: FrozenSet[str],
-        valid: FrozenSet[str],
-    ) -> None:
-        """Emit warnings for invalid extras being requested.
-
-        This emits a warning for each requested extra that is not in the
-        candidate's ``Provides-Extra`` list.
-        """
-        invalid_extras_to_warn = frozenset(
-            extra
-            for extra in requested
-            if extra not in valid
-            # If an extra is requested in an unnormalized form, skip warning
-            # about the normalized form being missing.
-            and extra in self.extras
-        )
-        if not invalid_extras_to_warn:
-            return
-        for extra in sorted(invalid_extras_to_warn):
-            logger.warning(
-                "%s %s does not provide the extra '%s'",
-                self.base.name,
-                self.version,
-                extra,
-            )
-
-    def _calculate_valid_requested_extras(self) -> FrozenSet[str]:
-        """Get a list of valid extras requested by this candidate.
-
-        The user (or upstream dependant) may have specified extras that the
-        candidate doesn't support. Any unsupported extras are dropped, and each
-        cause a warning to be logged here.
-        """
-        requested_extras = self.extras.union(self._unnormalized_extras)
-        valid_extras = frozenset(
-            extra
-            for extra in requested_extras
-            if self.base.dist.is_extra_provided(extra)
-        )
-        self._warn_invalid_extras(requested_extras, valid_extras)
-        return valid_extras
-
     def iter_dependencies(self, with_requires: bool) -> Iterable[Optional[Requirement]]:
         factory = self.base._factory
 
@@ -542,7 +490,18 @@ class ExtrasCandidate(Candidate):
         if not with_requires:
             return
 
-        valid_extras = self._calculate_valid_requested_extras()
+        # The user may have specified extras that the candidate doesn't
+        # support. We ignore any unsupported extras here.
+        valid_extras = self.extras.intersection(self.base.dist.iter_provided_extras())
+        invalid_extras = self.extras.difference(self.base.dist.iter_provided_extras())
+        for extra in sorted(invalid_extras):
+            logger.warning(
+                "%s %s does not provide the extra '%s'",
+                self.base.name,
+                self.version,
+                extra,
+            )
+
         for r in self.base.dist.iter_dependencies(valid_extras):
             yield from factory.make_requirements_from_spec(
                 str(r),
@@ -584,7 +543,7 @@ class RequiresPythonCandidate(Candidate):
         return REQUIRES_PYTHON_IDENTIFIER
 
     @property
-    def version(self) -> CandidateVersion:
+    def version(self) -> Version:
         return self._version
 
     def format_for_error(self) -> str:
