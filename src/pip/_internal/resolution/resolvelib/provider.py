@@ -84,6 +84,8 @@ class PipProvider(_ProviderBase):
     :params upgrade_strategy: The user-specified upgrade strategy.
     :params user_requested: A set of canonicalized package names that the user
         supplied for pip to install/upgrade.
+    :params ignored_constraints: A list of canonicalized package names that the
+        user has asked us to ignore constraints for.
     """
 
     def __init__(
@@ -93,12 +95,14 @@ class PipProvider(_ProviderBase):
         ignore_dependencies: bool,
         upgrade_strategy: str,
         user_requested: Dict[str, int],
+        ignored_constraints: Sequence[str],
     ) -> None:
         self._factory = factory
         self._constraints = constraints
         self._ignore_dependencies = ignore_dependencies
         self._upgrade_strategy = upgrade_strategy
         self._user_requested = user_requested
+        self._ignored_constraints = ignored_constraints
         self._known_depths: Dict[str, float] = collections.defaultdict(lambda: math.inf)
 
     def identify(self, requirement_or_candidate: Union[Requirement, Candidate]) -> str:
@@ -223,11 +227,15 @@ class PipProvider(_ProviderBase):
                 return user_order is not None
             return False
 
-        constraint = _get_with_identifier(
-            self._constraints,
-            identifier,
-            default=Constraint.empty(),
-        )
+        if identifier not in self._ignored_constraints:
+            constraint = _get_with_identifier(
+                self._constraints,
+                identifier,
+                default=Constraint.empty(),
+            )
+        else:
+            constraint = Constraint.empty()
+
         return self._factory.find_candidates(
             identifier=identifier,
             requirements=requirements,
