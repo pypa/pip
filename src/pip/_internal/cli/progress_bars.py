@@ -65,7 +65,7 @@ def _raw_progress_bar(
     iterable: Iterable[bytes],
     *,
     size: Optional[int],
-    chunk_size: Optional[int],
+    unit_size: Optional[int],
 ) -> Generator[Any, None, None]:
     def write_progress(current: int, total: int) -> None:
         sys.stdout.write("Progress %d of %d\n" % (current, total))
@@ -77,7 +77,7 @@ def _raw_progress_bar(
 
     write_progress(current, total)
     for chunk in iterable:
-        current += chunk_size or len(chunk)
+        current += unit_size or len(chunk)
         if rate_limiter.ready() or current == total:
             write_progress(current, total)
             rate_limiter.reset()
