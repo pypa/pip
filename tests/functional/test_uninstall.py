@@ -749,3 +749,16 @@ def test_uninstall_ignores_missing_packages_and_uninstalls_rest(
     assert "Skipping non-existent-pkg as it is not installed." in result.stderr
     assert "Successfully uninstalled simple" in result.stdout
     assert result.returncode == 0, "Expected clean exit"
+
+@pytest.mark.network
+def test_multiple_uninstall(script: PipTestEnvironment) -> None:
+    """
+    Test multiple uninstall.
+    """
+    packages=["INITools==0.2", "requests==2.26.0", "numpy==1.21.2"]
+    result_install=script.pip("install", *packages)
+    for package in packages_to_install:
+        assert result_install.did_create(join(script.site_packages, package.split("==")[0].lower()))
+    script.run("python", "-c", "import initools")
+    result_uninstall=script.pip("uninstall", *packages, "-y")
+    assert_all_changes(result_install, result_uninstall, [script.venv / "build", "cache"])
