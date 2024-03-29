@@ -101,6 +101,7 @@ class UninstallCommand(Command, SessionCommandMixin):
             modifying_pip="pip" in reqs_to_uninstall
         )
 
+        files_skipped_flag=False
         for req in reqs_to_uninstall.values():
             uninstall_pathset = req.uninstall(
                 auto_confirm=options.yes,
@@ -109,7 +110,10 @@ class UninstallCommand(Command, SessionCommandMixin):
             if uninstall_pathset:
                 uninstall_pathset.commit()
                 if req.files_skipped:
-                    return ERROR
+                    files_skipped_flag=True
+        if files_skipped_flag:
+            return ERROR
+
         if options.root_user_action == "warn":
             warn_if_run_as_root()
         return SUCCESS
