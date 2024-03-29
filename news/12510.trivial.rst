@@ -1,0 +1,1 @@
+Update ruff to 0.2.0 and update ruff config to reflect

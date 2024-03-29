@@ -2289,10 +2289,6 @@ def test_error_all_yanked_files_and_no_pin(
     ), str(result)
 
 
-@pytest.mark.skipif(
-    sys.platform == "linux" and sys.version_info < (3, 8),
-    reason="Custom SSL certification not running well in CI",
-)
 @pytest.mark.parametrize(
     "install_args",
     [

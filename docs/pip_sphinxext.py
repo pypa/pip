@@ -14,7 +14,20 @@ from sphinx.application import Sphinx
 
 from pip._internal.cli import cmdoptions
 from pip._internal.commands import commands_dict, create_command
+from pip._internal.configuration import _normalize_name
 from pip._internal.req.req_file import SUPPORTED_OPTIONS
+
+
+def convert_cli_option_to_envvar(opt_name: str) -> str:
+    undashed_opt_name = _normalize_name(opt_name)
+    normalized_opt_name = undashed_opt_name.upper().replace("-", "_")
+    return f"PIP_{normalized_opt_name}"
+
+
+def convert_cli_opt_names_to_envvars(original_cli_opt_names: List[str]) -> List[str]:
+    return [
+        convert_cli_option_to_envvar(opt_name) for opt_name in original_cli_opt_names
+    ]
 
 
 class PipNewsInclude(rst.Directive):
@@ -130,7 +143,18 @@ class PipOptions(rst.Directive):
         opt_help = option.help.replace("%default", str(option.default))
         # fix paths with sys.prefix
         opt_help = opt_help.replace(sys.prefix, "<sys.prefix>")
-        return [bookmark_line, "", line, "", "    " + opt_help, ""]
+        env_var_names = convert_cli_opt_names_to_envvars(option._long_opts)
+        env_var_names_src = ", ".join(f"``{env_var}``" for env_var in env_var_names)
+        return [
+            bookmark_line,
+            "",
+            line,
+            "",
+            f"    {opt_help}",
+            "",
+            f"    (environment variable: {env_var_names_src})",
+            "",
+        ]
 
     def _format_options(
         self, options: Iterable[optparse.Option], cmd_name: Optional[str] = None

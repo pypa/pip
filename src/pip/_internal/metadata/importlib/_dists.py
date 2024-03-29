@@ -133,8 +133,6 @@ class Distribution(BaseDistribution):
                 dist = WheelDistribution.from_zipfile(zf, name, wheel.location)
         except zipfile.BadZipFile as e:
             raise InvalidWheel(wheel.location, name) from e
-        except UnsupportedWheel as e:
-            raise UnsupportedWheel(f"{name} has an invalid wheel, {e}")
         return cls(dist, dist.info_location, pathlib.PurePosixPath(wheel.location))
 
     @property

@@ -1,4 +1,5 @@
 """Windows."""
+
 from __future__ import annotations
 
 import ctypes
@@ -123,6 +124,11 @@ class Windows(PlatformDirsABC):
         return os.path.normpath(get_win_folder("CSIDL_MYMUSIC"))
 
     @property
+    def user_desktop_dir(self) -> str:
+        """:return: desktop directory tied to the user, e.g. ``%USERPROFILE%\\Desktop``"""
+        return os.path.normpath(get_win_folder("CSIDL_DESKTOPDIRECTORY"))
+
+    @property
     def user_runtime_dir(self) -> str:
         """
         :return: runtime directory tied to the user, e.g.
@@ -130,6 +136,11 @@ class Windows(PlatformDirsABC):
         """
         path = os.path.normpath(os.path.join(get_win_folder("CSIDL_LOCAL_APPDATA"), "Temp"))  # noqa: PTH118
         return self._append_parts(path)
+
+    @property
+    def site_runtime_dir(self) -> str:
+        """:return: runtime directory shared by users, same as `user_runtime_dir`"""
+        return self.user_runtime_dir
 
 
 def get_win_folder_from_env_vars(csidl_name: str) -> str:
@@ -216,6 +227,7 @@ def get_win_folder_via_ctypes(csidl_name: str) -> str:
         "CSIDL_MYVIDEO": 14,
         "CSIDL_MYMUSIC": 13,
         "CSIDL_DOWNLOADS": 40,
+        "CSIDL_DESKTOPDIRECTORY": 16,
     }.get(csidl_name)
     if csidl_const is None:
         msg = f"Unknown CSIDL name: {csidl_name}"
@@ -225,7 +237,7 @@ def get_win_folder_via_ctypes(csidl_name: str) -> str:
     windll = getattr(ctypes, "windll")  # noqa: B009 # using getattr to avoid false positive with mypy type checker
     windll.shell32.SHGetFolderPathW(None, csidl_const, None, 0, buf)
 
-    # Downgrade to short path name if it has highbit chars.
+    # Downgrade to short path name if it has high-bit chars.
     if any(ord(c) > 255 for c in buf):  # noqa: PLR2004
         buf2 = ctypes.create_unicode_buffer(1024)
         if windll.kernel32.GetShortPathNameW(buf.value, buf2, 1024):

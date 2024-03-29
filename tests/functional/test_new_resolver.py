@@ -2,7 +2,7 @@ import os
 import pathlib
 import sys
 import textwrap
-from typing import TYPE_CHECKING, Callable, Dict, List, Tuple
+from typing import TYPE_CHECKING, Callable, Dict, List, Protocol, Tuple
 
 import pytest
 from packaging.utils import canonicalize_name
@@ -17,9 +17,6 @@ from tests.lib import (
 from tests.lib.direct_url import get_created_direct_url
 from tests.lib.venv import VirtualEnvironment
 from tests.lib.wheel import make_wheel
-
-if TYPE_CHECKING:
-    from typing import Protocol
 
 MakeFakeWheel = Callable[[str, str, str], pathlib.Path]
 

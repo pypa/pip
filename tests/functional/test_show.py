@@ -361,3 +361,29 @@ def test_show_include_work_dir_pkg(script: PipTestEnvironment) -> None:
     result = script.pip("show", "simple", cwd=pkg_path)
     lines = result.stdout.splitlines()
     assert "Name: simple" in lines
+
+
+def test_show_deduplicate_requirements(script: PipTestEnvironment) -> None:
+    """
+    Test that show should deduplicate requirements
+    for a package
+    """
+
+    # Create a test package and create .egg-info dir
+    pkg_path = create_test_package_with_setup(
+        script,
+        name="simple",
+        version="1.0",
+        install_requires=[
+            "pip >= 19.0.1",
+            'pip >= 19.3.1; python_version < "3.8"',
+            'pip >= 23.0.1; python_version < "3.9"',
+        ],
+    )
+    script.run("python", "setup.py", "egg_info", expect_stderr=True, cwd=pkg_path)
+
+    script.environ.update({"PYTHONPATH": pkg_path})
+
+    result = script.pip("show", "simple", cwd=pkg_path)
+    lines = result.stdout.splitlines()
+    assert "Requires: pip" in lines

@@ -238,7 +238,6 @@ def test_uninstall_overlapping_package(
     "console_scripts",
     [
         "test_ = distutils_install:test",
-        "test_:test_ = distutils_install:test_test",
         ",test_ = distutils_install:test_test",
         ", = distutils_install:test_test",
     ],

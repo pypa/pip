@@ -1,1 +1,0 @@
-Fix outdated pip install argument description in documentation.

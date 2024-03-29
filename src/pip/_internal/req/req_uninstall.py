@@ -315,7 +315,7 @@ class UninstallPathSet:
         # Create local cache of normalize_path results. Creating an UninstallPathSet
         # can result in hundreds/thousands of redundant calls to normalize_path with
         # the same args, which hurts performance.
-        self._normalize_path_cached = functools.lru_cache()(normalize_path)
+        self._normalize_path_cached = functools.lru_cache(normalize_path)
 
     def _permitted(self, path: str) -> bool:
         """

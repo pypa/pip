@@ -1,2 +1,0 @@
-Removed ``wheel`` from the ``[build-system].requires`` list fallback
-that is used when ``pyproject.toml`` is absent.
