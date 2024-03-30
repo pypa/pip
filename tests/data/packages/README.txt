@@ -104,3 +104,11 @@ require_simple-1.0.tar.gz
 ------------------------
 contains "require_simple" package which requires simple>=2.0 - used for testing
 if dependencies are handled correctly.
+
+invalid_version-2010i-py3-none-any.whl
+--------------------------------------
+The invalid-version package with a legacy version.
+
+invalid_version-1.0-py3-none-any.whl
+------------------------------------
+A valid variant of the invalid-version package.
