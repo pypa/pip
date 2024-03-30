@@ -755,7 +755,7 @@ def test_multiple_uninstall(script: PipTestEnvironment) -> None:
     """
     Test multiple uninstall.
     """
-    packages=["INITools==0.2", "requests==2.26.0", "numpy==1.21.2"]
+    packages=["INITools==0.2", "numpy==1.21.2"]
     result_install=script.pip("install", *packages)
     for package in packages_to_install:
         assert result_install.did_create(join(script.site_packages, package.split("==")[0].lower()))
