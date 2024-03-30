@@ -112,3 +112,11 @@ The invalid-version package with a legacy version.
 invalid_version-1.0-py3-none-any.whl
 ------------------------------------
 A valid variant of the invalid-version package.
+
+require_invalid_version-0.1-py3-none-any.whl
+--------------------------------------------
+A valid variant of the require-invalid-version package.
+
+require_invalid_version-1.0-py3-none-any.whl
+--------------------------------------------
+This package has an invalid version specifier in its requirements.
