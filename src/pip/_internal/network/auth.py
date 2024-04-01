@@ -151,7 +151,7 @@ class KeyRingCliProvider(KeyRingBaseProvider):
         env["PYTHONIOENCODING"] = "utf-8"
         subprocess.run(
             [self.keyring, "set", service_name, username],
-            input=f"{password}{os.linesep}".encode("utf-8"),
+            input=f"{password}{os.linesep}".encode(),
             env=env,
             check=True,
         )

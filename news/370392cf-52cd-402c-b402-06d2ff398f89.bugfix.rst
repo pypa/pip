@@ -1,1 +1,0 @@
-Fix mercurial revision "parse error": use ``--rev={ref}`` instead of ``-r={ref}``

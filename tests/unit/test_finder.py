@@ -128,7 +128,10 @@ class TestWheel:
         with pytest.raises(DistributionNotFound):
             finder.find_requirement(req, True)
 
-        assert "Skipping link: invalid wheel filename:" in caplog.text
+        assert (
+            "Could not find a version that satisfies the requirement invalid"
+            " (from versions:" in caplog.text
+        )
 
     def test_not_find_wheel_not_supported(self, data: TestData) -> None:
         """

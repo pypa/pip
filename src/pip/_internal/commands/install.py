@@ -427,8 +427,8 @@ class InstallCommand(RequirementCommand):
 
             if build_failures:
                 raise InstallationError(
-                    "Could not build wheels for {}, which is required to "
-                    "install pyproject.toml-based projects".format(
+                    "ERROR: Failed to build installable wheels for some "
+                    "pyproject.toml based projects ({})".format(
                         ", ".join(r.name for r in build_failures)  # type: ignore
                     )
                 )
