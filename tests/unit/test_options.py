@@ -195,7 +195,6 @@ class TestOptionPrecedence(AddFakeCommandMixin):
 
 
 class TestUsePEP517Options:
-
     """
     Test options related to using --use-pep517.
     """

@@ -75,10 +75,7 @@ class SearchCommand(Command, SessionCommandMixin):
         try:
             hits = pypi.search({"name": query, "summary": query}, "or")
         except xmlrpc.client.Fault as fault:
-            message = "XMLRPC request failed [code: {code}]\n{string}".format(
-                code=fault.faultCode,
-                string=fault.faultString,
-            )
+            message = f"XMLRPC request failed [code: {fault.faultCode}]\n{fault.faultString}"
             raise CommandError(message)
         assert isinstance(hits, list)
         return hits

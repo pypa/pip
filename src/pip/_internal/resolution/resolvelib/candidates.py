@@ -191,11 +191,7 @@ class _InstallRequirementBackedCandidate(Candidate):
         return self._version
 
     def format_for_error(self) -> str:
-        return "{} {} (from {})".format(
-            self.name,
-            self.version,
-            self._link.file_path if self._link.is_file else self._link,
-        )
+        return f"{self.name} {self.version} (from {self._link.file_path if self._link.is_file else self._link})"
 
     def _prepare_distribution(self) -> BaseDistribution:
         raise NotImplementedError("Override in subclass")
@@ -269,9 +265,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
             # Version may not be present for PEP 508 direct URLs
             if version is not None:
                 wheel_version = Version(wheel.version)
-                assert version == wheel_version, "{!r} != {!r} for wheel {}".format(
-                    version, wheel_version, name
-                )
+                assert version == wheel_version, f"{version!r} != {wheel_version!r} for wheel {name}"
 
         if cache_entry is not None:
             assert ireq.link.is_wheel

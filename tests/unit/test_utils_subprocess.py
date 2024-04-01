@@ -89,7 +89,6 @@ class FakeSpinner(SpinnerInterface):
 
 
 class TestCallSubprocess:
-
     """
     Test call_subprocess().
     """

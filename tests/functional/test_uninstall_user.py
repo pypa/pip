@@ -1,6 +1,7 @@
 """
 tests specific to uninstalling --user installs
 """
+
 from os.path import isdir, isfile, normcase
 
 import pytest
