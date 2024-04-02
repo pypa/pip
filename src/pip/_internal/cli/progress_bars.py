@@ -76,7 +76,7 @@ def _raw_progress_bar(
     iterable: Iterable[T],
     *,
     size: Optional[int],
-    unit_size: Optional[int],
+    unit_size: int = 0,
 ) -> Generator[T, None, None]:
     def write_progress(current: int, total: int) -> None:
         sys.stdout.write("Progress %d of %d\n" % (current, total))
