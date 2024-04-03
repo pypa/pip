@@ -1,4 +1,6 @@
-# Add 'skip news' label to any changes of .pre-commit-config.yaml
+# Add 'skip news' label for any changes by pre-commit ci.
 'skip news':
 - changed-files:
   - any-glob-to-any-file: .pre-commit-config.yaml
+  - base-branch: ['main']
+  - head-branch: ['pre-commit-ci-update-config']
