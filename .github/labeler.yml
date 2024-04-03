@@ -1,4 +1,5 @@
-# Add 'skip news' label for any changes by pre-commit ci.
+# Add 'skip news' label for any changes created by pre-commit ci.
+# If https://github.com/actions/labeler/pull/563 is merged, we can check author pre-commit-ci.
 'skip news':
 - changed-files:
   - any-glob-to-any-file: .pre-commit-config.yaml
