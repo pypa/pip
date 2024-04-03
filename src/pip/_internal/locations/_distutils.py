@@ -21,7 +21,7 @@ from distutils.cmd import Command as DistutilsCommand
 from distutils.command.install import SCHEME_KEYS
 from distutils.command.install import install as distutils_install_command
 from distutils.sysconfig import get_python_lib
-from typing import Dict, List, Optional, Tuple, Union, cast
+from typing import Dict, List, Optional, Union, cast
 
 from pip._internal.models.scheme import Scheme
 from pip._internal.utils.compat import WINDOWS
@@ -56,8 +56,7 @@ def distutils_scheme(
         try:
             d.parse_config_files()
         except UnicodeDecodeError:
-            # Typeshed does not include find_config_files() for some reason.
-            paths = d.find_config_files()  # type: ignore
+            paths = d.find_config_files()
             logger.warning(
                 "Ignore distutils configs in %s due to encoding errors.",
                 ", ".join(os.path.basename(p) for p in paths),
@@ -89,7 +88,7 @@ def distutils_scheme(
     # finalize_options(); we only want to override here if the user
     # has explicitly requested it hence going back to the config
     if "install_lib" in d.get_option_dict("install"):
-        scheme.update(dict(purelib=i.install_lib, platlib=i.install_lib))
+        scheme.update({"purelib": i.install_lib, "platlib": i.install_lib})
 
     if running_under_virtualenv():
         if home:
@@ -171,10 +170,3 @@ def get_purelib() -> str:
 
 def get_platlib() -> str:
     return get_python_lib(plat_specific=True)
-
-
-def get_prefixed_libs(prefix: str) -> Tuple[str, str]:
-    return (
-        get_python_lib(plat_specific=False, prefix=prefix),
-        get_python_lib(plat_specific=True, prefix=prefix),
-    )

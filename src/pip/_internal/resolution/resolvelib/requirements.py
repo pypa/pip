@@ -1,6 +1,7 @@
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 
+from pip._internal.req.constructors import install_req_drop_extras
 from pip._internal.req.req_install import InstallRequirement
 
 from .base import Candidate, CandidateLookup, Requirement, format_name
@@ -14,10 +15,7 @@ class ExplicitRequirement(Requirement):
         return str(self.candidate)
 
     def __repr__(self) -> str:
-        return "{class_name}({candidate!r})".format(
-            class_name=self.__class__.__name__,
-            candidate=self.candidate,
-        )
+        return f"{self.__class__.__name__}({self.candidate!r})"
 
     @property
     def project_name(self) -> NormalizedName:
@@ -43,16 +41,13 @@ class SpecifierRequirement(Requirement):
     def __init__(self, ireq: InstallRequirement) -> None:
         assert ireq.link is None, "This is a link, not a specifier"
         self._ireq = ireq
-        self._extras = frozenset(ireq.extras)
+        self._extras = frozenset(canonicalize_name(e) for e in self._ireq.extras)
 
     def __str__(self) -> str:
         return str(self._ireq.req)
 
     def __repr__(self) -> str:
-        return "{class_name}({requirement!r})".format(
-            class_name=self.__class__.__name__,
-            requirement=str(self._ireq.req),
-        )
+        return f"{self.__class__.__name__}({str(self._ireq.req)!r})"
 
     @property
     def project_name(self) -> NormalizedName:
@@ -64,7 +59,6 @@ class SpecifierRequirement(Requirement):
         return format_name(self.project_name, self._extras)
 
     def format_for_error(self) -> str:
-
         # Convert comma-separated specifiers into "A, B, ..., F and G"
         # This makes the specifier a bit more "human readable", without
         # risking a change in meaning. (Hopefully! Not all edge cases have
@@ -93,6 +87,18 @@ class SpecifierRequirement(Requirement):
         return spec.contains(candidate.version, prereleases=True)
 
 
+class SpecifierWithoutExtrasRequirement(SpecifierRequirement):
+    """
+    Requirement backed by an install requirement on a base package.
+    Trims extras from its install requirement if there are any.
+    """
+
+    def __init__(self, ireq: InstallRequirement) -> None:
+        assert ireq.link is None, "This is a link, not a specifier"
+        self._ireq = install_req_drop_extras(ireq)
+        self._extras = frozenset(canonicalize_name(e) for e in self._ireq.extras)
+
+
 class RequiresPythonRequirement(Requirement):
     """A requirement representing Requires-Python metadata."""
 
@@ -104,10 +110,7 @@ class RequiresPythonRequirement(Requirement):
         return f"Python {self.specifier}"
 
     def __repr__(self) -> str:
-        return "{class_name}({specifier!r})".format(
-            class_name=self.__class__.__name__,
-            specifier=str(self.specifier),
-        )
+        return f"{self.__class__.__name__}({str(self.specifier)!r})"
 
     @property
     def project_name(self) -> NormalizedName:
@@ -143,10 +146,7 @@ class UnsatisfiableRequirement(Requirement):
         return f"{self._name} (unavailable)"
 
     def __repr__(self) -> str:
-        return "{class_name}({name!r})".format(
-            class_name=self.__class__.__name__,
-            name=str(self._name),
-        )
+        return f"{self.__class__.__name__}({str(self._name)!r})"
 
     @property
     def project_name(self) -> NormalizedName:

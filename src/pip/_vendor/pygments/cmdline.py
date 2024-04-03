@@ -4,7 +4,7 @@
 
     Command line interface.
 
-    :copyright: Copyright 2006-2022 by the Pygments team, see AUTHORS.
+    :copyright: Copyright 2006-2023 by the Pygments team, see AUTHORS.
     :license: BSD, see LICENSE for details.
 """
 
@@ -25,7 +25,7 @@ from pip._vendor.pygments.formatters.latex import LatexEmbeddedLexer, LatexForma
 from pip._vendor.pygments.formatters import get_all_formatters, get_formatter_by_name, \
     load_formatter_from_file, get_formatter_for_filename, find_formatter_class
 from pip._vendor.pygments.formatters.terminal import TerminalFormatter
-from pip._vendor.pygments.formatters.terminal256 import Terminal256Formatter
+from pip._vendor.pygments.formatters.terminal256 import Terminal256Formatter, TerminalTrueColorFormatter
 from pip._vendor.pygments.filters import get_all_filters, find_filter_class
 from pip._vendor.pygments.styles import get_all_styles, get_style_by_name
 
@@ -185,7 +185,7 @@ def main_inner(parser, argns):
         return 0
 
     if argns.V:
-        print('Pygments version %s, (c) 2006-2022 by Georg Brandl, Matthäus '
+        print('Pygments version %s, (c) 2006-2023 by Georg Brandl, Matthäus '
               'Chajdas and contributors.' % __version__)
         return 0
 
@@ -445,7 +445,9 @@ def main_inner(parser, argns):
             return 1
     else:
         if not fmter:
-            if '256' in os.environ.get('TERM', ''):
+            if os.environ.get('COLORTERM','') in ('truecolor', '24bit'):
+                fmter = TerminalTrueColorFormatter(**parsed_opts)
+            elif '256' in os.environ.get('TERM', ''):
                 fmter = Terminal256Formatter(**parsed_opts)
             else:
                 fmter = TerminalFormatter(**parsed_opts)
@@ -636,6 +638,9 @@ def main(args=sys.argv):
 
     try:
         return main_inner(parser, argns)
+    except BrokenPipeError:
+        # someone closed our stdout, e.g. by quitting a pager.
+        return 0
     except Exception:
         if argns.v:
             print(file=sys.stderr)

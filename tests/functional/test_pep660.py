@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 from typing import Any, Dict
 
-import pytest
 import tomli_w
 
 from tests.lib import PipTestEnvironment
@@ -38,7 +37,7 @@ def prepare_metadata_for_build_wheel(metadata_directory, config_settings=None):
 
 def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     with open("log.txt", "a") as f:
-        print(":build_wheel called", file=f)
+        print(f":build_wheel called with config_settings={config_settings}", file=f)
     return _build_wheel(wheel_directory, config_settings, metadata_directory)
 """
 
@@ -56,7 +55,7 @@ def prepare_metadata_for_build_editable(metadata_directory, config_settings=None
 
 def build_editable(wheel_directory, config_settings=None, metadata_directory=None):
     with open("log.txt", "a") as f:
-        print(":build_editable called", file=f)
+        print(f":build_editable called with config_settings={config_settings}", file=f)
     return _build_wheel(wheel_directory, config_settings, metadata_directory)
 """
 # fmt: on
@@ -89,12 +88,21 @@ def _assert_hook_called(project_dir: Path, hook: str) -> None:
     assert f":{hook} called" in log, f"{hook} has not been called"
 
 
+def _assert_hook_called_with_config_settings(
+    project_dir: Path, hook: str, config_settings: Dict[str, str]
+) -> None:
+    log = project_dir.joinpath("log.txt").read_text()
+    assert f":{hook} called" in log, f"{hook} has not been called"
+    assert (
+        f":{hook} called with config_settings={config_settings}" in log
+    ), f"{hook} has not been called with the expected config settings:\n{log}"
+
+
 def _assert_hook_not_called(project_dir: Path, hook: str) -> None:
     log = project_dir.joinpath("log.txt").read_text()
     assert f":{hook} called" not in log, f"{hook} should not have been called"
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_pep517_basic(tmpdir: Path, script: PipTestEnvironment) -> None:
     """
     Check that the test harness we have in this file is sane.
@@ -110,7 +118,6 @@ def test_install_pep517_basic(tmpdir: Path, script: PipTestEnvironment) -> None:
     _assert_hook_called(project_dir, "build_wheel")
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_pep660_basic(tmpdir: Path, script: PipTestEnvironment) -> None:
     """
     Test with backend that supports build_editable.
@@ -122,16 +129,41 @@ def test_install_pep660_basic(tmpdir: Path, script: PipTestEnvironment) -> None:
         "--no-build-isolation",
         "--editable",
         project_dir,
+        "--config-setting",
+        "x=y",
     )
     _assert_hook_called(project_dir, "prepare_metadata_for_build_editable")
-    _assert_hook_called(project_dir, "build_editable")
+    _assert_hook_called_with_config_settings(project_dir, "build_editable", {"x": "y"})
     assert (
         result.test_env.site_packages.joinpath("project.egg-link")
         not in result.files_created
     ), "a .egg-link file should not have been created"
 
 
-@pytest.mark.usefixtures("with_wheel")
+def test_install_pep660_from_reqs_file(
+    tmpdir: Path, script: PipTestEnvironment
+) -> None:
+    """
+    Test with backend that supports build_editable.
+    """
+    project_dir = _make_project(tmpdir, BACKEND_WITH_PEP660, with_setup_py=False)
+    reqs_file = tmpdir / "requirements.txt"
+    reqs_file.write_text(f"-e {project_dir.as_uri()} --config-setting x=y\n")
+    result = script.pip(
+        "install",
+        "--no-index",
+        "--no-build-isolation",
+        "-r",
+        reqs_file,
+    )
+    _assert_hook_called(project_dir, "prepare_metadata_for_build_editable")
+    _assert_hook_called_with_config_settings(project_dir, "build_editable", {"x": "y"})
+    assert (
+        result.test_env.site_packages.joinpath("project.egg-link")
+        not in result.files_created
+    ), "a .egg-link file should not have been created"
+
+
 def test_install_no_pep660_setup_py_fallback(
     tmpdir: Path, script: PipTestEnvironment
 ) -> None:
@@ -156,7 +188,6 @@ def test_install_no_pep660_setup_py_fallback(
     ), "a .egg-link file should have been created"
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_no_pep660_setup_cfg_fallback(
     tmpdir: Path, script: PipTestEnvironment
 ) -> None:
@@ -182,7 +213,6 @@ def test_install_no_pep660_setup_cfg_fallback(
     ), ".egg-link file should have been created"
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_wheel_editable_pep660_basic(tmpdir: Path, script: PipTestEnvironment) -> None:
     """
     Test 'pip wheel' of an editable pep 660 project.
@@ -206,7 +236,6 @@ def test_wheel_editable_pep660_basic(tmpdir: Path, script: PipTestEnvironment) -
     assert len(os.listdir(str(wheel_dir))) == 1, "a wheel should have been created"
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_download_editable_pep660_basic(
     tmpdir: Path, script: PipTestEnvironment
 ) -> None:

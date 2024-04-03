@@ -36,6 +36,9 @@ class retry_base(abc.ABC):
         return retry_any(self, other)
 
 
+RetryBaseT = typing.Union[retry_base, typing.Callable[["RetryCallState"], bool]]
+
+
 class _retry_never(retry_base):
     """Retry strategy that never rejects any result."""
 
@@ -63,8 +66,14 @@ class retry_if_exception(retry_base):
         self.predicate = predicate
 
     def __call__(self, retry_state: "RetryCallState") -> bool:
+        if retry_state.outcome is None:
+            raise RuntimeError("__call__() called before outcome was set")
+
         if retry_state.outcome.failed:
-            return self.predicate(retry_state.outcome.exception())
+            exception = retry_state.outcome.exception()
+            if exception is None:
+                raise RuntimeError("outcome failed but the exception is None")
+            return self.predicate(exception)
         else:
             return False
 
@@ -111,10 +120,47 @@ class retry_unless_exception_type(retry_if_exception):
         super().__init__(lambda e: not isinstance(e, exception_types))
 
     def __call__(self, retry_state: "RetryCallState") -> bool:
+        if retry_state.outcome is None:
+            raise RuntimeError("__call__() called before outcome was set")
+
         # always retry if no exception was raised
         if not retry_state.outcome.failed:
             return True
-        return self.predicate(retry_state.outcome.exception())
+
+        exception = retry_state.outcome.exception()
+        if exception is None:
+            raise RuntimeError("outcome failed but the exception is None")
+        return self.predicate(exception)
+
+
+class retry_if_exception_cause_type(retry_base):
+    """Retries if any of the causes of the raised exception is of one or more types.
+
+    The check on the type of the cause of the exception is done recursively (until finding
+    an exception in the chain that has no `__cause__`)
+    """
+
+    def __init__(
+        self,
+        exception_types: typing.Union[
+            typing.Type[BaseException],
+            typing.Tuple[typing.Type[BaseException], ...],
+        ] = Exception,
+    ) -> None:
+        self.exception_cause_types = exception_types
+
+    def __call__(self, retry_state: "RetryCallState") -> bool:
+        if retry_state.outcome is None:
+            raise RuntimeError("__call__ called before outcome was set")
+
+        if retry_state.outcome.failed:
+            exc = retry_state.outcome.exception()
+            while exc is not None:
+                if isinstance(exc.__cause__, self.exception_cause_types):
+                    return True
+                exc = exc.__cause__
+
+        return False
 
 
 class retry_if_result(retry_base):
@@ -124,6 +170,9 @@ class retry_if_result(retry_base):
         self.predicate = predicate
 
     def __call__(self, retry_state: "RetryCallState") -> bool:
+        if retry_state.outcome is None:
+            raise RuntimeError("__call__() called before outcome was set")
+
         if not retry_state.outcome.failed:
             return self.predicate(retry_state.outcome.result())
         else:
@@ -137,6 +186,9 @@ class retry_if_not_result(retry_base):
         self.predicate = predicate
 
     def __call__(self, retry_state: "RetryCallState") -> bool:
+        if retry_state.outcome is None:
+            raise RuntimeError("__call__() called before outcome was set")
+
         if not retry_state.outcome.failed:
             return not self.predicate(retry_state.outcome.result())
         else:
@@ -188,9 +240,16 @@ class retry_if_not_exception_message(retry_if_exception_message):
         self.predicate = lambda *args_, **kwargs_: not if_predicate(*args_, **kwargs_)
 
     def __call__(self, retry_state: "RetryCallState") -> bool:
+        if retry_state.outcome is None:
+            raise RuntimeError("__call__() called before outcome was set")
+
         if not retry_state.outcome.failed:
             return True
-        return self.predicate(retry_state.outcome.exception())
+
+        exception = retry_state.outcome.exception()
+        if exception is None:
+            raise RuntimeError("outcome failed but the exception is None")
+        return self.predicate(exception)
 
 
 class retry_any(retry_base):

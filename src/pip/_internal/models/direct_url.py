@@ -31,9 +31,7 @@ def _get(
     value = d[key]
     if not isinstance(value, expected_type):
         raise DirectUrlValidationError(
-            "{!r} has unexpected type for {} (expected {})".format(
-                value, key, expected_type
-            )
+            f"{value!r} has unexpected type for {key} (expected {expected_type})"
         )
     return value
 
@@ -103,17 +101,42 @@ class ArchiveInfo:
     def __init__(
         self,
         hash: Optional[str] = None,
+        hashes: Optional[Dict[str, str]] = None,
     ) -> None:
+        # set hashes before hash, since the hash setter will further populate hashes
+        self.hashes = hashes
         self.hash = hash
+
+    @property
+    def hash(self) -> Optional[str]:
+        return self._hash
+
+    @hash.setter
+    def hash(self, value: Optional[str]) -> None:
+        if value is not None:
+            # Auto-populate the hashes key to upgrade to the new format automatically.
+            # We don't back-populate the legacy hash key from hashes.
+            try:
+                hash_name, hash_value = value.split("=", 1)
+            except ValueError:
+                raise DirectUrlValidationError(
+                    f"invalid archive_info.hash format: {value!r}"
+                )
+            if self.hashes is None:
+                self.hashes = {hash_name: hash_value}
+            elif hash_name not in self.hashes:
+                self.hashes = self.hashes.copy()
+                self.hashes[hash_name] = hash_value
+        self._hash = value
 
     @classmethod
     def _from_dict(cls, d: Optional[Dict[str, Any]]) -> Optional["ArchiveInfo"]:
         if d is None:
             return None
-        return cls(hash=_get(d, str, "hash"))
+        return cls(hash=_get(d, str, "hash"), hashes=_get(d, dict, "hashes"))
 
     def _to_dict(self) -> Dict[str, Any]:
-        return _filter_none(hash=self.hash)
+        return _filter_none(hash=self.hash, hashes=self.hashes)
 
 
 class DirInfo:

@@ -2,12 +2,14 @@ import os
 import ssl
 import tempfile
 import textwrap
+from pathlib import Path
+from typing import Callable, List
 
 import pytest
 
-from tests.conftest import CertFactory, MockServer
-from tests.lib import PipTestEnvironment, TestData
+from tests.lib import CertFactory, PipTestEnvironment, ScriptFactory, TestData
 from tests.lib.server import (
+    MockServer,
     authorization_response,
     file_response,
     make_mock_server,
@@ -122,9 +124,6 @@ def test_command_line_append_flags(
         "Fetching project page and analyzing links: https://test.pypi.org"
         in result.stdout
     )
-    assert (
-        f"Skipping link: not a file: {data.find_links}" in result.stdout
-    ), f"stdout: {result.stdout}"
 
 
 @pytest.mark.network
@@ -148,9 +147,6 @@ def test_command_line_appends_correctly(
         "Fetching project page and analyzing links: https://test.pypi.org"
         in result.stdout
     ), result.stdout
-    assert (
-        f"Skipping link: not a file: {data.find_links}" in result.stdout
-    ), f"stdout: {result.stdout}"
 
 
 def test_config_file_override_stack(
@@ -181,12 +177,10 @@ def test_config_file_override_stack(
 
     config_file.write_text(
         textwrap.dedent(
-            """\
+            f"""\
         [global]
-        index-url = {}/simple1
-        """.format(
-                base_address
-            )
+        index-url = {base_address}/simple1
+        """
         )
     )
     script.pip("install", "-vvv", "INITools", expect_error=True)
@@ -194,14 +188,12 @@ def test_config_file_override_stack(
 
     config_file.write_text(
         textwrap.dedent(
-            """\
+            f"""\
         [global]
-        index-url = {address}/simple1
+        index-url = {base_address}/simple1
         [install]
-        index-url = {address}/simple2
-        """.format(
-                address=base_address
-            )
+        index-url = {base_address}/simple2
+        """
         )
     )
     script.pip("install", "-vvv", "INITools", expect_error=True)
@@ -242,7 +234,6 @@ def test_options_from_venv_config(
     assert msg.lower() in result.stdout.lower(), str(result)
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_no_binary_via_config_disables_cached_wheels(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -264,10 +255,8 @@ def test_install_no_binary_via_config_disables_cached_wheels(
     finally:
         os.unlink(config_file.name)
     assert "Successfully installed upper-2.0" in str(res), str(res)
-    # No wheel building for upper, which was blacklisted
-    assert "Building wheel for upper" not in str(res), str(res)
-    # Must have used source, not a cached wheel to install upper.
-    assert "Running setup.py install for upper" in str(res), str(res)
+    # upper is built and not obtained from cache
+    assert "Building wheel for upper" in str(res), str(res)
 
 
 def test_prompt_for_authentication(
@@ -352,16 +341,98 @@ def test_do_not_prompt_for_authentication(
     assert "ERROR: HTTP error 401" in result.stderr
 
 
-@pytest.mark.parametrize("auth_needed", (True, False))
+@pytest.fixture(params=(True, False), ids=("interactive", "noninteractive"))
+def interactive(request: pytest.FixtureRequest) -> bool:
+    return request.param
+
+
+@pytest.fixture(params=(True, False), ids=("auth_needed", "auth_not_needed"))
+def auth_needed(request: pytest.FixtureRequest) -> bool:
+    return request.param
+
+
+@pytest.fixture(params=(None, "disabled", "import", "subprocess", "auto"))
+def keyring_provider(request: pytest.FixtureRequest) -> str:
+    return request.param
+
+
+@pytest.fixture(params=("disabled", "import", "subprocess"))
+def keyring_provider_implementation(request: pytest.FixtureRequest) -> str:
+    return request.param
+
+
+@pytest.fixture()
+def flags(
+    request: pytest.FixtureRequest,
+    interactive: bool,
+    auth_needed: bool,
+    keyring_provider: str,
+    keyring_provider_implementation: str,
+) -> List[str]:
+    if (
+        keyring_provider not in [None, "auto"]
+        and keyring_provider_implementation != keyring_provider
+    ):
+        pytest.skip()
+
+    flags = []
+    if keyring_provider is not None:
+        flags.append("--keyring-provider")
+        flags.append(keyring_provider)
+    if not interactive:
+        flags.append("--no-input")
+    if auth_needed:
+        if keyring_provider_implementation == "disabled" or (
+            not interactive and keyring_provider in [None, "auto"]
+        ):
+            request.applymarker(pytest.mark.xfail())
+    return flags
+
+
 def test_prompt_for_keyring_if_needed(
-    script: PipTestEnvironment,
     data: TestData,
     cert_factory: CertFactory,
     auth_needed: bool,
+    flags: List[str],
+    keyring_provider: str,
+    keyring_provider_implementation: str,
+    tmpdir: Path,
+    script_factory: ScriptFactory,
+    virtualenv_factory: Callable[[Path], VirtualEnvironment],
 ) -> None:
-    """Test behaviour while installing from a index url
+    """Test behaviour while installing from an index url
     requiring authentication and keyring is possible.
     """
+    environ = os.environ.copy()
+    workspace = tmpdir.joinpath("workspace")
+
+    if keyring_provider_implementation == "subprocess":
+        keyring_virtualenv = virtualenv_factory(workspace.joinpath("keyring"))
+        keyring_script = script_factory(
+            workspace.joinpath("keyring"), keyring_virtualenv
+        )
+        keyring_script.pip(
+            "install",
+            "keyring",
+        )
+
+        environ["PATH"] = str(keyring_script.bin_path) + os.pathsep + environ["PATH"]
+
+    virtualenv = virtualenv_factory(workspace.joinpath("venv"))
+    script = script_factory(workspace.joinpath("venv"), virtualenv, environ=environ)
+
+    if (
+        keyring_provider not in [None, "auto"]
+        or keyring_provider_implementation != "subprocess"
+    ):
+        script.pip(
+            "install",
+            "keyring",
+        )
+
+    if keyring_provider_implementation != "subprocess":
+        keyring_script = script
+
     cert_path = cert_factory()
     ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
     ctx.load_cert_chain(cert_path, cert_path)
@@ -381,22 +452,40 @@ def test_prompt_for_keyring_if_needed(
         response(data.packages / "simple-3.0.tar.gz"),
     ]
 
-    url = f"https://{server.host}:{server.port}/simple"
+    url = f"https://USERNAME@{server.host}:{server.port}/simple"
 
     keyring_content = textwrap.dedent(
         """\
         import os
         import sys
-        from collections import namedtuple
+        import keyring
+        from keyring.backend import KeyringBackend
+        from keyring.credentials import SimpleCredential
 
-        Cred = namedtuple("Cred", ["username", "password"])
+        class TestBackend(KeyringBackend):
+            priority = 1
 
-        def get_credential(url, username):
-            sys.stderr.write("get_credential was called" + os.linesep)
-            return Cred("USERNAME", "PASSWORD")
+            def get_credential(self, url, username):
+                sys.stderr.write("get_credential was called" + os.linesep)
+                return SimpleCredential(username="USERNAME", password="PASSWORD")
+
+            def get_password(self, url, username):
+                sys.stderr.write("get_password was called" + os.linesep)
+                return "PASSWORD"
+
+            def set_password(self, url, username):
+                pass
     """
     )
-    keyring_path = script.site_packages_path / "keyring.py"
+    keyring_path = keyring_script.site_packages_path / "keyring_test.py"
+    keyring_path.write_text(keyring_content)
+
+    keyring_content = (
+        "import keyring_test;"
+        " import keyring;"
+        " keyring.set_keyring(keyring_test.TestBackend())" + os.linesep
+    )
+    keyring_path = keyring_path.with_suffix(".pth")
     keyring_path.write_text(keyring_content)
 
     with server_running(server):
@@ -408,10 +497,16 @@ def test_prompt_for_keyring_if_needed(
             cert_path,
             "--client-cert",
             cert_path,
+            *flags,
             "simple",
         )
 
+    function_name = (
+        "get_credential"
+        if keyring_provider_implementation == "import"
+        else "get_password"
+    )
     if auth_needed:
-        assert "get_credential was called" in result.stderr
+        assert function_name + " was called" in result.stderr
     else:
-        assert "get_credential was called" not in result.stderr
+        assert function_name + " was called" not in result.stderr

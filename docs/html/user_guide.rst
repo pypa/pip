@@ -127,6 +127,10 @@ Logically, a Requirements file is just a list of :ref:`pip install` arguments
 placed in a file. Note that you should not rely on the items in the file being
 installed by pip in any particular order.
 
+Requirements files can also be served via a URL, e.g.
+http://example.com/requirements.txt besides as local files, so that they can
+be stored and served in a centralized place.
+
 In practice, there are 4 common uses of Requirements files:
 
 1. Requirements files are used to hold the result from :ref:`pip freeze` for the
@@ -248,6 +252,10 @@ undocumented and unsupported quirks from the previous implementation,
 and stripped constraints files down to being purely a way to specify
 global (version) limits for packages.
 
+Same as requirements files, constraints files can also be served via a URL,
+e.g. http://example.com/constraints.txt, so that your organization can store and
+serve them in a centralized place.
+
 .. _`Installing from Wheels`:
 
 
@@ -256,7 +264,7 @@ Installing from Wheels
 
 "Wheel" is a built, archive format that can greatly speed installation compared
 to building and installing from source archives. For more information, see the
-`Wheel docs <https://wheel.readthedocs.io>`_ , :pep:`427`, and :pep:`425`.
+:ref:`specification <pypug:binary-distribution-format>`.
 
 pip prefers Wheels where they are available. To disable this, use the
 :ref:`--no-binary <install_--no-binary>` flag for :ref:`pip install`.
@@ -298,7 +306,8 @@ name:
 .. note::
 
     In the future, the ``path[extras]`` syntax may become deprecated. It is
-    recommended to use PEP 508 syntax wherever possible.
+    recommended to use :ref:`standard <pypug:dependency-specifiers>`
+    syntax wherever possible.
 
 For the cases where wheels are not available, pip offers :ref:`pip wheel` as a
 convenience, to build wheels for all your requirements and dependencies.
@@ -800,7 +809,7 @@ As noted previously, pip is a command line program. While it is implemented in
 Python, and so is available from your Python code via ``import pip``, you must
 not use pip's internal APIs in this way. There are a number of reasons for this:
 
-#. The pip code assumes that is in sole control of the global state of the
+#. The pip code assumes that it is in sole control of the global state of the
    program.
    pip manages things like the logging system configuration, or the values of
    the standard IO streams, without considering the possibility that user code
@@ -846,6 +855,12 @@ If you want to process the output further, use one of the other APIs in the modu
 We are using `freeze`_ here which outputs installed packages in requirements format.::
 
   reqs = subprocess.check_output([sys.executable, '-m', 'pip', 'freeze'])
+
+To programmatically monitor download progress use the ``--progress-bar=raw`` option.
+This will print lines to stdout in the format ``Progress CURRENT of TOTAL``, where
+``CURRENT`` and ``TOTAL`` are integers and the unit is bytes.
+If the real total is unknown then ``TOTAL`` is set to ``0``. Be aware that the
+specific formatting of pip's outputs are *not* guaranteed to be the same in future versions.
 
 If you don't want to use pip's command line functionality, but are rather
 trying to implement code that works with Python packages, their metadata, or

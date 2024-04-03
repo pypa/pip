@@ -1,14 +1,11 @@
 """Routines related to PyPI, indexes"""
 
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 import enum
 import functools
 import itertools
 import logging
 import re
-from typing import FrozenSet, Iterable, List, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, FrozenSet, Iterable, List, Optional, Set, Tuple, Union
 
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.tags import Tag
@@ -38,6 +35,9 @@ from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import build_netloc
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.utils.unpacking import SUPPORTED_EXTENSIONS
+
+if TYPE_CHECKING:
+    from pip._vendor.typing_extensions import TypeGuard
 
 __all__ = ["FormatControl", "BestCandidateResult", "PackageFinder"]
 
@@ -198,7 +198,7 @@ class LinkEvaluator:
                     reason = f"wrong project name (not {self.project_name})"
                     return (LinkType.different_project, reason)
 
-                supported_tags = self._target_python.get_tags()
+                supported_tags = self._target_python.get_unsorted_tags()
                 if not wheel.supported(supported_tags):
                     # Include the wheel's tags in the reason string to
                     # simplify troubleshooting compatibility issues.
@@ -251,7 +251,7 @@ class LinkEvaluator:
 
 def filter_unallowed_hashes(
     candidates: List[InstallationCandidate],
-    hashes: Hashes,
+    hashes: Optional[Hashes],
     project_name: str,
 ) -> List[InstallationCandidate]:
     """
@@ -414,7 +414,7 @@ class CandidateEvaluator:
         if specifier is None:
             specifier = specifiers.SpecifierSet()
 
-        supported_tags = target_python.get_tags()
+        supported_tags = target_python.get_sorted_tags()
 
         return cls(
             project_name=project_name,
@@ -533,13 +533,14 @@ class CandidateEvaluator:
                 )
             except ValueError:
                 raise UnsupportedWheel(
-                    "{} is not a supported wheel for this platform. It "
-                    "can't be sorted.".format(wheel.filename)
+                    f"{wheel.filename} is not a supported wheel for this platform. It "
+                    "can't be sorted."
                 )
             if self._prefer_binary:
                 binary_preference = 1
             if wheel.build_tag is not None:
                 match = re.match(r"^(\d+)(.*)$", wheel.build_tag)
+                assert match is not None, "guaranteed by filename validation"
                 build_tag_groups = match.groups()
                 build_tag = (int(build_tag_groups[0]), build_tag_groups[1])
         else:  # sdist
@@ -938,47 +939,48 @@ class PackageFinder:
                 _format_versions(best_candidate_result.iter_all()),
             )
 
-            raise DistributionNotFound(
-                "No matching distribution found for {}".format(req)
-            )
+            raise DistributionNotFound(f"No matching distribution found for {req}")
 
-        best_installed = False
-        if installed_version and (
-            best_candidate is None or best_candidate.version <= installed_version
-        ):
-            best_installed = True
+        def _should_install_candidate(
+            candidate: Optional[InstallationCandidate],
+        ) -> "TypeGuard[InstallationCandidate]":
+            if installed_version is None:
+                return True
+            if best_candidate is None:
+                return False
+            return best_candidate.version > installed_version
 
         if not upgrade and installed_version is not None:
-            if best_installed:
-                logger.debug(
-                    "Existing installed version (%s) is most up-to-date and "
-                    "satisfies requirement",
-                    installed_version,
-                )
-            else:
+            if _should_install_candidate(best_candidate):
                 logger.debug(
                     "Existing installed version (%s) satisfies requirement "
                     "(most up-to-date version is %s)",
                     installed_version,
                     best_candidate.version,
                 )
+            else:
+                logger.debug(
+                    "Existing installed version (%s) is most up-to-date and "
+                    "satisfies requirement",
+                    installed_version,
+                )
             return None
 
-        if best_installed:
-            # We have an existing version, and its the best version
+        if _should_install_candidate(best_candidate):
             logger.debug(
-                "Installed version (%s) is most up-to-date (past versions: %s)",
-                installed_version,
+                "Using version %s (newest of versions: %s)",
+                best_candidate.version,
                 _format_versions(best_candidate_result.iter_applicable()),
             )
-            raise BestVersionAlreadyInstalled
+            return best_candidate
 
+        # We have an existing version, and its the best version
         logger.debug(
-            "Using version %s (newest of versions: %s)",
-            best_candidate.version,
+            "Installed version (%s) is most up-to-date (past versions: %s)",
+            installed_version,
             _format_versions(best_candidate_result.iter_applicable()),
         )
-        return best_candidate
+        raise BestVersionAlreadyInstalled
 
 
 def _find_name_version_sep(fragment: str, canonical_name: str) -> int:

@@ -28,8 +28,7 @@ from pip._internal.utils.entrypoints import (
 from pip._internal.utils.filesystem import adjacent_tmp_file, check_path_owner, replace
 from pip._internal.utils.misc import ensure_dir
 
-_DATE_FMT = "%Y-%m-%dT%H:%M:%SZ"
-
+_WEEK = datetime.timedelta(days=7)
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +37,15 @@ def _get_statefile_name(key: str) -> str:
     key_bytes = key.encode()
     name = hashlib.sha224(key_bytes).hexdigest()
     return name
+
+
+def _convert_date(isodate: str) -> datetime.datetime:
+    """Convert an ISO format string to a date.
+
+    Handles the format 2020-01-22T14:24:01Z (trailing Z)
+    which is not supported by older versions of fromisoformat.
+    """
+    return datetime.datetime.fromisoformat(isodate.replace("Z", "+00:00"))
 
 
 class SelfCheckState:
@@ -73,12 +81,10 @@ class SelfCheckState:
         if "pypi_version" not in self._state:
             return None
 
-        seven_days_in_seconds = 7 * 24 * 60 * 60
-
         # Determine if we need to refresh the state
-        last_check = datetime.datetime.strptime(self._state["last_check"], _DATE_FMT)
-        seconds_since_last_check = (current_time - last_check).total_seconds()
-        if seconds_since_last_check > seven_days_in_seconds:
+        last_check = _convert_date(self._state["last_check"])
+        time_since_last_check = current_time - last_check
+        if time_since_last_check > _WEEK:
             return None
 
         return self._state["pypi_version"]
@@ -100,7 +106,7 @@ class SelfCheckState:
             # Include the key so it's easy to tell which pip wrote the
             # file.
             "key": self.key,
-            "last_check": current_time.strftime(_DATE_FMT),
+            "last_check": current_time.isoformat(),
             "pypi_version": pypi_version,
         }
 
@@ -133,7 +139,7 @@ class UpgradePrompt:
         return Group(
             Text(),
             Text.from_markup(
-                f"{notice} A new release of pip available: "
+                f"{notice} A new release of pip is available: "
                 f"[red]{self.old}[reset] -> [green]{self.new}[reset]"
             ),
             Text.from_markup(
@@ -155,7 +161,7 @@ def was_installed_by_pip(pkg: str) -> bool:
 
 def _get_current_remote_pip_version(
     session: PipSession, options: optparse.Values
-) -> str:
+) -> Optional[str]:
     # Lets use PackageFinder to see what the latest pip version is
     link_collector = LinkCollector.create(
         session,
@@ -176,7 +182,7 @@ def _get_current_remote_pip_version(
     )
     best_candidate = finder.find_best_candidate("pip").best_candidate
     if best_candidate is None:
-        return
+        return None
 
     return str(best_candidate.version)
 
@@ -186,11 +192,14 @@ def _self_version_check_logic(
     state: SelfCheckState,
     current_time: datetime.datetime,
     local_version: DistributionVersion,
-    get_remote_version: Callable[[], str],
+    get_remote_version: Callable[[], Optional[str]],
 ) -> Optional[UpgradePrompt]:
     remote_version_str = state.get(current_time)
     if remote_version_str is None:
         remote_version_str = get_remote_version()
+        if remote_version_str is None:
+            logger.debug("No remote pip version found")
+            return None
         state.set(remote_version_str, current_time)
 
     remote_version = parse_version(remote_version_str)
@@ -226,14 +235,14 @@ def pip_self_version_check(session: PipSession, options: optparse.Values) -> Non
     try:
         upgrade_prompt = _self_version_check_logic(
             state=SelfCheckState(cache_dir=options.cache_dir),
-            current_time=datetime.datetime.utcnow(),
+            current_time=datetime.datetime.now(datetime.timezone.utc),
             local_version=installed_dist.version,
             get_remote_version=functools.partial(
                 _get_current_remote_pip_version, session, options
             ),
         )
         if upgrade_prompt is not None:
-            logger.warning("[present-rich] %s", upgrade_prompt)
+            logger.warning("%s", upgrade_prompt, extra={"rich": True})
     except Exception:
         logger.warning("There was an error checking the latest version of pip.")
         logger.debug("See below for error", exc_info=True)

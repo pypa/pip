@@ -58,12 +58,7 @@ def test_new_resolver_target_checks_compatibility_failure(
     if platform:
         args += ["--platform", platform]
 
-    args_tag = "{}{}-{}-{}".format(
-        implementation,
-        python_version,
-        abi,
-        platform,
-    )
+    args_tag = f"{implementation}{python_version}-{abi}-{platform}"
     wheel_tag_matches = args_tag == fake_wheel_tag
 
     result = script.pip(*args, expect_error=(not wheel_tag_matches))

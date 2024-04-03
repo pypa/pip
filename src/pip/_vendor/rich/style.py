@@ -188,8 +188,10 @@ class Style:
         )
 
         self._link = link
-        self._link_id = f"{randint(0, 999999)}" if link else ""
         self._meta = None if meta is None else dumps(meta)
+        self._link_id = (
+            f"{randint(0, 999999)}{hash(self._meta)}" if (link or meta) else ""
+        )
         self._hash: Optional[int] = None
         self._null = not (self._set_attributes or color or bgcolor or link or meta)
 
@@ -237,8 +239,8 @@ class Style:
         style._set_attributes = 0
         style._attributes = 0
         style._link = None
-        style._link_id = ""
         style._meta = dumps(meta)
+        style._link_id = f"{randint(0, 999999)}{hash(style._meta)}"
         style._hash = None
         style._null = not (meta)
         return style
@@ -641,6 +643,29 @@ class Style:
         style._hash = self._hash
         style._null = False
         style._meta = self._meta
+        return style
+
+    @lru_cache(maxsize=128)
+    def clear_meta_and_links(self) -> "Style":
+        """Get a copy of this style with link and meta information removed.
+
+        Returns:
+            Style: New style object.
+        """
+        if self._null:
+            return NULL_STYLE
+        style: Style = self.__new__(Style)
+        style._ansi = self._ansi
+        style._style_definition = self._style_definition
+        style._color = self._color
+        style._bgcolor = self._bgcolor
+        style._attributes = self._attributes
+        style._set_attributes = self._set_attributes
+        style._link = None
+        style._link_id = ""
+        style._hash = self._hash
+        style._null = False
+        style._meta = None
         return style
 
     def update_link(self, link: Optional[str] = None) -> "Style":

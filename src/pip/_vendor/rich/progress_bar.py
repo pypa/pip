@@ -25,7 +25,7 @@ class ProgressBar(JupyterMixin):
         pulse (bool, optional): Enable pulse effect. Defaults to False. Will pulse if a None total was passed.
         style (StyleType, optional): Style for the bar background. Defaults to "bar.back".
         complete_style (StyleType, optional): Style for the completed bar. Defaults to "bar.complete".
-        finished_style (StyleType, optional): Style for a finished bar. Defaults to "bar.done".
+        finished_style (StyleType, optional): Style for a finished bar. Defaults to "bar.finished".
         pulse_style (StyleType, optional): Style for pulsing bars. Defaults to "bar.pulse".
         animation_time (Optional[float], optional): Time in seconds to use for animation, or None to use system time.
     """
@@ -156,7 +156,6 @@ class ProgressBar(JupyterMixin):
     def __rich_console__(
         self, console: Console, options: ConsoleOptions
     ) -> RenderResult:
-
         width = min(self.width or options.max_width, options.max_width)
         ascii = options.legacy_windows or options.ascii_only
         should_pulse = self.pulse or self.total is None

@@ -24,18 +24,11 @@ def _create_find_links(script: PipTestEnvironment) -> _FindLinks:
 
     index_html = script.scratch_path / "index.html"
     index_html.write_text(
-        """
+        f"""
         <!DOCTYPE html>
-        <a href="{sdist_url}#sha256={sdist_hash}">{sdist_path.stem}</a>
-        <a href="{wheel_url}#sha256={wheel_hash}">{wheel_path.stem}</a>
-        """.format(
-            sdist_url=sdist_path.as_uri(),
-            sdist_hash=sdist_hash,
-            sdist_path=sdist_path,
-            wheel_url=wheel_path.as_uri(),
-            wheel_hash=wheel_hash,
-            wheel_path=wheel_path,
-        ).strip()
+        <a href="{sdist_path.as_uri()}#sha256={sdist_hash}">{sdist_path.stem}</a>
+        <a href="{wheel_path.as_uri()}#sha256={wheel_hash}">{wheel_path.stem}</a>
+        """.strip()
     )
 
     return _FindLinks(index_html, sdist_hash, wheel_hash)
@@ -99,9 +92,7 @@ def test_new_resolver_hash_intersect_from_constraint(
 
     constraints_txt = script.scratch_path / "constraints.txt"
     constraints_txt.write_text(
-        "base==0.1.0 --hash=sha256:{sdist_hash}".format(
-            sdist_hash=find_links.sdist_hash,
-        ),
+        f"base==0.1.0 --hash=sha256:{find_links.sdist_hash}",
     )
     requirements_txt = script.scratch_path / "requirements.txt"
     requirements_txt.write_text(
@@ -200,13 +191,10 @@ def test_new_resolver_hash_intersect_empty_from_constraint(
 
     constraints_txt = script.scratch_path / "constraints.txt"
     constraints_txt.write_text(
-        """
-        base==0.1.0 --hash=sha256:{sdist_hash}
-        base==0.1.0 --hash=sha256:{wheel_hash}
-        """.format(
-            sdist_hash=find_links.sdist_hash,
-            wheel_hash=find_links.wheel_hash,
-        ),
+        f"""
+        base==0.1.0 --hash=sha256:{find_links.sdist_hash}
+        base==0.1.0 --hash=sha256:{find_links.wheel_hash}
+        """,
     )
 
     result = script.pip(
@@ -240,19 +228,15 @@ def test_new_resolver_hash_requirement_and_url_constraint_can_succeed(
 
     requirements_txt = script.scratch_path / "requirements.txt"
     requirements_txt.write_text(
-        """
+        f"""
         base==0.1.0 --hash=sha256:{wheel_hash}
-        """.format(
-            wheel_hash=wheel_hash,
-        ),
+        """,
     )
 
     constraints_txt = script.scratch_path / "constraints.txt"
-    constraint_text = "base @ {wheel_url}\n".format(wheel_url=wheel_path.as_uri())
+    constraint_text = f"base @ {wheel_path.as_uri()}\n"
     if constrain_by_hash:
-        constraint_text += "base==0.1.0 --hash=sha256:{wheel_hash}\n".format(
-            wheel_hash=wheel_hash,
-        )
+        constraint_text += f"base==0.1.0 --hash=sha256:{wheel_hash}\n"
     constraints_txt.write_text(constraint_text)
 
     script.pip(
@@ -280,19 +264,15 @@ def test_new_resolver_hash_requirement_and_url_constraint_can_fail(
 
     requirements_txt = script.scratch_path / "requirements.txt"
     requirements_txt.write_text(
-        """
+        f"""
         base==0.1.0 --hash=sha256:{other_hash}
-        """.format(
-            other_hash=other_hash,
-        ),
+        """,
     )
 
     constraints_txt = script.scratch_path / "constraints.txt"
-    constraint_text = "base @ {wheel_url}\n".format(wheel_url=wheel_path.as_uri())
+    constraint_text = f"base @ {wheel_path.as_uri()}\n"
     if constrain_by_hash:
-        constraint_text += "base==0.1.0 --hash=sha256:{other_hash}\n".format(
-            other_hash=other_hash,
-        )
+        constraint_text += f"base==0.1.0 --hash=sha256:{other_hash}\n"
     constraints_txt.write_text(constraint_text)
 
     result = script.pip(
@@ -343,17 +323,12 @@ def test_new_resolver_hash_with_extras(script: PipTestEnvironment) -> None:
 
     requirements_txt = script.scratch_path / "requirements.txt"
     requirements_txt.write_text(
-        """
+        f"""
         child[extra]==0.1.0 --hash=sha256:{child_hash}
         parent_with_extra==0.1.0 --hash=sha256:{parent_with_extra_hash}
         parent_without_extra==0.1.0 --hash=sha256:{parent_without_extra_hash}
         extra==0.1.0 --hash=sha256:{extra_hash}
-        """.format(
-            child_hash=child_hash,
-            parent_with_extra_hash=parent_with_extra_hash,
-            parent_without_extra_hash=parent_without_extra_hash,
-            extra_hash=extra_hash,
-        ),
+        """,
     )
 
     script.pip(

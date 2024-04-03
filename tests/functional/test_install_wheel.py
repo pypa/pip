@@ -1,9 +1,9 @@
 import base64
 import csv
-import distutils
 import hashlib
 import os
 import shutil
+import sysconfig
 from pathlib import Path
 from typing import Any
 
@@ -169,9 +169,9 @@ def get_header_scheme_path_for_script(
 ) -> Path:
     command = (
         "from pip._internal.locations import get_scheme;"
-        "scheme = get_scheme({!r});"
+        f"scheme = get_scheme({dist_name!r});"
         "print(scheme.headers);"
-    ).format(dist_name)
+    )
     result = script.run("python", "-c", command).stdout
     return Path(result.strip())
 
@@ -195,7 +195,6 @@ def test_install_from_wheel_with_headers(script: PipTestEnvironment) -> None:
     assert header_path.read_text() == header_text
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_wheel_with_target(
     script: PipTestEnvironment, shared_data: TestData, tmpdir: Path
 ) -> None:
@@ -216,7 +215,6 @@ def test_install_wheel_with_target(
     result.did_create(Path("scratch") / "target" / "simpledist")
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_wheel_with_target_and_data_files(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -284,7 +282,9 @@ def test_install_wheel_with_prefix(
         "--find-links",
         tmpdir,
     )
-    lib = distutils.sysconfig.get_python_lib(prefix=os.path.join("scratch", "prefix"))
+    lib = sysconfig.get_path(
+        "purelib", vars={"base": os.path.join("scratch", "prefix")}
+    )
     result.did_create(lib)
 
 
@@ -404,8 +404,7 @@ def test_wheel_record_lines_have_updated_hash_for_scripts(
     ]
 
 
-@pytest.mark.incompatible_with_test_venv
-@pytest.mark.usefixtures("with_wheel")
+@pytest.mark.usefixtures("enable_user_site")
 def test_install_user_wheel(
     script: PipTestEnvironment, shared_data: TestData, tmpdir: Path
 ) -> None:

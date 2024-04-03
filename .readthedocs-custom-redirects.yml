@@ -1,0 +1,15 @@
+# This file is read by tools/update-rtd-redirects.py.
+# It is related to Read the Docs, but is not a file processed by the platform.
+
+/dev/news-entry-failure: >-
+  https://pip.pypa.io/en/latest/development/contributing/#news-entries
+/errors/resolution-impossible: >-
+  https://pip.pypa.io/en/stable/topics/dependency-resolution/#dealing-with-dependency-conflicts
+/surveys/backtracking: >-
+  https://forms.gle/LkZP95S4CfqBAU1N6
+/warnings/backtracking: >-
+  https://pip.pypa.io/en/stable/topics/dependency-resolution/#possible-ways-to-reduce-backtracking
+/warnings/enable-long-paths: >-
+  https://docs.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation?tabs=cmd#enable-long-paths-in-windows-10-version-1607-and-later
+/warnings/venv: >-
+  https://docs.python.org/3/tutorial/venv.html

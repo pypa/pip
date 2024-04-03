@@ -66,14 +66,14 @@ def test_rev_options_repr() -> None:
         # First check VCS-specific RevOptions behavior.
         (Bazaar, [], ["-r", "123"], {}),
         (Git, ["HEAD"], ["123"], {}),
-        (Mercurial, [], ["123"], {}),
+        (Mercurial, [], ["--rev=123"], {}),
         (Subversion, [], ["-r", "123"], {}),
         # Test extra_args.  For this, test using a single VersionControl class.
         (
             Git,
             ["HEAD", "opt1", "opt2"],
             ["123", "opt1", "opt2"],
-            dict(extra_args=["opt1", "opt2"]),
+            {"extra_args": ["opt1", "opt2"]},
         ),
     ],
 )
@@ -458,8 +458,7 @@ def test_version_control__run_command__fails(
     with mock.patch("pip._internal.vcs.versioncontrol.call_subprocess") as call:
         call.side_effect = exc_cls
         with pytest.raises(BadCommand, match=msg_re.format(name=vcs_cls.name)):
-            # https://github.com/python/mypy/issues/3283
-            vcs_cls.run_command([])  # type: ignore[arg-type]
+            vcs_cls.run_command([])
 
 
 @pytest.mark.parametrize(
@@ -596,6 +595,21 @@ def test_subversion__get_url_rev_options() -> None:
 def test_get_git_version() -> None:
     git_version = Git().get_git_version()
     assert git_version >= (1, 0, 0)
+
+
+@pytest.mark.parametrize(
+    ("version", "expected"),
+    [
+        ("git version 2.17", (2, 17)),
+        ("git version 2.18.1", (2, 18)),
+        ("git version 2.35.GIT", (2, 35)),  # gh:12280
+        ("oh my git version 2.37.GIT", ()),  #  invalid version
+        ("git version 2.GIT", ()),  # invalid version
+    ],
+)
+def test_get_git_version_parser(version: str, expected: Tuple[int, int]) -> None:
+    with mock.patch("pip._internal.vcs.git.Git.run_command", return_value=version):
+        assert Git().get_git_version() == expected
 
 
 @pytest.mark.parametrize(

@@ -112,7 +112,7 @@ the ``news/`` directory with the extension of ``.trivial.rst``. If you are on a
 POSIX like operating system, one can be added by running
 ``touch news/$(uuidgen).trivial.rst``. On Windows, the same result can be
 achieved in Powershell using ``New-Item "news/$([guid]::NewGuid()).trivial.rst"``.
-Core committers may also add a "trivial" label to the PR which will accomplish
+Core committers may also add a "skip news" label to the PR which will accomplish
 the same thing.
 
 Upgrading, removing, or adding a new vendored library gets a special mention

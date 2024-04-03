@@ -1,2 +1,0 @@
-Add a ``--python`` option to allow pip to manage Python environments other
-than the one pip is installed in.

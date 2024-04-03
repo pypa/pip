@@ -1,2 +1,0 @@
-Deprecate installation with 'setup.py install' when the 'wheel' package is absent for
-source distributions without 'pyproject.toml'.
