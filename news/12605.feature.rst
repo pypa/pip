@@ -1,1 +1,1 @@
-Automatically add ``skip news`` label to the pull request by pre-commit ci.
+Automatically add ``skip news`` label to the pull request created by pre-commit ci.
