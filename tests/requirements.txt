@@ -12,3 +12,4 @@ virtualenv >= 20.0 ; python_version >= '3.10'
 werkzeug
 wheel
 tomli-w
+proxy.py

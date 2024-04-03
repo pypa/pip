@@ -145,6 +145,7 @@ class SessionCommandMixin(CommandContextMixIn):
                 "http": options.proxy,
                 "https": options.proxy,
             }
+            session.trust_env = False
 
         # Determine if we can prompt the user for authentication or not
         session.auth.prompting = not options.no_input
