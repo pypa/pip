@@ -1,0 +1,4 @@
+# Add 'skip news' label to any changes of .pre-commit-config.yaml
+'skip news':
+- changed-files:
+  - any-glob-to-any-file: .pre-commit-config.yaml
