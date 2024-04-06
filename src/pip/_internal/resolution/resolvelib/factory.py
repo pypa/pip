@@ -31,6 +31,7 @@ from pip._internal.exceptions import (
     DistributionNotFound,
     InstallationError,
     MetadataInconsistent,
+    MetadataInvalid,
     UnsupportedPythonVersion,
     UnsupportedWheel,
 )
@@ -213,7 +214,7 @@ class Factory:
                         name=name,
                         version=version,
                     )
-                except MetadataInconsistent as e:
+                except (MetadataInconsistent, MetadataInvalid) as e:
                     logger.info(
                         "Discarding [blue underline]%s[/]: [yellow]%s[reset]",
                         link,
@@ -234,7 +235,7 @@ class Factory:
                         name=name,
                         version=version,
                     )
-                except MetadataInconsistent as e:
+                except (MetadataInconsistent, MetadataInvalid) as e:
                     logger.info(
                         "Discarding [blue underline]%s[/]: [yellow]%s[reset]",
                         link,
