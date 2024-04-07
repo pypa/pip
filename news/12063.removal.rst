@@ -1,0 +1,4 @@
+Remove support for legacy versions and dependency specifiers. Packages with non
+standard-compliant versions or dependency specifiers are now ignored by the resolver.
+Already installed packages with non standard-compliant versions or dependency specifiers
+must be uninstalled before upgrading them.
