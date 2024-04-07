@@ -47,3 +47,11 @@ def test_uninstall_invalid_version(script: PipTestEnvironment, data: TestData) -
     """
     _install_invalid_version(script, data)
     script.pip("uninstall", "-y", "invalid-version")
+
+
+def test_list_invalid_version(script: PipTestEnvironment, data: TestData) -> None:
+    """
+    Test that pip can list an environment containing a package with a legacy version.
+    """
+    _install_invalid_version(script, data)
+    script.pip("list")
