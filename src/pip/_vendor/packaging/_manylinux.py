@@ -55,7 +55,15 @@ def _have_compatible_abi(executable: str, archs: Sequence[str]) -> bool:
         return _is_linux_armhf(executable)
     if "i686" in archs:
         return _is_linux_i686(executable)
-    allowed_archs = {"x86_64", "aarch64", "ppc64", "ppc64le", "s390x", "loongarch64"}
+    allowed_archs = {
+        "x86_64",
+        "aarch64",
+        "ppc64",
+        "ppc64le",
+        "s390x",
+        "loongarch64",
+        "riscv64",
+    }
     return any(arch in allowed_archs for arch in archs)
 
 
@@ -82,7 +90,7 @@ def _glibc_version_string_confstr() -> Optional[str]:
     # https://github.com/python/cpython/blob/fcf1d003bf4f0100c/Lib/platform.py#L175-L183
     try:
         # Should be a string like "glibc 2.17".
-        version_string: str = getattr(os, "confstr")("CS_GNU_LIBC_VERSION")
+        version_string: Optional[str] = os.confstr("CS_GNU_LIBC_VERSION")
         assert version_string is not None
         _, version = version_string.rsplit()
     except (AssertionError, AttributeError, OSError, ValueError):
@@ -174,7 +182,7 @@ def _is_compatible(arch: str, version: _GLibCVersion) -> bool:
         return False
     # Check for presence of _manylinux module.
     try:
-        import _manylinux  # noqa
+        import _manylinux
     except ImportError:
         return True
     if hasattr(_manylinux, "manylinux_compatible"):

@@ -41,10 +41,10 @@ else:  # pragma: no cover
 
 
 try:
-    ExceptionGroup = __builtins__.ExceptionGroup  # type: ignore[attr-defined]
-except AttributeError:
+    ExceptionGroup
+except NameError:  # pragma: no cover
 
-    class ExceptionGroup(Exception):  # type: ignore[no-redef]  # noqa: N818
+    class ExceptionGroup(Exception):  # noqa: N818
         """A minimal implementation of :external:exc:`ExceptionGroup` from Python 3.11.
 
         If :external:exc:`ExceptionGroup` is already defined by Python itself,
@@ -60,6 +60,9 @@ except AttributeError:
 
         def __repr__(self) -> str:
             return f"{self.__class__.__name__}({self.message!r}, {self.exceptions!r})"
+
+else:  # pragma: no cover
+    ExceptionGroup = ExceptionGroup
 
 
 class InvalidMetadata(ValueError):
@@ -505,24 +508,19 @@ class _Validator(Generic[T]):
         # No need to check the cache as attribute lookup will resolve into the
         # instance's __dict__ before __get__ is called.
         cache = instance.__dict__
-        try:
-            value = instance._raw[self.name]  # type: ignore[literal-required]
-        except KeyError:
-            if self.name in _STRING_FIELDS:
-                value = ""
-            elif self.name in _LIST_FIELDS:
-                value = []
-            elif self.name in _DICT_FIELDS:
-                value = {}
-            else:  # pragma: no cover
-                assert False
+        value = instance._raw.get(self.name)
 
-        try:
-            converter: Callable[[Any], T] = getattr(self, f"_process_{self.name}")
-        except AttributeError:
-            pass
-        else:
-            value = converter(value)
+        # To make the _process_* methods easier, we'll check if the value is None
+        # and if this field is NOT a required attribute, and if both of those
+        # things are true, we'll skip the the converter. This will mean that the
+        # converters never have to deal with the None union.
+        if self.name in _REQUIRED_ATTRS or value is not None:
+            try:
+                converter: Callable[[Any], T] = getattr(self, f"_process_{self.name}")
+            except AttributeError:
+                pass
+            else:
+                value = converter(value)
 
         cache[self.name] = value
         try:
@@ -677,7 +675,7 @@ class Metadata:
         ins._raw = data.copy()  # Mutations occur due to caching enriched values.
 
         if validate:
-            exceptions: List[InvalidMetadata] = []
+            exceptions: List[Exception] = []
             try:
                 metadata_version = ins.metadata_version
                 metadata_age = _VALID_METADATA_VERSIONS.index(metadata_version)
@@ -732,10 +730,10 @@ class Metadata:
         If *validate* is true, the metadata will be validated. All exceptions
         related to validation will be gathered and raised as an :class:`ExceptionGroup`.
         """
-        exceptions: list[InvalidMetadata] = []
         raw, unparsed = parse_email(data)
 
         if validate:
+            exceptions: list[Exception] = []
             for unparsed_key in unparsed:
                 if unparsed_key in _EMAIL_TO_RAW_MAPPING:
                     message = f"{unparsed_key!r} has invalid data"
@@ -749,8 +747,9 @@ class Metadata:
         try:
             return cls.from_raw(raw, validate=validate)
         except ExceptionGroup as exc_group:
-            exceptions.extend(exc_group.exceptions)
-            raise ExceptionGroup("invalid or unparsed metadata", exceptions) from None
+            raise ExceptionGroup(
+                "invalid or unparsed metadata", exc_group.exceptions
+            ) from None
 
     metadata_version: _Validator[_MetadataVersion] = _Validator()
     """:external:ref:`core-metadata-metadata-version`
@@ -761,62 +760,66 @@ class Metadata:
     *validate* parameter)"""
     version: _Validator[version_module.Version] = _Validator()
     """:external:ref:`core-metadata-version` (required)"""
-    dynamic: _Validator[List[str]] = _Validator(
+    dynamic: _Validator[Optional[List[str]]] = _Validator(
         added="2.2",
     )
     """:external:ref:`core-metadata-dynamic`
     (validated against core metadata field names and lowercased)"""
-    platforms: _Validator[List[str]] = _Validator()
+    platforms: _Validator[Optional[List[str]]] = _Validator()
     """:external:ref:`core-metadata-platform`"""
-    supported_platforms: _Validator[List[str]] = _Validator(added="1.1")
+    supported_platforms: _Validator[Optional[List[str]]] = _Validator(added="1.1")
     """:external:ref:`core-metadata-supported-platform`"""
-    summary: _Validator[str] = _Validator()
+    summary: _Validator[Optional[str]] = _Validator()
     """:external:ref:`core-metadata-summary` (validated to contain no newlines)"""
-    description: _Validator[str] = _Validator()  # TODO 2.1: can be in body
+    description: _Validator[Optional[str]] = _Validator()  # TODO 2.1: can be in body
     """:external:ref:`core-metadata-description`"""
-    description_content_type: _Validator[str] = _Validator(added="2.1")
+    description_content_type: _Validator[Optional[str]] = _Validator(added="2.1")
     """:external:ref:`core-metadata-description-content-type` (validated)"""
-    keywords: _Validator[List[str]] = _Validator()
+    keywords: _Validator[Optional[List[str]]] = _Validator()
     """:external:ref:`core-metadata-keywords`"""
-    home_page: _Validator[str] = _Validator()
+    home_page: _Validator[Optional[str]] = _Validator()
     """:external:ref:`core-metadata-home-page`"""
-    download_url: _Validator[str] = _Validator(added="1.1")
+    download_url: _Validator[Optional[str]] = _Validator(added="1.1")
     """:external:ref:`core-metadata-download-url`"""
-    author: _Validator[str] = _Validator()
+    author: _Validator[Optional[str]] = _Validator()
     """:external:ref:`core-metadata-author`"""
-    author_email: _Validator[str] = _Validator()
+    author_email: _Validator[Optional[str]] = _Validator()
     """:external:ref:`core-metadata-author-email`"""
-    maintainer: _Validator[str] = _Validator(added="1.2")
+    maintainer: _Validator[Optional[str]] = _Validator(added="1.2")
     """:external:ref:`core-metadata-maintainer`"""
-    maintainer_email: _Validator[str] = _Validator(added="1.2")
+    maintainer_email: _Validator[Optional[str]] = _Validator(added="1.2")
     """:external:ref:`core-metadata-maintainer-email`"""
-    license: _Validator[str] = _Validator()
+    license: _Validator[Optional[str]] = _Validator()
     """:external:ref:`core-metadata-license`"""
-    classifiers: _Validator[List[str]] = _Validator(added="1.1")
+    classifiers: _Validator[Optional[List[str]]] = _Validator(added="1.1")
     """:external:ref:`core-metadata-classifier`"""
-    requires_dist: _Validator[List[requirements.Requirement]] = _Validator(added="1.2")
+    requires_dist: _Validator[Optional[List[requirements.Requirement]]] = _Validator(
+        added="1.2"
+    )
     """:external:ref:`core-metadata-requires-dist`"""
-    requires_python: _Validator[specifiers.SpecifierSet] = _Validator(added="1.2")
+    requires_python: _Validator[Optional[specifiers.SpecifierSet]] = _Validator(
+        added="1.2"
+    )
     """:external:ref:`core-metadata-requires-python`"""
     # Because `Requires-External` allows for non-PEP 440 version specifiers, we
     # don't do any processing on the values.
-    requires_external: _Validator[List[str]] = _Validator(added="1.2")
+    requires_external: _Validator[Optional[List[str]]] = _Validator(added="1.2")
     """:external:ref:`core-metadata-requires-external`"""
-    project_urls: _Validator[Dict[str, str]] = _Validator(added="1.2")
+    project_urls: _Validator[Optional[Dict[str, str]]] = _Validator(added="1.2")
     """:external:ref:`core-metadata-project-url`"""
     # PEP 685 lets us raise an error if an extra doesn't pass `Name` validation
     # regardless of metadata version.
-    provides_extra: _Validator[List[utils.NormalizedName]] = _Validator(
+    provides_extra: _Validator[Optional[List[utils.NormalizedName]]] = _Validator(
         added="2.1",
     )
     """:external:ref:`core-metadata-provides-extra`"""
-    provides_dist: _Validator[List[str]] = _Validator(added="1.2")
+    provides_dist: _Validator[Optional[List[str]]] = _Validator(added="1.2")
     """:external:ref:`core-metadata-provides-dist`"""
-    obsoletes_dist: _Validator[List[str]] = _Validator(added="1.2")
+    obsoletes_dist: _Validator[Optional[List[str]]] = _Validator(added="1.2")
     """:external:ref:`core-metadata-obsoletes-dist`"""
-    requires: _Validator[List[str]] = _Validator(added="1.1")
+    requires: _Validator[Optional[List[str]]] = _Validator(added="1.1")
     """``Requires`` (deprecated)"""
-    provides: _Validator[List[str]] = _Validator(added="1.1")
+    provides: _Validator[Optional[List[str]]] = _Validator(added="1.1")
     """``Provides`` (deprecated)"""
-    obsoletes: _Validator[List[str]] = _Validator(added="1.1")
+    obsoletes: _Validator[Optional[List[str]]] = _Validator(added="1.1")
     """``Obsoletes`` (deprecated)"""

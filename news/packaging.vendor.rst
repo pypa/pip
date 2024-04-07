@@ -1,1 +1,1 @@
-Upgrade packaging to 23.2
+Upgrade packaging to 24.0

@@ -38,7 +38,7 @@ class Requirement:
 
         self.name: str = parsed.name
         self.url: Optional[str] = parsed.url or None
-        self.extras: Set[str] = set(parsed.extras if parsed.extras else [])
+        self.extras: Set[str] = set(parsed.extras or [])
         self.specifier: SpecifierSet = SpecifierSet(parsed.specifier)
         self.marker: Optional[Marker] = None
         if parsed.marker is not None:
