@@ -64,3 +64,12 @@ def test_freeze_invalid_version(script: PipTestEnvironment, data: TestData) -> N
     _install_invalid_version(script, data)
     result = script.pip("freeze")
     assert "invalid-version===2010i\n" in result.stdout
+
+
+def test_show_invalid_version(script: PipTestEnvironment, data: TestData) -> None:
+    """
+    Test that pip can show an installed distribution with a legacy version.
+    """
+    _install_invalid_version(script, data)
+    result = script.pip("show", "invalid-version")
+    assert "Name: invalid-version\nVersion: 2010i\n" in result.stdout
