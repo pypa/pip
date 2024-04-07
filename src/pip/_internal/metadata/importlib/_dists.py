@@ -174,6 +174,10 @@ class Distribution(BaseDistribution):
     def version(self) -> Version:
         return parse_version(self._dist.version)
 
+    @property
+    def version_str(self) -> str:
+        return self._dist.version
+
     def is_file(self, path: InfoPath) -> bool:
         return self._dist.read_text(str(path)) is not None
 
