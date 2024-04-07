@@ -1,3 +1,5 @@
+import zipfile
+
 from tests.lib import PipTestEnvironment, TestData
 
 
@@ -27,3 +29,15 @@ def test_install_from_index_with_invalid_specifier(
         "install", "--dry-run", "--index-url", index_url, "require-invalid-version"
     )
     assert "Would install require-invalid-version-0.1" in result.stdout
+
+
+def test_uninstall_invalid_version(script: PipTestEnvironment, data: TestData) -> None:
+    """
+    Test that it is possible to uninstall a package with an invalid version.
+    """
+    # install package with legacy version in site packages
+    with zipfile.ZipFile(
+        data.packages.joinpath("invalid_version-2010i-py3-none-any.whl")
+    ) as zf:
+        zf.extractall(script.site_packages_path)
+    script.pip("uninstall", "-y", "invalid-version")
