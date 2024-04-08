@@ -1,4 +1,3 @@
-import dataclasses
 import logging
 import os
 import sys
@@ -196,7 +195,7 @@ def get_scheme(
         converted_keys = {}
         for key in SCHEME_KEYS:
             converted_keys[key] = change_root(root, getattr(scheme, key))
-        scheme = dataclasses.replace(scheme, **converted_keys)
+        scheme = Scheme(**converted_keys)
     return scheme
 
 
