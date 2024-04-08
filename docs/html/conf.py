@@ -26,11 +26,13 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_inline_tabs",
     "sphinxcontrib.towncrier",
+    "sphinx_issues",
 ]
 
 # General information about the project.
 project = "pip"
 copyright = "The pip developers"
+issues_default_group_project = "pypa/pip"
 
 # Find the version and release information.
 # We have a single source of truth for our version number: pip's __init__.py file.
@@ -69,14 +71,6 @@ smartquotes_action = "qe"
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "pypug": ("https://packaging.python.org", None),
-}
-
-# -- Options for extlinks -------------------------------------------------------------
-
-extlinks = {
-    "issue": ("https://github.com/pypa/pip/issues/%s", "#%s"),
-    "pull": ("https://github.com/pypa/pip/pull/%s", "PR #%s"),
-    "pypi": ("https://pypi.org/project/%s/", "%s"),
 }
 
 # -- Options for towncrier_draft extension --------------------------------------------
