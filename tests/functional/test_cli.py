@@ -71,7 +71,7 @@ def test_no_network_imports(command: str, tmp_path: Path) -> None:
     network imports which were accidently added (which is the most likely way
     to regress anyway).
     """
-    file = Path(tmp_path, f"imported_modules_for_{command}")
+    file = tmp_path / f"imported_modules_for_{command}.txt"
     code = f"""
 import runpy
 import sys
