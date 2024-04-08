@@ -1,3 +1,4 @@
+import dataclasses
 import logging
 import os
 import sys
@@ -192,9 +193,10 @@ def get_scheme(
         data=paths["data"],
     )
     if root is not None:
+        converted_keys = {}
         for key in SCHEME_KEYS:
-            value = change_root(root, getattr(scheme, key))
-            setattr(scheme, key, value)
+            converted_keys[key] = change_root(root, getattr(scheme, key))
+        scheme = dataclasses.replace(scheme, **converted_keys)
     return scheme
 
 

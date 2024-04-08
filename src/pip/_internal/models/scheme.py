@@ -10,7 +10,7 @@ from dataclasses import dataclass
 SCHEME_KEYS = ["platlib", "purelib", "headers", "scripts", "data"]
 
 
-@dataclass
+@dataclass(frozen=True)
 class Scheme:
     """A Scheme holds paths which are used as the base directories for
     artifacts associated with a Python package.
