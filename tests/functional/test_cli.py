@@ -53,10 +53,12 @@ def test_entrypoints_work(entrypoint: str, script: PipTestEnvironment) -> None:
 
 @pytest.mark.parametrize(
     "command",
-    set(commands_dict).symmetric_difference(
-        # Exclude commands that are expected to use the network.
-        # TODO: uninstall and list should only import network modules as needed
-        {"install", "uninstall", "download", "search", "index", "wheel", "list"}
+    sorted(
+        set(commands_dict).symmetric_difference(
+            # Exclude commands that are expected to use the network.
+            # TODO: uninstall and list should only import network modules as needed
+            {"install", "uninstall", "download", "search", "index", "wheel", "list"}
+        )
     ),
 )
 def test_no_network_imports(command: str, tmp_path: Path) -> None:
