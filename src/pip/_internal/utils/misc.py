@@ -11,7 +11,7 @@ import stat
 import sys
 import sysconfig
 import urllib.parse
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import partial
 from io import StringIO
 from itertools import filterfalse, tee, zip_longest
@@ -584,15 +584,22 @@ def redact_auth_from_requirement(req: Requirement) -> str:
 @dataclass(frozen=True)
 class HiddenText:
     secret: str
-    # The string being used for redaction doesn't also have to match,
-    # just the raw, original string.
-    redacted: str = field(compare=False)
+    redacted: str
 
     def __repr__(self) -> str:
         return f"<HiddenText {str(self)!r}>"
 
     def __str__(self) -> str:
         return self.redacted
+
+    # This is useful for testing.
+    def __eq__(self, other: Any) -> bool:
+        if type(self) != type(other):
+            return False
+
+        # The string being used for redaction doesn't also have to match,
+        # just the raw, original string.
+        return self.secret == other.secret
 
 
 def hide_value(value: str) -> HiddenText:
