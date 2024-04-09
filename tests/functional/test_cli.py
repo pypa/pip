@@ -1,9 +1,13 @@
 """Basic CLI functionality checks.
 """
+import subprocess
+import sys
+from pathlib import Path
 from textwrap import dedent
 
 import pytest
 
+from pip._internal.commands import commands_dict
 from tests.lib import PipTestEnvironment
 
 
@@ -45,3 +49,49 @@ def test_entrypoints_work(entrypoint: str, script: PipTestEnvironment) -> None:
     result2 = script.run("fake_pip", "-V", allow_stderr_warning=True)
     assert result.stdout == result2.stdout
     assert "old script wrapper" in result2.stderr
+
+
+@pytest.mark.parametrize(
+    "command",
+    sorted(
+        set(commands_dict).symmetric_difference(
+            # Exclude commands that are expected to use the network.
+            # TODO: uninstall and list should only import network modules as needed
+            {"install", "uninstall", "download", "search", "index", "wheel", "list"}
+        )
+    ),
+)
+def test_no_network_imports(command: str, tmp_path: Path) -> None:
+    """
+    Verify that commands that don't access the network do NOT import network code.
+
+    This helps to reduce the startup time of these commands.
+
+    Note: This won't catch lazy network imports, but it'll catch top-level
+    network imports which were accidently added (which is the most likely way
+    to regress anyway).
+    """
+    file = tmp_path / f"imported_modules_for_{command}.txt"
+    code = f"""
+import runpy
+import sys
+
+sys.argv[1:] = [{command!r}, "--help"]
+
+try:
+    runpy.run_module("pip", alter_sys=True, run_name="__main__")
+finally:
+    with open({str(file)!r}, "w") as f:
+        print(*sys.modules.keys(), sep="\\n", file=f)
+    """
+    subprocess.run(
+        [sys.executable],
+        input=code,
+        encoding="utf-8",
+        check=True,
+    )
+    imported = file.read_text().splitlines()
+    assert not any("pip._internal.index" in mod for mod in imported)
+    assert not any("pip._internal.network" in mod for mod in imported)
+    assert not any("requests" in mod for mod in imported)
+    assert not any("urllib3" in mod for mod in imported)
