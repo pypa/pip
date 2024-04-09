@@ -3350,7 +3350,7 @@ Improved Documentation
 - Upgrade the bundled copy of requests to 2.6.0, fixing CVE-2015-2296.
 - Display format of latest package when using ``pip list --outdated``. (#2475)
 - Don't use pywin32 as ctypes should always be available on Windows, using
-  pywin32 prevented uninstallation of pywin32 on Windows. (:pull:`2467`)
+  pywin32 prevented uninstallation of pywin32 on Windows. (:pr:`2467`)
 - Normalize the ``--wheel-dir`` option, expanding out constructs such as ``~``
   when used. (#2441)
 - Display a warning when an undefined extra has been requested. (#2142)
@@ -3641,7 +3641,7 @@ Improved Documentation
   --no-download`` are now formally deprecated.  See #906 for discussion on
   possible alternatives, or lack thereof, in future releases.
 - **DEPRECATION** ``pip zip`` and ``pip unzip`` are now formally deprecated.
-- pip will now install Mac OSX platform wheels from PyPI. (:pull:`1278`)
+- pip will now install Mac OSX platform wheels from PyPI. (:pr:`1278`)
 - pip now generates the appropriate platform-specific console scripts when
   installing wheels. (#1251)
 - pip now confirms a wheel is supported when installing directly from a path or

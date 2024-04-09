@@ -73,6 +73,10 @@ intersphinx_mapping = {
     "pypug": ("https://packaging.python.org", None),
 }
 
+# -- Options for extlinks -------------------------------------------------------------
+extlinks = {
+    "pypi": ("https://pypi.org/project/%s/", "%s"),
+}
 # -- Options for towncrier_draft extension --------------------------------------------
 
 towncrier_draft_autoversion_mode = "draft"  # or: 'sphinx-release', 'sphinx-version'
