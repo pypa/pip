@@ -1,0 +1,1 @@
+Install subversion for macos-latest CI Runner so macos-14 tests do not fail
