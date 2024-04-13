@@ -29,24 +29,23 @@ There is a gulf between what the maintainers expect users to think, and worry ab
 The vast majority of participants, 82%, do not (rarely or never) do a code audit of the software packages they install using pip, the reasons are explained below.
 
 | Before I install any Python software with pip, I carry out a code audit: | Number of responses |
-|-|-|
-| Always | 3 |
-| Frequently | 9 |
-| Rarely | 66 |
-| Never | 68 |
-| I'm not sure what this means | 5 |
-| No opinion | 13 |
-| **Total number of participants** | **164** |
+| ------------------------------------------------------------------------ | ------------------- |
+| Always                                                                   | 3                   |
+| Frequently                                                               | 9                   |
+| Rarely                                                                   | 66                  |
+| Never                                                                    | 68                  |
+| I'm not sure what this means                                             | 5                   |
+| No opinion                                                               | 13                  |
+| **Total number of participants**                                         | **164**             |
 
 #### Selected quotes
 
 > Never. I should but I never do. I don't stray, I am risk adverse. I install packages that are good already. I consider my risk surface small. I don't have time or resources to audit them. I have sufficient faith in the ecosystem to be self-auditing. If something turned up in a well known package, the community is well known for making a stink. And anyway a code audit wouldn't pick it up.
-— 240326752 (Professional Python developer)
+> — 240326752 (Professional Python developer)
 
 ### Responses to question: I think about the security and integrity of the software I install
 
 ![](https://i.imgur.com/wy4lGwJ.png)
-
 
 The vast majority of participants did think about the security and integrity of the software they installed - and unlike responses about code audits, in some cases participants made attempts to verify the security and integrity of the software they installed.
 
@@ -78,17 +77,6 @@ Right now pip's output is overwhelming and while it contains a lot of informatio
 
 Pip's output must be redesigned to provide users with the right information at the right time.
 
-
-
-
-
-
-<p id="gdcalert3" ><span style="color: red; font-weight: bold">>>>>>  gd2md-html alert: inline image link here (to images/image3.png). Store image on your image server and adjust path/filename/extension if necessary. </span><br>(<a href="#">Back to top</a>)(<a href="#gdcalert4">Next alert</a>)<br><span style="color: red; font-weight: bold">>>>>> </span></p>
-
-
-![alt_text](images/image3.png "image_tooltip")
-
-
 With the exception of users who develop web applications (e.g those who deploy packages to the web), few users actively work towards any good security objective. Several users said that they know that they _should_ be more concerned, but do not have time to look into it in more detail.
 
 User's knowledge of security issues (e.g. typosquatting) varies. Some users expect/assume that pip (and PyPI) should "protect" them from malicious actors - e.g. by automatically checking hashes, or detecting malicious packages.
@@ -97,13 +85,11 @@ Many users try to use more popular open-source packages, as they feel that they 
 
 In terms of control or impact, participants felt they could do more about the security and integrity of the code they created.
 
-
 ### Responsibility as author
 
 Participants who spent a lot of their time writing Python code - either for community or as part of their job - expressed a responsibility to their users for the code they wrote - people who wrote code which was made public expressed a stronger responsibility.
 
 They thought about where the software would be used, who would use it, and possible attack surfaces.
-
 
     On the basic point, I have to think about attack surfaces. If I am writing the thing (software), I have to give a crap. I have to answer the emails! In the code I push to[ pypi.org](http://pypi.org/) I think about it doubley. What could people do with this code? Whether I do a good job, that's different! I am aware of it when publishing it or making it publically available. Whether I do a good job, that's different! I am aware of it when publishing it or making it publically available. I rely on community resources - Python security related, I follow security people blogs, Twitter. I use Hypothesis for fuzz-testing. I also rely on having security policies in place and a reporting mechanism. I steer clear of crypto, I rely on other peoples. There's a certain amount of knowledge in the Python community, I am actively involved in it. If something happens, I will hear about it. I use Twitter, if something happens, in the morning it can take me awhile to figure out what's happened. I have a lot of trust in the ecosystem to be self healing. As long as you don't stray too far-off the reservation (into using odd or uncommon or new packages), it's a better sense of security.
 
@@ -116,25 +102,18 @@ They thought about where the software would be used, who would use it, and possi
 
     -- Participant, professional Python developer and trainer
 
-
 ### **Reliance on software packages**
 
 Participants also explained they rely on code security scanning and checking software packages.
-
 
     I use linters (Bandit), I scan the code I have created and when there is an issue I raise a red flag.
 
 
     I use Hypothesis for fuzz-testing.
 
-
-###
-
-
 ### **Good software development practices**
 
 A small number of participants explained they have good software practices in place, which help with writing secure software.
-
 
     We have a book about ethics of code - we have mandatory certification.
 
@@ -143,26 +122,18 @@ A small number of participants explained they have good software practices in pl
 
 Of the users who have used pip's hash checking functionality:
 
-
-
-* One finds the error messages "too annoying and loud", and has difficulty matching the file name to the hash
-* Another finds the process of explicitly pinning hashes to be too tiresome (especially for dependencies)
+- One finds the error messages "too annoying and loud", and has difficulty matching the file name to the hash
+- Another finds the process of explicitly pinning hashes to be too tiresome (especially for dependencies)
 
 One user mentioned that he likes[ NPM audit](https://docs.npmjs.com/cli/v6/commands/npm-audit) and would like to see something similar in the Python ecosystem.
-
 
 #### Lack of time
 
 The lack of time to carry out the audit of the package code, and that of the dependencies, was cited as a very common reason. In most cases participants used Python code as a means to achieving their goal.
 
-
 #### Lack of expertise to carry out the audit
 
 The lack of expertise or knowledge of auditing software was mainly due to participants expertise not being software development. However, in the case participants were "classically" software developers, lack of expertise was also a commonly given reason for not carrying out audits.
-
-
-####
-
 
 #### Use of only widely used, well-established packages
 
@@ -170,37 +141,30 @@ Use of well-established, high-quality packages was a common reason amongst all t
 
 "Well-established, high-quality packages" were defined by users as packages that:
 
+- have been in existence for many years
+- are popular, or commonly used by those in their community or industry
+- have responsive maintainers
+- maintained by people the participant has heard of
+- have many hundreds or thousands of users
+- are in active development (many open issues, many forks, Github stars)
+- are developed in the open, and transparently
+- their history is known, or can be found out publicly
 
-
-* have been in existence for many years
-* are popular, or commonly used by those in their community or industry
-* have responsive maintainers
-* maintained by people the participant has heard of
-* have many hundreds or thousands of users
-* are in active development (many open issues, many forks, Github stars)
-* are developed in the open, and transparently
-* their history is known, or can be found out publicly
-
-
-### **Reliance on the Python community to find issues**
+### Reliance on the Python community to find issues
 
 There was a reliance on the community to find issues and make them know publicly - "Many eyes shallow bugs".
 
-
-### **Use of only internal packages**
+### Use of only internal packages
 
 "I only install internal packages, so I don't need to worry about this."
 
 This theme was not that common, mainly in large software development environments or where security was of high importance.
 
-
-### **Expectation that[ pypi.org](http://pypi.org) or pip assures security and integrity of packages**
+### Expectation that[ pypi.org](http://pypi.org) or pip assures security and integrity of packages
 
 To assure the security and integrity of packages uploaded
 
-
 ### Selected quotes from research participants
-
 
 #### About security audits, and security of software installed or created
 
@@ -214,7 +178,7 @@ _I wouldn't know how to, also I'm writing this stuff for myself. It'll work or n
 
 _I'm quite trusting - Python is open source, I'm assuming that if a package is on[ pypi.org](http://pypi.org/) - it must be alright. I install the package first, then I look at it. I find a package by figuring out - we need to do a certain task, we search for it on the Internet, look at the documentation, we install it and then see if it is what we want. _
 
-_— _Participant 240278297
+\_— \_Participant 240278297
 
 If I want to install a package, it's for a reason. I want to calculate the azimuth and elevation of the moon with PyEphem. Do a code audit? Pffff. Most of the stuff I do is banal. It needs to meet a dependency, so I install it. I'm not going to do a code audit. I don't care. Never, but this is one of the things - is the package on pypi the exact source I see on Github? You could end up with files that are distributed differently. Probably (I don't do it) because I am too scared to look. There is this thing that pip verifies (the packages) hash - so that is a feature to guard against this. What is the hash of? No idea. It's located in the local python install. \
 — Participant 240426799, systems administrator
@@ -227,12 +191,11 @@ Well, I don't have the background to do a code audit of something like Numerical
 
 — Participant 240312164, Nuclear physicist
 
-
 #### About security guidance and hash checking
 
 I would like some security advisor, [like in npm](https://docs.npmjs.com/auditing-package-dependencies-for-security-vulnerabilities) - it works very well, when you install a package "there are security vulns. with this package - 1 low, 5 medium, 8 high. I haven't come across security issues with Python packages."
 
 -- CZI convening research participant
 
-If I was downloading a package on my own I check the hash, if it's installed by pip, then no. I expect pip to do it. If it doesn't do it, it does surprise me. Every package manager checks the hash against what it downloads. The hashes are already known on pypi.  \
+If I was downloading a package on my own I check the hash, if it's installed by pip, then no. I expect pip to do it. If it doesn't do it, it does surprise me. Every package manager checks the hash against what it downloads. The hashes are already known on pypi. \
 — Participant 240312164, Nuclear physicist
