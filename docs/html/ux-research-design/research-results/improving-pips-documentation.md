@@ -1,4 +1,4 @@
-# pip's documentation
+# Improving pip's Documentation
 
 ## Problem
 
@@ -23,7 +23,7 @@ We collected documentation feedback via two surveys:
 - In our survey that profiled pip users, we asked "What would be your ideal way of getting help with pip?"
 - We also published a survey specific to pip's docs:
 
-![TODO](https://i.imgur.com/dtTnTQJ.png)
+![Screenshot of survey](https://i.imgur.com/dtTnTQJ.png)
 
 ### Keyword research
 
@@ -35,7 +35,7 @@ We also:
 
 1. Asked for volunteers to participate in a diary study, documenting their experience solving pip problems. Unfortunately this was not completed due to lack of interest from the community.
 2. Asked for user feedback on the pip documentation site:
-   ![TODO](https://i.imgur.com/WJVjl8N.png)
+   ![screenshot of user feedback mechanism on pip docs](https://i.imgur.com/WJVjl8N.png)
    Unfortunatly, we did not gather any useful feedback via this effort
 3. [Installed analytics on the pip docs](https://github.com/pypa/pip/pull/9146). We are waiting for this to be merged and start providing useful data.
 
@@ -58,7 +58,7 @@ In response to the question "When you have a problem using pip, what do you do?"
 - 20.6% of respondents go the the Python Packaging User Guide
 - 8.1% of respondents ask on a forum, community board, or chat channel
 
-![TODO](https://i.imgur.com/qlt1b4n.png)
+![screenshot of survey results](https://i.imgur.com/qlt1b4n.png)
 
 Based on survey results, users find pip's docs:
 
@@ -192,7 +192,7 @@ Based on our research, we recommend that the pip team:
 
 - Revise the structure of the documentation:
   - Break monolithic pages into standalone pages on different subjects, with appropriate meta tags. This will help the docs appear higher in search results for the 81.9% of users who use Google to troubleshoot their pip problems.
-  - Prioritise most used features (see "[buy a feature](TODO)" results for guidance)
+  - Prioritise most used features (see "[buy a feature](prioritizing-features)" results for guidance)
 - Add a "troubleshooting" section to the documentation that addresses common questions, explains error messages and tells users where they can find more help
 - Provide more context about pip's role in the Python packaging ecosystem by:
   - Introducing packaging concepts that users need to understand in order to use pip
@@ -213,7 +213,7 @@ Based on our research, we recommend that the pip team:
 
 Based on the above user input, we have developed a proposed [site map](https://i.imgur.com/UP5q09W.png) (link opens larger format image) to help guide the redevelopment of pip's documentation in line with the above recommendations.
 
-![TODO](https://i.imgur.com/UP5q09W.png)
+![sitemap. for details see summary below](https://i.imgur.com/UP5q09W.png)
 
 <details><summary> See notes for this site map</summary>
 
@@ -227,7 +227,7 @@ _Page purpose:_
 _Suggested content:_
 
 - Quick installation guide, including how to use a virtual environment. This is necessary for user who want to install more than one Python project on their machine.
-- Common commands / tasks (based on [buy a feature](TODO) data)
+- Common commands / tasks (based on [buy a feature](prioritizing-features) data)
 
 ---
 
@@ -422,7 +422,7 @@ _Suggested content:_
 - Where is pip installed?
 - What does pip stand for?
 
-See [keyword research](TODO) and [popular questions on Stack Overflow](https://stackoverflow.com/search?q=pip&s=ec4ee117-277a-4c5d-a3f5-c921ca6c5da6) for more examples.
+See [popular questions on Stack Overflow](https://stackoverflow.com/search?q=pip&s=ec4ee117-277a-4c5d-a3f5-c921ca6c5da6) for more examples.
 
 #### 6.2: Troubleshooting error messages
 

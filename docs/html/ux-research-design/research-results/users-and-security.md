@@ -16,8 +16,6 @@ We asked participants to tell us how often they:
 2. Think about the security and integrity of the (Python) software they install (with pip)
 3. Think about the security and integrity of the (Python) code they create
 
-[Skip to recommendations](#recommendations)
-
 ## Results
 
 While the security and integrity of the software users install (51%) and make (71%) is important to research participants, less than 7% do code audits of the packages or code they install with pip.

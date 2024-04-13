@@ -4,6 +4,8 @@
 
 By default, `pip search` searches packages on PyPI.org from the command line. However, the team are [considering removing it](https://github.com/pypa/pip/issues/5216), because they think it's not that useful and using too many resources on PyPI ([PyPI XMLRPC search has been disabled](https://status.python.org/incidents/grk0k7sz6zkp) because of abuse/overuse).
 
+[Skip to recommendations](#recommendations)
+
 ## Research
 
 Prior to PyPI XMLRPC search being disabled, we:

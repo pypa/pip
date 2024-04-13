@@ -8,12 +8,12 @@ mental-models
 users-and-security
 ci-cd
 personas
-improving-pips-documentation
 prioritizing-features
 override-conflicting-dependencies
 pip-force-reinstall
 pip-search
 pip-upgrade-conflict
+improving-pips-documentation
 ```
 
 ## <a name="2020-research"></a>2020 Research Synthesis
@@ -201,12 +201,12 @@ mental-models
 users-and-security
 ci-cd
 personas
-improving-pips-documentation
 prioritizing-features
 override-conflicting-dependencies
 pip-force-reinstall
 pip-search
 pip-upgrade-conflict
+improving-pips-documentation
 ```
 
 ## Read More
