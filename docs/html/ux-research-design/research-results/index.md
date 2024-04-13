@@ -1,5 +1,7 @@
+# UX Research Results
+
 ```{toctree}
-:maxdepth: 2
+:hidden:
 
 about-our-users
 ci-cd
@@ -13,8 +15,6 @@ pip-upgrade-conflict
 prioritizing-features
 users-and-security
 ```
-
-# UX Research Results
 
 ## <a name="2020-research"></a>2020 Research Synthesis
 

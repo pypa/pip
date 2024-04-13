@@ -1,12 +1,12 @@
+# UX Research & Design
+
 ```{toctree}
-:maxdepth: 2
+:hidden:
 
 contribute
 guidance
 research-results/index
 ```
-
-# UX Research & Design
 
 Welcome to pip’s UX research and design documentation. The purpose of this section of the documentation is to:
 
