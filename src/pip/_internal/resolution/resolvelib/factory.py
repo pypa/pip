@@ -235,7 +235,7 @@ class Factory:
                         name=name,
                         version=version,
                     )
-                except (MetadataInconsistent, MetadataInvalid) as e:
+                except MetadataInconsistent as e:
                     logger.info(
                         "Discarding [blue underline]%s[/]: [yellow]%s[reset]",
                         link,

@@ -26,8 +26,17 @@ def test_install_from_index_with_invalid_specifier(
     """
     index_url = data.index_url("require-invalid-version")
     result = script.pip(
-        "install", "--dry-run", "--index-url", index_url, "require-invalid-version"
+        "install",
+        "--dry-run",
+        "--index-url",
+        index_url,
+        "require-invalid-version",
+        allow_stderr_warning=True,
     )
+    assert (
+        "WARNING: Ignoring version 1.0 of require-invalid-version "
+        "since it has invalid metadata"
+    ) in result.stderr
     assert "Would install require-invalid-version-0.1" in result.stdout
 
 
