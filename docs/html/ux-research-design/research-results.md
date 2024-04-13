@@ -162,17 +162,6 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
       </tr>
       <tr>
         <td>
-          Design brief for pip's logo
-        </td>
-        <td>
-          To gather information and inspiration from the community to form the basis of a design brief for pip's logo.
-        </td>
-        <td>
-          See <a href="../2020-research-outputs/pip-logo">design brief</a>
-        </td>
-      </tr>
-      <tr>
-        <td>
           Feedback on pip's docs
         </td>
         <td>
@@ -264,17 +253,6 @@ Below is a compiled list of all research outputs and recommendations made by the
         </td>
         <td>
           Summarises how pip users get pip help, and make recommendations on how to improve pip's documentation
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <a href="../2020-research-outputs/pip-logo">Pip's identity: In search of a logo</a>
-        </td>
-        <td>
-          Pip community
-        </td>
-        <td>
-          Summarises community ideas for a new pip logo as input for a design brief
         </td>
       </tr>
       <tr>
