@@ -111,7 +111,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
           Determine if the way that pip handles package upgrades is in-line with user's expectations/needs. See <a href="https://www.ei8fdb.org/thoughts/2020/07/how-should-pip-handle-conflicts-when-updating-already-installed-packages/">related blog post</a> and <a href="https://github.com/pypa/pip/issues/7744">GitHub issue</a> for more information.
         </td>
         <td>
-          See <a href="/pip-upgrade-conflict">write up, including recommendations</a>
+          See <a href="pip-upgrade-conflict">write up, including recommendations</a>
         </td>
       </tr>
       <tr>
@@ -129,7 +129,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
           </ul>
         </td>
         <td>
-          See <a href="/about-our-users">write up</a>
+          See <a href="about-our-users">write up</a>
         </td>
       </tr>
       <tr>
@@ -140,7 +140,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
           Establish which features are most important to pip's users
         </td>
         <td>
-          See <a href="/prioritizing-features">write up</a>
+          See <a href="prioritizing-features">write up</a>
         </td>
       </tr>
       <tr>
@@ -151,7 +151,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
           Establish whether pip should provide an override that allows users to install packages with conflicting dependencies
         </td>
         <td>
-          See <a href="/override-conflicting-dependencies">write up</a>
+          See <a href="override-conflicting-dependencies">write up</a>
         </td>
       </tr>
       <tr>
@@ -162,7 +162,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
           Establish whether or not pip force reinstall should continue to behave the way it currently does, if the functionality should be changed, or if the option should be removed
         </td>
         <td>
-          See <a href="/pip-force-reinstall">write up</a>
+          See <a href="pip-force-reinstall">write up</a>
         </td>
       </tr>
       <tr>
@@ -173,7 +173,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
           To establish whether or not to remove or redesign pip search. See <a href="https://github.com/pypa/pip/issues/5216">this GitHub issue</a> for more information.
         </td>
         <td>
-          See <a href="/pip-search">write up</a>
+          See <a href="pip-search">write up</a>
         </td>
       </tr>
       <tr>
@@ -184,7 +184,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
           To gather feedback on pip's docs, supplementing feedback gathered in user interviews
         </td>
         <td>
-          See <a href="/improving-pips-documentation">write up</a>
+          See <a href="improving-pips-documentation">write up</a>
         </td>
       </tr>
     </tbody>
