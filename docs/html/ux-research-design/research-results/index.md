@@ -191,7 +191,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
   </table>
 </div>
 
-## Results
+## All Results
 
 ```{toctree}
 :maxdepth: 1
