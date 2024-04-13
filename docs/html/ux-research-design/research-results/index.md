@@ -1,18 +1,17 @@
 ```{toctree}
 :maxdepth: 2
-:hidden:
 
-2020-research-outputs/about-our-users
-2020-research-outputs/ci-cd
-2020-research-outputs/improving-pips-documentation
-2020-research-outputs/mdental-models
-2020-research-outputs/override-conflicting-dependencies
-2020-research-outputs/personas
-2020-research-outputs/pip-force-reinstall
-2020-research-outputs/pip-search
-2020-research-outputs/pip-upgrade-conflict
-2020-research-outputs/priorizing-features
-2020-research-outputs/users-and-security
+about-our-users
+ci-cd
+improving-pips-documentation
+mental-models
+override-conflicting-dependencies
+personas
+pip-force-reinstall
+pip-search
+pip-upgrade-conflict
+prioritizing-features
+users-and-security
 ```
 
 # UX Research Results
@@ -112,7 +111,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
           Determine if the way that pip handles package upgrades is in-line with user's expectations/needs. See <a href="https://www.ei8fdb.org/thoughts/2020/07/how-should-pip-handle-conflicts-when-updating-already-installed-packages/">related blog post</a> and <a href="https://github.com/pypa/pip/issues/7744">GitHub issue</a> for more information.
         </td>
         <td>
-          See <a href="../2020-research-outputs/pip-upgrade-conflict">write up, including recommendations</a>
+          See <a href="/pip-upgrade-conflict">write up, including recommendations</a>
         </td>
       </tr>
       <tr>
@@ -130,7 +129,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
           </ul>
         </td>
         <td>
-          See <a href="../2020-research-outputs/about-our-users">write up</a>
+          See <a href="/about-our-users">write up</a>
         </td>
       </tr>
       <tr>
@@ -141,7 +140,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
           Establish which features are most important to pip's users
         </td>
         <td>
-          See <a href="../2020-research-outputs/prioritizing-features">write up</a>
+          See <a href="/prioritizing-features">write up</a>
         </td>
       </tr>
       <tr>
@@ -152,7 +151,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
           Establish whether pip should provide an override that allows users to install packages with conflicting dependencies
         </td>
         <td>
-          See <a href="../2020-research-outputs/override-conflicting-dependencies">write up</a>
+          See <a href="/override-conflicting-dependencies">write up</a>
         </td>
       </tr>
       <tr>
@@ -163,7 +162,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
           Establish whether or not pip force reinstall should continue to behave the way it currently does, if the functionality should be changed, or if the option should be removed
         </td>
         <td>
-          See <a href="../2020-research-outputs/pip-force-reinstall">write up</a>
+          See <a href="/pip-force-reinstall">write up</a>
         </td>
       </tr>
       <tr>
@@ -174,7 +173,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
           To establish whether or not to remove or redesign pip search. See <a href="https://github.com/pypa/pip/issues/5216">this GitHub issue</a> for more information.
         </td>
         <td>
-          See <a href="../2020-research-outputs/pip-search">write up</a>
+          See <a href="/pip-search">write up</a>
         </td>
       </tr>
       <tr>
@@ -185,7 +184,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
           To gather feedback on pip's docs, supplementing feedback gathered in user interviews
         </td>
         <td>
-          See <a href="../2020-research-outputs/improving-pips-documentation">write up</a>
+          See <a href="/improving-pips-documentation">write up</a>
         </td>
       </tr>
     </tbody>
@@ -208,7 +207,7 @@ Below is a compiled list of all research outputs and recommendations made by the
     <tbody>
       <tr>
         <td>
-          <a href="../2020-research-outputs/about-our-users">About our users</a>
+          <a href="/about-our-users">About our users</a>
         </td>
         <td>
           Who uses pip
@@ -219,7 +218,7 @@ Below is a compiled list of all research outputs and recommendations made by the
       </tr>
       <tr>
         <td>
-          <a href="../2020-research-outputs/personas">Pip personas</a>
+          <a href="/personas">Pip personas</a>
         </td>
         <td>
           Who uses pip
@@ -230,7 +229,7 @@ Below is a compiled list of all research outputs and recommendations made by the
       </tr>
       <tr>
         <td>
-          <a href="../2020-research-outputs/mental-models">Mental models of pip</a>
+          <a href="/mental-models">Mental models of pip</a>
         </td>
         <td>
           Who uses pip
@@ -241,7 +240,7 @@ Below is a compiled list of all research outputs and recommendations made by the
       </tr>
       <tr>
         <td>
-          <a href="../2020-research-outputs/users-and-security">Behaviours and attitudes towards code security and integrity</a>
+          <a href="/users-and-security">Behaviours and attitudes towards code security and integrity</a>
         </td>
         <td>
           Who uses pip
@@ -252,7 +251,7 @@ Below is a compiled list of all research outputs and recommendations made by the
       </tr>
       <tr>
         <td>
-          <a href="../2020-research-outputs/ci-cd">Usage of pip in automated and interactive environments</a>
+          <a href="/ci-cd">Usage of pip in automated and interactive environments</a>
         </td>
         <td>
           Who uses pip
@@ -263,7 +262,7 @@ Below is a compiled list of all research outputs and recommendations made by the
       </tr>
       <tr>
         <td>
-          <a href="../2020-research-outputs/improving-pips-documentation">Improving pip's documentation</a>
+          <a href="/improving-pips-documentation">Improving pip's documentation</a>
         </td>
         <td>
           Documentation
@@ -274,7 +273,7 @@ Below is a compiled list of all research outputs and recommendations made by the
       </tr>
       <tr>
         <td>
-          <a href="../2020-research-outputs/prioritizing-features">Prioritizing features (buy a feature)</a>
+          <a href="/prioritizing-features">Prioritizing features (buy a feature)</a>
         </td>
         <td>
           How pip works
@@ -285,7 +284,7 @@ Below is a compiled list of all research outputs and recommendations made by the
       </tr>
       <tr>
         <td>
-          <a href="../2020-research-outputs/pip-search">Pip Search</a>
+          <a href="/pip-search">Pip Search</a>
         </td>
         <td>
           How pip works
@@ -296,7 +295,7 @@ Below is a compiled list of all research outputs and recommendations made by the
       </tr>
       <tr>
         <td>
-          <a href="../2020-research-outputs/pip-force-reinstall">Pip Force reinstall</a>
+          <a href="/pip-force-reinstall">Pip Force reinstall</a>
         </td>
         <td>
           How pip works
@@ -307,7 +306,7 @@ Below is a compiled list of all research outputs and recommendations made by the
       </tr>
       <tr>
         <td>
-          <a href="../2020-research-outputs/pip-upgrade-conflict">Dependency conflict resolution when upgrading packages</a>
+          <a href="/pip-upgrade-conflict">Dependency conflict resolution when upgrading packages</a>
         </td>
         <td>
           2020 dependency resolver
@@ -318,7 +317,7 @@ Below is a compiled list of all research outputs and recommendations made by the
       </tr>
       <tr>
         <td>
-          <a href="../2020-research-outputs/override-conflicting-dependencies">Providing an override to install packages with conflicting dependencies</a>
+          <a href="/override-conflicting-dependencies">Providing an override to install packages with conflicting dependencies</a>
         </td>
         <td>
           2020 dependency resolver

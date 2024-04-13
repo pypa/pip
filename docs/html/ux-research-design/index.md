@@ -1,10 +1,9 @@
 ```{toctree}
 :maxdepth: 2
-:hidden:
 
 contribute
 guidance
-research-results
+research-results/index
 ```
 
 # UX Research & Design
