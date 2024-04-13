@@ -177,7 +177,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-          allow-prereleases: true # Temporarily required for Python 3.13
+          allow-prereleases: true
 
       # We use C:\Temp (which is already available on the worker)
       # as a temporary directory for all of the tests because the
