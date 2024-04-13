@@ -249,7 +249,7 @@ class Distribution(BaseDistribution):
         return self._dist.requires(extras)
 
     def iter_provided_extras(self) -> Iterable[NormalizedName]:
-        return list(self._extra_mapping.keys())
+        return self._extra_mapping.keys()
 
 
 class Environment(BaseEnvironment):
