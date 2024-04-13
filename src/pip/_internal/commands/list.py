@@ -333,7 +333,7 @@ def format_for_columns(
     for proj in pkgs:
         # if we're working on the 'outdated' list, separate out the
         # latest_version and type
-        row = [proj.raw_name, str(proj.version_str)]
+        row = [proj.raw_name, proj.version_str]
 
         if running_outdated:
             row.append(str(proj.latest_version))
