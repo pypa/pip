@@ -12,4 +12,4 @@ Welcome to pip’s UX research and design documentation. The purpose of this sec
 
 - [Identify where new contributors can participate in or lead UX research and design activities](contribute)
 - [Share pip UX guidelines](guidance), including an introduction to User Centered Design practices, and how they can be applied to the pip project
-- Share [results of user research](research-results) that the pip team has already conducted
+- Share [results of user research](research-results/index) that the pip team has already conducted

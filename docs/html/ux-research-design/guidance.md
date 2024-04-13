@@ -15,7 +15,7 @@ For the pip project, UX research and design can be used to:
 At a high level, the UX research and design process is comprised of:
 
 1. **[Research](#conducting-research-for-pip)**, where a variety of techniques are used (e.g.[surveys](#surveys) and [interviews](#interviews)) to learn about users and what they want from the tools they use
-2. **[Design](#design-user-interface-design)**, where solutions are proposed to response to the research conducted. UX research and design is conducted iteratively, with design proposals (i.e. [prototypes](#prototyping)) tested with users to validate that they are effective in meeting users' needs. Often, it is necessary to complete several cycles of research, design and validation to find a solution that works:
+2. **[Design](#user-interface-design)**, where solutions are proposed to response to the research conducted. UX research and design is conducted iteratively, with design proposals or prototypes tested with users to validate that they are effective in meeting users' needs. Often, it is necessary to complete several cycles of research, design and validation to find a solution that works:
 
 ![Graphic showing an iterative process of Research, Make (Design), Validate, around user goals and needs.](https://user-images.githubusercontent.com/3323703/124515613-c5bae880-ddd7-11eb-99d6-35c0a7522c7a.png)
 
@@ -63,7 +63,7 @@ As an example, in 2020, the pip UX team published several surveys to learn about
 - Collecting feedback about pip's beta release of the 2020 dependency resolver
 - Asking users how specific parts of pip's 2020 dependency resolver should behave
 
-A full list of the surveys published in 2020 and their results [can be found here](/research-results/index#survey-results).
+A full list of the surveys published in 2020 and their results [can be found here](/research-results/index).
 
 #### Designing Surveys
 
@@ -305,7 +305,7 @@ The following is a list of outreach platforms that the pip team used when conduc
 
 #### Recommended: UX Research Panel
 
-As part of the [2020 UX Work](/research-results/index#2020-research), we published a form that asked people to join a research panel and be regularly contacted about surveys and interview opportunities. This is now a [mailing list that users can sign up for](https://mail.python.org/mailman3/lists/pip-ux-studies.python.org/), and will be used in an ongoing way in addition to broad public outreach.
+As part of the [2020 UX Work](research-results/index), we published a form that asked people to join a research panel and be regularly contacted about surveys and interview opportunities. This is now a [mailing list that users can sign up for](https://mail.python.org/mailman3/lists/pip-ux-studies.python.org/), and will be used in an ongoing way in addition to broad public outreach.
 
 #### Recommended: Twitter
 
@@ -334,7 +334,7 @@ Due to the 2020 Global Pandemic we were unable to engage with users via PyCon (o
 
 We didn't have a chance to explore this opportunity, but the idea came up during workshops in December 2020 with Pypa Maintainers, and could be a great way to engage users and help point them towards opportunities to contribute.
 
-## Design / User Interface Design
+## User Interface Design
 
 Many people associate the term "user interface" with websites or applications, however it is important to remember that a CLI is a user interface too, and deserves the same design consideration as graphical user interfaces.
 
@@ -377,7 +377,7 @@ In 2020, the pip UX team developed the following personas for the pip project:
 - Python Software Maker
 - Python Package Maintainer
 
-An in-depth write up on how the pip personas were created, and how they can be applied to future pip UX work can be [found here](/research-results/personas).
+An in-depth write up on how the pip personas were created, and how they can be applied to future pip UX work can be [found here](research-results/personas).
 
 #### Prototyping
 
