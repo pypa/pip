@@ -1,18 +1,3 @@
-```{toctree}
-/2020-research-outputs/about-our-users
-/2020-research-outputs/ci-cd
-/2020-research-outputs/improving-pip-documentation
-/2020-research-outputs/mental-models
-/2020-research-outputs/override-conflicting-dependencies
-/2020-research-outputs/personas
-/2020-research-outputs/pip-force-reinstall
-/2020-research-outputs/pip-logo
-/2020-research-outputs/pip-search
-/2020-research-outputs/pip-upgrade-conflict
-/2020-research-outputs/prioritizing-features
-/2020-research-outputs/users-and-security
-```
-
 # UX Research Results
 
 ## <a name="2020-research"></a>2020 Research Synthesis
