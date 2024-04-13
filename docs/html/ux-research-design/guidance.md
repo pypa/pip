@@ -63,7 +63,7 @@ As an example, in 2020, the pip UX team published several surveys to learn about
 - Collecting feedback about pip's beta release of the 2020 dependency resolver
 - Asking users how specific parts of pip's 2020 dependency resolver should behave
 
-A full list of the surveys published in 2020 and their results [can be found here](/research-results/index).
+A full list of the surveys published in 2020 and their results [can be found here](research-results/index).
 
 #### Designing Surveys
 
