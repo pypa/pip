@@ -191,6 +191,24 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
   </table>
 </div>
 
+## Results
+
+```{toctree}
+:maxdepth: 1
+
+about-our-users
+ci-cd
+improving-pips-documentation
+mental-models
+override-conflicting-dependencies
+personas
+pip-force-reinstall
+pip-search
+pip-upgrade-conflict
+prioritizing-features
+users-and-security
+```
+
 ## Read More
 
 - [Pip team midyear report (blog, July 2020)](https://pyfound.blogspot.com/2020/07/pip-team-midyear-report.html)
