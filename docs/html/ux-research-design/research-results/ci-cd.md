@@ -1,4 +1,4 @@
-# pip in interactive environments (i.e. CI, CD)
+# How pip is used in interactive environments (i.e. CI, CD)
 
 ## Problem
 

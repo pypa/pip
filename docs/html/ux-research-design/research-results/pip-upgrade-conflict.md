@@ -8,9 +8,7 @@ Currently, pip does _not_ take into account packages that are already installed 
 
 We published a [survey](https://bit.ly/2ZqJijr) asking users how they would solve the following scenario:
 
-<!--- TODO: don't use a code block here -->
-
-```
+<blockquote>
 Imagine you have package tea and coffee with the following dependencies:
 
 tea 1.0.0 - depends on water<1.12
@@ -24,10 +22,11 @@ tea 1.0.0
 coffee 1.0.0
 water 1.11.0
 
-You ask pip to upgrade tea.  What should pip do?
+You ask pip to upgrade tea. What should pip do?
 
 If pip upgrades tea to 2.0.0, water needs to be upgraded as well, creating a conflict with coffee...
-```
+
+<blockquote>
 
 We gave users four choices:
 

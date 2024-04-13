@@ -4,16 +4,16 @@
 :hidden:
 
 about-our-users
-ci-cd
-improving-pips-documentation
 mental-models
-override-conflicting-dependencies
+users-and-security
+ci-cd
 personas
+improving-pips-documentation
+prioritizing-features
+override-conflicting-dependencies
 pip-force-reinstall
 pip-search
 pip-upgrade-conflict
-prioritizing-features
-users-and-security
 ```
 
 ## <a name="2020-research"></a>2020 Research Synthesis
@@ -197,16 +197,16 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
 :maxdepth: 1
 
 about-our-users
-ci-cd
-improving-pips-documentation
 mental-models
-override-conflicting-dependencies
+users-and-security
+ci-cd
 personas
+improving-pips-documentation
+prioritizing-features
+override-conflicting-dependencies
 pip-force-reinstall
 pip-search
 pip-upgrade-conflict
-prioritizing-features
-users-and-security
 ```
 
 ## Read More

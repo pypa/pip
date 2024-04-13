@@ -1,6 +1,12 @@
-# Users behaviours and opinions to package and code security
+# How pip users think about security
 
-## Research question
+## Problem
+
+We wanted to understand how pip users think about security when installing packages with pip.
+
+[Skip to recommendations](#recommendations)
+
+## Research
 
 We asked participants about their behaviours and practices in terms of the security and integrity of the Python packages they install with pip, and of the software they create.
 

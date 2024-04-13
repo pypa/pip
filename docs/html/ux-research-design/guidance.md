@@ -348,7 +348,7 @@ Designing for pip includes:
 
 There are many interaction design principles that help designers design great experiences. Nielsen Norman's [10 Usability Heuristics for User Interface Design](https://www.nngroup.com/articles/ten-usability-heuristics) is a great place to start. Here are some of the ways these principles apply to pip:
 
-- Visibility of system status: ensure all commands result in clear feedback that is relevant to the user (but do not overload the user with too much information (see "Aesthetic and minimalist design")
+- Visibility of system status: ensure all commands result in clear feedback that is relevant to the user - but do not overload the user with too much information (see "Aesthetic and minimalist design")
 - Consistency and standards: when writing interfaces, strive for consistency with the rest of the Python packaging ecosystem, and (where possible) adopt familiar patterns from other CLI tools
 - Aesthetic and minimalist design: remove noise from CLI output to ensure the user can find the most important information
 - Help users recognize, diagnose, and recover from errors: clearly label and explain errors: what happened, why, and what the user can do to try and fix the error. Link to documentation where you need to provide a detailed explanation.

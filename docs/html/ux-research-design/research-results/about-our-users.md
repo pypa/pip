@@ -4,6 +4,8 @@
 
 We want to understand users' background, their cultural environment, and how they experience the world, so that we can find better ways to serve them.
 
+[Skip to recommendations](#recommendations)
+
 ## Research
 
 To develop our understanding about pip's users, we published a "Who uses pip?" survey that asked users about:
@@ -163,7 +165,7 @@ Here is a sample of noteworthy comments from these different groups:
 
 > "Veterans who entered tech post-military" - Participant 243524784
 
-Noteworthy answers where the participant did not identify as under-represented (or were not sure):
+###### Noteworthy answers where the participant did not identify as under-represented (or were not sure)
 
 > "I'm a young white cis male, so by far not a minority in those aspects. But at the same time I'm from a third world country, Argentina, and that sometimes (and I emphasize, only sometimes) makes me feel like a minority. When participating in our local communities (Python Argentina), I feel clearly not-minority, and with the responsibility of helping minorities, trying to build a more welcoming and fair environment for them. But when I participate in the broader global community, at times I feel underrepresented, seeing it mostly guided by english-s[p]eaking people from first world countries. But if I have to choose, I would say I mostly feel not-minority, because I mostly interact with people from our local communities, where I'm not part of a minority." - Participant 242592869
 
@@ -243,7 +245,7 @@ A further seven participants use assistive technology only as needed:
 
 #### Operating systems used with assistive technology
 
-Participants use assistive technology across the three most popular desktop operating systems - Linux (most popular), Windows (2nd most popular), and Windows.
+Participants use assistive technology across the three most popular desktop operating systems - Linux (most popular), Windows (2nd most popular), and Mac.
 
 ![Pie chart showing breakdown of most popular operating systems for pip users using assistive technology](https://i.imgur.com/CD2ev5P.png)
 
