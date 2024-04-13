@@ -14,22 +14,18 @@ For this reason, the pip team wanted to know if they should provide an override 
 
 We published a survey with the following introduction:
 
-<!--- TODO: don't use a code block here -->
+> Imagine you have packages tea and coffee:
 
-```
-Imagine you have packages tea and coffee:
+> tea 1.0.0 depends on water <1.12.
+> coffee 1.0.0 depends on water>=1.12
 
-tea 1.0.0 depends on water <1.12.
-coffee 1.0.0 depends on water>=1.12
+> Installing tea 1.0.0 and coffee 1.0.0 will cause a conflict because they each rely on different versions of water - this is known as a "dependency conflict".
 
-Installing tea 1.0.0 and coffee 1.0.0 will cause a conflict because they each rely on different versions of water - this is known as a "dependency conflict".
+> The pip team has recently changed the way that pip resolves dependency conflicts. The new implementation is stricter than before: pip will no longer install packages where there is a dependency conflict - instead it will show an error.
 
-The pip team has recently changed the way that pip resolves dependency conflicts. The new implementation is stricter than before: pip will no longer install packages where there is a dependency conflict - instead it will show an error.
+> The purpose of this survey is to gather feedback on providing a way to override this behaviour.
 
-The purpose of this survey is to gather feedback on providing a way to override this behaviour.
-
-All questions are optional - please provide as much information as you can.
-```
+> All questions are optional - please provide as much information as you can.
 
 We then asked users:
 
