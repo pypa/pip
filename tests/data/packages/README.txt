@@ -120,3 +120,7 @@ A valid variant of the require-invalid-version package.
 require_invalid_version-1.0-py3-none-any.whl
 --------------------------------------------
 This package has an invalid version specifier in its requirements.
+
+require_invalid_version-1.0.tar.gz
+----------------------------------
+This package has an invalid version specifier in its requirements.
