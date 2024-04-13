@@ -92,10 +92,10 @@ def check_dist_restriction(options: Values, check_target: bool = False) -> None:
         )
 
     if check_target:
-        if dist_restriction_set and not options.target_dir:
+        if not options.dry_run and dist_restriction_set and not options.target_dir:
             raise CommandError(
                 "Can not use any platform or abi specific options unless "
-                "installing via '--target'"
+                "installing via '--target' or using '--dry-run'"
             )
 
 
@@ -226,9 +226,9 @@ progress_bar: Callable[..., Option] = partial(
     "--progress-bar",
     dest="progress_bar",
     type="choice",
-    choices=["on", "off"],
+    choices=["on", "off", "raw"],
     default="on",
-    help="Specify whether the progress bar should be used [on, off] (default: on)",
+    help="Specify whether the progress bar should be used [on, off, raw] (default: on)",
 )
 
 log: Callable[..., Option] = partial(
@@ -582,10 +582,7 @@ def _handle_python_version(
     """
     version_info, error_msg = _convert_python_version(value)
     if error_msg is not None:
-        msg = "invalid --python-version value: {!r}: {}".format(
-            value,
-            error_msg,
-        )
+        msg = f"invalid --python-version value: {value!r}: {error_msg}"
         raise_option_error(parser, option=option, msg=msg)
 
     parser.values.python_version = version_info
@@ -670,7 +667,10 @@ def prefer_binary() -> Option:
         dest="prefer_binary",
         action="store_true",
         default=False,
-        help="Prefer older binary packages over newer source packages.",
+        help=(
+            "Prefer binary packages over source packages, even if the "
+            "source packages are newer."
+        ),
     )
 
 
@@ -823,7 +823,7 @@ def _handle_config_settings(
 ) -> None:
     key, sep, val = value.partition("=")
     if sep != "=":
-        parser.error(f"Arguments to {opt_str} must be of the form KEY=VAL")  # noqa
+        parser.error(f"Arguments to {opt_str} must be of the form KEY=VAL")
     dest = getattr(parser.values, option.dest)
     if dest is None:
         dest = {}
@@ -903,7 +903,7 @@ root_user_action: Callable[..., Option] = partial(
     dest="root_user_action",
     default="warn",
     choices=["warn", "ignore"],
-    help="Action if pip is run as a root user. By default, a warning message is shown.",
+    help="Action if pip is run as a root user [warn, ignore] (default: warn)",
 )
 
 
@@ -918,13 +918,13 @@ def _handle_merge_hash(
         algo, digest = value.split(":", 1)
     except ValueError:
         parser.error(
-            "Arguments to {} must be a hash name "  # noqa
+            f"Arguments to {opt_str} must be a hash name "
             "followed by a value, like --hash=sha256:"
-            "abcde...".format(opt_str)
+            "abcde..."
         )
     if algo not in STRONG_HASHES:
         parser.error(
-            "Allowed hash algorithms for {} are {}.".format(  # noqa
+            "Allowed hash algorithms for {} are {}.".format(
                 opt_str, ", ".join(STRONG_HASHES)
             )
         )

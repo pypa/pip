@@ -20,6 +20,7 @@ Albert-Guan
 albertg
 Alberto Sottile
 Aleks Bunin
+Ales Erjavec
 Alethea Flowers
 Alex Gaynor
 Alex Grönholm
@@ -30,6 +31,7 @@ Alex Stachowiak
 Alexander Shtyrov
 Alexandre Conrad
 Alexey Popravka
+Aleš Erjavec
 Alli
 Ami Fischman
 Ananya Maiti
@@ -158,6 +160,7 @@ Cristina Muñoz
 Curtis Doty
 cytolentino
 Daan De Meyer
+Dale
 Damian
 Damian Quiroga
 Damian Shaw
@@ -196,9 +199,11 @@ David Runge
 David Tucker
 David Wales
 Davidovich
+ddelange
 Deepak Sharma
 Deepyaman Datta
 Denise Yu
+dependabot[bot]
 derwolfe
 Desetude
 Devesh Kumar Singh
@@ -222,7 +227,10 @@ Dustin Ingram
 Dwayne Bailey
 Ed Morley
 Edgar Ramírez
+Edgar Ramírez Mondragón
 Ee Durbin
+Efflam Lemaillet
+efflamlemaillet
 Eitan Adler
 ekristina
 elainechan
@@ -252,6 +260,7 @@ Filip Kokosiński
 Filipe Laíns
 Finn Womack
 finnagin
+Flavio Amurrio
 Florian Briand
 Florian Rathgeber
 Francesco
@@ -312,7 +321,9 @@ Ilya Baryshev
 Inada Naoki
 Ionel Cristian Mărieș
 Ionel Maries Cristian
+Itamar Turner-Trauring
 Ivan Pozdeev
+J. Nick Koston
 Jacob Kim
 Jacob Walls
 Jaime Sanz
@@ -335,9 +346,11 @@ Jason R. Coombs
 JasonMo
 JasonMo1
 Jay Graves
+Jean Abou Samra
 Jean-Christophe Fillion-Robin
 Jeff Barber
 Jeff Dairiki
+Jeff Widman
 Jelmer Vernooĳ
 jenix21
 Jeremy Stanley
@@ -367,6 +380,7 @@ Joseph Long
 Josh Bronson
 Josh Hansen
 Josh Schneier
+Joshua
 Juan Luis Cano Rodríguez
 Juanjo Bazán
 Judah Rand
@@ -397,6 +411,7 @@ KOLANICH
 kpinc
 Krishna Oza
 Kumar McMillan
+Kurt McKee
 Kyle Persohn
 lakshmanaram
 Laszlo Kiss-Kollar
@@ -413,6 +428,7 @@ lorddavidiii
 Loren Carvalho
 Lucas Cimon
 Ludovic Gasc
+Lukas Geiger
 Lukas Juhrich
 Luke Macken
 Luo Jiebin
@@ -429,7 +445,7 @@ Mark Williams
 Markus Hametner
 Martey Dodoo
 Martin Fischer
-Martin Häcker
+Martin Häcker
 Martin Pavlasek
 Masaki
 Masklinn
@@ -479,7 +495,7 @@ Miro Hrončok
 Monica Baluna
 montefra
 Monty Taylor
-Muha Ajjan‮
+Muha Ajjan
 Nadav Wexler
 Nahuel Ambrosini
 Nate Coraor
@@ -529,6 +545,7 @@ Patrick Jenkins
 Patrick Lawson
 patricktokeeffe
 Patrik Kopkan
+Paul Ganssle
 Paul Kehrer
 Paul Moore
 Paul Nasrat
@@ -569,6 +586,7 @@ Przemek Wrzos
 Pulkit Goyal
 q0w
 Qiangning Hong
+Qiming Xu
 Quentin Lee
 Quentin Pradet
 R. David Murray
@@ -609,6 +627,7 @@ ryneeverett
 Sachi King
 Salvatore Rinchiera
 sandeepkiran-js
+Sander Van Balen
 Savio Jomton
 schlamar
 Scott Kitterman
@@ -621,6 +640,7 @@ SeongSoo Cho
 Sergey Vasilyev
 Seth Michael Larson
 Seth Woodworth
+Shahar Epstein
 Shantanu
 shireenrao
 Shivansh-007
@@ -648,6 +668,7 @@ Steve Kowalik
 Steven Myint
 Steven Silvester
 stonebig
+studioj
 Stéphane Bidoul
 Stéphane Bidoul (ACSONE)
 Stéphane Klein
@@ -704,6 +725,7 @@ Vincent Philippon
 Vinicyus Macedo
 Vipul Kumar
 Vitaly Babiy
+Vladimir Fokow
 Vladimir Rutsky
 W. Trevor King
 Wil Tan
@@ -735,4 +757,3 @@ Zvezdan Petkovic
 Łukasz Langa
 Роман Донченко
 Семён Марьясин
-‮rekcäH nitraM‮

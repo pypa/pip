@@ -166,13 +166,11 @@ def test_freeze_with_invalid_names(script: PipTestEnvironment) -> None:
         with open(egg_info_path, "w") as egg_info_file:
             egg_info_file.write(
                 textwrap.dedent(
-                    """\
+                    f"""\
                 Metadata-Version: 1.0
-                Name: {}
+                Name: {pkgname}
                 Version: 1.0
-                """.format(
-                        pkgname
-                    )
+                """
                 )
             )
 
@@ -221,12 +219,10 @@ def test_freeze_editable_not_vcs(script: PipTestEnvironment) -> None:
     # We need to apply os.path.normcase() to the path since that is what
     # the freeze code does.
     expected = textwrap.dedent(
-        """\
-    ...# Editable install with no version control (version-pkg==0.1)
-    -e {}
-    ...""".format(
-            os.path.normcase(pkg_path)
-        )
+        f"""\
+    ...# Editable install with no version control (version...pkg==0.1)
+    -e {os.path.normcase(pkg_path)}
+    ..."""
     )
     _check_output(result.stdout, expected)
 
@@ -248,12 +244,10 @@ def test_freeze_editable_git_with_no_remote(
     # We need to apply os.path.normcase() to the path since that is what
     # the freeze code does.
     expected = textwrap.dedent(
-        """\
-    ...# Editable Git install with no remote (version-pkg==0.1)
-    -e {}
-    ...""".format(
-            os.path.normcase(pkg_path)
-        )
+        f"""\
+    ...# Editable Git install with no remote (version...pkg==0.1)
+    -e {os.path.normcase(pkg_path)}
+    ..."""
     )
     _check_output(result.stdout, expected)
 
@@ -489,7 +483,7 @@ def test_freeze_git_remote(script: PipTestEnvironment) -> None:
     expected = os.path.normcase(
         textwrap.dedent(
             f"""
-            ...# Editable Git...(version-pkg...)...
+            ...# Editable Git...(version...pkg...)...
             # '{other_remote}'
             -e {repo_dir}...
         """
@@ -629,7 +623,7 @@ _freeze_req_opts = textwrap.dedent(
     --extra-index-url http://ignore
     --find-links http://ignore
     --index-url http://ignore
-    --use-feature 2020-resolver
+    --use-feature resolvelib
 """
 )
 
@@ -653,9 +647,9 @@ def test_freeze_with_requirement_option_file_url_egg_not_installed(
         expect_stderr=True,
     )
     expected_err = (
-        "WARNING: Requirement file [requirements.txt] contains {}, "
+        f"WARNING: Requirement file [requirements.txt] contains {url}, "
         "but package 'Does.Not-Exist' is not installed\n"
-    ).format(url)
+    )
     if deprecated_python:
         assert expected_err in result.stderr
     else:

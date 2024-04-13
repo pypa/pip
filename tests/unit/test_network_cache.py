@@ -27,9 +27,31 @@ class TestSafeFileCache:
         cache = SafeFileCache(os.fspath(cache_tmpdir))
         assert cache.get("test key") is None
         cache.set("test key", b"a test string")
+        # Body hasn't been stored yet, so the entry isn't valid yet
+        assert cache.get("test key") is None
+
+        # With a body, the cache entry is valid:
+        cache.set_body("test key", b"body")
         assert cache.get("test key") == b"a test string"
         cache.delete("test key")
         assert cache.get("test key") is None
+
+    def test_cache_roundtrip_body(self, cache_tmpdir: Path) -> None:
+        cache = SafeFileCache(os.fspath(cache_tmpdir))
+        assert cache.get_body("test key") is None
+        cache.set_body("test key", b"a test string")
+        # Metadata isn't available, so the entry isn't valid yet (this
+        # shouldn't happen, but just in case)
+        assert cache.get_body("test key") is None
+
+        # With metadata, the cache entry is valid:
+        cache.set("test key", b"metadata")
+        body = cache.get_body("test key")
+        assert body is not None
+        with body:
+            assert body.read() == b"a test string"
+        cache.delete("test key")
+        assert cache.get_body("test key") is None
 
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_safe_get_no_perms(

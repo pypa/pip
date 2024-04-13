@@ -238,12 +238,8 @@ def test_uninstall_overlapping_package(
     "console_scripts",
     [
         "test_ = distutils_install:test",
-        pytest.param(
-            "test_:test_ = distutils_install:test_test",
-            marks=pytest.mark.xfail(
-                reason="colon not supported in wheel entry point name?"
-            ),
-        ),
+        ",test_ = distutils_install:test_test",
+        ", = distutils_install:test_test",
     ],
 )
 def test_uninstall_entry_point_colon_in_name(
@@ -604,9 +600,7 @@ def test_uninstall_without_record_fails(
             "simple.dist==0.1'."
         )
     elif installer:
-        expected_error_message += " Hint: The package was installed by {}.".format(
-            installer
-        )
+        expected_error_message += f" Hint: The package was installed by {installer}."
     assert result2.stderr.rstrip() == expected_error_message
     assert_all_changes(result.files_after, result2, ignore_changes)
 

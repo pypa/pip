@@ -14,6 +14,7 @@ from typing import Any, Callable, Iterator, List, NoReturn, Optional, Tuple, Typ
 from unittest.mock import Mock, patch
 
 import pytest
+from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError
 from pip._internal.utils.deprecation import PipDeprecationWarning, deprecated
@@ -37,6 +38,7 @@ from pip._internal.utils.misc import (
     normalize_path,
     normalize_version_info,
     parse_netloc,
+    redact_auth_from_requirement,
     redact_auth_from_url,
     redact_netloc,
     remove_auth_from_url,
@@ -763,6 +765,30 @@ def test_remove_auth_from_url(auth_url: str, expected_url: str) -> None:
 def test_redact_auth_from_url(auth_url: str, expected_url: str) -> None:
     url = redact_auth_from_url(auth_url)
     assert url == expected_url
+
+
+@pytest.mark.parametrize(
+    "req, expected",
+    [
+        ("pkga", "pkga"),
+        (
+            "resolvelib@ "
+            " git+https://test-user:test-pass@github.com/sarugaku/resolvelib@1.0.1",
+            "resolvelib@"
+            " git+https://test-user:****@github.com/sarugaku/resolvelib@1.0.1",
+        ),
+        (
+            "resolvelib@"
+            " git+https://test-user:test-pass@github.com/sarugaku/resolvelib@1.0.1"
+            " ; python_version>='3.6'",
+            "resolvelib@"
+            " git+https://test-user:****@github.com/sarugaku/resolvelib@1.0.1"
+            ' ; python_version >= "3.6"',
+        ),
+    ],
+)
+def test_redact_auth_from_requirement(req: str, expected: str) -> None:
+    assert redact_auth_from_requirement(Requirement(req)) == expected
 
 
 class TestHiddenText:

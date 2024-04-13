@@ -15,8 +15,8 @@ from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.utils.misc import rmtree
 from pip._internal.utils.urls import path_to_url
-from tests.conftest import CertFactory
 from tests.lib import (
+    CertFactory,
     PipTestEnvironment,
     ResolverVariant,
     TestData,
@@ -106,10 +106,10 @@ def test_pep518_refuses_conflicting_requires(
     assert (
         result.returncode != 0
         and (
-            "Some build dependencies for {url} conflict "
+            f"Some build dependencies for {project_dir.as_uri()} conflict "
             "with PEP 517/518 supported "
             "requirements: setuptools==1.0 is incompatible with "
-            "setuptools>=40.8.0.".format(url=project_dir.as_uri())
+            "setuptools>=40.8.0."
         )
         in result.stderr
     ), str(result)
@@ -358,7 +358,7 @@ def test_basic_install_editable_from_svn(script: PipTestEnvironment) -> None:
     checkout_path = _create_test_package(script.scratch_path)
     repo_url = _create_svn_repo(script.scratch_path, checkout_path)
     result = script.pip("install", "-e", "svn+" + repo_url + "#egg=version-pkg")
-    result.assert_installed("version-pkg", with_files=[".svn"])
+    result.assert_installed("version_pkg", with_files=[".svn"])
 
 
 def _test_install_editable_from_git(script: PipTestEnvironment) -> None:
@@ -595,8 +595,8 @@ def test_hashed_install_success(
     with requirements_file(
         "simple2==1.0 --hash=sha256:9336af72ca661e6336eb87bc7de3e8844d853e"
         "3848c2b9bbd2e8bf01db88c2c7\n"
-        "{simple} --hash=sha256:393043e672415891885c9a2a0929b1af95fb866d6c"
-        "a016b42d2e6ce53619b653".format(simple=file_url),
+        f"{file_url} --hash=sha256:393043e672415891885c9a2a0929b1af95fb866d6c"
+        "a016b42d2e6ce53619b653",
         tmpdir,
     ) as reqs_file:
         script.pip_install_local("-r", reqs_file.resolve())
@@ -1209,9 +1209,9 @@ def test_install_nonlocal_compatible_wheel_path(
         "--no-index",
         "--only-binary=:all:",
         Path(data.packages) / "simplewheel-2.0-py3-fakeabi-fakeplat.whl",
-        expect_error=(resolver_variant == "2020-resolver"),
+        expect_error=(resolver_variant == "resolvelib"),
     )
-    if resolver_variant == "2020-resolver":
+    if resolver_variant == "resolvelib":
         assert result.returncode == ERROR
     else:
         assert result.returncode == SUCCESS
@@ -1735,7 +1735,7 @@ def test_install_builds_wheels(script: PipTestEnvironment, data: TestData) -> No
     # into the cache
     assert wheels != [], str(res)
     assert wheels == [
-        "Upper-2.0-py{}-none-any.whl".format(sys.version_info[0]),
+        f"Upper-2.0-py{sys.version_info[0]}-none-any.whl",
     ]
 
 
@@ -1825,14 +1825,14 @@ def test_install_editable_with_wrong_egg_name(
         "install",
         "--editable",
         f"file://{pkga_path}#egg=pkgb",
-        expect_error=(resolver_variant == "2020-resolver"),
+        expect_error=(resolver_variant == "resolvelib"),
     )
     assert (
         "Generating metadata for package pkgb produced metadata "
         "for project name pkga. Fix your #egg=pkgb "
         "fragments."
     ) in result.stderr
-    if resolver_variant == "2020-resolver":
+    if resolver_variant == "resolvelib":
         assert "has inconsistent" in result.stdout, str(result)
     else:
         assert "Successfully installed pkga" in str(result), str(result)
@@ -2242,6 +2242,33 @@ def test_install_yanked_file_and_print_warning(
     assert "Successfully installed simple-3.0\n" in result.stdout, str(result)
 
 
+def test_yanked_version_missing_from_availble_versions_error_message(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """
+    Test yanked version is missing from available versions error message.
+
+    Yanked files are always ignored, unless they are the only file that
+    matches a version specifier that "pins" to an exact version (PEP 592).
+    """
+    result = script.pip(
+        "install",
+        "simple==",
+        "--index-url",
+        data.index_url("yanked"),
+        expect_error=True,
+    )
+    # the yanked version (3.0) is filtered out from the output:
+    expected_warning = (
+        "Could not find a version that satisfies the requirement simple== "
+        "(from versions: 1.0, 2.0)"
+    )
+    assert expected_warning in result.stderr, str(result)
+    # and mentioned in a separate warning:
+    expected_warning = "Ignored the following yanked versions: 3.0"
+    assert expected_warning in result.stderr, str(result)
+
+
 def test_error_all_yanked_files_and_no_pin(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -2262,10 +2289,6 @@ def test_error_all_yanked_files_and_no_pin(
     ), str(result)
 
 
-@pytest.mark.skipif(
-    sys.platform == "linux" and sys.version_info < (3, 8),
-    reason="Custom SSL certification not running well in CI",
-)
 @pytest.mark.parametrize(
     "install_args",
     [
@@ -2360,7 +2383,7 @@ def test_install_verify_package_name_normalization(
     assert "Successfully installed simple-package" in result.stdout
 
     result = script.pip("install", package_name)
-    assert "Requirement already satisfied: {}".format(package_name) in result.stdout
+    assert f"Requirement already satisfied: {package_name}" in result.stdout
 
 
 def test_install_logs_pip_version_in_debug(
@@ -2512,6 +2535,40 @@ def test_install_pip_prints_req_chain_local(script: PipTestEnvironment) -> None:
         rf"\(from base==0.1.0->-r {re.escape(str(req_path))} \(line 1\)\)",
         result.stdout,
     )
+
+
+def test_install_dist_restriction_without_target(script: PipTestEnvironment) -> None:
+    result = script.pip(
+        "install", "--python-version=3.1", "--only-binary=:all:", expect_error=True
+    )
+    assert (
+        "Can not use any platform or abi specific options unless installing "
+        "via '--target'" in result.stderr
+    ), str(result)
+
+
+def test_install_dist_restriction_dry_run_doesnt_require_target(
+    script: PipTestEnvironment,
+) -> None:
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+    )
+
+    result = script.pip(
+        "install",
+        "--python-version=3.1",
+        "--only-binary=:all:",
+        "--dry-run",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "base",
+    )
+
+    assert not result.stderr, str(result)
 
 
 @pytest.mark.network

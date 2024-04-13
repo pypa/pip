@@ -13,16 +13,16 @@ import pathlib
 import re
 import sys
 from itertools import chain, groupby, repeat
-from typing import TYPE_CHECKING, Dict, Iterator, List, Optional, Union
+from typing import TYPE_CHECKING, Dict, Iterator, List, Literal, Optional, Union
 
-from pip._vendor.requests.models import Request, Response
 from pip._vendor.rich.console import Console, ConsoleOptions, RenderResult
 from pip._vendor.rich.markup import escape
 from pip._vendor.rich.text import Text
 
 if TYPE_CHECKING:
     from hashlib import _Hash
-    from typing import Literal
+
+    from pip._vendor.requests.models import Request, Response
 
     from pip._internal.metadata import BaseDistribution
     from pip._internal.req.req_install import InstallRequirement
@@ -247,10 +247,7 @@ class NoneMetadataError(PipError):
     def __str__(self) -> str:
         # Use `dist` in the error message because its stringification
         # includes more information, like the version and location.
-        return "None {} metadata found for distribution: {}".format(
-            self.metadata_name,
-            self.dist,
-        )
+        return f"None {self.metadata_name} metadata found for distribution: {self.dist}"
 
 
 class UserInstallationInvalid(InstallationError):
@@ -297,8 +294,8 @@ class NetworkConnectionError(PipError):
     def __init__(
         self,
         error_msg: str,
-        response: Optional[Response] = None,
-        request: Optional[Request] = None,
+        response: Optional["Response"] = None,
+        request: Optional["Request"] = None,
     ) -> None:
         """
         Initialize NetworkConnectionError with  `request` and `response`
@@ -594,7 +591,7 @@ class HashMismatch(HashError):
         self.gots = gots
 
     def body(self) -> str:
-        return "    {}:\n{}".format(self._requirement_name(), self._hash_comparison())
+        return f"    {self._requirement_name()}:\n{self._hash_comparison()}"
 
     def _hash_comparison(self) -> str:
         """
@@ -616,11 +613,9 @@ class HashMismatch(HashError):
         lines: List[str] = []
         for hash_name, expecteds in self.allowed.items():
             prefix = hash_then_or(hash_name)
-            lines.extend(
-                ("        Expected {} {}".format(next(prefix), e)) for e in expecteds
-            )
+            lines.extend((f"        Expected {next(prefix)} {e}") for e in expecteds)
             lines.append(
-                "             Got        {}\n".format(self.gots[hash_name].hexdigest())
+                f"             Got        {self.gots[hash_name].hexdigest()}\n"
             )
         return "\n".join(lines)
 
