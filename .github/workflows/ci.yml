@@ -114,6 +114,7 @@ jobs:
           - "3.10"
           - "3.11"
           - "3.12"
+          - "3.13"
 
     steps:
       - uses: actions/checkout@v4
@@ -167,7 +168,8 @@ jobs:
           # - "3.9"
           # - "3.10"
           # - "3.11"
-          - "3.12"
+          - "3.12"  # Comment out when 3.13 is final
+          - "3.13"
         group: [1, 2]
 
     steps:
