@@ -1,3 +1,20 @@
+```{toctree}
+:maxdepth: 2
+:hidden:
+
+2020-research-outputs/about-our-users
+2020-research-outputs/ci-cd
+2020-research-outputs/improving-pips-documentation
+2020-research-outputs/mdental-models
+2020-research-outputs/override-conflicting-dependencies
+2020-research-outputs/personas
+2020-research-outputs/pip-force-reinstall
+2020-research-outputs/pip-search
+2020-research-outputs/pip-upgrade-conflict
+2020-research-outputs/priorizing-features
+2020-research-outputs/users-and-security
+```
+
 # UX Research Results
 
 ## <a name="2020-research"></a>2020 Research Synthesis
@@ -56,7 +73,7 @@ During the interviews, we asked users about:
 We **published 10 surveys** to gather feedback about pip's users and their preferences:
 
 <div class="wy-table-responsive">
-  <table class="colwidths-auto docutils align-left">
+  <table class="colwidths-auto docutils">
     <thead>
       <tr>
       <th>Title</th>
@@ -66,9 +83,9 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
     </thead>
     <tbody>
       <tr>
-        <th>
+        <td>
           Pip research panel survey
-        </th>
+        </td>
         <td>
           Recruit pip users to participate in user research, user tests and participate in future surveys. See <a href="https://bit.ly/pip-ux-studies">associated blog post</a> for more information.
         </td>
@@ -175,12 +192,12 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
   </table>
 </div>
 
-#### Research Results
+### Research Results
 
 Below is a compiled list of all research outputs and recommendations made by the pip UX team based on the research conducted in 2020.
 
 <div class="wy-table-responsive">
-  <table class="colwidths-auto docutils align-left">
+  <table class="colwidths-auto docutils">
     <thead>
       <tr>
         <th>Title</th>
