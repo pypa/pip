@@ -10,7 +10,7 @@ We want to find out if users understand (or desire) this implicit behaviour.
 
 More information can be found on [this GitHub issue](https://github.com/pypa/pip/issues/8238).
 
-[Skip to recommendations](#recommendations) <!--- TODO: not working fixme -->
+[Skip to recommendations](#recommendations)
 
 ## Research
 

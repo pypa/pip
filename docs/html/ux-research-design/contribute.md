@@ -22,6 +22,3 @@ If you believe that you have found a user experience bug in pip, or you have ide
 
 You can also help improve pip’s user experience by [working on UX issues](https://github.com/pypa/pip/issues?q=is%3Aissue+is%3Aopen+label%3A%22K%3A+UX%22). Issues that are ideal for new contributors are marked with “[good first issue](https://github.com/pypa/pip/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22)”. Explore the
 [UX Guidance](guidance) if you have questions.
-
-Currently, we are also looking for volunteers to move UX recommendations (see
-[results of user research](research-results)) into the issue tracker - either by opening new issues, or by commenting on relevant existing issues.

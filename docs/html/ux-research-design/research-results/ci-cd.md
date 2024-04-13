@@ -10,18 +10,16 @@ Each of these contexts bring different needs: interactive usage requires the rig
 
 We also wanted to know what users used pip for - as part of their software development toolchain, or purely as a software installer (analogous to Ubuntu Aptitude or Mac Appstore). We also asked about their need for pip to build packages from source.
 
-[Skip to recommendations](#recommendations)
-
 ## Research
 
 We created a survey and asked users to give answers to the following statements:
 
-* I use pip in an automated environment (e.g. CI/CD pipelines)
-* I have problems with pip in CI/CD pipelines
-* I use pip interactively (e.g. typing pip commands on the commandline)
-* I make software and use pip as part of my software development workflow
-* I use pip only to install and use Python packages
-* I need pip to build software packages from source
+- I use pip in an automated environment (e.g. CI/CD pipelines)
+- I have problems with pip in CI/CD pipelines
+- I use pip interactively (e.g. typing pip commands on the commandline)
+- I make software and use pip as part of my software development workflow
+- I use pip only to install and use Python packages
+- I need pip to build software packages from source
 
 ## Results
 
