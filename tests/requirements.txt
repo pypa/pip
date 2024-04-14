@@ -1,3 +1,4 @@
+cffi @ https://github.com/python-cffi/cffi/archive/refs/heads/main.zip; python_version > "3.12" # Temporary workaround for Python 3.13 until next CFFI release
 cryptography
 freezegun
 installer
