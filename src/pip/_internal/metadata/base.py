@@ -138,10 +138,10 @@ class BaseDistribution(Protocol):
         raise NotImplementedError()
 
     def __repr__(self) -> str:
-        return f"{self.raw_name} {self.version_str} ({self.location})"
+        return f"{self.raw_name} {self.raw_version} ({self.location})"
 
     def __str__(self) -> str:
-        return f"{self.raw_name} {self.version_str}"
+        return f"{self.raw_name} {self.raw_version}"
 
     @property
     def location(self) -> Optional[str]:
@@ -276,7 +276,7 @@ class BaseDistribution(Protocol):
         raise NotImplementedError()
 
     @property
-    def version_str(self) -> str:
+    def raw_version(self) -> str:
         raise NotImplementedError()
 
     @property

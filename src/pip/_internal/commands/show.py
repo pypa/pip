@@ -139,7 +139,7 @@ def search_packages_info(query: List[str]) -> Generator[_PackageInfo, None, None
 
         yield _PackageInfo(
             name=dist.raw_name,
-            version=dist.version_str,
+            version=dist.raw_version,
             location=dist.location or "",
             editable_project_location=dist.editable_project_location,
             requires=requires,

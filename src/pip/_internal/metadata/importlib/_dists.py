@@ -175,7 +175,7 @@ class Distribution(BaseDistribution):
         return parse_version(self._dist.version)
 
     @property
-    def version_str(self) -> str:
+    def raw_version(self) -> str:
         return self._dist.version
 
     def is_file(self, path: InfoPath) -> bool:
