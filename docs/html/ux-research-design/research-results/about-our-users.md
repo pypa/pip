@@ -131,45 +131,41 @@ Of the 22.6% that responded "Yes" the answers were classified as follows :
 
 NB: This question was included after the survey was published. Total participants was 106, as opposed to all other questions which had 164.
 
-#### Interpreting these Results
-
 The majority of participants did not identify as part of an underrepresented group. However, due to the small sample size these results cannot be seen as representative of the whole pip user base.
 
-##### Participant comments about identifying/not identifying as under-represented
+#### Participant comments about identifying (or not) as under-represented
 
 Here is a sample of noteworthy comments from these different groups:
 
-###### Related to Gender
+##### Related to Gender
 
-> "(I am) LGBTQ/IA+" - Participant 242608909
+> "(I am) LGBTQ/IA+" **- Participant 242608909**
 
-> "I am a 25 year old female Colombian developer." - Participant 242611698
+> "I am a 25 year old female Colombian developer." **- Participant 242611698**
 
-> "Female, 39, no computer science background whatsoever, self taught." - Participant 242614039
+> "Female, 39, no computer science background whatsoever, self taught." **- Participant 242614039**
 
-###### Related to Culture
+##### Related to Culture
 
-> "The hispanic community is quite underrepresented in the web in general" - Participant 242599212
+> "The hispanic community is quite underrepresented in the web in general" **- Participant 242599212**
 
-> "I am a 1st generation Dominican-American. My parents are from the Dominican Republic." - Participant 242769361
+> "I am a 1st generation Dominican-American. My parents are from the Dominican Republic." **- Participant 242769361**
 
-###### Related to Age
+##### Related to Age
 
-> "Older age, I am 50 now." - Participant 242769743
+> "Older age, I am 50 now." **- Participant 242769743**
 
-###### Related to Neurodiversity
+##### Related to Neurodiversity
 
-> "I'm a woman. And autistic. But the latter might not be underrepresented ;)" - Participant 243428773
+> "I'm a woman. And autistic. But the latter might not be underrepresented ;)" **- Participant 243428773**
 
-###### Other
+##### Other Noteworthy Comments
 
-> "Veterans who entered tech post-military" - Participant 243524784
+> "Veterans who entered tech post-military" **- Participant 243524784**
 
-###### Noteworthy answers where the participant did not identify as under-represented (or were not sure)
+> "I'm a young white cis male, so by far not a minority in those aspects. But at the same time I'm from a third world country, Argentina, and that sometimes (and I emphasize, only sometimes) makes me feel like a minority. When participating in our local communities (Python Argentina), I feel clearly not-minority, and with the responsibility of helping minorities, trying to build a more welcoming and fair environment for them. But when I participate in the broader global community, at times I feel underrepresented, seeing it mostly guided by english-s[p]eaking people from first world countries. But if I have to choose, I would say I mostly feel not-minority, because I mostly interact with people from our local communities, where I'm not part of a minority." **- Participant 242592869**
 
-> "I'm a young white cis male, so by far not a minority in those aspects. But at the same time I'm from a third world country, Argentina, and that sometimes (and I emphasize, only sometimes) makes me feel like a minority. When participating in our local communities (Python Argentina), I feel clearly not-minority, and with the responsibility of helping minorities, trying to build a more welcoming and fair environment for them. But when I participate in the broader global community, at times I feel underrepresented, seeing it mostly guided by english-s[p]eaking people from first world countries. But if I have to choose, I would say I mostly feel not-minority, because I mostly interact with people from our local communities, where I'm not part of a minority." - Participant 242592869
-
-> "As a CIS male I conform the majoritarian group in the IT world. I'm hopeful that things are changing everywhere, and will keep changing: inclusion is getting bigger and better, more and more people are starting their careers as devs or similar, disregarding ethnicity and/or sexual orientation and that's great! And we need to keep fighting for that." - Participant 243455292
+> "As a CIS male I conform the majoritarian group in the IT world. I'm hopeful that things are changing everywhere, and will keep changing: inclusion is getting bigger and better, more and more people are starting their careers as devs or similar, disregarding ethnicity and/or sexual orientation and that's great! And we need to keep fighting for that." **- Participant 243455292**
 
 ### Participant Disabilities
 
@@ -187,31 +183,29 @@ The majority of participants (91%) responded that they did not have a disability
 | Yes                                                   | 14                  |
 | Grand Total                                           | 164                 |
 
-#### Types of disabilities mentioned by participants
-
-##### Vision
+#### Vision
 
 Participants who answered yes to this question were partially sighted. Their vision disability was not corrected by glasses, but did not significantly affect their usage of pip.
 
-##### Hearing
+#### Hearing
 
 Five participants identified as having a hearing impairment, or hearing loss. While this disability made participants lives more difficult, it did not affect their usage of pip:
 
-> "Being hard of hearing/impaired makes my life much harder, but so far it never has impacted my usage of pip. Perhaps because I haven‘t used parts of it that would?" - Participant 242934019
+> "Being hard of hearing/impaired makes my life much harder, but so far it never has impacted my usage of pip. Perhaps because I haven‘t used parts of it that would?" **- Participant 242934019**
 
-> "Not at all given that everything happens by text in my console." - Participant 243455292
+> "Not at all given that everything happens by text in my console." **- Participant 243455292**
 
 However it did affect the way they consume pip learning materials: if video is being used for learning or support, they should have captions/subtitles/transcriptions available.
 
-> "any videos released, it is so helpful if there is either a) transcripts, or b) captions." - Participant 243524784
+> "any videos released, it is so helpful if there is either a) transcripts, or b) captions." **- Participant 243524784**
 
-##### Cognitive Disabilities
+#### Cognitive Disabilities
 
 Nine participants expressed cognitive disabilities including undefined mental health conditions, Attention Deficit Hyperactivity Disorder (ADHD), Autism, Aspergers, Dyslexia.
 
 These participants did not explain how their cognitive disabilities affect their usage of pip, however there are guidelines and best practices for designing for people with cognitive disabilities.
 
-##### Physical or Mobility Disability
+#### Physical or Mobility Disability
 
 One participant responded that they had a physical or mobility disability, but did not give detail about it in relation to their usage of pip.
 
