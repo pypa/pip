@@ -1,4 +1,4 @@
-# Prioritizing pip features
+# Prioritizing pip Features
 
 ## Problem
 

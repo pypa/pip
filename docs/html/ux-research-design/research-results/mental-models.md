@@ -1,4 +1,4 @@
-# How users understand pip
+# How Users Understand pip
 
 ## Problem
 
