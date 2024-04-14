@@ -19,8 +19,8 @@ We published a survey with the following introduction:
 <blockquote>
 Imagine you have packages tea and coffee:
 
-tea 1.0.0 depends on water <1.12.
-coffee 1.0.0 depends on water>=1.12
+tea 1.0.0 depends on water <1.12.<br>
+coffee 1.0.0 depends on water>=1.12<br>
 
 Installing tea 1.0.0 and coffee 1.0.0 will cause a conflict because they each rely on different versions of water - this is known as a "dependency conflict".
 

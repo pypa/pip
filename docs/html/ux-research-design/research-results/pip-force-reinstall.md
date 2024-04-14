@@ -19,15 +19,15 @@ To help us understand what users want from the `--force-reinstall` option, we la
 <blockquote>
 You have the requests package and its dependencies installed:
 
-requests==2.22.0
-asgiref==3.2.10
-certifi==2020.6.20
-chardet==3.0.4
-Django==3.1
-idna==2.8
-pytz==2020.1
-sqlparse==0.3.1
-urllib3==1.25.10
+requests==2.22.0<br>
+asgiref==3.2.10<br>
+certifi==2020.6.20<br>
+chardet==3.0.4<br>
+Django==3.1<br>
+idna==2.8<br>
+pytz==2020.1<br>
+sqlparse==0.3.1<br>
+urllib3==1.25.10<br>
 
 You run 'pip install requests --force-reinstall'. What should happen?
 

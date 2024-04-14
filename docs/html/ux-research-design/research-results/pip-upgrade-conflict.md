@@ -13,16 +13,16 @@ We published a [survey](https://bit.ly/2ZqJijr) asking users how they would solv
 <blockquote>
 Imagine you have package tea and coffee with the following dependencies:
 
-tea 1.0.0 - depends on water<1.12
-tea 2.0.0 - depends on water>=1.12
-coffee 1.0.0 - depends on water<1.12
-coffee 2.0.0 - depends on water>=1.12
+tea 1.0.0 - depends on water<1.12<br>
+tea 2.0.0 - depends on water>=1.12<br>
+coffee 1.0.0 - depends on water<1.12<br>
+coffee 2.0.0 - depends on water>=1.12<br>
 
 You have the following packages installed:
 
-tea 1.0.0
-coffee 1.0.0
-water 1.11.0
+tea 1.0.0<br>
+coffee 1.0.0<br>
+water 1.11.0<br>
 
 You ask pip to upgrade tea. What should pip do?
 
