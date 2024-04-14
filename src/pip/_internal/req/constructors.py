@@ -132,8 +132,8 @@ def parse_editable(editable_req: str) -> Tuple[Optional[str], str, Set[str]]:
     package_name = link.egg_fragment
     if not package_name:
         raise InstallationError(
-            "Could not detect requirement name for '{}', please specify one "
-            "with #egg=your_package_name".format(editable_req)
+            f"Could not detect requirement name for '{editable_req}', "
+            "please specify one with #egg=your_package_name"
         )
     return package_name, url, set()
 
