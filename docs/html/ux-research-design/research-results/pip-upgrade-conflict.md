@@ -28,7 +28,7 @@ You ask pip to upgrade tea. What should pip do?
 
 If pip upgrades tea to 2.0.0, water needs to be upgraded as well, creating a conflict with coffee...
 
-<blockquote>
+</blockquote>
 
 We gave users four choices:
 
@@ -39,7 +39,7 @@ We gave users four choices:
 
 We allowed users to post their own solution, and asked why they came to their decision.
 
-## Response
+## Results
 
 In total, we received 693 responses, 407 of which included an explanation of why a particular solution was best.
 

@@ -16,7 +16,7 @@ More information can be found on [this GitHub issue](https://github.com/pypa/pip
 
 To help us understand what users want from the `--force-reinstall` option, we launched a survey with the following scenario:
 
-```
+<blockquote>
 You have the requests package and its dependencies installed:
 
 requests==2.22.0
@@ -30,7 +30,8 @@ sqlparse==0.3.1
 urllib3==1.25.10
 
 You run 'pip install requests --force-reinstall'. What should happen?
-```
+
+</blockquote>
 
 Respondents could choose from one of the following options:
 
@@ -44,7 +45,7 @@ Respondents could choose from one of the following options:
 
 We also asked how useful `pip --force-reinstall` is, and how often it is used.
 
-## Response
+## Results
 
 In total we received 190 responses to our survey, with 186 people telling us what pip should do when the `--force-reinstall` option is executed.
 

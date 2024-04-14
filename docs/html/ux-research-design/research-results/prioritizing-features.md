@@ -11,7 +11,7 @@ For the team to prioritize their work based on what will have the most impact, w
 
 To help answer this question, we developed a "buy a feature" survey, with the following scenario:
 
-```
+<blockquote>
 Help us to understand what's important to you by participating in our "buy a feature" game:
 
 You have an allocated budget of $200 to spend on redesigning pip.
@@ -19,7 +19,8 @@ You have an allocated budget of $200 to spend on redesigning pip.
 With your $200 budget, "buy" the functionality you'd most like to keep.
 
 You don't have to spend the whole $200, but you should also not overspend your budget!
-```
+
+</blockquote>
 
 We asked users to spend their first $100 on features related to `pip install`, and to spend their remaining $100 on other pip features. We also gave users an additional $10 to suggest a new feature:
 
@@ -29,7 +30,7 @@ We asked users to spend their first $100 on features related to `pip install`, a
 
 ![survey question where users are asked to spend an additional ten dollars](https://i.imgur.com/hvgjdEG.png)
 
-## Response
+## Results
 
 We received 1076 responses, 1070 of which were valid. The most popular features included the core competencies of pip:
 

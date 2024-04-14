@@ -39,7 +39,7 @@ We also:
    Unfortunatly, we did not gather any useful feedback via this effort
 3. [Installed analytics on the pip docs](https://github.com/pypa/pip/pull/9146). We are waiting for this to be merged and start providing useful data.
 
-## Response / results
+## Results
 
 In total, we:
 
@@ -521,7 +521,7 @@ _Suggested content:_
 
 </details>
 
-## Future research suggestions
+### Future research suggestions
 
 To continue to improve pip's documentation, we suggest:
 

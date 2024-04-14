@@ -66,7 +66,7 @@ They thought about where the software would be used, who would use it, and possi
 
 > Yes, because I'm liable for that. If the problem is my code, and I deliver something and they get attacked. I'm screwed. **- Participant (professional Python developer and trainer)**
 
-### Reliance on software packages
+#### Reliance on software packages
 
 Participants also explained they rely on code security scanning and checking software packages.
 
@@ -74,7 +74,7 @@ Participants also explained they rely on code security scanning and checking sof
 
 > "I use Hypothesis for fuzz-testing."
 
-### Reliance on good software development practices
+#### Reliance on good software development practices
 
 A small number of participants e### Selected quotes from research participants
 xplained they have good software practices in place, which help with writing secure software.
@@ -113,25 +113,25 @@ Use of well-established, high-quality packages was a common reason amongst all t
 - are developed in the open, and transparently
 - their history is known, or can be found out publicly
 
-### Reliance on the Python community to find issues
+#### Reliance on the Python community to find issues
 
 There was a reliance on the community to find issues and make them know publicly - "Many eyes shallow bugs".
 
 > "I rarely do code audits. Most of the time I rely on the opinions of the community. I look at how many maintainers there are. Maybe it's not good practice but I don't have time to go through the code." **- Participant 240315091**
 
-### Use of only internal packages
+#### Use of only internal packages
 
 > "I only install internal packages, so I don't need to worry about this."
 
 This theme was not that common, mainly in large software development environments or where security was of high importance.
 
-### Expectation that pip audits packages
+#### Expectation that pip audits packages
 
 Some users expect/assume that pip (and PyPI) should "protect" them from malicious actors - e.g. by automatically checking hashes, or detecting malicious packages.
 
 > "If I was downloading a package on my own I check the hash, if it's installed by pip, then no. I expect pip to do it. If it doesn't do it, it does surprise me. Every package manager checks the hash against what it downloads. The hashes are already known on pypi." **- Participant 240312164 (Nuclear physicist)**
 
-### User thoughts on security audits, security guidance and hash checking
+#### Other notable comments
 
 > "Never. I should but I never do [audit code]. I don't stray, I am risk adverse. I install packages that are good already. I consider my risk surface small. I don't have time or resources to audit them. I have sufficient faith in the ecosystem to be self-auditing. If something turned up in a well known package, the community is well known for making a stink. And anyway a code audit wouldn't pick it up." **- Participant 240326752 (professional Python developer)**
 

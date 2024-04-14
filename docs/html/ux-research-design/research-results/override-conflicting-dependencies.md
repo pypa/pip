@@ -42,7 +42,7 @@ We then asked users:
   - How easy it would be to find a workaround, if pip did not provide an override
   - What syntax they prefer
 
-## Response
+## Results
 
 In total, we received 415 responses to the survey.
 

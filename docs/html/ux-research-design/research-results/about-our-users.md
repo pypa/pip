@@ -74,7 +74,7 @@ Fig. X: Global distribution of pip research participants.
 | Austria                  | 1                      |
 | Total                    | 164                    |
 
-### Participant's First Language
+#### Participant's First Language
 
 Even though the research was carried out mainly in English, 51% of participants spoke languages other than English.
 

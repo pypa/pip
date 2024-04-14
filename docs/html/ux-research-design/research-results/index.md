@@ -1,21 +1,5 @@
 # UX Research Results
 
-```{toctree}
-:hidden:
-
-about-our-users
-mental-models
-users-and-security
-ci-cd
-personas
-prioritizing-features
-override-conflicting-dependencies
-pip-force-reinstall
-pip-search
-pip-upgrade-conflict
-improving-pips-documentation
-```
-
 ## <a name="2020-research"></a>2020 Research Synthesis
 
 Over the course of 2020, the pip team worked on improving pip's user experience, developing a better understanding of pip's UX challenges and opportunities, with a particular focus on pip's new dependency resolver. The [Simply Secure](https://simplysecure.org/) team focused on 4 key areas:

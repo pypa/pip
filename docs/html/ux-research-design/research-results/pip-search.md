@@ -19,7 +19,7 @@ Prior to PyPI XMLRPC search being disabled, we:
   - What data pip should search _other_ than project name
   - What changes or additions they would make to pip search
 
-## Response
+## Results
 
 In total, we received 1070 responses to the buy a feature survey, with 541 (50.4%) respondents selecting "Search pypi.org for packages" in their top 10 features.
 
