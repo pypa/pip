@@ -1,5 +1,6 @@
 """Basic CLI functionality checks.
 """
+
 import subprocess
 import sys
 from pathlib import Path

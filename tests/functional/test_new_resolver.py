@@ -930,8 +930,7 @@ if TYPE_CHECKING:
             version: str,
             requires: List[str],
             extras: Dict[str, List[str]],
-        ) -> str:
-            ...
+        ) -> str: ...
 
 
 def _local_with_setup(
