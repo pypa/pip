@@ -1,7 +1,5 @@
 # UX Research Results
 
-## <a name="2020-research"></a>2020 Research Synthesis
-
 Over the course of 2020, the pip team worked on improving pip's user experience, developing a better understanding of pip's UX challenges and opportunities, with a particular focus on pip's new dependency resolver. The [Simply Secure](https://simplysecure.org/) team focused on 4 key areas:
 
 - [Understanding who uses pip](https://github.com/pypa/pip/issues/8518)
@@ -22,15 +20,13 @@ Some key outcomes from the 2020 work are:
 
 This work was made possible through the [pip donor funded roadmap](https://wiki.python.org/psf/Pip2020DonorFundedRoadmap).
 
-## Research Methods
-
-### Outreach
+## Outreach
 
 We [recruited participants](https://www.ei8fdb.org/thoughts/2020/03/pip-ux-study-recruitment/) for a user research panel that we could contact when we wanted to run surveys and interviews about pip. In total 472 people signed up to the panel, although some unsubscribed during the research period.
 
 At the end of the 2020 research, we asked users to opt-in to a [long-term panel](https://mail.python.org/mailman3/lists/pip-ux-studies.python.org/), where they can be contacted for future UX studies. Should the pip team wish to continue to build this panel, we recommend translating the sign-up form into multiple languages and better leveraging local communities and outreach groups (e.g. PyLadies) to increase the diversity of the participants.
 
-### User Interviews
+## User Interviews
 
 In total, we **interviewed 48 pip users**, recruited from the user panel, and through social media channels.
 
@@ -51,7 +47,7 @@ During the interviews, we asked users about:
 - What other technical documentation they value, and how the pip docs could take inspiration from these
 - What other resources the pip team could provide to help pip users solve their problems
 
-### <a name="survey-results"></a>Surveys
+## Surveys
 
 We **published 10 surveys** to gather feedback about pip's users and their preferences:
 
