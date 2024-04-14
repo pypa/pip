@@ -112,7 +112,7 @@ Below is a brief guide to building a survey for pip:
       <li>Does the survey need to be translated into other languages to reach a broader set of the community?</li>
       <li>Are you able to compensate people for their time?</li>
       <li>Do participants want to be acknowledged as contributors?</li>
-    <ul>
+    </ul>
   </li>
   <li>
     <strong>Launch and promote your survey</strong><br>
@@ -228,7 +228,7 @@ Below is a brief guide to running an interview for pip:
   </li>
   <li>
     <strong>Pilot interview with 1-2 people & modify based on their feedback</strong>
-  <li>
+  </li>
   <li>
     <strong>Determine how to do outreach for interviews</strong><br/>
     <ul>
@@ -316,12 +316,6 @@ We found Twitter to be a very effective platform for engaging with the Python co
 3. Explicitly asking for retweets within tweets
 4. Responding to users within Twitter
 
-#### Not recommended: Forums (Discourse, etc)
-
-We used [discuss.python.org](https://discuss.python.org/) several times, posting to the [packaging forum](https://discuss.python.org/c/packaging/14) to ask packaging maintainers about their views on pip's functionality. Unfortunately, this was not as fruitful as we hoped, with very few responses. We found that engaging with packaging maintainers via Twitter was more effective.
-
-Posting surveys on Reddit was also not as useful as we had expected. If the user posting the survey or call for research participation does not have significant credit on Reddit, then the posting process itself can be challenging. Overall we did not see as much engagement in surveys or interviews come from Reddit relative to other outreach means.
-
 #### Recommended: Specific Interest Groups
 
 We engaged with the [PyLadies](https://pyladies.com/) community via their [Slack channel](https://slackin.pyladies.com/) to drive more participation from women using pip, as we found this demographic more difficult to reach via other channels
@@ -333,6 +327,12 @@ Due to the 2020 Global Pandemic we were unable to engage with users via PyCon (o
 #### Worth Exploring: Adding a prompt/path into pip's 'help' command
 
 We didn't have a chance to explore this opportunity, but the idea came up during workshops in December 2020 with Pypa Maintainers, and could be a great way to engage users and help point them towards opportunities to contribute.
+
+#### Not recommended: Forums (Discourse, etc)
+
+We used [discuss.python.org](https://discuss.python.org/) several times, posting to the [packaging forum](https://discuss.python.org/c/packaging/14) to ask packaging maintainers about their views on pip's functionality. Unfortunately, this was not as fruitful as we hoped, with very few responses. We found that engaging with packaging maintainers via Twitter was more effective.
+
+Posting surveys on Reddit was also not as useful as we had expected. If the user posting the survey or call for research participation does not have significant credit on Reddit, then the posting process itself can be challenging. Overall we did not see as much engagement in surveys or interviews come from Reddit relative to other outreach means.
 
 ## User Interface Design
 
