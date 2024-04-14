@@ -2,6 +2,7 @@
 Tests for compatibility workarounds.
 
 """
+
 import os
 from pathlib import Path
 

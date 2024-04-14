@@ -126,8 +126,7 @@ class DoAutocomplete(Protocol):
         cwd: Union[Path, str, None] = None,
         include_env: bool = True,
         expect_error: bool = True,
-    ) -> Tuple[TestPipResult, PipTestEnvironment]:
-        ...
+    ) -> Tuple[TestPipResult, PipTestEnvironment]: ...
 
 
 @pytest.fixture

@@ -115,7 +115,6 @@ class RemoteNotValidError(Exception):
 
 
 class RevOptions:
-
     """
     Encapsulates a VCS-specific revision to install, along with any VCS
     install options.
