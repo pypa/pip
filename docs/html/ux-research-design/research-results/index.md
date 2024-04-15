@@ -192,12 +192,12 @@ improving-pips-documentation
 ## Read More
 
 - [Pip team midyear report (blog, July 2020)](https://pyfound.blogspot.com/2020/07/pip-team-midyear-report.html)
-- [Creating rapid CLI prototypes with cli-output (blog, Oct 2020)](https://www.ei8fdb.org/thoughts/2020/10/prototyping-command-line-interfaces-with-cli-output/)
+- [Creating rapid CLI prototypes with cli-output (blog, Oct 2020)](https://www.ei8fdb.org/prototyping-command-line-interfaces-with-cli-output/)
 - [Changes are coming to pip (video)](https://www.youtube.com/watch?v=B4GQCBBsuNU)
-- [How should pip handle dependency conflicts when updating already installed packages? (blog, July 2020)](https://www.ei8fdb.org/thoughts/2020/07/how-should-pip-handle-conflicts-when-updating-already-installed-packages/)
-- [Test pip's alpha resolver and help us document dependency conflicts (blog, May 2020)](https://www.ei8fdb.org/thoughts/2020/05/test-pips-alpha-resolver-and-help-us-document-dependency-conflicts/)
-- [How do you deal with conflicting dependencies caused by pip installs? (blog, April 2020)](https://www.ei8fdb.org/thoughts/2020/04/how-do-you-deal-with-conflicting-dependencies-caused-by-pip-installs/)
-- [pip UX studies: response data (blog, March 2020)](https://www.ei8fdb.org/thoughts/2020/03/pip-ux-studies-response-data/)
+- [How should pip handle dependency conflicts when updating already installed packages? (blog, July 2020)](https://www.ei8fdb.org/how-should-pip-handle-conflicts-when-updating-already-installed-packages/)
+- [Test pip's alpha resolver and help us document dependency conflicts (blog, May 2020)](https://www.ei8fdb.org/test-pips-alpha-resolver-and-help-us-document-dependency-conflicts/)
+- [How do you deal with conflicting dependencies caused by pip installs? (blog, April 2020)](https://www.ei8fdb.org/how-do-you-deal-with-conflicting-dependencies-caused-by-pip-installs/)
+- [pip UX studies: response data (blog, March 2020)](https://www.ei8fdb.org/pip-ux-studies-response-data/)
 
 Other PyPA UX work:
 

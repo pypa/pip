@@ -383,7 +383,7 @@ An in-depth write up on how the pip personas were created, and how they can be a
 
 In any UX project, it is important to prototype and test interfaces with real users. This provides the team with a feedback loop, and ensures that the solution shipped to the end user meets their needs.
 
-Prototyping CLIs can be a challenge. See [Creating rapid CLI prototypes with cli-output](https://www.ei8fdb.org/thoughts/2020/10/prototyping-command-line-interfaces-with-cli-output/) for recommendations.
+Prototyping CLIs can be a challenge. See [Creating rapid CLI prototypes with cli-output](https://www.ei8fdb.org/prototyping-command-line-interfaces-with-cli-output/) for recommendations.
 
 #### Copywriting Style Guides
 
