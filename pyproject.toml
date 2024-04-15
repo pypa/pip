@@ -20,6 +20,7 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
+  "banana"
 ]
 authors = [
   {name = "The pip developers", email = "distutils-sig@python.org"},
