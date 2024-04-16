@@ -10,10 +10,17 @@ from pip._vendor import requests
 
 from pip import __version__
 from pip._internal.models.link import Link
-from pip._internal.network.session import CI_ENVIRONMENT_VARIABLES, PipSession
+from pip._internal.network.session import (
+    CI_ENVIRONMENT_VARIABLES,
+    PipSession,
+    user_agent,
+)
 
 
 def get_user_agent() -> str:
+    # These tests are testing the computation of the user agent, so we want to
+    # avoid reusing cached values.
+    user_agent.cache_clear()
     return PipSession().headers["User-Agent"]
 
 
@@ -58,7 +65,7 @@ def test_user_agent__ci(
 
 def test_user_agent_user_data(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PIP_USER_AGENT_USER_DATA", "some_string")
-    assert "some_string" in PipSession().headers["User-Agent"]
+    assert "some_string" in get_user_agent()
 
 
 class TestPipSession:

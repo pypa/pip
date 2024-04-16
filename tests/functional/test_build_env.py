@@ -24,9 +24,10 @@ def run_with_build_env(
     test_script_contents: Optional[str] = None,
 ) -> TestPipResult:
     build_env_script = script.scratch_path / "build_env.py"
+    scratch_path = str(script.scratch_path)
     build_env_script.write_text(
         dedent(
-            """
+            f"""
             import subprocess
             import sys
 
@@ -42,7 +43,7 @@ def run_with_build_env(
 
             link_collector = LinkCollector(
                 session=PipSession(),
-                search_scope=SearchScope.create([{scratch!r}], [], False),
+                search_scope=SearchScope.create([{scratch_path!r}], [], False),
             )
             selection_prefs = SelectionPreferences(
                 allow_yanked=True,
@@ -54,9 +55,7 @@ def run_with_build_env(
 
             with global_tempdir_manager():
                 build_env = BuildEnvironment()
-            """.format(
-                scratch=str(script.scratch_path)
-            )
+            """
         )
         + indent(dedent(setup_script_contents), "    ")
         + indent(

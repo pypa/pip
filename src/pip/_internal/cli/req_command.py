@@ -66,7 +66,6 @@ def _create_truststore_ssl_context() -> Optional["SSLContext"]:
 
 
 class SessionCommandMixin(CommandContextMixIn):
-
     """
     A class mixin for command classes needing _build_session().
     """
@@ -145,6 +144,7 @@ class SessionCommandMixin(CommandContextMixIn):
                 "http": options.proxy,
                 "https": options.proxy,
             }
+            session.trust_env = False
 
         # Determine if we can prompt the user for authentication or not
         session.auth.prompting = not options.no_input
@@ -154,7 +154,6 @@ class SessionCommandMixin(CommandContextMixIn):
 
 
 class IndexGroupCommand(Command, SessionCommandMixin):
-
     """
     Abstract base class for commands with the index_group options.
 
@@ -219,9 +218,12 @@ def warn_if_run_as_root() -> None:
 
     logger.warning(
         "Running pip as the 'root' user can result in broken permissions and "
-        "conflicting behaviour with the system package manager. "
+        "conflicting behaviour with the system package manager, possibly "
+        "rendering your system unusable."
         "It is recommended to use a virtual environment instead: "
-        "https://pip.pypa.io/warnings/venv"
+        "https://pip.pypa.io/warnings/venv. "
+        "Use the --root-user-action option if you know what you are doing and "
+        "want to suppress this warning."
     )
 
 
@@ -438,9 +440,11 @@ class RequirementCommand(IndexGroupCommand):
                     isolated=options.isolated_mode,
                     use_pep517=options.use_pep517,
                     user_supplied=True,
-                    config_settings=parsed_req.options.get("config_settings")
-                    if parsed_req.options
-                    else None,
+                    config_settings=(
+                        parsed_req.options.get("config_settings")
+                        if parsed_req.options
+                        else None
+                    ),
                 )
                 requirements.append(req_to_add)
 
