@@ -66,6 +66,7 @@ body:
         the line containing the command with `$ `. Please also ensure that
         the "How to reproduce" section contains matching instructions for
         reproducing this.
+      render: shell
 
   - type: checkboxes
     attributes:
