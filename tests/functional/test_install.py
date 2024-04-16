@@ -1731,7 +1731,7 @@ def test_install_builds_wheels(script: PipTestEnvironment, data: TestData) -> No
     assert "Building wheel for wheelb" in str(res), str(res)
     assert "Failed to build wheelbroken" in str(res), str(res)
     # Wheels are built for local directories, but not cached.
-    assert "Building wheel for requir" in str(res), str(res)
+    assert "Building wheel for require" in str(res), str(res)
     # into the cache
     assert wheels != [], str(res)
     assert wheels == [
@@ -1754,7 +1754,7 @@ def test_install_no_binary_builds_wheels(
     )
     # Wheels are built for all requirements
     assert "Building wheel for wheelb" in str(res), str(res)
-    assert "Building wheel for requir" in str(res), str(res)
+    assert "Building wheel for require" in str(res), str(res)
     assert "Building wheel for upper" in str(res), str(res)
     # Wheelbroken failed to build
     assert "Failed to build wheelbroken" in str(res), str(res)

@@ -304,7 +304,7 @@ Improved Documentation
 
 - Cross-reference the ``--python`` flag from the ``--prefix`` flag,
   and mention limitations of ``--prefix`` regarding script installation. (`#11775 <https://github.com/pypa/pip/issues/11775>`_)
-- Add SECURITY.md to make the policy offical. (`#11809 <https://github.com/pypa/pip/issues/11809>`_)
+- Add SECURITY.md to make the policy official. (`#11809 <https://github.com/pypa/pip/issues/11809>`_)
 - Add username to Git over SSH example. (`#11838 <https://github.com/pypa/pip/issues/11838>`_)
 - Quote extras in the pip install docs to guard shells with default glob
   qualifiers, like zsh. (`#11842 <https://github.com/pypa/pip/issues/11842>`_)

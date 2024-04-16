@@ -1,0 +1,8 @@
+# An actual English word
+lousily
+# A contributor first name
+wil
+# Codebase variable or class names
+uptodate
+afile
+failer
