@@ -180,7 +180,7 @@ Making software was as defined earlier as "are you working on something reusable
 
 > "I have written software, sometimes for business and personal reasons. At one point I worked on a django website project, that was being used by 1000s of people. I don't think any of my live projects are based.
 
-> "Most of it is for sysadmin, automation. I lke to use python instead of shell scripting. I manage a server with wordpress sites. I wrote a script to update these sites, mailman list and sql DB management, and for different utilities." **- Participant 240313542**
+> "Most of it is for sysadmin, automation. I [like] to use python instead of shell scripting. I manage a server with wordpress sites. I wrote a script to update these sites, mailman list and sql DB management, and for different utilities." **- Participant 240313542**
 
 > "I use Python for creating things - like outputs for data scientist, software engineer. I make software to look at patterns, and analyse stuff. I think I'm a maker because someone else is using - they are colleagues. Usually its non-technical colleagues. I produce outputs - make data understandable. They use the results, or a package it behind a flask app. Or analyse graphs." **- Participant 240426799**
 
