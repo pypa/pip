@@ -107,7 +107,6 @@ class LinkType(enum.Enum):
 
 
 class LinkEvaluator:
-
     """
     Responsible for evaluating links for a particular project.
     """
@@ -376,7 +375,6 @@ class BestCandidateResult:
 
 
 class CandidateEvaluator:
-
     """
     Responsible for filtering and sorting candidates for installation based
     on what tags are valid.

@@ -3,6 +3,8 @@ import pathlib
 import re
 import textwrap
 
+import pytest
+
 from pip import __version__
 from pip._internal.commands.show import search_packages_info
 from pip._internal.utils.unpacking import untar_file
@@ -387,3 +389,23 @@ def test_show_deduplicate_requirements(script: PipTestEnvironment) -> None:
     result = script.pip("show", "simple", cwd=pkg_path)
     lines = result.stdout.splitlines()
     assert "Requires: pip" in lines
+
+
+@pytest.mark.parametrize(
+    "project_url", ["Home-page", "home-page", "Homepage", "homepage"]
+)
+def test_show_populate_homepage_from_project_urls(
+    script: PipTestEnvironment, project_url: str
+) -> None:
+    pkg_path = create_test_package_with_setup(
+        script,
+        name="simple",
+        version="1.0",
+        project_urls={project_url: "https://example.com"},
+    )
+    script.run("python", "setup.py", "egg_info", expect_stderr=True, cwd=pkg_path)
+    script.environ.update({"PYTHONPATH": pkg_path})
+
+    result = script.pip("show", "simple", cwd=pkg_path)
+    lines = result.stdout.splitlines()
+    assert "Home-page: https://example.com" in lines
