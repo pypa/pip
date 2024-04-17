@@ -39,20 +39,20 @@ Examples
 
       .. code-block:: console
 
-         $ python -m pip uninstall simplejson
-         Uninstalling simplejson:
-            /home/me/env/lib/python3.9/site-packages/simplejson
-            /home/me/env/lib/python3.9/site-packages/simplejson-2.2.1-py3.9.egg-info
+         $ python -m pip uninstall sampleproject
+         Uninstalling sampleproject:
+            /home/me/env/lib/python3.9/site-packages/sampleproject
+            /home/me/env/lib/python3.9/site-packages/sampleproject-2.2.1-py3.9.egg-info
          Proceed (Y/n)? y
-            Successfully uninstalled simplejson
+            Successfully uninstalled sampleproject
 
    .. tab:: Windows
 
       .. code-block:: console
 
-         C:\> py -m pip uninstall simplejson
-         Uninstalling simplejson:
-            /home/me/env/lib/python3.9/site-packages/simplejson
-            /home/me/env/lib/python3.9/site-packages/simplejson-2.2.1-py3.9.egg-info
+         C:\> py -m pip uninstall sampleproject
+         Uninstalling sampleproject:
+            /home/me/env/lib/python3.9/site-packages/sampleproject
+            /home/me/env/lib/python3.9/site-packages/sampleproject-2.2.1-py3.9.egg-info
          Proceed (Y/n)? y
-            Successfully uninstalled simplejson
+            Successfully uninstalled sampleproject
