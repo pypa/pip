@@ -102,7 +102,8 @@ Modifications
 * ``pkg_resources`` has been modified to import its dependencies from
   ``pip._vendor``, and to use the vendored copy of ``platformdirs``
   rather than ``appdirs``.
-* ``packaging`` has been modified to import its dependencies from
+* ``packaging`` has been modified to to backport `pypa/packaging#728 <https://github.com/pypa/packaging/pull/728>`_
+  in order to support the free-threaded CPython 3.13 build.
   ``pip._vendor``.
 * ``CacheControl`` has been modified to import its dependencies from
   ``pip._vendor``.
