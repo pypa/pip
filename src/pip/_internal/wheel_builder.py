@@ -273,50 +273,34 @@ def _build_one_inside_env(
         return None
 
 
-def _clean_one_legacy(req: InstallRequirement, global_options: List[str]) -> bool:
-    clean_args = make_setuptools_clean_args(
-        req.setup_py_path,
-        global_options=global_options,
-    )
+def _clean_one(req: InstallRequirement, global_options: List[str]) -> bool:
+    clean_args = make_setuptools_clean_args(req.setup_py_path, global_options=global_options)
 
-    logger.info("Running setup.py clean for %s", req.name)
     try:
-        call_subprocess(
-            clean_args, command_desc="python setup.py clean", cwd=req.source_dir
-        )
+        call_subprocess(clean_args, cwd=req.source_dir)
         return True
     except Exception:
-        logger.error("Failed cleaning build dir for %s", req.name)
         return False
 
 
 def build(
-    requirements: Iterable[InstallRequirement],
+    reqs: Iterable[InstallRequirement],
     wheel_cache: WheelCache,
     verify: bool,
     build_options: List[str],
     global_options: List[str],
 ) -> BuildResult:
-    """Build wheels.
-
-    :return: The list of InstallRequirement that succeeded to build and
-        the list of InstallRequirement that failed to build.
-    """
-    if not requirements:
+    """Build wheels."""
+    if not reqs:
         return [], []
 
-    # Build the wheels.
-    logger.info(
-        "Building wheels for collected packages: %s",
-        ", ".join(req.name for req in requirements),  # type: ignore
-    )
+    logger.info("Building wheels for collected packages: %s", " ".join(req.name for req in reqs))
 
     with indent_log():
-        build_successes, build_failures = [], []
-        for req in requirements:
-            assert req.name
+        built, failed = [], []
+        for req in reqs:
             cache_dir = _get_cache_dir(req, wheel_cache)
-            wheel_file = _build_one(
+            wheel_path = _build_one(
                 req,
                 cache_dir,
                 verify,
@@ -324,31 +308,16 @@ def build(
                 global_options,
                 req.editable and req.permit_editable_wheels,
             )
-            if wheel_file:
-                # Record the download origin in the cache
-                if req.download_info is not None:
-                    # download_info is guaranteed to be set because when we build an
-                    # InstallRequirement it has been through the preparer before, but
-                    # let's be cautious.
-                    wheel_cache.record_download_origin(cache_dir, req.download_info)
-                # Update the link for this.
-                req.link = Link(path_to_url(wheel_file))
+            if wheel_path:
+                wheel_cache.record_download_origin(cache_dir, req.download_info)
+                req.link = Link(path_to_url(wheel_path))
                 req.local_file_path = req.link.file_path
-                assert req.link.is_wheel
-                build_successes.append(req)
+                built.append(req)
             else:
-                build_failures.append(req)
+                failed.append(req)
 
-    # notify success/failure
-    if build_successes:
-        logger.info(
-            "Successfully built %s",
-            " ".join([req.name for req in build_successes]),  # type: ignore
-        )
-    if build_failures:
-        logger.info(
-            "Failed to build %s",
-            " ".join([req.name for req in build_failures]),  # type: ignore
-        )
-    # Return a list of requirements that failed to build
-    return build_successes, build_failures
+    logger.info("Successfully built %s", " ".join(req.name for req in built))
+    if failed:
+        logger.info("Failed to build %s", " ".join(req.name for req in failed))
+    return built, failed
+

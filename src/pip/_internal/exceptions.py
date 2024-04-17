@@ -422,20 +422,17 @@ class HashErrors(InstallationError):
     """Multiple HashError instances rolled into one for reporting"""
 
     def __init__(self) -> None:
-        self.errors: List["HashError"] = []
+        self.errors = []
 
     def append(self, error: "HashError") -> None:
         self.errors.append(error)
 
     def __str__(self) -> str:
         lines = []
-        self.errors.sort(key=lambda e: e.order)
-        for cls, errors_of_cls in groupby(self.errors, lambda e: e.__class__):
+        for cls, errors_of_cls in groupby(sorted(self.errors, key=lambda e: e.order), lambda e: e.__class__):
             lines.append(cls.head)
-            lines.extend(e.body() for e in errors_of_cls)
-        if lines:
-            return "\n".join(lines)
-        return ""
+            lines.extend(e.body for e in errors_of_cls)
+        return "\n".join(lines)
 
     def __bool__(self) -> bool:
         return bool(self.errors)
@@ -452,38 +449,23 @@ class HashError(InstallationError):
         deterministic order.
     :cvar head: A section heading for display above potentially many
         exceptions of this kind
-    :ivar req: The InstallRequirement that triggered this error. This is
-        pasted on after the exception is instantiated, because it's not
-        typically available earlier.
 
     """
 
-    req: Optional["InstallRequirement"] = None
-    head = ""
     order: int = -1
+    head = ""
 
+    @property
     def body(self) -> str:
-        """Return a summary of me for display under the heading.
-
-        This default implementation simply prints a description of the
-        triggering requirement.
-
-        :param req: The InstallRequirement that provoked this error, with
-            its link already populated by the resolver's _populate_link().
-
-        """
-        return f"    {self._requirement_name()}"
+        """Return a summary of me for display under the heading."""
+        return f"    {self._requirement_name}"
 
     def __str__(self) -> str:
-        return f"{self.head}\n{self.body()}"
+        return f"{self.head}\n{self.body}"
 
+    @property
     def _requirement_name(self) -> str:
-        """Return a description of the requirement that triggered me.
-
-        This default implementation returns long description of the req, with
-        line numbers
-
-        """
+        """Return a description of the requirement that triggered me."""
         return str(self.req) if self.req else "unknown package"
 
 
@@ -507,7 +489,6 @@ class DirectoryUrlHashUnsupported(HashError):
         "Can't verify hashes for these file:// requirements because they "
         "point to directories:"
     )
-
 
 class HashMissing(HashError):
     """A hash was needed for a requirement but is absent."""
