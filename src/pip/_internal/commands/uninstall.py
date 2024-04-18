@@ -6,7 +6,7 @@ from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
-from pip._internal.cli.req_command import SessionCommandMixin
+from pip._internal.cli.index_command import SessionCommandMixin
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.exceptions import InstallationError
 from pip._internal.req import parse_requirements

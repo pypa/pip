@@ -57,8 +57,7 @@ def test_entrypoints_work(entrypoint: str, script: PipTestEnvironment) -> None:
     sorted(
         set(commands_dict).symmetric_difference(
             # Exclude commands that are expected to use the network.
-            # TODO: uninstall and list should only import network modules as needed
-            {"install", "uninstall", "download", "search", "index", "wheel", "list"}
+            {"install", "download", "search", "index", "wheel"}
         )
     ),
 )
