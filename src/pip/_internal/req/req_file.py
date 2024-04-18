@@ -26,7 +26,6 @@ from pip._internal.cli import cmdoptions
 from pip._internal.exceptions import InstallationError, RequirementsFileParseError
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.utils.encoding import auto_decode
-from pip._internal.utils.urls import get_url_scheme
 
 if TYPE_CHECKING:
     from pip._internal.index.package_finder import PackageFinder
@@ -533,8 +532,7 @@ def get_file_content(url: str, session: "PipSession") -> Tuple[str, str]:
     :param url:         File path or url.
     :param session:     PipSession instance.
     """
-    scheme = get_url_scheme(url)
-
+    scheme = urllib.parse.urlsplit(url).scheme
     # Pip has special support for file:// URLs (LocalFSAdapter).
     if scheme in ["http", "https", "file"]:
         # Delay importing heavy network modules until absolutely necessary.
