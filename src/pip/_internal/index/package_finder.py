@@ -5,6 +5,7 @@ import functools
 import itertools
 import logging
 import re
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, FrozenSet, Iterable, List, Optional, Set, Tuple, Union
 
 from pip._vendor.packaging import specifiers
@@ -322,22 +323,15 @@ def filter_unallowed_hashes(
     return filtered
 
 
+@dataclass
 class CandidatePreferences:
     """
     Encapsulates some of the preferences for filtering and sorting
     InstallationCandidate objects.
     """
 
-    def __init__(
-        self,
-        prefer_binary: bool = False,
-        allow_all_prereleases: bool = False,
-    ) -> None:
-        """
-        :param allow_all_prereleases: Whether to allow all pre-releases.
-        """
-        self.allow_all_prereleases = allow_all_prereleases
-        self.prefer_binary = prefer_binary
+    prefer_binary: bool = False
+    allow_all_prereleases: bool = False
 
 
 class BestCandidateResult:

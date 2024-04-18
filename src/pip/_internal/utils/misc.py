@@ -11,6 +11,7 @@ import stat
 import sys
 import sysconfig
 import urllib.parse
+from dataclasses import dataclass
 from functools import partial
 from io import StringIO
 from itertools import filterfalse, tee, zip_longest
@@ -580,10 +581,10 @@ def redact_auth_from_requirement(req: Requirement) -> str:
     return str(req).replace(req.url, redact_auth_from_url(req.url))
 
 
+@dataclass(frozen=True)
 class HiddenText:
-    def __init__(self, secret: str, redacted: str) -> None:
-        self.secret = secret
-        self.redacted = redacted
+    secret: str
+    redacted: str
 
     def __repr__(self) -> str:
         return f"<HiddenText {str(self)!r}>"

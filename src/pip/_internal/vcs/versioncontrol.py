@@ -5,6 +5,7 @@ import os
 import shutil
 import sys
 import urllib.parse
+from dataclasses import dataclass, field
 from typing import (
     Any,
     Dict,
@@ -114,33 +115,22 @@ class RemoteNotValidError(Exception):
         self.url = url
 
 
+@dataclass(frozen=True)
 class RevOptions:
     """
     Encapsulates a VCS-specific revision to install, along with any VCS
     install options.
 
-    Instances of this class should be treated as if immutable.
+    Args:
+        vc_class: a VersionControl subclass.
+        rev: the name of the revision to install.
+        extra_args: a list of extra options.
     """
 
-    def __init__(
-        self,
-        vc_class: Type["VersionControl"],
-        rev: Optional[str] = None,
-        extra_args: Optional[CommandArgs] = None,
-    ) -> None:
-        """
-        Args:
-          vc_class: a VersionControl subclass.
-          rev: the name of the revision to install.
-          extra_args: a list of extra options.
-        """
-        if extra_args is None:
-            extra_args = []
-
-        self.extra_args = extra_args
-        self.rev = rev
-        self.vc_class = vc_class
-        self.branch_name: Optional[str] = None
+    vc_class: Type["VersionControl"]
+    rev: Optional[str] = None
+    extra_args: CommandArgs = field(default_factory=list)
+    branch_name: Optional[str] = None
 
     def __repr__(self) -> str:
         return f"<RevOptions {self.vc_class.name}: rev={self.rev!r}>"
@@ -354,7 +344,7 @@ class VersionControl:
           rev: the name of a revision to install.
           extra_args: a list of extra options.
         """
-        return RevOptions(cls, rev, extra_args=extra_args)
+        return RevOptions(cls, rev, extra_args=extra_args or [])
 
     @classmethod
     def _is_local_repository(cls, repo: str) -> bool:
