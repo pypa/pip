@@ -1,5 +1,5 @@
 diff --git a/src/pip/_vendor/requests/packages.py b/src/pip/_vendor/requests/packages.py
-index 77c45c9e..9582fa73 100644
+index 77c45c9e..45787bfb 100644
 --- a/src/pip/_vendor/requests/packages.py
 +++ b/src/pip/_vendor/requests/packages.py
 @@ -1,28 +1,16 @@
@@ -19,7 +19,7 @@ index 77c45c9e..9582fa73 100644
  
 -for package in ("urllib3", "idna"):
 -    locals()[package] = __import__(package)
-+for package in ('urllib3', 'idna', 'chardet'):
++for package in ('urllib3', 'idna', 'charset_normalizer'):
 +    vendored_package = "pip._vendor." + package
 +    locals()[package] = __import__(vendored_package)
      # This traversal is apparently necessary such that the identities are
@@ -37,23 +37,22 @@ index 77c45c9e..9582fa73 100644
 -        target = target.replace(target, "chardet")
 -        sys.modules[f"requests.packages.{target}"] = sys.modules[mod]
  # Kinda cool, though, right?
-
 diff --git a/src/pip/_vendor/requests/__init__.py b/src/pip/_vendor/requests/__init__.py
-index 7ac8e297..1e21e7e4 100644
+index 300a16c5..a66f6024 100644
 --- a/src/pip/_vendor/requests/__init__.py
 +++ b/src/pip/_vendor/requests/__init__.py
-@@ -44,10 +44,7 @@ import urllib3
- 
- from .exceptions import RequestsDependencyWarning
+@@ -49,10 +49,7 @@ try:
+ except ImportError:
+     charset_normalizer_version = None
  
 -try:
--    from charset_normalizer import __version__ as charset_normalizer_version
+-    from chardet import __version__ as chardet_version
 -except ImportError:
--    charset_normalizer_version = None
-+charset_normalizer_version = None
+-    chardet_version = None
++chardet_version = None
  
- try:
-     from chardet import __version__ as chardet_version
+ 
+ def check_compatibility(urllib3_version, chardet_version, charset_normalizer_version):
 @@ -118,6 +115,11 @@ except (AssertionError, ValueError):
  # if the standard library doesn't support SNI or the
  # 'ssl' library isn't available.
@@ -66,9 +65,8 @@ index 7ac8e297..1e21e7e4 100644
      try:
          import ssl
      except ImportError:
-
 diff --git a/src/pip/_vendor/requests/compat.py b/src/pip/_vendor/requests/compat.py
-index 6776163c..8ff49e46 100644
+index 6776163c..7819bb99 100644
 --- a/src/pip/_vendor/requests/compat.py
 +++ b/src/pip/_vendor/requests/compat.py
 @@ -7,10 +7,7 @@ between Python 2 and Python 3. It remains for backwards
@@ -79,7 +77,7 @@ index 6776163c..8ff49e46 100644
 -    import chardet
 -except ImportError:
 -    import charset_normalizer as chardet
-+import chardet
++import charset_normalizer as chardet
  
  import sys
  
@@ -108,26 +106,26 @@ index 6776163c..8ff49e46 100644
  # Keep OrderedDict for backwards compatibility.
  from collections import OrderedDict
 diff --git a/src/pip/_vendor/requests/help.py b/src/pip/_vendor/requests/help.py
-index 8fbcd656..c5e9c19e 100644
+index 8fbcd656..094e2046 100644
 --- a/src/pip/_vendor/requests/help.py
 +++ b/src/pip/_vendor/requests/help.py
-@@ -10,10 +10,7 @@ import urllib3
- 
- from . import __version__ as requests_version
+@@ -15,10 +15,7 @@ try:
+ except ImportError:
+     charset_normalizer = None
  
 -try:
--    import charset_normalizer
+-    import chardet
 -except ImportError:
--    charset_normalizer = None
-+charset_normalizer = None
+-    chardet = None
++chardet = None
  
  try:
-     import chardet
+     from urllib3.contrib import pyopenssl
 diff --git a/src/pip/_vendor/requests/certs.py b/src/pip/_vendor/requests/certs.py
-index 2743144b9..38696a1fb 100644
+index be422c3e..3daf06f6 100644
 --- a/src/pip/_vendor/requests/certs.py
 +++ b/src/pip/_vendor/requests/certs.py
-@@ -11,7 +11,14 @@
+@@ -11,7 +11,14 @@ If you are packaging Requests, e.g., for a Linux distribution or a managed
  environment, you can change the definition of where() to return a separately
  packaged CA bundle.
  """
@@ -140,6 +138,6 @@ index 2743144b9..38696a1fb 100644
 +else:
 +    def where():
 +        return os.environ["_PIP_STANDALONE_CERT"]
-
+ 
  if __name__ == "__main__":
      print(where())

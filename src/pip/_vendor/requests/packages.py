@@ -3,7 +3,7 @@ import sys
 # This code exists for backwards compatibility reasons.
 # I don't like it either. Just look the other way. :)
 
-for package in ('urllib3', 'idna', 'chardet'):
+for package in ('urllib3', 'idna', 'charset_normalizer'):
     vendored_package = "pip._vendor." + package
     locals()[package] = __import__(vendored_package)
     # This traversal is apparently necessary such that the identities are
