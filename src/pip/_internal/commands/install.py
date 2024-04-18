@@ -14,7 +14,6 @@ from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.req_command import (
     RequirementCommand,
-    warn_if_run_as_root,
     with_cleanup,
 )
 from pip._internal.cli.status_codes import ERROR, SUCCESS
@@ -37,6 +36,7 @@ from pip._internal.utils.misc import (
     ensure_dir,
     get_pip_version,
     protect_pip_from_modification_on_windows,
+    warn_if_run_as_root,
     write_output,
 )
 from pip._internal.utils.temp_dir import TempDirectory
