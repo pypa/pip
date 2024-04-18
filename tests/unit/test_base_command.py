@@ -93,7 +93,7 @@ class TestCommand:
         assert "Traceback (most recent call last):" in stderr
 
 
-@patch("pip._internal.cli.req_command.Command.handle_pip_version_check")
+@patch("pip._internal.cli.index_command.Command.handle_pip_version_check")
 def test_handle_pip_version_check_called(mock_handle_version_check: Mock) -> None:
     """
     Check that Command.handle_pip_version_check() is called.

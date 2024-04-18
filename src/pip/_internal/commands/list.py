@@ -7,7 +7,7 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 
 from pip._internal.cli import cmdoptions
-from pip._internal.cli.req_command import IndexGroupCommand
+from pip._internal.cli.index_command import IndexGroupCommand
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.exceptions import CommandError
 from pip._internal.index.collector import LinkCollector

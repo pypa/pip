@@ -87,7 +87,7 @@ def test_index_group_commands() -> None:
         (True, True, False),
     ],
 )
-@mock.patch("pip._internal.cli.req_command.pip_self_version_check")
+@mock.patch("pip._internal.cli.index_command._pip_self_version_check")
 def test_index_group_handle_pip_version_check(
     mock_version_check: mock.Mock,
     command_name: str,
