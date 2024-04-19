@@ -51,7 +51,7 @@ from pip._internal.metadata import (
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
-from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file, partition
+from pip._internal.utils.misc import StreamWrapper, ensure_dir, hash_file, partition
 from pip._internal.utils.unpacking import (
     current_umask,
     is_within_directory,
@@ -603,7 +603,9 @@ def _install_wheel(
 
     # Compile all of the pyc files for the installed files
     if pycompile:
-        with captured_stdout() as stdout:
+        with contextlib.redirect_stdout(
+            StreamWrapper.from_stream(sys.stdout)
+        ) as stdout:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
                 for path in pyc_source_file_paths():

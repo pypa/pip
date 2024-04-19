@@ -1,5 +1,7 @@
 import logging
 import time
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
 from threading import Thread
 from unittest.mock import patch
 
@@ -11,7 +13,6 @@ from pip._internal.utils.logging import (
     RichPipStreamHandler,
     indent_log,
 )
-from pip._internal.utils.misc import captured_stderr, captured_stdout
 
 logger = logging.getLogger(__name__)
 
@@ -140,7 +141,7 @@ class TestColorizedStreamHandler:
         """
         record = self._make_log_record()
 
-        with captured_stderr() as stderr:
+        with redirect_stderr(StringIO()) as stderr:
             handler = RichPipStreamHandler(stream=stderr, no_color=True)
             with patch("sys.stderr.flush") as mock_flush:
                 mock_flush.side_effect = BrokenPipeError()
@@ -163,7 +164,7 @@ class TestColorizedStreamHandler:
         """
         record = self._make_log_record()
 
-        with captured_stdout() as stdout:
+        with redirect_stdout(StringIO()) as stdout:
             handler = RichPipStreamHandler(stream=stdout, no_color=True)
             with patch("sys.stdout.write") as mock_write:
                 mock_write.side_effect = BrokenPipeError()
@@ -178,7 +179,7 @@ class TestColorizedStreamHandler:
         """
         record = self._make_log_record()
 
-        with captured_stdout() as stdout:
+        with redirect_stdout(StringIO()) as stdout:
             handler = RichPipStreamHandler(stream=stdout, no_color=True)
             with patch("sys.stdout.flush") as mock_flush:
                 mock_flush.side_effect = BrokenPipeError()

@@ -10,7 +10,6 @@ import stat
 import sys
 import sysconfig
 import urllib.parse
-from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import dataclass
 from functools import partial
 from io import StringIO
@@ -21,7 +20,6 @@ from typing import (
     Any,
     BinaryIO,
     Callable,
-    ContextManager,
     Dict,
     Generator,
     Iterable,
@@ -57,7 +55,6 @@ __all__ = [
     "normalize_path",
     "renames",
     "get_prog",
-    "captured_stdout",
     "ensure_dir",
     "remove_auth_from_url",
     "check_externally_managed",
@@ -398,23 +395,6 @@ class StreamWrapper(StringIO):
     @property
     def encoding(self) -> str:  # type: ignore
         return self.orig_stream.encoding
-
-
-def captured_stdout() -> ContextManager[StreamWrapper]:
-    """Capture the output of sys.stdout:
-
-    with captured_stdout() as stdout:
-        print('hello')
-    self.assertEqual(stdout.getvalue(), 'hello\n')
-    """
-    return redirect_stdout(StreamWrapper.from_stream(sys.stdout))
-
-
-def captured_stderr() -> ContextManager[StreamWrapper]:
-    """
-    See captured_stdout().
-    """
-    return redirect_stderr(StreamWrapper.from_stream(sys.stderr))
 
 
 # Simulates an enum
