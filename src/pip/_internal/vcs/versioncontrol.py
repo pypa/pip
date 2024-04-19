@@ -38,7 +38,6 @@ from pip._internal.utils.subprocess import (
     format_command_args,
     make_command,
 )
-from pip._internal.utils.urls import get_url_scheme
 
 __all__ = ["vcs"]
 
@@ -52,8 +51,8 @@ def is_url(name: str) -> bool:
     """
     Return true if the name looks like a URL.
     """
-    scheme = get_url_scheme(name)
-    if scheme is None:
+    scheme = urllib.parse.urlsplit(name).scheme
+    if not scheme:
         return False
     return scheme in ["http", "https", "file", "ftp"] + vcs.all_schemes
 
