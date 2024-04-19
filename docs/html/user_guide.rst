@@ -1143,8 +1143,9 @@ Policy`.
 .. attention::
 
     The legacy resolver is deprecated and unsupported. New features, such
-    as :doc:`reference/installation-report`, may not function correctly
-    with the legacy resolver. **These issues will not be fixed.**
+    as :doc:`reference/installation-report`, will not work with the
+    legacy resolver and this resolver will be removed in a future
+    release.
 
 Context and followup
 --------------------
