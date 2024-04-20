@@ -7,7 +7,7 @@ from pip._vendor.rich import print_json
 
 from pip import __version__
 from pip._internal.cli import cmdoptions
-from pip._internal.cli.req_command import Command
+from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.metadata import BaseDistribution, get_environment
 from pip._internal.utils.compat import stdlib_pkgs
@@ -46,11 +46,6 @@ class InspectCommand(Command):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options: Values, args: List[str]) -> int:
-        logger.warning(
-            "pip inspect is currently an experimental command. "
-            "The output format may change in a future release without prior warning."
-        )
-
         cmdoptions.check_list_path_option(options)
         dists = get_environment(options.path).iter_installed_distributions(
             local_only=options.local,
@@ -58,7 +53,7 @@ class InspectCommand(Command):
             skip=set(stdlib_pkgs),
         )
         output = {
-            "version": "0",
+            "version": "1",
             "pip_version": __version__,
             "installed": [self._dist_to_dict(dist) for dist in dists],
             "environment": default_environment(),

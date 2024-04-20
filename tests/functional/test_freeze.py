@@ -88,9 +88,47 @@ def test_basic_freeze(script: PipTestEnvironment) -> None:
 
 
 def test_freeze_with_pip(script: PipTestEnvironment) -> None:
-    """Test pip shows itself"""
+    """Test that pip shows itself only when --all is used"""
+    result = script.pip("freeze")
+    assert "pip==" not in result.stdout
     result = script.pip("freeze", "--all")
     assert "pip==" in result.stdout
+
+
+def test_freeze_with_setuptools(script: PipTestEnvironment) -> None:
+    """
+    Test that pip shows setuptools only when --all is used
+    or _should_suppress_build_backends() returns false
+    """
+
+    result = script.pip("freeze", "--all")
+    assert "setuptools==" in result.stdout
+
+    (script.site_packages_path / "mock.pth").write_text("import mock\n")
+
+    (script.site_packages_path / "mock.py").write_text(
+        textwrap.dedent(
+            """\
+                import pip._internal.commands.freeze as freeze
+                freeze._should_suppress_build_backends = lambda: False
+            """
+        )
+    )
+
+    result = script.pip("freeze")
+    assert "setuptools==" in result.stdout
+
+    (script.site_packages_path / "mock.py").write_text(
+        textwrap.dedent(
+            """\
+                import pip._internal.commands.freeze as freeze
+                freeze._should_suppress_build_backends = lambda: True
+            """
+        )
+    )
+
+    result = script.pip("freeze")
+    assert "setuptools==" not in result.stdout
 
 
 def test_exclude_and_normalization(script: PipTestEnvironment, tmpdir: Path) -> None:
@@ -104,7 +142,6 @@ def test_exclude_and_normalization(script: PipTestEnvironment, tmpdir: Path) -> 
     assert "Normalizable_Name" not in result.stdout
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_freeze_multiple_exclude_with_all(script: PipTestEnvironment) -> None:
     result = script.pip("freeze", "--all")
     assert "pip==" in result.stdout
@@ -129,13 +166,11 @@ def test_freeze_with_invalid_names(script: PipTestEnvironment) -> None:
         with open(egg_info_path, "w") as egg_info_file:
             egg_info_file.write(
                 textwrap.dedent(
-                    """\
+                    f"""\
                 Metadata-Version: 1.0
-                Name: {}
+                Name: {pkgname}
                 Version: 1.0
-                """.format(
-                        pkgname
-                    )
+                """
                 )
             )
 
@@ -184,12 +219,10 @@ def test_freeze_editable_not_vcs(script: PipTestEnvironment) -> None:
     # We need to apply os.path.normcase() to the path since that is what
     # the freeze code does.
     expected = textwrap.dedent(
-        """\
-    ...# Editable install with no version control (version-pkg==0.1)
-    -e {}
-    ...""".format(
-            os.path.normcase(pkg_path)
-        )
+        f"""\
+    ...# Editable install with no version control (version...pkg==0.1)
+    -e {os.path.normcase(pkg_path)}
+    ..."""
     )
     _check_output(result.stdout, expected)
 
@@ -211,12 +244,10 @@ def test_freeze_editable_git_with_no_remote(
     # We need to apply os.path.normcase() to the path since that is what
     # the freeze code does.
     expected = textwrap.dedent(
-        """\
-    ...# Editable Git install with no remote (version-pkg==0.1)
-    -e {}
-    ...""".format(
-            os.path.normcase(pkg_path)
-        )
+        f"""\
+    ...# Editable Git install with no remote (version...pkg==0.1)
+    -e {os.path.normcase(pkg_path)}
+    ..."""
     )
     _check_output(result.stdout, expected)
 
@@ -452,7 +483,7 @@ def test_freeze_git_remote(script: PipTestEnvironment) -> None:
     expected = os.path.normcase(
         textwrap.dedent(
             f"""
-            ...# Editable Git...(version-pkg...)...
+            ...# Editable Git...(version...pkg...)...
             # '{other_remote}'
             -e {repo_dir}...
         """
@@ -592,7 +623,7 @@ _freeze_req_opts = textwrap.dedent(
     --extra-index-url http://ignore
     --find-links http://ignore
     --index-url http://ignore
-    --use-feature 2020-resolver
+    --use-feature resolvelib
 """
 )
 
@@ -616,9 +647,9 @@ def test_freeze_with_requirement_option_file_url_egg_not_installed(
         expect_stderr=True,
     )
     expected_err = (
-        "WARNING: Requirement file [requirements.txt] contains {}, "
+        f"WARNING: Requirement file [requirements.txt] contains {url}, "
         "but package 'Does.Not-Exist' is not installed\n"
-    ).format(url)
+    )
     if deprecated_python:
         assert expected_err in result.stderr
     else:
@@ -862,7 +893,7 @@ def test_freeze_with_requirement_option_package_repeated_multi_file(
 
 
 @pytest.mark.network
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 def test_freeze_user(
     script: PipTestEnvironment, virtualenv: VirtualEnvironment, data: TestData
 ) -> None:
@@ -900,7 +931,7 @@ def test_freeze_path(tmpdir: Path, script: PipTestEnvironment, data: TestData) -
 
 
 @pytest.mark.network
-@pytest.mark.incompatible_with_test_venv
+@pytest.mark.usefixtures("enable_user_site")
 def test_freeze_path_exclude_user(
     tmpdir: Path, script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -962,7 +993,6 @@ def test_freeze_path_multiple(
     _check_output(result.stdout, expected)
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_freeze_direct_url_archive(
     script: PipTestEnvironment, shared_data: TestData
 ) -> None:
@@ -1005,7 +1035,6 @@ def test_freeze_include_work_dir_pkg(script: PipTestEnvironment) -> None:
     assert "simple==1.0" in result.stdout
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_freeze_pep610_editable(script: PipTestEnvironment) -> None:
     """
     Test that a package installed with a direct_url.json with editable=true

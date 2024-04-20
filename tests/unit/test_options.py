@@ -2,7 +2,7 @@ import os
 from contextlib import contextmanager
 from optparse import Values
 from tempfile import NamedTemporaryFile
-from typing import Any, Dict, Iterator, List, Tuple, Union, cast
+from typing import Any, Dict, Iterator, List, Tuple, Type, Union, cast
 
 import pytest
 
@@ -195,7 +195,6 @@ class TestOptionPrecedence(AddFakeCommandMixin):
 
 
 class TestUsePEP517Options:
-
     """
     Test options related to using --use-pep517.
     """
@@ -454,7 +453,6 @@ class TestCountOptions(AddFakeCommandMixin):
 
 
 class TestGeneralOptions(AddFakeCommandMixin):
-
     # the reason to specifically test general options is due to the
     # extra processing they receive, and the number of bugs we've had
 
@@ -606,7 +604,7 @@ class TestOptionsConfigFiles:
         self,
         monkeypatch: pytest.MonkeyPatch,
         args: List[str],
-        expect: Union[None, str, PipError],
+        expect: Union[None, str, Type[PipError]],
     ) -> None:
         cmd = cast(ConfigurationCommand, create_command("config"))
         # Replace a handler with a no-op to avoid side effects

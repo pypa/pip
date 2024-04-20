@@ -1,4 +1,5 @@
 """'pip wheel' tests"""
+
 import os
 import re
 import sys
@@ -7,10 +8,11 @@ from pathlib import Path
 import pytest
 
 from pip._internal.cli.status_codes import ERROR
-from tests.lib import pyversion  # noqa: F401
-from tests.lib import PipTestEnvironment, TestData
-
-pytestmark = pytest.mark.usefixtures("with_wheel")
+from tests.lib import (
+    PipTestEnvironment,
+    TestData,
+    pyversion,
+)
 
 
 def add_files_to_dist_directory(folder: Path) -> None:
@@ -58,9 +60,7 @@ def test_pip_wheel_success(script: PipTestEnvironment, data: TestData) -> None:
     wheel_file_path = script.scratch / wheel_file_name
     assert re.search(
         r"Created wheel for simple: "
-        r"filename={filename} size=\d+ sha256=[A-Fa-f0-9]{{64}}".format(
-            filename=re.escape(wheel_file_name)
-        ),
+        rf"filename={re.escape(wheel_file_name)} size=\d+ sha256=[A-Fa-f0-9]{{64}}",
         result.stdout,
     )
     assert re.search(r"^\s+Stored in directory: ", result.stdout, re.M)

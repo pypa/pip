@@ -1,6 +1,7 @@
 """Automation using nox.
 """
 
+import argparse
 import glob
 import os
 import shutil
@@ -12,7 +13,7 @@ import nox
 
 # fmt: off
 sys.path.append(".")
-from tools import release  # isort:skip  # noqa
+from tools import release  # isort:skip
 sys.path.pop()
 # fmt: on
 
@@ -66,7 +67,7 @@ def should_update_common_wheels() -> bool:
 # -----------------------------------------------------------------------------
 # Development Commands
 # -----------------------------------------------------------------------------
-@nox.session(python=["3.7", "3.8", "3.9", "3.10", "pypy3"])
+@nox.session(python=["3.8", "3.9", "3.10", "3.11", "3.12", "pypy3"])
 def test(session: nox.Session) -> None:
     # Get the common wheels.
     if should_update_common_wheels():
@@ -88,8 +89,9 @@ def test(session: nox.Session) -> None:
         shutil.rmtree(sdist_dir, ignore_errors=True)
 
     # fmt: off
+    session.install("build")
     session.run(
-        "python", "setup.py", "sdist", "--formats=zip", "--dist-dir", sdist_dir,
+        "python", "-I", "-m", "build", "--sdist", "--outdir", sdist_dir,
         silent=True,
     )
     # fmt: on
@@ -132,6 +134,7 @@ def docs(session: nox.Session) -> None:
         # fmt: off
         return [
             "sphinx-build",
+            "--keep-going",
             "-W",
             "-c", "docs/html",  # see note above
             "-d", "docs/build/doctrees/" + kind,
@@ -172,11 +175,30 @@ def lint(session: nox.Session) -> None:
     session.run("pre-commit", "run", *args)
 
 
+# NOTE: This session will COMMIT upgrades to vendored libraries.
+# You should therefore not run it directly against `main`. If you
+# do (assuming you started with a clean main), you can run:
+#
+# git checkout -b vendoring-updates
+# git checkout main
+# git reset --hard origin/main
 @nox.session
 def vendoring(session: nox.Session) -> None:
+    # Ensure that the session Python is running 3.10+
+    # so that truststore can be installed correctly.
+    session.run(
+        "python", "-c", "import sys; sys.exit(1 if sys.version_info < (3, 10) else 0)"
+    )
+
     session.install("vendoring~=1.2.0")
 
-    if "--upgrade" not in session.posargs:
+    parser = argparse.ArgumentParser(prog="nox -s vendoring")
+    parser.add_argument("--upgrade-all", action="store_true")
+    parser.add_argument("--upgrade", action="append", default=[])
+    parser.add_argument("--skip", action="append", default=[])
+    args = parser.parse_args(session.posargs)
+
+    if not (args.upgrade or args.upgrade_all):
         session.run("vendoring", "sync", "-v")
         return
 
@@ -192,7 +214,9 @@ def vendoring(session: nox.Session) -> None:
 
     vendor_txt = Path("src/pip/_vendor/vendor.txt")
     for name, old_version in pinned_requirements(vendor_txt):
-        if name == "setuptools":
+        if name in args.skip:
+            continue
+        if args.upgrade and name not in args.upgrade:
             continue
 
         # update requirements.txt
@@ -202,7 +226,7 @@ def vendoring(session: nox.Session) -> None:
         new_version = old_version
         for inner_name, inner_version in pinned_requirements(vendor_txt):
             if inner_name == name:
-                # this is a dedicated assignment, to make flake8 happy
+                # this is a dedicated assignment, to make lint happy
                 new_version = inner_version
                 break
         else:
@@ -298,7 +322,7 @@ def build_release(session: nox.Session) -> None:
         )
 
     session.log("# Install dependencies")
-    session.install("setuptools", "wheel", "twine")
+    session.install("build", "twine")
 
     with release.isolated_temporary_checkout(session, version) as build_dir:
         session.log(
@@ -334,7 +358,7 @@ def build_dists(session: nox.Session) -> List[str]:
         )
 
     session.log("# Build distributions")
-    session.run("python", "setup.py", "sdist", "bdist_wheel", silent=True)
+    session.run("python", "-m", "build", silent=True)
     produced_dists = glob.glob("dist/*")
 
     session.log(f"# Verify distributions: {', '.join(produced_dists)}")

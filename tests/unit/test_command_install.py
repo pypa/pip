@@ -2,16 +2,9 @@ import errno
 from unittest import mock
 
 import pytest
-from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.commands import install
-from pip._internal.commands.install import (
-    create_os_error_message,
-    decide_user_install,
-    reject_location_related_install_options,
-)
-from pip._internal.exceptions import CommandError
-from pip._internal.req.req_install import InstallRequirement
+from pip._internal.commands.install import create_os_error_message, decide_user_install
 
 
 class TestDecideUserInstall:
@@ -46,37 +39,6 @@ class TestDecideUserInstall:
             lambda **kw: site_packages_writable,
         )
         assert decide_user_install(use_user_site=None) is result
-
-
-def test_rejection_for_pip_install_options() -> None:
-    install_options = ["--prefix=/hello"]
-    with pytest.raises(CommandError) as e:
-        reject_location_related_install_options([], install_options)
-
-    assert "['--prefix'] from command line" in str(e.value)
-
-
-def test_rejection_for_location_requirement_options() -> None:
-    bad_named_req_options = ["--home=/wow"]
-    bad_named_req = InstallRequirement(
-        Requirement("hello"), "requirements.txt", install_options=bad_named_req_options
-    )
-
-    bad_unnamed_req_options = ["--install-lib=/lib"]
-    bad_unnamed_req = InstallRequirement(
-        None, "requirements2.txt", install_options=bad_unnamed_req_options
-    )
-
-    with pytest.raises(CommandError) as e:
-        reject_location_related_install_options(
-            [bad_named_req, bad_unnamed_req], options=[]
-        )
-
-    assert (
-        "['--install-lib'] from <InstallRequirement> (from requirements2.txt)"
-        in str(e.value)
-    )
-    assert "['--home'] from hello (from requirements.txt)" in str(e.value)
 
 
 @pytest.mark.parametrize(

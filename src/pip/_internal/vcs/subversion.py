@@ -87,7 +87,7 @@ class Subversion(VersionControl):
 
     @classmethod
     def get_url_rev_and_auth(cls, url: str) -> Tuple[str, Optional[str], AuthInfo]:
-        # hotfix the URL scheme after removing svn+ from svn+ssh:// readd it
+        # hotfix the URL scheme after removing svn+ from svn+ssh:// re-add it
         url, rev, user_pass = super().get_url_rev_and_auth(url)
         if url.startswith("ssh://"):
             url = "svn+" + url
@@ -288,12 +288,12 @@ class Subversion(VersionControl):
             display_path(dest),
         )
         if verbosity <= 0:
-            flag = "--quiet"
+            flags = ["--quiet"]
         else:
-            flag = ""
+            flags = []
         cmd_args = make_command(
             "checkout",
-            flag,
+            *flags,
             self.get_remote_call_options(),
             rev_options.to_args(),
             url,

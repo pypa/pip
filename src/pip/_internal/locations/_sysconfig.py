@@ -192,9 +192,10 @@ def get_scheme(
         data=paths["data"],
     )
     if root is not None:
+        converted_keys = {}
         for key in SCHEME_KEYS:
-            value = change_root(root, getattr(scheme, key))
-            setattr(scheme, key, value)
+            converted_keys[key] = change_root(root, getattr(scheme, key))
+        scheme = Scheme(**converted_keys)
     return scheme
 
 
@@ -211,8 +212,3 @@ def get_purelib() -> str:
 
 def get_platlib() -> str:
     return sysconfig.get_paths()["platlib"]
-
-
-def get_prefixed_libs(prefix: str) -> typing.Tuple[str, str]:
-    paths = sysconfig.get_paths(vars={"base": prefix, "platbase": prefix})
-    return (paths["purelib"], paths["platlib"])

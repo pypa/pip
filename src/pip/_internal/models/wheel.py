@@ -1,6 +1,7 @@
 """Represents a wheel file and provides access to the various parts of the
 name that have meaning.
 """
+
 import re
 from typing import Dict, Iterable, List
 
@@ -13,8 +14,8 @@ class Wheel:
     """A wheel file"""
 
     wheel_file_re = re.compile(
-        r"""^(?P<namever>(?P<name>.+?)-(?P<ver>.*?))
-        ((-(?P<build>\d[^-]*?))?-(?P<pyver>.+?)-(?P<abi>.+?)-(?P<plat>.+?)
+        r"""^(?P<namever>(?P<name>[^\s-]+?)-(?P<ver>[^\s-]*?))
+        ((-(?P<build>\d[^-]*?))?-(?P<pyver>[^\s-]+?)-(?P<abi>[^\s-]+?)-(?P<plat>[^\s-]+?)
         \.whl|\.dist-info)$""",
         re.VERBOSE,
     )

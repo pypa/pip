@@ -212,7 +212,6 @@ class Table(JupyterMixin):
         caption_justify: "JustifyMethod" = "center",
         highlight: bool = False,
     ) -> None:
-
         self.columns: List[Column] = []
         self.rows: List[Row] = []
         self.title = title
@@ -462,10 +461,15 @@ class Table(JupyterMixin):
                 )
         self.rows.append(Row(style=style, end_section=end_section))
 
+    def add_section(self) -> None:
+        """Add a new section (draw a line after current row)."""
+
+        if self.rows:
+            self.rows[-1].end_section = True
+
     def __rich_console__(
         self, console: "Console", options: "ConsoleOptions"
     ) -> "RenderResult":
-
         if not self.columns:
             yield Segment("\n")
             return
@@ -679,7 +683,7 @@ class Table(JupyterMixin):
                     getattr(renderable, "vertical", None) or column.vertical,
                 )
         else:
-            for (style, renderable) in raw_cells:
+            for style, renderable in raw_cells:
                 yield _Cell(
                     style,
                     renderable,
