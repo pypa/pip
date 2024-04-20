@@ -49,7 +49,7 @@ from pip._internal.utils.packaging import check_requires_python
 
 logger = logging.getLogger(__name__)
 
-DiscoveredDependencies = DefaultDict[str, List[InstallRequirement]]
+DiscoveredDependencies = DefaultDict[Optional[str], List[InstallRequirement]]
 
 
 def _check_dist_requires_python(
@@ -592,7 +592,7 @@ class Resolver(BaseResolver):
             if req.constraint:
                 return
             ordered_reqs.add(req)
-            for dep in self._discovered_dependencies[req.name]:  # type: ignore[index]
+            for dep in self._discovered_dependencies[req.name]:
                 schedule(dep)
             order.append(req)
 
