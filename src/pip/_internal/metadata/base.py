@@ -445,6 +445,10 @@ class BaseDistribution(Protocol):
         """
         raise NotImplementedError()
 
+    def iter_raw_dependencies(self) -> Iterable[str]:
+        """Raw Requires-Dist metadata."""
+        return self.metadata.get_all("Requires-Dist", [])
+
     def iter_provided_extras(self) -> Iterable[NormalizedName]:
         """Extras provided by this distribution.
 
