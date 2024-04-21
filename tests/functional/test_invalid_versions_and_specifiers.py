@@ -105,3 +105,5 @@ def test_show_require_invalid_version(
     _install_require_invalid_version(script, data)
     result = script.pip("show", "require-invalid-version")
     assert "Name: require-invalid-version\nVersion: 1.0\n" in result.stdout
+    assert "Requires: invalid-version ==2010i\n" in result.stdout
+    assert "Required-by: #N/A\n" in result.stdout
