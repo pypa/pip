@@ -50,6 +50,18 @@ def _install_invalid_version(script: PipTestEnvironment, data: TestData) -> None
         zf.extractall(script.site_packages_path)
 
 
+def _install_require_invalid_version(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """
+    Install a package with an invalid version.
+    """
+    with zipfile.ZipFile(
+        data.packages.joinpath("require_invalid_version-1.0-py3-none-any.whl")
+    ) as zf:
+        zf.extractall(script.site_packages_path)
+
+
 def test_uninstall_invalid_version(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test that it is possible to uninstall a package with an invalid version.
@@ -82,3 +94,14 @@ def test_show_invalid_version(script: PipTestEnvironment, data: TestData) -> Non
     _install_invalid_version(script, data)
     result = script.pip("show", "invalid-version")
     assert "Name: invalid-version\nVersion: 2010i\n" in result.stdout
+
+
+def test_show_require_invalid_version(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """
+    Test that pip can show an installed distribution with a legacy specifier.
+    """
+    _install_require_invalid_version(script, data)
+    result = script.pip("show", "require-invalid-version")
+    assert "Name: require-invalid-version\nVersion: 1.0\n" in result.stdout
