@@ -1,1 +1,1 @@
-Add pygments 2.10.0 as a vendored dependency.
+Upgrade pygments to 2.17.2

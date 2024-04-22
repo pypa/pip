@@ -1,11 +1,11 @@
 """Rich text and beautiful formatting in the terminal."""
 
 import os
-from typing import Callable, IO, TYPE_CHECKING, Any, Optional
+from typing import IO, TYPE_CHECKING, Any, Callable, Optional, Union
 
-from ._extension import load_ipython_extension
+from ._extension import load_ipython_extension  # noqa: F401
 
-__all__ = ["get_console", "reconfigure", "print", "inspect"]
+__all__ = ["get_console", "reconfigure", "print", "inspect", "print_json"]
 
 if TYPE_CHECKING:
     from .console import Console
@@ -13,7 +13,11 @@ if TYPE_CHECKING:
 # Global console used by alternative print
 _console: Optional["Console"] = None
 
-_IMPORT_CWD = os.path.abspath(os.getcwd())
+try:
+    _IMPORT_CWD = os.path.abspath(os.getcwd())
+except FileNotFoundError:
+    # Can happen if the cwd has been deleted
+    _IMPORT_CWD = ""
 
 
 def get_console() -> "Console":
@@ -36,7 +40,8 @@ def reconfigure(*args: Any, **kwargs: Any) -> None:
     """Reconfigures the global console by replacing it with another.
 
     Args:
-        console (Console): Replacement console instance.
+        *args (Any): Positional arguments for the replacement :class:`~rich.console.Console`.
+        **kwargs (Any): Keyword arguments for the replacement :class:`~rich.console.Console`.
     """
     from pip._vendor.rich.console import Console
 
@@ -73,10 +78,10 @@ def print_json(
     json: Optional[str] = None,
     *,
     data: Any = None,
-    indent: int = 2,
+    indent: Union[None, int, str] = 2,
     highlight: bool = True,
     skip_keys: bool = False,
-    ensure_ascii: bool = True,
+    ensure_ascii: bool = False,
     check_circular: bool = True,
     allow_nan: bool = True,
     default: Optional[Callable[[Any], Any]] = None,

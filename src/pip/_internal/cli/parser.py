@@ -6,7 +6,7 @@ import shutil
 import sys
 import textwrap
 from contextlib import suppress
-from typing import Any, Dict, Iterator, List, Tuple
+from typing import Any, Dict, Generator, List, Tuple
 
 from pip._internal.cli.status_codes import UNKNOWN_ERROR
 from pip._internal.configuration import Configuration, ConfigurationError
@@ -175,7 +175,9 @@ class ConfigOptionParser(CustomOptionParser):
             print(f"An error occurred during configuration: {exc}")
             sys.exit(3)
 
-    def _get_ordered_configuration_items(self) -> Iterator[Tuple[str, Any]]:
+    def _get_ordered_configuration_items(
+        self,
+    ) -> Generator[Tuple[str, Any], None, None]:
         # Configuration gives keys in an unordered manner. Order them.
         override_order = ["global", self.name, ":env:"]
 
@@ -227,9 +229,9 @@ class ConfigOptionParser(CustomOptionParser):
                     val = strtobool(val)
                 except ValueError:
                     self.error(
-                        "{} is not a valid value for {} option, "  # noqa
+                        f"{val} is not a valid value for {key} option, "
                         "please specify a boolean value like yes/no, "
-                        "true/false or 1/0 instead.".format(val, key)
+                        "true/false or 1/0 instead."
                     )
             elif option.action == "count":
                 with suppress(ValueError):
@@ -238,10 +240,10 @@ class ConfigOptionParser(CustomOptionParser):
                     val = int(val)
                 if not isinstance(val, int) or val < 0:
                     self.error(
-                        "{} is not a valid value for {} option, "  # noqa
+                        f"{val} is not a valid value for {key} option, "
                         "please instead specify either a non-negative integer "
                         "or a boolean value like yes/no or false/true "
-                        "which is equivalent to 1/0.".format(val, key)
+                        "which is equivalent to 1/0."
                     )
             elif option.action == "append":
                 val = val.split()

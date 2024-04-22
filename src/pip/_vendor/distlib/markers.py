@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2012-2017 Vinay Sajip.
+# Copyright (C) 2012-2023 Vinay Sajip.
 # Licensed to the Python Software Foundation under a contributor agreement.
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
@@ -19,26 +19,32 @@ import platform
 
 from .compat import string_types
 from .util import in_venv, parse_marker
-from .version import NormalizedVersion as NV
+from .version import LegacyVersion as LV
 
 __all__ = ['interpret']
 
-_VERSION_PATTERN = re.compile(r'((\d+(\.\d+)*\w*)|\'(\d+(\.\d+)*\w*)\'|\"(\d+(\.\d+)*\w*)\")')
+_VERSION_PATTERN = re.compile(
+    r'((\d+(\.\d+)*\w*)|\'(\d+(\.\d+)*\w*)\'|\"(\d+(\.\d+)*\w*)\")')
+_VERSION_MARKERS = {'python_version', 'python_full_version'}
+
+
+def _is_version_marker(s):
+    return isinstance(s, string_types) and s in _VERSION_MARKERS
+
 
 def _is_literal(o):
     if not isinstance(o, string_types) or not o:
         return False
     return o[0] in '\'"'
 
+
 def _get_versions(s):
-    result = []
-    for m in _VERSION_PATTERN.finditer(s):
-        result.append(NV(m.groups()[0]))
-    return set(result)
+    return {LV(m.groups()[0]) for m in _VERSION_PATTERN.finditer(s)}
+
 
 class Evaluator(object):
     """
-    This class is used to evaluate marker expessions.
+    This class is used to evaluate marker expressions.
     """
 
     operations = {
@@ -46,10 +52,10 @@ class Evaluator(object):
         '===': lambda x, y: x == y,
         '~=': lambda x, y: x == y or x > y,
         '!=': lambda x, y: x != y,
-        '<':  lambda x, y: x < y,
-        '<=':  lambda x, y: x == y or x < y,
-        '>':  lambda x, y: x > y,
-        '>=':  lambda x, y: x == y or x > y,
+        '<': lambda x, y: x < y,
+        '<=': lambda x, y: x == y or x < y,
+        '>': lambda x, y: x > y,
+        '>=': lambda x, y: x == y or x > y,
         'and': lambda x, y: x and y,
         'or': lambda x, y: x or y,
         'in': lambda x, y: x in y,
@@ -76,21 +82,27 @@ class Evaluator(object):
             elhs = expr['lhs']
             erhs = expr['rhs']
             if _is_literal(expr['lhs']) and _is_literal(expr['rhs']):
-                raise SyntaxError('invalid comparison: %s %s %s' % (elhs, op, erhs))
+                raise SyntaxError('invalid comparison: %s %s %s' %
+                                  (elhs, op, erhs))
 
             lhs = self.evaluate(elhs, context)
             rhs = self.evaluate(erhs, context)
-            if ((elhs == 'python_version' or erhs == 'python_version') and
-                op in ('<', '<=', '>', '>=', '===', '==', '!=', '~=')):
-                lhs = NV(lhs)
-                rhs = NV(rhs)
-            elif elhs == 'python_version' and op in ('in', 'not in'):
-                lhs = NV(lhs)
+            if ((_is_version_marker(elhs) or _is_version_marker(erhs))
+                    and op in ('<', '<=', '>', '>=', '===', '==', '!=', '~=')):
+                lhs = LV(lhs)
+                rhs = LV(rhs)
+            elif _is_version_marker(elhs) and op in ('in', 'not in'):
+                lhs = LV(lhs)
                 rhs = _get_versions(rhs)
             result = self.operations[op](lhs, rhs)
         return result
 
+
+_DIGITS = re.compile(r'\d+\.\d+')
+
+
 def default_context():
+
     def format_full_version(info):
         version = '%s.%s.%s' % (info.major, info.minor, info.micro)
         kind = info.releaselevel
@@ -99,12 +111,16 @@ def default_context():
         return version
 
     if hasattr(sys, 'implementation'):
-        implementation_version = format_full_version(sys.implementation.version)
+        implementation_version = format_full_version(
+            sys.implementation.version)
         implementation_name = sys.implementation.name
     else:
         implementation_version = '0'
         implementation_name = ''
 
+    ppv = platform.python_version()
+    m = _DIGITS.match(ppv)
+    pv = m.group(0)
     result = {
         'implementation_name': implementation_name,
         'implementation_version': implementation_version,
@@ -115,16 +131,18 @@ def default_context():
         'platform_system': platform.system(),
         'platform_version': platform.version(),
         'platform_in_venv': str(in_venv()),
-        'python_full_version': platform.python_version(),
-        'python_version': platform.python_version()[:3],
+        'python_full_version': ppv,
+        'python_version': pv,
         'sys_platform': sys.platform,
     }
     return result
+
 
 DEFAULT_CONTEXT = default_context()
 del default_context
 
 evaluator = Evaluator()
+
 
 def interpret(marker, execution_context=None):
     """
@@ -138,9 +156,11 @@ def interpret(marker, execution_context=None):
     try:
         expr, rest = parse_marker(marker)
     except Exception as e:
-        raise SyntaxError('Unable to interpret marker syntax: %s: %s' % (marker, e))
+        raise SyntaxError('Unable to interpret marker syntax: %s: %s' %
+                          (marker, e))
     if rest and rest[0] != '#':
-        raise SyntaxError('unexpected trailing data in marker: %s: %s' % (marker, rest))
+        raise SyntaxError('unexpected trailing data in marker: %s: %s' %
+                          (marker, rest))
     context = dict(DEFAULT_CONTEXT)
     if execution_context:
         context.update(execution_context)

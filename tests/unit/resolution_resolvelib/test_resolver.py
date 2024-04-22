@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Tuple, cast
+from typing import Dict, List, Optional, Set, Tuple, cast
 from unittest import mock
 
 import pytest
@@ -102,7 +102,7 @@ def test_new_resolver_get_installation_order(
 
 
 @pytest.mark.parametrize(
-    "name, edges, expected_weights",
+    "name, edges, requirement_keys, expected_weights",
     [
         (
             # From https://github.com/pypa/pip/pull/8127#discussion_r414564664
@@ -115,7 +115,8 @@ def test_new_resolver_get_installation_order(
                 ("three", "four"),
                 ("four", "five"),
             ],
-            {None: 0, "five": 5, "four": 4, "one": 4, "three": 2, "two": 1},
+            {"one", "two", "three", "four", "five"},
+            {"five": 5, "four": 4, "one": 4, "three": 2, "two": 1},
         ),
         (
             "linear",
@@ -126,7 +127,20 @@ def test_new_resolver_get_installation_order(
                 ("three", "four"),
                 ("four", "five"),
             ],
-            {None: 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
+            {"one", "two", "three", "four", "five"},
+            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
+        ),
+        (
+            "linear AND restricted",
+            [
+                (None, "one"),
+                ("one", "two"),
+                ("two", "three"),
+                ("three", "four"),
+                ("four", "five"),
+            ],
+            {"one", "three", "five"},
+            {"one": 1, "three": 3, "five": 5},
         ),
         (
             "linear AND root -> two",
@@ -138,7 +152,8 @@ def test_new_resolver_get_installation_order(
                 ("four", "five"),
                 (None, "two"),
             ],
-            {None: 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
+            {"one", "two", "three", "four", "five"},
+            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
         ),
         (
             "linear AND root -> three",
@@ -150,7 +165,8 @@ def test_new_resolver_get_installation_order(
                 ("four", "five"),
                 (None, "three"),
             ],
-            {None: 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
+            {"one", "two", "three", "four", "five"},
+            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
         ),
         (
             "linear AND root -> four",
@@ -162,7 +178,8 @@ def test_new_resolver_get_installation_order(
                 ("four", "five"),
                 (None, "four"),
             ],
-            {None: 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
+            {"one", "two", "three", "four", "five"},
+            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
         ),
         (
             "linear AND root -> five",
@@ -174,7 +191,8 @@ def test_new_resolver_get_installation_order(
                 ("four", "five"),
                 (None, "five"),
             ],
-            {None: 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
+            {"one", "two", "three", "four", "five"},
+            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
         ),
         (
             "linear AND one -> four",
@@ -186,7 +204,8 @@ def test_new_resolver_get_installation_order(
                 ("four", "five"),
                 ("one", "four"),
             ],
-            {None: 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
+            {"one", "two", "three", "four", "five"},
+            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
         ),
         (
             "linear AND two -> four",
@@ -198,7 +217,8 @@ def test_new_resolver_get_installation_order(
                 ("four", "five"),
                 ("two", "four"),
             ],
-            {None: 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
+            {"one", "two", "three", "four", "five"},
+            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
         ),
         (
             "linear AND four -> one (cycle)",
@@ -210,7 +230,8 @@ def test_new_resolver_get_installation_order(
                 ("four", "five"),
                 ("four", "one"),
             ],
-            {None: 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
+            {"one", "two", "three", "four", "five"},
+            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
         ),
         (
             "linear AND four -> two (cycle)",
@@ -222,7 +243,8 @@ def test_new_resolver_get_installation_order(
                 ("four", "five"),
                 ("four", "two"),
             ],
-            {None: 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
+            {"one", "two", "three", "four", "five"},
+            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
         ),
         (
             "linear AND four -> three (cycle)",
@@ -234,16 +256,44 @@ def test_new_resolver_get_installation_order(
                 ("four", "five"),
                 ("four", "three"),
             ],
-            {None: 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
+            {"one", "two", "three", "four", "five"},
+            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
+        ),
+        (
+            "linear AND four -> three (cycle) AND restricted 1-2-3",
+            [
+                (None, "one"),
+                ("one", "two"),
+                ("two", "three"),
+                ("three", "four"),
+                ("four", "five"),
+                ("four", "three"),
+            ],
+            {"one", "two", "three"},
+            {"one": 1, "two": 2, "three": 3},
+        ),
+        (
+            "linear AND four -> three (cycle) AND restricted 4-5",
+            [
+                (None, "one"),
+                ("one", "two"),
+                ("two", "three"),
+                ("three", "four"),
+                ("four", "five"),
+                ("four", "three"),
+            ],
+            {"four", "five"},
+            {"four": 4, "five": 5},
         ),
     ],
 )
 def test_new_resolver_topological_weights(
     name: str,
     edges: List[Tuple[Optional[str], Optional[str]]],
+    requirement_keys: Set[str],
     expected_weights: Dict[Optional[str], int],
 ) -> None:
     graph = _make_graph(edges)
 
-    weights = get_topological_weights(graph, len(expected_weights))
+    weights = get_topological_weights(graph, requirement_keys)
     assert weights == expected_weights

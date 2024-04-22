@@ -226,6 +226,6 @@ The json format outputs an additional ``editable_project_location`` field.
 
 .. note::
 
-   Contrary to the ``freeze``  comand, ``pip list --format=freeze`` will not
+   Contrary to the ``freeze``  command, ``pip list --format=freeze`` will not
    report editable install information, but the version of the package at the
    time it was installed.

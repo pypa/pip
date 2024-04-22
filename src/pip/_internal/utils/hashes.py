@@ -1,15 +1,11 @@
 import hashlib
-from typing import TYPE_CHECKING, BinaryIO, Dict, Iterator, List
+from typing import TYPE_CHECKING, BinaryIO, Dict, Iterable, List, NoReturn, Optional
 
 from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError
 from pip._internal.utils.misc import read_chunks
 
 if TYPE_CHECKING:
     from hashlib import _Hash
-
-    # NoReturn introduced in 3.6.2; imported only for type checking to maintain
-    # pip compatibility with older patch versions of Python 3.6
-    from typing import NoReturn
 
 
 # The recommended hash algo of the moment. Change this whenever the state of
@@ -28,7 +24,7 @@ class Hashes:
 
     """
 
-    def __init__(self, hashes: Dict[str, List[str]] = None) -> None:
+    def __init__(self, hashes: Optional[Dict[str, List[str]]] = None) -> None:
         """
         :param hashes: A dict of algorithm names pointing to lists of allowed
             hex digests
@@ -67,7 +63,7 @@ class Hashes:
         """Return whether the given hex digest is allowed."""
         return hex_digest in self._allowed.get(hash_name, [])
 
-    def check_against_chunks(self, chunks: Iterator[bytes]) -> None:
+    def check_against_chunks(self, chunks: Iterable[bytes]) -> None:
         """Check good hashes against ones built from iterable of chunks of
         data.
 
@@ -104,6 +100,13 @@ class Hashes:
     def check_against_path(self, path: str) -> None:
         with open(path, "rb") as file:
             return self.check_against_file(file)
+
+    def has_one_of(self, hashes: Dict[str, str]) -> bool:
+        """Return whether any of the given hashes are allowed."""
+        for hash_name, hex_digest in hashes.items():
+            if self.is_hash_allowed(hash_name, hex_digest):
+                return True
+        return False
 
     def __bool__(self) -> bool:
         """Return whether I know any known-good hashes."""

@@ -10,7 +10,7 @@
 
     Formatter version 1.
 
-    :copyright: Copyright 2006-2021 by the Pygments team, see AUTHORS.
+    :copyright: Copyright 2006-2023 by the Pygments team, see AUTHORS.
     :license: BSD, see LICENSE for details.
 """
 
@@ -22,8 +22,6 @@
 #    xterm. This means that default colors are white-on-black, not
 #    black-on-while, so colors like "white background" need to be converted
 #    to "white background, black foreground", etc...
-
-import sys
 
 from pip._vendor.pygments.formatter import Formatter
 from pip._vendor.pygments.console import codes
@@ -281,7 +279,7 @@ class Terminal256Formatter(Formatter):
 
                 except KeyError:
                     # ottype = ttype
-                    ttype = ttype[:-1]
+                    ttype = ttype.parent
                     # outfile.write( '!' + str(ottype) + '->' + str(ttype) + '!' )
 
             if not_found:

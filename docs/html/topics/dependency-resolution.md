@@ -32,8 +32,8 @@ been done, and going back to choose another path.
 
 This can look like pip downloading multiple versions of the same package,
 since pip explicitly presents each download to the user. The backtracking of
-choices made during is not unexpected behaviour or a bug. It is part of how
-dependency resolution for Python packages works.
+choices made during this step is not unexpected behaviour or a bug. It is part
+of how dependency resolution for Python packages works.
 
 ````{admonition} Example
 The user requests `pip install tea`. The package `tea` declares a dependency on
@@ -155,11 +155,13 @@ how to inspect:
 - their release notes and changelogs from past versions
 
 During deployment, you can create a lockfile stating the exact package and
-version number for for each dependency of that package. You can create this
+version number for each dependency of that package. You can create this
 with [pip-tools](https://github.com/jazzband/pip-tools/).
 
 This means the "work" is done once during development process, and thus
 will avoid performing dependency resolution during deployment.
+
+(Fixing conflicting dependencies)=
 
 ## Dealing with dependency conflicts
 
@@ -279,10 +281,10 @@ your _dependency_ by:
 - Requesting that the package maintainers loosen _their_ dependencies
 - Forking the package and loosening the dependencies yourself
 
-:::{warning}
+```{warning}
 If you choose to fork the package yourself, you are _opting out_ of
 any support provided by the package maintainers. Proceed at your own risk!
-:::
+```
 
 #### All requirements are appropriate, but a solution does not exist
 

@@ -1,1 +1,1 @@
-Add rich 10.14.0 as a vendored dependency.
+Upgrade rich to 13.7.0

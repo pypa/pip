@@ -10,13 +10,13 @@ import pip._vendor
 from pip._vendor.certifi import where
 from pip._vendor.packaging.version import parse as parse_version
 
-from pip import __file__ as pip_location
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.configuration import Configuration
 from pip._internal.metadata import get_environment
+from pip._internal.utils.compat import open_text_resource
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import get_pip_version
 
@@ -35,11 +35,7 @@ def show_sys_implementation() -> None:
 
 
 def create_vendor_txt_map() -> Dict[str, str]:
-    vendor_txt_path = os.path.join(
-        os.path.dirname(pip_location), "_vendor", "vendor.txt"
-    )
-
-    with open(vendor_txt_path) as f:
+    with open_text_resource("pip._vendor", "vendor.txt") as f:
         # Purge non version specifying lines.
         # Also, remove any space prefix or suffixes (including comments).
         lines = [
@@ -47,26 +43,34 @@ def create_vendor_txt_map() -> Dict[str, str]:
         ]
 
     # Transform into "module" -> version dict.
-    return dict(line.split("==", 1) for line in lines)  # type: ignore
+    return dict(line.split("==", 1) for line in lines)
 
 
-def get_module_from_module_name(module_name: str) -> ModuleType:
+def get_module_from_module_name(module_name: str) -> Optional[ModuleType]:
     # Module name can be uppercase in vendor.txt for some reason...
-    module_name = module_name.lower()
+    module_name = module_name.lower().replace("-", "_")
     # PATCH: setuptools is actually only pkg_resources.
     if module_name == "setuptools":
         module_name = "pkg_resources"
 
-    __import__(f"pip._vendor.{module_name}", globals(), locals(), level=0)
-    return getattr(pip._vendor, module_name)
+    try:
+        __import__(f"pip._vendor.{module_name}", globals(), locals(), level=0)
+        return getattr(pip._vendor, module_name)
+    except ImportError:
+        # We allow 'truststore' to fail to import due
+        # to being unavailable on Python 3.9 and earlier.
+        if module_name == "truststore" and sys.version_info < (3, 10):
+            return None
+        raise
 
 
 def get_vendor_version_from_module(module_name: str) -> Optional[str]:
     module = get_module_from_module_name(module_name)
     version = getattr(module, "__version__", None)
 
-    if not version:
+    if module and not version:
         # Try to find version in debundled module info.
+        assert module.__file__ is not None
         env = get_environment([os.path.dirname(module.__file__)])
         dist = env.get_distribution(module_name)
         if dist:
@@ -91,7 +95,7 @@ def show_actual_vendor_versions(vendor_txt_versions: Dict[str, str]) -> None:
         elif parse_version(actual_version) != parse_version(expected_version):
             extra_message = (
                 " (CONFLICT: vendor.txt suggests version should"
-                " be {})".format(expected_version)
+                f" be {expected_version})"
             )
         logger.info("%s==%s%s", module_name, actual_version, extra_message)
 
@@ -108,7 +112,7 @@ def show_tags(options: Values) -> None:
     tag_limit = 10
 
     target_python = make_target_python(options)
-    tags = target_python.get_tags()
+    tags = target_python.get_sorted_tags()
 
     # Display the target options that were explicitly provided.
     formatted_target = target_python.format_given()
@@ -116,7 +120,7 @@ def show_tags(options: Values) -> None:
     if formatted_target:
         suffix = f" (target: {formatted_target})"
 
-    msg = "Compatible tags: {}{}".format(len(tags), suffix)
+    msg = f"Compatible tags: {len(tags)}{suffix}"
     logger.info(msg)
 
     if options.verbose < 1 and len(tags) > tag_limit:
@@ -130,17 +134,12 @@ def show_tags(options: Values) -> None:
             logger.info(str(tag))
 
         if tags_limited:
-            msg = (
-                "...\n[First {tag_limit} tags shown. Pass --verbose to show all.]"
-            ).format(tag_limit=tag_limit)
+            msg = f"...\n[First {tag_limit} tags shown. Pass --verbose to show all.]"
             logger.info(msg)
 
 
 def ca_bundle_info(config: Configuration) -> str:
-    levels = set()
-    for key, _ in config.items():
-        levels.add(key.split(".")[0])
-
+    levels = {key.split(".", 1)[0] for key, _ in config.items()}
     if not levels:
         return "Not specified"
 

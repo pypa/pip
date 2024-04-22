@@ -17,6 +17,10 @@ def autocomplete() -> None:
     # Don't complete if user hasn't sourced bash_completion file.
     if "PIP_AUTO_COMPLETE" not in os.environ:
         return
+    # Don't complete if autocompletion environment variables
+    # are not present
+    if not os.environ.get("COMP_WORDS") or not os.environ.get("COMP_CWORD"):
+        return
     cwords = os.environ["COMP_WORDS"].split()[1:]
     cword = int(os.environ["COMP_CWORD"])
     try:
@@ -59,12 +63,21 @@ def autocomplete() -> None:
                     print(dist)
                 sys.exit(1)
 
+        should_list_installables = (
+            not current.startswith("-") and subcommand_name == "install"
+        )
+        if should_list_installables:
+            for path in auto_complete_paths(current, "path"):
+                print(path)
+            sys.exit(1)
+
         subcommand = create_command(subcommand_name)
 
         for opt in subcommand.parser.option_list_all:
             if opt.help != optparse.SUPPRESS_HELP:
-                for opt_str in opt._long_opts + opt._short_opts:
-                    options.append((opt_str, opt.nargs))
+                options += [
+                    (opt_str, opt.nargs) for opt_str in opt._long_opts + opt._short_opts
+                ]
 
         # filter out previously specified options from available options
         prev_opts = [x.split("=")[0] for x in cwords[1 : cword - 1]]
@@ -138,7 +151,7 @@ def auto_complete_paths(current: str, completion_type: str) -> Iterable[str]:
     starting with ``current``.
 
     :param current: The word to be completed
-    :param completion_type: path completion type(`file`, `path` or `dir`)i
+    :param completion_type: path completion type(``file``, ``path`` or ``dir``)
     :return: A generator of regular files and/or directories
     """
     directory, filename = os.path.split(current)

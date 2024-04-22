@@ -1,6 +1,7 @@
 import collections
 import logging
-from typing import Iterator, List, Optional, Sequence, Tuple
+from dataclasses import dataclass
+from typing import Generator, List, Optional, Sequence, Tuple
 
 from pip._internal.utils.logging import indent_log
 
@@ -18,17 +19,14 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True)
 class InstallationResult:
-    def __init__(self, name: str) -> None:
-        self.name = name
-
-    def __repr__(self) -> str:
-        return f"InstallationResult(name={self.name!r})"
+    name: str
 
 
 def _validate_requirements(
     requirements: List[InstallRequirement],
-) -> Iterator[Tuple[str, InstallRequirement]]:
+) -> Generator[Tuple[str, InstallRequirement], None, None]:
     for req in requirements:
         assert req.name, f"invalid to-be-installed requirement: {req}"
         yield req.name, req
@@ -36,7 +34,6 @@ def _validate_requirements(
 
 def install_given_reqs(
     requirements: List[InstallRequirement],
-    install_options: List[str],
     global_options: Sequence[str],
     root: Optional[str],
     home: Optional[str],
@@ -71,7 +68,6 @@ def install_given_reqs(
 
             try:
                 requirement.install(
-                    install_options,
                     global_options,
                     root=root,
                     home=home,

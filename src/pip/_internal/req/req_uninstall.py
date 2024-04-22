@@ -3,7 +3,7 @@ import os
 import sys
 import sysconfig
 from importlib.util import cache_from_source
-from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Set, Tuple
 
 from pip._internal.exceptions import UninstallationError
 from pip._internal.locations import get_bin_prefix, get_bin_user
@@ -11,13 +11,16 @@ from pip._internal.metadata import BaseDistribution
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.egg_link import egg_link_path_from_location
 from pip._internal.utils.logging import getLogger, indent_log
-from pip._internal.utils.misc import ask, is_local, normalize_path, renames, rmtree
+from pip._internal.utils.misc import ask, normalize_path, renames, rmtree
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
+from pip._internal.utils.virtualenv import running_under_virtualenv
 
 logger = getLogger(__name__)
 
 
-def _script_names(bin_dir: str, script_name: str, is_gui: bool) -> Iterator[str]:
+def _script_names(
+    bin_dir: str, script_name: str, is_gui: bool
+) -> Generator[str, None, None]:
     """Create the fully qualified name of the files created by
     {console,gui}_scripts for the given ``dist``.
     Returns the list of file names
@@ -34,9 +37,11 @@ def _script_names(bin_dir: str, script_name: str, is_gui: bool) -> Iterator[str]
         yield f"{exe_name}-script.py"
 
 
-def _unique(fn: Callable[..., Iterator[Any]]) -> Callable[..., Iterator[Any]]:
+def _unique(
+    fn: Callable[..., Generator[Any, None, None]]
+) -> Callable[..., Generator[Any, None, None]]:
     @functools.wraps(fn)
-    def unique(*args: Any, **kw: Any) -> Iterator[Any]:
+    def unique(*args: Any, **kw: Any) -> Generator[Any, None, None]:
         seen: Set[Any] = set()
         for item in fn(*args, **kw):
             if item not in seen:
@@ -47,7 +52,7 @@ def _unique(fn: Callable[..., Iterator[Any]]) -> Callable[..., Iterator[Any]]:
 
 
 @_unique
-def uninstallation_paths(dist: BaseDistribution) -> Iterator[str]:
+def uninstallation_paths(dist: BaseDistribution) -> Generator[str, None, None]:
     """
     Yield all the uninstallation paths for dist based on RECORD-without-.py[co]
 
@@ -66,16 +71,16 @@ def uninstallation_paths(dist: BaseDistribution) -> Iterator[str]:
 
     entries = dist.iter_declared_entries()
     if entries is None:
-        msg = "Cannot uninstall {dist}, RECORD file not found.".format(dist=dist)
+        msg = f"Cannot uninstall {dist}, RECORD file not found."
         installer = dist.installer
         if not installer or installer == "pip":
-            dep = "{}=={}".format(dist.raw_name, dist.version)
+            dep = f"{dist.raw_name}=={dist.version}"
             msg += (
                 " You might be able to recover from this via: "
-                "'pip install --force-reinstall --no-deps {}'.".format(dep)
+                f"'pip install --force-reinstall --no-deps {dep}'."
             )
         else:
-            msg += " Hint: The package was installed by {}.".format(installer)
+            msg += f" Hint: The package was installed by {installer}."
         raise UninstallationError(msg)
 
     for entry in entries:
@@ -167,8 +172,7 @@ def compress_for_output_listing(paths: Iterable[str]) -> Tuple[Set[str], Set[str
             folders.add(os.path.dirname(path))
         files.add(path)
 
-    # probably this one https://github.com/python/mypy/issues/390
-    _normcased_files = set(map(os.path.normcase, files))  # type: ignore
+    _normcased_files = set(map(os.path.normcase, files))
 
     folders = compact(folders)
 
@@ -269,7 +273,7 @@ class StashedUninstallPathSet:
 
     def commit(self) -> None:
         """Commits the uninstall by removing stashed files."""
-        for _, save_dir in self._save_dirs.items():
+        for save_dir in self._save_dirs.values():
             save_dir.cleanup()
         self._moves = []
         self._save_dirs = {}
@@ -308,6 +312,10 @@ class UninstallPathSet:
         self._pth: Dict[str, UninstallPthEntries] = {}
         self._dist = dist
         self._moved_paths = StashedUninstallPathSet()
+        # Create local cache of normalize_path results. Creating an UninstallPathSet
+        # can result in hundreds/thousands of redundant calls to normalize_path with
+        # the same args, which hurts performance.
+        self._normalize_path_cached = functools.lru_cache(normalize_path)
 
     def _permitted(self, path: str) -> bool:
         """
@@ -315,14 +323,17 @@ class UninstallPathSet:
         remove/modify, False otherwise.
 
         """
-        return is_local(path)
+        # aka is_local, but caching normalized sys.prefix
+        if not running_under_virtualenv():
+            return True
+        return path.startswith(self._normalize_path_cached(sys.prefix))
 
     def add(self, path: str) -> None:
         head, tail = os.path.split(path)
 
         # we normalize the head to resolve parent directory symlinks, but not
         # the tail, since we only want to uninstall symlinks, not their targets
-        path = os.path.join(normalize_path(head), os.path.normcase(tail))
+        path = os.path.join(self._normalize_path_cached(head), os.path.normcase(tail))
 
         if not os.path.exists(path):
             return
@@ -337,7 +348,7 @@ class UninstallPathSet:
             self.add(cache_from_source(path))
 
     def add_pth(self, pth_file: str, entry: str) -> None:
-        pth_file = normalize_path(pth_file)
+        pth_file = self._normalize_path_cached(pth_file)
         if self._permitted(pth_file):
             if pth_file not in self._pth:
                 self._pth[pth_file] = UninstallPthEntries(pth_file)
@@ -499,11 +510,9 @@ class UninstallPathSet:
 
         elif dist.installed_by_distutils:
             raise UninstallationError(
-                "Cannot uninstall {!r}. It is a distutils installed project "
-                "and thus we cannot accurately determine which files belong "
-                "to it which would lead to only a partial uninstall.".format(
-                    dist.raw_name,
-                )
+                f"Cannot uninstall {dist.raw_name!r}. It is a distutils installed "
+                "project and thus we cannot accurately determine which files belong "
+                "to it which would lead to only a partial uninstall."
             )
 
         elif dist.installed_as_egg:
@@ -527,9 +536,14 @@ class UninstallPathSet:
             # above, so this only covers the setuptools-style editable.
             with open(develop_egg_link) as fh:
                 link_pointer = os.path.normcase(fh.readline().strip())
-            assert link_pointer == dist_location, (
-                f"Egg-link {link_pointer} does not match installed location of "
-                f"{dist.raw_name} (at {dist_location})"
+                normalized_link_pointer = paths_to_remove._normalize_path_cached(
+                    link_pointer
+                )
+            assert os.path.samefile(
+                normalized_link_pointer, normalized_dist_location
+            ), (
+                f"Egg-link {develop_egg_link} (to {link_pointer}) does not match "
+                f"installed location of {dist.raw_name} (at {dist_location})"
             )
             paths_to_remove.add(develop_egg_link)
             easy_install_pth = os.path.join(
@@ -551,10 +565,10 @@ class UninstallPathSet:
 
         # find distutils scripts= scripts
         try:
-            for script in dist.iterdir("scripts"):
-                paths_to_remove.add(os.path.join(bin_dir, script.name))
+            for script in dist.iter_distutils_script_names():
+                paths_to_remove.add(os.path.join(bin_dir, script))
                 if WINDOWS:
-                    paths_to_remove.add(os.path.join(bin_dir, f"{script.name}.bat"))
+                    paths_to_remove.add(os.path.join(bin_dir, f"{script}.bat"))
         except (FileNotFoundError, NotADirectoryError):
             pass
 
@@ -562,7 +576,7 @@ class UninstallPathSet:
         def iter_scripts_to_remove(
             dist: BaseDistribution,
             bin_dir: str,
-        ) -> Iterator[str]:
+        ) -> Generator[str, None, None]:
             for entry_point in dist.iter_entry_points():
                 if entry_point.group == "console_scripts":
                     yield from _script_names(bin_dir, entry_point.name, False)

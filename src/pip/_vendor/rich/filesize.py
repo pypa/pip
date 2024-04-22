@@ -2,7 +2,7 @@
 """Functions for reporting filesizes. Borrowed from https://github.com/PyFilesystem/pyfilesystem2
 
 The functions declared in this module should cover the different
-usecases needed to generate a string representation of a file size
+use cases needed to generate a string representation of a file size
 using several different units. Since there are many standards regarding
 file size units, three different functions have been implemented.
 
@@ -13,7 +13,7 @@ See Also:
 
 __all__ = ["decimal"]
 
-from typing import Iterable, List, Tuple, Optional
+from typing import Iterable, List, Optional, Tuple
 
 
 def _to_str(
@@ -30,7 +30,7 @@ def _to_str(
         return "{:,} bytes".format(size)
 
     for i, suffix in enumerate(suffixes, 2):  # noqa: B007
-        unit = base ** i
+        unit = base**i
         if size < unit:
             break
     return "{:,.{precision}f}{separator}{}".format(
@@ -44,7 +44,7 @@ def _to_str(
 def pick_unit_and_suffix(size: int, suffixes: List[str], base: int) -> Tuple[int, str]:
     """Pick a suffix and base for the given size."""
     for i, suffix in enumerate(suffixes):
-        unit = base ** i
+        unit = base**i
         if size < unit * base:
             break
     return unit, suffix

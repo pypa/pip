@@ -1,1 +1,0 @@
-Deprecate alternative progress bar styles, leaving only ``on`` and ``off`` as available choices.

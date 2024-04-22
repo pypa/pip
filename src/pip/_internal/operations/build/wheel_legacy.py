@@ -4,11 +4,7 @@ from typing import List, Optional
 
 from pip._internal.cli.spinners import open_spinner
 from pip._internal.utils.setuptools_build import make_setuptools_bdist_wheel_args
-from pip._internal.utils.subprocess import (
-    LOG_DIVIDER,
-    call_subprocess,
-    format_command_args,
-)
+from pip._internal.utils.subprocess import call_subprocess, format_command_args
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +24,7 @@ def format_command_result(
     else:
         if not command_output.endswith("\n"):
             command_output += "\n"
-        text += f"Command output:\n{command_output}{LOG_DIVIDER}"
+        text += f"Command output:\n{command_output}"
 
     return text
 
@@ -44,16 +40,16 @@ def get_legacy_build_wheel_path(
     # Sort for determinism.
     names = sorted(names)
     if not names:
-        msg = ("Legacy build of wheel for {!r} created no files.\n").format(name)
+        msg = f"Legacy build of wheel for {name!r} created no files.\n"
         msg += format_command_result(command_args, command_output)
         logger.warning(msg)
         return None
 
     if len(names) > 1:
         msg = (
-            "Legacy build of wheel for {!r} created more than one file.\n"
-            "Filenames (choosing first): {}\n"
-        ).format(name, names)
+            f"Legacy build of wheel for {name!r} created more than one file.\n"
+            f"Filenames (choosing first): {names}\n"
+        )
         msg += format_command_result(command_args, command_output)
         logger.warning(msg)
 
@@ -86,6 +82,7 @@ def build_wheel_legacy(
         try:
             output = call_subprocess(
                 wheel_args,
+                command_desc="python setup.py bdist_wheel",
                 cwd=source_dir,
                 spinner=spinner,
             )

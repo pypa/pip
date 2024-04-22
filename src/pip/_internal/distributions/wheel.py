@@ -1,12 +1,16 @@
+from typing import TYPE_CHECKING, Optional
+
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.distributions.base import AbstractDistribution
-from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import (
     BaseDistribution,
     FilesystemWheel,
     get_wheel_distribution,
 )
+
+if TYPE_CHECKING:
+    from pip._internal.index.package_finder import PackageFinder
 
 
 class WheelDistribution(AbstractDistribution):
@@ -14,6 +18,10 @@ class WheelDistribution(AbstractDistribution):
 
     This does not need any preparation as wheels can be directly unpacked.
     """
+
+    @property
+    def build_tracker_id(self) -> Optional[str]:
+        return None
 
     def get_metadata_distribution(self) -> BaseDistribution:
         """Loads the metadata from the wheel file into memory and returns a
@@ -26,6 +34,9 @@ class WheelDistribution(AbstractDistribution):
         return get_wheel_distribution(wheel, canonicalize_name(self.req.name))
 
     def prepare_distribution_metadata(
-        self, finder: PackageFinder, build_isolation: bool
+        self,
+        finder: "PackageFinder",
+        build_isolation: bool,
+        check_build_deps: bool,
     ) -> None:
         pass

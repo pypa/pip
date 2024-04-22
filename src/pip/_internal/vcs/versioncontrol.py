@@ -5,13 +5,14 @@ import os
 import shutil
 import sys
 import urllib.parse
+from dataclasses import dataclass, field
 from typing import (
-    TYPE_CHECKING,
     Any,
     Dict,
     Iterable,
     Iterator,
     List,
+    Literal,
     Mapping,
     Optional,
     Tuple,
@@ -31,15 +32,12 @@ from pip._internal.utils.misc import (
     is_installable_dir,
     rmtree,
 )
-from pip._internal.utils.subprocess import CommandArgs, call_subprocess, make_command
-from pip._internal.utils.urls import get_url_scheme
-
-if TYPE_CHECKING:
-    # Literal was introduced in Python 3.8.
-    #
-    # TODO: Remove `if TYPE_CHECKING` when dropping support for Python 3.7.
-    from typing import Literal
-
+from pip._internal.utils.subprocess import (
+    CommandArgs,
+    call_subprocess,
+    format_command_args,
+    make_command,
+)
 
 __all__ = ["vcs"]
 
@@ -53,8 +51,8 @@ def is_url(name: str) -> bool:
     """
     Return true if the name looks like a URL.
     """
-    scheme = get_url_scheme(name)
-    if scheme is None:
+    scheme = urllib.parse.urlsplit(name).scheme
+    if not scheme:
         return False
     return scheme in ["http", "https", "file", "ftp"] + vcs.all_schemes
 
@@ -116,34 +114,22 @@ class RemoteNotValidError(Exception):
         self.url = url
 
 
+@dataclass(frozen=True)
 class RevOptions:
-
     """
     Encapsulates a VCS-specific revision to install, along with any VCS
     install options.
 
-    Instances of this class should be treated as if immutable.
+    Args:
+        vc_class: a VersionControl subclass.
+        rev: the name of the revision to install.
+        extra_args: a list of extra options.
     """
 
-    def __init__(
-        self,
-        vc_class: Type["VersionControl"],
-        rev: Optional[str] = None,
-        extra_args: Optional[CommandArgs] = None,
-    ) -> None:
-        """
-        Args:
-          vc_class: a VersionControl subclass.
-          rev: the name of the revision to install.
-          extra_args: a list of extra options.
-        """
-        if extra_args is None:
-            extra_args = []
-
-        self.extra_args = extra_args
-        self.rev = rev
-        self.vc_class = vc_class
-        self.branch_name: Optional[str] = None
+    vc_class: Type["VersionControl"]
+    rev: Optional[str] = None
+    extra_args: CommandArgs = field(default_factory=list)
+    branch_name: Optional[str] = None
 
     def __repr__(self) -> str:
         return f"<RevOptions {self.vc_class.name}: rev={self.rev!r}>"
@@ -357,7 +343,7 @@ class VersionControl:
           rev: the name of a revision to install.
           extra_args: a list of extra options.
         """
-        return RevOptions(cls, rev, extra_args=extra_args)
+        return RevOptions(cls, rev, extra_args=extra_args or [])
 
     @classmethod
     def _is_local_repository(cls, repo: str) -> bool:
@@ -400,9 +386,9 @@ class VersionControl:
         scheme, netloc, path, query, frag = urllib.parse.urlsplit(url)
         if "+" not in scheme:
             raise ValueError(
-                "Sorry, {!r} is a malformed VCS url. "
+                f"Sorry, {url!r} is a malformed VCS url. "
                 "The format is <vcs>+<protocol>://<url>, "
-                "e.g. svn+http://myrepo/svn/MyApp#egg=MyApp".format(url)
+                "e.g. svn+http://myrepo/svn/MyApp#egg=MyApp"
             )
         # Remove the vcs prefix.
         scheme = scheme.split("+", 1)[1]
@@ -412,9 +398,9 @@ class VersionControl:
             path, rev = path.rsplit("@", 1)
             if not rev:
                 raise InstallationError(
-                    "The URL {!r} has an empty revision (after @) "
+                    f"The URL {url!r} has an empty revision (after @) "
                     "which is not supported. Include a revision after @ "
-                    "or remove @ from the URL.".format(url)
+                    "or remove @ from the URL."
                 )
         url = urllib.parse.urlunsplit((scheme, netloc, path, query, ""))
         return url, rev, user_pass
@@ -458,7 +444,9 @@ class VersionControl:
         """
         return cls.normalize_url(url1) == cls.normalize_url(url2)
 
-    def fetch_new(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
+    def fetch_new(
+        self, dest: str, url: HiddenText, rev_options: RevOptions, verbosity: int
+    ) -> None:
         """
         Fetch a revision from a repository, in the case that this is the
         first fetch from the repository.
@@ -466,6 +454,7 @@ class VersionControl:
         Args:
           dest: the directory to fetch the repository to.
           rev_options: a RevOptions object.
+          verbosity: verbosity level.
         """
         raise NotImplementedError
 
@@ -498,18 +487,19 @@ class VersionControl:
         """
         raise NotImplementedError
 
-    def obtain(self, dest: str, url: HiddenText) -> None:
+    def obtain(self, dest: str, url: HiddenText, verbosity: int) -> None:
         """
         Install or update in editable mode the package represented by this
         VersionControl object.
 
         :param dest: the repository directory in which to install or update.
         :param url: the repository URL starting with a vcs prefix.
+        :param verbosity: verbosity level.
         """
         url, rev_options = self.get_url_rev_options(url)
 
         if not os.path.exists(dest):
-            self.fetch_new(dest, url, rev_options)
+            self.fetch_new(dest, url, rev_options, verbosity=verbosity)
             return
 
         rev_display = rev_options.to_display()
@@ -557,7 +547,7 @@ class VersionControl:
             self.name,
             url,
         )
-        response = ask_path_exists("What to do?  {}".format(prompt[0]), prompt[1])
+        response = ask_path_exists(f"What to do?  {prompt[0]}", prompt[1])
 
         if response == "a":
             sys.exit(-1)
@@ -565,14 +555,14 @@ class VersionControl:
         if response == "w":
             logger.warning("Deleting %s", display_path(dest))
             rmtree(dest)
-            self.fetch_new(dest, url, rev_options)
+            self.fetch_new(dest, url, rev_options, verbosity=verbosity)
             return
 
         if response == "b":
             dest_dir = backup_dir(dest)
             logger.warning("Backing up %s to %s", display_path(dest), dest_dir)
             shutil.move(dest, dest_dir)
-            self.fetch_new(dest, url, rev_options)
+            self.fetch_new(dest, url, rev_options, verbosity=verbosity)
             return
 
         # Do nothing if the response is "i".
@@ -586,16 +576,17 @@ class VersionControl:
             )
             self.switch(dest, url, rev_options)
 
-    def unpack(self, location: str, url: HiddenText) -> None:
+    def unpack(self, location: str, url: HiddenText, verbosity: int) -> None:
         """
         Clean up current location and download the url repository
         (and vcs infos) into location
 
         :param url: the repository URL starting with a vcs prefix.
+        :param verbosity: verbosity level.
         """
         if os.path.exists(location):
             rmtree(location)
-        self.obtain(location, url=url)
+        self.obtain(location, url=url, verbosity=verbosity)
 
     @classmethod
     def get_remote_url(cls, location: str) -> str:
@@ -634,6 +625,8 @@ class VersionControl:
         command name, and checks that the VCS is available
         """
         cmd = make_command(cls.name, *cmd)
+        if command_desc is None:
+            command_desc = format_command_args(cmd)
         try:
             return call_subprocess(
                 cmd,

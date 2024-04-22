@@ -88,7 +88,7 @@ The contents of this file are reStructuredText formatted text that
 will be used as the content of the news file entry. You do not need to
 reference the issue or PR numbers in the entry, since ``towncrier``
 will automatically add a reference to all of the affected issues when
-rendering the NEWS file.
+rendering the NEWS file. There must be a newline at the end of the file.
 
 In order to maintain a consistent style in the ``NEWS.rst`` file, it is
 preferred to keep the news entry to the point, in sentence case, shorter than
@@ -112,7 +112,7 @@ the ``news/`` directory with the extension of ``.trivial.rst``. If you are on a
 POSIX like operating system, one can be added by running
 ``touch news/$(uuidgen).trivial.rst``. On Windows, the same result can be
 achieved in Powershell using ``New-Item "news/$([guid]::NewGuid()).trivial.rst"``.
-Core committers may also add a "trivial" label to the PR which will accomplish
+Core committers may also add a "skip news" label to the PR which will accomplish
 the same thing.
 
 Upgrading, removing, or adding a new vendored library gets a special mention

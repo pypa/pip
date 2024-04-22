@@ -4,11 +4,9 @@
 
     Formatter for terminal output with ANSI sequences.
 
-    :copyright: Copyright 2006-2021 by the Pygments team, see AUTHORS.
+    :copyright: Copyright 2006-2023 by the Pygments team, see AUTHORS.
     :license: BSD, see LICENSE for details.
 """
-
-import sys
 
 from pip._vendor.pygments.formatter import Formatter
 from pip._vendor.pygments.token import Keyword, Name, Comment, String, Error, \

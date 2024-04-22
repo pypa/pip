@@ -1,8 +1,10 @@
 """ PEP 610 """
+
 import json
 import re
 import urllib.parse
-from typing import Any, Dict, Iterable, Optional, Type, TypeVar, Union
+from dataclasses import dataclass
+from typing import Any, ClassVar, Dict, Iterable, Optional, Type, TypeVar, Union
 
 __all__ = [
     "DirectUrl",
@@ -31,9 +33,7 @@ def _get(
     value = d[key]
     if not isinstance(value, expected_type):
         raise DirectUrlValidationError(
-            "{!r} has unexpected type for {} (expected {})".format(
-                value, key, expected_type
-            )
+            f"{value!r} has unexpected type for {key} (expected {expected_type})"
         )
     return value
 
@@ -66,22 +66,13 @@ def _filter_none(**kwargs: Any) -> Dict[str, Any]:
     return {k: v for k, v in kwargs.items() if v is not None}
 
 
+@dataclass
 class VcsInfo:
-    name = "vcs_info"
+    name: ClassVar = "vcs_info"
 
-    def __init__(
-        self,
-        vcs: str,
-        commit_id: str,
-        requested_revision: Optional[str] = None,
-        resolved_revision: Optional[str] = None,
-        resolved_revision_type: Optional[str] = None,
-    ) -> None:
-        self.vcs = vcs
-        self.requested_revision = requested_revision
-        self.commit_id = commit_id
-        self.resolved_revision = resolved_revision
-        self.resolved_revision_type = resolved_revision_type
+    vcs: str
+    commit_id: str
+    requested_revision: Optional[str] = None
 
     @classmethod
     def _from_dict(cls, d: Optional[Dict[str, Any]]) -> Optional["VcsInfo"]:
@@ -91,8 +82,6 @@ class VcsInfo:
             vcs=_get_required(d, str, "vcs"),
             commit_id=_get_required(d, str, "commit_id"),
             requested_revision=_get(d, str, "requested_revision"),
-            resolved_revision=_get(d, str, "resolved_revision"),
-            resolved_revision_type=_get(d, str, "resolved_revision_type"),
         )
 
     def _to_dict(self) -> Dict[str, Any]:
@@ -100,8 +89,6 @@ class VcsInfo:
             vcs=self.vcs,
             requested_revision=self.requested_revision,
             commit_id=self.commit_id,
-            resolved_revision=self.resolved_revision,
-            resolved_revision_type=self.resolved_revision_type,
         )
 
 
@@ -111,27 +98,49 @@ class ArchiveInfo:
     def __init__(
         self,
         hash: Optional[str] = None,
+        hashes: Optional[Dict[str, str]] = None,
     ) -> None:
+        # set hashes before hash, since the hash setter will further populate hashes
+        self.hashes = hashes
         self.hash = hash
+
+    @property
+    def hash(self) -> Optional[str]:
+        return self._hash
+
+    @hash.setter
+    def hash(self, value: Optional[str]) -> None:
+        if value is not None:
+            # Auto-populate the hashes key to upgrade to the new format automatically.
+            # We don't back-populate the legacy hash key from hashes.
+            try:
+                hash_name, hash_value = value.split("=", 1)
+            except ValueError:
+                raise DirectUrlValidationError(
+                    f"invalid archive_info.hash format: {value!r}"
+                )
+            if self.hashes is None:
+                self.hashes = {hash_name: hash_value}
+            elif hash_name not in self.hashes:
+                self.hashes = self.hashes.copy()
+                self.hashes[hash_name] = hash_value
+        self._hash = value
 
     @classmethod
     def _from_dict(cls, d: Optional[Dict[str, Any]]) -> Optional["ArchiveInfo"]:
         if d is None:
             return None
-        return cls(hash=_get(d, str, "hash"))
+        return cls(hash=_get(d, str, "hash"), hashes=_get(d, dict, "hashes"))
 
     def _to_dict(self) -> Dict[str, Any]:
-        return _filter_none(hash=self.hash)
+        return _filter_none(hash=self.hash, hashes=self.hashes)
 
 
+@dataclass
 class DirInfo:
-    name = "dir_info"
+    name: ClassVar = "dir_info"
 
-    def __init__(
-        self,
-        editable: bool = False,
-    ) -> None:
-        self.editable = editable
+    editable: bool = False
 
     @classmethod
     def _from_dict(cls, d: Optional[Dict[str, Any]]) -> Optional["DirInfo"]:
@@ -146,16 +155,11 @@ class DirInfo:
 InfoType = Union[ArchiveInfo, DirInfo, VcsInfo]
 
 
+@dataclass
 class DirectUrl:
-    def __init__(
-        self,
-        url: str,
-        info: InfoType,
-        subdirectory: Optional[str] = None,
-    ) -> None:
-        self.url = url
-        self.info = info
-        self.subdirectory = subdirectory
+    url: str
+    info: InfoType
+    subdirectory: Optional[str] = None
 
     def _remove_auth_from_netloc(self, netloc: str) -> str:
         if "@" not in netloc:

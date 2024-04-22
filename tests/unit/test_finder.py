@@ -14,6 +14,7 @@ from pip._internal.index.package_finder import (
     InstallationCandidate,
     Link,
     LinkEvaluator,
+    LinkType,
 )
 from pip._internal.models.target_python import TargetPython
 from pip._internal.req.constructors import install_req_from_line
@@ -62,7 +63,7 @@ def test_duplicates_sort_ok(data: TestData) -> None:
 
 def test_finder_detects_latest_find_links(data: TestData) -> None:
     """Test PackageFinder detects latest using find-links"""
-    req = install_req_from_line("simple", None)
+    req = install_req_from_line("simple")
     finder = make_test_finder(find_links=[data.find_links])
     found = finder.find_requirement(req, False)
     assert found is not None
@@ -71,7 +72,7 @@ def test_finder_detects_latest_find_links(data: TestData) -> None:
 
 def test_incorrect_case_file_index(data: TestData) -> None:
     """Test PackageFinder detects latest using wrong case"""
-    req = install_req_from_line("dinner", None)
+    req = install_req_from_line("dinner")
     finder = make_test_finder(index_urls=[data.find_links3])
     found = finder.find_requirement(req, False)
     assert found is not None
@@ -81,7 +82,7 @@ def test_incorrect_case_file_index(data: TestData) -> None:
 @pytest.mark.network
 def test_finder_detects_latest_already_satisfied_find_links(data: TestData) -> None:
     """Test PackageFinder detects latest already satisfied using find-links"""
-    req = install_req_from_line("simple", None)
+    req = install_req_from_line("simple")
     # the latest simple in local pkgs is 3.0
     latest_version = "3.0"
     satisfied_by = Mock(
@@ -98,7 +99,7 @@ def test_finder_detects_latest_already_satisfied_find_links(data: TestData) -> N
 @pytest.mark.network
 def test_finder_detects_latest_already_satisfied_pypi_links() -> None:
     """Test PackageFinder detects latest already satisfied using pypi links"""
-    req = install_req_from_line("initools", None)
+    req = install_req_from_line("initools")
     # the latest initools on PyPI is 0.3.1
     latest_version = "0.3.1"
     satisfied_by = Mock(
@@ -127,7 +128,10 @@ class TestWheel:
         with pytest.raises(DistributionNotFound):
             finder.find_requirement(req, True)
 
-        assert "Skipping link: invalid wheel filename:" in caplog.text
+        assert (
+            "Could not find a version that satisfies the requirement invalid"
+            " (from versions:" in caplog.text
+        )
 
     def test_not_find_wheel_not_supported(self, data: TestData) -> None:
         """
@@ -179,7 +183,7 @@ class TestWheel:
         Test existing install has priority over wheels.
         `test_link_sorting` also covers this at a lower level
         """
-        req = install_req_from_line("priority", None)
+        req = install_req_from_line("priority")
         latest_version = "1.0"
         satisfied_by = Mock(
             location="/path",
@@ -308,7 +312,7 @@ class TestCandidateEvaluator:
 
 def test_finder_priority_file_over_page(data: TestData) -> None:
     """Test PackageFinder prefers file links over equivalent page links"""
-    req = install_req_from_line("gmpy==1.15", None)
+    req = install_req_from_line("gmpy==1.15")
     finder = make_test_finder(
         find_links=[data.find_links],
         index_urls=["http://pypi.org/simple/"],
@@ -327,7 +331,7 @@ def test_finder_priority_file_over_page(data: TestData) -> None:
 
 def test_finder_priority_nonegg_over_eggfragments() -> None:
     """Test PackageFinder prefers non-egg links over "#egg=" links"""
-    req = install_req_from_line("bar==1.0", None)
+    req = install_req_from_line("bar==1.0")
     links = ["http://foo/bar.py#egg=bar-1.0", "http://foo/bar-1.0.tar.gz"]
 
     finder = make_test_finder(links)
@@ -357,7 +361,7 @@ def test_finder_only_installs_stable_releases(data: TestData) -> None:
     Test PackageFinder only accepts stable versioned releases by default.
     """
 
-    req = install_req_from_line("bar", None)
+    req = install_req_from_line("bar")
 
     # using a local index (that has pre & dev releases)
     finder = make_test_finder(index_urls=[data.index_url("pre")])
@@ -403,7 +407,7 @@ def test_finder_installs_pre_releases(data: TestData) -> None:
     Test PackageFinder finds pre-releases if asked to.
     """
 
-    req = install_req_from_line("bar", None)
+    req = install_req_from_line("bar")
 
     # using a local index (that has pre & dev releases)
     finder = make_test_finder(
@@ -435,7 +439,7 @@ def test_finder_installs_dev_releases(data: TestData) -> None:
     Test PackageFinder finds dev releases if asked to.
     """
 
-    req = install_req_from_line("bar", None)
+    req = install_req_from_line("bar")
 
     # using a local index (that has dev releases)
     finder = make_test_finder(
@@ -451,7 +455,7 @@ def test_finder_installs_pre_releases_with_version_spec() -> None:
     """
     Test PackageFinder only accepts stable versioned releases by default.
     """
-    req = install_req_from_line("bar>=0.0.dev0", None)
+    req = install_req_from_line("bar>=0.0.dev0")
     links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
 
     finder = make_test_finder(links)
@@ -490,26 +494,36 @@ class TestLinkEvaluator:
         link = Link(url)
         evaluator = self.make_test_link_evaluator(formats=["source", "binary"])
         actual = evaluator.evaluate_link(link)
-        assert actual == (True, expected_version)
+        assert actual == (LinkType.candidate, expected_version)
 
     @pytest.mark.parametrize(
-        "url, expected_msg",
+        "url, link_type, fail_reason",
         [
             # TODO: Uncomment this test case when #1217 is fixed.
             # 'http:/yo/pytest-xdist-1.0.tar.gz',
-            ("http:/yo/pytest2-1.0.tar.gz", "Missing project version for pytest"),
+            (
+                "http:/yo/pytest2-1.0.tar.gz",
+                LinkType.format_invalid,
+                "Missing project version for pytest",
+            ),
             (
                 "http:/yo/pytest_xdist-1.0-py2.py3-none-any.whl",
+                LinkType.different_project,
                 "wrong project name (not pytest)",
             ),
         ],
     )
-    def test_evaluate_link__substring_fails(self, url: str, expected_msg: str) -> None:
+    def test_evaluate_link__substring_fails(
+        self,
+        url: str,
+        link_type: LinkType,
+        fail_reason: str,
+    ) -> None:
         """Test that 'pytest<something> archives won't match for 'pytest'."""
         link = Link(url)
         evaluator = self.make_test_link_evaluator(formats=["source", "binary"])
         actual = evaluator.evaluate_link(link)
-        assert actual == (False, expected_msg)
+        assert actual == (link_type, fail_reason)
 
 
 def test_process_project_url(data: TestData) -> None:

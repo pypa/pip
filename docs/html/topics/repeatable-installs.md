@@ -1,3 +1,4 @@
+(repeatability)=
 # Repeatable Installs
 
 pip can be used to achieve various levels of repeatable environments. This page
@@ -19,7 +20,7 @@ specific version.
 ```
 
 A requirements file, containing pinned package versions can be generated using
-{ref}`pip freeze`. This would not only the top-level packages, but also all of
+{ref}`pip freeze`. This would pin not only the top-level packages, but also all of
 their transitive dependencies. Performing the installation using
 {ref}`--no-deps <install_--no-deps>` would provide an extra dose of insurance
 against installing anything not explicitly listed.

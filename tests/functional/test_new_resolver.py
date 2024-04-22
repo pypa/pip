@@ -2,38 +2,42 @@ import os
 import pathlib
 import sys
 import textwrap
-from typing import TYPE_CHECKING, Callable, Dict, List, Tuple
+from typing import TYPE_CHECKING, Callable, Dict, List, Protocol, Tuple
 
 import pytest
+from packaging.utils import canonicalize_name
 
+from tests.conftest import ScriptFactory
 from tests.lib import (
     PipTestEnvironment,
     create_basic_sdist_for_package,
     create_basic_wheel_for_package,
     create_test_package_with_setup,
-    path_to_url,
 )
 from tests.lib.direct_url import get_created_direct_url
-from tests.lib.path import Path
+from tests.lib.venv import VirtualEnvironment
 from tests.lib.wheel import make_wheel
 
-if TYPE_CHECKING:
-    from typing import Protocol
+MakeFakeWheel = Callable[[str, str, str], pathlib.Path]
 
 
 def assert_editable(script: PipTestEnvironment, *args: str) -> None:
     # This simply checks whether all of the listed packages have a
     # corresponding .egg-link file installed.
     # TODO: Implement a more rigorous way to test for editable installations.
-    egg_links = {f"{arg}.egg-link" for arg in args}
-    assert egg_links <= set(
-        os.listdir(script.site_packages_path)
+    egg_links = {f"{canonicalize_name(arg)}.egg-link" for arg in args}
+    actual_egg_links = {
+        f"{canonicalize_name(p.stem)}.egg-link"
+        for p in script.site_packages_path.glob("*.egg-link")
+    }
+    assert (
+        egg_links <= actual_egg_links
     ), f"{args!r} not all found in {script.site_packages_path!r}"
 
 
 @pytest.fixture()
-def make_fake_wheel(script: PipTestEnvironment) -> Callable[[str, str, str], Path]:
-    def _make_fake_wheel(name: str, version: str, wheel_tag: str) -> Path:
+def make_fake_wheel(script: PipTestEnvironment) -> MakeFakeWheel:
+    def _make_fake_wheel(name: str, version: str, wheel_tag: str) -> pathlib.Path:
         wheel_house = script.scratch_path.joinpath("wheelhouse")
         wheel_house.mkdir()
         wheel_builder = make_wheel(
@@ -221,7 +225,7 @@ def test_new_resolver_ignore_dependencies(script: PipTestEnvironment) -> None:
     ],
 )
 def test_new_resolver_installs_extras(
-    tmpdir: Path, script: PipTestEnvironment, root_dep: str
+    tmpdir: pathlib.Path, script: PipTestEnvironment, root_dep: str
 ) -> None:
     req_file = tmpdir.joinpath("requirements.txt")
     req_file.write_text(root_dep)
@@ -379,7 +383,7 @@ def test_new_resolver_requires_python(
         "--no-cache-dir",
         "--no-index",
         "--find-links",
-        script.scratch_path,
+        os.fspath(script.scratch_path),
     ]
     if ignore_requires_python:
         args.append("--ignore-requires-python")
@@ -926,8 +930,7 @@ if TYPE_CHECKING:
             version: str,
             requires: List[str],
             extras: Dict[str, List[str]],
-        ) -> str:
-            ...
+        ) -> str: ...
 
 
 def _local_with_setup(
@@ -938,13 +941,14 @@ def _local_with_setup(
     extras: Dict[str, List[str]],
 ) -> str:
     """Create the package as a local source directory to install from path."""
-    return create_test_package_with_setup(
+    path = create_test_package_with_setup(
         script,
         name=name,
         version=version,
         install_requires=requires,
         extras_require=extras,
     )
+    return str(path)
 
 
 def _direct_wheel(
@@ -955,13 +959,14 @@ def _direct_wheel(
     extras: Dict[str, List[str]],
 ) -> str:
     """Create the package as a wheel to install from path directly."""
-    return create_basic_wheel_for_package(
+    path = create_basic_wheel_for_package(
         script,
         name=name,
         version=version,
         depends=requires,
         extras=extras,
     )
+    return str(path)
 
 
 def _wheel_from_index(
@@ -1181,7 +1186,7 @@ def test_new_resolver_presents_messages_when_backtracking_a_lot(
     for index in range(1, N + 1):
         A_version = f"{index}.0.0"
         B_version = f"{index}.0.0"
-        C_version = "{index_minus_one}.0.0".format(index_minus_one=index - 1)
+        C_version = f"{index - 1}.0.0"
 
         depends = ["B == " + B_version]
         if index != 1:
@@ -1233,7 +1238,7 @@ def test_new_resolver_presents_messages_when_backtracking_a_lot(
         # cannot handle it correctly. Nobody is complaining about it right now,
         # we're probably dropping it for importlib.metadata soon(tm), so let's
         # ignore it for the time being.
-        pytest.param("0.1.0+local-1", marks=pytest.mark.xfail),
+        pytest.param("0.1.0+local-1", marks=pytest.mark.xfail(strict=False)),
     ],
     ids=["meta_dot", "meta_underscore", "meta_dash"],
 )
@@ -1361,8 +1366,8 @@ def test_new_resolver_skip_inconsistent_metadata(script: PipTestEnvironment) -> 
     )
 
     assert (
-        " inconsistent version: filename has '3', but metadata has '2'"
-    ) in result.stderr, str(result)
+        " inconsistent version: expected '3', but metadata has '2'"
+    ) in result.stdout, str(result)
     script.assert_installed(a="1")
 
 
@@ -1458,7 +1463,7 @@ def test_new_resolver_does_not_install_unneeded_packages_with_url_constraint(
     )
 
     constraints_file = script.scratch_path / "constraints.txt"
-    constraints_file.write_text("not_installed @ " + path_to_url(not_installed_path))
+    constraints_file.write_text(f"not_installed @ {not_installed_path.as_uri()}")
 
     (script.scratch_path / "index").mkdir()
     archive_path.rename(script.scratch_path / "index" / archive_path.name)
@@ -1488,7 +1493,7 @@ def test_new_resolver_installs_packages_with_url_constraint(
     )
 
     constraints_file = script.scratch_path / "constraints.txt"
-    constraints_file.write_text("installed @ " + path_to_url(installed_path))
+    constraints_file.write_text(f"installed @ {installed_path.as_uri()}")
 
     script.pip(
         "install", "--no-cache-dir", "--no-index", "-c", constraints_file, "installed"
@@ -1507,7 +1512,7 @@ def test_new_resolver_reinstall_link_requirement_with_constraint(
     )
 
     cr_file = script.scratch_path / "constraints.txt"
-    cr_file.write_text("installed @ " + path_to_url(installed_path))
+    cr_file.write_text(f"installed @ {installed_path.as_uri()}")
 
     script.pip(
         "install",
@@ -1545,7 +1550,7 @@ def test_new_resolver_prefers_url_constraint(script: PipTestEnvironment) -> None
     )
 
     constraints_file = script.scratch_path / "constraints.txt"
-    constraints_file.write_text("test_pkg @ " + path_to_url(installed_path))
+    constraints_file.write_text(f"test_pkg @ {installed_path.as_uri()}")
 
     (script.scratch_path / "index").mkdir()
     not_installed_path.rename(script.scratch_path / "index" / not_installed_path.name)
@@ -1579,7 +1584,7 @@ def test_new_resolver_prefers_url_constraint_on_update(
     )
 
     constraints_file = script.scratch_path / "constraints.txt"
-    constraints_file.write_text("test_pkg @ " + path_to_url(installed_path))
+    constraints_file.write_text(f"test_pkg @ {installed_path.as_uri()}")
 
     (script.scratch_path / "index").mkdir()
     not_installed_path.rename(script.scratch_path / "index" / not_installed_path.name)
@@ -1626,7 +1631,7 @@ def test_new_resolver_fails_with_url_constraint_and_incompatible_version(
     )
 
     url_constraint = script.scratch_path / "constraints.txt"
-    url_constraint.write_text("test_pkg @ " + path_to_url(not_installed_path))
+    url_constraint.write_text(f"test_pkg @ {not_installed_path.as_uri()}")
 
     version_req = script.scratch_path / "requirements.txt"
     version_req.write_text("test_pkg<0.2.0")
@@ -1685,8 +1690,8 @@ def test_new_resolver_ignores_unneeded_conflicting_constraints(
     )
 
     constraints = [
-        "test_pkg @ " + path_to_url(version_1),
-        "test_pkg @ " + path_to_url(version_2),
+        f"test_pkg @ {version_1.as_uri()}",
+        f"test_pkg @ {version_2.as_uri()}",
     ]
 
     constraints_file = script.scratch_path / "constraints.txt"
@@ -1722,8 +1727,8 @@ def test_new_resolver_fails_on_needed_conflicting_constraints(
     )
 
     constraints = [
-        "test_pkg @ " + path_to_url(version_1),
-        "test_pkg @ " + path_to_url(version_2),
+        f"test_pkg @ {version_1.as_uri()}",
+        f"test_pkg @ {version_2.as_uri()}",
     ]
 
     constraints_file = script.scratch_path / "constraints.txt"
@@ -1774,7 +1779,7 @@ def test_new_resolver_fails_on_conflicting_constraint_and_requirement(
     )
 
     constraints_file = script.scratch_path / "constraints.txt"
-    constraints_file.write_text("test_pkg @ " + path_to_url(version_1))
+    constraints_file.write_text(f"test_pkg @ {version_1.as_uri()}")
 
     result = script.pip(
         "install",
@@ -1784,7 +1789,7 @@ def test_new_resolver_fails_on_conflicting_constraint_and_requirement(
         script.scratch_path,
         "-c",
         constraints_file,
-        "test_pkg @ " + path_to_url(version_2),
+        f"test_pkg @ {version_2.as_uri()}",
         expect_error=True,
     )
 
@@ -1802,7 +1807,7 @@ def test_new_resolver_fails_on_conflicting_constraint_and_requirement(
         "--no-index",
         "--find-links",
         script.scratch_path,
-        "test_pkg @ " + path_to_url(version_2),
+        f"test_pkg @ {version_2.as_uri()}",
     )
 
 
@@ -1821,14 +1826,14 @@ def test_new_resolver_succeeds_on_matching_constraint_and_requirement(
             "0.1.0",
         )
 
-    req_line = "test_pkg @ " + path_to_url(source_dir)
+    req_line = f"test_pkg @ {source_dir.as_uri()}"
 
     constraints_file = script.scratch_path / "constraints.txt"
     constraints_file.write_text(req_line)
 
     last_args: Tuple[str, ...]
     if editable:
-        last_args = ("-e", source_dir)
+        last_args = ("-e", os.fspath(source_dir))
     else:
         last_args = (req_line,)
 
@@ -1843,7 +1848,7 @@ def test_new_resolver_succeeds_on_matching_constraint_and_requirement(
 
     script.assert_installed(test_pkg="0.1.0")
     if editable:
-        assert_editable(script, "test-pkg")
+        assert_editable(script, "test_pkg")
 
 
 def test_new_resolver_applies_url_constraint_to_dep(script: PipTestEnvironment) -> None:
@@ -1865,7 +1870,7 @@ def test_new_resolver_applies_url_constraint_to_dep(script: PipTestEnvironment) 
     version_2.rename(script.scratch_path / "index" / version_2.name)
 
     constraints_file = script.scratch_path / "constraints.txt"
-    constraints_file.write_text("dep @ " + path_to_url(version_1))
+    constraints_file.write_text(f"dep @ {version_1.as_uri()}")
 
     script.pip(
         "install",
@@ -1882,7 +1887,7 @@ def test_new_resolver_applies_url_constraint_to_dep(script: PipTestEnvironment) 
 
 
 def test_new_resolver_handles_compatible_wheel_tags_in_constraint_url(
-    script: PipTestEnvironment, make_fake_wheel: Callable[[str, str, str], Path]
+    script: PipTestEnvironment, make_fake_wheel: MakeFakeWheel
 ) -> None:
     initial_path = make_fake_wheel("base", "0.1.0", "fakepy1-fakeabi-fakeplat")
 
@@ -1894,7 +1899,7 @@ def test_new_resolver_handles_compatible_wheel_tags_in_constraint_url(
     initial_path.rename(final_path)
 
     constraints_file = script.scratch_path / "constraints.txt"
-    constraints_file.write_text("base @ " + path_to_url(final_path))
+    constraints_file.write_text(f"base @ {final_path.as_uri()}")
 
     result = script.pip(
         "install",
@@ -1916,12 +1921,12 @@ def test_new_resolver_handles_compatible_wheel_tags_in_constraint_url(
         "base",
     )
 
-    dist_info = Path("scratch", "target", "base-0.1.0.dist-info")
+    dist_info = pathlib.Path("scratch", "target", "base-0.1.0.dist-info")
     result.did_create(dist_info)
 
 
 def test_new_resolver_handles_incompatible_wheel_tags_in_constraint_url(
-    script: PipTestEnvironment, make_fake_wheel: Callable[[str, str, str], Path]
+    script: PipTestEnvironment, make_fake_wheel: MakeFakeWheel
 ) -> None:
     initial_path = make_fake_wheel("base", "0.1.0", "fakepy1-fakeabi-fakeplat")
 
@@ -1933,7 +1938,7 @@ def test_new_resolver_handles_incompatible_wheel_tags_in_constraint_url(
     initial_path.rename(final_path)
 
     constraints_file = script.scratch_path / "constraints.txt"
-    constraints_file.write_text("base @ " + path_to_url(final_path))
+    constraints_file.write_text(f"base @ {final_path.as_uri()}")
 
     result = script.pip(
         "install",
@@ -1954,7 +1959,7 @@ def test_new_resolver_handles_incompatible_wheel_tags_in_constraint_url(
 
 
 def test_new_resolver_avoids_incompatible_wheel_tags_in_constraint_url(
-    script: PipTestEnvironment, make_fake_wheel: Callable[[str, str, str], Path]
+    script: PipTestEnvironment, make_fake_wheel: MakeFakeWheel
 ) -> None:
     initial_path = make_fake_wheel("dep", "0.1.0", "fakepy1-fakeabi-fakeplat")
 
@@ -1966,7 +1971,7 @@ def test_new_resolver_avoids_incompatible_wheel_tags_in_constraint_url(
     initial_path.rename(final_path)
 
     constraints_file = script.scratch_path / "constraints.txt"
-    constraints_file.write_text("dep @ " + path_to_url(final_path))
+    constraints_file.write_text(f"dep @ {final_path.as_uri()}")
 
     index = script.scratch_path / "index"
     index.mkdir()
@@ -2060,7 +2065,7 @@ def test_new_resolver_direct_url_equivalent(
         script,
         name="pkgb",
         version="1",
-        depends=[f"pkga@{path_to_url(pkga)}{depend_suffix}"],
+        depends=[f"pkga@{pkga.as_uri()}{depend_suffix}"],
     )
 
     # Make pkgb visible via --find-links, but not pkga.
@@ -2077,7 +2082,7 @@ def test_new_resolver_direct_url_equivalent(
         "--no-index",
         "--find-links",
         str(find_links),
-        f"{path_to_url(pkga)}{request_suffix}",
+        f"{pkga.as_uri()}{request_suffix}",
         "pkgb",
         expect_error=(not suffixes_equivalent),
     )
@@ -2200,35 +2205,30 @@ def test_new_resolver_transitively_depends_on_unnamed_local(
     )
 
 
-def _to_uri(path: str) -> str:
-    # Something like file:///path/to/package
-    return pathlib.Path(path).as_uri()
-
-
-def _to_localhost_uri(path: str) -> str:
+def _to_localhost_uri(path: pathlib.Path) -> str:
     # Something like file://localhost/path/to/package
-    return pathlib.Path(path).as_uri().replace("///", "//localhost/")
+    return path.as_uri().replace("///", "//localhost/")
 
 
 @pytest.mark.parametrize(
     "format_dep",
     [
-        pytest.param(_to_uri, id="emptyhost"),
+        pytest.param(pathlib.Path.as_uri, id="emptyhost"),
         pytest.param(_to_localhost_uri, id="localhost"),
     ],
 )
 @pytest.mark.parametrize(
     "format_input",
     [
-        pytest.param(lambda path: path, id="path"),
-        pytest.param(_to_uri, id="emptyhost"),
+        pytest.param(pathlib.Path, id="path"),
+        pytest.param(pathlib.Path.as_uri, id="emptyhost"),
         pytest.param(_to_localhost_uri, id="localhost"),
     ],
 )
 def test_new_resolver_file_url_normalize(
     script: PipTestEnvironment,
-    format_dep: Callable[[str], str],
-    format_input: Callable[[str], str],
+    format_dep: Callable[[pathlib.Path], str],
+    format_input: Callable[[pathlib.Path], str],
 ) -> None:
     lib_a = create_test_package_with_setup(
         script,
@@ -2275,6 +2275,103 @@ def test_new_resolver_dont_backtrack_on_extra_if_base_constrained(
     script.assert_installed(pkg="1.0", dep="1.0")
 
 
+@pytest.mark.parametrize("swap_order", (True, False))
+@pytest.mark.parametrize("two_extras", (True, False))
+def test_new_resolver_dont_backtrack_on_extra_if_base_constrained_in_requirement(
+    script: PipTestEnvironment, swap_order: bool, two_extras: bool
+) -> None:
+    """
+    Verify that a requirement with a constraint on a package (either on the base
+    on the base with an extra) causes the resolver to infer the same constraint for
+    any (other) extras with the same base.
+
+    :param swap_order: swap the order the install specifiers appear in
+    :param two_extras: also add an extra for the constrained specifier
+    """
+    create_basic_wheel_for_package(script, "dep", "1.0")
+    create_basic_wheel_for_package(
+        script, "pkg", "1.0", extras={"ext1": ["dep"], "ext2": ["dep"]}
+    )
+    create_basic_wheel_for_package(
+        script, "pkg", "2.0", extras={"ext1": ["dep"], "ext2": ["dep"]}
+    )
+
+    to_install: Tuple[str, str] = (
+        "pkg[ext1]",
+        "pkg[ext2]==1.0" if two_extras else "pkg==1.0",
+    )
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        *(to_install if not swap_order else reversed(to_install)),
+    )
+    assert "pkg-2.0" not in result.stdout, "Should not try 2.0 due to constraint"
+    script.assert_installed(pkg="1.0", dep="1.0")
+
+
+@pytest.mark.parametrize("swap_order", (True, False))
+@pytest.mark.parametrize("two_extras", (True, False))
+def test_new_resolver_dont_backtrack_on_conflicting_constraints_on_extras(
+    tmpdir: pathlib.Path,
+    virtualenv: VirtualEnvironment,
+    script_factory: ScriptFactory,
+    swap_order: bool,
+    two_extras: bool,
+) -> None:
+    """
+    Verify that conflicting constraints on the same package with different
+    extras cause the resolver to trivially reject the request rather than
+    trying any candidates.
+
+    :param swap_order: swap the order the install specifiers appear in
+    :param two_extras: also add an extra for the second specifier
+    """
+    script: PipTestEnvironment = script_factory(
+        tmpdir.joinpath("workspace"),
+        virtualenv,
+        {**os.environ, "PIP_RESOLVER_DEBUG": "1"},
+    )
+    create_basic_wheel_for_package(script, "dep", "1.0")
+    create_basic_wheel_for_package(
+        script, "pkg", "1.0", extras={"ext1": ["dep"], "ext2": ["dep"]}
+    )
+    create_basic_wheel_for_package(
+        script, "pkg", "2.0", extras={"ext1": ["dep"], "ext2": ["dep"]}
+    )
+
+    to_install: Tuple[str, str] = (
+        "pkg[ext1]>1",
+        "pkg[ext2]==1.0" if two_extras else "pkg==1.0",
+    )
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        *(to_install if not swap_order else reversed(to_install)),
+        expect_error=True,
+    )
+    assert (
+        "pkg-2.0" not in result.stdout or "pkg-1.0" not in result.stdout
+    ), "Should only try one of 1.0, 2.0 depending on order"
+    assert "Reporter.starting()" in result.stdout, (
+        "This should never fail unless the debug reporting format has changed,"
+        " in which case the other assertions in this test need to be reviewed."
+    )
+    assert (
+        "Reporter.rejecting_candidate" not in result.stdout
+    ), "Should be able to conclude conflict before even selecting a candidate"
+    assert (
+        "conflict is caused by" in result.stdout
+    ), "Resolver should be trivially able to find conflict cause"
+
+
 def test_new_resolver_respect_user_requested_if_extra_is_installed(
     script: PipTestEnvironment,
 ) -> None:
@@ -2308,3 +2405,118 @@ def test_new_resolver_respect_user_requested_if_extra_is_installed(
         "pkg2",
     )
     script.assert_installed(pkg3="1.0", pkg2="2.0", pkg1="1.0")
+
+
+def test_new_resolver_constraint_on_link_with_extra(
+    script: PipTestEnvironment,
+) -> None:
+    """
+    Verify that installing works from a link with both an extra and a constraint.
+    """
+    wheel: pathlib.Path = create_basic_wheel_for_package(
+        script, "pkg", "1.0", extras={"ext": []}
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        # no index, no --find-links: only the explicit path
+        "--no-index",
+        f"{wheel}[ext]",
+        "pkg==1",
+    )
+    script.assert_installed(pkg="1.0")
+
+
+def test_new_resolver_constraint_on_link_with_extra_indirect(
+    script: PipTestEnvironment,
+) -> None:
+    """
+    Verify that installing works from a link with an extra if there is an indirect
+    dependency on that same package with the same extra (#12372).
+    """
+    wheel_one: pathlib.Path = create_basic_wheel_for_package(
+        script, "pkg1", "1.0", extras={"ext": []}
+    )
+    wheel_two: pathlib.Path = create_basic_wheel_for_package(
+        script, "pkg2", "1.0", depends=["pkg1[ext]==1.0"]
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        # no index, no --find-links: only the explicit path
+        wheel_two,
+        f"{wheel_one}[ext]",
+    )
+    script.assert_installed(pkg1="1.0", pkg2="1.0")
+
+
+def test_new_resolver_do_not_backtrack_on_build_failure(
+    script: PipTestEnvironment,
+) -> None:
+    create_basic_sdist_for_package(script, "pkg1", "2.0", fails_egg_info=True)
+    create_basic_wheel_for_package(script, "pkg1", "1.0")
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "pkg1",
+        expect_error=True,
+    )
+
+    assert "egg_info" in result.stderr
+
+
+def test_new_resolver_works_when_failing_package_builds_are_disallowed(
+    script: PipTestEnvironment,
+) -> None:
+    create_basic_wheel_for_package(script, "pkg2", "1.0", depends=["pkg1"])
+    create_basic_sdist_for_package(script, "pkg1", "2.0", fails_egg_info=True)
+    create_basic_wheel_for_package(script, "pkg1", "1.0")
+    constraints_file = script.scratch_path / "constraints.txt"
+    constraints_file.write_text("pkg1 != 2.0")
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "-c",
+        constraints_file,
+        "pkg2",
+    )
+
+    script.assert_installed(pkg2="1.0", pkg1="1.0")
+
+
+@pytest.mark.parametrize("swap_order", (True, False))
+def test_new_resolver_comes_from_with_extra(
+    script: PipTestEnvironment, swap_order: bool
+) -> None:
+    """
+    Verify that reporting where a dependency comes from is accurate when it comes
+    from a package with an extra.
+
+    :param swap_order: swap the order the install specifiers appear in
+    """
+    create_basic_wheel_for_package(script, "dep", "1.0")
+    create_basic_wheel_for_package(script, "pkg", "1.0", extras={"ext": ["dep"]})
+
+    to_install: Tuple[str, str] = ("pkg", "pkg[ext]")
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        *(to_install if not swap_order else reversed(to_install)),
+    )
+    assert "(from pkg[ext])" in result.stdout
+    assert "(from pkg)" not in result.stdout
+    script.assert_installed(pkg="1.0", dep="1.0")

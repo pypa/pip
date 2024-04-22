@@ -1,13 +1,9 @@
-import os
+import shutil
 import textwrap
-import urllib.parse
-
-import pytest
 
 from tests.lib import PipTestEnvironment, TestData
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_find_links_relative_path(script: PipTestEnvironment, data: TestData) -> None:
     """Test find-links as a relative path."""
     result = script.pip(
@@ -24,20 +20,32 @@ def test_find_links_relative_path(script: PipTestEnvironment, data: TestData) ->
     result.did_create(initools_folder)
 
 
-@pytest.mark.usefixtures("with_wheel")
+def test_find_links_no_doctype(script: PipTestEnvironment, data: TestData) -> None:
+    shutil.copy(data.packages / "simple-1.0.tar.gz", script.scratch_path)
+    html = script.scratch_path.joinpath("index.html")
+    html.write_text('<a href="simple-1.0.tar.gz"></a>')
+    result = script.pip(
+        "install",
+        "simple==1.0",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        expect_stderr=True,
+    )
+    assert not result.stderr
+
+
 def test_find_links_requirements_file_relative_path(
     script: PipTestEnvironment, data: TestData
 ) -> None:
     """Test find-links as a relative path to a reqs file."""
     script.scratch_path.joinpath("test-req.txt").write_text(
         textwrap.dedent(
-            """
+            f"""
         --no-index
-        --find-links={}
+        --find-links={data.packages.as_posix()}
         parent==0.1
-        """.format(
-                data.packages.replace(os.path.sep, "/")
-            )
+        """
         )
     )
     result = script.pip(
@@ -52,7 +60,6 @@ def test_find_links_requirements_file_relative_path(
     result.did_create(initools_folder)
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_from_file_index_hash_link(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -65,12 +72,11 @@ def test_install_from_file_index_hash_link(
     result.did_create(dist_info_folder)
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_file_index_url_quoting(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test url quoting of file index url with a space
     """
-    index_url = data.index_url(urllib.parse.quote("in dex"))
+    index_url = data.index_url("in dex")
     result = script.pip("install", "-vvv", "--index-url", index_url, "simple")
     result.did_create(script.site_packages / "simple")
     result.did_create(script.site_packages / "simple-1.0.dist-info")

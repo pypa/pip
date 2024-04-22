@@ -1,6 +1,6 @@
 import logging
 from optparse import Values
-from typing import Iterator, List, NamedTuple, Optional
+from typing import Generator, Iterable, Iterator, List, NamedTuple, Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -53,6 +53,7 @@ class _PackageInfo(NamedTuple):
     name: str
     version: str
     location: str
+    editable_project_location: Optional[str]
     requires: List[str]
     required_by: List[str]
     installer: str
@@ -60,6 +61,7 @@ class _PackageInfo(NamedTuple):
     classifiers: List[str]
     summary: str
     homepage: str
+    project_urls: List[str]
     author: str
     author_email: str
     license: str
@@ -67,7 +69,7 @@ class _PackageInfo(NamedTuple):
     files: Optional[List[str]]
 
 
-def search_packages_info(query: List[str]) -> Iterator[_PackageInfo]:
+def search_packages_info(query: List[str]) -> Generator[_PackageInfo, None, None]:
     """
     Gather details from installed distributions. Print distribution name,
     version, location, and installed files. Installed files requires a
@@ -76,7 +78,7 @@ def search_packages_info(query: List[str]) -> Iterator[_PackageInfo]:
     """
     env = get_default_environment()
 
-    installed = {dist.canonical_name: dist for dist in env.iter_distributions()}
+    installed = {dist.canonical_name: dist for dist in env.iter_all_distributions()}
     query_names = [canonicalize_name(name) for name in query]
     missing = sorted(
         [name for name, pkg in zip(query, query_names) if pkg not in installed]
@@ -98,7 +100,11 @@ def search_packages_info(query: List[str]) -> Iterator[_PackageInfo]:
         except KeyError:
             continue
 
-        requires = sorted((req.name for req in dist.iter_dependencies()), key=str.lower)
+        requires = sorted(
+            # Avoid duplicates in requirements (e.g. due to environment markers).
+            {req.name for req in dist.iter_dependencies()},
+            key=str.lower,
+        )
         required_by = sorted(_get_requiring_packages(dist), key=str.lower)
 
         try:
@@ -115,17 +121,35 @@ def search_packages_info(query: List[str]) -> Iterator[_PackageInfo]:
 
         metadata = dist.metadata
 
+        project_urls = metadata.get_all("Project-URL", [])
+        homepage = metadata.get("Home-page", "")
+        if not homepage:
+            # It's common that there is a "homepage" Project-URL, but Home-page
+            # remains unset (especially as PEP 621 doesn't surface the field).
+            #
+            # This logic was taken from PyPI's codebase.
+            for url in project_urls:
+                url_label, url = url.split(",", maxsplit=1)
+                normalized_label = (
+                    url_label.casefold().replace("-", "").replace("_", "").strip()
+                )
+                if normalized_label == "homepage":
+                    homepage = url.strip()
+                    break
+
         yield _PackageInfo(
             name=dist.raw_name,
             version=str(dist.version),
             location=dist.location or "",
+            editable_project_location=dist.editable_project_location,
             requires=requires,
             required_by=required_by,
             installer=dist.installer,
             metadata_version=dist.metadata_version or "",
             classifiers=metadata.get_all("Classifier", []),
             summary=metadata.get("Summary", ""),
-            homepage=metadata.get("Home-page", ""),
+            homepage=homepage,
+            project_urls=project_urls,
             author=metadata.get("Author", ""),
             author_email=metadata.get("Author-email", ""),
             license=metadata.get("License", ""),
@@ -135,7 +159,7 @@ def search_packages_info(query: List[str]) -> Iterator[_PackageInfo]:
 
 
 def print_results(
-    distributions: Iterator[_PackageInfo],
+    distributions: Iterable[_PackageInfo],
     list_files: bool,
     verbose: bool,
 ) -> bool:
@@ -156,6 +180,10 @@ def print_results(
         write_output("Author-email: %s", dist.author_email)
         write_output("License: %s", dist.license)
         write_output("Location: %s", dist.location)
+        if dist.editable_project_location is not None:
+            write_output(
+                "Editable project location: %s", dist.editable_project_location
+            )
         write_output("Requires: %s", ", ".join(dist.requires))
         write_output("Required-by: %s", ", ".join(dist.required_by))
 
@@ -168,6 +196,9 @@ def print_results(
             write_output("Entry-points:")
             for entry in dist.entry_points:
                 write_output("  %s", entry.strip())
+            write_output("Project-URLs:")
+            for project_url in dist.project_urls:
+                write_output("  %s", project_url)
         if list_files:
             write_output("Files:")
             if dist.files is None:

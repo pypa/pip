@@ -3,8 +3,19 @@ import itertools
 import logging
 import os.path
 import tempfile
+import traceback
 from contextlib import ExitStack, contextmanager
-from typing import Any, Dict, Iterator, Optional, TypeVar, Union
+from pathlib import Path
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    List,
+    Optional,
+    TypeVar,
+    Union,
+)
 
 from pip._internal.utils.misc import enum, rmtree
 
@@ -26,7 +37,7 @@ _tempdir_manager: Optional[ExitStack] = None
 
 
 @contextmanager
-def global_tempdir_manager() -> Iterator[None]:
+def global_tempdir_manager() -> Generator[None, None, None]:
     global _tempdir_manager
     with ExitStack() as stack:
         old_tempdir_manager, _tempdir_manager = _tempdir_manager, stack
@@ -59,7 +70,7 @@ _tempdir_registry: Optional[TempDirectoryTypeRegistry] = None
 
 
 @contextmanager
-def tempdir_registry() -> Iterator[TempDirectoryTypeRegistry]:
+def tempdir_registry() -> Generator[TempDirectoryTypeRegistry, None, None]:
     """Provides a scoped global tempdir registry that can be used to dictate
     whether directories should be deleted.
     """
@@ -106,6 +117,7 @@ class TempDirectory:
         delete: Union[bool, None, _Default] = _default,
         kind: str = "temp",
         globally_managed: bool = False,
+        ignore_cleanup_errors: bool = True,
     ):
         super().__init__()
 
@@ -128,6 +140,7 @@ class TempDirectory:
         self._deleted = False
         self.delete = delete
         self.kind = kind
+        self.ignore_cleanup_errors = ignore_cleanup_errors
 
         if globally_managed:
             assert _tempdir_manager is not None
@@ -170,7 +183,44 @@ class TempDirectory:
         self._deleted = True
         if not os.path.exists(self._path):
             return
-        rmtree(self._path)
+
+        errors: List[BaseException] = []
+
+        def onerror(
+            func: Callable[..., Any],
+            path: Path,
+            exc_val: BaseException,
+        ) -> None:
+            """Log a warning for a `rmtree` error and continue"""
+            formatted_exc = "\n".join(
+                traceback.format_exception_only(type(exc_val), exc_val)
+            )
+            formatted_exc = formatted_exc.rstrip()  # remove trailing new line
+            if func in (os.unlink, os.remove, os.rmdir):
+                logger.debug(
+                    "Failed to remove a temporary file '%s' due to %s.\n",
+                    path,
+                    formatted_exc,
+                )
+            else:
+                logger.debug("%s failed with %s.", func.__qualname__, formatted_exc)
+            errors.append(exc_val)
+
+        if self.ignore_cleanup_errors:
+            try:
+                # first try with tenacity; retrying to handle ephemeral errors
+                rmtree(self._path, ignore_errors=False)
+            except OSError:
+                # last pass ignore/log all errors
+                rmtree(self._path, onexc=onerror)
+            if errors:
+                logger.warning(
+                    "Failed to remove contents in a temporary directory '%s'.\n"
+                    "You can safely remove it manually.",
+                    self._path,
+                )
+        else:
+            rmtree(self._path)
 
 
 class AdjacentTempDirectory(TempDirectory):
@@ -200,7 +250,7 @@ class AdjacentTempDirectory(TempDirectory):
         super().__init__(delete=delete)
 
     @classmethod
-    def _generate_names(cls, name: str) -> Iterator[str]:
+    def _generate_names(cls, name: str) -> Generator[str, None, None]:
         """Generates a series of temporary names.
 
         The algorithm replaces the leading characters in the name

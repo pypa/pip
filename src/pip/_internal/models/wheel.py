@@ -1,6 +1,7 @@
 """Represents a wheel file and provides access to the various parts of the
 name that have meaning.
 """
+
 import re
 from typing import Dict, Iterable, List
 
@@ -13,8 +14,8 @@ class Wheel:
     """A wheel file"""
 
     wheel_file_re = re.compile(
-        r"""^(?P<namever>(?P<name>.+?)-(?P<ver>.*?))
-        ((-(?P<build>\d[^-]*?))?-(?P<pyver>.+?)-(?P<abi>.+?)-(?P<plat>.+?)
+        r"""^(?P<namever>(?P<name>[^\s-]+?)-(?P<ver>[^\s-]*?))
+        ((-(?P<build>\d[^-]*?))?-(?P<pyver>[^\s-]+?)-(?P<abi>[^\s-]+?)-(?P<plat>[^\s-]+?)
         \.whl|\.dist-info)$""",
         re.VERBOSE,
     )
@@ -58,7 +59,10 @@ class Wheel:
         :raises ValueError: If none of the wheel's file tags match one of
             the supported tags.
         """
-        return min(tags.index(tag) for tag in self.file_tags if tag in tags)
+        try:
+            return next(i for i, t in enumerate(tags) if t in self.file_tags)
+        except StopIteration:
+            raise ValueError()
 
     def find_most_preferred_tag(
         self, tags: List[Tag], tag_to_priority: Dict[Tag, int]

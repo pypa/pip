@@ -3,6 +3,7 @@ network request configuration and behavior.
 """
 
 import email.utils
+import functools
 import io
 import ipaddress
 import json
@@ -15,11 +16,23 @@ import subprocess
 import sys
 import urllib.parse
 import warnings
-from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Generator,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 from pip._vendor import requests, urllib3
-from pip._vendor.cachecontrol import CacheControlAdapter
-from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
+from pip._vendor.cachecontrol import CacheControlAdapter as _BaseCacheControlAdapter
+from pip._vendor.requests.adapters import DEFAULT_POOLBLOCK, BaseAdapter
+from pip._vendor.requests.adapters import HTTPAdapter as _BaseHTTPAdapter
 from pip._vendor.requests.models import PreparedRequest, Response
 from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._vendor.urllib3.connectionpool import ConnectionPool
@@ -36,6 +49,12 @@ from pip._internal.utils.compat import has_tls
 from pip._internal.utils.glibc import libc_ver
 from pip._internal.utils.misc import build_url_from_netloc, parse_netloc
 from pip._internal.utils.urls import url_to_path
+
+if TYPE_CHECKING:
+    from ssl import SSLContext
+
+    from pip._vendor.urllib3.poolmanager import PoolManager
+
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +107,7 @@ def looks_like_ci() -> bool:
     return any(name in os.environ for name in CI_ENVIRONMENT_VARIABLES)
 
 
+@functools.lru_cache(maxsize=1)
 def user_agent() -> str:
     """
     Return a string representing the user agent.
@@ -212,7 +232,7 @@ class LocalFSAdapter(BaseAdapter):
             # to return a better error message:
             resp.status_code = 404
             resp.reason = type(exc).__name__
-            resp.raw = io.BytesIO(f"{resp.reason}: {exc}".encode("utf8"))
+            resp.raw = io.BytesIO(f"{resp.reason}: {exc}".encode())
         else:
             modified = email.utils.formatdate(stats.st_mtime, usegmt=True)
             content_type = mimetypes.guess_type(pathname)[0] or "text/plain"
@@ -231,6 +251,48 @@ class LocalFSAdapter(BaseAdapter):
 
     def close(self) -> None:
         pass
+
+
+class _SSLContextAdapterMixin:
+    """Mixin to add the ``ssl_context`` constructor argument to HTTP adapters.
+
+    The additional argument is forwarded directly to the pool manager. This allows us
+    to dynamically decide what SSL store to use at runtime, which is used to implement
+    the optional ``truststore`` backend.
+    """
+
+    def __init__(
+        self,
+        *,
+        ssl_context: Optional["SSLContext"] = None,
+        **kwargs: Any,
+    ) -> None:
+        self._ssl_context = ssl_context
+        super().__init__(**kwargs)
+
+    def init_poolmanager(
+        self,
+        connections: int,
+        maxsize: int,
+        block: bool = DEFAULT_POOLBLOCK,
+        **pool_kwargs: Any,
+    ) -> "PoolManager":
+        if self._ssl_context is not None:
+            pool_kwargs.setdefault("ssl_context", self._ssl_context)
+        return super().init_poolmanager(  # type: ignore[misc]
+            connections=connections,
+            maxsize=maxsize,
+            block=block,
+            **pool_kwargs,
+        )
+
+
+class HTTPAdapter(_SSLContextAdapterMixin, _BaseHTTPAdapter):
+    pass
+
+
+class CacheControlAdapter(_SSLContextAdapterMixin, _BaseCacheControlAdapter):
+    pass
 
 
 class InsecureHTTPAdapter(HTTPAdapter):
@@ -256,7 +318,6 @@ class InsecureCacheControlAdapter(CacheControlAdapter):
 
 
 class PipSession(requests.Session):
-
     timeout: Optional[int] = None
 
     def __init__(
@@ -266,6 +327,7 @@ class PipSession(requests.Session):
         cache: Optional[str] = None,
         trusted_hosts: Sequence[str] = (),
         index_urls: Optional[List[str]] = None,
+        ssl_context: Optional["SSLContext"] = None,
         **kwargs: Any,
     ) -> None:
         """
@@ -295,8 +357,9 @@ class PipSession(requests.Session):
             # is typically considered a transient error so we'll go ahead and
             # retry it.
             # A 500 may indicate transient error in Amazon S3
+            # A 502 may be a transient error from a CDN like CloudFlare or CloudFront
             # A 520 or 527 - may indicate transient error in CloudFlare
-            status_forcelist=[500, 503, 520, 527],
+            status_forcelist=[500, 502, 503, 520, 527],
             # Add a small amount of back off between failed requests in
             # order to prevent hammering the service.
             backoff_factor=0.25,
@@ -318,13 +381,14 @@ class PipSession(requests.Session):
             secure_adapter = CacheControlAdapter(
                 cache=SafeFileCache(cache),
                 max_retries=retries,
+                ssl_context=ssl_context,
             )
             self._trusted_host_adapter = InsecureCacheControlAdapter(
                 cache=SafeFileCache(cache),
                 max_retries=retries,
             )
         else:
-            secure_adapter = HTTPAdapter(max_retries=retries)
+            secure_adapter = HTTPAdapter(max_retries=retries, ssl_context=ssl_context)
             self._trusted_host_adapter = insecure_adapter
 
         self.mount("https://", secure_adapter)
@@ -358,15 +422,17 @@ class PipSession(requests.Session):
                 msg += f" (from {source})"
             logger.info(msg)
 
-        host_port = parse_netloc(host)
-        if host_port not in self.pip_trusted_origins:
-            self.pip_trusted_origins.append(host_port)
+        parsed_host, parsed_port = parse_netloc(host)
+        if parsed_host is None:
+            raise ValueError(f"Trusted host URL must include a host part: {host!r}")
+        if (parsed_host, parsed_port) not in self.pip_trusted_origins:
+            self.pip_trusted_origins.append((parsed_host, parsed_port))
 
         self.mount(
             build_url_from_netloc(host, scheme="http") + "/", self._trusted_host_adapter
         )
         self.mount(build_url_from_netloc(host) + "/", self._trusted_host_adapter)
-        if not host_port[1]:
+        if not parsed_port:
             self.mount(
                 build_url_from_netloc(host, scheme="http") + ":",
                 self._trusted_host_adapter,
@@ -374,7 +440,7 @@ class PipSession(requests.Session):
             # Mount wildcard ports for the same host.
             self.mount(build_url_from_netloc(host) + ":", self._trusted_host_adapter)
 
-    def iter_secure_origins(self) -> Iterator[SecureOrigin]:
+    def iter_secure_origins(self) -> Generator[SecureOrigin, None, None]:
         yield from SECURE_ORIGINS
         for host, port in self.pip_trusted_origins:
             yield ("*", host, "*" if port is None else port)
@@ -403,7 +469,7 @@ class PipSession(requests.Session):
                 continue
 
             try:
-                addr = ipaddress.ip_address(origin_host)
+                addr = ipaddress.ip_address(origin_host or "")
                 network = ipaddress.ip_network(secure_host)
             except ValueError:
                 # We don't have both a valid address or a valid network, so
@@ -449,6 +515,8 @@ class PipSession(requests.Session):
     def request(self, method: str, url: str, *args: Any, **kwargs: Any) -> Response:
         # Allow setting a default timeout on a session
         kwargs.setdefault("timeout", self.timeout)
+        # Allow setting a default proxies on a session
+        kwargs.setdefault("proxies", self.proxies)
 
         # Dispatch the actual request
         return super().request(method, url, *args, **kwargs)

@@ -1,15 +1,26 @@
 import logging
-from typing import Any, List
+import os
+from pathlib import Path
+from typing import Any, List, Optional
+from urllib.parse import urlparse
+from urllib.request import getproxies
 
 import pytest
+from pip._vendor import requests
 
 from pip import __version__
 from pip._internal.models.link import Link
-from pip._internal.network.session import CI_ENVIRONMENT_VARIABLES, PipSession
-from tests.lib.path import Path
+from pip._internal.network.session import (
+    CI_ENVIRONMENT_VARIABLES,
+    PipSession,
+    user_agent,
+)
 
 
 def get_user_agent() -> str:
+    # These tests are testing the computation of the user agent, so we want to
+    # avoid reusing cached values.
+    user_agent.cache_clear()
     return PipSession().headers["User-Agent"]
 
 
@@ -54,7 +65,7 @@ def test_user_agent__ci(
 
 def test_user_agent_user_data(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PIP_USER_AGENT_USER_DATA", "some_string")
-    assert "some_string" in PipSession().headers["User-Agent"]
+    assert "some_string" in get_user_agent()
 
 
 class TestPipSession:
@@ -65,7 +76,7 @@ class TestPipSession:
         assert not hasattr(session.adapters["https://"], "cache")
 
     def test_cache_is_enabled(self, tmpdir: Path) -> None:
-        cache_directory = tmpdir.joinpath("test-cache")
+        cache_directory = os.fspath(tmpdir.joinpath("test-cache"))
         session = PipSession(cache=cache_directory)
 
         assert hasattr(session.adapters["https://"], "cache")
@@ -73,13 +84,13 @@ class TestPipSession:
         assert session.adapters["https://"].cache.directory == cache_directory
 
     def test_http_cache_is_not_enabled(self, tmpdir: Path) -> None:
-        session = PipSession(cache=tmpdir.joinpath("test-cache"))
+        session = PipSession(cache=os.fspath(tmpdir.joinpath("test-cache")))
 
         assert not hasattr(session.adapters["http://"], "cache")
 
     def test_trusted_hosts_adapter(self, tmpdir: Path) -> None:
         session = PipSession(
-            cache=tmpdir.joinpath("test-cache"),
+            cache=os.fspath(tmpdir.joinpath("test-cache")),
             trusted_hosts=["example.com"],
         )
 
@@ -242,3 +253,31 @@ class TestPipSession:
         actual_level, actual_message = log_records[0]
         assert actual_level == "WARNING"
         assert "is not a trusted or secure host" in actual_message
+
+    @pytest.mark.network
+    def test_proxy(self, proxy: Optional[str]) -> None:
+        session = PipSession(trusted_hosts=[])
+
+        if not proxy:
+            # if user didn't pass --proxy then try to get it from the system.
+            env_proxy = getproxies().get("http", None)
+            proxy = urlparse(env_proxy).netloc if env_proxy else None
+
+        if proxy:
+            # set proxy scheme to session.proxies
+            session.proxies = {
+                "http": f"{proxy}",
+                "https": f"{proxy}",
+                "ftp": f"{proxy}",
+            }
+
+        connection_error = None
+        try:
+            session.request("GET", "https://pypi.org", timeout=1)
+        except requests.exceptions.ConnectionError as e:
+            connection_error = e
+
+        assert connection_error is None, (
+            f"Invalid proxy {proxy} or session.proxies: "
+            f"{session.proxies} is not correctly passed to session.request."
+        )

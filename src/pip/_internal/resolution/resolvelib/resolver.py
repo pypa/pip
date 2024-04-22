@@ -1,3 +1,4 @@
+import contextlib
 import functools
 import logging
 import os
@@ -11,6 +12,7 @@ from pip._vendor.resolvelib.structs import DirectedGraph
 from pip._internal.cache import WheelCache
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.operations.prepare import RequirementPreparer
+from pip._internal.req.constructors import install_req_extend_extras
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver, InstallRequirementProvider
@@ -19,6 +21,7 @@ from pip._internal.resolution.resolvelib.reporter import (
     PipDebuggingReporter,
     PipReporter,
 )
+from pip._internal.utils.packaging import get_requirement
 
 from .base import Candidate, Requirement
 from .factory import Factory
@@ -88,9 +91,9 @@ class Resolver(BaseResolver):
         )
 
         try:
-            try_to_avoid_resolution_too_deep = 2000000
+            limit_how_complex_resolution_can_be = 200000
             result = self._result = resolver.resolve(
-                collected.requirements, max_rounds=try_to_avoid_resolution_too_deep
+                collected.requirements, max_rounds=limit_how_complex_resolution_can_be
             )
 
         except ResolutionImpossible as e:
@@ -101,9 +104,24 @@ class Resolver(BaseResolver):
             raise error from e
 
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)
-        for candidate in result.mapping.values():
+        # process candidates with extras last to ensure their base equivalent is
+        # already in the req_set if appropriate.
+        # Python's sort is stable so using a binary key function keeps relative order
+        # within both subsets.
+        for candidate in sorted(
+            result.mapping.values(), key=lambda c: c.name != c.project_name
+        ):
             ireq = candidate.get_install_requirement()
             if ireq is None:
+                if candidate.name != candidate.project_name:
+                    # extend existing req's extras
+                    with contextlib.suppress(KeyError):
+                        req = req_set.get_requirement(candidate.project_name)
+                        req_set.add_named_requirement(
+                            install_req_extend_extras(
+                                req, get_requirement(candidate.name).extras
+                            )
+                        )
                 continue
 
             # Check if there is already an installation under the same name,
@@ -159,6 +177,9 @@ class Resolver(BaseResolver):
 
         reqs = req_set.all_requirements
         self.factory.preparer.prepare_linked_requirements_more(reqs)
+        for req in reqs:
+            req.prepared = True
+            req.needs_more_preparation = False
         return req_set
 
     def get_installation_order(
@@ -183,10 +204,7 @@ class Resolver(BaseResolver):
             return []
 
         graph = self._result.graph
-        weights = get_topological_weights(
-            graph,
-            expected_node_count=len(self._result.mapping) + 1,
-        )
+        weights = get_topological_weights(graph, set(req_set.requirements.keys()))
 
         sorted_items = sorted(
             req_set.requirements.items(),
@@ -197,7 +215,7 @@ class Resolver(BaseResolver):
 
 
 def get_topological_weights(
-    graph: "DirectedGraph[Optional[str]]", expected_node_count: int
+    graph: "DirectedGraph[Optional[str]]", requirement_keys: Set[str]
 ) -> Dict[Optional[str], int]:
     """Assign weights to each node based on how "deep" they are.
 
@@ -220,6 +238,9 @@ def get_topological_weights(
     don't get stuck in a cycle.
 
     When assigning weight, the longer path (i.e. larger length) is preferred.
+
+    We are only interested in the weights of packages that are in the
+    requirement_keys.
     """
     path: Set[Optional[str]] = set()
     weights: Dict[Optional[str], int] = {}
@@ -234,6 +255,9 @@ def get_topological_weights(
         for child in graph.iter_children(node):
             visit(child)
         path.remove(node)
+
+        if node not in requirement_keys:
+            return
 
         last_known_parent_count = weights.get(node, 0)
         weights[node] = max(last_known_parent_count, len(path))
@@ -260,6 +284,8 @@ def get_topological_weights(
         # Calculate the weight for the leaves.
         weight = len(graph) - 1
         for leaf in leaves:
+            if leaf not in requirement_keys:
+                continue
             weights[leaf] = weight
         # Remove the leaves from the graph, making it simpler.
         for leaf in leaves:
@@ -269,9 +295,10 @@ def get_topological_weights(
     # `None` is guaranteed to be the root node by resolvelib.
     visit(None)
 
-    # Sanity checks
-    assert weights[None] == 0
-    assert len(weights) == expected_node_count
+    # Sanity check: all requirement keys should be in the weights,
+    # and no other keys should be in the weights.
+    difference = set(weights.keys()).difference(requirement_keys)
+    assert not difference, difference
 
     return weights
 

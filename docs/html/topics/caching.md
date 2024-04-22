@@ -27,6 +27,13 @@ While this cache attempts to minimize network activity, it does not prevent
 network access altogether. If you want a local install solution that
 circumvents accessing PyPI, see {ref}`Installing from local packages`.
 
+```{versionchanged} 23.3
+A new cache format is now used, stored in a directory called `http-v2` (see
+below for this directory's location). Previously this cache was stored in a
+directory called `http` in the main cache directory. If you have completely
+switched to newer versions of `pip`, you may wish to delete the old directory.
+```
+
 (wheel-caching)=
 
 ### Locally built wheels
@@ -50,6 +57,43 @@ pip now caches wheels when building from an immutable Git reference
 (i.e. a commit hash).
 ```
 
+## Where is the cache stored
+
+```{caution}
+The exact filesystem structure of pip's cache's contents is considered to be
+an implementation detail and may change between any two versions of pip.
+```
+
+### `pip cache dir`
+
+```{versionadded} 20.1
+
+```
+
+You can use `pip cache dir` to get the cache directory that pip is currently configured to use.
+
+### Default paths
+
+````{tab} Linux
+```
+~/.cache/pip
+```
+
+pip will also respect `XDG_CACHE_HOME`.
+````
+
+````{tab} MacOS
+```
+~/Library/Caches/pip
+```
+````
+
+````{tab} Windows
+```
+%LocalAppData%\pip\Cache
+```
+````
+
 ## Avoiding caching
 
 pip tries to use its cache whenever possible, and it is designed do the right
@@ -59,7 +103,7 @@ In some cases, pip's caching behaviour can be undesirable. As an example, if you
 have package with optional C extensions, that generates a pure Python wheel
 when the C extension can’t be built, pip will use that cached wheel even when
 you later invoke it from an environment that could have built those optional C
-extensions. This is because pip is seeing a cached wheel for that matches the
+extensions. This is because pip is seeing a cached wheel that matches the
 package being built, and pip assumes that the result of building a package from
 a package index is deterministic.
 
@@ -81,13 +125,28 @@ It is also a good idea to remove the offending cached wheel using the
 
 The {ref}`pip cache` command can be used to manage pip's cache.
 
-The exact filesystem structure of pip's cache is considered to be an
-implementation detail and may change between any two versions of pip.
+### General overview
+
+`pip cache info` provides an overview of the contents of pip's cache, such as the total size and location of various parts of it.
+
+### Removing a single package
+
+`pip cache remove setuptools` removes all wheel files related to setuptools from pip's cache. HTTP cache files are not removed at this time.
+
+### Removing the cache
+
+`pip cache purge` will clear all files from pip's wheel and HTTP caches.
+
+### Listing cached files
+
+`pip cache list` will list all wheel files from pip's cache.
+
+`pip cache list setuptools` will list all setuptools-related wheel files from pip's cache.
 
 ## Disabling caching
 
 pip's caching behaviour is disabled by passing the `--no-cache-dir` option.
 
-It is, however, recommended to **NOT** disable pip's caching. Doing so can
+It is, however, recommended to **NOT** disable pip's caching unless you have caching at a higher level (eg: layered caches in container builds). Doing so can
 significantly slow down pip (due to repeated operations and package builds)
 and result in significantly more network usage.

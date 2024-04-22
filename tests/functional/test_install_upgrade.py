@@ -1,13 +1,19 @@
 import itertools
 import os
+import sys
 import textwrap
+from pathlib import Path
 
 import pytest
 
-from tests.lib import pyversion  # noqa: F401
-from tests.lib import PipTestEnvironment, ResolverVariant, TestData, assert_all_changes
+from tests.lib import (
+    PipTestEnvironment,
+    ResolverVariant,
+    TestData,
+    assert_all_changes,
+    pyversion,  # noqa: F401
+)
 from tests.lib.local_repos import local_checkout
-from tests.lib.path import Path
 from tests.lib.wheel import make_wheel
 
 
@@ -37,7 +43,6 @@ def test_invalid_upgrade_strategy_causes_error(script: PipTestEnvironment) -> No
     assert "invalid choice" in result.stderr
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_only_if_needed_does_not_upgrade_deps_when_satisfied(
     script: PipTestEnvironment, resolver_variant: ResolverVariant
 ) -> None:
@@ -65,7 +70,6 @@ def test_only_if_needed_does_not_upgrade_deps_when_satisfied(
     ), "did not print correct message for not-upgraded requirement"
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(
     script: PipTestEnvironment,
 ) -> None:
@@ -87,7 +91,6 @@ def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(
     assert expected in result.files_deleted, "should have uninstalled simple==1.0"
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_eager_does_upgrade_dependencies_when_currently_satisfied(
     script: PipTestEnvironment,
 ) -> None:
@@ -108,7 +111,6 @@ def test_eager_does_upgrade_dependencies_when_currently_satisfied(
     ) in result.files_deleted, "should have uninstalled simple==2.0"
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_eager_does_upgrade_dependencies_when_no_longer_satisfied(
     script: PipTestEnvironment,
 ) -> None:
@@ -134,7 +136,6 @@ def test_eager_does_upgrade_dependencies_when_no_longer_satisfied(
 
 
 @pytest.mark.network
-@pytest.mark.usefixtures("with_wheel")
 def test_upgrade_to_specific_version(script: PipTestEnvironment) -> None:
     """
     It does upgrade to specific version requested.
@@ -148,7 +149,6 @@ def test_upgrade_to_specific_version(script: PipTestEnvironment) -> None:
 
 
 @pytest.mark.network
-@pytest.mark.usefixtures("with_wheel")
 def test_upgrade_if_requested(script: PipTestEnvironment) -> None:
     """
     And it does upgrade if requested.
@@ -172,7 +172,7 @@ def test_upgrade_with_newest_already_installed(
         "install", "--upgrade", "-f", data.find_links, "--no-index", "simple"
     )
     assert not result.files_created, "simple upgraded when it should not have"
-    if resolver_variant == "2020-resolver":
+    if resolver_variant == "resolvelib":
         msg = "Requirement already satisfied"
     else:
         msg = "already up-to-date"
@@ -311,7 +311,6 @@ def test_uninstall_rollback(script: PipTestEnvironment, data: TestData) -> None:
 
 
 @pytest.mark.network
-@pytest.mark.usefixtures("with_wheel")
 def test_should_not_install_always_from_cache(script: PipTestEnvironment) -> None:
     """
     If there is an old cached package, pip should download the newer version
@@ -325,7 +324,6 @@ def test_should_not_install_always_from_cache(script: PipTestEnvironment) -> Non
 
 
 @pytest.mark.network
-@pytest.mark.usefixtures("with_wheel")
 def test_install_with_ignoreinstalled_requested(script: PipTestEnvironment) -> None:
     """
     Test old conflicting package is completely ignored
@@ -361,7 +359,7 @@ def test_upgrade_vcs_req_with_dist_found(script: PipTestEnvironment) -> None:
     # test path urls/git.
     req = "{url}#egg=pretend".format(
         url=(
-            "git+git://github.com/alex/pretend@e7f26ad7dbcb4a02a4995aade4"
+            "git+https://github.com/alex/pretend@e7f26ad7dbcb4a02a4995aade4"
             "743aad47656b27"
         ),
     )
@@ -411,3 +409,14 @@ def test_install_find_existing_package_canonicalize(
     )
     satisfied_message = f"Requirement already satisfied: {req2}"
     assert satisfied_message in result.stdout, str(result)
+
+
+@pytest.mark.network
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows-only test")
+def test_modifying_pip_presents_error(script: PipTestEnvironment) -> None:
+    result = script.pip(
+        "install", "pip", "--force-reinstall", use_module=False, expect_error=True
+    )
+
+    assert "python.exe" in result.stderr or "python.EXE" in result.stderr, str(result)
+    assert " -m " in result.stderr, str(result)
