@@ -1,0 +1,1 @@
+Fix the direct usage of zipapp showing up as ``python -m pip.pyz`` rather than ``./pip.pyz`` / ``.\pip.pyz``

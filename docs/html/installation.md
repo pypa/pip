@@ -67,11 +67,34 @@ $ python pip.pyz --help
 
 If run directly:
 
-```{pip-cli}
-$ pip.pyz --help
+````{tab} Linux
+```console
+$ chmod +x ./pip.pyz
+$ ./pip.pyz
 ```
 
 then the currently active Python interpreter will be used.
+````
+
+````{tab} MacOS
+```console
+$ chmod +x ./pip.pyz
+$ ./pip.pyz
+```
+
+then the currently active Python interpreter will be used.
+````
+
+````{tab} Windows
+```doscon
+C:> .\pip.pyz
+```
+
+then the currently active Python interpreter will be used.
+
+You may need to configure your system to recognise the ``.pyz`` extension
+before this will work.
+````
 
 ## Alternative Methods
 
