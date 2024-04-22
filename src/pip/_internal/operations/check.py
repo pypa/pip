@@ -43,7 +43,7 @@ def create_package_set_from_installed() -> Tuple[PackageSet, bool]:
             package_set[name] = PackageDetails(dist.version, dependencies)
         except (OSError, ValueError) as e:
             # Don't crash on unreadable or broken metadata.
-            logger.warning("Error parsing requirements for %s: %s", name, e)
+            logger.warning("Error parsing dependencies of %s: %s", name, e)
             problems = True
     return package_set, problems
 

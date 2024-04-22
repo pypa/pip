@@ -272,7 +272,7 @@ def test_basic_check_broken_metadata(script: PipTestEnvironment) -> None:
 
     result = script.pip("check", expect_error=True)
 
-    assert "Error parsing requirements" in result.stderr
+    assert "Error parsing dependencies of" in result.stderr
     assert result.returncode == 1
 
 
