@@ -352,13 +352,13 @@ class AlreadyInstalledCandidate(Candidate):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.dist!r})"
 
-    def __hash__(self) -> int:
-        return hash((self.__class__, self.name, self.version))
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, AlreadyInstalledCandidate):
+            return NotImplemented
+        return self.name == other.name and self.version == other.version
 
-    def __eq__(self, other: Any) -> bool:
-        if isinstance(other, self.__class__):
-            return self.name == other.name and self.version == other.version
-        return False
+    def __hash__(self) -> int:
+        return hash((self.name, self.version))
 
     @property
     def project_name(self) -> NormalizedName:

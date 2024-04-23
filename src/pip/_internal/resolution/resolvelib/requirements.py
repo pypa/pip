@@ -1,3 +1,5 @@
+from typing import Any
+
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 
@@ -16,6 +18,14 @@ class ExplicitRequirement(Requirement):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.candidate!r})"
+
+    def __hash__(self) -> int:
+        return hash(self.candidate)
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, ExplicitRequirement):
+            return False
+        return self.candidate == other.candidate
 
     @property
     def project_name(self) -> NormalizedName:
@@ -48,6 +58,14 @@ class SpecifierRequirement(Requirement):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({str(self._ireq.req)!r})"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, SpecifierRequirement):
+            return NotImplemented
+        return str(self._ireq) == str(other._ireq)
+
+    def __hash__(self) -> int:
+        return hash(str(self._ireq))
 
     @property
     def project_name(self) -> NormalizedName:
@@ -98,12 +116,21 @@ class SpecifierWithoutExtrasRequirement(SpecifierRequirement):
         self._ireq = install_req_drop_extras(ireq)
         self._extras = frozenset(canonicalize_name(e) for e in self._ireq.extras)
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, SpecifierWithoutExtrasRequirement):
+            return NotImplemented
+        return str(self._ireq) == str(other._ireq)
+
+    def __hash__(self) -> int:
+        return hash(str(self._ireq))
+
 
 class RequiresPythonRequirement(Requirement):
     """A requirement representing Requires-Python metadata."""
 
     def __init__(self, specifier: SpecifierSet, match: Candidate) -> None:
         self.specifier = specifier
+        self._specifier_string = str(specifier)  # for faster __eq__
         self._candidate = match
 
     def __str__(self) -> str:
@@ -111,6 +138,17 @@ class RequiresPythonRequirement(Requirement):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({str(self.specifier)!r})"
+
+    def __hash__(self) -> int:
+        return hash((self._specifier_string, self._candidate))
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, RequiresPythonRequirement):
+            return False
+        return (
+            self._specifier_string == other._specifier_string
+            and self._candidate == other._candidate
+        )
 
     @property
     def project_name(self) -> NormalizedName:
@@ -147,6 +185,14 @@ class UnsatisfiableRequirement(Requirement):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({str(self._name)!r})"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, UnsatisfiableRequirement):
+            return NotImplemented
+        return self._name == other._name
+
+    def __hash__(self) -> int:
+        return hash(self._name)
 
     @property
     def project_name(self) -> NormalizedName:

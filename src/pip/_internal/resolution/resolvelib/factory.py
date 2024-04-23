@@ -3,6 +3,7 @@ import functools
 import logging
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Dict,
     FrozenSet,
     Iterable,
@@ -391,6 +392,7 @@ class Factory:
         incompatibilities: Mapping[str, Iterator[Candidate]],
         constraint: Constraint,
         prefers_installed: bool,
+        is_satisfied_by: Callable[[Requirement, Candidate], bool],
     ) -> Iterable[Candidate]:
         # Collect basic lookup information from the requirements.
         explicit_candidates: Set[Candidate] = set()
@@ -456,7 +458,7 @@ class Factory:
             for c in explicit_candidates
             if id(c) not in incompat_ids
             and constraint.is_satisfied_by(c)
-            and all(req.is_satisfied_by(c) for req in requirements[identifier])
+            and all(is_satisfied_by(req, c) for req in requirements[identifier])
         )
 
     def _make_requirements_from_install_req(
