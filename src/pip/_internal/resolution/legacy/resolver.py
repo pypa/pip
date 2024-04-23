@@ -10,9 +10,6 @@ for sub-dependencies
     a. "first found, wins" (where the order is breadth first)
 """
 
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 import logging
 import sys
 from collections import defaultdict
@@ -52,7 +49,7 @@ from pip._internal.utils.packaging import check_requires_python
 
 logger = logging.getLogger(__name__)
 
-DiscoveredDependencies = DefaultDict[str, List[InstallRequirement]]
+DiscoveredDependencies = DefaultDict[Optional[str], List[InstallRequirement]]
 
 
 def _check_dist_requires_python(
@@ -321,6 +318,7 @@ class Resolver(BaseResolver):
         """
         # Don't uninstall the conflict if doing a user install and the
         # conflict is not a user install.
+        assert req.satisfied_by is not None
         if not self.use_user_site or req.satisfied_by.in_usersite:
             req.should_reinstall = True
         req.satisfied_by = None
@@ -419,6 +417,8 @@ class Resolver(BaseResolver):
 
         if self.wheel_cache is None or self.preparer.require_hashes:
             return
+
+        assert req.link is not None, "_find_requirement_link unexpectedly returned None"
         cache_entry = self.wheel_cache.get_cache_entry(
             link=req.link,
             package_name=req.name,
@@ -532,6 +532,7 @@ class Resolver(BaseResolver):
         with indent_log():
             # We add req_to_install before its dependencies, so that we
             # can refer to it when adding dependencies.
+            assert req_to_install.name is not None
             if not requirement_set.has_requirement(req_to_install.name):
                 # 'unnamed' requirements will get added here
                 # 'unnamed' requirements can only come from being directly
