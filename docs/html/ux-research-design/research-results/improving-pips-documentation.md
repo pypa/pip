@@ -36,7 +36,7 @@ We also:
 1. Asked for volunteers to participate in a diary study, documenting their experience solving pip problems. Unfortunately this was not completed due to lack of interest from the community.
 2. Asked for user feedback on the pip documentation site:
    ![screenshot of user feedback mechanism on pip docs](https://i.imgur.com/WJVjl8N.png)
-   Unfortunatly, we did not gather any useful feedback via this effort
+   Unfortunately, we did not gather any useful feedback via this effort
 3. [Installed analytics on the pip docs](https://github.com/pypa/pip/pull/9146). We are waiting for this to be merged and start providing useful data.
 
 ## Results

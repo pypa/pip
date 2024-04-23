@@ -519,7 +519,7 @@ class ExtrasCandidate(Candidate):
     def _calculate_valid_requested_extras(self) -> FrozenSet[str]:
         """Get a list of valid extras requested by this candidate.
 
-        The user (or upstream dependant) may have specified extras that the
+        The user (or upstream dependent) may have specified extras that the
         candidate doesn't support. Any unsupported extras are dropped, and each
         cause a warning to be logged here.
         """

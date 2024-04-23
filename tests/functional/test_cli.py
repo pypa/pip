@@ -69,7 +69,7 @@ def test_no_network_imports(command: str, tmp_path: Path) -> None:
     This helps to reduce the startup time of these commands.
 
     Note: This won't catch lazy network imports, but it'll catch top-level
-    network imports which were accidently added (which is the most likely way
+    network imports which were accidentally added (which is the most likely way
     to regress anyway).
     """
     file = tmp_path / f"imported_modules_for_{command}.txt"

@@ -495,7 +495,7 @@ def virtualenv_template(
         dist_info, venv.site / dist_info.name, dirs_exist_ok=True, symlinks=True
     )
     # Create placeholder ``easy-install.pth``, as several tests depend on its
-    # existance.  TODO: Ensure ``tests.lib.TestPipResult.files_updated`` correctly
+    # existence.  TODO: Ensure ``tests.lib.TestPipResult.files_updated`` correctly
     # detects changed files.
     venv.site.joinpath("easy-install.pth").touch()
 
