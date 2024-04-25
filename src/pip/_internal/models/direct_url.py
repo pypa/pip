@@ -1,8 +1,10 @@
 """ PEP 610 """
+
 import json
 import re
 import urllib.parse
-from typing import Any, Dict, Iterable, Optional, Type, TypeVar, Union
+from dataclasses import dataclass
+from typing import Any, ClassVar, Dict, Iterable, Optional, Type, TypeVar, Union
 
 __all__ = [
     "DirectUrl",
@@ -31,9 +33,7 @@ def _get(
     value = d[key]
     if not isinstance(value, expected_type):
         raise DirectUrlValidationError(
-            "{!r} has unexpected type for {} (expected {})".format(
-                value, key, expected_type
-            )
+            f"{value!r} has unexpected type for {key} (expected {expected_type})"
         )
     return value
 
@@ -66,18 +66,13 @@ def _filter_none(**kwargs: Any) -> Dict[str, Any]:
     return {k: v for k, v in kwargs.items() if v is not None}
 
 
+@dataclass
 class VcsInfo:
-    name = "vcs_info"
+    name: ClassVar = "vcs_info"
 
-    def __init__(
-        self,
-        vcs: str,
-        commit_id: str,
-        requested_revision: Optional[str] = None,
-    ) -> None:
-        self.vcs = vcs
-        self.requested_revision = requested_revision
-        self.commit_id = commit_id
+    vcs: str
+    commit_id: str
+    requested_revision: Optional[str] = None
 
     @classmethod
     def _from_dict(cls, d: Optional[Dict[str, Any]]) -> Optional["VcsInfo"]:
@@ -141,14 +136,11 @@ class ArchiveInfo:
         return _filter_none(hash=self.hash, hashes=self.hashes)
 
 
+@dataclass
 class DirInfo:
-    name = "dir_info"
+    name: ClassVar = "dir_info"
 
-    def __init__(
-        self,
-        editable: bool = False,
-    ) -> None:
-        self.editable = editable
+    editable: bool = False
 
     @classmethod
     def _from_dict(cls, d: Optional[Dict[str, Any]]) -> Optional["DirInfo"]:
@@ -163,16 +155,11 @@ class DirInfo:
 InfoType = Union[ArchiveInfo, DirInfo, VcsInfo]
 
 
+@dataclass
 class DirectUrl:
-    def __init__(
-        self,
-        url: str,
-        info: InfoType,
-        subdirectory: Optional[str] = None,
-    ) -> None:
-        self.url = url
-        self.info = info
-        self.subdirectory = subdirectory
+    url: str
+    info: InfoType
+    subdirectory: Optional[str] = None
 
     def _remove_auth_from_netloc(self, netloc: str) -> str:
         if "@" not in netloc:

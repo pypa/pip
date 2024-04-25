@@ -2,32 +2,13 @@
 
 import contextlib
 import signal
-from typing import Iterable, Iterator
-
-
-@contextlib.contextmanager
-def nullcontext() -> Iterator[None]:
-    """
-    Context manager that does no additional processing.
-
-    Used as a stand-in for a normal context manager, when a particular block of
-    code is only sometimes used with a normal context manager:
-
-        cm = optional_cm if condition else nullcontext()
-        with cm:
-            # Perform operation, using optional_cm if condition is True
-
-    TODO: Replace with contextlib.nullcontext after dropping Python 3.6
-    support.
-    """
-    yield
-
+from typing import Callable, ContextManager, Iterable, Iterator
 
 # Applies on Windows.
 if not hasattr(signal, "pthread_sigmask"):
     # We're not relying on this behavior anywhere currently, it's just best
     # practice.
-    blocked_signals = nullcontext
+    blocked_signals: Callable[[], ContextManager[None]] = contextlib.nullcontext
 else:
 
     @contextlib.contextmanager

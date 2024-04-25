@@ -1,0 +1,36 @@
+917b41d6d73535c090fc312668dff353cdaef906  # Blacken docs/html/conf.py
+ed383dd8afa8fe0250dcf9b8962927ada0e21c89  # Blacken docs/pip_sphinxext.py
+228405e62451abe8a66233573035007df4be575f  # Blacken noxfile.py
+f477a9f490e978177b71c9dbaa5465c51ea21129  # Blacken setup.py
+e59ba23468390217479465019f8d78e724a23550  # Blacken src/pip/__main__.py
+d7013db084e9a52242354ee5754dc5d19ccf062e  # Blacken src/pip/_internal/build_env.py
+30e9ffacae75378fc3e3df48f754dabad037edb9  # Blacken src/pip/_internal/cache.py
+8341d56b46776a805286218ac5fb0e7850fd9341  # Blacken src/pip/_internal/cli/autocompletion.py
+3d3461ed65208656358b3595e25d8c31c5c89470  # Blacken src/pip/_internal/cli/base_command.py
+d489b0f1b104bc936b0fb17e6c33633664ebdc0e  # Blacken src/pip/_internal/cli/cmdoptions.py
+591fe4841aefe9befa0530f2a54f820c4ecbb392  # Blacken src/pip/_internal/cli/command_context.py
+9265b28ef7248ae1847a80384dbeeb8119c3e2f5  # Blacken src/pip/_internal/cli/main.py
+847a369364878c38d210c90beed2737bb6fb3a85  # Blacken src/pip/_internal/cli/main_parser.py
+ec97119067041ae58b963935ff5f0e5d9fead80c  # Blacken src/pip/_internal/cli/parser.py
+6e3b8de22fa39fa3073599ecf9db61367f4b3b32  # Blacken src/pip/_internal/cli/progress_bars.py
+55405227de983c5bd5bf0858ea12dbe537d3e490  # Blacken src/pip/_internal/cli/req_command.py
+d5ca5c850cae9a0c64882a8f49d3a318699a7e2e  # Blacken src/pip/_internal/cli/spinners.py
+9747cb48f8430a7a91b36fe697dd18dbddb319f0  # Blacken src/pip/_internal/commands/__init__.py
+1c09fd6f124df08ca36bed68085ad68e89bb1957  # Blacken src/pip/_internal/commands/cache.py
+315e93d7eb87cd476afcc4eaf0f01a7b56a5037f  # Blacken src/pip/_internal/commands/check.py
+8ae3b96ed7d24fd24024ccce4840da0dcf635f26  # Blacken src/pip/_internal/commands/completion.py
+42ca4792202f26a293ee48380718743a80bbee37  # Blacken src/pip/_internal/commands/configuration.py
+790ad78fcd43d41a5bef9dca34a3c128d05eb02c  # Blacken src/pip/_internal/commands/debug.py
+a6fcc8f045afe257ce321f4012fc8fcb4be01eb3  # Blacken src/pip/_internal/commands/download.py
+920e735dfc60109351fbe2f4c483c2f6ede9e52d  # Blacken src/pip/_internal/commands/freeze.py
+053004e0fcf0851238b1064fbce13aea87b24e9c  # Blacken src/pip/_internal/commands/hash.py
+a6b6ae487e52c2242045b64cb8962e0a992cfd76  # Blacken src/pip/_internal/commands/help.py
+2495cf95a6c7eb61ccf1f9f0e8b8d736af914e53  # Blacken __main__.py
+c7ee560e00b85f7486b452c14ff49e4737996eda  # Blacken tools/
+8e2e1964a4f0a060f7299a96a911c9e116b2283d  # Blacken src/pip/_internal/commands/
+1bc0eef05679e87f45540ab0a294667cb3c6a88e  # Blacken src/pip/_internal/network/
+069b01932a7d64a81c708c6254cc93e1f89e6783  # Blacken src/pip/_internal/req
+1897784d59e0d5fcda2dd75fea54ddd8be3d502a  # Blacken src/pip/_internal/index
+94999255d5ede440c37137d210666fdf64302e75  # Reformat the codebase, with black
+585037a80a1177f1fa92e159a7079855782e543e  # Cleanup implicit string concatenation
+8a6f6ac19b80a6dc35900a47016c851d9fcd2ee2  # Blacken src/pip/_internal/resolution directory

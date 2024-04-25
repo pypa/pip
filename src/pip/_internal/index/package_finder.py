@@ -5,6 +5,7 @@ import functools
 import itertools
 import logging
 import re
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, FrozenSet, Iterable, List, Optional, Set, Tuple, Union
 
 from pip._vendor.packaging import specifiers
@@ -106,7 +107,6 @@ class LinkType(enum.Enum):
 
 
 class LinkEvaluator:
-
     """
     Responsible for evaluating links for a particular project.
     """
@@ -198,7 +198,7 @@ class LinkEvaluator:
                     reason = f"wrong project name (not {self.project_name})"
                     return (LinkType.different_project, reason)
 
-                supported_tags = self._target_python.get_tags()
+                supported_tags = self._target_python.get_unsorted_tags()
                 if not wheel.supported(supported_tags):
                     # Include the wheel's tags in the reason string to
                     # simplify troubleshooting compatibility issues.
@@ -323,23 +323,15 @@ def filter_unallowed_hashes(
     return filtered
 
 
+@dataclass
 class CandidatePreferences:
-
     """
     Encapsulates some of the preferences for filtering and sorting
     InstallationCandidate objects.
     """
 
-    def __init__(
-        self,
-        prefer_binary: bool = False,
-        allow_all_prereleases: bool = False,
-    ) -> None:
-        """
-        :param allow_all_prereleases: Whether to allow all pre-releases.
-        """
-        self.allow_all_prereleases = allow_all_prereleases
-        self.prefer_binary = prefer_binary
+    prefer_binary: bool = False
+    allow_all_prereleases: bool = False
 
 
 class BestCandidateResult:
@@ -383,7 +375,6 @@ class BestCandidateResult:
 
 
 class CandidateEvaluator:
-
     """
     Responsible for filtering and sorting candidates for installation based
     on what tags are valid.
@@ -414,7 +405,7 @@ class CandidateEvaluator:
         if specifier is None:
             specifier = specifiers.SpecifierSet()
 
-        supported_tags = target_python.get_tags()
+        supported_tags = target_python.get_sorted_tags()
 
         return cls(
             project_name=project_name,
@@ -533,8 +524,8 @@ class CandidateEvaluator:
                 )
             except ValueError:
                 raise UnsupportedWheel(
-                    "{} is not a supported wheel for this platform. It "
-                    "can't be sorted.".format(wheel.filename)
+                    f"{wheel.filename} is not a supported wheel for this platform. It "
+                    "can't be sorted."
                 )
             if self._prefer_binary:
                 binary_preference = 1
@@ -939,9 +930,7 @@ class PackageFinder:
                 _format_versions(best_candidate_result.iter_all()),
             )
 
-            raise DistributionNotFound(
-                "No matching distribution found for {}".format(req)
-            )
+            raise DistributionNotFound(f"No matching distribution found for {req}")
 
         def _should_install_candidate(
             candidate: Optional[InstallationCandidate],

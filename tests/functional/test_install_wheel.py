@@ -169,9 +169,9 @@ def get_header_scheme_path_for_script(
 ) -> Path:
     command = (
         "from pip._internal.locations import get_scheme;"
-        "scheme = get_scheme({!r});"
+        f"scheme = get_scheme({dist_name!r});"
         "print(scheme.headers);"
-    ).format(dist_name)
+    )
     result = script.run("python", "-c", command).stdout
     return Path(result.strip())
 

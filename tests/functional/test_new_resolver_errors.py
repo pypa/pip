@@ -71,8 +71,8 @@ def test_new_resolver_conflict_constraints_file(
 
 
 def test_new_resolver_requires_python_error(script: PipTestEnvironment) -> None:
-    compatible_python = ">={0.major}.{0.minor}".format(sys.version_info)
-    incompatible_python = "<{0.major}.{0.minor}".format(sys.version_info)
+    compatible_python = f">={sys.version_info.major}.{sys.version_info.minor}"
+    incompatible_python = f"<{sys.version_info.major}.{sys.version_info.minor}"
 
     pkga = create_test_package_with_setup(
         script,
@@ -99,7 +99,7 @@ def test_new_resolver_requires_python_error(script: PipTestEnvironment) -> None:
 def test_new_resolver_checks_requires_python_before_dependencies(
     script: PipTestEnvironment,
 ) -> None:
-    incompatible_python = "<{0.major}.{0.minor}".format(sys.version_info)
+    incompatible_python = f"<{sys.version_info.major}.{sys.version_info.minor}"
 
     pkg_dep = create_basic_wheel_for_package(
         script,

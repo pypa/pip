@@ -28,6 +28,7 @@ from typing import (
     List,
     NewType,
     Optional,
+    Protocol,
     Sequence,
     Set,
     Tuple,
@@ -50,7 +51,7 @@ from pip._internal.metadata import (
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
-from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file, partition
+from pip._internal.utils.misc import StreamWrapper, ensure_dir, hash_file, partition
 from pip._internal.utils.unpacking import (
     current_umask,
     is_within_directory,
@@ -60,7 +61,6 @@ from pip._internal.utils.unpacking import (
 from pip._internal.utils.wheel import parse_wheel
 
 if TYPE_CHECKING:
-    from typing import Protocol
 
     class File(Protocol):
         src_record_path: "RecordPath"
@@ -164,16 +164,14 @@ def message_about_scripts_not_on_PATH(scripts: Sequence[str]) -> Optional[str]:
     for parent_dir, dir_scripts in warn_for.items():
         sorted_scripts: List[str] = sorted(dir_scripts)
         if len(sorted_scripts) == 1:
-            start_text = "script {} is".format(sorted_scripts[0])
+            start_text = f"script {sorted_scripts[0]} is"
         else:
             start_text = "scripts {} are".format(
                 ", ".join(sorted_scripts[:-1]) + " and " + sorted_scripts[-1]
             )
 
         msg_lines.append(
-            "The {} installed in '{}' which is not on PATH.".format(
-                start_text, parent_dir
-            )
+            f"The {start_text} installed in '{parent_dir}' which is not on PATH."
         )
 
     last_line_fmt = (
@@ -267,9 +265,9 @@ def get_csv_rows_for_installed(
         path = _fs_to_record_path(f, lib_dir)
         digest, length = rehash(f)
         installed_rows.append((path, digest, length))
-    for installed_record_path in installed.values():
-        installed_rows.append((installed_record_path, "", ""))
-    return installed_rows
+    return installed_rows + [
+        (installed_record_path, "", "") for installed_record_path in installed.values()
+    ]
 
 
 def get_console_script_specs(console: Dict[str, str]) -> List[str]:
@@ -290,17 +288,15 @@ def get_console_script_specs(console: Dict[str, str]) -> List[str]:
     # the wheel metadata at build time, and so if the wheel is installed with
     # a *different* version of Python the entry points will be wrong. The
     # correct fix for this is to enhance the metadata to be able to describe
-    # such versioned entry points, but that won't happen till Metadata 2.0 is
-    # available.
-    # In the meantime, projects using versioned entry points will either have
+    # such versioned entry points.
+    # Currently, projects using versioned entry points will either have
     # incorrect versioned entry points, or they will not be able to distribute
     # "universal" wheels (i.e., they will need a wheel per Python version).
     #
     # Because setuptools and pip are bundled with _ensurepip and virtualenv,
-    # we need to use universal wheels. So, as a stopgap until Metadata 2.0, we
+    # we need to use universal wheels. As a workaround, we
     # override the versioned entry points in the wheel and generate the
-    # correct ones. This code is purely a short-term measure until Metadata 2.0
-    # is available.
+    # correct ones.
     #
     # To add the level of hack in this section of code, in order to support
     # ensurepip this code will look for an ``ENSUREPIP_OPTIONS`` environment
@@ -321,9 +317,7 @@ def get_console_script_specs(console: Dict[str, str]) -> List[str]:
             scripts_to_generate.append("pip = " + pip_script)
 
         if os.environ.get("ENSUREPIP_OPTIONS", "") != "altinstall":
-            scripts_to_generate.append(
-                "pip{} = {}".format(sys.version_info[0], pip_script)
-            )
+            scripts_to_generate.append(f"pip{sys.version_info[0]} = {pip_script}")
 
         scripts_to_generate.append(f"pip{get_major_minor_version()} = {pip_script}")
         # Delete any other versioned pip entry points
@@ -336,9 +330,7 @@ def get_console_script_specs(console: Dict[str, str]) -> List[str]:
             scripts_to_generate.append("easy_install = " + easy_install_script)
 
         scripts_to_generate.append(
-            "easy_install-{} = {}".format(
-                get_major_minor_version(), easy_install_script
-            )
+            f"easy_install-{get_major_minor_version()} = {easy_install_script}"
         )
         # Delete any other versioned easy_install entry points
         easy_install_ep = [
@@ -408,10 +400,10 @@ class ScriptFile:
 class MissingCallableSuffix(InstallationError):
     def __init__(self, entry_point: str) -> None:
         super().__init__(
-            "Invalid script entry point: {} - A callable "
+            f"Invalid script entry point: {entry_point} - A callable "
             "suffix is required. Cf https://packaging.python.org/"
             "specifications/entry-points/#use-for-scripts for more "
-            "information.".format(entry_point)
+            "information."
         )
 
 
@@ -513,9 +505,9 @@ def _install_wheel(
                 _, scheme_key, dest_subpath = normed_path.split(os.path.sep, 2)
             except ValueError:
                 message = (
-                    "Unexpected file in {}: {!r}. .data directory contents"
-                    " should be named like: '<scheme key>/<path>'."
-                ).format(wheel_path, record_path)
+                    f"Unexpected file in {wheel_path}: {record_path!r}. .data directory"
+                    " contents should be named like: '<scheme key>/<path>'."
+                )
                 raise InstallationError(message)
 
             try:
@@ -523,10 +515,11 @@ def _install_wheel(
             except KeyError:
                 valid_scheme_keys = ", ".join(sorted(scheme_paths))
                 message = (
-                    "Unknown scheme key used in {}: {} (for file {!r}). .data"
-                    " directory contents should be in subdirectories named"
-                    " with a valid scheme key ({})"
-                ).format(wheel_path, scheme_key, record_path, valid_scheme_keys)
+                    f"Unknown scheme key used in {wheel_path}: {scheme_key} "
+                    f"(for file {record_path!r}). .data directory contents "
+                    f"should be in subdirectories named with a valid scheme "
+                    f"key ({valid_scheme_keys})"
+                )
                 raise InstallationError(message)
 
             dest_path = os.path.join(scheme_path, dest_subpath)
@@ -610,7 +603,9 @@ def _install_wheel(
 
     # Compile all of the pyc files for the installed files
     if pycompile:
-        with captured_stdout() as stdout:
+        with contextlib.redirect_stdout(
+            StreamWrapper.from_stream(sys.stdout)
+        ) as stdout:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
                 for path in pyc_source_file_paths():
@@ -712,7 +707,7 @@ def req_error_context(req_description: str) -> Generator[None, None, None]:
     try:
         yield
     except InstallationError as e:
-        message = "For req: {}. {}".format(req_description, e.args[0])
+        message = f"For req: {req_description}. {e.args[0]}"
         raise InstallationError(message) from e
 
 

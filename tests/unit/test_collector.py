@@ -30,6 +30,7 @@ from pip._internal.models.index import PyPI
 from pip._internal.models.link import (
     Link,
     LinkHash,
+    MetadataFile,
     _clean_url_path,
     _ensure_quoted_url,
 )
@@ -118,8 +119,8 @@ def test_get_index_content_invalid_content_type_archive(
     assert (
         "pip._internal.index.collector",
         logging.WARNING,
-        "Skipping page {} because it looks like an archive, and cannot "
-        "be checked by a HTTP HEAD request.".format(url),
+        f"Skipping page {url} because it looks like an archive, and cannot "
+        "be checked by a HTTP HEAD request.",
     ) in caplog.record_tuples
 
 
@@ -416,8 +417,8 @@ def _test_parse_links_data_attribute(
     html = (
         "<!DOCTYPE html>"
         '<html><head><meta charset="utf-8"><head>'
-        "<body>{}</body></html>"
-    ).format(anchor_html)
+        f"<body>{anchor_html}</body></html>"
+    )
     html_bytes = html.encode("utf-8")
     page = IndexContent(
         html_bytes,
@@ -485,13 +486,30 @@ def test_parse_links_json() -> None:
                     "requires-python": ">=3.7",
                     "dist-info-metadata": False,
                 },
-                # Same as above, but parsing dist-info-metadata.
+                # Same as above, but parsing core-metadata.
                 {
                     "filename": "holygrail-1.0-py3-none-any.whl",
                     "url": "/files/holygrail-1.0-py3-none-any.whl",
                     "hashes": {"sha256": "sha256 hash", "blake2b": "blake2b hash"},
                     "requires-python": ">=3.7",
-                    "dist-info-metadata": "sha512=aabdd41",
+                    "core-metadata": {"sha512": "aabdd41"},
+                },
+                # Ensure fallback to dist-info-metadata works
+                {
+                    "filename": "holygrail-1.0-py3-none-any.whl",
+                    "url": "/files/holygrail-1.0-py3-none-any.whl",
+                    "hashes": {"sha256": "sha256 hash", "blake2b": "blake2b hash"},
+                    "requires-python": ">=3.7",
+                    "dist-info-metadata": {"sha512": "aabdd41"},
+                },
+                # Ensure that core-metadata gets priority.
+                {
+                    "filename": "holygrail-1.0-py3-none-any.whl",
+                    "url": "/files/holygrail-1.0-py3-none-any.whl",
+                    "hashes": {"sha256": "sha256 hash", "blake2b": "blake2b hash"},
+                    "requires-python": ">=3.7",
+                    "core-metadata": {"sha512": "aabdd41"},
+                    "dist-info-metadata": {"sha512": "this_is_wrong"},
                 },
             ],
         }
@@ -527,7 +545,23 @@ def test_parse_links_json() -> None:
             requires_python=">=3.7",
             yanked_reason=None,
             hashes={"sha256": "sha256 hash", "blake2b": "blake2b hash"},
-            dist_info_metadata="sha512=aabdd41",
+            metadata_file_data=MetadataFile({"sha512": "aabdd41"}),
+        ),
+        Link(
+            "https://example.com/files/holygrail-1.0-py3-none-any.whl",
+            comes_from=page.url,
+            requires_python=">=3.7",
+            yanked_reason=None,
+            hashes={"sha256": "sha256 hash", "blake2b": "blake2b hash"},
+            metadata_file_data=MetadataFile({"sha512": "aabdd41"}),
+        ),
+        Link(
+            "https://example.com/files/holygrail-1.0-py3-none-any.whl",
+            comes_from=page.url,
+            requires_python=">=3.7",
+            yanked_reason=None,
+            hashes={"sha256": "sha256 hash", "blake2b": "blake2b hash"},
+            metadata_file_data=MetadataFile({"sha512": "aabdd41"}),
         ),
     ]
 
@@ -585,30 +619,42 @@ _pkg1_requirement = Requirement("pkg1==1.0")
         ),
         # Test with value "true".
         (
-            '<a href="/pkg1-1.0.tar.gz" data-dist-info-metadata="true"></a>',
-            "true",
+            '<a href="/pkg1-1.0.tar.gz" data-core-metadata="true"></a>',
+            MetadataFile(None),
             {},
         ),
         # Test with a provided hash value.
         (
-            '<a href="/pkg1-1.0.tar.gz" data-dist-info-metadata="sha256=aa113592bbe"></a>',  # noqa: E501
-            "sha256=aa113592bbe",
+            '<a href="/pkg1-1.0.tar.gz" data-core-metadata="sha256=aa113592bbe"></a>',
+            MetadataFile({"sha256": "aa113592bbe"}),
             {},
         ),
         # Test with a provided hash value for both the requirement as well as metadata.
         (
-            '<a href="/pkg1-1.0.tar.gz#sha512=abc132409cb" data-dist-info-metadata="sha256=aa113592bbe"></a>',  # noqa: E501
-            "sha256=aa113592bbe",
+            '<a href="/pkg1-1.0.tar.gz#sha512=abc132409cb" data-core-metadata="sha256=aa113592bbe"></a>',  # noqa: E501
+            MetadataFile({"sha256": "aa113592bbe"}),
             {"sha512": "abc132409cb"},
+        ),
+        # Ensure the fallback to the old name works.
+        (
+            '<a href="/pkg1-1.0.tar.gz" data-dist-info-metadata="sha256=aa113592bbe"></a>',  # noqa: E501
+            MetadataFile({"sha256": "aa113592bbe"}),
+            {},
+        ),
+        # Ensure that the data-core-metadata name gets priority.
+        (
+            '<a href="/pkg1-1.0.tar.gz" data-core-metadata="sha256=aa113592bbe" data-dist-info-metadata="sha256=invalid_value"></a>',  # noqa: E501
+            MetadataFile({"sha256": "aa113592bbe"}),
+            {},
         ),
     ],
 )
-def test_parse_links__dist_info_metadata(
+def test_parse_links__metadata_file_data(
     anchor_html: str,
     expected: Optional[str],
     hashes: Dict[str, str],
 ) -> None:
-    link = _test_parse_links_data_attribute(anchor_html, "dist_info_metadata", expected)
+    link = _test_parse_links_data_attribute(anchor_html, "metadata_file_data", expected)
     assert link._hashes == hashes
 
 
@@ -718,8 +764,8 @@ def test_get_index_content_invalid_scheme(
         (
             "pip._internal.index.collector",
             logging.WARNING,
-            "Cannot look at {} URL {} because it does not support "
-            "lookup as web pages.".format(vcs_scheme, url),
+            f"Cannot look at {vcs_scheme} URL {url} because it does not support "
+            "lookup as web pages.",
         ),
     ]
 
@@ -756,9 +802,9 @@ def test_get_index_content_invalid_content_type(
     assert (
         "pip._internal.index.collector",
         logging.WARNING,
-        "Skipping page {} because the GET request got Content-Type: {}. "
-        "The only supported Content-Types are application/vnd.pypi.simple.v1+json, "
-        "application/vnd.pypi.simple.v1+html, and text/html".format(url, content_type),
+        f"Skipping page {url} because the GET request got Content-Type: {content_type}."
+        " The only supported Content-Types are application/vnd.pypi.simple.v1+json, "
+        "application/vnd.pypi.simple.v1+html, and text/html",
     ) in caplog.record_tuples
 
 
@@ -816,7 +862,7 @@ def test_collect_sources__file_expand_dir(data: TestData) -> None:
     )
     sources = collector.collect_sources(
         # Shouldn't be used.
-        project_name=None,  # type: ignore[arg-type]
+        project_name="",
         candidates_from_page=None,  # type: ignore[arg-type]
     )
     assert (
@@ -865,7 +911,7 @@ def test_collect_sources__non_existing_path() -> None:
             index_url="ignored-by-no-index",
             extra_index_urls=[],
             no_index=True,
-            find_links=[os.path.join("this", "doesnt", "exist")],
+            find_links=[os.path.join("this", "does", "not", "exist")],
         ),
     )
     sources = collector.collect_sources(
@@ -914,7 +960,7 @@ class TestLinkCollector:
             session=link_collector.session,
         )
 
-    def test_collect_sources(
+    def test_collect_page_sources(
         self, caplog: pytest.LogCaptureFixture, data: TestData
     ) -> None:
         caplog.set_level(logging.DEBUG)
@@ -947,9 +993,8 @@ class TestLinkCollector:
         files = list(files_it)
         pages = list(pages_it)
 
-        # Spot-check the returned sources.
-        assert len(files) > 20
-        check_links_include(files, names=["simple-1.0.tar.gz"])
+        # Only "twine" should return from collecting sources
+        assert len(files) == 1
 
         assert [page.link for page in pages] == [Link("https://pypi.org/simple/twine/")]
         # Check that index URLs are marked as *un*cacheable.
@@ -959,6 +1004,52 @@ class TestLinkCollector:
             """\
         1 location(s) to search for versions of twine:
         * https://pypi.org/simple/twine/"""
+        )
+        assert caplog.record_tuples == [
+            ("pip._internal.index.collector", logging.DEBUG, expected_message),
+        ]
+
+    def test_collect_file_sources(
+        self, caplog: pytest.LogCaptureFixture, data: TestData
+    ) -> None:
+        caplog.set_level(logging.DEBUG)
+
+        link_collector = make_test_link_collector(
+            find_links=[data.find_links],
+            # Include two copies of the URL to check that the second one
+            # is skipped.
+            index_urls=[PyPI.simple_url, PyPI.simple_url],
+        )
+        collected_sources = link_collector.collect_sources(
+            "singlemodule",
+            candidates_from_page=lambda link: [
+                InstallationCandidate("singlemodule", "0.0.1", link)
+            ],
+        )
+
+        files_it = itertools.chain.from_iterable(
+            source.file_links()
+            for sources in collected_sources
+            for source in sources
+            if source is not None
+        )
+        pages_it = itertools.chain.from_iterable(
+            source.page_candidates()
+            for sources in collected_sources
+            for source in sources
+            if source is not None
+        )
+        files = list(files_it)
+        _ = list(pages_it)
+
+        # singlemodule should return files
+        assert len(files) > 0
+        check_links_include(files, names=["singlemodule-0.0.1.tar.gz"])
+
+        expected_message = dedent(
+            """\
+        1 location(s) to search for versions of singlemodule:
+        * https://pypi.org/simple/singlemodule/"""
         )
         assert caplog.record_tuples == [
             ("pip._internal.index.collector", logging.DEBUG, expected_message),
@@ -1080,17 +1171,26 @@ def test_link_hash_parsing(url: str, result: Optional[LinkHash]) -> None:
 
 
 @pytest.mark.parametrize(
-    "dist_info_metadata, result",
+    "metadata_attrib, expected",
     [
-        ("sha256=aa113592bbe", LinkHash("sha256", "aa113592bbe")),
-        ("sha256=", LinkHash("sha256", "")),
-        ("sha500=aa113592bbe", None),
-        ("true", None),
-        ("", None),
-        ("aa113592bbe", None),
+        ("sha256=aa113592bbe", MetadataFile({"sha256": "aa113592bbe"})),
+        ("sha256=", MetadataFile({"sha256": ""})),
+        ("sha500=aa113592bbe", MetadataFile(None)),
+        ("true", MetadataFile(None)),
+        (None, None),
+        # Attribute is present but invalid
+        ("", MetadataFile(None)),
+        ("aa113592bbe", MetadataFile(None)),
     ],
 )
-def test_pep658_hash_parsing(
-    dist_info_metadata: str, result: Optional[LinkHash]
+def test_metadata_file_info_parsing_html(
+    metadata_attrib: str, expected: Optional[MetadataFile]
 ) -> None:
-    assert LinkHash.parse_pep658_hash(dist_info_metadata) == result
+    attribs: Dict[str, Optional[str]] = {
+        "href": "something",
+        "data-dist-info-metadata": metadata_attrib,
+    }
+    page_url = "dummy_for_comes_from"
+    base_url = "https://index.url/simple"
+    link = Link.from_element(attribs, page_url, base_url)
+    assert link is not None and link.metadata_file_data == expected

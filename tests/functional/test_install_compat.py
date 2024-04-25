@@ -2,13 +2,18 @@
 Tests for compatibility workarounds.
 
 """
+
 import os
 from pathlib import Path
 
 import pytest
 
-from tests.lib import pyversion  # noqa: F401
-from tests.lib import PipTestEnvironment, TestData, assert_all_changes
+from tests.lib import (
+    PipTestEnvironment,
+    TestData,
+    assert_all_changes,
+    pyversion,
+)
 
 
 @pytest.mark.network

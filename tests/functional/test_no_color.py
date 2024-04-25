@@ -1,6 +1,7 @@
 """
 Test specific for the --no-color option
 """
+
 import os
 import shutil
 import subprocess

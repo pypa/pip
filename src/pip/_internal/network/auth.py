@@ -3,6 +3,7 @@
 Contains interface (MultiDomainBasicAuth) and associated glue code for
 providing credentials in the context of network requests.
 """
+
 import logging
 import os
 import shutil
@@ -47,12 +48,12 @@ class KeyRingBaseProvider(ABC):
     has_keyring: bool
 
     @abstractmethod
-    def get_auth_info(self, url: str, username: Optional[str]) -> Optional[AuthInfo]:
-        ...
+    def get_auth_info(
+        self, url: str, username: Optional[str]
+    ) -> Optional[AuthInfo]: ...
 
     @abstractmethod
-    def save_auth_info(self, url: str, username: str, password: str) -> None:
-        ...
+    def save_auth_info(self, url: str, username: str, password: str) -> None: ...
 
 
 class KeyRingNullProvider(KeyRingBaseProvider):
@@ -151,7 +152,7 @@ class KeyRingCliProvider(KeyRingBaseProvider):
         env["PYTHONIOENCODING"] = "utf-8"
         subprocess.run(
             [self.keyring, "set", service_name, username],
-            input=f"{password}{os.linesep}".encode("utf-8"),
+            input=f"{password}{os.linesep}".encode(),
             env=env,
             check=True,
         )
@@ -514,7 +515,9 @@ class MultiDomainBasicAuth(AuthBase):
 
         # Consume content and release the original connection to allow our new
         #   request to reuse the same one.
-        resp.content
+        # The result of the assignment isn't used, it's just needed to consume
+        # the content.
+        _ = resp.content
         resp.raw.release_conn()
 
         # Add our new username and password to the request

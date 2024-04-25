@@ -3,6 +3,8 @@ import pathlib
 import re
 import textwrap
 
+import pytest
+
 from pip import __version__
 from pip._internal.commands.show import search_packages_info
 from pip._internal.utils.unpacking import untar_file
@@ -277,7 +279,10 @@ def test_show_required_by_packages_basic(
     lines = result.stdout.splitlines()
 
     assert "Name: simple" in lines
-    assert "Required-by: requires-simple" in lines
+    assert (
+        "Required-by: requires_simple" in lines
+        or "Required-by: requires-simple" in lines
+    )
 
 
 def test_show_required_by_packages_capitalized(
@@ -294,7 +299,10 @@ def test_show_required_by_packages_capitalized(
     lines = result.stdout.splitlines()
 
     assert "Name: simple" in lines
-    assert "Required-by: Requires-Capitalized" in lines
+    assert (
+        "Required-by: Requires_Capitalized" in lines
+        or "Required-by: Requires-Capitalized" in lines
+    )
 
 
 def test_show_required_by_packages_requiring_capitalized(
@@ -314,8 +322,13 @@ def test_show_required_by_packages_requiring_capitalized(
     lines = result.stdout.splitlines()
     print(lines)
 
-    assert "Name: Requires-Capitalized" in lines
-    assert "Required-by: requires-requires-capitalized" in lines
+    assert (
+        "Name: Requires_Capitalized" in lines or "Name: Requires-Capitalized" in lines
+    )
+    assert (
+        "Required-by: requires_requires_capitalized" in lines
+        or "Required-by: requires-requires-capitalized" in lines
+    )
 
 
 def test_show_skip_work_dir_pkg(script: PipTestEnvironment) -> None:
@@ -350,3 +363,49 @@ def test_show_include_work_dir_pkg(script: PipTestEnvironment) -> None:
     result = script.pip("show", "simple", cwd=pkg_path)
     lines = result.stdout.splitlines()
     assert "Name: simple" in lines
+
+
+def test_show_deduplicate_requirements(script: PipTestEnvironment) -> None:
+    """
+    Test that show should deduplicate requirements
+    for a package
+    """
+
+    # Create a test package and create .egg-info dir
+    pkg_path = create_test_package_with_setup(
+        script,
+        name="simple",
+        version="1.0",
+        install_requires=[
+            "pip >= 19.0.1",
+            'pip >= 19.3.1; python_version < "3.8"',
+            'pip >= 23.0.1; python_version < "3.9"',
+        ],
+    )
+    script.run("python", "setup.py", "egg_info", expect_stderr=True, cwd=pkg_path)
+
+    script.environ.update({"PYTHONPATH": pkg_path})
+
+    result = script.pip("show", "simple", cwd=pkg_path)
+    lines = result.stdout.splitlines()
+    assert "Requires: pip" in lines
+
+
+@pytest.mark.parametrize(
+    "project_url", ["Home-page", "home-page", "Homepage", "homepage"]
+)
+def test_show_populate_homepage_from_project_urls(
+    script: PipTestEnvironment, project_url: str
+) -> None:
+    pkg_path = create_test_package_with_setup(
+        script,
+        name="simple",
+        version="1.0",
+        project_urls={project_url: "https://example.com"},
+    )
+    script.run("python", "setup.py", "egg_info", expect_stderr=True, cwd=pkg_path)
+    script.environ.update({"PYTHONPATH": pkg_path})
+
+    result = script.pip("show", "simple", cwd=pkg_path)
+    lines = result.stdout.splitlines()
+    assert "Home-page: https://example.com" in lines

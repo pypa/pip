@@ -1,4 +1,5 @@
 """Tests for wheel binary packages and .dist-info."""
+
 import csv
 import logging
 import os
@@ -102,15 +103,13 @@ def test_get_legacy_build_wheel_path__multiple_names(
     ],
 )
 def test_get_entrypoints(tmp_path: pathlib.Path, console_scripts: str) -> None:
-    entry_points_text = """
+    entry_points_text = f"""
         [console_scripts]
-        {}
+        {console_scripts}
         [section]
         common:one = module:func
         common:two = module:other_func
-    """.format(
-        console_scripts
-    )
+    """
 
     distribution = make_wheel(
         "simple",

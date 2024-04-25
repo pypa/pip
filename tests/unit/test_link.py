@@ -143,10 +143,7 @@ class TestLink:
     def test_is_hash_allowed(
         self, hash_name: str, hex_digest: str, expected: bool
     ) -> None:
-        url = "https://example.com/wheel.whl#{hash_name}={hex_digest}".format(
-            hash_name=hash_name,
-            hex_digest=hex_digest,
-        )
+        url = f"https://example.com/wheel.whl#{hash_name}={hex_digest}"
         link = Link(url)
         hashes_data = {
             "sha512": [128 * "a", 128 * "b"],

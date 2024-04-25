@@ -89,7 +89,6 @@ class FakeSpinner(SpinnerInterface):
 
 
 class TestCallSubprocess:
-
     """
     Test call_subprocess().
     """
@@ -260,9 +259,9 @@ class TestCallSubprocess:
         expected = (
             None,
             [
-                # pytest's caplog overrides th formatter, which means that we
+                # pytest's caplog overrides the formatter, which means that we
                 # won't see the message formatted through our formatters.
-                ("pip.subprocessor", ERROR, "[present-rich]"),
+                ("pip.subprocessor", ERROR, "subprocess error exited with 1"),
             ],
         )
         # The spinner should spin three times in this case since the

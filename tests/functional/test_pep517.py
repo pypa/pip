@@ -159,9 +159,9 @@ def test_conflicting_pep517_backend_requirements(
         expect_error=True,
     )
     msg = (
-        "Some build dependencies for {url} conflict with the backend "
+        f"Some build dependencies for {project_dir.as_uri()} conflict with the backend "
         "dependencies: simplewheel==1.0 is incompatible with "
-        "simplewheel==2.0.".format(url=project_dir.as_uri())
+        "simplewheel==2.0."
     )
     assert result.returncode != 0 and msg in result.stderr, str(result)
 
@@ -205,8 +205,8 @@ def test_validate_missing_pep517_backend_requirements(
         expect_error=True,
     )
     msg = (
-        "Some build dependencies for {url} are missing: "
-        "'simplewheel==1.0', 'test_backend'.".format(url=project_dir.as_uri())
+        f"Some build dependencies for {project_dir.as_uri()} are missing: "
+        "'simplewheel==1.0', 'test_backend'."
     )
     assert result.returncode != 0 and msg in result.stderr, str(result)
 
@@ -231,9 +231,9 @@ def test_validate_conflicting_pep517_backend_requirements(
         expect_error=True,
     )
     msg = (
-        "Some build dependencies for {url} conflict with the backend "
+        f"Some build dependencies for {project_dir.as_uri()} conflict with the backend "
         "dependencies: simplewheel==2.0 is incompatible with "
-        "simplewheel==1.0.".format(url=project_dir.as_uri())
+        "simplewheel==1.0."
     )
     assert result.returncode != 0 and msg in result.stderr, str(result)
 

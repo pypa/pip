@@ -1,6 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 import functools
 import logging
 import os
@@ -9,6 +6,7 @@ import sys
 import uuid
 import zipfile
 from optparse import Values
+from pathlib import Path
 from typing import Any, Collection, Dict, Iterable, List, Optional, Sequence, Union
 
 from pip._vendor.packaging.markers import Marker
@@ -20,7 +18,7 @@ from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.pyproject_hooks import BuildBackendHookCaller
 
 from pip._internal.build_env import BuildEnvironment, NoOpBuildEnvironment
-from pip._internal.exceptions import InstallationError
+from pip._internal.exceptions import InstallationError, PreviousBuildDirError
 from pip._internal.locations import get_scheme
 from pip._internal.metadata import (
     BaseDistribution,
@@ -50,11 +48,14 @@ from pip._internal.utils.misc import (
     backup_dir,
     display_path,
     hide_url,
+    is_installable_dir,
+    redact_auth_from_requirement,
     redact_auth_from_url,
 )
 from pip._internal.utils.packaging import safe_extra
 from pip._internal.utils.subprocess import runner_with_spinner_message
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
+from pip._internal.utils.unpacking import unpack_file
 from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
 
@@ -104,6 +105,8 @@ class InstallRequirement:
             if link.is_file:
                 self.source_dir = os.path.normpath(os.path.abspath(link.file_path))
 
+        # original_link is the direct URL that was provided by the user for the
+        # requirement, either directly or via a constraints file.
         if link is None and req and req.url:
             # PEP 508 URL requirement
             link = Link(req.url)
@@ -126,7 +129,7 @@ class InstallRequirement:
         if extras:
             self.extras = extras
         elif req:
-            self.extras = {safe_extra(extra) for extra in req.extras}
+            self.extras = req.extras
         else:
             self.extras = set()
         if markers is None and req:
@@ -178,14 +181,27 @@ class InstallRequirement:
         # but after loading this flag should be treated as read only.
         self.use_pep517 = use_pep517
 
+        # If config settings are provided, enforce PEP 517.
+        if self.config_settings:
+            if self.use_pep517 is False:
+                logger.warning(
+                    "--no-use-pep517 ignored for %s "
+                    "because --config-settings are specified.",
+                    self,
+                )
+            self.use_pep517 = True
+
         # This requirement needs more preparation before it can be built
         self.needs_more_preparation = False
 
+        # This requirement needs to be unpacked before it can be installed.
+        self._archive_source: Optional[Path] = None
+
     def __str__(self) -> str:
         if self.req:
-            s = str(self.req)
+            s = redact_auth_from_requirement(self.req)
             if self.link:
-                s += " from {}".format(redact_auth_from_url(self.link.url))
+                s += f" from {redact_auth_from_url(self.link.url)}"
         elif self.link:
             s = redact_auth_from_url(self.link.url)
         else:
@@ -206,8 +222,9 @@ class InstallRequirement:
         return s
 
     def __repr__(self) -> str:
-        return "<{} object: {} editable={!r}>".format(
-            self.__class__.__name__, str(self), self.editable
+        return (
+            f"<{self.__class__.__name__} object: "
+            f"{str(self)} editable={self.editable!r}>"
         )
 
     def format_debug(self) -> str:
@@ -215,7 +232,7 @@ class InstallRequirement:
         attributes = vars(self)
         names = sorted(attributes)
 
-        state = ("{}={!r}".format(attr, attributes[attr]) for attr in sorted(names))
+        state = (f"{attr}={attributes[attr]!r}" for attr in sorted(names))
         return "<{name} object: {{{state}}}>".format(
             name=self.__class__.__name__,
             state=", ".join(state),
@@ -228,7 +245,7 @@ class InstallRequirement:
             return None
         return self.req.name
 
-    @functools.lru_cache()  # use cached_property in python 3.8+
+    @functools.cached_property
     def supports_pyproject_editable(self) -> bool:
         if not self.use_pep517:
             return False
@@ -242,7 +259,13 @@ class InstallRequirement:
 
     @property
     def specifier(self) -> SpecifierSet:
+        assert self.req is not None
         return self.req.specifier
+
+    @property
+    def is_direct(self) -> bool:
+        """Whether this requirement was specified as a direct URL."""
+        return self.original_link is not None
 
     @property
     def is_pinned(self) -> bool:
@@ -250,7 +273,8 @@ class InstallRequirement:
 
         For example, some-package==1.2 is pinned; some-package>1.2 is not.
         """
-        specifiers = self.specifier
+        assert self.req is not None
+        specifiers = self.req.specifier
         return len(specifiers) == 1 and next(iter(specifiers)).operator in {"==", "==="}
 
     def match_markers(self, extras_requested: Optional[Iterable[str]] = None) -> bool:
@@ -260,7 +284,12 @@ class InstallRequirement:
             extras_requested = ("",)
         if self.markers is not None:
             return any(
-                self.markers.evaluate({"extra": extra}) for extra in extras_requested
+                self.markers.evaluate({"extra": extra})
+                # TODO: Remove these two variants when packaging is upgraded to
+                # support the marker comparison logic specified in PEP 685.
+                or self.markers.evaluate({"extra": safe_extra(extra)})
+                or self.markers.evaluate({"extra": canonicalize_name(extra)})
+                for extra in extras_requested
             )
         else:
             return True
@@ -293,11 +322,12 @@ class InstallRequirement:
         good_hashes = self.hash_options.copy()
         if trust_internet:
             link = self.link
-        elif self.original_link and self.user_supplied:
+        elif self.is_direct and self.user_supplied:
             link = self.original_link
         else:
             link = None
         if link and link.hash:
+            assert link.hash_name is not None
             good_hashes.setdefault(link.hash_name, []).append(link.hash)
         return Hashes(good_hashes)
 
@@ -307,6 +337,7 @@ class InstallRequirement:
             return None
         s = str(self.req)
         if self.comes_from:
+            comes_from: Optional[str]
             if isinstance(self.comes_from, str):
                 comes_from = self.comes_from
             else:
@@ -338,7 +369,7 @@ class InstallRequirement:
 
         # When parallel builds are enabled, add a UUID to the build directory
         # name so multiple builds do not interfere with each other.
-        dir_name: str = canonicalize_name(self.name)
+        dir_name: str = canonicalize_name(self.req.name)
         if parallel_builds:
             dir_name = f"{dir_name}_{uuid.uuid4().hex}"
 
@@ -381,6 +412,7 @@ class InstallRequirement:
         )
 
     def warn_on_mismatching_name(self) -> None:
+        assert self.req is not None
         metadata_name = canonicalize_name(self.metadata["Name"])
         if canonicalize_name(self.req.name) == metadata_name:
             # Everything is fine.
@@ -450,6 +482,7 @@ class InstallRequirement:
     # Things valid for sdists
     @property
     def unpacked_source_directory(self) -> str:
+        assert self.source_dir, f"No source dir for {self}"
         return os.path.join(
             self.source_dir, self.link and self.link.subdirectory_fragment or ""
         )
@@ -486,15 +519,7 @@ class InstallRequirement:
         )
 
         if pyproject_toml_data is None:
-            if self.config_settings:
-                deprecated(
-                    reason=f"Config settings are ignored for project {self}.",
-                    replacement=(
-                        "to use --use-pep517 or add a "
-                        "pyproject.toml file to the project"
-                    ),
-                    gone_in="23.3",
-                )
+            assert not self.config_settings
             self.use_pep517 = False
             return
 
@@ -518,7 +543,7 @@ class InstallRequirement:
         if (
             self.editable
             and self.use_pep517
-            and not self.supports_pyproject_editable()
+            and not self.supports_pyproject_editable
             and not os.path.isfile(self.setup_py_path)
             and not os.path.isfile(self.setup_cfg_path)
         ):
@@ -536,7 +561,7 @@ class InstallRequirement:
         Under PEP 517 and PEP 660, call the backend hook to prepare the metadata.
         Under legacy processing, call setup.py egg-info.
         """
-        assert self.source_dir
+        assert self.source_dir, f"No source dir for {self}"
         details = self.name or f"from {self.link}"
 
         if self.use_pep517:
@@ -544,7 +569,7 @@ class InstallRequirement:
             if (
                 self.editable
                 and self.permit_editable_wheels
-                and self.supports_pyproject_editable()
+                and self.supports_pyproject_editable
             ):
                 self.metadata_directory = generate_editable_metadata(
                     build_env=self.build_env,
@@ -585,8 +610,10 @@ class InstallRequirement:
         if self.metadata_directory:
             return get_directory_distribution(self.metadata_directory)
         elif self.local_file_path and self.is_wheel:
+            assert self.req is not None
             return get_wheel_distribution(
-                FilesystemWheel(self.local_file_path), canonicalize_name(self.name)
+                FilesystemWheel(self.local_file_path),
+                canonicalize_name(self.req.name),
             )
         raise AssertionError(
             f"InstallRequirement {self} has no metadata directory and no wheel: "
@@ -594,9 +621,9 @@ class InstallRequirement:
         )
 
     def assert_source_matches_version(self) -> None:
-        assert self.source_dir
+        assert self.source_dir, f"No source dir for {self}"
         version = self.metadata["version"]
-        if self.req.specifier and version not in self.req.specifier:
+        if self.req and self.req.specifier and version not in self.req.specifier:
             logger.warning(
                 "Requested %s, but installing version %s",
                 self,
@@ -631,6 +658,27 @@ class InstallRequirement:
                 parent_dir,
                 autodelete=autodelete,
                 parallel_builds=parallel_builds,
+            )
+
+    def needs_unpacked_archive(self, archive_source: Path) -> None:
+        assert self._archive_source is None
+        self._archive_source = archive_source
+
+    def ensure_pristine_source_checkout(self) -> None:
+        """Ensure the source directory has not yet been built in."""
+        assert self.source_dir is not None
+        if self._archive_source is not None:
+            unpack_file(str(self._archive_source), self.source_dir)
+        elif is_installable_dir(self.source_dir):
+            # If a checkout exists, it's unwise to keep going.
+            # version inconsistencies are logged later, but do not fail
+            # the installation.
+            raise PreviousBuildDirError(
+                f"pip can't proceed with requirements '{self}' due to a "
+                f"pre-existing build directory ({self.source_dir}). This is likely "
+                "due to a previous installation that failed . pip is "
+                "being responsible and not assuming it can delete this. "
+                "Please delete it and try again."
             )
 
     # For editable installations
@@ -689,9 +737,10 @@ class InstallRequirement:
             name = name.replace(os.path.sep, "/")
             return name
 
+        assert self.req is not None
         path = os.path.join(parentdir, path)
         name = _clean_zip_name(path, rootdir)
-        return self.name + "/" + name
+        return self.req.name + "/" + name
 
     def archive(self, build_dir: Optional[str]) -> None:
         """Saves archive to provided build_dir.
@@ -708,8 +757,8 @@ class InstallRequirement:
 
         if os.path.exists(archive_path):
             response = ask_path_exists(
-                "The file {} exists. (i)gnore, (w)ipe, "
-                "(b)ackup, (a)bort ".format(display_path(archive_path)),
+                f"The file {display_path(archive_path)} exists. (i)gnore, (w)ipe, "
+                "(b)ackup, (a)bort ",
                 ("i", "w", "b", "a"),
             )
             if response == "i":
@@ -770,8 +819,9 @@ class InstallRequirement:
         use_user_site: bool = False,
         pycompile: bool = True,
     ) -> None:
+        assert self.req is not None
         scheme = get_scheme(
-            self.name,
+            self.req.name,
             user=use_user_site,
             home=home,
             root=root,
@@ -780,12 +830,19 @@ class InstallRequirement:
         )
 
         if self.editable and not self.is_wheel:
+            if self.config_settings:
+                logger.warning(
+                    "--config-settings ignored for legacy editable install of %s. "
+                    "Consider upgrading to a version of setuptools "
+                    "that supports PEP 660 (>= 64).",
+                    self,
+                )
             install_editable_legacy(
                 global_options=global_options if global_options is not None else [],
                 prefix=prefix,
                 home=home,
                 use_user_site=use_user_site,
-                name=self.name,
+                name=self.req.name,
                 setup_py_path=self.setup_py_path,
                 isolated=self.isolated,
                 build_env=self.build_env,
@@ -798,13 +855,13 @@ class InstallRequirement:
         assert self.local_file_path
 
         install_wheel(
-            self.name,
+            self.req.name,
             self.local_file_path,
             scheme=scheme,
             req_description=str(self.req),
             pycompile=pycompile,
             warn_script_location=warn_script_location,
-            direct_url=self.download_info if self.original_link else None,
+            direct_url=self.download_info if self.is_direct else None,
             requested=self.user_supplied,
         )
         self.install_succeeded = True
@@ -858,7 +915,7 @@ def check_legacy_setup_py_options(
             reason="--build-option and --global-option are deprecated.",
             issue=11859,
             replacement="to use --config-settings",
-            gone_in="23.3",
+            gone_in="24.2",
         )
         logger.warning(
             "Implying --no-binary=:all: due to the presence of "

@@ -1,0 +1,1 @@
+Add ``render: shell`` to the bug report template to format output as code

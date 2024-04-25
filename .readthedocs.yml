@@ -6,7 +6,7 @@ build:
     python: "3.11"
 
 sphinx:
-  builder: htmldir
+  builder: dirhtml
   configuration: docs/html/conf.py
 
 python:

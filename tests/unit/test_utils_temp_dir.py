@@ -4,6 +4,7 @@ import stat
 import tempfile
 from pathlib import Path
 from typing import Any, Iterator, Optional, Union
+from unittest import mock
 
 import pytest
 
@@ -274,3 +275,25 @@ def test_tempdir_registry_lazy(should_delete: bool) -> None:
             registry.set_delete("test-for-lazy", should_delete)
             assert os.path.exists(path)
         assert os.path.exists(path) == (not should_delete)
+
+
+def test_tempdir_cleanup_ignore_errors() -> None:
+    os_unlink = os.unlink
+
+    # mock os.unlink to fail with EACCES for a specific filename to simulate
+    # how removing a loaded exe/dll behaves.
+    def unlink(name: str, *args: Any, **kwargs: Any) -> None:
+        if "bomb" in name:
+            raise PermissionError(name)
+        else:
+            os_unlink(name)
+
+    with mock.patch("os.unlink", unlink):
+        with TempDirectory(ignore_cleanup_errors=True) as tmp_dir:
+            path = tmp_dir.path
+            with open(os.path.join(path, "bomb"), "a"):
+                pass
+
+    filename = os.path.join(path, "bomb")
+    assert os.path.isfile(filename)
+    os.unlink(filename)

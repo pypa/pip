@@ -215,7 +215,7 @@ class TestConfigurationModification(ConfigurationMixin):
         # Mock out the method
         mymock = MagicMock(spec=self.configuration._mark_as_modified)
         # https://github.com/python/mypy/issues/2427
-        self.configuration._mark_as_modified = mymock  # type: ignore[assignment]
+        self.configuration._mark_as_modified = mymock  # type: ignore[method-assign]
 
         self.configuration.set_value("test.hello", "10")
 
@@ -231,7 +231,7 @@ class TestConfigurationModification(ConfigurationMixin):
         # Mock out the method
         mymock = MagicMock(spec=self.configuration._mark_as_modified)
         # https://github.com/python/mypy/issues/2427
-        self.configuration._mark_as_modified = mymock  # type: ignore[assignment]
+        self.configuration._mark_as_modified = mymock  # type: ignore[method-assign]
 
         self.configuration.set_value("test.hello", "10")
 
@@ -250,7 +250,7 @@ class TestConfigurationModification(ConfigurationMixin):
         # Mock out the method
         mymock = MagicMock(spec=self.configuration._mark_as_modified)
         # https://github.com/python/mypy/issues/2427
-        self.configuration._mark_as_modified = mymock  # type: ignore[assignment]
+        self.configuration._mark_as_modified = mymock  # type: ignore[method-assign]
 
         self.configuration.set_value("test.hello", "10")
 

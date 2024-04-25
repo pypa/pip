@@ -1,20 +1,11 @@
 import os
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Tuple, Union
+from typing import Protocol, Tuple, Union
 
 import pytest
 
-from tests.conftest import ScriptFactory
-from tests.lib import PipTestEnvironment, TestData, TestPipResult
-
-if TYPE_CHECKING:
-    from typing import Protocol
-else:
-    # TODO: Protocol was introduced in Python 3.8. Remove this branch when
-    # dropping support for Python 3.7.
-    Protocol = object
-
+from tests.lib import PipTestEnvironment, ScriptFactory, TestData, TestPipResult
 
 COMPLETION_FOR_SUPPORTED_SHELLS_TESTS = (
     (
@@ -44,15 +35,19 @@ complete -fa "(__fish_complete_pip)" -c pip""",
     (
         "zsh",
         """\
-function _pip_completion {
-  local words cword
-  read -Ac words
-  read -cn cword
-  reply=( $( COMP_WORDS="$words[*]" \\
-             COMP_CWORD=$(( cword-1 )) \\
-             PIP_AUTO_COMPLETE=1 $words[1] 2>/dev/null ))
+#compdef -P pip[0-9.]#
+__pip() {
+  compadd $( COMP_WORDS="$words[*]" \\
+             COMP_CWORD=$((CURRENT-1)) \\
+             PIP_AUTO_COMPLETE=1 $words[1] 2>/dev/null )
 }
-compctl -K _pip_completion pip""",
+if [[ $zsh_eval_context[-1] == loadautofunc ]]; then
+  # autoload from fpath, call function directly
+  __pip "$@"
+else
+  # eval/source/. command, register function for later
+  compdef __pip -P 'pip[0-9.]#'
+fi""",
     ),
     (
         "powershell",
@@ -125,9 +120,13 @@ def autocomplete_script(
 
 class DoAutocomplete(Protocol):
     def __call__(
-        self, words: str, cword: str, cwd: Union[Path, str, None] = None
-    ) -> Tuple[TestPipResult, PipTestEnvironment]:
-        ...
+        self,
+        words: str,
+        cword: str,
+        cwd: Union[Path, str, None] = None,
+        include_env: bool = True,
+        expect_error: bool = True,
+    ) -> Tuple[TestPipResult, PipTestEnvironment]: ...
 
 
 @pytest.fixture
@@ -138,16 +137,21 @@ def autocomplete(
     autocomplete_script.environ["PIP_AUTO_COMPLETE"] = "1"
 
     def do_autocomplete(
-        words: str, cword: str, cwd: Union[Path, str, None] = None
+        words: str,
+        cword: str,
+        cwd: Union[Path, str, None] = None,
+        include_env: bool = True,
+        expect_error: bool = True,
     ) -> Tuple[TestPipResult, PipTestEnvironment]:
-        autocomplete_script.environ["COMP_WORDS"] = words
-        autocomplete_script.environ["COMP_CWORD"] = cword
+        if include_env:
+            autocomplete_script.environ["COMP_WORDS"] = words
+            autocomplete_script.environ["COMP_CWORD"] = cword
         result = autocomplete_script.run(
             "python",
             "-c",
             "from pip._internal.cli.autocompletion import autocomplete;"
             "autocomplete()",
-            expect_error=True,
+            expect_error=expect_error,
             cwd=cwd,
         )
 
@@ -163,6 +167,17 @@ def test_completion_for_unknown_shell(autocomplete_script: PipTestEnvironment) -
     error_msg = "no such option: --myfooshell"
     result = autocomplete_script.pip("completion", "--myfooshell", expect_error=True)
     assert error_msg in result.stderr, "tests for an unknown shell failed"
+
+
+def test_completion_without_env_vars(autocomplete: DoAutocomplete) -> None:
+    """
+    Test getting completion <path> after options in command
+    given absolute path
+    """
+    res, env = autocomplete(
+        words="pip install ", cword="", include_env=False, expect_error=False
+    )
+    assert res.stdout == "", "autocomplete function did not complete"
 
 
 def test_completion_alone(autocomplete_script: PipTestEnvironment) -> None:
@@ -392,11 +407,12 @@ def test_completion_path_after_option(
     )
 
 
-@pytest.mark.parametrize("flag", ["--bash", "--zsh", "--fish", "--powershell"])
+# zsh completion script doesn't contain pip3
+@pytest.mark.parametrize("flag", ["--bash", "--fish", "--powershell"])
 def test_completion_uses_same_executable_name(
     autocomplete_script: PipTestEnvironment, flag: str, deprecated_python: bool
 ) -> None:
-    executable_name = "pip{}".format(sys.version_info[0])
+    executable_name = f"pip{sys.version_info[0]}"
     # Deprecated python versions produce an extra deprecation warning
     result = autocomplete_script.run(
         executable_name,

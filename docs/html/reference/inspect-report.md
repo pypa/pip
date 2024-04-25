@@ -27,9 +27,8 @@ The report is a JSON object with the following properties:
   distribution packages that are installed.
 
 - `environment`: an object describing the environment where the installation report was
-  generated. See [PEP 508 environment
-  markers](https://peps.python.org/pep-0508/#environment-markers) for more information.
-  Values have a string type.
+  generated. See the section on environment markers in the {ref}`pypug:dependency-specifiers`
+  specification for more information. Values have a string type.
 
 (InspectReportItem)=
 

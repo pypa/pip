@@ -1,0 +1,1 @@
+Ensure ``-vv`` gets passed to any ``pip install`` build environment subprocesses.

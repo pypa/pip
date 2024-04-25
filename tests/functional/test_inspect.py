@@ -2,11 +2,10 @@ import json
 
 import pytest
 
-from tests.conftest import ScriptFactory
-from tests.lib import PipTestEnvironment, TestData
+from tests.lib import PipTestEnvironment, ScriptFactory, TestData
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def simple_script(
     tmpdir_factory: pytest.TempPathFactory,
     script_factory: ScriptFactory,

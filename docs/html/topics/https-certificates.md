@@ -28,19 +28,9 @@ It is possible to use the system trust store, instead of the bundled certifi
 certificates for verifying HTTPS certificates. This approach will typically
 support corporate proxy certificates without additional configuration.
 
-In order to use system trust stores, you need to:
-
-- Use Python 3.10 or newer.
-- Install the {pypi}`truststore` package, in the Python environment you're
-  running pip in.
-
-  This is typically done by installing this package using a system package
-  manager or by using pip in {ref}`Hash-checking mode` for this package and
-  trusting the network using the `--trusted-host` flag.
+In order to use system trust stores, you need to use Python 3.10 or newer.
 
   ```{pip-cli}
-  $ python -m pip install truststore
-  [...]
   $ python -m pip install SomePackage --use-feature=truststore
   [...]
   Successfully installed SomePackage

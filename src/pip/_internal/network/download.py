@@ -1,5 +1,6 @@
 """Download files with progress indicators.
 """
+
 import email.message
 import logging
 import mimetypes
@@ -42,7 +43,7 @@ def _prepare_download(
     logged_url = redact_auth_from_url(url)
 
     if total_length:
-        logged_url = "{} ({})".format(logged_url, format_size(total_length))
+        logged_url = f"{logged_url} ({format_size(total_length)})"
 
     if is_from_cache(resp):
         logger.info("Using cached %s", logged_url)

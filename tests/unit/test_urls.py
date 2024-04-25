@@ -1,24 +1,10 @@
 import os
 import sys
 import urllib.request
-from typing import Optional
 
 import pytest
 
-from pip._internal.utils.urls import get_url_scheme, path_to_url, url_to_path
-
-
-@pytest.mark.parametrize(
-    "url,expected",
-    [
-        ("http://localhost:8080/", "http"),
-        ("file:c:/path/to/file", "file"),
-        ("file:/dev/null", "file"),
-        ("", None),
-    ],
-)
-def test_get_url_scheme(url: str, expected: Optional[str]) -> None:
-    assert get_url_scheme(url) == expected
+from pip._internal.utils.urls import path_to_url, url_to_path
 
 
 @pytest.mark.skipif("sys.platform == 'win32'")

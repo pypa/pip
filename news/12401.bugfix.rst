@@ -1,0 +1,1 @@
+Fix exception with completions when COMP_CWORD is not set

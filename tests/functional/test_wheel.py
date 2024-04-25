@@ -1,4 +1,5 @@
 """'pip wheel' tests"""
+
 import os
 import re
 import sys
@@ -7,8 +8,11 @@ from pathlib import Path
 import pytest
 
 from pip._internal.cli.status_codes import ERROR
-from tests.lib import pyversion  # noqa: F401
-from tests.lib import PipTestEnvironment, TestData
+from tests.lib import (
+    PipTestEnvironment,
+    TestData,
+    pyversion,
+)
 
 
 def add_files_to_dist_directory(folder: Path) -> None:
@@ -56,9 +60,7 @@ def test_pip_wheel_success(script: PipTestEnvironment, data: TestData) -> None:
     wheel_file_path = script.scratch / wheel_file_name
     assert re.search(
         r"Created wheel for simple: "
-        r"filename={filename} size=\d+ sha256=[A-Fa-f0-9]{{64}}".format(
-            filename=re.escape(wheel_file_name)
-        ),
+        rf"filename={re.escape(wheel_file_name)} size=\d+ sha256=[A-Fa-f0-9]{{64}}",
         result.stdout,
     )
     assert re.search(r"^\s+Stored in directory: ", result.stdout, re.M)
@@ -339,15 +341,6 @@ def test_pip_wheel_with_user_set_in_config(
 @pytest.mark.skipif(
     sys.platform.startswith("win"),
     reason="The empty extension module does not work on Win",
-)
-@pytest.mark.xfail(
-    condition=sys.platform == "darwin" and sys.version_info < (3, 9),
-    reason=(
-        "Unexplained 'no module named platform' in "
-        "https://github.com/pypa/wheel/blob"
-        "/c87e6ed82b58b41b258a3e8c852af8bc1817bb00"
-        "/src/wheel/vendored/packaging/tags.py#L396-L411"
-    ),
 )
 def test_pip_wheel_ext_module_with_tmpdir_inside(
     script: PipTestEnvironment, data: TestData, common_wheels: Path

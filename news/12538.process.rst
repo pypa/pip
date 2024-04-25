@@ -1,0 +1,1 @@
+Move remaining pip development tools configurations to ``pyproject.toml``.

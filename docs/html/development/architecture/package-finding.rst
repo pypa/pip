@@ -182,8 +182,9 @@ example, whether a pre-release is eligible for selection or whether a file
 whose hash doesn't match is eligible depends on properties of the collection
 as a whole.
 
-The ``CandidateEvaluator`` class uses information like the list of `PEP 425`_
-tags compatible with the target Python interpreter, hashes provided by the
+The ``CandidateEvaluator`` class uses information like the list of
+:ref:`platform tags <pypug:platform-compatibility-tags>`
+compatible with the target Python interpreter, hashes provided by the
 user, and other user preferences, etc.
 
 Specifically, the class has a ``get_applicable_candidates()`` method.
@@ -236,5 +237,4 @@ The class is the return type of both the ``CandidateEvaluator`` class's
 ``find_best_candidate()`` method.
 
 
-.. _`PEP 425`: https://www.python.org/dev/peps/pep-0425/
 .. _`PEP 503`: https://www.python.org/dev/peps/pep-0503/
