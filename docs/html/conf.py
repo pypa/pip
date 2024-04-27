@@ -17,7 +17,6 @@ extensions = [
     # first-party extensions
     "sphinx.ext.autodoc",
     "sphinx.ext.todo",
-    "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
     # our extensions
     "pip_sphinxext",
