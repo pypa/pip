@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
@@ -51,7 +51,17 @@ class SpecifierRequirement(Requirement):
     def __init__(self, ireq: InstallRequirement) -> None:
         assert ireq.link is None, "This is a link, not a specifier"
         self._ireq = ireq
+        self._equal_cache: Optional[str] = None
+        self._hash: Optional[int] = None
         self._extras = frozenset(canonicalize_name(e) for e in self._ireq.extras)
+
+    @property
+    def _equal(self) -> str:
+        if self._equal_cache is not None:
+            return self._equal_cache
+
+        self._equal_cache = str(self._ireq)
+        return self._equal_cache
 
     def __str__(self) -> str:
         return str(self._ireq.req)
@@ -62,10 +72,14 @@ class SpecifierRequirement(Requirement):
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, SpecifierRequirement):
             return NotImplemented
-        return str(self._ireq) == str(other._ireq)
+        return self._equal == other._equal
 
     def __hash__(self) -> int:
-        return hash(str(self._ireq))
+        if self._hash is not None:
+            return self._hash
+
+        self._hash = hash(self._equal)
+        return self._hash
 
     @property
     def project_name(self) -> NormalizedName:
@@ -114,15 +128,29 @@ class SpecifierWithoutExtrasRequirement(SpecifierRequirement):
     def __init__(self, ireq: InstallRequirement) -> None:
         assert ireq.link is None, "This is a link, not a specifier"
         self._ireq = install_req_drop_extras(ireq)
+        self._equal_cache: Optional[str] = None
+        self._hash: Optional[int] = None
         self._extras = frozenset(canonicalize_name(e) for e in self._ireq.extras)
+
+    @property
+    def _equal(self) -> str:
+        if self._equal_cache is not None:
+            return self._equal_cache
+
+        self._equal_cache = str(self._ireq)
+        return self._equal_cache
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, SpecifierWithoutExtrasRequirement):
             return NotImplemented
-        return str(self._ireq) == str(other._ireq)
+        return self._equal == other._equal
 
     def __hash__(self) -> int:
-        return hash(str(self._ireq))
+        if self._hash is not None:
+            return self._hash
+
+        self._hash = hash(self._equal)
+        return self._hash
 
 
 class RequiresPythonRequirement(Requirement):
@@ -131,6 +159,7 @@ class RequiresPythonRequirement(Requirement):
     def __init__(self, specifier: SpecifierSet, match: Candidate) -> None:
         self.specifier = specifier
         self._specifier_string = str(specifier)  # for faster __eq__
+        self._hash: Optional[int] = None
         self._candidate = match
 
     def __str__(self) -> str:
@@ -140,7 +169,11 @@ class RequiresPythonRequirement(Requirement):
         return f"{self.__class__.__name__}({str(self.specifier)!r})"
 
     def __hash__(self) -> int:
-        return hash((self._specifier_string, self._candidate))
+        if self._hash is not None:
+            return self._hash
+
+        self._hash = hash((self._specifier_string, self._candidate))
+        return self._hash
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, RequiresPythonRequirement):

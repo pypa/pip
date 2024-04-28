@@ -154,6 +154,7 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._name = name
         self._version = version
         self.dist = self._prepare()
+        self._hash: Optional[int] = None
 
     def __str__(self) -> str:
         return f"{self.name} {self.version}"
@@ -162,7 +163,11 @@ class _InstallRequirementBackedCandidate(Candidate):
         return f"{self.__class__.__name__}({str(self._link)!r})"
 
     def __hash__(self) -> int:
-        return hash((self.__class__, self._link))
+        if self._hash is not None:
+            return self._hash
+
+        self._hash = hash((self.__class__, self._link))
+        return self._hash
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, self.__class__):
