@@ -1,5 +1,7 @@
 import zipfile
 
+import pytest
+
 from tests.lib import PipTestEnvironment, TestData
 
 
@@ -64,10 +66,20 @@ def _install_require_invalid_version(
 
 def test_uninstall_invalid_version(script: PipTestEnvironment, data: TestData) -> None:
     """
-    Test that it is possible to uninstall a package with an invalid version.
+    Test that it is possible to uninstall a distribution with an invalid version.
     """
     _install_invalid_version(script, data)
     script.pip("uninstall", "-y", "invalid-version")
+
+
+@pytest.mark.xfail
+def test_upgrade_invalid_version(script: PipTestEnvironment, data: TestData) -> None:
+    """
+    Test that it is possible to upgrade a distribution with an invalid version.
+    """
+    _install_invalid_version(script, data)
+    index_url = data.index_url("invalid-version")
+    script.pip("install", "--index-url", index_url, "invalid-version")
 
 
 def test_list_invalid_version(script: PipTestEnvironment, data: TestData) -> None:
