@@ -97,7 +97,7 @@ jobs:
 
   tests-unix:
     name: tests / ${{ matrix.python.key || matrix.python }} / ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}-latest
+    runs-on: ${{ matrix.os }}
 
     needs: [packaging, determine-changes]
     if: >-
@@ -107,7 +107,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [Ubuntu, MacOS]
+        os: [ubuntu-latest, macos-12]
         python:
           - "3.8"
           - "3.9"
@@ -124,13 +124,13 @@ jobs:
           allow-prereleases: true
 
       - name: Install Ubuntu dependencies
-        if: matrix.os == 'Ubuntu'
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install bzr
 
       - name: Install MacOS dependencies
-        if: matrix.os == 'MacOS'
+        if: matrix.os == 'macos-12'
         run: brew install breezy
 
       - run: pip install nox
