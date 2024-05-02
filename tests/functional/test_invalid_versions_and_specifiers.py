@@ -82,6 +82,18 @@ def test_upgrade_invalid_version(script: PipTestEnvironment, data: TestData) -> 
     script.pip("install", "--index-url", index_url, "invalid-version")
 
 
+@pytest.mark.xfail
+def test_upgrade_require_invalid_version(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """
+    Test that it is possible to upgrade a distribution with an invalid metadata.
+    """
+    _install_require_invalid_version(script, data)
+    index_url = data.index_url("require-invalid-version")
+    script.pip("install", "--index-url", index_url, "require-invalid-version")
+
+
 def test_list_invalid_version(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test that pip can list an environment containing a package with a legacy version.
