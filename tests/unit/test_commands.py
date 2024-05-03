@@ -1,3 +1,4 @@
+import os
 from typing import Callable, List
 from unittest import mock
 
@@ -104,6 +105,10 @@ def test_index_group_handle_pip_version_check(
     options.disable_pip_version_check = disable_pip_version_check
     options.no_index = no_index
 
+    # See test test_list_pip_version_check() below.
+    if command_name == "list":
+        expected_called = False
+
     command.handle_pip_version_check(options)
     if expected_called:
         mock_version_check.assert_called_once()
@@ -120,3 +125,20 @@ def test_requirement_commands() -> None:
         return isinstance(command, RequirementCommand)
 
     check_commands(is_requirement_command, ["download", "install", "wheel"])
+
+
+@pytest.mark.parametrize("flag", ["", "--outdated", "--uptodate"])
+@mock.patch("pip._internal.cli.req_command.pip_self_version_check")
+@mock.patch.dict(os.environ, {"PIP_DISABLE_PIP_VERSION_CHECK": "no"})
+def test_list_pip_version_check(version_check_mock: mock.Mock, flag: str) -> None:
+    """
+    Ensure that pip list doesn't perform a version self-check unless given
+    --outdated or --uptodate (as they require hitting the network anyway).
+    """
+    command = create_command("list")
+    command.run = lambda *args, **kwargs: 0  # type: ignore[method-assign]
+    command.main([flag])
+    if flag != "":
+        version_check_mock.assert_called_once()
+    else:
+        version_check_mock.assert_not_called()

@@ -2,9 +2,9 @@ diff --git a/src/pip/_vendor/pkg_resources/__init__.py b/src/pip/_vendor/pkg_res
 index 3f2476a0c..8d5727d35 100644
 --- a/src/pip/_vendor/pkg_resources/__init__.py
 +++ b/src/pip/_vendor/pkg_resources/__init__.py
-@@ -71,7 +71,7 @@
- except ImportError:
-     importlib_machinery = None
+@@ -65,7 +65,7 @@
+ from os import open as os_open
+ from os.path import isdir, split
 
 -from pkg_resources.extern.jaraco.text import (
 +from pip._internal.utils._jaraco_text import (

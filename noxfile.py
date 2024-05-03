@@ -13,7 +13,7 @@ import nox
 
 # fmt: off
 sys.path.append(".")
-from tools import release  # isort:skip  # noqa
+from tools import release  # isort:skip
 sys.path.pop()
 # fmt: on
 
@@ -67,7 +67,7 @@ def should_update_common_wheels() -> bool:
 # -----------------------------------------------------------------------------
 # Development Commands
 # -----------------------------------------------------------------------------
-@nox.session(python=["3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "pypy3"])
+@nox.session(python=["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "pypy3"])
 def test(session: nox.Session) -> None:
     # Get the common wheels.
     if should_update_common_wheels():
@@ -89,9 +89,9 @@ def test(session: nox.Session) -> None:
         shutil.rmtree(sdist_dir, ignore_errors=True)
 
     # fmt: off
-    session.install("setuptools")
+    session.install("build")
     session.run(
-        "python", "setup.py", "sdist", "--formats=zip", "--dist-dir", sdist_dir,
+        "python", "-I", "-m", "build", "--sdist", "--outdir", sdist_dir,
         silent=True,
     )
     # fmt: on

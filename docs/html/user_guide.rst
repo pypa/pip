@@ -264,7 +264,7 @@ Installing from Wheels
 
 "Wheel" is a built, archive format that can greatly speed installation compared
 to building and installing from source archives. For more information, see the
-`Wheel docs <https://wheel.readthedocs.io>`_ , :pep:`427`, and :pep:`425`.
+:ref:`specification <pypug:binary-distribution-format>`.
 
 pip prefers Wheels where they are available. To disable this, use the
 :ref:`--no-binary <install_--no-binary>` flag for :ref:`pip install`.
@@ -306,7 +306,8 @@ name:
 .. note::
 
     In the future, the ``path[extras]`` syntax may become deprecated. It is
-    recommended to use PEP 508 syntax wherever possible.
+    recommended to use :ref:`standard <pypug:dependency-specifiers>`
+    syntax wherever possible.
 
 For the cases where wheels are not available, pip offers :ref:`pip wheel` as a
 convenience, to build wheels for all your requirements and dependencies.
@@ -855,6 +856,12 @@ We are using `freeze`_ here which outputs installed packages in requirements for
 
   reqs = subprocess.check_output([sys.executable, '-m', 'pip', 'freeze'])
 
+To programmatically monitor download progress use the ``--progress-bar=raw`` option.
+This will print lines to stdout in the format ``Progress CURRENT of TOTAL``, where
+``CURRENT`` and ``TOTAL`` are integers and the unit is bytes.
+If the real total is unknown then ``TOTAL`` is set to ``0``. Be aware that the
+specific formatting of pip's outputs are *not* guaranteed to be the same in future versions.
+
 If you don't want to use pip's command line functionality, but are rather
 trying to implement code that works with Python packages, their metadata, or
 PyPI, then you should consider other, supported, packages that offer this type
@@ -1132,6 +1139,13 @@ We plan for the resolver changeover to proceed as follows, using
 Since this work will not change user-visible behavior described in the
 pip documentation, this change is not covered by the :ref:`Deprecation
 Policy`.
+
+.. attention::
+
+    The legacy resolver is deprecated and unsupported. New features, such
+    as :doc:`reference/installation-report`, will not work with the
+    legacy resolver and this resolver will be removed in a future
+    release.
 
 Context and followup
 --------------------

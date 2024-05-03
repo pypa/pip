@@ -13,7 +13,6 @@ from hashlib import sha256
 from io import BytesIO, StringIO
 from textwrap import dedent
 from typing import (
-    TYPE_CHECKING,
     Any,
     AnyStr,
     Callable,
@@ -21,8 +20,10 @@ from typing import (
     Iterable,
     Iterator,
     List,
+    Literal,
     Mapping,
     Optional,
+    Protocol,
     Tuple,
     Union,
     cast,
@@ -41,16 +42,11 @@ from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
+from pip._internal.utils.egg_link import _egg_link_names
 from tests.lib.venv import VirtualEnvironment
 from tests.lib.wheel import make_wheel
 
-if TYPE_CHECKING:
-    from typing import Literal, Protocol
-
-    ResolverVariant = Literal["resolvelib", "legacy"]
-else:  # TODO: Remove this branch when dropping support for Python 3.7.
-    Protocol = object  # Protocol was introduced in Python 3.8.
-    ResolverVariant = str  # Literal was introduced in Python 3.8.
+ResolverVariant = Literal["resolvelib", "legacy"]
 
 DATA_DIR = pathlib.Path(__file__).parent.parent.joinpath("data").resolve()
 SRC_DIR = pathlib.Path(__file__).resolve().parent.parent.parent
@@ -305,6 +301,12 @@ class TestPipResult:
     def files_deleted(self) -> FoundFiles:
         return FoundFiles(self._impl.files_deleted)
 
+    def _get_egg_link_path_created(self, egg_link_paths: List[str]) -> Optional[str]:
+        for egg_link_path in egg_link_paths:
+            if egg_link_path in self.files_created:
+                return egg_link_path
+        return None
+
     def assert_installed(
         self,
         pkg_name: str,
@@ -320,7 +322,7 @@ class TestPipResult:
         e = self.test_env
 
         if editable:
-            pkg_dir = e.venv / "src" / pkg_name.lower()
+            pkg_dir = e.venv / "src" / canonicalize_name(pkg_name)
             # If package was installed in a sub directory
             if sub_dir:
                 pkg_dir = pkg_dir / sub_dir
@@ -329,22 +331,30 @@ class TestPipResult:
             pkg_dir = e.site_packages / pkg_name
 
         if use_user_site:
-            egg_link_path = e.user_site / f"{pkg_name}.egg-link"
+            egg_link_paths = [
+                e.user_site / egg_link_name
+                for egg_link_name in _egg_link_names(pkg_name)
+            ]
         else:
-            egg_link_path = e.site_packages / f"{pkg_name}.egg-link"
+            egg_link_paths = [
+                e.site_packages / egg_link_name
+                for egg_link_name in _egg_link_names(pkg_name)
+            ]
 
+        egg_link_path_created = self._get_egg_link_path_created(egg_link_paths)
         if without_egg_link:
-            if egg_link_path in self.files_created:
+            if egg_link_path_created:
                 raise TestFailure(
-                    f"unexpected egg link file created: {egg_link_path!r}\n{self}"
+                    f"unexpected egg link file created: {egg_link_path_created!r}\n"
+                    f"{self}"
                 )
         else:
-            if egg_link_path not in self.files_created:
+            if not egg_link_path_created:
                 raise TestFailure(
-                    f"expected egg link file missing: {egg_link_path!r}\n{self}"
+                    f"expected egg link file missing: {egg_link_paths!r}\n{self}"
                 )
 
-            egg_link_file = self.files_created[egg_link_path]
+            egg_link_file = self.files_created[egg_link_path_created]
             egg_link_contents = egg_link_file.bytes.replace(os.linesep, "\n")
 
             # FIXME: I don't understand why there's a trailing . here
@@ -1361,8 +1371,7 @@ class ScriptFactory(Protocol):
         tmpdir: pathlib.Path,
         virtualenv: Optional[VirtualEnvironment] = None,
         environ: Optional[Dict[AnyStr, AnyStr]] = None,
-    ) -> PipTestEnvironment:
-        ...
+    ) -> PipTestEnvironment: ...
 
 
 CertFactory = Callable[[], str]

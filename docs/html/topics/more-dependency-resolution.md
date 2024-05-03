@@ -97,10 +97,10 @@ feeding candidates to the resolver, and has a key role to play in selecting
 suitable candidates.
 
 Note that the resolver is *only* relevant for packages fetched from an index.
-Candidates coming from other sources (local source directories, PEP 508
-direct URL references) do *not* go through the finder, and are merged with the
-candidates provided by the finder as part of the resolver's "provider"
-implementation.
+Candidates coming from other sources (local source directories, {ref}`direct
+URL references <pypug:dependency-specifiers>`) do *not* go through the finder,
+and are merged with the candidates provided by the finder as part of the resolver's
+"provider" implementation.
 
 As well as determining what versions exist in the index for a given project,
 the finder selects the best distribution file to use for that candidate. This

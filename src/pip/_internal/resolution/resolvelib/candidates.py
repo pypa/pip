@@ -154,6 +154,7 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._name = name
         self._version = version
         self.dist = self._prepare()
+        self._hash: Optional[int] = None
 
     def __str__(self) -> str:
         return f"{self.name} {self.version}"
@@ -162,7 +163,11 @@ class _InstallRequirementBackedCandidate(Candidate):
         return f"{self.__class__.__name__}({str(self._link)!r})"
 
     def __hash__(self) -> int:
-        return hash((self.__class__, self._link))
+        if self._hash is not None:
+            return self._hash
+
+        self._hash = hash((self.__class__, self._link))
+        return self._hash
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, self.__class__):
@@ -191,10 +196,9 @@ class _InstallRequirementBackedCandidate(Candidate):
         return self._version
 
     def format_for_error(self) -> str:
-        return "{} {} (from {})".format(
-            self.name,
-            self.version,
-            self._link.file_path if self._link.is_file else self._link,
+        return (
+            f"{self.name} {self.version} "
+            f"(from {self._link.file_path if self._link.is_file else self._link})"
         )
 
     def _prepare_distribution(self) -> BaseDistribution:
@@ -269,9 +273,9 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
             # Version may not be present for PEP 508 direct URLs
             if version is not None:
                 wheel_version = Version(wheel.version)
-                assert version == wheel_version, "{!r} != {!r} for wheel {}".format(
-                    version, wheel_version, name
-                )
+                assert (
+                    version == wheel_version
+                ), f"{version!r} != {wheel_version!r} for wheel {name}"
 
         if cache_entry is not None:
             assert ireq.link.is_wheel
@@ -353,13 +357,13 @@ class AlreadyInstalledCandidate(Candidate):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.dist!r})"
 
-    def __hash__(self) -> int:
-        return hash((self.__class__, self.name, self.version))
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, AlreadyInstalledCandidate):
+            return NotImplemented
+        return self.name == other.name and self.version == other.version
 
-    def __eq__(self, other: Any) -> bool:
-        if isinstance(other, self.__class__):
-            return self.name == other.name and self.version == other.version
-        return False
+    def __hash__(self) -> int:
+        return hash((self.name, self.version))
 
     @property
     def project_name(self) -> NormalizedName:
@@ -520,7 +524,7 @@ class ExtrasCandidate(Candidate):
     def _calculate_valid_requested_extras(self) -> FrozenSet[str]:
         """Get a list of valid extras requested by this candidate.
 
-        The user (or upstream dependant) may have specified extras that the
+        The user (or upstream dependent) may have specified extras that the
         candidate doesn't support. Any unsupported extras are dropped, and each
         cause a warning to be logged here.
         """

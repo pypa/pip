@@ -12,6 +12,7 @@ import copy
 import logging
 import os
 import re
+from dataclasses import dataclass
 from typing import Collection, Dict, List, Optional, Set, Tuple, Union
 
 from pip._vendor.packaging.markers import Marker
@@ -132,8 +133,8 @@ def parse_editable(editable_req: str) -> Tuple[Optional[str], str, Set[str]]:
     package_name = link.egg_fragment
     if not package_name:
         raise InstallationError(
-            "Could not detect requirement name for '{}', please specify one "
-            "with #egg=your_package_name".format(editable_req)
+            f"Could not detect requirement name for '{editable_req}', "
+            "please specify one with #egg=your_package_name"
         )
     return package_name, url, set()
 
@@ -191,18 +192,12 @@ def deduce_helpful_msg(req: str) -> str:
     return msg
 
 
+@dataclass(frozen=True)
 class RequirementParts:
-    def __init__(
-        self,
-        requirement: Optional[Requirement],
-        link: Optional[Link],
-        markers: Optional[Marker],
-        extras: Set[str],
-    ):
-        self.requirement = requirement
-        self.link = link
-        self.markers = markers
-        self.extras = extras
+    requirement: Optional[Requirement]
+    link: Optional[Link]
+    markers: Optional[Marker]
+    extras: Set[str]
 
 
 def parse_req_from_editable(editable_req: str) -> RequirementParts:

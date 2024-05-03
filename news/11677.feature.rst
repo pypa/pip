@@ -1,0 +1,1 @@
+``pip list`` no longer performs the pip version check unless ``--outdated`` or ``--uptodate`` is given.

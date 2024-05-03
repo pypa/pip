@@ -29,7 +29,7 @@ that build requirements are handled independently of the user's runtime
 environment.
 
 For example, a project that needs an older version of setuptools to build can
-still be installed, even if the user has an newer version installed (and
+still be installed, even if the user has a newer version installed (and
 without silently replacing that version).
 
 ### Build-time dependencies
@@ -130,18 +130,25 @@ dealing with [the same challenges as pip has for legacy builds](build-output).
 
 ## Fallback Behaviour
 
+```{warning}
+The following snippet merely describes the fallback behavior. For valid
+examples of `pyproject.toml` to use with setuptools, please refer to
+[the setuptools documentation](
+https://setuptools.pypa.io/en/stable/userguide/quickstart.html#basic-use).
+```
+
 If a project does not have a `pyproject.toml` file containing a `build-system`
 section, it will be assumed to have the following backend settings:
 
 ```toml
 [build-system]
-requires = ["setuptools>=40.8.0", "wheel"]
+requires = ["setuptools>=40.8.0"]
 build-backend = "setuptools.build_meta:__legacy__"
 ```
 
 If a project has a `build-system` section but no `build-backend`, then:
 
-- It is expected to include `setuptools` and `wheel` as build requirements. An
+- It is expected to include `setuptools` as a build requirement. An
   error is reported if the available version of `setuptools` is not recent
   enough.
 

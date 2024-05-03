@@ -2,6 +2,7 @@
 locations.py tests
 
 """
+
 import getpass
 import os
 import shutil

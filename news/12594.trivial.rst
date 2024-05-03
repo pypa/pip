@@ -1,0 +1,1 @@
+Update Black pre-commit to 24.4.0

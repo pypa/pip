@@ -61,11 +61,13 @@ body:
       description: >-
         Provide the output of the steps above, including the commands
         themselves and pip's output/traceback etc.
+        (The output will auto-rendered as code, no need for backticks.)
 
         If you want to present output from multiple commands, please prefix
         the line containing the command with `$ `. Please also ensure that
         the "How to reproduce" section contains matching instructions for
         reproducing this.
+      render: shell
 
   - type: checkboxes
     attributes:

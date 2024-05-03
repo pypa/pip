@@ -114,10 +114,8 @@ def list_matches_wheel_abspath(wheel_name: str, result: TestPipResult) -> bool:
     lines = result.stdout.splitlines()
     expected = f"{wheel_name}-py3-none-any.whl"
     return any(
-        (
-            (os.path.basename(line).startswith(expected) and os.path.exists(line))
-            for line in lines
-        )
+        (os.path.basename(line).startswith(expected) and os.path.exists(line))
+        for line in lines
     )
 
 

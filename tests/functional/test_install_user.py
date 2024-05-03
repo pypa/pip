@@ -1,6 +1,7 @@
 """
 tests specific to "pip install --user"
 """
+
 import os
 import textwrap
 from os.path import curdir, isdir, isfile
