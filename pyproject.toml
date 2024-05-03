@@ -144,7 +144,6 @@ distro = []
 setuptools = "pkg_resources"
 
 [tool.vendoring.license.fallback-urls]
-CacheControl = "https://raw.githubusercontent.com/ionrock/cachecontrol/v0.12.6/LICENSE.txt"
 distlib = "https://bitbucket.org/pypa/distlib/raw/master/LICENSE.txt"
 webencodings = "https://github.com/SimonSapin/python-webencodings/raw/master/LICENSE"
 
