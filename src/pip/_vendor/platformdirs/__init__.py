@@ -1,6 +1,8 @@
 """
-Utilities for determining application-specific dirs. See <https://github.com/platformdirs/platformdirs> for details and
-usage.
+Utilities for determining application-specific dirs.
+
+See <https://github.com/platformdirs/platformdirs> for details and usage.
+
 """
 
 from __future__ import annotations
@@ -20,22 +22,22 @@ if TYPE_CHECKING:
 
 def _set_platform_dir_class() -> type[PlatformDirsABC]:
     if sys.platform == "win32":
-        from pip._vendor.platformdirs.windows import Windows as Result
+        from pip._vendor.platformdirs.windows import Windows as Result  # noqa: PLC0415
     elif sys.platform == "darwin":
-        from pip._vendor.platformdirs.macos import MacOS as Result
+        from pip._vendor.platformdirs.macos import MacOS as Result  # noqa: PLC0415
     else:
-        from pip._vendor.platformdirs.unix import Unix as Result
+        from pip._vendor.platformdirs.unix import Unix as Result  # noqa: PLC0415
 
     if os.getenv("ANDROID_DATA") == "/data" and os.getenv("ANDROID_ROOT") == "/system":
         if os.getenv("SHELL") or os.getenv("PREFIX"):
             return Result
 
-        from pip._vendor.platformdirs.android import _android_folder
+        from pip._vendor.platformdirs.android import _android_folder  # noqa: PLC0415
 
         if _android_folder() is not None:
-            from pip._vendor.platformdirs.android import Android
+            from pip._vendor.platformdirs.android import Android  # noqa: PLC0415
 
-            return Android  # return to avoid redefinition of result
+            return Android  # return to avoid redefinition of a result
 
     return Result
 
@@ -507,7 +509,7 @@ def user_log_path(
 
 
 def user_documents_path() -> Path:
-    """:returns: documents path tied to the user"""
+    """:returns: documents a path tied to the user"""
     return PlatformDirs().user_documents_path
 
 
@@ -585,41 +587,41 @@ def site_runtime_path(
 
 
 __all__ = [
+    "AppDirs",
+    "PlatformDirs",
+    "PlatformDirsABC",
     "__version__",
     "__version_info__",
-    "PlatformDirs",
-    "AppDirs",
-    "PlatformDirsABC",
-    "user_data_dir",
-    "user_config_dir",
-    "user_cache_dir",
-    "user_state_dir",
-    "user_log_dir",
-    "user_documents_dir",
-    "user_downloads_dir",
-    "user_pictures_dir",
-    "user_videos_dir",
-    "user_music_dir",
-    "user_desktop_dir",
-    "user_runtime_dir",
-    "site_data_dir",
-    "site_config_dir",
     "site_cache_dir",
-    "site_runtime_dir",
-    "user_data_path",
-    "user_config_path",
-    "user_cache_path",
-    "user_state_path",
-    "user_log_path",
-    "user_documents_path",
-    "user_downloads_path",
-    "user_pictures_path",
-    "user_videos_path",
-    "user_music_path",
-    "user_desktop_path",
-    "user_runtime_path",
-    "site_data_path",
-    "site_config_path",
     "site_cache_path",
+    "site_config_dir",
+    "site_config_path",
+    "site_data_dir",
+    "site_data_path",
+    "site_runtime_dir",
     "site_runtime_path",
+    "user_cache_dir",
+    "user_cache_path",
+    "user_config_dir",
+    "user_config_path",
+    "user_data_dir",
+    "user_data_path",
+    "user_desktop_dir",
+    "user_desktop_path",
+    "user_documents_dir",
+    "user_documents_path",
+    "user_downloads_dir",
+    "user_downloads_path",
+    "user_log_dir",
+    "user_log_path",
+    "user_music_dir",
+    "user_music_path",
+    "user_pictures_dir",
+    "user_pictures_path",
+    "user_runtime_dir",
+    "user_runtime_path",
+    "user_state_dir",
+    "user_state_path",
+    "user_videos_dir",
+    "user_videos_path",
 ]

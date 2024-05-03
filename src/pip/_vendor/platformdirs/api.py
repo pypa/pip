@@ -11,10 +11,10 @@ if TYPE_CHECKING:
     from typing import Iterator, Literal
 
 
-class PlatformDirsABC(ABC):
+class PlatformDirsABC(ABC):  # noqa: PLR0904
     """Abstract base class for platform directories."""
 
-    def __init__(  # noqa: PLR0913
+    def __init__(  # noqa: PLR0913, PLR0917
         self,
         appname: str | None = None,
         appauthor: str | None | Literal[False] = None,
@@ -34,34 +34,47 @@ class PlatformDirsABC(ABC):
         :param multipath: See `multipath`.
         :param opinion: See `opinion`.
         :param ensure_exists: See `ensure_exists`.
+
         """
         self.appname = appname  #: The name of application.
         self.appauthor = appauthor
         """
-        The name of the app author or distributing body for this application. Typically, it is the owning company name.
-        Defaults to `appname`. You may pass ``False`` to disable it.
+        The name of the app author or distributing body for this application.
+
+        Typically, it is the owning company name. Defaults to `appname`. You may pass ``False`` to disable it.
+
         """
         self.version = version
         """
-        An optional version path element to append to the path. You might want to use this if you want multiple versions
-        of your app to be able to run independently. If used, this would typically be ``<major>.<minor>``.
+        An optional version path element to append to the path.
+
+        You might want to use this if you want multiple versions of your app to be able to run independently. If used,
+        this would typically be ``<major>.<minor>``.
+
         """
         self.roaming = roaming
         """
-        Whether to use the roaming appdata directory on Windows. That means that for users on a Windows network setup
-        for roaming profiles, this user data will be synced on login (see
-        `here <http://technet.microsoft.com/en-us/library/cc766489(WS.10).aspx>`_).
+        Whether to use the roaming appdata directory on Windows.
+
+        That means that for users on a Windows network setup for roaming profiles, this user data will be synced on
+        login (see
+        `here <https://technet.microsoft.com/en-us/library/cc766489(WS.10).aspx>`_).
+
         """
         self.multipath = multipath
         """
         An optional parameter which indicates that the entire list of data dirs should be returned.
+
         By default, the first item would only be returned.
+
         """
         self.opinion = opinion  #: A flag to indicating to use opinionated values.
         self.ensure_exists = ensure_exists
         """
         Optionally create the directory (and any missing parents) upon access if it does not exist.
+
         By default, no directories are created.
+
         """
 
     def _append_app_name_and_version(self, *base: str) -> str:
@@ -200,7 +213,7 @@ class PlatformDirsABC(ABC):
 
     @property
     def user_documents_path(self) -> Path:
-        """:return: documents path tied to the user"""
+        """:return: documents a path tied to the user"""
         return Path(self.user_documents_dir)
 
     @property
