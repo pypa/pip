@@ -598,7 +598,7 @@ def protect_pip_from_modification_on_windows(modifying_pip: bool) -> None:
         new_command = [sys_executable, "-m", "pip"] + sys.argv[1:]
         # Powershell need to add a & in front to invoke the executable
         # suggested by https://stackoverflow.com/questions/55597797/detect-whether-current-shell-is-powershell-in-python/55598796#55598796
-        if len(os.getenv('PSModulePath', '').split(os.pathsep)) >= 3 :
+        if len(os.getenv("PSModulePath", "").split(os.pathsep)) >= 3:
             new_command = ["&"] + new_command
         raise CommandError(
             "To modify pip, please run the following command:\n{}".format(
