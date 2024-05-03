@@ -473,7 +473,7 @@ def _to_diagram_element(
     :param show_groups: bool flag indicating whether to show groups using bounding box
     """
     exprs = element.recurse()
-    name = name_hint or element.customName or element.__class__.__name__
+    name = name_hint or element.customName or type(element).__name__
 
     # Python's id() is used to provide a unique identifier for elements
     el_id = id(element)

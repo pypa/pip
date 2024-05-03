@@ -173,42 +173,48 @@ class ParseResults:
     ):
         self._tokdict: Dict[str, _ParseResultsWithOffset]
         self._modal = modal
-        if name is not None and name != "":
-            if isinstance(name, int):
-                name = str(name)
-            if not modal:
-                self._all_names = {name}
-            self._name = name
-            if toklist not in self._null_values:
-                if isinstance(toklist, (str_type, type)):
-                    toklist = [toklist]
-                if asList:
-                    if isinstance(toklist, ParseResults):
-                        self[name] = _ParseResultsWithOffset(
-                            ParseResults(toklist._toklist), 0
-                        )
-                    else:
-                        self[name] = _ParseResultsWithOffset(
-                            ParseResults(toklist[0]), 0
-                        )
-                    self[name]._name = name
-                else:
-                    try:
-                        self[name] = toklist[0]
-                    except (KeyError, TypeError, IndexError):
-                        if toklist is not self:
-                            self[name] = toklist
-                        else:
-                            self._name = name
+
+        if name is None or name == "":
+            return
+
+        if isinstance(name, int):
+            name = str(name)
+
+        if not modal:
+            self._all_names = {name}
+
+        self._name = name
+
+        if toklist in self._null_values:
+            return
+
+        if isinstance(toklist, (str_type, type)):
+            toklist = [toklist]
+
+        if asList:
+            if isinstance(toklist, ParseResults):
+                self[name] = _ParseResultsWithOffset(ParseResults(toklist._toklist), 0)
+            else:
+                self[name] = _ParseResultsWithOffset(ParseResults(toklist[0]), 0)
+            self[name]._name = name
+            return
+
+        try:
+            self[name] = toklist[0]
+        except (KeyError, TypeError, IndexError):
+            if toklist is not self:
+                self[name] = toklist
+            else:
+                self._name = name
 
     def __getitem__(self, i):
         if isinstance(i, (int, slice)):
             return self._toklist[i]
-        else:
-            if i not in self._all_names:
-                return self._tokdict[i][-1][0]
-            else:
-                return ParseResults([v[0] for v in self._tokdict[i]])
+
+        if i not in self._all_names:
+            return self._tokdict[i][-1][0]
+
+        return ParseResults([v[0] for v in self._tokdict[i]])
 
     def __setitem__(self, k, v, isinstance=isinstance):
         if isinstance(v, _ParseResultsWithOffset):
@@ -226,27 +232,28 @@ class ParseResults:
             sub._parent = self
 
     def __delitem__(self, i):
-        if isinstance(i, (int, slice)):
-            mylen = len(self._toklist)
-            del self._toklist[i]
-
-            # convert int to slice
-            if isinstance(i, int):
-                if i < 0:
-                    i += mylen
-                i = slice(i, i + 1)
-            # get removed indices
-            removed = list(range(*i.indices(mylen)))
-            removed.reverse()
-            # fixup indices in token dictionary
-            for name, occurrences in self._tokdict.items():
-                for j in removed:
-                    for k, (value, position) in enumerate(occurrences):
-                        occurrences[k] = _ParseResultsWithOffset(
-                            value, position - (position > j)
-                        )
-        else:
+        if not isinstance(i, (int, slice)):
             del self._tokdict[i]
+            return
+
+        mylen = len(self._toklist)
+        del self._toklist[i]
+
+        # convert int to slice
+        if isinstance(i, int):
+            if i < 0:
+                i += mylen
+            i = slice(i, i + 1)
+        # get removed indices
+        removed = list(range(*i.indices(mylen)))
+        removed.reverse()
+        # fixup indices in token dictionary
+        for occurrences in self._tokdict.values():
+            for j in removed:
+                for k, (value, position) in enumerate(occurrences):
+                    occurrences[k] = _ParseResultsWithOffset(
+                        value, position - (position > j)
+                    )
 
     def __contains__(self, k) -> bool:
         return k in self._tokdict
@@ -376,7 +383,7 @@ class ParseResults:
         """
         self._toklist.insert(index, ins_string)
         # fixup indices in token dictionary
-        for name, occurrences in self._tokdict.items():
+        for occurrences in self._tokdict.values():
             for k, (value, position) in enumerate(occurrences):
                 occurrences[k] = _ParseResultsWithOffset(
                     value, position + (position > index)
@@ -652,58 +659,52 @@ class ParseResults:
         NL = "\n"
         out.append(indent + str(self.as_list()) if include_list else "")
 
-        if full:
-            if self.haskeys():
-                items = sorted((str(k), v) for k, v in self.items())
-                for k, v in items:
-                    if out:
-                        out.append(NL)
-                    out.append(f"{indent}{('  ' * _depth)}- {k}: ")
-                    if isinstance(v, ParseResults):
-                        if v:
-                            out.append(
-                                v.dump(
-                                    indent=indent,
-                                    full=full,
-                                    include_list=include_list,
-                                    _depth=_depth + 1,
-                                )
-                            )
-                        else:
-                            out.append(str(v))
-                    else:
-                        out.append(repr(v))
-            if any(isinstance(vv, ParseResults) for vv in self):
-                v = self
-                for i, vv in enumerate(v):
-                    if isinstance(vv, ParseResults):
-                        out.append(
-                            "\n{}{}[{}]:\n{}{}{}".format(
-                                indent,
-                                ("  " * (_depth)),
-                                i,
-                                indent,
-                                ("  " * (_depth + 1)),
-                                vv.dump(
-                                    indent=indent,
-                                    full=full,
-                                    include_list=include_list,
-                                    _depth=_depth + 1,
-                                ),
-                            )
-                        )
-                    else:
-                        out.append(
-                            "\n%s%s[%d]:\n%s%s%s"
-                            % (
-                                indent,
-                                ("  " * (_depth)),
-                                i,
-                                indent,
-                                ("  " * (_depth + 1)),
-                                str(vv),
-                            )
-                        )
+        if not full:
+            return "".join(out)
+
+        if self.haskeys():
+            items = sorted((str(k), v) for k, v in self.items())
+            for k, v in items:
+                if out:
+                    out.append(NL)
+                out.append(f"{indent}{('  ' * _depth)}- {k}: ")
+                if not isinstance(v, ParseResults):
+                    out.append(repr(v))
+                    continue
+
+                if not v:
+                    out.append(str(v))
+                    continue
+
+                out.append(
+                    v.dump(
+                        indent=indent,
+                        full=full,
+                        include_list=include_list,
+                        _depth=_depth + 1,
+                    )
+                )
+        if not any(isinstance(vv, ParseResults) for vv in self):
+            return "".join(out)
+
+        v = self
+        incr = "  "
+        nl = "\n"
+        for i, vv in enumerate(v):
+            if isinstance(vv, ParseResults):
+                vv_dump = vv.dump(
+                    indent=indent,
+                    full=full,
+                    include_list=include_list,
+                    _depth=_depth + 1,
+                )
+                out.append(
+                    f"{nl}{indent}{incr * _depth}[{i}]:{nl}{indent}{incr * (_depth + 1)}{vv_dump}"
+                )
+            else:
+                out.append(
+                    f"{nl}{indent}{incr * _depth}[{i}]:{nl}{indent}{incr * (_depth + 1)}{vv}"
+                )
 
         return "".join(out)
 
