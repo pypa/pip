@@ -237,7 +237,7 @@ def _flatten(ll: list) -> list:
     return ret
 
 
-def _make_synonym_function(compat_name: str, fn: C) -> C:
+def replaced_by_pep8(compat_name: str, fn: C) -> C:
     # In a future version, uncomment the code in the internal _inner() functions
     # to begin emitting DeprecationWarnings.
 
@@ -251,7 +251,7 @@ def _make_synonym_function(compat_name: str, fn: C) -> C:
         @wraps(fn)
         def _inner(self, *args, **kwargs):
             # warnings.warn(
-            #     f"Deprecated - use {fn.__name__}", DeprecationWarning, stacklevel=3
+            #     f"Deprecated - use {fn.__name__}", DeprecationWarning, stacklevel=2
             # )
             return fn(self, *args, **kwargs)
 
@@ -260,7 +260,7 @@ def _make_synonym_function(compat_name: str, fn: C) -> C:
         @wraps(fn)
         def _inner(*args, **kwargs):
             # warnings.warn(
-            #     f"Deprecated - use {fn.__name__}", DeprecationWarning, stacklevel=3
+            #     f"Deprecated - use {fn.__name__}", DeprecationWarning, stacklevel=2
             # )
             return fn(*args, **kwargs)
 
@@ -275,10 +275,3 @@ def _make_synonym_function(compat_name: str, fn: C) -> C:
         _inner.__kwdefaults__ = None
     _inner.__qualname__ = fn.__qualname__
     return cast(C, _inner)
-
-
-def replaced_by_pep8(fn: C) -> Callable[[Callable], C]:
-    """
-    Decorator for pre-PEP8 compatibility synonyms, to link them to the new function.
-    """
-    return lambda other: _make_synonym_function(other.__name__, fn)

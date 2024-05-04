@@ -1,1 +1,1 @@
-Upgrade rich to 13.7.0
+Upgrade rich to 13.7.1

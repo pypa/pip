@@ -206,7 +206,7 @@ class pyparsing_common:
     scientific notation and returns a float"""
 
     # streamlining this expression makes the docs nicer-looking
-    number = (sci_real | real | signed_integer).setName("number").streamline()
+    number = (sci_real | real | signed_integer).set_name("number").streamline()
     """any numeric expression, returns the corresponding Python type"""
 
     fnumber = (
@@ -215,6 +215,13 @@ class pyparsing_common:
         .set_parse_action(convert_to_float)
     )
     """any int or real number, returned as float"""
+
+    ieee_float = (
+        Regex(r"(?i)[+-]?((\d+\.?\d*(e[+-]?\d+)?)|nan|inf(inity)?)")
+        .set_name("ieee_float")
+        .set_parse_action(convert_to_float)
+    )
+    """any floating-point literal (int, real number, infinity, or NaN), returned as float"""
 
     identifier = Word(identchars, identbodychars).set_name("identifier")
     """typical code identifier (leading alpha or '_', followed by 0 or more alphas, nums, or '_')"""

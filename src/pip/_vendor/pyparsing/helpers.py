@@ -74,7 +74,7 @@ def counted_array(
         intExpr = intExpr.copy()
     intExpr.set_name("arrayLen")
     intExpr.add_parse_action(count_field_parse_action, call_during_try=True)
-    return (intExpr + array_expr).set_name("(len) " + str(expr) + "...")
+    return (intExpr + array_expr).set_name(f"(len) {expr}...")
 
 
 def match_previous_literal(expr: ParserElement) -> ParserElement:
@@ -95,15 +95,17 @@ def match_previous_literal(expr: ParserElement) -> ParserElement:
     rep = Forward()
 
     def copy_token_to_repeater(s, l, t):
-        if t:
-            if len(t) == 1:
-                rep << t[0]
-            else:
-                # flatten t tokens
-                tflat = _flatten(t.as_list())
-                rep << And(Literal(tt) for tt in tflat)
-        else:
+        if not t:
             rep << Empty()
+            return
+
+        if len(t) == 1:
+            rep << t[0]
+            return
+
+        # flatten t tokens
+        tflat = _flatten(t.as_list())
+        rep << And(Literal(tt) for tt in tflat)
 
     expr.add_parse_action(copy_token_to_repeater, callDuringTry=True)
     rep.set_name("(prev) " + str(expr))
@@ -230,7 +232,7 @@ def one_of(
                 if isequal(other, cur):
                     del symbols[i + j + 1]
                     break
-                elif masks(cur, other):
+                if masks(cur, other):
                     del symbols[i + j + 1]
                     symbols.insert(i, other)
                     break
@@ -534,7 +536,9 @@ def nested_expr(
         )
     else:
         ret <<= Group(Suppress(opener) + ZeroOrMore(ret | content) + Suppress(closer))
-    ret.set_name("nested %s%s expression" % (opener, closer))
+    ret.set_name(f"nested {opener}{closer} expression")
+    # don't override error message from content expressions
+    ret.errmsg = None
     return ret
 
 
@@ -580,7 +584,7 @@ def _makeTags(tagStr, xml, suppress_LT=Suppress("<"), suppress_GT=Suppress(">"))
         )
     closeTag = Combine(Literal("</") + tagStr + ">", adjacent=False)
 
-    openTag.set_name("<%s>" % resname)
+    openTag.set_name(f"<{resname}>")
     # add start<tagname> results name in parse action now that ungrouped names are not reported at two levels
     openTag.add_parse_action(
         lambda t: t.__setitem__(
@@ -589,7 +593,7 @@ def _makeTags(tagStr, xml, suppress_LT=Suppress("<"), suppress_GT=Suppress(">"))
     )
     closeTag = closeTag(
         "end" + "".join(resname.replace(":", " ").title().split())
-    ).set_name("</%s>" % resname)
+    ).set_name(f"</{resname}>")
     openTag.tag = resname
     closeTag.tag = resname
     openTag.tag_body = SkipTo(closeTag())
@@ -777,7 +781,7 @@ def infix_notation(
         rpar = Suppress(rpar)
 
     # if lpar and rpar are not suppressed, wrap in group
-    if not (isinstance(rpar, Suppress) and isinstance(rpar, Suppress)):
+    if not (isinstance(lpar, Suppress) and isinstance(rpar, Suppress)):
         lastExpr = base_expr | Group(lpar + ret + rpar)
     else:
         lastExpr = base_expr | (lpar + ret + rpar)
@@ -787,7 +791,7 @@ def infix_notation(
     pa: typing.Optional[ParseAction]
     opExpr1: ParserElement
     opExpr2: ParserElement
-    for i, operDef in enumerate(op_list):
+    for operDef in op_list:
         opExpr, arity, rightLeftAssoc, pa = (operDef + (None,))[:4]  # type: ignore[assignment]
         if isinstance(opExpr, str_type):
             opExpr = ParserElement._literalStringClass(opExpr)
@@ -1058,43 +1062,17 @@ dblSlashComment = dbl_slash_comment
 cppStyleComment = cpp_style_comment
 javaStyleComment = java_style_comment
 pythonStyleComment = python_style_comment
-
-@replaced_by_pep8(DelimitedList)
-def delimitedList(): ...
-
-@replaced_by_pep8(DelimitedList)
-def delimited_list(): ...
-
-@replaced_by_pep8(counted_array)
-def countedArray(): ...
-
-@replaced_by_pep8(match_previous_literal)
-def matchPreviousLiteral(): ...
-
-@replaced_by_pep8(match_previous_expr)
-def matchPreviousExpr(): ...
-
-@replaced_by_pep8(one_of)
-def oneOf(): ...
-
-@replaced_by_pep8(dict_of)
-def dictOf(): ...
-
-@replaced_by_pep8(original_text_for)
-def originalTextFor(): ...
-
-@replaced_by_pep8(nested_expr)
-def nestedExpr(): ...
-
-@replaced_by_pep8(make_html_tags)
-def makeHTMLTags(): ...
-
-@replaced_by_pep8(make_xml_tags)
-def makeXMLTags(): ...
-
-@replaced_by_pep8(replace_html_entity)
-def replaceHTMLEntity(): ...
-
-@replaced_by_pep8(infix_notation)
-def infixNotation(): ...
+delimitedList = replaced_by_pep8("delimitedList", DelimitedList)
+delimited_list = replaced_by_pep8("delimited_list", DelimitedList)
+countedArray = replaced_by_pep8("countedArray", counted_array)
+matchPreviousLiteral = replaced_by_pep8("matchPreviousLiteral", match_previous_literal)
+matchPreviousExpr = replaced_by_pep8("matchPreviousExpr", match_previous_expr)
+oneOf = replaced_by_pep8("oneOf", one_of)
+dictOf = replaced_by_pep8("dictOf", dict_of)
+originalTextFor = replaced_by_pep8("originalTextFor", original_text_for)
+nestedExpr = replaced_by_pep8("nestedExpr", nested_expr)
+makeHTMLTags = replaced_by_pep8("makeHTMLTags", make_html_tags)
+makeXMLTags = replaced_by_pep8("makeXMLTags", make_xml_tags)
+replaceHTMLEntity = replaced_by_pep8("replaceHTMLEntity", replace_html_entity)
+infixNotation = replaced_by_pep8("infixNotation", infix_notation)
 # fmt: on

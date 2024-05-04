@@ -1,1 +1,1 @@
-Upgrade idna to 3.6
+Upgrade idna to 3.7

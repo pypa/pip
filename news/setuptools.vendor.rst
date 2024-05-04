@@ -1,1 +1,1 @@
-Upgrade setuptools to 69.1.1
+Upgrade setuptools to 69.5.1
