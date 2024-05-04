@@ -1,6 +1,7 @@
 """
 Contains functional tests of the Git class.
 """
+
 import logging
 import os
 import pathlib

@@ -358,7 +358,7 @@ def test_basic_install_editable_from_svn(script: PipTestEnvironment) -> None:
     checkout_path = _create_test_package(script.scratch_path)
     repo_url = _create_svn_repo(script.scratch_path, checkout_path)
     result = script.pip("install", "-e", "svn+" + repo_url + "#egg=version-pkg")
-    result.assert_installed("version-pkg", with_files=[".svn"])
+    result.assert_installed("version_pkg", with_files=[".svn"])
 
 
 def _test_install_editable_from_git(script: PipTestEnvironment) -> None:
@@ -391,7 +391,7 @@ def test_install_editable_uninstalls_existing(
     https://github.com/pypa/pip/issues/1548
     https://github.com/pypa/pip/pull/1552
     """
-    to_install = data.packages.joinpath("pip-test-package-0.1.tar.gz")
+    to_install = data.packages.joinpath("pip_test_package-0.1.tar.gz")
     result = script.pip_install_local(to_install)
     assert "Successfully installed pip-test-package" in result.stdout
     result.assert_installed("piptestpackage", editable=False)
@@ -1731,7 +1731,7 @@ def test_install_builds_wheels(script: PipTestEnvironment, data: TestData) -> No
     assert "Building wheel for wheelb" in str(res), str(res)
     assert "Failed to build wheelbroken" in str(res), str(res)
     # Wheels are built for local directories, but not cached.
-    assert "Building wheel for requir" in str(res), str(res)
+    assert "Building wheel for require" in str(res), str(res)
     # into the cache
     assert wheels != [], str(res)
     assert wheels == [
@@ -1754,7 +1754,7 @@ def test_install_no_binary_builds_wheels(
     )
     # Wheels are built for all requirements
     assert "Building wheel for wheelb" in str(res), str(res)
-    assert "Building wheel for requir" in str(res), str(res)
+    assert "Building wheel for require" in str(res), str(res)
     assert "Building wheel for upper" in str(res), str(res)
     # Wheelbroken failed to build
     assert "Failed to build wheelbroken" in str(res), str(res)
@@ -2253,14 +2253,14 @@ def test_yanked_version_missing_from_availble_versions_error_message(
     """
     result = script.pip(
         "install",
-        "simple==",
+        "simple==0.1",
         "--index-url",
         data.index_url("yanked"),
         expect_error=True,
     )
     # the yanked version (3.0) is filtered out from the output:
     expected_warning = (
-        "Could not find a version that satisfies the requirement simple== "
+        "Could not find a version that satisfies the requirement simple==0.1 "
         "(from versions: 1.0, 2.0)"
     )
     assert expected_warning in result.stderr, str(result)
@@ -2289,10 +2289,6 @@ def test_error_all_yanked_files_and_no_pin(
     ), str(result)
 
 
-@pytest.mark.skipif(
-    sys.platform == "linux" and sys.version_info < (3, 8),
-    reason="Custom SSL certification not running well in CI",
-)
 @pytest.mark.parametrize(
     "install_args",
     [

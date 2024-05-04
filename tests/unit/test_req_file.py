@@ -4,7 +4,7 @@ import os
 import textwrap
 from optparse import Values
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterator, List, Optional, Tuple, Union
+from typing import Any, Iterator, List, Optional, Protocol, Tuple, Union
 from unittest import mock
 
 import pytest
@@ -28,12 +28,6 @@ from pip._internal.req.req_file import (
 )
 from pip._internal.req.req_install import InstallRequirement
 from tests.lib import TestData, make_test_finder, requirements_file
-
-if TYPE_CHECKING:
-    from typing import Protocol
-else:
-    # Protocol was introduced in Python 3.8.
-    Protocol = object
 
 
 @pytest.fixture
@@ -76,9 +70,11 @@ def parse_reqfile(
         yield install_req_from_parsed_requirement(
             parsed_req,
             isolated=isolated,
-            config_settings=parsed_req.options.get("config_settings")
-            if parsed_req.options
-            else None,
+            config_settings=(
+                parsed_req.options.get("config_settings")
+                if parsed_req.options
+                else None
+            ),
         )
 
 
@@ -202,8 +198,7 @@ class LineProcessor(Protocol):
         options: Optional[Values] = None,
         session: Optional[PipSession] = None,
         constraint: bool = False,
-    ) -> List[InstallRequirement]:
-        ...
+    ) -> List[InstallRequirement]: ...
 
 
 @pytest.fixture

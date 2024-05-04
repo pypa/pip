@@ -12,6 +12,7 @@ import copy
 import logging
 import os
 import re
+from dataclasses import dataclass
 from typing import Collection, Dict, List, Optional, Set, Tuple, Union
 
 from pip._vendor.packaging.markers import Marker
@@ -132,8 +133,8 @@ def parse_editable(editable_req: str) -> Tuple[Optional[str], str, Set[str]]:
     package_name = link.egg_fragment
     if not package_name:
         raise InstallationError(
-            "Could not detect requirement name for '{}', please specify one "
-            "with #egg=your_package_name".format(editable_req)
+            f"Could not detect requirement name for '{editable_req}', "
+            "please specify one with #egg=your_package_name"
         )
     return package_name, url, set()
 
@@ -191,18 +192,12 @@ def deduce_helpful_msg(req: str) -> str:
     return msg
 
 
+@dataclass(frozen=True)
 class RequirementParts:
-    def __init__(
-        self,
-        requirement: Optional[Requirement],
-        link: Optional[Link],
-        markers: Optional[Marker],
-        extras: Set[str],
-    ):
-        self.requirement = requirement
-        self.link = link
-        self.markers = markers
-        self.extras = extras
+    requirement: Optional[Requirement]
+    link: Optional[Link]
+    markers: Optional[Marker]
+    extras: Set[str]
 
 
 def parse_req_from_editable(editable_req: str) -> RequirementParts:
@@ -364,7 +359,7 @@ def parse_req_from_line(name: str, line_source: Optional[str]) -> RequirementPar
 
     def _parse_req_string(req_as_string: str) -> Requirement:
         try:
-            req = get_requirement(req_as_string)
+            return get_requirement(req_as_string)
         except InvalidRequirement:
             if os.path.sep in req_as_string:
                 add_msg = "It looks like a path."
@@ -379,17 +374,6 @@ def parse_req_from_line(name: str, line_source: Optional[str]) -> RequirementPar
             if add_msg:
                 msg += f"\nHint: {add_msg}"
             raise InstallationError(msg)
-        else:
-            # Deprecate extras after specifiers: "name>=1.0[extras]"
-            # This currently works by accident because _strip_extras() parses
-            # any extras in the end of the string and those are saved in
-            # RequirementParts
-            for spec in req.specifier:
-                spec_str = str(spec)
-                if spec_str.endswith("]"):
-                    msg = f"Extras after version '{spec_str}'."
-                    raise InstallationError(msg)
-        return req
 
     if req_as_string is not None:
         req: Optional[Requirement] = _parse_req_string(req_as_string)

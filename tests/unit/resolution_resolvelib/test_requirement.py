@@ -23,6 +23,14 @@ from tests.lib import TestData
 #   Editables
 
 
+def _is_satisfied_by(requirement: Requirement, candidate: Candidate) -> bool:
+    """A helper function to check if a requirement is satisfied by a candidate.
+
+    Used for mocking PipProvider.is_satified_by.
+    """
+    return requirement.is_satisfied_by(candidate)
+
+
 @pytest.fixture
 def test_cases(data: TestData) -> Iterator[List[Tuple[str, str, int]]]:
     def _data_file(name: str) -> Path:
@@ -80,6 +88,7 @@ def test_new_resolver_correct_number_of_matches(
             {},
             Constraint.empty(),
             prefers_installed=False,
+            is_satisfied_by=_is_satisfied_by,
         )
         assert sum(1 for _ in matches) == match_count
 
@@ -98,6 +107,7 @@ def test_new_resolver_candidates_match_requirement(
             {},
             Constraint.empty(),
             prefers_installed=False,
+            is_satisfied_by=_is_satisfied_by,
         )
         for c in candidates:
             assert isinstance(c, Candidate)

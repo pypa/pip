@@ -2,9 +2,10 @@ import os
 import pathlib
 import sys
 import textwrap
-from typing import TYPE_CHECKING, Callable, Dict, List, Tuple
+from typing import TYPE_CHECKING, Callable, Dict, List, Protocol, Tuple
 
 import pytest
+from packaging.utils import canonicalize_name
 
 from tests.conftest import ScriptFactory
 from tests.lib import (
@@ -17,9 +18,6 @@ from tests.lib.direct_url import get_created_direct_url
 from tests.lib.venv import VirtualEnvironment
 from tests.lib.wheel import make_wheel
 
-if TYPE_CHECKING:
-    from typing import Protocol
-
 MakeFakeWheel = Callable[[str, str, str], pathlib.Path]
 
 
@@ -27,9 +25,13 @@ def assert_editable(script: PipTestEnvironment, *args: str) -> None:
     # This simply checks whether all of the listed packages have a
     # corresponding .egg-link file installed.
     # TODO: Implement a more rigorous way to test for editable installations.
-    egg_links = {f"{arg}.egg-link" for arg in args}
-    assert egg_links <= set(
-        os.listdir(script.site_packages_path)
+    egg_links = {f"{canonicalize_name(arg)}.egg-link" for arg in args}
+    actual_egg_links = {
+        f"{canonicalize_name(p.stem)}.egg-link"
+        for p in script.site_packages_path.glob("*.egg-link")
+    }
+    assert (
+        egg_links <= actual_egg_links
     ), f"{args!r} not all found in {script.site_packages_path!r}"
 
 
@@ -928,8 +930,7 @@ if TYPE_CHECKING:
             version: str,
             requires: List[str],
             extras: Dict[str, List[str]],
-        ) -> str:
-            ...
+        ) -> str: ...
 
 
 def _local_with_setup(
@@ -1847,7 +1848,7 @@ def test_new_resolver_succeeds_on_matching_constraint_and_requirement(
 
     script.assert_installed(test_pkg="0.1.0")
     if editable:
-        assert_editable(script, "test-pkg")
+        assert_editable(script, "test_pkg")
 
 
 def test_new_resolver_applies_url_constraint_to_dep(script: PipTestEnvironment) -> None:
@@ -2295,7 +2296,7 @@ def test_new_resolver_dont_backtrack_on_extra_if_base_constrained_in_requirement
         script, "pkg", "2.0", extras={"ext1": ["dep"], "ext2": ["dep"]}
     )
 
-    to_install: tuple[str, str] = (
+    to_install: Tuple[str, str] = (
         "pkg[ext1]",
         "pkg[ext2]==1.0" if two_extras else "pkg==1.0",
     )
@@ -2342,7 +2343,7 @@ def test_new_resolver_dont_backtrack_on_conflicting_constraints_on_extras(
         script, "pkg", "2.0", extras={"ext1": ["dep"], "ext2": ["dep"]}
     )
 
-    to_install: tuple[str, str] = (
+    to_install: Tuple[str, str] = (
         "pkg[ext1]>1",
         "pkg[ext2]==1.0" if two_extras else "pkg==1.0",
     )
@@ -2406,6 +2407,51 @@ def test_new_resolver_respect_user_requested_if_extra_is_installed(
     script.assert_installed(pkg3="1.0", pkg2="2.0", pkg1="1.0")
 
 
+def test_new_resolver_constraint_on_link_with_extra(
+    script: PipTestEnvironment,
+) -> None:
+    """
+    Verify that installing works from a link with both an extra and a constraint.
+    """
+    wheel: pathlib.Path = create_basic_wheel_for_package(
+        script, "pkg", "1.0", extras={"ext": []}
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        # no index, no --find-links: only the explicit path
+        "--no-index",
+        f"{wheel}[ext]",
+        "pkg==1",
+    )
+    script.assert_installed(pkg="1.0")
+
+
+def test_new_resolver_constraint_on_link_with_extra_indirect(
+    script: PipTestEnvironment,
+) -> None:
+    """
+    Verify that installing works from a link with an extra if there is an indirect
+    dependency on that same package with the same extra (#12372).
+    """
+    wheel_one: pathlib.Path = create_basic_wheel_for_package(
+        script, "pkg1", "1.0", extras={"ext": []}
+    )
+    wheel_two: pathlib.Path = create_basic_wheel_for_package(
+        script, "pkg2", "1.0", depends=["pkg1[ext]==1.0"]
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        # no index, no --find-links: only the explicit path
+        wheel_two,
+        f"{wheel_one}[ext]",
+    )
+    script.assert_installed(pkg1="1.0", pkg2="1.0")
+
+
 def test_new_resolver_do_not_backtrack_on_build_failure(
     script: PipTestEnvironment,
 ) -> None:
@@ -2461,7 +2507,7 @@ def test_new_resolver_comes_from_with_extra(
     create_basic_wheel_for_package(script, "dep", "1.0")
     create_basic_wheel_for_package(script, "pkg", "1.0", extras={"ext": ["dep"]})
 
-    to_install: tuple[str, str] = ("pkg", "pkg[ext]")
+    to_install: Tuple[str, str] = ("pkg", "pkg[ext]")
 
     result = script.pip(
         "install",

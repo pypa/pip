@@ -11,6 +11,11 @@ on:
   schedule:
     - cron: 0 0 * * MON # Run every Monday at 00:00 UTC
 
+env:
+  # The "FORCE_COLOR" variable, when set to 1,
+  # tells Nox to colorize itself.
+  FORCE_COLOR: "1"
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
@@ -22,7 +27,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
       - run: pip install nox
@@ -58,7 +63,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
       - name: Set up git credentials
@@ -82,7 +87,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
 
@@ -92,7 +97,7 @@ jobs:
 
   tests-unix:
     name: tests / ${{ matrix.python.key || matrix.python }} / ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}-latest
+    runs-on: ${{ matrix.os }}
 
     needs: [packaging, determine-changes]
     if: >-
@@ -102,28 +107,30 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [Ubuntu, MacOS]
+        os: [ubuntu-latest, macos-12]
         python:
-          - "3.7"
           - "3.8"
           - "3.9"
           - "3.10"
           - "3.11"
           - "3.12"
+          - "3.13"
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
           allow-prereleases: true
 
       - name: Install Ubuntu dependencies
-        if: matrix.os == 'Ubuntu'
-        run: sudo apt-get install bzr
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install bzr
 
       - name: Install MacOS dependencies
-        if: matrix.os == 'MacOS'
+        if: matrix.os == 'macos-12'
         run: brew install breezy
 
       - run: pip install nox
@@ -155,19 +162,22 @@ jobs:
       matrix:
         os: [Windows]
         python:
-          - "3.7"
-          # Commented out, since Windows tests are expensively slow.
-          # - "3.8"
+          - "3.8"
+          # Commented out, since Windows tests are expensively slow,
+          # only test the oldest and newest Python supported by pip
           # - "3.9"
           # - "3.10"
-          - "3.11"
+          # - "3.11"
+          - "3.12"  # Comment out when 3.13 is final
+          - "3.13"
         group: [1, 2]
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
+          allow-prereleases: true
 
       # We use C:\Temp (which is already available on the worker)
       # as a temporary directory for all of the tests because the
@@ -216,14 +226,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
       - name: Install Ubuntu dependencies
-        run: sudo apt-get install bzr
+        run: |
+          sudo apt-get update
+          sudo apt-get install bzr
 
-      - run: pip install nox 'virtualenv<20' 'setuptools != 60.6.0'
+      - run: pip install nox
 
       # Main check
       - name: Run integration tests

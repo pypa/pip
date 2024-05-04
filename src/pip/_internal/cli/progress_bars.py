@@ -1,4 +1,5 @@
 import functools
+import sys
 from logging import Logger
 from typing import (
     Any,
@@ -36,6 +37,7 @@ from pip._vendor.rich.progress_bar import ProgressBar
 from pip._vendor.rich.segment import Segment
 from pip._vendor.rich.text import Text
 
+from pip._internal.cli.spinners import RateLimiter
 from pip._internal.utils.logging import get_indentation
 
 DownloadProgressRenderer = Callable[[Iterable[bytes]], Iterator[bytes]]
@@ -290,7 +292,7 @@ class PipParallelProgress(PipProgress):
                 # tasks to reduce the number of things to be rendered
                 # If there are too many active tasks on screen rich renders the
                 #  overflow as a ... at the bottom of the screen which makes it
-                # difficult for a user to see whats happening
+                # difficult for a user to see what's happening
                 # If we remove every task on completion, it adds an extra newline
                 # for sequential downloads due to self.live on __exit__
                 if task.visible:
@@ -377,6 +379,28 @@ def _rich_progress_bar(
             progress.update(task_id, advance=len(chunk))
 
 
+def _raw_progress_bar(
+    iterable: Iterable[bytes],
+    *,
+    size: Optional[int],
+) -> Generator[bytes, None, None]:
+    def write_progress(current: int, total: int) -> None:
+        sys.stdout.write("Progress %d of %d\n" % (current, total))
+        sys.stdout.flush()
+
+    current = 0
+    total = size or 0
+    rate_limiter = RateLimiter(0.25)
+
+    write_progress(current, total)
+    for chunk in iterable:
+        current += len(chunk)
+        if rate_limiter.ready() or current == total:
+            write_progress(current, total)
+            rate_limiter.reset()
+        yield chunk
+
+
 def get_download_progress_renderer(
     *, bar_type: str, size: Optional[int] = None
 ) -> DownloadProgressRenderer:
@@ -386,5 +410,7 @@ def get_download_progress_renderer(
     """
     if bar_type == "on":
         return functools.partial(_rich_progress_bar, bar_type=bar_type, size=size)
+    elif bar_type == "raw":
+        return functools.partial(_raw_progress_bar, size=size)
     else:
         return iter  # no-op, when passed an iterator
