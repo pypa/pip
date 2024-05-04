@@ -359,7 +359,7 @@ def parse_req_from_line(name: str, line_source: Optional[str]) -> RequirementPar
 
     def _parse_req_string(req_as_string: str) -> Requirement:
         try:
-            req = get_requirement(req_as_string)
+            return get_requirement(req_as_string)
         except InvalidRequirement:
             if os.path.sep in req_as_string:
                 add_msg = "It looks like a path."
@@ -374,17 +374,6 @@ def parse_req_from_line(name: str, line_source: Optional[str]) -> RequirementPar
             if add_msg:
                 msg += f"\nHint: {add_msg}"
             raise InstallationError(msg)
-        else:
-            # Deprecate extras after specifiers: "name>=1.0[extras]"
-            # This currently works by accident because _strip_extras() parses
-            # any extras in the end of the string and those are saved in
-            # RequirementParts
-            for spec in req.specifier:
-                spec_str = str(spec)
-                if spec_str.endswith("]"):
-                    msg = f"Extras after version '{spec_str}'."
-                    raise InstallationError(msg)
-        return req
 
     if req_as_string is not None:
         req: Optional[Requirement] = _parse_req_string(req_as_string)

@@ -2,6 +2,7 @@ import logging
 from optparse import Values
 from typing import Generator, Iterable, Iterator, List, NamedTuple, Optional
 
+from pip._vendor.packaging.requirements import InvalidRequirement
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cli.base_command import Command
@@ -100,12 +101,19 @@ def search_packages_info(query: List[str]) -> Generator[_PackageInfo, None, None
         except KeyError:
             continue
 
-        requires = sorted(
-            # Avoid duplicates in requirements (e.g. due to environment markers).
-            {req.name for req in dist.iter_dependencies()},
-            key=str.lower,
-        )
-        required_by = sorted(_get_requiring_packages(dist), key=str.lower)
+        try:
+            requires = sorted(
+                # Avoid duplicates in requirements (e.g. due to environment markers).
+                {req.name for req in dist.iter_dependencies()},
+                key=str.lower,
+            )
+        except InvalidRequirement:
+            requires = sorted(dist.iter_raw_dependencies(), key=str.lower)
+
+        try:
+            required_by = sorted(_get_requiring_packages(dist), key=str.lower)
+        except InvalidRequirement:
+            required_by = ["#N/A"]
 
         try:
             entry_points_text = dist.read_text("entry_points.txt")
@@ -139,7 +147,7 @@ def search_packages_info(query: List[str]) -> Generator[_PackageInfo, None, None
 
         yield _PackageInfo(
             name=dist.raw_name,
-            version=str(dist.version),
+            version=dist.raw_version,
             location=dist.location or "",
             editable_project_location=dist.editable_project_location,
             requires=requires,

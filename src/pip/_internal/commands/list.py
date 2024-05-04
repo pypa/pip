@@ -4,6 +4,7 @@ from optparse import Values
 from typing import TYPE_CHECKING, Generator, List, Optional, Sequence, Tuple, cast
 
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.version import Version
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.req_command import IndexGroupCommand
@@ -18,7 +19,6 @@ from pip._internal.utils.compat import stdlib_pkgs
 from pip._internal.utils.misc import tabulate, write_output
 
 if TYPE_CHECKING:
-    from pip._internal.metadata.base import DistributionVersion
 
     class _DistWithLatestInfo(BaseDistribution):
         """Give the distribution object a couple of extra fields.
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
         makes the rest of the code much cleaner.
         """
 
-        latest_version: DistributionVersion
+        latest_version: Version
         latest_filetype: str
 
     _ProcessedDists = Sequence[_DistWithLatestInfo]
@@ -333,7 +333,7 @@ def format_for_columns(
     for proj in pkgs:
         # if we're working on the 'outdated' list, separate out the
         # latest_version and type
-        row = [proj.raw_name, str(proj.version)]
+        row = [proj.raw_name, proj.raw_version]
 
         if running_outdated:
             row.append(str(proj.latest_version))

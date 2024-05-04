@@ -357,7 +357,7 @@ class UninstallPathSet:
             )
             return
 
-        dist_name_version = f"{self._dist.raw_name}-{self._dist.version}"
+        dist_name_version = f"{self._dist.raw_name}-{self._dist.raw_version}"
         logger.info("Uninstalling %s:", dist_name_version)
 
         with indent_log():

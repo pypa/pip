@@ -391,7 +391,7 @@ def test_install_editable_uninstalls_existing(
     https://github.com/pypa/pip/issues/1548
     https://github.com/pypa/pip/pull/1552
     """
-    to_install = data.packages.joinpath("pip-test-package-0.1.tar.gz")
+    to_install = data.packages.joinpath("pip_test_package-0.1.tar.gz")
     result = script.pip_install_local(to_install)
     assert "Successfully installed pip-test-package" in result.stdout
     result.assert_installed("piptestpackage", editable=False)
@@ -2253,14 +2253,14 @@ def test_yanked_version_missing_from_availble_versions_error_message(
     """
     result = script.pip(
         "install",
-        "simple==",
+        "simple==0.1",
         "--index-url",
         data.index_url("yanked"),
         expect_error=True,
     )
     # the yanked version (3.0) is filtered out from the output:
     expected_warning = (
-        "Could not find a version that satisfies the requirement simple== "
+        "Could not find a version that satisfies the requirement simple==0.1 "
         "(from versions: 1.0, 2.0)"
     )
     assert expected_warning in result.stderr, str(result)

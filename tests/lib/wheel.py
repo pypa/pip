@@ -103,7 +103,7 @@ def make_metadata_file(
     if body is not _default:
         message.set_payload(body)
 
-    return File(path, message_from_dict(metadata).as_bytes())
+    return File(path, message.as_bytes())
 
 
 def make_wheel_metadata_file(

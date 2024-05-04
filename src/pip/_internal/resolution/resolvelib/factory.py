@@ -23,6 +23,7 @@ from typing import (
 from pip._vendor.packaging.requirements import InvalidRequirement
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
+from pip._vendor.packaging.version import Version
 from pip._vendor.resolvelib import ResolutionImpossible
 
 from pip._internal.cache import CacheEntry, WheelCache
@@ -30,6 +31,7 @@ from pip._internal.exceptions import (
     DistributionNotFound,
     InstallationError,
     MetadataInconsistent,
+    MetadataInvalid,
     UnsupportedPythonVersion,
     UnsupportedWheel,
 )
@@ -52,7 +54,7 @@ from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
-from .base import Candidate, CandidateVersion, Constraint, Requirement
+from .base import Candidate, Constraint, Requirement
 from .candidates import (
     AlreadyInstalledCandidate,
     BaseCandidate,
@@ -178,7 +180,7 @@ class Factory:
         extras: FrozenSet[str],
         template: InstallRequirement,
         name: Optional[NormalizedName],
-        version: Optional[CandidateVersion],
+        version: Optional[Version],
     ) -> Optional[Candidate]:
         base: Optional[BaseCandidate] = self._make_base_candidate_from_link(
             link, template, name, version
@@ -192,7 +194,7 @@ class Factory:
         link: Link,
         template: InstallRequirement,
         name: Optional[NormalizedName],
-        version: Optional[CandidateVersion],
+        version: Optional[Version],
     ) -> Optional[BaseCandidate]:
         # TODO: Check already installed candidate, and use it if the link and
         # editable flag match.
@@ -212,7 +214,7 @@ class Factory:
                         name=name,
                         version=version,
                     )
-                except MetadataInconsistent as e:
+                except (MetadataInconsistent, MetadataInvalid) as e:
                     logger.info(
                         "Discarding [blue underline]%s[/]: [yellow]%s[reset]",
                         link,
@@ -670,8 +672,8 @@ class Factory:
         cands = self._finder.find_all_candidates(req.project_name)
         skipped_by_requires_python = self._finder.requires_python_skipped_reasons()
 
-        versions_set: Set[CandidateVersion] = set()
-        yanked_versions_set: Set[CandidateVersion] = set()
+        versions_set: Set[Version] = set()
+        yanked_versions_set: Set[Version] = set()
         for c in cands:
             is_yanked = c.link.is_yanked if c.link else False
             if is_yanked:

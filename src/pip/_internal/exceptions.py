@@ -354,6 +354,17 @@ class MetadataInconsistent(InstallationError):
         )
 
 
+class MetadataInvalid(InstallationError):
+    """Metadata is invalid."""
+
+    def __init__(self, ireq: "InstallRequirement", error: str) -> None:
+        self.ireq = ireq
+        self.error = error
+
+    def __str__(self) -> str:
+        return f"Requested {self.ireq} has invalid metadata: {self.error}"
+
+
 class InstallationSubprocessError(DiagnosticPipError, InstallationError):
     """A subprocess call failed."""
 

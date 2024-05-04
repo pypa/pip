@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, FrozenSet, Iterable, List, Optional, Set, Tupl
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.tags import Tag
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.packaging.version import _BaseVersion
+from pip._vendor.packaging.version import InvalidVersion, _BaseVersion
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.exceptions import (
@@ -752,11 +752,14 @@ class PackageFinder:
             self._log_skipped_link(link, result, detail)
             return None
 
-        return InstallationCandidate(
-            name=link_evaluator.project_name,
-            link=link,
-            version=detail,
-        )
+        try:
+            return InstallationCandidate(
+                name=link_evaluator.project_name,
+                link=link,
+                version=detail,
+            )
+        except InvalidVersion:
+            return None
 
     def evaluate_links(
         self, link_evaluator: LinkEvaluator, links: Iterable[Link]

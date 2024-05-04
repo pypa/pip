@@ -25,7 +25,7 @@ from typing import (
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
-from pip._vendor.packaging.version import LegacyVersion, Version
+from pip._vendor.packaging.version import Version
 
 from pip._internal.exceptions import NoneMetadataError
 from pip._internal.locations import site_packages, user_site
@@ -40,8 +40,6 @@ from pip._internal.utils.misc import is_local, normalize_path
 from pip._internal.utils.urls import url_to_path
 
 from ._json import msg_to_json
-
-DistributionVersion = Union[LegacyVersion, Version]
 
 InfoPath = Union[str, pathlib.PurePath]
 
@@ -140,10 +138,10 @@ class BaseDistribution(Protocol):
         raise NotImplementedError()
 
     def __repr__(self) -> str:
-        return f"{self.raw_name} {self.version} ({self.location})"
+        return f"{self.raw_name} {self.raw_version} ({self.location})"
 
     def __str__(self) -> str:
-        return f"{self.raw_name} {self.version}"
+        return f"{self.raw_name} {self.raw_version}"
 
     @property
     def location(self) -> Optional[str]:
@@ -274,7 +272,11 @@ class BaseDistribution(Protocol):
         raise NotImplementedError()
 
     @property
-    def version(self) -> DistributionVersion:
+    def version(self) -> Version:
+        raise NotImplementedError()
+
+    @property
+    def raw_version(self) -> str:
         raise NotImplementedError()
 
     @property
@@ -443,24 +445,19 @@ class BaseDistribution(Protocol):
         """
         raise NotImplementedError()
 
-    def iter_provided_extras(self) -> Iterable[str]:
+    def iter_raw_dependencies(self) -> Iterable[str]:
+        """Raw Requires-Dist metadata."""
+        return self.metadata.get_all("Requires-Dist", [])
+
+    def iter_provided_extras(self) -> Iterable[NormalizedName]:
         """Extras provided by this distribution.
 
         For modern .dist-info distributions, this is the collection of
         "Provides-Extra:" entries in distribution metadata.
 
-        The return value of this function is not particularly useful other than
-        display purposes due to backward compatibility issues and the extra
-        names being poorly normalized prior to PEP 685. If you want to perform
-        logic operations on extras, use :func:`is_extra_provided` instead.
-        """
-        raise NotImplementedError()
-
-    def is_extra_provided(self, extra: str) -> bool:
-        """Check whether an extra is provided by this distribution.
-
-        This is needed mostly for compatibility issues with pkg_resources not
-        following the extra normalization rules defined in PEP 685.
+        The return value of this function is expected to be normalised names,
+        per PEP 685, with the returned value being handled appropriately by
+        `iter_dependencies`.
         """
         raise NotImplementedError()
 
