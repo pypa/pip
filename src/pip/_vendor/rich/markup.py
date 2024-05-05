@@ -1,21 +1,20 @@
+import re
 from ast import literal_eval
 from operator import attrgetter
-import re
 from typing import Callable, Iterable, List, Match, NamedTuple, Optional, Tuple, Union
 
+from ._emoji_replace import _emoji_replace
+from .emoji import EmojiVariant
 from .errors import MarkupError
 from .style import Style
 from .text import Span, Text
-from .emoji import EmojiVariant
-from ._emoji_replace import _emoji_replace
-
 
 RE_TAGS = re.compile(
-    r"""((\\*)\[([a-z#\/@].*?)\])""",
+    r"""((\\*)\[([a-z#/@][^[]*?)])""",
     re.VERBOSE,
 )
 
-RE_HANDLER = re.compile(r"^([\w\.]*?)(\(.*?\))?$")
+RE_HANDLER = re.compile(r"^([\w.]*?)(\(.*?\))?$")
 
 
 class Tag(NamedTuple):
@@ -47,7 +46,8 @@ _EscapeSubMethod = Callable[[_ReSubCallable, str], str]  # Sub method of a compi
 
 
 def escape(
-    markup: str, _escape: _EscapeSubMethod = re.compile(r"(\\*)(\[[a-z#\/@].*?\])").sub
+    markup: str,
+    _escape: _EscapeSubMethod = re.compile(r"(\\*)(\[[a-z#/@][^[]*?])").sub,
 ) -> str:
     """Escapes text so that it won't be interpreted as markup.
 
@@ -64,6 +64,9 @@ def escape(
         return f"{backslashes}{backslashes}\\{text}"
 
     markup = _escape(escape_backslashes, markup)
+    if markup.endswith("\\") and not markup.endswith("\\\\"):
+        return markup + "\\"
+
     return markup
 
 
@@ -110,7 +113,10 @@ def render(
 
     Args:
         markup (str): A string containing console markup.
+        style: (Union[str, Style]): The style to use.
         emoji (bool, optional): Also render emoji code. Defaults to True.
+        emoji_variant (str, optional): Optional emoji variant, either "text" or "emoji". Defaults to None.
+
 
     Raises:
         MarkupError: If there is a syntax error in the markup.
@@ -146,6 +152,8 @@ def render(
 
     for position, plain_text, tag in _parse(markup):
         if plain_text is not None:
+            # Handle open brace escapes, where the brace is not part of a tag.
+            plain_text = plain_text.replace("\\[", "[")
             append(emoji_replace(plain_text) if emoji else plain_text)
         elif tag is not None:
             if tag.name.startswith("/"):  # Closing tag
@@ -224,7 +232,6 @@ def render(
 
 
 if __name__ == "__main__":  # pragma: no cover
-
     MARKUP = [
         "[red]Hello World[/red]",
         "[magenta]Hello [b]World[/b]",
@@ -233,8 +240,8 @@ if __name__ == "__main__":  # pragma: no cover
         ":warning-emoji: [bold red blink] DANGER![/]",
     ]
 
-    from pip._vendor.rich.table import Table
     from pip._vendor.rich import print
+    from pip._vendor.rich.table import Table
 
     grid = Table("Markup", "Result", padding=(0, 1))
 

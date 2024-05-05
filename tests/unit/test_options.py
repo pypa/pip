@@ -2,7 +2,7 @@ import os
 from contextlib import contextmanager
 from optparse import Values
 from tempfile import NamedTemporaryFile
-from typing import Any, Dict, Iterator, List, Tuple, Union, cast
+from typing import Any, Dict, Iterator, List, Tuple, Type, Union, cast
 
 import pytest
 
@@ -12,7 +12,6 @@ from pip._internal.commands import create_command
 from pip._internal.commands.configuration import ConfigurationCommand
 from pip._internal.exceptions import PipError
 from tests.lib.options_helpers import AddFakeCommandMixin
-from tests.lib.path import Path
 
 
 @contextmanager
@@ -33,7 +32,7 @@ def assert_option_error(
     assert expected in stderr
 
 
-def assert_is_default_cache_dir(value: Path) -> None:
+def assert_is_default_cache_dir(value: str) -> None:
     # This path looks different on different platforms, but the path always
     # has the substring "pip".
     assert "pip" in value
@@ -196,7 +195,6 @@ class TestOptionPrecedence(AddFakeCommandMixin):
 
 
 class TestUsePEP517Options:
-
     """
     Test options related to using --use-pep517.
     """
@@ -455,7 +453,6 @@ class TestCountOptions(AddFakeCommandMixin):
 
 
 class TestGeneralOptions(AddFakeCommandMixin):
-
     # the reason to specifically test general options is due to the
     # extra processing they receive, and the number of bugs we've had
 
@@ -607,7 +604,7 @@ class TestOptionsConfigFiles:
         self,
         monkeypatch: pytest.MonkeyPatch,
         args: List[str],
-        expect: Union[None, str, PipError],
+        expect: Union[None, str, Type[PipError]],
     ) -> None:
         cmd = cast(ConfigurationCommand, create_command("config"))
         # Replace a handler with a no-op to avoid side effects

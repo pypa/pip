@@ -1,0 +1,1 @@
+Further improve resolution performance of large dependency trees, by caching hash calculations.

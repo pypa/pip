@@ -45,7 +45,7 @@ class Tree(JupyterMixin):
         style: Optional[StyleType] = None,
         guide_style: Optional[StyleType] = None,
         expanded: bool = True,
-        highlight: bool = False,
+        highlight: Optional[bool] = False,
     ) -> "Tree":
         """Add a child tree.
 
@@ -72,7 +72,6 @@ class Tree(JupyterMixin):
     def __rich_console__(
         self, console: "Console", options: "ConsoleOptions"
     ) -> "RenderResult":
-
         stack: List[Iterator[Tuple[bool, Tree]]] = []
         pop = stack.pop
         push = stack.append
@@ -136,6 +135,7 @@ class Tree(JupyterMixin):
                     highlight=self.highlight,
                     height=None,
                 ),
+                pad=options.justify is not None,
             )
 
             if not (depth == 0 and self.hide_root):
@@ -194,7 +194,6 @@ class Tree(JupyterMixin):
 
 
 if __name__ == "__main__":  # pragma: no cover
-
     from pip._vendor.rich.console import Group
     from pip._vendor.rich.markdown import Markdown
     from pip._vendor.rich.panel import Panel
@@ -214,9 +213,9 @@ if __name__ == "__main__":  # pragma: no cover
 
     code = """\
 class Segment(NamedTuple):
-    text: str = ""    
-    style: Optional[Style] = None    
-    is_control: bool = False    
+    text: str = ""
+    style: Optional[Style] = None
+    is_control: bool = False
 """
     syntax = Syntax(code, "python", theme="monokai", line_numbers=True)
 
@@ -224,7 +223,7 @@ class Segment(NamedTuple):
         """\
 ### example.md
 > Hello, World!
-> 
+>
 > Markdown _all_ the things
 """
     )
@@ -246,4 +245,5 @@ class Segment(NamedTuple):
     containers_node.add(Group("📄 [b magenta]Table", table))
 
     console = Console()
+
     console.print(root)

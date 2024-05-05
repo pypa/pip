@@ -228,14 +228,14 @@ class PromptBase(Generic[PromptType]):
         """
         value = value.strip()
         try:
-            return_value = self.response_type(value)
+            return_value: PromptType = self.response_type(value)
         except ValueError:
             raise InvalidResponse(self.validate_error_message)
 
         if self.choices is not None and not self.check_choice(value):
             raise InvalidResponse(self.illegal_choice_message)
 
-        return return_value  # type: ignore
+        return return_value
 
     def on_validate_error(self, value: str, error: InvalidResponse) -> None:
         """Called to handle validation error.
@@ -307,7 +307,7 @@ class IntPrompt(PromptBase[int]):
     validate_error_message = "[prompt.invalid]Please enter a valid integer number"
 
 
-class FloatPrompt(PromptBase[int]):
+class FloatPrompt(PromptBase[float]):
     """A prompt that returns a float.
 
     Example:
@@ -346,7 +346,6 @@ class Confirm(PromptBase[bool]):
 
 
 if __name__ == "__main__":  # pragma: no cover
-
     from pip._vendor.rich import print
 
     if Confirm.ask("Run [i]prompt[/i] tests?", default=True):

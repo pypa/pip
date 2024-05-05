@@ -6,21 +6,28 @@ subpackage and, thus, should not depend on them.
 """
 
 import configparser
+import contextlib
+import locale
+import logging
+import pathlib
 import re
+import sys
 from itertools import chain, groupby, repeat
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Dict, Iterator, List, Literal, Optional, Union
 
-from pip._vendor.requests.models import Request, Response
 from pip._vendor.rich.console import Console, ConsoleOptions, RenderResult
 from pip._vendor.rich.markup import escape
 from pip._vendor.rich.text import Text
 
 if TYPE_CHECKING:
     from hashlib import _Hash
-    from typing import Literal
+
+    from pip._vendor.requests.models import Request, Response
 
     from pip._internal.metadata import BaseDistribution
     from pip._internal.req.req_install import InstallRequirement
+
+logger = logging.getLogger(__name__)
 
 
 #
@@ -177,10 +184,6 @@ class InstallationError(PipError):
     """General exception during installation"""
 
 
-class UninstallationError(PipError):
-    """General exception during uninstallation"""
-
-
 class MissingPyProjectBuildRequires(DiagnosticPipError):
     """Raised when pyproject.toml has `build-system`, but no `build-system.requires`."""
 
@@ -240,10 +243,7 @@ class NoneMetadataError(PipError):
     def __str__(self) -> str:
         # Use `dist` in the error message because its stringification
         # includes more information, like the version and location.
-        return "None {} metadata found for distribution: {}".format(
-            self.metadata_name,
-            self.dist,
-        )
+        return f"None {self.metadata_name} metadata found for distribution: {self.dist}"
 
 
 class UserInstallationInvalid(InstallationError):
@@ -288,7 +288,10 @@ class NetworkConnectionError(PipError):
     """HTTP connection error"""
 
     def __init__(
-        self, error_msg: str, response: Response = None, request: Request = None
+        self,
+        error_msg: str,
+        response: Optional["Response"] = None,
+        request: Optional["Request"] = None,
     ) -> None:
         """
         Initialize NetworkConnectionError with  `request` and `response`
@@ -332,8 +335,8 @@ class MetadataInconsistent(InstallationError):
     """Built metadata contains inconsistent information.
 
     This is raised when the metadata contains values (e.g. name and version)
-    that do not match the information previously obtained from sdist filename
-    or user-supplied ``#egg=`` value.
+    that do not match the information previously obtained from sdist filename,
+    user-supplied ``#egg=`` value, or an install requirement name.
     """
 
     def __init__(
@@ -345,25 +348,21 @@ class MetadataInconsistent(InstallationError):
         self.m_val = m_val
 
     def __str__(self) -> str:
-        template = (
-            "Requested {} has inconsistent {}: "
-            "filename has {!r}, but metadata has {!r}"
+        return (
+            f"Requested {self.ireq} has inconsistent {self.field}: "
+            f"expected {self.f_val!r}, but metadata has {self.m_val!r}"
         )
-        return template.format(self.ireq, self.field, self.f_val, self.m_val)
 
 
-class LegacyInstallFailure(DiagnosticPipError):
-    """Error occurred while executing `setup.py install`"""
+class MetadataInvalid(InstallationError):
+    """Metadata is invalid."""
 
-    reference = "legacy-install-failure"
+    def __init__(self, ireq: "InstallRequirement", error: str) -> None:
+        self.ireq = ireq
+        self.error = error
 
-    def __init__(self, package_details: str) -> None:
-        super().__init__(
-            message="Encountered error while trying to install package.",
-            context=package_details,
-            hint_stmt="See above for output from the failure.",
-            note_stmt="This is an issue with the package mentioned above, not pip.",
-        )
+    def __str__(self) -> str:
+        return f"Requested {self.ireq} has invalid metadata: {self.error}"
 
 
 class InstallationSubprocessError(DiagnosticPipError, InstallationError):
@@ -549,7 +548,7 @@ class HashMissing(HashError):
             # so the output can be directly copied into the requirements file.
             package = (
                 self.req.original_link
-                if self.req.original_link
+                if self.req.is_direct
                 # In case someone feeds something downright stupid
                 # to InstallRequirement's constructor.
                 else getattr(self.req, "req", None)
@@ -599,7 +598,7 @@ class HashMismatch(HashError):
         self.gots = gots
 
     def body(self) -> str:
-        return "    {}:\n{}".format(self._requirement_name(), self._hash_comparison())
+        return f"    {self._requirement_name()}:\n{self._hash_comparison()}"
 
     def _hash_comparison(self) -> str:
         """
@@ -621,11 +620,9 @@ class HashMismatch(HashError):
         lines: List[str] = []
         for hash_name, expecteds in self.allowed.items():
             prefix = hash_then_or(hash_name)
-            lines.extend(
-                ("        Expected {} {}".format(next(prefix), e)) for e in expecteds
-            )
+            lines.extend((f"        Expected {next(prefix)} {e}") for e in expecteds)
             lines.append(
-                "             Got        {}\n".format(self.gots[hash_name].hexdigest())
+                f"             Got        {self.gots[hash_name].hexdigest()}\n"
             )
         return "\n".join(lines)
 
@@ -656,3 +653,125 @@ class ConfigurationFileCouldNotBeLoaded(ConfigurationError):
             assert self.error is not None
             message_part = f".\n{self.error}\n"
         return f"Configuration file {self.reason}{message_part}"
+
+
+_DEFAULT_EXTERNALLY_MANAGED_ERROR = f"""\
+The Python environment under {sys.prefix} is managed externally, and may not be
+manipulated by the user. Please use specific tooling from the distributor of
+the Python installation to interact with this environment instead.
+"""
+
+
+class ExternallyManagedEnvironment(DiagnosticPipError):
+    """The current environment is externally managed.
+
+    This is raised when the current environment is externally managed, as
+    defined by `PEP 668`_. The ``EXTERNALLY-MANAGED`` configuration is checked
+    and displayed when the error is bubbled up to the user.
+
+    :param error: The error message read from ``EXTERNALLY-MANAGED``.
+    """
+
+    reference = "externally-managed-environment"
+
+    def __init__(self, error: Optional[str]) -> None:
+        if error is None:
+            context = Text(_DEFAULT_EXTERNALLY_MANAGED_ERROR)
+        else:
+            context = Text(error)
+        super().__init__(
+            message="This environment is externally managed",
+            context=context,
+            note_stmt=(
+                "If you believe this is a mistake, please contact your "
+                "Python installation or OS distribution provider. "
+                "You can override this, at the risk of breaking your Python "
+                "installation or OS, by passing --break-system-packages."
+            ),
+            hint_stmt=Text("See PEP 668 for the detailed specification."),
+        )
+
+    @staticmethod
+    def _iter_externally_managed_error_keys() -> Iterator[str]:
+        # LC_MESSAGES is in POSIX, but not the C standard. The most common
+        # platform that does not implement this category is Windows, where
+        # using other categories for console message localization is equally
+        # unreliable, so we fall back to the locale-less vendor message. This
+        # can always be re-evaluated when a vendor proposes a new alternative.
+        try:
+            category = locale.LC_MESSAGES
+        except AttributeError:
+            lang: Optional[str] = None
+        else:
+            lang, _ = locale.getlocale(category)
+        if lang is not None:
+            yield f"Error-{lang}"
+            for sep in ("-", "_"):
+                before, found, _ = lang.partition(sep)
+                if not found:
+                    continue
+                yield f"Error-{before}"
+        yield "Error"
+
+    @classmethod
+    def from_config(
+        cls,
+        config: Union[pathlib.Path, str],
+    ) -> "ExternallyManagedEnvironment":
+        parser = configparser.ConfigParser(interpolation=None)
+        try:
+            parser.read(config, encoding="utf-8")
+            section = parser["externally-managed"]
+            for key in cls._iter_externally_managed_error_keys():
+                with contextlib.suppress(KeyError):
+                    return cls(section[key])
+        except KeyError:
+            pass
+        except (OSError, UnicodeDecodeError, configparser.ParsingError):
+            from pip._internal.utils._log import VERBOSE
+
+            exc_info = logger.isEnabledFor(VERBOSE)
+            logger.warning("Failed to read %s", config, exc_info=exc_info)
+        return cls(None)
+
+
+class UninstallMissingRecord(DiagnosticPipError):
+    reference = "uninstall-no-record-file"
+
+    def __init__(self, *, distribution: "BaseDistribution") -> None:
+        installer = distribution.installer
+        if not installer or installer == "pip":
+            dep = f"{distribution.raw_name}=={distribution.version}"
+            hint = Text.assemble(
+                "You might be able to recover from this via: ",
+                (f"pip install --force-reinstall --no-deps {dep}", "green"),
+            )
+        else:
+            hint = Text(
+                f"The package was installed by {installer}. "
+                "You should check if it can uninstall the package."
+            )
+
+        super().__init__(
+            message=Text(f"Cannot uninstall {distribution}"),
+            context=(
+                "The package's contents are unknown: "
+                f"no RECORD file was found for {distribution.raw_name}."
+            ),
+            hint_stmt=hint,
+        )
+
+
+class LegacyDistutilsInstall(DiagnosticPipError):
+    reference = "uninstall-distutils-installed-package"
+
+    def __init__(self, *, distribution: "BaseDistribution") -> None:
+        super().__init__(
+            message=Text(f"Cannot uninstall {distribution}"),
+            context=(
+                "It is a distutils installed project and thus we cannot accurately "
+                "determine which files belong to it which would lead to only a partial "
+                "uninstall."
+            ),
+            hint_stmt=None,
+        )

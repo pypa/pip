@@ -1,0 +1,28 @@
+name: Update documentation redirects
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: 0 0 * * MON # Run every Monday at 00:00 UTC
+
+env:
+  FORCE_COLOR: "1"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  update-rtd-redirects:
+    runs-on: ubuntu-latest
+    environment: RTD Deploys
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install httpx pyyaml rich
+      - run: python tools/update-rtd-redirects.py
+        env:
+          RTD_API_TOKEN: ${{ secrets.RTD_API_TOKEN }}

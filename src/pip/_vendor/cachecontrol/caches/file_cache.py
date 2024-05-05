@@ -1,22 +1,24 @@
 # SPDX-FileCopyrightText: 2015 Eric Larson
 #
 # SPDX-License-Identifier: Apache-2.0
+from __future__ import annotations
 
 import hashlib
 import os
 from textwrap import dedent
+from typing import IO, TYPE_CHECKING, Union
+from pathlib import Path
 
-from ..cache import BaseCache
-from ..controller import CacheController
+from pip._vendor.cachecontrol.cache import BaseCache, SeparateBodyBaseCache
+from pip._vendor.cachecontrol.controller import CacheController
 
-try:
-    FileNotFoundError
-except NameError:
-    # py2.X
-    FileNotFoundError = (IOError, OSError)
+if TYPE_CHECKING:
+    from datetime import datetime
+
+    from filelock import BaseFileLock
 
 
-def _secure_open_write(filename, fmode):
+def _secure_open_write(filename: str, fmode: int) -> IO[bytes]:
     # We only want to write to this file, so open it in write only mode
     flags = os.O_WRONLY
 
@@ -39,7 +41,7 @@ def _secure_open_write(filename, fmode):
     # there
     try:
         os.remove(filename)
-    except (IOError, OSError):
+    except OSError:
         # The file must not exist already, so we can just skip ahead to opening
         pass
 
@@ -57,40 +59,31 @@ def _secure_open_write(filename, fmode):
         raise
 
 
-class FileCache(BaseCache):
+class _FileCacheMixin:
+    """Shared implementation for both FileCache variants."""
 
     def __init__(
         self,
-        directory,
-        forever=False,
-        filemode=0o0600,
-        dirmode=0o0700,
-        use_dir_lock=None,
-        lock_class=None,
-    ):
-
-        if use_dir_lock is not None and lock_class is not None:
-            raise ValueError("Cannot use use_dir_lock and lock_class together")
-
+        directory: str | Path,
+        forever: bool = False,
+        filemode: int = 0o0600,
+        dirmode: int = 0o0700,
+        lock_class: type[BaseFileLock] | None = None,
+    ) -> None:
         try:
-            from lockfile import LockFile
-            from lockfile.mkdirlockfile import MkdirLockFile
+            if lock_class is None:
+                from filelock import FileLock
+
+                lock_class = FileLock
         except ImportError:
             notice = dedent(
                 """
             NOTE: In order to use the FileCache you must have
-            lockfile installed. You can install it via pip:
-              pip install lockfile
+            filelock installed. You can install it via pip:
+              pip install cachecontrol[filecache]
             """
             )
             raise ImportError(notice)
-
-        else:
-            if use_dir_lock:
-                lock_class = MkdirLockFile
-
-            elif lock_class is None:
-                lock_class = LockFile
 
         self.directory = directory
         self.forever = forever
@@ -99,17 +92,17 @@ class FileCache(BaseCache):
         self.lock_class = lock_class
 
     @staticmethod
-    def encode(x):
+    def encode(x: str) -> str:
         return hashlib.sha224(x.encode()).hexdigest()
 
-    def _fn(self, name):
+    def _fn(self, name: str) -> str:
         # NOTE: This method should not change as some may depend on it.
         #       See: https://github.com/ionrock/cachecontrol/issues/63
         hashed = self.encode(name)
         parts = list(hashed[:5]) + [hashed]
         return os.path.join(self.directory, *parts)
 
-    def get(self, key):
+    def get(self, key: str) -> bytes | None:
         name = self._fn(key)
         try:
             with open(name, "rb") as fh:
@@ -118,22 +111,29 @@ class FileCache(BaseCache):
         except FileNotFoundError:
             return None
 
-    def set(self, key, value, expires=None):
+    def set(
+        self, key: str, value: bytes, expires: int | datetime | None = None
+    ) -> None:
         name = self._fn(key)
+        self._write(name, value)
 
+    def _write(self, path: str, data: bytes) -> None:
+        """
+        Safely write the data to the given path.
+        """
         # Make sure the directory exists
         try:
-            os.makedirs(os.path.dirname(name), self.dirmode)
-        except (IOError, OSError):
+            os.makedirs(os.path.dirname(path), self.dirmode)
+        except OSError:
             pass
 
-        with self.lock_class(name) as lock:
+        with self.lock_class(path + ".lock"):
             # Write our actual file
-            with _secure_open_write(lock.path, self.filemode) as fh:
-                fh.write(value)
+            with _secure_open_write(path, self.filemode) as fh:
+                fh.write(data)
 
-    def delete(self, key):
-        name = self._fn(key)
+    def _delete(self, key: str, suffix: str) -> None:
+        name = self._fn(key) + suffix
         if not self.forever:
             try:
                 os.remove(name)
@@ -141,7 +141,39 @@ class FileCache(BaseCache):
                 pass
 
 
-def url_to_file_path(url, filecache):
+class FileCache(_FileCacheMixin, BaseCache):
+    """
+    Traditional FileCache: body is stored in memory, so not suitable for large
+    downloads.
+    """
+
+    def delete(self, key: str) -> None:
+        self._delete(key, "")
+
+
+class SeparateBodyFileCache(_FileCacheMixin, SeparateBodyBaseCache):
+    """
+    Memory-efficient FileCache: body is stored in a separate file, reducing
+    peak memory usage.
+    """
+
+    def get_body(self, key: str) -> IO[bytes] | None:
+        name = self._fn(key) + ".body"
+        try:
+            return open(name, "rb")
+        except FileNotFoundError:
+            return None
+
+    def set_body(self, key: str, body: bytes) -> None:
+        name = self._fn(key) + ".body"
+        self._write(name, body)
+
+    def delete(self, key: str) -> None:
+        self._delete(key, "")
+        self._delete(key, ".body")
+
+
+def url_to_file_path(url: str, filecache: FileCache) -> str:
     """Return the file cache path based on the URL.
 
     This does not ensure the file exists!

@@ -1,0 +1,1 @@
+Add codespell pre-commit hook to catch common misspellings.

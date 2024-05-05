@@ -4,6 +4,7 @@ from optparse import Values
 from typing import TYPE_CHECKING, Generator, List, Optional, Sequence, Tuple, cast
 
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.version import Version
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.req_command import IndexGroupCommand
@@ -18,7 +19,6 @@ from pip._internal.utils.compat import stdlib_pkgs
 from pip._internal.utils.misc import tabulate, write_output
 
 if TYPE_CHECKING:
-    from pip._internal.metadata.base import DistributionVersion
 
     class _DistWithLatestInfo(BaseDistribution):
         """Give the distribution object a couple of extra fields.
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
         makes the rest of the code much cleaner.
         """
 
-        latest_version: DistributionVersion
+        latest_version: Version
         latest_filetype: str
 
     _ProcessedDists = Sequence[_DistWithLatestInfo]
@@ -103,7 +103,10 @@ class ListCommand(IndexGroupCommand):
             dest="list_format",
             default="columns",
             choices=("columns", "freeze", "json"),
-            help="Select the output format among: columns (default), freeze, or json",
+            help=(
+                "Select the output format among: columns (default), freeze, or json. "
+                "The 'freeze' format cannot be used with the --outdated option."
+            ),
         )
 
         self.cmd_opts.add_option(
@@ -132,6 +135,10 @@ class ListCommand(IndexGroupCommand):
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, self.cmd_opts)
 
+    def handle_pip_version_check(self, options: Values) -> None:
+        if options.outdated or options.uptodate:
+            super().handle_pip_version_check(options)
+
     def _build_package_finder(
         self, options: Values, session: PipSession
     ) -> PackageFinder:
@@ -149,12 +156,16 @@ class ListCommand(IndexGroupCommand):
         return PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=selection_prefs,
-            use_deprecated_html5lib="html5lib" in options.deprecated_features_enabled,
         )
 
     def run(self, options: Values, args: List[str]) -> int:
         if options.outdated and options.uptodate:
             raise CommandError("Options --outdated and --uptodate cannot be combined.")
+
+        if options.outdated and options.list_format == "freeze":
+            raise CommandError(
+                "List format 'freeze' cannot be used with the --outdated option."
+            )
 
         cmdoptions.check_list_path_option(options)
 
@@ -290,7 +301,7 @@ class ListCommand(IndexGroupCommand):
 
         # Create and add a separator.
         if len(data) > 0:
-            pkg_strings.insert(1, " ".join(map(lambda x: "-" * x, sizes)))
+            pkg_strings.insert(1, " ".join("-" * x for x in sizes))
 
         for val in pkg_strings:
             write_output(val)
@@ -322,7 +333,7 @@ def format_for_columns(
     for proj in pkgs:
         # if we're working on the 'outdated' list, separate out the
         # latest_version and type
-        row = [proj.raw_name, str(proj.version)]
+        row = [proj.raw_name, proj.raw_version]
 
         if running_outdated:
             row.append(str(proj.latest_version))

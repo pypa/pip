@@ -4,7 +4,7 @@
 
     Formatter for groff output.
 
-    :copyright: Copyright 2006-2021 by the Pygments team, see AUTHORS.
+    :copyright: Copyright 2006-2023 by the Pygments team, see AUTHORS.
     :license: BSD, see LICENSE for details.
 """
 
@@ -84,7 +84,7 @@ class GroffFormatter(Formatter):
             if ndef['color'] is not None:
                 colors.add(ndef['color'])
 
-        for color in colors:
+        for color in sorted(colors):
             outfile.write('.defcolor ' + color + ' rgb #' + color + '\n')
 
 
@@ -144,6 +144,8 @@ class GroffFormatter(Formatter):
             self._write_lineno(outfile)
 
         for ttype, value in tokensource:
+            while ttype not in self.styles:
+                ttype = ttype.parent
             start, end = self.styles[ttype]
 
             for line in value.splitlines(True):

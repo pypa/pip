@@ -1,6 +1,8 @@
 import logging
 import os
+import time
 from optparse import Values
+from pathlib import Path
 from typing import Callable, Iterator, List, NoReturn, Optional
 from unittest.mock import Mock, patch
 
@@ -11,17 +13,15 @@ from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.utils import temp_dir
 from pip._internal.utils.logging import BrokenStdoutLoggingError
 from pip._internal.utils.temp_dir import TempDirectory
-from tests.lib.path import Path
 
 
 @pytest.fixture
-def fixed_time(utc: None) -> Iterator[None]:
-    with patch("time.time", lambda: 1547704837.040001):
+def fixed_time() -> Iterator[None]:
+    with patch("time.time", lambda: 1547704837.040001 + time.timezone):
         yield
 
 
 class FakeCommand(Command):
-
     _name = "fake"
 
     def __init__(
@@ -106,7 +106,7 @@ def test_handle_pip_version_check_called(mock_handle_version_check: Mock) -> Non
 def test_log_command_success(fixed_time: None, tmpdir: Path) -> None:
     """Test the --log option logs when command succeeds."""
     cmd = FakeCommand()
-    log_path = tmpdir.joinpath("log")
+    log_path = os.path.join(tmpdir, "log")
     cmd.main(["fake", "--log", log_path])
     with open(log_path) as f:
         assert f.read().rstrip() == "2019-01-17T06:00:37,040 fake"
@@ -115,7 +115,7 @@ def test_log_command_success(fixed_time: None, tmpdir: Path) -> None:
 def test_log_command_error(fixed_time: None, tmpdir: Path) -> None:
     """Test the --log option logs when command fails."""
     cmd = FakeCommand(error=True)
-    log_path = tmpdir.joinpath("log")
+    log_path = os.path.join(tmpdir, "log")
     cmd.main(["fake", "--log", log_path])
     with open(log_path) as f:
         assert f.read().startswith("2019-01-17T06:00:37,040 fake")
@@ -124,7 +124,7 @@ def test_log_command_error(fixed_time: None, tmpdir: Path) -> None:
 def test_log_file_command_error(fixed_time: None, tmpdir: Path) -> None:
     """Test the --log-file option logs (when there's an error)."""
     cmd = FakeCommand(error=True)
-    log_file_path = tmpdir.joinpath("log_file")
+    log_file_path = os.path.join(tmpdir, "log_file")
     cmd.main(["fake", "--log-file", log_file_path])
     with open(log_file_path) as f:
         assert f.read().startswith("2019-01-17T06:00:37,040 fake")
@@ -135,7 +135,7 @@ def test_log_unicode_messages(fixed_time: None, tmpdir: Path) -> None:
     don't break logging.
     """
     cmd = FakeCommandWithUnicode()
-    log_path = tmpdir.joinpath("log")
+    log_path = os.path.join(tmpdir, "log")
     cmd.main(["fake_unicode", "--log", log_path])
 
 
@@ -151,7 +151,7 @@ def test_base_command_provides_tempdir_helpers() -> None:
 
     c = Command("fake", "fake")
     # https://github.com/python/mypy/issues/2427
-    c.run = Mock(side_effect=assert_helpers_set)  # type: ignore[assignment]
+    c.run = Mock(side_effect=assert_helpers_set)  # type: ignore[method-assign]
     assert c.main(["fake"]) == SUCCESS
     c.run.assert_called_once()
 
@@ -176,7 +176,7 @@ def test_base_command_global_tempdir_cleanup(kind: str, exists: bool) -> None:
 
     c = Command("fake", "fake")
     # https://github.com/python/mypy/issues/2427
-    c.run = Mock(side_effect=create_temp_dirs)  # type: ignore[assignment]
+    c.run = Mock(side_effect=create_temp_dirs)  # type: ignore[method-assign]
     assert c.main(["fake"]) == SUCCESS
     c.run.assert_called_once()
     assert os.path.exists(Holder.value) == exists
@@ -200,6 +200,6 @@ def test_base_command_local_tempdir_cleanup(kind: str, exists: bool) -> None:
 
     c = Command("fake", "fake")
     # https://github.com/python/mypy/issues/2427
-    c.run = Mock(side_effect=create_temp_dirs)  # type: ignore[assignment]
+    c.run = Mock(side_effect=create_temp_dirs)  # type: ignore[method-assign]
     assert c.main(["fake"]) == SUCCESS
     c.run.assert_called_once()

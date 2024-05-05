@@ -51,7 +51,6 @@ def make_test_card() -> Table:
         pad_edge=False,
     )
     color_table.add_row(
-        # "[bold yellow]256[/] colors or [bold green]16.7 million[/] colors [blue](if supported by your terminal)[/].",
         (
             "✓ [bold green]4-bit color[/]\n"
             "✓ [bold blue]8-bit color[/]\n"
@@ -208,7 +207,6 @@ Supports much of the *markdown* __syntax__!
 
 
 if __name__ == "__main__":  # pragma: no cover
-
     console = Console(
         file=io.StringIO(),
         force_terminal=True,
@@ -226,10 +224,8 @@ if __name__ == "__main__":  # pragma: no cover
     console.print(test_card)
     taken = round((process_time() - start) * 1000.0, 1)
 
-    text = console.file.getvalue()
-    # https://bugs.python.org/issue37871
-    for line in text.splitlines(True):
-        print(line, end="")
+    c = Console(record=True)
+    c.print(test_card)
 
     print(f"rendered in {pre_cache_taken}ms (cold cache)")
     print(f"rendered in {taken}ms (warm cache)")
@@ -243,22 +239,19 @@ if __name__ == "__main__":  # pragma: no cover
     sponsor_message.add_column(no_wrap=True)
 
     sponsor_message.add_row(
-        "Buy devs a :coffee:",
-        "[u blue link=https://ko-fi.com/textualize]https://ko-fi.com/textualize",
+        "Textualize",
+        "[u blue link=https://github.com/textualize]https://github.com/textualize",
     )
     sponsor_message.add_row(
         "Twitter",
         "[u blue link=https://twitter.com/willmcgugan]https://twitter.com/willmcgugan",
-    )
-    sponsor_message.add_row(
-        "Blog", "[u blue link=https://www.willmcgugan.com]https://www.willmcgugan.com"
     )
 
     intro_message = Text.from_markup(
         """\
 We hope you enjoy using Rich!
 
-Rich is maintained with :heart: by [link=https://www.textualize.io]Textualize.io[/]
+Rich is maintained with [red]:heart:[/] by [link=https://www.textualize.io]Textualize.io[/]
 
 - Will McGugan"""
     )

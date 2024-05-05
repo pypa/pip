@@ -1,12 +1,16 @@
+cffi @ https://github.com/python-cffi/cffi/archive/refs/heads/main.zip ; python_version > "3.12" # Temporary workaround for Python 3.13 until next CFFI release
 cryptography
 freezegun
+installer
 pytest
 pytest-cov
 pytest-rerunfailures
 pytest-xdist
 scripttest
 setuptools
-virtualenv < 20.0
+virtualenv < 20.0 ; python_version < '3.10'
+virtualenv >= 20.0 ; python_version >= '3.10'
 werkzeug
 wheel
 tomli-w
+proxy.py

@@ -118,7 +118,15 @@ class Live(JupyterMixin, RenderHook):
             self._enable_redirect_io()
             self.console.push_render_hook(self)
             if refresh:
-                self.refresh()
+                try:
+                    self.refresh()
+                except Exception:
+                    # If refresh fails, we want to stop the redirection of sys.stderr,
+                    # so the error stacktrace is properly displayed in the terminal.
+                    # (or, if the code that calls Rich captures the exception and wants to display something,
+                    # let this be displayed in the terminal).
+                    self.stop()
+                    raise
             if self.auto_refresh:
                 self._refresh_thread = _RefreshThread(self, self.refresh_per_second)
                 self._refresh_thread.start()
@@ -202,6 +210,8 @@ class Live(JupyterMixin, RenderHook):
             renderable (RenderableType): New renderable to use.
             refresh (bool, optional): Refresh the display. Defaults to False.
         """
+        if isinstance(renderable, str):
+            renderable = self.console.render_str(renderable)
         with self._lock:
             self._renderable = renderable
             if refresh:
@@ -352,7 +362,7 @@ if __name__ == "__main__":  # pragma: no cover
                 table.add_column("Destination Currency")
                 table.add_column("Exchange Rate")
 
-                for ((source, dest), exchange_rate) in exchange_rate_dict.items():
+                for (source, dest), exchange_rate in exchange_rate_dict.items():
                     table.add_row(
                         source,
                         dest,

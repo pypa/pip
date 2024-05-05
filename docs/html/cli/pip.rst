@@ -74,9 +74,8 @@ when decision is needed.
 *(a)bort*
     Abort pip and return non-zero exit status.
 
-
-Build System Interface
-======================
+.. _`2-build-system-interface`:
+.. rubric:: Build System Interface
 
 This is now covered in :doc:`../reference/build-system/index`.
 

@@ -4,7 +4,7 @@
 
     Base lexer classes.
 
-    :copyright: Copyright 2006-2021 by the Pygments team, see AUTHORS.
+    :copyright: Copyright 2006-2023 by the Pygments team, see AUTHORS.
     :license: BSD, see LICENSE for details.
 """
 
@@ -14,15 +14,16 @@ import time
 
 from pip._vendor.pygments.filter import apply_filters, Filter
 from pip._vendor.pygments.filters import get_filter_by_name
-from pip._vendor.pygments.token import Error, Text, Other, _TokenType
+from pip._vendor.pygments.token import Error, Text, Other, Whitespace, _TokenType
 from pip._vendor.pygments.util import get_bool_opt, get_int_opt, get_list_opt, \
     make_analysator, Future, guess_decode
 from pip._vendor.pygments.regexopt import regex_opt
 
 __all__ = ['Lexer', 'RegexLexer', 'ExtendedRegexLexer', 'DelegatingLexer',
            'LexerContext', 'include', 'inherit', 'bygroups', 'using', 'this',
-           'default', 'words']
+           'default', 'words', 'line_re']
 
+line_re = re.compile('.*?\n')
 
 _encoding_map = [(b'\xef\xbb\xbf', 'utf-8'),
                  (b'\xff\xfe\0\0', 'utf-32'),
@@ -49,7 +50,36 @@ class Lexer(metaclass=LexerMeta):
     """
     Lexer for a specific language.
 
-    Basic options recognized:
+    See also :doc:`lexerdevelopment`, a high-level guide to writing
+    lexers.
+
+    Lexer classes have attributes used for choosing the most appropriate
+    lexer based on various criteria.
+
+    .. autoattribute:: name
+       :no-value:
+    .. autoattribute:: aliases
+       :no-value:
+    .. autoattribute:: filenames
+       :no-value:
+    .. autoattribute:: alias_filenames
+    .. autoattribute:: mimetypes
+       :no-value:
+    .. autoattribute:: priority
+
+    Lexers included in Pygments should have an additional attribute:
+
+    .. autoattribute:: url
+       :no-value:
+
+    Lexers included in Pygments may have additional attributes:
+
+    .. autoattribute:: _example
+       :no-value:
+
+    You can pass options to the constructor. The basic options recognized
+    by all lexers and processed by the base `Lexer` class are:
+
     ``stripnl``
         Strip leading and trailing newlines from the input (default: True).
     ``stripall``
@@ -73,25 +103,59 @@ class Lexer(metaclass=LexerMeta):
         Overrides the ``encoding`` if given.
     """
 
-    #: Name of the lexer
+    #: Full name of the lexer, in human-readable form
     name = None
 
-    #: Shortcuts for the lexer
+    #: A list of short, unique identifiers that can be used to look
+    #: up the lexer from a list, e.g., using `get_lexer_by_name()`.
     aliases = []
 
-    #: File name globs
+    #: A list of `fnmatch` patterns that match filenames which contain
+    #: content for this lexer. The patterns in this list should be unique among
+    #: all lexers.
     filenames = []
 
-    #: Secondary file name globs
+    #: A list of `fnmatch` patterns that match filenames which may or may not
+    #: contain content for this lexer. This list is used by the
+    #: :func:`.guess_lexer_for_filename()` function, to determine which lexers
+    #: are then included in guessing the correct one. That means that
+    #: e.g. every lexer for HTML and a template language should include
+    #: ``\*.html`` in this list.
     alias_filenames = []
 
-    #: MIME types
+    #: A list of MIME types for content that can be lexed with this lexer.
     mimetypes = []
 
     #: Priority, should multiple lexers match and no content is provided
     priority = 0
 
+    #: URL of the language specification/definition. Used in the Pygments
+    #: documentation.
+    url = None
+
+    #: Example file name. Relative to the ``tests/examplefiles`` directory.
+    #: This is used by the documentation generator to show an example.
+    _example = None
+
     def __init__(self, **options):
+        """
+        This constructor takes arbitrary options as keyword arguments.
+        Every subclass must first process its own options and then call
+        the `Lexer` constructor, since it processes the basic
+        options like `stripnl`.
+
+        An example looks like this:
+
+        .. sourcecode:: python
+
+           def __init__(self, **options):
+               self.compress = options.get('compress', '')
+               Lexer.__init__(self, **options)
+
+        As these options must all be specifiable as strings (due to the
+        command line usage), there are various utility functions
+        available to help with that, see `Utilities`_.
+        """
         self.options = options
         self.stripnl = get_bool_opt(options, 'stripnl', True)
         self.stripall = get_bool_opt(options, 'stripall', False)
@@ -120,10 +184,13 @@ class Lexer(metaclass=LexerMeta):
 
     def analyse_text(text):
         """
-        Has to return a float between ``0`` and ``1`` that indicates
-        if a lexer wants to highlight this text. Used by ``guess_lexer``.
-        If this method returns ``0`` it won't highlight it in any case, if
-        it returns ``1`` highlighting with this lexer is guaranteed.
+        A static method which is called for lexer guessing.
+
+        It should analyse the text and return a float in the range
+        from ``0.0`` to ``1.0``.  If it returns ``0.0``, the lexer
+        will not be selected as the most probable one, if it returns
+        ``1.0``, it will be selected immediately.  This is used by
+        `guess_lexer`.
 
         The `LexerMeta` metaclass automatically wraps this function so
         that it works like a static method (no ``self`` or ``cls``
@@ -132,15 +199,9 @@ class Lexer(metaclass=LexerMeta):
         it's the same as if the return values was ``0.0``.
         """
 
-    def get_tokens(self, text, unfiltered=False):
-        """
-        Return an iterable of (tokentype, value) pairs generated from
-        `text`. If `unfiltered` is set to `True`, the filtering mechanism
-        is bypassed even if filters are defined.
+    def _preprocess_lexer_input(self, text):
+        """Apply preprocessing such as decoding the input, removing BOM and normalizing newlines."""
 
-        Also preprocess the text, i.e. expand tabs and strip it if
-        wanted and applies registered filters.
-        """
         if not isinstance(text, str):
             if self.encoding == 'guess':
                 text, _ = guess_decode(text)
@@ -183,6 +244,24 @@ class Lexer(metaclass=LexerMeta):
         if self.ensurenl and not text.endswith('\n'):
             text += '\n'
 
+        return text
+
+    def get_tokens(self, text, unfiltered=False):
+        """
+        This method is the basic interface of a lexer. It is called by
+        the `highlight()` function. It must process the text and return an
+        iterable of ``(tokentype, value)`` pairs from `text`.
+
+        Normally, you don't need to override this method. The default
+        implementation processes the options recognized by all lexers
+        (`stripnl`, `stripall` and so on), and then yields all tokens
+        from `get_tokens_unprocessed()`, with the ``index`` dropped.
+
+        If `unfiltered` is set to `True`, the filtering mechanism is
+        bypassed even if filters are defined.
+        """
+        text = self._preprocess_lexer_input(text)
+
         def streamer():
             for _, t, v in self.get_tokens_unprocessed(text):
                 yield t, v
@@ -193,11 +272,12 @@ class Lexer(metaclass=LexerMeta):
 
     def get_tokens_unprocessed(self, text):
         """
-        Return an iterable of (index, tokentype, value) pairs where "index"
-        is the starting position of the token within the input text.
+        This method should process the text and return an iterable of
+        ``(index, tokentype, value)`` tuples where ``index`` is the starting
+        position of the token within the input text.
 
-        In subclasses, implement this method as a generator to
-        maximize effectiveness.
+        It must be overridden by subclasses. It is recommended to
+        implement it as a generator to maximize effectiveness.
         """
         raise NotImplementedError
 
@@ -618,7 +698,7 @@ class RegexLexer(Lexer, metaclass=RegexLexerMeta):
         """
         Split ``text`` into (tokentype, text) pairs.
 
-        ``stack`` is the inital stack (default: ``['root']``)
+        ``stack`` is the initial stack (default: ``['root']``)
         """
         pos = 0
         tokendefs = self._tokens
@@ -667,7 +747,7 @@ class RegexLexer(Lexer, metaclass=RegexLexerMeta):
                         # at EOL, reset state to "root"
                         statestack = ['root']
                         statetokens = tokendefs['root']
-                        yield pos, Text, '\n'
+                        yield pos, Whitespace, '\n'
                         pos += 1
                         continue
                     yield pos, Error, text[pos]
@@ -738,7 +818,7 @@ class ExtendedRegexLexer(RegexLexer):
                         elif isinstance(new_state, int):
                             # see RegexLexer for why this check is made
                             if abs(new_state) >= len(ctx.stack):
-                                del ctx.state[1:]
+                                del ctx.stack[1:]
                             else:
                                 del ctx.stack[new_state:]
                         elif new_state == '#push':
@@ -792,7 +872,7 @@ def do_insertions(insertions, tokens):
     # iterate over the token stream where we want to insert
     # the tokens from the insertion list.
     for i, t, v in tokens:
-        # first iteration. store the postition of first item
+        # first iteration. store the position of first item
         if realpos is None:
             realpos = i
         oldi = 0

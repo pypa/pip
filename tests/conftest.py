@@ -1,17 +1,36 @@
 import compileall
+import contextlib
 import fnmatch
-import io
+import http.server
 import os
 import re
 import shutil
 import subprocess
 import sys
-import time
-from contextlib import ExitStack, contextmanager
-from typing import TYPE_CHECKING, Callable, Dict, Iterable, Iterator, List, Optional
+import threading
+from dataclasses import dataclass
+from enum import Enum
+from hashlib import sha256
+from pathlib import Path
+from textwrap import dedent
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    AnyStr,
+    Callable,
+    ClassVar,
+    ContextManager,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Set,
+    Tuple,
+)
 from unittest.mock import patch
+from zipfile import ZipFile
 
-import py.path
 import pytest
 
 # Config will be available from the public API in pytest >= 7.0.0:
@@ -21,27 +40,27 @@ from _pytest.config import Config
 # Parser will be available from the public API in pytest >= 7.0.0:
 # https://github.com/pytest-dev/pytest/commit/538b5c24999e9ebb4fab43faabc8bcc28737bcdf
 from _pytest.config.argparsing import Parser
-from setuptools.wheel import Wheel
+from installer import install
+from installer.destinations import SchemeDictionaryDestination
+from installer.sources import WheelFile
 
-from pip._internal.cli.main import main as pip_entry_point
+from pip import __file__ as pip_location
 from pip._internal.locations import _USE_SYSCONFIG
 from pip._internal.utils.temp_dir import global_tempdir_manager
-from tests.lib import DATA_DIR, SRC_DIR, PipTestEnvironment, TestData
-from tests.lib.path import Path
-from tests.lib.server import MockServer as _MockServer
-from tests.lib.server import make_mock_server, server_running
+from tests.lib import (
+    DATA_DIR,
+    SRC_DIR,
+    CertFactory,
+    InMemoryPip,
+    PipTestEnvironment,
+    ScriptFactory,
+    TestData,
+)
+from tests.lib.server import MockServer, make_mock_server
 from tests.lib.venv import VirtualEnvironment, VirtualEnvironmentType
 
-from .lib.compat import nullcontext
-
 if TYPE_CHECKING:
-    from typing import Protocol
-
-    from wsgi import WSGIApplication
-else:
-    # TODO: Protocol was introduced in Python 3.8. Remove this branch when
-    # dropping support for Python 3.7.
-    Protocol = object
+    from pip._vendor.typing_extensions import Self
 
 
 def pytest_addoption(parser: Parser) -> None:
@@ -54,8 +73,8 @@ def pytest_addoption(parser: Parser) -> None:
     parser.addoption(
         "--resolver",
         action="store",
-        default="2020-resolver",
-        choices=["2020-resolver", "legacy"],
+        default="resolvelib",
+        choices=["resolvelib", "legacy"],
         help="use given resolver in tests",
     )
     parser.addoption(
@@ -76,9 +95,15 @@ def pytest_addoption(parser: Parser) -> None:
         default=None,
         help="use given proxy in session network tests",
     )
+    parser.addoption(
+        "--use-zipapp",
+        action="store_true",
+        default=False,
+        help="use a zipapp when running pip in tests",
+    )
 
 
-def pytest_collection_modifyitems(config: Config, items: List[pytest.Item]) -> None:
+def pytest_collection_modifyitems(config: Config, items: List[pytest.Function]) -> None:
     for item in items:
         if not hasattr(item, "module"):  # e.g.: DoctestTextfile
             continue
@@ -91,10 +116,6 @@ def pytest_collection_modifyitems(config: Config, items: List[pytest.Item]) -> N
             if item.get_closest_marker("network") is not None:
                 item.add_marker(pytest.mark.flaky(reruns=3, reruns_delay=2))
 
-        if item.get_closest_marker("incompatible_with_test_venv") and config.getoption(
-            "--use-venv"
-        ):
-            item.add_marker(pytest.mark.skip("Incompatible with test venv"))
         if (
             item.get_closest_marker("incompatible_with_venv")
             and sys.prefix != sys.base_prefix
@@ -104,8 +125,7 @@ def pytest_collection_modifyitems(config: Config, items: List[pytest.Item]) -> N
         if item.get_closest_marker("incompatible_with_sysconfig") and _USE_SYSCONFIG:
             item.add_marker(pytest.mark.skip("Incompatible with sysconfig"))
 
-        # "Item" has no attribute "module"
-        module_file = item.module.__file__  # type: ignore[attr-defined]
+        module_file = item.module.__file__
         module_path = os.path.relpath(
             module_file, os.path.commonprefix([__file__, module_file])
         )
@@ -119,6 +139,14 @@ def pytest_collection_modifyitems(config: Config, items: List[pytest.Item]) -> N
             item.add_marker(pytest.mark.integration)
         elif module_root_dir.startswith("unit"):
             item.add_marker(pytest.mark.unit)
+
+            # We don't want to allow using the script resource if this is a
+            # unit test, as unit tests should not need all that heavy lifting
+            if "script" in item.fixturenames:
+                raise RuntimeError(
+                    "Cannot use the ``script`` funcarg in a unit test: "
+                    f"(filename = {module_path}, item = {item})"
+                )
         else:
             raise RuntimeError(f"Unknown test type (filename = {module_path})")
 
@@ -146,38 +174,55 @@ def resolver_variant(request: pytest.FixtureRequest) -> Iterator[str]:
 
 
 @pytest.fixture(scope="session")
-def tmpdir_factory(
-    request: pytest.FixtureRequest, tmpdir_factory: pytest.TempdirFactory
-) -> Iterator[pytest.TempdirFactory]:
+def tmp_path_factory(
+    request: pytest.FixtureRequest, tmp_path_factory: pytest.TempPathFactory
+) -> Iterator[pytest.TempPathFactory]:
     """Modified `tmpdir_factory` session fixture
     that will automatically cleanup after itself.
     """
-    yield tmpdir_factory
+    yield tmp_path_factory
     if not request.config.getoption("--keep-tmpdir"):
         shutil.rmtree(
-            tmpdir_factory.getbasetemp(),
+            tmp_path_factory.getbasetemp(),
             ignore_errors=True,
         )
 
 
+@pytest.fixture(scope="session")
+def tmpdir_factory(tmp_path_factory: pytest.TempPathFactory) -> pytest.TempPathFactory:
+    """Override Pytest's ``tmpdir_factory`` with our pathlib implementation.
+
+    This prevents mis-use of this fixture.
+    """
+    return tmp_path_factory
+
+
 @pytest.fixture
-def tmpdir(request: pytest.FixtureRequest, tmpdir: py.path.local) -> Iterator[Path]:
+def tmp_path(request: pytest.FixtureRequest, tmp_path: Path) -> Iterator[Path]:
     """
     Return a temporary directory path object which is unique to each test
     function invocation, created as a sub directory of the base temporary
-    directory. The returned object is a ``tests.lib.path.Path`` object.
+    directory. The returned object is a ``Path`` object.
 
-    This uses the built-in tmpdir fixture from pytest itself but modified
-    to return our typical path object instead of py.path.local as well as
-    deleting the temporary directories at the end of each test case.
+    This uses the built-in tmp_path fixture from pytest itself, but deletes the
+    temporary directories at the end of each test case.
     """
-    assert tmpdir.isdir()
-    yield Path(str(tmpdir))
+    assert tmp_path.is_dir()
+    yield tmp_path
     # Clear out the temporary directory after the test has finished using it.
     # This should prevent us from needing a multiple gigabyte temporary
     # directory while running the tests.
     if not request.config.getoption("--keep-tmpdir"):
-        tmpdir.remove(ignore_errors=True)
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+@pytest.fixture()
+def tmpdir(tmp_path: Path) -> Path:
+    """Override Pytest's ``tmpdir`` with our pathlib implementation.
+
+    This prevents mis-use of this fixture.
+    """
+    return tmp_path
 
 
 @pytest.fixture(autouse=True)
@@ -273,6 +318,10 @@ def isolate(tmpdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     # Make sure tests don't share a requirements tracker.
     monkeypatch.delenv("PIP_BUILD_TRACKER", False)
 
+    # Make sure color control variables don't affect internal output.
+    monkeypatch.delenv("FORCE_COLOR", False)
+    monkeypatch.delenv("NO_COLOR", False)
+
     # FIXME: Windows...
     os.makedirs(os.path.join(home_dir, ".config", "git"))
     with open(os.path.join(home_dir, ".config", "git", "config"), "wb") as fp:
@@ -287,7 +336,7 @@ def scoped_global_tempdir_manager(request: pytest.FixtureRequest) -> Iterator[No
     temporary directories in the application.
     """
     if "no_auto_tempdir_manager" in request.keywords:
-        ctx = nullcontext
+        ctx: Callable[[], ContextManager[None]] = contextlib.nullcontext
     else:
         ctx = global_tempdir_manager
 
@@ -296,10 +345,10 @@ def scoped_global_tempdir_manager(request: pytest.FixtureRequest) -> Iterator[No
 
 
 @pytest.fixture(scope="session")
-def pip_src(tmpdir_factory: pytest.TempdirFactory) -> Path:
+def pip_src(tmpdir_factory: pytest.TempPathFactory) -> Path:
     def not_code_files_and_folders(path: str, names: List[str]) -> Iterable[str]:
         # In the root directory...
-        if path == SRC_DIR:
+        if os.path.samefile(path, SRC_DIR):
             # ignore all folders except "src"
             folders = {
                 name for name in names if os.path.isdir(os.path.join(path, name))
@@ -317,7 +366,7 @@ def pip_src(tmpdir_factory: pytest.TempdirFactory) -> Path:
             ignored.update(fnmatch.filter(names, pattern))
         return ignored
 
-    pip_src = Path(str(tmpdir_factory.mktemp("pip_src"))).joinpath("pip_src")
+    pip_src = tmpdir_factory.mktemp("pip_src").joinpath("pip_src")
     # Copy over our source tree so that each use is self contained
     shutil.copytree(
         SRC_DIR,
@@ -327,55 +376,104 @@ def pip_src(tmpdir_factory: pytest.TempdirFactory) -> Path:
     return pip_src
 
 
+@pytest.fixture(scope="session")
+def pip_editable_parts(
+    pip_src: Path, tmpdir_factory: pytest.TempPathFactory
+) -> Tuple[Path, ...]:
+    pip_editable = tmpdir_factory.mktemp("pip") / "pip"
+    shutil.copytree(pip_src, pip_editable, symlinks=True)
+    # noxfile.py is Python 3 only
+    assert compileall.compile_dir(
+        pip_editable,
+        quiet=1,
+        rx=re.compile("noxfile.py$"),
+    )
+    pip_self_install_path = tmpdir_factory.mktemp("pip_self_install")
+    subprocess.check_call(
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "--target",
+            pip_self_install_path,
+            "-e",
+            pip_editable,
+        ]
+    )
+    pth = next(pip_self_install_path.glob("*pip*.pth"))
+    dist_info = next(pip_self_install_path.glob("*.dist-info"))
+    return (pth, dist_info)
+
+
 def _common_wheel_editable_install(
-    tmpdir_factory: pytest.TempdirFactory, common_wheels: Path, package: str
+    tmpdir_factory: pytest.TempPathFactory, common_wheels: Path, package: str
 ) -> Path:
     wheel_candidates = list(common_wheels.glob(f"{package}-*.whl"))
     assert len(wheel_candidates) == 1, wheel_candidates
-    install_dir = Path(str(tmpdir_factory.mktemp(package))) / "install"
-    Wheel(wheel_candidates[0]).install_as_egg(install_dir)
-    (install_dir / "EGG-INFO").rename(install_dir / f"{package}.egg-info")
-    assert compileall.compile_dir(str(install_dir), quiet=1)
-    return install_dir
+    install_dir = tmpdir_factory.mktemp(package) / "install"
+    lib_install_dir = install_dir / "lib"
+    bin_install_dir = install_dir / "bin"
+    with WheelFile.open(wheel_candidates[0]) as source:
+        install(
+            source,
+            SchemeDictionaryDestination(
+                {
+                    "purelib": os.fspath(lib_install_dir),
+                    "platlib": os.fspath(lib_install_dir),
+                    "scripts": os.fspath(bin_install_dir),
+                },
+                interpreter=sys.executable,
+                script_kind="posix",
+            ),
+            additional_metadata={},
+        )
+    # The scripts are not necessary for our use cases, and they would be installed with
+    # the wrong interpreter, so remove them.
+    # TODO consider a refactoring by adding a install_from_wheel(path) method
+    # to the virtualenv fixture.
+    if bin_install_dir.exists():
+        shutil.rmtree(bin_install_dir)
+    return lib_install_dir
 
 
 @pytest.fixture(scope="session")
 def setuptools_install(
-    tmpdir_factory: pytest.TempdirFactory, common_wheels: Path
+    tmpdir_factory: pytest.TempPathFactory, common_wheels: Path
 ) -> Path:
     return _common_wheel_editable_install(tmpdir_factory, common_wheels, "setuptools")
 
 
 @pytest.fixture(scope="session")
-def wheel_install(tmpdir_factory: pytest.TempdirFactory, common_wheels: Path) -> Path:
+def wheel_install(tmpdir_factory: pytest.TempPathFactory, common_wheels: Path) -> Path:
     return _common_wheel_editable_install(tmpdir_factory, common_wheels, "wheel")
 
 
 @pytest.fixture(scope="session")
 def coverage_install(
-    tmpdir_factory: pytest.TempdirFactory, common_wheels: Path
+    tmpdir_factory: pytest.TempPathFactory, common_wheels: Path
 ) -> Path:
     return _common_wheel_editable_install(tmpdir_factory, common_wheels, "coverage")
 
 
-def install_egg_link(
-    venv: VirtualEnvironment, project_name: str, egg_info_dir: Path
+def install_pth_link(
+    venv: VirtualEnvironment, project_name: str, lib_dir: Path
 ) -> None:
-    with open(venv.site / "easy-install.pth", "a") as fp:
-        fp.write(str(egg_info_dir.resolve()) + "\n")
-    with open(venv.site / (project_name + ".egg-link"), "w") as fp:
-        fp.write(str(egg_info_dir) + "\n.")
+    venv.site.joinpath(f"_pip_testsuite_{project_name}.pth").write_text(
+        str(lib_dir.resolve()), encoding="utf-8"
+    )
 
 
 @pytest.fixture(scope="session")
 def virtualenv_template(
     request: pytest.FixtureRequest,
-    tmpdir_factory: pytest.TempdirFactory,
+    tmpdir_factory: pytest.TempPathFactory,
     pip_src: Path,
+    pip_editable_parts: Tuple[Path, ...],
     setuptools_install: Path,
+    wheel_install: Path,
     coverage_install: Path,
 ) -> Iterator[VirtualEnvironment]:
-
     venv_type: VirtualEnvironmentType
     if request.config.getoption("--use-venv"):
         venv_type = "venv"
@@ -383,26 +481,27 @@ def virtualenv_template(
         venv_type = "virtualenv"
 
     # Create the virtual environment
-    tmpdir = Path(str(tmpdir_factory.mktemp("virtualenv")))
+    tmpdir = tmpdir_factory.mktemp("virtualenv")
     venv = VirtualEnvironment(tmpdir.joinpath("venv_orig"), venv_type=venv_type)
 
-    # Install setuptools and pip.
-    install_egg_link(venv, "setuptools", setuptools_install)
-    pip_editable = Path(str(tmpdir_factory.mktemp("pip"))) / "pip"
-    shutil.copytree(pip_src, pip_editable, symlinks=True)
-    # noxfile.py is Python 3 only
-    assert compileall.compile_dir(
-        str(pip_editable),
-        quiet=1,
-        rx=re.compile("noxfile.py$"),
+    # Install setuptools, wheel and pip.
+    install_pth_link(venv, "setuptools", setuptools_install)
+    install_pth_link(venv, "wheel", wheel_install)
+
+    pth, dist_info = pip_editable_parts
+
+    shutil.copy(pth, venv.site)
+    shutil.copytree(
+        dist_info, venv.site / dist_info.name, dirs_exist_ok=True, symlinks=True
     )
-    subprocess.check_call(
-        [venv.bin / "python", "setup.py", "-q", "develop"], cwd=pip_editable
-    )
+    # Create placeholder ``easy-install.pth``, as several tests depend on its
+    # existence.  TODO: Ensure ``tests.lib.TestPipResult.files_updated`` correctly
+    # detects changed files.
+    venv.site.joinpath("easy-install.pth").touch()
 
     # Install coverage and pth file for executing it in any spawned processes
     # in this virtual environment.
-    install_egg_link(venv, "coverage", coverage_install)
+    install_pth_link(venv, "coverage", coverage_install)
     # zz prefix ensures the file is after easy-install.pth.
     with open(venv.site / "zz-coverage-helper.pth", "a") as f:
         f.write("import coverage; coverage.process_startup()")
@@ -414,9 +513,6 @@ def virtualenv_template(
             or exe.startswith("libpy")  # Don't remove libpypy-c.so...
         ):
             (venv.bin / exe).unlink()
-
-    # Enable user site packages.
-    venv.user_site_packages = True
 
     # Rename original virtualenv directory to make sure
     # it's not reused by mistake from one of the copies.
@@ -448,25 +544,20 @@ def virtualenv(
     yield virtualenv_factory(tmpdir.joinpath("workspace", "venv"))
 
 
-@pytest.fixture
-def with_wheel(virtualenv: VirtualEnvironment, wheel_install: Path) -> None:
-    install_egg_link(virtualenv, "wheel", wheel_install)
-
-
-class ScriptFactory(Protocol):
-    def __call__(
-        self, tmpdir: Path, virtualenv: Optional[VirtualEnvironment] = None
-    ) -> PipTestEnvironment:
-        ...
-
-
 @pytest.fixture(scope="session")
 def script_factory(
-    virtualenv_factory: Callable[[Path], VirtualEnvironment], deprecated_python: bool
+    virtualenv_factory: Callable[[Path], VirtualEnvironment],
+    deprecated_python: bool,
+    zipapp: Optional[str],
 ) -> ScriptFactory:
     def factory(
-        tmpdir: Path, virtualenv: Optional[VirtualEnvironment] = None
+        tmpdir: Path,
+        virtualenv: Optional[VirtualEnvironment] = None,
+        environ: Optional[Dict[AnyStr, AnyStr]] = None,
     ) -> PipTestEnvironment:
+        kwargs = {}
+        if environ:
+            kwargs["environ"] = environ
         if virtualenv is None:
             virtualenv = virtualenv_factory(tmpdir.joinpath("venv"))
         return PipTestEnvironment(
@@ -484,16 +575,68 @@ def script_factory(
             assert_no_temp=True,
             # Deprecated python versions produce an extra deprecation warning
             pip_expect_warning=deprecated_python,
+            # Tell the Test Environment if we want to run pip via a zipapp
+            zipapp=zipapp,
+            **kwargs,
         )
 
     return factory
 
 
+ZIPAPP_MAIN = """\
+#!/usr/bin/env python
+
+import os
+import runpy
+import sys
+
+lib = os.path.join(os.path.dirname(__file__), "lib")
+sys.path.insert(0, lib)
+
+runpy.run_module("pip", run_name="__main__")
+"""
+
+
+def make_zipapp_from_pip(zipapp_name: Path) -> None:
+    pip_dir = Path(pip_location).parent
+    with zipapp_name.open("wb") as zipapp_file:
+        zipapp_file.write(b"#!/usr/bin/env python\n")
+        with ZipFile(zipapp_file, "w") as zipapp:
+            for pip_file in pip_dir.rglob("*"):
+                if pip_file.suffix == ".pyc":
+                    continue
+                if pip_file.name == "__pycache__":
+                    continue
+                rel_name = pip_file.relative_to(pip_dir.parent)
+                zipapp.write(pip_file, arcname=f"lib/{rel_name}")
+            zipapp.writestr("__main__.py", ZIPAPP_MAIN)
+
+
+@pytest.fixture(scope="session")
+def zipapp(
+    request: pytest.FixtureRequest, tmpdir_factory: pytest.TempPathFactory
+) -> Optional[str]:
+    """
+    If the user requested for pip to be run from a zipapp, build that zipapp
+    and return its location. If the user didn't request a zipapp, return None.
+
+    This fixture is session scoped, so the zipapp will only be created once.
+    """
+    if not request.config.getoption("--use-zipapp"):
+        return None
+
+    temp_location = tmpdir_factory.mktemp("zipapp")
+    pyz_file = temp_location / "pip.pyz"
+    make_zipapp_from_pip(pyz_file)
+    return str(pyz_file)
+
+
 @pytest.fixture
 def script(
+    request: pytest.FixtureRequest,
     tmpdir: Path,
     virtualenv: VirtualEnvironment,
-    script_factory: Callable[[Path, Optional[VirtualEnvironment]], PipTestEnvironment],
+    script_factory: ScriptFactory,
 ) -> PipTestEnvironment:
     """
     Return a PipTestEnvironment which is unique to each test function and
@@ -511,33 +654,13 @@ def common_wheels() -> Path:
 
 
 @pytest.fixture(scope="session")
-def shared_data(tmpdir_factory: pytest.TempdirFactory) -> TestData:
-    return TestData.copy(Path(str(tmpdir_factory.mktemp("data"))))
+def shared_data(tmpdir_factory: pytest.TempPathFactory) -> TestData:
+    return TestData.copy(tmpdir_factory.mktemp("data"))
 
 
 @pytest.fixture
 def data(tmpdir: Path) -> TestData:
     return TestData.copy(tmpdir.joinpath("data"))
-
-
-class InMemoryPipResult:
-    def __init__(self, returncode: int, stdout: str) -> None:
-        self.returncode = returncode
-        self.stdout = stdout
-
-
-class InMemoryPip:
-    def pip(self, *args: str) -> InMemoryPipResult:
-        orig_stdout = sys.stdout
-        stdout = io.StringIO()
-        sys.stdout = stdout
-        try:
-            returncode = pip_entry_point(list(args))
-        except SystemExit as e:
-            returncode = e.code or 0
-        finally:
-            sys.stdout = orig_stdout
-        return InMemoryPipResult(returncode, stdout.getvalue())
 
 
 @pytest.fixture
@@ -551,11 +674,8 @@ def deprecated_python() -> bool:
     return sys.version_info[:2] in []
 
 
-CertFactory = Callable[[], str]
-
-
 @pytest.fixture(scope="session")
-def cert_factory(tmpdir_factory: pytest.TempdirFactory) -> CertFactory:
+def cert_factory(tmpdir_factory: pytest.TempPathFactory) -> CertFactory:
     # Delay the import requiring cryptography in order to make it possible
     # to deselect relevant tests on systems where cryptography cannot
     # be installed.
@@ -563,7 +683,7 @@ def cert_factory(tmpdir_factory: pytest.TempdirFactory) -> CertFactory:
 
     def factory() -> str:
         """Returns path to cert/key file."""
-        output_path = Path(str(tmpdir_factory.mktemp("certs"))) / "cert.pem"
+        output_path = tmpdir_factory.mktemp("certs") / "cert.pem"
         # Must be Text on PY2.
         cert, key = make_tls_cert("localhost")
         with open(str(output_path), "wb") as f:
@@ -575,49 +695,6 @@ def cert_factory(tmpdir_factory: pytest.TempdirFactory) -> CertFactory:
     return factory
 
 
-class MockServer:
-    def __init__(self, server: _MockServer) -> None:
-        self._server = server
-        self._running = False
-        self.context = ExitStack()
-
-    @property
-    def port(self) -> int:
-        return self._server.port
-
-    @property
-    def host(self) -> str:
-        return self._server.host
-
-    def set_responses(self, responses: Iterable["WSGIApplication"]) -> None:
-        assert not self._running, "responses cannot be set on running server"
-        self._server.mock.side_effect = responses
-
-    def start(self) -> None:
-        assert not self._running, "running server cannot be started"
-        self.context.enter_context(server_running(self._server))
-        self.context.enter_context(self._set_running())
-
-    @contextmanager
-    def _set_running(self) -> Iterator[None]:
-        self._running = True
-        try:
-            yield
-        finally:
-            self._running = False
-
-    def stop(self) -> None:
-        assert self._running, "idle server cannot be stopped"
-        self.context.close()
-
-    def get_requests(self) -> List[Dict[str, str]]:
-        """Get environ for each received request."""
-        assert not self._running, "cannot get mock from running server"
-        # Legacy: replace call[0][0] with call.args[0]
-        # when pip drops support for python3.7
-        return [call[0][0] for call in self._server.mock.call_args_list]
-
-
 @pytest.fixture
 def mock_server() -> Iterator[MockServer]:
     server = make_mock_server()
@@ -627,15 +704,299 @@ def mock_server() -> Iterator[MockServer]:
 
 
 @pytest.fixture
-def utc() -> Iterator[None]:
-    # time.tzset() is not implemented on some platforms, e.g. Windows.
-    tzset = getattr(time, "tzset", lambda: None)
-    with patch.dict(os.environ, {"TZ": "UTC"}):
-        tzset()
-        yield
-    tzset()
+def proxy(request: pytest.FixtureRequest) -> str:
+    return request.config.getoption("proxy")
 
 
 @pytest.fixture
-def proxy(request: pytest.FixtureRequest) -> str:
-    return request.config.getoption("proxy")
+def enable_user_site(virtualenv: VirtualEnvironment) -> None:
+    virtualenv.user_site_packages = True
+
+
+class MetadataKind(Enum):
+    """All the types of values we might be provided for the data-dist-info-metadata
+    attribute from PEP 658."""
+
+    # Valid: will read metadata from the dist instead.
+    No = "none"
+    # Valid: will read the .metadata file, but won't check its hash.
+    Unhashed = "unhashed"
+    # Valid: will read the .metadata file and check its hash matches.
+    Sha256 = "sha256"
+    # Invalid: will error out after checking the hash.
+    WrongHash = "wrong-hash"
+    # Invalid: will error out after failing to fetch the .metadata file.
+    NoFile = "no-file"
+
+
+@dataclass(frozen=True)
+class FakePackage:
+    """Mock package structure used to generate a PyPI repository.
+
+    FakePackage name and version should correspond to sdists (.tar.gz files) in our test
+    data."""
+
+    name: str
+    version: str
+    filename: str
+    metadata: MetadataKind
+    # This will override any dependencies specified in the actual dist's METADATA.
+    requires_dist: Tuple[str, ...] = ()
+    # This will override the Name specified in the actual dist's METADATA.
+    metadata_name: Optional[str] = None
+
+    def metadata_filename(self) -> str:
+        """This is specified by PEP 658."""
+        return f"{self.filename}.metadata"
+
+    def generate_additional_tag(self) -> str:
+        """This gets injected into the <a> tag in the generated PyPI index page for this
+        package."""
+        if self.metadata == MetadataKind.No:
+            return ""
+        if self.metadata in [MetadataKind.Unhashed, MetadataKind.NoFile]:
+            return 'data-dist-info-metadata="true"'
+        if self.metadata == MetadataKind.WrongHash:
+            return 'data-dist-info-metadata="sha256=WRONG-HASH"'
+        assert self.metadata == MetadataKind.Sha256
+        checksum = sha256(self.generate_metadata()).hexdigest()
+        return f'data-dist-info-metadata="sha256={checksum}"'
+
+    def requires_str(self) -> str:
+        if not self.requires_dist:
+            return ""
+        joined = " and ".join(self.requires_dist)
+        return f"Requires-Dist: {joined}"
+
+    def generate_metadata(self) -> bytes:
+        """This is written to `self.metadata_filename()` and will override the actual
+        dist's METADATA, unless `self.metadata == MetadataKind.NoFile`."""
+        return dedent(
+            f"""\
+        Metadata-Version: 2.1
+        Name: {self.metadata_name or self.name}
+        Version: {self.version}
+        {self.requires_str()}
+        """
+        ).encode("utf-8")
+
+
+@pytest.fixture(scope="session")
+def fake_packages() -> Dict[str, List[FakePackage]]:
+    """The package database we generate for testing PEP 658 support."""
+    return {
+        "simple": [
+            FakePackage("simple", "1.0", "simple-1.0.tar.gz", MetadataKind.Sha256),
+            FakePackage("simple", "2.0", "simple-2.0.tar.gz", MetadataKind.No),
+            # This will raise a hashing error.
+            FakePackage("simple", "3.0", "simple-3.0.tar.gz", MetadataKind.WrongHash),
+        ],
+        "simple2": [
+            # Override the dependencies here in order to force pip to download
+            # simple-1.0.tar.gz as well.
+            FakePackage(
+                "simple2",
+                "1.0",
+                "simple2-1.0.tar.gz",
+                MetadataKind.Unhashed,
+                ("simple==1.0",),
+            ),
+            # This will raise an error when pip attempts to fetch the metadata file.
+            FakePackage("simple2", "2.0", "simple2-2.0.tar.gz", MetadataKind.NoFile),
+            # This has a METADATA file with a mismatched name.
+            FakePackage(
+                "simple2",
+                "3.0",
+                "simple2-3.0.tar.gz",
+                MetadataKind.Sha256,
+                metadata_name="not-simple2",
+            ),
+        ],
+        "colander": [
+            # Ensure we can read the dependencies from a metadata file within a wheel
+            # *without* PEP 658 metadata.
+            FakePackage(
+                "colander",
+                "0.9.9",
+                "colander-0.9.9-py2.py3-none-any.whl",
+                MetadataKind.No,
+            ),
+        ],
+        "compilewheel": [
+            # Ensure we can override the dependencies of a wheel file by injecting PEP
+            # 658 metadata.
+            FakePackage(
+                "compilewheel",
+                "1.0",
+                "compilewheel-1.0-py2.py3-none-any.whl",
+                MetadataKind.Unhashed,
+                ("simple==1.0",),
+            ),
+        ],
+        "has-script": [
+            # Ensure we check PEP 658 metadata hashing errors for wheel files.
+            FakePackage(
+                "has-script",
+                "1.0",
+                "has.script-1.0-py2.py3-none-any.whl",
+                MetadataKind.WrongHash,
+            ),
+        ],
+        "translationstring": [
+            FakePackage(
+                "translationstring",
+                "1.1",
+                "translationstring-1.1.tar.gz",
+                MetadataKind.No,
+            ),
+        ],
+        "priority": [
+            # Ensure we check for a missing metadata file for wheels.
+            FakePackage(
+                "priority",
+                "1.0",
+                "priority-1.0-py2.py3-none-any.whl",
+                MetadataKind.NoFile,
+            ),
+        ],
+        "requires-simple-extra": [
+            # Metadata name is not canonicalized.
+            FakePackage(
+                "requires-simple-extra",
+                "0.1",
+                "requires_simple_extra-0.1-py2.py3-none-any.whl",
+                MetadataKind.Sha256,
+                metadata_name="Requires_Simple.Extra",
+            ),
+        ],
+    }
+
+
+@pytest.fixture(scope="session")
+def html_index_for_packages(
+    shared_data: TestData,
+    fake_packages: Dict[str, List[FakePackage]],
+    tmpdir_factory: pytest.TempPathFactory,
+) -> Path:
+    """Generate a PyPI HTML package index within a local directory pointing to
+    synthetic test data."""
+    html_dir = tmpdir_factory.mktemp("fake_index_html_content")
+
+    # (1) Generate the content for a PyPI index.html.
+    pkg_links = "\n".join(
+        f'    <a href="{pkg}/index.html">{pkg}</a>' for pkg in fake_packages.keys()
+    )
+    # Output won't be nicely indented because dedent() acts after f-string
+    # arg insertion.
+    index_html = dedent(
+        f"""\
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta name="pypi:repository-version" content="1.0">
+            <title>Simple index</title>
+          </head>
+          <body>
+          {pkg_links}
+          </body>
+        </html>"""
+    )
+    # (2) Generate the index.html in a new subdirectory of the temp directory.
+    (html_dir / "index.html").write_text(index_html)
+
+    # (3) Generate subdirectories for individual packages, each with their own
+    # index.html.
+    for pkg, links in fake_packages.items():
+        pkg_subdir = html_dir / pkg
+        pkg_subdir.mkdir()
+
+        download_links: List[str] = []
+        for package_link in links:
+            # (3.1) Generate the <a> tag which pip can crawl pointing to this
+            # specific package version.
+            download_links.append(
+                f'    <a href="{package_link.filename}" {package_link.generate_additional_tag()}>{package_link.filename}</a><br/>'  # noqa: E501
+            )
+            # (3.2) Copy over the corresponding file in `shared_data.packages`.
+            shutil.copy(
+                shared_data.packages / package_link.filename,
+                pkg_subdir / package_link.filename,
+            )
+            # (3.3) Write a metadata file, if applicable.
+            if package_link.metadata != MetadataKind.NoFile:
+                with open(pkg_subdir / package_link.metadata_filename(), "wb") as f:
+                    f.write(package_link.generate_metadata())
+
+        # (3.4) After collating all the download links and copying over the files,
+        # write an index.html with the generated download links for each
+        # copied file for this specific package name.
+        download_links_str = "\n".join(download_links)
+        pkg_index_content = dedent(
+            f"""\
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <meta name="pypi:repository-version" content="1.0">
+                <title>Links for {pkg}</title>
+              </head>
+              <body>
+                <h1>Links for {pkg}</h1>
+                {download_links_str}
+              </body>
+            </html>"""
+        )
+        with open(pkg_subdir / "index.html", "w") as f:
+            f.write(pkg_index_content)
+
+    return html_dir
+
+
+class OneTimeDownloadHandler(http.server.SimpleHTTPRequestHandler):
+    """Serve files from the current directory, but error if a file is downloaded more
+    than once."""
+
+    _seen_paths: ClassVar[Set[str]] = set()
+
+    def do_GET(self) -> None:
+        if self.path in self._seen_paths:
+            self.send_error(
+                http.HTTPStatus.NOT_FOUND,
+                f"File {self.path} not available more than once!",
+            )
+            return
+        super().do_GET()
+        if not (self.path.endswith("/") or self.path.endswith(".metadata")):
+            self._seen_paths.add(self.path)
+
+
+@pytest.fixture(scope="function")
+def html_index_with_onetime_server(
+    html_index_for_packages: Path,
+) -> Iterator[http.server.ThreadingHTTPServer]:
+    """Serve files from a generated pypi index, erroring if a file is downloaded more
+    than once.
+
+    Provide `-i http://localhost:8000` to pip invocations to point them at this server.
+    """
+
+    class InDirectoryServer(http.server.ThreadingHTTPServer):
+        def finish_request(self: "Self", request: Any, client_address: Any) -> None:
+            self.RequestHandlerClass(
+                request,
+                client_address,
+                self,
+                directory=str(html_index_for_packages),  # type: ignore[call-arg]
+            )
+
+    class Handler(OneTimeDownloadHandler):
+        _seen_paths: ClassVar[Set[str]] = set()
+
+    with InDirectoryServer(("", 8000), Handler) as httpd:
+        server_thread = threading.Thread(target=httpd.serve_forever)
+        server_thread.start()
+
+        try:
+            yield httpd
+        finally:
+            httpd.shutdown()
+            server_thread.join()
