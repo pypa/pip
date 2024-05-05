@@ -1,0 +1,1 @@
+Return error when trying to uninstall package that exist but not uninstallable.

@@ -349,12 +349,14 @@ class UninstallPathSet:
     def remove(self, auto_confirm: bool = False, verbose: bool = False) -> None:
         """Remove paths in ``self._paths`` with confirmation (unless
         ``auto_confirm`` is True)."""
+        self.files_skipped = False
 
         if not self._paths:
             logger.info(
                 "Can't uninstall '%s'. No files were found to uninstall.",
                 self._dist.raw_name,
             )
+            self.files_skipped = True
             return
 
         dist_name_version = f"{self._dist.raw_name}-{self._dist.raw_version}"
