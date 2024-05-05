@@ -50,7 +50,7 @@ The base ``Command`` has the following methods:
 
   .. py:method:: main()
 
-    Main method of the class, its always called (as can be seen in main.py's
+    Main method of the class, it's always called (as can be seen in main.py's
     `main <https://github.com/pypa/pip/blob/main/src/pip/_internal/cli/main.py#L46>`_).
     It's in charge of calling the specific ``run`` method of the class and handling the possible errors.
 
@@ -73,7 +73,7 @@ In addition to the previous classes, a last mixin class must be mentioned, from 
 ``Command`` as well as ``SessionCommandMixin`` inherit: ``CommandContextMixIn``, in
 charge of the command's context.
 
-In the following command tree we can see the hierarchy defined for the different pip's
+In the following command tree we can see the hierarchy defined for the different pip
 commands, where each command is defined under the base class it inherits from:
 
 | ``Command``
@@ -148,7 +148,7 @@ Configuration and CLI "blend"
 The base ``Command`` instantiates the class `ConfigOptionParser <https://github.com/pypa/pip/blob/main/src/pip/_internal/cli/parser.py>`_
 which is in charge of the parsing process (via its parent class
 `optparse.OptionParser <https://docs.python.org/3/library/optparse.html#optparse.OptionParser>`_).
-Its main addition consists on the following function:
+Its main addition consists of the following function:
 
 .. py:class:: ConfigOptionParser(OptionParser)
 
@@ -158,13 +158,13 @@ Its main addition consists on the following function:
     option parser.
 
 It allows overriding the default options and arguments using the ``Configuration`` class
-(more information can be found on :ref:`Configuration`) to add environment variables and
-information from configuration files.
+(more information can be found on :ref:`Configuration`) to include environment variables and
+settings from configuration files.
 
 Progress bars and spinners
 --------------------------
 
-There are two more modules in the cli subpackage in charge of showing the state of the
+There are two more modules in the ``cli`` subpackage in charge of showing the state of the
 program.
 
 * `progress_bars.py <https://github.com/pypa/pip/blob/main/src/pip/_internal/cli/progress_bars.py>`_
