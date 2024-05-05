@@ -146,6 +146,14 @@ class SessionCommandMixin(CommandContextMixIn):
             }
             session.trust_env = False
 
+        # Handle no proxy option
+        if options.no_proxy:
+            session.trust_env = False
+            session.proxies = {
+                "http": None,
+                "https": None,
+            }
+
         # Determine if we can prompt the user for authentication or not
         session.auth.prompting = not options.no_input
         session.auth.keyring_provider = options.keyring_provider
