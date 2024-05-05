@@ -444,8 +444,9 @@ def test_version_control__get_url_rev_and_auth__no_revision(url: str) -> None:
     [
         (FileNotFoundError, r"Cannot find command '{name}'"),
         (PermissionError, r"No permission to execute '{name}'"),
+        (NotADirectoryError, "Cannot find command '{name}' - invalid PATH"),
     ],
-    ids=["FileNotFoundError", "PermissionError"],
+    ids=["FileNotFoundError", "PermissionError", "NotADirectoryError"],
 )
 def test_version_control__run_command__fails(
     vcs_cls: Type[VersionControl], exc_cls: Type[Exception], msg_re: str

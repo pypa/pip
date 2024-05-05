@@ -641,6 +641,8 @@ class VersionControl:
                 log_failed_cmd=log_failed_cmd,
                 stdout_only=stdout_only,
             )
+        except NotADirectoryError:
+            raise BadCommand(f"Cannot find command {cls.name!r} - invalid PATH")
         except FileNotFoundError:
             # errno.ENOENT = no such file or directory
             # In other words, the VCS executable isn't available
