@@ -87,7 +87,7 @@ def test_index_group_commands() -> None:
         (True, True, False),
     ],
 )
-@mock.patch("pip._internal.cli.req_command.pip_self_version_check")
+@mock.patch("pip._internal.cli.index_command._pip_self_version_check")
 def test_index_group_handle_pip_version_check(
     mock_version_check: mock.Mock,
     command_name: str,
@@ -128,7 +128,7 @@ def test_requirement_commands() -> None:
 
 
 @pytest.mark.parametrize("flag", ["", "--outdated", "--uptodate"])
-@mock.patch("pip._internal.cli.req_command.pip_self_version_check")
+@mock.patch("pip._internal.cli.index_command._pip_self_version_check")
 @mock.patch.dict(os.environ, {"PIP_DISABLE_PIP_VERSION_CHECK": "no"})
 def test_list_pip_version_check(version_check_mock: mock.Mock, flag: str) -> None:
     """
