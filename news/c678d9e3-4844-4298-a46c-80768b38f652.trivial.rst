@@ -1,1 +1,0 @@
-Replace ``captured_output()`` and ``get_url_scheme()`` with stdlib alternatives.

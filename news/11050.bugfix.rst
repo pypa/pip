@@ -1,1 +1,0 @@
-Fix error on checkout for subversion and bazaar with verbose mode on.
