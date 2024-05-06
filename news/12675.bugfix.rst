@@ -1,0 +1,3 @@
+Partially revert changes made to reduce startup time to fix crashes
+during pip's self version check while installing an older version of pip
+at the same time.
