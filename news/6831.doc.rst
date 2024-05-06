@@ -1,0 +1,1 @@
+Update architecture documentation for command line interface.
