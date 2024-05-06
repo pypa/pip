@@ -9,7 +9,9 @@ Adam Chainz
 Adam Tse
 Adam Wentz
 admin
+Adolfo Ochagavía
 Adrien Morison
+Agus
 ahayrapetyan
 Ahilya
 AinsworthK
@@ -63,8 +65,11 @@ Anudit Nagar
 Anuj Godase
 AQNOUCH Mohammed
 AraHaan
+arena
+arenasys
 Arindam Choudhury
 Armin Ronacher
+Arnon Yaari
 Artem
 Arun Babu Neelicattu
 Ashley Manton
@@ -102,6 +107,7 @@ Brad Erickson
 Bradley Ayers
 Brandon L. Reiss
 Brandt Bucher
+Brannon Dorsey
 Brett Randall
 Brett Rosen
 Brian Cristante
@@ -140,6 +146,7 @@ Christian Oudard
 Christoph Reiter
 Christopher Hunt
 Christopher Snyder
+chrysle
 cjc7373
 Clark Boylan
 Claudio Jolowicz
@@ -157,6 +164,7 @@ Craig Kerstiens
 Cristian Sorinel
 Cristina
 Cristina Muñoz
+ctg123
 Curtis Doty
 cytolentino
 Daan De Meyer
@@ -194,6 +202,7 @@ David Evans
 David Hewitt
 David Linke
 David Poggi
+David Poznik
 David Pursehouse
 David Runge
 David Tucker
@@ -207,6 +216,7 @@ dependabot[bot]
 derwolfe
 Desetude
 Devesh Kumar Singh
+devsagul
 Diego Caraballo
 Diego Ramirez
 DiegoCaraballo
@@ -315,6 +325,7 @@ Ian Stapleton Cordasco
 Ian Wienand
 Igor Kuzmitshov
 Igor Sobreira
+Ikko Ashimine
 Ilan Schnell
 Illia Volochii
 Ilya Baryshev
@@ -364,6 +375,7 @@ Jivan Amara
 Joe Bylund
 Joe Michelini
 John Paton
+John Sirois
 John T. Wodder II
 John-Scott Atlakson
 johnthagen
@@ -408,6 +420,7 @@ Kexuan Sun
 Kit Randel
 Klaas van Schelven
 KOLANICH
+konstin
 kpinc
 Krishna Oza
 Kumar McMillan
@@ -428,6 +441,7 @@ lorddavidiii
 Loren Carvalho
 Lucas Cimon
 Ludovic Gasc
+Luis Medel
 Lukas Geiger
 Lukas Juhrich
 Luke Macken
@@ -441,6 +455,7 @@ Marc Tamlyn
 Marcus Smith
 Mariatta
 Mark Kohler
+Mark McLoughlin
 Mark Williams
 Markus Hametner
 Martey Dodoo
@@ -457,6 +472,7 @@ Matt Bacchi
 Matt Good
 Matt Maker
 Matt Robenolt
+Matt Wozniski
 matthew
 Matthew Einhorn
 Matthew Feickert
@@ -559,7 +575,9 @@ Paweł Szramowski
 Pekka Klärck
 Peter Gessler
 Peter Lisák
+Peter Shen
 Peter Waller
+Petr Viktorin
 petr-tik
 Phaneendra Chiruvella
 Phil Elson
@@ -592,6 +610,7 @@ Quentin Pradet
 R. David Murray
 Rafael Caricio
 Ralf Schmitt
+Ran Benita
 Razzi Abuissa
 rdb
 Reece Dunham
@@ -624,6 +643,7 @@ Russell Keith-Magee
 Ryan Shepherd
 Ryan Wooden
 ryneeverett
+S. Guliaev
 Sachi King
 Salvatore Rinchiera
 sandeepkiran-js
@@ -642,6 +662,7 @@ Seth Michael Larson
 Seth Woodworth
 Shahar Epstein
 Shantanu
+shenxianpeng
 shireenrao
 Shivansh-007
 Shlomi Fish
@@ -741,6 +762,7 @@ Wolfgang Maier
 Wu Zhenyu
 XAMES3
 Xavier Fernandez
+Xianpeng Shen
 xoviat
 xtreak
 YAMAMOTO Takashi
