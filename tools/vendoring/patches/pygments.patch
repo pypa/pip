@@ -2,10 +2,10 @@ This patch mainly handles tweaking imports into a form that can be transformed
 to import from the vendored namespace.
 
 diff --git a/src/pip/_vendor/pygments/cmdline.py b/src/pip/_vendor/pygments/cmdline.py
-index d9a0fdc8b..db6de0cd3 100644
+index 435231e6..b75a9d7f 100644
 --- a/src/pip/_vendor/pygments/cmdline.py
 +++ b/src/pip/_vendor/pygments/cmdline.py
-@@ -410,11 +410,11 @@ def is_only_option(opt):
+@@ -469,11 +469,11 @@ def main_inner(parser, argns):
          outfile = UnclosingTextIOWrapper(outfile, encoding=fmter.encoding)
          fmter.encoding = None
          try:
@@ -17,26 +17,41 @@ index d9a0fdc8b..db6de0cd3 100644
 -            outfile = colorama.initialise.wrap_stream(
 +            outfile = colorama_initialise.wrap_stream(
                  outfile, convert=None, strip=None, autoreset=False, wrap=True)
-
+ 
      # When using the LaTeX formatter and the option `escapeinside` is
 diff --git a/src/pip/_vendor/pygments/__main__.py b/src/pip/_vendor/pygments/__main__.py
-index c6e2517df..76255b525 100644
+index 5eb2c747..04997f49 100644
 --- a/src/pip/_vendor/pygments/__main__.py
 +++ b/src/pip/_vendor/pygments/__main__.py
 @@ -9,9 +9,9 @@
  """
-
+ 
  import sys
 -import pygments.cmdline
 +from pygments.cmdline import main
-
+ 
  try:
 -    sys.exit(pygments.cmdline.main(sys.argv))
 +    sys.exit(main(sys.argv))
  except KeyboardInterrupt:
      sys.exit(1)
+diff --git a/src/pip/_vendor/pygments/lexer.py b/src/pip/_vendor/pygments/lexer.py
+index eb5403e7..837ada12 100644
+--- a/src/pip/_vendor/pygments/lexer.py
++++ b/src/pip/_vendor/pygments/lexer.py
+@@ -207,7 +207,9 @@ class Lexer(metaclass=LexerMeta):
+                 text, _ = guess_decode(text)
+             elif self.encoding == 'chardet':
+                 try:
+-                    import chardet
++                    # pip vendoring note: this code is not reachable by pip,
++                    # removed import of chardet to make it clear.
++                    raise ImportError('chardet is not vendored by pip')
+                 except ImportError as e:
+                     raise ImportError('To enable chardet encoding guessing, '
+                                       'please install the chardet library '
 diff --git a/src/pip/_vendor/pygments/sphinxext.py b/src/pip/_vendor/pygments/sphinxext.py
-index 3ea2e36e1..23c19504c 100644
+index f935688f..e2986361 100644
 --- a/src/pip/_vendor/pygments/sphinxext.py
 +++ b/src/pip/_vendor/pygments/sphinxext.py
 @@ -91,7 +91,7 @@ class PygmentsDoc(Directive):

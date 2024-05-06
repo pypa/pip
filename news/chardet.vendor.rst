@@ -1,1 +1,1 @@
-Upgrade chardet to 5.2.0
+The ``chardet`` vendoring is removed (replaced by ``charset-normalizer``).
