@@ -1,1 +1,0 @@
-Fix intermittent "cannot locate t64.exe" errors when upgrading pip.

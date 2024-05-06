@@ -1,1 +1,0 @@
-This change will deduplicate entries in the ``Requires`` field of ``pip show``.

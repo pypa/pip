@@ -1,2 +1,0 @@
-Remove ``setup.py`` since all the pip project metadata is now declared in
-``pyproject.toml``.

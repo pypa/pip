@@ -1,1 +1,0 @@
-Improve performance of resolution of large dependency trees, with more caching.
