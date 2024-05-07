@@ -1,0 +1,1 @@
+Updated the documentation of the flag --target, to address an open issue #12667
