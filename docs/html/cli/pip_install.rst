@@ -346,6 +346,25 @@ Examples
          py -m pip install -e path/to/project   # project in another directory
 
 
+#. Install ``SomePackage`` into a specified directory using the ``-t`` (target) flag.
+
+   .. tab:: Unix/macOS
+
+      .. code-block:: shell
+
+         python -m pip install -t /path/to/directory SomePackage # latest version
+         python -m pip install -t /path/to/directory SomePackage==1.0.4 # specific version
+         python -m pip install -t /path/to/directory 'SomePackage>=1.0.4' # minimum version
+
+   .. tab:: Windows
+
+      .. code-block:: shell
+
+         py -m pip install -t C:\path\to\directory SomePackage # latest version
+         py -m pip install -t C:\path\to\directory SomePackage==1.0.4 # specific version
+         py -m pip install -t C:\path\to\directory 'SomePackage>=1.0.4' # minimum version
+
+
 #. Install a project from VCS
 
    .. tab:: Unix/macOS
