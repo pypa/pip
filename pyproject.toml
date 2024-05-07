@@ -139,7 +139,6 @@ drop = [
 ]
 
 [tool.vendoring.typing-stubs]
-six = ["six.__init__", "six.moves.__init__", "six.moves.configparser"]
 distro = []
 
 [tool.vendoring.license.directories]
@@ -147,7 +146,6 @@ setuptools = "pkg_resources"
 
 [tool.vendoring.license.fallback-urls]
 distlib = "https://bitbucket.org/pypa/distlib/raw/master/LICENSE.txt"
-webencodings = "https://github.com/SimonSapin/python-webencodings/raw/master/LICENSE"
 
 ######################################################################################
 # ruff
