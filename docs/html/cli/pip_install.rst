@@ -364,6 +364,47 @@ Examples
          py -m pip install -t C:\path\to\directory SomePackage==1.0.4 # specific version
          py -m pip install -t C:\path\to\directory 'SomePackage>=1.0.4' # minimum version
 
+#. Install ``SomePackage`` into a specified directory using the ``-t`` (target) flag. Directly specifies the directory where the packages will be installed. This option bypasses the standard Python installation paths, allowing for the installation of packages into isolated directories without affecting the broader Python environment. Ideal for situations where you need to install packages into a specific part of an application, or for bundled applications where dependencies need to be kept separate from global or system-wide Python installations.
+
+   .. tab:: Unix/macOS
+
+      .. code-block:: shell
+         python -m pip install -t /path/to/directory SomePackage # latest version
+         python -m pip install -t /path/to/directory SomePackage==1.0.4 # specific version
+         python -m pip install -t /path/to/directory 'SomePackage>=1.0.4' # minimum version
+   .. tab:: Windows
+
+      .. code-block:: shell
+         py -m pip install -t C:\path\to\directory SomePackage # latest version
+         py -m pip install -t C:\path\to\directory SomePackage==1.0.4 # specific version
+         py -m pip install -t C:\path\to\directory 'SomePackage>=1.0.4' # minimum version
+ 
+
+#. Install ``SomePackage`` using ``--prefix <dir>`` into a prefixed directory maintaining Python's directory structure. It sets the installation prefix for packages. Unlike ``--target``, this option respects Python's standard directory structure (``lib``, ``bin``, etc.) under the specified directory. Suitable for scenarios where you want to create a semi-isolated Python environment that maintains a standard internal structure but is separate from the system Python installation.
+
+   .. tab:: Unix/macOS
+
+      .. code-block:: shell
+         python -m pip install --prefix /path/to/prefix SomePackage # latest version
+
+   .. tab:: Windows
+
+      .. code-block:: shell
+         py -m pip install --prefix C:\path\to\prefix SomePackage # latest version
+
+
+#. Install ``SomePackage`` using ``--root <dir>`` as if the root of the file system is a different directory. It installs the entire Python package hierarchy relative to the specified root directory. Best for system administrators and developers who are packaging Python applications for deployment in a different environment or file system hierarchy.
+
+   .. tab:: Unix/macOS
+
+      .. code-block:: shell
+         python -m pip install --root /path/to/root SomePackage # latest version
+
+   .. tab:: Windows
+
+      .. code-block:: shell
+         py -m pip install --root C:\path\to\root SomePackage # latest version
+
 
 #. Install a project from VCS
 
