@@ -241,6 +241,7 @@ class BuildEnvironment:
             "--prefix",
             prefix.path,
             "--no-warn-script-location",
+            "--disable-pip-version-check",
         ]
         if logger.getEffectiveLevel() <= logging.DEBUG:
             args.append("-vv")
