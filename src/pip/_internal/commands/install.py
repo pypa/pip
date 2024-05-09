@@ -406,6 +406,12 @@ class InstallCommand(RequirementCommand):
                 # If we're not replacing an already installed pip,
                 # we're not modifying it.
                 modifying_pip = pip_req.satisfied_by is None
+                if modifying_pip:
+                    # Eagerly import this module to avoid crashes. Otherwise, this
+                    # module would be imported *after* pip was replaced, resulting in
+                    # crashes if the new self_outdated_check module was incompatible
+                    # with the rest of pip that's already imported.
+                    import pip._internal.self_outdated_check  # noqa: F401
             protect_pip_from_modification_on_windows(modifying_pip=modifying_pip)
 
             reqs_to_build = [
