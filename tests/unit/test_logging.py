@@ -16,6 +16,8 @@ from pip._internal.utils.logging import (
 
 logger = logging.getLogger(__name__)
 
+logging.Formatter.converter = time.gmtime
+
 
 class TestIndentingFormatter:
     """Test ``pip._internal.utils.logging.IndentingFormatter``."""
@@ -24,7 +26,7 @@ class TestIndentingFormatter:
         level_number = getattr(logging, level_name)
         attrs = {
             "msg": msg,
-            "created": 1547704837.040001 + time.timezone,
+            "created": 1547704837.040001,
             "msecs": 40,
             "levelname": level_name,
             "levelno": level_number,
