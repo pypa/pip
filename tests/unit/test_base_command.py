@@ -17,8 +17,12 @@ from pip._internal.utils.temp_dir import TempDirectory
 
 @pytest.fixture
 def fixed_time() -> Iterator[None]:
-    with patch("time.time", lambda: 1547704837.040001 + time.timezone):
-        yield
+    # Patch time so logs contain a constant timestamp. time.time_ns is used by
+    # logging starting with Python 3.13.
+    year2019 = 1547704837.040001 + time.timezone
+    with patch("time.time", lambda: year2019):
+        with patch("time.time_ns", lambda: int(year2019 * 1e9)):
+            yield
 
 
 class FakeCommand(Command):
