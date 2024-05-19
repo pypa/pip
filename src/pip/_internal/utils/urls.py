@@ -1,5 +1,7 @@
 import os
+import re
 import string
+import sys
 import urllib.parse
 import urllib.request
 
@@ -33,8 +35,15 @@ def url_to_path(url: str) -> str:
         # If we have a UNC path, prepend UNC share notation.
         netloc = "\\\\" + netloc
     else:
+        # do not include traceback as the error message should be self-explaining
+        sys.tracebacklimit = 0
+        # suggest using 'file:/' to the user:
+        suggestion = re.sub("(^file:)(/)+", "file:/", url)
+
         raise ValueError(
-            f"non-local file URIs are not supported on this platform: {url!r}"
+            f"{url!r} points to the domain '{netloc}'. "
+            f"Non-local file URIs are not supported on this platform. "
+            f"Did you mean to use '{suggestion}'?"
         )
 
     path = urllib.request.url2pathname(netloc + path)
