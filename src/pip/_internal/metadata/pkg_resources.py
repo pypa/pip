@@ -11,7 +11,6 @@ from typing import (
     Mapping,
     NamedTuple,
     Optional,
-    cast,
 )
 
 from pip._vendor import pkg_resources
@@ -84,19 +83,9 @@ class InMemoryMetadata:
 class Distribution(BaseDistribution):
     def __init__(self, dist: pkg_resources.Distribution) -> None:
         self._dist = dist
-        # This is populated lazily, to avoid loading metadata for all possible
-        # distributions eagerly.
-        self.__extra_mapping: Optional[Mapping[NormalizedName, str]] = None
-
-    @property
-    def _extra_mapping(self) -> Mapping[NormalizedName, str]:
-        if self.__extra_mapping is None:
-            self.__extra_mapping = {
-                canonicalize_name(extra): pkg_resources.safe_extra(cast(str, extra))
-                for extra in self.metadata.get_all("Provides-Extra", [])
-            }
-
-        return self.__extra_mapping
+        self._extra_mapping = {
+            canonicalize_name(extra): extra for extra in self._dist.extras
+        }
 
     @classmethod
     def from_directory(cls, directory: str) -> BaseDistribution:
@@ -242,10 +231,13 @@ class Distribution(BaseDistribution):
 
     def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
         if extras:
-            relevant_extras = set(self._extra_mapping) & set(
-                map(canonicalize_name, extras)
+            sanitised_extras = {canonicalize_name(e) for e in extras} & set(
+                self._extra_mapping
             )
-            extras = [self._extra_mapping[extra] for extra in relevant_extras]
+            extras = [
+                self._extra_mapping[canonicalize_name(extra)]
+                for extra in sanitised_extras
+            ]
         return self._dist.requires(extras)
 
     def iter_provided_extras(self) -> Iterable[NormalizedName]:
