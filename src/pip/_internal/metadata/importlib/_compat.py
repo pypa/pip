@@ -58,9 +58,10 @@ def parse_name_and_version_from_info_directory(
         return None, None
 
     stem, suffix = os.path.splitext(info_location.name)
-    if suffix == ".dist-info" and stem.count("-") == 1:
-        name, version = stem.split("-")
-        return name, version
+    if suffix == ".dist-info":
+        name, sep, version = stem.partition("-")
+        if sep:
+            return name, version
 
     if suffix == ".egg-info":
         name = stem.split("-", 1)[0]
