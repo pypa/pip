@@ -8,8 +8,7 @@
 
 By default, pip will perform SSL certificate verification for network
 connections it makes over HTTPS. These serve to prevent man-in-the-middle
-attacks against package downloads. Pip by default uses a bundled CA certificate
-store from {pypi}`certifi`.
+attacks against package downloads.
 
 ## Using a specific certificate store
 
@@ -37,6 +36,10 @@ flag to pip.
 
 ```{warning}
 If Python 3.9 or earlier is in use then only certifi is used to verify HTTPS connections.
+
+The system certificate store won't be used in this case, so some situations like proxies
+with their own certificates may not work. Upgrading to at least Python 3.10 or later is
+the recommended method to resolve this issue.
 ```
 
 [truststore github issue tracker]:
