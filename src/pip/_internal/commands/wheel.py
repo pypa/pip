@@ -64,6 +64,7 @@ class WheelCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.requirements())
         self.cmd_opts.add_option(cmdoptions.src())
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
+        self.cmd_opts.add_option(cmdoptions.upload_before())
         self.cmd_opts.add_option(cmdoptions.no_deps())
         self.cmd_opts.add_option(cmdoptions.progress_bar())
 
@@ -103,7 +104,11 @@ class WheelCommand(RequirementCommand):
     def run(self, options: Values, args: list[str]) -> int:
         session = self.get_default_session(options)
 
-        finder = self._build_package_finder(options, session)
+        finder = self._build_package_finder(
+            options=options,
+            session=session,
+            upload_before=options.upload_before,
+        )
 
         options.wheel_dir = normalize_path(options.wheel_dir)
         ensure_dir(options.wheel_dir)

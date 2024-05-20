@@ -11,6 +11,7 @@ pass on state. To be consistent, all options will follow this design.
 # mypy: strict-optional=False
 from __future__ import annotations
 
+import datetime
 import importlib.util
 import logging
 import os
@@ -794,6 +795,34 @@ ignore_requires_python: Callable[..., Option] = partial(
     dest="ignore_requires_python",
     action="store_true",
     help="Ignore the Requires-Python information.",
+)
+
+
+def _handle_upload_before(
+    option: Option, opt: str, value: str, parser: OptionParser
+) -> None:
+    """
+    Process a value provided for the --upload-before option.
+
+    This is an optparse.Option callback for the --upload-before option.
+    """
+    if value is None:
+        return None
+    upload_before = datetime.datetime.fromisoformat(value)
+    # Assume local timezone if no offset is given in the ISO string.
+    if upload_before.tzinfo is None:
+        upload_before = upload_before.astimezone()
+    parser.values.upload_before = upload_before
+
+
+upload_before: Callable[..., Option] = partial(
+    Option,
+    "--upload-before",
+    dest="upload_before",
+    metavar="datetime",
+    action="callback",
+    callback=_handle_upload_before,
+    help="Skip uploads after given time. This should be an ISO 8601 string.",
 )
 
 no_build_isolation: Callable[..., Option] = partial(
