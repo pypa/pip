@@ -1,5 +1,6 @@
 """Routines related to PyPI, indexes"""
 
+import datetime
 import enum
 import functools
 import itertools
@@ -104,6 +105,7 @@ class LinkType(enum.Enum):
     format_invalid = enum.auto()
     platform_mismatch = enum.auto()
     requires_python_mismatch = enum.auto()
+    upload_too_late = enum.auto()
 
 
 class LinkEvaluator:
@@ -125,6 +127,7 @@ class LinkEvaluator:
         target_python: TargetPython,
         allow_yanked: bool,
         ignore_requires_python: Optional[bool] = None,
+        upload_before: Optional[datetime.datetime] = None,
     ) -> None:
         """
         :param project_name: The user supplied package name.
@@ -142,6 +145,7 @@ class LinkEvaluator:
         :param ignore_requires_python: Whether to ignore incompatible
             PEP 503 "data-requires-python" values in HTML links. Defaults
             to False.
+        :param upload_before: If set, only allow links prior to the given date.
         """
         if ignore_requires_python is None:
             ignore_requires_python = False
@@ -151,6 +155,7 @@ class LinkEvaluator:
         self._ignore_requires_python = ignore_requires_python
         self._formats = formats
         self._target_python = target_python
+        self._upload_before = upload_before
 
         self.project_name = project_name
 
@@ -168,6 +173,11 @@ class LinkEvaluator:
         if link.is_yanked and not self._allow_yanked:
             reason = link.yanked_reason or "<none given>"
             return (LinkType.yanked, f"yanked for reason: {reason}")
+
+        if link.upload_time is not None and self._upload_before is not None:
+            if link.upload_time > self._upload_before:
+                reason = f"Upload time {link.upload_time} after {self._upload_before}"
+                return (LinkType.upload_too_late, reason)
 
         if link.egg_fragment:
             egg_info = link.egg_fragment
@@ -593,6 +603,7 @@ class PackageFinder:
         format_control: Optional[FormatControl] = None,
         candidate_prefs: Optional[CandidatePreferences] = None,
         ignore_requires_python: Optional[bool] = None,
+        upload_before: Optional[datetime.datetime] = None,
     ) -> None:
         """
         This constructor is primarily meant to be used by the create() class
@@ -614,6 +625,7 @@ class PackageFinder:
         self._ignore_requires_python = ignore_requires_python
         self._link_collector = link_collector
         self._target_python = target_python
+        self._upload_before = upload_before
 
         self.format_control = format_control
 
@@ -630,6 +642,7 @@ class PackageFinder:
         link_collector: LinkCollector,
         selection_prefs: SelectionPreferences,
         target_python: Optional[TargetPython] = None,
+        upload_before: Optional[datetime.datetime] = None,
     ) -> "PackageFinder":
         """Create a PackageFinder.
 
@@ -638,6 +651,7 @@ class PackageFinder:
         :param target_python: The target Python interpreter to use when
             checking compatibility. If None (the default), a TargetPython
             object will be constructed from the running Python.
+        :param upload_before: If set, only find links prior to the given date.
         """
         if target_python is None:
             target_python = TargetPython()
@@ -654,6 +668,7 @@ class PackageFinder:
             allow_yanked=selection_prefs.allow_yanked,
             format_control=selection_prefs.format_control,
             ignore_requires_python=selection_prefs.ignore_requires_python,
+            upload_before=upload_before,
         )
 
     @property
@@ -714,6 +729,7 @@ class PackageFinder:
             target_python=self._target_python,
             allow_yanked=self._allow_yanked,
             ignore_requires_python=self._ignore_requires_python,
+            upload_before=self._upload_before,
         )
 
     def _sort_links(self, links: Iterable[Link]) -> List[Link]:
