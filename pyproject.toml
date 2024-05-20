@@ -268,7 +268,7 @@ max-complexity = 33  # default is 10
 [tool.ruff.lint.pylint]
 max-args = 15  # default is 5
 max-branches = 28  # default is 12
-max-returns = 13  # default is 6
+max-returns = 14  # default is 6
 max-statements = 134  # default is 50
 
 [tool.ruff.per-file-target-version]

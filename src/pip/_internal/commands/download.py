@@ -52,6 +52,7 @@ class DownloadCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.no_use_pep517())
         self.cmd_opts.add_option(cmdoptions.check_build_deps())
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
+        self.cmd_opts.add_option(cmdoptions.upload_before())
 
         self.cmd_opts.add_option(
             "-d",
@@ -95,6 +96,7 @@ class DownloadCommand(RequirementCommand):
             session=session,
             target_python=target_python,
             ignore_requires_python=options.ignore_requires_python,
+            upload_before=options.upload_before,
         )
 
         build_tracker = self.enter_context(get_build_tracker())

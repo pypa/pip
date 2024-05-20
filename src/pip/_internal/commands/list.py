@@ -143,8 +143,10 @@ class ListCommand(IndexGroupCommand):
             super().handle_pip_version_check(options)
 
     def _build_package_finder(
-        self, options: Values, session: PipSession
-    ) -> PackageFinder:
+        self,
+        options: Values,
+        session: "PipSession",
+    ) -> "PackageFinder":
         """
         Create a package finder appropriate to this list command.
         """
