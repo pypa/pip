@@ -1,0 +1,4 @@
+Changed pip to use system certificates and certifi to verify HTTPS connections.
+This change only affects Python 3.10 or later, Python 3.9 and earlier only use certifi.
+
+To revert to previous behavior pass the flag ``--use-deprecated=legacy-certs``.
