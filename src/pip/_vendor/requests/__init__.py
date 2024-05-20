@@ -44,11 +44,7 @@ from pip._vendor import urllib3
 
 from .exceptions import RequestsDependencyWarning
 
-try:
-    from pip._vendor.charset_normalizer import __version__ as charset_normalizer_version
-except ImportError:
-    charset_normalizer_version = None
-
+charset_normalizer_version = None
 chardet_version = None
 
 
@@ -80,7 +76,8 @@ def check_compatibility(urllib3_version, chardet_version, charset_normalizer_ver
         # charset_normalizer >= 2.0.0 < 4.0.0
         assert (2, 0, 0) <= (major, minor, patch) < (4, 0, 0)
     else:
-        raise Exception("You need either charset_normalizer or chardet installed")
+        # pip does not need or use character detection
+        pass
 
 
 def _check_cryptography(cryptography_version):
