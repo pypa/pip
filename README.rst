@@ -13,7 +13,11 @@ pip - The Python Package Installer
    :target: https://pip.pypa.io/en/latest
    :alt: Documentation
 
-|pypi-version| |python-versions| |docs-badge|
+.. |monthly-downloads-badge| image:: https://assets.piptrends.com/get-last-month-downloads-badge/pip.svg
+    :alt: pip Downloads Last Month by pip Trends
+    :target: https://piptrends.com/package/pip
+
+|pypi-version| |python-versions| |docs-badge| |monthly-downloads-badge|
 
 pip is the `package installer`_ for Python. You can use pip to install packages from the `Python Package Index`_ and other indexes.
 
