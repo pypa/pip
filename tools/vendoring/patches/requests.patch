@@ -1,42 +1,3 @@
-diff --git a/src/pip/_vendor/requests/packages.py b/src/pip/_vendor/requests/packages.py
-index 77c45c9e..45787bfb 100644
---- a/src/pip/_vendor/requests/packages.py
-+++ b/src/pip/_vendor/requests/packages.py
-@@ -1,28 +1,16 @@
- import sys
- 
--try:
--    import chardet
--except ImportError:
--    import warnings
--
--    import charset_normalizer as chardet
--
--    warnings.filterwarnings("ignore", "Trying to detect", module="charset_normalizer")
--
- # This code exists for backwards compatibility reasons.
- # I don't like it either. Just look the other way. :)
- 
--for package in ("urllib3", "idna"):
--    locals()[package] = __import__(package)
-+for package in ('urllib3', 'idna', 'charset_normalizer'):
-+    vendored_package = "pip._vendor." + package
-+    locals()[package] = __import__(vendored_package)
-     # This traversal is apparently necessary such that the identities are
-     # preserved (requests.packages.urllib3.* is urllib3.*)
-     for mod in list(sys.modules):
--        if mod == package or mod.startswith(f"{package}."):
--            sys.modules[f"requests.packages.{mod}"] = sys.modules[mod]
-+        if mod == vendored_package or mod.startswith(vendored_package + '.'):
-+            unprefixed_mod = mod[len("pip._vendor."):]
-+            sys.modules['pip._vendor.requests.packages.' + unprefixed_mod] = sys.modules[mod]
- 
--target = chardet.__name__
--for mod in list(sys.modules):
--    if mod == target or mod.startswith(f"{target}."):
--        target = target.replace(target, "chardet")
--        sys.modules[f"requests.packages.{target}"] = sys.modules[mod]
- # Kinda cool, though, right?
 diff --git a/src/pip/_vendor/requests/__init__.py b/src/pip/_vendor/requests/__init__.py
 index 300a16c5..a66f6024 100644
 --- a/src/pip/_vendor/requests/__init__.py
@@ -53,6 +14,20 @@ index 300a16c5..a66f6024 100644
  
  
  def check_compatibility(urllib3_version, chardet_version, charset_normalizer_version):
+@@ -76,11 +76,8 @@ def check_compatibility(urllib3_version, chardet_version, charset_normalizer_ver
+         # charset_normalizer >= 2.0.0 < 4.0.0
+         assert (2, 0, 0) <= (major, minor, patch) < (4, 0, 0)
+     else:
+-        warnings.warn(
+-            "Unable to find acceptable character detection dependency "
+-            "(chardet or charset_normalizer).",
+-            RequestsDependencyWarning,
+-        )
++        # pip does not need or use character detection
++        pass
+
+
+ def _check_cryptography(cryptography_version):
 @@ -118,6 +115,11 @@ except (AssertionError, ValueError):
  # if the standard library doesn't support SNI or the
  # 'ssl' library isn't available.
@@ -69,18 +44,6 @@ diff --git a/src/pip/_vendor/requests/compat.py b/src/pip/_vendor/requests/compa
 index 6776163c..7819bb99 100644
 --- a/src/pip/_vendor/requests/compat.py
 +++ b/src/pip/_vendor/requests/compat.py
-@@ -7,10 +7,7 @@ between Python 2 and Python 3. It remains for backwards
- compatibility until the next major version.
- """
- 
--try:
--    import chardet
--except ImportError:
--    import charset_normalizer as chardet
-+import charset_normalizer as chardet
- 
- import sys
- 
 @@ -27,19 +24,10 @@ is_py2 = _ver[0] == 2
  #: Python 3.x?
  is_py3 = _ver[0] == 3
@@ -141,3 +104,82 @@ index be422c3e..3daf06f6 100644
  
  if __name__ == "__main__":
      print(where())
+diff --git a/src/pip/_vendor/requests/__init__.py b/src/pip/_vendor/requests/__init__.py
+index 9d4e72c60..04230fc8d 100644
+--- a/src/pip/_vendor/requests/__init__.py
++++ b/src/pip/_vendor/requests/__init__.py
+@@ -44,11 +44,7 @@ from pip._vendor import urllib3
+
+ from .exceptions import RequestsDependencyWarning
+
+-try:
+-    from charset_normalizer import __version__ as charset_normalizer_version
+-except ImportError:
+-    charset_normalizer_version = None
+-
++charset_normalizer_version = None
+ chardet_version = None
+
+
+diff --git a/src/pip/_vendor/requests/help.py b/src/pip/_vendor/requests/help.py
+index 17ca75eda..ddbb6150d 100644
+--- a/src/pip/_vendor/requests/help.py
++++ b/src/pip/_vendor/requests/help.py
+@@ -10,11 +10,7 @@ from pip._vendor import urllib3
+
+ from . import __version__ as requests_version
+
+-try:
+-    import charset_normalizer
+-except ImportError:
+-    charset_normalizer = None
+-
++charset_normalizer = None
+ chardet = None
+
+ try:
+--- a/src/pip/_vendor/requests/compat.py
++++ b/src/pip/_vendor/requests/compat.py
+@@ -7,7 +7,6 @@ between Python 2 and Python 3. It remains for backwards
+ compatibility until the next major version.
+ """
+
+-import importlib
+ import sys
+
+ # -------------------
+@@ -18,12 +17,6 @@ import sys
+ def _resolve_char_detection():
+     """Find supported character detection libraries."""
+     chardet = None
+-    for lib in ("chardet", "charset_normalizer"):
+-        if chardet is None:
+-            try:
+-                chardet = importlib.import_module(lib)
+-            except ImportError:
+-                pass
+     return chardet
+
+
+diff --git a/src/pip/_vendor/requests/packages.py b/src/pip/_vendor/requests/packages.py
+index 5ab3d8e25..200c38287 100644
+--- a/src/pip/_vendor/requests/packages.py
++++ b/src/pip/_vendor/requests/packages.py
+@@ -6,12 +6,14 @@ from .compat import chardet
+ # I don't like it either. Just look the other way. :)
+
+ for package in ("urllib3", "idna"):
+-    locals()[package] = __import__(package)
++    vendored_package = "pip._vendor." + package
++    locals()[package] = __import__(vendored_package)
+     # This traversal is apparently necessary such that the identities are
+     # preserved (requests.packages.urllib3.* is urllib3.*)
+     for mod in list(sys.modules):
+-        if mod == package or mod.startswith(f"{package}."):
+-            sys.modules[f"requests.packages.{mod}"] = sys.modules[mod]
++        if mod == vendored_package or mod.startswith(vendored_package + '.'):
++            unprefixed_mod = mod[len("pip._vendor."):]
++            sys.modules['pip._vendor.requests.packages.' + unprefixed_mod] = sys.modules[mod]
+
+ if chardet is not None:
+     target = chardet.__name__

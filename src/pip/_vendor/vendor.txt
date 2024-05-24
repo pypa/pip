@@ -5,9 +5,8 @@ msgpack==1.0.8
 packaging==24.0
 platformdirs==4.2.1
 pyproject-hooks==1.0.0
-requests==2.31.0
+requests==2.32.0
     certifi==2024.2.2
-    charset-normalizer==3.3.2
     idna==3.7
     urllib3==1.26.18
 rich==13.7.1
