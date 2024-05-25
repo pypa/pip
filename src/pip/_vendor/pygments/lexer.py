@@ -207,7 +207,9 @@ class Lexer(metaclass=LexerMeta):
                 text, _ = guess_decode(text)
             elif self.encoding == 'chardet':
                 try:
-                    from pip._vendor import chardet
+                    # pip vendoring note: this code is not reachable by pip,
+                    # removed import of chardet to make it clear.
+                    raise ImportError('chardet is not vendored by pip')
                 except ImportError as e:
                     raise ImportError('To enable chardet encoding guessing, '
                                       'please install the chardet library '

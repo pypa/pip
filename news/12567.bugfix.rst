@@ -1,1 +1,0 @@
-Gracefully skip VCS detection in pip freeze when PATH points to a non-directory path.

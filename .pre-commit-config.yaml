@@ -40,7 +40,6 @@ repos:
         'types-docutils==0.20.0.3',
         'types-setuptools==68.2.0.0',
         'types-freezegun==1.1.10',
-        'types-six==1.16.21.9',
         'types-pyyaml==6.0.12.12',
     ]
 

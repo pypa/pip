@@ -745,3 +745,36 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
             config_settings=cs,
             _allow_fallback=_allow_fallback,
         )
+
+
+def warn_if_run_as_root() -> None:
+    """Output a warning for sudo users on Unix.
+
+    In a virtual environment, sudo pip still writes to virtualenv.
+    On Windows, users may run pip as Administrator without issues.
+    This warning only applies to Unix root users outside of virtualenv.
+    """
+    if running_under_virtualenv():
+        return
+    if not hasattr(os, "getuid"):
+        return
+    # On Windows, there are no "system managed" Python packages. Installing as
+    # Administrator via pip is the correct way of updating system environments.
+    #
+    # We choose sys.platform over utils.compat.WINDOWS here to enable Mypy platform
+    # checks: https://mypy.readthedocs.io/en/stable/common_issues.html
+    if sys.platform == "win32" or sys.platform == "cygwin":
+        return
+
+    if os.getuid() != 0:
+        return
+
+    logger.warning(
+        "Running pip as the 'root' user can result in broken permissions and "
+        "conflicting behaviour with the system package manager, possibly "
+        "rendering your system unusable."
+        "It is recommended to use a virtual environment instead: "
+        "https://pip.pypa.io/warnings/venv. "
+        "Use the --root-user-action option if you know what you are doing and "
+        "want to suppress this warning."
+    )

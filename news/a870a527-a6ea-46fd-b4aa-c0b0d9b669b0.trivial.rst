@@ -1,1 +1,0 @@
-Bump pre-commit hooks.
