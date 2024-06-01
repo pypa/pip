@@ -18,9 +18,9 @@ The supported schemes are `git+file`, `git+https`, `git+ssh`, `git+http`,
 `git+git` and `git`. Here are some of the supported forms:
 
 ```none
-MyProject @ git+ssh://git@git.example.com/MyProject
 MyProject @ git+file:///home/user/projects/MyProject
 MyProject @ git+https://git.example.com/MyProject
+MyProject @ git+ssh://git@git.example.com/MyProject
 ```
 
 ```{warning}
@@ -44,6 +44,13 @@ MyProject @ git+https://git.example.com/MyProject.git@refs/pull/123/head
 When passing a commit hash, specifying a full hash is preferable to a partial
 hash because a full hash allows pip to operate more efficiently (e.g. by
 making fewer network calls).
+
+- To use ssh scheme, just replace `https://` to `ssh://git@`. For example:
+
+```{pip-cli}
+pip install "wheel@git+ssh://git@github.com/pypa/wheel.git@main"
+```
+
 
 ### Mercurial
 
