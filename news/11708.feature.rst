@@ -1,0 +1,2 @@
+Permit empty extras list  also in *editable* installs (`-e .[]`), 
+as might come up in invocation from shell such as `python -m pip install -e .[$EXTRAS]`
