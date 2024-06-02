@@ -1,14 +1,15 @@
 diff --git a/src/pip/_vendor/certifi/core.py b/src/pip/_vendor/certifi/core.py
-index de028981b..c3e546604 100644
+index 91f538bb1..70e0c3bdb 100644
 --- a/src/pip/_vendor/certifi/core.py
 +++ b/src/pip/_vendor/certifi/core.py
-@@ -33,13 +33,13 @@ def where() -> str:
+@@ -37,14 +37,14 @@ if sys.version_info >= (3, 11):
              # We also have to hold onto the actual context manager, because
              # it will do the cleanup whenever it gets garbage collected, so
              # we will also store that at the global level as well.
 -            _CACERT_CTX = as_file(files("certifi").joinpath("cacert.pem"))
 +            _CACERT_CTX = as_file(files("pip._vendor.certifi").joinpath("cacert.pem"))
              _CACERT_PATH = str(_CACERT_CTX.__enter__())
+             atexit.register(exit_cacert_ctx)
  
          return _CACERT_PATH
  
@@ -18,13 +19,14 @@ index de028981b..c3e546604 100644
  
  elif sys.version_info >= (3, 7):
  
-@@ -68,13 +68,13 @@ def where() -> str:
+@@ -73,14 +73,14 @@ elif sys.version_info >= (3, 7):
              # We also have to hold onto the actual context manager, because
              # it will do the cleanup whenever it gets garbage collected, so
              # we will also store that at the global level as well.
 -            _CACERT_CTX = get_path("certifi", "cacert.pem")
 +            _CACERT_CTX = get_path("pip._vendor.certifi", "cacert.pem")
              _CACERT_PATH = str(_CACERT_CTX.__enter__())
+             atexit.register(exit_cacert_ctx)
  
          return _CACERT_PATH
  
@@ -34,7 +36,7 @@ index de028981b..c3e546604 100644
  
  else:
      import os
-@@ -105,4 +105,4 @@ def where() -> str:
+@@ -111,4 +111,4 @@ else:
          return os.path.join(f, "cacert.pem")
  
      def contents() -> str:

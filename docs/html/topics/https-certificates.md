@@ -22,6 +22,7 @@ variables.
 
 ```{versionadded} 22.2
 Experimental support, behind `--use-feature=truststore`.
+As with any other CLI option, this can be enabled globally via config or environment variables.
 ```
 
 It is possible to use the system trust store, instead of the bundled certifi

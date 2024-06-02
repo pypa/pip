@@ -2,7 +2,7 @@ import json
 import os
 import textwrap
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any, Protocol
 
 import pytest
 
@@ -18,11 +18,6 @@ from tests.lib import (
 )
 from tests.lib.local_repos import local_checkout
 
-if TYPE_CHECKING:
-    from typing import Protocol
-else:
-    Protocol = object
-
 
 class ArgRecordingSdist:
     def __init__(self, sdist_path: Path, args_path: Path) -> None:
@@ -34,8 +29,7 @@ class ArgRecordingSdist:
 
 
 class ArgRecordingSdistMaker(Protocol):
-    def __call__(self, name: str, **kwargs: Any) -> ArgRecordingSdist:
-        ...
+    def __call__(self, name: str, **kwargs: Any) -> ArgRecordingSdist: ...
 
 
 @pytest.fixture()

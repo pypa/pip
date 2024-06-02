@@ -6,9 +6,9 @@ broken-0.1.tar.gz
 -----------------
 This package exists for testing uninstall-rollback.
 
-broken-0.2broken.tar.gz
------------------------
-Version 0.2broken has a setup.py crafted to fail on install (and only on
+broken-0.2+broken.tar.gz
+------------------------
+Version 0.2+broken has a setup.py crafted to fail on install (and only on
 install). If any earlier step would fail (i.e. egg-info-generation), the
 already-installed version would never be uninstalled, so uninstall-rollback
 would not come into play.
@@ -104,3 +104,24 @@ require_simple-1.0.tar.gz
 ------------------------
 contains "require_simple" package which requires simple>=2.0 - used for testing
 if dependencies are handled correctly.
+
+invalid_version-2010i-py3-none-any.whl
+--------------------------------------
+The invalid-version package with a legacy version.
+
+invalid_version-1.0-py3-none-any.whl
+------------------------------------
+A valid variant of the invalid-version package. Used, for instance, to test that the
+version with invalid metadata is ignored in favor of this one.
+
+require_invalid_version-0.1-py3-none-any.whl
+--------------------------------------------
+A valid variant of the require-invalid-version package.
+
+require_invalid_version-1.0-py3-none-any.whl
+--------------------------------------------
+This package has an invalid version specifier in its requirements.
+
+require_invalid_version-1.0.tar.gz
+----------------------------------
+This package has an invalid version specifier in its requirements.

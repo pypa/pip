@@ -1,4 +1,5 @@
 """Test the test support."""
+
 import filecmp
 import pathlib
 import re

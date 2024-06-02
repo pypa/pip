@@ -1,0 +1,1 @@
+Remove vendored six.

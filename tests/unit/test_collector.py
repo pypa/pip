@@ -802,9 +802,9 @@ def test_get_index_content_invalid_content_type(
     assert (
         "pip._internal.index.collector",
         logging.WARNING,
-        "Skipping page {} because the GET request got Content-Type: {}. "
-        "The only supported Content-Types are application/vnd.pypi.simple.v1+json, "
-        "application/vnd.pypi.simple.v1+html, and text/html".format(url, content_type),
+        f"Skipping page {url} because the GET request got Content-Type: {content_type}."
+        " The only supported Content-Types are application/vnd.pypi.simple.v1+json, "
+        "application/vnd.pypi.simple.v1+html, and text/html",
     ) in caplog.record_tuples
 
 
@@ -911,7 +911,7 @@ def test_collect_sources__non_existing_path() -> None:
             index_url="ignored-by-no-index",
             extra_index_urls=[],
             no_index=True,
-            find_links=[os.path.join("this", "doesnt", "exist")],
+            find_links=[os.path.join("this", "does", "not", "exist")],
         ),
     )
     sources = collector.collect_sources(

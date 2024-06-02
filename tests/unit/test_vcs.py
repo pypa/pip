@@ -444,8 +444,9 @@ def test_version_control__get_url_rev_and_auth__no_revision(url: str) -> None:
     [
         (FileNotFoundError, r"Cannot find command '{name}'"),
         (PermissionError, r"No permission to execute '{name}'"),
+        (NotADirectoryError, "Cannot find command '{name}' - invalid PATH"),
     ],
-    ids=["FileNotFoundError", "PermissionError"],
+    ids=["FileNotFoundError", "PermissionError", "NotADirectoryError"],
 )
 def test_version_control__run_command__fails(
     vcs_cls: Type[VersionControl], exc_cls: Type[Exception], msg_re: str
@@ -777,6 +778,22 @@ class TestSubversionArgs(TestCase):
         assert self.call_subprocess_mock.call_args[0][0] == args
 
     def test_obtain(self) -> None:
+        self.svn.obtain(self.dest, hide_url(self.url), verbosity=1)
+        self.assert_call_args(
+            [
+                "svn",
+                "checkout",
+                "--non-interactive",
+                "--username",
+                "username",
+                "--password",
+                hide_value("password"),
+                hide_url("http://svn.example.com/"),
+                "/tmp/test",
+            ]
+        )
+
+    def test_obtain_quiet(self) -> None:
         self.svn.obtain(self.dest, hide_url(self.url), verbosity=0)
         self.assert_call_args(
             [
@@ -794,6 +811,18 @@ class TestSubversionArgs(TestCase):
         )
 
     def test_fetch_new(self) -> None:
+        self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options, verbosity=1)
+        self.assert_call_args(
+            [
+                "svn",
+                "checkout",
+                "--non-interactive",
+                hide_url("svn+http://username:password@svn.example.com/"),
+                "/tmp/test",
+            ]
+        )
+
+    def test_fetch_new_quiet(self) -> None:
         self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options, verbosity=0)
         self.assert_call_args(
             [
@@ -807,6 +836,21 @@ class TestSubversionArgs(TestCase):
         )
 
     def test_fetch_new_revision(self) -> None:
+        rev_options = RevOptions(Subversion, "123")
+        self.svn.fetch_new(self.dest, hide_url(self.url), rev_options, verbosity=1)
+        self.assert_call_args(
+            [
+                "svn",
+                "checkout",
+                "--non-interactive",
+                "-r",
+                "123",
+                hide_url("svn+http://username:password@svn.example.com/"),
+                "/tmp/test",
+            ]
+        )
+
+    def test_fetch_new_revision_quiet(self) -> None:
         rev_options = RevOptions(Subversion, "123")
         self.svn.fetch_new(self.dest, hide_url(self.url), rev_options, verbosity=0)
         self.assert_call_args(

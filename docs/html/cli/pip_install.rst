@@ -212,11 +212,12 @@ and `there <https://www.python.org/dev/peps/pep-0503/>`_.
 pip offers a number of package index options for modifying how packages are
 found.
 
-pip looks for packages in a number of places: on PyPI (if not disabled via
-``--no-index``), in the local filesystem, and in any additional repositories
-specified via ``--find-links`` or ``--index-url``. There is no ordering in
-the locations that are searched. Rather they are all checked, and the "best"
-match for the requirements (in terms of version number - see the
+pip looks for packages in a number of places: on PyPI (or the index given as
+``--index-url``, if not disabled via ``--no-index``), in the local filesystem,
+and in any additional repositories specified via ``--find-links`` or
+``--extra-index-url``. There is no priority in the locations that are searched.
+Rather they are all checked, and the "best" match for the requirements (in
+terms of version number - see the
 :ref:`specification <pypug:version-specifiers>` for details) is selected.
 
 See the :ref:`pip install Examples<pip install Examples>`.
