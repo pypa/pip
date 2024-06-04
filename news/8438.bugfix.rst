@@ -1,0 +1,10 @@
+If the user's pip.conf includes a target directory setting,
+attempting to install a package in editable mode or from source
+results in a fatal error during the installation of setuptools.
+
+The following assertion triggers:
+assert not (home and prefix), "home={} prefix={}".format(home, prefix)
+
+To avoid this issue when building a package, the target
+setting should be ignored. This can be achieved by passing an empty
+target when installing dependencies in the BuildEnvironment class.
