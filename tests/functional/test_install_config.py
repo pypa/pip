@@ -501,12 +501,7 @@ def test_prompt_for_keyring_if_needed(
             "simple",
         )
 
-    function_name = (
-        "get_credential"
-        if keyring_provider_implementation == "import"
-        else "get_password"
-    )
     if auth_needed:
-        assert function_name + " was called" in result.stderr
+        assert "get_credential was called" in result.stderr
     else:
-        assert function_name + " was called" not in result.stderr
+        assert "get_credential was called" not in result.stderr
