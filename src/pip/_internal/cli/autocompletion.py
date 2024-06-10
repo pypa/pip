@@ -5,7 +5,10 @@ import optparse
 import os
 import sys
 from itertools import chain
+from pathlib import Path
 from typing import Any, Iterable, List, Optional
+
+from pip._vendor import tomli
 
 from pip._internal.cli.main_parser import create_main_parser
 from pip._internal.commands import commands_dict, create_command
@@ -67,6 +70,7 @@ def autocomplete() -> None:
             not current.startswith("-") and subcommand_name == "install"
         )
         if should_list_installables:
+            suggest_pyproject_extras(current)
             for path in auto_complete_paths(current, "path"):
                 print(path)
             sys.exit(1)
@@ -119,6 +123,28 @@ def autocomplete() -> None:
 
         print(" ".join([x for x in subcommands if x.startswith(current)]))
     sys.exit(1)
+
+
+def suggest_pyproject_extras(current: str) -> None:
+    if current.startswith(("'.[", '".[')):
+        keys_part = current[3:]
+        if "," in keys_part:
+            *already_extras, last = keys_part.split(",")
+            prefix = ",".join(already_extras) + ","
+        else:
+            already_extras = []
+            last = keys_part
+            prefix = ""
+        pyproject = Path("pyproject.toml")
+        if pyproject.exists():
+            try:
+                data = tomli.loads(pyproject.read_text())
+                extras = data.get("project", {}).get("optional-dependencies", {})
+                for k in extras.keys():
+                    if k.startswith(last) and (k not in already_extras):
+                        print(f".[{prefix}{k}]")
+            except Exception:
+                pass
 
 
 def get_path_completion_type(
