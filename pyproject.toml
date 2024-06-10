@@ -144,6 +144,7 @@ setuptools = "pkg_resources"
 
 [tool.vendoring.license.fallback-urls]
 distlib = "https://bitbucket.org/pypa/distlib/raw/master/LICENSE.txt"
+pyproject_hooks = "https://raw.githubusercontent.com/pypa/pyproject-hooks/main/LICENSE"
 
 ######################################################################################
 # ruff
