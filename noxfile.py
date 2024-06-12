@@ -294,6 +294,11 @@ def prepare_release(session: nox.Session) -> None:
 
     session.log("# Generating NEWS")
     release.generate_news(session, version)
+    if sys.stdin.isatty():
+        input(
+            "Please review the NEWS file, make necessary edits, and stage them.\n"
+            "Press Enter to continue..."
+        )
 
     session.log(f"# Bumping for release {version}")
     release.update_version_file(version, VERSION_FILE)
