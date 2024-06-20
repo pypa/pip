@@ -383,7 +383,10 @@ def test_clean_url_path_with_local_path(path: str, expected: str) -> None:
         pytest.param(
             "file:///T:/path/with spaces/",
             "file:///T:/path/with%20spaces",
-            marks=pytest.mark.skipif("sys.platform != 'win32'"),
+            marks=pytest.mark.skipif(
+                "sys.platform != 'win32' or "
+                "sys.version_info == (3, 13, 0, 'beta', 2)"
+            ),
         ),
         # URL with Windows drive letter, running on non-windows
         # platform. The `:` after the drive should be quoted.
@@ -396,7 +399,10 @@ def test_clean_url_path_with_local_path(path: str, expected: str) -> None:
         pytest.param(
             "git+file:///T:/with space/repo.git@1.0#egg=my-package-1.0",
             "git+file:///T:/with%20space/repo.git@1.0#egg=my-package-1.0",
-            marks=pytest.mark.skipif("sys.platform != 'win32'"),
+            marks=pytest.mark.skipif(
+                "sys.platform != 'win32' or "
+                "sys.version_info == (3, 13, 0, 'beta', 2)"
+            ),
         ),
         # Test a VCS URL with a Windows drive letter and revision,
         # running on non-windows platform.
