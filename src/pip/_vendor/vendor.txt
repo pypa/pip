@@ -16,4 +16,4 @@ resolvelib==1.0.1
 setuptools==69.5.1
 tenacity==8.2.3
 tomli==2.0.1
-truststore==0.8.0
+truststore==0.9.1
