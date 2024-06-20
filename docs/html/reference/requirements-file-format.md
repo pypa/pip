@@ -56,9 +56,14 @@ examples of all these forms, see {ref}`pip install Examples`.
 
 ### Encoding
 
-Requirements files are `utf-8` encoding by default and also support
-{pep}`263` style comments to change the encoding (i.e.
-`# -*- coding: <encoding name> -*-`).
+The default encoding for requirement files is `UTF-8` unless a different
+encoding is specified using a {pep}`263` style comment (e.g. `# -*- coding:
+<encoding name> -*-`).
+
+```{warning}
+pip will fallback to the locale defined encoding if `UTF-8` decoding fails. This is a quirk
+of pip's parser. This behaviour is *deprecated* and should not be relied upon.
+```
 
 ### Line continuations
 
