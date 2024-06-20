@@ -23,10 +23,9 @@ def test_path_to_url_unix() -> None:
         pytest.param(
             r"\\unc\as\path",
             "file://unc/as/path",
-            marks=pytest.mark.xfail(
-                reason="Failing in Python 3.13.0a1, fixed in python/cpython#113563",
-                condition="sys.version_info >= (3, 13)",
-                strict=True,
+            marks=pytest.mark.skipif(
+                "sys.platform != 'win32' or "
+                "sys.version_info == (3, 13, 0, 'beta', 2)"
             ),
             id="unc-path",
         ),
