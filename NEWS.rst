@@ -9,6 +9,15 @@
 
 .. towncrier release notes start
 
+24.1 (2024-06-20)
+=================
+
+Vendored Libraries
+------------------
+
+- Upgrade truststore to 0.9.1.
+
+
 24.1b2 (2024-06-12)
 ===================
 
