@@ -18,6 +18,10 @@ that month will be up to the release manager for that release. If there are
 no changes, then that release month is skipped and the next release will be
 3 months later.
 
+The version number of pip is ``YY.N``, where ``YY`` is the year of the release
+and ``N`` identifies which release of the year (0=January, 1=April, 2=July, and
+3=October).
+
 The release manager may, at their discretion, choose whether or not there
 will be a pre-release period for a release, and if there is may extend that
 period into the next month if needed.
