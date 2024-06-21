@@ -358,12 +358,6 @@ class ZipBackedFile:
         return self._zip_file.getinfo(self.src_record_path)
 
     def save(self) -> None:
-        # directory creation is lazy and after file filtering
-        # to ensure we don't install empty dirs; empty dirs can't be
-        # uninstalled.
-        parent_dir = os.path.dirname(self.dest_path)
-        ensure_dir(parent_dir)
-
         # When we open the output file below, any existing file is truncated
         # before we start writing the new contents. This is fine in most
         # cases, but can cause a segfault if pip has loaded a shared
@@ -421,7 +415,7 @@ class PipScriptMaker(ScriptMaker):
         return super().make(specification, options)
 
 
-def _install_wheel(
+def _install_wheel(  # noqa: C901, PLR0915 function is too long
     name: str,
     wheel_zip: ZipFile,
     wheel_path: str,
@@ -580,7 +574,15 @@ def _install_wheel(
     script_scheme_files = map(ScriptFile, script_scheme_files)
     files = chain(files, script_scheme_files)
 
+    existing_parents = set()
     for file in files:
+        # directory creation is lazy and after file filtering
+        # to ensure we don't install empty dirs; empty dirs can't be
+        # uninstalled.
+        parent_dir = os.path.dirname(file.dest_path)
+        if parent_dir not in existing_parents:
+            ensure_dir(parent_dir)
+            existing_parents.add(parent_dir)
         file.save()
         record_installed(file.src_record_path, file.dest_path, file.changed)
 
