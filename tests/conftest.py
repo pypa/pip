@@ -395,6 +395,7 @@ def pip_editable_parts(
             "-m",
             "pip",
             "install",
+            "--no-build-isolation",
             "--target",
             pip_self_install_path,
             "-e",
