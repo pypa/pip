@@ -206,8 +206,8 @@ def parse_req_from_editable(editable_req: str) -> RequirementParts:
     if name is not None:
         try:
             req: Optional[Requirement] = Requirement(name)
-        except InvalidRequirement:
-            raise InstallationError(f"Invalid requirement: '{name}'")
+        except InvalidRequirement as exc:
+            raise InstallationError(f"Invalid requirement: {name!r}: {exc}")
     else:
         req = None
 
@@ -360,7 +360,7 @@ def parse_req_from_line(name: str, line_source: Optional[str]) -> RequirementPar
     def _parse_req_string(req_as_string: str) -> Requirement:
         try:
             return get_requirement(req_as_string)
-        except InvalidRequirement:
+        except InvalidRequirement as exc:
             if os.path.sep in req_as_string:
                 add_msg = "It looks like a path."
                 add_msg += deduce_helpful_msg(req_as_string)
@@ -370,7 +370,7 @@ def parse_req_from_line(name: str, line_source: Optional[str]) -> RequirementPar
                 add_msg = "= is not a valid operator. Did you mean == ?"
             else:
                 add_msg = ""
-            msg = with_source(f"Invalid requirement: {req_as_string!r}")
+            msg = with_source(f"Invalid requirement: {req_as_string!r}: {exc}")
             if add_msg:
                 msg += f"\nHint: {add_msg}"
             raise InstallationError(msg)
@@ -429,8 +429,8 @@ def install_req_from_req_string(
 ) -> InstallRequirement:
     try:
         req = get_requirement(req_string)
-    except InvalidRequirement:
-        raise InstallationError(f"Invalid requirement: '{req_string}'")
+    except InvalidRequirement as exc:
+        raise InstallationError(f"Invalid requirement: {req_string!r}: {exc}")
 
     domains_not_allowed = [
         PyPI.file_storage_domain,

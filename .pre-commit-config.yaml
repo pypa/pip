@@ -17,18 +17,18 @@ repos:
     exclude: .patch
 
 - repo: https://github.com/psf/black-pre-commit-mirror
-  rev: 24.4.0
+  rev: 24.4.2
   hooks:
   - id: black
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.4.1
+  rev: v0.4.7
   hooks:
     - id: ruff
       args: [--fix, --exit-non-zero-on-fix]
 
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.9.0
+  rev: v1.10.0
   hooks:
   - id: mypy
     exclude: tests/data
@@ -54,7 +54,7 @@ repos:
     exclude: NEWS.rst  # The errors flagged in NEWS.rst are old.
 
 - repo: https://github.com/codespell-project/codespell
-  rev: v2.2.6
+  rev: v2.3.0
   hooks:
     - id: codespell
       exclude: AUTHORS.txt|tests/data

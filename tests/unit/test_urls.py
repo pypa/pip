@@ -15,12 +15,30 @@ def test_path_to_url_unix() -> None:
 
 
 @pytest.mark.skipif("sys.platform != 'win32'")
-def test_path_to_url_win() -> None:
-    assert path_to_url("c:/tmp/file") == "file:///C:/tmp/file"
-    assert path_to_url("c:\\tmp\\file") == "file:///C:/tmp/file"
-    assert path_to_url(r"\\unc\as\path") == "file://unc/as/path"
-    path = os.path.join(os.getcwd(), "file")
-    assert path_to_url("file") == "file:" + urllib.request.pathname2url(path)
+@pytest.mark.parametrize(
+    "path, url",
+    [
+        pytest.param("c:/tmp/file", "file:///C:/tmp/file", id="posix-path"),
+        pytest.param("c:\\tmp\\file", "file:///C:/tmp/file", id="nt-path"),
+        pytest.param(
+            r"\\unc\as\path",
+            "file://unc/as/path",
+            marks=pytest.mark.skipif(
+                "sys.platform != 'win32' or "
+                "sys.version_info == (3, 13, 0, 'beta', 2)"
+            ),
+            id="unc-path",
+        ),
+    ],
+)
+def test_path_to_url_win(path: str, url: str) -> None:
+    assert path_to_url(path) == url
+
+
+@pytest.mark.skipif("sys.platform != 'win32'")
+def test_relative_path_to_url_win() -> None:
+    resolved_path = os.path.join(os.getcwd(), "file")
+    assert path_to_url("file") == "file:" + urllib.request.pathname2url(resolved_path)
 
 
 @pytest.mark.parametrize(

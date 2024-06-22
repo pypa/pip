@@ -28,10 +28,7 @@ def mock_permitted(ups: UninstallPathSet, path: str) -> bool:
 def test_uninstallation_paths() -> None:
     class dist:
         def iter_declared_entries(self) -> Optional[Iterator[str]]:
-            yield "file.py"
-            yield "file.pyc"
-            yield "file.so"
-            yield "nopyc.py"
+            return iter(["file.py", "file.pyc", "file.so", "nopyc.py"])
 
         location = ""
 
