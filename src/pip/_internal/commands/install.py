@@ -7,6 +7,7 @@ import site
 from optparse import SUPPRESS_HELP, Values
 from typing import List, Optional
 
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.rich import print_json
 
 from pip._internal.cache import WheelCache
@@ -472,16 +473,17 @@ class InstallCommand(RequirementCommand):
             )
             env = get_environment(lib_locations)
 
+            # Display a summary of installed packages, with extra care to
+            # display a package name as it was requested by the user.
             installed.sort(key=operator.attrgetter("name"))
             items = []
-            for result in installed:
-                item = result.name
-                try:
-                    installed_dist = env.get_distribution(item)
-                    if installed_dist is not None:
-                        item = f"{item}-{installed_dist.version}"
-                except Exception:
-                    pass
+            installed_versions = {}
+            for distribution in env.iter_all_distributions():
+                installed_versions[distribution.canonical_name] = distribution.version
+            for package in installed:
+                display_name = package.name
+                version = installed_versions.get(canonicalize_name(display_name), None)
+                item = f"{display_name}-{version}"
                 items.append(item)
 
             if conflicts is not None:
