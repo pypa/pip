@@ -1,0 +1,4 @@
+Implement the ``--no-deps-for`` switch for the ``install`` command and the
+requirements file. This switch will prevent the installation of dependencies of
+specific packages, as opposed to the ``--no-deps`` switch which prevents the
+installation dependencies of all requested packages.

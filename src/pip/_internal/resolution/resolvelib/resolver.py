@@ -2,7 +2,7 @@ import contextlib
 import functools
 import logging
 import os
-from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple, cast
+from typing import TYPE_CHECKING, Container, Dict, List, Optional, Set, Tuple, cast
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible
@@ -51,6 +51,7 @@ class Resolver(BaseResolver):
         force_reinstall: bool,
         upgrade_strategy: str,
         py_version_info: Optional[Tuple[int, ...]] = None,
+        ignore_dependencies_for: Container[str] = frozenset(),
     ):
         super().__init__()
         assert upgrade_strategy in self._allowed_strategies
@@ -67,6 +68,7 @@ class Resolver(BaseResolver):
             py_version_info=py_version_info,
         )
         self.ignore_dependencies = ignore_dependencies
+        self.ignore_dependencies_for = ignore_dependencies_for
         self.upgrade_strategy = upgrade_strategy
         self._result: Optional[Result] = None
 
@@ -80,6 +82,7 @@ class Resolver(BaseResolver):
             ignore_dependencies=self.ignore_dependencies,
             upgrade_strategy=self.upgrade_strategy,
             user_requested=collected.user_requested,
+            ignore_dependencies_for=self.ignore_dependencies_for,
         )
         if "PIP_RESOLVER_DEBUG" in os.environ:
             reporter: BaseReporter = PipDebuggingReporter()

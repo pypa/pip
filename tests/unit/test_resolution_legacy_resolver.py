@@ -1,7 +1,7 @@
 import email.message
 import logging
 import os
-from typing import List, Optional, Type, TypeVar, cast
+from typing import Any, List, Mapping, Type, TypeVar, Union, cast
 from unittest import mock
 
 import pytest
@@ -14,6 +14,7 @@ from pip._internal.exceptions import (
     UnsupportedPythonVersion,
 )
 from pip._internal.metadata import BaseDistribution
+from pip._internal.metadata.importlib import Distribution
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.req.req_set import RequirementSet
@@ -27,9 +28,9 @@ from tests.lib.index import make_mock_candidate
 T = TypeVar("T")
 
 
-class FakeDist(BaseDistribution):
+class FakeDist(Distribution):
     def __init__(self, metadata: email.message.Message) -> None:
-        self._canonical_name = cast(NormalizedName, "my-project")
+        self._canonical_name = cast(NormalizedName, metadata["Name"])
         self._metadata = metadata
 
     def __str__(self) -> str:
@@ -45,12 +46,20 @@ class FakeDist(BaseDistribution):
 
 
 def make_fake_dist(
-    *, klass: Type[BaseDistribution] = FakeDist, requires_python: Optional[str] = None
+    *,
+    klass: Type[BaseDistribution] = FakeDist,
+    **metadata_kw: Union[str, List[str]],
 ) -> BaseDistribution:
+    metadata_kw.setdefault("name", "my-project")
+
     metadata = email.message.Message()
-    metadata["Name"] = "my-project"
-    if requires_python is not None:
-        metadata["Requires-Python"] = requires_python
+    for name, values in metadata_kw.items():
+        if isinstance(values, str):
+            values = [values]
+        # 'requires_python' -> 'Requires-Python'
+        name = name.replace("_", "-").title()
+        for v in values:
+            metadata.add_header(name, v)
 
     # Too many arguments for "BaseDistribution"
     return klass(metadata)  # type: ignore[call-arg]
@@ -59,6 +68,7 @@ def make_fake_dist(
 def make_test_resolver(
     monkeypatch: pytest.MonkeyPatch,
     mock_candidates: List[InstallationCandidate],
+    **resolver_kw: Any,
 ) -> Resolver:
     def _find_candidates(project_name: str) -> List[InstallationCandidate]:
         return mock_candidates
@@ -66,7 +76,7 @@ def make_test_resolver(
     finder = make_test_finder()
     monkeypatch.setattr(finder, "find_all_candidates", _find_candidates)
 
-    return Resolver(
+    defaults = dict(  # noqa: C408
         finder=finder,
         preparer=mock.Mock(),  # Not used.
         make_install_req=install_req_from_line,
@@ -78,6 +88,9 @@ def make_test_resolver(
         ignore_requires_python=False,
         upgrade_strategy="to-satisfy-only",
     )
+    defaults.update(resolver_kw)
+
+    return Resolver(**defaults)  # type: ignore[arg-type]
 
 
 class TestAddRequirement:
@@ -252,7 +265,7 @@ class TestCheckDistRequiresPython:
             def metadata(self) -> email.message.Message:
                 raise FileNotFoundError(metadata_name)
 
-        dist = make_fake_dist(klass=NotWorkingFakeDist)  # type: ignore
+        dist = make_fake_dist(klass=NotWorkingFakeDist)
 
         with pytest.raises(NoneMetadataError) as exc:
             _check_dist_requires_python(
@@ -264,6 +277,53 @@ class TestCheckDistRequiresPython:
             f"None {metadata_name} metadata found for distribution: "
             "<distribution 'my-project'>"
         )
+
+
+class TestResolution:
+    """
+    Test resolution of dependencies.
+    """
+
+    @pytest.mark.parametrize(
+        "resolver_kw, expected",
+        [
+            pytest.param({}, ["dep1", "dep2"], id="with_deps"),
+            pytest.param({"ignore_dependencies": True}, [], id="no_deps"),
+            pytest.param(
+                {"ignore_dependencies_for": {"my-project"}}, [], id="no_deps_for"
+            ),
+            pytest.param(
+                {"ignore_dependencies_for": {"another-project"}},
+                ["dep1", "dep2"],
+                id="no_deps_for_another",
+            ),
+        ],
+    )
+    def test_resolve_deps(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        resolver_kw: Mapping[str, Any],
+        expected: List[str],
+    ) -> None:
+        # GIVEN
+        preparer = mock.Mock()
+        preparer.prepare_linked_requirement.return_value = make_fake_dist(
+            requires_dist=["dep1", "dep2"],
+        )
+        requirement_set = RequirementSet(check_supported_wheels=True)
+        req = install_req_from_line("my-project", user_supplied=True)
+
+        # WHEN
+        resolver = make_test_resolver(
+            monkeypatch,
+            [make_mock_candidate("1.0")],
+            preparer=preparer,
+            **resolver_kw,
+        )
+        reqs = resolver._resolve_one(requirement_set, req)
+
+        # THEN
+        assert [req.name for req in reqs] == expected
 
 
 class TestYankedWarning:

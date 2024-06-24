@@ -56,6 +56,7 @@ SUPPORTED_OPTIONS: List[Callable[..., optparse.Option]] = [
     cmdoptions.find_links,
     cmdoptions.no_binary,
     cmdoptions.only_binary,
+    cmdoptions.no_deps_for,
     cmdoptions.prefer_binary,
     cmdoptions.require_hashes,
     cmdoptions.pre,
@@ -225,6 +226,7 @@ def handle_option_line(
             options.features_enabled.extend(
                 f for f in opts.features_enabled if f not in options.features_enabled
             )
+        options.ignore_dependencies_for.update(opts.ignore_dependencies_for)
 
     # set finder options
     if finder:
