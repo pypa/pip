@@ -240,7 +240,7 @@ def test_new_resolver_ignore_dependencies_for(script: PipTestEnvironment) -> Non
         "dep2",
         "0.1.0",
     )
-    result = script.pip(
+    script.pip(
         "install",
         "--no-cache-dir",
         "--no-index",
@@ -253,7 +253,6 @@ def test_new_resolver_ignore_dependencies_for(script: PipTestEnvironment) -> Non
     )
     script.assert_installed(base="0.1.0", base2="0.1.0", dep2="0.1.0")
     script.assert_not_installed("dep")
-    assert "base 0.1.0 requires dep, which is not installed." in result.stderr
 
 
 @pytest.mark.parametrize(

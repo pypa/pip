@@ -441,7 +441,8 @@ class InstallCommand(RequirementCommand):
             # Check for conflicts in the package set we're installing.
             conflicts: Optional[ConflictDetails] = None
             should_warn_about_conflicts = (
-                not options.ignore_dependencies and options.warn_about_conflicts
+                not (options.ignore_dependencies or options.ignore_dependencies_for)
+                and options.warn_about_conflicts
             )
             if should_warn_about_conflicts:
                 conflicts = self._determine_conflicts(to_install)
