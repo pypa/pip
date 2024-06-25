@@ -69,6 +69,7 @@ if DEBUNDLED:
     vendored("pkg_resources")
     vendored("platformdirs")
     vendored("progress")
+    vendored("pyproject_hooks")
     vendored("requests")
     vendored("requests.exceptions")
     vendored("requests.packages")
