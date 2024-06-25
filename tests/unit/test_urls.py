@@ -5,6 +5,10 @@ import urllib.request
 import pytest
 
 from pip._internal.utils.urls import path_to_url, url_to_path
+from tests.lib import (
+    skip_needs_new_urlun_behavior_win,
+    skip_needs_old_urlun_behavior_win,
+)
 
 
 @pytest.mark.skipif("sys.platform == 'win32'")
@@ -23,11 +27,13 @@ def test_path_to_url_unix() -> None:
         pytest.param(
             r"\\unc\as\path",
             "file://unc/as/path",
-            marks=pytest.mark.skipif(
-                "sys.platform != 'win32' or "
-                "sys.version_info == (3, 13, 0, 'beta', 2)"
-            ),
+            marks=skip_needs_old_urlun_behavior_win,
             id="unc-path",
+        ),
+        pytest.param(
+            r"\\unc\as\path",
+            "file:////unc/as/path",
+            marks=skip_needs_new_urlun_behavior_win,
         ),
     ],
 )
