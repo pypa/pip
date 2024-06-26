@@ -228,8 +228,6 @@ class TestUnpackArchives:
 
         untar_file(test_tar, self.tempdir)
 
-        os.system(f"ls -alR {self.tempdir}")
-
         unpack_dir = os.path.join(self.tempdir, unpack_prefix)
         with open(os.path.join(unpack_dir, "regular_file.txt"), "rb") as f:
             assert f.read() == content
