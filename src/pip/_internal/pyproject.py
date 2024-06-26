@@ -1,9 +1,14 @@
 import importlib.util
 import os
+import sys
 from collections import namedtuple
 from typing import Any, List, Optional
 
-from pip._vendor import tomli
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    from pip._vendor import tomli as tomllib
+
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 
 from pip._internal.exceptions import (
@@ -61,7 +66,7 @@ def load_pyproject_toml(
 
     if has_pyproject:
         with open(pyproject_toml, encoding="utf-8") as f:
-            pp_toml = tomli.loads(f.read())
+            pp_toml = tomllib.loads(f.read())
         build_system = pp_toml.get("build-system")
     else:
         build_system = None
