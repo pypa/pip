@@ -57,7 +57,7 @@ def split_leading_dir(path: str) -> List[str]:
     elif "\\" in path:
         return path.split("\\", 1)
     else:
-        return [path, ""]
+        return ["", path]
 
 
 def has_leading_dir(paths: Iterable[str]) -> bool:
