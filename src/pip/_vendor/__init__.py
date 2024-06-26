@@ -65,7 +65,6 @@ if DEBUNDLED:
     vendored("packaging")
     vendored("packaging.version")
     vendored("packaging.specifiers")
-    vendored("pep517")
     vendored("pkg_resources")
     vendored("platformdirs")
     vendored("progress")
