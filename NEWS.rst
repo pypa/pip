@@ -9,6 +9,20 @@
 
 .. towncrier release notes start
 
+24.1.1 (2024-06-26)
+===================
+
+Bug Fixes
+---------
+
+- Actually use system trust stores when the truststore feature is enabled.
+
+Vendored Libraries
+------------------
+
+- Upgrade requests to 2.32.3
+
+
 24.1 (2024-06-20)
 =================
 
