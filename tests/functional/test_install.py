@@ -2641,13 +2641,20 @@ def test_install_sdist_links(script: PipTestEnvironment, common_prefix: str) -> 
         add_file(sdist_tar, "src/linktest/sub/__init__.py", "")
         add_file(sdist_tar, "src/linktest/sub/inner.dat", "Data")
         linknames = []
+
+        # Windows requires native path separators in symlink targets.
+        # (see https://github.com/python/cpython/issues/57911)
+        # (This is not needed for hardlinks, nor for the workaround tarfile
+        # uses if symlinking is disabled.)
+        SEP = os.path.sep
+
         pkg_root = f"{common_prefix}src/linktest"
         for prefix, target_tag, linktype, target in [
             ("", "root", "sym", "root.dat"),
             ("", "root", "hard", f"{pkg_root}/root.dat"),
-            ("", "inner", "sym", "sub/inner.dat"),
+            ("", "inner", "sym", f"sub{SEP}inner.dat"),
             ("", "inner", "hard", f"{pkg_root}/sub/inner.dat"),
-            ("sub/", "root", "sym", "../root.dat"),
+            ("sub/", "root", "sym", f"..{SEP}root.dat"),
             ("sub/", "root", "hard", f"{pkg_root}/root.dat"),
             ("sub/", "inner", "sym", "inner.dat"),
             ("sub/", "inner", "hard", f"{pkg_root}/sub/inner.dat"),
