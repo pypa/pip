@@ -476,15 +476,18 @@ class InstallCommand(RequirementCommand):
             # Display a summary of installed packages, with extra care to
             # display a package name as it was requested by the user.
             installed.sort(key=operator.attrgetter("name"))
-            items = []
+            summary = []
             installed_versions = {}
             for distribution in env.iter_all_distributions():
                 installed_versions[distribution.canonical_name] = distribution.version
             for package in installed:
                 display_name = package.name
                 version = installed_versions.get(canonicalize_name(display_name), None)
-                item = f"{display_name}-{version}"
-                items.append(item)
+                if version:
+                    text = f"{display_name}-{version}"
+                else:
+                    text = display_name
+                summary.append(text)
 
             if conflicts is not None:
                 self._warn_about_conflicts(
@@ -492,7 +495,7 @@ class InstallCommand(RequirementCommand):
                     resolver_variant=self.determine_resolver_variant(options),
                 )
 
-            installed_desc = " ".join(items)
+            installed_desc = " ".join(summary)
             if installed_desc:
                 write_output(
                     "Successfully installed %s",
