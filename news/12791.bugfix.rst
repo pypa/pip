@@ -1,2 +1,2 @@
-Improve performance. Fix code to display installed packages at the end of
- pip install, was O(n^2) to enumerate packages due to accidental loop in loop.
+Improve pip install performance. The installed packages printout is
+now calculated in linear time instead of quadratic time.
