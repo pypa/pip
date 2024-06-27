@@ -1,2 +1,2 @@
-Improve performance of pip install. When extracting a wheel,
-do not recheck/recreate the parent directory before extracting each file.
+Improve pip install performance by only creating required parent
+directories once, instead of before extracting every file in the wheel. 
