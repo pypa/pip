@@ -181,9 +181,10 @@ class Environment(BaseEnvironment):
             yield from finder.find_linked(location)
 
     def get_distribution(self, name: str) -> Optional[BaseDistribution]:
+        canonical_name = canonicalize_name(name)
         matches = (
             distribution
             for distribution in self.iter_all_distributions()
-            if distribution.canonical_name == canonicalize_name(name)
+            if distribution.canonical_name == canonical_name
         )
         return next(matches, None)
