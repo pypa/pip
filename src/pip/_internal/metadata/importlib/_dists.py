@@ -1,6 +1,5 @@
 import email.message
 import importlib.metadata
-import os
 import pathlib
 import zipfile
 from typing import (
@@ -30,7 +29,11 @@ from pip._internal.utils.misc import normalize_path
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.wheel import parse_wheel, read_wheel_metadata_file
 
-from ._compat import BasePath, get_dist_name
+from ._compat import (
+    BasePath,
+    get_dist_canonical_name,
+    parse_name_and_version_from_info_directory,
+)
 
 
 class WheelDistribution(importlib.metadata.Distribution):
@@ -153,25 +156,14 @@ class Distribution(BaseDistribution):
             return None
         return normalize_path(str(self._installed_location))
 
-    def _get_dist_name_from_location(self) -> Optional[str]:
-        """Try to get the name from the metadata directory name.
-
-        This is much faster than reading metadata.
-        """
-        if self._info_location is None:
-            return None
-        stem, suffix = os.path.splitext(self._info_location.name)
-        if suffix not in (".dist-info", ".egg-info"):
-            return None
-        return stem.split("-", 1)[0]
-
     @property
     def canonical_name(self) -> NormalizedName:
-        name = self._get_dist_name_from_location() or get_dist_name(self._dist)
-        return canonicalize_name(name)
+        return get_dist_canonical_name(self._dist)
 
     @property
     def version(self) -> Version:
+        if version := parse_name_and_version_from_info_directory(self._dist)[1]:
+            return parse_version(version)
         return parse_version(self._dist.version)
 
     @property

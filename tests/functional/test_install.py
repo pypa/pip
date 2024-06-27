@@ -1172,7 +1172,7 @@ def test_install_nonlocal_compatible_wheel(
     )
     assert result.returncode == SUCCESS
 
-    distinfo = Path("scratch") / "target" / "simplewheel-2.0-1.dist-info"
+    distinfo = Path("scratch") / "target" / "simplewheel-2.0.dist-info"
     result.did_create(distinfo)
 
     # Test install without --target
