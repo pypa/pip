@@ -91,6 +91,9 @@ class WheelDistribution(importlib.metadata.Distribution):
             raise UnsupportedWheel(error)
         return text
 
+    def locate_file(self, path):
+        raise NotImplementedError()
+
 
 class Distribution(BaseDistribution):
     def __init__(
