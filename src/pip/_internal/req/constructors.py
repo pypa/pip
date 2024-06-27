@@ -42,7 +42,7 @@ operators = Specifier._operators.keys()
 
 
 def _strip_extras(path: str) -> Tuple[str, Optional[str]]:
-    m = re.match(r"^(.+)(\[[^\]]+\])$", path)
+    m = re.match(r"^(.+)(\[[^\]]*\])$", path)
     extras = None
     if m:
         path_no_extras = m.group(1)
