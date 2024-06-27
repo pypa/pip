@@ -1,0 +1,1 @@
+Support completion of installation extras in zsh
