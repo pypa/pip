@@ -11,3 +11,22 @@ index 3f2476a0c..8d5727d35 100644
      yield_lines,
      drop_comment,
      join_continuation,
+--- a/src/pip/_vendor/pkg_resources/__init__.py
++++ b/src/pip/_vendor/pkg_resources/__init__.py
+@@ -101,12 +101,10 @@ _namespace_handlers = None
+ _namespace_packages = None
+
+
+-warnings.warn(
+-    "pkg_resources is deprecated as an API. "
+-    "See https://setuptools.pypa.io/en/latest/pkg_resources.html",
+-    DeprecationWarning,
+-    stacklevel=2,
+-)
++# Patch: Remove deprecation warning from vendored pkg_resources.
++# Setting PYTHONWARNINGS=error to verify builds produce no warnings
++# causes immediate exceptions.
++# See https://github.com/pypa/pip/issues/12243
+
+
+ _PEP440_FALLBACK = re.compile(r"^v?(?P<safe>(?:[0-9]+!)?[0-9]+(?:\.[0-9]+)*)", re.I)
