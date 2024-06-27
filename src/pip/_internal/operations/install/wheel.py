@@ -377,9 +377,11 @@ class ZipBackedFile:
 
         zipinfo = self._getinfo()
 
-        with self._zip_file.open(zipinfo) as f:
-            with open(self.dest_path, "wb") as dest:
-                shutil.copyfileobj(f, dest)
+        with open(self.dest_path, "wb") as dest:
+            if zipinfo.file_size > 0:
+                with self._zip_file.open(zipinfo) as f:
+                    blocksize = min(zipinfo.file_size, 1048576)
+                    shutil.copyfileobj(f, dest, blocksize)
 
         if zip_item_is_executable(zipinfo):
             set_extracted_file_to_default_mode_plus_executable(self.dest_path)
