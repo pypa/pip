@@ -1,0 +1,2 @@
+Pip install's ``--target`` works more like the other 'install schemas'. This
+fixes installing namespaced packages.
