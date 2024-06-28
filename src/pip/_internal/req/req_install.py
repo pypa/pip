@@ -18,7 +18,11 @@ from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.pyproject_hooks import BuildBackendHookCaller
 
 from pip._internal.build_env import BuildEnvironment, NoOpBuildEnvironment
-from pip._internal.exceptions import InstallationError, PreviousBuildDirError
+from pip._internal.exceptions import (
+    EditableUnsupportedByBackend,
+    InstallationError,
+    PreviousBuildDirError,
+)
 from pip._internal.locations import get_scheme
 from pip._internal.metadata import (
     BaseDistribution,
@@ -541,12 +545,9 @@ class InstallRequirement:
             and not os.path.isfile(self.setup_py_path)
             and not os.path.isfile(self.setup_cfg_path)
         ):
-            raise InstallationError(
-                f"Project {self} has a 'pyproject.toml' and its build "
-                f"backend is missing the 'build_editable' hook. Since it does not "
-                f"have a 'setup.py' nor a 'setup.cfg', "
-                f"it cannot be installed in editable mode. "
-                f"Consider using a build backend that supports PEP 660."
+            assert self.pep517_backend is not None, "backend should be loaded!"
+            raise EditableUnsupportedByBackend(
+                requirement=self, backend=self.pep517_backend.build_backend
             )
 
     def prepare_metadata(self) -> None:

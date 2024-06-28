@@ -879,9 +879,8 @@ def test_editable_install_legacy__local_dir_no_setup_py_with_pyproject(
     assert not result.files_created
 
     msg = result.stderr
-    assert "has a 'pyproject.toml'" in msg
-    assert "does not have a 'setup.py' nor a 'setup.cfg'" in msg
-    assert "cannot be installed in editable mode" in msg
+    assert "editable-mode-unsupported-by-backend" in msg
+    assert "setuptools.build_meta" in msg
 
 
 def test_editable_install__local_dir_setup_requires_with_pyproject(

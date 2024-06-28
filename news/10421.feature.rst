@@ -1,0 +1,2 @@
+Present clearer errors when an invalid editable requirement is given or
+when a project's build backend does not support editable installs (PEP 660).
