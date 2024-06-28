@@ -1,11 +1,11 @@
 # `setup.py` (legacy)
 
-Prior to the introduction of pyproject.toml-based builds (in {pep}`517` and
+Prior to the introduction of *backend API* based builds (in {pep}`517` and
 {pep}`518`), pip had only supported installing packages using `setup.py` files
 that were built using {pypi}`setuptools`.
 
 The interface documented here is retained currently solely for legacy purposes,
-until the migration to `pyproject.toml`-based builds can be completed.
+until the migration to *backend API* based builds can be completed.
 
 ```{caution}
 The arguments and syntax of the various invocations of `setup.py` made by
