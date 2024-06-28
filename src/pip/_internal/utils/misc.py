@@ -1,7 +1,6 @@
 import errno
 import getpass
 import hashlib
-import io
 import logging
 import os
 import posixpath
@@ -70,6 +69,8 @@ NetlocTuple = Tuple[str, Tuple[Optional[str], Optional[str]]]
 OnExc = Callable[[FunctionType, Path, BaseException], Any]
 OnErr = Callable[[FunctionType, Path, ExcInfo], Any]
 
+FILE_CHUNK_SIZE = 1024 * 1024
+
 
 def get_pip_version() -> str:
     pip_pkg_dir = os.path.join(os.path.dirname(__file__), "..", "..")
@@ -122,9 +123,7 @@ def get_prog() -> str:
 # Retry every half second for up to 3 seconds
 @retry(stop_after_delay=3, wait=0.5)
 def rmtree(
-    dir: str,
-    ignore_errors: bool = False,
-    onexc: Optional[OnExc] = None,
+    dir: str, ignore_errors: bool = False, onexc: Optional[OnExc] = None
 ) -> None:
     if ignore_errors:
         onexc = _onerror_ignore
@@ -313,7 +312,7 @@ def is_installable_dir(path: str) -> bool:
 
 
 def read_chunks(
-    file: BinaryIO, size: int = io.DEFAULT_BUFFER_SIZE
+    file: BinaryIO, size: int = FILE_CHUNK_SIZE
 ) -> Generator[bytes, None, None]:
     """Yield pieces of data from a file-like object until EOF."""
     while True:
@@ -643,8 +642,7 @@ def pairwise(iterable: Iterable[Any]) -> Iterator[Tuple[Any, Any]]:
 
 
 def partition(
-    pred: Callable[[T], bool],
-    iterable: Iterable[T],
+    pred: Callable[[T], bool], iterable: Iterable[T]
 ) -> Tuple[Iterable[T], Iterable[T]]:
     """
     Use a predicate to partition entries into false entries and true entries,
