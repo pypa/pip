@@ -122,8 +122,6 @@ drop = [
   "bin/",
   # interpreter and OS specific msgpack libs
   "msgpack/*.so",
-  # interpreter and OS specific charset-normalizer libs
-  "charset_normalizer/*.so",
   # unneeded parts of setuptools
   "easy_install.py",
   "setuptools",

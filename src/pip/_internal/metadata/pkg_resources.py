@@ -11,7 +11,6 @@ from typing import (
     Mapping,
     NamedTuple,
     Optional,
-    cast,
 )
 
 from pip._vendor import pkg_resources
@@ -92,8 +91,7 @@ class Distribution(BaseDistribution):
     def _extra_mapping(self) -> Mapping[NormalizedName, str]:
         if self.__extra_mapping is None:
             self.__extra_mapping = {
-                canonicalize_name(extra): pkg_resources.safe_extra(cast(str, extra))
-                for extra in self.metadata.get_all("Provides-Extra", [])
+                canonicalize_name(extra): extra for extra in self._dist.extras
             }
 
         return self.__extra_mapping

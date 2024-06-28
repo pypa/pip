@@ -275,6 +275,7 @@ Florian Briand
 Florian Rathgeber
 Francesco
 Francesco Montesano
+Fredrik Orderud
 Frost Ming
 Gabriel Curio
 Gabriel de Perthuis
@@ -477,6 +478,7 @@ matthew
 Matthew Einhorn
 Matthew Feickert
 Matthew Gilliard
+Matthew Hughes
 Matthew Iversen
 Matthew Treinish
 Matthew Trumbell
@@ -511,6 +513,7 @@ Miro Hrončok
 Monica Baluna
 montefra
 Monty Taylor
+mrKazzila
 Muha Ajjan
 Nadav Wexler
 Nahuel Ambrosini
@@ -665,6 +668,7 @@ Shantanu
 shenxianpeng
 shireenrao
 Shivansh-007
+Shixian Sheng
 Shlomi Fish
 Shovan Maity
 Simeon Visser

@@ -1,6 +1,7 @@
 import re
 import textwrap
 from os.path import join
+from pathlib import Path
 
 import pytest
 
@@ -252,3 +253,23 @@ def test_install_extras(script: PipTestEnvironment) -> None:
         "a",
     )
     script.assert_installed(a="1", b="1", dep="1", meh="1")
+
+
+def test_install_setuptools_extras_inconsistency(
+    script: PipTestEnvironment, tmp_path: Path
+) -> None:
+    test_project_path = tmp_path.joinpath("test")
+    test_project_path.mkdir()
+    test_project_path.joinpath("setup.py").write_text(
+        textwrap.dedent(
+            """
+                from setuptools import setup
+                setup(
+                    name='test',
+                    version='0.1',
+                    extras_require={'extra_underscored': ['packaging']},
+                )
+            """
+        )
+    )
+    script.pip("install", "--dry-run", test_project_path)

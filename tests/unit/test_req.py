@@ -734,7 +734,7 @@ class TestInstallRequirement:
         with pytest.raises(InstallationError) as e:
             install_req_from_line(test_name)
         err_msg = e.value.args[0]
-        assert f"Invalid requirement: '{test_name}'" == err_msg
+        assert err_msg.startswith(f"Invalid requirement: '{test_name}'")
 
     def test_requirement_file(self) -> None:
         req_file_path = os.path.join(self.tempdir, "test.txt")

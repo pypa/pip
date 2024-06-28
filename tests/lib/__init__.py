@@ -28,6 +28,7 @@ from typing import (
     Union,
     cast,
 )
+from urllib.parse import urlparse, urlunparse
 from zipfile import ZipFile
 
 import pytest
@@ -1375,3 +1376,19 @@ class ScriptFactory(Protocol):
 
 
 CertFactory = Callable[[], str]
+
+# versions containing fix/backport from https://github.com/python/cpython/pull/113563
+# which changed the behavior of `urllib.parse.urlun{parse,split}`
+url = "////path/to/file"
+has_new_urlun_behavior = url == urlunparse(urlparse(url))
+
+# the above change seems to only impact tests on Windows, so just add skips for that
+skip_needs_new_urlun_behavior_win = pytest.mark.skipif(
+    sys.platform != "win32" or not has_new_urlun_behavior,
+    reason="testing windows behavior for newer CPython",
+)
+
+skip_needs_old_urlun_behavior_win = pytest.mark.skipif(
+    sys.platform != "win32" or has_new_urlun_behavior,
+    reason="testing windows behavior for older CPython",
+)
