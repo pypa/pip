@@ -377,10 +377,12 @@ class ZipBackedFile:
 
         zipinfo = self._getinfo()
 
+        # optimization: the file is created by open(),
+        # skip the decompression when there is 0 bytes to decompress.
         with open(self.dest_path, "wb") as dest:
             if zipinfo.file_size > 0:
                 with self._zip_file.open(zipinfo) as f:
-                    blocksize = min(zipinfo.file_size, 1048576)
+                    blocksize = min(zipinfo.file_size, 1_048_576)
                     shutil.copyfileobj(f, dest, blocksize)
 
         if zip_item_is_executable(zipinfo):
