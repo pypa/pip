@@ -52,6 +52,7 @@ from pip._internal.utils.misc import (
     redact_auth_from_requirement,
     redact_auth_from_url,
 )
+from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.subprocess import runner_with_spinner_message
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 from pip._internal.utils.unpacking import unpack_file
@@ -395,7 +396,7 @@ class InstallRequirement:
         else:
             op = "==="
 
-        self.req = Requirement(
+        self.req = get_requirement(
             "".join(
                 [
                     self.metadata["Name"],
@@ -421,7 +422,7 @@ class InstallRequirement:
             metadata_name,
             self.name,
         )
-        self.req = Requirement(metadata_name)
+        self.req = get_requirement(metadata_name)
 
     def check_if_exists(self, use_user_site: bool) -> None:
         """Find an installed distribution that satisfies or conflicts
