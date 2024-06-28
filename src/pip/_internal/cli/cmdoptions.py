@@ -13,11 +13,13 @@ pass on state. To be consistent, all options will follow this design.
 import importlib.util
 import logging
 import os
+import platform
+import re
 import textwrap
 from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup, OptionParser, Values
 from textwrap import dedent
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -97,6 +99,122 @@ def check_dist_restriction(options: Values, check_target: bool = False) -> None:
                 "Can not use any platform or abi specific options unless "
                 "installing via '--target' or using '--dry-run'"
             )
+
+
+def validate_platform_options(platform_options: List[str]) -> None:
+    """
+    Determine if platform options follow standard structures provided
+    in PEPs 425, 513, 571, 599, and 600
+
+    :param options: optparse options as a read-only Values object
+    """
+
+    def is_macos_arch(suffix: str) -> bool:
+        osx_re = re.compile(r"(?P<major>\d+)_(?P<minor>\d+)_(?P<arch>.+)")
+        match = osx_re.fullmatch(suffix)
+        if not match:
+            return False
+
+        major, minor, arch = (
+            int(match.group("major")),
+            int(match.group("minor")),
+            match.group("arch"),
+        )
+        return (major, minor) >= (10, 0) or arch in {"arm64", "intel", "x86_64"}
+
+    def is_linux_arch(prefix: str, suffix: str) -> bool:
+        """
+        determine if a platform suffix has proper content and structure
+        for details about
+        """
+        # manylinux1, manylinux2010, manylinux2014, and linux should be followed
+        # by _<architecture>
+        linux_re = re.compile(r"(?P<arch>.+)")
+        match = linux_re.fullmatch(suffix)
+        if not match:
+            return False
+
+        arch = match.group("arch")
+        if prefix == "linux":
+            return arch in {"i386", "x86_64"}
+        if prefix in {"manylinux1", "manylinux2010"}:
+            return arch in {"i686", "x86_64"}
+        if prefix == "manylinux2014":
+            return arch in {
+                "aarch64",
+                "armv71",
+                "i686",
+                "ppc64",
+                "ppc64le",
+                "s390x",
+                "x86_64",
+            }
+        return False
+
+    def is_glibc_linux_arch(suffix: str) -> bool:
+        # manylinux alone should be followed by a _<major>_<minor>_<arch>
+        glibc_manylinux_re = re.compile(r"(?P<major>\d+)_(?P<minor>\d+)_(?P<arch>.+)")
+        glx = glibc_manylinux_re.fullmatch(suffix)
+        # PEP 600 recommends any tag of the form "manylinux_[0-9]+_[0-9]+_(.*)"
+        # be accepted by package indexes. Therefore, as long as the glibc
+        # major and minor versions are digits and there exists a value for
+        # the architecture, we should accept it. If they do not exist
+        # return False as improper input
+        return bool(glx)
+
+    def is_win_arch(suffix: str) -> bool:
+        # we don't need to check for a win32 given the calling function
+        # will enter here if this was a match. Otherwise, we do need
+        # to check if the architecture matches amd64.
+        win_re = re.compile(r"(?P<arch>)")
+        match = win_re.fullmatch(suffix)
+        return match.group("arch") == "amd64" if match else False
+
+    if not platform_options:
+        return
+
+    current_platform, *_ = platform.platform().lower().partition("-")
+    current_machine = platform.machine()
+    invalid_platforms = []
+    for platform_tag in platform_options:
+        platform_prefix, _, platform_suffix = platform_tag.partition("_")
+        if platform_prefix == "macosx":
+            if not is_macos_arch(platform_suffix):
+                invalid_platforms.append(platform_tag)
+        elif platform_prefix in {
+            "linux",
+            "manylinux1",
+            "manylinux2010",
+            "manylinux2014",
+        }:
+            if not is_linux_arch(platform_prefix, platform_suffix):
+                invalid_platforms.append(platform_tag)
+        elif platform_prefix == "manylinux":
+            if not is_glibc_linux_arch(platform_suffix):
+                invalid_platforms.append(platform_tag)
+        elif platform_prefix in ["win", "win32"]:
+            if not is_win_arch(platform_suffix):
+                invalid_platforms.append(platform_tag)
+        elif platform_prefix == "any":
+            pass
+        else:
+            # no standard values have been encountered and it seems
+            # safe to assume this is potentially improper input
+            invalid_platforms.append(platform_tag)
+    if invalid_platforms:
+        message = (
+            "Some platform options provided do not match standard platform "
+            "structure and may not result in a package hit (see help for more): "
+            f"{', '.join(invalid_platforms)}. Consider using current system specs: "
+            f"{current_platform} and {current_machine}"
+        )
+
+        print(message)
+
+
+def validate_user_options(options: Values) -> None:
+    if options.platforms:
+        validate_platform_options(options.platforms)
 
 
 def _path_option_check(option: Option, opt: str, value: str) -> str:
@@ -540,6 +658,14 @@ platforms: Callable[..., Option] = partial(
         "Only use wheels compatible with <platform>. Defaults to the "
         "platform of the running system. Use this option multiple times to "
         "specify multiple platforms supported by the target interpreter."
+        "Some possible options include: 'any', "
+        "'manylinux2014_(x86_64|aarch64|armv71)', "
+        "'manylinux_x_y_(x86_64|aarch64|armv71)' "
+        "- x and y are glibc major and minor version numbers, 'linux_x86_64', "
+        "'linux_i386', 'win32', 'win_amd64', "
+        "'macosx_x_y_(x86_64|i386|intel|arm64)' "
+        "- x and y are major and minor version numbers. "
+        "See PEPS 425, 513, 571, 599, and 600"
     ),
 )
 
