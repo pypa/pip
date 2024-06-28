@@ -36,12 +36,12 @@ from typing import (
 
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.pyproject_hooks import BuildBackendHookCaller
-from pip._vendor.tenacity import retry, stop_after_delay, wait_fixed
 
 from pip import __version__
 from pip._internal.exceptions import CommandError, ExternallyManagedEnvironment
 from pip._internal.locations import get_major_minor_version
 from pip._internal.utils.compat import WINDOWS
+from pip._internal.utils.retry import retry
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 __all__ = [
@@ -120,8 +120,7 @@ def get_prog() -> str:
 
 
 # Retry every half second for up to 3 seconds
-# Tenacity raises RetryError by default, explicitly raise the original exception
-@retry(reraise=True, stop=stop_after_delay(3), wait=wait_fixed(0.5))
+@retry(stop_after_delay=3, wait=0.5)
 def rmtree(
     dir: str,
     ignore_errors: bool = False,

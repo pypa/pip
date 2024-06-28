@@ -110,7 +110,6 @@ if DEBUNDLED:
     vendored("rich.style")
     vendored("rich.text")
     vendored("rich.traceback")
-    vendored("tenacity")
     vendored("tomli")
     vendored("truststore")
     vendored("urllib3")
