@@ -273,6 +273,9 @@ class RequirementPreparer:
         # Previous "header" printed for a link-based InstallRequirement
         self._previous_requirement_header = ("", "")
 
+        # Whether an HTTPRangeRequestUnsupported was already thrown for this domain.
+        self._domains_without_http_range: set[str] = set()
+
     def _log_preparing_link(self, req: InstallRequirement) -> None:
         """Provide context for the requirement being prepared."""
         if req.link.is_file and not req.is_wheel_from_cache:
@@ -430,6 +433,9 @@ class RequirementPreparer:
             )
             return None
 
+        if link.netloc in self._domains_without_http_range:
+            return None
+
         wheel = Wheel(link.filename)
         name = canonicalize_name(wheel.name)
         logger.info(
@@ -437,11 +443,16 @@ class RequirementPreparer:
             name,
             wheel.version,
         )
-        url = link.url.split("#", 1)[0]
         try:
-            return dist_from_wheel_url(name, url, self._session)
-        except HTTPRangeRequestUnsupported:
-            logger.debug("%s does not support range requests", url)
+            return dist_from_wheel_url(name, link.url_without_fragment, self._session)
+        except HTTPRangeRequestUnsupported as e:
+            logger.debug(
+                "domain '%s' does not support range requests (%s): "
+                "not attempting lazy wheel further",
+                link.netloc,
+                str(e),
+            )
+            self._domains_without_http_range.add(link.netloc)
             return None
 
     def _complete_partial_requirements(
