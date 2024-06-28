@@ -314,7 +314,7 @@ def is_installable_dir(path: str) -> bool:
 
 
 def read_chunks(
-    file: BinaryIO, size: int = io.DEFAULT_BUFFER_SIZE
+    file: BinaryIO, size: int = 1024 * 1024
 ) -> Generator[bytes, None, None]:
     """Yield pieces of data from a file-like object until EOF."""
     while True:
