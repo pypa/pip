@@ -2,12 +2,14 @@ from typing import Dict, List, Optional, Set, Tuple, cast
 from unittest import mock
 
 import pytest
+from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib.resolvers import Result
 from pip._vendor.resolvelib.structs import DirectedGraph
 
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.operations.prepare import RequirementPreparer
+from pip._internal.req import InstallRequirement
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.resolvelib.resolver import (
@@ -30,6 +32,7 @@ def resolver(preparer: RequirementPreparer, finder: PackageFinder) -> Resolver:
         force_reinstall=False,
         upgrade_strategy="to-satisfy-only",
     )
+    finder.find_all_candidates.cache_clear()
     return resolver
 
 
@@ -297,3 +300,30 @@ def test_new_resolver_topological_weights(
 
     weights = get_topological_weights(graph, requirement_keys)
     assert weights == expected_weights
+
+
+def test_resolver_cache_population(resolver: Resolver) -> None:
+    def get_findall_cacheinfo() -> Dict[str, int]:
+        cacheinfo = resolver._finder.find_all_candidates.cache_info()
+        return {k: getattr(cacheinfo, k) for k in ["currsize", "hits", "misses"]}
+
+    # empty before any calls
+    assert get_findall_cacheinfo() == {"currsize": 0, "hits": 0, "misses": 0}
+
+    # prime the cache, observe no hits, and size 1
+    resolver._prime_finder_cache(["simple"])
+    assert get_findall_cacheinfo() == {"currsize": 1, "hits": 0, "misses": 1}
+
+    # reset the cache
+    resolver._finder.find_all_candidates.cache_clear()
+
+    # resolve
+    simple_req = InstallRequirement(
+        req=Requirement("simple==3.0"),
+        comes_from=None,
+    )
+    resolver.resolve([simple_req], True)
+
+    # if this is 1-1-1, that means the priming populated the cache, and the
+    # resolution made a cache hit
+    assert get_findall_cacheinfo() == {"currsize": 1, "hits": 1, "misses": 1}
