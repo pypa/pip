@@ -10,6 +10,7 @@ import traceback
 from optparse import Values
 from typing import Any, Callable, List, Optional, Tuple
 
+from pip._vendor.rich import reconfigure
 from pip._vendor.rich import traceback as rich_traceback
 
 from pip._internal.cli import cmdoptions
@@ -115,6 +116,7 @@ class Command(CommandContextMixIn):
         # Set verbosity so that it can be used elsewhere.
         self.verbosity = options.verbose - options.quiet
 
+        reconfigure(no_color=options.no_color)
         level_number = setup_logging(
             verbosity=self.verbosity,
             no_color=options.no_color,
