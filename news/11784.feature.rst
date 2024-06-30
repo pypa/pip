@@ -1,0 +1,1 @@
+Introduce repository alternate locations and project tracking, as per PEP 708.

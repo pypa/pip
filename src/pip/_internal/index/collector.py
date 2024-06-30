@@ -225,7 +225,12 @@ def parse_links(page: IndexContent) -> Iterable[Link]:
     if content_type_l.startswith("application/vnd.pypi.simple.v1+json"):
         data = json.loads(page.content)
         for file in data.get("files", []):
-            link = Link.from_json(file, page.url)
+            link = Link.from_json(
+                file,
+                page_url=page.url,
+                project_track_urls=data.get("meta", {}).get('tracks', []),
+                repo_alt_urls=data.get("alternate-locations", []),
+            )
             if link is None:
                 continue
             yield link
@@ -238,7 +243,13 @@ def parse_links(page: IndexContent) -> Iterable[Link]:
     url = page.url
     base_url = parser.base_url or url
     for anchor in parser.anchors:
-        link = Link.from_element(anchor, page_url=url, base_url=base_url)
+        link = Link.from_element(
+            anchor,
+            page_url=url,
+            base_url=base_url,
+            project_track_urls=parser.project_track_urls,
+            repo_alt_urls=parser.repo_alt_urls,
+        )
         if link is None:
             continue
         yield link
@@ -275,8 +286,10 @@ class HTMLLinkParser(HTMLParser):
         super().__init__(convert_charrefs=True)
 
         self.url: str = url
-        self.base_url: str | None = None
-        self.anchors: list[dict[str, str | None]] = []
+        self.base_url: Optional[str] = None
+        self.anchors: List[Dict[str, Optional[str]]] = []
+        self.project_track_urls: List[str] = []
+        self.repo_alt_urls: List[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag == "base" and self.base_url is None:
@@ -285,8 +298,18 @@ class HTMLLinkParser(HTMLParser):
                 self.base_url = href
         elif tag == "a":
             self.anchors.append(dict(attrs))
+        elif tag == "meta":
+            for name, value in attrs:
+                if not value or not value.strip():
+                    continue
+                url = value.strip()
+                # PEP 708
+                if name == "pypi:tracks" and url not in self.project_track_urls:
+                    self.project_track_urls.append(url)
+                elif name == "pypi:alternate-locations" and url not in self.repo_alt_urls:
+                    self.repo_alt_urls.append(url)
 
-    def get_href(self, attrs: list[tuple[str, str | None]]) -> str | None:
+    def get_href(self, attrs: List[Tuple[str, Optional[str]]]) -> Optional[str]:
         for name, value in attrs:
             if name == "href":
                 return value
