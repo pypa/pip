@@ -103,6 +103,7 @@ class SessionCommandMixin(CommandContextMixIn):
             trusted_hosts=options.trusted_hosts,
             index_urls=self._get_index_urls(options),
             ssl_context=ssl_context,
+            timeout=(timeout if timeout is not None else options.timeout),
         )
 
         # Handle custom ca-bundles from the user
@@ -112,10 +113,6 @@ class SessionCommandMixin(CommandContextMixIn):
         # Handle SSL client certificate
         if options.client_cert:
             session.cert = options.client_cert
-
-        # Handle timeouts
-        if options.timeout or timeout:
-            session.timeout = timeout if timeout is not None else options.timeout
 
         # Handle configured proxies
         if options.proxy:
