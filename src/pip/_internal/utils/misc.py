@@ -1,7 +1,6 @@
 import errno
 import getpass
 import hashlib
-import io
 import logging
 import os
 import posixpath
