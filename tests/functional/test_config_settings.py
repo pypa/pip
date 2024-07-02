@@ -118,6 +118,7 @@ def test_config_settings_implies_pep517(
     )
     result = script.pip(
         "wheel",
+        "--no-build-isolation",
         "--config-settings",
         "FOO=Hello",
         pkg_path,
