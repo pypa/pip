@@ -43,6 +43,7 @@ from pip._internal.metadata import get_default_environment
 from pip._internal.models.link import Link
 from pip._internal.network.auth import MultiDomainBasicAuth
 from pip._internal.network.cache import SafeFileCache
+from pip._internal.network.utils import Urllib3RetryFilter, raise_connection_error
 
 # Import ssl from compat so the initial import occurs in only one place.
 from pip._internal.utils.compat import has_tls
@@ -318,11 +319,10 @@ class InsecureCacheControlAdapter(CacheControlAdapter):
 
 
 class PipSession(requests.Session):
-    timeout: Optional[int] = None
-
     def __init__(
         self,
         *args: Any,
+        timeout: float = 60,
         retries: int = 0,
         cache: Optional[str] = None,
         trusted_hosts: Sequence[str] = (),
@@ -336,6 +336,10 @@ class PipSession(requests.Session):
         """
         super().__init__(*args, **kwargs)
 
+        retry_filter = Urllib3RetryFilter(timeout=timeout)
+        logging.getLogger("pip._vendor.urllib3.connectionpool").addFilter(retry_filter)
+
+        self.timeout = timeout
         # Namespace the attribute with "pip_" just in case to prevent
         # possible conflicts with the base class.
         self.pip_trusted_origins: List[Tuple[str, Optional[int]]] = []
@@ -519,4 +523,7 @@ class PipSession(requests.Session):
         kwargs.setdefault("proxies", self.proxies)
 
         # Dispatch the actual request
-        return super().request(method, url, *args, **kwargs)
+        try:
+            return super().request(method, url, *args, **kwargs)
+        except requests.ConnectionError as e:
+            raise_connection_error(e, timeout=self.timeout)
