@@ -192,6 +192,8 @@ class Link:
         "metadata_file_data",
         "cache_link_parsing",
         "egg_fragment",
+        "project_track_urls",
+        "repo_alt_urls",
     ]
 
     def __init__(
@@ -203,6 +205,8 @@ class Link:
         metadata_file_data: Optional[MetadataFile] = None,
         cache_link_parsing: bool = True,
         hashes: Optional[Mapping[str, str]] = None,
+        project_track_urls: Optional[List[str]] = None,
+        repo_alt_urls: Optional[List[str]] = None,
     ) -> None:
         """
         :param url: url of the resource pointed to (href of the link)
@@ -227,6 +231,10 @@ class Link:
             URLs should generally have this set to False, for example.
         :param hashes: A mapping of hash names to digests to allow us to
             determine the validity of a download.
+        :param project_track_urls: An optional list of urls pointing to the same
+            project in other repositories. Defined by the repository operators.
+        :param repo_alt_urls: An optional list of urls pointing to alternate
+            locations for the project. Defined by the project owners.
         """
 
         # The comes_from, requires_python, and metadata_file_data arguments are
@@ -257,11 +265,17 @@ class Link:
         self.cache_link_parsing = cache_link_parsing
         self.egg_fragment = self._egg_fragment()
 
+        # PEP 708
+        self.project_track_urls = project_track_urls or []
+        self.repo_alt_urls = repo_alt_urls or []
+
     @classmethod
     def from_json(
         cls,
         file_data: Dict[str, Any],
         page_url: str,
+        project_track_urls: Optional[List[str]] = None,
+        repo_alt_urls: Optional[List[str]] = None,
     ) -> Optional["Link"]:
         """
         Convert an pypi json document from a simple repository page into a Link.
@@ -306,6 +320,8 @@ class Link:
             yanked_reason=yanked_reason,
             hashes=hashes,
             metadata_file_data=metadata_file_data,
+            project_track_urls=project_track_urls,
+            repo_alt_urls=repo_alt_urls,
         )
 
     @classmethod
@@ -314,6 +330,8 @@ class Link:
         anchor_attribs: Dict[str, Optional[str]],
         page_url: str,
         base_url: str,
+        project_track_urls: Optional[List[str]] = None,
+        repo_alt_urls: Optional[List[str]] = None,
     ) -> Optional["Link"]:
         """
         Convert an anchor element's attributes in a simple repository page to a Link.
@@ -358,6 +376,8 @@ class Link:
             requires_python=pyrequire,
             yanked_reason=yanked_reason,
             metadata_file_data=metadata_file_data,
+            project_track_urls=project_track_urls,
+            repo_alt_urls=repo_alt_urls,
         )
 
     def __str__(self) -> str:
