@@ -217,6 +217,81 @@ def test_new_resolver_ignore_dependencies(script: PipTestEnvironment) -> None:
     script.assert_not_installed("dep")
 
 
+def test_new_resolver_ignore_dependencies_for(script: PipTestEnvironment) -> None:
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+        depends=["dep"],
+    )
+    create_basic_wheel_for_package(
+        script,
+        "dep",
+        "0.1.0",
+    )
+    create_basic_wheel_for_package(
+        script,
+        "base2",
+        "0.1.0",
+        depends=["dep2"],
+    )
+    create_basic_wheel_for_package(
+        script,
+        "dep2",
+        "0.1.0",
+    )
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--no-deps-for=base",
+        "--find-links",
+        script.scratch_path,
+        "base",
+        "base2",
+        allow_stderr_error=True,
+    )
+    script.assert_installed(base="0.1.0", base2="0.1.0", dep2="0.1.0")
+    script.assert_not_installed("dep")
+
+
+def test_new_resolver_no_deps_in_requirements(
+    tmpdir: pathlib.Path,
+    script: PipTestEnvironment,
+) -> None:
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+        depends=["dep"],
+    )
+    create_basic_wheel_for_package(
+        script,
+        "dep",
+        "0.1.0",
+    )
+
+    req_file = tmpdir / "requirements.txt"
+    req_file.write_text(
+        """
+        base==0.1.0
+        --no-deps
+        """
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "-r",
+        req_file,
+    )
+    script.assert_installed(base="0.1.0")
+    script.assert_not_installed("dep")
+
+
 @pytest.mark.parametrize(
     "root_dep",
     [
