@@ -977,9 +977,8 @@ list_exclude: Callable[..., Option] = partial(
     PipOption,
     "--exclude",
     dest="excludes",
-    action="append",
     metavar="package",
-    type="package_name",
+    type="string",
     help="Exclude specified package from the output",
 )
 
