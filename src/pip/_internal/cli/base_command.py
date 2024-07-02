@@ -114,6 +114,8 @@ class Command(CommandContextMixIn):
 
         # Set verbosity so that it can be used elsewhere.
         self.verbosity = options.verbose - options.quiet
+        if options.debug_mode:
+            self.verbosity = 2
 
         level_number = setup_logging(
             verbosity=self.verbosity,
