@@ -1,0 +1,1 @@
+Avoid keyring logging crashes when pip is run in verbose mode.
