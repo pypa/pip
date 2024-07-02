@@ -1,9 +1,11 @@
 import hashlib
+import io
 import os
 import re
 import ssl
 import sys
 import sysconfig
+import tarfile
 import textwrap
 from os.path import curdir, join, pardir
 from pathlib import Path
@@ -2590,3 +2592,130 @@ def test_install_pip_prints_req_chain_pypi(script: PipTestEnvironment) -> None:
         f"Collecting python-openid "
         f"(from Paste[openid]==1.7.5.1->-r {req_path} (line 1))" in result.stdout
     )
+
+
+@pytest.mark.parametrize("common_prefix", ("", "linktest-1.0/"))
+def test_install_sdist_links(script: PipTestEnvironment, common_prefix: str) -> None:
+    """
+    Test installing an sdist with hard and symbolic links.
+    """
+
+    # Build an unpack an sdist that contains data files:
+    # - root.dat
+    # - sub/inner.dat
+    # and links (symbolic and hard) to both of those, both in the top-level
+    # and 'sub/' directories. That's 8 links total.
+
+    # We build the sdist from in-memory data, since the filesystem
+    # might not support both kinds of links.
+
+    sdist_path = script.scratch_path.joinpath("linktest-1.0.tar.gz")
+
+    def add_file(tar: tarfile.TarFile, name: str, content: str) -> None:
+        info = tarfile.TarInfo(common_prefix + name)
+        content_bytes = content.encode("utf-8")
+        info.size = len(content_bytes)
+        tar.addfile(info, io.BytesIO(content_bytes))
+
+    def add_link(tar: tarfile.TarFile, name: str, linktype: str, target: str) -> None:
+        info = tarfile.TarInfo(common_prefix + name)
+        info.type = {"sym": tarfile.SYMTYPE, "hard": tarfile.LNKTYPE}[linktype]
+        info.linkname = target
+        tar.addfile(info)
+
+    with tarfile.open(sdist_path, "w:gz") as sdist_tar:
+        add_file(
+            sdist_tar,
+            "PKG-INFO",
+            textwrap.dedent(
+                """
+                    Metadata-Version: 2.1
+                    Name: linktest
+                    Version: 1.0
+                """
+            ),
+        )
+
+        add_file(sdist_tar, "src/linktest/__init__.py", "")
+        add_file(sdist_tar, "src/linktest/root.dat", "Data")
+        add_file(sdist_tar, "src/linktest/sub/__init__.py", "")
+        add_file(sdist_tar, "src/linktest/sub/inner.dat", "Data")
+        linknames = []
+
+        # Windows requires native path separators in symlink targets.
+        # (see https://github.com/python/cpython/issues/57911)
+        # (This is not needed for hardlinks, nor for the workaround tarfile
+        # uses if symlinking is disabled.)
+        SEP = os.path.sep
+
+        pkg_root = f"{common_prefix}src/linktest"
+        for prefix, target_tag, linktype, target in [
+            ("", "root", "sym", "root.dat"),
+            ("", "root", "hard", f"{pkg_root}/root.dat"),
+            ("", "inner", "sym", f"sub{SEP}inner.dat"),
+            ("", "inner", "hard", f"{pkg_root}/sub/inner.dat"),
+            ("sub/", "root", "sym", f"..{SEP}root.dat"),
+            ("sub/", "root", "hard", f"{pkg_root}/root.dat"),
+            ("sub/", "inner", "sym", "inner.dat"),
+            ("sub/", "inner", "hard", f"{pkg_root}/sub/inner.dat"),
+        ]:
+            name = f"{prefix}link.{target_tag}.{linktype}.dat"
+            add_link(sdist_tar, "src/linktest/" + name, linktype, target)
+            linknames.append(name)
+
+        add_file(
+            sdist_tar,
+            "pyproject.toml",
+            textwrap.dedent(
+                """
+                    [build-system]
+                    requires = ["setuptools"]
+                    build-backend = "setuptools.build_meta"
+                    [project]
+                    name = "linktest"
+                    version = "1.0"
+                    [tool.setuptools]
+                    include-package-data = true
+                    [tool.setuptools.packages.find]
+                    where = ["src"]
+                    [tool.setuptools.package-data]
+                    "*" = ["*.dat"]
+                """
+            ),
+        )
+
+        add_file(
+            sdist_tar,
+            "src/linktest/__main__.py",
+            textwrap.dedent(
+                f"""
+                    from pathlib import Path
+                    linknames = {linknames!r}
+
+                    # we could use importlib.resources here once
+                    # it has stable convenient API across supported versions
+                    res_path = Path(__file__).parent
+
+                    for name in linknames:
+                        data_text = res_path.joinpath(name).read_text()
+                        assert data_text == "Data"
+                    print(str(len(linknames)) + ' files checked')
+                """
+            ),
+        )
+
+    # Show sdist content, for debugging the test
+    result = script.run("python", "-m", "tarfile", "-vl", str(sdist_path))
+    print(result)
+
+    # Install the package
+    result = script.pip("install", str(sdist_path))
+    print(result)
+
+    # Show installed content, for debugging the test
+    result = script.pip("show", "-f", "linktest")
+    print(result)
+
+    # Run the internal test
+    result = script.run("python", "-m", "linktest")
+    assert result.stdout.strip() == "8 files checked"

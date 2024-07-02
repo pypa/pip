@@ -197,6 +197,47 @@ class TestUnpackArchives:
 
         assert "is outside the destination" in str(e.value)
 
+    @pytest.mark.parametrize(
+        ("input_prefix", "unpack_prefix"),
+        [
+            ("", ""),
+            ("dir/", ""),  # pip ignores a common leading directory
+            ("dir/sub/", "sub/"),  # pip ignores *one* common leading directory
+        ],
+    )
+    def test_unpack_tar_links(self, input_prefix: str, unpack_prefix: str) -> None:
+        """
+        Test unpacking a *.tar with file containing hard & soft links
+        """
+        test_tar = os.path.join(self.tempdir, "test_tar_links.tar")
+        content = b"file content"
+        with tarfile.open(test_tar, "w") as mytar:
+            file_tarinfo = tarfile.TarInfo(input_prefix + "regular_file.txt")
+            file_tarinfo.size = len(content)
+            mytar.addfile(file_tarinfo, io.BytesIO(content))
+
+            hardlink_tarinfo = tarfile.TarInfo(input_prefix + "hardlink.txt")
+            hardlink_tarinfo.type = tarfile.LNKTYPE
+            hardlink_tarinfo.linkname = input_prefix + "regular_file.txt"
+            mytar.addfile(hardlink_tarinfo)
+
+            symlink_tarinfo = tarfile.TarInfo(input_prefix + "symlink.txt")
+            symlink_tarinfo.type = tarfile.SYMTYPE
+            symlink_tarinfo.linkname = "regular_file.txt"
+            mytar.addfile(symlink_tarinfo)
+
+        untar_file(test_tar, self.tempdir)
+
+        unpack_dir = os.path.join(self.tempdir, unpack_prefix)
+        with open(os.path.join(unpack_dir, "regular_file.txt"), "rb") as f:
+            assert f.read() == content
+
+        with open(os.path.join(unpack_dir, "hardlink.txt"), "rb") as f:
+            assert f.read() == content
+
+        with open(os.path.join(unpack_dir, "symlink.txt"), "rb") as f:
+            assert f.read() == content
+
 
 def test_unpack_tar_unicode(tmpdir: Path) -> None:
     test_tar = tmpdir / "test.tar"

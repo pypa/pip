@@ -1,0 +1,1 @@
+Fix finding hardlink targets in tar files with an ignored top-level directory.
