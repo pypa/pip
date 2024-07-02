@@ -7,7 +7,7 @@ import mimetypes
 import os
 from typing import Iterable, Optional, Tuple
 
-from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
+from pip._vendor.requests.models import Response
 
 from pip._internal.cli.progress_bars import get_download_progress_renderer
 from pip._internal.exceptions import NetworkConnectionError
@@ -61,7 +61,7 @@ def _prepare_download(
     else:
         show_progress = False
 
-    chunks = response_chunks(resp, CONTENT_CHUNK_SIZE)
+    chunks = response_chunks(resp)
 
     if not show_progress:
         return chunks

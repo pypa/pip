@@ -1,0 +1,4 @@
+Improve download performance. Download packages and update the
+progress bar in larger chunks of 1 MB, up from 10240 bytes.
+Improve hash performance. Read package files in larger chunks of 1 MB,
+up from 8192 bytes.
