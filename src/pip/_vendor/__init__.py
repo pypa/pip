@@ -111,6 +111,7 @@ if DEBUNDLED:
     vendored("rich.text")
     vendored("rich.traceback")
     vendored("tenacity")
-    vendored("tomli")
+    if sys.version_info < (3, 11):
+        vendored("tomli")
     vendored("truststore")
     vendored("urllib3")
