@@ -241,6 +241,10 @@ class BuildEnvironment:
             "--prefix",
             prefix.path,
             "--no-warn-script-location",
+            # The prefix specified two lines above, thus
+            # target from config file or env var should be ignored
+            "--target",
+            "",
         ]
         if logger.getEffectiveLevel() <= logging.DEBUG:
             args.append("-vv")
