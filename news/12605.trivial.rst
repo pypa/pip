@@ -1,0 +1,1 @@
+skip news check if ``github.actor`` is ``pre-commit-ci[bot]``
