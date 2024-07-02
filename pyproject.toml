@@ -151,7 +151,6 @@ distlib = "https://bitbucket.org/pypa/distlib/raw/master/LICENSE.txt"
 
 [tool.ruff]
 src = ["src"]
-target-version = "py38"
 line-length = 88
 extend-exclude = [
     "_vendor",
