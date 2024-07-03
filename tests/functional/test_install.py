@@ -687,7 +687,9 @@ def test_link_hash_in_dep_fails_require_hashes(
     # Build a wheel for pkga and compute its hash.
     wheelhouse = tmp_path / "wheehouse"
     wheelhouse.mkdir()
-    script.pip("wheel", "--no-deps", "-w", wheelhouse, project_path)
+    script.pip(
+        "wheel", "--no-build-isolation", "--no-deps", "-w", wheelhouse, project_path
+    )
     digest = hashlib.sha256(
         wheelhouse.joinpath("pkga-1.0-py3-none-any.whl").read_bytes()
     ).hexdigest()
@@ -905,7 +907,14 @@ def test_editable_install__local_dir_setup_requires_with_pyproject(
         "setup(name='dummy', setup_requires=['simplewheel'])\n"
     )
 
-    script.pip("install", "--find-links", shared_data.find_links, "-e", local_dir)
+    script.pip(
+        "install",
+        "--no-build-isolation",
+        "--find-links",
+        shared_data.find_links,
+        "-e",
+        local_dir,
+    )
 
 
 def test_install_pre__setup_requires_with_pyproject(
