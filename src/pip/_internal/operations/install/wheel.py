@@ -6,6 +6,7 @@ import compileall
 import contextlib
 import csv
 import importlib
+import io
 import logging
 import os.path
 import re
@@ -377,12 +378,127 @@ class ZipBackedFile:
 
         zipinfo = self._getinfo()
 
-        with self._zip_file.open(zipinfo) as f:
-            with open(self.dest_path, "wb") as dest:
-                shutil.copyfileobj(f, dest)
+        global total
+
+        ### UNCOMMENT THIS BLOCK FOR MAIN BRANCH CODE AND COMMENT THE OTHER BLOCK
+        #start = time.perf_counter()
+        #with self._zip_file.open(zipinfo) as f:
+        #    if zipinfo.file_size > 0:
+        #        with open(self.dest_path, "wb") as dest:
+        #            shutil.copyfileobj(f, dest, min(zipinfo.file_size, 1048576))
+        #end = time.perf_counter()
+        #global total_master
+
+        ### UNCOMMENT THIS BLOCK FOR FIX BRANCH CODE AND COMMENT THE OTHER BLOCK
+        start = time.perf_counter()
+        with open(self.dest_path, "wb") as dest:
+            if zipinfo.file_size > 0:
+                extract(self._zip_file, zipinfo, dest)
+        end = time.perf_counter()
+
+        total += (end-start)
+        if zipinfo.file_size > 10000000 or zipinfo.filename.endswith("/RECORD"):
+            print("extracting {} took {:.9f} cumulative {:.9f}".format(zipinfo.filename, end-start, total))
 
         if zip_item_is_executable(zipinfo):
             set_extracted_file_to_default_mode_plus_executable(self.dest_path)
+
+total = 0.0
+total_header = 0.0
+import struct
+import zlib
+import time
+from zipfile import BadZipFile, crc32, ZIP_STORED, ZIP_DEFLATED
+from zipfile import _get_decompressor
+from zipfile import _MASK_COMPRESSED_PATCH, _MASK_STRONG_ENCRYPTION, _MASK_ENCRYPTED
+
+structFileHeader = "<4s2B4HL2L2H"
+stringFileHeader = b"PK\003\004"
+sizeFileHeader = struct.calcsize(structFileHeader)
+
+_FH_SIGNATURE = 0
+_FH_EXTRACT_VERSION = 1
+_FH_EXTRACT_SYSTEM = 2
+_FH_GENERAL_PURPOSE_FLAG_BITS = 3
+_FH_COMPRESSION_METHOD = 4
+_FH_LAST_MOD_TIME = 5
+_FH_LAST_MOD_DATE = 6
+_FH_CRC = 7
+_FH_COMPRESSED_SIZE = 8
+_FH_UNCOMPRESSED_SIZE = 9
+_FH_FILENAME_LENGTH = 10
+_FH_EXTRA_FIELD_LENGTH = 11
+
+def extract(zipfile, zipinfo, dest_fp):
+        zef_file = zipfile.fp
+        zef_file.seek(zipinfo.header_offset)
+
+        def check_header():
+            # Skip the file header:
+            fheader = zef_file.read(sizeFileHeader)
+            if len(fheader) != sizeFileHeader:
+                raise BadZipFile("Truncated file header")
+            fheader = struct.unpack(structFileHeader, fheader)
+            if fheader[_FH_SIGNATURE] != stringFileHeader:
+                raise BadZipFile("Bad magic number for file header")
+
+            zef_file.read(fheader[_FH_FILENAME_LENGTH] + fheader[_FH_EXTRA_FIELD_LENGTH])
+            #zef_file.read(fheader[_FH_FILENAME_LENGTH])
+            #if fheader[_FH_EXTRA_FIELD_LENGTH]:
+            #    zef_file.read(fheader[_FH_EXTRA_FIELD_LENGTH])
+
+            if zipinfo.flag_bits & _MASK_COMPRESSED_PATCH:
+                # Zip 2.7: compressed patched data
+                raise NotImplementedError("compressed patched data (flag bit 5)")
+
+            if zipinfo.flag_bits & _MASK_STRONG_ENCRYPTION:
+                # strong encryption
+                raise NotImplementedError("strong encryption (flag bit 6)")
+
+            if zipinfo.flag_bits & _MASK_ENCRYPTED:
+                raise NotImplementedError("package is encrypted")
+
+            if (zipinfo._end_offset is not None and
+                zef_file.tell() + zipinfo.compress_size > zipinfo._end_offset):
+                raise BadZipFile(f"Overlapped entries: {zipinfo.orig_filename!r} (possible zip bomb)")
+
+        start = time.perf_counter()
+        check_header()
+        end = time.perf_counter()
+        global total_header
+        total_header += (end-start)
+        if zipinfo.file_size > 10000000 or zipinfo.filename.endswith("/RECORD"):
+            print("(fix) HEADER --------- {} took {:.9f} cumulative {:.9f}".format(zipinfo.filename, end-start, total_header))
+        #zef_file.seek(zipinfo._end_offset - zipinfo.compress_size)
+
+        if zipinfo.compress_type == ZIP_STORED:
+            decompressor = lambda x: x
+        elif zipinfo.compress_type == ZIP_DEFLATED:
+            decompressor = lambda x: zlib.decompress(x, wbits=-15, bufsize=zipinfo.file_size)
+        else:
+            decompressor = _get_decompressor(zipinfo.compress_type)
+
+        # crc
+        expected_crc = None
+        running_crc = crc32(b'')
+        if hasattr(zipinfo, 'CRC'):
+            expected_crc = zipinfo.CRC
+
+        # read
+        compressed_data = zef_file.read(zipinfo.compress_size)
+        decompressed_data = decompressor(compressed_data)
+
+        if expected_crc:
+            running_crc = crc32(decompressed_data, running_crc)
+
+        if len(decompressed_data) != zipinfo.file_size:
+            raise BadZipFile("size does not match")
+
+        # end
+        if expected_crc and running_crc != expected_crc:
+            raise BadZipFile("Bad CRC-32 for file %r" % zipinfo.name)
+
+        dest_fp.write(decompressed_data)
 
 
 class ScriptFile:
