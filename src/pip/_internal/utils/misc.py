@@ -149,7 +149,7 @@ def _onerror_ignore(*_args: Any) -> None:
 
 
 def _onerror_reraise(*_args: Any) -> None:
-    raise
+    raise  # noqa: PLE0704 - Bare exception used to reraise existing exception
 
 
 def rmtree_errorhandler(
