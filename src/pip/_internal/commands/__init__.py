@@ -105,6 +105,12 @@ commands_dict: Dict[str, CommandInfo] = {
     ),
 }
 
+# This dictionary is used to list real commands that come from `commands_dict` with abbreviations
+commands_abbreviations: Dict[str, str] = {
+    "i": "install",
+    "un": "uninstall",
+    "ls": "list"
+}
 
 def create_command(name: str, **kwargs: Any) -> Command:
     """
