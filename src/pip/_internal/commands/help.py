@@ -24,7 +24,7 @@ class HelpCommand(Command):
         try:
             # 'pip help' with no args is handled by pip.__init__.parseopt()
             cmd_arg_is_abbreviated = args[0] in commands_abbreviations
-            if cmd_arg_is_abbreviated: # get the full command name if the abbreviation is used
+            if cmd_arg_is_abbreviated: # Retrieve full command name if using abbreviation
                 cmd_name = commands_abbreviations[args[0]] 
 
             cmd_name = args[0]  # the command we need help for
