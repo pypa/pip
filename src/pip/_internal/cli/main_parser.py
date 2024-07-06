@@ -9,7 +9,11 @@ from typing import List, Optional, Tuple
 from pip._internal.build_env import get_runnable_pip
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
-from pip._internal.commands import commands_dict, commands_abbreviations, get_similar_commands
+from pip._internal.commands import (
+    commands_abbreviations,
+    commands_dict,
+    get_similar_commands,
+)
 from pip._internal.exceptions import CommandError
 from pip._internal.utils.misc import get_pip_version, get_prog
 
@@ -130,7 +134,7 @@ def parse_command(args: List[str]) -> Tuple[str, List[str]]:
 
             raise CommandError(" - ".join(msg))
         cmd_name = commands_abbreviations[cmd_name]
-        args[0] = cmd_name # replace with the full command name.. ex: i -> install
+        args[0] = cmd_name  # replace with the full command name.. ex: i -> install
 
     # all the args without the subcommand
     cmd_args = args[:]

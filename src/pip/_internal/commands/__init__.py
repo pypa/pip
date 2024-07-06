@@ -109,8 +109,9 @@ commands_dict: Dict[str, CommandInfo] = {
 commands_abbreviations: Dict[str, str] = {
     "i": "install",
     "un": "uninstall",
-    "ls": "list"
+    "ls": "list",
 }
+
 
 def create_command(name: str, **kwargs: Any) -> Command:
     """
