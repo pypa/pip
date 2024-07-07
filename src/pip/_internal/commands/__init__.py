@@ -4,7 +4,7 @@ Package containing all pip commands
 
 import importlib
 from collections import namedtuple
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from pip._internal.cli.base_command import Command
 
@@ -106,11 +106,19 @@ commands_dict: Dict[str, CommandInfo] = {
 }
 
 # This dict lists real command aliases from `commands_dict`
-commands_aliases: Dict[str, str] = {
-    "i": "install",
-    "un": "uninstall",
-    "ls": "list",
+commands_aliases: Dict[str, List[str]] = {
+    "install": ["i", "add"],
+    "uninstall": ["u", "rm", "remove"],
+    "list": ["ls"],
 }
+
+
+def find_command_by_alias(alias: str) -> Optional[str]:
+    """Find command name by alias"""
+    for command, aliases in commands_aliases.items():
+        if alias in aliases:
+            return command
+    return None
 
 
 def create_command(name: str, **kwargs: Any) -> Command:

@@ -10,8 +10,8 @@ from pip._internal.build_env import get_runnable_pip
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip._internal.commands import (
-    commands_aliases,
     commands_dict,
+    find_command_by_alias,
     get_similar_commands,
 )
 from pip._internal.exceptions import CommandError
@@ -123,9 +123,9 @@ def parse_command(args: List[str]) -> Tuple[str, List[str]]:
     cmd_name = args_else[0]
 
     if cmd_name not in commands_dict:
-        cmd_is_alias = cmd_name in commands_aliases
+        alias_command = find_command_by_alias(cmd_name)
 
-        if not cmd_is_alias:
+        if not alias_command:
             guess = get_similar_commands(cmd_name)
 
             msg = [f'unknown command "{cmd_name}"']
@@ -133,7 +133,7 @@ def parse_command(args: List[str]) -> Tuple[str, List[str]]:
                 msg.append(f'maybe you meant "{guess}"')
 
             raise CommandError(" - ".join(msg))
-        cmd_name = commands_aliases[cmd_name]
+        cmd_name = alias_command
         args[0] = cmd_name  # replace with the full command name.. ex: i -> install
 
     # all the args without the subcommand

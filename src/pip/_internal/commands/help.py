@@ -15,30 +15,31 @@ class HelpCommand(Command):
 
     def run(self, options: Values, args: List[str]) -> int:
         from pip._internal.commands import (
-            commands_aliases,
             commands_dict,
             create_command,
+            find_command_by_alias,
             get_similar_commands,
         )
 
         try:
             # 'pip help' with no args is handled by pip.__init__.parseopt()
-            cmd_arg_is_alias = args[0] in commands_aliases
-            if cmd_arg_is_alias:  # Retrieve full command name if using alias
-                cmd_name = commands_aliases[args[0]]
-
             cmd_name = args[0]  # the command we need help for
         except IndexError:
             return SUCCESS
 
         if cmd_name not in commands_dict:
-            guess = get_similar_commands(cmd_name)
+            alias_command = find_command_by_alias(cmd_name)
 
-            msg = [f'unknown command "{cmd_name}"']
-            if guess:
-                msg.append(f'maybe you meant "{guess}"')
+            if not alias_command:
+                guess = get_similar_commands(cmd_name)
 
-            raise CommandError(" - ".join(msg))
+                msg = [f'unknown command "{cmd_name}"']
+                if guess:
+                    msg.append(f'maybe you meant "{guess}"')
+
+                raise CommandError(" - ".join(msg))
+            cmd_name = alias_command
+            args[0] = cmd_name
 
         command = create_command(cmd_name)
         command.parser.print_help()
