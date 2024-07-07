@@ -9,6 +9,14 @@
 
 .. towncrier release notes start
 
+24.1.2 (2024-07-07)
+===================
+
+Bug Fixes
+---------
+
+- Fix finding hardlink targets in tar files with an ignored top-level directory. (`#12781 <https://github.com/pypa/pip/issues/12781>`_)
+
 24.1.1 (2024-06-26)
 ===================
 
