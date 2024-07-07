@@ -1,11 +1,11 @@
 diff --git a/src/pip/_vendor/pkg_resources/__init__.py b/src/pip/_vendor/pkg_resources/__init__.py
-index 3f2476a0c..8d5727d35 100644
+index d47df3f3c..1ee0d2cf9 100644
 --- a/src/pip/_vendor/pkg_resources/__init__.py
 +++ b/src/pip/_vendor/pkg_resources/__init__.py
-@@ -65,7 +65,7 @@
- from os import open as os_open
- from os.path import isdir, split
-
+@@ -87,7 +87,7 @@ except ImportError:
+     # no write support, probably under GAE
+     WRITE_SUPPORT = False
+ 
 -from pkg_resources.extern.jaraco.text import (
 +from pip._internal.utils._jaraco_text import (
      yield_lines,
