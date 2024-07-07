@@ -11,6 +11,7 @@ from pip._internal.cli import cmdoptions
 from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip._internal.commands import (
     commands_dict,
+    commands_aliases,
     find_command_by_alias,
     get_similar_commands,
 )
@@ -43,7 +44,9 @@ def create_main_parser() -> ConfigOptionParser:
 
     # create command listing for description
     description = [""] + [
-        f"{name:27} {command_info.summary}"
+        f"{', '.join(commands_aliases.get(name, []))}, {name:{(27 - 3) - len(', '.join(commands_aliases.get(name, [])))}}  {command_info.summary}"
+        if commands_aliases.get(name)
+        else f"{''}{name:{27}} {command_info.summary}"
         for name, command_info in commands_dict.items()
     ]
     parser.description = "\n".join(description)
