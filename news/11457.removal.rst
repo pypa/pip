@@ -1,0 +1,3 @@
+Deprecate ``pip install --editable`` falling back to ``setup.py develop``
+when using a setuptools version that does not support :pep:`660`
+(setuptools v63 and older).
