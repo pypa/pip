@@ -10,8 +10,8 @@ from pip._internal.build_env import get_runnable_pip
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip._internal.commands import (
-    commands_dict,
     commands_aliases,
+    commands_dict,
     find_command_by_alias,
     get_similar_commands,
 )
@@ -43,12 +43,21 @@ def create_main_parser() -> ConfigOptionParser:
     parser.main = True  # type: ignore
 
     # create command listing for description
-    description = [""] + [
-        f"{', '.join(commands_aliases.get(name, []))}, {name:{(27 - 3) - len(', '.join(commands_aliases.get(name, [])))}}  {command_info.summary}"
-        if commands_aliases.get(name)
-        else f"{''}{name:{27}} {command_info.summary}"
-        for name, command_info in commands_dict.items()
-    ]
+    cmds_listings: List[str] = []
+    padding = 27
+    for name, command_info in commands_dict.items():
+        cmd_aliases = commands_aliases.get(name, [])
+        if not cmd_aliases:
+            cmds_listings.append(f"{name:{padding}} {command_info.summary}")
+            continue
+        display_aliases = ", ".join(cmd_aliases)
+        padding_adjusted = padding - len(display_aliases) - 3
+        cmds_listings.append(
+            f"{display_aliases}, {name:{padding_adjusted}}  {command_info.summary}"
+        )
+
+    description = [""] + cmds_listings
+
     parser.description = "\n".join(description)
 
     return parser
