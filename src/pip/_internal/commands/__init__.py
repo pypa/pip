@@ -105,8 +105,8 @@ commands_dict: Dict[str, CommandInfo] = {
     ),
 }
 
-# This dict lists real command abbreviations from `commands_dict`
-commands_abbreviations: Dict[str, str] = {
+# This dict lists real command aliases from `commands_dict`
+commands_aliases: Dict[str, str] = {
     "i": "install",
     "un": "uninstall",
     "ls": "list",

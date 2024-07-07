@@ -1,1 +1,1 @@
-New command abbreviation functionality based on existing commands.
+New command alias functionality based on existing commands.

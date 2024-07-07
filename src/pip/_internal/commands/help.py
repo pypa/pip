@@ -15,7 +15,7 @@ class HelpCommand(Command):
 
     def run(self, options: Values, args: List[str]) -> int:
         from pip._internal.commands import (
-            commands_abbreviations,
+            commands_aliases,
             commands_dict,
             create_command,
             get_similar_commands,
@@ -23,11 +23,9 @@ class HelpCommand(Command):
 
         try:
             # 'pip help' with no args is handled by pip.__init__.parseopt()
-            cmd_arg_is_abbreviated = args[0] in commands_abbreviations
-            if (
-                cmd_arg_is_abbreviated
-            ):  # Retrieve full command name if using abbreviation
-                cmd_name = commands_abbreviations[args[0]]
+            cmd_arg_is_alias = args[0] in commands_aliases
+            if cmd_arg_is_alias:  # Retrieve full command name if using alias
+                cmd_name = commands_aliases[args[0]]
 
             cmd_name = args[0]  # the command we need help for
         except IndexError:
