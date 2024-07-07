@@ -13,7 +13,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import functools
+import inspect
 import sys
 import typing
 from datetime import timedelta
@@ -73,4 +74,28 @@ time_unit_type = typing.Union[int, float, timedelta]
 
 
 def to_seconds(time_unit: time_unit_type) -> float:
-    return float(time_unit.total_seconds() if isinstance(time_unit, timedelta) else time_unit)
+    return float(
+        time_unit.total_seconds() if isinstance(time_unit, timedelta) else time_unit
+    )
+
+
+def is_coroutine_callable(call: typing.Callable[..., typing.Any]) -> bool:
+    if inspect.isclass(call):
+        return False
+    if inspect.iscoroutinefunction(call):
+        return True
+    partial_call = isinstance(call, functools.partial) and call.func
+    dunder_call = partial_call or getattr(call, "__call__", None)
+    return inspect.iscoroutinefunction(dunder_call)
+
+
+def wrap_to_async_func(
+    call: typing.Callable[..., typing.Any],
+) -> typing.Callable[..., typing.Awaitable[typing.Any]]:
+    if is_coroutine_callable(call):
+        return call
+
+    async def inner(*args: typing.Any, **kwargs: typing.Any) -> typing.Any:
+        return call(*args, **kwargs)
+
+    return inner
