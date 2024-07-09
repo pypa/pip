@@ -110,7 +110,6 @@ if DEBUNDLED:
     vendored("rich.style")
     vendored("rich.text")
     vendored("rich.traceback")
-    vendored("tenacity")
     if sys.version_info < (3, 11):
         vendored("tomli")
     vendored("truststore")

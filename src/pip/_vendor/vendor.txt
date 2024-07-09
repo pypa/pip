@@ -14,6 +14,5 @@ rich==13.7.1
     typing_extensions==4.12.2
 resolvelib==1.0.1
 setuptools==69.5.1
-tenacity==8.2.3
 tomli==2.0.1
 truststore==0.9.1
