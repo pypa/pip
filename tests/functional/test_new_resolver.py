@@ -418,6 +418,30 @@ def test_new_resolver_requires_python_error(script: PipTestEnvironment) -> None:
     assert message in result.stderr, str(result)
 
 
+def test_new_resolver_requires_python_ok_with_python_version_flag(
+    script: PipTestEnvironment,
+) -> None:
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+        requires_python="<3",
+    )
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "--dry-run",
+        "--python-version=2",
+        "--only-binary=:all:",
+        "base",
+    )
+
+    assert not result.stderr, str(result)
+
+
 def test_new_resolver_installed(script: PipTestEnvironment) -> None:
     create_basic_wheel_for_package(
         script,

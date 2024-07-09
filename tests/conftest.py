@@ -411,7 +411,10 @@ def _common_wheel_editable_install(
     tmpdir_factory: pytest.TempPathFactory, common_wheels: Path, package: str
 ) -> Path:
     wheel_candidates = list(common_wheels.glob(f"{package}-*.whl"))
-    assert len(wheel_candidates) == 1, wheel_candidates
+    assert len(wheel_candidates) == 1, (
+        f"Missing wheels in {common_wheels}, expected 1 got '{wheel_candidates}'."
+        " Are you running the tests via nox? See https://pip.pypa.io/en/latest/development/getting-started/#running-tests"
+    )
     install_dir = tmpdir_factory.mktemp(package) / "install"
     lib_install_dir = install_dir / "lib"
     bin_install_dir = install_dir / "bin"
