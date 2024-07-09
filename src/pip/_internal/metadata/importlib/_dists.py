@@ -27,6 +27,7 @@ from pip._internal.metadata.base import (
     Wheel,
 )
 from pip._internal.utils.misc import normalize_path
+from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.wheel import parse_wheel, read_wheel_metadata_file
 
@@ -219,7 +220,7 @@ class Distribution(BaseDistribution):
         for req_string in self.metadata.get_all("Requires-Dist", []):
             # strip() because email.message.Message.get_all() may return a leading \n
             # in case a long header was wrapped.
-            req = Requirement(req_string.strip())
+            req = get_requirement(req_string.strip())
             if not req.marker:
                 yield req
             elif not extras and req.marker.evaluate({"extra": ""}):
