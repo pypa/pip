@@ -48,7 +48,7 @@ def glibc_version_string_ctypes() -> Optional[str]:
     # errno set on the OSError. The single string argument used to construct
     # OSError comes from libc itself and is therefore not portable to
     # hard code here. In any case, failure to call dlopen() means we
-    # can proceed, so we bail on our attempt.
+    # can't proceed, so we bail on our attempt.
     try:
         process_namespace = ctypes.CDLL(None)
     except OSError:
