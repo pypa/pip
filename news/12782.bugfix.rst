@@ -1,0 +1,2 @@
+Improve pip install performance by only creating required parent
+directories once, instead of before extracting every file in the wheel.
