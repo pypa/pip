@@ -1,0 +1,1 @@
+Perform hash comparisons in a case-insensitive manner.

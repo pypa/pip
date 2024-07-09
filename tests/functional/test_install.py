@@ -621,6 +621,18 @@ def test_hashed_install_failure(script: PipTestEnvironment, tmpdir: Path) -> Non
     assert len(result.files_created) == 0
 
 
+def test_case_insensitive_hashed_install_success(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
+    """Test that hashes that differ only by case don't halt installation."""
+    with requirements_file(
+        "simple2==1.0 --hash=sha256:9336AF72CA661E6336EB87BC7DE3E8844D853E"
+        "3848C2B9BBD2E8BF01DB88C2C7\n",
+        tmpdir,
+    ) as reqs_file:
+        script.pip_install_local("-r", reqs_file.resolve())
+
+
 def test_link_hash_pass_require_hashes(
     script: PipTestEnvironment, shared_data: TestData
 ) -> None:
