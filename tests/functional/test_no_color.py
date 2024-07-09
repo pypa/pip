@@ -12,6 +12,7 @@ import pytest
 from tests.lib import PipTestEnvironment
 
 
+@pytest.mark.network
 @pytest.mark.skipif(shutil.which("script") is None, reason="no 'script' executable")
 def test_no_color(script: PipTestEnvironment) -> None:
     """Ensure colour output disabled when --no-color is passed."""
@@ -23,7 +24,7 @@ def test_no_color(script: PipTestEnvironment) -> None:
     # 'script' and well as the mere use of the same.
     #
     # This test will stay until someone has the time to rewrite it.
-    pip_command = "pip uninstall {} noSuchPackage"
+    pip_command = "pip download {} setuptools==62.0.0 --no-cache-dir -d /tmp/"
     if sys.platform == "darwin":
         command = f"script -q /tmp/pip-test-no-color.txt {pip_command}"
     else:
@@ -45,6 +46,7 @@ def test_no_color(script: PipTestEnvironment) -> None:
             return retval
         finally:
             os.unlink("/tmp/pip-test-no-color.txt")
+            os.unlink("/tmp/setuptools-62.0.0-py3-none-any.whl")
 
     assert "\x1b[3" in get_run_output(""), "Expected color in output"
     assert "\x1b[3" not in get_run_output("--no-color"), "Expected no color in output"
