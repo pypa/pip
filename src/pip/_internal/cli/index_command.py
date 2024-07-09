@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 def _create_truststore_ssl_context() -> Optional["SSLContext"]:
     if sys.version_info < (3, 10):
-        logger.warning("Disabling truststore because Python version isn't 3.10+")
+        logger.debug("Disabling truststore because Python version isn't 3.10+")
         return None
 
     try:
