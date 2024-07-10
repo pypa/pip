@@ -23,7 +23,12 @@ variables.
 
 ```
 
-If Python 3.10 or later is being used then by default
+```{note}
+Versions of pip prior to v24.2 did not use system certificates by default.
+To use system certificates with pip v22.2 or later, you must opt-in using the `--use-feature=truststore` CLI flag.
+```
+
+On Python 3.10 or later, by default
 system certificates are used in addition to certifi to verify HTTPS connections.
 This functionality is provided through the {pypi}`truststore` package.
 
@@ -35,7 +40,7 @@ To opt-out of using system certificates you can pass the `--use-deprecated=legac
 flag to pip.
 
 ```{warning}
-If Python 3.9 or earlier is in use then only certifi is used to verify HTTPS connections.
+On Python 3.9 or earlier, by default only certifi is used to verify HTTPS connections.
 
 The system certificate store won't be used in this case, so some situations like proxies
 with their own certificates may not work. Upgrading to at least Python 3.10 or later is
