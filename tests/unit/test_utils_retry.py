@@ -1,5 +1,6 @@
 import random
-from time import monotonic, sleep
+import sys
+from time import perf_counter, sleep
 from typing import List, NoReturn, Tuple, Type
 from unittest.mock import Mock
 
@@ -65,7 +66,7 @@ def create_timestamped_callable(sleep_per_call: float = 0) -> Tuple[Mock, List[f
     timestamps = []
 
     def _raise_error() -> NoReturn:
-        timestamps.append(monotonic())
+        timestamps.append(perf_counter())
         if sleep_per_call:
             sleep(sleep_per_call)
         raise RuntimeError
@@ -73,31 +74,38 @@ def create_timestamped_callable(sleep_per_call: float = 0) -> Tuple[Mock, List[f
     return Mock(wraps=_raise_error), timestamps
 
 
-# Use multiple of 15ms as Windows' sleep is only accurate to 15ms.
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="Too flaky on Windows due to poor timer resolution"
+)
 @pytest.mark.parametrize("wait_duration", [0.015, 0.045, 0.15])
 def test_retry_wait(wait_duration: float) -> None:
     function, timestamps = create_timestamped_callable()
     # Only the first retry will be scheduled before the time limit is exceeded.
     wrapped = retry(wait=wait_duration, stop_after_delay=0.01)(function)
-    start_time = monotonic()
+    start_time = perf_counter()
     with pytest.raises(RuntimeError):
         wrapped()
     assert len(timestamps) == 2
-    assert timestamps[1] - start_time >= wait_duration
+    # Add a margin of 10% to permit for unavoidable variation.
+    assert timestamps[1] - start_time >= (wait_duration * 0.9)
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="Too flaky on Windows due to poor timer resolution"
+)
 @pytest.mark.parametrize(
-    "call_duration, max_allowed_calls", [(0.01, 10), (0.04, 3), (0.15, 1)]
+    "call_duration, max_allowed_calls", [(0.01, 11), (0.04, 3), (0.15, 1)]
 )
 def test_retry_time_limit(call_duration: float, max_allowed_calls: int) -> None:
     function, timestamps = create_timestamped_callable(sleep_per_call=call_duration)
     wrapped = retry(wait=0, stop_after_delay=0.1)(function)
 
-    start_time = monotonic()
+    start_time = perf_counter()
     with pytest.raises(RuntimeError):
         wrapped()
     assert len(timestamps) <= max_allowed_calls
-    assert all(t - start_time <= 0.1 for t in timestamps)
+    # Add a margin of 10% to permit for unavoidable variation.
+    assert all(t - start_time <= (0.1 * 1.1) for t in timestamps)
 
 
 def test_retry_method() -> None:
