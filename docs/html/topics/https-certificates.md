@@ -40,7 +40,8 @@ To opt-out of using system certificates you can pass the `--use-deprecated=legac
 flag to pip.
 
 ```{warning}
-On Python 3.9 or earlier, by default only certifi is used to verify HTTPS connections.
+On Python 3.9 or earlier, only certifi is used to verify HTTPS connections as
+`truststore` requires Python 3.10 or higher to function.
 
 The system certificate store won't be used in this case, so some situations like proxies
 with their own certificates may not work. Upgrading to at least Python 3.10 or later is
