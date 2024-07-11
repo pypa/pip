@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 class CheckCommand(Command):
     """Verify installed packages have compatible dependencies."""
 
+    ignore_require_venv = True
     usage = """
       %prog [options]"""
 
