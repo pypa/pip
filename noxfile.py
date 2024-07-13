@@ -190,13 +190,13 @@ def vendoring(session: nox.Session) -> None:
         "python", "-c", "import sys; sys.exit(1 if sys.version_info < (3, 10) else 0)"
     )
 
-    session.install("vendoring~=1.2.0")
-
     parser = argparse.ArgumentParser(prog="nox -s vendoring")
     parser.add_argument("--upgrade-all", action="store_true")
     parser.add_argument("--upgrade", action="append", default=[])
     parser.add_argument("--skip", action="append", default=[])
     args = parser.parse_args(session.posargs)
+
+    session.install("vendoring~=1.2.0")
 
     if not (args.upgrade or args.upgrade_all):
         session.run("vendoring", "sync", "-v")
