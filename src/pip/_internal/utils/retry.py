@@ -1,5 +1,5 @@
 import functools
-from time import monotonic, sleep
+from time import perf_counter, sleep
 from typing import Callable, TypeVar
 
 from pip._vendor.typing_extensions import ParamSpec
@@ -26,12 +26,14 @@ def retry(
 
         @functools.wraps(func)
         def retry_wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
-            start_time = monotonic()
+            # The performance counter is monotonic on all platforms we care
+            # about and has much better resolution than time.monotonic().
+            start_time = perf_counter()
             while True:
                 try:
                     return func(*args, **kwargs)
                 except Exception:
-                    if monotonic() - start_time > stop_after_delay:
+                    if perf_counter() - start_time > stop_after_delay:
                         raise
                     sleep(wait)
 
