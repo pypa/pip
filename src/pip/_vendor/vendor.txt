@@ -13,6 +13,6 @@ rich==13.7.1
     pygments==2.18.0
     typing_extensions==4.12.2
 resolvelib==1.0.1
-setuptools==69.5.1
+setuptools==70.3.0
 tomli==2.0.1
 truststore==0.9.1
