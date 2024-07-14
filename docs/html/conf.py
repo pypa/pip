@@ -31,7 +31,6 @@ extensions = [
 # General information about the project.
 project = "pip"
 copyright = "The pip developers"
-issues_default_group_project = "pypa/pip"
 
 # Find the version and release information.
 # We have a single source of truth for our version number: pip's __init__.py file.
@@ -130,3 +129,7 @@ man_pages = determine_man_pages()
 copybutton_prompt_text = r"\$ | C\:\> "
 copybutton_prompt_is_regexp = True
 copybutton_only_copy_prompt_lines = False
+
+# -- Options for sphinx_issues ----------------------------------------------------
+
+issues_default_group_project = "pypa/pip"
