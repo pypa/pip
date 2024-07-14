@@ -147,7 +147,7 @@ Some users expect/assume that pip (and PyPI) should "protect" them from maliciou
 
 > "Well, I don't have the background to do a code audit of something like Numerical Python. Most packages I use are huge. Most people aren't doing code of those packages, except the maintainer. I am relying on whatever is built into pip to do package security. I also assume if there is an exploit someone will find it and let the world now. I'm really lazy." **- Participant 240312164 (Nuclear physicist)**
 
-> "I would like some security advisor, [like in npm](https://docs.npmjs.com/auditing-package-dependencies-for-security-vulnerabilities) - it works very well, when you install a package "there are security vulns. with this package - 1 low, 5 medium, 8 high. I haven't come across security issues with Python packages." **- CZI convening research participant**
+> "I would like some security advisor, [like in npm](https://docs.npmjs.com/auditing-package-dependencies-for-security-vulnerabilities) - it works very well, when you install a package there are security vulns. with this package - 1 low, 5 medium, 8 high. I haven't come across security issues with Python packages." **- CZI convening research participant**
 
 ## Recommendations
 
