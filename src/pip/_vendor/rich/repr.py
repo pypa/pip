@@ -1,20 +1,17 @@
-from functools import partial
 import inspect
-import sys
-
+from functools import partial
 from typing import (
     Any,
     Callable,
     Iterable,
     List,
     Optional,
-    overload,
-    Union,
     Tuple,
     Type,
     TypeVar,
+    Union,
+    overload,
 )
-
 
 T = TypeVar("T")
 
@@ -58,7 +55,7 @@ def auto(
                         if key is None:
                             append(repr(value))
                         else:
-                            if len(default) and default[0] == value:
+                            if default and default[0] == value:
                                 continue
                             append(f"{key}={value!r}")
                 else:
@@ -79,7 +76,7 @@ def auto(
                         param.POSITIONAL_OR_KEYWORD,
                         param.KEYWORD_ONLY,
                     ):
-                        if param.default == param.empty:
+                        if param.default is param.empty:
                             yield getattr(self, param.name)
                         else:
                             yield param.name, getattr(self, param.name), param.default

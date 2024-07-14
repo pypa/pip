@@ -1,53 +1,212 @@
 import functools
+import itertools
 import logging
 import os
 import posixpath
 import re
 import urllib.parse
-from typing import TYPE_CHECKING, Dict, List, NamedTuple, Optional, Tuple, Union
+from dataclasses import dataclass
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Mapping,
+    NamedTuple,
+    Optional,
+    Tuple,
+    Union,
+)
 
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.misc import (
+    pairwise,
     redact_auth_from_url,
     split_auth_from_netloc,
     splitext,
 )
-from pip._internal.utils.models import KeyBasedCompareMixin
 from pip._internal.utils.urls import path_to_url, url_to_path
 
 if TYPE_CHECKING:
-    from pip._internal.index.collector import HTMLPage
+    from pip._internal.index.collector import IndexContent
 
 logger = logging.getLogger(__name__)
 
 
-_SUPPORTED_HASHES = ("sha1", "sha224", "sha384", "sha256", "sha512", "md5")
+# Order matters, earlier hashes have a precedence over later hashes for what
+# we will pick to use.
+_SUPPORTED_HASHES = ("sha512", "sha384", "sha256", "sha224", "sha1", "md5")
 
 
-class Link(KeyBasedCompareMixin):
+@dataclass(frozen=True)
+class LinkHash:
+    """Links to content may have embedded hash values. This class parses those.
+
+    `name` must be any member of `_SUPPORTED_HASHES`.
+
+    This class can be converted to and from `ArchiveInfo`. While ArchiveInfo intends to
+    be JSON-serializable to conform to PEP 610, this class contains the logic for
+    parsing a hash name and value for correctness, and then checking whether that hash
+    conforms to a schema with `.is_hash_allowed()`."""
+
+    name: str
+    value: str
+
+    _hash_url_fragment_re = re.compile(
+        # NB: we do not validate that the second group (.*) is a valid hex
+        # digest. Instead, we simply keep that string in this class, and then check it
+        # against Hashes when hash-checking is needed. This is easier to debug than
+        # proactively discarding an invalid hex digest, as we handle incorrect hashes
+        # and malformed hashes in the same place.
+        r"[#&]({choices})=([^&]*)".format(
+            choices="|".join(re.escape(hash_name) for hash_name in _SUPPORTED_HASHES)
+        ),
+    )
+
+    def __post_init__(self) -> None:
+        assert self.name in _SUPPORTED_HASHES
+
+    @classmethod
+    @functools.lru_cache(maxsize=None)
+    def find_hash_url_fragment(cls, url: str) -> Optional["LinkHash"]:
+        """Search a string for a checksum algorithm name and encoded output value."""
+        match = cls._hash_url_fragment_re.search(url)
+        if match is None:
+            return None
+        name, value = match.groups()
+        return cls(name=name, value=value)
+
+    def as_dict(self) -> Dict[str, str]:
+        return {self.name: self.value}
+
+    def as_hashes(self) -> Hashes:
+        """Return a Hashes instance which checks only for the current hash."""
+        return Hashes({self.name: [self.value]})
+
+    def is_hash_allowed(self, hashes: Optional[Hashes]) -> bool:
+        """
+        Return True if the current hash is allowed by `hashes`.
+        """
+        if hashes is None:
+            return False
+        return hashes.is_hash_allowed(self.name, hex_digest=self.value)
+
+
+@dataclass(frozen=True)
+class MetadataFile:
+    """Information about a core metadata file associated with a distribution."""
+
+    hashes: Optional[Dict[str, str]]
+
+    def __post_init__(self) -> None:
+        if self.hashes is not None:
+            assert all(name in _SUPPORTED_HASHES for name in self.hashes)
+
+
+def supported_hashes(hashes: Optional[Dict[str, str]]) -> Optional[Dict[str, str]]:
+    # Remove any unsupported hash types from the mapping. If this leaves no
+    # supported hashes, return None
+    if hashes is None:
+        return None
+    hashes = {n: v for n, v in hashes.items() if n in _SUPPORTED_HASHES}
+    if not hashes:
+        return None
+    return hashes
+
+
+def _clean_url_path_part(part: str) -> str:
+    """
+    Clean a "part" of a URL path (i.e. after splitting on "@" characters).
+    """
+    # We unquote prior to quoting to make sure nothing is double quoted.
+    return urllib.parse.quote(urllib.parse.unquote(part))
+
+
+def _clean_file_url_path(part: str) -> str:
+    """
+    Clean the first part of a URL path that corresponds to a local
+    filesystem path (i.e. the first part after splitting on "@" characters).
+    """
+    # We unquote prior to quoting to make sure nothing is double quoted.
+    # Also, on Windows the path part might contain a drive letter which
+    # should not be quoted. On Linux where drive letters do not
+    # exist, the colon should be quoted. We rely on urllib.request
+    # to do the right thing here.
+    return urllib.request.pathname2url(urllib.request.url2pathname(part))
+
+
+# percent-encoded:                   /
+_reserved_chars_re = re.compile("(@|%2F)", re.IGNORECASE)
+
+
+def _clean_url_path(path: str, is_local_path: bool) -> str:
+    """
+    Clean the path portion of a URL.
+    """
+    if is_local_path:
+        clean_func = _clean_file_url_path
+    else:
+        clean_func = _clean_url_path_part
+
+    # Split on the reserved characters prior to cleaning so that
+    # revision strings in VCS URLs are properly preserved.
+    parts = _reserved_chars_re.split(path)
+
+    cleaned_parts = []
+    for to_clean, reserved in pairwise(itertools.chain(parts, [""])):
+        cleaned_parts.append(clean_func(to_clean))
+        # Normalize %xx escapes (e.g. %2f -> %2F)
+        cleaned_parts.append(reserved.upper())
+
+    return "".join(cleaned_parts)
+
+
+def _ensure_quoted_url(url: str) -> str:
+    """
+    Make sure a link is fully quoted.
+    For example, if ' ' occurs in the URL, it will be replaced with "%20",
+    and without double-quoting other characters.
+    """
+    # Split the URL into parts according to the general structure
+    # `scheme://netloc/path;parameters?query#fragment`.
+    result = urllib.parse.urlparse(url)
+    # If the netloc is empty, then the URL refers to a local filesystem path.
+    is_local_path = not result.netloc
+    path = _clean_url_path(result.path, is_local_path=is_local_path)
+    return urllib.parse.urlunparse(result._replace(path=path))
+
+
+@functools.total_ordering
+class Link:
     """Represents a parsed link from a Package Index's simple URL"""
 
     __slots__ = [
         "_parsed_url",
         "_url",
+        "_hashes",
         "comes_from",
         "requires_python",
         "yanked_reason",
+        "metadata_file_data",
         "cache_link_parsing",
+        "egg_fragment",
     ]
 
     def __init__(
         self,
         url: str,
-        comes_from: Optional[Union[str, "HTMLPage"]] = None,
+        comes_from: Optional[Union[str, "IndexContent"]] = None,
         requires_python: Optional[str] = None,
         yanked_reason: Optional[str] = None,
+        metadata_file_data: Optional[MetadataFile] = None,
         cache_link_parsing: bool = True,
+        hashes: Optional[Mapping[str, str]] = None,
     ) -> None:
         """
         :param url: url of the resource pointed to (href of the link)
-        :param comes_from: instance of HTMLPage where the link was found,
+        :param comes_from: instance of IndexContent where the link was found,
             or string.
         :param requires_python: String containing the `Requires-Python`
             metadata field, specified in PEP 345. This may be specified by
@@ -59,12 +218,20 @@ class Link(KeyBasedCompareMixin):
             a simple repository HTML link. If the file has been yanked but
             no reason was provided, this should be the empty string. See
             PEP 592 for more information and the specification.
+        :param metadata_file_data: the metadata attached to the file, or None if
+            no such metadata is provided. This argument, if not None, indicates
+            that a separate metadata file exists, and also optionally supplies
+            hashes for that file.
         :param cache_link_parsing: A flag that is used elsewhere to determine
-                                   whether resources retrieved from this link
-                                   should be cached. PyPI index urls should
-                                   generally have this set to False, for
-                                   example.
+            whether resources retrieved from this link should be cached. PyPI
+            URLs should generally have this set to False, for example.
+        :param hashes: A mapping of hash names to digests to allow us to
+            determine the validity of a download.
         """
+
+        # The comes_from, requires_python, and metadata_file_data arguments are
+        # only used by classmethods of this class, and are not used in client
+        # code directly.
 
         # url can be a UNC windows share
         if url.startswith("\\\\"):
@@ -75,13 +242,123 @@ class Link(KeyBasedCompareMixin):
         # trying to set a new value.
         self._url = url
 
+        link_hash = LinkHash.find_hash_url_fragment(url)
+        hashes_from_link = {} if link_hash is None else link_hash.as_dict()
+        if hashes is None:
+            self._hashes = hashes_from_link
+        else:
+            self._hashes = {**hashes, **hashes_from_link}
+
         self.comes_from = comes_from
         self.requires_python = requires_python if requires_python else None
         self.yanked_reason = yanked_reason
-
-        super().__init__(key=url, defining_class=Link)
+        self.metadata_file_data = metadata_file_data
 
         self.cache_link_parsing = cache_link_parsing
+        self.egg_fragment = self._egg_fragment()
+
+    @classmethod
+    def from_json(
+        cls,
+        file_data: Dict[str, Any],
+        page_url: str,
+    ) -> Optional["Link"]:
+        """
+        Convert an pypi json document from a simple repository page into a Link.
+        """
+        file_url = file_data.get("url")
+        if file_url is None:
+            return None
+
+        url = _ensure_quoted_url(urllib.parse.urljoin(page_url, file_url))
+        pyrequire = file_data.get("requires-python")
+        yanked_reason = file_data.get("yanked")
+        hashes = file_data.get("hashes", {})
+
+        # PEP 714: Indexes must use the name core-metadata, but
+        # clients should support the old name as a fallback for compatibility.
+        metadata_info = file_data.get("core-metadata")
+        if metadata_info is None:
+            metadata_info = file_data.get("dist-info-metadata")
+
+        # The metadata info value may be a boolean, or a dict of hashes.
+        if isinstance(metadata_info, dict):
+            # The file exists, and hashes have been supplied
+            metadata_file_data = MetadataFile(supported_hashes(metadata_info))
+        elif metadata_info:
+            # The file exists, but there are no hashes
+            metadata_file_data = MetadataFile(None)
+        else:
+            # False or not present: the file does not exist
+            metadata_file_data = None
+
+        # The Link.yanked_reason expects an empty string instead of a boolean.
+        if yanked_reason and not isinstance(yanked_reason, str):
+            yanked_reason = ""
+        # The Link.yanked_reason expects None instead of False.
+        elif not yanked_reason:
+            yanked_reason = None
+
+        return cls(
+            url,
+            comes_from=page_url,
+            requires_python=pyrequire,
+            yanked_reason=yanked_reason,
+            hashes=hashes,
+            metadata_file_data=metadata_file_data,
+        )
+
+    @classmethod
+    def from_element(
+        cls,
+        anchor_attribs: Dict[str, Optional[str]],
+        page_url: str,
+        base_url: str,
+    ) -> Optional["Link"]:
+        """
+        Convert an anchor element's attributes in a simple repository page to a Link.
+        """
+        href = anchor_attribs.get("href")
+        if not href:
+            return None
+
+        url = _ensure_quoted_url(urllib.parse.urljoin(base_url, href))
+        pyrequire = anchor_attribs.get("data-requires-python")
+        yanked_reason = anchor_attribs.get("data-yanked")
+
+        # PEP 714: Indexes must use the name data-core-metadata, but
+        # clients should support the old name as a fallback for compatibility.
+        metadata_info = anchor_attribs.get("data-core-metadata")
+        if metadata_info is None:
+            metadata_info = anchor_attribs.get("data-dist-info-metadata")
+        # The metadata info value may be the string "true", or a string of
+        # the form "hashname=hashval"
+        if metadata_info == "true":
+            # The file exists, but there are no hashes
+            metadata_file_data = MetadataFile(None)
+        elif metadata_info is None:
+            # The file does not exist
+            metadata_file_data = None
+        else:
+            # The file exists, and hashes have been supplied
+            hashname, sep, hashval = metadata_info.partition("=")
+            if sep == "=":
+                metadata_file_data = MetadataFile(supported_hashes({hashname: hashval}))
+            else:
+                # Error - data is wrong. Treat as no hashes supplied.
+                logger.debug(
+                    "Index returned invalid data-dist-info-metadata value: %s",
+                    metadata_info,
+                )
+                metadata_file_data = MetadataFile(None)
+
+        return cls(
+            url,
+            comes_from=page_url,
+            requires_python=pyrequire,
+            yanked_reason=yanked_reason,
+            metadata_file_data=metadata_file_data,
+        )
 
     def __str__(self) -> str:
         if self.requires_python:
@@ -89,14 +366,25 @@ class Link(KeyBasedCompareMixin):
         else:
             rp = ""
         if self.comes_from:
-            return "{} (from {}){}".format(
-                redact_auth_from_url(self._url), self.comes_from, rp
-            )
+            return f"{redact_auth_from_url(self._url)} (from {self.comes_from}){rp}"
         else:
             return redact_auth_from_url(str(self._url))
 
     def __repr__(self) -> str:
         return f"<Link {self}>"
+
+    def __hash__(self) -> int:
+        return hash(self.url)
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Link):
+            return NotImplemented
+        return self.url == other.url
+
+    def __lt__(self, other: Any) -> bool:
+        if not isinstance(other, Link):
+            return NotImplemented
+        return self.url < other.url
 
     @property
     def url(self) -> str:
@@ -149,12 +437,28 @@ class Link(KeyBasedCompareMixin):
 
     _egg_fragment_re = re.compile(r"[#&]egg=([^&]*)")
 
-    @property
-    def egg_fragment(self) -> Optional[str]:
+    # Per PEP 508.
+    _project_name_re = re.compile(
+        r"^([A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9])$", re.IGNORECASE
+    )
+
+    def _egg_fragment(self) -> Optional[str]:
         match = self._egg_fragment_re.search(self._url)
         if not match:
             return None
-        return match.group(1)
+
+        # An egg fragment looks like a PEP 508 project name, along with
+        # an optional extras specifier. Anything else is invalid.
+        project_name = match.group(1)
+        if not self._project_name_re.match(project_name):
+            deprecated(
+                reason=f"{self} contains an egg fragment with a non-PEP 508 name",
+                replacement="to use the req @ url syntax, and remove the egg fragment",
+                gone_in="25.0",
+                issue=11617,
+            )
+
+        return project_name
 
     _subdirectory_fragment_re = re.compile(r"[#&]subdirectory=([^&]*)")
 
@@ -165,23 +469,25 @@ class Link(KeyBasedCompareMixin):
             return None
         return match.group(1)
 
-    _hash_re = re.compile(
-        r"({choices})=([a-f0-9]+)".format(choices="|".join(_SUPPORTED_HASHES))
-    )
+    def metadata_link(self) -> Optional["Link"]:
+        """Return a link to the associated core metadata file (if any)."""
+        if self.metadata_file_data is None:
+            return None
+        metadata_url = f"{self.url_without_fragment}.metadata"
+        if self.metadata_file_data.hashes is None:
+            return Link(metadata_url)
+        return Link(metadata_url, hashes=self.metadata_file_data.hashes)
+
+    def as_hashes(self) -> Hashes:
+        return Hashes({k: [v] for k, v in self._hashes.items()})
 
     @property
     def hash(self) -> Optional[str]:
-        match = self._hash_re.search(self._url)
-        if match:
-            return match.group(2)
-        return None
+        return next(iter(self._hashes.values()), None)
 
     @property
     def hash_name(self) -> Optional[str]:
-        match = self._hash_re.search(self._url)
-        if match:
-            return match.group(1)
-        return None
+        return next(iter(self._hashes), None)
 
     @property
     def show_url(self) -> str:
@@ -210,19 +516,15 @@ class Link(KeyBasedCompareMixin):
 
     @property
     def has_hash(self) -> bool:
-        return self.hash_name is not None
+        return bool(self._hashes)
 
     def is_hash_allowed(self, hashes: Optional[Hashes]) -> bool:
         """
-        Return True if the link has a hash and it is allowed.
+        Return True if the link has a hash and it is allowed by `hashes`.
         """
-        if hashes is None or not self.has_hash:
+        if hashes is None:
             return False
-        # Assert non-None so mypy knows self.hash_name and self.hash are str.
-        assert self.hash_name is not None
-        assert self.hash is not None
-
-        return hashes.is_hash_allowed(self.hash_name, hex_digest=self.hash)
+        return any(hashes.is_hash_allowed(k, v) for k, v in self._hashes.items())
 
 
 class _CleanResult(NamedTuple):

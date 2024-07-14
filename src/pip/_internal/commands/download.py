@@ -8,6 +8,7 @@ from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.req_command import RequirementCommand, with_cleanup
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.operations.build.build_tracker import get_build_tracker
+from pip._internal.req.req_install import check_legacy_setup_py_options
 from pip._internal.utils.misc import ensure_dir, normalize_path, write_output
 from pip._internal.utils.temp_dir import TempDirectory
 
@@ -49,6 +50,7 @@ class DownloadCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.no_build_isolation())
         self.cmd_opts.add_option(cmdoptions.use_pep517())
         self.cmd_opts.add_option(cmdoptions.no_use_pep517())
+        self.cmd_opts.add_option(cmdoptions.check_build_deps())
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
 
         self.cmd_opts.add_option(
@@ -74,7 +76,6 @@ class DownloadCommand(RequirementCommand):
 
     @with_cleanup
     def run(self, options: Values, args: List[str]) -> int:
-
         options.ignore_installed = True
         # editable doesn't really make sense for `pip download`, but the bowels
         # of the RequirementSet code require that property.
@@ -104,6 +105,7 @@ class DownloadCommand(RequirementCommand):
         )
 
         reqs = self.get_requirements(args, options, finder, session)
+        check_legacy_setup_py_options(options, reqs)
 
         preparer = self.make_requirement_preparer(
             temp_build_dir=directory,
@@ -121,6 +123,7 @@ class DownloadCommand(RequirementCommand):
             finder=finder,
             options=options,
             ignore_requires_python=options.ignore_requires_python,
+            use_pep517=options.use_pep517,
             py_version_info=options.python_version,
         )
 
@@ -134,6 +137,9 @@ class DownloadCommand(RequirementCommand):
                 assert req.name is not None
                 preparer.save_linked_requirement(req)
                 downloaded.append(req.name)
+
+        preparer.prepare_linked_requirements_more(requirement_set.requirements.values())
+
         if downloaded:
             write_output("Successfully downloaded %s", " ".join(downloaded))
 

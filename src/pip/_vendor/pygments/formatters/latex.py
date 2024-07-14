@@ -4,7 +4,7 @@
 
     Formatter for LaTeX fancyvrb output.
 
-    :copyright: Copyright 2006-2021 by the Pygments team, see AUTHORS.
+    :copyright: Copyright 2006-2024 by the Pygments team, see AUTHORS.
     :license: BSD, see LICENSE for details.
 """
 
@@ -23,21 +23,21 @@ def escape_tex(text, commandprefix):
     return text.replace('\\', '\x00'). \
                 replace('{', '\x01'). \
                 replace('}', '\x02'). \
-                replace('\x00', r'\%sZbs{}' % commandprefix). \
-                replace('\x01', r'\%sZob{}' % commandprefix). \
-                replace('\x02', r'\%sZcb{}' % commandprefix). \
-                replace('^', r'\%sZca{}' % commandprefix). \
-                replace('_', r'\%sZus{}' % commandprefix). \
-                replace('&', r'\%sZam{}' % commandprefix). \
-                replace('<', r'\%sZlt{}' % commandprefix). \
-                replace('>', r'\%sZgt{}' % commandprefix). \
-                replace('#', r'\%sZsh{}' % commandprefix). \
-                replace('%', r'\%sZpc{}' % commandprefix). \
-                replace('$', r'\%sZdl{}' % commandprefix). \
-                replace('-', r'\%sZhy{}' % commandprefix). \
-                replace("'", r'\%sZsq{}' % commandprefix). \
-                replace('"', r'\%sZdq{}' % commandprefix). \
-                replace('~', r'\%sZti{}' % commandprefix)
+                replace('\x00', rf'\{commandprefix}Zbs{{}}'). \
+                replace('\x01', rf'\{commandprefix}Zob{{}}'). \
+                replace('\x02', rf'\{commandprefix}Zcb{{}}'). \
+                replace('^', rf'\{commandprefix}Zca{{}}'). \
+                replace('_', rf'\{commandprefix}Zus{{}}'). \
+                replace('&', rf'\{commandprefix}Zam{{}}'). \
+                replace('<', rf'\{commandprefix}Zlt{{}}'). \
+                replace('>', rf'\{commandprefix}Zgt{{}}'). \
+                replace('#', rf'\{commandprefix}Zsh{{}}'). \
+                replace('%', rf'\{commandprefix}Zpc{{}}'). \
+                replace('$', rf'\{commandprefix}Zdl{{}}'). \
+                replace('-', rf'\{commandprefix}Zhy{{}}'). \
+                replace("'", rf'\{commandprefix}Zsq{{}}'). \
+                replace('"', rf'\{commandprefix}Zdq{{}}'). \
+                replace('~', rf'\{commandprefix}Zti{{}}')
 
 
 DOC_TEMPLATE = r'''
@@ -159,6 +159,8 @@ class LatexFormatter(Formatter):
             \PY{k}{pass}
         \end{Verbatim}
 
+    Wrapping can be disabled using the `nowrap` option.
+
     The special command used here (``\PY``) and all the other macros it needs
     are output by the `get_style_defs` method.
 
@@ -170,6 +172,11 @@ class LatexFormatter(Formatter):
     ``Verbatim`` environments.
 
     Additional options accepted:
+
+    `nowrap`
+        If set to ``True``, don't wrap the tokens at all, not even inside a
+        ``\begin{Verbatim}`` environment. This disables most other options
+        (default: ``False``).
 
     `style`
         The style to use, can be a string or a Style subclass (default:
@@ -248,6 +255,7 @@ class LatexFormatter(Formatter):
 
     def __init__(self, **options):
         Formatter.__init__(self, **options)
+        self.nowrap = get_bool_opt(options, 'nowrap', False)
         self.docclass = options.get('docclass', 'article')
         self.preamble = options.get('preamble', '')
         self.linenos = get_bool_opt(options, 'linenos', False)
@@ -296,17 +304,14 @@ class LatexFormatter(Formatter):
             if ndef['mono']:
                 cmndef += r'\let\$$@ff=\textsf'
             if ndef['color']:
-                cmndef += (r'\def\$$@tc##1{\textcolor[rgb]{%s}{##1}}' %
-                           rgbcolor(ndef['color']))
+                cmndef += (r'\def\$$@tc##1{{\textcolor[rgb]{{{}}}{{##1}}}}'.format(rgbcolor(ndef['color'])))
             if ndef['border']:
-                cmndef += (r'\def\$$@bc##1{{\setlength{\fboxsep}{\string -\fboxrule}'
-                           r'\fcolorbox[rgb]{%s}{%s}{\strut ##1}}}' %
-                           (rgbcolor(ndef['border']),
+                cmndef += (r'\def\$$@bc##1{{{{\setlength{{\fboxsep}}{{\string -\fboxrule}}'
+                           r'\fcolorbox[rgb]{{{}}}{{{}}}{{\strut ##1}}}}}}'.format(rgbcolor(ndef['border']),
                             rgbcolor(ndef['bgcolor'])))
             elif ndef['bgcolor']:
-                cmndef += (r'\def\$$@bc##1{{\setlength{\fboxsep}{0pt}'
-                           r'\colorbox[rgb]{%s}{\strut ##1}}}' %
-                           rgbcolor(ndef['bgcolor']))
+                cmndef += (r'\def\$$@bc##1{{{{\setlength{{\fboxsep}}{{0pt}}'
+                           r'\colorbox[rgb]{{{}}}{{\strut ##1}}}}}}'.format(rgbcolor(ndef['bgcolor'])))
             if cmndef == '':
                 continue
             cmndef = cmndef.replace('$$', cp)
@@ -321,7 +326,7 @@ class LatexFormatter(Formatter):
         cp = self.commandprefix
         styles = []
         for name, definition in self.cmd2def.items():
-            styles.append(r'\@namedef{%s@tok@%s}{%s}' % (cp, name, definition))
+            styles.append(rf'\@namedef{{{cp}@tok@{name}}}{{{definition}}}')
         return STYLE_TEMPLATE % {'cp': self.commandprefix,
                                  'styles': '\n'.join(styles)}
 
@@ -334,18 +339,19 @@ class LatexFormatter(Formatter):
             realoutfile = outfile
             outfile = StringIO()
 
-        outfile.write('\\begin{' + self.envname + '}[commandchars=\\\\\\{\\}')
-        if self.linenos:
-            start, step = self.linenostart, self.linenostep
-            outfile.write(',numbers=left' +
-                          (start and ',firstnumber=%d' % start or '') +
-                          (step and ',stepnumber=%d' % step or ''))
-        if self.mathescape or self.texcomments or self.escapeinside:
-            outfile.write(',codes={\\catcode`\\$=3\\catcode`\\^=7'
-                          '\\catcode`\\_=8\\relax}')
-        if self.verboptions:
-            outfile.write(',' + self.verboptions)
-        outfile.write(']\n')
+        if not self.nowrap:
+            outfile.write('\\begin{' + self.envname + '}[commandchars=\\\\\\{\\}')
+            if self.linenos:
+                start, step = self.linenostart, self.linenostep
+                outfile.write(',numbers=left' +
+                              (start and ',firstnumber=%d' % start or '') +
+                              (step and ',stepnumber=%d' % step or ''))
+            if self.mathescape or self.texcomments or self.escapeinside:
+                outfile.write(',codes={\\catcode`\\$=3\\catcode`\\^=7'
+                              '\\catcode`\\_=8\\relax}')
+            if self.verboptions:
+                outfile.write(',' + self.verboptions)
+            outfile.write(']\n')
 
         for ttype, value in tokensource:
             if ttype in Token.Comment:
@@ -401,14 +407,15 @@ class LatexFormatter(Formatter):
                 spl = value.split('\n')
                 for line in spl[:-1]:
                     if line:
-                        outfile.write("\\%s{%s}{%s}" % (cp, styleval, line))
+                        outfile.write(f"\\{cp}{{{styleval}}}{{{line}}}")
                     outfile.write('\n')
                 if spl[-1]:
-                    outfile.write("\\%s{%s}{%s}" % (cp, styleval, spl[-1]))
+                    outfile.write(f"\\{cp}{{{styleval}}}{{{spl[-1]}}}")
             else:
                 outfile.write(value)
 
-        outfile.write('\\end{' + self.envname + '}\n')
+        if not self.nowrap:
+            outfile.write('\\end{' + self.envname + '}\n')
 
         if self.full:
             encoding = self.encoding or 'utf8'

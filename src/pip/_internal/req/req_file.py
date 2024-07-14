@@ -2,6 +2,7 @@
 Requirements file parsing
 """
 
+import logging
 import optparse
 import os
 import re
@@ -16,6 +17,7 @@ from typing import (
     Generator,
     Iterable,
     List,
+    NoReturn,
     Optional,
     Tuple,
 )
@@ -23,17 +25,11 @@ from typing import (
 from pip._internal.cli import cmdoptions
 from pip._internal.exceptions import InstallationError, RequirementsFileParseError
 from pip._internal.models.search_scope import SearchScope
-from pip._internal.network.session import PipSession
-from pip._internal.network.utils import raise_for_status
 from pip._internal.utils.encoding import auto_decode
-from pip._internal.utils.urls import get_url_scheme
 
 if TYPE_CHECKING:
-    # NoReturn introduced in 3.6.2; imported only for type checking to maintain
-    # pip compatibility with older patch versions of Python 3.6
-    from typing import NoReturn
-
     from pip._internal.index.package_finder import PackageFinder
+    from pip._internal.network.session import PipSession
 
 __all__ = ["parse_requirements"]
 
@@ -69,13 +65,23 @@ SUPPORTED_OPTIONS: List[Callable[..., optparse.Option]] = [
 
 # options to be passed to requirements
 SUPPORTED_OPTIONS_REQ: List[Callable[..., optparse.Option]] = [
-    cmdoptions.install_options,
     cmdoptions.global_options,
     cmdoptions.hash,
+    cmdoptions.config_settings,
 ]
+
+SUPPORTED_OPTIONS_EDITABLE_REQ: List[Callable[..., optparse.Option]] = [
+    cmdoptions.config_settings,
+]
+
 
 # the 'dest' string values
 SUPPORTED_OPTIONS_REQ_DEST = [str(o().dest) for o in SUPPORTED_OPTIONS_REQ]
+SUPPORTED_OPTIONS_EDITABLE_REQ_DEST = [
+    str(o().dest) for o in SUPPORTED_OPTIONS_EDITABLE_REQ
+]
+
+logger = logging.getLogger(__name__)
 
 
 class ParsedRequirement:
@@ -125,7 +131,7 @@ class ParsedLine:
 
 def parse_requirements(
     filename: str,
-    session: PipSession,
+    session: "PipSession",
     finder: Optional["PackageFinder"] = None,
     options: Optional[optparse.Values] = None,
     constraint: bool = False,
@@ -166,7 +172,6 @@ def handle_requirement_line(
     line: ParsedLine,
     options: Optional[optparse.Values] = None,
 ) -> ParsedRequirement:
-
     # preserve for the nested code path
     line_comes_from = "{} {} (line {})".format(
         "-c" if line.constraint else "-r",
@@ -176,35 +181,25 @@ def handle_requirement_line(
 
     assert line.is_requirement
 
+    # get the options that apply to requirements
     if line.is_editable:
-        # For editable requirements, we don't support per-requirement
-        # options, so just return the parsed requirement.
-        return ParsedRequirement(
-            requirement=line.requirement,
-            is_editable=line.is_editable,
-            comes_from=line_comes_from,
-            constraint=line.constraint,
-        )
+        supported_dest = SUPPORTED_OPTIONS_EDITABLE_REQ_DEST
     else:
-        if options:
-            # Disable wheels if the user has specified build options
-            cmdoptions.check_install_build_global(options, line.opts)
+        supported_dest = SUPPORTED_OPTIONS_REQ_DEST
+    req_options = {}
+    for dest in supported_dest:
+        if dest in line.opts.__dict__ and line.opts.__dict__[dest]:
+            req_options[dest] = line.opts.__dict__[dest]
 
-        # get the options that apply to requirements
-        req_options = {}
-        for dest in SUPPORTED_OPTIONS_REQ_DEST:
-            if dest in line.opts.__dict__ and line.opts.__dict__[dest]:
-                req_options[dest] = line.opts.__dict__[dest]
-
-        line_source = f"line {line.lineno} of {line.filename}"
-        return ParsedRequirement(
-            requirement=line.requirement,
-            is_editable=line.is_editable,
-            comes_from=line_comes_from,
-            constraint=line.constraint,
-            options=req_options,
-            line_source=line_source,
-        )
+    line_source = f"line {line.lineno} of {line.filename}"
+    return ParsedRequirement(
+        requirement=line.requirement,
+        is_editable=line.is_editable,
+        comes_from=line_comes_from,
+        constraint=line.constraint,
+        options=req_options,
+        line_source=line_source,
+    )
 
 
 def handle_option_line(
@@ -213,8 +208,14 @@ def handle_option_line(
     lineno: int,
     finder: Optional["PackageFinder"] = None,
     options: Optional[optparse.Values] = None,
-    session: Optional[PipSession] = None,
+    session: Optional["PipSession"] = None,
 ) -> None:
+    if opts.hashes:
+        logger.warning(
+            "%s line %s has --hash but no requirement, and will be ignored.",
+            filename,
+            lineno,
+        )
 
     if options:
         # percolate options upward
@@ -229,11 +230,13 @@ def handle_option_line(
     if finder:
         find_links = finder.find_links
         index_urls = finder.index_urls
-        if opts.index_url:
-            index_urls = [opts.index_url]
+        no_index = finder.search_scope.no_index
         if opts.no_index is True:
+            no_index = True
             index_urls = []
-        if opts.extra_index_urls:
+        if opts.index_url and not no_index:
+            index_urls = [opts.index_url]
+        if opts.extra_index_urls and not no_index:
             index_urls.extend(opts.extra_index_urls)
         if opts.find_links:
             # FIXME: it would be nice to keep track of the source
@@ -253,6 +256,7 @@ def handle_option_line(
         search_scope = SearchScope(
             find_links=find_links,
             index_urls=index_urls,
+            no_index=no_index,
         )
         finder.search_scope = search_scope
 
@@ -272,7 +276,7 @@ def handle_line(
     line: ParsedLine,
     options: Optional[optparse.Values] = None,
     finder: Optional["PackageFinder"] = None,
-    session: Optional[PipSession] = None,
+    session: Optional["PipSession"] = None,
 ) -> Optional[ParsedRequirement]:
     """Handle a single parsed requirements line; This can result in
     creating/yielding requirements, or updating the finder.
@@ -315,7 +319,7 @@ def handle_line(
 class RequirementsFileParser:
     def __init__(
         self,
-        session: PipSession,
+        session: "PipSession",
         line_parser: LineParser,
     ) -> None:
         self._session = session
@@ -394,7 +398,12 @@ def get_line_parser(finder: Optional["PackageFinder"]) -> LineParser:
 
         args_str, options_str = break_args_options(line)
 
-        opts, _ = parser.parse_args(shlex.split(options_str), defaults)
+        try:
+            options = shlex.split(options_str)
+        except ValueError as e:
+            raise OptionParsingError(f"Could not split options: {options_str}") from e
+
+        opts, _ = parser.parse_args(options, defaults)
 
         return args_str, opts
 
@@ -515,7 +524,7 @@ def expand_env_variables(lines_enum: ReqFileLines) -> ReqFileLines:
         yield line_number, line
 
 
-def get_file_content(url: str, session: PipSession) -> Tuple[str, str]:
+def get_file_content(url: str, session: "PipSession") -> Tuple[str, str]:
     """Gets the content of a file; it may be a filename, file: URL, or
     http: URL.  Returns (location, content).  Content is unicode.
     Respects # -*- coding: declarations on the retrieved files.
@@ -523,10 +532,12 @@ def get_file_content(url: str, session: PipSession) -> Tuple[str, str]:
     :param url:         File path or url.
     :param session:     PipSession instance.
     """
-    scheme = get_url_scheme(url)
-
+    scheme = urllib.parse.urlsplit(url).scheme
     # Pip has special support for file:// URLs (LocalFSAdapter).
     if scheme in ["http", "https", "file"]:
+        # Delay importing heavy network modules until absolutely necessary.
+        from pip._internal.network.utils import raise_for_status
+
         resp = session.get(url)
         raise_for_status(resp)
         return resp.url, resp.text

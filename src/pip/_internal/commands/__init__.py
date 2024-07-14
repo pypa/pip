@@ -38,6 +38,11 @@ commands_dict: Dict[str, CommandInfo] = {
         "FreezeCommand",
         "Output installed packages in requirements format.",
     ),
+    "inspect": CommandInfo(
+        "pip._internal.commands.inspect",
+        "InspectCommand",
+        "Inspect the python environment.",
+    ),
     "list": CommandInfo(
         "pip._internal.commands.list",
         "ListCommand",

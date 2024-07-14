@@ -88,6 +88,16 @@ class Box:
             box = ASCII
         return box
 
+    def get_plain_headed_box(self) -> "Box":
+        """If this box uses special characters for the borders of the header, then
+        return the equivalent box that does not.
+
+        Returns:
+            Box: The most similar Box that doesn't use header-specific box characters.
+                If the current Box already satisfies this criterion, then it's returned.
+        """
+        return PLAIN_HEADED_SUBSTITUTIONS.get(self, self)
+
     def get_top(self, widths: Iterable[int]) -> str:
         """Get the top of a simple box.
 
@@ -178,246 +188,224 @@ class Box:
         return "".join(parts)
 
 
+# fmt: off
 ASCII: Box = Box(
-    """\
-+--+
-| ||
-|-+|
-| ||
-|-+|
-|-+|
-| ||
-+--+
-""",
+    "+--+\n"
+    "| ||\n"
+    "|-+|\n"
+    "| ||\n"
+    "|-+|\n"
+    "|-+|\n"
+    "| ||\n"
+    "+--+\n",
     ascii=True,
 )
 
 ASCII2: Box = Box(
-    """\
-+-++
-| ||
-+-++
-| ||
-+-++
-+-++
-| ||
-+-++
-""",
+    "+-++\n"
+    "| ||\n"
+    "+-++\n"
+    "| ||\n"
+    "+-++\n"
+    "+-++\n"
+    "| ||\n"
+    "+-++\n",
     ascii=True,
 )
 
 ASCII_DOUBLE_HEAD: Box = Box(
-    """\
-+-++
-| ||
-+=++
-| ||
-+-++
-+-++
-| ||
-+-++
-""",
+    "+-++\n"
+    "| ||\n"
+    "+=++\n"
+    "| ||\n"
+    "+-++\n"
+    "+-++\n"
+    "| ||\n"
+    "+-++\n",
     ascii=True,
 )
 
 SQUARE: Box = Box(
-    """\
-┌─┬┐
-│ ││
-├─┼┤
-│ ││
-├─┼┤
-├─┼┤
-│ ││
-└─┴┘
-"""
+    "┌─┬┐\n"
+    "│ ││\n"
+    "├─┼┤\n"
+    "│ ││\n"
+    "├─┼┤\n"
+    "├─┼┤\n"
+    "│ ││\n"
+    "└─┴┘\n"
 )
 
 SQUARE_DOUBLE_HEAD: Box = Box(
-    """\
-┌─┬┐
-│ ││
-╞═╪╡
-│ ││
-├─┼┤
-├─┼┤
-│ ││
-└─┴┘
-"""
+    "┌─┬┐\n"
+    "│ ││\n"
+    "╞═╪╡\n"
+    "│ ││\n"
+    "├─┼┤\n"
+    "├─┼┤\n"
+    "│ ││\n"
+    "└─┴┘\n"
 )
 
 MINIMAL: Box = Box(
-    """\
-  ╷ 
-  │ 
-╶─┼╴
-  │ 
-╶─┼╴
-╶─┼╴
-  │ 
-  ╵ 
-"""
+    "  ╷ \n"
+    "  │ \n"
+    "╶─┼╴\n"
+    "  │ \n"
+    "╶─┼╴\n"
+    "╶─┼╴\n"
+    "  │ \n"
+    "  ╵ \n"
 )
 
 
 MINIMAL_HEAVY_HEAD: Box = Box(
-    """\
-  ╷ 
-  │ 
-╺━┿╸
-  │ 
-╶─┼╴
-╶─┼╴
-  │ 
-  ╵ 
-"""
+    "  ╷ \n"
+    "  │ \n"
+    "╺━┿╸\n"
+    "  │ \n"
+    "╶─┼╴\n"
+    "╶─┼╴\n"
+    "  │ \n"
+    "  ╵ \n"
 )
 
 MINIMAL_DOUBLE_HEAD: Box = Box(
-    """\
-  ╷ 
-  │ 
- ═╪ 
-  │ 
- ─┼ 
- ─┼ 
-  │ 
-  ╵ 
-"""
+    "  ╷ \n"
+    "  │ \n"
+    " ═╪ \n"
+    "  │ \n"
+    " ─┼ \n"
+    " ─┼ \n"
+    "  │ \n"
+    "  ╵ \n"
 )
 
 
 SIMPLE: Box = Box(
-    """\
-    
-    
- ── 
-    
-    
- ── 
-    
-    
-"""
+    "    \n"
+    "    \n"
+    " ── \n"
+    "    \n"
+    "    \n"
+    " ── \n"
+    "    \n"
+    "    \n"
 )
 
 SIMPLE_HEAD: Box = Box(
-    """\
-    
-    
- ── 
-    
-    
-    
-    
-    
-"""
+    "    \n"
+    "    \n"
+    " ── \n"
+    "    \n"
+    "    \n"
+    "    \n"
+    "    \n"
+    "    \n"
 )
 
 
 SIMPLE_HEAVY: Box = Box(
-    """\
-    
-    
- ━━ 
-    
-    
- ━━ 
-    
-    
-"""
+    "    \n"
+    "    \n"
+    " ━━ \n"
+    "    \n"
+    "    \n"
+    " ━━ \n"
+    "    \n"
+    "    \n"
 )
 
 
 HORIZONTALS: Box = Box(
-    """\
- ── 
-    
- ── 
-    
- ── 
- ── 
-    
- ── 
-"""
+    " ── \n"
+    "    \n"
+    " ── \n"
+    "    \n"
+    " ── \n"
+    " ── \n"
+    "    \n"
+    " ── \n"
 )
 
 ROUNDED: Box = Box(
-    """\
-╭─┬╮
-│ ││
-├─┼┤
-│ ││
-├─┼┤
-├─┼┤
-│ ││
-╰─┴╯
-"""
+    "╭─┬╮\n"
+    "│ ││\n"
+    "├─┼┤\n"
+    "│ ││\n"
+    "├─┼┤\n"
+    "├─┼┤\n"
+    "│ ││\n"
+    "╰─┴╯\n"
 )
 
 HEAVY: Box = Box(
-    """\
-┏━┳┓
-┃ ┃┃
-┣━╋┫
-┃ ┃┃
-┣━╋┫
-┣━╋┫
-┃ ┃┃
-┗━┻┛
-"""
+    "┏━┳┓\n"
+    "┃ ┃┃\n"
+    "┣━╋┫\n"
+    "┃ ┃┃\n"
+    "┣━╋┫\n"
+    "┣━╋┫\n"
+    "┃ ┃┃\n"
+    "┗━┻┛\n"
 )
 
 HEAVY_EDGE: Box = Box(
-    """\
-┏━┯┓
-┃ │┃
-┠─┼┨
-┃ │┃
-┠─┼┨
-┠─┼┨
-┃ │┃
-┗━┷┛
-"""
+    "┏━┯┓\n"
+    "┃ │┃\n"
+    "┠─┼┨\n"
+    "┃ │┃\n"
+    "┠─┼┨\n"
+    "┠─┼┨\n"
+    "┃ │┃\n"
+    "┗━┷┛\n"
 )
 
 HEAVY_HEAD: Box = Box(
-    """\
-┏━┳┓
-┃ ┃┃
-┡━╇┩
-│ ││
-├─┼┤
-├─┼┤
-│ ││
-└─┴┘
-"""
+    "┏━┳┓\n"
+    "┃ ┃┃\n"
+    "┡━╇┩\n"
+    "│ ││\n"
+    "├─┼┤\n"
+    "├─┼┤\n"
+    "│ ││\n"
+    "└─┴┘\n"
 )
 
 DOUBLE: Box = Box(
-    """\
-╔═╦╗
-║ ║║
-╠═╬╣
-║ ║║
-╠═╬╣
-╠═╬╣
-║ ║║
-╚═╩╝
-"""
+    "╔═╦╗\n"
+    "║ ║║\n"
+    "╠═╬╣\n"
+    "║ ║║\n"
+    "╠═╬╣\n"
+    "╠═╬╣\n"
+    "║ ║║\n"
+    "╚═╩╝\n"
 )
 
 DOUBLE_EDGE: Box = Box(
-    """\
-╔═╤╗
-║ │║
-╟─┼╢
-║ │║
-╟─┼╢
-╟─┼╢
-║ │║
-╚═╧╝
-"""
+    "╔═╤╗\n"
+    "║ │║\n"
+    "╟─┼╢\n"
+    "║ │║\n"
+    "╟─┼╢\n"
+    "╟─┼╢\n"
+    "║ │║\n"
+    "╚═╧╝\n"
 )
+
+MARKDOWN: Box = Box(
+    "    \n"
+    "| ||\n"
+    "|-||\n"
+    "| ||\n"
+    "|-||\n"
+    "|-||\n"
+    "| ||\n"
+    "    \n",
+    ascii=True,
+)
+# fmt: on
 
 # Map Boxes that don't render with raster fonts on to equivalent that do
 LEGACY_WINDOWS_SUBSTITUTIONS = {
@@ -429,9 +417,17 @@ LEGACY_WINDOWS_SUBSTITUTIONS = {
     HEAVY_HEAD: SQUARE,
 }
 
+# Map headed boxes to their headerless equivalents
+PLAIN_HEADED_SUBSTITUTIONS = {
+    HEAVY_HEAD: SQUARE,
+    SQUARE_DOUBLE_HEAD: SQUARE,
+    MINIMAL_DOUBLE_HEAD: MINIMAL,
+    MINIMAL_HEAVY_HEAD: MINIMAL,
+    ASCII_DOUBLE_HEAD: ASCII2,
+}
+
 
 if __name__ == "__main__":  # pragma: no cover
-
     from pip._vendor.rich.columns import Columns
     from pip._vendor.rich.panel import Panel
 
@@ -461,6 +457,7 @@ if __name__ == "__main__":  # pragma: no cover
         "HEAVY_HEAD",
         "DOUBLE",
         "DOUBLE_EDGE",
+        "MARKDOWN",
     ]
 
     console.print(Panel("[bold green]Box Constants", style="green"), justify="center")
@@ -480,4 +477,4 @@ if __name__ == "__main__":  # pragma: no cover
         columns.add_renderable(table)
     console.print(columns)
 
-    # console.save_html("box.html", inline_styles=True)
+    # console.save_svg("box.svg")

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import sys
 from distutils.core import setup
 
@@ -8,16 +6,14 @@ class FakeError(Exception):
     pass
 
 
-if sys.argv[1] == "install":
+if sys.argv[1] in ("install", "bdist_wheel"):
     if hasattr(sys.stdout, "buffer"):
         sys.stdout.buffer.write(
-            "\nThis package prints out UTF-8 stuff like:\n".encode("utf-8")
+            "\nThis package prints out UTF-8 stuff like:\n".encode()
         )
+        sys.stdout.buffer.write("* return type of ‘main’ is not ‘int’\n".encode())
         sys.stdout.buffer.write(
-            "* return type of ‘main’ is not ‘int’\n".encode("utf-8")
-        )
-        sys.stdout.buffer.write(
-            "* Björk Guðmundsdóttir [ˈpjœr̥k ˈkvʏðmʏntsˌtoʊhtɪr]".encode("utf-8")
+            "* Björk Guðmundsdóttir [ˈpjœr̥k ˈkvʏðmʏntsˌtoʊhtɪr]".encode()
         )
     else:
         pass

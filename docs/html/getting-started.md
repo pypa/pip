@@ -98,5 +98,5 @@ Successfully uninstalled sampleproject
 ## Next Steps
 
 It is recommended to learn about what virtual environments are and how to use
-them. This is covered in the ["Installing Packages"](pypug:tutorials/installing-packages)
+them. This is covered in the {doc}`Installing Packages <pypug:tutorials/installing-packages>`
 tutorial on packaging.python.org.

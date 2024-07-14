@@ -18,6 +18,9 @@ that month will be up to the release manager for that release. If there are
 no changes, then that release month is skipped and the next release will be
 3 months later.
 
+The version number of pip is ``YY.N``, where ``YY`` is the year of the release
+and ``N`` identifies the quarter of the year (0-3).
+
 The release manager may, at their discretion, choose whether or not there
 will be a pre-release period for a release, and if there is may extend that
 period into the next month if needed.
@@ -30,6 +33,15 @@ functionality or disabled by default). In the case where a merged PR is found
 to need extra work before being released, the release manager always has the
 option to back out the partial change prior to a release. The PR can then be
 reworked and resubmitted for the next release.
+
+Vendoring updates will be picked up from the ``main`` branch, as for any other
+update. Ideally, vendoring updates should be merged between releases, just like
+any other change. If there are outstanding updates to vendored packages, the
+release manager *may* at their discretion choose to do a vendoring update
+before the release. However this is *not* a requirement and in particular,
+updates to vendored packages that fix issues in pip should be merged
+proactively, to ensure that they will be present in the next release.
+
 
 .. _`Deprecation Policy`:
 
@@ -65,6 +77,13 @@ their merits.
   ``pip._internal.utils.deprecation.deprecated``. The function is not a part of
   pip's public API.
 
+Supported Versions
+==================
+
+The latest version of the pip is the only supported version, previous
+versions should be considered unsupported. Users are encouraged to make
+regular updates to their version of pip in order to remain supported.
+
 .. _`Python 2 Support`:
 
 Python 2 Support
@@ -77,8 +96,13 @@ issues by pip's maintainers.
 Python Support Policy
 ---------------------
 
-In general, a given Python version is supported until its usage on PyPI falls below 5%.
-This is at the maintainers' discretion, in case extraordinary circumstances arise.
+pip supports `CPython versions that are not end-of-life`_. Older versions of CPython may
+be supported at the discretion of pip maintainers (based on criteria such as download
+statistics on PyPI, Python versions supported by the vendored dependencies and
+maintenance burden).
+
+pip maintainers accept pull requests to support other Python implementations, but the
+pip CI does not test for compatibility with them.
 
 .. _`Feature Flags`:
 
@@ -129,8 +153,8 @@ Creating a new release
 #. Push the tag created by ``prepare-release``.
 #. Regenerate the ``get-pip.py`` script in the `get-pip repository`_ (as
    documented there) and commit the results.
-#. Submit a Pull Request to `CPython`_ adding the new version of pip (and upgrading
-   setuptools) to ``Lib/ensurepip/_bundled``, removing the existing version, and
+#. Submit a Pull Request to `CPython`_ adding the new version of pip
+   to ``Lib/ensurepip/_bundled``, removing the existing version, and
    adjusting the versions listed in ``Lib/ensurepip/__init__.py``.
 
 
@@ -159,6 +183,11 @@ Sometimes we need to release a bugfix release of the form ``YY.N.Z+1``. In
 order to create one of these the changes should already be merged into the
 ``main`` branch.
 
+Note that this process is only needed when there are changes on the main branch
+that you do *not* want to include in the bugfix release. For a bugfix release
+that will include everything that is on the ``main`` branch, the above process
+for creating a new release can be used, simply changing the version number.
+
 #. Create a new ``release/YY.N.Z+1`` branch off of the ``YY.N`` tag using the
    command ``git checkout -b release/YY.N.Z+1 YY.N``.
 #. Cherry pick the fixed commits off of the ``main`` branch, fixing any
@@ -175,3 +204,4 @@ order to create one of these the changes should already be merged into the
 .. _`get-pip repository`: https://github.com/pypa/get-pip
 .. _`psf-salt repository`: https://github.com/python/psf-salt
 .. _`CPython`: https://github.com/python/cpython
+.. _`CPython versions that are not end-of-life`: https://devguide.python.org/versions/

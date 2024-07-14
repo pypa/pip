@@ -1,9 +1,11 @@
+import os
+import sys
 from textwrap import dedent
 from typing import Optional
 
 import pytest
 
-from pip._internal.build_env import BuildEnvironment
+from pip._internal.build_env import BuildEnvironment, _get_system_sitepackages
 from tests.lib import (
     PipTestEnvironment,
     TestPipResult,
@@ -22,9 +24,10 @@ def run_with_build_env(
     test_script_contents: Optional[str] = None,
 ) -> TestPipResult:
     build_env_script = script.scratch_path / "build_env.py"
+    scratch_path = str(script.scratch_path)
     build_env_script.write_text(
         dedent(
-            """
+            f"""
             import subprocess
             import sys
 
@@ -40,7 +43,7 @@ def run_with_build_env(
 
             link_collector = LinkCollector(
                 session=PipSession(),
-                search_scope=SearchScope.create([{scratch!r}], []),
+                search_scope=SearchScope.create([{scratch_path!r}], [], False),
             )
             selection_prefs = SelectionPreferences(
                 allow_yanked=True,
@@ -48,14 +51,11 @@ def run_with_build_env(
             finder = PackageFinder.create(
                 link_collector=link_collector,
                 selection_prefs=selection_prefs,
-                use_deprecated_html5lib=False,
             )
 
             with global_tempdir_manager():
                 build_env = BuildEnvironment()
-            """.format(
-                scratch=str(script.scratch_path)
-            )
+            """
         )
         + indent(dedent(setup_script_contents), "    ")
         + indent(
@@ -69,11 +69,11 @@ def run_with_build_env(
             "    ",
         )
     )
-    args = ["python", build_env_script]
+    args = ["python", os.fspath(build_env_script)]
     if test_script_contents is not None:
         test_script = script.scratch_path / "test.py"
         test_script.write_text(dedent(test_script_contents))
-        args.append(test_script)
+        args.append(os.fspath(test_script))
     return script.run(*args)
 
 
@@ -89,7 +89,7 @@ def test_build_env_allow_empty_requirements_install() -> None:
 def test_build_env_allow_only_one_install(script: PipTestEnvironment) -> None:
     create_basic_wheel_for_package(script, "foo", "1.0")
     create_basic_wheel_for_package(script, "bar", "1.0")
-    finder = make_test_finder(find_links=[script.scratch_path])
+    finder = make_test_finder(find_links=[os.fspath(script.scratch_path)])
     build_env = BuildEnvironment()
     for prefix in ("normal", "overlay"):
         build_env.install_requirements(
@@ -106,7 +106,6 @@ def test_build_env_allow_only_one_install(script: PipTestEnvironment) -> None:
 
 
 def test_build_env_requirements_check(script: PipTestEnvironment) -> None:
-
     create_basic_wheel_for_package(script, "foo", "2.0")
     create_basic_wheel_for_package(script, "bar", "1.0")
     create_basic_wheel_for_package(script, "bar", "3.0")
@@ -178,6 +177,7 @@ def test_build_env_requirements_check(script: PipTestEnvironment) -> None:
             [
                 "bar==2.0; python_version < '3.0'",
                 "bar==3.0; python_version >= '3.0'",
+                "foo==4.0; extra == 'dev'",
             ],
         )
         assert r == (set(), set()), repr(r)
@@ -203,9 +203,33 @@ def test_build_env_overlay_prefix_has_priority(script: PipTestEnvironment) -> No
     assert result.stdout.strip() == "2.0", str(result)
 
 
-@pytest.mark.incompatible_with_test_venv
-def test_build_env_isolation(script: PipTestEnvironment) -> None:
+if sys.version_info < (3, 12):
+    BUILD_ENV_ERROR_DEBUG_CODE = r"""
+            from distutils.sysconfig import get_python_lib
+            print(
+                f'imported `pkg` from `{pkg.__file__}`',
+                file=sys.stderr)
+            print('system sites:\n  ' + '\n  '.join(sorted({
+                            get_python_lib(plat_specific=0),
+                            get_python_lib(plat_specific=1),
+                    })), file=sys.stderr)
+    """
+else:
+    BUILD_ENV_ERROR_DEBUG_CODE = r"""
+            from sysconfig import get_paths
+            paths = get_paths()
+            print(
+                f'imported `pkg` from `{pkg.__file__}`',
+                file=sys.stderr)
+            print('system sites:\n  ' + '\n  '.join(sorted({
+                            paths['platlib'],
+                            paths['purelib'],
+                    })), file=sys.stderr)
+    """
 
+
+@pytest.mark.usefixtures("enable_user_site")
+def test_build_env_isolation(script: PipTestEnvironment) -> None:
     # Create dummy `pkg` wheel.
     pkg_whl = create_basic_wheel_for_package(script, "pkg", "1.0")
 
@@ -225,11 +249,14 @@ def test_build_env_isolation(script: PipTestEnvironment) -> None:
     script.pip_install_local("-t", target, pkg_whl)
     script.environ["PYTHONPATH"] = target
 
+    system_sites = _get_system_sitepackages()
+    # there should always be something to exclude
+    assert system_sites
+
     run_with_build_env(
         script,
         "",
-        r"""
-        from distutils.sysconfig import get_python_lib
+        f"""
         import sys
 
         try:
@@ -237,14 +264,15 @@ def test_build_env_isolation(script: PipTestEnvironment) -> None:
         except ImportError:
             pass
         else:
-            print(
-                f'imported `pkg` from `{pkg.__file__}`',
-                file=sys.stderr)
-            print('system sites:\n  ' + '\n  '.join(sorted({
-                          get_python_lib(plat_specific=0),
-                          get_python_lib(plat_specific=1),
-                    })), file=sys.stderr)
-            print('sys.path:\n  ' + '\n  '.join(sys.path), file=sys.stderr)
+            {BUILD_ENV_ERROR_DEBUG_CODE}
+            print('sys.path:\\n  ' + '\\n  '.join(sys.path), file=sys.stderr)
             sys.exit(1)
+        # second check: direct check of exclusion of system site packages
+        import os
+
+        normalized_path = [os.path.normcase(path) for path in sys.path]
+        for system_path in {system_sites!r}:
+            assert system_path not in normalized_path, \
+            f"{{system_path}} found in {{normalized_path}}"
         """,
     )

@@ -4,7 +4,7 @@
 
     Command line interface.
 
-    :copyright: Copyright 2006-2021 by the Pygments team, see AUTHORS.
+    :copyright: Copyright 2006-2024 by the Pygments team, see AUTHORS.
     :license: BSD, see LICENSE for details.
 """
 
@@ -25,7 +25,7 @@ from pip._vendor.pygments.formatters.latex import LatexEmbeddedLexer, LatexForma
 from pip._vendor.pygments.formatters import get_all_formatters, get_formatter_by_name, \
     load_formatter_from_file, get_formatter_for_filename, find_formatter_class
 from pip._vendor.pygments.formatters.terminal import TerminalFormatter
-from pip._vendor.pygments.formatters.terminal256 import Terminal256Formatter
+from pip._vendor.pygments.formatters.terminal256 import Terminal256Formatter, TerminalTrueColorFormatter
 from pip._vendor.pygments.filters import get_all_filters, find_filter_class
 from pip._vendor.pygments.styles import get_all_styles, get_style_by_name
 
@@ -68,19 +68,19 @@ def _print_help(what, name):
     try:
         if what == 'lexer':
             cls = get_lexer_by_name(name)
-            print("Help on the %s lexer:" % cls.name)
+            print(f"Help on the {cls.name} lexer:")
             print(dedent(cls.__doc__))
         elif what == 'formatter':
             cls = find_formatter_class(name)
-            print("Help on the %s formatter:" % cls.name)
+            print(f"Help on the {cls.name} formatter:")
             print(dedent(cls.__doc__))
         elif what == 'filter':
             cls = find_filter_class(name)
-            print("Help on the %s filter:" % name)
+            print(f"Help on the {name} filter:")
             print(dedent(cls.__doc__))
         return 0
     except (AttributeError, ValueError):
-        print("%s not found!" % what, file=sys.stderr)
+        print(f"{what} not found!", file=sys.stderr)
         return 1
 
 
@@ -97,7 +97,7 @@ def _print_list(what):
             info.append(tup)
         info.sort()
         for i in info:
-            print(('* %s\n    %s %s') % i)
+            print(('* {}\n    {} {}').format(*i))
 
     elif what == 'formatter':
         print()
@@ -112,7 +112,7 @@ def _print_list(what):
             info.append(tup)
         info.sort()
         for i in info:
-            print(('* %s\n    %s %s') % i)
+            print(('* {}\n    {} {}').format(*i))
 
     elif what == 'filter':
         print()
@@ -122,7 +122,7 @@ def _print_list(what):
         for name in get_all_filters():
             cls = find_filter_class(name)
             print("* " + name + ':')
-            print("    %s" % docstring_headline(cls))
+            print(f"    {docstring_headline(cls)}")
 
     elif what == 'style':
         print()
@@ -132,7 +132,7 @@ def _print_list(what):
         for name in get_all_styles():
             cls = get_style_by_name(name)
             print("* " + name + ':')
-            print("    %s" % docstring_headline(cls))
+            print(f"    {docstring_headline(cls)}")
 
 
 def _print_list_as_json(requested_items):
@@ -185,8 +185,8 @@ def main_inner(parser, argns):
         return 0
 
     if argns.V:
-        print('Pygments version %s, (c) 2006-2021 by Georg Brandl, Matthäus '
-              'Chajdas and contributors.' % __version__)
+        print(f'Pygments version {__version__}, (c) 2006-2024 by Georg Brandl, Matthäus '
+              'Chajdas and contributors.')
         return 0
 
     def is_only_option(opt):
@@ -445,7 +445,9 @@ def main_inner(parser, argns):
             return 1
     else:
         if not fmter:
-            if '256' in os.environ.get('TERM', ''):
+            if os.environ.get('COLORTERM','') in ('truecolor', '24bit'):
+                fmter = TerminalTrueColorFormatter(**parsed_opts)
+            elif '256' in os.environ.get('TERM', ''):
                 fmter = Terminal256Formatter(**parsed_opts)
             else:
                 fmter = TerminalFormatter(**parsed_opts)
@@ -467,11 +469,11 @@ def main_inner(parser, argns):
         outfile = UnclosingTextIOWrapper(outfile, encoding=fmter.encoding)
         fmter.encoding = None
         try:
-            import pip._vendor.colorama.initialise as colorama_initialise
+            import colorama.initialise
         except ImportError:
             pass
         else:
-            outfile = colorama_initialise.wrap_stream(
+            outfile = colorama.initialise.wrap_stream(
                 outfile, convert=None, strip=None, autoreset=False, wrap=True)
 
     # When using the LaTeX formatter and the option `escapeinside` is
@@ -636,6 +638,9 @@ def main(args=sys.argv):
 
     try:
         return main_inner(parser, argns)
+    except BrokenPipeError:
+        # someone closed our stdout, e.g. by quitting a pager.
+        return 0
     except Exception:
         if argns.v:
             print(file=sys.stderr)
@@ -654,7 +659,7 @@ def main(args=sys.argv):
         msg = info[-1].strip()
         if len(info) >= 3:
             # extract relevant file and position info
-            msg += '\n   (f%s)' % info[-2].split('\n')[0].strip()[1:]
+            msg += '\n   (f{})'.format(info[-2].split('\n')[0].strip()[1:])
         print(file=sys.stderr)
         print('*** Error while highlighting:', file=sys.stderr)
         print(msg, file=sys.stderr)

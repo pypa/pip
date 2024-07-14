@@ -19,11 +19,11 @@ logger = logging.getLogger(__name__)
 class CheckCommand(Command):
     """Verify installed packages have compatible dependencies."""
 
+    ignore_require_venv = True
     usage = """
       %prog [options]"""
 
     def run(self, options: Values, args: List[str]) -> int:
-
         package_set, parsing_probs = create_package_set_from_installed()
         missing, conflicting = check_package_set(package_set)
         unsupported = list(

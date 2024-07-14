@@ -2,19 +2,20 @@
 locations.py tests
 
 """
+
 import getpass
 import os
 import shutil
 import sys
 import sysconfig
 import tempfile
+from pathlib import Path
 from typing import Any, Dict
 from unittest.mock import Mock
 
 import pytest
 
 from pip._internal.locations import SCHEME_KEYS, _should_use_sysconfig, get_scheme
-from tests.lib.path import Path
 
 if sys.platform == "win32":
     pwd = Mock()
@@ -28,13 +29,13 @@ def _get_scheme_dict(*args: Any, **kwargs: Any) -> Dict[str, str]:
 
 
 class TestLocations:
-    def setup(self) -> None:
+    def setup_method(self) -> None:
         self.tempdir = tempfile.mkdtemp()
         self.st_uid = 9999
         self.username = "example"
         self.patch()
 
-    def teardown(self) -> None:
+    def teardown_method(self) -> None:
         self.revert_patch()
         shutil.rmtree(self.tempdir, ignore_errors=True)
 

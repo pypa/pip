@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 requests.adapters
 ~~~~~~~~~~~~~~~~~
@@ -9,43 +7,66 @@ and maintain connections.
 """
 
 import os.path
-import socket
+import socket  # noqa: F401
+import typing
+import warnings
 
-from pip._vendor.urllib3.poolmanager import PoolManager, proxy_from_url
-from pip._vendor.urllib3.response import HTTPResponse
-from pip._vendor.urllib3.util import parse_url
-from pip._vendor.urllib3.util import Timeout as TimeoutSauce
-from pip._vendor.urllib3.util.retry import Retry
-from pip._vendor.urllib3.exceptions import ClosedPoolError
-from pip._vendor.urllib3.exceptions import ConnectTimeoutError
+from pip._vendor.urllib3.exceptions import ClosedPoolError, ConnectTimeoutError
 from pip._vendor.urllib3.exceptions import HTTPError as _HTTPError
 from pip._vendor.urllib3.exceptions import InvalidHeader as _InvalidHeader
-from pip._vendor.urllib3.exceptions import MaxRetryError
-from pip._vendor.urllib3.exceptions import NewConnectionError
+from pip._vendor.urllib3.exceptions import (
+    LocationValueError,
+    MaxRetryError,
+    NewConnectionError,
+    ProtocolError,
+)
 from pip._vendor.urllib3.exceptions import ProxyError as _ProxyError
-from pip._vendor.urllib3.exceptions import ProtocolError
-from pip._vendor.urllib3.exceptions import ReadTimeoutError
+from pip._vendor.urllib3.exceptions import ReadTimeoutError, ResponseError
 from pip._vendor.urllib3.exceptions import SSLError as _SSLError
-from pip._vendor.urllib3.exceptions import ResponseError
-from pip._vendor.urllib3.exceptions import LocationValueError
+from pip._vendor.urllib3.poolmanager import PoolManager, proxy_from_url
+from pip._vendor.urllib3.util import Timeout as TimeoutSauce
+from pip._vendor.urllib3.util import parse_url
+from pip._vendor.urllib3.util.retry import Retry
+from pip._vendor.urllib3.util.ssl_ import create_urllib3_context
 
-from .models import Response
-from .compat import urlparse, basestring
-from .utils import (DEFAULT_CA_BUNDLE_PATH, extract_zipped_paths,
-                    get_encoding_from_headers, prepend_scheme_if_needed,
-                    get_auth_from_url, urldefragauth, select_proxy)
-from .structures import CaseInsensitiveDict
-from .cookies import extract_cookies_to_jar
-from .exceptions import (ConnectionError, ConnectTimeout, ReadTimeout, SSLError,
-                         ProxyError, RetryError, InvalidSchema, InvalidProxyURL,
-                         InvalidURL, InvalidHeader)
 from .auth import _basic_auth_str
+from .compat import basestring, urlparse
+from .cookies import extract_cookies_to_jar
+from .exceptions import (
+    ConnectionError,
+    ConnectTimeout,
+    InvalidHeader,
+    InvalidProxyURL,
+    InvalidSchema,
+    InvalidURL,
+    ProxyError,
+    ReadTimeout,
+    RetryError,
+    SSLError,
+)
+from .models import Response
+from .structures import CaseInsensitiveDict
+from .utils import (
+    DEFAULT_CA_BUNDLE_PATH,
+    extract_zipped_paths,
+    get_auth_from_url,
+    get_encoding_from_headers,
+    prepend_scheme_if_needed,
+    select_proxy,
+    urldefragauth,
+)
 
 try:
     from pip._vendor.urllib3.contrib.socks import SOCKSProxyManager
 except ImportError:
+
     def SOCKSProxyManager(*args, **kwargs):
         raise InvalidSchema("Missing dependencies for SOCKS support.")
+
+
+if typing.TYPE_CHECKING:
+    from .models import PreparedRequest
+
 
 DEFAULT_POOLBLOCK = False
 DEFAULT_POOLSIZE = 10
@@ -53,14 +74,75 @@ DEFAULT_RETRIES = 0
 DEFAULT_POOL_TIMEOUT = None
 
 
-class BaseAdapter(object):
+try:
+    import ssl  # noqa: F401
+
+    _preloaded_ssl_context = create_urllib3_context()
+    _preloaded_ssl_context.load_verify_locations(
+        extract_zipped_paths(DEFAULT_CA_BUNDLE_PATH)
+    )
+except ImportError:
+    # Bypass default SSLContext creation when Python
+    # interpreter isn't built with the ssl module.
+    _preloaded_ssl_context = None
+
+
+def _urllib3_request_context(
+    request: "PreparedRequest",
+    verify: "bool | str | None",
+    client_cert: "typing.Tuple[str, str] | str | None",
+    poolmanager: "PoolManager",
+) -> "(typing.Dict[str, typing.Any], typing.Dict[str, typing.Any])":
+    host_params = {}
+    pool_kwargs = {}
+    parsed_request_url = urlparse(request.url)
+    scheme = parsed_request_url.scheme.lower()
+    port = parsed_request_url.port
+
+    # Determine if we have and should use our default SSLContext
+    # to optimize performance on standard requests.
+    poolmanager_kwargs = getattr(poolmanager, "connection_pool_kw", {})
+    has_poolmanager_ssl_context = poolmanager_kwargs.get("ssl_context")
+    should_use_default_ssl_context = (
+        _preloaded_ssl_context is not None and not has_poolmanager_ssl_context
+    )
+
+    cert_reqs = "CERT_REQUIRED"
+    if verify is False:
+        cert_reqs = "CERT_NONE"
+    elif verify is True and should_use_default_ssl_context:
+        pool_kwargs["ssl_context"] = _preloaded_ssl_context
+    elif isinstance(verify, str):
+        if not os.path.isdir(verify):
+            pool_kwargs["ca_certs"] = verify
+        else:
+            pool_kwargs["ca_cert_dir"] = verify
+    pool_kwargs["cert_reqs"] = cert_reqs
+    if client_cert is not None:
+        if isinstance(client_cert, tuple) and len(client_cert) == 2:
+            pool_kwargs["cert_file"] = client_cert[0]
+            pool_kwargs["key_file"] = client_cert[1]
+        else:
+            # According to our docs, we allow users to specify just the client
+            # cert path
+            pool_kwargs["cert_file"] = client_cert
+    host_params = {
+        "scheme": scheme,
+        "host": parsed_request_url.hostname,
+        "port": port,
+    }
+    return host_params, pool_kwargs
+
+
+class BaseAdapter:
     """The Base Transport Adapter"""
 
     def __init__(self):
-        super(BaseAdapter, self).__init__()
+        super().__init__()
 
-    def send(self, request, stream=False, timeout=None, verify=True,
-             cert=None, proxies=None):
+    def send(
+        self, request, stream=False, timeout=None, verify=True, cert=None, proxies=None
+    ):
         """Sends PreparedRequest object. Returns Response object.
 
         :param request: The :class:`PreparedRequest <PreparedRequest>` being sent.
@@ -108,12 +190,22 @@ class HTTPAdapter(BaseAdapter):
       >>> a = requests.adapters.HTTPAdapter(max_retries=3)
       >>> s.mount('http://', a)
     """
-    __attrs__ = ['max_retries', 'config', '_pool_connections', '_pool_maxsize',
-                 '_pool_block']
 
-    def __init__(self, pool_connections=DEFAULT_POOLSIZE,
-                 pool_maxsize=DEFAULT_POOLSIZE, max_retries=DEFAULT_RETRIES,
-                 pool_block=DEFAULT_POOLBLOCK):
+    __attrs__ = [
+        "max_retries",
+        "config",
+        "_pool_connections",
+        "_pool_maxsize",
+        "_pool_block",
+    ]
+
+    def __init__(
+        self,
+        pool_connections=DEFAULT_POOLSIZE,
+        pool_maxsize=DEFAULT_POOLSIZE,
+        max_retries=DEFAULT_RETRIES,
+        pool_block=DEFAULT_POOLBLOCK,
+    ):
         if max_retries == DEFAULT_RETRIES:
             self.max_retries = Retry(0, read=False)
         else:
@@ -121,7 +213,7 @@ class HTTPAdapter(BaseAdapter):
         self.config = {}
         self.proxy_manager = {}
 
-        super(HTTPAdapter, self).__init__()
+        super().__init__()
 
         self._pool_connections = pool_connections
         self._pool_maxsize = pool_maxsize
@@ -141,10 +233,13 @@ class HTTPAdapter(BaseAdapter):
         for attr, value in state.items():
             setattr(self, attr, value)
 
-        self.init_poolmanager(self._pool_connections, self._pool_maxsize,
-                              block=self._pool_block)
+        self.init_poolmanager(
+            self._pool_connections, self._pool_maxsize, block=self._pool_block
+        )
 
-    def init_poolmanager(self, connections, maxsize, block=DEFAULT_POOLBLOCK, **pool_kwargs):
+    def init_poolmanager(
+        self, connections, maxsize, block=DEFAULT_POOLBLOCK, **pool_kwargs
+    ):
         """Initializes a urllib3 PoolManager.
 
         This method should not be called from user code, and is only
@@ -161,8 +256,12 @@ class HTTPAdapter(BaseAdapter):
         self._pool_maxsize = maxsize
         self._pool_block = block
 
-        self.poolmanager = PoolManager(num_pools=connections, maxsize=maxsize,
-                                       block=block, strict=True, **pool_kwargs)
+        self.poolmanager = PoolManager(
+            num_pools=connections,
+            maxsize=maxsize,
+            block=block,
+            **pool_kwargs,
+        )
 
     def proxy_manager_for(self, proxy, **proxy_kwargs):
         """Return urllib3 ProxyManager for the given proxy.
@@ -178,7 +277,7 @@ class HTTPAdapter(BaseAdapter):
         """
         if proxy in self.proxy_manager:
             manager = self.proxy_manager[proxy]
-        elif proxy.lower().startswith('socks'):
+        elif proxy.lower().startswith("socks"):
             username, password = get_auth_from_url(proxy)
             manager = self.proxy_manager[proxy] = SOCKSProxyManager(
                 proxy,
@@ -187,7 +286,7 @@ class HTTPAdapter(BaseAdapter):
                 num_pools=self._pool_connections,
                 maxsize=self._pool_maxsize,
                 block=self._pool_block,
-                **proxy_kwargs
+                **proxy_kwargs,
             )
         else:
             proxy_headers = self.proxy_headers(proxy)
@@ -197,7 +296,8 @@ class HTTPAdapter(BaseAdapter):
                 num_pools=self._pool_connections,
                 maxsize=self._pool_maxsize,
                 block=self._pool_block,
-                **proxy_kwargs)
+                **proxy_kwargs,
+            )
 
         return manager
 
@@ -213,29 +313,29 @@ class HTTPAdapter(BaseAdapter):
             to a CA bundle to use
         :param cert: The SSL certificate to verify.
         """
-        if url.lower().startswith('https') and verify:
+        if url.lower().startswith("https") and verify:
+            conn.cert_reqs = "CERT_REQUIRED"
 
-            cert_loc = None
-
-            # Allow self-specified cert location.
+            # Only load the CA certificates if 'verify' is a string indicating the CA bundle to use.
+            # Otherwise, if verify is a boolean, we don't load anything since
+            # the connection will be using a context with the default certificates already loaded,
+            # and this avoids a call to the slow load_verify_locations()
             if verify is not True:
+                # `verify` must be a str with a path then
                 cert_loc = verify
 
-            if not cert_loc:
-                cert_loc = extract_zipped_paths(DEFAULT_CA_BUNDLE_PATH)
+                if not os.path.exists(cert_loc):
+                    raise OSError(
+                        f"Could not find a suitable TLS CA certificate bundle, "
+                        f"invalid path: {cert_loc}"
+                    )
 
-            if not cert_loc or not os.path.exists(cert_loc):
-                raise IOError("Could not find a suitable TLS CA certificate bundle, "
-                              "invalid path: {}".format(cert_loc))
-
-            conn.cert_reqs = 'CERT_REQUIRED'
-
-            if not os.path.isdir(cert_loc):
-                conn.ca_certs = cert_loc
-            else:
-                conn.ca_cert_dir = cert_loc
+                if not os.path.isdir(cert_loc):
+                    conn.ca_certs = cert_loc
+                else:
+                    conn.ca_cert_dir = cert_loc
         else:
-            conn.cert_reqs = 'CERT_NONE'
+            conn.cert_reqs = "CERT_NONE"
             conn.ca_certs = None
             conn.ca_cert_dir = None
 
@@ -247,11 +347,14 @@ class HTTPAdapter(BaseAdapter):
                 conn.cert_file = cert
                 conn.key_file = None
             if conn.cert_file and not os.path.exists(conn.cert_file):
-                raise IOError("Could not find the TLS certificate file, "
-                              "invalid path: {}".format(conn.cert_file))
+                raise OSError(
+                    f"Could not find the TLS certificate file, "
+                    f"invalid path: {conn.cert_file}"
+                )
             if conn.key_file and not os.path.exists(conn.key_file):
-                raise IOError("Could not find the TLS key file, "
-                              "invalid path: {}".format(conn.key_file))
+                raise OSError(
+                    f"Could not find the TLS key file, invalid path: {conn.key_file}"
+                )
 
     def build_response(self, req, resp):
         """Builds a :class:`Response <requests.Response>` object from a urllib3
@@ -266,10 +369,10 @@ class HTTPAdapter(BaseAdapter):
         response = Response()
 
         # Fallback to None if there's no status_code, for whatever reason.
-        response.status_code = getattr(resp, 'status', None)
+        response.status_code = getattr(resp, "status", None)
 
         # Make headers case-insensitive.
-        response.headers = CaseInsensitiveDict(getattr(resp, 'headers', {}))
+        response.headers = CaseInsensitiveDict(getattr(resp, "headers", {}))
 
         # Set encoding.
         response.encoding = get_encoding_from_headers(response.headers)
@@ -277,7 +380,7 @@ class HTTPAdapter(BaseAdapter):
         response.reason = response.raw.reason
 
         if isinstance(req.url, bytes):
-            response.url = req.url.decode('utf-8')
+            response.url = req.url.decode("utf-8")
         else:
             response.url = req.url
 
@@ -290,8 +393,110 @@ class HTTPAdapter(BaseAdapter):
 
         return response
 
+    def build_connection_pool_key_attributes(self, request, verify, cert=None):
+        """Build the PoolKey attributes used by urllib3 to return a connection.
+
+        This looks at the PreparedRequest, the user-specified verify value,
+        and the value of the cert parameter to determine what PoolKey values
+        to use to select a connection from a given urllib3 Connection Pool.
+
+        The SSL related pool key arguments are not consistently set. As of
+        this writing, use the following to determine what keys may be in that
+        dictionary:
+
+        * If ``verify`` is ``True``, ``"ssl_context"`` will be set and will be the
+          default Requests SSL Context
+        * If ``verify`` is ``False``, ``"ssl_context"`` will not be set but
+          ``"cert_reqs"`` will be set
+        * If ``verify`` is a string, (i.e., it is a user-specified trust bundle)
+          ``"ca_certs"`` will be set if the string is not a directory recognized
+          by :py:func:`os.path.isdir`, otherwise ``"ca_certs_dir"`` will be
+          set.
+        * If ``"cert"`` is specified, ``"cert_file"`` will always be set. If
+          ``"cert"`` is a tuple with a second item, ``"key_file"`` will also
+          be present
+
+        To override these settings, one may subclass this class, call this
+        method and use the above logic to change parameters as desired. For
+        example, if one wishes to use a custom :py:class:`ssl.SSLContext` one
+        must both set ``"ssl_context"`` and based on what else they require,
+        alter the other keys to ensure the desired behaviour.
+
+        :param request:
+            The PreparedReqest being sent over the connection.
+        :type request:
+            :class:`~requests.models.PreparedRequest`
+        :param verify:
+            Either a boolean, in which case it controls whether
+            we verify the server's TLS certificate, or a string, in which case it
+            must be a path to a CA bundle to use.
+        :param cert:
+            (optional) Any user-provided SSL certificate for client
+            authentication (a.k.a., mTLS). This may be a string (i.e., just
+            the path to a file which holds both certificate and key) or a
+            tuple of length 2 with the certificate file path and key file
+            path.
+        :returns:
+            A tuple of two dictionaries. The first is the "host parameters"
+            portion of the Pool Key including scheme, hostname, and port. The
+            second is a dictionary of SSLContext related parameters.
+        """
+        return _urllib3_request_context(request, verify, cert, self.poolmanager)
+
+    def get_connection_with_tls_context(self, request, verify, proxies=None, cert=None):
+        """Returns a urllib3 connection for the given request and TLS settings.
+        This should not be called from user code, and is only exposed for use
+        when subclassing the :class:`HTTPAdapter <requests.adapters.HTTPAdapter>`.
+
+        :param request:
+            The :class:`PreparedRequest <PreparedRequest>` object to be sent
+            over the connection.
+        :param verify:
+            Either a boolean, in which case it controls whether we verify the
+            server's TLS certificate, or a string, in which case it must be a
+            path to a CA bundle to use.
+        :param proxies:
+            (optional) The proxies dictionary to apply to the request.
+        :param cert:
+            (optional) Any user-provided SSL certificate to be used for client
+            authentication (a.k.a., mTLS).
+        :rtype:
+            urllib3.ConnectionPool
+        """
+        proxy = select_proxy(request.url, proxies)
+        try:
+            host_params, pool_kwargs = self.build_connection_pool_key_attributes(
+                request,
+                verify,
+                cert,
+            )
+        except ValueError as e:
+            raise InvalidURL(e, request=request)
+        if proxy:
+            proxy = prepend_scheme_if_needed(proxy, "http")
+            proxy_url = parse_url(proxy)
+            if not proxy_url.host:
+                raise InvalidProxyURL(
+                    "Please check proxy URL. It is malformed "
+                    "and could be missing the host."
+                )
+            proxy_manager = self.proxy_manager_for(proxy)
+            conn = proxy_manager.connection_from_host(
+                **host_params, pool_kwargs=pool_kwargs
+            )
+        else:
+            # Only scheme should be lower case
+            conn = self.poolmanager.connection_from_host(
+                **host_params, pool_kwargs=pool_kwargs
+            )
+
+        return conn
+
     def get_connection(self, url, proxies=None):
-        """Returns a urllib3 connection for the given URL. This should not be
+        """DEPRECATED: Users should move to `get_connection_with_tls_context`
+        for all subclasses of HTTPAdapter using Requests>=2.32.2.
+
+        Returns a urllib3 connection for the given URL. This should not be
         called from user code, and is only exposed for use when subclassing the
         :class:`HTTPAdapter <requests.adapters.HTTPAdapter>`.
 
@@ -299,14 +504,25 @@ class HTTPAdapter(BaseAdapter):
         :param proxies: (optional) A Requests-style dictionary of proxies used on this request.
         :rtype: urllib3.ConnectionPool
         """
+        warnings.warn(
+            (
+                "`get_connection` has been deprecated in favor of "
+                "`get_connection_with_tls_context`. Custom HTTPAdapter subclasses "
+                "will need to migrate for Requests>=2.32.2. Please see "
+                "https://github.com/psf/requests/pull/6710 for more details."
+            ),
+            DeprecationWarning,
+        )
         proxy = select_proxy(url, proxies)
 
         if proxy:
-            proxy = prepend_scheme_if_needed(proxy, 'http')
+            proxy = prepend_scheme_if_needed(proxy, "http")
             proxy_url = parse_url(proxy)
             if not proxy_url.host:
-                raise InvalidProxyURL("Please check proxy URL. It is malformed"
-                                      " and could be missing the host.")
+                raise InvalidProxyURL(
+                    "Please check proxy URL. It is malformed "
+                    "and could be missing the host."
+                )
             proxy_manager = self.proxy_manager_for(proxy)
             conn = proxy_manager.connection_from_url(url)
         else:
@@ -344,13 +560,16 @@ class HTTPAdapter(BaseAdapter):
         proxy = select_proxy(request.url, proxies)
         scheme = urlparse(request.url).scheme
 
-        is_proxied_http_request = (proxy and scheme != 'https')
+        is_proxied_http_request = proxy and scheme != "https"
         using_socks_proxy = False
         if proxy:
             proxy_scheme = urlparse(proxy).scheme.lower()
-            using_socks_proxy = proxy_scheme.startswith('socks')
+            using_socks_proxy = proxy_scheme.startswith("socks")
 
         url = request.path_url
+        if url.startswith("//"):  # Don't confuse urllib3
+            url = f"/{url.lstrip('/')}"
+
         if is_proxied_http_request and not using_socks_proxy:
             url = urldefragauth(request.url)
 
@@ -387,12 +606,13 @@ class HTTPAdapter(BaseAdapter):
         username, password = get_auth_from_url(proxy)
 
         if username:
-            headers['Proxy-Authorization'] = _basic_auth_str(username,
-                                                             password)
+            headers["Proxy-Authorization"] = _basic_auth_str(username, password)
 
         return headers
 
-    def send(self, request, stream=False, timeout=None, verify=True, cert=None, proxies=None):
+    def send(
+        self, request, stream=False, timeout=None, verify=True, cert=None, proxies=None
+    ):
         """Sends PreparedRequest object. Returns Response object.
 
         :param request: The :class:`PreparedRequest <PreparedRequest>` being sent.
@@ -410,94 +630,55 @@ class HTTPAdapter(BaseAdapter):
         """
 
         try:
-            conn = self.get_connection(request.url, proxies)
+            conn = self.get_connection_with_tls_context(
+                request, verify, proxies=proxies, cert=cert
+            )
         except LocationValueError as e:
             raise InvalidURL(e, request=request)
 
         self.cert_verify(conn, request.url, verify, cert)
         url = self.request_url(request, proxies)
-        self.add_headers(request, stream=stream, timeout=timeout, verify=verify, cert=cert, proxies=proxies)
+        self.add_headers(
+            request,
+            stream=stream,
+            timeout=timeout,
+            verify=verify,
+            cert=cert,
+            proxies=proxies,
+        )
 
-        chunked = not (request.body is None or 'Content-Length' in request.headers)
+        chunked = not (request.body is None or "Content-Length" in request.headers)
 
         if isinstance(timeout, tuple):
             try:
                 connect, read = timeout
                 timeout = TimeoutSauce(connect=connect, read=read)
-            except ValueError as e:
-                # this may raise a string formatting error.
-                err = ("Invalid timeout {}. Pass a (connect, read) "
-                       "timeout tuple, or a single float to set "
-                       "both timeouts to the same value".format(timeout))
-                raise ValueError(err)
+            except ValueError:
+                raise ValueError(
+                    f"Invalid timeout {timeout}. Pass a (connect, read) timeout tuple, "
+                    f"or a single float to set both timeouts to the same value."
+                )
         elif isinstance(timeout, TimeoutSauce):
             pass
         else:
             timeout = TimeoutSauce(connect=timeout, read=timeout)
 
         try:
-            if not chunked:
-                resp = conn.urlopen(
-                    method=request.method,
-                    url=url,
-                    body=request.body,
-                    headers=request.headers,
-                    redirect=False,
-                    assert_same_host=False,
-                    preload_content=False,
-                    decode_content=False,
-                    retries=self.max_retries,
-                    timeout=timeout
-                )
+            resp = conn.urlopen(
+                method=request.method,
+                url=url,
+                body=request.body,
+                headers=request.headers,
+                redirect=False,
+                assert_same_host=False,
+                preload_content=False,
+                decode_content=False,
+                retries=self.max_retries,
+                timeout=timeout,
+                chunked=chunked,
+            )
 
-            # Send the request.
-            else:
-                if hasattr(conn, 'proxy_pool'):
-                    conn = conn.proxy_pool
-
-                low_conn = conn._get_conn(timeout=DEFAULT_POOL_TIMEOUT)
-
-                try:
-                    skip_host = 'Host' in request.headers
-                    low_conn.putrequest(request.method,
-                                        url,
-                                        skip_accept_encoding=True,
-                                        skip_host=skip_host)
-
-                    for header, value in request.headers.items():
-                        low_conn.putheader(header, value)
-
-                    low_conn.endheaders()
-
-                    for i in request.body:
-                        low_conn.send(hex(len(i))[2:].encode('utf-8'))
-                        low_conn.send(b'\r\n')
-                        low_conn.send(i)
-                        low_conn.send(b'\r\n')
-                    low_conn.send(b'0\r\n\r\n')
-
-                    # Receive the response from the server
-                    try:
-                        # For Python 2.7, use buffering of HTTP responses
-                        r = low_conn.getresponse(buffering=True)
-                    except TypeError:
-                        # For compatibility with Python 3.3+
-                        r = low_conn.getresponse()
-
-                    resp = HTTPResponse.from_httplib(
-                        r,
-                        pool=conn,
-                        connection=low_conn,
-                        preload_content=False,
-                        decode_content=False
-                    )
-                except:
-                    # If we hit any problems here, clean up the connection.
-                    # Then, reraise so that we can handle the actual exception.
-                    low_conn.close()
-                    raise
-
-        except (ProtocolError, socket.error) as err:
+        except (ProtocolError, OSError) as err:
             raise ConnectionError(err, request=request)
 
         except MaxRetryError as e:

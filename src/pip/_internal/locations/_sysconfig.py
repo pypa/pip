@@ -1,4 +1,3 @@
-import distutils.util  # FIXME: For change_root.
 import logging
 import os
 import sys
@@ -9,7 +8,7 @@ from pip._internal.exceptions import InvalidSchemeCombination, UserInstallationI
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
-from .base import get_major_minor_version, is_osx_framework
+from .base import change_root, get_major_minor_version, is_osx_framework
 
 logger = logging.getLogger(__name__)
 
@@ -193,9 +192,10 @@ def get_scheme(
         data=paths["data"],
     )
     if root is not None:
+        converted_keys = {}
         for key in SCHEME_KEYS:
-            value = distutils.util.change_root(root, getattr(scheme, key))
-            setattr(scheme, key, value)
+            converted_keys[key] = change_root(root, getattr(scheme, key))
+        scheme = Scheme(**converted_keys)
     return scheme
 
 
@@ -212,8 +212,3 @@ def get_purelib() -> str:
 
 def get_platlib() -> str:
     return sysconfig.get_paths()["platlib"]
-
-
-def get_prefixed_libs(prefix: str) -> typing.Tuple[str, str]:
-    paths = sysconfig.get_paths(vars={"base": prefix, "platbase": prefix})
-    return (paths["purelib"], paths["platlib"])
