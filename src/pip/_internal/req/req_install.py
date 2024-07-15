@@ -825,6 +825,21 @@ class InstallRequirement:
         )
 
         if self.editable and not self.is_wheel:
+            deprecated(
+                reason=(
+                    f"Legacy editable install of {self} (setup.py develop) "
+                    "is deprecated."
+                ),
+                replacement=(
+                    "to add a pyproject.toml or enable --use-pep517, "
+                    "and use setuptools >= 64. "
+                    "If the resulting installation is not behaving as expected, "
+                    "try using --config-settings editable_mode=compat. "
+                    "Please consult the setuptools documentation for more information"
+                ),
+                gone_in="25.0",
+                issue=11457,
+            )
             if self.config_settings:
                 logger.warning(
                     "--config-settings ignored for legacy editable install of %s. "

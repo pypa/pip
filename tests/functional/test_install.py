@@ -1350,7 +1350,7 @@ def test_install_package_with_prefix(
 
 def _test_install_editable_with_prefix(
     script: PipTestEnvironment, files: Dict[str, str]
-) -> None:
+) -> TestPipResult:
     # make a dummy project
     pkga_path = script.scratch_path / "pkga"
     pkga_path.mkdir()
@@ -1377,6 +1377,8 @@ def _test_install_editable_with_prefix(
     # assert pkga is installed at correct location
     install_path = script.scratch / site_packages / "pkga.egg-link"
     result.did_create(install_path)
+
+    return result
 
 
 @pytest.mark.network
@@ -1427,9 +1429,10 @@ version = 0.1
 requires = ["setuptools<64", "wheel"]
 build-backend = "setuptools.build_meta"
 """
-    _test_install_editable_with_prefix(
+    result = _test_install_editable_with_prefix(
         script, {"setup.cfg": setup_cfg, "pyproject.toml": pyproject_toml}
     )
+    assert "(setup.py develop) is deprecated" in result.stderr
 
 
 def test_install_package_conflict_prefix_and_user(
