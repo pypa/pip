@@ -1,8 +1,15 @@
+import logging
+import re
+from http.client import RemoteDisconnected
 from typing import Dict, Generator
 
+from pip._vendor import urllib3
 from pip._vendor.requests.models import Response
 
-from pip._internal.exceptions import NetworkConnectionError
+from pip._internal.exceptions import (
+    NetworkConnectionError,
+)
+from pip._internal.utils.logging import VERBOSE
 
 # The following comments and HTTP headers were originally added by
 # Donald Stufft in git commit 22c562429a61bb77172039e480873fb239dd8c03.
@@ -26,6 +33,8 @@ from pip._internal.exceptions import NetworkConnectionError
 HEADERS: Dict[str, str] = {"Accept-Encoding": "identity"}
 
 DOWNLOAD_CHUNK_SIZE = 256 * 1024
+
+logger = logging.getLogger(__name__)
 
 
 def raise_for_status(resp: Response) -> None:
@@ -96,3 +105,80 @@ def response_chunks(
             if not chunk:
                 break
             yield chunk
+
+
+class Urllib3RetryFilter:
+    """A logging filter which attempts to rewrite urllib3's retrying
+    warnings to be more readable and less technical.
+
+    This is essentially one large hack. Please enjoy...
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        # Attempt to "sniff out" the retrying warning.
+        if not isinstance(record.args, tuple):
+            return True
+
+        retry = next(
+            (a for a in record.args if isinstance(a, urllib3.util.Retry)), None
+        )
+        if record.levelno != logging.WARNING or retry is None:
+            # Not the right warning, leave it alone.
+            return True
+
+        error = next((a for a in record.args if isinstance(a, Exception)), None)
+        if error is None:
+            # No error information available, leave it alone.
+            return True
+
+        original_message = record.msg
+        if isinstance(error, urllib3.exceptions.NewConnectionError):
+            connection = error.pool
+            record.msg = f"failed to connect to {connection.host}"
+            if isinstance(connection, urllib3.connection.HTTPSConnection):
+                record.msg += " via HTTPS"
+            elif isinstance(connection, urllib3.connection.HTTPConnection):
+                record.msg += " via HTTP"
+        # After this point, urllib3 gives us very little information to work with
+        # so the rewritten warnings will be light on details.
+        elif isinstance(error, urllib3.exceptions.SSLError):
+            record.msg = "SSL verification failed"
+        elif isinstance(error, urllib3.exceptions.TimeoutError):
+            # Ugh.
+            pattern = r"""
+            timeout=(?P<value>
+              \d+       # Whole number
+              (\.\d+)?  # Decimal component (optional)
+            )"""
+            if match := re.search(pattern, str(error), re.VERBOSE):
+                timeout = match.group("value")
+                record.msg = f"server didn't respond within {timeout} seconds"
+            else:
+                record.msg = "server took too long to respond"
+        elif isinstance(error, urllib3.exceptions.ProtocolError):
+            try:
+                reason = error.args[1]
+            except IndexError:
+                pass
+            else:
+                if isinstance(reason, (RemoteDisconnected, ConnectionResetError)):
+                    record.msg = "the connection was closed unexpectedly"
+        elif isinstance(error, urllib3.exceptions.ProxyError):
+            record.msg = "failed to connect to proxy"
+
+        if record.msg != original_message:
+            # The total remaining retries is already decremented when this
+            # warning is raised.
+            retries_left = retry.total + 1
+            if retries_left > 1:
+                record.msg += f", retrying {retries_left} more times"
+            elif retries_left == 1:
+                record.msg += ", retrying 1 last time"
+
+            if logger.isEnabledFor(VERBOSE):
+                # As it's hard to provide enough detail, show the original
+                # error under verbose mode.
+                record.msg += f": {error!s}"
+            record.args = ()
+
+        return True
