@@ -88,8 +88,12 @@ def test(session: nox.Session) -> None:
     if os.path.exists(sdist_dir):
         shutil.rmtree(sdist_dir, ignore_errors=True)
 
+    run_with_protected_pip(session, "install", "build")
+    # build uses the pip present in the outer environment (aka the nox environment)
+    # as an optimization. This will crash if the last test run installed a broken
+    # pip, so uninstall pip to force build to provision a known good version of pip.
+    run_with_protected_pip(session, "uninstall", "pip", "-y")
     # fmt: off
-    session.install("build")
     session.run(
         "python", "-I", "-m", "build", "--sdist", "--outdir", sdist_dir,
         silent=True,
