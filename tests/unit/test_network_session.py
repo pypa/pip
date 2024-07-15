@@ -2,6 +2,12 @@ from __future__ import annotations
 
 import logging
 import os
+import ssl
+import sys
+import time
+from collections.abc import Callable, Iterator
+from dataclasses import dataclass
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -10,14 +16,83 @@ from urllib.request import getproxies
 import pytest
 
 from pip._vendor import requests
+from pip._vendor.urllib3.connection import DummyConnection
+from pip._vendor.urllib3.connectionpool import HTTPSConnectionPool
 
 from pip import __version__
+from pip._internal.exceptions import (
+    ConnectionFailedError,
+    ConnectionTimeoutError,
+    DiagnosticPipError,
+    ProxyConnectionError,
+    SSLMissing,
+    SSLVerificationError,
+)
 from pip._internal.models.link import Link
 from pip._internal.network.session import (
     CI_ENVIRONMENT_VARIABLES,
     PipSession,
     user_agent,
 )
+
+from tests.lib.output import render_to_text
+from tests.lib.server import make_mock_server, server_running, text_html_response
+
+
+def render_diagnostic_error(error: DiagnosticPipError) -> tuple[str, str | None]:
+    message = render_to_text(error.message).rstrip()
+    if error.context is None:
+        return (message, None)
+    return (message, render_to_text(error.context).rstrip())
+
+
+@dataclass(frozen=True)
+class Address:
+    host: str
+    port: int
+
+    @property
+    def url(self) -> str:
+        return f"http://{self.host}:{self.port}/"
+
+
+class InstantCloseHTTPHandler(BaseHTTPRequestHandler):
+    def handle(self) -> None:
+        self.connection.close()
+
+
+class DelayedHTTPHandler(BaseHTTPRequestHandler):
+    def do_GET(self) -> None:
+        time.sleep(1)
+        self.send_response(200)
+        self.end_headers()
+
+
+@pytest.fixture(scope="module")
+def instant_close_server() -> Iterator[Address]:
+    with HTTPServer(("127.0.0.1", 0), InstantCloseHTTPHandler) as server:
+        with server_running(server):
+            yield Address("127.0.0.1", server.server_port)
+
+
+@pytest.fixture(scope="module")
+def delayed_server() -> Iterator[Address]:
+    with HTTPServer(("127.0.0.1", 0), DelayedHTTPHandler) as server:
+        with server_running(server):
+            yield Address("127.0.0.1", server.server_port)
+
+
+@pytest.fixture(scope="module")
+def self_signed_server(cert_factory: Callable[[], str]) -> Iterator[Address]:
+    """HTTPS server that uses a self-signed certificate to provoke TLS errors."""
+    cert_path = cert_factory()
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    ctx.load_cert_chain(cert_path, cert_path)
+
+    server = make_mock_server(ssl_context=ctx)
+    server.mock.side_effect = [text_html_response("ok")]
+    with server_running(server):
+        yield Address(server.host, server.port)
 
 
 def get_user_agent() -> str:
@@ -290,3 +365,81 @@ class TestPipSession:
             f"Invalid proxy {proxy} or session.proxies: "
             f"{session.proxies} is not correctly passed to session.request."
         )
+
+
+@pytest.mark.network
+class TestConnectionErrors:
+    @pytest.fixture
+    def session(self) -> Iterator[PipSession]:
+        with PipSession() as session:
+            yield session
+
+    def test_non_existent_domain(self, session: PipSession) -> None:
+        url = "https://404.example.com/"
+        with pytest.raises(ConnectionFailedError) as e:
+            session.get(url)
+        message, _ = render_diagnostic_error(e.value)
+        assert message == f"Failed to connect to 404.example.com while fetching {url}"
+
+    @pytest.mark.skipif(
+        sys.platform != "linux", reason="Only Linux raises the needed urllib3 error"
+    )
+    def test_connection_closed_by_peer(
+        self, session: PipSession, instant_close_server: Address
+    ) -> None:
+        with pytest.raises(ConnectionFailedError) as e:
+            session.get(instant_close_server.url)
+        message, context = render_diagnostic_error(e.value)
+        assert message == (
+            f"Failed to connect to {instant_close_server.host} "
+            f"while fetching {instant_close_server.url}"
+        )
+        assert context == (
+            "Details: the connection was closed without a reply from the server."
+        )
+
+    def test_timeout(self, session: PipSession, delayed_server: Address) -> None:
+        url = delayed_server.url
+        with pytest.raises(ConnectionTimeoutError) as e:
+            session.get(url, timeout=0.2)
+        message, context = render_diagnostic_error(e.value)
+        assert message == f"Unable to fetch {url}"
+        assert context is not None
+        assert context.startswith(
+            f"{delayed_server.host} didn't respond within 0.2 seconds"
+        )
+
+    def test_expired_ssl(
+        self, session: PipSession, self_signed_server: Address
+    ) -> None:
+        url = f"https://{self_signed_server.host}:{self_signed_server.port}/"
+        with pytest.raises(SSLVerificationError) as e:
+            session.get(url)
+        message, _ = render_diagnostic_error(e.value)
+        expected_host = self_signed_server.host
+        assert message == (
+            f"Failed to establish a secure connection to {expected_host} while "
+            f"fetching {url}"
+        )
+
+    def test_missing_python_ssl_support(
+        self, monkeypatch: pytest.MonkeyPatch, session: PipSession
+    ) -> None:
+        # This is unfortunate, but there is no good way of mocking a missing
+        # ssl module without reloading import trickery (which is worse).
+        monkeypatch.setattr(HTTPSConnectionPool, "ConnectionCls", DummyConnection)
+        url = "https://example.com/"
+        with pytest.raises(SSLMissing) as e:
+            session.get(url)
+        message, context = render_diagnostic_error(e.value)
+        assert message == f"Failed to establish a secure connection for {url}"
+        assert context == "The 'ssl' module is unavailable but required for HTTPS URLs"
+
+    def test_broken_proxy(self, session: PipSession) -> None:
+        url = "https://pypi.org/"
+        proxy = "https://404.example.com"
+        session.proxies = {"https": proxy}
+        with pytest.raises(ProxyConnectionError) as e:
+            session.get(url)
+        message, _ = render_diagnostic_error(e.value)
+        assert message == f"Failed to connect to proxy {proxy}:443 while fetching {url}"

@@ -1,8 +1,17 @@
+import urllib.parse
 from collections.abc import Generator
+from typing import NoReturn
 
+from pip._vendor import requests, urllib3
 from pip._vendor.requests.models import Response
 
-from pip._internal.exceptions import NetworkConnectionError
+from pip._internal.exceptions import (
+    ConnectionFailedError,
+    ConnectionTimeoutError,
+    NetworkConnectionError,
+    ProxyConnectionError,
+    SSLVerificationError,
+)
 
 # The following comments and HTTP headers were originally added by
 # Donald Stufft in git commit 22c562429a61bb77172039e480873fb239dd8c03.
@@ -96,3 +105,50 @@ def response_chunks(
             if not chunk:
                 break
             yield chunk
+
+
+def raise_connection_error(
+    error: requests.RequestException, *, url: str, timeout: tuple[float, float] | None
+) -> NoReturn:
+    """Raise a specific error for a given ConnectionError, if possible.
+
+    Note: requests.ConnectionError is the parent class of
+          requests.ProxyError, requests.SSLError, and requests.ConnectTimeout
+          so these errors are also handled here.
+    """
+    reason = error.args[0] if error.args else error
+
+    # urllib3 seemingly always wraps the original error in a MaxRetryError
+    # (even for --retries 0) but being defensive can't hurt.
+    if not isinstance(reason, urllib3.exceptions.MaxRetryError):
+        # Even --retries 0 still results in a MaxRetryError(!) but being
+        # defensive can't hurt.
+        host = urllib.parse.urlsplit(url).netloc
+        raise ConnectionFailedError(url, host, reason)
+
+    max_retry_error = reason
+    assert isinstance(max_retry_error.pool, urllib3.connectionpool.HTTPConnectionPool)
+    host = max_retry_error.pool.host
+    proxy = max_retry_error.pool.proxy
+    # Narrow the reason further to the specific error from the last retry.
+    reason = max_retry_error.reason
+
+    if isinstance(reason, urllib3.exceptions.SSLError):
+        raise SSLVerificationError(url, host, reason)
+    # NewConnectionError is a subclass of TimeoutError for some reason...
+    if isinstance(reason, urllib3.exceptions.TimeoutError) and not isinstance(
+        reason, urllib3.exceptions.NewConnectionError
+    ):
+        assert timeout is not None
+        if isinstance(reason, urllib3.exceptions.ConnectTimeoutError):
+            raise ConnectionTimeoutError(url, host, kind="connect", timeout=timeout[0])
+        else:
+            raise ConnectionTimeoutError(url, host, kind="read", timeout=timeout[1])
+    if isinstance(reason, urllib3.exceptions.ProxyError):
+        assert proxy is not None
+        raise ProxyConnectionError(url, str(proxy), reason)
+
+    # Unknown error, give up and raise a generic error.
+    raise ConnectionFailedError(
+        url, host, reason if isinstance(reason, Exception) else max_retry_error
+    )

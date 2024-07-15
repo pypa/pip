@@ -1,0 +1,1 @@
+Present more informative diagnostic errors on uncaught network errors.
