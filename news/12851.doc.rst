@@ -1,0 +1,1 @@
+Correct ``—-ignore-conflicts`` (including an em dash) to ``--ignore-conflicts``.
