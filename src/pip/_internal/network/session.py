@@ -43,7 +43,7 @@ from pip._internal.metadata import get_default_environment
 from pip._internal.models.link import Link
 from pip._internal.network.auth import MultiDomainBasicAuth
 from pip._internal.network.cache import SafeFileCache
-from pip._internal.network.utils import Urllib3RetryFilter
+from pip._internal.network.utils import Urllib3RetryFilter, raise_connection_error
 
 # Import ssl from compat so the initial import occurs in only one place.
 from pip._internal.utils.compat import has_tls
@@ -522,4 +522,7 @@ class PipSession(requests.Session):
         kwargs.setdefault("proxies", self.proxies)
 
         # Dispatch the actual request
-        return super().request(method, url, *args, **kwargs)
+        try:
+            return super().request(method, url, *args, **kwargs)
+        except requests.ConnectionError as e:
+            raise_connection_error(e, timeout=kwargs["timeout"])
