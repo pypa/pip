@@ -1,0 +1,2 @@
+The pre-commit linting suite now makes sure that any change
+notes labeled as ``trivial`` are empty.
