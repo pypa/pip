@@ -19,6 +19,7 @@ import sys
 import urllib.parse
 import warnings
 from collections.abc import Generator, Mapping, Sequence
+from functools import cache
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -39,11 +40,12 @@ from pip._internal.metadata import get_default_environment
 from pip._internal.models.link import Link
 from pip._internal.network.auth import MultiDomainBasicAuth
 from pip._internal.network.cache import SafeFileCache
-from pip._internal.network.utils import raise_connection_error
+from pip._internal.network.utils import Urllib3RetryFilter, raise_connection_error
 
 # Import ssl from compat so the initial import occurs in only one place.
 from pip._internal.utils.compat import has_tls
 from pip._internal.utils.glibc import libc_ver
+from pip._internal.utils.logging import FilterOnlyHandler
 from pip._internal.utils.misc import (
     build_url_from_netloc,
     looks_like_ci,
@@ -78,6 +80,13 @@ SECURE_ORIGINS: list[SecureOrigin] = [
     # ssh is always secure.
     ("ssh", "*", "*"),
 ]
+
+
+@cache
+def _install_retry_warning_handler() -> None:
+    _retry_warning_handler = FilterOnlyHandler()
+    _retry_warning_handler.addFilter(Urllib3RetryFilter())
+    logging.getLogger("pip._vendor").addHandler(_retry_warning_handler)
 
 
 @functools.lru_cache(maxsize=1)
@@ -322,6 +331,7 @@ class PipSession(requests.Session):
         :param trusted_hosts: Domains not to emit warnings for when not using
             HTTPS.
         """
+        _install_retry_warning_handler()
         super().__init__(*args, **kwargs)
 
         # Namespace the attribute with "pip_" just in case to prevent

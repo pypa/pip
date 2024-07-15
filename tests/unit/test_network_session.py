@@ -38,6 +38,7 @@ from pip._internal.network.session import (
     PipSession,
     user_agent,
 )
+from pip._internal.utils.logging import VERBOSE
 from pip._internal.utils.misc import CI_ENVIRONMENT_VARIABLES
 from pip._internal.utils.urls import path_to_url
 
@@ -650,3 +651,61 @@ class TestConnectionErrors:
             session.get(url)
         message, _ = render_diagnostic_error(e.value)
         assert message == f"Failed to connect to proxy {proxy}:443 while fetching {url}"
+
+
+@pytest.mark.network
+class TestRetryWarningRewriting:
+    @pytest.fixture(autouse=True)
+    def setup_caplog_level(self, caplog: pytest.LogCaptureFixture) -> Iterator[None]:
+        with caplog.at_level(logging.WARNING):
+            yield
+
+    @pytest.mark.parametrize(
+        "url, expected_message",
+        [
+            ("https://404.example.invalid", "failed to connect to 404.example.invalid"),
+            ("http://404.example.invalid", "failed to connect to 404.example.invalid"),
+        ],
+    )
+    def test_simple_urls(
+        self, caplog: pytest.LogCaptureFixture, url: str, expected_message: str
+    ) -> None:
+        with PipSession(retries=1) as session, pytest.raises(DiagnosticPipError):
+            session.get(url)
+        assert caplog.messages == [f"{expected_message}, retrying 1 last time"]
+
+    def test_timeout(
+        self, caplog: pytest.LogCaptureFixture, delayed_server: Address
+    ) -> None:
+        with PipSession(retries=1) as session, pytest.raises(DiagnosticPipError):
+            session.get(delayed_server.url(), timeout=0.1)
+        assert caplog.messages == [
+            "127.0.0.1 took too long to respond, retrying 1 last time"
+        ]
+
+    def test_connection_aborted(self, caplog: pytest.LogCaptureFixture) -> None:
+        with HTTPServer(("localhost", 0), InstantCloseHTTPHandler) as server:
+            with server_running(server), PipSession(retries=1) as session:
+                with pytest.raises(DiagnosticPipError):
+                    session.get(f"http://{server.server_name}:{server.server_port}/")
+            assert caplog.messages == [
+                "failed to connect to localhost, retrying 1 last time"
+            ]
+
+    def test_selfsigned_cert(
+        self, caplog: pytest.LogCaptureFixture, self_signed_server: Address
+    ) -> None:
+        with PipSession(retries=1) as session, pytest.raises(DiagnosticPipError):
+            session.get(self_signed_server.url(https=True))
+        assert caplog.messages == [
+            "SSL verification failed while connecting to localhost, "
+            "retrying 1 last time"
+        ]
+
+    def test_verbose(self, caplog: pytest.LogCaptureFixture) -> None:
+        caplog.set_level(VERBOSE)
+        with PipSession(retries=1) as session, pytest.raises(DiagnosticPipError):
+            session.get("https://404.example.invalid")
+        warnings = [r.message for r in caplog.records if r.levelno == logging.WARNING]
+        assert len(warnings) == 1
+        assert not warnings[0].endswith("retrying 1 last time")
