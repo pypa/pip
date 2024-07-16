@@ -1,1 +1,1 @@
-Add example for install by git+ssh
+Add examples for install by git+https/ssh.

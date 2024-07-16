@@ -45,11 +45,10 @@ When passing a commit hash, specifying a full hash is preferable to a partial
 hash because a full hash allows pip to operate more efficiently (e.g. by
 making fewer network calls).
 
-- To use ssh scheme, just replace `https://` to `ssh://git@`
-
 ````{admonition} Example
 ```{pip-cli}
-$ pip install "wheel @ git+ssh://git@github.com/pypa/wheel.git@main"
+$ pip install "virtualenv @ git+https://github.com/pypa/virtualenv.git@main"
+$ pip install "setuptools @ git+ssh://git@github.com/pypa/setuptools.git@v70.3.0"
 ```
 ````
 
