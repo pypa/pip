@@ -1,2 +1,4 @@
 # This file is protected via CODEOWNERS
-__version__ = "1.26.18"
+from __future__ import annotations
+
+__version__ = "2.2.2"

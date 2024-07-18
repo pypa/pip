@@ -1,0 +1,64 @@
+diff --git a/src/pip/_vendor/urllib3/response.py b/src/pip/_vendor/urllib3/response.py
+index a0273d65b..682e92647 100644
+--- a/src/pip/_vendor/urllib3/response.py
++++ b/src/pip/_vendor/urllib3/response.py
+@@ -17,30 +17,9 @@ from socket import timeout as SocketTimeout
+ if typing.TYPE_CHECKING:
+     from ._base_connection import BaseHTTPConnection
+ 
+-try:
+-    try:
+-        import brotlicffi as brotli  # type: ignore[import-not-found]
+-    except ImportError:
+-        import brotli  # type: ignore[import-not-found]
+-except ImportError:
+-    brotli = None
+-
+-try:
+-    import zstandard as zstd
+-except (AttributeError, ImportError, ValueError):  # Defensive:
+-    HAS_ZSTD = False
+-else:
+-    # The package 'zstandard' added the 'eof' property starting
+-    # in v0.18.0 which we require to ensure a complete and
+-    # valid zstd stream was fed into the ZstdDecoder.
+-    # See: https://github.com/urllib3/urllib3/pull/2624
+-    _zstd_version = tuple(
+-        map(int, re.search(r"^([0-9]+)\.([0-9]+)", zstd.__version__).groups())  # type: ignore[union-attr]
+-    )
+-    if _zstd_version < (0, 18):  # Defensive:
+-        HAS_ZSTD = False
+-    else:
+-        HAS_ZSTD = True
++brotli = None
++
++HAS_ZSTD = False
+ 
+ from . import util
+ from ._base_connection import _TYPE_BODY
+diff --git a/src/pip/_vendor/urllib3/util/request.py b/src/pip/_vendor/urllib3/util/request.py
+index 859597e27..d460cb7de 100644
+--- a/src/pip/_vendor/urllib3/util/request.py
++++ b/src/pip/_vendor/urllib3/util/request.py
+@@ -19,21 +19,6 @@ SKIP_HEADER = "@@@SKIP_HEADER@@@"
+ SKIPPABLE_HEADERS = frozenset(["accept-encoding", "host", "user-agent"])
+ 
+ ACCEPT_ENCODING = "gzip,deflate"
+-try:
+-    try:
+-        import brotlicffi as _unused_module_brotli  # type: ignore[import-not-found] # noqa: F401
+-    except ImportError:
+-        import brotli as _unused_module_brotli  # type: ignore[import-not-found] # noqa: F401
+-except ImportError:
+-    pass
+-else:
+-    ACCEPT_ENCODING += ",br"
+-try:
+-    import zstandard as _unused_module_zstd  # noqa: F401
+-except ImportError:
+-    pass
+-else:
+-    ACCEPT_ENCODING += ",zstd"
+ 
+ 
+ class _TYPE_FAILEDTELL(Enum):
