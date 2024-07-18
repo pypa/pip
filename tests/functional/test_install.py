@@ -621,6 +621,18 @@ def test_hashed_install_failure(script: PipTestEnvironment, tmpdir: Path) -> Non
     assert len(result.files_created) == 0
 
 
+def test_case_insensitive_hashed_install_success(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
+    """Test that hashes that differ only by case don't halt installation."""
+    with requirements_file(
+        "simple2==1.0 --hash=sha256:9336AF72CA661E6336EB87BC7DE3E8844D853E"
+        "3848C2B9BBD2E8BF01DB88C2C7\n",
+        tmpdir,
+    ) as reqs_file:
+        script.pip_install_local("-r", reqs_file.resolve())
+
+
 def test_link_hash_pass_require_hashes(
     script: PipTestEnvironment, shared_data: TestData
 ) -> None:
@@ -1183,7 +1195,7 @@ def test_install_nonlocal_compatible_wheel(
     )
     assert result.returncode == SUCCESS
 
-    distinfo = Path("scratch") / "target" / "simplewheel-2.0-1.dist-info"
+    distinfo = Path("scratch") / "target" / "simplewheel-2.0.dist-info"
     result.did_create(distinfo)
 
     # Test install without --target
@@ -1338,7 +1350,7 @@ def test_install_package_with_prefix(
 
 def _test_install_editable_with_prefix(
     script: PipTestEnvironment, files: Dict[str, str]
-) -> None:
+) -> TestPipResult:
     # make a dummy project
     pkga_path = script.scratch_path / "pkga"
     pkga_path.mkdir()
@@ -1365,6 +1377,8 @@ def _test_install_editable_with_prefix(
     # assert pkga is installed at correct location
     install_path = script.scratch / site_packages / "pkga.egg-link"
     result.did_create(install_path)
+
+    return result
 
 
 @pytest.mark.network
@@ -1415,9 +1429,10 @@ version = 0.1
 requires = ["setuptools<64", "wheel"]
 build-backend = "setuptools.build_meta"
 """
-    _test_install_editable_with_prefix(
+    result = _test_install_editable_with_prefix(
         script, {"setup.cfg": setup_cfg, "pyproject.toml": pyproject_toml}
     )
+    assert "(setup.py develop) is deprecated" in result.stderr
 
 
 def test_install_package_conflict_prefix_and_user(

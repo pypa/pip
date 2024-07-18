@@ -371,6 +371,7 @@ class InstallCommand(RequirementCommand):
                 force_reinstall=options.force_reinstall,
                 upgrade_strategy=upgrade_strategy,
                 use_pep517=options.use_pep517,
+                py_version_info=options.python_version,
             )
 
             self.trace_basic_info(finder)

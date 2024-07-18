@@ -1401,7 +1401,7 @@ def test_incorrect_metadata_hash(
     )
     assert result.returncode != 0
     expected_msg = f"""\
-        Expected sha256 WRONG-HASH
+        Expected sha256 wrong-hash
              Got        {real_hash}"""
     assert expected_msg in result.stderr
 

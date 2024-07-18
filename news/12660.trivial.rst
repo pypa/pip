@@ -1,0 +1,2 @@
+Remove (suppressed) deprecation warning from vendored ``pkg_resources``
+to ensure builds succeed with ``PYTHONWARNINGS=error``.
