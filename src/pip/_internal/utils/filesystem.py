@@ -38,6 +38,7 @@ def check_path_owner(path: str) -> bool:
             previous, path = path, os.path.dirname(path)
     return False  # assume we don't own the path
 
+
 @contextmanager
 def adjacent_tmp_file(path: str, **kwargs: Any) -> Generator[BinaryIO, None, None]:
     """Return a file-like object pointing to a tmp file next to path.
