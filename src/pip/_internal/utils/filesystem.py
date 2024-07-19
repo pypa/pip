@@ -38,7 +38,8 @@ def check_path_owner(path: str) -> bool:
             previous, path = path, os.path.dirname(path)
     return False  # assume we don't own the path
 
-
+total_flush = 0.0
+total_fsync = 0.0
 @contextmanager
 def adjacent_tmp_file(path: str, **kwargs: Any) -> Generator[BinaryIO, None, None]:
     """Return a file-like object pointing to a tmp file next to path.
@@ -60,8 +61,18 @@ def adjacent_tmp_file(path: str, **kwargs: Any) -> Generator[BinaryIO, None, Non
         try:
             yield result
         finally:
+            import time
+            start = time.perf_counter()
             result.flush()
+            middle = time.perf_counter()
             os.fsync(result.fileno())
+            end = time.perf_counter()
+            global total_flush
+            global total_fsync
+            total_flush += middle - start
+            total_fsync += end - start
+            print("adjacent_tmp_file({}) flush {:.3f} (cumulative {:.3f})".format(f, middle-start, total_flush))
+            print("adjacent_tmp_file({}) fsync {:.3f} (cumulative {:.3f})".format(f, end-middle, total_fsync))
 
 
 replace = retry(stop_after_delay=1, wait=0.25)(os.replace)
