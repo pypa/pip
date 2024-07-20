@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.distributions.base import AbstractDistribution
 from pip._internal.exceptions import InstallationError
-from pip._internal.metadata import BaseDistribution
+from pip._internal.metadata import BaseDistribution, get_directory_distribution
 from pip._internal.utils.subprocess import runner_with_spinner_message
 
 if TYPE_CHECKING:
@@ -24,13 +24,19 @@ class SourceDistribution(AbstractDistribution):
     """
 
     @property
-    def build_tracker_id(self) -> str | None:
+    def build_tracker_id(self) -> str:
         """Identify this requirement uniquely by its link."""
         assert self.req.link
         return self.req.link.url_without_fragment
 
     def get_metadata_distribution(self) -> BaseDistribution:
-        return self.req.get_dist()
+        assert (
+            self.req.metadata_directory
+        ), "Set as part of .prepare_distribution_metadata()"
+        dist = get_directory_distribution(self.req.metadata_directory)
+        self.req.cache_concrete_dist(dist)
+        self.req.validate_sdist_metadata()
+        return dist
 
     def prepare_distribution_metadata(
         self,
@@ -69,7 +75,11 @@ class SourceDistribution(AbstractDistribution):
                 self._raise_conflicts("the backend dependencies", conflicting)
             if missing:
                 self._raise_missing_reqs(missing)
-        self.req.prepare_metadata()
+
+        # NB: we must still call .cache_concrete_dist() and .validate_sdist_metadata()
+        # before the InstallRequirement itself has been updated with the metadata from
+        # this directory!
+        self.req.prepare_metadata_directory()
 
     def _prepare_build_backend(
         self, build_env_installer: BuildEnvironmentInstaller
