@@ -156,11 +156,15 @@ class IndexGroupCommand(Command, SessionCommandMixin):
         if options.disable_pip_version_check or options.no_index:
             return
 
-        # Otherwise, check if we're using the latest version of pip available.
-        session = self._build_session(
-            options,
-            retries=0,
-            timeout=min(5, options.timeout),
-        )
-        with session:
-            _pip_self_version_check(session, options)
+        try:
+            # Otherwise, check if we're using the latest version of pip available.
+            session = self._build_session(
+                options,
+                retries=0,
+                timeout=min(5, options.timeout),
+            )
+            with session:
+                _pip_self_version_check(session, options)
+        except Exception:
+            logger.warning("There was an error checking the latest version of pip.")
+            logger.debug("See below for error", exc_info=True)
