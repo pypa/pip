@@ -168,6 +168,29 @@ def docs_live(session: nox.Session) -> None:
 
 
 @nox.session
+def typecheck(session: nox.Session) -> None:
+    session.install(
+        "mypy",
+        "keyring",
+        "nox",
+        "pytest",
+        "types-docutils",
+        "types-setuptools",
+        "types-freezegun",
+        "types-pyyaml",
+    )
+
+    session.run(
+        "mypy",
+        "src/pip",
+        "tests",
+        "tools",
+        "noxfile.py",
+        "--exclude=tests/data",
+    )
+
+
+@nox.session
 def lint(session: nox.Session) -> None:
     session.install("pre-commit")
 
