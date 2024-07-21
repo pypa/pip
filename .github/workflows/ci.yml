@@ -35,6 +35,18 @@ jobs:
       - run: pip install nox
       - run: nox -s docs
 
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - run: pip install nox
+      - run: nox -s typecheck
+
   determine-changes:
     runs-on: ubuntu-22.04
     outputs:
@@ -252,6 +264,7 @@ jobs:
 
     needs:
       - determine-changes
+      - typecheck
       - docs
       - packaging
       - tests-unix
