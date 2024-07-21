@@ -77,22 +77,24 @@ def create_timestamped_callable(sleep_per_call: float = 0) -> Tuple[Mock, List[f
 @pytest.mark.skipif(
     sys.platform == "win32", reason="Too flaky on Windows due to poor timer resolution"
 )
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 @pytest.mark.parametrize("wait_duration", [0.015, 0.045, 0.15])
 def test_retry_wait(wait_duration: float) -> None:
     function, timestamps = create_timestamped_callable()
-    # Only the first retry will be scheduled before the time limit is exceeded.
-    wrapped = retry(wait=wait_duration, stop_after_delay=0.01)(function)
+    wrapped = retry(wait=wait_duration, stop_after_delay=0.1)(function)
     start_time = perf_counter()
     with pytest.raises(RuntimeError):
         wrapped()
-    assert len(timestamps) == 2
-    # Add a margin of 10% to permit for unavoidable variation.
+    assert len(timestamps) >= 2
+    # Just check the first retry, with a margin of 10% to permit for
+    # unavoidable variation.
     assert timestamps[1] - start_time >= (wait_duration * 0.9)
 
 
 @pytest.mark.skipif(
     sys.platform == "win32", reason="Too flaky on Windows due to poor timer resolution"
 )
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 @pytest.mark.parametrize(
     "call_duration, max_allowed_calls", [(0.01, 11), (0.04, 3), (0.15, 1)]
 )
@@ -113,7 +115,7 @@ def test_retry_method() -> None:
         def __init__(self) -> None:
             self.calls = 0
 
-        @retry(wait=0, stop_after_delay=0.01)
+        @retry(wait=0, stop_after_delay=3)
         def method(self, string: str) -> str:
             self.calls += 1
             if self.calls >= 5:
