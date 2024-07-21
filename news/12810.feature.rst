@@ -1,0 +1,5 @@
+Improve download performance. Download packages and update the
+progress bar in larger chunks of 256 kB, up from 10 kB.
+Limit the progress bar to 5 refresh per second.
+Improve hash performance. Read package files in larger chunks of 1 MB,
+up from 8192 bytes.

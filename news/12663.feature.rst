@@ -1,0 +1,1 @@
+Improve performance when the same requirement string appears many times during resolution, by consistently caching the parsed requirement string.

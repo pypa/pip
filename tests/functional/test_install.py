@@ -1,9 +1,11 @@
 import hashlib
+import io
 import os
 import re
 import ssl
 import sys
 import sysconfig
+import tarfile
 import textwrap
 from os.path import curdir, join, pardir
 from pathlib import Path
@@ -619,6 +621,18 @@ def test_hashed_install_failure(script: PipTestEnvironment, tmpdir: Path) -> Non
     assert len(result.files_created) == 0
 
 
+def test_case_insensitive_hashed_install_success(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
+    """Test that hashes that differ only by case don't halt installation."""
+    with requirements_file(
+        "simple2==1.0 --hash=sha256:9336AF72CA661E6336EB87BC7DE3E8844D853E"
+        "3848C2B9BBD2E8BF01DB88C2C7\n",
+        tmpdir,
+    ) as reqs_file:
+        script.pip_install_local("-r", reqs_file.resolve())
+
+
 def test_link_hash_pass_require_hashes(
     script: PipTestEnvironment, shared_data: TestData
 ) -> None:
@@ -685,7 +699,9 @@ def test_link_hash_in_dep_fails_require_hashes(
     # Build a wheel for pkga and compute its hash.
     wheelhouse = tmp_path / "wheehouse"
     wheelhouse.mkdir()
-    script.pip("wheel", "--no-deps", "-w", wheelhouse, project_path)
+    script.pip(
+        "wheel", "--no-build-isolation", "--no-deps", "-w", wheelhouse, project_path
+    )
     digest = hashlib.sha256(
         wheelhouse.joinpath("pkga-1.0-py3-none-any.whl").read_bytes()
     ).hexdigest()
@@ -903,7 +919,14 @@ def test_editable_install__local_dir_setup_requires_with_pyproject(
         "setup(name='dummy', setup_requires=['simplewheel'])\n"
     )
 
-    script.pip("install", "--find-links", shared_data.find_links, "-e", local_dir)
+    script.pip(
+        "install",
+        "--no-build-isolation",
+        "--find-links",
+        shared_data.find_links,
+        "-e",
+        local_dir,
+    )
 
 
 def test_install_pre__setup_requires_with_pyproject(
@@ -1172,7 +1195,7 @@ def test_install_nonlocal_compatible_wheel(
     )
     assert result.returncode == SUCCESS
 
-    distinfo = Path("scratch") / "target" / "simplewheel-2.0-1.dist-info"
+    distinfo = Path("scratch") / "target" / "simplewheel-2.0.dist-info"
     result.did_create(distinfo)
 
     # Test install without --target
@@ -1327,7 +1350,7 @@ def test_install_package_with_prefix(
 
 def _test_install_editable_with_prefix(
     script: PipTestEnvironment, files: Dict[str, str]
-) -> None:
+) -> TestPipResult:
     # make a dummy project
     pkga_path = script.scratch_path / "pkga"
     pkga_path.mkdir()
@@ -1354,6 +1377,8 @@ def _test_install_editable_with_prefix(
     # assert pkga is installed at correct location
     install_path = script.scratch / site_packages / "pkga.egg-link"
     result.did_create(install_path)
+
+    return result
 
 
 @pytest.mark.network
@@ -1404,9 +1429,10 @@ version = 0.1
 requires = ["setuptools<64", "wheel"]
 build-backend = "setuptools.build_meta"
 """
-    _test_install_editable_with_prefix(
+    result = _test_install_editable_with_prefix(
         script, {"setup.cfg": setup_cfg, "pyproject.toml": pyproject_toml}
     )
+    assert "(setup.py develop) is deprecated" in result.stderr
 
 
 def test_install_package_conflict_prefix_and_user(
@@ -2590,3 +2616,130 @@ def test_install_pip_prints_req_chain_pypi(script: PipTestEnvironment) -> None:
         f"Collecting python-openid "
         f"(from Paste[openid]==1.7.5.1->-r {req_path} (line 1))" in result.stdout
     )
+
+
+@pytest.mark.parametrize("common_prefix", ("", "linktest-1.0/"))
+def test_install_sdist_links(script: PipTestEnvironment, common_prefix: str) -> None:
+    """
+    Test installing an sdist with hard and symbolic links.
+    """
+
+    # Build an unpack an sdist that contains data files:
+    # - root.dat
+    # - sub/inner.dat
+    # and links (symbolic and hard) to both of those, both in the top-level
+    # and 'sub/' directories. That's 8 links total.
+
+    # We build the sdist from in-memory data, since the filesystem
+    # might not support both kinds of links.
+
+    sdist_path = script.scratch_path.joinpath("linktest-1.0.tar.gz")
+
+    def add_file(tar: tarfile.TarFile, name: str, content: str) -> None:
+        info = tarfile.TarInfo(common_prefix + name)
+        content_bytes = content.encode("utf-8")
+        info.size = len(content_bytes)
+        tar.addfile(info, io.BytesIO(content_bytes))
+
+    def add_link(tar: tarfile.TarFile, name: str, linktype: str, target: str) -> None:
+        info = tarfile.TarInfo(common_prefix + name)
+        info.type = {"sym": tarfile.SYMTYPE, "hard": tarfile.LNKTYPE}[linktype]
+        info.linkname = target
+        tar.addfile(info)
+
+    with tarfile.open(sdist_path, "w:gz") as sdist_tar:
+        add_file(
+            sdist_tar,
+            "PKG-INFO",
+            textwrap.dedent(
+                """
+                    Metadata-Version: 2.1
+                    Name: linktest
+                    Version: 1.0
+                """
+            ),
+        )
+
+        add_file(sdist_tar, "src/linktest/__init__.py", "")
+        add_file(sdist_tar, "src/linktest/root.dat", "Data")
+        add_file(sdist_tar, "src/linktest/sub/__init__.py", "")
+        add_file(sdist_tar, "src/linktest/sub/inner.dat", "Data")
+        linknames = []
+
+        # Windows requires native path separators in symlink targets.
+        # (see https://github.com/python/cpython/issues/57911)
+        # (This is not needed for hardlinks, nor for the workaround tarfile
+        # uses if symlinking is disabled.)
+        SEP = os.path.sep
+
+        pkg_root = f"{common_prefix}src/linktest"
+        for prefix, target_tag, linktype, target in [
+            ("", "root", "sym", "root.dat"),
+            ("", "root", "hard", f"{pkg_root}/root.dat"),
+            ("", "inner", "sym", f"sub{SEP}inner.dat"),
+            ("", "inner", "hard", f"{pkg_root}/sub/inner.dat"),
+            ("sub/", "root", "sym", f"..{SEP}root.dat"),
+            ("sub/", "root", "hard", f"{pkg_root}/root.dat"),
+            ("sub/", "inner", "sym", "inner.dat"),
+            ("sub/", "inner", "hard", f"{pkg_root}/sub/inner.dat"),
+        ]:
+            name = f"{prefix}link.{target_tag}.{linktype}.dat"
+            add_link(sdist_tar, "src/linktest/" + name, linktype, target)
+            linknames.append(name)
+
+        add_file(
+            sdist_tar,
+            "pyproject.toml",
+            textwrap.dedent(
+                """
+                    [build-system]
+                    requires = ["setuptools"]
+                    build-backend = "setuptools.build_meta"
+                    [project]
+                    name = "linktest"
+                    version = "1.0"
+                    [tool.setuptools]
+                    include-package-data = true
+                    [tool.setuptools.packages.find]
+                    where = ["src"]
+                    [tool.setuptools.package-data]
+                    "*" = ["*.dat"]
+                """
+            ),
+        )
+
+        add_file(
+            sdist_tar,
+            "src/linktest/__main__.py",
+            textwrap.dedent(
+                f"""
+                    from pathlib import Path
+                    linknames = {linknames!r}
+
+                    # we could use importlib.resources here once
+                    # it has stable convenient API across supported versions
+                    res_path = Path(__file__).parent
+
+                    for name in linknames:
+                        data_text = res_path.joinpath(name).read_text()
+                        assert data_text == "Data"
+                    print(str(len(linknames)) + ' files checked')
+                """
+            ),
+        )
+
+    # Show sdist content, for debugging the test
+    result = script.run("python", "-m", "tarfile", "-vl", str(sdist_path))
+    print(result)
+
+    # Install the package
+    result = script.pip("install", str(sdist_path))
+    print(result)
+
+    # Show installed content, for debugging the test
+    result = script.pip("show", "-f", "linktest")
+    print(result)
+
+    # Run the internal test
+    result = script.run("python", "-m", "linktest")
+    assert result.stdout.strip() == "8 files checked"

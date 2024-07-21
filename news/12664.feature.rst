@@ -1,0 +1,1 @@
+Minor performance improvement of finding applicable package candidates by not repeatedly calculating their versions
