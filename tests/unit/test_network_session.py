@@ -1,7 +1,8 @@
 import logging
 import os
+from http.server import HTTPServer
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any, Iterator, List, Optional
 from urllib.parse import urlparse
 from urllib.request import getproxies
 
@@ -9,12 +10,15 @@ import pytest
 from pip._vendor import requests
 
 from pip import __version__
+from pip._internal.exceptions import DiagnosticPipError
 from pip._internal.models.link import Link
 from pip._internal.network.session import (
     CI_ENVIRONMENT_VARIABLES,
     PipSession,
     user_agent,
 )
+from pip._internal.utils.logging import VERBOSE
+from tests.lib.server import InstantCloseHTTPHandler, server_running
 
 
 def get_user_agent() -> str:
@@ -281,3 +285,63 @@ class TestPipSession:
             f"Invalid proxy {proxy} or session.proxies: "
             f"{session.proxies} is not correctly passed to session.request."
         )
+
+
+@pytest.mark.network
+class TestRetryWarningRewriting:
+    @pytest.fixture(autouse=True)
+    def setup_caplog_level(self, caplog: pytest.LogCaptureFixture) -> Iterator[None]:
+        with caplog.at_level(logging.WARNING):
+            yield
+
+    @pytest.mark.parametrize(
+        "url, expected_message",
+        [
+            (
+                "https://404.example.com",
+                "failed to connect to 404.example.com via HTTPS",
+            ),
+            ("http://404.example.com", "failed to connect to 404.example.com via HTTP"),
+            ("https://expired.badssl.com", "SSL verification failed"),
+        ],
+    )
+    def test_simple_urls(
+        self, caplog: pytest.LogCaptureFixture, url: str, expected_message: str
+    ) -> None:
+        with PipSession(retries=1) as session:
+            with pytest.raises(DiagnosticPipError):
+                session.get(url)
+        assert caplog.messages == [f"{expected_message}, retrying 1 last time"]
+
+    def test_timeout(self, caplog: pytest.LogCaptureFixture) -> None:
+        with PipSession(retries=1) as session:
+            with pytest.raises(DiagnosticPipError):
+                session.get("https://httpstat.us/200?sleep=400", timeout=0.2)
+        assert caplog.messages == [
+            "server didn't respond within 0.2 seconds, retrying 1 last time"
+        ]
+
+    def test_connection_aborted(self, caplog: pytest.LogCaptureFixture) -> None:
+        with HTTPServer(("localhost", 0), InstantCloseHTTPHandler) as server:
+            with server_running(server), PipSession(retries=1) as session:
+                with pytest.raises(DiagnosticPipError):
+                    session.get(f"http://{server.server_name}:{server.server_port}/")
+            assert caplog.messages == [
+                "the connection was closed unexpectedly, retrying 1 last time"
+            ]
+
+    def test_proxy(self, caplog: pytest.LogCaptureFixture) -> None:
+        with PipSession(retries=1) as session:
+            session.proxies = {"https": "https://404.example.com"}
+            with pytest.raises(DiagnosticPipError):
+                session.get("https://pypi.org")
+        assert caplog.messages == ["failed to connect to proxy, retrying 1 last time"]
+
+    def test_verbose(self, caplog: pytest.LogCaptureFixture) -> None:
+        caplog.set_level(VERBOSE)
+        with PipSession(retries=1) as session:
+            with pytest.raises(DiagnosticPipError):
+                session.get("https://404.example.org")
+        warnings = [r.message for r in caplog.records if r.levelno == logging.WARNING]
+        assert len(warnings) == 1
+        assert not warnings[0].endswith("retrying 1 last time")

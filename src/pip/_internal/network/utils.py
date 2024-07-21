@@ -154,7 +154,7 @@ def raise_connection_error(error: requests.ConnectionError, *, timeout: float) -
     raise ConnectionFailedError(url, host, reason)
 
 
-class Urllib3RetryFilter:
+class Urllib3RetryFilter(logging.Filter):
     """A logging filter which attempts to rewrite urllib3's retrying
     warnings to be more readable and less technical.
 
