@@ -589,15 +589,70 @@ class RequirementPreparer:
             # None of the optimizations worked, fully prepare the requirement
             return self._prepare_linked_requirement(req, parallel_builds)
 
-    def prepare_linked_requirements_more(
+    def _extract_download_info(self, reqs: Iterable[InstallRequirement]) -> None:
+        """
+        `pip install --report` extracts the download info from each requirement for its
+        JSON output, so we need to make sure every requirement has this before finishing
+        the resolve. But .download_info will only be populated by the point this method
+        is called for requirements already found in the wheel cache, so we need to
+        synthesize it for uncached results. Luckily, a DirectUrl can be parsed directly
+        from a url without any other context. However, this also means the download info
+        will only contain a hash if the link itself declares the hash.
+        """
+        for req in reqs:
+            if req.download_info is None:
+                self._ensure_download_info(req)
+
+    def _force_fully_prepared(
+        self, reqs: Iterable[InstallRequirement], assert_has_dist_files: bool
+    ) -> None:
+        """
+        The legacy resolver seems to prepare requirements differently that can leave
+        them half-done in certain code paths. I'm not quite sure how it's doing things,
+        but at least we can do this to make sure they do things right.
+        """
+        for req in reqs:
+            req.prepared = True
+            if assert_has_dist_files:
+                assert req.is_concrete
+
+    def _ensure_dist_files(
         self, reqs: Iterable[InstallRequirement], parallel_builds: bool = False
     ) -> None:
-        """Prepare linked requirements more, if needed."""
+        """Download any metadata-only linked requirements."""
         metadata_only_reqs = [req for req in reqs if not req.is_concrete]
         self._complete_partial_requirements(
             metadata_only_reqs,
             parallel_builds=parallel_builds,
         )
+
+    def finalize_linked_requirements(
+        self,
+        reqs: Iterable[InstallRequirement],
+        require_dist_files: bool,
+        parallel_builds: bool = False,
+    ) -> None:
+        """Prepare linked requirements more, if needed.
+
+        Neighboring .metadata files as per PEP 658 or lazy wheels via fast-deps will be
+        preferred to extract metadata from any concrete requirement (one that has been
+        mapped to a Link) without downloading the underlying wheel or sdist. When ``pip
+        install --dry-run`` is called, we want to avoid ever downloading the underlying
+        dist, but we still need to provide all of the results that pip commands expect
+        from the typical resolve process.
+
+        Those expectations vary, but one distinction lies in whether the command needs
+        an actual physical dist somewhere on the filesystem, or just the metadata about
+        it from the resolver (as in ``pip install --report``). If the command requires
+        actual physical filesystem locations for the resolved dists, it must call this
+        method with ``require_dist_files=True`` to fully download anything
+        that remains.
+        """
+        if require_dist_files:
+            self._ensure_dist_files(reqs, parallel_builds=parallel_builds)
+        else:
+            self._extract_download_info(reqs)
+        self._force_fully_prepared(reqs, assert_has_dist_files=require_dist_files)
 
     def _ensure_local_file_path(
         self, req: InstallRequirement, hashes: Hashes | None

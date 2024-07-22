@@ -642,10 +642,7 @@ class InstallRequirement:
             # If we set a dist twice for the same requirement, we must be hydrating
             # a concrete dist for what was previously virtual. This will occur in the
             # case of `install --dry-run` when PEP 658 metadata is available.
-
-            # TODO(#12186): avoid setting dist twice!
-            # assert not self._dist.is_concrete
-            pass
+            assert not self._dist.is_concrete
         assert dist.is_concrete
         self._dist = dist
 
