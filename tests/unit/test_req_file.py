@@ -345,6 +345,34 @@ class TestProcessLine:
         assert reqs[0].name == req_name
         assert reqs[0].constraint
 
+    def test_recursive_requirements_file(
+        self, tmpdir: Path, session: PipSession
+    ) -> None:
+        req_files: list[Path] = []
+        req_file_count = 4
+        for i in range(req_file_count):
+            req_file = tmpdir / f"{i}.txt"
+            req_file.write_text(f"-r {(i+1) % req_file_count}.txt")
+            req_files.append(req_file)
+
+        # When the passed requirements file recursively references itself
+        with pytest.raises(
+            RecursionError,
+            match=f"{req_files[0]} recursively references itself"
+            f" in {req_files[req_file_count - 1]}",
+        ):
+            list(parse_requirements(filename=str(req_files[0]), session=session))
+
+        # When one of other the requirements file recursively references itself
+        req_files[req_file_count - 1].write_text(f"-r {req_files[req_file_count - 2]}")
+        with pytest.raises(
+            RecursionError,
+            match=f"{req_files[req_file_count - 2]} recursively references itself "
+            f"in {req_files[req_file_count - 1]} and again in"
+            f" {req_files[req_file_count - 3]}",
+        ):
+            list(parse_requirements(filename=str(req_files[0]), session=session))
+
     def test_options_on_a_requirement_line(self, line_processor: LineProcessor) -> None:
         line = (
             'SomeProject --global-option="yo3" --global-option "yo4" '
