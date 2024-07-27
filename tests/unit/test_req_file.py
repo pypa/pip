@@ -79,6 +79,12 @@ def parse_reqfile(
         )
 
 
+def path_to_string(p: Path) -> str:
+    # Escape the back slashes in windows path before using it
+    # in a regex
+    return str(p).replace("\\", "\\\\")
+
+
 def test_read_file_url(tmp_path: Path, session: PipSession) -> None:
     reqs = tmp_path.joinpath("requirements.txt")
     reqs.write_text("foo")
@@ -360,8 +366,8 @@ class TestProcessLine:
         with pytest.raises(
             RecursionError,
             match=(
-                f"{req_files[0]} recursively references itself"
-                f" in {req_files[req_file_count - 1]}"
+                f"{path_to_string(req_files[0])} recursively references itself"
+                f" in {path_to_string(req_files[req_file_count - 1])}"
             ),
         ):
             list(parse_requirements(filename=str(req_files[0]), session=session))
@@ -371,9 +377,10 @@ class TestProcessLine:
         with pytest.raises(
             RecursionError,
             match=(
-                f"{req_files[req_file_count - 2]} recursively references itself "
-                f"in {req_files[req_file_count - 1]} and again in"
-                f" {req_files[req_file_count - 3]}"
+                f"{path_to_string(req_files[req_file_count - 2])} recursively"
+                " references itself in"
+                f" {path_to_string(req_files[req_file_count - 1])} and again in"
+                f" {path_to_string(req_files[req_file_count - 3])}"
             ),
         ):
             list(parse_requirements(filename=str(req_files[0]), session=session))
@@ -393,7 +400,8 @@ class TestProcessLine:
         with pytest.raises(
             RecursionError,
             match=(
-                f"{root_req_file} recursively references itself in {level_2_req_file}"
+                f"{path_to_string(root_req_file)} recursively references itself in"
+                f" {path_to_string(level_2_req_file)}"
             ),
         ):
             list(parse_requirements(filename=str(root_req_file), session=session))
