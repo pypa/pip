@@ -14,6 +14,7 @@ from typing import (
     Mapping,
     NamedTuple,
     Optional,
+    Set,
     Tuple,
     Union,
 )
@@ -38,6 +39,10 @@ logger = logging.getLogger(__name__)
 # Order matters, earlier hashes have a precedence over later hashes for what
 # we will pick to use.
 _SUPPORTED_HASHES = ("sha512", "sha384", "sha256", "sha224", "sha1", "md5")
+
+HEAD_META_PREFIX = "pypi"
+HEAD_META_ALTERNATE_LOCATIONS = "alternate-locations"
+HEAD_META_TRACKS = "tracks"
 
 
 @dataclass(frozen=True)
@@ -205,8 +210,8 @@ class Link:
         metadata_file_data: Optional[MetadataFile] = None,
         cache_link_parsing: bool = True,
         hashes: Optional[Mapping[str, str]] = None,
-        project_track_urls: Optional[List[str]] = None,
-        repo_alt_urls: Optional[List[str]] = None,
+        project_track_urls: Optional[Set[str]] = None,
+        repo_alt_urls: Optional[Set[str]] = None,
     ) -> None:
         """
         :param url: url of the resource pointed to (href of the link)
@@ -266,16 +271,16 @@ class Link:
         self.egg_fragment = self._egg_fragment()
 
         # PEP 708
-        self.project_track_urls = project_track_urls or []
-        self.repo_alt_urls = repo_alt_urls or []
+        self.project_track_urls = project_track_urls or set()
+        self.repo_alt_urls = repo_alt_urls or set()
 
     @classmethod
     def from_json(
         cls,
         file_data: Dict[str, Any],
         page_url: str,
-        project_track_urls: Optional[List[str]] = None,
-        repo_alt_urls: Optional[List[str]] = None,
+        project_track_urls: Optional[set[str]] = None,
+        repo_alt_urls: Optional[set[str]] = None,
     ) -> Optional["Link"]:
         """
         Convert an pypi json document from a simple repository page into a Link.
@@ -330,8 +335,8 @@ class Link:
         anchor_attribs: Dict[str, Optional[str]],
         page_url: str,
         base_url: str,
-        project_track_urls: Optional[List[str]] = None,
-        repo_alt_urls: Optional[List[str]] = None,
+        project_track_urls: Optional[Set[str]] = None,
+        repo_alt_urls: Optional[Set[str]] = None,
     ) -> Optional["Link"]:
         """
         Convert an anchor element's attributes in a simple repository page to a Link.
