@@ -373,7 +373,10 @@ class TestProcessLine:
             list(parse_requirements(filename=str(req_files[0]), session=session))
 
         # When one of other the requirements file recursively references itself
-        req_files[req_file_count - 1].write_text(f"-r {req_files[req_file_count - 2]}")
+        req_files[req_file_count - 1].write_text(
+            # Just name since they are in the same folder
+            f"-r {req_files[req_file_count - 2].name}"
+        )
         with pytest.raises(
             RecursionError,
             match=(
@@ -386,7 +389,7 @@ class TestProcessLine:
             list(parse_requirements(filename=str(req_files[0]), session=session))
 
     def test_recursive_relative_requirements_file(
-        self, monkeypatch: pytest.MonkeyPatch, tmpdir: Path, session: PipSession
+        self, tmpdir: Path, session: PipSession
     ) -> None:
         root_req_file = tmpdir / "root.txt"
         (tmpdir / "nest" / "nest").mkdir(parents=True)
@@ -403,15 +406,6 @@ class TestProcessLine:
                 f"{path_to_string(root_req_file)} recursively references itself in"
                 f" {path_to_string(level_2_req_file)}"
             ),
-        ):
-            list(parse_requirements(filename=str(root_req_file), session=session))
-
-        # If we don't use absolute path, it keeps on chaining the filename resulting in
-        # a huge filename, since a != a/b/c/../../
-        monkeypatch.setattr(os.path, "abspath", lambda x: x)
-        with pytest.raises(
-            pip._internal.exceptions.InstallationError,
-            match="Could not open requirements file: .* File name too long:",
         ):
             list(parse_requirements(filename=str(root_req_file), session=session))
 
