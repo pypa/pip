@@ -403,7 +403,7 @@ class TestProcessLine:
         monkeypatch.setattr(os.path, "abspath", lambda x: x)
         with pytest.raises(
             pip._internal.exceptions.InstallationError,
-            match=r"Could not open requirements file: \[Errno 36\] File name too long:",
+            match="Could not open requirements file: .* File name too long:",
         ):
             list(parse_requirements(filename=str(root_req_file), session=session))
 
