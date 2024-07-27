@@ -330,8 +330,9 @@ class RequirementsFileParser:
         self, filename: str, constraint: bool
     ) -> Generator[ParsedLine, None, None]:
         """Parse a given file, yielding parsed lines."""
-        filename = os.path.abspath(filename)
-        self._parsed_files[filename] = None  # The primary requirements file passed
+        self._parsed_files[os.path.abspath(filename)] = (
+            None  # The primary requirements file passed
+        )
         yield from self._parse_and_recurse(filename, constraint)
 
     def _parse_and_recurse(
