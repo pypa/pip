@@ -1,4 +1,0 @@
-Improve pip install performance. Files are now extracted in 1MB blocks,
-or in one block matching the file size for smaller files.
-A decompressor is no longer instantiated when extracting 0 bytes files,
-it is not necessary because there is no data to decompress.

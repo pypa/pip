@@ -9,6 +9,79 @@
 
 .. towncrier release notes start
 
+24.2 (2024-07-28)
+=================
+
+Deprecations and Removals
+-------------------------
+
+- Deprecate ``pip install --editable`` falling back to ``setup.py develop``
+  when using a setuptools version that does not support :pep:`660`
+  (setuptools v63 and older). (`#11457 <https://github.com/pypa/pip/issues/11457>`_)
+
+Features
+--------
+
+- Check unsupported packages for the current platform. (`#11054 <https://github.com/pypa/pip/issues/11054>`_)
+- Use system certificates *and* certifi certificates to verify HTTPS connections on Python 3.10+.
+  Python 3.9 and earlier only use certifi.
+
+  To revert to previous behaviour, pass the flag ``--use-deprecated=legacy-certs``. (`#11647 <https://github.com/pypa/pip/issues/11647>`_)
+- Improve discovery performance of installed packages when the ``importlib.metadata``
+  backend is used to load distribution metadata (used by default under Python 3.11+). (`#12656 <https://github.com/pypa/pip/issues/12656>`_)
+- Improve performance when the same requirement string appears many times during
+  resolution, by consistently caching the parsed requirement string. (`#12663 <https://github.com/pypa/pip/issues/12663>`_)
+- Minor performance improvement of finding applicable package candidates by not
+  repeatedly calculating their versions (`#12664 <https://github.com/pypa/pip/issues/12664>`_)
+- Disable pip's self version check when invoking a pip subprocess to install
+  PEP 517 build requirements. (`#12683 <https://github.com/pypa/pip/issues/12683>`_)
+- Improve dependency resolution performance by caching platform compatibility
+  tags during wheel cache lookup. (`#12712 <https://github.com/pypa/pip/issues/12712>`_)
+- ``wheel`` is no longer explicitly listed as a build dependency of ``pip``.
+  ``setuptools`` injects this dependency in the ``get_requires_for_build_wheel()``
+  hook and no longer needs it on newer versions. (`#12728 <https://github.com/pypa/pip/issues/12728>`_)
+- Ignore ``--require-virtualenv`` for ``pip check`` and ``pip freeze`` (`#12842 <https://github.com/pypa/pip/issues/12842>`_)
+- Improve package download and install performance.
+
+  Increase chunk sizes when downloading (256 kB, up from 10 kB) and reading files (1 MB, up from 8 kB).
+  This reduces the frequency of updates to pip's progress bar. (`#12810 <https://github.com/pypa/pip/issues/12810>`_)
+- Improve pip install performance.
+
+  Files are now extracted in 1MB blocks, or in one block matching the file size for
+  smaller files. A decompressor is no longer instantiated when extracting 0 bytes files,
+  it is not necessary because there is no data to decompress. (`#12803 <https://github.com/pypa/pip/issues/12803>`_)
+
+Bug Fixes
+---------
+
+- Set ``no_color`` to global ``rich.Console`` instance. (`#11045 <https://github.com/pypa/pip/issues/11045>`_)
+- Fix resolution to respect ``--python-version`` when checking ``Requires-Python``. (`#12216 <https://github.com/pypa/pip/issues/12216>`_)
+- Perform hash comparisons in a case-insensitive manner. (`#12680 <https://github.com/pypa/pip/issues/12680>`_)
+- Avoid ``dlopen`` failure for glibc detection in musl builds (`#12716 <https://github.com/pypa/pip/issues/12716>`_)
+- Avoid keyring logging crashes when pip is run in verbose mode. (`#12751 <https://github.com/pypa/pip/issues/12751>`_)
+- Fix finding hardlink targets in tar files with an ignored top-level directory. (`#12781 <https://github.com/pypa/pip/issues/12781>`_)
+- Improve pip install performance by only creating required parent
+  directories once, instead of before extracting every file in the wheel. (`#12782 <https://github.com/pypa/pip/issues/12782>`_)
+- Improve pip install performance by calculating installed packages printout
+  in linear time instead of quadratic time. (`#12791 <https://github.com/pypa/pip/issues/12791>`_)
+
+Vendored Libraries
+------------------
+
+- Remove vendored tenacity.
+- Update the preload list for the ``DEBUNDLED`` case, to replace ``pep517`` that has been renamed to ``pyproject_hooks``.
+- Use tomllib from the stdlib if available, rather than tomli
+- Upgrade certifi to 2024.7.4
+- Upgrade platformdirs to 4.2.2
+- Upgrade pygments to 2.18.0
+- Upgrade setuptools to 70.3.0
+- Upgrade typing_extensions to 4.12.2
+
+Improved Documentation
+----------------------
+
+- Correct ``—-ignore-conflicts`` (including an em dash) to ``--ignore-conflicts``. (`#12851 <https://github.com/pypa/pip/issues/12851>`_)
+
 24.1.2 (2024-07-07)
 ===================
 
