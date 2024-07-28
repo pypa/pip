@@ -1,1 +1,0 @@
-Ignore ``--require-virtualenv`` for ``pip check`` and ``pip freeze``
