@@ -371,7 +371,7 @@ class RequirementsFileParser:
                         if initial_file is not None
                         else ""
                     )
-                    raise RecursionError(
+                    raise RequirementsFileParseError(
                         f"{req_path} recursively references itself in {filename} {tail}"
                     )
                 # Keeping a track where was each file first included in

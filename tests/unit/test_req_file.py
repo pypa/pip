@@ -9,7 +9,6 @@ from unittest import mock
 
 import pytest
 
-import pip._internal.exceptions
 import pip._internal.req.req_file  # this will be monkeypatched
 from pip._internal.exceptions import InstallationError, RequirementsFileParseError
 from pip._internal.index.package_finder import PackageFinder
@@ -364,7 +363,7 @@ class TestProcessLine:
 
         # When the passed requirements file recursively references itself
         with pytest.raises(
-            RecursionError,
+            RequirementsFileParseError,
             match=(
                 f"{path_to_string(req_files[0])} recursively references itself"
                 f" in {path_to_string(req_files[req_file_count - 1])}"
@@ -378,7 +377,7 @@ class TestProcessLine:
             f"-r {req_files[req_file_count - 2].name}"
         )
         with pytest.raises(
-            RecursionError,
+            RequirementsFileParseError,
             match=(
                 f"{path_to_string(req_files[req_file_count - 2])} recursively"
                 " references itself in"
@@ -401,7 +400,7 @@ class TestProcessLine:
         level_2_req_file.write_text("-r ../../root.txt")
 
         with pytest.raises(
-            RecursionError,
+            RequirementsFileParseError,
             match=(
                 f"{path_to_string(root_req_file)} recursively references itself in"
                 f" {path_to_string(level_2_req_file)}"
