@@ -1,5 +1,6 @@
 import hashlib
 import io
+import json
 import os
 import re
 import ssl
@@ -9,7 +10,7 @@ import tarfile
 import textwrap
 from os.path import curdir, join, pardir
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import pytest
 
@@ -2743,3 +2744,154 @@ def test_install_sdist_links(script: PipTestEnvironment, common_prefix: str) -> 
     # Run the internal test
     result = script.run("python", "-m", "linktest")
     assert result.stdout.strip() == "8 files checked"
+
+
+def _check_provenance_url(provenance_url: Dict[str, Any]) -> None:
+    assert "archive_info" in provenance_url
+    assert "url" in provenance_url
+    assert (
+        len(provenance_url) == 2
+    ), "provenance_url.json should hold only archive_info and url keys"
+
+    assert "hashes" in provenance_url["archive_info"]
+    assert len(provenance_url["archive_info"]["hashes"]) > 0
+
+
+@pytest.mark.parametrize(
+    "pkg_name, pkg_version, distribution",
+    [
+        pytest.param(
+            "simplewheel",
+            "1.0",
+            "simplewheel-1.0-py2.py3-none-any.whl",
+            id="wheel",
+        ),
+        pytest.param(
+            "simple",
+            "1.0",
+            "simple-1.0.tar.gz",
+            id="sdist",
+        ),
+    ],
+)
+def test_install_provenance_url(
+    script: PipTestEnvironment,
+    data: TestData,
+    pkg_name: str,
+    pkg_version: str,
+    distribution: str,
+) -> None:
+    """Test installing a distribution from a simple API produces provenance_url.json."""
+    server = make_mock_server()
+
+    distribution_path = f"/files/{distribution}"
+    server.mock.side_effect = [
+        package_page(
+            {
+                distribution: distribution_path,
+            }
+        ),
+        file_response(data.packages.joinpath(distribution)),
+    ]
+
+    index_url = f"http://{server.host}:{server.port}"
+
+    pip_args = [
+        "install",
+        "-i",
+        index_url,
+        f"{pkg_name}=={pkg_version}",
+    ]
+    with server_running(server):
+        result = script.pip(*pip_args)
+
+        result.assert_installed(
+            pkg_name=pkg_name, without_egg_link=True, editable=False
+        )
+
+        provenance_url_path = (
+            script.site_packages
+            / f"{pkg_name}-{pkg_version}.dist-info"
+            / "provenance_url.json"
+        )
+
+        assert result.files_created[
+            provenance_url_path
+        ], "provenance_url.json was not created"
+
+        provenance_url_full_path = result.files_created[provenance_url_path].full
+
+        with open(provenance_url_full_path) as f:
+            provenance_url_content = json.load(f)
+
+        _check_provenance_url(provenance_url_content)
+        assert provenance_url_content["url"] == f"{index_url}{distribution_path}"
+
+
+def test_install_provenance_url_cached(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """Test installing a cached distribution produced provenance_url.json."""
+    pkg_name = "simple"
+    pkg_version = "1.0"
+    distribution = "simple-1.0.tar.gz"
+
+    server = make_mock_server()
+
+    distribution_path = f"/files/{distribution}"
+    server.mock.side_effect = [
+        package_page(
+            {
+                distribution: distribution_path,
+            }
+        ),
+        file_response(data.packages.joinpath(distribution)),
+    ] * 2
+
+    index_url = f"http://{server.host}:{server.port}"
+
+    pip_args = [
+        "install",
+        "-i",
+        index_url,
+        f"{pkg_name}=={pkg_version}",
+    ]
+
+    with server_running(server):
+        result = script.pip(*pip_args)
+
+        result.assert_installed(
+            pkg_name=pkg_name, without_egg_link=True, editable=False
+        )
+
+        provenance_url_path = (
+            script.site_packages
+            / f"{pkg_name}-{pkg_version}.dist-info"
+            / "provenance_url.json"
+        )
+
+        assert result.files_created[
+            provenance_url_path
+        ], "provenance_url.json was not created"
+
+        provenance_url_full_path = result.files_created[provenance_url_path].full
+
+        with open(provenance_url_full_path) as f:
+            provenance_url_content = json.load(f)
+
+        _check_provenance_url(provenance_url_content)
+        assert provenance_url_content["url"] == f"{index_url}{distribution_path}"
+
+        os.unlink(provenance_url_full_path)
+
+        pip_args.append("--ignore-installed")
+        result = script.pip(*pip_args)
+
+        assert f"Using cached {pkg_name}" in result.stdout
+
+        assert os.path.exists(provenance_url_full_path)
+        with open(provenance_url_full_path) as f:
+            new_provenance_url_content = json.load(f)
+
+        _check_provenance_url(new_provenance_url_content)
+        assert new_provenance_url_content == provenance_url_content
