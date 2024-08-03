@@ -800,99 +800,103 @@ class LegacyDistutilsInstall(DiagnosticPipError):
         )
 
 
-class InvalidInstalledPackage(DiagnosticPipError):
-    reference = "invalid-installed-package"
+class InvalidMultipleRemoteRepositories(DiagnosticPipError):
+    """Common error for issues with multiple remote repositories."""
+
+    reference = "invalid-multiple-remote-repositories"
+
+
+class InvalidTracksUrl(InvalidMultipleRemoteRepositories):
+    """There was an issue with a Tracks metadata url.
+
+    Tracks urls must point to the actual URLs for that project,
+    point to the repositories that own the namespaces, and
+    point to a project with the exact same name (after normalization).
+    """
+
+    reference = "invalid-tracks-url"
+
+
+class InvalidAlternativeLocationsUrl(InvalidMultipleRemoteRepositories):
+    """The list of Alternate Locations for each repository do not match.
+
+    In order for this metadata to be trusted, there MUST be agreement between
+    all locations where that project is found as to what the alternate locations are.
+    """
+
+    reference = "invalid-alternative-locations"
 
     def __init__(
         self,
         *,
-        dist: BaseDistribution,
-        invalid_exc: InvalidRequirement | InvalidVersion,
+        package: str,
+        remote_repositories: set[str],
+        invalid_locations: set[str],
     ) -> None:
-        installed_location = dist.installed_location
-
-        if isinstance(invalid_exc, InvalidRequirement):
-            invalid_type = "requirement"
-        else:
-            invalid_type = "version"
-
         super().__init__(
+            kind="error",
             message=Text(
-                f"Cannot process installed package {dist} "
-                + (f"in {installed_location!r} " if installed_location else "")
-                + f"because it has an invalid {invalid_type}:\n{invalid_exc.args[0]}"
+                f"One or more Alternate Locations for {escape(package)} "
+                "were different among the remote repositories. "
+                "The remote repositories are "
+                f"{'; '.join(sorted(escape(r) for r in remote_repositories))}."
+                "The alternate locations not not agreed by all remote "
+                "repository are "
+                f"{'; '.join(sorted(escape(r) for r in invalid_locations))}."
             ),
-            context=(
-                "Starting with pip 24.1, packages with invalid "
-                f"{invalid_type}s can not be processed."
+            context=Text(
+                "To be able to trust the remote repository Alternate Locations, "
+                "all remote repositories must agree on the list of Locations."
             ),
-            hint_stmt="To proceed this package must be uninstalled.",
-        )
-
-
-class IncompleteDownloadError(DiagnosticPipError):
-    """Raised when the downloader receives fewer bytes than advertised
-    in the Content-Length header."""
-
-    reference = "incomplete-download"
-
-    def __init__(self, download: _FileDownload) -> None:
-        # Dodge circular import.
-        from pip._internal.utils.misc import format_size
-
-        assert download.size is not None
-        download_status = (
-            f"{format_size(download.bytes_received)}/{format_size(download.size)}"
-        )
-        if download.reattempts:
-            retry_status = f"after {download.reattempts + 1} attempts "
-            hint = "Use --resume-retries to configure resume attempt limit."
-        else:
-            # Download retrying is not enabled.
-            retry_status = ""
-            hint = "Consider using --resume-retries to enable download resumption."
-        message = Text(
-            f"Download failed {retry_status}because not enough bytes "
-            f"were received ({download_status})"
-        )
-
-        super().__init__(
-            message=message,
-            context=f"URL: {download.link.redacted_url}",
-            hint_stmt=hint,
-            note_stmt="This is an issue with network connectivity, not pip.",
-        )
-
-
-class ResolutionTooDeepError(DiagnosticPipError):
-    """Raised when the dependency resolver exceeds the maximum recursion depth."""
-
-    reference = "resolution-too-deep"
-
-    def __init__(self) -> None:
-        super().__init__(
-            message="Dependency resolution exceeded maximum depth",
-            context=(
-                "Pip cannot resolve the current dependencies as the dependency graph "
-                "is too complex for pip to solve efficiently."
-            ),
-            hint_stmt=(
-                "Try adding lower bounds to constrain your dependencies, "
-                "for example: 'package>=2.0.0' instead of just 'package'. "
-            ),
-            link="https://pip.pypa.io/en/stable/topics/dependency-resolution/#handling-resolution-too-deep-errors",
-        )
-
-
-class InstallWheelBuildError(DiagnosticPipError):
-    reference = "failed-wheel-build-for-install"
-
-    def __init__(self, failed: list[InstallRequirement]) -> None:
-        super().__init__(
-            message=(
-                "Failed to build installable wheels for some "
-                "pyproject.toml based projects"
-            ),
-            context=", ".join(r.name for r in failed),  # type: ignore
             hint_stmt=None,
+            note_stmt=Text(
+                "The way to resolve this error is to contact the owners of the package "
+                "at each remote repository, and ask that the list of "
+                "Alternate Locations at each is set to the same list. "
+                "See PEP 708 for the specification. "
+                "You can override this check, which will disable the security "
+                "protection it provides from dependency confusion attacks, "
+                "by passing --insecure-multiple-remote-repositories."
+            ),
+        )
+
+
+class UnsafeMultipleRemoteRepositories(InvalidMultipleRemoteRepositories):
+    """More than one remote repository was provided for a package,
+    with no indication that the remote repositories can be safely merged.
+
+    The repositories, packages, or user did not indicate that
+    it is safe to merge remote repositories.
+
+    Multiple remote repositories are not merged by default
+    to reduce the risk of dependency confusion attacks."""
+
+    reference = "unsafe-multiple-remote-repositories"
+
+    def __init__(self, *, package: str, remote_repositories: set[str]) -> None:
+        super().__init__(
+            kind="error",
+            message=Text(
+                f"More than one remote repository was found for {escape(package)}, "
+                "with no indication that the remote repositories can be safely merged. "
+                f"The repositories are {'; '.join(sorted(escape(r) for r in remote_repositories))}."
+            ),
+            context=Text(
+                "Multiple remote repositories are not merged by default "
+                "to reduce the risk of dependency confusion attacks."
+            ),
+            hint_stmt=Text(
+                "Remote repositories can be specified or discovered using "
+                "--index-url, --extra-index-url, and --find-links. "
+                "Please check the pip command to see if these are in use."
+            ),
+            note_stmt=Text(
+                "The way to resolve this error is to contact the remote repositories "
+                "and package owners, and ask if it makes sense to configure them to "
+                "merge namespaces. "
+                "See PEP 708 for the specification. "
+                "You can override this check, which will disable the security "
+                "protection it provides from dependency confusion attacks, "
+                "by passing --insecure-multiple-remote-repositories."
+            ),
         )

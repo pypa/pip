@@ -905,3 +905,7 @@ def test_extract_version_from_fragment(
 ) -> None:
     version = _extract_version_from_fragment(fragment, canonical_name)
     assert version == expected
+
+
+class TestCheckMultipleRemoteRepositories:
+    pass
