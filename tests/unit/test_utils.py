@@ -248,10 +248,10 @@ def test_rmtree_errorhandler_reraises_error(tmpdir: Path) -> None:
     by the given unreadable directory.
     """
     # Create directory without read permission
-    subdir_path = tmpdir / "subdir"
-    subdir_path.mkdir()
-    path = str(subdir_path)
-    os.chmod(path, stat.S_IWRITE)
+    path = tmpdir / "subdir"
+    path.mkdir()
+    old_mode = path.stat().st_mode
+    path.chmod(stat.S_IWRITE)
 
     mock_func = Mock()
 
@@ -267,6 +267,9 @@ def test_rmtree_errorhandler_reraises_error(tmpdir: Path) -> None:
             rmtree_errorhandler(
                 mock_func, path, sys.exc_info()  # type: ignore[arg-type]
             )
+    finally:
+        # Restore permissions to let pytest to clean up temp dirs
+        path.chmod(old_mode)
 
     mock_func.assert_not_called()
 

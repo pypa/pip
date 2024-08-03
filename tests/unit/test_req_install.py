@@ -60,7 +60,12 @@ class TestInstallRequirementFrom:
         with pytest.raises(InstallationError) as excinfo:
             install_req_from_req_string("http:/this/is/invalid")
 
-        assert str(excinfo.value) == ("Invalid requirement: 'http:/this/is/invalid'")
+        assert str(excinfo.value) == (
+            "Invalid requirement: 'http:/this/is/invalid': "
+            "Expected end or semicolon (after name and no valid version specifier)\n"
+            "    http:/this/is/invalid\n"
+            "        ^"
+        )
 
     def test_install_req_from_string_without_comes_from(self) -> None:
         """

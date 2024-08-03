@@ -5,7 +5,7 @@ from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.x509.oid import NameOID
+from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
 
 
 def make_tls_cert(hostname: str) -> Tuple[x509.Certificate, rsa.RSAPrivateKey]:
@@ -26,8 +26,21 @@ def make_tls_cert(hostname: str) -> Tuple[x509.Certificate, rsa.RSAPrivateKey]:
         .not_valid_before(datetime.now(timezone.utc))
         .not_valid_after(datetime.now(timezone.utc) + timedelta(days=10))
         .add_extension(
+            x509.BasicConstraints(ca=True, path_length=9),
+            critical=True,
+        )
+        .add_extension(
             x509.SubjectAlternativeName([x509.DNSName(hostname)]),
             critical=False,
+        )
+        .add_extension(
+            x509.ExtendedKeyUsage(
+                [
+                    ExtendedKeyUsageOID.CLIENT_AUTH,
+                    ExtendedKeyUsageOID.SERVER_AUTH,
+                ]
+            ),
+            critical=True,
         )
         .sign(key, hashes.SHA256(), default_backend())
     )

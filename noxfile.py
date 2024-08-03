@@ -88,8 +88,12 @@ def test(session: nox.Session) -> None:
     if os.path.exists(sdist_dir):
         shutil.rmtree(sdist_dir, ignore_errors=True)
 
+    run_with_protected_pip(session, "install", "build")
+    # build uses the pip present in the outer environment (aka the nox environment)
+    # as an optimization. This will crash if the last test run installed a broken
+    # pip, so uninstall pip to force build to provision a known good version of pip.
+    run_with_protected_pip(session, "uninstall", "pip", "-y")
     # fmt: off
-    session.install("build")
     session.run(
         "python", "-I", "-m", "build", "--sdist", "--outdir", sdist_dir,
         silent=True,
@@ -190,13 +194,13 @@ def vendoring(session: nox.Session) -> None:
         "python", "-c", "import sys; sys.exit(1 if sys.version_info < (3, 10) else 0)"
     )
 
-    session.install("vendoring~=1.2.0")
-
     parser = argparse.ArgumentParser(prog="nox -s vendoring")
     parser.add_argument("--upgrade-all", action="store_true")
     parser.add_argument("--upgrade", action="append", default=[])
     parser.add_argument("--skip", action="append", default=[])
     args = parser.parse_args(session.posargs)
+
+    session.install("vendoring~=1.2.0")
 
     if not (args.upgrade or args.upgrade_all):
         session.run("vendoring", "sync", "-v")
@@ -294,6 +298,11 @@ def prepare_release(session: nox.Session) -> None:
 
     session.log("# Generating NEWS")
     release.generate_news(session, version)
+    if sys.stdin.isatty():
+        input(
+            "Please review the NEWS file, make necessary edits, and stage them.\n"
+            "Press Enter to continue..."
+        )
 
     session.log(f"# Bumping for release {version}")
     release.update_version_file(version, VERSION_FILE)
