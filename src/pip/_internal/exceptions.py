@@ -775,3 +775,105 @@ class LegacyDistutilsInstall(DiagnosticPipError):
             ),
             hint_stmt=None,
         )
+
+
+class InvalidMultipleRemoteRepositories(DiagnosticPipError):
+    """Common error for issues with multiple remote repositories."""
+
+    reference = "invalid-multiple-remote-repositories"
+
+
+class InvalidTracksUrl(InvalidMultipleRemoteRepositories):
+    """There was an issue with a Tracks metadata url.
+
+    Tracks urls must point to the actual URLs for that project,
+    point to the repositories that own the namespaces, and
+    point to a project with the exact same name (after normalization).
+    """
+
+    reference = "invalid-tracks-url"
+
+
+class InvalidAlternativeLocationsUrl(InvalidMultipleRemoteRepositories):
+    """The list of Alternate Locations for each repository do not match.
+
+    In order for this metadata to be trusted, there MUST be agreement between
+    all locations where that project is found as to what the alternate locations are.
+    """
+
+    reference = "invalid-alternative-locations"
+
+    def __init__(
+        self,
+        *,
+        package: str,
+        remote_repositories: set[str],
+        invalid_locations: set[str],
+    ) -> None:
+        super().__init__(
+            kind="error",
+            message=Text(
+                f"One or more Alternate Locations for {escape(package)} "
+                "were different among the remote repositories. "
+                "The remote repositories are "
+                f"{'; '.join(sorted(escape(r) for r in remote_repositories))}."
+                "The alternate locations not not agreed by all remote "
+                "repository are "
+                f"{'; '.join(sorted(escape(r) for r in invalid_locations))}."
+            ),
+            context=Text(
+                "To be able to trust the remote repository Alternate Locations, "
+                "all remote repositories must agree on the list of Locations."
+            ),
+            hint_stmt=None,
+            note_stmt=Text(
+                "The way to resolve this error is to contact the owners of the package "
+                "at each remote repository, and ask that the list of "
+                "Alternate Locations at each is set to the same list. "
+                "See PEP 708 for the specification. "
+                "You can override this check, which will disable the security "
+                "protection it provides from dependency confusion attacks, "
+                "by passing --insecure-multiple-remote-repositories."
+            ),
+        )
+
+
+class UnsafeMultipleRemoteRepositories(InvalidMultipleRemoteRepositories):
+    """More than one remote repository was provided for a package,
+    with no indication that the remote repositories can be safely merged.
+
+    The repositories, packages, or user did not indicate that
+    it is safe to merge remote repositories.
+
+    Multiple remote repositories are not merged by default
+    to reduce the risk of dependency confusion attacks."""
+
+    reference = "unsafe-multiple-remote-repositories"
+
+    def __init__(self, *, package: str, remote_repositories: set[str]) -> None:
+        super().__init__(
+            kind="error",
+            message=Text(
+                f"More than one remote repository was found for {escape(package)}, "
+                "with no indication that the remote repositories can be safely merged. "
+                f"The repositories are {'; '.join(sorted(escape(r) for r in remote_repositories))}."
+            ),
+            context=Text(
+                "Multiple remote repositories are not merged by default "
+                "to reduce the risk of dependency confusion attacks."
+            ),
+            hint_stmt=Text(
+                "Remote repositories can be specified or discovered using "
+                "--index-url, --extra-index-url, and --find-links. "
+                "Please check the pip command to see if these are in use."
+            ),
+            note_stmt=Text(
+                "The way to resolve this error is to contact the remote repositories "
+                "and package owners, and ask if it makes sense to configure them to "
+                "merge namespaces. "
+                "See PEP 708 for the specification. "
+                "You can override this check, which will disable the security "
+                "protection it provides from dependency confusion attacks, "
+                "by passing --insecure-multiple-remote-repositories."
+            ),
+        )

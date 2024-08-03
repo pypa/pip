@@ -599,7 +599,7 @@ def test_parse_links_json() -> None:
         ),
     ]
 
-    def _convert_links(link_item):
+    def _convert_links(link_item: Link) -> dict[str, Optional[str]]:
         return {key: getattr(link_item, key, None) for key in link_item.__slots__}
 
     for index, link in enumerate(links):
@@ -763,8 +763,8 @@ def test_parse_links_caches_same_page_by_url() -> None:
 )
 def test_parse_links__alternate_locations_and_tracks(
     index_name: str,
-    expected_project_track_urls: list[str],
-    expected_repo_alt_urls: list[str],
+    expected_project_track_urls: set[str],
+    expected_repo_alt_urls: set[str],
     data: TestData,
 ) -> None:
     package_name = "simple"

@@ -35,10 +35,10 @@ from pip._vendor.requests.exceptions import RetryError, SSLError
 
 from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.models.link import (
-    Link,
-    HEAD_META_PREFIX,
     HEAD_META_ALTERNATE_LOCATIONS,
+    HEAD_META_PREFIX,
     HEAD_META_TRACKS,
+    Link,
 )
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.network.session import PipSession
@@ -337,11 +337,11 @@ class HTMLLinkParser(HTMLParser):
         return None
 
     @functools.cached_property
-    def _meta_key_tracks(self):
+    def _meta_key_tracks(self) -> str:
         return f"{HEAD_META_PREFIX}:{HEAD_META_TRACKS}"
 
     @functools.cached_property
-    def _meta_key_alternate_locations(self):
+    def _meta_key_alternate_locations(self) -> str:
         return f"{HEAD_META_PREFIX}:{HEAD_META_ALTERNATE_LOCATIONS}"
 
 
