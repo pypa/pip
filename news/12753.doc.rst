@@ -1,1 +1,1 @@
-Add examples for install by git+https/ssh.
+Add examples for installing package by git+https/ssh with full commit hash.

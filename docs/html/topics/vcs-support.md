@@ -43,14 +43,12 @@ MyProject @ git+https://git.example.com/MyProject.git@refs/pull/123/head
 
 When passing a commit hash, specifying a full hash is preferable to a partial
 hash because a full hash allows pip to operate more efficiently (e.g. by
-making fewer network calls).
+making fewer network calls). Examples:
 
-````{admonition} Example
 ```{pip-cli}
-$ pip install "virtualenv @ git+https://github.com/pypa/virtualenv.git@main"
-$ pip install "setuptools @ git+ssh://git@github.com/pypa/setuptools.git@v70.3.0"
+$ pip install "virtualenv @ git+https://github.com/pypa/virtualenv.git@b6c052bdac73138251dc46abda6154f3a0bf8a14"
+$ pip install "setuptools @ git+ssh://git@github.com/pypa/setuptools.git@780a782ccec6724fcec3f36de120fac07cb1fbba"
 ```
-````
 
 
 ### Mercurial
