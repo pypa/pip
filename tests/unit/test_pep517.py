@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from textwrap import dedent
+from typing import Tuple
 
 import pytest
 
@@ -73,12 +74,12 @@ def test_disabling_pep517_invalid(shared_data: TestData, source: str, msg: str) 
 @pytest.mark.parametrize(
     "spec", [("./foo",), ("git+https://example.com/pkg@dev#egg=myproj",)]
 )
-def test_pep517_parsing_checks_requirements(tmpdir: Path, spec: str) -> None:
+def test_pep517_parsing_checks_requirements(tmpdir: Path, spec: Tuple[str]) -> None:
     tmpdir.joinpath("pyproject.toml").write_text(
         dedent(
             f"""
             [build-system]
-            requires = [{spec!r}]
+            requires = [{spec[0]!r}]
             build-backend = "foo"
             """
         )
