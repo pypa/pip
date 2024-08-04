@@ -164,7 +164,8 @@ def test_conflicting_pep517_backend_requirements(
         "dependencies: simplewheel==1.0 is incompatible with "
         "simplewheel==2.0."
     )
-    assert result.returncode != 0 and msg in result.stderr, str(result)
+    assert result.returncode != 0
+    assert msg in result.stderr, str(result)
 
 
 def test_no_check_build_deps(
@@ -209,7 +210,8 @@ def test_validate_missing_pep517_backend_requirements(
         f"Some build dependencies for {project_dir.as_uri()} are missing: "
         "'simplewheel==1.0', 'test_backend'."
     )
-    assert result.returncode != 0 and msg in result.stderr, str(result)
+    assert result.returncode != 0
+    assert msg in result.stderr, str(result)
 
 
 def test_validate_conflicting_pep517_backend_requirements(
@@ -236,7 +238,8 @@ def test_validate_conflicting_pep517_backend_requirements(
         "dependencies: simplewheel==2.0 is incompatible with "
         "simplewheel==1.0."
     )
-    assert result.returncode != 0 and msg in result.stderr, str(result)
+    assert result.returncode != 0
+    assert msg in result.stderr, str(result)
 
 
 def test_pep517_backend_requirements_satisfied_by_prerelease(

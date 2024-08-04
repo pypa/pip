@@ -880,11 +880,9 @@ def test_collect_sources__file_expand_dir(data: TestData) -> None:
         project_name="",
         candidates_from_page=None,  # type: ignore[arg-type]
     )
-    assert (
-        not sources.index_urls
-        and len(sources.find_links) == 1
-        and isinstance(sources.find_links[0], _FlatDirectorySource)
-    ), (
+    assert not sources.index_urls
+    assert len(sources.find_links) == 1
+    assert isinstance(sources.find_links[0], _FlatDirectorySource), (
         "Directory source should have been found "
         f"at find-links url: {data.find_links}"
     )
@@ -909,11 +907,9 @@ def test_collect_sources__file_not_find_link(data: TestData) -> None:
         # Shouldn't be used.
         candidates_from_page=None,  # type: ignore[arg-type]
     )
-    assert (
-        not sources.find_links
-        and len(sources.index_urls) == 1
-        and isinstance(sources.index_urls[0], _IndexDirectorySource)
-    ), "Directory specified as index should be treated as a page"
+    assert not sources.find_links
+    assert len(sources.index_urls) == 1
+    assert isinstance(sources.index_urls[0], _IndexDirectorySource), "Directory specified as index should be treated as a page"
 
 
 def test_collect_sources__non_existing_path() -> None:
@@ -934,9 +930,8 @@ def test_collect_sources__non_existing_path() -> None:
         project_name=None,  # type: ignore[arg-type]
         candidates_from_page=None,  # type: ignore[arg-type]
     )
-    assert not sources.index_urls and sources.find_links == [
-        None
-    ], "Nothing should have been found"
+    assert not sources.index_urls
+    assert sources.find_links == [None], "Nothing should have been found"
 
 
 def check_links_include(links: List[Link], names: List[str]) -> None:
