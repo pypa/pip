@@ -216,7 +216,7 @@ def tmp_path(request: pytest.FixtureRequest, tmp_path: Path) -> Iterator[Path]:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
 
-@pytest.fixture()
+@pytest.fixture
 def tmpdir(tmp_path: Path) -> Path:
     """Override Pytest's ``tmpdir`` with our pathlib implementation.
 

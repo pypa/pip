@@ -35,7 +35,7 @@ def assert_editable(script: PipTestEnvironment, *args: str) -> None:
     ), f"{args!r} not all found in {script.site_packages_path!r}"
 
 
-@pytest.fixture()
+@pytest.fixture
 def make_fake_wheel(script: PipTestEnvironment) -> MakeFakeWheel:
     def _make_fake_wheel(name: str, version: str, wheel_tag: str) -> pathlib.Path:
         wheel_house = script.scratch_path.joinpath("wheelhouse")

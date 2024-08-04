@@ -32,7 +32,7 @@ class ArgRecordingSdistMaker(Protocol):
     def __call__(self, name: str, **kwargs: Any) -> ArgRecordingSdist: ...
 
 
-@pytest.fixture()
+@pytest.fixture
 def arg_recording_sdist_maker(
     script: PipTestEnvironment,
 ) -> ArgRecordingSdistMaker:

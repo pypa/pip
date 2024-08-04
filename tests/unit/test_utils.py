@@ -860,7 +860,7 @@ def test_hide_url() -> None:
     assert hidden_url.secret == "https://user:password@example.com"
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_deprecation_check_version() -> Iterator[None]:
     # We do this, so that the deprecation tests are easier to write.
     import pip._internal.utils.deprecation as d
