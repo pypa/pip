@@ -1208,4 +1208,5 @@ def test_metadata_file_info_parsing_html(
     page_url = "dummy_for_comes_from"
     base_url = "https://index.url/simple"
     link = Link.from_element(attribs, page_url, base_url)
-    assert link is not None and link.metadata_file_data == expected
+    assert link is not None
+    assert link.metadata_file_data == expected

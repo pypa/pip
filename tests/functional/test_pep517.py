@@ -44,7 +44,8 @@ def test_backend(tmpdir: Path, data: TestData) -> None:
     finder = make_test_finder(find_links=[data.backends])
     env.install_requirements(finder, ["dummy_backend"], "normal", kind="Installing")
     conflicting, missing = env.check_requirements(["dummy_backend"])
-    assert not conflicting and not missing
+    assert not conflicting
+    assert not missing
     assert hasattr(req.pep517_backend, "build_wheel")
     with env:
         assert req.pep517_backend is not None
