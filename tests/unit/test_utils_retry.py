@@ -48,7 +48,7 @@ def test_retry_last_error_is_reraised() -> None:
         assert isinstance(e, RuntimeError)
         assert e is errors[-1]
     else:
-        assert False, "unexpected return"
+        assert pytest.fail("unexpected return")
 
     assert function.call_count > 1, "expected at least one retry"
 

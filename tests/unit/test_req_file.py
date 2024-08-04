@@ -519,7 +519,7 @@ class TestProcessLine:
                 return None, "-r reqs.txt"
             elif filename == "http://me.com/me/reqs.txt":
                 return None, req_name
-            assert False, f"Unexpected file requested {filename}"
+            pytest.fail(f"Unexpected file requested {filename}")
 
         monkeypatch.setattr(
             pip._internal.req.req_file, "get_file_content", get_file_content
@@ -588,7 +588,7 @@ class TestProcessLine:
                 return None, f"-r {nested_req_file}"
             elif filename == nested_req_file:
                 return None, req_name
-            assert False, f"Unexpected file requested {filename}"
+            pytest.fail(f"Unexpected file requested {filename}")
 
         monkeypatch.setattr(
             pip._internal.req.req_file, "get_file_content", get_file_content

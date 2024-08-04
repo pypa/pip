@@ -291,7 +291,7 @@ def test_keyring_set_password(
         # when _prompt_for_password indicates not to save, we should
         # never call this function
         def should_save_password_to_keyring(*a: Any) -> bool:
-            assert False, "_should_save_password_to_keyring should not be called"
+            pytest.fail("_should_save_password_to_keyring should not be called")
 
     monkeypatch.setattr(
         auth, "_should_save_password_to_keyring", should_save_password_to_keyring
@@ -333,7 +333,7 @@ class KeyringModuleV2:
             self.password = password
 
     def get_password(self, system: str, username: str) -> None:
-        assert False, "get_password should not ever be called"
+        pytest.fail("get_password should not ever be called")
 
     def get_credential(self, system: str, username: str) -> Optional[Credential]:
         if system == "http://example.com/path2/":
@@ -507,7 +507,7 @@ def test_keyring_cli_set_password(
         # when _prompt_for_password indicates not to save, we should
         # never call this function
         def should_save_password_to_keyring(*a: Any) -> bool:
-            assert False, "_should_save_password_to_keyring should not be called"
+            pytest.fail("_should_save_password_to_keyring should not be called")
 
     monkeypatch.setattr(
         auth, "_should_save_password_to_keyring", should_save_password_to_keyring
