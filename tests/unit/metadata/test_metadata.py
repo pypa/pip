@@ -133,11 +133,11 @@ def test_dist_found_in_zip(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize(
     "path",
-    (
+    [
         "/path/to/foo.egg-info".replace("/", os.path.sep),
         # Tests issue fixed by https://github.com/pypa/pip/pull/2530
         "/path/to/foo.egg-info/".replace("/", os.path.sep),
-    ),
+    ],
 )
 def test_trailing_slash_directory_metadata(path: str) -> None:
     dist = get_directory_distribution(path)

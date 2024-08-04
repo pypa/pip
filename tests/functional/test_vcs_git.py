@@ -319,11 +319,11 @@ def _initialize_clonetest_server(
 
 @pytest.mark.parametrize(
     "version_out, expected_message",
-    (
+    [
         ("git version -2.25.1", "Can't parse git version: git version -2.25.1"),
         ("git version 2.a.1", "Can't parse git version: git version 2.a.1"),
         ("git ver. 2.25.1", "Can't parse git version: git ver. 2.25.1"),
-    ),
+    ],
 )
 @patch("pip._internal.vcs.versioncontrol.VersionControl.run_command")
 def test_git_parse_fail_warning(

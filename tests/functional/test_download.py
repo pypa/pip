@@ -1450,11 +1450,11 @@ def test_produces_error_for_mismatched_package_name_in_metadata(
 
 @pytest.mark.parametrize(
     "requirement",
-    (
+    [
         "requires-simple-extra==0.1",
         "REQUIRES_SIMPLE-EXTRA==0.1",
         "REQUIRES....simple-_-EXTRA==0.1",
-    ),
+    ],
 )
 def test_canonicalizes_package_name_before_verifying_metadata(
     download_local_html_index: Callable[..., Tuple[TestPipResult, Path]],

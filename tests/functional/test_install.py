@@ -42,8 +42,8 @@ from tests.lib.server import (
 )
 
 
-@pytest.mark.parametrize("command", ("install", "wheel"))
-@pytest.mark.parametrize("variant", ("missing_setuptools", "bad_setuptools"))
+@pytest.mark.parametrize("command", ["install", "wheel"])
+@pytest.mark.parametrize("variant", ["missing_setuptools", "bad_setuptools"])
 def test_pep518_uses_build_env(
     script: PipTestEnvironment,
     data: TestData,
@@ -243,10 +243,10 @@ def test_pep518_with_namespace_package(
     )
 
 
-@pytest.mark.parametrize("command", ("install", "wheel"))
+@pytest.mark.parametrize("command", ["install", "wheel"])
 @pytest.mark.parametrize(
     "package",
-    ("pep518_forkbomb", "pep518_twin_forkbombs_first", "pep518_twin_forkbombs_second"),
+    ["pep518_forkbomb", "pep518_twin_forkbombs_first", "pep518_twin_forkbombs_second"],
 )
 def test_pep518_forkbombs(
     script: PipTestEnvironment,
@@ -1253,7 +1253,7 @@ def test_install_nonlocal_compatible_wheel_path(
     assert result.returncode == ERROR
 
 
-@pytest.mark.parametrize("opt", ("--target", "--prefix"))
+@pytest.mark.parametrize("opt", ["--target", "--prefix"])
 def test_install_with_target_or_prefix_and_scripts_no_warning(
     opt: str, script: PipTestEnvironment
 ) -> None:
@@ -2027,7 +2027,7 @@ def test_install_pep508_with_url_in_install_requires(
 
 
 @pytest.mark.network
-@pytest.mark.parametrize("index", (PyPI.simple_url, TestPyPI.simple_url))
+@pytest.mark.parametrize("index", [PyPI.simple_url, TestPyPI.simple_url])
 def test_install_from_test_pypi_with_ext_url_dep_is_blocked(
     script: PipTestEnvironment, index: str
 ) -> None:
@@ -2392,7 +2392,7 @@ def test_install_skip_work_dir_pkg(script: PipTestEnvironment, data: TestData) -
 
 
 @pytest.mark.parametrize(
-    "package_name", ("simple-package", "simple_package", "simple.package")
+    "package_name", ["simple-package", "simple_package", "simple.package"]
 )
 def test_install_verify_package_name_normalization(
     script: PipTestEnvironment, package_name: str
@@ -2449,7 +2449,7 @@ def install_find_links(
 
 @pytest.mark.parametrize(
     "with_target_dir",
-    (True, False),
+    [True, False],
 )
 def test_install_dry_run_nothing_installed(
     script: PipTestEnvironment,
@@ -2618,7 +2618,7 @@ def test_install_pip_prints_req_chain_pypi(script: PipTestEnvironment) -> None:
     )
 
 
-@pytest.mark.parametrize("common_prefix", ("", "linktest-1.0/"))
+@pytest.mark.parametrize("common_prefix", ["", "linktest-1.0/"])
 def test_install_sdist_links(script: PipTestEnvironment, common_prefix: str) -> None:
     """
     Test installing an sdist with hard and symbolic links.

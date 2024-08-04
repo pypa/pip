@@ -177,7 +177,7 @@ class KeyringModuleV1:
 
 @pytest.mark.parametrize(
     "url, expect",
-    (
+    [
         ("http://example.com/path1", (None, None)),
         # path1 URLs will be resolved by netloc
         ("http://user@example.com/path3", ("user", "user!netloc")),
@@ -185,7 +185,7 @@ class KeyringModuleV1:
         # path2 URLs will be resolved by index URL
         ("http://example.com/path2/path3", (None, None)),
         ("http://foo@example.com/path2/path3", ("foo", "foo!url")),
-    ),
+    ],
 )
 def test_keyring_get_password(
     monkeypatch: pytest.MonkeyPatch,
@@ -257,7 +257,7 @@ def test_keyring_get_password_username_in_index(
 
 @pytest.mark.parametrize(
     "response_status, creds, expect_save",
-    (
+    [
         (403, ("user", "pass", True), False),
         (
             200,
@@ -269,7 +269,7 @@ def test_keyring_get_password_username_in_index(
             ("user", "pass", False),
             False,
         ),
-    ),
+    ],
 )
 def test_keyring_set_password(
     monkeypatch: pytest.MonkeyPatch,
@@ -345,11 +345,11 @@ class KeyringModuleV2:
 
 @pytest.mark.parametrize(
     "url, expect",
-    (
+    [
         ("http://example.com/path1", ("username", "netloc")),
         ("http://example.com/path2/path3", ("username", "url")),
         ("http://user2@example.com/path2/path3", ("username", "url")),
-    ),
+    ],
 )
 def test_keyring_get_credential(
     monkeypatch: pytest.MonkeyPatch, url: str, expect: Tuple[str, str]
@@ -442,7 +442,7 @@ class KeyringSubprocessResult(KeyringModuleV1):
 
 @pytest.mark.parametrize(
     "url, expect",
-    (
+    [
         ("http://example.com/path1", (None, None)),
         # path1 URLs will be resolved by netloc
         ("http://user@example.com/path3", ("user", "user!netloc")),
@@ -450,7 +450,7 @@ class KeyringSubprocessResult(KeyringModuleV1):
         # path2 URLs will be resolved by index URL
         ("http://example.com/path2/path3", (None, None)),
         ("http://foo@example.com/path2/path3", ("foo", "foo!url")),
-    ),
+    ],
 )
 def test_keyring_cli_get_password(
     monkeypatch: pytest.MonkeyPatch,
@@ -472,7 +472,7 @@ def test_keyring_cli_get_password(
 
 @pytest.mark.parametrize(
     "response_status, creds, expect_save",
-    (
+    [
         (403, ("user", "pass", True), False),
         (
             200,
@@ -484,7 +484,7 @@ def test_keyring_cli_get_password(
             ("user", "pass", False),
             False,
         ),
-    ),
+    ],
 )
 def test_keyring_cli_set_password(
     monkeypatch: pytest.MonkeyPatch,

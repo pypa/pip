@@ -68,7 +68,7 @@ class TestOptionPrecedence(AddFakeCommandMixin):
         options, args = cast(Tuple[Values, List[str]], main(["fake"]))
         assert options.timeout == -1
 
-    @pytest.mark.parametrize("values", (["F1"], ["F1", "F2"]))
+    @pytest.mark.parametrize("values", [["F1"], ["F1", "F2"]])
     def test_env_override_default_append(
         self, values: List[str], monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -80,7 +80,7 @@ class TestOptionPrecedence(AddFakeCommandMixin):
         options, args = cast(Tuple[Values, List[str]], main(["fake"]))
         assert options.find_links == values
 
-    @pytest.mark.parametrize("choices", (["w"], ["s", "w"]))
+    @pytest.mark.parametrize("choices", [["w"], ["s", "w"]])
     def test_env_override_default_choice(
         self, choices: List[str], monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -92,7 +92,7 @@ class TestOptionPrecedence(AddFakeCommandMixin):
         options, args = cast(Tuple[Values, List[str]], main(["fake"]))
         assert options.exists_action == choices
 
-    @pytest.mark.parametrize("name", ("PIP_LOG_FILE", "PIP_LOCAL_LOG"))
+    @pytest.mark.parametrize("name", ["PIP_LOG_FILE", "PIP_LOCAL_LOG"])
     def test_env_alias_override_default(
         self, name: str, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -316,7 +316,7 @@ def tmpconfig(option: str, value: Any, section: str = "global") -> Iterator[str]
 
 
 class TestCountOptions(AddFakeCommandMixin):
-    @pytest.mark.parametrize("option", ("verbose", "quiet"))
+    @pytest.mark.parametrize("option", ["verbose", "quiet"])
     @pytest.mark.parametrize("value", range(4))
     def test_cli_long(self, option: str, value: int) -> None:
         flags = [f"--{option}"] * value
@@ -325,7 +325,7 @@ class TestCountOptions(AddFakeCommandMixin):
         opt2, args2 = cast(Tuple[Values, List[str]], main(["fake"] + flags))
         assert getattr(opt1, option) == getattr(opt2, option) == value
 
-    @pytest.mark.parametrize("option", ("verbose", "quiet"))
+    @pytest.mark.parametrize("option", ["verbose", "quiet"])
     @pytest.mark.parametrize("value", range(1, 4))
     def test_cli_short(self, option: str, value: int) -> None:
         flag = "-" + option[0] * value
@@ -334,7 +334,7 @@ class TestCountOptions(AddFakeCommandMixin):
         opt2, args2 = cast(Tuple[Values, List[str]], main(["fake", flag]))
         assert getattr(opt1, option) == getattr(opt2, option) == value
 
-    @pytest.mark.parametrize("option", ("verbose", "quiet"))
+    @pytest.mark.parametrize("option", ["verbose", "quiet"])
     @pytest.mark.parametrize("value", range(4))
     def test_env_var(
         self, option: str, value: int, monkeypatch: pytest.MonkeyPatch
@@ -344,7 +344,7 @@ class TestCountOptions(AddFakeCommandMixin):
         options, args = cast(Tuple[Values, List[str]], main(["fake"]))
         assert getattr(options, option) == value
 
-    @pytest.mark.parametrize("option", ("verbose", "quiet"))
+    @pytest.mark.parametrize("option", ["verbose", "quiet"])
     @pytest.mark.parametrize("value", range(3))
     def test_env_var_integrate_cli(
         self, option: str, value: int, monkeypatch: pytest.MonkeyPatch
@@ -354,8 +354,8 @@ class TestCountOptions(AddFakeCommandMixin):
         options, args = cast(Tuple[Values, List[str]], main(["fake", "--" + option]))
         assert getattr(options, option) == value + 1
 
-    @pytest.mark.parametrize("option", ("verbose", "quiet"))
-    @pytest.mark.parametrize("value", (-1, "foobar"))
+    @pytest.mark.parametrize("option", ["verbose", "quiet"])
+    @pytest.mark.parametrize("value", [-1, "foobar"])
     def test_env_var_invalid(
         self,
         option: str,
@@ -368,8 +368,8 @@ class TestCountOptions(AddFakeCommandMixin):
             main(["fake"])
 
     # Undocumented, support for backward compatibility
-    @pytest.mark.parametrize("option", ("verbose", "quiet"))
-    @pytest.mark.parametrize("value", ("no", "false"))
+    @pytest.mark.parametrize("option", ["verbose", "quiet"])
+    @pytest.mark.parametrize("value", ["no", "false"])
     def test_env_var_false(
         self, option: str, value: str, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -379,8 +379,8 @@ class TestCountOptions(AddFakeCommandMixin):
         assert getattr(options, option) == 0
 
     # Undocumented, support for backward compatibility
-    @pytest.mark.parametrize("option", ("verbose", "quiet"))
-    @pytest.mark.parametrize("value", ("yes", "true"))
+    @pytest.mark.parametrize("option", ["verbose", "quiet"])
+    @pytest.mark.parametrize("value", ["yes", "true"])
     def test_env_var_true(
         self, option: str, value: str, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -389,7 +389,7 @@ class TestCountOptions(AddFakeCommandMixin):
         options, args = cast(Tuple[Values, List[str]], main(["fake"]))
         assert getattr(options, option) == 1
 
-    @pytest.mark.parametrize("option", ("verbose", "quiet"))
+    @pytest.mark.parametrize("option", ["verbose", "quiet"])
     @pytest.mark.parametrize("value", range(4))
     def test_config_file(
         self, option: str, value: int, monkeypatch: pytest.MonkeyPatch
@@ -400,7 +400,7 @@ class TestCountOptions(AddFakeCommandMixin):
             options, args = cast(Tuple[Values, List[str]], main(["fake"]))
             assert getattr(options, option) == value
 
-    @pytest.mark.parametrize("option", ("verbose", "quiet"))
+    @pytest.mark.parametrize("option", ["verbose", "quiet"])
     @pytest.mark.parametrize("value", range(3))
     def test_config_file_integrate_cli(
         self, option: str, value: int, monkeypatch: pytest.MonkeyPatch
@@ -413,8 +413,8 @@ class TestCountOptions(AddFakeCommandMixin):
             )
             assert getattr(options, option) == value + 1
 
-    @pytest.mark.parametrize("option", ("verbose", "quiet"))
-    @pytest.mark.parametrize("value", (-1, "foobar"))
+    @pytest.mark.parametrize("option", ["verbose", "quiet"])
+    @pytest.mark.parametrize("value", [-1, "foobar"])
     def test_config_file_invalid(
         self,
         option: str,
@@ -428,8 +428,8 @@ class TestCountOptions(AddFakeCommandMixin):
                 main(["fake"])
 
     # Undocumented, support for backward compatibility
-    @pytest.mark.parametrize("option", ("verbose", "quiet"))
-    @pytest.mark.parametrize("value", ("no", "false"))
+    @pytest.mark.parametrize("option", ["verbose", "quiet"])
+    @pytest.mark.parametrize("value", ["no", "false"])
     def test_config_file_false(
         self, option: str, value: str, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -440,8 +440,8 @@ class TestCountOptions(AddFakeCommandMixin):
             assert getattr(options, option) == 0
 
     # Undocumented, support for backward compatibility
-    @pytest.mark.parametrize("option", ("verbose", "quiet"))
-    @pytest.mark.parametrize("value", ("yes", "true"))
+    @pytest.mark.parametrize("option", ["verbose", "quiet"])
+    @pytest.mark.parametrize("value", ["yes", "true"])
     def test_config_file_true(
         self, option: str, value: str, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -590,7 +590,7 @@ class TestOptionsConfigFiles:
 
     @pytest.mark.parametrize(
         "args, expect",
-        (
+        [
             ([], None),
             (["--global"], "global"),
             (["--site"], "site"),
@@ -598,7 +598,7 @@ class TestOptionsConfigFiles:
             (["--global", "--user"], PipError),
             (["--global", "--site"], PipError),
             (["--global", "--site", "--user"], PipError),
-        ),
+        ],
     )
     def test_config_file_options(
         self,
