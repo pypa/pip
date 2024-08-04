@@ -7,7 +7,7 @@ from os.path import basename
 from typing import Iterable
 
 from pip._vendor.packaging.utils import canonicalize_name
-from pytest import mark
+import pytest
 
 from pip._internal.utils.misc import hash_file
 from tests.lib import PipTestEnvironment, TestData, TestPipResult
@@ -30,8 +30,8 @@ def assert_installed(script: PipTestEnvironment, names: str) -> None:
     assert installed.issuperset(map(canonicalize_name, names))
 
 
-@mark.network
-@mark.parametrize(
+@pytest.mark.network
+@pytest.mark.parametrize(
     "requirement, expected",
     [
         ("Paste==3.4.2", ("Paste", "six")),
@@ -45,8 +45,8 @@ def test_install_from_pypi(
     assert_installed(script, expected)
 
 
-@mark.network
-@mark.parametrize(
+@pytest.mark.network
+@pytest.mark.parametrize(
     "requirement, expected",
     [
         ("Paste==3.4.2", ("Paste-3.4.2-*.whl", "six-*.whl")),
@@ -61,7 +61,7 @@ def test_download_from_pypi(
     assert all(fnmatch.filter(created, f) for f in expected)
 
 
-@mark.network
+@pytest.mark.network
 def test_build_wheel_with_deps(data: TestData, script: PipTestEnvironment) -> None:
     result = pip(script, "wheel", os.fspath(data.packages / "requiresPaste"))
     created = [basename(f) for f in result.files_created]
@@ -70,7 +70,7 @@ def test_build_wheel_with_deps(data: TestData, script: PipTestEnvironment) -> No
     assert fnmatch.filter(created, "six-*.whl")
 
 
-@mark.network
+@pytest.mark.network
 def test_require_hash(script: PipTestEnvironment, tmp_path: pathlib.Path) -> None:
     reqs = tmp_path / "requirements.txt"
     reqs.write_text(
@@ -91,7 +91,7 @@ def test_require_hash(script: PipTestEnvironment, tmp_path: pathlib.Path) -> Non
     assert fnmatch.filter(created, "idna-2.10*")
 
 
-@mark.network
+@pytest.mark.network
 def test_hash_mismatch(script: PipTestEnvironment, tmp_path: pathlib.Path) -> None:
     reqs = tmp_path / "requirements.txt"
     reqs.write_text("idna==2.10 --hash=sha256:irna")
@@ -105,7 +105,7 @@ def test_hash_mismatch(script: PipTestEnvironment, tmp_path: pathlib.Path) -> No
     assert "DO NOT MATCH THE HASHES" in result.stderr
 
 
-@mark.network
+@pytest.mark.network
 def test_hash_mismatch_existing_download_for_metadata_only_wheel(
     script: PipTestEnvironment, tmp_path: pathlib.Path
 ) -> None:
