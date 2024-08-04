@@ -973,7 +973,7 @@ class OneTimeDownloadHandler(http.server.SimpleHTTPRequestHandler):
             self._seen_paths.add(self.path)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def html_index_with_onetime_server(
     html_index_for_packages: Path,
 ) -> Iterator[http.server.ThreadingHTTPServer]:

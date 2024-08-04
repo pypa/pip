@@ -11,7 +11,7 @@ from pip._internal.network.auth import MultiDomainBasicAuth
 from tests.lib.requests_mocks import MockConnection, MockRequest, MockResponse
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(autouse=True)
 def reset_keyring() -> Iterable[None]:
     yield None
     # Reset the state of the module between tests

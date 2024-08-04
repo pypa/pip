@@ -1234,7 +1234,7 @@ def test_download_use_pep517_propagation(
     assert len(downloads) == 2
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def download_local_html_index(
     script: PipTestEnvironment,
     html_index_for_packages: Path,
@@ -1265,7 +1265,7 @@ def download_local_html_index(
     return run_for_generated_index
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def download_server_html_index(
     script: PipTestEnvironment,
     tmpdir: Path,

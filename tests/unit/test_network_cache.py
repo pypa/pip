@@ -10,7 +10,7 @@ from pip._internal.network.cache import SafeFileCache
 from tests.lib.filesystem import chmod
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def cache_tmpdir(tmpdir: Path) -> Path:
     cache_dir = tmpdir.joinpath("cache")
     cache_dir.mkdir(parents=True)
