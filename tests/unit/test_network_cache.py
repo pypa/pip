@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-from typing import Iterator
 from unittest.mock import Mock
 
 import pytest

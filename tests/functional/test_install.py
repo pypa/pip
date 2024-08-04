@@ -107,11 +107,11 @@ def test_pep518_refuses_conflicting_requires(
     )
     assert result.returncode != 0
     assert (
-            f"Some build dependencies for {project_dir.as_uri()} conflict "
-            "with PEP 517/518 supported "
-            "requirements: setuptools==1.0 is incompatible with "
-            "setuptools>=40.8.0."
-        ) in result.stderr, str(result)
+        f"Some build dependencies for {project_dir.as_uri()} conflict "
+        "with PEP 517/518 supported "
+        "requirements: setuptools==1.0 is incompatible with "
+        "setuptools>=40.8.0."
+    ) in result.stderr, str(result)
 
 
 def test_pep518_refuses_invalid_requires(
@@ -2307,7 +2307,9 @@ def test_error_all_yanked_files_and_no_pin(
     )
     # Make sure an error is raised
     assert result.returncode == 1
-    assert "ERROR: No matching distribution found for simple\n" in result.stderr, str(result)
+    assert "ERROR: No matching distribution found for simple\n" in result.stderr, str(
+        result
+    )
 
 
 @pytest.mark.parametrize(

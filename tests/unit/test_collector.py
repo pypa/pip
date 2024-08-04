@@ -909,7 +909,9 @@ def test_collect_sources__file_not_find_link(data: TestData) -> None:
     )
     assert not sources.find_links
     assert len(sources.index_urls) == 1
-    assert isinstance(sources.index_urls[0], _IndexDirectorySource), "Directory specified as index should be treated as a page"
+    assert isinstance(
+        sources.index_urls[0], _IndexDirectorySource
+    ), "Directory specified as index should be treated as a page"
 
 
 def test_collect_sources__non_existing_path() -> None:

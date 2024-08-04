@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Iterator, List, Tuple
+from typing import List, Tuple
 
 import pytest
 from pip._vendor.resolvelib import BaseReporter, Resolver
