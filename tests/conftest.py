@@ -477,7 +477,7 @@ def virtualenv_template(
     setuptools_install: Path,
     wheel_install: Path,
     coverage_install: Path,
-) -> Iterator[VirtualEnvironment]:
+) -> VirtualEnvironment:
     venv_type: VirtualEnvironmentType
     if request.config.getoption("--use-venv"):
         venv_type = "venv"
@@ -522,7 +522,7 @@ def virtualenv_template(
     # it's not reused by mistake from one of the copies.
     venv_template = tmpdir / "venv_template"
     venv.move(venv_template)
-    yield venv
+    return venv
 
 
 @pytest.fixture(scope="session")
@@ -538,14 +538,14 @@ def virtualenv_factory(
 @pytest.fixture
 def virtualenv(
     virtualenv_factory: Callable[[Path], VirtualEnvironment], tmpdir: Path
-) -> Iterator[VirtualEnvironment]:
+) -> VirtualEnvironment:
     """
     Return a virtual environment which is unique to each test function
     invocation created inside of a sub directory of the test function's
     temporary directory. The returned object is a
     ``tests.lib.venv.VirtualEnvironment`` object.
     """
-    yield virtualenv_factory(tmpdir.joinpath("workspace", "venv"))
+    return virtualenv_factory(tmpdir.joinpath("workspace", "venv"))
 
 
 @pytest.fixture(scope="session")

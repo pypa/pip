@@ -11,10 +11,10 @@ from tests.lib.filesystem import chmod
 
 
 @pytest.fixture(scope="function")
-def cache_tmpdir(tmpdir: Path) -> Iterator[Path]:
+def cache_tmpdir(tmpdir: Path) -> Path:
     cache_dir = tmpdir.joinpath("cache")
     cache_dir.mkdir(parents=True)
-    yield cache_dir
+    return cache_dir
 
 
 class TestSafeFileCache:
