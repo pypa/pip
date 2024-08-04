@@ -624,9 +624,9 @@ def test_install_distribution_duplicate_extras(
 ) -> None:
     to_install = data.packages.joinpath("LocalExtras")
     package_name = f"{to_install}[bar]"
+    result = script.pip_install_local(package_name, package_name)
+    expected = f"Double requirement given: {package_name}"
     with pytest.raises(AssertionError):
-        result = script.pip_install_local(package_name, package_name)
-        expected = f"Double requirement given: {package_name}"
         assert expected in result.stderr
 
 
