@@ -67,6 +67,10 @@ def wheel_dist_info_dir(source: ZipFile, name: str) -> str:
 
 
 def read_wheel_metadata_file(source: ZipFile, path: str) -> bytes:
+    if src_fp := source.fp:
+        src_name = getattr(src_fp, "name", None)
+        logger.debug("extracting entry '%s' from zip '%s'", path, src_name)
+
     try:
         return source.read(path)
         # BadZipFile for general corruption, KeyError for missing entry,

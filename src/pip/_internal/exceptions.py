@@ -323,12 +323,14 @@ class UnsupportedWheel(InstallationError):
 class InvalidWheel(InstallationError):
     """Invalid (e.g. corrupt) wheel."""
 
-    def __init__(self, location: str, name: str):
+    def __init__(self, location: str, name: str, context: Optional[str] = None):
         self.location = location
         self.name = name
+        self.context = context
 
     def __str__(self) -> str:
-        return f"Wheel '{self.name}' located at {self.location} is invalid."
+        suffix = f" ({self.context})" if self.context else "."
+        return f"Wheel '{self.name}' located at {self.location} is invalid{suffix}"
 
 
 class MetadataInconsistent(InstallationError):
