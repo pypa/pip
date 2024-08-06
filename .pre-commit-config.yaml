@@ -31,7 +31,8 @@ repos:
   rev: v1.10.0
   hooks:
   - id: mypy
-    exclude: tests/data
+    # exclude due to errors from duplicate conf.py under docs
+    exclude: tests/data|docs/html|docs/man
     args: ["--pretty", "--show-error-codes"]
     additional_dependencies: [
         'keyring==24.2.0',
