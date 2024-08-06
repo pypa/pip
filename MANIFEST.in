@@ -13,6 +13,7 @@ recursive-include  src/pip/_vendor *COPYING*
 
 include docs/docutils.conf
 include docs/requirements.txt
+include docs/html/requirements.txt
 
 exclude .git-blame-ignore-revs
 exclude .coveragerc
