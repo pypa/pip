@@ -32,7 +32,7 @@ def assert_installed(script: PipTestEnvironment, names: str) -> None:
 
 @mark.network
 @mark.parametrize(
-    ("requirement", "expected"),
+    "requirement, expected",
     (
         ("Paste==3.4.2", ("Paste", "six")),
         ("Paste[flup]==3.4.2", ("Paste", "six", "flup")),
@@ -47,7 +47,7 @@ def test_install_from_pypi(
 
 @mark.network
 @mark.parametrize(
-    ("requirement", "expected"),
+    "requirement, expected",
     (
         ("Paste==3.4.2", ("Paste-3.4.2-*.whl", "six-*.whl")),
         ("Paste[flup]==3.4.2", ("Paste-3.4.2-*.whl", "six-*.whl", "flup-*")),

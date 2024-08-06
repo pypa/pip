@@ -61,7 +61,7 @@ def test_rev_options_repr() -> None:
 
 
 @pytest.mark.parametrize(
-    ("vc_class", "expected1", "expected2", "kwargs"),
+    "vc_class, expected1, expected2, kwargs",
     [
         # First check VCS-specific RevOptions behavior.
         (Bazaar, [], ["-r", "123"], {}),
@@ -599,7 +599,7 @@ def test_get_git_version() -> None:
 
 
 @pytest.mark.parametrize(
-    ("version", "expected"),
+    "version, expected",
     [
         ("git version 2.17", (2, 17)),
         ("git version 2.18.1", (2, 18)),

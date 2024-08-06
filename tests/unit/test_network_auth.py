@@ -20,7 +20,7 @@ def reset_keyring() -> Iterable[None]:
 
 
 @pytest.mark.parametrize(
-    ["input_url", "url", "username", "password"],
+    "input_url, url, username, password",
     [
         (
             "http://user%40email.com:password@example.com/path",

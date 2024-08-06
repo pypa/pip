@@ -559,7 +559,7 @@ def test_normalize_version_info(
 
 class TestGetProg:
     @pytest.mark.parametrize(
-        ("argv", "executable", "expected"),
+        "argv, executable, expected",
         [
             ("/usr/bin/pip", "", "pip"),
             ("-c", "/usr/bin/python", "/usr/bin/python -m pip"),
@@ -1061,7 +1061,7 @@ def test_format_size(size: int, expected: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("rows", "table", "sizes"),
+    "rows, table, sizes",
     [
         ([], [], []),
         (

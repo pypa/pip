@@ -259,7 +259,7 @@ def test_get_simple_response_dont_log_clear_text_password(
 
 
 @pytest.mark.parametrize(
-    ("path", "expected"),
+    "path, expected",
     [
         # Test a character that needs quoting.
         ("a b", "a%20b"),
@@ -299,7 +299,7 @@ def test_clean_url_path(path: str, expected: str, is_local_path: bool) -> None:
 
 
 @pytest.mark.parametrize(
-    ("path", "expected"),
+    "path, expected",
     [
         # Test a VCS path with a Windows drive letter and revision.
         pytest.param(
@@ -322,7 +322,7 @@ def test_clean_url_path_with_local_path(path: str, expected: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("url", "clean_url"),
+    "url, clean_url",
     [
         # URL with hostname and port. Port separator should not be quoted.
         (
