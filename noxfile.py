@@ -131,7 +131,10 @@ def docs(session: nox.Session) -> None:
     session.install("-r", REQUIREMENTS["docs"])
 
     def get_sphinx_build_command(kind: str) -> List[str]:
-        # Having the conf.py in the docs/html is weird but needed because we
+        req_file = Path("docs").joinpath(kind, "requirements.txt")
+        if req_file.exists():
+            session.install("--requirement", str(req_file))
+        # Having the conf.py in the docs/{html,man} is weird but needed because we
         # can not use a different configuration directory vs source directory
         # on RTD currently. So, we'll pass "-c docs/html" here.
         # See https://github.com/rtfd/readthedocs.org/issues/1543.
@@ -139,10 +142,10 @@ def docs(session: nox.Session) -> None:
         return [
             "sphinx-build",
             "--keep-going",
-            "-W",
-            "-c", "docs/html",  # see note above
-            "-d", "docs/build/doctrees/" + kind,
-            "-b", kind,
+            "--fail-on-warning",
+            "--conf-dir", "docs/" + kind,  # see note above
+            "--doctree-dir", "docs/build/doctrees/" + kind,
+            "--builder", kind,
             "docs/" + kind,
             "docs/build/" + kind,
         ]
