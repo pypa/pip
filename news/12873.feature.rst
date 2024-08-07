@@ -1,0 +1,3 @@
+Improve pip install performance.
+Increase lru cache for parsing requirement strings from 2048 to 8192 items.
+The small size was suboptimal when installing hundreds of packages.
