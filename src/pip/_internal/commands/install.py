@@ -4,6 +4,7 @@ import operator
 import os
 import shutil
 import site
+import re
 from optparse import SUPPRESS_HELP, Values
 from typing import List, Optional
 
@@ -574,7 +575,15 @@ class InstallCommand(RequirementCommand):
                         shutil.rmtree(target_item_dir)
                     else:
                         os.remove(target_item_dir)
-
+                if item.endswith((".dist-info", ".egg-info")):
+                    matched_info_dir = _contain_info_dir(item, target_dir)
+                    if matched_info_dir:
+                        if not upgrade:
+                            continue
+                        else:
+                            info_dir = os.path.join(target_dir, matched_info_dir)
+                            if os.path.exists(info_dir):
+                                shutil.rmtree(info_dir)
                 shutil.move(os.path.join(lib_dir, item), target_item_dir)
 
     def _determine_conflicts(
@@ -781,3 +790,17 @@ def create_os_error_message(
         )
 
     return "".join(parts).strip() + "\n"
+
+def _contain_info_dir(item: str, target_dir: str) -> str:
+    """Determine whether the item is a metadata_location (.dist-info or egg-info for legacy). 
+    If there is another metadata_location for the package in the 'target_dir',
+    return found metadata_location that has been found.
+    """
+    raw_name = item.rpartition(".")[0].partition("-")[0]
+    dist_info_re = re.compile(rf"{raw_name}-[a-z0-9_.!+-]+\.dist-info$", re.IGNORECASE)
+    egg_info_re = re.compile(rf"{raw_name}[^\s/\\]*\.egg-info$", re.IGNORECASE)
+    for path in os.listdir(target_dir):
+        if dist_info_re.match(path) or egg_info_re.match(path):
+            return path
+    
+    return None
