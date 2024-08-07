@@ -8,6 +8,7 @@ import os
 import re
 import shlex
 import urllib.parse
+import warnings
 from optparse import Values
 from typing import (
     TYPE_CHECKING,
@@ -545,7 +546,23 @@ def get_file_content(url: str, session: "PipSession") -> Tuple[str, str]:
     # Assume this is a bare path.
     try:
         with open(url, "rb") as f:
-            content = auto_decode(f.read())
+            raw_content = f.read()
     except OSError as exc:
         raise InstallationError(f"Could not open requirements file: {exc}")
+
+    try:
+        content = auto_decode(raw_content)
+    except UnicodeDecodeError as exc:
+        fallback_encoding = "utf-8"
+        # don't try an decode again if we know it will fail
+        if exc.encoding == fallback_encoding:
+            raise
+
+        warnings.warn(
+            f"unable to decode data with {exc.encoding}, falling back to {fallback_encoding}",  #  noqa: E501
+            UnicodeWarning,
+            stacklevel=2,
+        )
+        content = raw_content.decode(fallback_encoding)
+
     return url, content
