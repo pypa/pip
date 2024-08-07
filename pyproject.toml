@@ -89,13 +89,25 @@ template = "tools/news/template.rst"
 
 # Grouping of entries, within our changelog
 type = [
-  { name = "Deprecations and Removals", directory = "removal", showcontent = true },
-  { name = "Features",                  directory = "feature", showcontent = true },
-  { name = "Bug Fixes",                 directory = "bugfix",  showcontent = true },
-  { name = "Vendored Libraries",        directory = "vendor",  showcontent = true },
-  { name = "Improved Documentation",    directory = "doc",     showcontent = true },
-  { name = "Process",                   directory = "process", showcontent = true },
-  { name = "Trivial Changes",           directory = "trivial", showcontent = false },
+  { name = "Deprecations and Removals",                   directory = "removal",   showcontent = true },
+  { name = "Features",                                    directory = "feature",   showcontent = true },
+  { name = "Bug Fixes",                                   directory = "bugfix",    showcontent = true },
+  { name = "Vendored Libraries",                          directory = "vendor",    showcontent = true },
+  { name = "Improved Documentation",                      directory = "doc",       showcontent = true },
+
+  # Notes for downstreams about unobvious side effects and tooling. Changes
+  # in the test invocation considerations and runtime assumptions.
+  { name = "Packaging updates and notes for downstreams", directory = "packaging", showcontent = true },
+
+  # Stuff that affects the contributor experience. e.g. Running tests,
+  # building the docs, setting up the development environment.
+  { name = "Contributor-facing changes",                  directory = "contrib",   showcontent = true },
+
+  # Changes that are hard to assign to any of the above categories.
+  { name = "Miscellaneous internal changes",              directory = "misc",      showcontent = true },
+
+  # A way for the contributors to fool the changelog fragment presence check.
+  { name = "Trivial Changes",                             directory = "trivial",   showcontent = false },
 ]
 
 ######################################################################################
