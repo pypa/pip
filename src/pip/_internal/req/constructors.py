@@ -19,7 +19,7 @@ from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.specifiers import Specifier
 
-from pip._internal.exceptions import InstallationError
+from pip._internal.exceptions import InstallationError, InvalidEditableRequirement
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
@@ -123,11 +123,8 @@ def parse_editable(editable_req: str) -> Tuple[Optional[str], str, Set[str]]:
     link = Link(url)
 
     if not link.is_vcs:
-        backends = ", ".join(vcs.all_schemes)
-        raise InstallationError(
-            f"{editable_req} is not a valid editable requirement. "
-            f"It should either be a path to a local project or a VCS URL "
-            f"(beginning with {backends})."
+        raise InvalidEditableRequirement(
+            requirement=editable_req, vcs_schemes=vcs.all_schemes
         )
 
     package_name = link.egg_fragment
