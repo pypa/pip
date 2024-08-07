@@ -16,7 +16,7 @@ from pip._internal.resolution.resolvelib.resolver import (
 )
 
 
-@pytest.fixture()
+@pytest.fixture
 def resolver(preparer: RequirementPreparer, finder: PackageFinder) -> Resolver:
     resolver = Resolver(
         preparer=preparer,

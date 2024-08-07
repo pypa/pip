@@ -1234,7 +1234,7 @@ def test_download_use_pep517_propagation(
     assert len(downloads) == 2
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def download_local_html_index(
     script: PipTestEnvironment,
     html_index_for_packages: Path,
@@ -1265,7 +1265,7 @@ def download_local_html_index(
     return run_for_generated_index
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def download_server_html_index(
     script: PipTestEnvironment,
     tmpdir: Path,
@@ -1450,11 +1450,11 @@ def test_produces_error_for_mismatched_package_name_in_metadata(
 
 @pytest.mark.parametrize(
     "requirement",
-    (
+    [
         "requires-simple-extra==0.1",
         "REQUIRES_SIMPLE-EXTRA==0.1",
         "REQUIRES....simple-_-EXTRA==0.1",
-    ),
+    ],
 )
 def test_canonicalizes_package_name_before_verifying_metadata(
     download_local_html_index: Callable[..., Tuple[TestPipResult, Path]],

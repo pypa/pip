@@ -61,7 +61,7 @@ def test_rev_options_repr() -> None:
 
 
 @pytest.mark.parametrize(
-    ("vc_class", "expected1", "expected2", "kwargs"),
+    "vc_class, expected1, expected2, kwargs",
     [
         # First check VCS-specific RevOptions behavior.
         (Bazaar, [], ["-r", "123"], {}),
@@ -291,14 +291,14 @@ def test_git_resolve_revision_not_found_warning(
 
 @pytest.mark.parametrize(
     "rev_name,result",
-    (
+    [
         ("5547fa909e83df8bd743d3978d6667497983a4b7", True),
         ("5547fa909", False),
         ("5678", False),
         ("abc123", False),
         ("foo", False),
         (None, False),
-    ),
+    ],
 )
 @mock.patch("pip._internal.vcs.git.Git.get_revision")
 def test_git_is_commit_id_equal(
@@ -599,7 +599,7 @@ def test_get_git_version() -> None:
 
 
 @pytest.mark.parametrize(
-    ("version", "expected"),
+    "version, expected",
     [
         ("git version 2.17", (2, 17)),
         ("git version 2.18.1", (2, 18)),
