@@ -475,22 +475,14 @@ def _handle_no_binary(
     option: Option, opt_str: str, value: str, parser: OptionParser
 ) -> None:
     existing = _get_format_control(parser.values, option)
-    FormatControl.handle_mutual_excludes(
-        value,
-        existing.no_binary,
-        existing.only_binary,
-    )
+    FormatControl.handle_no_binary(value, existing)
 
 
 def _handle_only_binary(
     option: Option, opt_str: str, value: str, parser: OptionParser
 ) -> None:
     existing = _get_format_control(parser.values, option)
-    FormatControl.handle_mutual_excludes(
-        value,
-        existing.only_binary,
-        existing.no_binary,
-    )
+    FormatControl.handle_only_binary(value, existing)
 
 
 def no_binary() -> Option:
@@ -507,7 +499,12 @@ def no_binary() -> Option:
         'disable all binary packages, ":none:" to empty the set (notice '
         "the colons), or one or more package names with commas between "
         "them (no colons). Note that some packages are tricky to compile "
-        "and may fail to install when this option is used on them.",
+        "and may fail to install when this option is used on them. "
+        'When using ":all:", packages can be excluded from ":all:" by prefixing '
+        'their name with tilde "~", for example --no-binary=:all:~numpy '
+        "indicate to pip to install all packages using source dist with the "
+        "exception of numpy which can be installed using either a whl or tar.gz "
+        "file.",
     )
 
 
@@ -525,7 +522,12 @@ def only_binary() -> Option:
         'disable all source packages, ":none:" to empty the set, or one '
         "or more package names with commas between them. Packages "
         "without binary distributions will fail to install when this "
-        "option is used on them.",
+        "option is used on them. "
+        'When using ":all:", packages can be excluded from ":all:" by prefixing '
+        'their name with tilde "~", for example --only-binary=:all:~asciitree '
+        "indicate to pip to install all packages using wheels with the "
+        "exception of asciitree which can be installed using either a whl or "
+        "tar.gz file.",
     )
 
 
