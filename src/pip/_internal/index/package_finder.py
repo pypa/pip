@@ -17,7 +17,9 @@ from pip._vendor.packaging.version import parse as parse_version
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled,
     DistributionNotFound,
+    InvalidAlternativeLocationsUrl,
     InvalidWheelFilename,
+    UnsafeMultipleRemoteRepositories,
     UnsupportedWheel,
 )
 from pip._internal.index.collector import LinkCollector, parse_links
@@ -472,6 +474,11 @@ class CandidateEvaluator:
         filtered_applicable_candidates = filter_unallowed_hashes(
             candidates=applicable_candidates,
             hashes=self._hashes,
+            project_name=self._project_name,
+        )
+
+        check_multiple_remote_repositories(
+            candidates=filtered_applicable_candidates,
             project_name=self._project_name,
         )
 
@@ -1018,3 +1025,221 @@ def _extract_version_from_fragment(fragment: str, canonical_name: str) -> Option
     if not version:
         return None
     return version
+
+
+def check_multiple_remote_repositories(
+    candidates: List[InstallationCandidate], project_name: str
+) -> None:
+    """
+    Check whether two or more different namespaces can be flattened into one.
+
+    This check will raise an error when packages from different sources will be merged,
+    without clear configuration to indicate the namespace merge is allowed.
+    See `PEP 708`_.
+
+    This approach allows safely merging separate namespaces that are actually one
+    logical namespace, while enforcing a more secure default.
+
+    Returns None if checks pass, otherwise will raise an error with details of the
+    failed checks.
+    """
+
+    # NOTE: The checks in this function must occur after:
+    # Specification: Filter out any files that do not match known hashes from a
+    # lockfile or requirements file.
+
+    # NOTE: The checks in this function must occur before:
+    # Specification: Filter out any files that do not match the current platform,
+    # Python version, etc. We check for the metadata in this PEP before filtering out
+    # based on platform, Python version, etc., because we don’t want errors that only
+    # show up on certain platforms, Python versions, etc.
+
+    # NOTE: Implemented in 'filter_unallowed_hashes':
+    # Specification: Users who are using lock files or requirements files that include
+    # specific hashes of artifacts that are “valid” are assumed to be protected by
+    # nature of those hashes, since the rest of these recommendations would apply
+    # during hash generation. Thus, we filter out unknown hashes up front.
+
+    # NOTE: Implemented in 'collector.py' 'parse_links':
+    # Specification: When using alternate locations, clients MUST implicitly assume
+    # that the url the response was fetched from was included in the list.
+
+    # NOTE: Implemented in 'collector.py' 'parse_links':
+    # Specification: Order of the elements within the array does not have any
+    # particular meaning.
+
+    # NOTE: Implemented by this function, by not checking all repo tracks metadata is
+    # the exact same.
+    # Specification: Mixed use repositories where some names track a repository and
+    # some names do not are explicitly allowed.
+
+    # TODO: This requirement doesn't look like something that pip can do anything about.
+    # Specification: All [Tracks metadata] URLs MUST represent the same “project” as
+    # the project in the extending repository. This does not mean that they need to
+    # serve the same files. It is valid for them to include binaries built on
+    # different platforms, copies with local patches being applied, etc. This is
+    # purposefully left vague as it’s ultimately up to the expectations that the
+    # users have of the repository and its operators what exactly constitutes
+    # the “same” project.
+
+    # TODO: This requirement doesn't look like something that pip can do anything about.
+    # Specification: It [Tracks metadata] is NOT required that every name in a
+    # repository tracks the same repository, or that they all track a repository at all.
+
+    # TODO: This requirement doesn't look like something that pip can do anything about.
+    # Specification: It [repository Tracks metadata] MUST be under the control of the
+    # repository operators themselves, not any individual publisher using that
+    # repository. “Repository Operator” can also include anyone who managed the overall
+    # namespace for a particular repository, which may be the case in situations like
+    # hosted repository services where one entity operates the software but another
+    # owns/manages the entire namespace of that repository.
+
+    # TODO: Consider making requests to repositories revealed via Alternate Locations
+    #    or Tracks metadata, to assess the metadata of those additional repositories.
+    # Specification: When an installer encounters a project that is using the
+    # alternate locations metadata it SHOULD consider that all repositories named are
+    # extending the same namespace across multiple repositories.
+
+    # TODO: Consider whether pip already has, or should add, ways to indicate exactly
+    #   which individual projects to get from which individual repositories.
+    # Specification: If the user has explicitly told the installer that it wants to
+    # fetch a project from a certain set of repositories, then there is no reason
+    # to question that and we assume that they’ve made sure it is safe to merge
+    # those namespaces. If the end user has explicitly told the installer to fetch
+    # the project from specific repositories, filter out all other repositories.
+
+    # When no candidates are provided, then no checks are relevant, so just return.
+    if candidates is None or len(candidates) == 0:
+        logger.debug("No candidates given to multiple remote repository checks")
+        return
+
+    # Pre-calculate the canonical name for later comparisons.
+    canonical_name = canonicalize_name(project_name)
+
+    # Specification: Look to see if the discovered files span multiple repositories;
+    # if they do then determine if either “Tracks” or “Alternate Locations” metadata
+    # allows safely merging ALL the repositories where files were discovered together.
+    scheme_file = "file://"
+    remote_candidates = []
+    all_remote_urls = set()
+    all_project_track_urls = []
+    all_repo_alt_urls = []
+    remote_repositories = set()
+    for candidate in candidates:
+        candidate_name = candidate.name
+        candidate_canonical_name = canonicalize_name(candidate_name)
+
+        file_path = None
+        try:
+            file_path = candidate.link.file_path
+        except Exception:
+            pass
+        url = candidate.link.url
+
+        project_track_urls = candidate.link.project_track_urls or set()
+        all_project_track_urls.append(project_track_urls)
+        remote_repositories.update(project_track_urls)
+
+        repo_alt_urls = candidate.link.repo_alt_urls or set()
+        all_repo_alt_urls.append(repo_alt_urls)
+        remote_repositories.update(repo_alt_urls)
+
+        other_repo_urls = {*project_track_urls, *repo_alt_urls}
+        has_other_repo_urls = len(other_repo_urls) > 0
+
+        is_local_url = url and url.startswith(scheme_file)
+        if url and not is_local_url:
+            all_remote_urls.add(url)
+
+        # Specification: Repositories that exist on the local filesystem SHOULD always
+        # be implicitly allowed to be merged to any remote repository.
+        is_local_file = file_path or is_local_url
+        has_remote_repo = has_other_repo_urls and any(
+            not i.startswith(scheme_file) for i in other_repo_urls
+        )
+        if is_local_file and not has_remote_repo:
+            # Ignore any local candidates in later comparisons.
+            logger.debug(
+                "Ignore local candidate %s in multiple remote repository checks",
+                candidate,
+            )
+            continue
+
+        remote_candidates.append(
+            {
+                "name": candidate_name,
+                "canonical_name": candidate_canonical_name,
+                "file_path": file_path,
+                "url": url,
+                "project_track_urls": project_track_urls,
+                "repo_alt_urls": repo_alt_urls,
+                "other_repo_urls": other_repo_urls,
+                "is_local_file": is_local_file,
+                "has_remote_repo": has_remote_repo,
+            }
+        )
+
+    # If there are no remote candidates, then allow merging repositories.
+    if len(remote_candidates) == 0:
+        logger.debug("No remote candidates for multiple remote repository checks")
+        return
+
+    # TODO
+    if logger.isEnabledFor(logging.INFO):
+        logger.info("Remote candidates for multiple remote repository checks:")
+        for candidate in remote_candidates:
+            logger.info(candidate)
+
+    # TODO: This checks the list of Alternate Locations for the candidates that were
+    #   retrieved. It does not request the metadata from any additional repositories
+    #   revealed via the lists of Alternate Locations.
+    # Specification: In order for this metadata to be trusted, there MUST be agreement
+    # between all locations where that project is found as to what the alternate
+    # locations are.
+    if len(all_repo_alt_urls) > 1:
+        match_alt_locs = set(all_repo_alt_urls[0])
+        invalid_locations = set()
+
+        for item in all_repo_alt_urls[1:]:
+            match_alt_locs.intersection_update(item)
+            invalid_locations.update(match_alt_locs.symmetric_difference(item))
+
+        if len(invalid_locations) > 0:
+            raise InvalidAlternativeLocationsUrl(
+                package=project_name,
+                remote_repositories=remote_repositories,
+                invalid_locations=invalid_locations,
+            )
+
+    # TODO
+    # Specification: Otherwise [if metadata allows] we merge the namespaces,
+    # and continue on.
+
+    # TODO
+    # Specification: It [Tracks metadata] MUST point to the actual URLs for that
+    # project, not the base URL for the extended repositories.
+    # raise InvalidTracksUrl
+
+    # TODO
+    # Specification: It [Tracks metadata] MUST point to the repositories that “own”
+    # the namespaces, not another repository that is also tracking that namespace.
+    # raise InvalidTracksUrl
+
+    # TODO
+    # Specification: It [Tracks metadata] MUST point to a project with the exact same
+    # name (after normalization).
+    # raise InvalidTracksUrl
+
+    # TODO
+    # Specification: If the project in question only comes from a single repository,
+    # then there is no chance of dependency confusion, so there’s no reason to do
+    # anything but allow.
+
+    # Specification: If nothing tells us merging the namespaces is safe, we refuse to
+    # implicitly assume it is, and generate an error instead.
+    # Specification: If that metadata does NOT allow [merging namespaces], then
+    # generate an error.
+    error = UnsafeMultipleRemoteRepositories(
+        package=project_name, remote_repositories=remote_repositories
+    )
+    raise error
