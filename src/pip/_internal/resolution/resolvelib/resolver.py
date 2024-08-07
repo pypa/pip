@@ -2,7 +2,8 @@ import contextlib
 import functools
 import logging
 import os
-from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple, cast
+from multiprocessing.pool import ThreadPool
+from typing import TYPE_CHECKING, Dict, Iterable, List, Optional, Set, Tuple, cast
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible
@@ -69,6 +70,7 @@ class Resolver(BaseResolver):
         self.ignore_dependencies = ignore_dependencies
         self.upgrade_strategy = upgrade_strategy
         self._result: Optional[Result] = None
+        self._finder = finder
 
     def resolve(
         self, root_reqs: List[InstallRequirement], check_supported_wheels: bool
@@ -89,6 +91,8 @@ class Resolver(BaseResolver):
             provider,
             reporter,
         )
+
+        self._prime_finder_cache(provider.identify(r) for r in collected.requirements)
 
         try:
             limit_how_complex_resolution_can_be = 200000
@@ -181,6 +185,17 @@ class Resolver(BaseResolver):
             req.prepared = True
             req.needs_more_preparation = False
         return req_set
+
+    def _prime_finder_cache(self, project_names: Iterable[str]) -> None:
+        """Populate finder's find_all_candidates cache
+
+        Pre-emptively call the finder's find_all_candidates for each project
+        in parallel in order to avoid later blocking on network requests during
+        resolution.
+        """
+        with ThreadPool() as tp:
+            for _ in tp.imap_unordered(self._finder.find_all_candidates, project_names):
+                pass
 
     def get_installation_order(
         self, req_set: RequirementSet
