@@ -62,6 +62,7 @@ class WheelCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.check_build_deps())
         self.cmd_opts.add_option(cmdoptions.constraints())
         self.cmd_opts.add_option(cmdoptions.editable())
+        self.cmd_opts.add_option(cmdoptions.editable_requirements())
         self.cmd_opts.add_option(cmdoptions.requirements())
         self.cmd_opts.add_option(cmdoptions.src())
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())

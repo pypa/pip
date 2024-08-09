@@ -443,6 +443,19 @@ def editable() -> Option:
     )
 
 
+def editable_requirements() -> Option:
+    return Option(
+        "--editable-requirements",
+        dest="editable_requirements",
+        action="store_true",
+        default=False,
+        help=(
+            "Install requirements of editable packages "
+            "in editable mode as well where possible"
+        ),
+    )
+
+
 def _handle_src(option: Option, opt_str: str, value: str, parser: OptionParser) -> None:
     value = os.path.abspath(value)
     setattr(parser.values, option.dest, value)
