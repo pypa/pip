@@ -465,13 +465,13 @@ class TestCandidateEvaluator:
         )
         result = evaluator.compute_best_candidate(candidates)
 
-        assert result._candidates == candidates
+        assert result.all_candidates == candidates
         expected_applicable = candidates[:2]
         assert [str(c.version) for c in expected_applicable] == [
             "1.10",
             "1.11",
         ]
-        assert result._applicable_candidates == expected_applicable
+        assert result.applicable_candidates == expected_applicable
 
         assert result.best_candidate is expected_applicable[1]
 
@@ -488,8 +488,8 @@ class TestCandidateEvaluator:
         )
         result = evaluator.compute_best_candidate(candidates)
 
-        assert result._candidates == candidates
-        assert result._applicable_candidates == []
+        assert result.all_candidates == candidates
+        assert result.applicable_candidates == []
         assert result.best_candidate is None
 
     @pytest.mark.parametrize(
