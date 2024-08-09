@@ -1,8 +1,7 @@
 """Generate and work with PEP 425 Compatibility Tags.
 """
-
 import re
-from typing import List, Optional, Tuple
+from typing import Generator, List, Optional, Tuple
 
 from pip._vendor.packaging.tags import (
     PythonVersion,
@@ -13,9 +12,16 @@ from pip._vendor.packaging.tags import (
     interpreter_name,
     interpreter_version,
     mac_platforms,
+    platform_tags,
 )
 
 _osx_arch_pat = re.compile(r"(.+)_(\d+)_(\d+)_(.+)")
+
+_LEGACY_MANYLINUX_MAP = {
+    "manylinux2014": (2, 17),
+    "manylinux2010": (2, 12),
+    "manylinux1": (2, 5),
+}
 
 
 def version_info_to_nodot(version_info: Tuple[int, ...]) -> str:
@@ -41,6 +47,22 @@ def _mac_platforms(arch: str) -> List[str]:
         # arch pattern didn't match (?!)
         arches = [arch]
     return arches
+
+
+def filter_libc_tags(libc: Tuple[int, int], arch: str) -> Generator[str, None, None]:
+    for tag in filter(
+        lambda t: t.startswith(("manylinux", "musllinux")), platform_tags()
+    ):
+        tag_prefix, _, tag_suffix = tag.partition("_")
+        if tag_prefix in _LEGACY_MANYLINUX_MAP:
+            tag_libc = _LEGACY_MANYLINUX_MAP[tag_prefix]
+            tag_arch = tag_suffix
+        else:
+            tag_libc_major, tag_libc_minor, tag_arch = tag_suffix.split("_", 2)
+            tag_libc = (int(tag_libc_major), int(tag_libc_minor))
+
+        if arch == tag_arch and tag_libc <= libc:
+            yield tag
 
 
 def _custom_manylinux_platforms(arch: str) -> List[str]:
@@ -70,6 +92,10 @@ def _get_custom_platforms(arch: str) -> List[str]:
         arches = _mac_platforms(arch)
     elif arch_prefix in ["manylinux2014", "manylinux2010"]:
         arches = _custom_manylinux_platforms(arch)
+    elif arch_prefix in ["manylinux", "musllinux"]:
+        curr_libc_major, curr_libc_minor, curr_arch = arch_suffix.split("_", 2)
+        curr_libc = (int(curr_libc_major), int(curr_libc_minor))
+        arches = list(filter_libc_tags(curr_libc, curr_arch)) or [arch]
     else:
         arches = [arch]
     return arches
