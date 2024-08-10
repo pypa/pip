@@ -596,12 +596,33 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
         # Sorting installation paths makes it easier to reproduce and debug
         # issues related to permissions on existing files.
         for installed_path in sorted(set(installed.values())):
+            if not installed_path.endswith(".py"):
+                continue
+
             full_installed_path = os.path.join(lib_dir, installed_path)
             if not os.path.isfile(full_installed_path):
                 continue
-            if not full_installed_path.endswith(".py"):
-                continue
             yield full_installed_path
+
+    def pyc_source_root_dirs() -> Generator[str, None, None]:
+        # All root source directories of the install (i.e. those that
+        # are direct children of lib_dir) that the source Python files
+        # are located within. Typically this is just one directory.
+        source_root_dirs = set()
+        for installed_path in installed.values():
+            if not installed_path.endswith(".py"):
+                continue
+
+            full_installed_path = os.path.join(lib_dir, installed_path)
+            if not os.path.isfile(full_installed_path):
+                continue
+
+            parent_full_installed_path = os.path.dirname(full_installed_path)
+            if os.path.dirname(parent_full_installed_path) == lib_dir:
+                if parent_full_installed_path in source_root_dirs:
+                    continue
+                source_root_dirs.add(parent_full_installed_path)
+                yield parent_full_installed_path
 
     def pyc_output_path(path: str) -> str:
         """Return the path the pyc file would have been written to."""
@@ -614,11 +635,16 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
         ) as stdout:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
+                # Use compile_dir on the root directories in the package,
+                # as compile_dir uses multiprocess this will be quicker
+                # than using compile_file on each file.
+                for dir in pyc_source_root_dirs():
+                    compileall.compile_dir(dir, force=True, quiet=2, workers=0)
+
+                # Now check individual files were created
                 for path in pyc_source_file_paths():
-                    success = compileall.compile_file(path, force=True, quiet=True)
-                    if success:
-                        pyc_path = pyc_output_path(path)
-                        assert os.path.exists(pyc_path)
+                    pyc_path = pyc_output_path(path)
+                    if os.path.exists(pyc_path):
                         pyc_record_path = cast(
                             "RecordPath", pyc_path.replace(os.path.sep, "/")
                         )
