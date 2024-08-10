@@ -1116,7 +1116,8 @@ def html_index_with_onetime_server(
     """Serve files from a generated pypi index, erroring if a file is downloaded more
     than once.
 
-    Provide `-i http://localhost:8000` to pip invocations to point them at this server.
+    Provide `-i http://localhost:<port>` to pip invocations to point them at
+    this server.
     """
 
     class InDirectoryServer(http.server.ThreadingHTTPServer):
@@ -1131,7 +1132,7 @@ def html_index_with_onetime_server(
     class Handler(OneTimeDownloadHandler):
         _seen_paths: ClassVar[Set[str]] = set()
 
-    with InDirectoryServer(("", 8000), Handler) as httpd:
+    with InDirectoryServer(("", 0), Handler) as httpd:
         server_thread = threading.Thread(target=httpd.serve_forever)
         server_thread.start()
 
@@ -1327,14 +1328,13 @@ def html_index_no_metadata(
 
 HTMLIndexWithRangeServer = Callable[
     [RangeHandler],
-    "AbstractContextManager[Type[ContentRangeDownloadHandler]]",
+    "AbstractContextManager[Tuple[Type[ContentRangeDownloadHandler], int]]",
 ]
 
 
 @pytest.fixture
 def html_index_with_range_server(
     html_index_no_metadata: Path,
-    port: int = 8000,
 ) -> HTMLIndexWithRangeServer:
     """Serve files from a generated pypi index, with support for range requests.
 
@@ -1351,7 +1351,7 @@ def html_index_with_range_server(
     @contextmanager
     def inner(
         range_handler: RangeHandler,
-    ) -> Iterator[Type[ContentRangeDownloadHandler]]:
+    ) -> Iterator[Tuple[Type[ContentRangeDownloadHandler], int]]:
         class Handler(ContentRangeDownloadHandler):
             @property
             def range_handler(self) -> RangeHandler:
@@ -1363,18 +1363,15 @@ def html_index_with_range_server(
             head_request_paths: ClassVar[Set[str]] = set()
             ok_response_counts: ClassVar[Dict[str, int]] = {}
 
-        with InDirectoryServer(("", port), Handler) as httpd:
+        with InDirectoryServer(("", 0), Handler) as httpd:
             server_thread = threading.Thread(target=httpd.serve_forever)
             server_thread.start()
 
+            _, server_port = httpd.server_address
             try:
-                yield Handler
+                yield (Handler, server_port)
             finally:
                 httpd.shutdown()
-                server_thread.join(timeout=3.0)
-                if server_thread.is_alive():
-                    raise RuntimeError(
-                        "failed to shutdown http server within 3 seconds"
-                    )
+                server_thread.join()
 
     return inner

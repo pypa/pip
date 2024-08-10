@@ -177,7 +177,7 @@ def test_download_range(
     """Execute `pip download` against a generated PyPI index."""
     download_dir = tmpdir / "download_dir"
 
-    def run_for_generated_index(args: List[str]) -> TestPipResult:
+    def run_for_generated_index(server_port: int, args: List[str]) -> TestPipResult:
         """
         Produce a PyPI directory structure pointing to the specified packages, then
         execute `pip download -i ...` pointing to our generated index.
@@ -188,14 +188,15 @@ def test_download_range(
             "-d",
             str(download_dir),
             "-i",
-            "http://localhost:8000",
+            f"http://localhost:{server_port}",
             *args,
         ]
         return script.pip(*pip_args, allow_stderr_warning=True)
 
-    with html_index_with_range_server(range_handler) as handler:
+    with html_index_with_range_server(range_handler) as (handler, server_port):
         run_for_generated_index(
-            ["colander", "compilewheel==2.0", "has-script", "translationstring==0.1"]
+            server_port,
+            ["colander", "compilewheel==2.0", "has-script", "translationstring==0.1"],
         )
         generated_files = os.listdir(download_dir)
         assert fnmatch.filter(generated_files, "colander*.whl")
