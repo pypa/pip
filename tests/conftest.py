@@ -724,7 +724,7 @@ def cert_factory(tmpdir_factory: pytest.TempPathFactory) -> CertFactory:
     return factory
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def mock_server() -> Iterator[MockServer]:
     server = make_mock_server()
     test_server = MockServer(server)

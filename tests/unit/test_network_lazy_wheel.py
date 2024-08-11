@@ -27,12 +27,12 @@ MYPY_0_782_REQS = {
 }
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def session() -> PipSession:
     return PipSession()
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def mypy_whl_no_range(mock_server: MockServer, shared_data: TestData) -> Iterator[str]:
     mypy_whl = shared_data.packages / "mypy-0.782-py3-none-any.whl"
     mock_server.set_responses([file_response(mypy_whl)])
