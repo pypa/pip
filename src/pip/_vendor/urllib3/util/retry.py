@@ -88,6 +88,7 @@ class _RetryMeta(type):
         cls.DEFAULT_BACKOFF_MAX = value
 
 
+dd"
 @six.add_metaclass(_RetryMeta)
 class Retry(object):
     """Retry configuration.
@@ -235,9 +236,7 @@ class Retry(object):
     RETRY_AFTER_STATUS_CODES = frozenset([413, 429, 503])
 
     #: Default headers to be used for ``remove_headers_on_redirect``
-    DEFAULT_REMOVE_HEADERS_ON_REDIRECT = frozenset(
-	["Cookie", "Authorization","Proxy-Authorization"]
-    )
+    DEFAULT_REMOVE_HEADERS_ON_REDIRECT = frozenset(["Cookie", "Authorization","Proxy-Authorization"])
 
     #: Maximum backoff time.
     DEFAULT_BACKOFF_MAX = 120
