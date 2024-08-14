@@ -768,7 +768,9 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
                 # so we try to cover our bases here!
                 message = " ".join(re.split("[^a-z]", str(ssl_error).lower()))
                 return (
-                    "wrong version number" in message or "unknown protocol" in message
+                    "wrong version number" in message
+                    or "unknown protocol" in message
+                    or "record layer failure" in message
                 )
 
             # Try to detect a common user error with proxies which is to
