@@ -8,7 +8,6 @@ import os
 import re
 import shlex
 import urllib.parse
-import warnings
 from optparse import Values
 from typing import (
     TYPE_CHECKING,
@@ -558,10 +557,12 @@ def get_file_content(url: str, session: "PipSession") -> Tuple[str, str]:
         if exc.encoding == fallback_encoding:
             raise
 
-        warnings.warn(
-            f"unable to decode data with {exc.encoding}, falling back to {fallback_encoding}",  #  noqa: E501
-            UnicodeWarning,
-            stacklevel=2,
+        logging.warning(
+            "unable to decode data from %s with encoding %s, "
+            "falling back to encoding %s",
+            url,
+            exc.encoding,
+            fallback_encoding,
         )
         content = raw_content.decode(fallback_encoding)
 

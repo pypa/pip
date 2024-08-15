@@ -2,7 +2,6 @@ import collections
 import logging
 import os
 import textwrap
-import warnings
 from optparse import Values
 from pathlib import Path
 from typing import Any, Iterator, List, Optional, Protocol, Tuple, Union
@@ -886,7 +885,10 @@ class TestParseRequirements:
         assert req.global_options == [global_option]
 
     def test_warns_on_decode_fail_in_locale(
-        self, tmpdir: Path, session: PipSession
+        self,
+        tmpdir: Path,
+        session: PipSession,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         # \xe3\x80\x82 encodes to 'IDEOGRAPHIC FULL STOP' in UTF-8
         # the lone \x82 byte is invalid in the gbk encoding
@@ -897,21 +899,23 @@ class TestParseRequirements:
 
         # it's hard to rely on a locale definitely existing for testing
         # so patch things out for simplicity
-        with pytest.warns(UnicodeWarning) as records, mock.patch(
+        with caplog.at_level(logging.WARNING, "pip._internal.req.req_file"), mock.patch(
             "locale.getpreferredencoding", return_value=locale_encoding
         ):
             reqs = tuple(parse_reqfile(req_file.resolve(), session=session))
 
-        assert len(records) == 1
+        assert len(caplog.records) == 1
         assert (
-            str(records[0].message)
-            == "unable to decode data with gbk, falling back to utf-8"
+            caplog.records[0].msg == "unable to decode data from %s with encoding %s, "
+            "falling back to encoding %s"
         )
+        assert caplog.records[0].args == (str(req_file), locale_encoding, "utf-8")
+
         assert len(reqs) == 1
         assert reqs[0].name == "pip"
         assert str(reqs[0].specifier) == "<=24.0"
 
-    @pytest.mark.parametrize("encoding", ("utf-8", "gbk"))
+    @pytest.mark.parametrize("encoding", ["utf-8", "gbk"])
     def test_erorrs_on_non_decodable_data(
         self, encoding: str, tmpdir: Path, session: PipSession
     ) -> None:
@@ -919,10 +923,7 @@ class TestParseRequirements:
         req_file = tmpdir / "requirements.txt"
         req_file.write_bytes(data)
 
-        with warnings.catch_warnings(), pytest.raises(UnicodeDecodeError), mock.patch(
+        with pytest.raises(UnicodeDecodeError), mock.patch(
             "locale.getpreferredencoding", return_value=encoding
         ):
-            warnings.simplefilter(
-                "ignore", category=UnicodeWarning
-            )  # suppress warning not under test here
             next(parse_reqfile(req_file.resolve(), session=session))
