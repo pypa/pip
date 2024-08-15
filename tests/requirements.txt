@@ -8,8 +8,8 @@ pytest-rerunfailures
 pytest-xdist
 scripttest
 setuptools
-virtualenv < 20.0 ; python_version < '3.10'
-virtualenv >= 20.0 ; python_version >= '3.10'
+virtualenv < 20.0 ; python_version < '3.10' and (sys_platform != 'darwin' or platform_machine != 'arm64')
+virtualenv >= 20.0 ; python_version >= '3.10' or (sys_platform == 'darwin' and platform_machine == 'arm64')
 werkzeug
 wheel
 tomli-w
