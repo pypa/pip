@@ -56,6 +56,7 @@ def raise_for_status(resp: Response) -> None:
         raise NetworkConnectionError(http_error_msg, response=resp)
 
 
+# TODO: consider reading into a bytearray?
 def response_chunks(
     response: Response, chunk_size: int = DOWNLOAD_CHUNK_SIZE
 ) -> Generator[bytes, None, None]:

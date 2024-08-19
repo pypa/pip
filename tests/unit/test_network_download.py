@@ -7,12 +7,13 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
+from pip._internal.cli.progress_bars import ProgressBarType
 from pip._internal.exceptions import IncompleteDownloadError
 from pip._internal.models.link import Link
 from pip._internal.network.download import (
     Downloader,
     _get_http_response_size,
-    _log_download,
+    _prepare_download,
     parse_content_disposition,
     sanitize_content_filename,
 )
@@ -92,10 +93,10 @@ def test_log_download(
         resp.from_cache = from_cache
     link = Link(url)
     total_length = _get_http_response_size(resp)
-    _log_download(
+    _prepare_download(
         resp,
         link,
-        progress_bar="on",
+        progress_bar=ProgressBarType.ON,
         total_length=total_length,
         range_start=range_start,
     )
@@ -317,7 +318,7 @@ def test_downloader(
 ) -> None:
     session = PipSession()
     link = Link("http://example.com/foo.tgz")
-    downloader = Downloader(session, "on", resume_retries)
+    downloader = Downloader(session, ProgressBarType.ON, resume_retries)
 
     responses = []
     for headers, status_code, body in mock_responses:
@@ -357,7 +358,7 @@ def test_resumed_download_caching(tmpdir: Path) -> None:
     cache_dir = tmpdir / "cache"
     session = PipSession(cache=str(cache_dir))
     link = Link("https://example.com/foo.tgz")
-    downloader = Downloader(session, "on", resume_retries=5)
+    downloader = Downloader(session, ProgressBarType.ON, resume_retries=5)
 
     # Mock an incomplete download followed by a successful resume
     incomplete_resp = MockResponse(b"0cfa7e9d-1868-4dd7-9fb3-")

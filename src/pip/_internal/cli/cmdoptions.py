@@ -24,6 +24,7 @@ from typing import Any, Callable
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cli.parser import ConfigOptionParser
+from pip._internal.cli.progress_bars import ProgressBarType
 from pip._internal.exceptions import CommandError
 from pip._internal.locations import USER_CACHE_DIR, get_src_prefix
 from pip._internal.models.format_control import FormatControl
@@ -228,14 +229,14 @@ progress_bar: Callable[..., Option] = partial(
     "--progress-bar",
     dest="progress_bar",
     type="choice",
-    choices=["auto", "on", "off", "raw"],
-    default="auto",
+    choices=ProgressBarType.choices(),
+    default=ProgressBarType.ON.value,
     help=(
-        "Specify whether the progress bar should be used. In 'auto'"
-        " mode, --quiet will suppress all progress bars."
-        " [auto, on, off, raw] (default: auto)"
+        "Specify whether the progress bar should be used"
+        f" {ProgressBarType.help_choices()} (default: %default)"
     ),
 )
+
 
 log: Callable[..., Option] = partial(
     PipOption,

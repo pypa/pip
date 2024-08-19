@@ -9,15 +9,21 @@ import os
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from http import HTTPStatus
+from pathlib import Path
 from typing import BinaryIO
 
 from pip._vendor.requests import PreparedRequest
 from pip._vendor.requests.models import Response
+from pip._vendor.rich.progress import TaskID
 from pip._vendor.urllib3 import HTTPResponse as URLlib3Response
 from pip._vendor.urllib3._collections import HTTPHeaderDict
 from pip._vendor.urllib3.exceptions import ReadTimeoutError
 
-from pip._internal.cli.progress_bars import BarType, get_download_progress_renderer
+from pip._internal.cli.progress_bars import (
+    BatchedProgress,
+    ProgressBarType,
+    get_download_progress_renderer,
+)
 from pip._internal.exceptions import IncompleteDownloadError, NetworkConnectionError
 from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
@@ -44,19 +50,22 @@ def _get_http_response_etag_or_last_modified(resp: Response) -> str | None:
     return resp.headers.get("etag", resp.headers.get("last-modified"))
 
 
-def _log_download(
-    resp: Response,
-    link: Link,
-    progress_bar: BarType,
-    total_length: int | None,
-    range_start: int | None = 0,
-) -> Iterable[bytes]:
+def _format_download_log_url(link: Link) -> str:
     if link.netloc == PyPI.file_storage_domain:
         url = link.show_url
     else:
         url = link.url_without_fragment
 
-    logged_url = redact_auth_from_url(url)
+    return redact_auth_from_url(url)
+
+
+def _log_download_link(
+    link: Link,
+    total_length: int | None,
+    range_start: int | None = 0,
+    link_is_from_cache: bool = False,
+) -> None:
+    logged_url = _format_download_log_url(link)
 
     if total_length:
         if range_start:
@@ -66,12 +75,26 @@ def _log_download(
         else:
             logged_url = f"{logged_url} ({format_size(total_length)})"
 
-    if is_from_cache(resp):
+    if link_is_from_cache:
         logger.info("Using cached %s", logged_url)
     elif range_start:
         logger.info("Resuming download %s", logged_url)
     else:
         logger.info("Downloading %s", logged_url)
+
+
+def _prepare_download(
+    resp: Response,
+    link: Link,
+    progress_bar: ProgressBarType,
+    total_length: int | None,
+    range_start: int | None = 0,
+    quiet: bool = False,
+    color: bool = True,
+) -> Iterable[bytes]:
+    total_length = _get_http_response_size(resp)
+
+    _log_download_link(link, total_length, is_from_cache(resp))
 
     if logger.getEffectiveLevel() > logging.INFO:
         show_progress = False
@@ -90,7 +113,11 @@ def _log_download(
         return chunks
 
     renderer = get_download_progress_renderer(
-        bar_type=progress_bar, size=total_length, initial_progress=range_start
+        bar_type=progress_bar,
+        size=total_length,
+        initial_progress=range_start,
+        quiet=quiet,
+        color=color,
     )
     return renderer(chunks)
 
@@ -117,22 +144,24 @@ def parse_content_disposition(content_disposition: str, default_filename: str) -
     return filename or default_filename
 
 
-def _get_http_response_filename(resp: Response, link: Link) -> str:
+def _get_http_response_filename(
+    headers: Mapping[str, str], resp_url: str, link: Link
+) -> str:
     """Get an ideal filename from the given HTTP response, falling back to
     the link filename if not provided.
     """
     filename = link.filename  # fallback
     # Have a look at the Content-Disposition header for a better guess
-    content_disposition = resp.headers.get("content-disposition")
+    content_disposition = headers.get("content-disposition", None)
     if content_disposition:
         filename = parse_content_disposition(content_disposition, filename)
     ext: str | None = splitext(filename)[1]
     if not ext:
-        ext = mimetypes.guess_extension(resp.headers.get("content-type", ""))
+        ext = mimetypes.guess_extension(headers.get("content-type", ""))
         if ext:
             filename += ext
-    if not ext and link.url != resp.url:
-        ext = os.path.splitext(resp.url)[1]
+    if not ext and link.url != resp_url:
+        ext = os.path.splitext(resp_url)[1]
         if ext:
             filename += ext
     return filename
@@ -162,12 +191,31 @@ class _FileDownload:
         self.bytes_received = 0
 
 
+def _http_head_content_info(
+    session: PipSession,
+    link: Link,
+) -> tuple[int | None, str]:
+    target_url = link.url.split("#", 1)[0]
+    resp = session.head(target_url)
+    raise_for_status(resp)
+
+    if length := resp.headers.get("content-length", None):
+        content_length = int(length)
+    else:
+        content_length = None
+
+    filename = _get_http_response_filename(resp.headers, resp.url, link)
+    return content_length, filename
+
+
 class Downloader:
     def __init__(
         self,
         session: PipSession,
-        progress_bar: BarType,
+        progress_bar: ProgressBarType,
         resume_retries: int,
+        quiet: bool = False,
+        color: bool = True,
     ) -> None:
         assert (
             resume_retries >= 0
@@ -175,21 +223,17 @@ class Downloader:
         self._session = session
         self._progress_bar = progress_bar
         self._resume_retries = resume_retries
-
-    def batch(
-        self, links: Iterable[Link], location: str
-    ) -> Iterable[tuple[Link, tuple[str, str]]]:
-        """Convenience method to download multiple links."""
-        for link in links:
-            filepath, content_type = self(link, location)
-            yield link, (filepath, content_type)
+        self._quiet = quiet
+        self._color = color
 
     def __call__(self, link: Link, location: str) -> tuple[str, str]:
         """Download a link and save it under location."""
         resp = self._http_get(link)
         download_size = _get_http_response_size(resp)
 
-        filepath = os.path.join(location, _get_http_response_filename(resp, link))
+        filepath = os.path.join(
+            location, _get_http_response_filename(resp.headers, resp, link)
+        )
         with open(filepath, "wb") as content_file:
             download = _FileDownload(link, content_file, download_size)
             self._process_response(download, resp)
@@ -201,12 +245,14 @@ class Downloader:
 
     def _process_response(self, download: _FileDownload, resp: Response) -> None:
         """Download and save chunks from a response."""
-        chunks = _log_download(
+        chunks = _prepare_download(
             resp,
             download.link,
             self._progress_bar,
             download.size,
             range_start=download.bytes_received,
+            quiet=self._quiet,
+            color=self._color,
         )
         try:
             for chunk in chunks:
@@ -340,3 +386,86 @@ class Downloader:
             )
             raise
         return resp
+
+
+class BatchDownloader:
+    def __init__(
+        self,
+        session: PipSession,
+        progress_bar: ProgressBarType,
+        resume_retries: int,
+        quiet: bool = False,
+        color: bool = True,
+    ) -> None:
+        self._session = session
+        self._progress_bar = progress_bar
+        self._inner = Downloader(
+            session, progress_bar, resume_retries, quiet=quiet, color=color
+        )
+        self._quiet = quiet
+        self._color = color
+
+    def __call__(
+        self, links: Iterable[Link], location: Path
+    ) -> Iterable[tuple[Link, tuple[Path, str | None]]]:
+        """Download the files given by links into location."""
+        # Calculate the byte length for each file, if available.
+        links_with_lengths: list[tuple[Link, tuple[int | None, str]]] = [
+            (link, _http_head_content_info(self._session, link)) for link in links
+        ]
+        # Sum up the total length we'll be downloading.
+        # TODO: filter out responses from cache from total download size?
+        total_length: int | None = 0
+        for _link, (maybe_len, _filename) in links_with_lengths:
+            if maybe_len is None:
+                total_length = None
+                break
+            assert total_length is not None
+            total_length += maybe_len
+
+        batched_progress = BatchedProgress.select_progress_bar(
+            self._progress_bar
+        ).create(
+            num_tasks=len(links_with_lengths),
+            known_total_length=total_length,
+            quiet=self._quiet,
+            color=self._color,
+        )
+
+        link_tasks: list[tuple[Link, TaskID, str]] = []
+        for link, (maybe_len, filename) in links_with_lengths:
+            _log_download_link(link, maybe_len)
+            task_id = batched_progress.add_subtask(filename, maybe_len)
+            link_tasks.append((link, task_id, filename))
+
+        with batched_progress:
+            for link, task_id, filename in link_tasks:
+                try:
+                    # FIXME: resume_retries!!!
+                    resp = self._inner._http_get(link)
+                except NetworkConnectionError as e:
+                    assert e.response is not None
+                    logger.critical(
+                        "HTTP error %s while getting %s",
+                        e.response.status_code,
+                        link,
+                    )
+                    raise
+
+                filepath = location / filename
+                content_type = resp.headers.get("Content-Type")
+                # TODO: different chunk size for batched downloads?
+                chunks = response_chunks(resp)
+                with open(filepath, "wb") as content_file:
+                    # Notify that the current task has begun.
+                    batched_progress.start_subtask(task_id)
+                    for chunk in chunks:
+                        # Copy chunk directly to output file, without any
+                        # additional buffering.
+                        content_file.write(chunk)
+                        # Update progress.
+                        batched_progress.advance_subtask(task_id, len(chunk))
+                # Notify of completion.
+                batched_progress.finish_subtask(task_id)
+                # Yield completed link and download path.
+                yield link, (filepath, content_type)

@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.build_env import BuildEnvironmentInstaller
+from pip._internal.cli.progress_bars import ProgressBarType
 from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.distributions.installed import InstalledDistribution
 from pip._internal.exceptions import (
@@ -31,7 +32,7 @@ from pip._internal.metadata import BaseDistribution, get_metadata_distribution
 from pip._internal.models.direct_url import ArchiveInfo
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
-from pip._internal.network.download import Downloader
+from pip._internal.network.download import BatchDownloader, Downloader
 from pip._internal.network.lazy_wheel import (
     HTTPRangeRequestUnsupported,
     dist_from_wheel_url,
@@ -57,7 +58,7 @@ from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
 
 if TYPE_CHECKING:
-    from pip._internal.cli.progress_bars import BarType
+    from pip._internal.cli.progress_bars import ProgressBarType
 
 logger = getLogger(__name__)
 
@@ -236,12 +237,14 @@ class RequirementPreparer:
         check_build_deps: bool,
         build_tracker: BuildTracker,
         session: PipSession,
-        progress_bar: BarType,
+        progress_bar: ProgressBarType,
         finder: PackageFinder,
         require_hashes: bool,
         use_user_site: bool,
         lazy_wheel: bool,
         verbosity: int,
+        quietness: int,
+        color: bool,
         legacy_resolver: bool,
         resume_retries: int,
     ) -> None:
@@ -251,7 +254,16 @@ class RequirementPreparer:
         self.build_dir = build_dir
         self.build_tracker = build_tracker
         self._session = session
-        self._download = Downloader(session, progress_bar, resume_retries)
+        self._download = Downloader(
+            session, progress_bar, resume_retries, quiet=quietness > 0, color=color
+        )
+        self._batch_download = BatchDownloader(
+            session,
+            progress_bar,
+            resume_retries,
+            quiet=quietness > 0,
+            color=color,
+        )
         self.finder = finder
 
         # Where still-packed archives should be written to. If None, they are
@@ -475,27 +487,31 @@ class RequirementPreparer:
             assert req.link
             links_to_fully_download[req.link] = req
 
-        batch_download = self._download.batch(links_to_fully_download.keys(), temp_dir)
+        batch_download = self._batch_download(
+            links_to_fully_download.keys(),
+            Path(temp_dir),
+        )
+        # Process completely-downloaded files in parallel with the worker threads
+        # spawned by the BatchDownloader.
         for link, (filepath, _) in batch_download:
-            logger.debug("Downloading link %s to %s", link, filepath)
+            logger.debug("Completed download for link %s into %s", link, filepath)
             req = links_to_fully_download[link]
             # Record the downloaded file path so wheel reqs can extract a Distribution
             # in .get_dist().
-            req.local_file_path = filepath
+            req.local_file_path = str(filepath)
             # Record that the file is downloaded so we don't do it again in
             # _prepare_linked_requirement().
-            self._downloaded[req.link.url] = filepath
+            self._downloaded[req.link.url] = str(filepath)
 
             # If this is an sdist, we need to unpack it after downloading, but the
             # .source_dir won't be set up until we are in _prepare_linked_requirement().
             # Add the downloaded archive to the install requirement to unpack after
             # preparing the source dir.
             if not req.is_wheel:
-                req.needs_unpacked_archive(Path(filepath))
+                req.needs_unpacked_archive(filepath)
 
-        # This step is necessary to ensure all lazy wheels are processed
-        # successfully by the 'download', 'wheel', and 'install' commands.
-        for req in partially_downloaded_reqs:
+            # This step is necessary to ensure all lazy wheels are processed
+            # successfully by the 'download', 'wheel', and 'install' commands.
             self._prepare_linked_requirement(req, parallel_builds)
 
     def prepare_linked_requirement(
