@@ -9,7 +9,6 @@ import os
 import shutil
 import subprocess
 import sysconfig
-import typing
 import urllib.parse
 from abc import ABC, abstractmethod
 from functools import lru_cache
@@ -159,6 +158,49 @@ class KeyRingCliProvider(KeyRingBaseProvider):
         return None
 
 
+def which_skip_scripts(command: str) -> Optional[str]:
+    """
+    Find the given command, but skip past the "scripts" directory. This is useful
+    if you want to find a system install of some command, and not have it shadowed
+    by a virtualenv that happens to provide that very command.
+    """
+    path = shutil.which(command)
+    if path and path.startswith(sysconfig.get_path("scripts")):
+        # all code within this function is stolen from shutil.which implementation
+        def PATH_as_shutil_which_determines_it() -> str:
+            path = os.environ.get("PATH", None)
+            if path is None:
+                try:
+                    path = os.confstr("CS_PATH")
+                except (AttributeError, ValueError):
+                    # os.confstr() or CS_PATH is not available
+                    path = None
+
+                if path is None:
+                    path = os.defpath
+            # bpo-35755: Don't use os.defpath if the PATH environment variable is
+            # set to an empty string
+
+            return path
+
+        scripts = Path(sysconfig.get_path("scripts"))
+
+        paths = []
+        for path in PATH_as_shutil_which_determines_it().split(os.pathsep):
+            p = Path(path)
+            try:
+                if not p.samefile(scripts):
+                    paths.append(path)
+            except FileNotFoundError:
+                pass
+
+        path = os.pathsep.join(paths)
+
+        path = shutil.which(command, path=path)
+
+    return path
+
+
 @lru_cache(maxsize=None)
 def get_keyring_provider(provider: str) -> KeyRingBaseProvider:
     logger.verbose("Keyring provider requested: %s", provider)
@@ -181,38 +223,7 @@ def get_keyring_provider(provider: str) -> KeyRingBaseProvider:
                 msg = msg + ", trying to find a keyring executable as a fallback"
             logger.warning(msg, exc, exc_info=logger.isEnabledFor(logging.DEBUG))
     if provider in ["subprocess", "auto"]:
-        cli = shutil.which("keyring")
-        if cli and cli.startswith(sysconfig.get_path("scripts")):
-            # all code within this function is stolen from shutil.which implementation
-            @typing.no_type_check
-            def PATH_as_shutil_which_determines_it() -> str:
-                path = os.environ.get("PATH", None)
-                if path is None:
-                    try:
-                        path = os.confstr("CS_PATH")
-                    except (AttributeError, ValueError):
-                        # os.confstr() or CS_PATH is not available
-                        path = os.defpath
-                # bpo-35755: Don't use os.defpath if the PATH environment variable is
-                # set to an empty string
-
-                return path
-
-            scripts = Path(sysconfig.get_path("scripts"))
-
-            paths = []
-            for path in PATH_as_shutil_which_determines_it().split(os.pathsep):
-                p = Path(path)
-                try:
-                    if not p.samefile(scripts):
-                        paths.append(path)
-                except FileNotFoundError:
-                    pass
-
-            path = os.pathsep.join(paths)
-
-            cli = shutil.which("keyring", path=path)
-
+        cli = which_skip_scripts("keyring")
         if cli:
             logger.verbose("Keyring provider set: subprocess with executable %s", cli)
             return KeyRingCliProvider(cli)
