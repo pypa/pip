@@ -10,7 +10,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from http import HTTPStatus
 from pathlib import Path
-from typing import BinaryIO
+from typing import BinaryIO, cast
 
 from pip._vendor.requests import PreparedRequest
 from pip._vendor.requests.models import Response
@@ -422,6 +422,10 @@ class BatchDownloader:
                 break
             assert total_length is not None
             total_length += maybe_len
+        # Sort downloads to perform larger downloads first.
+        if total_length is not None:
+            # Extract the length from each tuple entry.
+            links_with_lengths.sort(key=lambda t: cast(int, t[1][0]), reverse=True)
 
         batched_progress = BatchedProgress.select_progress_bar(
             self._progress_bar
