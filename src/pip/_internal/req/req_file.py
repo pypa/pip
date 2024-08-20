@@ -367,12 +367,12 @@ class RequirementsFileParser:
                 if req_path in self._parsed_files.keys():
                     initial_file = self._parsed_files[req_path]
                     tail = (
-                        f"and again in {initial_file}"
+                        f" and again in {initial_file}"
                         if initial_file is not None
                         else ""
                     )
                     raise RequirementsFileParseError(
-                        f"{req_path} recursively references itself in {filename} {tail}"
+                        f"{req_path} recursively references itself in {filename}{tail}"
                     )
                 # Keeping a track where was each file first included in
                 self._parsed_files[req_path] = filename
