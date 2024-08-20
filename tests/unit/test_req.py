@@ -118,6 +118,7 @@ class TestRequirementSet:
                 verbosity=0,
                 quietness=0,
                 color=True,
+                batch_download_parallelism=None,
                 legacy_resolver=True,
                 resume_retries=0,
             )

@@ -251,6 +251,7 @@ class InstallCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.prefer_binary())
         self.cmd_opts.add_option(cmdoptions.require_hashes())
         self.cmd_opts.add_option(cmdoptions.progress_bar())
+        self.cmd_opts.add_option(cmdoptions.batch_download_parallelism())
         self.cmd_opts.add_option(cmdoptions.root_user_action())
 
         index_opts = cmdoptions.make_option_group(
@@ -373,6 +374,7 @@ class InstallCommand(RequirementCommand):
                 finder=finder,
                 use_user_site=options.use_user_site,
                 verbosity=self.verbosity,
+                batch_download_parallelism=options.batch_download_parallelism,
             )
             resolver = self.make_resolver(
                 preparer=preparer,

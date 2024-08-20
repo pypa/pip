@@ -238,6 +238,23 @@ progress_bar: Callable[..., Option] = partial(
     ),
 )
 
+batch_download_parallelism: Callable[..., Option] = partial(
+    Option,
+    "--batch-download-parallelism",
+    dest="batch_download_parallelism",
+    type="int",
+    default=10,
+    help=(
+        "Maximum parallelism employed for batch downloading of metadata-only dists"
+        " (default %default parallel requests)."
+        " Note that more than 10 downloads may overflow the requests connection pool,"
+        " which may affect performance."
+        " Note also that commands such as 'install --dry-run' should avoid downloads"
+        " entirely, and so will not be affected by this option."
+    ),
+)
+
+
 log: Callable[..., Option] = partial(
     PipOption,
     "--log",

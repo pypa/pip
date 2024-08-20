@@ -66,6 +66,7 @@ class WheelCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
         self.cmd_opts.add_option(cmdoptions.no_deps())
         self.cmd_opts.add_option(cmdoptions.progress_bar())
+        self.cmd_opts.add_option(cmdoptions.batch_download_parallelism())
 
         self.cmd_opts.add_option(
             "--no-verify",
@@ -130,6 +131,7 @@ class WheelCommand(RequirementCommand):
             download_dir=options.wheel_dir,
             use_user_site=False,
             verbosity=self.verbosity,
+            batch_download_parallelism=options.batch_download_parallelism,
         )
 
         resolver = self.make_resolver(

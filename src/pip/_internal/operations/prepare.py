@@ -245,6 +245,7 @@ class RequirementPreparer:
         verbosity: int,
         quietness: int,
         color: bool,
+        batch_download_parallelism: int | None,
         legacy_resolver: bool,
         resume_retries: int,
     ) -> None:
@@ -263,6 +264,7 @@ class RequirementPreparer:
             resume_retries,
             quiet=quietness > 0,
             color=color,
+            max_parallelism=batch_download_parallelism,
         )
         self.finder = finder
 

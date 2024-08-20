@@ -7,10 +7,14 @@ import email.message
 import logging
 import mimetypes
 import os
+import time
 from collections.abc import Iterable, Iterator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass
 from http import HTTPStatus
 from pathlib import Path
+from queue import Queue
+from threading import Event, Semaphore, Thread
 from typing import Any, BinaryIO, cast
 
 from pip._vendor.requests import PreparedRequest
@@ -25,7 +29,11 @@ from pip._internal.cli.progress_bars import (
     ProgressBarType,
     get_download_progress_renderer,
 )
-from pip._internal.exceptions import IncompleteDownloadError, NetworkConnectionError
+from pip._internal.exceptions import (
+    CommandError,
+    IncompleteDownloadError,
+    NetworkConnectionError,
+)
 from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
 from pip._internal.network.cache import SafeFileCache, is_from_cache
@@ -65,6 +73,7 @@ def _log_download_link(
     total_length: int | None,
     range_start: int | None = 0,
     link_is_from_cache: bool = False,
+    level: int = logging.INFO,
 ) -> None:
     logged_url = _format_download_log_url(link)
 
@@ -77,11 +86,11 @@ def _log_download_link(
             logged_url = f"{logged_url} ({format_size(total_length)})"
 
     if link_is_from_cache:
-        logger.info("Using cached %s", logged_url)
+        logger.log(level, "Using cached %s", logged_url)
     elif range_start:
-        logger.info("Resuming download %s", logged_url)
+        logger.log(level, "Resuming download %s", logged_url)
     else:
-        logger.info("Downloading %s", logged_url)
+        logger.log(level, "Downloading %s", logged_url)
 
 
 def _prepare_download(
@@ -445,6 +454,156 @@ class Downloader:
         return filepath, content_type
 
 
+class _ErrorReceiver:
+    def __init__(self, error_flag: Event) -> None:
+        self._error_flag = error_flag
+        self._thread_exception: BaseException | None = None
+
+    def receive_error(self, exc: BaseException) -> None:
+        self._error_flag.set()
+        self._thread_exception = exc
+
+    def stored_error(self) -> BaseException | None:
+        return self._thread_exception
+
+
+@contextmanager
+def _spawn_workers(
+    workers: list[Thread], error_flag: Event
+) -> Iterator[_ErrorReceiver]:
+    err_recv = _ErrorReceiver(error_flag)
+    try:
+        for w in workers:
+            w.start()
+            # We've sorted the list of worker threads so they correspond to the largest
+            # downloads first. Each thread immediately waits upon a semaphore to limit
+            # maximum parallel downloads, and we would like the semaphore's internal
+            # wait queue to retain the same order we established earlier (otherwise, we
+            # would end up nondeterministically downloading files out of our desired
+            # order). Yielding to the scheduler here is intended to give the thread we
+            # just started time to jump into the semaphore, either to execute further
+            # (until the semaphore is full) or to jump into the queue at the desired
+            # position. We seem to get the ordering reliably even without this explicit
+            # yield, and ideally we would like to somehow ensure this deterministically,
+            # but this is relatively idiomatic and lets us lean on much fewer
+            # synchronization constructs. We can revisit this if users find the ordering
+            # is unreliable. It's easy to see if we've messed up, as the rich progress
+            # table prominently shows each download size and which ones are executing.
+            time.sleep(0)
+        yield err_recv
+    except BaseException as e:
+        err_recv.receive_error(e)
+    finally:
+        thread_exception = err_recv.stored_error()
+        if thread_exception is not None:
+            logger.critical("Received exception, shutting down downloader threads...")
+
+        # Ensure each thread is complete by the time the queue has exited, either by
+        # writing the full request contents, or by checking the Event from an exception.
+        for w in workers:
+            # If the user (reasonably) wants to hit ^C again to try to make it close
+            # faster, we want to avoid spewing out a ton of error text, but at least
+            # let's let them know we hear them and we're trying to shut down!
+            while w.is_alive():
+                try:
+                    w.join()
+                except BaseException:
+                    logger.critical("Shutting down worker threads, please wait...")
+
+        if thread_exception is not None:
+            raise thread_exception
+
+
+def _copy_chunks(
+    output_queue: Queue[tuple[Link, Path, str | None] | BaseException],
+    error_flag: Event,
+    semaphore: Semaphore,
+    cache_semantics: _CacheSemantics,
+    resume_retries: int,
+    location: Path,
+    progress: BatchedProgress,
+    download_info: tuple[Link, TaskID, str, int | None],
+) -> None:
+    link, task_id, filename, maybe_len = download_info
+    # link, task_id, filepath, content_file, resp, download = download_info
+    download_semantics = _ParallelTaskDownloadSemantics(progress, task_id, error_flag)
+
+    with semaphore:
+        try:
+            with download_semantics:
+                resp = cache_semantics.http_get(link)
+                download_size = _get_http_response_size(resp)
+
+                assert filename == _get_http_response_filename(
+                    resp.headers, resp.url, link
+                )
+                filepath = location / filename
+                with filepath.open("wb") as content_file:
+                    download = _FileDownload(link, content_file, download_size)
+                    lifecycle = _DownloadLifecycle(
+                        cache_semantics,
+                        download_semantics,
+                        resume_retries,
+                    )
+                    resp = lifecycle.execute(download, resp)
+
+                content_type = resp.headers.get("Content-Type")
+                output_queue.put((link, filepath, content_type))
+        except _EarlyReturn:
+            return
+        except BaseException as e:
+            output_queue.put(e)
+
+
+class _EarlyReturn(Exception): ...
+
+
+class _ParallelTaskDownloadSemantics(_DownloadSemantics):
+    def __init__(
+        self, batched_progress: BatchedProgress, task_id: TaskID, error_flag: Event
+    ) -> None:
+        self._batched_progress = batched_progress
+        self._task_id = task_id
+        self._error_flag = error_flag
+
+    def __enter__(self) -> None:
+        # Check if another thread exited with an exception before we started.
+        if self._error_flag.is_set():
+            raise _EarlyReturn
+
+        # Notify that the current task has begun.
+        self._batched_progress.start_subtask(self._task_id)
+
+    def __exit__(self, *exc: Any) -> None:
+        # Notify of completion.
+        self._batched_progress.finish_subtask(self._task_id)
+
+    def prepare_response_chunks(
+        self, download: _FileDownload, resp: Response
+    ) -> Iterable[bytes]:
+        self._batched_progress.reset_subtask(self._task_id, download.bytes_received)
+
+        _log_download_link(
+            download.link,
+            total_length=download.size,
+            range_start=download.bytes_received,
+            link_is_from_cache=is_from_cache(resp),
+            level=logging.DEBUG,
+        )
+
+        # TODO: different chunk size for batched downloads?
+        return response_chunks(resp)
+
+    def process_chunk(self, download: _FileDownload, chunk: bytes) -> None:
+        # Check if another thread exited with an exception between chunks.
+        if self._error_flag.is_set():
+            raise _EarlyReturn
+        # Copy chunk to output file.
+        download.write_chunk(chunk)
+        # Update progress.
+        self._batched_progress.advance_subtask(self._task_id, len(chunk))
+
+
 class BatchDownloader:
     def __init__(
         self,
@@ -453,12 +612,21 @@ class BatchDownloader:
         resume_retries: int,
         quiet: bool = False,
         color: bool = True,
+        max_parallelism: int | None = None,
     ) -> None:
         self._cache_semantics = _CacheSemantics(session)
         self._progress_bar = progress_bar
         self._resume_retries = resume_retries
         self._quiet = quiet
         self._color = color
+
+        if max_parallelism is None:
+            max_parallelism = 1
+        if max_parallelism < 1:
+            raise CommandError(
+                f"invalid batch download parallelism {max_parallelism}: must be >=1"
+            )
+        self._max_parallelism: int = max_parallelism
 
     def _retrieve_lengths(
         self, links: Iterable[Link]
@@ -476,41 +644,18 @@ class BatchDownloader:
                 break
             assert total_length is not None
             total_length += maybe_len
-        # Sort downloads to perform larger downloads first.
+        # If lengths are available, sort downloads to perform larger downloads first.
         if total_length is not None:
             # Extract the length from each tuple entry.
             links_with_lengths.sort(key=lambda t: cast(int, t[1][0]), reverse=True)
         return total_length, links_with_lengths
 
-    def _prepare_tasks(
-        self,
-        location: Path,
-        link_tasks: Iterable[tuple[Link, TaskID, str, int | None]],
-    ) -> Iterator[tuple[Link, TaskID, Path, BinaryIO, Response, _FileDownload]]:
-        for link, task_id, filename, maybe_len in link_tasks:
-            resp = self._cache_semantics.http_get(link)
-            download_size = _get_http_response_size(resp)
-
-            assert filename == _get_http_response_filename(resp.headers, resp.url, link)
-            filepath = location / filename
-            content_file = filepath.open("wb")
-            download = _FileDownload(link, content_file, download_size)
-
-            _log_download_link(
-                link,
-                total_length=maybe_len,
-                range_start=download.bytes_received,
-                link_is_from_cache=is_from_cache(resp),
-            )
-            yield link, task_id, filepath, content_file, resp, download
-
     def _construct_tasks_with_progression(
         self,
         links: Iterable[Link],
-        location: Path,
     ) -> tuple[
         BatchedProgress,
-        list[tuple[Link, TaskID, Path, BinaryIO, Response, _FileDownload]],
+        list[tuple[Link, TaskID, str, int | None]],
     ]:
         total_length, links_with_lengths = self._retrieve_lengths(links)
 
@@ -524,58 +669,69 @@ class BatchDownloader:
         )
 
         link_tasks: list[tuple[Link, TaskID, str, int | None]] = []
+        #!!!! link_tasks: list[tuple[Link, TaskID, str]] = []
         for link, (maybe_len, filename) in links_with_lengths:
             task_id = batched_progress.add_subtask(filename, maybe_len)
             link_tasks.append((link, task_id, filename, maybe_len))
 
-        return batched_progress, list(self._prepare_tasks(location, link_tasks))
-
-    class _BatchCurrentDownloadSemantics(_DownloadSemantics):
-        def __init__(self, batched_progress: BatchedProgress) -> None:
-            self._batched_progress = batched_progress
-            self.task_id: TaskID | None = None
-
-        def __enter__(self) -> None:
-            assert self.task_id is not None
-            # Notify that the current task has begun.
-            self._batched_progress.start_subtask(self.task_id)
-
-        def __exit__(self, *exc: Any) -> None:
-            assert self.task_id is not None
-            # Notify of completion.
-            self._batched_progress.finish_subtask(self.task_id)
-            self.task_id = None
-
-        def prepare_response_chunks(
-            self, download: _FileDownload, resp: Response
-        ) -> Iterable[bytes]:
-            # TODO: different chunk size for batched downloads?
-            return response_chunks(resp)
-
-        def process_chunk(self, download: _FileDownload, chunk: bytes) -> None:
-            assert self.task_id is not None
-            download.write_chunk(chunk)
-            self._batched_progress.advance_subtask(self.task_id, len(chunk))
+        return batched_progress, link_tasks
 
     def __call__(
         self, links: Iterable[Link], location: Path
     ) -> Iterable[tuple[Link, tuple[Path, str | None]]]:
         """Download the files given by links into location."""
-        progress, tasks = self._construct_tasks_with_progression(links, location)
-        download_semantics = self._BatchCurrentDownloadSemantics(progress)
+        progress, tasks = self._construct_tasks_with_progression(links)
+
+        # Set up state to track thread progress, including inner exceptions.
+        total_downloads: int = len(tasks)
+        completed_downloads: int = 0
+        q: Queue[tuple[Link, Path, str | None] | BaseException] = Queue()
+        error_flag = Event()
+        # Limit downloads to 10 at a time so we can reuse our connection pool.
+        semaphore = Semaphore(value=self._max_parallelism)
+
+        # Distribute request i/o across equivalent threads.
+        # NB: event-based/async is likely a better model than thread-per-request, but
+        #     (1) pip doesn't use async anywhere else yet,
+        #     (2) this is at most one thread per dependency in the graph (less if any
+        #         are cached)
+        #     (3) pip is fundamentally run in a synchronous context with a clear start
+        #         and end, instead of e.g. as a server which needs to process
+        #         arbitrary further requests at the same time.
+        # For these reasons, thread-per-request should be sufficient for our needs.
+        workers = [
+            Thread(
+                target=_copy_chunks,
+                args=(
+                    q,
+                    error_flag,
+                    semaphore,
+                    self._cache_semantics,
+                    self._resume_retries,
+                    location,
+                    progress,
+                    download_info,
+                ),
+            )
+            for download_info in tasks
+        ]
 
         with progress:
-            for link, task_id, filepath, content_file, resp, download in tasks:
-                download_semantics.task_id = task_id
-
-                with content_file, download_semantics:
-                    lifecycle = _DownloadLifecycle(
-                        self._cache_semantics,
-                        download_semantics,
-                        self._resume_retries,
-                    )
-                    resp = lifecycle.execute(download, resp)
-
-                content_type = resp.headers.get("Content-Type")
-                # Yield completed link and download path.
-                yield link, (filepath, content_type)
+            with _spawn_workers(workers, error_flag) as err_recv:
+                # Read completed downloads from queue, or extract the exception.
+                while completed_downloads < total_downloads:
+                    # Get item from queue, but also check for ^C from user!
+                    try:
+                        item = q.get()
+                    except BaseException as e:
+                        err_recv.receive_error(e)
+                        break
+                    # Now see if the worker thread failed with an exception (unlikely).
+                    if isinstance(item, BaseException):
+                        err_recv.receive_error(item)
+                        break
+                    # Otherwise, the thread succeeded, and we can pass it to
+                    # the preparer!
+                    link, filepath, content_type = item
+                    completed_downloads += 1
+                    yield link, (filepath, content_type)

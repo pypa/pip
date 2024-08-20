@@ -283,6 +283,16 @@ class BatchedProgress(abc.ABC):
         ...
 
     @abc.abstractmethod
+    def reset_subtask(self, task_id: TaskID, to_steps: int = 0) -> None:
+        """Given a subtask id returned by .add_subtask(), reset progress to exactly the
+        given number of steps.
+
+        This is similar to .advance_subtask(), but intended to use when restarting or
+        resuming processes, such as when a download is interrupted.
+        """
+        ...
+
+    @abc.abstractmethod
     def advance_subtask(self, task_id: TaskID, steps: int) -> None:
         """Given a subtask id returned by .add_subtask(), progress the given number of
         steps.
@@ -359,6 +369,9 @@ class BatchedNoOpProgressBar(BatchedProgress):
     def start_subtask(self, task_id: TaskID) -> None:
         pass
 
+    def reset_subtask(self, task_id: TaskID, to_steps: int = 0) -> None:
+        pass
+
     def advance_subtask(self, task_id: TaskID, steps: int) -> None:
         pass
 
@@ -399,6 +412,7 @@ class BatchedRawProgressBar(BatchedProgress):
         self._prefix = prefix
         self._total_progress = 0
         self._subtasks: list[tuple[str, int | None]] = []
+        self._subtask_progress: list[int] = []
         self._rate_limiter = RateLimiter(0.25)
         self._stream = sys.stdout
         self._quiet = quiet
@@ -406,6 +420,7 @@ class BatchedRawProgressBar(BatchedProgress):
     def add_subtask(self, description: str, total: int | None) -> TaskID:
         task_id = len(self._subtasks)
         self._subtasks.append((description, total))
+        self._subtask_progress.append(0)
         return TaskID(task_id)
 
     def _write_immediate(self, line: str) -> None:
@@ -424,6 +439,7 @@ class BatchedRawProgressBar(BatchedProgress):
         return len(self._subtasks)
 
     def start_subtask(self, task_id: TaskID) -> None:
+        assert self._subtask_progress[task_id] == 0
         description, total = self._subtasks[task_id]
         total_fmt = self._format_total(total)
         task_index = task_id + 1
@@ -443,7 +459,16 @@ class BatchedRawProgressBar(BatchedProgress):
             f"Progress {pcnt}% {self._total_progress} of {total_fmt} bytes"
         )
 
+    def reset_subtask(self, task_id: TaskID, to_steps: int = 0) -> None:
+        self._total_progress -= self._subtask_progress[task_id]
+        self._subtask_progress[task_id] = 0
+        self.advance_subtask(task_id, to_steps)
+
     def advance_subtask(self, task_id: TaskID, steps: int) -> None:
+        self._subtask_progress[task_id] += steps
+        _description, total = self._subtasks[task_id]
+        if total is not None:
+            assert self._subtask_progress[task_id] <= total
         self._total_progress += steps
         if self._rate_limiter.ready() or self._total_progress == self._total_bytes:
             self._write_progress()
@@ -495,6 +520,7 @@ class BatchedRichProgressBar(BatchedProgress):
         self._total_task_id = total_task_id
         self._progress = progress
         self._total_bytes_task_id = total_bytes_task_id
+        self._subtask_progress: dict[TaskID, int] = {}
         self._quiet = quiet
         self._color = color
         self._live: Live | None = None
@@ -514,15 +540,25 @@ class BatchedRichProgressBar(BatchedProgress):
         )
 
     def start_subtask(self, task_id: TaskID) -> None:
+        assert task_id not in self._subtask_progress
         self._progress.start_task(task_id)
+        self._subtask_progress[task_id] = 0
+
+    def reset_subtask(self, task_id: TaskID, to_steps: int = 0) -> None:
+        cur_progress = self._subtask_progress[task_id]
+        self._subtask_progress[task_id] = to_steps
+        self._progress.advance(self._total_bytes_task_id, -cur_progress)
+        self._progress.reset(task_id, completed=to_steps)
 
     def advance_subtask(self, task_id: TaskID, steps: int) -> None:
+        self._subtask_progress[task_id] += steps
         self._progress.advance(self._total_bytes_task_id, steps)
         self._progress.advance(task_id, steps)
 
     def finish_subtask(self, task_id: TaskID) -> None:
         self._task_progress.advance(self._total_task_id)
         self._progress.remove_task(task_id)
+        del self._subtask_progress[task_id]
 
     def __enter__(self) -> BatchedRichProgressBar:
         """Generate a table with two rows so different columns can be used.
