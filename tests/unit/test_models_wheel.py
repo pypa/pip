@@ -3,7 +3,7 @@ from pip._vendor.packaging.tags import Tag
 
 from pip._internal.exceptions import InvalidWheelFilename
 from pip._internal.models.wheel import Wheel
-from pip._internal.utils import compatibility_tags
+from pip._internal.utils import compatibility_tags, deprecation
 
 
 class TestWheelFile:
@@ -175,5 +175,6 @@ class TestWheelFile:
         Test that we convert '_' to '-' for versions parsed out of wheel
         filenames
         """
-        w = Wheel("simple-0.1_1-py2-none-any.whl")
+        with pytest.warns(deprecation.PipDeprecationWarning):
+            w = Wheel("simple-0.1_1-py2-none-any.whl")
         assert w.version == "0.1-1"
