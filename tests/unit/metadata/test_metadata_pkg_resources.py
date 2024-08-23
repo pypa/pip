@@ -4,7 +4,9 @@ from typing import List, cast
 from unittest import mock
 
 import pytest
+from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.specifiers import SpecifierSet
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.exceptions import UnsupportedWheel
@@ -106,10 +108,10 @@ def test_wheel_metadata_works() -> None:
 
     assert name == dist.canonical_name == dist.raw_name
     assert parse_version(version) == dist.version
-    assert set(extras) == set(dist.iter_provided_extras())
+    assert {canonicalize_name(e) for e in extras} == set(dist.iter_provided_extras())
     assert [require_a] == [str(r) for r in dist.iter_dependencies()]
-    assert [require_a, require_b] == [
-        str(r) for r in dist.iter_dependencies(["also_b"])
+    assert [Requirement(require_a), Requirement(require_b)] == [
+        Requirement(str(r)) for r in dist.iter_dependencies(["also_b"])
     ]
     assert metadata.as_string() == dist.metadata.as_string()
     assert SpecifierSet(requires_python) == dist.requires_python

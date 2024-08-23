@@ -7,6 +7,7 @@ import site
 from optparse import SUPPRESS_HELP, Values
 from typing import List, Optional
 
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.rich import print_json
 
 from pip._internal.cache import WheelCache
@@ -14,7 +15,6 @@ from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.req_command import (
     RequirementCommand,
-    warn_if_run_as_root,
     with_cleanup,
 )
 from pip._internal.cli.status_codes import ERROR, SUCCESS
@@ -37,6 +37,7 @@ from pip._internal.utils.misc import (
     ensure_dir,
     get_pip_version,
     protect_pip_from_modification_on_windows,
+    warn_if_run_as_root,
     write_output,
 )
 from pip._internal.utils.temp_dir import TempDirectory
@@ -370,6 +371,7 @@ class InstallCommand(RequirementCommand):
                 force_reinstall=options.force_reinstall,
                 upgrade_strategy=upgrade_strategy,
                 use_pep517=options.use_pep517,
+                py_version_info=options.python_version,
             )
 
             self.trace_basic_info(finder)
@@ -406,6 +408,12 @@ class InstallCommand(RequirementCommand):
                 # If we're not replacing an already installed pip,
                 # we're not modifying it.
                 modifying_pip = pip_req.satisfied_by is None
+                if modifying_pip:
+                    # Eagerly import this module to avoid crashes. Otherwise, this
+                    # module would be imported *after* pip was replaced, resulting in
+                    # crashes if the new self_outdated_check module was incompatible
+                    # with the rest of pip that's already imported.
+                    import pip._internal.self_outdated_check  # noqa: F401
             protect_pip_from_modification_on_windows(modifying_pip=modifying_pip)
 
             reqs_to_build = [
@@ -424,8 +432,8 @@ class InstallCommand(RequirementCommand):
 
             if build_failures:
                 raise InstallationError(
-                    "Could not build wheels for {}, which is required to "
-                    "install pyproject.toml-based projects".format(
+                    "ERROR: Failed to build installable wheels for some "
+                    "pyproject.toml based projects ({})".format(
                         ", ".join(r.name for r in build_failures)  # type: ignore
                     )
                 )
@@ -466,17 +474,21 @@ class InstallCommand(RequirementCommand):
             )
             env = get_environment(lib_locations)
 
+            # Display a summary of installed packages, with extra care to
+            # display a package name as it was requested by the user.
             installed.sort(key=operator.attrgetter("name"))
-            items = []
-            for result in installed:
-                item = result.name
-                try:
-                    installed_dist = env.get_distribution(item)
-                    if installed_dist is not None:
-                        item = f"{item}-{installed_dist.version}"
-                except Exception:
-                    pass
-                items.append(item)
+            summary = []
+            installed_versions = {}
+            for distribution in env.iter_all_distributions():
+                installed_versions[distribution.canonical_name] = distribution.version
+            for package in installed:
+                display_name = package.name
+                version = installed_versions.get(canonicalize_name(display_name), None)
+                if version:
+                    text = f"{display_name}-{version}"
+                else:
+                    text = display_name
+                summary.append(text)
 
             if conflicts is not None:
                 self._warn_about_conflicts(
@@ -484,7 +496,7 @@ class InstallCommand(RequirementCommand):
                     resolver_variant=self.determine_resolver_variant(options),
                 )
 
-            installed_desc = " ".join(items)
+            installed_desc = " ".join(summary)
             if installed_desc:
                 write_output(
                     "Successfully installed %s",
@@ -498,7 +510,7 @@ class InstallCommand(RequirementCommand):
                 show_traceback,
                 options.use_user_site,
             )
-            logger.error(message, exc_info=show_traceback)  # noqa
+            logger.error(message, exc_info=show_traceback)
 
             return ERROR
 
@@ -592,7 +604,7 @@ class InstallCommand(RequirementCommand):
                 "source of the following dependency conflicts."
             )
         else:
-            assert resolver_variant == "2020-resolver"
+            assert resolver_variant == "resolvelib"
             parts.append(
                 "pip's dependency resolver does not currently take into account "
                 "all the packages that are installed. This behaviour is the "
@@ -604,12 +616,8 @@ class InstallCommand(RequirementCommand):
             version = package_set[project_name][0]
             for dependency in missing[project_name]:
                 message = (
-                    "{name} {version} requires {requirement}, "
+                    f"{project_name} {version} requires {dependency[1]}, "
                     "which is not installed."
-                ).format(
-                    name=project_name,
-                    version=version,
-                    requirement=dependency[1],
                 )
                 parts.append(message)
 
@@ -625,7 +633,7 @@ class InstallCommand(RequirementCommand):
                     requirement=req,
                     dep_name=dep_name,
                     dep_version=dep_version,
-                    you=("you" if resolver_variant == "2020-resolver" else "you'll"),
+                    you=("you" if resolver_variant == "resolvelib" else "you'll"),
                 )
                 parts.append(message)
 

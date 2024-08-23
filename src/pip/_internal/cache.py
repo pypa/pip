@@ -44,7 +44,7 @@ class Cache:
         """Get parts of part that must be os.path.joined with cache_dir"""
 
         # We want to generate an url to use as our cache key, we don't want to
-        # just re-use the URL because it might have other items in the fragment
+        # just reuse the URL because it might have other items in the fragment
         # and we don't care about those.
         key_parts = {"url": link.url_without_fragment}
         if link.hash_name is not None and link.hash is not None:
@@ -78,12 +78,10 @@ class Cache:
         if can_not_cache:
             return []
 
-        candidates = []
         path = self.get_path_for_link(link)
         if os.path.isdir(path):
-            for candidate in os.listdir(path):
-                candidates.append((candidate, path))
-        return candidates
+            return [(candidate, path) for candidate in os.listdir(path)]
+        return []
 
     def get_path_for_link(self, link: Link) -> str:
         """Return a directory to store cached items in for link."""

@@ -54,18 +54,18 @@ class TestTargetPython:
         "kwargs, expected",
         [
             ({}, ""),
-            (dict(py_version_info=(3, 6)), "version_info='3.6'"),
+            ({"py_version_info": (3, 6)}, "version_info='3.6'"),
             (
-                dict(platforms=["darwin"], py_version_info=(3, 6)),
+                {"platforms": ["darwin"], "py_version_info": (3, 6)},
                 "platforms=['darwin'] version_info='3.6'",
             ),
             (
-                dict(
-                    platforms=["darwin"],
-                    py_version_info=(3, 6),
-                    abis=["cp36m"],
-                    implementation="cp",
-                ),
+                {
+                    "platforms": ["darwin"],
+                    "py_version_info": (3, 6),
+                    "abis": ["cp36m"],
+                    "implementation": "cp",
+                },
                 (
                     "platforms=['darwin'] version_info='3.6' abis=['cp36m'] "
                     "implementation='cp'"
@@ -88,37 +88,37 @@ class TestTargetPython:
             ((3, 7, 3), "37"),
             # Check a minor version with two digits.
             ((3, 10, 1), "310"),
-            # Check that versions=None is passed to get_tags().
+            # Check that versions=None is passed to get_sorted_tags().
             (None, None),
         ],
     )
     @mock.patch("pip._internal.models.target_python.get_supported")
-    def test_get_tags(
+    def test_get_sorted_tags(
         self,
         mock_get_supported: mock.Mock,
         py_version_info: Optional[Tuple[int, ...]],
         expected_version: Optional[str],
     ) -> None:
-        mock_get_supported.return_value = ["tag-1", "tag-2"]
+        dummy_tags = [Tag("py4", "none", "any"), Tag("py5", "none", "any")]
+        mock_get_supported.return_value = dummy_tags
 
         target_python = TargetPython(py_version_info=py_version_info)
-        actual = target_python.get_tags()
-        assert actual == ["tag-1", "tag-2"]
+        actual = target_python.get_sorted_tags()
+        assert actual == dummy_tags
 
-        actual = mock_get_supported.call_args[1]["version"]
-        assert actual == expected_version
+        assert mock_get_supported.call_args[1]["version"] == expected_version
 
         # Check that the value was cached.
-        assert target_python._valid_tags == ["tag-1", "tag-2"]
+        assert target_python._valid_tags == dummy_tags
 
-    def test_get_tags__uses_cached_value(self) -> None:
+    def test_get_unsorted_tags__uses_cached_value(self) -> None:
         """
-        Test that get_tags() uses the cached value.
+        Test that get_unsorted_tags() uses the cached value.
         """
         target_python = TargetPython(py_version_info=None)
-        target_python._valid_tags = [
+        target_python._valid_tags_set = {
             Tag("py2", "none", "any"),
             Tag("py3", "none", "any"),
-        ]
-        actual = target_python.get_tags()
-        assert actual == [Tag("py2", "none", "any"), Tag("py3", "none", "any")]
+        }
+        actual = target_python.get_unsorted_tags()
+        assert actual == {Tag("py2", "none", "any"), Tag("py3", "none", "any")}

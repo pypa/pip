@@ -1,5 +1,6 @@
 """Tests for the config command
 """
+
 import re
 import textwrap
 

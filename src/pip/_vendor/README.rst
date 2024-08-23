@@ -80,12 +80,7 @@ instead opt to patch the software they distribute to debundle it and make it
 rely on the global versions of the software that they already have packaged
 (which may have its own patches applied to it). We (the pip team) would prefer
 it if pip was *not* debundled in this manner due to the above reasons and
-instead we would prefer it if pip would be left intact as it is now. The one
-exception to this, is it is acceptable to remove the
-``pip/_vendor/requests/cacert.pem`` file provided you ensure that the
-``ssl.get_default_verify_paths().cafile`` API returns the correct CA bundle for
-your system. This will ensure that pip will use your system provided CA bundle
-instead of the copy bundled with pip.
+instead we would prefer it if pip would be left intact as it is now.
 
 In the longer term, if someone has a *portable* solution to the above problems,
 other than the bundling method we currently use, that doesn't add additional

@@ -2,10 +2,12 @@ import os
 import pathlib
 import sys
 import textwrap
-from typing import TYPE_CHECKING, Callable, Dict, List, Tuple
+from typing import TYPE_CHECKING, Callable, Dict, List, Protocol, Tuple
 
 import pytest
+from packaging.utils import canonicalize_name
 
+from tests.conftest import ScriptFactory
 from tests.lib import (
     PipTestEnvironment,
     create_basic_sdist_for_package,
@@ -13,10 +15,8 @@ from tests.lib import (
     create_test_package_with_setup,
 )
 from tests.lib.direct_url import get_created_direct_url
+from tests.lib.venv import VirtualEnvironment
 from tests.lib.wheel import make_wheel
-
-if TYPE_CHECKING:
-    from typing import Protocol
 
 MakeFakeWheel = Callable[[str, str, str], pathlib.Path]
 
@@ -25,13 +25,17 @@ def assert_editable(script: PipTestEnvironment, *args: str) -> None:
     # This simply checks whether all of the listed packages have a
     # corresponding .egg-link file installed.
     # TODO: Implement a more rigorous way to test for editable installations.
-    egg_links = {f"{arg}.egg-link" for arg in args}
-    assert egg_links <= set(
-        os.listdir(script.site_packages_path)
+    egg_links = {f"{canonicalize_name(arg)}.egg-link" for arg in args}
+    actual_egg_links = {
+        f"{canonicalize_name(p.stem)}.egg-link"
+        for p in script.site_packages_path.glob("*.egg-link")
+    }
+    assert (
+        egg_links <= actual_egg_links
     ), f"{args!r} not all found in {script.site_packages_path!r}"
 
 
-@pytest.fixture()
+@pytest.fixture
 def make_fake_wheel(script: PipTestEnvironment) -> MakeFakeWheel:
     def _make_fake_wheel(name: str, version: str, wheel_tag: str) -> pathlib.Path:
         wheel_house = script.scratch_path.joinpath("wheelhouse")
@@ -412,6 +416,30 @@ def test_new_resolver_requires_python_error(script: PipTestEnvironment) -> None:
         "{}.{}.{} not in '<2'".format(*sys.version_info[:3])
     )
     assert message in result.stderr, str(result)
+
+
+def test_new_resolver_requires_python_ok_with_python_version_flag(
+    script: PipTestEnvironment,
+) -> None:
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+        requires_python="<3",
+    )
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "--dry-run",
+        "--python-version=2",
+        "--only-binary=:all:",
+        "base",
+    )
+
+    assert not result.stderr, str(result)
 
 
 def test_new_resolver_installed(script: PipTestEnvironment) -> None:
@@ -926,8 +954,7 @@ if TYPE_CHECKING:
             version: str,
             requires: List[str],
             extras: Dict[str, List[str]],
-        ) -> str:
-            ...
+        ) -> str: ...
 
 
 def _local_with_setup(
@@ -1183,7 +1210,7 @@ def test_new_resolver_presents_messages_when_backtracking_a_lot(
     for index in range(1, N + 1):
         A_version = f"{index}.0.0"
         B_version = f"{index}.0.0"
-        C_version = "{index_minus_one}.0.0".format(index_minus_one=index - 1)
+        C_version = f"{index - 1}.0.0"
 
         depends = ["B == " + B_version]
         if index != 1:
@@ -1845,7 +1872,7 @@ def test_new_resolver_succeeds_on_matching_constraint_and_requirement(
 
     script.assert_installed(test_pkg="0.1.0")
     if editable:
-        assert_editable(script, "test-pkg")
+        assert_editable(script, "test_pkg")
 
 
 def test_new_resolver_applies_url_constraint_to_dep(script: PipTestEnvironment) -> None:
@@ -2272,6 +2299,103 @@ def test_new_resolver_dont_backtrack_on_extra_if_base_constrained(
     script.assert_installed(pkg="1.0", dep="1.0")
 
 
+@pytest.mark.parametrize("swap_order", [True, False])
+@pytest.mark.parametrize("two_extras", [True, False])
+def test_new_resolver_dont_backtrack_on_extra_if_base_constrained_in_requirement(
+    script: PipTestEnvironment, swap_order: bool, two_extras: bool
+) -> None:
+    """
+    Verify that a requirement with a constraint on a package (either on the base
+    on the base with an extra) causes the resolver to infer the same constraint for
+    any (other) extras with the same base.
+
+    :param swap_order: swap the order the install specifiers appear in
+    :param two_extras: also add an extra for the constrained specifier
+    """
+    create_basic_wheel_for_package(script, "dep", "1.0")
+    create_basic_wheel_for_package(
+        script, "pkg", "1.0", extras={"ext1": ["dep"], "ext2": ["dep"]}
+    )
+    create_basic_wheel_for_package(
+        script, "pkg", "2.0", extras={"ext1": ["dep"], "ext2": ["dep"]}
+    )
+
+    to_install: Tuple[str, str] = (
+        "pkg[ext1]",
+        "pkg[ext2]==1.0" if two_extras else "pkg==1.0",
+    )
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        *(to_install if not swap_order else reversed(to_install)),
+    )
+    assert "pkg-2.0" not in result.stdout, "Should not try 2.0 due to constraint"
+    script.assert_installed(pkg="1.0", dep="1.0")
+
+
+@pytest.mark.parametrize("swap_order", [True, False])
+@pytest.mark.parametrize("two_extras", [True, False])
+def test_new_resolver_dont_backtrack_on_conflicting_constraints_on_extras(
+    tmpdir: pathlib.Path,
+    virtualenv: VirtualEnvironment,
+    script_factory: ScriptFactory,
+    swap_order: bool,
+    two_extras: bool,
+) -> None:
+    """
+    Verify that conflicting constraints on the same package with different
+    extras cause the resolver to trivially reject the request rather than
+    trying any candidates.
+
+    :param swap_order: swap the order the install specifiers appear in
+    :param two_extras: also add an extra for the second specifier
+    """
+    script: PipTestEnvironment = script_factory(
+        tmpdir.joinpath("workspace"),
+        virtualenv,
+        {**os.environ, "PIP_RESOLVER_DEBUG": "1"},
+    )
+    create_basic_wheel_for_package(script, "dep", "1.0")
+    create_basic_wheel_for_package(
+        script, "pkg", "1.0", extras={"ext1": ["dep"], "ext2": ["dep"]}
+    )
+    create_basic_wheel_for_package(
+        script, "pkg", "2.0", extras={"ext1": ["dep"], "ext2": ["dep"]}
+    )
+
+    to_install: Tuple[str, str] = (
+        "pkg[ext1]>1",
+        "pkg[ext2]==1.0" if two_extras else "pkg==1.0",
+    )
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        *(to_install if not swap_order else reversed(to_install)),
+        expect_error=True,
+    )
+    assert (
+        "pkg-2.0" not in result.stdout or "pkg-1.0" not in result.stdout
+    ), "Should only try one of 1.0, 2.0 depending on order"
+    assert "Reporter.starting()" in result.stdout, (
+        "This should never fail unless the debug reporting format has changed,"
+        " in which case the other assertions in this test need to be reviewed."
+    )
+    assert (
+        "Reporter.rejecting_candidate" not in result.stdout
+    ), "Should be able to conclude conflict before even selecting a candidate"
+    assert (
+        "conflict is caused by" in result.stdout
+    ), "Resolver should be trivially able to find conflict cause"
+
+
 def test_new_resolver_respect_user_requested_if_extra_is_installed(
     script: PipTestEnvironment,
 ) -> None:
@@ -2305,6 +2429,51 @@ def test_new_resolver_respect_user_requested_if_extra_is_installed(
         "pkg2",
     )
     script.assert_installed(pkg3="1.0", pkg2="2.0", pkg1="1.0")
+
+
+def test_new_resolver_constraint_on_link_with_extra(
+    script: PipTestEnvironment,
+) -> None:
+    """
+    Verify that installing works from a link with both an extra and a constraint.
+    """
+    wheel: pathlib.Path = create_basic_wheel_for_package(
+        script, "pkg", "1.0", extras={"ext": []}
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        # no index, no --find-links: only the explicit path
+        "--no-index",
+        f"{wheel}[ext]",
+        "pkg==1",
+    )
+    script.assert_installed(pkg="1.0")
+
+
+def test_new_resolver_constraint_on_link_with_extra_indirect(
+    script: PipTestEnvironment,
+) -> None:
+    """
+    Verify that installing works from a link with an extra if there is an indirect
+    dependency on that same package with the same extra (#12372).
+    """
+    wheel_one: pathlib.Path = create_basic_wheel_for_package(
+        script, "pkg1", "1.0", extras={"ext": []}
+    )
+    wheel_two: pathlib.Path = create_basic_wheel_for_package(
+        script, "pkg2", "1.0", depends=["pkg1[ext]==1.0"]
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        # no index, no --find-links: only the explicit path
+        wheel_two,
+        f"{wheel_one}[ext]",
+    )
+    script.assert_installed(pkg1="1.0", pkg2="1.0")
 
 
 def test_new_resolver_do_not_backtrack_on_build_failure(
@@ -2347,3 +2516,31 @@ def test_new_resolver_works_when_failing_package_builds_are_disallowed(
     )
 
     script.assert_installed(pkg2="1.0", pkg1="1.0")
+
+
+@pytest.mark.parametrize("swap_order", [True, False])
+def test_new_resolver_comes_from_with_extra(
+    script: PipTestEnvironment, swap_order: bool
+) -> None:
+    """
+    Verify that reporting where a dependency comes from is accurate when it comes
+    from a package with an extra.
+
+    :param swap_order: swap the order the install specifiers appear in
+    """
+    create_basic_wheel_for_package(script, "dep", "1.0")
+    create_basic_wheel_for_package(script, "pkg", "1.0", extras={"ext": ["dep"]})
+
+    to_install: Tuple[str, str] = ("pkg", "pkg[ext]")
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        *(to_install if not swap_order else reversed(to_install)),
+    )
+    assert "(from pkg[ext])" in result.stdout
+    assert "(from pkg)" not in result.stdout
+    script.assert_installed(pkg="1.0", dep="1.0")

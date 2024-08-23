@@ -1,0 +1,1 @@
+Update ruff in pre-commit to 0.5.6

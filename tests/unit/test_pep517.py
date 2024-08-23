@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from textwrap import dedent
+from typing import Tuple
 
 import pytest
 
@@ -10,7 +11,7 @@ from tests.lib import TestData
 
 
 @pytest.mark.parametrize(
-    ("source", "expected"),
+    "source, expected",
     [
         ("pep517_setup_and_pyproject", True),
         ("pep517_setup_only", False),
@@ -45,7 +46,7 @@ def test_use_pep517_rejects_setup_cfg_only(shared_data: TestData) -> None:
 
 
 @pytest.mark.parametrize(
-    ("source", "msg"),
+    "source, msg",
     [
         ("pep517_setup_and_pyproject", "specifies a build backend"),
         ("pep517_pyproject_only", "does not have a setup.py"),
@@ -71,14 +72,14 @@ def test_disabling_pep517_invalid(shared_data: TestData, source: str, msg: str) 
 
 
 @pytest.mark.parametrize(
-    ("spec",), [("./foo",), ("git+https://example.com/pkg@dev#egg=myproj",)]
+    "spec", [("./foo",), ("git+https://example.com/pkg@dev#egg=myproj",)]
 )
-def test_pep517_parsing_checks_requirements(tmpdir: Path, spec: str) -> None:
+def test_pep517_parsing_checks_requirements(tmpdir: Path, spec: Tuple[str]) -> None:
     tmpdir.joinpath("pyproject.toml").write_text(
         dedent(
             f"""
             [build-system]
-            requires = [{spec!r}]
+            requires = [{spec[0]!r}]
             build-backend = "foo"
             """
         )

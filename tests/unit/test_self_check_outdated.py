@@ -16,7 +16,7 @@ from pip._internal import self_outdated_check
 
 
 @pytest.mark.parametrize(
-    ["key", "expected"],
+    "key, expected",
     [
         (
             "/hello/world/venv",
@@ -40,7 +40,8 @@ def test_pip_self_version_check_calls_underlying_implementation(
 ) -> None:
     # GIVEN
     mock_session = Mock()
-    fake_options = Values(dict(cache_dir=str(tmpdir)))
+    fake_options = Values({"cache_dir": str(tmpdir)})
+    mocked_function.return_value = None
 
     # WHEN
     self_outdated_check.pip_self_version_check(mock_session, fake_options)
@@ -49,14 +50,16 @@ def test_pip_self_version_check_calls_underlying_implementation(
     mocked_state.assert_called_once_with(cache_dir=str(tmpdir))
     mocked_function.assert_called_once_with(
         state=mocked_state(cache_dir=str(tmpdir)),
-        current_time=datetime.datetime(1970, 1, 2, 11, 0, 0),
+        current_time=datetime.datetime(
+            1970, 1, 2, 11, 0, 0, tzinfo=datetime.timezone.utc
+        ),
         local_version=ANY,
         get_remote_version=ANY,
     )
 
 
 @pytest.mark.parametrize(
-    [
+    [  # noqa: PT006 - String representation is too long
         "installed_version",
         "remote_version",
         "stored_version",
@@ -167,7 +170,10 @@ class TestSelfCheckState:
 
         # WHEN
         state = self_outdated_check.SelfCheckState(cache_dir=str(cache_dir))
-        state.set("1.0.0", datetime.datetime(2000, 1, 1, 0, 0, 0))
+        state.set(
+            "1.0.0",
+            datetime.datetime(2000, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
+        )
 
         # THEN
         assert state._statefile_path == os.fspath(expected_path)
@@ -175,6 +181,6 @@ class TestSelfCheckState:
         contents = expected_path.read_text()
         assert json.loads(contents) == {
             "key": sys.prefix,
-            "last_check": "2000-01-01T00:00:00Z",
+            "last_check": "2000-01-01T00:00:00+00:00",
             "pypi_version": "1.0.0",
         }

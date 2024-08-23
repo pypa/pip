@@ -6,7 +6,7 @@ from tests.lib.requests_mocks import MockResponse
 
 
 @pytest.mark.parametrize(
-    ("status_code", "error_type"),
+    "status_code, error_type",
     [
         (401, "Client Error"),
         (501, "Server Error"),
@@ -21,8 +21,8 @@ def test_raise_for_status_raises_exception(status_code: int, error_type: str) ->
     with pytest.raises(NetworkConnectionError) as excinfo:
         raise_for_status(resp)
     assert str(excinfo.value) == (
-        "{} {}: Network Error for url:"
-        " http://www.example.com/whatever.tgz".format(status_code, error_type)
+        f"{status_code} {error_type}: Network Error for url:"
+        " http://www.example.com/whatever.tgz"
     )
 
 

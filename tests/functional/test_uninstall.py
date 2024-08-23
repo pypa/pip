@@ -37,6 +37,10 @@ def test_basic_uninstall(script: PipTestEnvironment) -> None:
     assert_all_changes(result, result2, [script.venv / "build", "cache"])
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 12),
+    reason="distutils is no longer available in Python 3.12+",
+)
 def test_basic_uninstall_distutils(script: PipTestEnvironment) -> None:
     """
     Test basic install and uninstall.
@@ -61,13 +65,17 @@ def test_basic_uninstall_distutils(script: PipTestEnvironment) -> None:
     result = script.pip(
         "uninstall", "distutils_install", "-y", expect_stderr=True, expect_error=True
     )
+    assert "Cannot uninstall distutils-install 0.1" in result.stderr
     assert (
-        "Cannot uninstall 'distutils-install'. It is a distutils installed "
-        "project and thus we cannot accurately determine which files belong "
-        "to it which would lead to only a partial uninstall."
+        "It is a distutils installed project and thus we cannot accurately determine "
+        "which files belong to it which would lead to only a partial uninstall."
     ) in result.stderr
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 12),
+    reason="Setuptools<64 does not support Python 3.12+",
+)
 @pytest.mark.network
 def test_basic_uninstall_with_scripts(script: PipTestEnvironment) -> None:
     """
@@ -101,6 +109,10 @@ def test_uninstall_invalid_parameter(
     assert expected_message in result.stderr
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 12),
+    reason="Setuptools<64 does not support Python 3.12+",
+)
 @pytest.mark.network
 def test_uninstall_easy_install_after_import(script: PipTestEnvironment) -> None:
     """
@@ -126,6 +138,10 @@ def test_uninstall_easy_install_after_import(script: PipTestEnvironment) -> None
     )
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 12),
+    reason="Setuptools<64 does not support Python 3.12+",
+)
 @pytest.mark.network
 def test_uninstall_trailing_newline(script: PipTestEnvironment) -> None:
     """
@@ -222,12 +238,8 @@ def test_uninstall_overlapping_package(
     "console_scripts",
     [
         "test_ = distutils_install:test",
-        pytest.param(
-            "test_:test_ = distutils_install:test_test",
-            marks=pytest.mark.xfail(
-                reason="colon not supported in wheel entry point name?"
-            ),
-        ),
+        ",test_ = distutils_install:test_test",
+        ", = distutils_install:test_test",
     ],
 )
 def test_uninstall_entry_point_colon_in_name(
@@ -337,6 +349,10 @@ def test_uninstall_console_scripts_uppercase_name(script: PipTestEnvironment) ->
     assert not script_name.exists()
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 12),
+    reason="Setuptools<64 does not support Python 3.12+",
+)
 @pytest.mark.network
 def test_uninstall_easy_installed_console_scripts(script: PipTestEnvironment) -> None:
     """
@@ -574,20 +590,16 @@ def test_uninstall_without_record_fails(
             installer_path.write_text(installer + os.linesep)
 
     result2 = script.pip("uninstall", "simple.dist", "-y", expect_error=True)
-    expected_error_message = (
-        "ERROR: Cannot uninstall simple.dist 0.1, RECORD file not found."
-    )
+    assert "Cannot uninstall simple.dist 0.1" in result2.stderr
+    assert "no RECORD file was found for simple.dist" in result2.stderr
     if not isinstance(installer, str) or not installer.strip() or installer == "pip":
-        expected_error_message += (
-            " You might be able to recover from this via: "
-            "'pip install --force-reinstall --no-deps "
-            "simple.dist==0.1'."
+        hint = (
+            "You might be able to recover from this via: "
+            "pip install --force-reinstall --no-deps simple.dist==0.1"
         )
     elif installer:
-        expected_error_message += " Hint: The package was installed by {}.".format(
-            installer
-        )
-    assert result2.stderr.rstrip() == expected_error_message
+        hint = f"The package was installed by {installer}."
+    assert f"hint: {hint}" in result2.stderr
     assert_all_changes(result.files_after, result2, ignore_changes)
 
 
@@ -657,7 +669,7 @@ def test_uninstall_editable_and_pip_install(
     script.assert_not_installed("FSPkg")
 
 
-@pytest.fixture()
+@pytest.fixture
 def move_easy_install_pth(script: PipTestEnvironment) -> Iterator[None]:
     """Move easy-install.pth out of the way for testing easy_install."""
     easy_install_pth = join(script.site_packages_path, "easy-install.pth")

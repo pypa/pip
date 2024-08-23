@@ -6,8 +6,13 @@ from pathlib import Path
 
 import pytest
 
-from tests.lib import pyversion  # noqa: F401
-from tests.lib import PipTestEnvironment, ResolverVariant, TestData, assert_all_changes
+from tests.lib import (
+    PipTestEnvironment,
+    ResolverVariant,
+    TestData,
+    assert_all_changes,
+    pyversion,  # noqa: F401
+)
 from tests.lib.local_repos import local_checkout
 from tests.lib.wheel import make_wheel
 
@@ -167,7 +172,7 @@ def test_upgrade_with_newest_already_installed(
         "install", "--upgrade", "-f", data.find_links, "--no-index", "simple"
     )
     assert not result.files_created, "simple upgraded when it should not have"
-    if resolver_variant == "2020-resolver":
+    if resolver_variant == "resolvelib":
         msg = "Requirement already satisfied"
     else:
         msg = "already up-to-date"
@@ -290,7 +295,7 @@ def test_uninstall_rollback(script: PipTestEnvironment, data: TestData) -> None:
         "-f",
         data.find_links,
         "--no-index",
-        "broken===0.2broken",
+        "broken===0.2+broken",
         expect_error=True,
     )
     assert result2.returncode == 1, str(result2)
