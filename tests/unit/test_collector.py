@@ -1012,12 +1012,17 @@ class TestLinkCollector:
         # Check that index URLs are marked as *un*cacheable.
         assert not pages[0].link.cache_link_parsing
 
+        # Skip past a couple of log messages about keyring.
+        record_tuples = caplog.record_tuples
+        assert record_tuples.pop(0)[2].startswith("Keyring provider")
+        assert record_tuples.pop(0)[2].startswith("Keyring provider")
+
         expected_message = dedent(
             """\
         1 location(s) to search for versions of twine:
         * https://pypi.org/simple/twine/"""
         )
-        assert caplog.record_tuples == [
+        assert record_tuples == [
             ("pip._internal.index.collector", logging.DEBUG, expected_message),
         ]
 
@@ -1058,12 +1063,17 @@ class TestLinkCollector:
         assert len(files) > 0
         check_links_include(files, names=["singlemodule-0.0.1.tar.gz"])
 
+        # Skip past a couple of log messages about keyring.
+        record_tuples = caplog.record_tuples
+        assert record_tuples.pop(0)[2].startswith("Keyring provider")
+        assert record_tuples.pop(0)[2].startswith("Keyring provider")
+
         expected_message = dedent(
             """\
         1 location(s) to search for versions of singlemodule:
         * https://pypi.org/simple/singlemodule/"""
         )
-        assert caplog.record_tuples == [
+        assert record_tuples == [
             ("pip._internal.index.collector", logging.DEBUG, expected_message),
         ]
 

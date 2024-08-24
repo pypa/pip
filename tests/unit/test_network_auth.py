@@ -2,21 +2,13 @@ import functools
 import os
 import subprocess
 import sys
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import pytest
 
 import pip._internal.network.auth
 from pip._internal.network.auth import MultiDomainBasicAuth
 from tests.lib.requests_mocks import MockConnection, MockRequest, MockResponse
-
-
-@pytest.fixture(autouse=True)
-def reset_keyring() -> Iterable[None]:
-    yield None
-    # Reset the state of the module between tests
-    pip._internal.network.auth.KEYRING_DISABLED = False
-    pip._internal.network.auth.get_keyring_provider.cache_clear()
 
 
 @pytest.mark.parametrize(
@@ -61,13 +53,13 @@ def test_get_credentials_parses_correctly(
         (username is None and password is None)
         or
         # Credentials were found and "cached" appropriately
-        auth.passwords["example.com"] == (username, password)
+        auth._passwords["example.com"] == (username, password)
     )
 
 
 def test_get_credentials_not_to_uses_cached_credentials() -> None:
     auth = MultiDomainBasicAuth()
-    auth.passwords["example.com"] = ("user", "pass")
+    auth._passwords["example.com"] = ("user", "pass")
 
     got = auth._get_url_and_credentials("http://foo:bar@example.com/path")
     expected = ("http://example.com/path", "foo", "bar")
@@ -76,7 +68,7 @@ def test_get_credentials_not_to_uses_cached_credentials() -> None:
 
 def test_get_credentials_not_to_uses_cached_credentials_only_username() -> None:
     auth = MultiDomainBasicAuth()
-    auth.passwords["example.com"] = ("user", "pass")
+    auth._passwords["example.com"] = ("user", "pass")
 
     got = auth._get_url_and_credentials("http://foo@example.com/path")
     expected = ("http://example.com/path", "foo", "")
@@ -85,7 +77,7 @@ def test_get_credentials_not_to_uses_cached_credentials_only_username() -> None:
 
 def test_get_credentials_uses_cached_credentials() -> None:
     auth = MultiDomainBasicAuth()
-    auth.passwords["example.com"] = ("user", "pass")
+    auth._passwords["example.com"] = ("user", "pass")
 
     got = auth._get_url_and_credentials("http://example.com/path")
     expected = ("http://example.com/path", "user", "pass")
@@ -94,7 +86,7 @@ def test_get_credentials_uses_cached_credentials() -> None:
 
 def test_get_credentials_uses_cached_credentials_only_username() -> None:
     auth = MultiDomainBasicAuth()
-    auth.passwords["example.com"] = ("user", "pass")
+    auth._passwords["example.com"] = ("user", "pass")
 
     got = auth._get_url_and_credentials("http://user@example.com/path")
     expected = ("http://example.com/path", "user", "pass")
