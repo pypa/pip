@@ -55,6 +55,9 @@ jobs:
               - "src/**"
               - "tests/**"
               - "noxfile.py"
+              # The test suite should also run when cutting a release
+              # (which is the only time this file is modified).
+              - "NEWS.rst"
         if: github.event_name == 'pull_request'
 
   packaging:
