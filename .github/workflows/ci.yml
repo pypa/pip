@@ -10,6 +10,8 @@ on:
   pull_request:
   schedule:
     - cron: 0 0 * * MON # Run every Monday at 00:00 UTC
+  workflow_dispatch:
+    # allow manual runs on branches without a PR
 
 env:
   # The "FORCE_COLOR" variable, when set to 1,
@@ -110,7 +112,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest, macos-12]
+        os: [ubuntu-latest, macos-12, macos-latest]
         python:
           - "3.8"
           - "3.9"
@@ -133,8 +135,13 @@ jobs:
           sudo apt-get install bzr
 
       - name: Install MacOS dependencies
-        if: matrix.os == 'macos-12'
-        run: brew install breezy
+        if: runner.os == 'macOS'
+        run: |
+          DEPS=breezy
+          if ! which svn; then
+            DEPS="${DEPS} subversion"
+          fi
+          brew install ${DEPS}
 
       - run: pip install nox
 
