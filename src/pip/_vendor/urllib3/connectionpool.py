@@ -423,12 +423,13 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
             pass
         except IOError as e:
             # Python 2 and macOS/Linux
-            # EPIPE and ESHUTDOWN are BrokenPipeError on Python 2, and EPROTOTYPE is needed on macOS
+            # EPIPE and ESHUTDOWN are BrokenPipeError on Python 2, and EPROTOTYPE/ECONNRESET are needed on macOS
             # https://erickt.github.io/blog/2014/11/19/adventures-in-debugging-a-potential-osx-kernel-bug/
             if e.errno not in {
                 errno.EPIPE,
                 errno.ESHUTDOWN,
                 errno.EPROTOTYPE,
+                errno.ECONNRESET,
             }:
                 raise
 
