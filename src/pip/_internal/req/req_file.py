@@ -364,7 +364,7 @@ class RequirementsFileParser:
                             req_path,
                         )
                     )
-                if req_path in self._parsed_files.keys():
+                if req_path in self._parsed_files:
                     initial_file = self._parsed_files[req_path]
                     tail = (
                         f" and again in {initial_file}"
