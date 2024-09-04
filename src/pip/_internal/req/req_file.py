@@ -324,11 +324,15 @@ class RequirementsFileParser:
     ) -> None:
         self._session = session
         self._line_parser = line_parser
+        self._parsed_files: dict[str, Optional[str]] = {}
 
     def parse(
         self, filename: str, constraint: bool
     ) -> Generator[ParsedLine, None, None]:
         """Parse a given file, yielding parsed lines."""
+        self._parsed_files[os.path.abspath(filename)] = (
+            None  # The primary requirements file passed
+        )
         yield from self._parse_and_recurse(filename, constraint)
 
     def _parse_and_recurse(
@@ -353,11 +357,25 @@ class RequirementsFileParser:
                 # original file and nested file are paths
                 elif not SCHEME_RE.search(req_path):
                     # do a join so relative paths work
-                    req_path = os.path.join(
-                        os.path.dirname(filename),
-                        req_path,
+                    # and then abspath so that we can identify recursive references
+                    req_path = os.path.abspath(
+                        os.path.join(
+                            os.path.dirname(filename),
+                            req_path,
+                        )
                     )
-
+                if req_path in self._parsed_files:
+                    initial_file = self._parsed_files[req_path]
+                    tail = (
+                        f" and again in {initial_file}"
+                        if initial_file is not None
+                        else ""
+                    )
+                    raise RequirementsFileParseError(
+                        f"{req_path} recursively references itself in {filename}{tail}"
+                    )
+                # Keeping a track where was each file first included in
+                self._parsed_files[req_path] = filename
                 yield from self._parse_and_recurse(req_path, nested_constraint)
             else:
                 yield line
