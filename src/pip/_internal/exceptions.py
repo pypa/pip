@@ -778,20 +778,21 @@ class LegacyDistutilsInstall(DiagnosticPipError):
             hint_stmt=None,
         )
 
+
 class InvalidInstalledPackage(DiagnosticPipError):
     reference = "invalid-installed-package"
 
     def __init__(
-            self,
-            *,
-            package: "AlreadyInstalledCandidate",
-            invalid_req_exc: "InvalidRequirement",
-        ) -> None:
+        self,
+        *,
+        package: "AlreadyInstalledCandidate",
+        invalid_req_exc: "InvalidRequirement",
+    ) -> None:
         super().__init__(
             message=Text(
                 f"Cannot uninstall {package} because it has an invalid requirement:\n"
                 f"{invalid_req_exc.args[0]}."
-                ),
+            ),
             context="Since pip 24.1+ invalid requirements can not be read by pip.",
             hint_stmt="Please use 'pip<24.1' if you need to uninstall this package.",
         )
