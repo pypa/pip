@@ -22,10 +22,12 @@ from pip._vendor.rich.text import Text
 if TYPE_CHECKING:
     from hashlib import _Hash
 
+    from pip._vendor.packaging.requirements import InvalidRequirement
     from pip._vendor.requests.models import Request, Response
 
     from pip._internal.metadata import BaseDistribution
     from pip._internal.req.req_install import InstallRequirement
+    from pip._internal.resolution.resolvelib.candidates import AlreadyInstalledCandidate
 
 logger = logging.getLogger(__name__)
 
@@ -774,4 +776,22 @@ class LegacyDistutilsInstall(DiagnosticPipError):
                 "uninstall."
             ),
             hint_stmt=None,
+        )
+
+class InvalidInstalledPackage(DiagnosticPipError):
+    reference = "invalid-installed-package"
+
+    def __init__(
+            self,
+            *,
+            package: "AlreadyInstalledCandidate",
+            invalid_req_exc: "InvalidRequirement",
+        ) -> None:
+        super().__init__(
+            message=Text(
+                f"Cannot uninstall {package} because it has an invalid requirement:\n"
+                f"{invalid_req_exc.args[0]}."
+                ),
+            context="Since pip 24.1+ invalid requirements can not be read by pip.",
+            hint_stmt="Please use 'pip<24.1' if you need to uninstall this package.",
         )
