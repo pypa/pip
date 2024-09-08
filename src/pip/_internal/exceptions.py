@@ -788,11 +788,19 @@ class InvalidInstalledPackage(DiagnosticPipError):
         package: "AlreadyInstalledCandidate",
         invalid_req_exc: "InvalidRequirement",
     ) -> None:
+        installed_location = package.dist.installed_location
         super().__init__(
             message=Text(
-                f"Cannot uninstall {package} because it has an invalid requirement:\n"
-                f"{invalid_req_exc.args[0]}."
+                f"Cannot process installed package {package} "
+                + (f"in {installed_location!r} " if installed_location else "")
+                + f"because it has an invalid requirement:\n{invalid_req_exc.args[0]}"
             ),
-            context="Since pip 24.1+ invalid requirements can not be read by pip.",
-            hint_stmt="Please use 'pip<24.1' if you need to uninstall this package.",
+            context=(
+                "Starting with pip 24.1, packages with invalid "
+                "requirements can not be processed."
+            ),
+            hint_stmt=(
+                "To proceed this package must be uninstalled using 'pip<24.1', "
+                "some other Python package tool, or manually deleted."
+            ),
         )
