@@ -148,6 +148,28 @@ class TestWheelFile:
         assert not w.supported(tags=intel)
         assert not w.supported(tags=universal)
 
+    def test_supported_ios_version(self) -> None:
+        """
+        Wheels build for iOS 12.3 are supported on iOS 15.1
+        """
+        tags = compatibility_tags.get_supported(
+            "313", platforms=["ios_15_1_arm64_iphoneos"], impl="cp"
+        )
+        w = Wheel("simple-0.1-cp313-none-ios_12_3_arm64_iphoneos.whl")
+        assert w.supported(tags=tags)
+        w = Wheel("simple-0.1-cp313-none-ios_15_1_arm64_iphoneos.whl")
+        assert w.supported(tags=tags)
+
+    def test_not_supported_ios_version(self) -> None:
+        """
+        Wheels built for macOS 15.1 are not supported on 12.3
+        """
+        tags = compatibility_tags.get_supported(
+            "313", platforms=["ios_12_3_arm64_iphoneos"], impl="cp"
+        )
+        w = Wheel("simple-0.1-cp313-none-ios_15_1_arm64_iphoneos.whl")
+        assert not w.supported(tags=tags)
+
     def test_support_index_min(self) -> None:
         """
         Test results from `support_index_min`
