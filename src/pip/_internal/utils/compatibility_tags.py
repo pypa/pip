@@ -12,8 +12,8 @@ from pip._vendor.packaging.tags import (
     generic_tags,
     interpreter_name,
     interpreter_version,
-    mac_platforms,
     ios_platforms,
+    mac_platforms,
 )
 
 _apple_arch_pat = re.compile(r"(.+)_(\d+)_(\d+)_(.+)")
