@@ -5,6 +5,7 @@ import sys
 from unittest import mock
 
 import pytest
+
 from pip._vendor import platformdirs
 
 from pip._internal.utils import appdirs

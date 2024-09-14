@@ -13,6 +13,7 @@ import pytest
 from pip._internal.utils.misc import HiddenText
 from pip._internal.vcs import vcs
 from pip._internal.vcs.git import Git, RemoteNotFoundError
+
 from tests.lib import PipTestEnvironment, _create_test_package, _git_commit
 
 

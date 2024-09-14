@@ -14,6 +14,7 @@ from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import unpack_url
 from pip._internal.utils.hashes import Hashes
+
 from tests.lib import TestData
 from tests.lib.requests_mocks import MockResponse
 

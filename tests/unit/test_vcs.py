@@ -14,6 +14,7 @@ from pip._internal.vcs.git import Git, RemoteNotValidError, looks_like_hash
 from pip._internal.vcs.mercurial import Mercurial
 from pip._internal.vcs.subversion import Subversion
 from pip._internal.vcs.versioncontrol import RevOptions, VersionControl
+
 from tests.lib import is_svn_installed, need_svn
 
 

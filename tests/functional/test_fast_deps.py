@@ -7,9 +7,11 @@ from os.path import basename
 from typing import Iterable
 
 import pytest
+
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.utils.misc import hash_file
+
 from tests.lib import PipTestEnvironment, TestData, TestPipResult
 
 

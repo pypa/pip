@@ -2,6 +2,7 @@ import pytest
 
 from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.network.utils import raise_for_status
+
 from tests.lib.requests_mocks import MockResponse
 
 

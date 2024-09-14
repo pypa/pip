@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 from urllib.request import getproxies
 
 import pytest
+
 from pip._vendor import requests
 
 from pip import __version__

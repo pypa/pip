@@ -17,6 +17,7 @@ from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.utils.misc import rmtree
 from pip._internal.utils.urls import path_to_url
+
 from tests.lib import (
     CertFactory,
     PipTestEnvironment,
