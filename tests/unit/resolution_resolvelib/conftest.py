@@ -21,13 +21,13 @@ from tests.lib import TestData
 
 
 @pytest.fixture
-def finder(data: TestData) -> Iterator[PackageFinder]:
+def finder(data: TestData) -> PackageFinder:
     session = PipSession()
     scope = SearchScope([str(data.packages)], [], False)
     collector = LinkCollector(session, scope)
     prefs = SelectionPreferences(allow_yanked=False)
     finder = PackageFinder.create(collector, prefs)
-    yield finder
+    return finder
 
 
 @pytest.fixture
@@ -53,8 +53,8 @@ def preparer(finder: PackageFinder) -> Iterator[RequirementPreparer]:
 
 
 @pytest.fixture
-def factory(finder: PackageFinder, preparer: RequirementPreparer) -> Iterator[Factory]:
-    yield Factory(
+def factory(finder: PackageFinder, preparer: RequirementPreparer) -> Factory:
+    return Factory(
         finder=finder,
         preparer=preparer,
         make_install_req=install_req_from_line,
@@ -68,8 +68,8 @@ def factory(finder: PackageFinder, preparer: RequirementPreparer) -> Iterator[Fa
 
 
 @pytest.fixture
-def provider(factory: Factory) -> Iterator[PipProvider]:
-    yield PipProvider(
+def provider(factory: Factory) -> PipProvider:
+    return PipProvider(
         factory=factory,
         constraints={},
         ignore_dependencies=False,

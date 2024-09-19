@@ -39,7 +39,7 @@ def test_format_command_args(args: CommandArgs, expected: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("stdout_only", "expected"),
+    "stdout_only, expected",
     [
         (True, ("out\n", "out\r\n")),
         (False, ("out\nerr\n", "out\r\nerr\r\n", "err\nout\n", "err\r\nout\r\n")),
@@ -312,7 +312,7 @@ class TestCallSubprocess:
         )
 
     @pytest.mark.parametrize(
-        ("exit_status", "show_stdout", "extra_ok_returncodes", "log_level", "expected"),
+        "exit_status, show_stdout, extra_ok_returncodes, log_level, expected",
         [
             # The spinner should show here because show_stdout=False means
             # the subprocess should get logged at DEBUG level, but the passed

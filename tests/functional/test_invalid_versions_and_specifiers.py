@@ -136,4 +136,4 @@ def test_show_require_invalid_version(
     elif select_backend().NAME == "pkg_resources":
         assert "Required-by: \n" in result.stdout
     else:
-        assert False, "Unknown metadata backend"
+        pytest.fail("Unknown metadata backend")

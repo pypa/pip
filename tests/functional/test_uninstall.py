@@ -669,7 +669,7 @@ def test_uninstall_editable_and_pip_install(
     script.assert_not_installed("FSPkg")
 
 
-@pytest.fixture()
+@pytest.fixture
 def move_easy_install_pth(script: PipTestEnvironment) -> Iterator[None]:
     """Move easy-install.pth out of the way for testing easy_install."""
     easy_install_pth = join(script.site_packages_path, "easy-install.pth")

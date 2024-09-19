@@ -8,6 +8,7 @@ from typing import Dict, Iterable, List
 from pip._vendor.packaging.tags import Tag
 
 from pip._internal.exceptions import InvalidWheelFilename
+from pip._internal.utils.deprecation import deprecated
 
 
 class Wheel:
@@ -29,9 +30,25 @@ class Wheel:
             raise InvalidWheelFilename(f"{filename} is not a valid wheel filename.")
         self.filename = filename
         self.name = wheel_info.group("name").replace("_", "-")
-        # we'll assume "_" means "-" due to wheel naming scheme
-        # (https://github.com/pypa/pip/issues/1150)
-        self.version = wheel_info.group("ver").replace("_", "-")
+        _version = wheel_info.group("ver")
+        if "_" in _version:
+            deprecated(
+                reason=(
+                    f"Wheel filename {filename!r} uses an invalid filename format, "
+                    f"as the version part {_version!r} is not correctly normalised, "
+                    "and contains an underscore character. Future versions of pip may "
+                    "fail to recognise this wheel."
+                ),
+                replacement=(
+                    "rename the wheel to use a correctly normalised version part "
+                    "(this may require updating the version in the project metadata)"
+                ),
+                gone_in="25.1",
+                issue=12914,
+            )
+            _version = _version.replace("_", "-")
+
+        self.version = _version
         self.build_tag = wheel_info.group("build")
         self.pyversions = wheel_info.group("pyver").split(".")
         self.abis = wheel_info.group("abi").split(".")

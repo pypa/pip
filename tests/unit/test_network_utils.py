@@ -6,7 +6,7 @@ from tests.lib.requests_mocks import MockResponse
 
 
 @pytest.mark.parametrize(
-    ("status_code", "error_type"),
+    "status_code, error_type",
     [
         (401, "Client Error"),
         (501, "Server Error"),

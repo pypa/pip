@@ -198,7 +198,7 @@ class TestUnpackArchives:
         assert "is outside the destination" in str(e.value)
 
     @pytest.mark.parametrize(
-        ("input_prefix", "unpack_prefix"),
+        "input_prefix, unpack_prefix",
         [
             ("", ""),
             ("dir/", ""),  # pip ignores a common leading directory

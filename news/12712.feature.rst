@@ -1,2 +1,0 @@
-Improve dependency resolution performance by caching platform compatibility
-tags during wheel cache lookup.

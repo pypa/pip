@@ -11,7 +11,7 @@ from pip._internal.network.auth import MultiDomainBasicAuth
 from tests.lib.requests_mocks import MockConnection, MockRequest, MockResponse
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(autouse=True)
 def reset_keyring() -> Iterable[None]:
     yield None
     # Reset the state of the module between tests
@@ -20,7 +20,7 @@ def reset_keyring() -> Iterable[None]:
 
 
 @pytest.mark.parametrize(
-    ["input_url", "url", "username", "password"],
+    "input_url, url, username, password",
     [
         (
             "http://user%40email.com:password@example.com/path",
@@ -177,7 +177,7 @@ class KeyringModuleV1:
 
 @pytest.mark.parametrize(
     "url, expect",
-    (
+    [
         ("http://example.com/path1", (None, None)),
         # path1 URLs will be resolved by netloc
         ("http://user@example.com/path3", ("user", "user!netloc")),
@@ -185,7 +185,7 @@ class KeyringModuleV1:
         # path2 URLs will be resolved by index URL
         ("http://example.com/path2/path3", (None, None)),
         ("http://foo@example.com/path2/path3", ("foo", "foo!url")),
-    ),
+    ],
 )
 def test_keyring_get_password(
     monkeypatch: pytest.MonkeyPatch,
@@ -257,7 +257,7 @@ def test_keyring_get_password_username_in_index(
 
 @pytest.mark.parametrize(
     "response_status, creds, expect_save",
-    (
+    [
         (403, ("user", "pass", True), False),
         (
             200,
@@ -269,7 +269,7 @@ def test_keyring_get_password_username_in_index(
             ("user", "pass", False),
             False,
         ),
-    ),
+    ],
 )
 def test_keyring_set_password(
     monkeypatch: pytest.MonkeyPatch,
@@ -291,7 +291,7 @@ def test_keyring_set_password(
         # when _prompt_for_password indicates not to save, we should
         # never call this function
         def should_save_password_to_keyring(*a: Any) -> bool:
-            assert False, "_should_save_password_to_keyring should not be called"
+            pytest.fail("_should_save_password_to_keyring should not be called")
 
     monkeypatch.setattr(
         auth, "_should_save_password_to_keyring", should_save_password_to_keyring
@@ -333,7 +333,7 @@ class KeyringModuleV2:
             self.password = password
 
     def get_password(self, system: str, username: str) -> None:
-        assert False, "get_password should not ever be called"
+        pytest.fail("get_password should not ever be called")
 
     def get_credential(self, system: str, username: str) -> Optional[Credential]:
         if system == "http://example.com/path2/":
@@ -345,11 +345,11 @@ class KeyringModuleV2:
 
 @pytest.mark.parametrize(
     "url, expect",
-    (
+    [
         ("http://example.com/path1", ("username", "netloc")),
         ("http://example.com/path2/path3", ("username", "url")),
         ("http://user2@example.com/path2/path3", ("username", "url")),
-    ),
+    ],
 )
 def test_keyring_get_credential(
     monkeypatch: pytest.MonkeyPatch, url: str, expect: Tuple[str, str]
@@ -442,7 +442,7 @@ class KeyringSubprocessResult(KeyringModuleV1):
 
 @pytest.mark.parametrize(
     "url, expect",
-    (
+    [
         ("http://example.com/path1", (None, None)),
         # path1 URLs will be resolved by netloc
         ("http://user@example.com/path3", ("user", "user!netloc")),
@@ -450,7 +450,7 @@ class KeyringSubprocessResult(KeyringModuleV1):
         # path2 URLs will be resolved by index URL
         ("http://example.com/path2/path3", (None, None)),
         ("http://foo@example.com/path2/path3", ("foo", "foo!url")),
-    ),
+    ],
 )
 def test_keyring_cli_get_password(
     monkeypatch: pytest.MonkeyPatch,
@@ -472,7 +472,7 @@ def test_keyring_cli_get_password(
 
 @pytest.mark.parametrize(
     "response_status, creds, expect_save",
-    (
+    [
         (403, ("user", "pass", True), False),
         (
             200,
@@ -484,7 +484,7 @@ def test_keyring_cli_get_password(
             ("user", "pass", False),
             False,
         ),
-    ),
+    ],
 )
 def test_keyring_cli_set_password(
     monkeypatch: pytest.MonkeyPatch,
@@ -507,7 +507,7 @@ def test_keyring_cli_set_password(
         # when _prompt_for_password indicates not to save, we should
         # never call this function
         def should_save_password_to_keyring(*a: Any) -> bool:
-            assert False, "_should_save_password_to_keyring should not be called"
+            pytest.fail("_should_save_password_to_keyring should not be called")
 
     monkeypatch.setattr(
         auth, "_should_save_password_to_keyring", should_save_password_to_keyring

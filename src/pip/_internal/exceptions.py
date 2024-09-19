@@ -429,7 +429,7 @@ class HashErrors(InstallationError):
     """Multiple HashError instances rolled into one for reporting"""
 
     def __init__(self) -> None:
-        self.errors: List["HashError"] = []
+        self.errors: List[HashError] = []
 
     def append(self, error: "HashError") -> None:
         self.errors.append(error)

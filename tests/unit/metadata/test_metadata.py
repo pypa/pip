@@ -119,7 +119,8 @@ def test_dist_found_in_directory_named_whl(tmp_path: Path) -> None:
     info_path.joinpath("METADATA").write_text("Name: pkg")
     location = os.fspath(dir_path)
     dist = get_environment([location]).get_distribution("pkg")
-    assert dist is not None and dist.location is not None
+    assert dist is not None
+    assert dist.location is not None
     assert Path(dist.location) == Path(location)
 
 
@@ -127,17 +128,18 @@ def test_dist_found_in_zip(tmp_path: Path) -> None:
     location = os.fspath(tmp_path.joinpath("pkg.zip"))
     make_wheel(name="pkg", version="1").save_to(location)
     dist = get_environment([location]).get_distribution("pkg")
-    assert dist is not None and dist.location is not None
+    assert dist is not None
+    assert dist.location is not None
     assert Path(dist.location) == Path(location)
 
 
 @pytest.mark.parametrize(
     "path",
-    (
+    [
         "/path/to/foo.egg-info".replace("/", os.path.sep),
         # Tests issue fixed by https://github.com/pypa/pip/pull/2530
         "/path/to/foo.egg-info/".replace("/", os.path.sep),
-    ),
+    ],
 )
 def test_trailing_slash_directory_metadata(path: str) -> None:
     dist = get_directory_distribution(path)

@@ -6,7 +6,7 @@ from pip._internal.commands import create_command
 
 
 @pytest.mark.parametrize(
-    ("command", "expected"),
+    "command, expected",
     [
         ("install", True),
         ("wheel", True),
@@ -39,7 +39,7 @@ def test_set_config_empty_value() -> None:
 
 
 @pytest.mark.parametrize(
-    ("passed", "expected"),
+    "passed, expected",
     [
         (["x=hello", "x=world"], {"x": ["hello", "world"]}),
         (["x=hello", "x=world", "x=other"], {"x": ["hello", "world", "other"]}),

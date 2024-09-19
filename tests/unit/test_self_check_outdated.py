@@ -16,7 +16,7 @@ from pip._internal import self_outdated_check
 
 
 @pytest.mark.parametrize(
-    ["key", "expected"],
+    "key, expected",
     [
         (
             "/hello/world/venv",
@@ -59,7 +59,7 @@ def test_pip_self_version_check_calls_underlying_implementation(
 
 
 @pytest.mark.parametrize(
-    [
+    [  # noqa: PT006 - String representation is too long
         "installed_version",
         "remote_version",
         "stored_version",

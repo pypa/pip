@@ -828,7 +828,7 @@ class TestPackageFinder:
 
 
 @pytest.mark.parametrize(
-    ("fragment", "canonical_name", "expected"),
+    "fragment, canonical_name, expected",
     [
         # Trivial.
         ("pip-18.0", "pip", 3),
@@ -860,7 +860,7 @@ def test_find_name_version_sep(
 
 
 @pytest.mark.parametrize(
-    ("fragment", "canonical_name"),
+    "fragment, canonical_name",
     [
         # A dash must follow the package name.
         ("zope.interface4.5.0", "zope-interface"),
@@ -877,7 +877,7 @@ def test_find_name_version_sep_failure(fragment: str, canonical_name: str) -> No
 
 
 @pytest.mark.parametrize(
-    ("fragment", "canonical_name", "expected"),
+    "fragment, canonical_name, expected",
     [
         # Trivial.
         ("pip-18.0", "pip", "18.0"),
