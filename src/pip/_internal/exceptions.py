@@ -781,6 +781,12 @@ class InvalidMultipleRemoteRepositories(DiagnosticPipError):
     """Common error for issues with multiple remote repositories."""
 
     reference = "invalid-multiple-remote-repositories"
+    _note_suffix = (
+        "See PEP 708 for the specification. "
+        "You can override this check, which will disable the security "
+        "protection it provides from dependency confusion attacks, "
+        "by passing --insecure-multiple-remote-repositories."
+    )
 
 
 class InvalidTracksUrl(InvalidMultipleRemoteRepositories):
@@ -792,6 +798,36 @@ class InvalidTracksUrl(InvalidMultipleRemoteRepositories):
     """
 
     reference = "invalid-tracks-url"
+
+    def __init__(
+        self,
+        *,
+        package: str,
+        remote_repositories: set[str],
+        invalid_tracks: set[str],
+    ) -> None:
+        super().__init__(
+            kind="error",
+            message=Text(
+                f"One or more Tracks for {escape(package)} "
+                "were not valid. "
+                "The remote repositories are "
+                f"{'; '.join(sorted(escape(r) for r in remote_repositories))}."
+                "The invalid tracks are "
+                f"{'; '.join(sorted(escape(r) for r in invalid_tracks))}."
+            ),
+            context=Text(
+                "Tracks urls must point to the actual URLs for a project, "
+                "point to the repositories that own the namespaces, and "
+                "point to a project with the exact same normalized name."
+            ),
+            hint_stmt=None,
+            note_stmt=Text(
+                "The way to resolve this error is to contact the owners of "
+                "each remote repository, and ask if it makes sense to "
+                "configure them to merge namespaces. " + self._note_suffix
+            ),
+        )
 
 
 class InvalidAlternativeLocationsUrl(InvalidMultipleRemoteRepositories):
@@ -828,12 +864,8 @@ class InvalidAlternativeLocationsUrl(InvalidMultipleRemoteRepositories):
             hint_stmt=None,
             note_stmt=Text(
                 "The way to resolve this error is to contact the owners of the package "
-                "at each remote repository, and ask that the list of "
-                "Alternate Locations at each is set to the same list. "
-                "See PEP 708 for the specification. "
-                "You can override this check, which will disable the security "
-                "protection it provides from dependency confusion attacks, "
-                "by passing --insecure-multiple-remote-repositories."
+                "at each remote repository, and ask if it makes sense to "
+                "configure them to merge namespaces. " + self._note_suffix
             ),
         )
 
@@ -870,10 +902,6 @@ class UnsafeMultipleRemoteRepositories(InvalidMultipleRemoteRepositories):
             note_stmt=Text(
                 "The way to resolve this error is to contact the remote repositories "
                 "and package owners, and ask if it makes sense to configure them to "
-                "merge namespaces. "
-                "See PEP 708 for the specification. "
-                "You can override this check, which will disable the security "
-                "protection it provides from dependency confusion attacks, "
-                "by passing --insecure-multiple-remote-repositories."
+                "merge namespaces. " + self._note_suffix
             ),
         )

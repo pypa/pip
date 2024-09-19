@@ -4,7 +4,9 @@ import enum
 import functools
 import itertools
 import logging
+import pathlib
 import re
+import urllib.parse
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, FrozenSet, Iterable, List, Optional, Set, Tuple, Union
 
@@ -19,6 +21,7 @@ from pip._internal.exceptions import (
     DistributionNotFound,
     InvalidAlternativeLocationsUrl,
     InvalidWheelFilename,
+    InvalidTracksUrl,
     UnsafeMultipleRemoteRepositories,
     UnsupportedWheel,
 )
@@ -1099,9 +1102,13 @@ def check_multiple_remote_repositories(
     # Specification: When an installer encounters a project that is using the
     # alternate locations metadata it SHOULD consider that all repositories named are
     # extending the same namespace across multiple repositories.
+    # Implementation: It is not possible to enforce this requirement without access
+    # to the metadata for all of the remote repositories, as the Tracks metadata
+    # might point at a repository that does not exist, or at a repository that is
+    # Tracking another repository.
 
     # TODO: Consider whether pip already has, or should add, ways to indicate exactly
-    #   which individual projects to get from which individual repositories.
+    #   which individual projects to get from exactly which repositories.
     # Specification: If the user has explicitly told the installer that it wants to
     # fetch a project from a certain set of repositories, then there is no reason
     # to question that and we assume that they’ve made sure it is safe to merge
@@ -1113,75 +1120,60 @@ def check_multiple_remote_repositories(
         logger.debug("No candidates given to multiple remote repository checks")
         return
 
-    # Pre-calculate the canonical name for later comparisons.
+    # Calculate the canonical name for later comparisons.
     canonical_name = canonicalize_name(project_name)
 
     # Specification: Look to see if the discovered files span multiple repositories;
     # if they do then determine if either “Tracks” or “Alternate Locations” metadata
-    # allows safely merging ALL the repositories where files were discovered together.
-    scheme_file = "file://"
+    # allows safely merging together ALL the repositories where files were discovered.
     remote_candidates = []
-    all_remote_urls = set()
-    all_project_track_urls = []
-    all_repo_alt_urls = []
     remote_repositories = set()
+
     for candidate in candidates:
         candidate_name = candidate.name
+        link = candidate.link
+        comes_from = link.comes_from
+
         candidate_canonical_name = canonicalize_name(candidate_name)
-
-        file_path = None
-        try:
-            file_path = candidate.link.file_path
-        except Exception:
-            pass
-        url = candidate.link.url
-
-        project_track_urls = candidate.link.project_track_urls or set()
-        all_project_track_urls.append(project_track_urls)
-        remote_repositories.update(project_track_urls)
-
-        repo_alt_urls = candidate.link.repo_alt_urls or set()
-        all_repo_alt_urls.append(repo_alt_urls)
-        remote_repositories.update(repo_alt_urls)
-
-        other_repo_urls = {*project_track_urls, *repo_alt_urls}
-        has_other_repo_urls = len(other_repo_urls) > 0
-
-        is_local_url = url and url.startswith(scheme_file)
-        if url and not is_local_url:
-            all_remote_urls.add(url)
 
         # Specification: Repositories that exist on the local filesystem SHOULD always
         # be implicitly allowed to be merged to any remote repository.
-        is_local_file = file_path or is_local_url
-        has_remote_repo = has_other_repo_urls and any(
-            not i.startswith(scheme_file) for i in other_repo_urls
-        )
-        if is_local_file and not has_remote_repo:
+        if link.is_local_only:
             # Ignore any local candidates in later comparisons.
             logger.debug(
-                "Ignore local candidate %s in multiple remote repository checks",
+                "Ignoring local candidate %s in multiple remote repository checks",
                 candidate,
             )
             continue
 
-        remote_candidates.append(
-            {
-                "name": candidate_name,
-                "canonical_name": candidate_canonical_name,
-                "file_path": file_path,
-                "url": url,
-                "project_track_urls": project_track_urls,
-                "repo_alt_urls": repo_alt_urls,
-                "other_repo_urls": other_repo_urls,
-                "is_local_file": is_local_file,
-                "has_remote_repo": has_remote_repo,
-            }
-        )
+        try:
+            page_url = comes_from.url.lstrip()
+        except AttributeError:
+            page_url = comes_from.lstrip()
+
+        item = {
+            "candidate": candidate,
+            "canonical_name": candidate_canonical_name,
+        }
+        remote_candidates.append(item)
+
+        remote_repositories.add(page_url)
+        remote_repositories.update(link.project_track_urls)
+        remote_repositories.update(link.repo_alt_urls)
 
     # If there are no remote candidates, then allow merging repositories.
     if len(remote_candidates) == 0:
         logger.debug("No remote candidates for multiple remote repository checks")
+        return
+
+    # Specification: If the project in question only comes from a single repository,
+    # then there is no chance of dependency confusion, so there’s no reason to do
+    # anything but allow.
+    if len(remote_repositories) < 2:
+        logger.debug(
+            "No chance for dependency confusion when there is only "
+            "one remote candidate for multiple remote repository checks"
+        )
         return
 
     # TODO
@@ -1192,10 +1184,11 @@ def check_multiple_remote_repositories(
 
     # TODO: This checks the list of Alternate Locations for the candidates that were
     #   retrieved. It does not request the metadata from any additional repositories
-    #   revealed via the lists of Alternate Locations.
+    #   revealed via the lists of Alternate Locations urls or Tracks urls.
     # Specification: In order for this metadata to be trusted, there MUST be agreement
     # between all locations where that project is found as to what the alternate
     # locations are.
+    all_repo_alt_urls = list(map_alt_urls.keys())
     if len(all_repo_alt_urls) > 1:
         match_alt_locs = set(all_repo_alt_urls[0])
         invalid_locations = set()
@@ -1204,6 +1197,9 @@ def check_multiple_remote_repositories(
             match_alt_locs.intersection_update(item)
             invalid_locations.update(match_alt_locs.symmetric_difference(item))
 
+        logger.debug(match_alt_locs)
+        logger.debug(invalid_locations)
+
         if len(invalid_locations) > 0:
             raise InvalidAlternativeLocationsUrl(
                 package=project_name,
@@ -1211,29 +1207,49 @@ def check_multiple_remote_repositories(
                 invalid_locations=invalid_locations,
             )
 
+    for remote_candidate in remote_candidates:
+        project_track_urls = remote_candidate.get("candidate").link.project_track_urls
+        project_track_urls = remote_candidate.get("candidate").link.project_track_urls
+        page_url = remote_candidate.get("url")
+        # url_parts = pathlib.Path(urllib.parse.urlsplit(url).path).parts
+        for project_track_url in project_track_urls:
+            parts = pathlib.Path(urllib.parse.urlsplit(project_track_url).path).parts
+
+            # Specification: It [Tracks metadata] MUST point to the actual URLs
+            # for that project, not the base URL for the extended repositories.
+            # Specification: It [Tracks metadata] MUST point to a project with
+            # the exact same normalized name.
+            # Implementation: The normalised project name must be present in one
+            # of the Tracks url path parts.
+            # TODO: This assumption about the structure of the url may not hold true
+            #       for all remote repositories.
+            if not parts or not any(
+                [canonical_name == canonicalize_name(p) for p in parts]
+            ):
+                raise InvalidTracksUrl(
+                    package=project_name,
+                    remote_repositories={page_url},
+                    invalid_tracks={project_track_url},
+                )
+
+            # Specification: It [Tracks metadata] MUST point to the repositories
+            # that “own” the namespaces, not another repository that is also
+            # tracking that namespace.
+            # Implementation: An 'owner' repository is one that does not Track the
+            # same namespace.
+            # TODO: Without requesting all repositories revealed by metadata, this
+            #       check might pass with incomplete metadata,
+            #       when it would fail with complete metadata.
+            if project_track_url in map_track_urls:
+                raise InvalidTracksUrl(
+                    package=project_name,
+                    remote_repositories={page_url},
+                    invalid_tracks={project_track_url},
+                )
+
     # TODO
     # Specification: Otherwise [if metadata allows] we merge the namespaces,
     # and continue on.
-
-    # TODO
-    # Specification: It [Tracks metadata] MUST point to the actual URLs for that
-    # project, not the base URL for the extended repositories.
-    # raise InvalidTracksUrl
-
-    # TODO
-    # Specification: It [Tracks metadata] MUST point to the repositories that “own”
-    # the namespaces, not another repository that is also tracking that namespace.
-    # raise InvalidTracksUrl
-
-    # TODO
-    # Specification: It [Tracks metadata] MUST point to a project with the exact same
-    # name (after normalization).
-    # raise InvalidTracksUrl
-
-    # TODO
-    # Specification: If the project in question only comes from a single repository,
-    # then there is no chance of dependency confusion, so there’s no reason to do
-    # anything but allow.
 
     # Specification: If nothing tells us merging the namespaces is safe, we refuse to
     # implicitly assume it is, and generate an error instead.

@@ -537,13 +537,13 @@ def test_parse_links_json() -> None:
             ],
         }
     ).encode("utf8")
+    # parse_links() is cached by url, so we inject a random uuid to ensure
+    # the page content isn't cached.
     url = f"https://example.com/simple-{uuid.uuid4()}/"
     page = IndexContent(
         json_bytes,
         "application/vnd.pypi.simple.v1+json",
         encoding=None,
-        # parse_links() is cached by url, so we inject a random uuid to ensure
-        # the page content isn't cached.
         url=url,
     )
     links = list(parse_links(page))
@@ -771,13 +771,13 @@ def test_parse_links__alternate_locations_and_tracks(
     html_path = data.indexes / index_name / package_name / "index.html"
     html = html_path.read_text()
     html_bytes = html.encode("utf-8")
+    # parse_links() is cached by url, so we inject a random uuid to ensure
+    # the page content isn't cached.
     url = f"https://example.com/simple-{uuid.uuid4()}/"
     page = IndexContent(
         html_bytes,
         "text/html",
         encoding=None,
-        # parse_links() is cached by url, so we inject a random uuid to ensure
-        # the page content isn't cached.
         url=url,
     )
     links = list(parse_links(page))
