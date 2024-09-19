@@ -16,7 +16,7 @@ import re
 import sys
 from collections.abc import Iterator
 from itertools import chain, groupby, repeat
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Dict, Iterator, List, Literal, Optional, Set, Union
 
 from pip._vendor.packaging.requirements import InvalidRequirement
 from pip._vendor.packaging.version import InvalidVersion
@@ -826,8 +826,8 @@ class InvalidTracksUrl(InvalidMultipleRemoteRepositories):
         self,
         *,
         package: str,
-        remote_repositories: set[str],
-        invalid_tracks: set[str],
+        remote_repositories: Set[str],
+        invalid_tracks: Set[str],
     ) -> None:
         super().__init__(
             kind="error",
@@ -866,8 +866,8 @@ class InvalidAlternativeLocationsUrl(InvalidMultipleRemoteRepositories):
         self,
         *,
         package: str,
-        remote_repositories: set[str],
-        invalid_locations: set[str],
+        remote_repositories: Set[str],
+        invalid_locations: Set[str],
     ) -> None:
         super().__init__(
             kind="error",
@@ -905,13 +905,14 @@ class UnsafeMultipleRemoteRepositories(InvalidMultipleRemoteRepositories):
 
     reference = "unsafe-multiple-remote-repositories"
 
-    def __init__(self, *, package: str, remote_repositories: set[str]) -> None:
+    def __init__(self, *, package: str, remote_repositories: Set[str]) -> None:
         super().__init__(
             kind="error",
             message=Text(
                 f"More than one remote repository was found for {escape(package)}, "
                 "with no indication that the remote repositories can be safely merged. "
-                f"The repositories are {'; '.join(sorted(escape(r) for r in remote_repositories))}."
+                "The repositories are "
+                f"{'; '.join(sorted(escape(r) for r in remote_repositories))}."
             ),
             context=Text(
                 "Multiple remote repositories are not merged by default "

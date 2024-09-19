@@ -960,7 +960,7 @@ def _make_mock_candidate_check_remote_repo(
         (
             [
                 _make_mock_candidate_check_remote_repo(
-                    comes_from_url=f"https://a.example.com/simple/mypackage",
+                    comes_from_url="https://a.example.com/simple/mypackage",
                 )
             ],
             "mypackage",
@@ -971,10 +971,10 @@ def _make_mock_candidate_check_remote_repo(
         (
             [
                 _make_mock_candidate_check_remote_repo(
-                    comes_from_url=f"https://a.example.com/simple/mypackage",
+                    comes_from_url="https://a.example.com/simple/mypackage",
                 ),
                 _make_mock_candidate_check_remote_repo(
-                    comes_from_url=f"https://b.example.com/simple/mypackage",
+                    comes_from_url="https://b.example.com/simple/mypackage",
                 ),
             ],
             "mypackage",
@@ -985,10 +985,10 @@ def _make_mock_candidate_check_remote_repo(
         (
             [
                 _make_mock_candidate_check_remote_repo(
-                    comes_from_url=f"https://a.example.com/simple/mypackage",
+                    comes_from_url="https://a.example.com/simple/mypackage",
                 ),
                 _make_mock_candidate_check_remote_repo(
-                    comes_from_url=f"https://b.example.com/simple/mypackage",
+                    comes_from_url="https://b.example.com/simple/mypackage",
                     project_track_urls={"https://a.example.com/simple/mypackage"},
                 ),
             ],
@@ -1000,10 +1000,10 @@ def _make_mock_candidate_check_remote_repo(
         (
             [
                 _make_mock_candidate_check_remote_repo(
-                    comes_from_url=f"https://a.example.com/simple/mypackage",
+                    comes_from_url="https://a.example.com/simple/mypackage",
                 ),
                 _make_mock_candidate_check_remote_repo(
-                    comes_from_url=f"https://b.example.com/simple/mypackage",
+                    comes_from_url="https://b.example.com/simple/mypackage",
                     repo_alt_urls={"https://a.example.com/simple/mypackage"},
                 ),
             ],
@@ -1014,11 +1014,11 @@ def _make_mock_candidate_check_remote_repo(
         (
             [
                 _make_mock_candidate_check_remote_repo(
-                    comes_from_url=f"https://a.example.com/simple/mypackage",
+                    comes_from_url="https://a.example.com/simple/mypackage",
                     repo_alt_urls={"https://b.example.com/simple/mypackage"},
                 ),
                 _make_mock_candidate_check_remote_repo(
-                    comes_from_url=f"https://b.example.com/simple/mypackage",
+                    comes_from_url="https://b.example.com/simple/mypackage",
                     repo_alt_urls={"https://c.example.com/simple/mypackage"},
                 ),
             ],
@@ -1030,7 +1030,7 @@ def _make_mock_candidate_check_remote_repo(
         (
             [
                 _make_mock_candidate_check_remote_repo(
-                    comes_from_url=f"https://a.example.com/simple/mypackage",
+                    comes_from_url="https://a.example.com/simple/mypackage",
                     project_track_urls={"https://b.example.com"},
                 ),
             ],
@@ -1042,15 +1042,15 @@ def _make_mock_candidate_check_remote_repo(
         (
             [
                 _make_mock_candidate_check_remote_repo(
-                    comes_from_url=f"https://a.example.com/simple/mypackage",
+                    comes_from_url="https://a.example.com/simple/mypackage",
                     project_track_urls={"https://b.example.com/simple/mypackage"},
                 ),
                 _make_mock_candidate_check_remote_repo(
-                    comes_from_url=f"https://b.example.com/simple/mypackage",
+                    comes_from_url="https://b.example.com/simple/mypackage",
                     project_track_urls={"https://c.example.com/simple/mypackage"},
                 ),
                 _make_mock_candidate_check_remote_repo(
-                    comes_from_url=f"https://c.example.com/simple/mypackage",
+                    comes_from_url="https://c.example.com/simple/mypackage",
                 ),
             ],
             "mypackage",
@@ -1062,11 +1062,11 @@ def _make_mock_candidate_check_remote_repo(
             [
                 _make_mock_candidate_check_remote_repo(
                     candidate_name="othername",
-                    comes_from_url=f"https://a.example.com/simple/othername",
+                    comes_from_url="https://a.example.com/simple/othername",
                     project_track_urls={"https://b.example.com/simple/othername"},
                 ),
                 _make_mock_candidate_check_remote_repo(
-                    comes_from_url=f"https://b.example.com/simple/mypackage",
+                    comes_from_url="https://b.example.com/simple/mypackage",
                 ),
             ],
             "mypackage",
@@ -1077,7 +1077,7 @@ def _make_mock_candidate_check_remote_repo(
             [
                 _make_mock_candidate_check_remote_repo(
                     candidate_name="a.b-c_d",
-                    comes_from_url=f"https://a.example.com/simple/mypackage",
+                    comes_from_url="https://a.example.com/simple/mypackage",
                     project_track_urls={"https://b.example.com/simple/a_b.c-d"},
                 ),
             ],
