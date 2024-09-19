@@ -279,8 +279,8 @@ class Link:
         cls,
         file_data: Dict[str, Any],
         page_url: str,
-        project_track_urls: Optional[set[str]] = None,
-        repo_alt_urls: Optional[set[str]] = None,
+        project_track_urls: Optional[Set[str]] = None,
+        repo_alt_urls: Optional[Set[str]] = None,
     ) -> Optional["Link"]:
         """
         Convert an pypi json document from a simple repository page into a Link.

@@ -6,7 +6,7 @@ import re
 import uuid
 from pathlib import Path
 from textwrap import dedent
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Set
 from unittest import mock
 
 import pytest
@@ -763,8 +763,8 @@ def test_parse_links_caches_same_page_by_url() -> None:
 )
 def test_parse_links__alternate_locations_and_tracks(
     index_name: str,
-    expected_project_track_urls: set[str],
-    expected_repo_alt_urls: set[str],
+    expected_project_track_urls: Set[str],
+    expected_repo_alt_urls: Set[str],
     data: TestData,
 ) -> None:
     package_name = "simple"

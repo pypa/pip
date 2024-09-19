@@ -1224,7 +1224,7 @@ def check_multiple_remote_repositories(
             # TODO: This assumption about the structure of the url may not hold true
             #       for all remote repositories.
             if not parts or not any(
-                [canonical_name == canonicalize_name(p) for p in parts]
+                canonical_name == canonicalize_name(p) for p in parts
             ):
                 raise InvalidTracksUrl(
                     package=project_name,
