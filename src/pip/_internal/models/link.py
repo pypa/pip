@@ -340,6 +340,9 @@ class Link:
         elif not yanked_reason:
             yanked_reason = None
 
+        project_track_urls = {i.strip() for i in project_track_urls if i and i.strip()}
+        repo_alt_urls = {i.strip() for i in repo_alt_urls if i and i.strip()}
+
         return cls(
             url,
             comes_from=page_url,
@@ -396,6 +399,9 @@ class Link:
                     metadata_info,
                 )
                 metadata_file_data = MetadataFile(None)
+
+        project_track_urls = {i.strip() for i in project_track_urls if i and i.strip()}
+        repo_alt_urls = {i.strip() for i in repo_alt_urls if i and i.strip()}
 
         return cls(
             url,
@@ -576,6 +582,28 @@ class Link:
         if hashes is None:
             return False
         return any(hashes.is_hash_allowed(k, v) for k, v in self._hashes.items())
+
+    @property
+    def is_local_only(self):
+        """
+        Is this link entirely local, with no metadata pointing to a remote url?
+        """
+        logger.debug(
+            {
+                "is_file": self.is_file,
+                "file_path": self.file_path if self.is_file else None,
+                "comes_from": self.comes_from,
+                "metadata_urls": {*self.project_track_urls, *self.repo_alt_urls},
+            }
+        )
+        return (
+            (self.is_file and self.file_path)
+            and not self.comes_from
+            and not any(
+                not i.startswith("file:")
+                for i in {*self.project_track_urls, *self.repo_alt_urls}
+            )
+        )
 
 
 class _CleanResult(NamedTuple):
