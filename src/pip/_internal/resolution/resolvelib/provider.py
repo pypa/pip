@@ -146,7 +146,7 @@ class PipProvider(_ProviderBase):
             lookups = (r.get_candidate_lookup() for r, _ in information[identifier])
             candidate, ireqs = zip(*lookups)
         else:
-            candidate, ireqs = None, ()
+            candidate, ireqs = (None,), ()
 
         operators = [
             specifier.operator
@@ -154,7 +154,7 @@ class PipProvider(_ProviderBase):
             for specifier in specifier_set
         ]
 
-        direct = candidate is not None
+        direct = any(candidate)
         pinned = any(op[:2] == "==" for op in operators)
         unfree = bool(operators)
 
