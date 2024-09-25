@@ -55,6 +55,6 @@ index cfa45d2af..e16292b83 100644
                  raise ValueError(msg)
 -            return resource.bytes
 +            return WRAPPERS[name]
-
+ 
      # Public API follows
-
+ 
