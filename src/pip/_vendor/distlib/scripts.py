@@ -164,6 +164,12 @@ class ScriptMaker(object):
         """
         if os.name != 'posix':
             simple_shebang = True
+        elif getattr(sys, "cross_compiling", False):
+            # In a cross-compiling environment, the shebang will likely be a
+            # script; this *must* be invoked with the "safe" version of the
+            # shebang, or else using os.exec() to run the entry script will
+            # fail, raising "OSError 8 [Errno 8] Exec format error".
+            simple_shebang = False
         else:
             # Add 3 for '#!' prefix and newline suffix.
             shebang_length = len(executable) + len(post_interp) + 3
