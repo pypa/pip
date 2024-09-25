@@ -47,7 +47,7 @@ index 6667d2990..bcc6ea041 100644
      else:
          version = version
      if arch is None:
-@@ -483,6 +483,57 @@ def mac_platforms(
+@@ -483,6 +483,58 @@ def mac_platforms(
                  )
 
 
@@ -73,6 +73,7 @@ index 6667d2990..bcc6ea041 100644
 +
 +    if multiarch is None:
 +        multiarch = sys.implementation._multiarch
++    multiarch = multiarch.replace("-", "_")
 +
 +    ios_platform_template = "ios_{major}_{minor}_{multiarch}"
 +

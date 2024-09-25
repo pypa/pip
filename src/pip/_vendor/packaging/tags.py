@@ -505,6 +505,7 @@ def ios_platforms(
 
     if multiarch is None:
         multiarch = sys.implementation._multiarch
+    multiarch = multiarch.replace("-", "_")
 
     ios_platform_template = "ios_{major}_{minor}_{multiarch}"
 
