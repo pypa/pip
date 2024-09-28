@@ -140,10 +140,8 @@ def print_results(
     if name_column_width is None:
         name_column_width = (
             max(
-                [
-                    len(hit["name"]) + len(highest_version(hit.get("versions", ["-"])))
-                    for hit in hits
-                ]
+                len(hit["name"]) + len(highest_version(hit.get("versions", ["-"])))
+                for hit in hits
             )
             + 4
         )
