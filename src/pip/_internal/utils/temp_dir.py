@@ -6,6 +6,7 @@ import tempfile
 import traceback
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
+from types import TracebackType
 from typing import (
     Any,
     Callable,
@@ -13,6 +14,7 @@ from typing import (
     Generator,
     List,
     Optional,
+    Type,
     TypeVar,
     Union,
 )
@@ -157,7 +159,12 @@ class TempDirectory:
     def __enter__(self: _T) -> _T:
         return self
 
-    def __exit__(self, exc: Any, value: Any, tb: Any) -> None:
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
+        traceback: Optional[TracebackType],
+    ) -> None:
         if self.delete is not None:
             delete = self.delete
         elif _tempdir_registry:
