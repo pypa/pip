@@ -15,6 +15,8 @@ import sys
 from itertools import chain, groupby, repeat
 from typing import TYPE_CHECKING, Dict, Iterator, List, Literal, Optional, Union
 
+from pip._vendor.packaging.requirements import InvalidRequirement
+from pip._vendor.packaging.version import InvalidVersion
 from pip._vendor.rich.console import Console, ConsoleOptions, RenderResult
 from pip._vendor.rich.markup import escape
 from pip._vendor.rich.text import Text
@@ -22,12 +24,10 @@ from pip._vendor.rich.text import Text
 if TYPE_CHECKING:
     from hashlib import _Hash
 
-    from pip._vendor.packaging.requirements import InvalidRequirement
     from pip._vendor.requests.models import Request, Response
 
     from pip._internal.metadata import BaseDistribution
     from pip._internal.req.req_install import InstallRequirement
-    from pip._internal.resolution.resolvelib.candidates import AlreadyInstalledCandidate
 
 logger = logging.getLogger(__name__)
 
@@ -785,19 +785,25 @@ class InvalidInstalledPackage(DiagnosticPipError):
     def __init__(
         self,
         *,
-        package: "AlreadyInstalledCandidate",
-        invalid_req_exc: "InvalidRequirement",
+        dist: "BaseDistribution",
+        invalid_exc: Union[InvalidRequirement, InvalidVersion],
     ) -> None:
-        installed_location = package.dist.installed_location
+        installed_location = dist.installed_location
+
+        if isinstance(invalid_exc, InvalidRequirement):
+            invalid_type = "requirement"
+        else:
+            invalid_type = "version"
+
         super().__init__(
             message=Text(
-                f"Cannot process installed package {package} "
+                f"Cannot process installed package {dist} "
                 + (f"in {installed_location!r} " if installed_location else "")
-                + f"because it has an invalid requirement:\n{invalid_req_exc.args[0]}"
+                + f"because it has an invalid {invalid_type}:\n{invalid_exc.args[0]}"
             ),
             context=(
                 "Starting with pip 24.1, packages with invalid "
-                "requirements can not be processed."
+                f"{invalid_type}s can not be processed."
             ),
             hint_stmt=(
                 "To proceed this package must be uninstalled using 'pip<24.1', "

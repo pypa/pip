@@ -404,7 +404,7 @@ class AlreadyInstalledCandidate(Candidate):
             for r in self.dist.iter_dependencies():
                 yield from self._factory.make_requirements_from_spec(str(r), self._ireq)
         except InvalidRequirement as exc:
-            raise InvalidInstalledPackage(package=self, invalid_req_exc=exc) from None
+            raise InvalidInstalledPackage(dist=self.dist, invalid_exc=exc) from None
 
     def get_install_requirement(self) -> Optional[InstallRequirement]:
         return None
