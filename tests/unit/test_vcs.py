@@ -604,7 +604,7 @@ def test_get_git_version() -> None:
         ("git version 2.17", (2, 17)),
         ("git version 2.18.1", (2, 18)),
         ("git version 2.35.GIT", (2, 35)),  # gh:12280
-        ("oh my git version 2.37.GIT", ()),  #  invalid version
+        ("oh my git version 2.37.GIT", ()),  # invalid version
         ("git version 2.GIT", ()),  # invalid version
     ],
 )
