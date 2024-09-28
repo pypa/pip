@@ -8,6 +8,7 @@ import urllib.parse
 from dataclasses import dataclass, field
 from typing import (
     Any,
+    ClassVar,
     Dict,
     Iterable,
     Iterator,
@@ -170,8 +171,8 @@ class RevOptions:
 
 
 class VcsSupport:
-    _registry: Dict[str, "VersionControl"] = {}
-    schemes = ["ssh", "git", "hg", "bzr", "sftp", "svn"]
+    _registry: ClassVar[Dict[str, "VersionControl"]] = {}
+    schemes: ClassVar[List[str]] = ["ssh", "git", "hg", "bzr", "sftp", "svn"]
 
     def __init__(self) -> None:
         # Register more schemes with urlparse for various version control

@@ -238,7 +238,7 @@ class TestUninstallPathSet:
 
 
 class TestStashedUninstallPathSet:
-    WALK_RESULT: List[Tuple[str, List[str], List[str]]] = [
+    WALK_RESULT: Tuple[Tuple[str, List[str], List[str]], ...] = (
         ("A", ["B", "C"], ["a.py"]),
         ("A/B", ["D"], ["b.py"]),
         ("A/B/D", [], ["c.py"]),
@@ -247,7 +247,7 @@ class TestStashedUninstallPathSet:
         ("A/E/F", [], []),
         ("A/G", ["H"], ["g.py"]),
         ("A/G/H", [], ["h.py"]),
-    ]
+    )
 
     @classmethod
     def mock_walk(cls, root: str) -> Iterator[Tuple[str, List[str], List[str]]]:

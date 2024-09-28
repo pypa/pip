@@ -2,7 +2,7 @@ import logging
 import mimetypes
 import os
 from collections import defaultdict
-from typing import Callable, Dict, Iterable, List, Optional, Tuple
+from typing import Callable, ClassVar, Dict, Iterable, List, Optional, Tuple
 
 from pip._vendor.packaging.utils import (
     InvalidSdistFilename,
@@ -101,7 +101,7 @@ class _FlatDirectorySource(LinkSource):
     * ``file_candidates``: Archives in the directory.
     """
 
-    _paths_to_urls: Dict[str, _FlatDirectoryToUrls] = {}
+    _paths_to_urls: ClassVar[Dict[str, _FlatDirectoryToUrls]] = {}
 
     def __init__(
         self,

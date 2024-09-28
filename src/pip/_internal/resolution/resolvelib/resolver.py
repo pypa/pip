@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 
 class Resolver(BaseResolver):
-    _allowed_strategies = {"eager", "only-if-needed", "to-satisfy-only"}
+    _allowed_strategies = frozenset(["eager", "only-if-needed", "to-satisfy-only"])
 
     def __init__(
         self,
