@@ -85,7 +85,7 @@ class Cache:
 
     def get_path_for_link(self, link: Link) -> str:
         """Return a directory to store cached items in for link."""
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def get(
         self,
@@ -96,7 +96,7 @@ class Cache:
         """Returns a link to a cached item if it exists, otherwise returns the
         passed link.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 class SimpleWheelCache(Cache):

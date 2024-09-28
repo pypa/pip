@@ -37,11 +37,11 @@ class AbstractDistribution(metaclass=abc.ABCMeta):
 
         If None, then this dist has no work to do in the build tracker, and
         ``.prepare_distribution_metadata()`` will not be called."""
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @abc.abstractmethod
     def get_metadata_distribution(self) -> BaseDistribution:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @abc.abstractmethod
     def prepare_distribution_metadata(
@@ -50,4 +50,4 @@ class AbstractDistribution(metaclass=abc.ABCMeta):
         build_isolation: bool,
         check_build_deps: bool,
     ) -> None:
-        raise NotImplementedError()
+        raise NotImplementedError

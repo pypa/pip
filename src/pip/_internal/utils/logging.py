@@ -192,7 +192,7 @@ class RichPipStreamHandler(RichHandler):
             and self.console.file is sys.stdout
             and _is_broken_pipe_error(exc_class, exc)
         ):
-            raise BrokenStdoutLoggingError()
+            raise BrokenStdoutLoggingError
 
         return super().handleError(record)
 

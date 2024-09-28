@@ -337,9 +337,9 @@ class RequirementPreparer:
         # report less-useful error messages for unhashable
         # requirements, complaining that there's no hash provided.
         if req.link.is_vcs:
-            raise VcsHashUnsupported()
+            raise VcsHashUnsupported
         if req.link.is_existing_dir():
-            raise DirectoryUrlHashUnsupported()
+            raise DirectoryUrlHashUnsupported
 
         # Unpinned packages are asking for trouble when a new version
         # is uploaded.  This isn't a security check, but it saves users
@@ -347,7 +347,7 @@ class RequirementPreparer:
         # file:/// URLs aren't pinnable, so don't complain about them
         # not being pinned.
         if not req.is_direct and not req.is_pinned:
-            raise HashUnpinned()
+            raise HashUnpinned
 
         # If known-good hashes are missing for this requirement,
         # shim it with a facade object that will provoke hash

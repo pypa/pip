@@ -27,11 +27,11 @@ class BasePath(Protocol):
 
     @property
     def name(self) -> str:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @property
     def parent(self) -> "BasePath":
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 def get_info_location(d: importlib.metadata.Distribution) -> Optional[BasePath]:

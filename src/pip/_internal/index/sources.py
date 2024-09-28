@@ -30,15 +30,15 @@ class LinkSource:
     @property
     def link(self) -> Optional[Link]:
         """Returns the underlying link, if there's one."""
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def page_candidates(self) -> FoundCandidates:
         """Candidates found by parsing an archive listing HTML file."""
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def file_links(self) -> FoundLinks:
         """Links found by specifying archives directly."""
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 def _is_html_file(file_url: str) -> bool:

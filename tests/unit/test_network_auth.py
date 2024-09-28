@@ -437,7 +437,7 @@ class KeyringSubprocessResult(KeyringModuleV1):
 
     def check_returncode(self) -> None:
         if self.returncode:
-            raise Exception()
+            raise Exception
 
 
 @pytest.mark.parametrize(

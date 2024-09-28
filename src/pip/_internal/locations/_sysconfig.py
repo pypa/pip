@@ -94,7 +94,7 @@ def _infer_user() -> str:
     if suffixed in _AVAILABLE_SCHEMES:
         return suffixed
     if "posix_user" not in _AVAILABLE_SCHEMES:  # User scheme unavailable.
-        raise UserInstallationInvalid()
+        raise UserInstallationInvalid
     return "posix_user"
 
 
