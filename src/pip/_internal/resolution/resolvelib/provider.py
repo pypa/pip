@@ -170,7 +170,6 @@ class PipProvider(_ProviderBase):
             )
             inferred_depth = min(parent_depths) + 1.0
 
-
         self._known_depths[identifier] = inferred_depth
 
         # Requires-Python has only one candidate and the check is basically
