@@ -376,7 +376,7 @@ class Link:
     def __hash__(self) -> int:
         return hash(self.url)
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Link):
             return NotImplemented
         return self.url == other.url
