@@ -82,7 +82,7 @@ def freeze(
                             yield line
                         continue
 
-                    if line.startswith("-e") or line.startswith("--editable"):
+                    if line.startswith(("-e", "--editable")):
                         if line.startswith("-e"):
                             line = line[2:].strip()
                         else:

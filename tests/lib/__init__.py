@@ -471,9 +471,7 @@ def _check_stderr(
         # sent directly to stderr and so bypass any configured log formatter.
         # The "--- Logging error ---" string is used in Python 3.4+, and
         # "Logged from file " is used in Python 2.
-        if line.startswith("--- Logging error ---") or line.startswith(
-            "Logged from file "
-        ):
+        if line.startswith(("--- Logging error ---", "Logged from file ")):
             reason = "stderr has a logging error, which is never allowed"
             msg = make_check_stderr_message(stderr, line=line, reason=reason)
             raise RuntimeError(msg)
@@ -604,7 +602,7 @@ class PipTestEnvironment(TestFileEnvironment):
         self.user_site_path.joinpath("easy-install.pth").touch()
 
     def _ignore_file(self, fn: str) -> bool:
-        if fn.endswith("__pycache__") or fn.endswith(".pyc"):
+        if fn.endswith(("__pycache__", ".pyc")):
             result = True
         elif self.zipapp and fn.endswith("cacert.pem"):
             # Temporary copies of cacert.pem are extracted
