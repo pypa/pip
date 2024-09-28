@@ -189,6 +189,7 @@ select = [
     "PLR0",
     "PYI",
     "RUF",
+    "SLOT",
     "UP",
     "W",
 ]
