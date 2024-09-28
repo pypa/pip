@@ -905,10 +905,7 @@ def check_invalid_constraint_type(req: InstallRequirement) -> str:
 def _has_option(options: Values, reqs: List[InstallRequirement], option: str) -> bool:
     if getattr(options, option, None):
         return True
-    for req in reqs:
-        if getattr(req, option, None):
-            return True
-    return False
+    return any(getattr(req, option, None) for req in reqs)
 
 
 def check_legacy_setup_py_options(
