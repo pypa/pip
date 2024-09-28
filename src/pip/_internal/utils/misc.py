@@ -239,6 +239,7 @@ def ask(message: str, options: Iterable[str]) -> str:
             )
         else:
             return response
+    return None
 
 
 def ask_input(message: str) -> str:
