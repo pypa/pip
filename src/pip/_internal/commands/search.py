@@ -95,7 +95,7 @@ def transform_hits(hits: List[Dict[str, str]]) -> List["TransformedHit"]:
         summary = hit["summary"]
         version = hit["version"]
 
-        if name not in packages.keys():
+        if name not in packages:
             packages[name] = {
                 "name": name,
                 "summary": summary,

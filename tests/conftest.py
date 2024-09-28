@@ -881,7 +881,7 @@ def html_index_for_packages(
 
     # (1) Generate the content for a PyPI index.html.
     pkg_links = "\n".join(
-        f'    <a href="{pkg}/index.html">{pkg}</a>' for pkg in fake_packages.keys()
+        f'    <a href="{pkg}/index.html">{pkg}</a>' for pkg in fake_packages
     )
     # Output won't be nicely indented because dedent() acts after f-string
     # arg insertion.
