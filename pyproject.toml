@@ -166,6 +166,7 @@ ignore = [
     "B904",   # Ruff enables opinionated warnings by default
     "B905",   # Ruff enables opinionated warnings by default
     "UP027",  # deprecated
+    "UP038",  # https://github.com/astral-sh/ruff/issues/7871
 ]
 select = [
     "ASYNC",
