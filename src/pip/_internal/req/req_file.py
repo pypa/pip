@@ -188,8 +188,9 @@ def handle_requirement_line(
         supported_dest = SUPPORTED_OPTIONS_REQ_DEST
     req_options = {}
     for dest in supported_dest:
-        if dest in line.opts.__dict__ and line.opts.__dict__[dest]:
-            req_options[dest] = line.opts.__dict__[dest]
+        line_option = line.opts.__dict__.get(dest)
+        if line_option:
+            req_options[dest] = line_option
 
     line_source = f"line {line.lineno} of {line.filename}"
     return ParsedRequirement(
