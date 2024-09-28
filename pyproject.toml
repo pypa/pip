@@ -163,8 +163,9 @@ extend-exclude = [
 ignore = [
     "B019",
     "B020",
-    "B904", # Ruff enables opinionated warnings by default
-    "B905", # Ruff enables opinionated warnings by default
+    "B904",   # Ruff enables opinionated warnings by default
+    "B905",   # Ruff enables opinionated warnings by default
+    "UP027",  # deprecated
 ]
 select = [
     "ASYNC",
