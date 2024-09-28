@@ -53,6 +53,8 @@ def get_build_tracker() -> Generator["BuildTracker", None, None]:
 class TrackerId(str):
     """Uniquely identifying string provided to the build tracker."""
 
+    __slots__ = ()
+
 
 class BuildTracker:
     """Ensure that an sdist cannot request itself as a setup requirement.
