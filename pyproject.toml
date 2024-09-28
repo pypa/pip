@@ -181,9 +181,9 @@ select = [
     "PERF",
     "PLE",
     "PLR0",
-    "W",
     "RUF100",
     "UP",
+    "W",
 ]
 
 [tool.ruff.lint.isort]
