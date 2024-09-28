@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 SUPPORTED_EXTENSIONS = ZIP_EXTENSIONS + TAR_EXTENSIONS
 
 try:
-    import bz2  # noqa
+    import bz2  # noqa: F401
 
     SUPPORTED_EXTENSIONS += BZ2_EXTENSIONS
 except ImportError:
@@ -34,7 +34,7 @@ except ImportError:
 
 try:
     # Only for Python 3.3+
-    import lzma  # noqa
+    import lzma  # noqa: F401
 
     SUPPORTED_EXTENSIONS += XZ_EXTENSIONS
 except ImportError:
