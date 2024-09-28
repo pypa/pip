@@ -26,7 +26,8 @@ from pip._internal.exceptions import (
     UnsupportedWheel,
 )
 from pip._internal.index.collector import LinkCollector, parse_links
-from pip._internal.models.candidate import InstallationCandidate
+from pip._internal.models.candidate import InstallationCandidate, \
+    RemoteInstallationCandidate
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
@@ -1044,7 +1045,7 @@ def check_multiple_remote_repositories(
     logical namespace, while enforcing a more secure default.
 
     Returns None if checks pass, otherwise will raise an error with details of the
-    failed checks.
+    first failed check.
     """
 
     # NOTE: The checks in this function must occur after:
@@ -1077,6 +1078,7 @@ def check_multiple_remote_repositories(
     # some names do not are explicitly allowed.
 
     # TODO: This requirement doesn't look like something that pip can do anything about.
+    #   How would pip be able to tell whether two urls are the 'same project'?
     # Specification: All [Tracks metadata] URLs MUST represent the same “project” as
     # the project in the extending repository. This does not mean that they need to
     # serve the same files. It is valid for them to include binaries built on
@@ -1086,10 +1088,14 @@ def check_multiple_remote_repositories(
     # the “same” project.
 
     # TODO: This requirement doesn't look like something that pip can do anything about.
+    #   Tracks metadata is not required, so anything that uses tracks meta
+    #   must deal with it not being available.
     # Specification: It [Tracks metadata] is NOT required that every name in a
     # repository tracks the same repository, or that they all track a repository at all.
 
     # TODO: This requirement doesn't look like something that pip can do anything about.
+    #   How would pip be able to tell whether the metadata is under the control of
+    #   the repository operators and not any individual publisher using the repository?
     # Specification: It [repository Tracks metadata] MUST be under the control of the
     # repository operators themselves, not any individual publisher using that
     # repository. “Repository Operator” can also include anyone who managed the overall
@@ -1098,7 +1104,9 @@ def check_multiple_remote_repositories(
     # owns/manages the entire namespace of that repository.
 
     # TODO: Consider making requests to repositories revealed via Alternate Locations
-    #    or Tracks metadata, to assess the metadata of those additional repositories.
+    #   or Tracks metadata, to assess the metadata of those additional repositories.
+    #   This would be a fair bit more functionality to include.
+    #   Maybe a subsequent PR, if this functionality is desirable?
     # Specification: When an installer encounters a project that is using the
     # alternate locations metadata it SHOULD consider that all repositories named are
     # extending the same namespace across multiple repositories.
@@ -1109,6 +1117,7 @@ def check_multiple_remote_repositories(
 
     # TODO: Consider whether pip already has, or should add, ways to indicate exactly
     #   which individual projects to get from exactly which repositories.
+    #   This seems to be separate functionality, that could be added in a separate PR.
     # Specification: If the user has explicitly told the installer that it wants to
     # fetch a project from a certain set of repositories, then there is no reason
     # to question that and we assume that they’ve made sure it is safe to merge
@@ -1118,7 +1127,7 @@ def check_multiple_remote_repositories(
     # When no candidates are provided, then no checks are relevant, so just return.
     if candidates is None or len(candidates) == 0:
         logger.debug("No candidates given to multiple remote repository checks")
-        return
+        return None
 
     # Calculate the canonical name for later comparisons.
     canonical_name = canonicalize_name(project_name)
@@ -1127,14 +1136,19 @@ def check_multiple_remote_repositories(
     # if they do then determine if either “Tracks” or “Alternate Locations” metadata
     # allows safely merging together ALL the repositories where files were discovered.
     remote_candidates = []
-    remote_repositories = set()
-
+    # all known remote repositories
+    known_remote_repo_urls = set()
+    # all known alternate location urls
+    known_alternate_urls = set()
+    # the alternate location urls that are not present in all remote candidates
+    mismatch_alternate_urls = set()
+    # all known remote repositories that do not track any other repos
+    known_owner_repo_urls = set()
+    # all known remote repositories that do track other repos
+    known_tracker_repo_urls = set()
     for candidate in candidates:
         candidate_name = candidate.name
         link = candidate.link
-        comes_from = link.comes_from
-
-        candidate_canonical_name = canonicalize_name(candidate_name)
 
         # Specification: Repositories that exist on the local filesystem SHOULD always
         # be implicitly allowed to be merged to any remote repository.
@@ -1146,83 +1160,88 @@ def check_multiple_remote_repositories(
             )
             continue
 
-        try:
-            page_url = comes_from.url.lstrip()
-        except AttributeError:
-            page_url = comes_from.lstrip()
+        remote_candidate = RemoteInstallationCandidate(
+            canonical_name=canonicalize_name(candidate_name),
+            candidate=candidate,
+        )
+        remote_candidates.append(remote_candidate)
 
-        item = {
-            "candidate": candidate,
-            "canonical_name": candidate_canonical_name,
-        }
-        remote_candidates.append(item)
+        # populate the known urls
+        known_remote_repo_urls.update(remote_candidate.remote_repository_urls)
+        known_alternate_urls.update(remote_candidate.alternate_location_urls)
+        if len(remote_candidate.project_track_urls) > 0:
+            known_tracker_repo_urls.update(remote_candidate.url)
+        else:
+            known_owner_repo_urls.update(remote_candidate.url)
 
-        remote_repositories.add(page_url)
-        remote_repositories.update(link.project_track_urls)
-        remote_repositories.update(link.repo_alt_urls)
+        # Update the set, keeping only elements found in either set, but not in both.
+        # This should allow all the items that are not present for all remote candidates
+        # to be tracked.
+        mismatch_alternate_urls.symmetric_difference_update(
+            remote_candidate.alternate_location_urls
+        )
 
     # If there are no remote candidates, then allow merging repositories.
     if len(remote_candidates) == 0:
         logger.debug("No remote candidates for multiple remote repository checks")
-        return
+        return None
 
     # Specification: If the project in question only comes from a single repository,
     # then there is no chance of dependency confusion, so there’s no reason to do
     # anything but allow.
-    if len(remote_repositories) < 2:
+    if len(known_remote_repo_urls) == 1:
         logger.debug(
             "No chance for dependency confusion when there is only "
             "one remote candidate for multiple remote repository checks"
         )
-        return
+        return None
+    if len(known_remote_repo_urls) == 0:
+        msg = ("Unexpected situation where there are remote candidates, "
+               "but no remote repositories")
+        logger.warning(msg)
+        raise ValueError(msg)
 
-    # TODO
-    if logger.isEnabledFor(logging.INFO):
-        logger.info("Remote candidates for multiple remote repository checks:")
-        for candidate in remote_candidates:
-            logger.info(candidate)
-
-    # TODO: This checks the list of Alternate Locations for the candidates that were
-    #   retrieved. It does not request the metadata from any additional repositories
-    #   revealed via the lists of Alternate Locations urls or Tracks urls.
+    # This checks the list of Alternate Locations for the candidates that were
+    # retrieved. Each remote candidate may define a different list of Tracks and
+    # Alternate Location metadata.
+    # TODO: The Alternate Locations and Tracks urls revealed by the candidate metadata
+    #   are not requested to check that their metadata matches the candidate metadata.
+    #   This means that the known candidate metadata might agree and pass this check,
+    #   while retrieving the metadata from additional urls would not agree and would
+    #   fail this check.
     # Specification: In order for this metadata to be trusted, there MUST be agreement
     # between all locations where that project is found as to what the alternate
     # locations are.
-    all_repo_alt_urls = list(map_alt_urls.keys())
-    if len(all_repo_alt_urls) > 1:
-        match_alt_locs = set(all_repo_alt_urls[0])
-        invalid_locations = set()
+    if len(mismatch_alternate_urls) > 0:
+        raise InvalidAlternativeLocationsUrl(
+            package=project_name,
+            remote_repositories=known_remote_repo_urls,
+            invalid_locations=mismatch_alternate_urls,
+        )
 
-        for item in all_repo_alt_urls[1:]:
-            match_alt_locs.intersection_update(item)
-            invalid_locations.update(match_alt_locs.symmetric_difference(item))
-
-        logger.debug(match_alt_locs)
-        logger.debug(invalid_locations)
-
-        if len(invalid_locations) > 0:
-            raise InvalidAlternativeLocationsUrl(
-                package=project_name,
-                remote_repositories=remote_repositories,
-                invalid_locations=invalid_locations,
-            )
-
+    # Check the Tracks metadata.
     for remote_candidate in remote_candidates:
-        project_track_urls = remote_candidate.get("candidate").link.project_track_urls
-        project_track_urls = remote_candidate.get("candidate").link.project_track_urls
-        page_url = remote_candidate.get("url")
-        # url_parts = pathlib.Path(urllib.parse.urlsplit(url).path).parts
+        project_track_urls = remote_candidate.project_track_urls
+        page_url = remote_candidate.url
         for project_track_url in project_track_urls:
             parts = pathlib.Path(urllib.parse.urlsplit(project_track_url).path).parts
+            parts = list(parts)
+            parts.reverse()
 
             # Specification: It [Tracks metadata] MUST point to the actual URLs
             # for that project, not the base URL for the extended repositories.
+            # Implementation Note: Assume that the actual url for the project will
+            # contain the canonical project name as a path part, and the base URL
+            # will not contain the canonical project name as a path part.
+
             # Specification: It [Tracks metadata] MUST point to a project with
             # the exact same normalized name.
-            # Implementation: The normalised project name must be present in one
-            # of the Tracks url path parts.
-            # TODO: This assumption about the structure of the url may not hold true
-            #       for all remote repositories.
+            # Implementation Note: Assume that projects that are configured to be the
+            # 'exact same' will have a Tracks url path part with the canonical
+            # project name, usually the last path part.
+
+            # Note: These assumptions about the structure of the Tracks url may not
+            # hold true for all remote repositories.
             if not parts or not any(
                 canonical_name == canonicalize_name(p) for p in parts
             ):
@@ -1235,27 +1254,43 @@ def check_multiple_remote_repositories(
             # Specification: It [Tracks metadata] MUST point to the repositories
             # that “own” the namespaces, not another repository that is also
             # tracking that namespace.
-            # Implementation: An 'owner' repository is one that does not Track the
-            # same namespace.
+            # Implementation Note: An 'owner' repository is one that has no Tracks
+            # metadata.
             # TODO: Without requesting all repositories revealed by metadata, this
-            #       check might pass with incomplete metadata,
-            #       when it would fail with complete metadata.
-            if project_track_url in map_track_urls:
+            #   check might pass with incomplete knowledge of all metadata,
+            #   when it would fail after retrieving all metadata.
+            if project_track_url not in known_owner_repo_urls:
                 raise InvalidTracksUrl(
                     package=project_name,
                     remote_repositories={page_url},
                     invalid_tracks={project_track_url},
                 )
 
-    # TODO
-    # Specification: Otherwise [if metadata allows] we merge the namespaces,
-    # and continue on.
-
     # Specification: If nothing tells us merging the namespaces is safe, we refuse to
     # implicitly assume it is, and generate an error instead.
     # Specification: If that metadata does NOT allow [merging namespaces], then
     # generate an error.
-    error = UnsafeMultipleRemoteRepositories(
-        package=project_name, remote_repositories=remote_repositories
-    )
-    raise error
+    # Implementation Note: If there are two or more remote candidates, and any of them
+    # don't have valid Alternate Locations and/or Tracks metadata, then fail.
+    for remote_candidate in remote_candidates:
+        candidate_alt_urls = remote_candidate.alternate_location_urls
+
+        invalid_alt_urls =  known_alternate_urls - candidate_alt_urls
+        has_alts = len(candidate_alt_urls) > 0
+        has_tracks = len(remote_candidate.project_track_urls) > 0
+
+        is_invalid = any([
+            not has_alts and not has_tracks,
+            not has_tracks and invalid_alt_urls,
+        ])
+
+        if is_invalid:
+            error = UnsafeMultipleRemoteRepositories(
+                package=project_name,
+                remote_repositories=known_remote_repo_urls,
+            )
+            raise error
+
+    # Specification: Otherwise [if metadata allows] we merge the namespaces,
+    # and continue on.
+    return None

@@ -853,7 +853,7 @@ class InvalidAlternativeLocationsUrl(InvalidMultipleRemoteRepositories):
                 "were different among the remote repositories. "
                 "The remote repositories are "
                 f"{'; '.join(sorted(escape(r) for r in remote_repositories))}."
-                "The alternate locations not not agreed by all remote "
+                "The alternate locations not agreed by all remote "
                 "repository are "
                 f"{'; '.join(sorted(escape(r) for r in invalid_locations))}."
             ),

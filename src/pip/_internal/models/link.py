@@ -270,7 +270,6 @@ class Link:
         self.cache_link_parsing = cache_link_parsing
         self.egg_fragment = self._egg_fragment()
 
-        # PEP 708
         self.project_track_urls = project_track_urls or set()
         self.repo_alt_urls = repo_alt_urls or set()
 
