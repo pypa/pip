@@ -165,6 +165,8 @@ ignore = [
     "B020",
     "B904",   # Ruff enables opinionated warnings by default
     "B905",   # Ruff enables opinionated warnings by default
+    "PYI019",
+    "PYI024",
     "RUF001",
     "RUF005",
     "RUF015",
@@ -185,6 +187,7 @@ select = [
     "PIE",
     "PLE",
     "PLR0",
+    "PYI",
     "RUF",
     "UP",
     "W",
