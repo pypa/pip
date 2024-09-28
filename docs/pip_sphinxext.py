@@ -41,9 +41,7 @@ class PipNewsInclude(rst.Directive):
             return False
         if re.match(r"^=+$", curr) is None:
             return False
-        if len(curr) < len(prev):
-            return False
-        return True
+        return not len(curr) < len(prev)
 
     def _iter_lines_with_refs(self, lines: Iterable[str]) -> Iterator[str]:
         """Transform the input lines to add a ref before each section title.

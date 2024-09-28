@@ -421,9 +421,7 @@ def _looks_like_deb_system_dist_packages(value: str) -> bool:
     """
     if not _looks_like_debian_scheme():
         return False
-    if value == "/usr/lib/python3/dist-packages":
-        return True
-    return False
+    return value == "/usr/lib/python3/dist-packages"
 
 
 def get_purelib() -> str:

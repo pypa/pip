@@ -307,9 +307,7 @@ def is_installable_dir(path: str) -> bool:
         return False
     if os.path.isfile(os.path.join(path, "pyproject.toml")):
         return True
-    if os.path.isfile(os.path.join(path, "setup.py")):
-        return True
-    return False
+    return os.path.isfile(os.path.join(path, "setup.py"))
 
 
 def read_chunks(

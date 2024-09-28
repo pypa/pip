@@ -106,17 +106,11 @@ def _should_cache(
         assert req.source_dir
         vcs_backend = vcs.get_backend_for_scheme(req.link.scheme)
         assert vcs_backend
-        if vcs_backend.is_immutable_rev_checkout(req.link.url, req.source_dir):
-            return True
-        return False
+        return vcs_backend.is_immutable_rev_checkout(req.link.url, req.source_dir)
 
     assert req.link
     base, ext = req.link.splitext()
-    if _contains_egg_info(base):
-        return True
-
-    # Otherwise, do not cache.
-    return False
+    return _contains_egg_info(base)
 
 
 def _get_cache_dir(

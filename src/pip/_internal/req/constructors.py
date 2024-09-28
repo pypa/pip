@@ -265,9 +265,7 @@ def _looks_like_path(name: str) -> bool:
         return True
     if os.path.altsep is not None and os.path.altsep in name:
         return True
-    if name.startswith("."):
-        return True
-    return False
+    return name.startswith(".")
 
 
 def _get_url_from_path(path: str, name: str) -> Optional[str]:
