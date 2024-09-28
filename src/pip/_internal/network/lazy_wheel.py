@@ -32,7 +32,7 @@ def dist_from_wheel_url(name: str, url: str, session: PipSession) -> BaseDistrib
     with LazyZipOverHTTP(url, session) as zf:
         # For read-only ZIP files, ZipFile only needs methods read,
         # seek, seekable and tell, not the whole IO protocol.
-        wheel = MemoryWheel(zf.name, zf)  # type: ignore
+        wheel = MemoryWheel(zf.name, zf)  # type: ignore[arg-type]
         # After context manager exit, wheel.name
         # is an invalid file by intention.
         return get_wheel_distribution(wheel, canonicalize_name(name))
@@ -165,7 +165,7 @@ class LazyZipOverHTTP:
                 try:
                     # For read-only ZIP files, ZipFile only needs
                     # methods read, seek, seekable and tell.
-                    ZipFile(self)  # type: ignore
+                    ZipFile(self)  # type: ignore[call-overload]
                 except BadZipFile:
                     pass
                 else:

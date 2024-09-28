@@ -90,7 +90,7 @@ def test_new_resolver_get_installation_order(
 
     # Mapping values and criteria are not used in test, so we stub them out.
     mapping = {vertex: None for vertex in graph if vertex is not None}
-    resolver._result = Result(mapping, graph, criteria=None)  # type: ignore
+    resolver._result = Result(mapping, graph, criteria=None)  # type: ignore[call-arg]
 
     reqset = RequirementSet()
     for r in ordered_reqs:

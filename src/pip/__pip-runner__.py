@@ -12,7 +12,7 @@ import sys
 PYTHON_REQUIRES = (3, 8)
 
 
-def version_str(version):  # type: ignore
+def version_str(version):  # type: ignore[no-untyped-def]
     return ".".join(str(v) for v in version)
 
 
@@ -35,7 +35,7 @@ PIP_SOURCES_ROOT = dirname(dirname(__file__))
 
 class PipImportRedirectingFinder:
     @classmethod
-    def find_spec(self, fullname, path=None, target=None):  # type: ignore
+    def find_spec(self, fullname, path=None, target=None):  # type: ignore[no-untyped-def]
         if fullname != "pip":
             return None
 

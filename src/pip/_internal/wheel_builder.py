@@ -302,7 +302,7 @@ def build(
     # Build the wheels.
     logger.info(
         "Building wheels for collected packages: %s",
-        ", ".join(req.name for req in requirements),  # type: ignore
+        ", ".join(req.name for req in requirements),  # type: ignore[misc]
     )
 
     with indent_log():
@@ -337,12 +337,12 @@ def build(
     if build_successes:
         logger.info(
             "Successfully built %s",
-            " ".join([req.name for req in build_successes]),  # type: ignore
+            " ".join([req.name for req in build_successes]),  # type: ignore[misc]
         )
     if build_failures:
         logger.info(
             "Failed to build %s",
-            " ".join([req.name for req in build_failures]),  # type: ignore
+            " ".join([req.name for req in build_failures]),  # type: ignore[misc]
         )
     # Return a list of requirements that failed to build
     return build_successes, build_failures

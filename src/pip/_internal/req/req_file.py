@@ -469,7 +469,7 @@ def build_parser() -> optparse.OptionParser:
 
     # NOTE: mypy disallows assigning to a method
     #       https://github.com/python/mypy/issues/2427
-    parser.exit = parser_exit  # type: ignore
+    parser.exit = parser_exit  # type: ignore[assignment]
 
     return parser
 

@@ -137,9 +137,9 @@ def rmtree(
     )
     if sys.version_info >= (3, 12):
         # See https://docs.python.org/3.12/whatsnew/3.12.html#shutil.
-        shutil.rmtree(dir, onexc=handler)  # type: ignore
+        shutil.rmtree(dir, onexc=handler)  # type: ignore[arg-type]
     else:
-        shutil.rmtree(dir, onerror=handler)  # type: ignore
+        shutil.rmtree(dir, onerror=handler)  # type: ignore[arg-type]
 
 
 def _onerror_ignore(*_args: Any) -> None:
@@ -390,7 +390,7 @@ class StreamWrapper(StringIO):
     # compileall.compile_dir() needs stdout.encoding to print to stdout
     # type ignore is because TextIOBase.encoding is writeable
     @property
-    def encoding(self) -> str:  # type: ignore
+    def encoding(self) -> str:  # type: ignore[override]
         return self.orig_stream.encoding
 
 

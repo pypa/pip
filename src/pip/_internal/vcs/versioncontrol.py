@@ -541,7 +541,7 @@ class VersionControl:
                 self.repo_name,
             )
             # https://github.com/python/mypy/issues/1174
-            prompt = ("(i)gnore, (w)ipe, (b)ackup ", ("i", "w", "b"))  # type: ignore
+            prompt = ("(i)gnore, (w)ipe, (b)ackup ", ("i", "w", "b"))  # type: ignore[assignment]
 
         logger.warning(
             "The plan is to install the %s repository %s",

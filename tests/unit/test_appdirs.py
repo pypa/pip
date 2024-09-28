@@ -16,7 +16,7 @@ class TestUserCacheDir:
         _get_win_folder = mock.Mock(return_value="C:\\Users\\test\\AppData\\Local")
 
         monkeypatch.setattr(
-            platformdirs.windows,  # type: ignore
+            platformdirs.windows,  # type: ignore[attr-defined]
             "get_win_folder",
             _get_win_folder,
             raising=False,
@@ -68,7 +68,7 @@ class TestUserCacheDir:
             return "\u00DF\u00E4\u03B1\u20AC"
 
         monkeypatch.setattr(
-            platformdirs.windows,  # type: ignore
+            platformdirs.windows,
             "get_win_folder",
             my_get_win_folder,
         )
@@ -91,7 +91,7 @@ class TestSiteConfigDirs:
         _get_win_folder = mock.Mock(return_value="C:\\ProgramData")
 
         monkeypatch.setattr(
-            platformdirs.windows,  # type: ignore
+            platformdirs.windows,  # type: ignore[attr-defined]
             "get_win_folder",
             _get_win_folder,
             raising=False,
@@ -151,7 +151,7 @@ class TestUserConfigDir:
         _get_win_folder = mock.Mock(return_value="C:\\Users\\test\\AppData\\Local")
 
         monkeypatch.setattr(
-            platformdirs.windows,  # type: ignore
+            platformdirs.windows,  # type: ignore[attr-defined]
             "get_win_folder",
             _get_win_folder,
             raising=False,
@@ -170,7 +170,7 @@ class TestUserConfigDir:
         _get_win_folder = mock.Mock(return_value="C:\\Users\\test\\AppData\\Roaming")
 
         monkeypatch.setattr(
-            platformdirs.windows,  # type: ignore
+            platformdirs.windows,  # type: ignore[attr-defined]
             "get_win_folder",
             _get_win_folder,
             raising=False,
