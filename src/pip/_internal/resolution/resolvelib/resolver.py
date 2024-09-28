@@ -23,11 +23,12 @@ from pip._internal.resolution.resolvelib.reporter import (
 )
 from pip._internal.utils.packaging import get_requirement
 
-from .base import Candidate, Requirement
 from .factory import Factory
 
 if TYPE_CHECKING:
     from pip._vendor.resolvelib.resolvers import Result as RLResult
+
+    from .base import Candidate, Requirement
 
     Result = RLResult[Requirement, Candidate, str]
 
