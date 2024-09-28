@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple, cast
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible
 from pip._vendor.resolvelib import Resolver as RLResolver
-from pip._vendor.resolvelib.structs import DirectedGraph
 
 from pip._internal.cache import WheelCache
 from pip._internal.index.package_finder import PackageFinder
@@ -27,6 +26,7 @@ from .factory import Factory
 
 if TYPE_CHECKING:
     from pip._vendor.resolvelib.resolvers import Result as RLResult
+    from pip._vendor.resolvelib.structs import DirectedGraph
 
     from .base import Candidate, Requirement
 

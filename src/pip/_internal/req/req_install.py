@@ -25,7 +25,6 @@ from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
-from pip._vendor.pyproject_hooks import BuildBackendHookCaller
 
 from pip._internal.build_env import BuildEnvironment, NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError, PreviousBuildDirError
@@ -69,6 +68,8 @@ from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
 
 if TYPE_CHECKING:
+    from pip._vendor.pyproject_hooks import BuildBackendHookCaller
+
     from pip._internal.models.direct_url import DirectUrl
 
 logger = logging.getLogger(__name__)
