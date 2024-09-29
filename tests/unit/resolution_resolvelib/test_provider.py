@@ -1,6 +1,5 @@
 import math
 from typing import TYPE_CHECKING, Dict, Iterable, Optional, Sequence
-from unittest.mock import Mock
 
 import pytest
 from pip._vendor.resolvelib.resolvers import RequirementInformation
@@ -21,7 +20,6 @@ if TYPE_CHECKING:
     PreferenceInformation = RequirementInformation[Requirement, Candidate]
 
 
-# Utility to build requirement information
 def build_req_info(
     name: str, parent: Optional[InstallationCandidate] = None
 ) -> "PreferenceInformation":
@@ -33,36 +31,6 @@ def build_req_info(
         parent=parent,
     )
     return requirement_information
-
-
-# Utility to construct a mock factory for PipProvider
-def create_mock_factory() -> Factory:
-    return Factory(
-        finder=Mock(),
-        preparer=Mock(),
-        make_install_req=Mock(),
-        wheel_cache=Mock(),
-        use_user_site=False,
-        force_reinstall=False,
-        ignore_installed=False,
-        ignore_requires_python=False,
-    )
-
-
-# A helper for constructing the test setup in a single call
-def setup_provider(
-    user_requested: Dict[str, int], initial_depths: Optional[Dict[str, float]] = None
-) -> PipProvider:
-    provider = PipProvider(
-        factory=create_mock_factory(),
-        constraints={},
-        ignore_dependencies=False,
-        upgrade_strategy="to-satisfy-only",
-        user_requested=user_requested,
-    )
-    if initial_depths:
-        provider._known_depths.update(initial_depths)
-    return provider
 
 
 def test_provider_known_depths(factory: Factory) -> None:
@@ -154,7 +122,7 @@ def test_provider_known_depths(factory: Factory) -> None:
                 "child-package": [
                     build_req_info(
                         "child-package",
-                        InstallationCandidate(
+                        parent=InstallationCandidate(
                             "parent-package", "1.0", Link("https://parent-package.com")
                         ),
                     )
@@ -202,9 +170,21 @@ def test_get_preference(
     user_requested: Dict[str, int],
     known_depths: Dict[str, float],
     expected: "Preference",
+    factory: Factory,
 ) -> None:
-    provider = setup_provider(user_requested, known_depths)
+    provider = PipProvider(
+        factory=factory,
+        constraints={},
+        ignore_dependencies=False,
+        upgrade_strategy="to-satisfy-only",
+        user_requested=user_requested,
+    )
+
+    if known_depths:
+        provider._known_depths.update(known_depths)
+
     preference = provider.get_preference(
         identifier, {}, {}, information, backtrack_causes
     )
+
     assert preference == expected, f"Expected {expected}, got {preference}"
