@@ -165,6 +165,7 @@ ignore = [
     "B020",
     "B904", # Ruff enables opinionated warnings by default
     "B905", # Ruff enables opinionated warnings by default
+    "F841",
 ]
 select = [
     "ASYNC",
