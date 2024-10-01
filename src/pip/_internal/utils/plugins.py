@@ -1,15 +1,29 @@
 import contextlib
 import logging
+from importlib.metadata import EntryPoints, entry_points
 from pathlib import Path
 from typing import Iterator, List
-
-from pip._vendor.pygments.plugin import iter_entry_points
 
 from pip._internal.models.plugin import DistInspectorPlugin, Plugin, plugin_from_module
 
 logger = logging.getLogger(__name__)
 
 _loaded_plugins: List[Plugin] = []
+
+
+def iter_entry_points(group_name: str) -> EntryPoints:
+    groups = entry_points()
+    if hasattr(groups, "select"):
+        # New interface in Python 3.10 and newer versions of the
+        # importlib_metadata backport.
+        return groups.select(group=group_name)
+    else:
+        assert hasattr(groups, "get")
+        # Older interface, deprecated in Python 3.10 and recent
+        # importlib_metadata, but we need it in Python 3.8 and 3.9.
+        return groups.get(group_name, [])
+
+
 for entrypoint in iter_entry_points(group_name="pip.plugins"):
     try:
         module = entrypoint.load()
