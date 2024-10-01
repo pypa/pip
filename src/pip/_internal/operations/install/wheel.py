@@ -15,6 +15,7 @@ import warnings
 from base64 import urlsafe_b64encode
 from email.message import Message
 from itertools import chain, filterfalse, starmap
+from pathlib import Path
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -52,6 +53,7 @@ from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
 from pip._internal.utils.misc import StreamWrapper, ensure_dir, hash_file, partition
+from pip._internal.utils.plugins import plugin_pre_extract_hook
 from pip._internal.utils.unpacking import (
     current_umask,
     is_within_directory,
@@ -727,6 +729,12 @@ def install_wheel(
     direct_url: Optional[DirectUrl] = None,
     requested: bool = False,
 ) -> None:
+    try:
+        plugin_pre_extract_hook(Path(wheel_path))
+    except ValueError as e:
+        raise InstallationError(
+            f"Could not unpack file {wheel_path} due to plugin:\n{e}"
+        )
     with ZipFile(wheel_path, allowZip64=True) as z:
         with req_error_context(req_description):
             _install_wheel(
