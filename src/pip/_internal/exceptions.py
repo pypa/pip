@@ -16,12 +16,12 @@ from itertools import chain, groupby, repeat
 from typing import (
     TYPE_CHECKING,
     Dict,
+    Iterable,
     Iterator,
     List,
     Literal,
     Optional,
     Union,
-    Iterable,
 )
 
 from pip._vendor.rich.console import Console, ConsoleOptions, RenderResult
@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from hashlib import _Hash
 
     from pip._vendor.packaging.utils import NormalizedName
+    from pip._vendor.packaging.version import Version
     from pip._vendor.requests.models import Request, Response
 
     from pip._internal.metadata import BaseDistribution
@@ -793,7 +794,7 @@ class UnavailableExtra(InstallationError):
     def __init__(
         self,
         base: str,
-        version: str,
+        version: Version,
         extra: str,
         available_extras: Iterable["NormalizedName"],
     ):
