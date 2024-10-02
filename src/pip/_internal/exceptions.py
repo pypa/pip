@@ -805,4 +805,7 @@ class UnavailableExtra(InstallationError):
 
     def __str__(self) -> str:
         nice_available = " ".join(f'"{e}", ' for e in self.available_extras)[:-2]
-        return f"{self.base} {self.version} does not provide the extra '{self.extra}'\n{self.base} provides extras: {nice_available}"
+        return (
+            f"{self.base} {self.version} does not provide the extra '{self.extra}'"
+            f"\n{self.base} provides extras: {nice_available}"
+        )
