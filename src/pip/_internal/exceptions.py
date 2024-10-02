@@ -794,7 +794,7 @@ class UnavailableExtra(InstallationError):
     def __init__(
         self,
         base: str,
-        version: Version,
+        version: "Version",
         extra: str,
         available_extras: Iterable["NormalizedName"],
     ):
