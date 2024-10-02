@@ -1,0 +1,1 @@
+Print an error message (and exit with a non-zero exit code) when an invalid extra is requested
