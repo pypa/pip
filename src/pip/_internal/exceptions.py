@@ -775,3 +775,26 @@ class LegacyDistutilsInstall(DiagnosticPipError):
             ),
             hint_stmt=None,
         )
+
+
+class UnavailableExtra(InstallationError):
+    """A requested extra is not available."""
+
+    def __init__(
+            self,
+            base: str,
+            version: str,
+            extra: str,
+            available_extras: List[str],
+    ):
+        self.base = base
+        self.version = version
+        self.extra = extra
+        self.available_extras = available_extras
+
+    def __str__(self) -> str:
+        nice_available = " ".join(
+            '"{}", '.format(e)
+            for e in self.available_extras
+        )[:-2]
+        return f"{self.base} {self.version} does not provide the extra '{self.extra}'\n{self.base} provides extras: {nice_available}"
