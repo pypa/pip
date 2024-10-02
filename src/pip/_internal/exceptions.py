@@ -22,6 +22,7 @@ from pip._vendor.rich.text import Text
 if TYPE_CHECKING:
     from hashlib import _Hash
 
+    from pip._vendor.packaging.utils import NormalizedName
     from pip._vendor.requests.models import Request, Response
 
     from pip._internal.metadata import BaseDistribution
@@ -785,7 +786,7 @@ class UnavailableExtra(InstallationError):
         base: str,
         version: str,
         extra: str,
-        available_extras: List[str],
+        available_extras: Iterator["NormalizedName"],
     ):
         self.base = base
         self.version = version
@@ -793,7 +794,5 @@ class UnavailableExtra(InstallationError):
         self.available_extras = available_extras
 
     def __str__(self) -> str:
-        nice_available = " ".join('"{}", '.format(e) for e in self.available_extras)[
-            :-2
-        ]
+        nice_available = " ".join(f'"{e}", ' for e in self.available_extras)[:-2]
         return f"{self.base} {self.version} does not provide the extra '{self.extra}'\n{self.base} provides extras: {nice_available}"
