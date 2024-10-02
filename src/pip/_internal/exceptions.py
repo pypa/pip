@@ -13,7 +13,16 @@ import pathlib
 import re
 import sys
 from itertools import chain, groupby, repeat
-from typing import TYPE_CHECKING, Dict, Iterator, List, Literal, Optional, Union
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    Iterator,
+    List,
+    Literal,
+    Optional,
+    Union,
+    Iterable,
+)
 
 from pip._vendor.rich.console import Console, ConsoleOptions, RenderResult
 from pip._vendor.rich.markup import escape
@@ -786,7 +795,7 @@ class UnavailableExtra(InstallationError):
         base: str,
         version: str,
         extra: str,
-        available_extras: Iterator["NormalizedName"],
+        available_extras: Iterable["NormalizedName"],
     ):
         self.base = base
         self.version = version
