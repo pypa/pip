@@ -192,8 +192,11 @@ class Git(VersionControl):
             # Git fetch would fail with abbreviated commits.
             return False
 
-        # Don't fetch if we have the commit locally.
-        return not cls.has_commit(dest, rev)
+        if cls.has_commit(dest, rev):
+            # Don't fetch if we have the commit locally.
+            return False
+
+        return True
 
     @classmethod
     def resolve_revision(

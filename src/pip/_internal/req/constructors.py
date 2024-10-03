@@ -261,11 +261,11 @@ def _looks_like_path(name: str) -> bool:
     * a path separator is found (either os.path.sep or os.path.altsep);
     * a dot is found (which represents the current directory).
     """
-    if os.path.sep in name:
-        return True
-    if os.path.altsep is not None and os.path.altsep in name:
-        return True
-    return name.startswith(".")
+    return (
+        os.path.sep in name
+        or (os.path.altsep is not None and os.path.altsep in name)
+        or name.startswith(".")
+    )
 
 
 def _get_url_from_path(path: str, name: str) -> Optional[str]:

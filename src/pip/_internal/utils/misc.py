@@ -303,11 +303,10 @@ def is_installable_dir(path: str) -> bool:
     setup.cfg because using it without setup.py is only available for PEP 517
     projects, which are already covered by the pyproject.toml check.
     """
-    if not os.path.isdir(path):
-        return False
-    if os.path.isfile(os.path.join(path, "pyproject.toml")):
-        return True
-    return os.path.isfile(os.path.join(path, "setup.py"))
+    return os.path.isdir(path) and (
+        os.path.isfile(os.path.join(path, "pyproject.toml"))
+        or os.path.isfile(os.path.join(path, "setup.py"))
+    )
 
 
 def read_chunks(
