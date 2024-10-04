@@ -6,9 +6,10 @@ import logging
 import mimetypes
 import os
 from http import HTTPStatus
-from typing import Iterable, Optional, Tuple
+from typing import BinaryIO, Iterable, Optional, Tuple
 
 from pip._vendor.requests.models import Response
+from pip._vendor.urllib3.exceptions import ReadTimeoutError
 
 from pip._internal.cli.progress_bars import get_download_progress_renderer
 from pip._internal.exceptions import IncompleteDownloadError, NetworkConnectionError
@@ -42,7 +43,7 @@ def _prepare_download(
     link: Link,
     progress_bar: str,
     total_length: Optional[int],
-    range_start: Optional[int] = None,
+    range_start: Optional[int] = 0,
 ) -> Iterable[bytes]:
     if link.netloc == PyPI.file_storage_domain:
         url = link.show_url
@@ -52,17 +53,17 @@ def _prepare_download(
     logged_url = redact_auth_from_url(url)
 
     if total_length:
-        if range_start is not None:
-            logged_url = "{} ({}/{})".format(
-                logged_url, format_size(range_start), format_size(total_length)
+        if range_start:
+            logged_url = (
+                f"{logged_url} ({format_size(range_start)}/{format_size(total_length)})"
             )
         else:
-            logged_url = "{} ({})".format(logged_url, format_size(total_length))
+            logged_url = f"{logged_url} ({format_size(total_length)})"
 
     if is_from_cache(resp):
         logger.info("Using cached %s", logged_url)
-    elif range_start is not None:
-        logger.info("Resume download %s", logged_url)
+    elif range_start:
+        logger.info("Resuming download %s", logged_url)
     else:
         logger.info("Downloading %s", logged_url)
 
@@ -134,16 +135,16 @@ def _get_http_response_filename(resp: Response, link: Link) -> str:
 def _http_get_download(
     session: PipSession,
     link: Link,
-    range_start: Optional[int] = None,
+    range_start: Optional[int] = 0,
     if_range: Optional[str] = None,
 ) -> Response:
     target_url = link.url.split("#", 1)[0]
     headers = {**HEADERS}
     # request a partial download
-    if range_start is not None:
-        headers["Range"] = "bytes={}-".format(range_start)
+    if range_start:
+        headers["Range"] = f"bytes={range_start}-"
     # make sure the file hasn't changed
-    if if_range is not None:
+    if if_range:
         headers["If-Range"] = if_range
     try:
         resp = session.get(target_url, headers=headers, stream=True)
@@ -160,82 +161,154 @@ class Downloader:
         self,
         session: PipSession,
         progress_bar: str,
-        resume_incomplete: bool,
-        resume_attempts: int,
+        resume_retries: int,
     ) -> None:
+        assert (
+            resume_retries >= 0
+        ), "Number of max resume retries must be bigger or equal to zero"
         self._session = session
         self._progress_bar = progress_bar
-        self._resume_incomplete = resume_incomplete
-        assert (
-            resume_attempts > 0
-        ), "Number of max incomplete download retries must be positive"
-        self._resume_attempts = resume_attempts
+        self._resume_retries = resume_retries
 
     def __call__(self, link: Link, location: str) -> Tuple[str, str]:
         """Download the file given by link into location."""
         resp = _http_get_download(self._session, link)
         total_length = _get_http_response_size(resp)
-        etag_or_date = _get_http_response_etag_or_date(resp)
 
         filename = _get_http_response_filename(resp, link)
         filepath = os.path.join(location, filename)
 
-        chunks = _prepare_download(resp, link, self._progress_bar, total_length)
         bytes_received = 0
-
         with open(filepath, "wb") as content_file:
-
-            # Process the initial response
-            for chunk in chunks:
-                bytes_received += len(chunk)
-                content_file.write(chunk)
-
-            if self._resume_incomplete:
-                attempts_left = self._resume_attempts
-
-                while total_length is not None and bytes_received < total_length:
-                    if attempts_left <= 0:
-                        break
-                    attempts_left -= 1
-
-                    # Attempt to resume download
-                    resume_resp = _http_get_download(
-                        self._session,
-                        link,
-                        range_start=bytes_received,
-                        if_range=etag_or_date,
-                    )
-
-                    restart = resume_resp.status_code != HTTPStatus.PARTIAL_CONTENT
-                    # If the server responded with 200 (e.g. when the file has been
-                    # modifiedon the server or the server doesn't support range
-                    # requests), reset the download to start from the beginning.
-                    if restart:
-                        content_file.seek(0)
-                        content_file.truncate()
-                        bytes_received = 0
-                        total_length = _get_http_response_size(resume_resp)
-                        etag_or_date = _get_http_response_etag_or_date(resume_resp)
-
-                    chunks = _prepare_download(
-                        resume_resp,
-                        link,
-                        self._progress_bar,
-                        total_length,
-                        range_start=bytes_received,
-                    )
-                    for chunk in chunks:
-                        bytes_received += len(chunk)
-                        content_file.write(chunk)
-
-        if total_length is not None and bytes_received < total_length:
-            os.remove(filepath)
-            raise IncompleteDownloadError(
-                str(link), self._resume_incomplete, self._resume_attempts
+            bytes_received = self._process_response(
+                resp, link, content_file, bytes_received, total_length
             )
+
+            if not total_length:
+                content_type = resp.headers.get("Content-Type", "")
+                return filepath, content_type
+
+            if bytes_received < total_length:
+                self._attempt_resume(
+                    resp, link, content_file, total_length, bytes_received, filepath
+                )
 
         content_type = resp.headers.get("Content-Type", "")
         return filepath, content_type
+
+    def _process_response(
+        self,
+        resp: Response,
+        link: Link,
+        content_file: BinaryIO,
+        bytes_received: int,
+        total_length: Optional[int],
+    ) -> int:
+        """Process the response and write the chunks to the file."""
+        chunks = _prepare_download(
+            resp, link, self._progress_bar, total_length, range_start=bytes_received
+        )
+
+        bytes_received = self._write_chunks_to_file(
+            chunks,
+            content_file,
+            bytes_received,
+            total_length,
+        )
+
+        return bytes_received
+
+    def _write_chunks_to_file(
+        self,
+        chunks: Iterable[bytes],
+        content_file: BinaryIO,
+        bytes_received: int,
+        total_length: Optional[int],
+    ) -> int:
+        """Write the chunks to the file and return the number of bytes received."""
+        try:
+            for chunk in chunks:
+                bytes_received += len(chunk)
+                content_file.write(chunk)
+        except ReadTimeoutError as e:
+            if not total_length:
+                # Raise exception if the Content-Length header is not provided
+                # and the connection times out.
+                raise e
+
+            # Ensuring bytes_received is returned to attempt resume
+            logger.warning("Connection timed out while downloading.")
+
+        return bytes_received
+
+    def _attempt_resume(
+        self,
+        resp: Response,
+        link: Link,
+        content_file: BinaryIO,
+        total_length: Optional[int],
+        bytes_received: int,
+        filepath: str,
+    ) -> int:
+        """Attempt to resume the download if connection was dropped."""
+        etag_or_date = _get_http_response_etag_or_date(resp)
+
+        attempts_left = self._resume_retries
+        while attempts_left and total_length and bytes_received < total_length:
+            attempts_left -= 1
+
+            logger.warning(
+                "Attempting to resume download with bytes received: %s/%s",
+                format_size(bytes_received),
+                format_size(total_length),
+            )
+
+            try:
+                resume_resp = _http_get_download(
+                    self._session,
+                    link,
+                    range_start=bytes_received,
+                    if_range=etag_or_date,
+                )
+
+                # If the server responded with 200 (e.g. when the file has been
+                # modified on the server or range requests are not supported by
+                # the server), reset the download to start from the beginning.
+                restart = resume_resp.status_code != HTTPStatus.PARTIAL_CONTENT
+                if restart:
+                    bytes_received, total_length, etag_or_date = (
+                        self._reset_download_state(resume_resp, content_file)
+                    )
+
+                bytes_received = self._process_response(
+                    resume_resp,
+                    link,
+                    content_file,
+                    bytes_received,
+                    total_length,
+                )
+            except (ConnectionError, ReadTimeoutError):
+                continue
+
+        if total_length and bytes_received < total_length:
+            os.remove(filepath)
+            raise IncompleteDownloadError(str(link), self._resume_retries)
+
+        return bytes_received
+
+    def _reset_download_state(
+        self,
+        resp: Response,
+        content_file: BinaryIO,
+    ) -> Tuple[int, Optional[int], Optional[str]]:
+        """Reset the download state to restart downloading from the beginning."""
+        content_file.seek(0)
+        content_file.truncate()
+        bytes_received = 0
+        total_length = _get_http_response_size(resp)
+        etag_or_date = _get_http_response_etag_or_date(resp)
+
+        return bytes_received, total_length, etag_or_date
 
 
 class BatchDownloader:
@@ -243,12 +316,9 @@ class BatchDownloader:
         self,
         session: PipSession,
         progress_bar: str,
-        resume_incomplete: bool,
-        resume_attempts: int,
+        resume_retries: int,
     ) -> None:
-        self._downloader = Downloader(
-            session, progress_bar, resume_incomplete, resume_attempts
-        )
+        self._downloader = Downloader(session, progress_bar, resume_retries)
 
     def __call__(
         self, links: Iterable[Link], location: str

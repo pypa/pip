@@ -107,8 +107,7 @@ class TestRequirementSet:
                 lazy_wheel=False,
                 verbosity=0,
                 legacy_resolver=True,
-                resume_incomplete=False,
-                resume_attempts=5,
+                resume_retries=0,
             )
             yield Resolver(
                 preparer=preparer,

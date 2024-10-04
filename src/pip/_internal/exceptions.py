@@ -776,35 +776,23 @@ class LegacyDistutilsInstall(DiagnosticPipError):
             hint_stmt=None,
         )
 
+
 class IncompleteDownloadError(DiagnosticPipError):
     """Raised when the downloader receives fewer bytes than advertised
     in the Content-Length header."""
 
     reference = "incomplete-download-error"
 
-    def __init__(
-        self, link: str, resume_incomplete: bool, resume_attempts: int
-    ) -> None:
-        if resume_incomplete:
-            message = (
-                "Download failed after {} attempts because not enough bytes are"
-                " received. The incomplete file has been cleaned up."
-            ).format(resume_attempts)
-            hint = "Use --incomplete-download-retries to configure resume retry limit."
-        else:
-            message = (
-                "Download failed because not enough bytes are received."
-                " The incomplete file has been cleaned up."
-            )
-            hint = (
-                "Use --incomplete-downloads=resume to make pip retry failed download."
-            )
+    def __init__(self, link: str, resume_retries: int) -> None:
+        message = (
+            f"Download failed after {resume_retries} attempts because not enough"
+            " bytes were received. The incomplete file has been cleaned up."
+        )
+        hint = "Use --resume-retries to configure resume retry limit."
 
         super().__init__(
             message=message,
-            context="File: {}\n"
-            "Resume failed download: {}\n"
-            "Resume retry limit: {}".format(link, resume_incomplete, resume_attempts),
+            context=f"File: {link}\nResume retry limit: {resume_retries}",
             hint_stmt=hint,
             note_stmt="This is an issue with network connectivity, not pip.",
         )

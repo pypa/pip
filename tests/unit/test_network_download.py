@@ -71,7 +71,7 @@ from tests.lib.requests_mocks import MockResponse
             {"content-length": "200"},
             False,
             100,
-            "Resume download http://example.com/foo.tgz (100 bytes/200 bytes)",
+            "Resuming download http://example.com/foo.tgz (100 bytes/200 bytes)",
         ),
     ],
 )
@@ -184,41 +184,33 @@ def test_parse_content_disposition(
 
 
 @pytest.mark.parametrize(
-    "resume_incomplete,"
-    "resume_attempts,"
-    "mock_responses,"
-    "expected_resume_args,"
-    "expected_bytes",
+    "resume_retries,mock_responses,expected_resume_args,expected_bytes",
     [
         # If content-length is not provided, the download will
         # always "succeed" since we don't have a way to check if
         # the download is complete.
         (
-            False,
-            5,
+            0,
             [({}, 200, b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89")],
             [],
             b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89",
         ),
         # Complete download (content-length matches body)
         (
-            False,
-            5,
+            0,
             [({"content-length": "36"}, 200, b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89")],
             [],
             b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89",
         ),
-        # Incomplete download with auto resume disabled
+        # Incomplete download without resume retries
         (
-            False,
-            5,
+            0,
             [({"content-length": "36"}, 200, b"0cfa7e9d-1868-4dd7-9fb3-")],
             [],
             None,
         ),
-        # Incomplete download with auto resume enabled
+        # Incomplete download with resume retries
         (
-            True,
             5,
             [
                 ({"content-length": "36"}, 200, b"0cfa7e9d-1868-4dd7-9fb3-"),
@@ -229,9 +221,8 @@ def test_parse_content_disposition(
         ),
         # If the server responds with 200 (e.g. no range header support or the file
         # has changed between the requests) the downloader should restart instead of
-        # resume. The downloaded file should not be affected.
+        # attempting to resume. The downloaded file should not be affected.
         (
-            True,
             5,
             [
                 ({"content-length": "36"}, 200, b"0cfa7e9d-1868-4dd7-9fb3-"),
@@ -247,7 +238,6 @@ def test_parse_content_disposition(
         ),
         # File size could change between requests. Make sure this is handled correctly.
         (
-            True,
             5,
             [
                 ({"content-length": "36"}, 200, b"0cfa7e9d-1868-4dd7-9fb3-"),
@@ -261,11 +251,10 @@ def test_parse_content_disposition(
             [(24, None), (36, None)],
             b"new-0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89",
         ),
-        # The downloader should fail after resume_attempts attempts.
+        # The downloader should fail after n resume_retries attempts.
         # This prevents the downloader from getting stuck if the connection
         # is unstable and the server doesn't not support range requests.
         (
-            True,
             1,
             [
                 ({"content-length": "36"}, 200, b"0cfa7e9d-1868-4dd7-9fb3-"),
@@ -278,7 +267,6 @@ def test_parse_content_disposition(
         # request conditional if it is possible to check for modifications
         # (e.g. if we know the creation time of the initial response).
         (
-            True,
             5,
             [
                 (
@@ -297,7 +285,6 @@ def test_parse_content_disposition(
         ),
         # ETag is preferred over Date for the If-Range condition.
         (
-            True,
             5,
             [
                 (
@@ -325,8 +312,7 @@ def test_parse_content_disposition(
     ],
 )
 def test_downloader(
-    resume_incomplete: bool,
-    resume_attempts: int,
+    resume_retries: int,
     mock_responses: List[Tuple[Dict[str, str], int, bytes]],
     # list of (range_start, if_range)
     expected_resume_args: List[Tuple[Optional[int], Optional[int]]],
@@ -336,7 +322,7 @@ def test_downloader(
 ) -> None:
     session = PipSession()
     link = Link("http://example.com/foo.tgz")
-    downloader = Downloader(session, "on", resume_incomplete, resume_attempts)
+    downloader = Downloader(session, "on", resume_retries)
 
     responses = []
     for headers, status_code, body in mock_responses:
