@@ -20,6 +20,7 @@ from pip._internal.cli.index_command import SessionCommandMixin as SessionComman
 from pip._internal.exceptions import CommandError, PreviousBuildDirError
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
+from pip._internal.metadata.pep723 import parse_pep723_requirements
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
@@ -285,6 +286,9 @@ class RequirementCommand(IndexGroupCommand):
                 )
                 requirements.append(req_to_add)
 
+        if options.script:
+            requirements.extend(parse_pep723_requirements(options.script))
+
         # If any requirement has hash options, enable hash checking.
         if any(req.has_hash_options for req in requirements):
             options.require_hashes = True
@@ -294,6 +298,7 @@ class RequirementCommand(IndexGroupCommand):
             or options.editables
             or options.requirements
             or options.dependency_groups
+            or options.script
         ):
             opts = {"name": self.name}
             if options.find_links:
