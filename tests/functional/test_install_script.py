@@ -39,3 +39,15 @@ def test_script_file(script: PipTestEnvironment) -> None:
     assert result.files_created[script.site_packages / fn].dir
 
     # TODO:2024-10-05:snoopj:should this test actually run the script? if so, it should use the dependencies
+
+
+def test_multiple_scripts(script: PipTestEnvironment) -> None:
+    """
+    Test that --script can only be given once in an install command.
+    """
+    result = script.pip("install", "--script", "does_not_exist.py", "--script", "also_does_not_exist.py", allow_stderr_error=True, expect_error=True)
+
+    assert (
+        "ERROR: --script can only be given once"
+        in result.stderr
+    ), ("multiple script did not fail as expected -- " + result.stderr)
