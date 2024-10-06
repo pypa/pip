@@ -38,8 +38,6 @@ def test_script_file(script: PipTestEnvironment) -> None:
     fn = f"{other_lib_name}-{other_lib_version}.dist-info"
     assert result.files_created[script.site_packages / fn].dir
 
-    # TODO:2024-10-05:snoopj:should this test actually run the script? if so, it should use the dependencies
-
 
 def test_multiple_scripts(script: PipTestEnvironment) -> None:
     """
