@@ -1,6 +1,7 @@
 import collections
 import logging
 import os
+import re
 import textwrap
 from optparse import Values
 from pathlib import Path
@@ -344,6 +345,63 @@ class TestProcessLine:
         assert len(reqs) == 1
         assert reqs[0].name == req_name
         assert reqs[0].constraint
+
+    def test_recursive_requirements_file(
+        self, tmpdir: Path, session: PipSession
+    ) -> None:
+        req_files: list[Path] = []
+        req_file_count = 4
+        for i in range(req_file_count):
+            req_file = tmpdir / f"{i}.txt"
+            req_file.write_text(f"-r {(i+1) % req_file_count}.txt")
+            req_files.append(req_file)
+
+        # When the passed requirements file recursively references itself
+        with pytest.raises(
+            RequirementsFileParseError,
+            match=(
+                f"{re.escape(str(req_files[0]))} recursively references itself"
+                f" in {re.escape(str(req_files[req_file_count - 1]))}"
+            ),
+        ):
+            list(parse_requirements(filename=str(req_files[0]), session=session))
+
+        # When one of other the requirements file recursively references itself
+        req_files[req_file_count - 1].write_text(
+            # Just name since they are in the same folder
+            f"-r {req_files[req_file_count - 2].name}"
+        )
+        with pytest.raises(
+            RequirementsFileParseError,
+            match=(
+                f"{re.escape(str(req_files[req_file_count - 2]))} recursively"
+                " references itself in"
+                f" {re.escape(str(req_files[req_file_count - 1]))} and again in"
+                f" {re.escape(str(req_files[req_file_count - 3]))}"
+            ),
+        ):
+            list(parse_requirements(filename=str(req_files[0]), session=session))
+
+    def test_recursive_relative_requirements_file(
+        self, tmpdir: Path, session: PipSession
+    ) -> None:
+        root_req_file = tmpdir / "root.txt"
+        (tmpdir / "nest" / "nest").mkdir(parents=True)
+        level_1_req_file = tmpdir / "nest" / "level_1.txt"
+        level_2_req_file = tmpdir / "nest" / "nest" / "level_2.txt"
+
+        root_req_file.write_text("-r nest/level_1.txt")
+        level_1_req_file.write_text("-r nest/level_2.txt")
+        level_2_req_file.write_text("-r ../../root.txt")
+
+        with pytest.raises(
+            RequirementsFileParseError,
+            match=(
+                f"{re.escape(str(root_req_file))} recursively references itself in"
+                f" {re.escape(str(level_2_req_file))}"
+            ),
+        ):
+            list(parse_requirements(filename=str(root_req_file), session=session))
 
     def test_options_on_a_requirement_line(self, line_processor: LineProcessor) -> None:
         line = (
