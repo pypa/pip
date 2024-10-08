@@ -523,8 +523,8 @@ def ios_platforms(
 
     # Consider the actual X.Y version that was requested.
     yield ios_platform_template.format(
-            major=version[0], minor=version[1], multiarch=multiarch
-        )
+        major=version[0], minor=version[1], multiarch=multiarch
+    )
 
     # Consider every minor version from X.0 to the minor version prior to the
     # version requested by the platform.

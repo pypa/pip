@@ -4,25 +4,25 @@ index 6667d2990..cb11c60b8 100644
 +++ b/src/pip/_vendor/packaging/tags.py
 @@ -25,7 +25,7 @@ from . import _manylinux, _musllinux
  logger = logging.getLogger(__name__)
- 
+
  PythonVersion = Sequence[int]
 -MacVersion = Tuple[int, int]
 +AppleVersion = Tuple[int, int]
- 
+
  INTERPRETER_SHORT_NAMES: dict[str, str] = {
      "python": "py",  # Generic.
 @@ -363,7 +363,7 @@ def _mac_arch(arch: str, is_32bit: bool = _32_BIT_INTERPRETER) -> str:
      return "i386"
- 
- 
+
+
 -def _mac_binary_formats(version: MacVersion, cpu_arch: str) -> list[str]:
 +def _mac_binary_formats(version: AppleVersion, cpu_arch: str) -> list[str]:
      formats = [cpu_arch]
      if cpu_arch == "x86_64":
          if version < (10, 4):
 @@ -396,7 +396,7 @@ def _mac_binary_formats(version: MacVersion, cpu_arch: str) -> list[str]:
- 
- 
+
+
  def mac_platforms(
 -    version: MacVersion | None = None, arch: str | None = None
 +    version: AppleVersion | None = None, arch: str | None = None
@@ -49,8 +49,8 @@ index 6667d2990..cb11c60b8 100644
      if arch is None:
 @@ -483,6 +483,63 @@ def mac_platforms(
                  )
- 
- 
+
+
 +def ios_platforms(
 +    version: AppleVersion | None = None, multiarch: str | None = None
 +) -> Iterator[str]:
@@ -91,8 +91,8 @@ index 6667d2990..cb11c60b8 100644
 +
 +    # Consider the actual X.Y version that was requested.
 +    yield ios_platform_template.format(
-+            major=version[0], minor=version[1], multiarch=multiarch
-+        )
++        major=version[0], minor=version[1], multiarch=multiarch
++    )
 +
 +    # Consider every minor version from X.0 to the minor version prior to the
 +    # version requested by the platform.
