@@ -38,7 +38,7 @@ def _make_graph(
 ) -> "DirectedGraph[Optional[str]]":
     """Build graph from edge declarations."""
 
-    graph: "DirectedGraph[Optional[str]]" = DirectedGraph()
+    graph: DirectedGraph[Optional[str]] = DirectedGraph()
     for parent, child in edges:
         parent = cast(str, canonicalize_name(parent)) if parent else None
         child = cast(str, canonicalize_name(child)) if child else None
