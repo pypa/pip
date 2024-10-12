@@ -39,17 +39,15 @@ class Wheel:
         self.name = wheel_info.group("name").replace("_", "-")
         _version = wheel_info.group("ver")
         if "_" in _version:
-            _version = _version.replace("_", "-")
-
             try:
                 parse_wheel_filename(filename)
-            except (PackagingInvalidWheelName, InvalidVersion):
+            except InvalidVersion as e:
                 deprecated(
                     reason=(
-                        f"Wheel filename {filename!r} uses an invalid filename format, "
-                        f"as the version part {_version!r} is not correctly "
-                        "normalised, and contains an underscore character. Future "
-                        "versions of pip will fail to recognise this wheel."
+                        f"Wheel filename version part {_version!r} is not correctly "
+                        "normalised, and contained an underscore character in the "
+                        "version part. Future versions of pip will fail to recognise "
+                        f"this wheel and report the error: {e.args[0]}."
                     ),
                     replacement=(
                         "rename the wheel to use a correctly normalised "
@@ -59,6 +57,23 @@ class Wheel:
                     gone_in="25.1",
                     issue=12938,
                 )
+            except PackagingInvalidWheelName as e:
+                deprecated(
+                    reason=(
+                        f"The wheel filename {filename!r} is not correctly normalised. "
+                        "Future versions of pip will fail to recognise this wheel. "
+                        f"and report the error: {e.args[0]}."
+                    ),
+                    replacement=(
+                        "rename the wheel to use a correctly normalised "
+                        "name (this may require updating the version in "
+                        "the project metadata)"
+                    ),
+                    gone_in="25.1",
+                    issue=12938,
+                )
+
+            _version = _version.replace("_", "-")
 
         self.version = _version
         self.build_tag = wheel_info.group("build")
