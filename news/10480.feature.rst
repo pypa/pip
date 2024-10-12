@@ -1,0 +1,1 @@
+Parallelize network requests when finding package candidates for installation.

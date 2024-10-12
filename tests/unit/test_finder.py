@@ -1,5 +1,5 @@
 import logging
-from typing import Iterable
+from typing import Dict, Iterable
 from unittest.mock import Mock, patch
 
 import pytest
@@ -569,3 +569,31 @@ def test_find_all_candidates_find_links_and_index(data: TestData) -> None:
     versions = finder.find_all_candidates("simple")
     # first the find-links versions then the page versions
     assert [str(v.version) for v in versions] == ["3.0", "2.0", "1.0", "1.0"]
+
+
+def test_finder_caching(data: TestData) -> None:
+    # This is not required for the behavior of the finder itself, but we exploit
+    # the implementation of the finder's find_best_candidate consuming it's own
+    # find_all_candidates cache to pre-populate the cache before the resolution process
+    # starts
+
+    finder = make_test_finder(
+        find_links=[data.find_links],
+        index_urls=[data.index_url("simple")],
+    )
+    finder.find_all_candidates.cache_clear()
+
+    def get_findall_cacheinfo() -> Dict[str, int]:
+        cacheinfo = finder.find_all_candidates.cache_info()
+        return {k: getattr(cacheinfo, k) for k in ["currsize", "hits", "misses"]}
+
+    # empty before any calls
+    assert get_findall_cacheinfo() == {"currsize": 0, "hits": 0, "misses": 0}
+
+    # first findall is a miss
+    finder.find_all_candidates("simple")
+    assert get_findall_cacheinfo() == {"currsize": 1, "hits": 0, "misses": 1}
+
+    # find best following a find all is a hit
+    finder.find_best_candidate("simple")
+    assert get_findall_cacheinfo() == {"currsize": 1, "hits": 1, "misses": 1}
