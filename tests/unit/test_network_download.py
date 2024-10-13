@@ -4,6 +4,7 @@ from typing import Dict
 
 import pytest
 
+from pip._internal.cli.progress_bars import ProgressBarType
 from pip._internal.models.link import Link
 from pip._internal.network.download import (
     _prepare_download,
@@ -64,7 +65,7 @@ def test_prepare_download__log(
     if from_cache:
         resp.from_cache = from_cache
     link = Link(url)
-    _prepare_download(resp, link, progress_bar="on")
+    _prepare_download(resp, link, progress_bar=ProgressBarType.ON)
 
     assert len(caplog.records) == 1
     record = caplog.records[0]

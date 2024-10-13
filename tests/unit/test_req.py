@@ -15,6 +15,7 @@ from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.cache import WheelCache
+from pip._internal.cli.progress_bars import ProgressBarType
 from pip._internal.commands import create_command
 from pip._internal.commands.install import InstallCommand
 from pip._internal.exceptions import (
@@ -102,12 +103,14 @@ class TestRequirementSet:
                 check_build_deps=False,
                 build_tracker=tracker,
                 session=session,
-                progress_bar="on",
+                progress_bar=ProgressBarType.ON,
                 finder=finder,
                 require_hashes=require_hashes,
                 use_user_site=False,
                 lazy_wheel=False,
                 verbosity=0,
+                quietness=0,
+                color=True,
                 legacy_resolver=True,
             )
             yield Resolver(
