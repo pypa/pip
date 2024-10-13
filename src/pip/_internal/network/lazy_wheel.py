@@ -5,7 +5,8 @@ __all__ = ["HTTPRangeRequestUnsupported", "dist_from_wheel_url"]
 from bisect import bisect_left, bisect_right
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
-from typing import Any, Dict, Generator, List, Optional, Tuple
+from types import TracebackType
+from typing import Dict, Generator, List, Optional, Tuple, Type
 from zipfile import BadZipFile, ZipFile
 
 from pip._vendor.packaging.utils import canonicalize_name
@@ -31,7 +32,7 @@ def dist_from_wheel_url(name: str, url: str, session: PipSession) -> BaseDistrib
     with LazyZipOverHTTP(url, session) as zf:
         # For read-only ZIP files, ZipFile only needs methods read,
         # seek, seekable and tell, not the whole IO protocol.
-        wheel = MemoryWheel(zf.name, zf)  # type: ignore
+        wheel = MemoryWheel(zf.name, zf)  # type: ignore[arg-type]
         # After context manager exit, wheel.name
         # is an invalid file by intention.
         return get_wheel_distribution(wheel, canonicalize_name(name))
@@ -135,8 +136,13 @@ class LazyZipOverHTTP:
         self._file.__enter__()
         return self
 
-    def __exit__(self, *exc: Any) -> None:
-        self._file.__exit__(*exc)
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
+        traceback: Optional[TracebackType],
+    ) -> None:
+        self._file.__exit__(exc_type, exc_value, traceback)
 
     @contextmanager
     def _stay(self) -> Generator[None, None, None]:
@@ -159,7 +165,7 @@ class LazyZipOverHTTP:
                 try:
                     # For read-only ZIP files, ZipFile only needs
                     # methods read, seek, seekable and tell.
-                    ZipFile(self)  # type: ignore
+                    ZipFile(self)  # type: ignore[call-overload]
                 except BadZipFile:
                     pass
                 else:

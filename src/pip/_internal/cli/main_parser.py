@@ -35,7 +35,7 @@ def create_main_parser() -> ConfigOptionParser:
     parser.add_option_group(gen_opts)
 
     # so the help formatter knows
-    parser.main = True  # type: ignore
+    parser.main = True  # type: ignore[attr-defined]
 
     # create command listing for description
     description = [""] + [

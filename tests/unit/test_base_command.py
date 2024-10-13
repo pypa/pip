@@ -68,7 +68,7 @@ class TestCommand:
         """
 
         def raise_broken_stdout() -> NoReturn:
-            raise BrokenStdoutLoggingError()
+            raise BrokenStdoutLoggingError
 
         cmd = FakeCommand(run_func=raise_broken_stdout)
         status = cmd.main(args)

@@ -132,11 +132,7 @@ def pytest_collection_modifyitems(config: Config, items: List[pytest.Function]) 
         )
 
         module_root_dir = module_path.split(os.pathsep)[0]
-        if (
-            module_root_dir.startswith("functional")
-            or module_root_dir.startswith("integration")
-            or module_root_dir.startswith("lib")
-        ):
+        if module_root_dir.startswith(("functional", "integration", "lib")):
             item.add_marker(pytest.mark.integration)
         elif module_root_dir.startswith("unit"):
             item.add_marker(pytest.mark.unit)
@@ -513,10 +509,7 @@ def virtualenv_template(
 
     # Drop (non-relocatable) launchers.
     for exe in os.listdir(venv.bin):
-        if not (
-            exe.startswith("python")
-            or exe.startswith("libpy")  # Don't remove libpypy-c.so...
-        ):
+        if not exe.startswith(("python", "libpy")):  # Don't remove libpypy-c.so...
             (venv.bin / exe).unlink()
 
     # Rename original virtualenv directory to make sure
@@ -889,7 +882,7 @@ def html_index_for_packages(
 
     # (1) Generate the content for a PyPI index.html.
     pkg_links = "\n".join(
-        f'    <a href="{pkg}/index.html">{pkg}</a>' for pkg in fake_packages.keys()
+        f'    <a href="{pkg}/index.html">{pkg}</a>' for pkg in fake_packages
     )
     # Output won't be nicely indented because dedent() acts after f-string
     # arg insertion.

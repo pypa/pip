@@ -1864,7 +1864,7 @@ def test_install_editable_with_wrong_egg_name(
 
 def test_install_tar_xz(script: PipTestEnvironment, data: TestData) -> None:
     try:
-        import lzma  # noqa
+        import lzma  # noqa: F401
     except ImportError:
         pytest.skip("No lzma support")
     res = script.pip("install", data.packages / "singlemodule-0.0.1.tar.xz")
@@ -1873,7 +1873,7 @@ def test_install_tar_xz(script: PipTestEnvironment, data: TestData) -> None:
 
 def test_install_tar_lzma(script: PipTestEnvironment, data: TestData) -> None:
     try:
-        import lzma  # noqa
+        import lzma  # noqa: F401
     except ImportError:
         pytest.skip("No lzma support")
     res = script.pip("install", data.packages / "singlemodule-0.0.1.tar.lzma")

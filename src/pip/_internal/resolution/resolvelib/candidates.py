@@ -1,6 +1,6 @@
 import logging
 import sys
-from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, FrozenSet, Iterable, Optional, Tuple, Union, cast
 
 from pip._vendor.packaging.requirements import InvalidRequirement
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
@@ -171,7 +171,7 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._hash = hash((self.__class__, self._link))
         return self._hash
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, self.__class__):
             return links_equivalent(self._link, other._link)
         return False
@@ -459,7 +459,7 @@ class ExtrasCandidate(Candidate):
     def __hash__(self) -> int:
         return hash((self.base, self.extras))
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, self.__class__):
             return self.base == other.base and self.extras == other.extras
         return False

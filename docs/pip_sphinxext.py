@@ -37,13 +37,11 @@ class PipNewsInclude(rst.Directive):
         self, prev: Optional[str], curr: str
     ) -> bool:
         """Find a ==== line that marks the version section title."""
-        if prev is None:
-            return False
-        if re.match(r"^=+$", curr) is None:
-            return False
-        if len(curr) < len(prev):
-            return False
-        return True
+        return (
+            prev is not None
+            and re.match(r"^=+$", curr) is not None
+            and len(curr) >= len(prev)
+        )
 
     def _iter_lines_with_refs(self, lines: Iterable[str]) -> Iterator[str]:
         """Transform the input lines to add a ref before each section title.

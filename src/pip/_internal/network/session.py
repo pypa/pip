@@ -123,7 +123,7 @@ def user_agent() -> str:
     if data["implementation"]["name"] == "CPython":
         data["implementation"]["version"] = platform.python_version()
     elif data["implementation"]["name"] == "PyPy":
-        pypy_version_info = sys.pypy_version_info  # type: ignore
+        pypy_version_info = sys.pypy_version_info  # type: ignore[attr-defined]
         if pypy_version_info.releaselevel == "final":
             pypy_version_info = pypy_version_info[:3]
         data["implementation"]["version"] = ".".join(
@@ -363,7 +363,7 @@ class PipSession(requests.Session):
             # Add a small amount of back off between failed requests in
             # order to prevent hammering the service.
             backoff_factor=0.25,
-        )  # type: ignore
+        )  # type: ignore[assignment]
 
         # Our Insecure HTTPAdapter disables HTTPS validation. It does not
         # support caching so we'll use it for all http:// URLs.

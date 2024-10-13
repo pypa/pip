@@ -4,7 +4,6 @@ from optparse import Values
 from typing import TYPE_CHECKING, Generator, List, Optional, Sequence, Tuple, cast
 
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.packaging.version import Version
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.index_command import IndexGroupCommand
@@ -16,6 +15,8 @@ from pip._internal.utils.compat import stdlib_pkgs
 from pip._internal.utils.misc import tabulate, write_output
 
 if TYPE_CHECKING:
+    from pip._vendor.packaging.version import Version
+
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.network.session import PipSession
 

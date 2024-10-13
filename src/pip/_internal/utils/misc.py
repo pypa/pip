@@ -137,9 +137,9 @@ def rmtree(
     )
     if sys.version_info >= (3, 12):
         # See https://docs.python.org/3.12/whatsnew/3.12.html#shutil.
-        shutil.rmtree(dir, onexc=handler)  # type: ignore
+        shutil.rmtree(dir, onexc=handler)  # type: ignore[arg-type]
     else:
-        shutil.rmtree(dir, onerror=handler)  # type: ignore
+        shutil.rmtree(dir, onerror=handler)  # type: ignore[arg-type]
 
 
 def _onerror_ignore(*_args: Any) -> None:
@@ -239,6 +239,7 @@ def ask(message: str, options: Iterable[str]) -> str:
             )
         else:
             return response
+    return None
 
 
 def ask_input(message: str) -> str:
@@ -302,13 +303,10 @@ def is_installable_dir(path: str) -> bool:
     setup.cfg because using it without setup.py is only available for PEP 517
     projects, which are already covered by the pyproject.toml check.
     """
-    if not os.path.isdir(path):
-        return False
-    if os.path.isfile(os.path.join(path, "pyproject.toml")):
-        return True
-    if os.path.isfile(os.path.join(path, "setup.py")):
-        return True
-    return False
+    return os.path.isdir(path) and (
+        os.path.isfile(os.path.join(path, "pyproject.toml"))
+        or os.path.isfile(os.path.join(path, "setup.py"))
+    )
 
 
 def read_chunks(
@@ -391,7 +389,7 @@ class StreamWrapper(StringIO):
     # compileall.compile_dir() needs stdout.encoding to print to stdout
     # type ignore is because TextIOBase.encoding is writeable
     @property
-    def encoding(self) -> str:  # type: ignore
+    def encoding(self) -> str:  # type: ignore[override]
         return self.orig_stream.encoding
 
 
@@ -554,13 +552,13 @@ class HiddenText:
         return self.redacted
 
     # This is useful for testing.
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if type(self) is not type(other):
             return False
 
         # The string being used for redaction doesn't also have to match,
         # just the raw, original string.
-        return self.secret == other.secret
+        return self.secret == cast(HiddenText, other).secret
 
 
 def hide_value(value: str) -> HiddenText:

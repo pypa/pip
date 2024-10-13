@@ -316,4 +316,4 @@ class NoOpBuildEnvironment(BuildEnvironment):
         *,
         kind: str,
     ) -> None:
-        raise NotImplementedError()
+        raise NotImplementedError

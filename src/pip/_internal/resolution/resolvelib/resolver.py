@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple, cast
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible
 from pip._vendor.resolvelib import Resolver as RLResolver
-from pip._vendor.resolvelib.structs import DirectedGraph
 
 from pip._internal.cache import WheelCache
 from pip._internal.index.package_finder import PackageFinder
@@ -23,11 +22,13 @@ from pip._internal.resolution.resolvelib.reporter import (
 )
 from pip._internal.utils.packaging import get_requirement
 
-from .base import Candidate, Requirement
 from .factory import Factory
 
 if TYPE_CHECKING:
     from pip._vendor.resolvelib.resolvers import Result as RLResult
+    from pip._vendor.resolvelib.structs import DirectedGraph
+
+    from .base import Candidate, Requirement
 
     Result = RLResult[Requirement, Candidate, str]
 
@@ -36,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 
 class Resolver(BaseResolver):
-    _allowed_strategies = {"eager", "only-if-needed", "to-satisfy-only"}
+    _allowed_strategies = frozenset(["eager", "only-if-needed", "to-satisfy-only"])
 
     def __init__(
         self,

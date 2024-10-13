@@ -95,7 +95,7 @@ def transform_hits(hits: List[Dict[str, str]]) -> List["TransformedHit"]:
         summary = hit["summary"]
         version = hit["version"]
 
-        if name not in packages.keys():
+        if name not in packages:
             packages[name] = {
                 "name": name,
                 "summary": summary,
@@ -140,10 +140,8 @@ def print_results(
     if name_column_width is None:
         name_column_width = (
             max(
-                [
-                    len(hit["name"]) + len(highest_version(hit.get("versions", ["-"])))
-                    for hit in hits
-                ]
+                len(hit["name"]) + len(highest_version(hit.get("versions", ["-"])))
+                for hit in hits
             )
             + 4
         )

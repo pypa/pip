@@ -111,7 +111,7 @@ class Resolver(BaseResolver):
     the requested operation without breaking the requirements of any package.
     """
 
-    _allowed_strategies = {"eager", "only-if-needed", "to-satisfy-only"}
+    _allowed_strategies = frozenset(["eager", "only-if-needed", "to-satisfy-only"])
 
     def __init__(
         self,

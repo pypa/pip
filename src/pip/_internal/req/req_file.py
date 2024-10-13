@@ -188,8 +188,9 @@ def handle_requirement_line(
         supported_dest = SUPPORTED_OPTIONS_REQ_DEST
     req_options = {}
     for dest in supported_dest:
-        if dest in line.opts.__dict__ and line.opts.__dict__[dest]:
-            req_options[dest] = line.opts.__dict__[dest]
+        line_option = line.opts.__dict__.get(dest)
+        if line_option:
+            req_options[dest] = line_option
 
     line_source = f"line {line.lineno} of {line.filename}"
     return ParsedRequirement(
@@ -437,7 +438,7 @@ def break_args_options(line: str) -> Tuple[str, str]:
     args = []
     options = tokens[:]
     for token in tokens:
-        if token.startswith("-") or token.startswith("--"):
+        if token.startswith(("-", "--")):
             break
         else:
             args.append(token)
@@ -468,7 +469,7 @@ def build_parser() -> optparse.OptionParser:
 
     # NOTE: mypy disallows assigning to a method
     #       https://github.com/python/mypy/issues/2427
-    parser.exit = parser_exit  # type: ignore
+    parser.exit = parser_exit  # type: ignore[assignment]
 
     return parser
 

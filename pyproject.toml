@@ -164,8 +164,15 @@ extend-exclude = [
 ignore = [
     "B019",
     "B020",
-    "B904", # Ruff enables opinionated warnings by default
-    "B905", # Ruff enables opinionated warnings by default
+    "B904",   # Ruff enables opinionated warnings by default
+    "B905",   # Ruff enables opinionated warnings by default
+    "PYI019",
+    "PYI024",
+    "RUF001",
+    "RUF005",
+    "RUF015",
+    "UP027",  # deprecated
+    "UP038",  # https://github.com/astral-sh/ruff/issues/7871
 ]
 select = [
     "ASYNC",
@@ -178,11 +185,15 @@ select = [
     "I",
     "ISC",
     "PERF",
+    "PGH",
+    "PIE",
     "PLE",
     "PLR0",
-    "W",
-    "RUF100",
+    "PYI",
+    "RUF",
+    "SLOT",
     "UP",
+    "W",
 ]
 
 [tool.ruff.lint.isort]

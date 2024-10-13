@@ -102,7 +102,7 @@ def _ensure_api_response(url: str, session: PipSession) -> None:
     """
     scheme, netloc, path, query, fragment = urllib.parse.urlsplit(url)
     if scheme not in {"http", "https"}:
-        raise _NotHTTP()
+        raise _NotHTTP
 
     resp = session.head(url, allow_redirects=True)
     raise_for_status(resp)

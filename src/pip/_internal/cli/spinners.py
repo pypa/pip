@@ -13,10 +13,10 @@ logger = logging.getLogger(__name__)
 
 class SpinnerInterface:
     def spin(self) -> None:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def finish(self, final_status: str) -> None:
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 class InteractiveSpinner(SpinnerInterface):

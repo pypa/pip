@@ -71,7 +71,7 @@ class Hashes:
 
         """
         gots = {}
-        for hash_name in self._allowed.keys():
+        for hash_name in self._allowed:
             try:
                 gots[hash_name] = hashlib.new(hash_name)
             except (ValueError, TypeError):

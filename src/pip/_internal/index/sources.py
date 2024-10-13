@@ -2,7 +2,7 @@ import logging
 import mimetypes
 import os
 from collections import defaultdict
-from typing import Callable, Dict, Iterable, List, Optional, Tuple
+from typing import Callable, ClassVar, Dict, Iterable, List, Optional, Tuple
 
 from pip._vendor.packaging.utils import (
     InvalidSdistFilename,
@@ -30,15 +30,15 @@ class LinkSource:
     @property
     def link(self) -> Optional[Link]:
         """Returns the underlying link, if there's one."""
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def page_candidates(self) -> FoundCandidates:
         """Candidates found by parsing an archive listing HTML file."""
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def file_links(self) -> FoundLinks:
         """Links found by specifying archives directly."""
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 def _is_html_file(file_url: str) -> bool:
@@ -101,7 +101,7 @@ class _FlatDirectorySource(LinkSource):
     * ``file_candidates``: Archives in the directory.
     """
 
-    _paths_to_urls: Dict[str, _FlatDirectoryToUrls] = {}
+    _paths_to_urls: ClassVar[Dict[str, _FlatDirectoryToUrls]] = {}
 
     def __init__(
         self,

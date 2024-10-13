@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Optional
 
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
@@ -22,7 +22,7 @@ class ExplicitRequirement(Requirement):
     def __hash__(self) -> int:
         return hash(self.candidate)
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, ExplicitRequirement):
             return False
         return self.candidate == other.candidate
@@ -175,7 +175,7 @@ class RequiresPythonRequirement(Requirement):
         self._hash = hash((self._specifier_string, self._candidate))
         return self._hash
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, RequiresPythonRequirement):
             return False
         return (

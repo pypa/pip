@@ -49,15 +49,15 @@ logger = logging.getLogger(__name__)
 class BaseEntryPoint(Protocol):
     @property
     def name(self) -> str:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @property
     def value(self) -> str:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @property
     def group(self) -> str:
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 def _convert_installed_files_path(
@@ -103,7 +103,7 @@ class BaseDistribution(Protocol):
 
         :param directory: Path to a metadata directory, e.g. ``.dist-info``.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @classmethod
     def from_metadata_file_contents(
@@ -121,7 +121,7 @@ class BaseDistribution(Protocol):
         :param filename: File name for the dist with this metadata.
         :param project_name: Name of the project this dist represents.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @classmethod
     def from_wheel(cls, wheel: "Wheel", name: str) -> "BaseDistribution":
@@ -135,7 +135,7 @@ class BaseDistribution(Protocol):
         :raises UnsupportedWheel: If the wheel is a valid zip, but malformed
             internally.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def __repr__(self) -> str:
         return f"{self.raw_name} {self.raw_version} ({self.location})"
@@ -155,7 +155,7 @@ class BaseDistribution(Protocol):
         this is a symbolic link, we want to preserve the relative path between
         it and files in the distribution.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @property
     def editable_project_location(self) -> Optional[str]:
@@ -190,7 +190,7 @@ class BaseDistribution(Protocol):
 
         The returned location is normalized (in particular, with symlinks removed).
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @property
     def info_location(self) -> Optional[str]:
@@ -206,7 +206,7 @@ class BaseDistribution(Protocol):
         this is a symbolic link, we want to preserve the relative path between
         it and other files in the distribution.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @property
     def installed_by_distutils(self) -> bool:
@@ -269,15 +269,15 @@ class BaseDistribution(Protocol):
 
     @property
     def canonical_name(self) -> NormalizedName:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @property
     def version(self) -> Version:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @property
     def raw_version(self) -> str:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @property
     def setuptools_filename(self) -> str:
@@ -357,7 +357,7 @@ class BaseDistribution(Protocol):
 
     def is_file(self, path: InfoPath) -> bool:
         """Check whether an entry in the info directory is a file."""
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def iter_distutils_script_names(self) -> Iterator[str]:
         """Find distutils 'scripts' entries metadata.
@@ -365,7 +365,7 @@ class BaseDistribution(Protocol):
         If 'scripts' is supplied in ``setup.py``, distutils records those in the
         installed distribution's ``scripts`` directory, a file for each script.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def read_text(self, path: InfoPath) -> str:
         """Read a file in the info directory.
@@ -374,13 +374,13 @@ class BaseDistribution(Protocol):
         :raise NoneMetadataError: If ``path`` exists in the info directory, but
             cannot be read.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def iter_entry_points(self) -> Iterable[BaseEntryPoint]:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def _metadata_impl(self) -> email.message.Message:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @functools.cached_property
     def metadata(self) -> email.message.Message:
@@ -443,7 +443,7 @@ class BaseDistribution(Protocol):
         For modern .dist-info distributions, this is the collection of
         "Requires-Dist:" entries in distribution metadata.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def iter_raw_dependencies(self) -> Iterable[str]:
         """Raw Requires-Dist metadata."""
@@ -459,7 +459,7 @@ class BaseDistribution(Protocol):
         per PEP 685, with the returned value being handled appropriately by
         `iter_dependencies`.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def _iter_declared_entries_from_record(self) -> Optional[Iterator[str]]:
         try:
@@ -584,11 +584,11 @@ class BaseEnvironment:
 
     @classmethod
     def default(cls) -> "BaseEnvironment":
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @classmethod
     def from_paths(cls, paths: Optional[List[str]]) -> "BaseEnvironment":
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def get_distribution(self, name: str) -> Optional["BaseDistribution"]:
         """Given a requirement name, return the installed distributions.
@@ -596,7 +596,7 @@ class BaseEnvironment:
         The name may not be normalized. The implementation must canonicalize
         it for lookup.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def _iter_distributions(self) -> Iterator["BaseDistribution"]:
         """Iterate through installed distributions.
@@ -605,7 +605,7 @@ class BaseEnvironment:
         directly. Use the public ``iter_distribution()`` instead, which
         implements additional logic to make sure the distributions are valid.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def iter_all_distributions(self) -> Iterator[BaseDistribution]:
         """Iterate through all installed distributions without any filtering."""
@@ -668,7 +668,7 @@ class Wheel(Protocol):
     location: str
 
     def as_zipfile(self) -> zipfile.ZipFile:
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 class FilesystemWheel(Wheel):

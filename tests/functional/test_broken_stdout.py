@@ -40,7 +40,7 @@ def test_broken_stdout_pipe(deprecated_python: bool) -> None:
     )
 
     # Check that no traceback occurs.
-    assert "raise BrokenStdoutLoggingError()" not in stderr
+    assert "raise BrokenStdoutLoggingError" not in stderr
     assert stderr.count("Traceback") == 0
 
     assert returncode == _BROKEN_STDOUT_RETURN_CODE
@@ -57,7 +57,7 @@ def test_broken_stdout_pipe__log_option(deprecated_python: bool, tmpdir: Path) -
     )
 
     # Check that no traceback occurs.
-    assert "raise BrokenStdoutLoggingError()" not in stderr
+    assert "raise BrokenStdoutLoggingError" not in stderr
     assert stderr.count("Traceback") == 0
 
     assert returncode == _BROKEN_STDOUT_RETURN_CODE
@@ -74,7 +74,7 @@ def test_broken_stdout_pipe__verbose(deprecated_python: bool) -> None:
 
     # Check that a traceback occurs and that it occurs at most once.
     # We permit up to two because the exception can be chained.
-    assert "raise BrokenStdoutLoggingError()" in stderr
+    assert "raise BrokenStdoutLoggingError" in stderr
     assert 1 <= stderr.count("Traceback") <= 2
 
     assert returncode == _BROKEN_STDOUT_RETURN_CODE
