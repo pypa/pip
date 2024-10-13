@@ -14,7 +14,6 @@ from typing import Dict, Iterable, List, Optional
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.distributions import make_distribution_for_install_requirement
-from pip._internal.distributions.installed import InstalledDistribution
 from pip._internal.exceptions import (
     DirectoryUrlHashUnsupported,
     HashMismatch,
@@ -190,6 +189,8 @@ def _check_download_dir(
 ) -> Optional[str]:
     """Check download_dir for previously downloaded file with correct hash
     If a correct file is found return its path else None
+
+    If a file is found at the given path, but with an invalid hash, the file is deleted.
     """
     download_path = os.path.join(download_dir, link.filename)
 
@@ -520,7 +521,9 @@ class RequirementPreparer:
                 # The file is not available, attempt to fetch only metadata
                 metadata_dist = self._fetch_metadata_only(req)
                 if metadata_dist is not None:
-                    req.needs_more_preparation = True
+                    # These reqs now have the dependency information from the downloaded
+                    # metadata, without having downloaded the actual dist at all.
+                    req.cache_virtual_metadata_only_dist(metadata_dist)
                     return metadata_dist
 
             # None of the optimizations worked, fully prepare the requirement
@@ -530,27 +533,27 @@ class RequirementPreparer:
         self, reqs: Iterable[InstallRequirement], parallel_builds: bool = False
     ) -> None:
         """Prepare linked requirements more, if needed."""
-        reqs = [req for req in reqs if req.needs_more_preparation]
+        partially_downloaded_reqs: List[InstallRequirement] = []
         for req in reqs:
+            if req.is_concrete:
+                continue
+
             # Determine if any of these requirements were already downloaded.
             if self.download_dir is not None and req.link.is_wheel:
                 hashes = self._get_linked_req_hashes(req)
-                file_path = _check_download_dir(req.link, self.download_dir, hashes)
+                # If the file is there, but doesn't match the hash, delete it and print
+                # a warning. We will be downloading it again via
+                # partially_downloaded_reqs.
+                file_path = _check_download_dir(
+                    req.link, self.download_dir, hashes, warn_on_hash_mismatch=True
+                )
                 if file_path is not None:
+                    # If the hash does match, then we still need to generate a concrete
+                    # dist, but we don't have to download the wheel again.
                     self._downloaded[req.link.url] = file_path
-                    req.needs_more_preparation = False
 
-        # Prepare requirements we found were already downloaded for some
-        # reason. The other downloads will be completed separately.
-        partially_downloaded_reqs: List[InstallRequirement] = []
-        for req in reqs:
-            if req.needs_more_preparation:
-                partially_downloaded_reqs.append(req)
-            else:
-                self._prepare_linked_requirement(req, parallel_builds)
+            partially_downloaded_reqs.append(req)
 
-        # TODO: separate this part out from RequirementPreparer when the v1
-        # resolver can be removed!
         self._complete_partial_requirements(
             partially_downloaded_reqs,
             parallel_builds=parallel_builds,
@@ -651,6 +654,7 @@ class RequirementPreparer:
     def save_linked_requirement(self, req: InstallRequirement) -> None:
         assert self.download_dir is not None
         assert req.link is not None
+        assert req.is_concrete
         link = req.link
         if link.is_vcs or (link.is_existing_dir() and req.editable):
             # Make a .zip of the source_dir we already created.
@@ -705,6 +709,8 @@ class RequirementPreparer:
 
             req.check_if_exists(self.use_user_site)
 
+        # This should already have been populated by the preparation of the source dist.
+        assert req.is_concrete
         return dist
 
     def prepare_installed_requirement(
@@ -729,4 +735,13 @@ class RequirementPreparer:
                     "completely repeatable environment, install into an "
                     "empty virtualenv."
                 )
-            return InstalledDistribution(req).get_metadata_distribution()
+            dist = _get_prepared_distribution(
+                req,
+                self.build_tracker,
+                self.finder,
+                self.build_isolation,
+                self.check_build_deps,
+            )
+
+        assert req.is_concrete
+        return dist
