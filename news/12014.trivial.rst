@@ -1,0 +1,1 @@
+For scheduled runs tests all versions of Python on Windows.
