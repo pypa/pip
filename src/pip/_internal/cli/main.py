@@ -13,6 +13,7 @@ from pip._internal.cli.main_parser import parse_command
 from pip._internal.commands import create_command
 from pip._internal.exceptions import PipError
 from pip._internal.utils import deprecation
+from pip._internal.utils.plugins import load_plugins
 
 logger = logging.getLogger(__name__)
 
@@ -76,5 +77,7 @@ def main(args: Optional[List[str]] = None) -> int:
         # setlocale can apparently crash if locale are uninitialized
         logger.debug("Ignoring error %s when setting locale", e)
     command = create_command(cmd_name, isolated=("--isolated" in cmd_args))
+
+    load_plugins()
 
     return command.main(cmd_args)
