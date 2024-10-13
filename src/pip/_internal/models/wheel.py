@@ -7,12 +7,9 @@ from typing import Dict, Iterable, List
 
 from pip._vendor.packaging.tags import Tag
 from pip._vendor.packaging.utils import (
-    InvalidVersion,
-    parse_wheel_filename,
-)
-from pip._vendor.packaging.utils import (
     InvalidWheelFilename as PackagingInvalidWheelName,
 )
+from pip._vendor.packaging.utils import parse_wheel_filename
 
 from pip._internal.exceptions import InvalidWheelFilename
 from pip._internal.utils.deprecation import deprecated
@@ -41,31 +38,15 @@ class Wheel:
         if "_" in _version:
             try:
                 parse_wheel_filename(filename)
-            except InvalidVersion as e:
-                deprecated(
-                    reason=(
-                        f"Wheel filename version part {_version!r} is not correctly "
-                        "normalised, and contained an underscore character in the "
-                        "version part. Future versions of pip will fail to recognise "
-                        f"this wheel and report the error: {e.args[0]}."
-                    ),
-                    replacement=(
-                        "rename the wheel to use a correctly normalised "
-                        "version part (this may require updating the version "
-                        "in the project metadata)"
-                    ),
-                    gone_in="25.1",
-                    issue=12938,
-                )
             except PackagingInvalidWheelName as e:
                 deprecated(
                     reason=(
-                        f"The wheel filename {filename!r} is not correctly normalised. "
-                        "Future versions of pip will fail to recognise this wheel. "
-                        f"and report the error: {e.args[0]}."
+                        f"Wheel filename {filename!r} is not correctly normalised. "
+                        "Future versions of pip will raise the following error:\n"
+                        f"{e.args[0]}\n\n"
                     ),
                     replacement=(
-                        "rename the wheel to use a correctly normalised "
+                        "to rename the wheel to use a correctly normalised "
                         "name (this may require updating the version in "
                         "the project metadata)"
                     ),
