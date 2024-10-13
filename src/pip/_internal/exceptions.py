@@ -13,7 +13,7 @@ import pathlib
 import re
 import sys
 from itertools import chain, groupby, repeat
-from typing import TYPE_CHECKING, Dict, Iterator, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Dict, Iterator, List, Literal, Optional, Set, Union
 
 from pip._vendor.rich.console import Console, ConsoleOptions, RenderResult
 from pip._vendor.rich.markup import escape
@@ -774,4 +774,135 @@ class LegacyDistutilsInstall(DiagnosticPipError):
                 "uninstall."
             ),
             hint_stmt=None,
+        )
+
+
+class InvalidMultipleRemoteRepositories(DiagnosticPipError):
+    """Common error for issues with multiple remote repositories."""
+
+    reference = "invalid-multiple-remote-repositories"
+    _note_suffix = (
+        "See PEP 708 for the specification. "
+        "You can override this check, which will disable the security "
+        "protection it provides from dependency confusion attacks, "
+        "by passing --insecure-multiple-remote-repositories."
+    )
+
+
+class InvalidTracksUrl(InvalidMultipleRemoteRepositories):
+    """There was an issue with a Tracks metadata url.
+
+    Tracks urls must point to the actual URLs for that project,
+    point to the repositories that own the namespaces, and
+    point to a project with the exact same name (after normalization).
+    """
+
+    reference = "invalid-tracks-url"
+
+    def __init__(
+        self,
+        *,
+        package: str,
+        remote_repositories: Set[str],
+        invalid_tracks: Set[str],
+    ) -> None:
+        super().__init__(
+            kind="error",
+            message=Text(
+                f"One or more Tracks for {escape(package)} "
+                "were not valid. "
+                "The remote repositories are "
+                f"{'; '.join(sorted(escape(r) for r in remote_repositories))}."
+                "The invalid tracks are "
+                f"{'; '.join(sorted(escape(r) for r in invalid_tracks))}."
+            ),
+            context=Text(
+                "Tracks urls must point to the actual URLs for a project, "
+                "point to the repositories that own the namespaces, and "
+                "point to a project with the exact same normalized name."
+            ),
+            hint_stmt=None,
+            note_stmt=Text(
+                "The way to resolve this error is to contact the owners of "
+                "each remote repository, and ask if it makes sense to "
+                "configure them to merge namespaces. " + self._note_suffix
+            ),
+        )
+
+
+class InvalidAlternativeLocationsUrl(InvalidMultipleRemoteRepositories):
+    """The list of Alternate Locations for each repository do not match.
+
+    In order for this metadata to be trusted, there MUST be agreement between
+    all locations where that project is found as to what the alternate locations are.
+    """
+
+    reference = "invalid-alternative-locations"
+
+    def __init__(
+        self,
+        *,
+        package: str,
+        remote_repositories: Set[str],
+        invalid_locations: Set[str],
+    ) -> None:
+        super().__init__(
+            kind="error",
+            message=Text(
+                f"One or more Alternate Locations for {escape(package)} "
+                "were different among the remote repositories. "
+                "The remote repositories are "
+                f"{'; '.join(sorted(escape(r) for r in remote_repositories))}."
+                "The alternate locations not agreed by all remote "
+                "repository are "
+                f"{'; '.join(sorted(escape(r) for r in invalid_locations))}."
+            ),
+            context=Text(
+                "To be able to trust the remote repository Alternate Locations, "
+                "all remote repositories must agree on the list of Locations."
+            ),
+            hint_stmt=None,
+            note_stmt=Text(
+                "The way to resolve this error is to contact the owners of the package "
+                "at each remote repository, and ask if it makes sense to "
+                "configure them to merge namespaces. " + self._note_suffix
+            ),
+        )
+
+
+class UnsafeMultipleRemoteRepositories(InvalidMultipleRemoteRepositories):
+    """More than one remote repository was provided for a package,
+    with no indication that the remote repositories can be safely merged.
+
+    The repositories, packages, or user did not indicate that
+    it is safe to merge remote repositories.
+
+    Multiple remote repositories are not merged by default
+    to reduce the risk of dependency confusion attacks."""
+
+    reference = "unsafe-multiple-remote-repositories"
+
+    def __init__(self, *, package: str, remote_repositories: Set[str]) -> None:
+        super().__init__(
+            kind="error",
+            message=Text(
+                f"More than one remote repository was found for {escape(package)}, "
+                "with no indication that the remote repositories can be safely merged. "
+                "The repositories are "
+                f"{'; '.join(sorted(escape(r) for r in remote_repositories))}."
+            ),
+            context=Text(
+                "Multiple remote repositories are not merged by default "
+                "to reduce the risk of dependency confusion attacks."
+            ),
+            hint_stmt=Text(
+                "Remote repositories can be specified or discovered using "
+                "--index-url, --extra-index-url, and --find-links. "
+                "Please check the pip command to see if these are in use."
+            ),
+            note_stmt=Text(
+                "The way to resolve this error is to contact the remote repositories "
+                "and package owners, and ask if it makes sense to configure them to "
+                "merge namespaces. " + self._note_suffix
+            ),
         )

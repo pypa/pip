@@ -6,7 +6,7 @@ import re
 import uuid
 from pathlib import Path
 from textwrap import dedent
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Set
 from unittest import mock
 
 import pytest
@@ -482,10 +482,18 @@ def test_parse_links__requires_python(
 # in test_download.py execute over both html and json indices with
 # a pytest.mark.parameterize decorator to ensure nothing slips through the cracks.
 def test_parse_links_json() -> None:
+    meta_tracks_alt_repos = [
+        "https://example.com/simple/holygrail/",
+        "https://example.net/simple/holygrail/",
+    ]
     json_bytes = json.dumps(
         {
-            "meta": {"api-version": "1.0"},
+            "meta": {
+                "api-version": "1.0",
+                "tracks": list(meta_tracks_alt_repos),
+            },
             "name": "holygrail",
+            "alternate-locations": list(meta_tracks_alt_repos),
             "files": [
                 {
                     "filename": "holygrail-1.0.tar.gz",
@@ -529,23 +537,26 @@ def test_parse_links_json() -> None:
             ],
         }
     ).encode("utf8")
+    # parse_links() is cached by url, so we inject a random uuid to ensure
+    # the page content isn't cached.
+    url = f"https://example.com/simple-{uuid.uuid4()}/"
     page = IndexContent(
         json_bytes,
         "application/vnd.pypi.simple.v1+json",
         encoding=None,
-        # parse_links() is cached by url, so we inject a random uuid to ensure
-        # the page content isn't cached.
-        url=f"https://example.com/simple-{uuid.uuid4()}/",
+        url=url,
     )
     links = list(parse_links(page))
 
-    assert links == [
+    expected = [
         Link(
             "https://example.com/files/holygrail-1.0.tar.gz",
             comes_from=page.url,
             requires_python=">=3.7",
             yanked_reason="Had a vulnerability",
             hashes={"sha256": "sha256 hash", "blake2b": "blake2b hash"},
+            project_track_urls=set(meta_tracks_alt_repos),
+            repo_alt_urls={*meta_tracks_alt_repos, url},
         ),
         Link(
             "https://example.com/files/holygrail-1.0-py3-none-any.whl",
@@ -553,22 +564,8 @@ def test_parse_links_json() -> None:
             requires_python=">=3.7",
             yanked_reason=None,
             hashes={"sha256": "sha256 hash", "blake2b": "blake2b hash"},
-        ),
-        Link(
-            "https://example.com/files/holygrail-1.0-py3-none-any.whl",
-            comes_from=page.url,
-            requires_python=">=3.7",
-            yanked_reason=None,
-            hashes={"sha256": "sha256 hash", "blake2b": "blake2b hash"},
-            metadata_file_data=MetadataFile({"sha512": "aabdd41"}),
-        ),
-        Link(
-            "https://example.com/files/holygrail-1.0-py3-none-any.whl",
-            comes_from=page.url,
-            requires_python=">=3.7",
-            yanked_reason=None,
-            hashes={"sha256": "sha256 hash", "blake2b": "blake2b hash"},
-            metadata_file_data=MetadataFile({"sha512": "aabdd41"}),
+            project_track_urls=set(meta_tracks_alt_repos),
+            repo_alt_urls={*meta_tracks_alt_repos, url},
         ),
         Link(
             "https://example.com/files/holygrail-1.0-py3-none-any.whl",
@@ -577,8 +574,36 @@ def test_parse_links_json() -> None:
             yanked_reason=None,
             hashes={"sha256": "sha256 hash", "blake2b": "blake2b hash"},
             metadata_file_data=MetadataFile({"sha512": "aabdd41"}),
+            project_track_urls=set(meta_tracks_alt_repos),
+            repo_alt_urls={*meta_tracks_alt_repos, url},
+        ),
+        Link(
+            "https://example.com/files/holygrail-1.0-py3-none-any.whl",
+            comes_from=page.url,
+            requires_python=">=3.7",
+            yanked_reason=None,
+            hashes={"sha256": "sha256 hash", "blake2b": "blake2b hash"},
+            metadata_file_data=MetadataFile({"sha512": "aabdd41"}),
+            project_track_urls=set(meta_tracks_alt_repos),
+            repo_alt_urls={*meta_tracks_alt_repos, url},
+        ),
+        Link(
+            "https://example.com/files/holygrail-1.0-py3-none-any.whl",
+            comes_from=page.url,
+            requires_python=">=3.7",
+            yanked_reason=None,
+            hashes={"sha256": "sha256 hash", "blake2b": "blake2b hash"},
+            metadata_file_data=MetadataFile({"sha512": "aabdd41"}),
+            project_track_urls=set(meta_tracks_alt_repos),
+            repo_alt_urls={*meta_tracks_alt_repos, url},
         ),
     ]
+
+    def _convert_links(link_item: Link) -> dict[str, Optional[str]]:
+        return {key: getattr(link_item, key, None) for key in link_item.__slots__}
+
+    for index, link in enumerate(links):
+        assert _convert_links(link) == _convert_links(expected[index])
 
     # Ensure the metadata info can be parsed into the correct link.
     metadata_link = links[2].metadata_link()
@@ -719,6 +744,46 @@ def test_parse_links_caches_same_page_by_url() -> None:
     assert len(parsed_links_3) == 1
     assert parsed_links_3 != parsed_links_1
     assert "pkg2" in parsed_links_3[0].url
+
+
+@pytest.mark.parametrize(
+    ("index_name", "expected_project_track_urls", "expected_repo_alt_urls"),
+    [
+        (
+            "repository-alternate-01",
+            set(),
+            {
+                "../../repository-alternate-02/simple/",
+                "../../repository-tracks-01/simple/",
+            },
+        ),
+        ("repository-alternate-02", set(), {"../../repository-alternate-01/simple/"}),
+        ("repository-tracks-01", {"../../repository-alternate-01/simple/"}, set()),
+    ],
+)
+def test_parse_links__alternate_locations_and_tracks(
+    index_name: str,
+    expected_project_track_urls: Set[str],
+    expected_repo_alt_urls: Set[str],
+    data: TestData,
+) -> None:
+    package_name = "simple"
+    html_path = data.indexes / index_name / package_name / "index.html"
+    html = html_path.read_text()
+    html_bytes = html.encode("utf-8")
+    # parse_links() is cached by url, so we inject a random uuid to ensure
+    # the page content isn't cached.
+    url = f"https://example.com/simple-{uuid.uuid4()}/"
+    page = IndexContent(
+        html_bytes,
+        "text/html",
+        encoding=None,
+        url=url,
+    )
+    links = list(parse_links(page))
+    for link in links:
+        assert link.project_track_urls == expected_project_track_urls
+        assert link.repo_alt_urls == {*expected_repo_alt_urls, url}
 
 
 @mock.patch("pip._internal.index.collector.raise_for_status")
