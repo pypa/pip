@@ -686,7 +686,7 @@ class ExternallyManagedEnvironment(DiagnosticPipError):
                 "If you believe this is a mistake, please contact your "
                 "Python installation or OS distribution provider. "
                 "You can override this, at the risk of breaking your Python "
-                "installation or OS, by passing --break-system-packages."
+                "installation or OS, by passing --break-system-packages!"
             ),
             hint_stmt=Text("See PEP 668 for the detailed specification."),
         )
