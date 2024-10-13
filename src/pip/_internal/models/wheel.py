@@ -7,12 +7,9 @@ from typing import Dict, Iterable, List
 
 from pip._vendor.packaging.tags import Tag
 from pip._vendor.packaging.utils import (
-    InvalidVersion,
-    parse_wheel_filename,
-)
-from pip._vendor.packaging.utils import (
     InvalidWheelFilename as PackagingInvalidWheelName,
 )
+from pip._vendor.packaging.utils import parse_wheel_filename
 
 from pip._internal.exceptions import InvalidWheelFilename
 from pip._internal.utils.deprecation import deprecated
