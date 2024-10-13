@@ -7,7 +7,7 @@ platformdirs==4.3.6
 pyproject-hooks==1.0.0
 requests==2.32.3
     certifi==2024.8.30
-    idna==3.7
+    idna==3.10
     urllib3==1.26.20
 rich==13.7.1
     pygments==2.18.0
