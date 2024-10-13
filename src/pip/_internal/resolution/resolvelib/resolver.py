@@ -2,7 +2,7 @@ import contextlib
 import functools
 import logging
 import os
-from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, cast
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible
@@ -82,7 +82,7 @@ class Resolver(BaseResolver):
             user_requested=collected.user_requested,
         )
         if "PIP_RESOLVER_DEBUG" in os.environ:
-            reporter: BaseReporter = PipDebuggingReporter()
+            reporter: BaseReporter[Requirement, Candidate, Any] = PipDebuggingReporter()
         else:
             reporter = PipReporter()
         resolver: RLResolver[Requirement, Candidate, str] = RLResolver(
