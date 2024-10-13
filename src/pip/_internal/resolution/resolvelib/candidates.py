@@ -11,6 +11,7 @@ from pip._internal.exceptions import (
     InstallationSubprocessError,
     MetadataInconsistent,
     MetadataInvalid,
+    UnavailableExtra,
 )
 from pip._internal.metadata import BaseDistribution
 from pip._internal.models.link import Link, links_equivalent
@@ -508,11 +509,11 @@ class ExtrasCandidate(Candidate):
         valid_extras = self.extras.intersection(self.base.dist.iter_provided_extras())
         invalid_extras = self.extras.difference(self.base.dist.iter_provided_extras())
         for extra in sorted(invalid_extras):
-            logger.warning(
-                "%s %s does not provide the extra '%s'",
-                self.base.name,
-                self.version,
-                extra,
+            raise UnavailableExtra(
+                base=self.base.name,
+                version=self.version,
+                extra=extra,
+                available_extras=self.base.dist.iter_provided_extras(),
             )
 
         for r in self.base.dist.iter_dependencies(valid_extras):

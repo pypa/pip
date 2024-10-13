@@ -13,7 +13,16 @@ import pathlib
 import re
 import sys
 from itertools import chain, groupby, repeat
-from typing import TYPE_CHECKING, Dict, Iterator, List, Literal, Optional, Union
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Literal,
+    Optional,
+    Union,
+)
 
 from pip._vendor.rich.console import Console, ConsoleOptions, RenderResult
 from pip._vendor.rich.markup import escape
@@ -22,6 +31,8 @@ from pip._vendor.rich.text import Text
 if TYPE_CHECKING:
     from hashlib import _Hash
 
+    from pip._vendor.packaging.utils import NormalizedName
+    from pip._vendor.packaging.version import Version
     from pip._vendor.requests.models import Request, Response
 
     from pip._internal.metadata import BaseDistribution
@@ -774,4 +785,27 @@ class LegacyDistutilsInstall(DiagnosticPipError):
                 "uninstall."
             ),
             hint_stmt=None,
+        )
+
+
+class UnavailableExtra(InstallationError):
+    """A requested extra is not available."""
+
+    def __init__(
+        self,
+        base: str,
+        version: "Version",
+        extra: str,
+        available_extras: Iterable["NormalizedName"],
+    ):
+        self.base = base
+        self.version = version
+        self.extra = extra
+        self.available_extras = available_extras
+
+    def __str__(self) -> str:
+        nice_available = " ".join(f'"{e}", ' for e in self.available_extras)[:-2]
+        return (
+            f"{self.base} {self.version} does not provide the extra '{self.extra}'"
+            f"\n{self.base} provides extras: {nice_available}"
         )
