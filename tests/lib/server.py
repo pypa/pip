@@ -3,8 +3,9 @@ import ssl
 import threading
 from base64 import b64encode
 from contextlib import ExitStack, contextmanager
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Iterator, List
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Iterator, List, Union
 from unittest.mock import Mock
 
 from werkzeug.serving import BaseWSGIServer, WSGIRequestHandler
@@ -104,7 +105,7 @@ def make_mock_server(**kwargs: Any) -> _MockServer:
 
 
 @contextmanager
-def server_running(server: BaseWSGIServer) -> Iterator[None]:
+def server_running(server: Union[BaseWSGIServer, HTTPServer]) -> Iterator[None]:
     """Context manager for running the provided server in a separate thread."""
     thread = threading.Thread(target=server.serve_forever)
     thread.daemon = True
@@ -232,3 +233,13 @@ class MockServer:
         # Legacy: replace call[0][0] with call.args[0]
         # when pip drops support for python3.7
         return [call[0][0] for call in self._server.mock.call_args_list]
+
+
+class InstantCloseHTTPHandler(BaseHTTPRequestHandler):
+    """A HTTP request handler that closes the underlying request TCP
+    socket immediately. Used for testing "connection reset by peer" and
+    similar errors.
+    """
+
+    def handle(self) -> None:
+        self.request.close()
