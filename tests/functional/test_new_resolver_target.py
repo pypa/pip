@@ -4,6 +4,7 @@ from typing import Callable, Optional
 import pytest
 
 from pip._internal.cli.status_codes import ERROR, SUCCESS
+
 from tests.lib import PipTestEnvironment
 from tests.lib.wheel import make_wheel
 

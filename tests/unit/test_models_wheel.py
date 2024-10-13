@@ -1,4 +1,5 @@
 import pytest
+
 from pip._vendor.packaging.tags import Tag
 
 from pip._internal.exceptions import InvalidWheelFilename

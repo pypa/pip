@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from pip._internal.models.direct_url import DirectUrl, DirInfo
+
 from tests.lib import (
     PipTestEnvironment,
     ScriptFactory,

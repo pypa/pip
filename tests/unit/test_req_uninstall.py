@@ -16,6 +16,7 @@ from pip._internal.req.req_uninstall import (
     compress_for_rename,
     uninstallation_paths,
 )
+
 from tests.lib import create_file
 
 

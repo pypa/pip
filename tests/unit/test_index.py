@@ -2,6 +2,7 @@ import logging
 from typing import FrozenSet, List, Optional, Set, Tuple
 
 import pytest
+
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.tags import Tag
 
@@ -25,6 +26,7 @@ from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
+
 from tests.lib import CURRENT_PY_VERSION_INFO
 from tests.lib.index import make_mock_candidate
 

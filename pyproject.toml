@@ -186,9 +186,19 @@ select = [
 ]
 
 [tool.ruff.lint.isort]
-# Explicitly make tests "first party" as it's not in the "src" directory
-known-first-party = ["tests"]
-known-third-party = ["pip._vendor"]
+section-order = [
+  "future",
+  "standard-library",
+  "third-party",
+  "vendored",
+  "first-party",
+  "tests",
+  "local-folder",
+]
+
+[tool.ruff.lint.isort.sections]
+"vendored" = ["pip._vendor"]
+"tests" = ["tests"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 33  # default is 10

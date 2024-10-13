@@ -3,6 +3,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
+
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import InstallationError

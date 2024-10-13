@@ -28,6 +28,7 @@ from pip._internal.req.req_file import (
     preprocess,
 )
 from pip._internal.req.req_install import InstallRequirement
+
 from tests.lib import TestData, make_test_finder, requirements_file
 
 

@@ -12,6 +12,7 @@ from typing import Dict, List, Optional, Tuple, cast
 from unittest.mock import patch
 
 import pytest
+
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import InstallationError
@@ -32,6 +33,7 @@ from pip._internal.operations.install.wheel import (
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import hash_file
 from pip._internal.utils.unpacking import unpack_file
+
 from tests.lib import DATA_DIR, TestData, assert_paths_equal
 from tests.lib.wheel import make_wheel
 
