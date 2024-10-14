@@ -156,10 +156,12 @@ grey parts of the graph).
 Pip's current implementation of the provider implements `get_preference` as
 follows:
 
-* Prefer if any of the known requirements is "direct", e.g. points to an
-    explicit URL.
 * If equal, prefer if any requirement is "pinned", i.e. contains
     operator ``===`` or ``==``.
+* If equal, prefer if any requirement is restricted by upper bounds, i.e.
+    contains operators ``<``, ``<=``, ``~=``, or the specifier ``==N.*``.
+* If equal, check if a a requirement is part of the current cause
+    for backtracking.
 * If equal, calculate an approximate "depth" and resolve requirements
     closer to the user-specified requirements first.
 * Order user-specified requirements by the order they are specified.
