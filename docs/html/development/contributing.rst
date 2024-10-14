@@ -110,8 +110,8 @@ public is concerned, typo fixes, white space modification, etc. To mark a PR
 as trivial a contributor simply needs to add a randomly named, empty file to
 the ``news/`` directory with the extension of ``.trivial.rst``. If you are on a
 POSIX like operating system, one can be added by running
-``touch news/$(uuidgen).trivial.rst``. On Windows, the same result can be
-achieved in Powershell using ``New-Item "news/$([guid]::NewGuid()).trivial.rst"``.
+``touch news/+$(uuidgen).trivial.rst``. On Windows, the same result can be
+achieved in Powershell using ``New-Item "news/+$([guid]::NewGuid()).trivial.rst"``.
 Core committers may also add a "skip news" label to the PR which will accomplish
 the same thing.
 
@@ -125,6 +125,25 @@ Changes to the processes, policies, or other non code related changed that are
 otherwise notable can be done using a ``news/<name>.process.rst`` file. This is
 not typically used, but can be used for things like changing version schemes,
 updating deprecation policy, etc.
+
+Changes to the packaging metadata and tooling of pip itself should be documented
+in :file:`news/{<name>}.packaging.rst` files. This can include notes for
+downstreams about unobvious side effects and tooling, as well as changes in the
+test invocation considerations and runtime assumptions.
+
+When your change is something that influence how contributors and core
+committers interact with the project, record that and actionable updates via a
+:file:`news/{<name>}.contrib.rst` file. Stuff that affects the contributor
+experience, like running tests, building the docs, setting up the development
+environment would go here. It's useful for occasional contributors to learn the
+gist of what's changed since the last time they were active.
+
+If you feel like that your change would affect the end-users in noticeable ways
+but it's difficult to assign any of the above categories to it, it is possible
+to add a :file:`news/{<name>}.misc.rst` file to still present the change's
+effect in the change log. Unlike :file:`news/{<name>}.trivial.rst` entries, this
+change log fragment type will show up publicly in the released change log
+document.
 
 
 Updating your branch
