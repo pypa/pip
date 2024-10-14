@@ -224,6 +224,7 @@ def install_req_from_editable(
     comes_from: Optional[Union[InstallRequirement, str]] = None,
     *,
     use_pep517: Optional[bool] = None,
+    editable_requirements: bool = False,
     isolated: bool = False,
     global_options: Optional[List[str]] = None,
     hash_options: Optional[Dict[str, List[str]]] = None,
@@ -243,6 +244,7 @@ def install_req_from_editable(
         link=parts.link,
         constraint=constraint,
         use_pep517=use_pep517,
+        editable_requirements=editable_requirements,
         isolated=isolated,
         global_options=global_options,
         hash_options=hash_options,
@@ -449,9 +451,22 @@ def install_req_from_req_string(
             f"{comes_from.name} depends on {req} "
         )
 
+    link = None if req.url is None else Link(req.url)
+    editable = (
+        link is not None
+        and (link.scheme == "file" or link.is_vcs)
+        and comes_from is not None
+        and comes_from.editable
+        and comes_from.editable_requirements
+    )
+
     return InstallRequirement(
         req,
         comes_from,
+        editable=editable,
+        permit_editable_wheels=editable,
+        link=link,
+        editable_requirements=editable,
         isolated=isolated,
         use_pep517=use_pep517,
         user_supplied=user_supplied,
@@ -462,6 +477,7 @@ def install_req_from_parsed_requirement(
     parsed_req: ParsedRequirement,
     isolated: bool = False,
     use_pep517: Optional[bool] = None,
+    editable_requirements: bool = False,
     user_supplied: bool = False,
     config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
 ) -> InstallRequirement:
@@ -470,6 +486,7 @@ def install_req_from_parsed_requirement(
             parsed_req.requirement,
             comes_from=parsed_req.comes_from,
             use_pep517=use_pep517,
+            editable_requirements=editable_requirements,
             constraint=parsed_req.constraint,
             isolated=isolated,
             user_supplied=user_supplied,

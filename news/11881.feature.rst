@@ -1,0 +1,2 @@
+Implement ``--editable-requirements`` for installing requirements of editable
+packages as editable where possible (`#11881 <https://github.com/pypa/pip/issues/11881>`_)

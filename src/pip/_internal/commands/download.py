@@ -80,6 +80,7 @@ class DownloadCommand(RequirementCommand):
         # editable doesn't really make sense for `pip download`, but the bowels
         # of the RequirementSet code require that property.
         options.editables = []
+        options.editable_requirements = False
 
         cmdoptions.check_dist_restriction(options)
 
