@@ -123,10 +123,7 @@ def test_check_complicated_name_missing(script: PipTestEnvironment) -> None:
 
     # Without dependency
     result = script.pip("install", "--no-index", package_a_path, "--no-deps")
-    assert (
-        "Successfully installed package_A-1.0" in result.stdout
-        or "Successfully installed package-A-1.0" in result.stdout
-    ), str(result)
+    assert "Successfully installed package-a-1.0" in result.stdout, str(result)
 
     result = script.pip("check", expect_error=True)
     expected_lines = ("package-a 1.0 requires dependency-b, which is not installed.",)
@@ -149,10 +146,7 @@ def test_check_complicated_name_broken(script: PipTestEnvironment) -> None:
 
     # With broken dependency
     result = script.pip("install", "--no-index", package_a_path, "--no-deps")
-    assert (
-        "Successfully installed package_A-1.0" in result.stdout
-        or "Successfully installed package-A-1.0" in result.stdout
-    ), str(result)
+    assert "Successfully installed package-a-1.0" in result.stdout, str(result)
 
     result = script.pip(
         "install",
@@ -185,10 +179,7 @@ def test_check_complicated_name_clean(script: PipTestEnvironment) -> None:
     )
 
     result = script.pip("install", "--no-index", package_a_path, "--no-deps")
-    assert (
-        "Successfully installed package_A-1.0" in result.stdout
-        or "Successfully installed package-A-1.0" in result.stdout
-    ), str(result)
+    assert "Successfully installed package-a-1.0" in result.stdout, str(result)
 
     result = script.pip(
         "install",
@@ -216,10 +207,7 @@ def test_check_considers_conditional_reqs(script: PipTestEnvironment) -> None:
     )
 
     result = script.pip("install", "--no-index", package_a_path, "--no-deps")
-    assert (
-        "Successfully installed package_A-1.0" in result.stdout
-        or "Successfully installed package-A-1.0" in result.stdout
-    ), str(result)
+    assert "Successfully installed package-a-1.0" in result.stdout, str(result)
 
     result = script.pip("check", expect_error=True)
     expected_lines = ("package-a 1.0 requires dependency-b, which is not installed.",)
