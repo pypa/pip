@@ -147,14 +147,20 @@ class PipProvider(_ProviderBase):
         else:
             _icandidates, ireqs = (), ()
 
-        operators = [
-            specifier.operator
+        operators_versions = [
+            (specifier.operator, specifier.version)
             for specifier_set in (ireq.specifier for ireq in ireqs if ireq)
             for specifier in specifier_set
         ]
-
-        pinned = any(op in ("==", "===") for op in operators)
-        unfree = bool(operators)
+        upper_bound = any(
+            op in ("<", "<=", "~=") or (op == "==" and "*" in ver)
+            for op, ver in operators_versions
+        )
+        pinned = any(
+            op == "===" or (op == "==" and "*" not in ver)
+            for op, ver in operators_versions
+        )
+        unfree = bool(operators_versions)
 
         if identifier in self._user_requested:
             requested_order: float = self._user_requested[identifier]
@@ -184,6 +190,7 @@ class PipProvider(_ProviderBase):
         return (
             not requires_python,
             not pinned,
+            not upper_bound,
             not backtrack_cause,
             inferred_depth,
             requested_order,
