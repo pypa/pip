@@ -2,6 +2,7 @@ import math
 from typing import TYPE_CHECKING, Dict, Iterable, Optional, Sequence
 
 import pytest
+
 from pip._vendor.resolvelib.resolvers import RequirementInformation
 
 from pip._internal.models.candidate import InstallationCandidate
@@ -95,7 +96,7 @@ def test_provider_known_depths(factory: Factory) -> None:
             [],
             {REQUIRES_PYTHON_IDENTIFIER: 1},
             {},
-            (False, True, True, 1.0, 1, True, REQUIRES_PYTHON_IDENTIFIER),
+            (False, True, True, True, 1.0, 1, True, REQUIRES_PYTHON_IDENTIFIER),
         ),
         # Pinned package with "=="
         (
@@ -104,7 +105,16 @@ def test_provider_known_depths(factory: Factory) -> None:
             [],
             {"pinned-package": 1},
             {},
-            (True, False, True, 1.0, 1, False, "pinned-package"),
+            (True, False, True, True, 1.0, 1, False, "pinned-package"),
+        ),
+        # Upper bound package with "<"
+        (
+            "upper-bound-package",
+            {"upper-bound-package": [build_req_info("upper-bound-package<1.0")]},
+            [],
+            {"upper-bound-package": 1},
+            {},
+            (True, True, False, True, 1.0, 1, False, "upper-bound-package"),
         ),
         # Package that caused backtracking
         (
@@ -113,7 +123,7 @@ def test_provider_known_depths(factory: Factory) -> None:
             [build_req_info("backtrack-package")],
             {"backtrack-package": 1},
             {},
-            (True, True, False, 1.0, 1, True, "backtrack-package"),
+            (True, True, True, False, 1.0, 1, True, "backtrack-package"),
         ),
         # Depth inference for child package
         (
@@ -132,7 +142,7 @@ def test_provider_known_depths(factory: Factory) -> None:
             [],
             {"parent-package": 1},
             {"parent-package": 1.0},
-            (True, True, True, 2.0, math.inf, True, "child-package"),
+            (True, True, True, True, 2.0, math.inf, True, "child-package"),
         ),
         # Root package requested by user
         (
@@ -141,16 +151,16 @@ def test_provider_known_depths(factory: Factory) -> None:
             [],
             {"root-package": 1},
             {},
-            (True, True, True, 1.0, 1, True, "root-package"),
+            (True, True, True, True, 1.0, 1, True, "root-package"),
         ),
         # Unfree package (with specifier operator)
         (
             "unfree-package",
-            {"unfree-package": [build_req_info("unfree-package<1")]},
+            {"unfree-package": [build_req_info("unfree-package>1")]},
             [],
             {"unfree-package": 1},
             {},
-            (True, True, True, 1.0, 1, False, "unfree-package"),
+            (True, True, True, True, 1.0, 1, False, "unfree-package"),
         ),
         # Free package (no operator)
         (
@@ -159,7 +169,7 @@ def test_provider_known_depths(factory: Factory) -> None:
             [],
             {"free-package": 1},
             {},
-            (True, True, True, 1.0, 1, True, "free-package"),
+            (True, True, True, True, 1.0, 1, True, "free-package"),
         ),
     ],
 )
