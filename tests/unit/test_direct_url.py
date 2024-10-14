@@ -28,6 +28,26 @@ def test_to_json() -> None:
     )
 
 
+def test_to_json_no_keep_legacy_hash_key() -> None:
+    direct_url = DirectUrl(
+        url="https://pypi.org/simple/sample/sample-1.2.0-py3-none-any.whl",
+        info=ArchiveInfo(
+            hash="sha256=257ded4ea1fafa475f099e544b2d7560f674d42"
+            "917e096d462e8a46a64f51245",
+            hashes={
+                "sha256": "257ded4ea1fafa475f099e544b2d7560f674d"
+                "42917e096d462e8a46a64f51245",
+            },
+        ),
+    )
+    direct_url.validate()
+    assert direct_url.to_json(keep_legacy_hash_key=False) == (
+        '{"archive_info": {"hashes": {'
+        '"sha256": "257ded4ea1fafa475f099e544b2d7560f674d42917e096d462e8a46a64f51245"}'
+        '}, "url": "https://pypi.org/simple/sample/sample-1.2.0-py3-none-any.whl"}'
+    )
+
+
 def test_archive_info() -> None:
     direct_url_dict = {
         "url": "file:///home/user/archive.tgz",

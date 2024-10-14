@@ -48,7 +48,12 @@ from pip._internal.metadata import (
     FilesystemWheel,
     get_wheel_distribution,
 )
-from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
+from pip._internal.models.direct_url import (
+    DIRECT_URL_METADATA_NAME,
+    PROVENANCE_URL_METADATA_NAME,
+    ArchiveInfo,
+    DirectUrl,
+)
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
 from pip._internal.utils.misc import StreamWrapper, ensure_dir, hash_file, partition
@@ -424,9 +429,10 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     wheel_zip: ZipFile,
     wheel_path: str,
     scheme: Scheme,
+    download_info: DirectUrl,
+    is_direct: bool,
     pycompile: bool = True,
     warn_script_location: bool = True,
-    direct_url: Optional[DirectUrl] = None,
     requested: bool = False,
 ) -> None:
     """Install a wheel.
@@ -673,12 +679,25 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
         installer_file.write(b"pip\n")
     generated.append(installer_path)
 
-    # Record the PEP 610 direct URL reference
-    if direct_url is not None:
+    if is_direct:
+        # Record the PEP 610 direct URL reference
         direct_url_path = os.path.join(dest_info_dir, DIRECT_URL_METADATA_NAME)
         with _generate_file(direct_url_path) as direct_url_file:
-            direct_url_file.write(direct_url.to_json().encode("utf-8"))
+            direct_url_file.write(download_info.to_json().encode("utf-8"))
         generated.append(direct_url_path)
+    else:
+        # Record the PEP 710 provenance URL reference only if we have hashes for
+        # the given wheel. They can be missing when wheels are built using an old pip.
+        assert isinstance(download_info.info, ArchiveInfo)
+        if download_info.info.hashes:
+            provenance_url_path = os.path.join(
+                dest_info_dir, PROVENANCE_URL_METADATA_NAME
+            )
+            with _generate_file(provenance_url_path) as provenance_url_file:
+                provenance_url_file.write(
+                    download_info.to_json(keep_legacy_hash_key=False).encode("utf-8")
+                )
+            generated.append(provenance_url_path)
 
     # Record the REQUESTED file
     if requested:
@@ -721,10 +740,11 @@ def install_wheel(
     name: str,
     wheel_path: str,
     scheme: Scheme,
+    download_info: DirectUrl,
+    is_direct: bool,
     req_description: str,
     pycompile: bool = True,
     warn_script_location: bool = True,
-    direct_url: Optional[DirectUrl] = None,
     requested: bool = False,
 ) -> None:
     with ZipFile(wheel_path, allowZip64=True) as z:
@@ -734,8 +754,9 @@ def install_wheel(
                 wheel_zip=z,
                 wheel_path=wheel_path,
                 scheme=scheme,
+                download_info=download_info,
+                is_direct=is_direct,
                 pycompile=pycompile,
                 warn_script_location=warn_script_location,
-                direct_url=direct_url,
                 requested=requested,
             )
