@@ -178,6 +178,43 @@ def _ensure_quoted_url(url: str) -> str:
     return urllib.parse.urlunparse(result._replace(path=path))
 
 
+@dataclass(frozen=True)
+class PersistentLinkCacheArgs:
+    url: str
+    comes_from: Optional[str] = None
+    requires_python: Optional[str] = None
+    yanked_reason: Optional[str] = None
+    metadata_file_data: Optional[MetadataFile] = None
+    hashes: Optional[Mapping[str, str]] = None
+
+    def to_json(self) -> Dict[str, Any]:
+        return {
+            "url": self.url,
+            "comes_from": self.comes_from,
+            "requires_python": self.requires_python,
+            "yanked_reason": self.yanked_reason,
+            "metadata_file_data": (
+                self.metadata_file_data.hashes if self.metadata_file_data else None
+            ),
+            "hashes": self.hashes,
+        }
+
+    @classmethod
+    def from_json(cls, cache_info: Dict[str, Any]) -> "PersistentLinkCacheArgs":
+        return cls(
+            url=cache_info["url"],
+            comes_from=cache_info["comes_from"],
+            requires_python=cache_info["requires_python"],
+            yanked_reason=cache_info["yanked_reason"],
+            metadata_file_data=(
+                MetadataFile(hashes=cache_info["metadata_file_data"])
+                if cache_info["metadata_file_data"]
+                else None
+            ),
+            hashes=cache_info["hashes"],
+        )
+
+
 @functools.total_ordering
 class Link:
     """Represents a parsed link from a Package Index's simple URL"""
@@ -190,7 +227,6 @@ class Link:
         "requires_python",
         "yanked_reason",
         "metadata_file_data",
-        "cache_link_parsing",
         "egg_fragment",
     ]
 
@@ -201,7 +237,6 @@ class Link:
         requires_python: Optional[str] = None,
         yanked_reason: Optional[str] = None,
         metadata_file_data: Optional[MetadataFile] = None,
-        cache_link_parsing: bool = True,
         hashes: Optional[Mapping[str, str]] = None,
     ) -> None:
         """
@@ -222,9 +257,6 @@ class Link:
             no such metadata is provided. This argument, if not None, indicates
             that a separate metadata file exists, and also optionally supplies
             hashes for that file.
-        :param cache_link_parsing: A flag that is used elsewhere to determine
-            whether resources retrieved from this link should be cached. PyPI
-            URLs should generally have this set to False, for example.
         :param hashes: A mapping of hash names to digests to allow us to
             determine the validity of a download.
         """
@@ -254,7 +286,6 @@ class Link:
         self.yanked_reason = yanked_reason
         self.metadata_file_data = metadata_file_data
 
-        self.cache_link_parsing = cache_link_parsing
         self.egg_fragment = self._egg_fragment()
 
     @classmethod
@@ -262,6 +293,7 @@ class Link:
         cls,
         file_data: Dict[str, Any],
         page_url: str,
+        page_content: Optional["IndexContent"] = None,
     ) -> Optional["Link"]:
         """
         Convert an pypi json document from a simple repository page into a Link.
@@ -301,11 +333,32 @@ class Link:
 
         return cls(
             url,
-            comes_from=page_url,
+            comes_from=page_content or page_url,
             requires_python=pyrequire,
             yanked_reason=yanked_reason,
             hashes=hashes,
             metadata_file_data=metadata_file_data,
+        )
+
+    def cache_args(self) -> PersistentLinkCacheArgs:
+        return PersistentLinkCacheArgs(
+            url=self.url,
+            comes_from=(str(self.comes_from) if self.comes_from else None),
+            requires_python=self.requires_python,
+            yanked_reason=self.yanked_reason,
+            metadata_file_data=self.metadata_file_data,
+            hashes=self._hashes,
+        )
+
+    @classmethod
+    def from_cache_args(cls, args: PersistentLinkCacheArgs) -> "Link":
+        return cls(
+            args.url,
+            comes_from=args.comes_from,
+            requires_python=args.requires_python,
+            yanked_reason=args.yanked_reason,
+            metadata_file_data=args.metadata_file_data,
+            hashes=args.hashes,
         )
 
     @classmethod
@@ -314,6 +367,7 @@ class Link:
         anchor_attribs: Dict[str, Optional[str]],
         page_url: str,
         base_url: str,
+        page_content: Optional["IndexContent"] = None,
     ) -> Optional["Link"]:
         """
         Convert an anchor element's attributes in a simple repository page to a Link.
@@ -354,7 +408,7 @@ class Link:
 
         return cls(
             url,
-            comes_from=page_url,
+            comes_from=page_content or page_url,
             requires_python=pyrequire,
             yanked_reason=yanked_reason,
             metadata_file_data=metadata_file_data,

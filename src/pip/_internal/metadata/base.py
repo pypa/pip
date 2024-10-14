@@ -1,6 +1,9 @@
 import csv
+import email.generator
 import email.message
+import email.policy
 import functools
+import io
 import json
 import logging
 import pathlib
@@ -90,6 +93,18 @@ def _convert_installed_files_path(
     return str(pathlib.Path(*info, *entry))
 
 
+def serialize_metadata(msg: email.message.Message) -> str:
+    """Write a dist's metadata to a string.
+
+    Calling ``str(dist.metadata)`` may raise an error by misinterpreting RST directives
+    as email headers. This method uses the more robust ``email.policy.EmailPolicy`` to
+    avoid those parsing errors."""
+    out = io.StringIO()
+    g = email.generator.Generator(out, policy=email.policy.EmailPolicy())
+    g.flatten(msg)
+    return out.getvalue()
+
+
 class RequiresEntry(NamedTuple):
     requirement: str
     extra: str
@@ -97,6 +112,15 @@ class RequiresEntry(NamedTuple):
 
 
 class BaseDistribution(Protocol):
+    @property
+    def is_concrete(self) -> bool:
+        """Whether the distribution really exists somewhere on disk.
+
+        If this is false, it has been synthesized from metadata, e.g. via
+        ``.from_metadata_file_contents()``, or ``.from_wheel()`` against
+        a ``MemoryWheel``."""
+        raise NotImplementedError()
+
     @classmethod
     def from_directory(cls, directory: str) -> "BaseDistribution":
         """Load the distribution from a metadata directory.
@@ -667,6 +691,10 @@ class BaseEnvironment:
 class Wheel(Protocol):
     location: str
 
+    @property
+    def is_concrete(self) -> bool:
+        raise NotImplementedError()
+
     def as_zipfile(self) -> zipfile.ZipFile:
         raise NotImplementedError()
 
@@ -674,6 +702,10 @@ class Wheel(Protocol):
 class FilesystemWheel(Wheel):
     def __init__(self, location: str) -> None:
         self.location = location
+
+    @property
+    def is_concrete(self) -> bool:
+        return True
 
     def as_zipfile(self) -> zipfile.ZipFile:
         return zipfile.ZipFile(self.location, allowZip64=True)
@@ -683,6 +715,10 @@ class MemoryWheel(Wheel):
     def __init__(self, location: str, stream: IO[bytes]) -> None:
         self.location = location
         self.stream = stream
+
+    @property
+    def is_concrete(self) -> bool:
+        return False
 
     def as_zipfile(self) -> zipfile.ZipFile:
         return zipfile.ZipFile(self.stream, allowZip64=True)
