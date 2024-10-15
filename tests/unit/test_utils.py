@@ -15,6 +15,7 @@ from typing import Any, Callable, Iterator, List, NoReturn, Optional, Tuple, Typ
 from unittest.mock import Mock, patch
 
 import pytest
+
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError

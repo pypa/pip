@@ -5,6 +5,7 @@ import urllib.request
 import pytest
 
 from pip._internal.utils.urls import path_to_url, url_to_path
+
 from tests.lib import (
     skip_needs_new_urlun_behavior_win,
     skip_needs_old_urlun_behavior_win,

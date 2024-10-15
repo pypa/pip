@@ -8,6 +8,7 @@ import pytest
 
 import pip._internal.network.auth
 from pip._internal.network.auth import MultiDomainBasicAuth
+
 from tests.lib.requests_mocks import MockConnection, MockRequest, MockResponse
 
 

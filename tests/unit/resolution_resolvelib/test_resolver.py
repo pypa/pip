@@ -2,6 +2,7 @@ from typing import Dict, List, Optional, Set, Tuple, cast
 from unittest import mock
 
 import pytest
+
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib.resolvers import Result
 from pip._vendor.resolvelib.structs import DirectedGraph

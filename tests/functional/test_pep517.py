@@ -7,6 +7,7 @@ import tomli_w
 
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.req import InstallRequirement
+
 from tests.lib import (
     PipTestEnvironment,
     TestData,

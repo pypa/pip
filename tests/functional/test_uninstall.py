@@ -12,6 +12,7 @@ import pytest
 
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.utils.misc import rmtree
+
 from tests.lib import (
     PipTestEnvironment,
     TestData,
