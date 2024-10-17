@@ -40,7 +40,7 @@ from pyodide.ffi import (  # type: ignore[import-not-found]
 )
 
 if TYPE_CHECKING:
-    from pip._vendor.typing_extensions import Buffer
+    from typing_extensions import Buffer
 
 from .request import EmscriptenRequest
 from .response import EmscriptenResponse

@@ -97,8 +97,7 @@ class RequestMethods:
             an iterable of :class:`str`/:class:`bytes`, or a file-like object.
 
         :param fields:
-            Data to encode and send in the request body.  Values are processed
-            by :func:`urllib.parse.urlencode`.
+            Data to encode and send in the URL or request body, depending on ``method``.
 
         :param headers:
             Dictionary of custom headers to send, such as User-Agent,
@@ -164,7 +163,7 @@ class RequestMethods:
             The URL to perform the request on.
 
         :param fields:
-            Data to encode and send in the request body.
+            Data to encode and send in the URL.
 
         :param headers:
             Dictionary of custom headers to send, such as User-Agent,

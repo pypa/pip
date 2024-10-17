@@ -28,8 +28,8 @@ like this:
 .. code-block:: python
 
     try:
-        import pip._vendor.urllib3.contrib.pyopenssl as pyopenssl
-        pyopenssl.inject_into_urllib3()
+        import urllib3.contrib.pyopenssl
+        urllib3.contrib.pyopenssl.inject_into_urllib3()
     except ImportError:
         pass
 
@@ -202,7 +202,7 @@ def _dnsname_to_stdlib(name: str) -> str | None:
         that we can't just safely call `idna.encode`: it can explode for
         wildcard names. This avoids that problem.
         """
-        from pip._vendor import idna
+        import idna
 
         try:
             for prefix in ["*.", "."]:
@@ -399,6 +399,10 @@ class WrappedSocket:
 
     def version(self) -> str:
         return self.connection.get_protocol_version_name()  # type: ignore[no-any-return]
+
+    def selected_alpn_protocol(self) -> str | None:
+        alpn_proto = self.connection.get_alpn_proto_negotiated()
+        return alpn_proto.decode() if alpn_proto else None
 
 
 WrappedSocket.makefile = socket_cls.makefile  # type: ignore[attr-defined]

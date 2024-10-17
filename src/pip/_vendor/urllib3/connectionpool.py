@@ -54,7 +54,7 @@ from .util.util import to_str
 if typing.TYPE_CHECKING:
     import ssl
 
-    from pip._vendor.typing_extensions import Self
+    from typing_extensions import Self
 
     from ._base_connection import BaseHTTPConnection, BaseHTTPSConnection
 

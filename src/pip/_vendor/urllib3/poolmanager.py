@@ -27,7 +27,7 @@ from .util.url import Url, parse_url
 if typing.TYPE_CHECKING:
     import ssl
 
-    from pip._vendor.typing_extensions import Self
+    from typing_extensions import Self
 
 __all__ = ["PoolManager", "ProxyManager", "proxy_from_url"]
 
@@ -180,7 +180,7 @@ class PoolManager(RequestMethods):
 
     .. code-block:: python
 
-        from pip._vendor import urllib3
+        import urllib3
 
         http = urllib3.PoolManager(num_pools=2)
 
@@ -526,7 +526,7 @@ class ProxyManager(PoolManager):
 
     .. code-block:: python
 
-        from pip._vendor import urllib3
+        import urllib3
 
         proxy = urllib3.ProxyManager("https://localhost:3128/")
 

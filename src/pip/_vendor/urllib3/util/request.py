@@ -19,6 +19,21 @@ SKIP_HEADER = "@@@SKIP_HEADER@@@"
 SKIPPABLE_HEADERS = frozenset(["accept-encoding", "host", "user-agent"])
 
 ACCEPT_ENCODING = "gzip,deflate"
+try:
+    try:
+        import brotlicffi as _unused_module_brotli  # type: ignore[import-not-found] # noqa: F401
+    except ImportError:
+        import brotli as _unused_module_brotli  # type: ignore[import-not-found] # noqa: F401
+except ImportError:
+    pass
+else:
+    ACCEPT_ENCODING += ",br"
+try:
+    import zstandard as _unused_module_zstd  # noqa: F401
+except ImportError:
+    pass
+else:
+    ACCEPT_ENCODING += ",zstd"
 
 
 class _TYPE_FAILEDTELL(Enum):
@@ -77,7 +92,7 @@ def make_headers(
 
     .. code-block:: python
 
-        from pip._vendor import urllib3
+        import urllib3
 
         print(urllib3.util.make_headers(keep_alive=True, user_agent="Batman/1.0"))
         # {'connection': 'keep-alive', 'user-agent': 'Batman/1.0'}
@@ -212,7 +227,7 @@ def body_to_chunks(
                 if not datablock:
                     break
                 if encode:
-                    datablock = datablock.encode("iso-8859-1")
+                    datablock = datablock.encode("utf-8")
                 yield datablock
 
         chunks = chunk_readable()

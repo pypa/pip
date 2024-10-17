@@ -172,7 +172,7 @@ class Url(
 
         .. code-block:: python
 
-            from pip._vendor import urllib3
+            import urllib3
 
             U = urllib3.util.parse_url("https://google.com/mail/")
 
@@ -332,7 +332,7 @@ def _normalize_host(host: str | None, scheme: str | None) -> str | None:
 def _idna_encode(name: str) -> bytes:
     if not name.isascii():
         try:
-            from pip._vendor import idna
+            import idna
         except ImportError:
             raise LocationParseError(
                 "Unable to parse URL without the 'idna' module"
@@ -383,7 +383,7 @@ def parse_url(url: str) -> Url:
 
     .. code-block:: python
 
-        from pip._vendor import urllib3
+        import urllib3
 
         print( urllib3.util.parse_url('http://google.com/mail/'))
         # Url(scheme='http', host='google.com', port=None, path='/mail/', ...)

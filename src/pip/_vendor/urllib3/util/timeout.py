@@ -29,7 +29,7 @@ class Timeout:
 
     .. code-block:: python
 
-        from pip._vendor import urllib3
+        import urllib3
 
         timeout = urllib3.util.Timeout(connect=2.0, read=7.0)
 

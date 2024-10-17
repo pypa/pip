@@ -6,7 +6,7 @@ import typing
 from ..exceptions import LocationParseError
 from .timeout import _DEFAULT_TIMEOUT, _TYPE_TIMEOUT
 
-_TYPE_SOCKET_OPTIONS = typing.Sequence[typing.Tuple[int, int, typing.Union[int, bytes]]]
+_TYPE_SOCKET_OPTIONS = typing.List[typing.Tuple[int, int, typing.Union[int, bytes]]]
 
 if typing.TYPE_CHECKING:
     from .._base_connection import BaseHTTPConnection

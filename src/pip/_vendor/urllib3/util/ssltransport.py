@@ -8,7 +8,7 @@ import typing
 from ..exceptions import ProxySchemeUnsupported
 
 if typing.TYPE_CHECKING:
-    from pip._vendor.typing_extensions import Self
+    from typing_extensions import Self
 
     from .ssl_ import _TYPE_PEER_CERT_RET, _TYPE_PEER_CERT_RET_DICT
 
@@ -192,9 +192,6 @@ class SSLTransport:
 
     def selected_alpn_protocol(self) -> str | None:
         return self.sslobj.selected_alpn_protocol()
-
-    def selected_npn_protocol(self) -> str | None:
-        return self.sslobj.selected_npn_protocol()
 
     def shared_ciphers(self) -> list[tuple[str, str, int]] | None:
         return self.sslobj.shared_ciphers()

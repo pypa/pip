@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import hmac
 import os
 import socket
@@ -7,7 +8,6 @@ import sys
 import typing
 import warnings
 from binascii import unhexlify
-from hashlib import md5, sha1, sha256
 
 from ..exceptions import ProxySchemeUnsupported, SSLError
 from .url import _BRACELESS_IPV6_ADDRZ_RE, _IPV4_RE
@@ -21,7 +21,10 @@ ALPN_PROTOCOLS = ["http/1.1"]
 _TYPE_VERSION_INFO = typing.Tuple[int, int, int, str, int]
 
 # Maps the length of a digest to a possible hash function producing this digest
-HASHFUNC_MAP = {32: md5, 40: sha1, 64: sha256}
+HASHFUNC_MAP = {
+    length: getattr(hashlib, algorithm, None)
+    for length, algorithm in ((32, "md5"), (40, "sha1"), (64, "sha256"))
+}
 
 
 def _is_bpo_43522_fixed(
@@ -159,9 +162,13 @@ def assert_fingerprint(cert: bytes | None, fingerprint: str) -> None:
 
     fingerprint = fingerprint.replace(":", "").lower()
     digest_length = len(fingerprint)
-    hashfunc = HASHFUNC_MAP.get(digest_length)
-    if not hashfunc:
+    if digest_length not in HASHFUNC_MAP:
         raise SSLError(f"Fingerprint of invalid length: {fingerprint}")
+    hashfunc = HASHFUNC_MAP.get(digest_length)
+    if hashfunc is None:
+        raise SSLError(
+            f"Hash function implementation unavailable for fingerprint length: {digest_length}"
+        )
 
     # We need encode() here for py32; works on py2 and p33.
     fingerprint_bytes = unhexlify(fingerprint.encode())
@@ -457,10 +464,7 @@ def ssl_wrap_socket(
         else:
             context.load_cert_chain(certfile, keyfile, key_password)
 
-    try:
-        context.set_alpn_protocols(ALPN_PROTOCOLS)
-    except NotImplementedError:  # Defensive: in CI, we always have set_alpn_protocols
-        pass
+    context.set_alpn_protocols(ALPN_PROTOCOLS)
 
     ssl_sock = _ssl_wrap_socket_impl(sock, context, tls_in_tls, server_hostname)
     return ssl_sock
