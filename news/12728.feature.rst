@@ -1,5 +1,0 @@
-``wheel`` is no longer explicitly listed as a build depepndency of ``pip``.
-``setuptools`` already injects this dependency in the ``get_requires_for_build_wheel()`` hook.
-This makes no difference for users of ``pip``.
-This makes no difference when building wheels of ``pip``.
-This avoids an unnecessary dependency on ``wheel`` when building the source distribution of ``pip``.

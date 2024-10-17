@@ -1,2 +1,0 @@
-Improve pip install performance. The installed packages printout is
-now calculated in linear time instead of quadratic time.

@@ -1,2 +1,0 @@
-Disable pip's self version check when invoking a pip subprocess to install
-PEP 517 build requirements.

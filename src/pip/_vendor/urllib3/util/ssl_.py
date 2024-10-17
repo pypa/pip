@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import hashlib
 import hmac
 import os
 import socket
@@ -21,6 +22,10 @@ ALPN_PROTOCOLS = ["http/1.1"]
 _TYPE_VERSION_INFO = typing.Tuple[int, int, int, str, int]
 
 # Maps the length of a digest to a possible hash function producing this digest
+HASHFUNC_MAP = {
+    length: getattr(hashlib, algorithm, None)
+    for length, algorithm in ((32, "md5"), (40, "sha1"), (64, "sha256"))
+}
 HASHFUNC_MAP = {
     length: getattr(hashlib, algorithm, None)
     for length, algorithm in ((32, "md5"), (40, "sha1"), (64, "sha256"))

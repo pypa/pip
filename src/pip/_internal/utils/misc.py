@@ -555,7 +555,7 @@ class HiddenText:
 
     # This is useful for testing.
     def __eq__(self, other: Any) -> bool:
-        if type(self) != type(other):
+        if type(self) is not type(other):
             return False
 
         # The string being used for redaction doesn't also have to match,

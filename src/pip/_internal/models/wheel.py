@@ -6,8 +6,16 @@ import re
 from typing import Dict, Iterable, List
 
 from pip._vendor.packaging.tags import Tag
+from pip._vendor.packaging.utils import (
+    InvalidVersion,
+    parse_wheel_filename,
+)
+from pip._vendor.packaging.utils import (
+    InvalidWheelFilename as PackagingInvalidWheelName,
+)
 
 from pip._internal.exceptions import InvalidWheelFilename
+from pip._internal.utils.deprecation import deprecated
 
 
 class Wheel:
@@ -29,9 +37,45 @@ class Wheel:
             raise InvalidWheelFilename(f"{filename} is not a valid wheel filename.")
         self.filename = filename
         self.name = wheel_info.group("name").replace("_", "-")
-        # we'll assume "_" means "-" due to wheel naming scheme
-        # (https://github.com/pypa/pip/issues/1150)
-        self.version = wheel_info.group("ver").replace("_", "-")
+        _version = wheel_info.group("ver")
+        if "_" in _version:
+            try:
+                parse_wheel_filename(filename)
+            except InvalidVersion as e:
+                deprecated(
+                    reason=(
+                        f"Wheel filename version part {_version!r} is not correctly "
+                        "normalised, and contained an underscore character in the "
+                        "version part. Future versions of pip will fail to recognise "
+                        f"this wheel and report the error: {e.args[0]}."
+                    ),
+                    replacement=(
+                        "rename the wheel to use a correctly normalised "
+                        "version part (this may require updating the version "
+                        "in the project metadata)"
+                    ),
+                    gone_in="25.1",
+                    issue=12938,
+                )
+            except PackagingInvalidWheelName as e:
+                deprecated(
+                    reason=(
+                        f"The wheel filename {filename!r} is not correctly normalised. "
+                        "Future versions of pip will fail to recognise this wheel. "
+                        f"and report the error: {e.args[0]}."
+                    ),
+                    replacement=(
+                        "rename the wheel to use a correctly normalised "
+                        "name (this may require updating the version in "
+                        "the project metadata)"
+                    ),
+                    gone_in="25.1",
+                    issue=12938,
+                )
+
+            _version = _version.replace("_", "-")
+
+        self.version = _version
         self.build_tag = wheel_info.group("build")
         self.pyversions = wheel_info.group("pyver").split(".")
         self.abis = wheel_info.group("abi").split(".")
