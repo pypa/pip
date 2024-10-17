@@ -80,7 +80,7 @@ def test_make_metadata_file_custom_value_overrides() -> None:
 
 def test_make_metadata_file_custom_contents() -> None:
     value = b"hello"
-    f = default_make_metadata(value=value)
+    f = default_make_metadata(value=value)  # type: ignore[arg-type]
     assert f is not None
     assert f.contents == value
 
@@ -135,7 +135,7 @@ def test_make_wheel_metadata_file_custom_value_override() -> None:
 
 def test_make_wheel_metadata_file_custom_contents() -> None:
     value = b"hello"
-    f = default_make_wheel_metadata(value=value)
+    f = default_make_wheel_metadata(value=value)  # type: ignore[arg-type]
     assert f is not None
     assert f.name == "simple-0.1.0.dist-info/WHEEL"
     assert f.contents == value
