@@ -25,6 +25,7 @@ from typing import (
     Iterator,
     List,
     Optional,
+    Protocol,
     TextIO,
     Tuple,
     Type,
@@ -132,7 +133,7 @@ def rmtree(
     handler: OnErr = partial(
         # `[func, path, Union[ExcInfo, BaseException]] -> Any` is equivalent to
         # `Union[([func, path, ExcInfo] -> Any), ([func, path, BaseException] -> Any)]`.
-        cast(Union[OnExc, OnErr], rmtree_errorhandler),
+        rmtree_errorhandler,
         onexc=onexc,
     )
     if sys.version_info >= (3, 12):
