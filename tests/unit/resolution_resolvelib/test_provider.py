@@ -116,6 +116,15 @@ def test_provider_known_depths(factory: Factory) -> None:
             {},
             (True, True, False, True, 1.0, 1, False, "upper-bound-package"),
         ),
+        # Test "==N.*" which is not pinned but does create implicit upper bound
+        (
+            "equal-star-package",
+            {"equal-star-package": [build_req_info("equal-star-package==1.*")]},
+            [],
+            {"equal-star-package": 1},
+            {},
+            (True, True, False, True, 1.0, 1, False, "equal-star-package"),
+        ),
         # Package that caused backtracking
         (
             "backtrack-package",
