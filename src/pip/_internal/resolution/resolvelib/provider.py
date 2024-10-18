@@ -118,18 +118,17 @@ class PipProvider(_ProviderBase):
         The lower the return value is, the more preferred this group of
         arguments is.
 
-        Currently pip considers the following in order:
+        Currently, pip considers the following in order:
 
-        * Prefer if any of the known requirements is "direct", e.g. points to an
-          explicit URL.
-        * If equal, prefer if any requirement is "pinned", i.e. contains
+        * If equal, prefer if any requirement is "pinned", i.e., contains
           operator ``===`` or ``==``.
+        * If the a member of backtrack causes.
         * If equal, calculate an approximate "depth" and resolve requirements
           closer to the user-specified requirements first. If the depth cannot
-          by determined (eg: due to no matching parents), it is considered
+          be determined (e.g., due to no matching parents), it is considered
           infinite.
         * Order user-specified requirements by the order they are specified.
-        * If equal, prefers "non-free" requirements, i.e. contains at least one
+        * If equal, prefer "non-free" requirements, i.e., contains at least one
           operator, such as ``>=`` or ``<``.
         * If equal, order alphabetically for consistency (helps debuggability).
         """
@@ -144,37 +143,40 @@ class PipProvider(_ProviderBase):
 
         if has_information:
             lookups = (r.get_candidate_lookup() for r, _ in information[identifier])
-            candidate, ireqs = zip(*lookups)
+            _icandidates, ireqs = zip(*lookups)
         else:
-            candidate, ireqs = None, ()
+            _icandidates, ireqs = (), ()
 
-        operators = [
-            specifier.operator
+        operators_versions = [
+            (specifier.operator, specifier.version)
             for specifier_set in (ireq.specifier for ireq in ireqs if ireq)
             for specifier in specifier_set
         ]
+        upper_bound = any(
+            op in ("<", "<=", "~=") or (op == "==" and "*" in ver)
+            for op, ver in operators_versions
+        )
+        pinned = any(
+            op == "===" or (op == "==" and "*" not in ver)
+            for op, ver in operators_versions
+        )
+        unfree = bool(operators_versions)
 
-        direct = candidate is not None
-        pinned = any(op[:2] == "==" for op in operators)
-        unfree = bool(operators)
-
-        try:
-            requested_order: Union[int, float] = self._user_requested[identifier]
-        except KeyError:
-            requested_order = math.inf
-            if has_information:
-                parent_depths = (
-                    self._known_depths[parent.name] if parent is not None else 0.0
-                    for _, parent in information[identifier]
-                )
-                inferred_depth = min(d for d in parent_depths) + 1.0
-            else:
-                inferred_depth = math.inf
-        else:
+        if identifier in self._user_requested:
+            requested_order: float = self._user_requested[identifier]
             inferred_depth = 1.0
-        self._known_depths[identifier] = inferred_depth
+        elif not has_information:
+            requested_order = math.inf
+            inferred_depth = math.inf
+        else:
+            requested_order = math.inf
+            parent_depths = (
+                0.0 if parent is None else self._known_depths[parent.name]
+                for _, parent in information[identifier]
+            )
+            inferred_depth = min(parent_depths) + 1.0
 
-        requested_order = self._user_requested.get(identifier, math.inf)
+        self._known_depths[identifier] = inferred_depth
 
         # Requires-Python has only one candidate and the check is basically
         # free, so we always do it first to avoid needless work if it fails.
@@ -187,8 +189,8 @@ class PipProvider(_ProviderBase):
 
         return (
             not requires_python,
-            not direct,
             not pinned,
+            not upper_bound,
             not backtrack_cause,
             inferred_depth,
             requested_order,
