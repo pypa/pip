@@ -50,6 +50,7 @@ from pip._internal.utils.misc import (
     hide_url,
     redact_auth_from_requirement,
 )
+from pip._internal.utils.plugins import plugin_pre_download_hook
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
@@ -461,6 +462,14 @@ class RequirementPreparer:
         for req in partially_downloaded_reqs:
             assert req.link
             links_to_fully_download[req.link] = req
+            try:
+                plugin_pre_download_hook(
+                    url=req.link.url, filename=req.link.filename, digest=req.link.hash
+                )
+            except ValueError as e:
+                raise InstallationError(
+                    f"Could not install requirement {req} due to plugin:\n{e}"
+                )
 
         batch_download = self._batch_download(
             links_to_fully_download.keys(),
@@ -595,6 +604,9 @@ class RequirementPreparer:
             local_file = None
         elif link.url not in self._downloaded:
             try:
+                plugin_pre_download_hook(
+                    url=req.link.url, filename=req.link.filename, digest=req.link.hash
+                )
                 local_file = unpack_url(
                     link,
                     req.source_dir,
@@ -607,6 +619,10 @@ class RequirementPreparer:
                 raise InstallationError(
                     f"Could not install requirement {req} because of HTTP "
                     f"error {exc} for URL {link}"
+                )
+            except ValueError as e:
+                raise InstallationError(
+                    f"Could not install requirement {req} due to plugin:\n{e}"
                 )
         else:
             file_path = self._downloaded[link.url]
