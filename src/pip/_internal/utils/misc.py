@@ -129,12 +129,7 @@ def rmtree(
         onexc = _onerror_ignore
     if onexc is None:
         onexc = _onerror_reraise
-    handler: OnErr = partial(
-        # `[func, path, Union[ExcInfo, BaseException]] -> Any` is equivalent to
-        # `Union[([func, path, ExcInfo] -> Any), ([func, path, BaseException] -> Any)]`.
-        cast(Union[OnExc, OnErr], rmtree_errorhandler),
-        onexc=onexc,
-    )
+    handler: OnErr = partial(rmtree_errorhandler, onexc=onexc)
     if sys.version_info >= (3, 12):
         # See https://docs.python.org/3.12/whatsnew/3.12.html#shutil.
         shutil.rmtree(dir, onexc=handler)  # type: ignore
