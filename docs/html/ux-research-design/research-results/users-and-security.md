@@ -76,8 +76,9 @@ Participants also explained they rely on code security scanning and checking sof
 
 #### Reliance on good software development practices
 
-A small number of participants e### Selected quotes from research participants
-xplained they have good software practices in place, which help with writing secure software.
+Selected quotes from research participants
+
+> A small number of participants explained they have good software practices in place, which help with writing secure software.
 
 > "We have a book about ethics of code - we have mandatory certification."
 
