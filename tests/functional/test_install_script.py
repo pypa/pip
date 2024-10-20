@@ -1,4 +1,5 @@
 import textwrap
+import sys
 
 import pytest
 
@@ -49,3 +50,32 @@ def test_multiple_scripts(script: PipTestEnvironment) -> None:
         "ERROR: --script can only be given once"
         in result.stderr
     ), ("multiple script did not fail as expected -- " + result.stderr)
+
+
+@pytest.mark.network
+def test_script_file_python_version(script: PipTestEnvironment) -> None:
+    """
+    Test installing from a script with an incompatible `requires-python`
+    """
+
+    other_lib_name, other_lib_version = "peppercorn", "0.6"
+    script_path = script.scratch_path.joinpath("script.py")
+    this_python_ver = f"{sys.version_info.major}.{sys.version_info.minor}"
+    script_path.write_text(
+        textwrap.dedent(
+            f"""\
+            # /// script
+            # requires-python = ">{this_python_ver}"
+            # dependencies = [
+            #   "INITools==0.2",
+            #   "{other_lib_name}<={other_lib_version}",
+            # ]
+            # ///
+
+            print("Hello world from a dummy program")
+            """
+        )
+    )
+
+    with pytest.raises():
+        result = script.pip("install", "--script", script_path)
