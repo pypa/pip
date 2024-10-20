@@ -805,7 +805,5 @@ class InvalidInstalledPackage(DiagnosticPipError):
                 "Starting with pip 24.1, packages with invalid "
                 f"{invalid_type}s can not be processed."
             ),
-            hint_stmt=(
-                "To proceed this package must be uninstalled."
-            ),
+            hint_stmt="To proceed this package must be uninstalled.",
         )
