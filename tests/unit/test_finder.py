@@ -3,6 +3,7 @@ from typing import Iterable
 from unittest.mock import Mock, patch
 
 import pytest
+
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.tags import Tag
 from pip._vendor.packaging.version import parse as parse_version
@@ -18,6 +19,7 @@ from pip._internal.index.package_finder import (
 )
 from pip._internal.models.target_python import TargetPython
 from pip._internal.req.constructors import install_req_from_line
+
 from tests.lib import TestData, make_test_finder
 
 

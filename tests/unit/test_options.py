@@ -11,6 +11,7 @@ from pip._internal.cli.main import main
 from pip._internal.commands import create_command
 from pip._internal.commands.configuration import ConfigurationCommand
 from pip._internal.exceptions import PipError
+
 from tests.lib.options_helpers import AddFakeCommandMixin
 
 

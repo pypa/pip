@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Tuple
 from unittest import mock
 
 import pytest
+
 from pip._vendor import requests
 from pip._vendor.packaging.requirements import Requirement
 
@@ -35,6 +36,7 @@ from pip._internal.models.link import (
     _ensure_quoted_url,
 )
 from pip._internal.network.session import PipSession
+
 from tests.lib import (
     TestData,
     make_test_link_collector,

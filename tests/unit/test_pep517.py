@@ -7,6 +7,7 @@ import pytest
 
 from pip._internal.exceptions import InstallationError, InvalidPyProjectBuildRequires
 from pip._internal.req import InstallRequirement
+
 from tests.lib import TestData
 
 

@@ -2,10 +2,12 @@ import re
 from typing import List
 
 import pytest
+
 from pip._vendor.packaging.version import Version
 
 from pip._internal.commands.debug import create_vendor_txt_map
 from pip._internal.utils import compatibility_tags
+
 from tests.lib import PipTestEnvironment
 
 

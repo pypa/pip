@@ -1,4 +1,5 @@
 import pytest
+
 from pip._vendor.packaging.tags import Tag
 
 from pip._internal.exceptions import InvalidWheelFilename
@@ -148,6 +149,28 @@ class TestWheelFile:
         assert not w.supported(tags=intel)
         assert not w.supported(tags=universal)
 
+    def test_supported_ios_version(self) -> None:
+        """
+        Wheels build for iOS 12.3 are supported on iOS 15.1
+        """
+        tags = compatibility_tags.get_supported(
+            "313", platforms=["ios_15_1_arm64_iphoneos"], impl="cp"
+        )
+        w = Wheel("simple-0.1-cp313-none-ios_12_3_arm64_iphoneos.whl")
+        assert w.supported(tags=tags)
+        w = Wheel("simple-0.1-cp313-none-ios_15_1_arm64_iphoneos.whl")
+        assert w.supported(tags=tags)
+
+    def test_not_supported_ios_version(self) -> None:
+        """
+        Wheels built for macOS 15.1 are not supported on 12.3
+        """
+        tags = compatibility_tags.get_supported(
+            "313", platforms=["ios_12_3_arm64_iphoneos"], impl="cp"
+        )
+        w = Wheel("simple-0.1-cp313-none-ios_15_1_arm64_iphoneos.whl")
+        assert not w.supported(tags=tags)
+
     def test_support_index_min(self) -> None:
         """
         Test results from `support_index_min`
@@ -178,3 +201,10 @@ class TestWheelFile:
         with pytest.warns(deprecation.PipDeprecationWarning):
             w = Wheel("simple-0.1_1-py2-none-any.whl")
         assert w.version == "0.1-1"
+
+    def test_invalid_wheel_warning(self) -> None:
+        """
+        Test that wheel with invalid name produces warning
+        """
+        with pytest.warns(deprecation.PipDeprecationWarning):
+            Wheel("six-1.16.0_build1-py3-none-any.whl")

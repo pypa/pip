@@ -11,6 +11,7 @@ import pytest
 
 from pip._internal.cli.status_codes import ERROR
 from pip._internal.utils.urls import path_to_url
+
 from tests.lib import (
     PipTestEnvironment,
     ScriptFactory,
