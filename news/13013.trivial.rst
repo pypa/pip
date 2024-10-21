@@ -1,0 +1,1 @@
+Remove InvalidVersion exception catch for parse_{sdist,wheel}_filename.
