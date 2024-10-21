@@ -190,7 +190,7 @@ class Distribution(BaseDistribution):
         return content
 
     def iter_entry_points(self) -> Iterable[BaseEntryPoint]:
-        # importlib.metadata's EntryPoint structure sasitfies BaseEntryPoint.
+        # importlib.metadata's EntryPoint structure satisfies BaseEntryPoint.
         return self._dist.entry_points
 
     def _metadata_impl(self) -> email.message.Message:
