@@ -56,6 +56,8 @@ Both of these groups identified their "sphere of influence" and did their best t
 
 ### User thoughts about security
 
+Selected quotes from research participants
+
 #### Responsibility as author
 
 Participants who spent a lot of their time writing Python code - either for community or as part of their job - expressed a responsibility to their users for the code they wrote - people who wrote code which was made public expressed a stronger responsibility.
@@ -76,9 +78,7 @@ Participants also explained they rely on code security scanning and checking sof
 
 #### Reliance on good software development practices
 
-Selected quotes from research participants
-
-> A small number of participants explained they have good software practices in place, which help with writing secure software.
+A small number of participants explained they have good software practices in place, which help with writing secure software.
 
 > "We have a book about ethics of code - we have mandatory certification."
 
