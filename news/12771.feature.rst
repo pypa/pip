@@ -1,0 +1,1 @@
+Log warning on requirements decode failure, and fallback to UTF-8
