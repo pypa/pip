@@ -125,7 +125,9 @@ def check_compatibility(version: Tuple[int, ...], name: str) -> None:
     if version[0] > VERSION_COMPATIBLE[0]:
         raise UnsupportedWheel(
             "{}'s Wheel-Version ({}) is not compatible with this version "
-            "of pip".format(name, ".".join(map(str, version)))
+            "of pip, update pip to install {} successfully".format(
+                name, ".".join(map(str, version)), name
+            )
         )
     elif version > VERSION_COMPATIBLE:
         logger.warning(
