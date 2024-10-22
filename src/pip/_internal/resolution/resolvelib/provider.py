@@ -122,7 +122,8 @@ class PipProvider(_ProviderBase):
 
         * If equal, prefer if any requirement is "pinned", i.e., contains
           operator ``===`` or ``==``.
-        * If the a member of backtrack causes.
+        * If equal, prefer if any requirement is part of the current causes
+          for backtracking.
         * If equal, calculate an approximate "depth" and resolve requirements
           closer to the user-specified requirements first. If the depth cannot
           be determined (e.g., due to no matching parents), it is considered
