@@ -158,7 +158,8 @@ follows:
 
 * If equal, prefer if any requirement is "pinned", i.e. contains
     operator ``===`` or ``==``.
-* If a requirement is part of the current cause for backtracking.
+* If equal, prefer if any requirement is part of the current causes
+    for backtracking.
 * If equal, calculate an approximate "depth" and resolve requirements
     closer to the user-specified requirements first.
 * Order user-specified requirements by the order they are specified.
