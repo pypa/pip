@@ -2,6 +2,7 @@ import math
 from typing import TYPE_CHECKING, Dict, Iterable, Optional, Sequence
 
 import pytest
+
 from pip._vendor.resolvelib.resolvers import RequirementInformation
 
 from pip._internal.models.candidate import InstallationCandidate
