@@ -160,7 +160,7 @@ follows:
     operator ``===`` or ``==``.
 * If equal, prefer if any requirement is restricted by upper bounds, i.e.
     contains operators ``<``, ``<=``, ``~=``, or the specifier ``==N.*``.
-* If equal, check if a a requirement is part of the current cause
+* If equal, prefer if any requirement is part of the current causes
     for backtracking.
 * If equal, calculate an approximate "depth" and resolve requirements
     closer to the user-specified requirements first.
