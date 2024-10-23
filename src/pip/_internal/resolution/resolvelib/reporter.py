@@ -10,39 +10,17 @@ logger = getLogger(__name__)
 
 
 class PipReporter(BaseReporter):
-    def __init__(self) -> None:
-        self.reject_count_by_package: DefaultDict[str, int] = defaultdict(int)
+    def adding_requirement(self, requirement: Requirement, parent: Requirement) -> None:
+        if parent:
+            logger.info("Adding requirement %s (from %s)", requirement, parent)
+        else:
+            logger.info("Adding requirement %s", requirement)
 
-        self._messages_at_reject_count = {
-            1: (
-                "pip is looking at multiple versions of {package_name} to "
-                "determine which version is compatible with other "
-                "requirements. This could take a while."
-            ),
-            8: (
-                "pip is still looking at multiple versions of {package_name} to "
-                "determine which version is compatible with other "
-                "requirements. This could take a while."
-            ),
-            13: (
-                "This is taking longer than usual. You might need to provide "
-                "the dependency resolver with stricter constraints to reduce "
-                "runtime. See https://pip.pypa.io/warnings/backtracking for "
-                "guidance. If you want to abort this run, press Ctrl + C."
-            ),
-        }
+    def pinning(self, candidate: Candidate) -> None:
+        logger.info("Pinning %s %s", candidate.name, candidate.version)
 
     def rejecting_candidate(self, criterion: Any, candidate: Candidate) -> None:
-        self.reject_count_by_package[candidate.name] += 1
-
-        count = self.reject_count_by_package[candidate.name]
-        if count not in self._messages_at_reject_count:
-            return
-
-        message = self._messages_at_reject_count[count]
-        logger.info("INFO: %s", message.format(package_name=candidate.name))
-
-        msg = "Will try a different candidate, due to conflict:"
+        msg = f"Rejecting {candidate.name} {candidate.version}, due to conflict:"
         for req_info in criterion.information:
             req, parent = req_info.requirement, req_info.parent
             # Inspired by Factory.get_installation_error
@@ -52,7 +30,7 @@ class PipReporter(BaseReporter):
             else:
                 msg += "The user requested "
             msg += req.format_for_error()
-        logger.debug(msg)
+        logger.info(msg)
 
 
 class PipDebuggingReporter(BaseReporter):
