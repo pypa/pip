@@ -1,1 +1,0 @@
-Add Ruff's Pytest rules to the tests directory.

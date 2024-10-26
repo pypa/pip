@@ -1,2 +1,0 @@
-Detect recursively referencing requirements files and help users identify
-the source.
