@@ -78,7 +78,9 @@ jobs:
 
       - run: pip install nox
       - run: nox -s prepare-release -- 99.9
-      - run: nox -s build-release -- 99.9
+      - run: git checkout 99.9
+      - run: pipx run build
+      - run: pipx run twine check dist/*
       - run: pipx run check-manifest
 
   vendoring:

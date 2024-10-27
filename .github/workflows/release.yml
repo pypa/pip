@@ -1,0 +1,24 @@
+on:
+  push:
+    tags:
+      - "*"
+
+name: release
+
+jobs:
+  pypi:
+    name: upload release to PyPI
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      # Used to authenticate to PyPI via OIDC.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: build
+        run: pipx run build
+      - name: publish
+        uses: pypa/gh-action-pypi-publish@release/v1
