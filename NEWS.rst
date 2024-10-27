@@ -9,7 +9,15 @@
 
 .. towncrier release notes start
 
-24.3 (2024-10-26)
+24.3.1 (2024-10-27)
+===================
+
+Bug Fixes
+---------
+
+- Allow multiple nested inclusions of the same requirements file again. (`#13046 <https://github.com/pypa/pip/issues/13046>`_)
+
+24.3 (2024-10-27)
 =================
 
 Deprecations and Removals
