@@ -8,7 +8,7 @@ from pip._vendor.packaging.requirements import Requirement
 REGEX = r'(?m)^# /// (?P<type>[a-zA-Z0-9-]+)$\s(?P<content>(^#(| .*)$\s)+)^# ///$'
 
 
-def pep723_metadata(scriptfile: str) -> Optional[dict]:
+def pep723_metadata(scriptfile: str) -> dict:
     with open(scriptfile, "r") as f:
         script = f.read()
 
