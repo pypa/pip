@@ -1,1 +1,0 @@
-Update classifier to support Python 3.13
