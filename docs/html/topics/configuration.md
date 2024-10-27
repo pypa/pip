@@ -2,11 +2,13 @@
 
 # Configuration
 
-pip allows a user to change its behaviour via 3 mechanisms:
+pip allows a user to change its behaviour via 3 mechanisms.
+These mechanisms are listed in order of priority, meaning that
+command line options has [preference](config-preference):
 
-- command line options
-- environment variables
-- configuration files
+1. command line options
+2. [environment variables](env-variables)
+3. [configuration files](config-file)
 
 This page explains how the configuration files and environment variables work,
 and how they are related to pip's various command line options.
@@ -28,7 +30,12 @@ pip has 3 "levels" of configuration files:
 - `user`: per-user configuration file.
 - `site`: per-environment configuration file; i.e. per-virtualenv.
 
-Additionally, environment variables can be specified which will override any of the above.
+```{note}
+Options specified through environment variables or command line options
+take precedence over configuration files.
+
+See the [preference section](config-preference) for more details.
+```
 
 ### Location
 
@@ -199,32 +206,37 @@ trusted-host =
 This enables users to add additional values in the order of entry for such
 command line arguments.
 
+(env-variables)=
+
 ## Environment Variables
 
-pip's command line options can be set with environment variables using the
-format `PIP_<UPPER_LONG_NAME>` . Dashes (`-`) have to be replaced with
-underscores (`_`).
+All pip's command line options have equivalent environment variables,
+they can be specified using:
+```shell
+PIP_<UPPER_LONG_NAME>
+```
 
-- `PIP_TIMEOUT=60` is the same as `--timeout=60`
-- ```
-  PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
-  ```
+Options with dashes (`-`) have to be replaced with underscores (`_`).
 
-  is the same as
+Examples:
 
-  ```
-  --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
-  ```
+```shell
+PIP_VERBOSE=3 PIP_CACHE_DIR=/home/user/tmp pip ...
+# is equivalent to
+pip ... -vvv --cache-dir=/home/user/tmp
+```
 
-Repeatable options that do not take a value (such as `--verbose`) can be
-specified using the number of repetitions:
-
-- `PIP_VERBOSE=3` is the same as `pip install -vvv`
+All option values follows the same rules as for the [configuration files](config-file).
 
 ```{note}
 Environment variables set to an empty string (like with `export X=` on Unix) will **not** be treated as false.
 Use `no`, `false` or `0` instead.
+
+Consequently, boolean options prefixed with `--no-*` can be disabled by using
+truthy values, e.g. `PIP_NO_CACHE_DIR=true`.
 ```
+
+(config-preference)=
 
 ## Precedence / Override order
 
