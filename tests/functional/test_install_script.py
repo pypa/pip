@@ -60,12 +60,12 @@ def test_script_file_python_version(script: PipTestEnvironment) -> None:
 
     other_lib_name, other_lib_version = "peppercorn", "0.6"
     script_path = script.scratch_path.joinpath("script.py")
-    this_python_ver = f"{sys.version_info.major}.{sys.version_info.minor}"
+    target_python_ver = f"{sys.version_info.major}.{sys.version_info.minor + 1}"
     script_path.write_text(
         textwrap.dedent(
             f"""\
             # /// script
-            # requires-python = ">{this_python_ver}"
+            # requires-python = ">={target_python_ver}"
             # dependencies = [
             #   "INITools==0.2",
             #   "{other_lib_name}<={other_lib_version}",
@@ -77,5 +77,5 @@ def test_script_file_python_version(script: PipTestEnvironment) -> None:
         )
     )
 
-    with pytest.raises():
-        result = script.pip("install", "--script", script_path)
+    result = script.pip("install", "--script", script_path, expect_stderr=True, expect_error=True)
+    assert f"ERROR: Script '{script_path}' requires a different Python" in result.stderr, ("Script with incompatible requires-python did not fail as expected -- " + result.stderr)

@@ -15,9 +15,10 @@ from typing import Any
 from pip._internal.build_env import SubprocessBuildEnvironmentInstaller
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
+from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.index_command import IndexGroupCommand
 from pip._internal.cli.index_command import SessionCommandMixin as SessionCommandMixin
-from pip._internal.exceptions import CommandError, PreviousBuildDirError
+from pip._internal.exceptions import CommandError, PreviousBuildDirError, UnsupportedPythonVersion
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata.pep723 import pep723_metadata
@@ -36,6 +37,7 @@ from pip._internal.req.req_dependency_group import parse_dependency_groups
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.resolution.base import BaseResolver
+from pip._internal.utils.packaging import check_requires_python
 from pip._internal.utils.temp_dir import (
     TempDirectory,
     TempDirectoryTypeRegistry,
@@ -293,6 +295,20 @@ class RequirementCommand(IndexGroupCommand):
 
             script = options.scripts[0]
             script_metadata = pep723_metadata(script)
+
+            script_requires_python = script_metadata.get("requires-python", "")
+
+            if script_requires_python and not options.ignore_requires_python:
+                target_python = make_target_python(options)
+
+                if not check_requires_python(
+                    requires_python=script_requires_python,
+                    version_info=target_python.py_version_info,
+                ):
+                    raise UnsupportedPythonVersion(
+                        f"Script {script!r} requires a different Python: "
+                        f"{target_python.py_version} not in {script_requires_python!r}"
+                    )
 
             for req in script_metadata.get("dependencies", []):
                 requirements.append(
