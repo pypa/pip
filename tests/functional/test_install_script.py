@@ -1,5 +1,5 @@
-import textwrap
 import sys
+import textwrap
 
 import pytest
 
@@ -44,12 +44,19 @@ def test_multiple_scripts(script: PipTestEnvironment) -> None:
     """
     Test that --script can only be given once in an install command.
     """
-    result = script.pip("install", "--script", "does_not_exist.py", "--script", "also_does_not_exist.py", allow_stderr_error=True, expect_error=True)
+    result = script.pip(
+        "install",
+        "--script",
+        "does_not_exist.py",
+        "--script",
+        "also_does_not_exist.py",
+        allow_stderr_error=True,
+        expect_error=True,
+    )
 
-    assert (
-        "ERROR: --script can only be given once"
-        in result.stderr
-    ), ("multiple script did not fail as expected -- " + result.stderr)
+    assert "ERROR: --script can only be given once" in result.stderr, (
+        "multiple script did not fail as expected -- " + result.stderr
+    )
 
 
 @pytest.mark.network
@@ -77,5 +84,12 @@ def test_script_file_python_version(script: PipTestEnvironment) -> None:
         )
     )
 
-    result = script.pip("install", "--script", script_path, expect_stderr=True, expect_error=True)
-    assert f"ERROR: Script '{script_path}' requires a different Python" in result.stderr, ("Script with incompatible requires-python did not fail as expected -- " + result.stderr)
+    result = script.pip(
+        "install", "--script", script_path, expect_stderr=True, expect_error=True
+    )
+    assert (
+        f"ERROR: Script '{script_path}' requires a different Python" in result.stderr
+    ), (
+        "Script with incompatible requires-python did not fail as expected -- "
+        + result.stderr
+    )
