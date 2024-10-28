@@ -1,9 +1,6 @@
 import re
-from typing import List, Optional
 
-from pip._internal.req.req_install import InstallRequirement
 from pip._vendor import tomli as tomllib
-from pip._vendor.packaging.requirements import Requirement
 
 REGEX = r'(?m)^# /// (?P<type>[a-zA-Z0-9-]+)$\s(?P<content>(^#(| .*)$\s)+)^# ///$'
 
@@ -26,15 +23,3 @@ def pep723_metadata(scriptfile: str) -> dict:
         return tomllib.loads(content)
     else:
         raise ValueError(f"File does not contain 'script' metadata: {scriptfile!r}")
-
-
-def parse_pep723_requirements(scriptfile: str) -> List[InstallRequirement]:
-    md = pep723_metadata(scriptfile)
-    reqs = []
-
-    for rq in md.get("dependencies", []):
-        reqs.append(
-            InstallRequirement(Requirement(rq), comes_from=None)
-        )
-
-    return reqs

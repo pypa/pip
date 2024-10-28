@@ -20,7 +20,7 @@ from pip._internal.cli.index_command import SessionCommandMixin as SessionComman
 from pip._internal.exceptions import CommandError, PreviousBuildDirError
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
-from pip._internal.metadata.pep723 import parse_pep723_requirements
+from pip._internal.metadata.pep723 import pep723_metadata
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
@@ -41,6 +41,7 @@ from pip._internal.utils.temp_dir import (
     TempDirectoryTypeRegistry,
     tempdir_kinds,
 )
+from pip._vendor.packaging.requirements import Requirement
 
 logger = logging.getLogger(__name__)
 
@@ -290,7 +291,13 @@ class RequirementCommand(IndexGroupCommand):
             if len(options.scripts) > 1:
                 raise CommandError("--script can only be given once")
 
-            requirements.extend(parse_pep723_requirements(options.scripts[0]))
+            script = options.scripts[0]
+            script_metadata = pep723_metadata(script)
+
+            for req in script_metadata.get("dependencies", []):
+                requirements.append(
+                    InstallRequirement(Requirement(req), comes_from=None)
+                )
 
         # If any requirement has hash options, enable hash checking.
         if any(req.has_hash_options for req in requirements):
