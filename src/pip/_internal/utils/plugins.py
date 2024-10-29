@@ -1,6 +1,6 @@
 import contextlib
 import logging
-from importlib.metadata import EntryPoints, entry_points
+from importlib.metadata import EntryPoint, entry_points
 from pathlib import Path
 from typing import Iterator, List
 
@@ -10,12 +10,14 @@ logger = logging.getLogger(__name__)
 _loaded_plugins: List[Plugin] = []
 
 
-def iter_entry_points(group_name: str) -> EntryPoints:
+def iter_entry_points(group_name: str) -> List[EntryPoint]:
+    # Only Python >= 3.10 supports the `EntryPoints` class, so we return
+    # a list of `EntryPoint` instead.
     groups = entry_points()
     if hasattr(groups, "select"):
         # New interface in Python 3.10 and newer versions of the
         # importlib_metadata backport.
-        return groups.select(group=group_name)
+        return list(groups.select(group=group_name))
     else:
         assert hasattr(groups, "get")
         # Older interface, deprecated in Python 3.10 and recent
