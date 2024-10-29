@@ -12,7 +12,6 @@ from pip._vendor.packaging.tags import (
     generic_tags,
     interpreter_name,
     interpreter_version,
-    ios_platforms,
     mac_platforms,
 )
 
@@ -45,23 +44,33 @@ def _mac_platforms(arch: str) -> List[str]:
 
 
 def _ios_platforms(arch: str) -> List[str]:
-    match = _apple_arch_pat.match(arch)
-    if match:
-        name, major, minor, actual_multiarch = match.groups()
-        ios_version = (int(major), int(minor))
-        arches = [
-            # Since we have always only checked that the platform starts
-            # with "ios", for backwards-compatibility we extract the
-            # actual prefix provided by the user in case they provided
-            # something like "ioscustom_". It may be good to remove
-            # this as undocumented or deprecate it in the future.
-            "{}_{}".format(name, arch[len("ios_") :])
-            for arch in ios_platforms(ios_version, actual_multiarch)
-        ]
-    else:
-        # arch pattern didn't match (?!)
-        arches = [arch]
-    return arches
+    try:
+        # If using a devendored version of packaging<=24.1, ios_platforms won't
+        # be available. The try/catch can be removes as soon as a new version of
+        # packaging is released.
+        from pip._vendor.packaging.tags import ios_platforms
+
+        match = _apple_arch_pat.match(arch)
+        if match:
+            name, major, minor, actual_multiarch = match.groups()
+            ios_version = (int(major), int(minor))
+            arches = [
+                # Since we have always only checked that the platform starts
+                # with "ios", for backwards-compatibility we extract the
+                # actual prefix provided by the user in case they provided
+                # something like "ioscustom_". It may be good to remove
+                # this as undocumented or deprecate it in the future.
+                "{}_{}".format(name, arch[len("ios_") :])
+                for arch in ios_platforms(ios_version, actual_multiarch)
+            ]
+        else:
+            # arch pattern didn't match (?!)
+            arches = [arch]
+
+        return arches
+    except ImportError:  # pragma: no cover
+        # Using a devendored version of packaging <= 24.1.
+        return []
 
 
 def _custom_manylinux_platforms(arch: str) -> List[str]:

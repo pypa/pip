@@ -1,0 +1,1 @@
+An ImportError seen when using a devendored version of packaging <= 24.1 has been resolved.
