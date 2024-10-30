@@ -64,12 +64,13 @@ def _raw_progress_bar(
     iterable: Iterable[bytes],
     *,
     size: Optional[int],
+    initial_progress: Optional[int] = None,
 ) -> Generator[bytes, None, None]:
     def write_progress(current: int, total: int) -> None:
         sys.stdout.write("Progress %d of %d\n" % (current, total))
         sys.stdout.flush()
 
-    current = 0
+    current = initial_progress or 0
     total = size or 0
     rate_limiter = RateLimiter(0.25)
 

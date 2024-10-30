@@ -778,6 +778,7 @@ class LegacyDistutilsInstall(DiagnosticPipError):
             hint_stmt=None,
         )
 
+
 class InvalidInstalledPackage(DiagnosticPipError):
     reference = "invalid-installed-package"
 
