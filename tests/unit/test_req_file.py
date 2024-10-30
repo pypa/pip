@@ -347,6 +347,19 @@ class TestProcessLine:
         assert reqs[0].name == req_name
         assert reqs[0].constraint
 
+    def test_repeated_requirement_files(
+        self, tmp_path: Path, session: PipSession
+    ) -> None:
+        # Test that the same requirements file can be included multiple times
+        # as long as there is no recursion. https://github.com/pypa/pip/issues/13046
+        tmp_path.joinpath("a.txt").write_text("requests")
+        tmp_path.joinpath("b.txt").write_text("-r a.txt")
+        tmp_path.joinpath("c.txt").write_text("-r a.txt\n-r b.txt")
+        parsed = parse_requirements(
+            filename=os.fspath(tmp_path.joinpath("c.txt")), session=session
+        )
+        assert [r.requirement for r in parsed] == ["requests", "requests"]
+
     def test_recursive_requirements_file(
         self, tmpdir: Path, session: PipSession
     ) -> None:

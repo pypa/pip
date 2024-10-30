@@ -57,6 +57,7 @@ Anthony Sottile
 Antoine Musso
 Anton Ovchinnikov
 Anton Patrushev
+Anton Zelenov
 Antonio Alvarado Hernandez
 Antony Lee
 Antti Kaihola
@@ -225,6 +226,7 @@ Diego Ramirez
 DiegoCaraballo
 Dimitri Merejkowsky
 Dimitri Papadopoulos
+Dimitri Papadopoulos Orfanos
 Dirk Stolle
 Dmitry Gladkov
 Dmitry Volodin
@@ -690,6 +692,7 @@ snook92
 socketubs
 Sorin Sbarnea
 Srinivas Nyayapati
+Srishti Hegde
 Stavros Korokithakis
 Stefan Scherfke
 Stefano Rivera

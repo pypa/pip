@@ -201,3 +201,10 @@ class TestWheelFile:
         with pytest.warns(deprecation.PipDeprecationWarning):
             w = Wheel("simple-0.1_1-py2-none-any.whl")
         assert w.version == "0.1-1"
+
+    def test_invalid_wheel_warning(self) -> None:
+        """
+        Test that wheel with invalid name produces warning
+        """
+        with pytest.warns(deprecation.PipDeprecationWarning):
+            Wheel("six-1.16.0_build1-py3-none-any.whl")
