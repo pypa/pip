@@ -102,6 +102,10 @@ class WheelCommand(RequirementCommand):
 
     @with_cleanup
     def run(self, options: Values, args: List[str]) -> int:
+        # dependency-groups aren't desirable with `pip wheel`, but providing it
+        # consistently allows RequirementCommand to expect it to be present
+        options.dependency_groups = []
+
         session = self.get_default_session(options)
 
         finder = self._build_package_finder(options, session)
