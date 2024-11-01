@@ -681,6 +681,20 @@ class PackageFinder:
             yield build_netloc(*host_port)
 
     @property
+    def custom_cert(self) -> Optional[str]:
+        # session.verify is either a boolean (use default bundle/no SSL
+        # verification) or a string path to a custom CA bundle to use. We only
+        # care about the latter.
+        verify = self._link_collector.session.verify
+        return verify if isinstance(verify, str) else None
+
+    @property
+    def client_cert(self) -> Optional[str]:
+        cert = self._link_collector.session.cert
+        assert not isinstance(cert, tuple), "pip only supports PEM client certs"
+        return cert
+
+    @property
     def allow_all_prereleases(self) -> bool:
         return self._candidate_prefs.allow_all_prereleases
 
