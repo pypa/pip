@@ -242,9 +242,7 @@ class RequirementCommand(IndexGroupCommand):
             requirements.append(req_to_add)
 
         if options.dependency_groups:
-            for req in parse_dependency_groups(
-                options.dependency_groups, session, finder=finder, options=options
-            ):
+            for req in parse_dependency_groups(options.dependency_groups):
                 req_to_add = install_req_from_req_string(
                     req,
                     isolated=options.isolated_mode,
