@@ -318,6 +318,21 @@ def test_install_exit_status_code_when_blank_requirements_file(
     script.pip("install", "-r", "blank.txt")
 
 
+def test_install_exit_status_code_when_empty_dependency_group(
+    script: PipTestEnvironment,
+) -> None:
+    """
+    Test install exit status code is 0 when empty dependency group specified
+    """
+    script.scratch_path.joinpath("pyproject.toml").write_text(
+        """\
+[dependency-groups]
+empty = []
+"""
+    )
+    script.pip("install", "--group", "empty")
+
+
 @pytest.mark.network
 def test_basic_install_from_pypi(script: PipTestEnvironment) -> None:
     """
