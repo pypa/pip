@@ -85,17 +85,12 @@ class TestSafeFileCache:
 
     @pytest.mark.skipif("sys.platform == 'win32'")
     @pytest.mark.parametrize(
-        "perms, expected_perms",
-        [
-            (0o300, 0o700),
-            (0o700, 0o700),
-            (0o777, 0o777)
-        ]
+        "perms, expected_perms", [(0o300, 0o700), (0o700, 0o700), (0o777, 0o777)]
     )
     def test_cache_inherits_perms(
         self, cache_tmpdir: Path, perms: int, expected_perms: int
     ) -> None:
-        key="foo"
+        key = "foo"
         with chmod(cache_tmpdir, perms):
             cache = SafeFileCache(os.fspath(cache_tmpdir))
             cache.set(key, b"bar")
