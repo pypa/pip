@@ -77,7 +77,7 @@ class SafeFileCache(SeparateBodyBaseCache):
             with adjacent_tmp_file(path) as f:
                 f.write(data)
 
-            os.chmod(f.name, os.stat(self.directory).st_mode & 0o777 | 0o600)
+            os.chmod(f.name, os.stat(self.directory).st_mode & 0o666 | 0o600)
             replace(f.name, path)
 
     def set(

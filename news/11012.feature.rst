@@ -1,1 +1,1 @@
-Network cache file permissions will inherit the permissions of the cache's directory with the exception of owner read/write permissions which will always be set. This feature enables sharing a cache in a multi-user environment.
+Network cache file permissions will inherit the read/write permissions of the cache's directory with the exception of owner read/write permissions which will always be set. This feature enables sharing a cache in a multi-user environment.
