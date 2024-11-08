@@ -80,6 +80,7 @@ class RequirementCommand(IndexGroupCommand):
     def __init__(self, *args: Any, **kw: Any) -> None:
         super().__init__(*args, **kw)
 
+        self.cmd_opts.add_option(cmdoptions.dependency_groups())
         self.cmd_opts.add_option(cmdoptions.no_clean())
 
     @staticmethod

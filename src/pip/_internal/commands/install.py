@@ -84,7 +84,6 @@ class InstallCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.pre())
 
         self.cmd_opts.add_option(cmdoptions.editable())
-        self.cmd_opts.add_option(cmdoptions.dependency_groups())
         self.cmd_opts.add_option(
             "--dry-run",
             action="store_true",
