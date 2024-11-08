@@ -4,10 +4,10 @@ from importlib.metadata import EntryPoint, entry_points
 from pathlib import Path
 from typing import Iterator, List
 
-from pip._internal.models.plugin import DistInspectorPlugin, Plugin, plugin_from_module
+from pip._internal.models.plugin import LoadedPlugin, plugin_from_module
 
 logger = logging.getLogger(__name__)
-_loaded_plugins: List[Plugin] = []
+_loaded_plugins: List[LoadedPlugin] = []
 
 
 def iter_entry_points(group_name: str) -> List[EntryPoint]:
@@ -64,8 +64,6 @@ def plugin_pre_download_hook(url: str, filename: str, digest: str) -> None:
     """
 
     for p in _loaded_plugins:
-        if not isinstance(p, DistInspectorPlugin):
-            continue
         with _only_raise_value_error(p.name):
             p.pre_download(url=url, filename=filename, digest=digest)
 
@@ -82,7 +80,5 @@ def plugin_pre_extract_hook(dist: Path) -> None:
     """
 
     for p in _loaded_plugins:
-        if not isinstance(p, DistInspectorPlugin):
-            continue
         with _only_raise_value_error(p.name):
             p.pre_extract(dist)
