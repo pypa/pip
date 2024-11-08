@@ -82,3 +82,21 @@ class TestSafeFileCache:
         key = "test key"
         fake_cache = Mock(FileCache, directory=cache.directory, encode=FileCache.encode)
         assert cache._get_cache_path(key) == FileCache._fn(fake_cache, key)
+
+    @pytest.mark.skipif("sys.platform == 'win32'")
+    @pytest.mark.parametrize(
+        "perms, expected_perms",
+        [
+            (0o300, 0o700),
+            (0o700, 0o700),
+            (0o777, 0o777)
+        ]
+    )
+    def test_cache_inherits_perms(
+        self, cache_tmpdir: Path, perms: int, expected_perms: int
+    ) -> None:
+        key="foo"
+        with chmod(cache_tmpdir, perms):
+            cache = SafeFileCache(os.fspath(cache_tmpdir))
+            cache.set(key, b"bar")
+        assert (os.stat(cache._get_cache_path(key)).st_mode & 0o777) == expected_perms
