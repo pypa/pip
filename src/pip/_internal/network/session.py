@@ -176,7 +176,12 @@ def user_agent() -> str:
 
     setuptools_dist = get_default_environment().get_distribution("setuptools")
     if setuptools_dist is not None:
-        data["setuptools_version"] = str(setuptools_dist.version)
+        try:
+            setuptools_version = setuptools_dist.version
+        except TypeError:
+            logging.debug("Caught TypeError accessing setuptools_dist.version")
+        else:
+            data["setuptools_version"] = str(setuptools_version)
 
     if shutil.which("rustc") is not None:
         # If for any reason `rustc --version` fails, silently ignore it
