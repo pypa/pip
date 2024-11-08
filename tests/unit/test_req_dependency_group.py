@@ -1,4 +1,5 @@
 import errno
+import textwrap
 from pathlib import Path
 from typing import Any
 
@@ -13,10 +14,12 @@ def test_parse_simple_dependency_groups(
 ) -> None:
     pyproject = tmp_path.joinpath("pyproject.toml")
     pyproject.write_text(
-        """\
-[dependency-groups]
-foo = ["bar"]
-"""
+        textwrap.dedent(
+            """\
+            [dependency-groups]
+            foo = ["bar"]
+            """
+        )
     )
     monkeypatch.chdir(tmp_path)
 
@@ -31,11 +34,13 @@ def test_parse_cyclic_dependency_groups(
 ) -> None:
     pyproject = tmp_path.joinpath("pyproject.toml")
     pyproject.write_text(
-        """\
-[dependency-groups]
-foo = [{include-group="bar"}]
-bar = [{include-group="foo"}]
-"""
+        textwrap.dedent(
+            """\
+            [dependency-groups]
+            foo = [{include-group="bar"}]
+            bar = [{include-group="foo"}]
+            """
+        )
     )
     monkeypatch.chdir(tmp_path)
 
@@ -54,10 +59,7 @@ def test_parse_with_no_dependency_groups_defined(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     pyproject = tmp_path.joinpath("pyproject.toml")
-    pyproject.write_text(
-        """\
-"""
-    )
+    pyproject.write_text("")
     monkeypatch.chdir(tmp_path)
 
     with pytest.raises(
@@ -80,10 +82,12 @@ def test_parse_with_malformed_pyproject_file(
 ) -> None:
     pyproject = tmp_path.joinpath("pyproject.toml")
     pyproject.write_text(
-        """\
-[dependency-groups  # no closing bracket
-foo = ["bar"]
-"""
+        textwrap.dedent(
+            """\
+            [dependency-groups  # no closing bracket
+            foo = ["bar"]
+            """
+        )
     )
     monkeypatch.chdir(tmp_path)
 
@@ -96,10 +100,12 @@ def test_parse_gets_unexpected_oserror(
 ) -> None:
     pyproject = tmp_path.joinpath("pyproject.toml")
     pyproject.write_text(
-        """\
-[dependency-groups]
-foo = ["bar"]
-"""
+        textwrap.dedent(
+            """\
+            [dependency-groups]
+            foo = ["bar"]
+            """
+        )
     )
     monkeypatch.chdir(tmp_path)
 
