@@ -77,7 +77,7 @@ class SafeFileCache(SeparateBodyBaseCache):
             with adjacent_tmp_file(path) as f:
                 f.write(data)
 
-            # `& 0o666` selects the read/write permissions of the directory.
+            # `& 0o666` selects the read/write permissions of the cache directory.
             # `| 0o600` sets owner read/write permissions.
             os.chmod(f.name, os.stat(self.directory).st_mode & 0o666 | 0o600)
             replace(f.name, path)
