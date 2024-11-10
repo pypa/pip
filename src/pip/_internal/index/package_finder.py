@@ -592,6 +592,7 @@ class PackageFinder:
         format_control: Optional[FormatControl] = None,
         candidate_prefs: Optional[CandidatePreferences] = None,
         ignore_requires_python: Optional[bool] = None,
+        proxy: Optional[str] = None,
     ) -> None:
         """
         This constructor is primarily meant to be used by the create() class
@@ -619,6 +620,9 @@ class PackageFinder:
         # These are boring links that have already been logged somehow.
         self._logged_links: Set[Tuple[Link, LinkType, str]] = set()
 
+        # Send in proxy for build environment
+        self.proxy = proxy
+
     # Don't include an allow_yanked default value to make sure each call
     # site considers whether yanked releases are allowed. This also causes
     # that decision to be made explicit in the calling code, which helps
@@ -629,6 +633,7 @@ class PackageFinder:
         link_collector: LinkCollector,
         selection_prefs: SelectionPreferences,
         target_python: Optional[TargetPython] = None,
+        proxy: Optional[str] = None,
     ) -> "PackageFinder":
         """Create a PackageFinder.
 
@@ -653,6 +658,7 @@ class PackageFinder:
             allow_yanked=selection_prefs.allow_yanked,
             format_control=selection_prefs.format_control,
             ignore_requires_python=selection_prefs.ignore_requires_python,
+            proxy=proxy,
         )
 
     @property

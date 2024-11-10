@@ -1,0 +1,1 @@
+Pass in command-line ``--proxy`` option to isolated build environment.
