@@ -1,4 +1,3 @@
-import collections
 import math
 from functools import lru_cache
 from typing import (
@@ -100,7 +99,6 @@ class PipProvider(_ProviderBase):
         self._ignore_dependencies = ignore_dependencies
         self._upgrade_strategy = upgrade_strategy
         self._user_requested = user_requested
-        self._known_depths: Dict[str, float] = collections.defaultdict(lambda: math.inf)
 
     def identify(self, requirement_or_candidate: Union[Requirement, Candidate]) -> str:
         return requirement_or_candidate.name
@@ -157,23 +155,6 @@ class PipProvider(_ProviderBase):
         direct = candidate is not None
         pinned = any(op[:2] == "==" for op in operators)
         unfree = bool(operators)
-
-        try:
-            requested_order: Union[int, float] = self._user_requested[identifier]
-        except KeyError:
-            requested_order = math.inf
-            if has_information:
-                parent_depths = (
-                    self._known_depths[parent.name] if parent is not None else 0.0
-                    for _, parent in information[identifier]
-                )
-                inferred_depth = min(d for d in parent_depths) + 1.0
-            else:
-                inferred_depth = math.inf
-        else:
-            inferred_depth = 1.0
-        self._known_depths[identifier] = inferred_depth
-
         requested_order = self._user_requested.get(identifier, math.inf)
 
         # Requires-Python has only one candidate and the check is basically
@@ -190,7 +171,6 @@ class PipProvider(_ProviderBase):
             not direct,
             not pinned,
             not backtrack_cause,
-            inferred_depth,
             requested_order,
             not unfree,
             identifier,
