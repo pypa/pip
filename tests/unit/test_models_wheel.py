@@ -4,7 +4,7 @@ from pip._vendor.packaging.tags import Tag
 
 from pip._internal.exceptions import InvalidWheelFilename
 from pip._internal.models.wheel import Wheel
-from pip._internal.utils import compatibility_tags, deprecation
+from pip._internal.utils import compatibility_tags
 
 
 class TestWheelFile:
@@ -12,17 +12,24 @@ class TestWheelFile:
         w = Wheel("simple-1.1.1-py2-none-any.whl")
         assert w.name == "simple"
         assert w.version == "1.1.1"
-        assert w.pyversions == ["py2"]
-        assert w.abis == ["none"]
-        assert w.plats == ["any"]
+        assert w.build_tag == ()
+        assert w.file_tags == frozenset(
+            [Tag(interpreter="py2", abi="none", platform="any")]
+        )
 
     def test_wheel_pattern_multi_values(self) -> None:
         w = Wheel("simple-1.1-py2.py3-abi1.abi2-any.whl")
         assert w.name == "simple"
         assert w.version == "1.1"
-        assert w.pyversions == ["py2", "py3"]
-        assert w.abis == ["abi1", "abi2"]
-        assert w.plats == ["any"]
+        assert w.build_tag == ()
+        assert w.file_tags == frozenset(
+            [
+                Tag(interpreter="py2", abi="abi1", platform="any"),
+                Tag(interpreter="py2", abi="abi2", platform="any"),
+                Tag(interpreter="py3", abi="abi1", platform="any"),
+                Tag(interpreter="py3", abi="abi2", platform="any"),
+            ]
+        )
 
     def test_wheel_with_build_tag(self) -> None:
         # pip doesn't do anything with build tags, but theoretically, we might
@@ -30,17 +37,18 @@ class TestWheelFile:
         w = Wheel("simple-1.1-4-py2-none-any.whl")
         assert w.name == "simple"
         assert w.version == "1.1"
-        assert w.pyversions == ["py2"]
-        assert w.abis == ["none"]
-        assert w.plats == ["any"]
+        assert w.build_tag == (4, "")
+        assert w.file_tags == frozenset(
+            [Tag(interpreter="py2", abi="none", platform="any")]
+        )
 
     def test_single_digit_version(self) -> None:
         w = Wheel("simple-1-py2-none-any.whl")
         assert w.version == "1"
 
     def test_non_pep440_version(self) -> None:
-        w = Wheel("simple-_invalid_-py2-none-any.whl")
-        assert w.version == "-invalid-"
+        with pytest.raises(InvalidWheelFilename):
+            Wheel("simple-_invalid_-py2-none-any.whl")
 
     def test_missing_version_raises(self) -> None:
         with pytest.raises(InvalidWheelFilename):
@@ -195,16 +203,14 @@ class TestWheelFile:
 
     def test_version_underscore_conversion(self) -> None:
         """
-        Test that we convert '_' to '-' for versions parsed out of wheel
-        filenames
+        '_' is not PEP 440 compliant in the version part of a wheel filename
         """
-        with pytest.warns(deprecation.PipDeprecationWarning):
-            w = Wheel("simple-0.1_1-py2-none-any.whl")
-        assert w.version == "0.1-1"
+        with pytest.raises(InvalidWheelFilename):
+            Wheel("simple-0.1_1-py2-none-any.whl")
 
     def test_invalid_wheel_warning(self) -> None:
         """
         Test that wheel with invalid name produces warning
         """
-        with pytest.warns(deprecation.PipDeprecationWarning):
+        with pytest.raises(InvalidWheelFilename):
             Wheel("six-1.16.0_build1-py3-none-any.whl")

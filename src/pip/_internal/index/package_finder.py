@@ -514,11 +514,7 @@ class CandidateEvaluator:
                 )
             if self._prefer_binary:
                 binary_preference = 1
-            if wheel.build_tag is not None:
-                match = re.match(r"^(\d+)(.*)$", wheel.build_tag)
-                assert match is not None, "guaranteed by filename validation"
-                build_tag_groups = match.groups()
-                build_tag = (int(build_tag_groups[0]), build_tag_groups[1])
+            build_tag = wheel.build_tag
         else:  # sdist
             pri = -(support_num)
         has_allowed_hash = int(link.is_hash_allowed(self._hashes))
