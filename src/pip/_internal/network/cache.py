@@ -77,9 +77,21 @@ class SafeFileCache(SeparateBodyBaseCache):
             with adjacent_tmp_file(path) as f:
                 f.write(data)
 
-            # `& 0o666` selects the read/write permissions of the cache directory.
-            # `| 0o600` sets owner read/write permissions.
-            os.chmod(f.name, os.stat(self.directory).st_mode & 0o666 | 0o600)
+                # Change permissions only if there is no risk of following a symlink
+                if (
+                    os.chmod in os.supports_fd
+                    or os.chmod in os.supports_follow_symlinks
+                ):
+                    os.chmod(
+                        path=f.fileno() if os.chmod in os.supports_fd else f.name,
+                        mode=(
+                            os.stat(self.directory).st_mode
+                            & 0o666  # select read/write permissions of cache directory
+                            | 0o600  # set owner read/write permissions
+                        ),
+                        follow_symlinks=os.chmod not in os.supports_follow_symlinks,
+                    )
+
             replace(f.name, path)
 
     def set(
