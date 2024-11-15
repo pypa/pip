@@ -101,7 +101,9 @@ class TestSafeFileCache:
         assert (os.stat(cache._get_cache_path(key)).st_mode & 0o777) == expected_perms
 
     @pytest.mark.skipif("sys.platform == 'win32'")
-    def test_cache_not_inherit_perms(self, cache_tmpdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_cache_not_inherit_perms(
+        self, cache_tmpdir: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setattr(os, "supports_fd", os.supports_fd - {os.chmod})
         monkeypatch.setattr(
             os, "supports_follow_symlinks", os.supports_follow_symlinks - {os.chmod}
