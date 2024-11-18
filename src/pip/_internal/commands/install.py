@@ -10,6 +10,13 @@ from typing import List, Optional
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.rich import print_json
 
+# Eagerly import self_outdated_check to avoid crashes. Otherwise,
+# this module would be imported *after* pip was replaced, resulting
+# in crashes if the new self_outdated_check module was incompatible
+# with the rest of pip that's already imported, or allowing a
+# wheel to execute arbitrary code on install by replacing
+# self_outdated_check.
+import pip._internal.self_outdated_check  # noqa: F401
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
@@ -46,14 +53,6 @@ from pip._internal.utils.virtualenv import (
     virtualenv_no_global,
 )
 from pip._internal.wheel_builder import build, should_build_for_install_command
-
-# Eagerly import this module to avoid crashes. Otherwise, this
-# module would be imported *after* pip was replaced, resulting in
-# crashes if the new self_outdated_check module was incompatible
-# with the rest of pip that's already imported, or allowing a
-# wheel to execute arbitrary code on install by replacing
-# self_outdated_check.
-import pip._internal.self_outdated_check  # noqa: F401
 
 logger = getLogger(__name__)
 
