@@ -3,11 +3,11 @@ on:
     tags:
       - "*"
 
-name: release
+name: Release
 
 jobs:
   pypi:
-    name: upload release to PyPI
+    name: Upload release to PyPI
     runs-on: ubuntu-latest
     environment: release
     permissions:
@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-      - name: build
+      - name: Build sdist and wheel
         run: pipx run build
-      - name: publish
+      - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
