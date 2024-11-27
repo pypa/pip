@@ -410,6 +410,22 @@ def test_issue_13086_op_case(
     assert not remove_matches_wheel("foo-1.0", result)
 
 
+def test_issue_13086_glob_case(
+    script: PipTestEnvironment,
+    wheel_cache_dir: str,
+    remove_matches_wheel: RemoveMatches,
+) -> None:
+    _populate_wheel_cache(
+        wheel_cache_dir, "foo0-1.0", "foo1-1.0", "foo2-1.0", "foo1bob-1.0"
+    )
+    result = script.pip("cache", "remove", "foo[0-2]", "--verbose")
+
+    assert remove_matches_wheel("foo0-1.0", result)
+    assert remove_matches_wheel("foo1-1.0", result)
+    assert remove_matches_wheel("foo2-1.0", result)
+    assert not remove_matches_wheel("foo1bob", result)
+
+
 @pytest.mark.usefixtures("populate_http_cache", "populate_wheel_cache")
 def test_cache_purge(
     script: PipTestEnvironment,
