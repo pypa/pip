@@ -1,4 +1,6 @@
+import fnmatch
 import os
+import re
 import textwrap
 from optparse import Values
 from typing import Any, List
@@ -204,7 +206,7 @@ class CacheCommand(Command):
     def _find_wheels(self, options: Values, pattern: str) -> List[str]:
         wheel_dir = self._cache_dir(options, "wheels")
 
-        # The wheel filename format, as specified in PEP 427, is:
+        # The wheel filename format, as originally specified in PEP 427, is:
         #     {distribution}-{version}(-{build})?-{python}-{abi}-{platform}.whl
         #
         # Additionally, non-alphanumeric values in the distribution are
@@ -212,14 +214,47 @@ class CacheCommand(Command):
         # before `-{version}`.
         #
         # Given that information:
-        # - If the pattern we're given contains a hyphen (-), the user is
-        #   providing at least the version. Thus, we can just append `*.whl`
-        #   to match the rest of it.
-        # - If the pattern we're given doesn't contain a hyphen (-), the
-        #   user is only providing the name. Thus, we append `-*.whl` to
-        #   match the hyphen before the version, followed by anything else.
+        # - If the pattern we're given is not a glob:
+        #   + We attempt project name normalization such that pyyaml matches PyYAML,
+        #     etc. as outlined here:
+        #     https://packaging.python.org/specifications/name-normalization.
+        #     The one difference is we normalize non-alphanumeric to `_` instead of `-`
+        #     since that is how the wheel filename components are normalized
+        #     (facepalm).
+        #   + If the pattern we're given contains a hyphen (-), the user is providing
+        #     at least the version. Thus, we can just append `*.whl` to match the rest
+        #     of it if it doesn't already glob to the end of the wheel file name.
+        #   + If the pattern we're given is not a glob and doesn't contain a
+        #     hyphen (-), the user is only providing the name. Thus, we append `-*.whl`
+        #     to match the hyphen before the version, followed by anything else.
+        # - If the pattern is a glob, we ensure `*.whl` is appended if needed but
+        #   cowardly do not attempt glob parsing / project name normalization. The user
+        #   is on their own at that point.
         #
         # PEP 427: https://www.python.org/dev/peps/pep-0427/
-        pattern = pattern + ("*.whl" if "-" in pattern else "-*.whl")
+        # And: https://packaging.python.org/specifications/binary-distribution-format/
+        uses_glob_patterns = any(
+            glob_pattern_char in pattern for glob_pattern_char in ("[", "*", "?")
+        )
+        if not uses_glob_patterns:
+            project_name, sep, rest = pattern.partition("-")
+            # N.B.: This only normalizes non-alphanumeric characters in the name, which
+            # is 1/2 the job. Stripping case sensitivity is the other 1/2 and is
+            # handled below in the conversion from a glob to a regex executed with the
+            # IGNORECASE flag active.
+            partially_normalized_project_name = re.sub(r"[^\w.]+", "_", project_name)
+            if not sep:
+                sep = "-"
+            pattern = f"{partially_normalized_project_name}{sep}{rest}"
 
-        return filesystem.find_files(wheel_dir, pattern)
+        if not pattern.endswith((".whl", "*")):
+            pattern = f"{pattern}*.whl"
+
+        regex = fnmatch.translate(pattern)
+
+        return [
+            os.path.join(root, filename)
+            for root, _, files in os.walk(wheel_dir)
+            for filename in files
+            if re.match(regex, filename, flags=re.IGNORECASE)
+        ]
