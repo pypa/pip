@@ -91,7 +91,7 @@ def test_new_resolver_install_user_conflict_in_user_site(
     result.did_not_create(base_2_dist_info)
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_dist_in_site_packages(virtualenv: VirtualEnvironment) -> None:
     # Since the tests are run from a virtualenv, and to avoid the "Will not
     # install to the usersite because it will lack sys.path precedence..."

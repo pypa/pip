@@ -7,7 +7,7 @@ from tests.lib import PipTestEnvironment, TestPipResult
 PipRunner = Callable[..., TestPipResult]
 
 
-@pytest.fixture()
+@pytest.fixture
 def pip_no_truststore(script: PipTestEnvironment) -> PipRunner:
     def pip(*args: str, **kwargs: Any) -> TestPipResult:
         return script.pip(*args, "--use-deprecated=legacy-certs", **kwargs)

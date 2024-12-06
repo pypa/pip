@@ -10,6 +10,7 @@ from typing import Iterator, Optional, Set, Tuple, cast
 from unittest import mock
 
 import pytest
+
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 
@@ -46,6 +47,7 @@ from pip._internal.req.req_file import (
     handle_requirement_line,
 )
 from pip._internal.resolution.legacy.resolver import Resolver
+
 from tests.lib import TestData, make_test_finder, requirements_file, wheel
 
 
@@ -464,7 +466,9 @@ class TestRequirementSet:
             assert len(reqset.all_requirements) == 1
             req = reqset.all_requirements[0]
             assert req.is_wheel_from_cache
-            assert "Ignoring invalid cache entry origin file" in caplog.messages[0]
+            assert any(
+                "Ignoring invalid cache entry origin file" in x for x in caplog.messages
+            )
 
     def test_download_info_local_wheel(self, data: TestData) -> None:
         """Test that download_info is set for requirements from a local wheel."""

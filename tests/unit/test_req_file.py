@@ -1,6 +1,7 @@
 import collections
 import logging
 import os
+import re
 import textwrap
 from optparse import Values
 from pathlib import Path
@@ -27,6 +28,7 @@ from pip._internal.req.req_file import (
     preprocess,
 )
 from pip._internal.req.req_install import InstallRequirement
+
 from tests.lib import TestData, make_test_finder, requirements_file
 
 
@@ -345,6 +347,76 @@ class TestProcessLine:
         assert reqs[0].name == req_name
         assert reqs[0].constraint
 
+    def test_repeated_requirement_files(
+        self, tmp_path: Path, session: PipSession
+    ) -> None:
+        # Test that the same requirements file can be included multiple times
+        # as long as there is no recursion. https://github.com/pypa/pip/issues/13046
+        tmp_path.joinpath("a.txt").write_text("requests")
+        tmp_path.joinpath("b.txt").write_text("-r a.txt")
+        tmp_path.joinpath("c.txt").write_text("-r a.txt\n-r b.txt")
+        parsed = parse_requirements(
+            filename=os.fspath(tmp_path.joinpath("c.txt")), session=session
+        )
+        assert [r.requirement for r in parsed] == ["requests", "requests"]
+
+    def test_recursive_requirements_file(
+        self, tmpdir: Path, session: PipSession
+    ) -> None:
+        req_files: list[Path] = []
+        req_file_count = 4
+        for i in range(req_file_count):
+            req_file = tmpdir / f"{i}.txt"
+            req_file.write_text(f"-r {(i+1) % req_file_count}.txt")
+            req_files.append(req_file)
+
+        # When the passed requirements file recursively references itself
+        with pytest.raises(
+            RequirementsFileParseError,
+            match=(
+                f"{re.escape(str(req_files[0]))} recursively references itself"
+                f" in {re.escape(str(req_files[req_file_count - 1]))}"
+            ),
+        ):
+            list(parse_requirements(filename=str(req_files[0]), session=session))
+
+        # When one of other the requirements file recursively references itself
+        req_files[req_file_count - 1].write_text(
+            # Just name since they are in the same folder
+            f"-r {req_files[req_file_count - 2].name}"
+        )
+        with pytest.raises(
+            RequirementsFileParseError,
+            match=(
+                f"{re.escape(str(req_files[req_file_count - 2]))} recursively"
+                " references itself in"
+                f" {re.escape(str(req_files[req_file_count - 1]))} and again in"
+                f" {re.escape(str(req_files[req_file_count - 3]))}"
+            ),
+        ):
+            list(parse_requirements(filename=str(req_files[0]), session=session))
+
+    def test_recursive_relative_requirements_file(
+        self, tmpdir: Path, session: PipSession
+    ) -> None:
+        root_req_file = tmpdir / "root.txt"
+        (tmpdir / "nest" / "nest").mkdir(parents=True)
+        level_1_req_file = tmpdir / "nest" / "level_1.txt"
+        level_2_req_file = tmpdir / "nest" / "nest" / "level_2.txt"
+
+        root_req_file.write_text("-r nest/level_1.txt")
+        level_1_req_file.write_text("-r nest/level_2.txt")
+        level_2_req_file.write_text("-r ../../root.txt")
+
+        with pytest.raises(
+            RequirementsFileParseError,
+            match=(
+                f"{re.escape(str(root_req_file))} recursively references itself in"
+                f" {re.escape(str(level_2_req_file))}"
+            ),
+        ):
+            list(parse_requirements(filename=str(root_req_file), session=session))
+
     def test_options_on_a_requirement_line(self, line_processor: LineProcessor) -> None:
         line = (
             'SomeProject --global-option="yo3" --global-option "yo4" '
@@ -519,7 +591,7 @@ class TestProcessLine:
                 return None, "-r reqs.txt"
             elif filename == "http://me.com/me/reqs.txt":
                 return None, req_name
-            assert False, f"Unexpected file requested {filename}"
+            pytest.fail(f"Unexpected file requested {filename}")
 
         monkeypatch.setattr(
             pip._internal.req.req_file, "get_file_content", get_file_content
@@ -588,7 +660,7 @@ class TestProcessLine:
                 return None, f"-r {nested_req_file}"
             elif filename == nested_req_file:
                 return None, req_name
-            assert False, f"Unexpected file requested {filename}"
+            pytest.fail(f"Unexpected file requested {filename}")
 
         monkeypatch.setattr(
             pip._internal.req.req_file, "get_file_content", get_file_content

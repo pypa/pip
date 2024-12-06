@@ -18,6 +18,7 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
@@ -181,13 +182,23 @@ select = [
     "PLR0",
     "W",
     "RUF100",
-    "UP032",
+    "UP",
 ]
 
 [tool.ruff.lint.isort]
-# Explicitly make tests "first party" as it's not in the "src" directory
-known-first-party = ["tests"]
-known-third-party = ["pip._vendor"]
+section-order = [
+  "future",
+  "standard-library",
+  "third-party",
+  "vendored",
+  "first-party",
+  "tests",
+  "local-folder",
+]
+
+[tool.ruff.lint.isort.sections]
+"vendored" = ["pip._vendor"]
+"tests" = ["tests"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 33  # default is 10
