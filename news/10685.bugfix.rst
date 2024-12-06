@@ -1,1 +1,0 @@
-Make the ``--proxy`` parameter take precedence over environment variables.

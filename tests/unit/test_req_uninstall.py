@@ -16,6 +16,7 @@ from pip._internal.req.req_uninstall import (
     compress_for_rename,
     uninstallation_paths,
 )
+
 from tests.lib import create_file
 
 
@@ -28,10 +29,7 @@ def mock_permitted(ups: UninstallPathSet, path: str) -> bool:
 def test_uninstallation_paths() -> None:
     class dist:
         def iter_declared_entries(self) -> Optional[Iterator[str]]:
-            yield "file.py"
-            yield "file.pyc"
-            yield "file.so"
-            yield "nopyc.py"
+            return iter(["file.py", "file.pyc", "file.so", "nopyc.py"])
 
         location = ""
 
@@ -383,8 +381,10 @@ class TestStashedUninstallPathSet:
         # stash removed, links removed
         for stashed_path in stashed_paths:
             assert not os.path.lexists(stashed_path)
-        assert not os.path.lexists(dirlink) and not os.path.isdir(dirlink)
-        assert not os.path.lexists(filelink) and not os.path.isfile(filelink)
+        assert not os.path.lexists(dirlink)
+        assert not os.path.isdir(dirlink)
+        assert not os.path.lexists(filelink)
+        assert not os.path.isfile(filelink)
 
         # link targets untouched
         assert os.path.isdir(adir)
@@ -415,8 +415,10 @@ class TestStashedUninstallPathSet:
         # stash removed, links restored
         for stashed_path in stashed_paths:
             assert not os.path.lexists(stashed_path)
-        assert os.path.lexists(dirlink) and os.path.isdir(dirlink)
-        assert os.path.lexists(filelink) and os.path.isfile(filelink)
+        assert os.path.lexists(dirlink)
+        assert os.path.isdir(dirlink)
+        assert os.path.lexists(filelink)
+        assert os.path.isfile(filelink)
 
         # link targets untouched
         assert os.path.isdir(adir)

@@ -6,6 +6,11 @@ import pytest
 
 from pip._internal.utils.urls import path_to_url, url_to_path
 
+from tests.lib import (
+    skip_needs_new_urlun_behavior_win,
+    skip_needs_old_urlun_behavior_win,
+)
+
 
 @pytest.mark.skipif("sys.platform == 'win32'")
 def test_path_to_url_unix() -> None:
@@ -15,12 +20,32 @@ def test_path_to_url_unix() -> None:
 
 
 @pytest.mark.skipif("sys.platform != 'win32'")
-def test_path_to_url_win() -> None:
-    assert path_to_url("c:/tmp/file") == "file:///C:/tmp/file"
-    assert path_to_url("c:\\tmp\\file") == "file:///C:/tmp/file"
-    assert path_to_url(r"\\unc\as\path") == "file://unc/as/path"
-    path = os.path.join(os.getcwd(), "file")
-    assert path_to_url("file") == "file:" + urllib.request.pathname2url(path)
+@pytest.mark.parametrize(
+    "path, url",
+    [
+        pytest.param("c:/tmp/file", "file:///C:/tmp/file", id="posix-path"),
+        pytest.param("c:\\tmp\\file", "file:///C:/tmp/file", id="nt-path"),
+        pytest.param(
+            r"\\unc\as\path",
+            "file://unc/as/path",
+            marks=skip_needs_old_urlun_behavior_win,
+            id="unc-path",
+        ),
+        pytest.param(
+            r"\\unc\as\path",
+            "file:////unc/as/path",
+            marks=skip_needs_new_urlun_behavior_win,
+        ),
+    ],
+)
+def test_path_to_url_win(path: str, url: str) -> None:
+    assert path_to_url(path) == url
+
+
+@pytest.mark.skipif("sys.platform != 'win32'")
+def test_relative_path_to_url_win() -> None:
+    resolved_path = os.path.join(os.getcwd(), "file")
+    assert path_to_url("file") == "file:" + urllib.request.pathname2url(resolved_path)
 
 
 @pytest.mark.parametrize(

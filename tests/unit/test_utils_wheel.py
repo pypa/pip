@@ -10,6 +10,7 @@ import pytest
 
 from pip._internal.exceptions import UnsupportedWheel
 from pip._internal.utils import wheel
+
 from tests.lib import TestData
 
 _ZipDir = Callable[[Path], ZipFile]

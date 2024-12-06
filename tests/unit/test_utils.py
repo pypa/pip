@@ -15,6 +15,7 @@ from typing import Any, Callable, Iterator, List, NoReturn, Optional, Tuple, Typ
 from unittest.mock import Mock, patch
 
 import pytest
+
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError
@@ -248,10 +249,10 @@ def test_rmtree_errorhandler_reraises_error(tmpdir: Path) -> None:
     by the given unreadable directory.
     """
     # Create directory without read permission
-    subdir_path = tmpdir / "subdir"
-    subdir_path.mkdir()
-    path = str(subdir_path)
-    os.chmod(path, stat.S_IWRITE)
+    path = tmpdir / "subdir"
+    path.mkdir()
+    old_mode = path.stat().st_mode
+    path.chmod(stat.S_IWRITE)
 
     mock_func = Mock()
 
@@ -267,6 +268,9 @@ def test_rmtree_errorhandler_reraises_error(tmpdir: Path) -> None:
             rmtree_errorhandler(
                 mock_func, path, sys.exc_info()  # type: ignore[arg-type]
             )
+    finally:
+        # Restore permissions to let pytest to clean up temp dirs
+        path.chmod(old_mode)
 
     mock_func.assert_not_called()
 
@@ -556,7 +560,7 @@ def test_normalize_version_info(
 
 class TestGetProg:
     @pytest.mark.parametrize(
-        ("argv", "executable", "expected"),
+        "argv, executable, expected",
         [
             ("/usr/bin/pip", "", "pip"),
             ("-c", "/usr/bin/python", "/usr/bin/python -m pip"),
@@ -857,7 +861,7 @@ def test_hide_url() -> None:
     assert hidden_url.secret == "https://user:password@example.com"
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_deprecation_check_version() -> Iterator[None]:
     # We do this, so that the deprecation tests are easier to write.
     import pip._internal.utils.deprecation as d
@@ -1058,7 +1062,7 @@ def test_format_size(size: int, expected: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("rows", "table", "sizes"),
+    "rows, table, sizes",
     [
         ([], [], []),
         (

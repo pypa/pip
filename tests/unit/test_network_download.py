@@ -10,6 +10,7 @@ from pip._internal.network.download import (
     parse_content_disposition,
     sanitize_content_filename,
 )
+
 from tests.lib.requests_mocks import MockResponse
 
 

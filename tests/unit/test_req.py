@@ -10,6 +10,7 @@ from typing import Iterator, Optional, Set, Tuple, cast
 from unittest import mock
 
 import pytest
+
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 
@@ -46,6 +47,7 @@ from pip._internal.req.req_file import (
     handle_requirement_line,
 )
 from pip._internal.resolution.legacy.resolver import Resolver
+
 from tests.lib import TestData, make_test_finder, requirements_file, wheel
 
 
@@ -464,7 +466,9 @@ class TestRequirementSet:
             assert len(reqset.all_requirements) == 1
             req = reqset.all_requirements[0]
             assert req.is_wheel_from_cache
-            assert "Ignoring invalid cache entry origin file" in caplog.messages[0]
+            assert any(
+                "Ignoring invalid cache entry origin file" in x for x in caplog.messages
+            )
 
     def test_download_info_local_wheel(self, data: TestData) -> None:
         """Test that download_info is set for requirements from a local wheel."""
@@ -734,7 +738,7 @@ class TestInstallRequirement:
         with pytest.raises(InstallationError) as e:
             install_req_from_line(test_name)
         err_msg = e.value.args[0]
-        assert f"Invalid requirement: '{test_name}'" == err_msg
+        assert err_msg.startswith(f"Invalid requirement: '{test_name}'")
 
     def test_requirement_file(self) -> None:
         req_file_path = os.path.join(self.tempdir, "test.txt")
@@ -770,11 +774,16 @@ class TestInstallRequirement:
         without_extras = install_req_drop_extras(req)
         assert not without_extras.extras
         assert str(without_extras.req) == out
-        # should always be a copy
-        assert req is not without_extras
-        assert req.req is not without_extras.req
+
+        # if there are no extras they should be the same object,
+        # otherwise they may be a copy due to cache
+        if req.extras:
+            assert req is not without_extras
+            assert req.req is not without_extras.req
+
         # comes_from should point to original
         assert without_extras.comes_from is req
+
         # all else should be the same
         assert without_extras.link == req.link
         assert without_extras.markers == req.markers
@@ -790,9 +799,9 @@ class TestInstallRequirement:
     @pytest.mark.parametrize(
         "inp, extras, out",
         [
-            ("pkg", {}, "pkg"),
-            ("pkg==1.0", {}, "pkg==1.0"),
-            ("pkg[ext]", {}, "pkg[ext]"),
+            ("pkg", set(), "pkg"),
+            ("pkg==1.0", set(), "pkg==1.0"),
+            ("pkg[ext]", set(), "pkg[ext]"),
             ("pkg", {"ext"}, "pkg[ext]"),
             ("pkg==1.0", {"ext"}, "pkg[ext]==1.0"),
             ("pkg==1.0", {"ext1", "ext2"}, "pkg[ext1,ext2]==1.0"),
@@ -816,9 +825,14 @@ class TestInstallRequirement:
         assert str(extended.req) == out
         assert extended.req is not None
         assert set(extended.extras) == set(extended.req.extras)
-        # should always be a copy
-        assert req is not extended
-        assert req.req is not extended.req
+
+        # if extras is not a subset of req.extras then the extended
+        # requirement object should not be the same, otherwise they
+        # might be a copy due to cache
+        if not extras.issubset(req.extras):
+            assert req is not extended
+            assert req.req is not extended.req
+
         # all else should be the same
         assert extended.link == req.link
         assert extended.markers == req.markers

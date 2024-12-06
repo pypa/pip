@@ -9,6 +9,256 @@
 
 .. towncrier release notes start
 
+24.3.1 (2024-10-27)
+===================
+
+Bug Fixes
+---------
+
+- Allow multiple nested inclusions of the same requirements file again. (`#13046 <https://github.com/pypa/pip/issues/13046>`_)
+
+24.3 (2024-10-27)
+=================
+
+Deprecations and Removals
+-------------------------
+
+- Deprecate wheel filenames that are not compliant with :pep:`440`. (`#12918 <https://github.com/pypa/pip/issues/12918>`_)
+
+Features
+--------
+
+- Detect recursively referencing requirements files and help users identify
+  the source. (`#12653 <https://github.com/pypa/pip/issues/12653>`_)
+- Support for :pep:`730` iOS wheels. (`#12961 <https://github.com/pypa/pip/issues/12961>`_)
+
+Bug Fixes
+---------
+
+- Display a better error message when an already installed package has an invalid requirement. (`#12953 <https://github.com/pypa/pip/issues/12953>`_)
+- Ignore ``PIP_TARGET`` and ``pip.conf`` ``global.target`` when preparing a build environment. (`#8438 <https://github.com/pypa/pip/issues/8438>`_)
+- Restore support for macOS 10.12 and older (via truststore). (`#12901 <https://github.com/pypa/pip/issues/12901>`_)
+- Allow installing pip in editable mode in a virtual environment on Windows. (`#12666 <https://github.com/pypa/pip/issues/12666>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade certifi to 2024.8.30
+- Upgrade distlib to 0.3.9
+- Upgrade truststore to 0.10.0
+- Upgrade urllib3 to 1.26.20
+
+24.2 (2024-07-28)
+=================
+
+Deprecations and Removals
+-------------------------
+
+- Deprecate ``pip install --editable`` falling back to ``setup.py develop``
+  when using a setuptools version that does not support :pep:`660`
+  (setuptools v63 and older). (`#11457 <https://github.com/pypa/pip/issues/11457>`_)
+
+Features
+--------
+
+- Check unsupported packages for the current platform. (`#11054 <https://github.com/pypa/pip/issues/11054>`_)
+- Use system certificates *and* certifi certificates to verify HTTPS connections on Python 3.10+.
+  Python 3.9 and earlier only use certifi.
+
+  To revert to previous behaviour, pass the flag ``--use-deprecated=legacy-certs``. (`#11647 <https://github.com/pypa/pip/issues/11647>`_)
+- Improve discovery performance of installed packages when the ``importlib.metadata``
+  backend is used to load distribution metadata (used by default under Python 3.11+). (`#12656 <https://github.com/pypa/pip/issues/12656>`_)
+- Improve performance when the same requirement string appears many times during
+  resolution, by consistently caching the parsed requirement string. (`#12663 <https://github.com/pypa/pip/issues/12663>`_)
+- Minor performance improvement of finding applicable package candidates by not
+  repeatedly calculating their versions (`#12664 <https://github.com/pypa/pip/issues/12664>`_)
+- Disable pip's self version check when invoking a pip subprocess to install
+  PEP 517 build requirements. (`#12683 <https://github.com/pypa/pip/issues/12683>`_)
+- Improve dependency resolution performance by caching platform compatibility
+  tags during wheel cache lookup. (`#12712 <https://github.com/pypa/pip/issues/12712>`_)
+- ``wheel`` is no longer explicitly listed as a build dependency of ``pip``.
+  ``setuptools`` injects this dependency in the ``get_requires_for_build_wheel()``
+  hook and no longer needs it on newer versions. (`#12728 <https://github.com/pypa/pip/issues/12728>`_)
+- Ignore ``--require-virtualenv`` for ``pip check`` and ``pip freeze`` (`#12842 <https://github.com/pypa/pip/issues/12842>`_)
+- Improve package download and install performance.
+
+  Increase chunk sizes when downloading (256 kB, up from 10 kB) and reading files (1 MB, up from 8 kB).
+  This reduces the frequency of updates to pip's progress bar. (`#12810 <https://github.com/pypa/pip/issues/12810>`_)
+- Improve pip install performance.
+
+  Files are now extracted in 1MB blocks, or in one block matching the file size for
+  smaller files. A decompressor is no longer instantiated when extracting 0 bytes files,
+  it is not necessary because there is no data to decompress. (`#12803 <https://github.com/pypa/pip/issues/12803>`_)
+
+Bug Fixes
+---------
+
+- Set ``no_color`` to global ``rich.Console`` instance. (`#11045 <https://github.com/pypa/pip/issues/11045>`_)
+- Fix resolution to respect ``--python-version`` when checking ``Requires-Python``. (`#12216 <https://github.com/pypa/pip/issues/12216>`_)
+- Perform hash comparisons in a case-insensitive manner. (`#12680 <https://github.com/pypa/pip/issues/12680>`_)
+- Avoid ``dlopen`` failure for glibc detection in musl builds (`#12716 <https://github.com/pypa/pip/issues/12716>`_)
+- Avoid keyring logging crashes when pip is run in verbose mode. (`#12751 <https://github.com/pypa/pip/issues/12751>`_)
+- Fix finding hardlink targets in tar files with an ignored top-level directory. (`#12781 <https://github.com/pypa/pip/issues/12781>`_)
+- Improve pip install performance by only creating required parent
+  directories once, instead of before extracting every file in the wheel. (`#12782 <https://github.com/pypa/pip/issues/12782>`_)
+- Improve pip install performance by calculating installed packages printout
+  in linear time instead of quadratic time. (`#12791 <https://github.com/pypa/pip/issues/12791>`_)
+
+Vendored Libraries
+------------------
+
+- Remove vendored tenacity.
+- Update the preload list for the ``DEBUNDLED`` case, to replace ``pep517`` that has been renamed to ``pyproject_hooks``.
+- Use tomllib from the stdlib if available, rather than tomli
+- Upgrade certifi to 2024.7.4
+- Upgrade platformdirs to 4.2.2
+- Upgrade pygments to 2.18.0
+- Upgrade setuptools to 70.3.0
+- Upgrade typing_extensions to 4.12.2
+
+Improved Documentation
+----------------------
+
+- Correct ``—-ignore-conflicts`` (including an em dash) to ``--ignore-conflicts``. (`#12851 <https://github.com/pypa/pip/issues/12851>`_)
+
+24.1.2 (2024-07-07)
+===================
+
+Bug Fixes
+---------
+
+- Fix finding hardlink targets in tar files with an ignored top-level directory. (`#12781 <https://github.com/pypa/pip/issues/12781>`_)
+
+24.1.1 (2024-06-26)
+===================
+
+Bug Fixes
+---------
+
+- Actually use system trust stores when the truststore feature is enabled.
+
+Vendored Libraries
+------------------
+
+- Upgrade requests to 2.32.3
+
+
+24.1 (2024-06-20)
+=================
+
+Vendored Libraries
+------------------
+
+- Upgrade truststore to 0.9.1.
+
+
+24.1b2 (2024-06-12)
+===================
+
+Features
+--------
+
+- Report informative messages about invalid requirements. (`#12713 <https://github.com/pypa/pip/issues/12713>`_)
+
+Bug Fixes
+---------
+
+- Eagerly import the self version check logic to avoid crashes while upgrading or downgrading pip at the same time. (`#12675 <https://github.com/pypa/pip/issues/12675>`_)
+- Accommodate for mismatches between different sources of truth for extra names, for packages generated by ``setuptools``. (`#12688 <https://github.com/pypa/pip/issues/12688>`_)
+- Accommodate for development versions of CPython ending in ``+`` in the version string. (`#12691 <https://github.com/pypa/pip/issues/12691>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade packaging to 24.1
+- Upgrade requests to 2.32.0
+- Remove vendored colorama
+- Remove vendored six
+- Remove vendored webencodings
+- Remove vendored charset_normalizer
+
+  ``requests`` provides optional character detection support on some APIs when processing ambiguous bytes. This isn't relevant for pip to function and we're able to remove it due to recent upstream changes.
+
+24.1b1 (2024-05-06)
+===================
+
+Deprecations and Removals
+-------------------------
+
+- Drop support for EOL Python 3.7. (`#11934 <https://github.com/pypa/pip/issues/11934>`_)
+- Remove support for legacy versions and dependency specifiers.
+
+  Packages with non standard-compliant versions or dependency specifiers are now ignored by the resolver.
+  Already installed packages with non standard-compliant versions or dependency specifiers
+  must be uninstalled before upgrading them. (`#12063 <https://github.com/pypa/pip/issues/12063>`_)
+
+Features
+--------
+
+- Improve performance of resolution of large dependency trees, with more caching. (`#12453 <https://github.com/pypa/pip/issues/12453>`_)
+- Further improve resolution performance of large dependency trees, by caching hash calculations. (`#12657 <https://github.com/pypa/pip/issues/12657>`_)
+- Reduce startup time of commands (e.g. show, freeze) that do not access the network by 15-30%. (`#4768 <https://github.com/pypa/pip/issues/4768>`_)
+- Reword and improve presentation of uninstallation errors. (`#10421 <https://github.com/pypa/pip/issues/10421>`_)
+- Add a 'raw' progress_bar type for simple and parsable download progress reports (`#11508 <https://github.com/pypa/pip/issues/11508>`_)
+- ``pip list`` no longer performs the pip version check unless ``--outdated`` or ``--uptodate`` is given. (`#11677 <https://github.com/pypa/pip/issues/11677>`_)
+- Use the ``data_filter`` when extracting tarballs, if it's available. (`#12111 <https://github.com/pypa/pip/issues/12111>`_)
+- Display the Project-URL value under key "Home-page" in ``pip show`` when the Home-Page metadata field is not set.
+
+  The Project-URL key detection is case-insensitive, and ignores any dashes and underscores. (`#11221 <https://github.com/pypa/pip/issues/11221>`_)
+
+Bug Fixes
+---------
+
+- Ensure ``-vv`` gets passed to any ``pip install`` build environment subprocesses. (`#12577 <https://github.com/pypa/pip/issues/12577>`_)
+- Deduplicate entries in the ``Requires`` field of ``pip show``. (`#12165 <https://github.com/pypa/pip/issues/12165>`_)
+- Fix error on checkout for subversion and bazaar with verbose mode on. (`#11050 <https://github.com/pypa/pip/issues/11050>`_)
+- Fix exception with completions when COMP_CWORD is not set (`#12401 <https://github.com/pypa/pip/issues/12401>`_)
+- Fix intermittent "cannot locate t64.exe" errors when upgrading pip. (`#12666 <https://github.com/pypa/pip/issues/12666>`_)
+- Remove duplication in invalid wheel error message (`#12579 <https://github.com/pypa/pip/issues/12579>`_)
+- Remove the incorrect pip3.x console entrypoint from the pip wheel. This console
+  script continues to be generated by pip when it installs itself. (`#12536 <https://github.com/pypa/pip/issues/12536>`_)
+- Gracefully skip VCS detection in pip freeze when PATH points to a non-directory path. (`#12567 <https://github.com/pypa/pip/issues/12567>`_)
+- Make the ``--proxy`` parameter take precedence over environment variables. (`#10685 <https://github.com/pypa/pip/issues/10685>`_)
+
+Vendored Libraries
+------------------
+
+- Add charset-normalizer 3.3.2
+- Remove chardet
+- Remove pyparsing
+- Upgrade CacheControl to 0.14.0
+- Upgrade certifi to 2024.2.2
+- Upgrade distro to 1.9.0
+- Upgrade idna to 3.7
+- Upgrade msgpack to 1.0.8
+- Upgrade packaging to 24.0
+- Upgrade platformdirs to 4.2.1
+- Upgrade pygments to 2.17.2
+- Upgrade rich to 13.7.1
+- Upgrade setuptools to 69.5.1
+- Upgrade tenacity to 8.2.3
+- Upgrade typing_extensions to 4.11.0
+- Upgrade urllib3 to 1.26.18
+
+Improved Documentation
+----------------------
+
+- Document UX research done on pip. (`#10745 <https://github.com/pypa/pip/issues/10745>`_)
+- Fix the direct usage of zipapp showing up as ``python -m pip.pyz`` rather than ``./pip.pyz`` / ``.\pip.pyz`` (`#12043 <https://github.com/pypa/pip/issues/12043>`_)
+- Add a warning explaining that the snippet in "Fallback behavior" is not a valid
+  ``pyproject.toml`` snippet for projects, and link to setuptools documentation
+  instead. (`#12122 <https://github.com/pypa/pip/issues/12122>`_)
+- The Python Support Policy has been updated. (`#12529 <https://github.com/pypa/pip/issues/12529>`_)
+- Document the environment variables that correspond with CLI options. (`#12576 <https://github.com/pypa/pip/issues/12576>`_)
+- Update architecture documentation for command line interface. (`#6831 <https://github.com/pypa/pip/issues/6831>`_)
+
+Process
+-------
+
+- Remove ``setup.py`` since all the pip project metadata is now declared in
+  ``pyproject.toml``.
+- Move remaining pip development tools configurations to ``pyproject.toml``.
+
 24.0 (2024-02-03)
 =================
 

@@ -1,3 +1,0 @@
-Add a warning explaining that the snippet in "Fallback behavior" is not a valid
-``pyproject.toml`` snippet for projects, and link to setuptools documentation
-instead.

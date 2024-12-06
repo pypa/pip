@@ -18,6 +18,7 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
@@ -41,7 +42,7 @@ Changelog = "https://pip.pypa.io/en/stable/news/"
 
 [build-system]
 # The lower bound is for <https://github.com/pypa/setuptools/issues/3865>.
-requires = ["setuptools>=67.6.1", "wheel"]
+requires = ["setuptools>=67.6.1"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
@@ -137,7 +138,6 @@ drop = [
 ]
 
 [tool.vendoring.typing-stubs]
-six = ["six.__init__", "six.moves.__init__", "six.moves.configparser"]
 distro = []
 
 [tool.vendoring.license.directories]
@@ -145,7 +145,6 @@ setuptools = "pkg_resources"
 
 [tool.vendoring.license.fallback-urls]
 distlib = "https://bitbucket.org/pypa/distlib/raw/master/LICENSE.txt"
-webencodings = "https://github.com/SimonSapin/python-webencodings/raw/master/LICENSE"
 
 ######################################################################################
 # ruff
@@ -153,7 +152,6 @@ webencodings = "https://github.com/SimonSapin/python-webencodings/raw/master/LIC
 
 [tool.ruff]
 src = ["src"]
-target-version = "py38"
 line-length = 88
 extend-exclude = [
     "_vendor",
@@ -184,13 +182,23 @@ select = [
     "PLR0",
     "W",
     "RUF100",
-    "UP032",
+    "UP",
 ]
 
 [tool.ruff.lint.isort]
-# Explicitly make tests "first party" as it's not in the "src" directory
-known-first-party = ["tests"]
-known-third-party = ["pip._vendor"]
+section-order = [
+  "future",
+  "standard-library",
+  "third-party",
+  "vendored",
+  "first-party",
+  "tests",
+  "local-folder",
+]
+
+[tool.ruff.lint.isort.sections]
+"vendored" = ["pip._vendor"]
+"tests" = ["tests"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 33  # default is 10

@@ -17,8 +17,12 @@ from pip._internal.utils.temp_dir import TempDirectory
 
 @pytest.fixture
 def fixed_time() -> Iterator[None]:
-    with patch("time.time", lambda: 1547704837.040001 + time.timezone):
-        yield
+    # Patch time so logs contain a constant timestamp. time.time_ns is used by
+    # logging starting with Python 3.13.
+    year2019 = 1547704837.040001 + time.timezone
+    with patch("time.time", lambda: year2019):
+        with patch("time.time_ns", lambda: int(year2019 * 1e9)):
+            yield
 
 
 class FakeCommand(Command):
@@ -93,7 +97,7 @@ class TestCommand:
         assert "Traceback (most recent call last):" in stderr
 
 
-@patch("pip._internal.cli.req_command.Command.handle_pip_version_check")
+@patch("pip._internal.cli.index_command.Command.handle_pip_version_check")
 def test_handle_pip_version_check_called(mock_handle_version_check: Mock) -> None:
     """
     Check that Command.handle_pip_version_check() is called.

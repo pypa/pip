@@ -4,13 +4,14 @@ from typing import Callable, Optional
 import pytest
 
 from pip._internal.cli.status_codes import ERROR, SUCCESS
+
 from tests.lib import PipTestEnvironment
 from tests.lib.wheel import make_wheel
 
 MakeFakeWheel = Callable[[str], str]
 
 
-@pytest.fixture()
+@pytest.fixture
 def make_fake_wheel(script: PipTestEnvironment) -> MakeFakeWheel:
     def _make_fake_wheel(wheel_tag: str) -> str:
         wheel_house = script.scratch_path.joinpath("wheelhouse")

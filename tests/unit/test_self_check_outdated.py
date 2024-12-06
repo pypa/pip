@@ -10,13 +10,14 @@ from unittest.mock import ANY, Mock, patch
 
 import pytest
 from freezegun import freeze_time
+
 from pip._vendor.packaging.version import Version
 
 from pip._internal import self_outdated_check
 
 
 @pytest.mark.parametrize(
-    ["key", "expected"],
+    "key, expected",
     [
         (
             "/hello/world/venv",
@@ -41,6 +42,7 @@ def test_pip_self_version_check_calls_underlying_implementation(
     # GIVEN
     mock_session = Mock()
     fake_options = Values({"cache_dir": str(tmpdir)})
+    mocked_function.return_value = None
 
     # WHEN
     self_outdated_check.pip_self_version_check(mock_session, fake_options)
@@ -58,7 +60,7 @@ def test_pip_self_version_check_calls_underlying_implementation(
 
 
 @pytest.mark.parametrize(
-    [
+    [  # noqa: PT006 - String representation is too long
         "installed_version",
         "remote_version",
         "stored_version",

@@ -1,7 +1,6 @@
 import errno
 import getpass
 import hashlib
-import io
 import logging
 import os
 import posixpath
@@ -36,12 +35,12 @@ from typing import (
 
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.pyproject_hooks import BuildBackendHookCaller
-from pip._vendor.tenacity import retry, stop_after_delay, wait_fixed
 
 from pip import __version__
 from pip._internal.exceptions import CommandError, ExternallyManagedEnvironment
 from pip._internal.locations import get_major_minor_version
 from pip._internal.utils.compat import WINDOWS
+from pip._internal.utils.retry import retry
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 __all__ = [
@@ -69,6 +68,8 @@ VersionInfo = Tuple[int, int, int]
 NetlocTuple = Tuple[str, Tuple[Optional[str], Optional[str]]]
 OnExc = Callable[[FunctionType, Path, BaseException], Any]
 OnErr = Callable[[FunctionType, Path, ExcInfo], Any]
+
+FILE_CHUNK_SIZE = 1024 * 1024
 
 
 def get_pip_version() -> str:
@@ -120,23 +121,15 @@ def get_prog() -> str:
 
 
 # Retry every half second for up to 3 seconds
-# Tenacity raises RetryError by default, explicitly raise the original exception
-@retry(reraise=True, stop=stop_after_delay(3), wait=wait_fixed(0.5))
+@retry(stop_after_delay=3, wait=0.5)
 def rmtree(
-    dir: str,
-    ignore_errors: bool = False,
-    onexc: Optional[OnExc] = None,
+    dir: str, ignore_errors: bool = False, onexc: Optional[OnExc] = None
 ) -> None:
     if ignore_errors:
         onexc = _onerror_ignore
     if onexc is None:
         onexc = _onerror_reraise
-    handler: OnErr = partial(
-        # `[func, path, Union[ExcInfo, BaseException]] -> Any` is equivalent to
-        # `Union[([func, path, ExcInfo] -> Any), ([func, path, BaseException] -> Any)]`.
-        cast(Union[OnExc, OnErr], rmtree_errorhandler),
-        onexc=onexc,
-    )
+    handler: OnErr = partial(rmtree_errorhandler, onexc=onexc)
     if sys.version_info >= (3, 12):
         # See https://docs.python.org/3.12/whatsnew/3.12.html#shutil.
         shutil.rmtree(dir, onexc=handler)  # type: ignore
@@ -149,7 +142,7 @@ def _onerror_ignore(*_args: Any) -> None:
 
 
 def _onerror_reraise(*_args: Any) -> None:
-    raise
+    raise  # noqa: PLE0704 - Bare exception used to reraise existing exception
 
 
 def rmtree_errorhandler(
@@ -314,7 +307,7 @@ def is_installable_dir(path: str) -> bool:
 
 
 def read_chunks(
-    file: BinaryIO, size: int = io.DEFAULT_BUFFER_SIZE
+    file: BinaryIO, size: int = FILE_CHUNK_SIZE
 ) -> Generator[bytes, None, None]:
     """Yield pieces of data from a file-like object until EOF."""
     while True:
@@ -557,7 +550,7 @@ class HiddenText:
 
     # This is useful for testing.
     def __eq__(self, other: Any) -> bool:
-        if type(self) != type(other):
+        if type(self) is not type(other):
             return False
 
         # The string being used for redaction doesn't also have to match,
@@ -644,8 +637,7 @@ def pairwise(iterable: Iterable[Any]) -> Iterator[Tuple[Any, Any]]:
 
 
 def partition(
-    pred: Callable[[T], bool],
-    iterable: Iterable[T],
+    pred: Callable[[T], bool], iterable: Iterable[T]
 ) -> Tuple[Iterable[T], Iterable[T]]:
     """
     Use a predicate to partition entries into false entries and true entries,
@@ -745,3 +737,36 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
             config_settings=cs,
             _allow_fallback=_allow_fallback,
         )
+
+
+def warn_if_run_as_root() -> None:
+    """Output a warning for sudo users on Unix.
+
+    In a virtual environment, sudo pip still writes to virtualenv.
+    On Windows, users may run pip as Administrator without issues.
+    This warning only applies to Unix root users outside of virtualenv.
+    """
+    if running_under_virtualenv():
+        return
+    if not hasattr(os, "getuid"):
+        return
+    # On Windows, there are no "system managed" Python packages. Installing as
+    # Administrator via pip is the correct way of updating system environments.
+    #
+    # We choose sys.platform over utils.compat.WINDOWS here to enable Mypy platform
+    # checks: https://mypy.readthedocs.io/en/stable/common_issues.html
+    if sys.platform == "win32" or sys.platform == "cygwin":
+        return
+
+    if os.getuid() != 0:
+        return
+
+    logger.warning(
+        "Running pip as the 'root' user can result in broken permissions and "
+        "conflicting behaviour with the system package manager, possibly "
+        "rendering your system unusable."
+        "It is recommended to use a virtual environment instead: "
+        "https://pip.pypa.io/warnings/venv. "
+        "Use the --root-user-action option if you know what you are doing and "
+        "want to suppress this warning."
+    )
