@@ -334,44 +334,30 @@ class CandidatePreferences:
     allow_all_prereleases: bool = False
 
 
+@dataclass(frozen=True)
 class BestCandidateResult:
     """A collection of candidates, returned by `PackageFinder.find_best_candidate`.
 
     This class is only intended to be instantiated by CandidateEvaluator's
     `compute_best_candidate()` method.
+
+    :param all_candidates: A sequence of all available candidates found.
+    :param applicable_candidates: The applicable candidates.
+    :param best_candidate: The most preferred candidate found, or None
+        if no applicable candidates were found.
     """
 
-    def __init__(
-        self,
-        candidates: List[InstallationCandidate],
-        applicable_candidates: List[InstallationCandidate],
-        best_candidate: Optional[InstallationCandidate],
-    ) -> None:
-        """
-        :param candidates: A sequence of all available candidates found.
-        :param applicable_candidates: The applicable candidates.
-        :param best_candidate: The most preferred candidate found, or None
-            if no applicable candidates were found.
-        """
-        assert set(applicable_candidates) <= set(candidates)
+    all_candidates: List[InstallationCandidate]
+    applicable_candidates: List[InstallationCandidate]
+    best_candidate: Optional[InstallationCandidate]
 
-        if best_candidate is None:
-            assert not applicable_candidates
+    def __post_init__(self) -> None:
+        assert set(self.applicable_candidates) <= set(self.all_candidates)
+
+        if self.best_candidate is None:
+            assert not self.applicable_candidates
         else:
-            assert best_candidate in applicable_candidates
-
-        self._applicable_candidates = applicable_candidates
-        self._candidates = candidates
-
-        self.best_candidate = best_candidate
-
-    def iter_all(self) -> Iterable[InstallationCandidate]:
-        """Iterate through all candidates."""
-        return iter(self._candidates)
-
-    def iter_applicable(self) -> Iterable[InstallationCandidate]:
-        """Iterate through the applicable candidates."""
-        return iter(self._applicable_candidates)
+            assert self.best_candidate in self.applicable_candidates
 
 
 class CandidateEvaluator:
@@ -929,7 +915,7 @@ class PackageFinder:
                 "Could not find a version that satisfies the requirement %s "
                 "(from versions: %s)",
                 req,
-                _format_versions(best_candidate_result.iter_all()),
+                _format_versions(best_candidate_result.all_candidates),
             )
 
             raise DistributionNotFound(f"No matching distribution found for {req}")
@@ -963,7 +949,7 @@ class PackageFinder:
             logger.debug(
                 "Using version %s (newest of versions: %s)",
                 best_candidate.version,
-                _format_versions(best_candidate_result.iter_applicable()),
+                _format_versions(best_candidate_result.applicable_candidates),
             )
             return best_candidate
 
@@ -971,7 +957,7 @@ class PackageFinder:
         logger.debug(
             "Installed version (%s) is most up-to-date (past versions: %s)",
             installed_version,
-            _format_versions(best_candidate_result.iter_applicable()),
+            _format_versions(best_candidate_result.applicable_candidates),
         )
         raise BestVersionAlreadyInstalled
 
