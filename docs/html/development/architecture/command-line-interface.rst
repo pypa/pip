@@ -154,7 +154,7 @@ Its main addition consists of the following function:
 
   .. py:method:: get_default_values()
 
-    Overrides the original method to allow updating the defaults ater the instantiation of the
+    Overrides the original method to allow updating the defaults after the instantiation of the
     option parser.
 
 It allows overriding the default options and arguments using the ``Configuration`` class

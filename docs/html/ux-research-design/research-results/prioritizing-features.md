@@ -109,9 +109,9 @@ Results varied by the amount of Python experience the user had.
 
 ![Screenshot of Install a package from wheels](https://i.imgur.com/9DMBfNL.png)
 
-#### Install apackage from a local directory
+#### Install a package from a local directory
 
-![Screenshot of Install apackage from a local directory](https://i.imgur.com/Jp95rak.png)
+![Screenshot of Install a package from a local directory](https://i.imgur.com/Jp95rak.png)
 
 #### Control where you want your installed package to live on your computer
 
