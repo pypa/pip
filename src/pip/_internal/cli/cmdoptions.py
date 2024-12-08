@@ -428,6 +428,20 @@ def requirements() -> Option:
     )
 
 
+# NOTE:2024-10-05:snoopj:it's simplest to allow exactly one file for a first pass
+# https://github.com/pypa/pip/issues/12891
+def scripts() -> Option:
+    return Option(
+        "-s",
+        "--script",
+        action="append",
+        default=[],
+        dest="scripts",
+        metavar="file",
+        help="Install PEP 723 inline dependencies of the given script file. ",
+    )
+
+
 def editable() -> Option:
     return Option(
         "-e",
