@@ -925,7 +925,7 @@ def check_legacy_setup_py_options(
             reason="--build-option and --global-option are deprecated.",
             issue=11859,
             replacement="to use --config-settings",
-            gone_in="25.0",
+            gone_in=None,
         )
         logger.warning(
             "Implying --no-binary=:all: due to the presence of "
