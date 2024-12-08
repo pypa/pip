@@ -107,6 +107,12 @@ def test_handle_pip_version_check_called(mock_handle_version_check: Mock) -> Non
     mock_handle_version_check.assert_called_once()
 
 
+def test_debug_enables_verbose_logs() -> None:
+    cmd = FakeCommand()
+    cmd.main(["fake", "--debug"])
+    assert cmd.verbosity >= 2
+
+
 def test_log_command_success(fixed_time: None, tmpdir: Path) -> None:
     """Test the --log option logs when command succeeds."""
     cmd = FakeCommand()
