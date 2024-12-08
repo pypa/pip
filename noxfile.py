@@ -26,6 +26,7 @@ LOCATIONS = {
 }
 REQUIREMENTS = {
     "docs": "docs/requirements.txt",
+    "docs-html": "docs/html/requirements.txt",
     "tests": "tests/requirements.txt",
     "common-wheels": "tests/requirements-common_wheels.txt",
 }
@@ -131,7 +132,10 @@ def docs(session: nox.Session) -> None:
     session.install("-r", REQUIREMENTS["docs"])
 
     def get_sphinx_build_command(kind: str) -> List[str]:
-        # Having the conf.py in the docs/html is weird but needed because we
+        req_file = REQUIREMENTS.get(f"docs-{kind}")
+        if req_file is not None:
+            session.install("--requirement", req_file)
+        # Having the conf.py in the docs/{html,man} is weird but needed because we
         # can not use a different configuration directory vs source directory
         # on RTD currently. So, we'll pass "-c docs/html" here.
         # See https://github.com/rtfd/readthedocs.org/issues/1543.
@@ -139,10 +143,10 @@ def docs(session: nox.Session) -> None:
         return [
             "sphinx-build",
             "--keep-going",
-            "-W",
-            "-c", "docs/html",  # see note above
-            "-d", "docs/build/doctrees/" + kind,
-            "-b", kind,
+            "--fail-on-warning",
+            "--conf-dir", "docs/" + kind,  # see note above
+            "--doctree-dir", "docs/build/doctrees/" + kind,
+            "--builder", kind,
             "docs/" + kind,
             "docs/build/" + kind,
         ]
@@ -155,7 +159,13 @@ def docs(session: nox.Session) -> None:
 @nox.session(name="docs-live")
 def docs_live(session: nox.Session) -> None:
     session.install("-e", ".")
-    session.install("-r", REQUIREMENTS["docs"], "sphinx-autobuild")
+    session.install(
+        "-r",
+        REQUIREMENTS["docs"],
+        "-r",
+        REQUIREMENTS["docs-html"],
+        "sphinx-autobuild",
+    )
 
     session.run(
         "sphinx-autobuild",
