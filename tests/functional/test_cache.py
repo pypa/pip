@@ -68,23 +68,26 @@ def populate_http_cache(http_cache_dir: str) -> List[Tuple[str, str]]:
     return files
 
 
-@pytest.fixture
-def populate_wheel_cache(wheel_cache_dir: str) -> List[Tuple[str, str]]:
+def _populate_wheel_cache(
+    wheel_cache_dir: str, *name_and_versions: str
+) -> List[Tuple[str, str]]:
     destination = os.path.join(wheel_cache_dir, "arbitrary", "pathname")
     os.makedirs(destination)
 
-    files = [
-        ("yyy-1.2.3", os.path.join(destination, "yyy-1.2.3-py3-none-any.whl")),
-        ("zzz-4.5.6", os.path.join(destination, "zzz-4.5.6-py3-none-any.whl")),
-        ("zzz-4.5.7", os.path.join(destination, "zzz-4.5.7-py3-none-any.whl")),
-        ("zzz-7.8.9", os.path.join(destination, "zzz-7.8.9-py3-none-any.whl")),
-    ]
-
-    for _name, filename in files:
+    wheel_info = []
+    for name_and_version in name_and_versions:
+        filename = os.path.join(destination, f"{name_and_version}-py3-none-any.whl")
         with open(filename, "w"):
             pass
+        wheel_info.append((name_and_version, filename))
+    return wheel_info
 
-    return files
+
+@pytest.fixture
+def populate_wheel_cache(wheel_cache_dir: str) -> List[Tuple[str, str]]:
+    return _populate_wheel_cache(
+        wheel_cache_dir, "yyy-1.2.3", "zzz-4.5.6", "zzz-4.5.7", "zzz-7.8.9"
+    )
 
 
 @pytest.fixture
@@ -332,13 +335,26 @@ def test_cache_remove_too_many_args(script: PipTestEnvironment) -> None:
     script.pip("cache", "remove", "aaa", "bbb", expect_error=True)
 
 
+@pytest.mark.parametrize(
+    "pattern",
+    [
+        "zzz",
+        "ZZZ",
+        "zZz-*-py3-none-any.whl",
+        "zZz-*.whl",
+        "zzz-*",
+        "zzz*",
+        "zz[a-zA-Z]?",
+        "[!y]",
+    ],
+)
 @pytest.mark.usefixtures("populate_wheel_cache")
 def test_cache_remove_name_match(
-    script: PipTestEnvironment, remove_matches_wheel: RemoveMatches
+    script: PipTestEnvironment, pattern: str, remove_matches_wheel: RemoveMatches
 ) -> None:
-    """Running `pip cache remove zzz` should remove zzz-4.5.6 and zzz-7.8.9,
-    but nothing else."""
-    result = script.pip("cache", "remove", "zzz", "--verbose")
+    """Running `pip cache remove <zzz matching pattern>` should remove zzz-4.5.6,
+    zzz-4.5.7 and zzz-7.8.9, but nothing else."""
+    result = script.pip("cache", "remove", pattern, "--verbose")
 
     assert not remove_matches_wheel("yyy-1.2.3", result)
     assert remove_matches_wheel("zzz-4.5.6", result)
@@ -346,18 +362,68 @@ def test_cache_remove_name_match(
     assert remove_matches_wheel("zzz-7.8.9", result)
 
 
+@pytest.mark.parametrize(
+    "pattern",
+    [
+        "zzz-4.5.6",
+        "ZZZ-4.5.6",
+        "zZz-4.5.6-py3-none-any.whl",
+        "zZz-4.5.6-*.whl",
+        "zZz-4.5.[0-6]",
+    ],
+)
 @pytest.mark.usefixtures("populate_wheel_cache")
 def test_cache_remove_name_and_version_match(
-    script: PipTestEnvironment, remove_matches_wheel: RemoveMatches
+    script: PipTestEnvironment, pattern: str, remove_matches_wheel: RemoveMatches
 ) -> None:
-    """Running `pip cache remove zzz-4.5.6` should remove zzz-4.5.6, but
-    nothing else."""
-    result = script.pip("cache", "remove", "zzz-4.5.6", "--verbose")
+    """Running `pip cache remove <zzz-4.5.6 matching pattern>` should remove zzz-4.5.6,
+    but nothing else."""
+    result = script.pip("cache", "remove", pattern, "--verbose")
 
     assert not remove_matches_wheel("yyy-1.2.3", result)
     assert remove_matches_wheel("zzz-4.5.6", result)
     assert not remove_matches_wheel("zzz-4.5.7", result)
     assert not remove_matches_wheel("zzz-7.8.9", result)
+
+
+@pytest.mark.parametrize(
+    "pattern",
+    [
+        "pyfftw",
+        "pyfftw-0.15",
+        "pyfftw-0.15.0",
+        "pyFFTW",
+        "pyFFTW-0.15",
+        "pyFFTW-0.15.0",
+    ],
+)
+def test_issue_13086_op_case(
+    script: PipTestEnvironment,
+    wheel_cache_dir: str,
+    pattern: str,
+    remove_matches_wheel: RemoveMatches,
+) -> None:
+    _populate_wheel_cache(wheel_cache_dir, "pyFFTW-0.15.0", "foo-1.0")
+    result = script.pip("cache", "remove", pattern, "--verbose")
+
+    assert remove_matches_wheel("pyFFTW-0.15.0", result)
+    assert not remove_matches_wheel("foo-1.0", result)
+
+
+def test_issue_13086_glob_case(
+    script: PipTestEnvironment,
+    wheel_cache_dir: str,
+    remove_matches_wheel: RemoveMatches,
+) -> None:
+    _populate_wheel_cache(
+        wheel_cache_dir, "foo0-1.0", "foo1-1.0", "foo2-1.0", "foo1bob-1.0"
+    )
+    result = script.pip("cache", "remove", "foo[0-2]", "--verbose")
+
+    assert remove_matches_wheel("foo0-1.0", result)
+    assert remove_matches_wheel("foo1-1.0", result)
+    assert remove_matches_wheel("foo2-1.0", result)
+    assert not remove_matches_wheel("foo1bob", result)
 
 
 @pytest.mark.usefixtures("populate_http_cache", "populate_wheel_cache")
