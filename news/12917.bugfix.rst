@@ -1,0 +1,1 @@
+Only accept standard PEP 440 wheel filenames.
