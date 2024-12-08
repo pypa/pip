@@ -82,3 +82,34 @@ class TestSafeFileCache:
         key = "test key"
         fake_cache = Mock(FileCache, directory=cache.directory, encode=FileCache.encode)
         assert cache._get_cache_path(key) == FileCache._fn(fake_cache, key)
+
+    @pytest.mark.skipif("sys.platform == 'win32'")
+    @pytest.mark.skipif(
+        os.chmod not in os.supports_fd and os.chmod not in os.supports_follow_symlinks,
+        reason="requires os.chmod to support file descriptors or not follow symlinks",
+    )
+    @pytest.mark.parametrize(
+        "perms, expected_perms", [(0o300, 0o600), (0o700, 0o600), (0o777, 0o666)]
+    )
+    def test_cache_inherit_perms(
+        self, cache_tmpdir: Path, perms: int, expected_perms: int
+    ) -> None:
+        key = "foo"
+        with chmod(cache_tmpdir, perms):
+            cache = SafeFileCache(os.fspath(cache_tmpdir))
+            cache.set(key, b"bar")
+        assert (os.stat(cache._get_cache_path(key)).st_mode & 0o777) == expected_perms
+
+    @pytest.mark.skipif("sys.platform == 'win32'")
+    def test_cache_not_inherit_perms(
+        self, cache_tmpdir: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(os, "supports_fd", os.supports_fd - {os.chmod})
+        monkeypatch.setattr(
+            os, "supports_follow_symlinks", os.supports_follow_symlinks - {os.chmod}
+        )
+        key = "foo"
+        with chmod(cache_tmpdir, 0o777):
+            cache = SafeFileCache(os.fspath(cache_tmpdir))
+            cache.set(key, b"bar")
+        assert (os.stat(cache._get_cache_path(key)).st_mode & 0o777) == 0o600
