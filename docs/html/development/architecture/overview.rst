@@ -134,7 +134,7 @@ Once it has those, it selects one file and downloads it.
 cannot….should not be …. ? I want only the Flask …. Why am I getting the
 whole list?
 
-Answer: It's not every file, just files of Flask. No API for getting alllllll
+Answer: It's not every file, just files of Flask. No API for getting all
 files on PyPI. It’s for getting all files of Flask.)
 
 .. _`tracking issue`: https://github.com/pypa/pip/issues/6831

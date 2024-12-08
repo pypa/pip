@@ -1,16 +1,22 @@
 import importlib.util
 import os
+import sys
 from collections import namedtuple
 from typing import Any, List, Optional
 
-from pip._vendor import tomli
-from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    from pip._vendor import tomli as tomllib
+
+from pip._vendor.packaging.requirements import InvalidRequirement
 
 from pip._internal.exceptions import (
     InstallationError,
     InvalidPyProjectBuildRequires,
     MissingPyProjectBuildRequires,
 )
+from pip._internal.utils.packaging import get_requirement
 
 
 def _is_list_of_str(obj: Any) -> bool:
@@ -61,13 +67,13 @@ def load_pyproject_toml(
 
     if has_pyproject:
         with open(pyproject_toml, encoding="utf-8") as f:
-            pp_toml = tomli.loads(f.read())
+            pp_toml = tomllib.loads(f.read())
         build_system = pp_toml.get("build-system")
     else:
         build_system = None
 
     # The following cases must use PEP 517
-    # We check for use_pep517 being non-None and falsey because that means
+    # We check for use_pep517 being non-None and falsy because that means
     # the user explicitly requested --no-use-pep517.  The value 0 as
     # opposed to False can occur when the value is provided via an
     # environment variable or config file option (due to the quirk of
@@ -151,7 +157,7 @@ def load_pyproject_toml(
     # Each requirement must be valid as per PEP 508
     for requirement in requires:
         try:
-            Requirement(requirement)
+            get_requirement(requirement)
         except InvalidRequirement as error:
             raise InvalidPyProjectBuildRequires(
                 package=req_name,

@@ -1,6 +1,10 @@
 from typing import Collection
 
-from tests.lib import PipTestEnvironment, create_test_package_with_setup
+from tests.lib import (
+    PipTestEnvironment,
+    create_really_basic_wheel,
+    create_test_package_with_setup,
+)
 
 
 def matches_expected_lines(string: str, expected_lines: Collection[str]) -> bool:
@@ -320,4 +324,27 @@ def test_check_include_work_dir_pkg(script: PipTestEnvironment) -> None:
     result = script.pip("check", expect_error=True, cwd=pkg_path)
     expected_lines = ("simple 1.0 requires missing, which is not installed.",)
     assert matches_expected_lines(result.stdout, expected_lines)
+    assert result.returncode == 1
+
+
+def test_check_unsupported(
+    script: PipTestEnvironment,
+) -> None:
+    script.scratch_path.joinpath("base-0.1.0-py2.py3-none-any.whl").write_bytes(
+        create_really_basic_wheel("base", "0.1.0")
+    )
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "base==0.1.0",
+    )
+    with open(
+        script.site_packages_path.joinpath("base-0.1.0.dist-info/WHEEL"), "a"
+    ) as f:
+        f.write("\nTag: cp310-cp310-musllinux_1_1_x86_64\n")
+    result = script.pip("check", expect_error=True)
+    assert "base 0.1.0 is not supported on this platform" in result.stdout
     assert result.returncode == 1

@@ -115,11 +115,11 @@ class TestPipTestEnvironment:
 
     @pytest.mark.parametrize(
         "prefix",
-        (
+        [
             "DEBUG",
             "INFO",
             "FOO",
-        ),
+        ],
     )
     def test_run__allowed_stderr(self, script: PipTestEnvironment, prefix: str) -> None:
         """
@@ -150,10 +150,10 @@ class TestPipTestEnvironment:
 
     @pytest.mark.parametrize(
         "prefix",
-        (
+        [
             "WARNING",
             "ERROR",
-        ),
+        ],
     )
     def test_run__allow_stderr_error(
         self, script: PipTestEnvironment, prefix: str
@@ -166,10 +166,10 @@ class TestPipTestEnvironment:
 
     @pytest.mark.parametrize(
         "prefix, expected_start",
-        (
+        [
             ("WARNING", "stderr has an unexpected warning"),
             ("ERROR", "stderr has an unexpected error"),
-        ),
+        ],
     )
     def test_run__unexpected_stderr(
         self, script: PipTestEnvironment, prefix: str, expected_start: str
@@ -227,10 +227,10 @@ class TestPipTestEnvironment:
 
     @pytest.mark.parametrize(
         "arg_name",
-        (
+        [
             "expect_error",
             "allow_stderr_error",
-        ),
+        ],
     )
     def test_run__allow_stderr_warning_false_error(
         self, script: PipTestEnvironment, arg_name: str

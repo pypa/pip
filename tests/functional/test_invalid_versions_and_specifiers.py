@@ -3,6 +3,7 @@ import zipfile
 import pytest
 
 from pip._internal.metadata import select_backend
+
 from tests.lib import PipTestEnvironment, TestData
 
 
@@ -136,4 +137,4 @@ def test_show_require_invalid_version(
     elif select_backend().NAME == "pkg_resources":
         assert "Required-by: \n" in result.stdout
     else:
-        assert False, "Unknown metadata backend"
+        pytest.fail("Unknown metadata backend")

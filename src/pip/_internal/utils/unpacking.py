@@ -190,9 +190,19 @@ def untar_file(filename: str, location: str) -> None:
         else:
             default_mode_plus_executable = _get_default_mode_plus_executable()
 
+            if leading:
+                # Strip the leading directory from all files in the archive,
+                # including hardlink targets (which are relative to the
+                # unpack location).
+                for member in tar.getmembers():
+                    name_lead, name_rest = split_leading_dir(member.name)
+                    member.name = name_rest
+                    if member.islnk():
+                        lnk_lead, lnk_rest = split_leading_dir(member.linkname)
+                        if lnk_lead == name_lead:
+                            member.linkname = lnk_rest
+
             def pip_filter(member: tarfile.TarInfo, path: str) -> tarfile.TarInfo:
-                if leading:
-                    member.name = split_leading_dir(member.name)[1]
                 orig_mode = member.mode
                 try:
                     try:

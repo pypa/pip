@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from pip._internal.models.direct_url import DirectUrl, DirInfo
+
 from tests.lib import (
     PipTestEnvironment,
     ScriptFactory,
@@ -749,4 +750,4 @@ def test_list_pep610_editable(script: PipTestEnvironment) -> None:
             assert item["editable_project_location"]
             break
     else:
-        assert False, "package 'testpkg' not found in pip list result"
+        pytest.fail("package 'testpkg' not found in pip list result")

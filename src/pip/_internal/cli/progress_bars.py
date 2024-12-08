@@ -25,7 +25,7 @@ def _rich_progress_bar(
     iterable: Iterable[bytes],
     *,
     bar_type: str,
-    size: int,
+    size: Optional[int],
 ) -> Generator[bytes, None, None]:
     assert bar_type == "on", "This should only be used in the default mode."
 
@@ -49,7 +49,7 @@ def _rich_progress_bar(
             TimeRemainingColumn(),
         )
 
-    progress = Progress(*columns, refresh_per_second=30)
+    progress = Progress(*columns, refresh_per_second=5)
     task_id = progress.add_task(" " * (get_indentation() + 2), total=total)
     with progress:
         for chunk in iterable:
@@ -63,7 +63,7 @@ def _raw_progress_bar(
     size: Optional[int],
 ) -> Generator[bytes, None, None]:
     def write_progress(current: int, total: int) -> None:
-        sys.stdout.write("Progress %d of %d\n" % (current, total))
+        sys.stdout.write(f"Progress {current} of {total}\n")
         sys.stdout.flush()
 
     current = 0

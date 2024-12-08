@@ -2,6 +2,8 @@
 tests specific to uninstalling --user installs
 """
 
+import platform
+import sys
 from os.path import isdir, isfile, normcase
 
 import pytest
@@ -74,6 +76,12 @@ class Tests_UninstallUserSite:
         dist_info_folder = script.base_path / script.site_packages / "pkg-0.1.dist-info"
         assert isdir(dist_info_folder)
 
+    @pytest.mark.xfail(
+        sys.platform == "darwin"
+        and platform.machine() == "arm64"
+        and sys.version_info[:2] in {(3, 8), (3, 9)},
+        reason="Unexpected egg-link install path",
+    )
     def test_uninstall_editable_from_usersite(
         self, script: PipTestEnvironment, data: TestData
     ) -> None:

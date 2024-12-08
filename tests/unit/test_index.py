@@ -2,6 +2,7 @@ import logging
 from typing import FrozenSet, List, Optional, Set, Tuple
 
 import pytest
+
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.tags import Tag
 
@@ -25,6 +26,7 @@ from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
+
 from tests.lib import CURRENT_PY_VERSION_INFO
 from tests.lib.index import make_mock_candidate
 
@@ -465,13 +467,13 @@ class TestCandidateEvaluator:
         )
         result = evaluator.compute_best_candidate(candidates)
 
-        assert result._candidates == candidates
+        assert result.all_candidates == candidates
         expected_applicable = candidates[:2]
         assert [str(c.version) for c in expected_applicable] == [
             "1.10",
             "1.11",
         ]
-        assert result._applicable_candidates == expected_applicable
+        assert result.applicable_candidates == expected_applicable
 
         assert result.best_candidate is expected_applicable[1]
 
@@ -488,8 +490,8 @@ class TestCandidateEvaluator:
         )
         result = evaluator.compute_best_candidate(candidates)
 
-        assert result._candidates == candidates
-        assert result._applicable_candidates == []
+        assert result.all_candidates == candidates
+        assert result.applicable_candidates == []
         assert result.best_candidate is None
 
     @pytest.mark.parametrize(
@@ -819,7 +821,7 @@ class TestPackageFinder:
 
 
 @pytest.mark.parametrize(
-    ("fragment", "canonical_name", "expected"),
+    "fragment, canonical_name, expected",
     [
         # Trivial.
         ("pip-18.0", "pip", 3),
@@ -851,7 +853,7 @@ def test_find_name_version_sep(
 
 
 @pytest.mark.parametrize(
-    ("fragment", "canonical_name"),
+    "fragment, canonical_name",
     [
         # A dash must follow the package name.
         ("zope.interface4.5.0", "zope-interface"),
@@ -868,7 +870,7 @@ def test_find_name_version_sep_failure(fragment: str, canonical_name: str) -> No
 
 
 @pytest.mark.parametrize(
-    ("fragment", "canonical_name", "expected"),
+    "fragment, canonical_name, expected",
     [
         # Trivial.
         ("pip-18.0", "pip", "18.0"),

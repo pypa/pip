@@ -1,2 +1,0 @@
-Eagerly import the self version check logic to avoid crashes while upgrading
-or downgrading pip at the same time.

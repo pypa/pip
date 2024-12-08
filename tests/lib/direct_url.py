@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Optional
 
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
+
 from tests.lib import TestPipResult
 
 

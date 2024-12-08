@@ -361,7 +361,7 @@ def keyring_provider_implementation(request: pytest.FixtureRequest) -> str:
     return request.param
 
 
-@pytest.fixture()
+@pytest.fixture
 def flags(
     request: pytest.FixtureRequest,
     interactive: bool,

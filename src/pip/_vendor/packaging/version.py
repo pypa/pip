@@ -7,13 +7,15 @@
     from pip._vendor.packaging.version import parse, Version
 """
 
+from __future__ import annotations
+
 import itertools
 import re
-from typing import Any, Callable, NamedTuple, Optional, SupportsInt, Tuple, Union
+from typing import Any, Callable, NamedTuple, SupportsInt, Tuple, Union
 
 from ._structures import Infinity, InfinityType, NegativeInfinity, NegativeInfinityType
 
-__all__ = ["VERSION_PATTERN", "parse", "Version", "InvalidVersion"]
+__all__ = ["VERSION_PATTERN", "InvalidVersion", "Version", "parse"]
 
 LocalType = Tuple[Union[int, str], ...]
 
@@ -35,14 +37,14 @@ VersionComparisonMethod = Callable[[CmpKey, CmpKey], bool]
 
 class _Version(NamedTuple):
     epoch: int
-    release: Tuple[int, ...]
-    dev: Optional[Tuple[str, int]]
-    pre: Optional[Tuple[str, int]]
-    post: Optional[Tuple[str, int]]
-    local: Optional[LocalType]
+    release: tuple[int, ...]
+    dev: tuple[str, int] | None
+    pre: tuple[str, int] | None
+    post: tuple[str, int] | None
+    local: LocalType | None
 
 
-def parse(version: str) -> "Version":
+def parse(version: str) -> Version:
     """Parse the given version string.
 
     >>> parse('1.0.dev1')
@@ -65,7 +67,7 @@ class InvalidVersion(ValueError):
 
 
 class _BaseVersion:
-    _key: Tuple[Any, ...]
+    _key: tuple[Any, ...]
 
     def __hash__(self) -> int:
         return hash(self._key)
@@ -73,13 +75,13 @@ class _BaseVersion:
     # Please keep the duplicated `isinstance` check
     # in the six comparisons hereunder
     # unless you find a way to avoid adding overhead function calls.
-    def __lt__(self, other: "_BaseVersion") -> bool:
+    def __lt__(self, other: _BaseVersion) -> bool:
         if not isinstance(other, _BaseVersion):
             return NotImplemented
 
         return self._key < other._key
 
-    def __le__(self, other: "_BaseVersion") -> bool:
+    def __le__(self, other: _BaseVersion) -> bool:
         if not isinstance(other, _BaseVersion):
             return NotImplemented
 
@@ -91,13 +93,13 @@ class _BaseVersion:
 
         return self._key == other._key
 
-    def __ge__(self, other: "_BaseVersion") -> bool:
+    def __ge__(self, other: _BaseVersion) -> bool:
         if not isinstance(other, _BaseVersion):
             return NotImplemented
 
         return self._key >= other._key
 
-    def __gt__(self, other: "_BaseVersion") -> bool:
+    def __gt__(self, other: _BaseVersion) -> bool:
         if not isinstance(other, _BaseVersion):
             return NotImplemented
 
@@ -197,7 +199,7 @@ class Version(_BaseVersion):
         # Validate the version and parse it into pieces
         match = self._regex.search(version)
         if not match:
-            raise InvalidVersion(f"Invalid version: '{version}'")
+            raise InvalidVersion(f"Invalid version: {version!r}")
 
         # Store the parsed out pieces of the version
         self._version = _Version(
@@ -230,7 +232,7 @@ class Version(_BaseVersion):
         return f"<Version('{self}')>"
 
     def __str__(self) -> str:
-        """A string representation of the version that can be rounded-tripped.
+        """A string representation of the version that can be round-tripped.
 
         >>> str(Version("1.0a5"))
         '1.0a5'
@@ -274,7 +276,7 @@ class Version(_BaseVersion):
         return self._version.epoch
 
     @property
-    def release(self) -> Tuple[int, ...]:
+    def release(self) -> tuple[int, ...]:
         """The components of the "release" segment of the version.
 
         >>> Version("1.2.3").release
@@ -290,7 +292,7 @@ class Version(_BaseVersion):
         return self._version.release
 
     @property
-    def pre(self) -> Optional[Tuple[str, int]]:
+    def pre(self) -> tuple[str, int] | None:
         """The pre-release segment of the version.
 
         >>> print(Version("1.2.3").pre)
@@ -305,7 +307,7 @@ class Version(_BaseVersion):
         return self._version.pre
 
     @property
-    def post(self) -> Optional[int]:
+    def post(self) -> int | None:
         """The post-release number of the version.
 
         >>> print(Version("1.2.3").post)
@@ -316,7 +318,7 @@ class Version(_BaseVersion):
         return self._version.post[1] if self._version.post else None
 
     @property
-    def dev(self) -> Optional[int]:
+    def dev(self) -> int | None:
         """The development number of the version.
 
         >>> print(Version("1.2.3").dev)
@@ -327,7 +329,7 @@ class Version(_BaseVersion):
         return self._version.dev[1] if self._version.dev else None
 
     @property
-    def local(self) -> Optional[str]:
+    def local(self) -> str | None:
         """The local version segment of the version.
 
         >>> print(Version("1.2.3").local)
@@ -348,8 +350,8 @@ class Version(_BaseVersion):
         '1.2.3'
         >>> Version("1.2.3+abc").public
         '1.2.3'
-        >>> Version("1.2.3+abc.dev1").public
-        '1.2.3'
+        >>> Version("1!1.2.3dev1+abc").public
+        '1!1.2.3.dev1'
         """
         return str(self).split("+", 1)[0]
 
@@ -361,7 +363,7 @@ class Version(_BaseVersion):
         '1.2.3'
         >>> Version("1.2.3+abc").base_version
         '1.2.3'
-        >>> Version("1!1.2.3+abc.dev1").base_version
+        >>> Version("1!1.2.3dev1+abc").base_version
         '1!1.2.3'
 
         The "base version" is the public version of the project without any pre or post
@@ -449,10 +451,26 @@ class Version(_BaseVersion):
         return self.release[2] if len(self.release) >= 3 else 0
 
 
-def _parse_letter_version(
-    letter: Optional[str], number: Union[str, bytes, SupportsInt, None]
-) -> Optional[Tuple[str, int]]:
+class _TrimmedRelease(Version):
+    @property
+    def release(self) -> tuple[int, ...]:
+        """
+        Release segment without any trailing zeros.
 
+        >>> _TrimmedRelease('1.0.0').release
+        (1,)
+        >>> _TrimmedRelease('0.0').release
+        (0,)
+        """
+        rel = super().release
+        nonzeros = (index for index, val in enumerate(rel) if val)
+        last_nonzero = max(nonzeros, default=0)
+        return rel[: last_nonzero + 1]
+
+
+def _parse_letter_version(
+    letter: str | None, number: str | bytes | SupportsInt | None
+) -> tuple[str, int] | None:
     if letter:
         # We consider there to be an implicit 0 in a pre-release if there is
         # not a numeral associated with it.
@@ -475,7 +493,9 @@ def _parse_letter_version(
             letter = "post"
 
         return letter, int(number)
-    if not letter and number:
+
+    assert not letter
+    if number:
         # We assume if we are given a number, but we are not given a letter
         # then this is using the implicit post release syntax (e.g. 1.0-1)
         letter = "post"
@@ -488,7 +508,7 @@ def _parse_letter_version(
 _local_version_separators = re.compile(r"[\._-]")
 
 
-def _parse_local_version(local: Optional[str]) -> Optional[LocalType]:
+def _parse_local_version(local: str | None) -> LocalType | None:
     """
     Takes a string like abc.1.twelve and turns it into ("abc", 1, "twelve").
     """
@@ -502,13 +522,12 @@ def _parse_local_version(local: Optional[str]) -> Optional[LocalType]:
 
 def _cmpkey(
     epoch: int,
-    release: Tuple[int, ...],
-    pre: Optional[Tuple[str, int]],
-    post: Optional[Tuple[str, int]],
-    dev: Optional[Tuple[str, int]],
-    local: Optional[LocalType],
+    release: tuple[int, ...],
+    pre: tuple[str, int] | None,
+    post: tuple[str, int] | None,
+    dev: tuple[str, int] | None,
+    local: LocalType | None,
 ) -> CmpKey:
-
     # When we compare a release version, we want to compare it with all of the
     # trailing zeros removed. So we'll use a reverse the list, drop all the now
     # leading zeros until we come to something non zero, then take the rest

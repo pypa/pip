@@ -3,6 +3,7 @@ lousily
 followings
 # A contributor first name
 wil
+Whit
 # Codebase variable or class names
 uptodate
 afile

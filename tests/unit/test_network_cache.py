@@ -1,19 +1,21 @@
 import os
 from pathlib import Path
-from typing import Iterator
 from unittest.mock import Mock
 
 import pytest
+
 from pip._vendor.cachecontrol.caches import FileCache
 
 from pip._internal.network.cache import SafeFileCache
 
+from tests.lib.filesystem import chmod
 
-@pytest.fixture(scope="function")
-def cache_tmpdir(tmpdir: Path) -> Iterator[Path]:
+
+@pytest.fixture
+def cache_tmpdir(tmpdir: Path) -> Path:
     cache_dir = tmpdir.joinpath("cache")
     cache_dir.mkdir(parents=True)
-    yield cache_dir
+    return cache_dir
 
 
 class TestSafeFileCache:
@@ -57,26 +59,23 @@ class TestSafeFileCache:
     def test_safe_get_no_perms(
         self, cache_tmpdir: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        os.chmod(cache_tmpdir, 000)
-
         monkeypatch.setattr(os.path, "exists", lambda x: True)
 
-        cache = SafeFileCache(os.fspath(cache_tmpdir))
-        cache.get("foo")
+        with chmod(cache_tmpdir, 000):
+            cache = SafeFileCache(os.fspath(cache_tmpdir))
+            cache.get("foo")
 
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_safe_set_no_perms(self, cache_tmpdir: Path) -> None:
-        os.chmod(cache_tmpdir, 000)
-
-        cache = SafeFileCache(os.fspath(cache_tmpdir))
-        cache.set("foo", b"bar")
+        with chmod(cache_tmpdir, 000):
+            cache = SafeFileCache(os.fspath(cache_tmpdir))
+            cache.set("foo", b"bar")
 
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_safe_delete_no_perms(self, cache_tmpdir: Path) -> None:
-        os.chmod(cache_tmpdir, 000)
-
-        cache = SafeFileCache(os.fspath(cache_tmpdir))
-        cache.delete("foo")
+        with chmod(cache_tmpdir, 000):
+            cache = SafeFileCache(os.fspath(cache_tmpdir))
+            cache.delete("foo")
 
     def test_cache_hashes_are_same(self, cache_tmpdir: Path) -> None:
         cache = SafeFileCache(os.fspath(cache_tmpdir))

@@ -2,6 +2,7 @@ import pytest
 
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.commands import create_command
+
 from tests.lib import PipTestEnvironment
 
 

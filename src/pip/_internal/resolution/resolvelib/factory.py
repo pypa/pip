@@ -23,13 +23,14 @@ from typing import (
 from pip._vendor.packaging.requirements import InvalidRequirement
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
-from pip._vendor.packaging.version import Version
+from pip._vendor.packaging.version import InvalidVersion, Version
 from pip._vendor.resolvelib import ResolutionImpossible
 
 from pip._internal.cache import CacheEntry, WheelCache
 from pip._internal.exceptions import (
     DistributionNotFound,
     InstallationError,
+    InvalidInstalledPackage,
     MetadataInconsistent,
     MetadataInvalid,
     UnsupportedPythonVersion,
@@ -121,6 +122,7 @@ class Factory:
         self._extras_candidate_cache: Dict[
             Tuple[int, FrozenSet[NormalizedName]], ExtrasCandidate
         ] = {}
+        self._supported_tags_cache = get_supported()
 
         if not ignore_installed:
             env = get_default_environment()
@@ -282,10 +284,15 @@ class Factory:
                 installed_dist = self._installed_dists[name]
             except KeyError:
                 return None
-            # Don't use the installed distribution if its version does not fit
-            # the current dependency graph.
-            if not specifier.contains(installed_dist.version, prereleases=True):
-                return None
+
+            try:
+                # Don't use the installed distribution if its version
+                # does not fit the current dependency graph.
+                if not specifier.contains(installed_dist.version, prereleases=True):
+                    return None
+            except InvalidVersion as e:
+                raise InvalidInstalledPackage(dist=installed_dist, invalid_exc=e)
+
             candidate = self._make_candidate_from_dist(
                 dist=installed_dist,
                 extras=extras,
@@ -302,7 +309,7 @@ class Factory:
                 specifier=specifier,
                 hashes=hashes,
             )
-            icans = list(result.iter_applicable())
+            icans = result.applicable_candidates
 
             # PEP 592: Yanked releases are ignored unless the specifier
             # explicitly pins a version (via '==' or '===') that can be
@@ -608,7 +615,7 @@ class Factory:
         return self._wheel_cache.get_cache_entry(
             link=link,
             package_name=name,
-            supported_tags=get_supported(),
+            supported_tags=self._supported_tags_cache,
         )
 
     def get_dist_to_uninstall(self, candidate: Candidate) -> Optional[BaseDistribution]:

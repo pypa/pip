@@ -9,7 +9,7 @@ from tests.lib import PipTestEnvironment, create_basic_wheel_for_package
 from tests.lib.venv import VirtualEnvironment
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_check_externally_managed(virtualenv: VirtualEnvironment) -> None:
     # Since the tests are run from a virtual environment, and we can't
     # guarantee access to the actual stdlib location (where EXTERNALLY-MANAGED

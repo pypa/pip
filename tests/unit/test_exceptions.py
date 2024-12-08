@@ -9,6 +9,7 @@ import textwrap
 from typing import Optional, Tuple
 
 import pytest
+
 from pip._vendor import rich
 
 from pip._internal.exceptions import DiagnosticPipError, ExternallyManagedEnvironment
@@ -500,7 +501,7 @@ class TestExternallyManagedEnvironment:
 
         monkeypatch.setattr(locale, "getlocale", fake_getlocale)
 
-    @pytest.fixture()
+    @pytest.fixture
     def marker(self, tmp_path: pathlib.Path) -> pathlib.Path:
         marker = tmp_path.joinpath("EXTERNALLY-MANAGED")
         marker.touch()

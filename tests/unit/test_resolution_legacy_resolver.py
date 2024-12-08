@@ -5,6 +5,7 @@ from typing import List, Optional, Type, TypeVar, cast
 from unittest import mock
 
 import pytest
+
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName
 
@@ -21,6 +22,7 @@ from pip._internal.resolution.legacy.resolver import (
     Resolver,
     _check_dist_requires_python,
 )
+
 from tests.lib import TestData, make_test_finder
 from tests.lib.index import make_mock_candidate
 

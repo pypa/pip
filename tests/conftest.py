@@ -47,6 +47,7 @@ from installer.sources import WheelFile
 from pip import __file__ as pip_location
 from pip._internal.locations import _USE_SYSCONFIG
 from pip._internal.utils.temp_dir import global_tempdir_manager
+
 from tests.lib import (
     DATA_DIR,
     SRC_DIR,
@@ -216,7 +217,7 @@ def tmp_path(request: pytest.FixtureRequest, tmp_path: Path) -> Iterator[Path]:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
 
-@pytest.fixture()
+@pytest.fixture
 def tmpdir(tmp_path: Path) -> Path:
     """Override Pytest's ``tmpdir`` with our pathlib implementation.
 
@@ -395,6 +396,7 @@ def pip_editable_parts(
             "-m",
             "pip",
             "install",
+            "--no-build-isolation",
             "--target",
             pip_self_install_path,
             "-e",
@@ -410,7 +412,10 @@ def _common_wheel_editable_install(
     tmpdir_factory: pytest.TempPathFactory, common_wheels: Path, package: str
 ) -> Path:
     wheel_candidates = list(common_wheels.glob(f"{package}-*.whl"))
-    assert len(wheel_candidates) == 1, wheel_candidates
+    assert len(wheel_candidates) == 1, (
+        f"Missing wheels in {common_wheels}, expected 1 got '{wheel_candidates}'."
+        " Are you running the tests via nox? See https://pip.pypa.io/en/latest/development/getting-started/#running-tests"
+    )
     install_dir = tmpdir_factory.mktemp(package) / "install"
     lib_install_dir = install_dir / "lib"
     bin_install_dir = install_dir / "bin"
@@ -473,7 +478,7 @@ def virtualenv_template(
     setuptools_install: Path,
     wheel_install: Path,
     coverage_install: Path,
-) -> Iterator[VirtualEnvironment]:
+) -> VirtualEnvironment:
     venv_type: VirtualEnvironmentType
     if request.config.getoption("--use-venv"):
         venv_type = "venv"
@@ -518,7 +523,7 @@ def virtualenv_template(
     # it's not reused by mistake from one of the copies.
     venv_template = tmpdir / "venv_template"
     venv.move(venv_template)
-    yield venv
+    return venv
 
 
 @pytest.fixture(scope="session")
@@ -534,14 +539,14 @@ def virtualenv_factory(
 @pytest.fixture
 def virtualenv(
     virtualenv_factory: Callable[[Path], VirtualEnvironment], tmpdir: Path
-) -> Iterator[VirtualEnvironment]:
+) -> VirtualEnvironment:
     """
     Return a virtual environment which is unique to each test function
     invocation created inside of a sub directory of the test function's
     temporary directory. The returned object is a
     ``tests.lib.venv.VirtualEnvironment`` object.
     """
-    yield virtualenv_factory(tmpdir.joinpath("workspace", "venv"))
+    return virtualenv_factory(tmpdir.joinpath("workspace", "venv"))
 
 
 @pytest.fixture(scope="session")
@@ -969,7 +974,7 @@ class OneTimeDownloadHandler(http.server.SimpleHTTPRequestHandler):
             self._seen_paths.add(self.path)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def html_index_with_onetime_server(
     html_index_for_packages: Path,
 ) -> Iterator[http.server.ThreadingHTTPServer]:

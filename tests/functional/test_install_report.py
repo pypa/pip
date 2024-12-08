@@ -39,7 +39,7 @@ def test_install_report_basic(
     assert url.endswith("/packages/simplewheel-2.0-1-py2.py3-none-any.whl")
     assert (
         simplewheel_report["download_info"]["archive_info"]["hash"]
-        == "sha256=191d6520d0570b13580bf7642c97ddfbb46dd04da5dd2cf7bef9f32391dfe716"
+        == "sha256=71e1ca6b16ae3382a698c284013f66504f2581099b2ce4801f60e9536236ceee"
     )
 
 

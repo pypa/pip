@@ -8,10 +8,12 @@ Based on: https://gist.github.com/lyssdod/f51579ae8d93c8657a5564aefc2ffbca
 ELF header: https://refspecs.linuxfoundation.org/elf/gabi4+/ch4.eheader.html
 """
 
+from __future__ import annotations
+
 import enum
 import os
 import struct
-from typing import IO, Optional, Tuple
+from typing import IO
 
 
 class ELFInvalid(ValueError):
@@ -46,8 +48,8 @@ class ELFFile:
 
         try:
             ident = self._read("16B")
-        except struct.error:
-            raise ELFInvalid("unable to parse identification")
+        except struct.error as e:
+            raise ELFInvalid("unable to parse identification") from e
         magic = bytes(ident[:4])
         if magic != b"\x7fELF":
             raise ELFInvalid(f"invalid magic: {magic!r}")
@@ -65,11 +67,11 @@ class ELFFile:
                 (2, 1): ("<HHIQQQIHHH", "<IIQQQQQQ", (0, 2, 5)),  # 64-bit LSB.
                 (2, 2): (">HHIQQQIHHH", ">IIQQQQQQ", (0, 2, 5)),  # 64-bit MSB.
             }[(self.capacity, self.encoding)]
-        except KeyError:
+        except KeyError as e:
             raise ELFInvalid(
                 f"unrecognized capacity ({self.capacity}) or "
                 f"encoding ({self.encoding})"
-            )
+            ) from e
 
         try:
             (
@@ -87,11 +89,11 @@ class ELFFile:
         except struct.error as e:
             raise ELFInvalid("unable to parse machine and section information") from e
 
-    def _read(self, fmt: str) -> Tuple[int, ...]:
+    def _read(self, fmt: str) -> tuple[int, ...]:
         return struct.unpack(fmt, self._f.read(struct.calcsize(fmt)))
 
     @property
-    def interpreter(self) -> Optional[str]:
+    def interpreter(self) -> str | None:
         """
         The path recorded in the ``PT_INTERP`` section header.
         """

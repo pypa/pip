@@ -1,5 +1,7 @@
 sphinx ~= 7.0
-towncrier
+# currently incompatible with sphinxcontrib-towncrier
+# https://github.com/sphinx-contrib/sphinxcontrib-towncrier/issues/92
+towncrier < 24
 furo
 myst_parser
 sphinx-copybutton

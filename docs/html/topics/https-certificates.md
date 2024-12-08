@@ -8,8 +8,7 @@
 
 By default, pip will perform SSL certificate verification for network
 connections it makes over HTTPS. These serve to prevent man-in-the-middle
-attacks against package downloads. This does not use the system certificate
-store but, instead, uses a bundled CA certificate store from {pypi}`certifi`.
+attacks against package downloads.
 
 ## Using a specific certificate store
 
@@ -20,43 +19,34 @@ variables.
 
 ## Using system certificate stores
 
-```{versionadded} 22.2
-Experimental support, behind `--use-feature=truststore`.
-As with any other CLI option, this can be enabled globally via config or environment variables.
+```{versionadded} 24.2
+
 ```
 
-It is possible to use the system trust store, instead of the bundled certifi
-certificates for verifying HTTPS certificates. This approach will typically
-support corporate proxy certificates without additional configuration.
-
-In order to use system trust stores, you need to use Python 3.10 or newer.
-
-  ```{pip-cli}
-  $ python -m pip install SomePackage --use-feature=truststore
-  [...]
-  Successfully installed SomePackage
-  ```
-
-### When to use
-
-You should try using system trust stores when there is a custom certificate
-chain configured for your system that pip isn't aware of. Typically, this
-situation will manifest with an `SSLCertVerificationError` with the message
-"certificate verify failed: unable to get local issuer certificate":
-
-```{pip-cli}
-$ pip install -U SomePackage
-[...]
-   SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (\_ssl.c:997)'))) - skipping
+```{note}
+Versions of pip prior to v24.2 did not use system certificates by default.
+To use system certificates with pip v22.2 or later, you must opt-in using the `--use-feature=truststore` CLI flag.
 ```
 
-This error means that OpenSSL wasn't able to find a trust anchor to verify the
-chain against. Using system trust stores instead of certifi will likely solve
-this issue.
+On Python 3.10 or later, by default
+system certificates are used in addition to certifi to verify HTTPS connections.
+This functionality is provided through the {pypi}`truststore` package.
 
 If you encounter a TLS/SSL error when using the `truststore` feature you should
 open an issue on the [truststore GitHub issue tracker] instead of pip's issue
 tracker. The maintainers of truststore will help diagnose and fix the issue.
+
+To opt-out of using system certificates you can pass the `--use-deprecated=legacy-certs`
+flag to pip.
+
+```{warning}
+On Python 3.9 or earlier, only certifi is used to verify HTTPS connections as
+`truststore` requires Python 3.10 or higher to function.
+
+The system certificate store won't be used in this case, so some situations like proxies
+with their own certificates may not work. Upgrading to at least Python 3.10 or later is
+the recommended method to resolve this issue.
+```
 
 [truststore github issue tracker]:
   https://github.com/sethmlarson/truststore/issues

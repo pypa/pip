@@ -32,7 +32,7 @@ class ArgRecordingSdistMaker(Protocol):
     def __call__(self, name: str, **kwargs: Any) -> ArgRecordingSdist: ...
 
 
-@pytest.fixture()
+@pytest.fixture
 def arg_recording_sdist_maker(
     script: PipTestEnvironment,
 ) -> ArgRecordingSdistMaker:
@@ -624,10 +624,9 @@ def test_install_distribution_duplicate_extras(
 ) -> None:
     to_install = data.packages.joinpath("LocalExtras")
     package_name = f"{to_install}[bar]"
-    with pytest.raises(AssertionError):
-        result = script.pip_install_local(package_name, package_name)
-        expected = f"Double requirement given: {package_name}"
-        assert expected in result.stderr
+    result = script.pip_install_local(package_name, package_name)
+    unexpected = f"Double requirement given: {package_name}"
+    assert unexpected not in result.stderr
 
 
 def test_install_distribution_union_with_constraints(

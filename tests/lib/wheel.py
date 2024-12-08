@@ -109,7 +109,7 @@ def make_metadata_file(
 def make_wheel_metadata_file(
     name: str,
     version: str,
-    value: Defaulted[Optional[AnyStr]],
+    value: Defaulted[Union[bytes, str, None]],
     tags: Sequence[Tuple[str, str, str]],
     updates: Defaulted[Dict[str, HeaderValue]],
 ) -> Optional[File]:

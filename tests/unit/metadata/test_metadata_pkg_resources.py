@@ -4,6 +4,7 @@ from typing import List, cast
 from unittest import mock
 
 import pytest
+
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name

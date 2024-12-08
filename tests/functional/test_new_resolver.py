@@ -35,7 +35,7 @@ def assert_editable(script: PipTestEnvironment, *args: str) -> None:
     ), f"{args!r} not all found in {script.site_packages_path!r}"
 
 
-@pytest.fixture()
+@pytest.fixture
 def make_fake_wheel(script: PipTestEnvironment) -> MakeFakeWheel:
     def _make_fake_wheel(name: str, version: str, wheel_tag: str) -> pathlib.Path:
         wheel_house = script.scratch_path.joinpath("wheelhouse")
@@ -416,6 +416,30 @@ def test_new_resolver_requires_python_error(script: PipTestEnvironment) -> None:
         "{}.{}.{} not in '<2'".format(*sys.version_info[:3])
     )
     assert message in result.stderr, str(result)
+
+
+def test_new_resolver_requires_python_ok_with_python_version_flag(
+    script: PipTestEnvironment,
+) -> None:
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+        requires_python="<3",
+    )
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "--dry-run",
+        "--python-version=2",
+        "--only-binary=:all:",
+        "base",
+    )
+
+    assert not result.stderr, str(result)
 
 
 def test_new_resolver_installed(script: PipTestEnvironment) -> None:
@@ -2275,8 +2299,8 @@ def test_new_resolver_dont_backtrack_on_extra_if_base_constrained(
     script.assert_installed(pkg="1.0", dep="1.0")
 
 
-@pytest.mark.parametrize("swap_order", (True, False))
-@pytest.mark.parametrize("two_extras", (True, False))
+@pytest.mark.parametrize("swap_order", [True, False])
+@pytest.mark.parametrize("two_extras", [True, False])
 def test_new_resolver_dont_backtrack_on_extra_if_base_constrained_in_requirement(
     script: PipTestEnvironment, swap_order: bool, two_extras: bool
 ) -> None:
@@ -2313,8 +2337,8 @@ def test_new_resolver_dont_backtrack_on_extra_if_base_constrained_in_requirement
     script.assert_installed(pkg="1.0", dep="1.0")
 
 
-@pytest.mark.parametrize("swap_order", (True, False))
-@pytest.mark.parametrize("two_extras", (True, False))
+@pytest.mark.parametrize("swap_order", [True, False])
+@pytest.mark.parametrize("two_extras", [True, False])
 def test_new_resolver_dont_backtrack_on_conflicting_constraints_on_extras(
     tmpdir: pathlib.Path,
     virtualenv: VirtualEnvironment,
@@ -2494,7 +2518,7 @@ def test_new_resolver_works_when_failing_package_builds_are_disallowed(
     script.assert_installed(pkg2="1.0", pkg1="1.0")
 
 
-@pytest.mark.parametrize("swap_order", (True, False))
+@pytest.mark.parametrize("swap_order", [True, False])
 def test_new_resolver_comes_from_with_extra(
     script: PipTestEnvironment, swap_order: bool
 ) -> None:
