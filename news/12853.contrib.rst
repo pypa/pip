@@ -1,0 +1,7 @@
+Added separate changelog fragment types for contributor-
+and downstream-facing patches, as well as a catch-all
+miscellaneous section.
+
+Their corresponding identifiers are ``contrib`` and ``packaging``
+respectively. They are meant to be used for more accurate
+classification, where one would resort to using ``misc`` otherwise.

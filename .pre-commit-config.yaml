@@ -65,9 +65,45 @@ repos:
   - id: news-fragment-filenames
     name: NEWS fragment
     language: fail
-    entry: NEWS fragment files must be named *.(process|removal|feature|bugfix|vendor|doc|trivial).rst
-    exclude: ^news/(.gitignore|.*\.(process|removal|feature|bugfix|vendor|doc|trivial).rst)
+    entry: >-
+      NEWS fragment files must be named
+      ####.(
+      removal
+      |feature
+      |bugfix
+      |vendor
+      |doc
+      |packaging
+      |contrib
+      |misc
+      |trivial
+      )(.#)?(.rst)?
+    exclude: >-
+      (?x)
+      ^
+        news/(
+          \.gitignore
+          |(\d+|[0-9a-f]{8}|[0-9a-f]{7}|[0-9a-f]{40}|\+[^.]+)\.(
+            removal
+            |feature
+            |bugfix
+            |vendor
+            |doc
+            |packaging
+            |contrib
+            |misc
+            |trivial
+          )(\.\d+)?(\.rst)?
+          |[0-9a-zA-Z-_]+\.vendor(\.\d+)?(\.rst)?  # special-case vendoring
+          |README\.rst
+          |\.towncrier-template\.rst\.j2
+        )
+      $
     files: ^news/
+    types: []
+    types_or:
+    - file
+    - symlink
 
 ci:
   autofix_prs: false
