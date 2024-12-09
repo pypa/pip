@@ -180,10 +180,12 @@ class CacheCommand(Command):
         if not files:
             logger.warning(no_matching_msg)
 
+        size = 0
         for filename in files:
+            size += os.stat(filename).st_size
             os.unlink(filename)
             logger.verbose("Removed %s", filename)
-        logger.info("Files removed: %s", len(files))
+        logger.info("%s bytes of files removed", f"{size:,}")
 
     def purge_cache(self, options: Values, args: List[Any]) -> None:
         if args:
