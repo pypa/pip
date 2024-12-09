@@ -172,13 +172,10 @@ jobs:
       matrix:
         os: [Windows]
         python:
+          # Since Windows tests are expensively slow, only test the
+          # oldest and newest Python supported by pip per PR, other
+          # Python versions are tested on scheduled runs
           - "3.8"
-          # Commented out, since Windows tests are expensively slow,
-          # only test the oldest and newest Python supported by pip
-          # - "3.9"
-          # - "3.10"
-          # - "3.11"
-          # - "3.12"
           - "3.13"
         group: [1, 2]
 
@@ -224,6 +221,48 @@ jobs:
           --verbose --numprocesses auto --showlocals
         env:
           TEMP: "C:\\Temp"
+
+  tests-windows-scheduled:
+    name: tests (scheduled) / ${{ matrix.python }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}-latest
+
+    # This job only runs on a cron schedule
+    if: github.event_name == 'schedule'
+
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [Windows]
+        python:
+          # Test against all versions of Python that are not tested per-PR
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          allow-prereleases: true
+
+      - run: pip install nox
+        env:
+          TEMP: "C:\\Temp"
+
+      # Main check
+      - name: Run unit tests
+        run: >-
+          nox -s test-${{ matrix.python.key || matrix.python }} --
+          -m unit
+          --verbose --numprocesses auto --showlocals
+      - name: Run integration tests
+        run: >-
+          nox -s test-${{ matrix.python.key || matrix.python }} --
+          -m integration
+          --verbose --numprocesses auto --showlocals
+          --durations=5
 
   tests-zipapp:
     name: tests / zipapp
