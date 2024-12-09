@@ -2,7 +2,6 @@
 """
 
 import argparse
-import glob
 import os
 import shutil
 import sys
@@ -315,94 +314,3 @@ def prepare_release(session: nox.Session) -> None:
     next_dev_version = release.get_next_development_version(version)
     release.update_version_file(next_dev_version, VERSION_FILE)
     release.commit_file(session, VERSION_FILE, message="Bump for development")
-
-
-@nox.session(name="build-release")
-def build_release(session: nox.Session) -> None:
-    version = release.get_version_from_arguments(session)
-    if not version:
-        session.error("Usage: nox -s build-release -- YY.N[.P]")
-
-    session.log("# Ensure no files in dist/")
-    if release.have_files_in_folder("dist"):
-        session.error(
-            "There are files in dist/. Remove them and try again. "
-            "You can use `git clean -fxdi -- dist` command to do this"
-        )
-
-    session.log("# Install dependencies")
-    session.install("build", "twine")
-
-    with release.isolated_temporary_checkout(session, version) as build_dir:
-        session.log(
-            "# Start the build in an isolated, "
-            f"temporary Git checkout at {build_dir!s}",
-        )
-        with release.workdir(session, build_dir):
-            tmp_dists = build_dists(session)
-
-        tmp_dist_paths = (build_dir / p for p in tmp_dists)
-        session.log(f"# Copying dists from {build_dir}")
-        os.makedirs("dist", exist_ok=True)
-        for dist, final in zip(tmp_dist_paths, tmp_dists):
-            session.log(f"# Copying {dist} to {final}")
-            shutil.copy(dist, final)
-
-
-def build_dists(session: nox.Session) -> List[str]:
-    """Return dists with valid metadata."""
-    session.log(
-        "# Check if there's any Git-untracked files before building the wheel",
-    )
-
-    has_forbidden_git_untracked_files = any(
-        # Don't report the environment this session is running in
-        not untracked_file.startswith(".nox/build-release/")
-        for untracked_file in release.get_git_untracked_files()
-    )
-    if has_forbidden_git_untracked_files:
-        session.error(
-            "There are untracked files in the working directory. "
-            "Remove them and try again",
-        )
-
-    session.log("# Build distributions")
-    session.run("python", "-m", "build", silent=True)
-    produced_dists = glob.glob("dist/*")
-
-    session.log(f"# Verify distributions: {', '.join(produced_dists)}")
-    session.run("twine", "check", *produced_dists, silent=True)
-
-    return produced_dists
-
-
-@nox.session(name="upload-release")
-def upload_release(session: nox.Session) -> None:
-    version = release.get_version_from_arguments(session)
-    if not version:
-        session.error("Usage: nox -s upload-release -- YY.N[.P]")
-
-    session.log("# Install dependencies")
-    session.install("twine")
-
-    distribution_files = glob.glob("dist/*")
-    session.log(f"# Distribution files: {distribution_files}")
-
-    # Sanity check: Make sure there's 2 distribution files.
-    count = len(distribution_files)
-    if count != 2:
-        session.error(
-            f"Expected 2 distribution files for upload, got {count}. "
-            f"Remove dist/ and run 'nox -s build-release -- {version}'"
-        )
-    # Sanity check: Make sure the files are correctly named.
-    distfile_names = (os.path.basename(fn) for fn in distribution_files)
-    expected_distribution_files = [
-        f"pip-{version}-py3-none-any.whl",
-        f"pip-{version}.tar.gz",
-    ]
-    if sorted(distfile_names) != sorted(expected_distribution_files):
-        session.error(f"Distribution files do not seem to be for {version} release.")
-
-    session.log("# Upload distributions")
-    session.run("twine", "upload", *distribution_files)
