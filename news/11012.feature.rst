@@ -1,1 +1,3 @@
-Network cache file permissions will inherit the read/write permissions of the cache's directory with the exception of owner read/write permissions which will always be set. This feature enables sharing a cache in a multi-user environment.
+Cached files will inherit the read/write permissions of pip's cache directory
+(in addition to the current user retaining read/write access). This enables a
+single cache to be shared among multiple users.
