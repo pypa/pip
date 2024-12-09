@@ -2361,6 +2361,38 @@ def test_install_sends_client_cert(
         assert environ["SSL_CLIENT_CERT"]
 
 
+def test_install_sends_certs_for_pep518_deps(
+    script: PipTestEnvironment,
+    cert_factory: CertFactory,
+    data: TestData,
+    common_wheels: Path,
+) -> None:
+    cert_path = cert_factory()
+    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    ctx.load_cert_chain(cert_path, cert_path)
+    ctx.load_verify_locations(cafile=cert_path)
+    ctx.verify_mode = ssl.CERT_REQUIRED
+
+    setuptools_pkg = next(common_wheels.glob("setuptools*")).name
+    server = make_mock_server(ssl_context=ctx)
+    server.mock.side_effect = [
+        package_page({setuptools_pkg: f"/files/{setuptools_pkg}"}),
+        file_response(common_wheels / setuptools_pkg),
+    ]
+    url = f"https://{server.host}:{server.port}/simple"
+
+    args = ["install", str(data.packages / "pep517_setup_and_pyproject")]
+    args.extend(["--index-url", url])
+    args.extend(["--cert", cert_path, "--client-cert", cert_path])
+
+    with server_running(server):
+        script.pip(*args)
+
+    for call_args in server.mock.call_args_list:
+        environ, _ = call_args.args
+        assert environ.get("SSL_CLIENT_CERT", "")
+
+
 def test_install_skip_work_dir_pkg(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test that install of a package in working directory
