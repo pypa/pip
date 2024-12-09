@@ -1,0 +1,1 @@
+Pip now returns the size, rather than the number, of files cleared on `cache purge`
