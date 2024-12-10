@@ -261,7 +261,7 @@ keyring_provider: Callable[..., Option] = partial(
     help=(
         "Enable the credential lookup via the keyring library if user input is allowed."
         " Specify which mechanism to use [auto, disabled, import, subprocess]."
-        " (default: auto)"
+        " (default: %default)"
     ),
 )
 
