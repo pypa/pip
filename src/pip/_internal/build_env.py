@@ -276,6 +276,8 @@ class BuildEnvironment:
             args.append("--pre")
         if finder.prefer_binary:
             args.append("--prefer-binary")
+        if finder.proxy is not None:
+            args.extend(["--proxy", finder.proxy])
         args.append("--")
         args.extend(requirements)
         extra_environ = {"_PIP_STANDALONE_CERT": where()}
