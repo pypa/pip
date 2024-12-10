@@ -183,7 +183,28 @@ class CacheCommand(Command):
         for filename in files:
             os.unlink(filename)
             logger.verbose("Removed %s", filename)
+
+        http_dirs = filesystem.subdirs_with_no_files(self._cache_dir(options, "http"))
+        wheel_dirs = filesystem.subdirs_with_no_files(
+            self._cache_dir(options, "wheels")
+        )
+        dirs = [*http_dirs, *wheel_dirs]
+        for dirname in dirs:
+            try:
+                os.rmdir(dirname)
+            except FileNotFoundError:
+                # If the file is already gone, that's fine.
+                pass
+            logger.verbose("Removed %s", dirname)
+
+        # selfcheck.json is no longer used by pip.
+        selfcheck_json = self._cache_dir(options, "selfcheck.json")
+        if os.path.isfile(selfcheck_json):
+            os.remove(selfcheck_json)
+            logger.verbose("Removed legacy selfcheck.json file")
+
         logger.info("Files removed: %s", len(files))
+        logger.info("Empty directories removed: %s", len(dirs))
 
     def purge_cache(self, options: Values, args: List[Any]) -> None:
         if args:

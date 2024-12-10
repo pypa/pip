@@ -4,9 +4,11 @@ import os.path
 import random
 import sys
 from contextlib import contextmanager
+from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Any, BinaryIO, Generator, List, Union, cast
 
+from pip._internal.exceptions import PipError
 from pip._internal.utils.compat import get_path_uid
 from pip._internal.utils.misc import format_size
 from pip._internal.utils.retry import retry
@@ -147,3 +149,50 @@ def directory_size(path: str) -> Union[int, float]:
 
 def format_directory_size(path: str) -> str:
     return format_size(directory_size(path))
+
+
+def _leaf_subdirs(path):
+    """Traverses the file tree, finding every empty directory."""
+
+    path_obj = Path(path)
+
+    if not path_obj.exists():
+        return
+
+    for item in path_obj.iterdir():
+        if not item.is_dir():
+            continue
+
+        subitems = item.iterdir()
+
+        # ASSUMPTION: Nothing in subitems will be None or False.
+        if not any(subitems):
+            yield item
+
+        if not any(subitem.is_file() for subitem in subitems):
+            yield from _leaf_subdirs(item)
+
+
+def _leaf_parents_without_files(path, leaf):
+    """Yields +leaf+ and each parent directory below +path+, until one of
+    them includes a file (as opposed to directories or nothing)."""
+
+    if not str(leaf).startswith(str(path)):
+        # If +leaf+ is not a subdirectory of +path+, bail early to avoid
+        # an endless loop.
+        raise PipError("leaf is not a subdirectory of path")
+
+    path = Path(path)
+    leaf = Path(leaf)
+    while leaf != path:
+        if all(item.is_dir() for item in leaf.iterdir()):
+            yield str(leaf)
+        else:
+            break
+        leaf = leaf.parent
+
+
+def subdirs_with_no_files(path):
+    """Yields every subdirectory of +path+ that has no files under it."""
+    for leaf in _leaf_subdirs(path):
+        yield from _leaf_parents_without_files(path, leaf)
