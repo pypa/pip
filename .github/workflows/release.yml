@@ -1,24 +1,46 @@
+name: Publish Python 🐍 distribution 📦 to PyPI
+
 on:
   push:
     tags:
       - "*"
 
-name: Release
-
 jobs:
-  pypi:
-    name: Upload release to PyPI
+  build:
+    name: Build distribution 📦
     runs-on: ubuntu-latest
-    environment: release
-    permissions:
-      # Used to authenticate to PyPI via OIDC.
-      id-token: write
+
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-      - name: Build sdist and wheel
+      - name: Build a binary wheel and a source tarball
         run: pipx run build
-      - name: Publish to PyPI
+      - name: Store the distribution packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+  publish-to-pypi:
+    name: >-
+      Publish Python 🐍 distribution 📦 to PyPI
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/pip/${{ github.ref_name }}
+    permissions:
+      id-token: write  # IMPORTANT: mandatory for trusted publishing
+
+    steps:
+      - name: Download all the dists
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+      - name: Publish distribution 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
