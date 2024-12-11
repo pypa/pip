@@ -1,0 +1,1 @@
+Refactor much of ``RequirementPreparer`` to avoid duplicated code paths for metadata-only requirements.
