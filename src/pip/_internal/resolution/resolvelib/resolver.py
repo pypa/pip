@@ -82,7 +82,7 @@ class Resolver(BaseResolver):
             user_requested=collected.user_requested,
         )
         if "PIP_RESOLVER_DEBUG" in os.environ:
-            reporter: BaseReporter = PipDebuggingReporter()
+            reporter: BaseReporter[Requirement, Candidate, str] = PipDebuggingReporter()
         else:
             reporter = PipReporter()
         resolver: RLResolver[Requirement, Candidate, str] = RLResolver(
