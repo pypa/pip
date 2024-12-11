@@ -40,7 +40,9 @@ from pip._internal.network.session import PipSession
 from tests.lib import (
     TestData,
     make_test_link_collector,
+    skip_needs_new_pathname2url_trailing_slash_behavior_win,
     skip_needs_new_urlun_behavior_win,
+    skip_needs_old_pathname2url_trailing_slash_behavior_win,
     skip_needs_old_urlun_behavior_win,
 )
 
@@ -390,12 +392,26 @@ def test_clean_url_path_with_local_path(path: str, expected: str) -> None:
         pytest.param(
             "file:///T:/path/with spaces/",
             "file:///T:/path/with%20spaces",
-            marks=skip_needs_old_urlun_behavior_win,
+            marks=[
+                skip_needs_old_urlun_behavior_win,
+                skip_needs_old_pathname2url_trailing_slash_behavior_win,
+            ],
         ),
         pytest.param(
             "file:///T:/path/with spaces/",
             "file://///T:/path/with%20spaces",
-            marks=skip_needs_new_urlun_behavior_win,
+            marks=[
+                skip_needs_new_urlun_behavior_win,
+                skip_needs_old_pathname2url_trailing_slash_behavior_win,
+            ],
+        ),
+        pytest.param(
+            "file:///T:/path/with spaces/",
+            "file://///T:/path/with%20spaces/",
+            marks=[
+                skip_needs_new_urlun_behavior_win,
+                skip_needs_new_pathname2url_trailing_slash_behavior_win,
+            ],
         ),
         # URL with Windows drive letter, running on non-windows
         # platform. The `:` after the drive should be quoted.

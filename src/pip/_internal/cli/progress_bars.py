@@ -67,7 +67,7 @@ def _raw_progress_bar(
     initial_progress: Optional[int] = None,
 ) -> Generator[bytes, None, None]:
     def write_progress(current: int, total: int) -> None:
-        sys.stdout.write("Progress %d of %d\n" % (current, total))
+        sys.stdout.write(f"Progress {current} of {total}\n")
         sys.stdout.flush()
 
     current = initial_progress or 0
