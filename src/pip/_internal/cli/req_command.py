@@ -10,13 +10,21 @@ from functools import partial
 from optparse import Values
 from typing import Any, List, Optional, Tuple
 
+from pip._vendor.packaging.requirements import Requirement
+
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
+from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.index_command import IndexGroupCommand
 from pip._internal.cli.index_command import SessionCommandMixin as SessionCommandMixin
-from pip._internal.exceptions import CommandError, PreviousBuildDirError
+from pip._internal.exceptions import (
+    CommandError,
+    PreviousBuildDirError,
+    UnsupportedPythonVersion,
+)
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
+from pip._internal.metadata.pep723 import pep723_metadata
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
@@ -31,6 +39,7 @@ from pip._internal.req.constructors import (
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.resolution.base import BaseResolver
+from pip._internal.utils.packaging import check_requires_python
 from pip._internal.utils.temp_dir import (
     TempDirectory,
     TempDirectoryTypeRegistry,
@@ -268,11 +277,37 @@ class RequirementCommand(IndexGroupCommand):
                 )
                 requirements.append(req_to_add)
 
+        if options.scripts:
+            if len(options.scripts) > 1:
+                raise CommandError("--script can only be given once")
+
+            script = options.scripts[0]
+            script_metadata = pep723_metadata(script)
+
+            script_requires_python = script_metadata.get("requires-python", "")
+
+            if script_requires_python and not options.ignore_requires_python:
+                target_python = make_target_python(options)
+
+                if not check_requires_python(
+                    requires_python=script_requires_python,
+                    version_info=target_python.py_version_info,
+                ):
+                    raise UnsupportedPythonVersion(
+                        f"Script {script!r} requires a different Python: "
+                        f"{target_python.py_version} not in {script_requires_python!r}"
+                    )
+
+            for req in script_metadata.get("dependencies", []):
+                requirements.append(
+                    InstallRequirement(Requirement(req), comes_from=None)
+                )
+
         # If any requirement has hash options, enable hash checking.
         if any(req.has_hash_options for req in requirements):
             options.require_hashes = True
 
-        if not (args or options.editables or options.requirements):
+        if not (args or options.editables or options.requirements or options.scripts):
             opts = {"name": self.name}
             if options.find_links:
                 raise CommandError(
