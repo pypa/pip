@@ -17,6 +17,7 @@ __all__ = [
 T = TypeVar("T")
 
 DIRECT_URL_METADATA_NAME = "direct_url.json"
+PROVENANCE_URL_METADATA_NAME = "provenance_url.json"
 ENV_VAR_RE = re.compile(r"^\$\{[A-Za-z0-9-_]+\}(:\$\{[A-Za-z0-9-_]+\})?$")
 
 
@@ -205,20 +206,27 @@ class DirectUrl:
             ),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, *, keep_legacy_hash_key: bool = True) -> Dict[str, Any]:
         res = _filter_none(
             url=self.redacted_url,
             subdirectory=self.subdirectory,
         )
-        res[self.info.name] = self.info._to_dict()
+
+        info_dict = self.info._to_dict()
+        if not keep_legacy_hash_key:
+            info_dict.pop("hash", None)
+
+        res[self.info.name] = info_dict
         return res
 
     @classmethod
     def from_json(cls, s: str) -> "DirectUrl":
         return cls.from_dict(json.loads(s))
 
-    def to_json(self) -> str:
-        return json.dumps(self.to_dict(), sort_keys=True)
+    def to_json(self, *, keep_legacy_hash_key: bool = True) -> str:
+        return json.dumps(
+            self.to_dict(keep_legacy_hash_key=keep_legacy_hash_key), sort_keys=True
+        )
 
     def is_local_editable(self) -> bool:
         return isinstance(self.info, DirInfo) and self.info.editable
