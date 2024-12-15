@@ -23,7 +23,7 @@ def test_parse_simple_dependency_groups(
     )
     monkeypatch.chdir(tmp_path)
 
-    result = list(parse_dependency_groups(["foo"]))
+    result = list(parse_dependency_groups([("pyproject.toml", "foo")]))
 
     assert len(result) == 1, result
     assert result[0] == "bar"
@@ -45,9 +45,13 @@ def test_parse_cyclic_dependency_groups(
     monkeypatch.chdir(tmp_path)
 
     with pytest.raises(
-        InstallationError, match=r"\[dependency-groups\] resolution failed:"
+        InstallationError,
+        match=(
+            r"\[dependency-groups\] resolution failed for "
+            r"'foo' from 'pyproject\.toml':"
+        ),
     ) as excinfo:
-        parse_dependency_groups(["foo"])
+        parse_dependency_groups([("pyproject.toml", "foo")])
 
     exception = excinfo.value
     assert (
@@ -63,9 +67,10 @@ def test_parse_with_no_dependency_groups_defined(
     monkeypatch.chdir(tmp_path)
 
     with pytest.raises(
-        InstallationError, match=r"\[dependency-groups\] table was missing\."
+        InstallationError,
+        match=(r"\[dependency-groups\] table was missing from 'pyproject\.toml'\."),
     ):
-        parse_dependency_groups(["foo"])
+        parse_dependency_groups([("pyproject.toml", "foo")])
 
 
 def test_parse_with_no_pyproject_file(
@@ -74,7 +79,7 @@ def test_parse_with_no_pyproject_file(
     monkeypatch.chdir(tmp_path)
 
     with pytest.raises(InstallationError, match=r"pyproject\.toml not found\."):
-        parse_dependency_groups(["foo"])
+        parse_dependency_groups([("pyproject.toml", "foo")])
 
 
 def test_parse_with_malformed_pyproject_file(
@@ -92,7 +97,7 @@ def test_parse_with_malformed_pyproject_file(
     monkeypatch.chdir(tmp_path)
 
     with pytest.raises(InstallationError, match=r"Error parsing pyproject\.toml"):
-        parse_dependency_groups(["foo"])
+        parse_dependency_groups([("pyproject.toml", "foo")])
 
 
 def test_parse_gets_unexpected_oserror(
@@ -119,4 +124,4 @@ def test_parse_gets_unexpected_oserror(
     )
 
     with pytest.raises(InstallationError, match=r"Error reading pyproject\.toml"):
-        parse_dependency_groups(["foo"])
+        parse_dependency_groups([("pyproject.toml", "foo")])

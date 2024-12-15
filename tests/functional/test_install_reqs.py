@@ -94,10 +94,22 @@ def test_requirements_file(script: PipTestEnvironment) -> None:
 
 
 @pytest.mark.network
-def test_dependency_group(script: PipTestEnvironment) -> None:
+@pytest.mark.parametrize(
+    "path, groupname",
+    [
+        (None, "initools"),
+        ("pyproject.toml", "initools"),
+        ("./pyproject.toml", "initools"),
+        (lambda path: path.absolute(), "initools"),
+    ],
+)
+def test_dependency_group(
+    script: PipTestEnvironment,
+    path: Any,
+    groupname: str,
+) -> None:
     """
     Test installing from a dependency group.
-
     """
     pyproject = script.scratch_path / "pyproject.toml"
     pyproject.write_text(
@@ -111,7 +123,13 @@ def test_dependency_group(script: PipTestEnvironment) -> None:
             """
         )
     )
-    result = script.pip("install", "--group", "initools")
+    if path is None:
+        arg = groupname
+    else:
+        if callable(path):
+            path = path(pyproject)
+        arg = f"{path}:{groupname}"
+    result = script.pip("install", "--group", arg)
     result.did_create(script.site_packages / "INITools-0.2.dist-info")
     result.did_create(script.site_packages / "initools")
     assert result.files_created[script.site_packages / "peppercorn"].dir
