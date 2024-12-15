@@ -1,3 +1,4 @@
 - Add a ``--group`` option which allows installation from PEP 735 Dependency
-  Groups. Only ``pyproject.toml`` files in the current working directory are
-  supported.
+  Groups. ``--group`` accepts arguments of the form ``group`` or
+  ``path:group``, where the default path is ``pyproject.toml``, and installs
+  the named Dependency Group from the provided ``pyproject.toml`` file.
