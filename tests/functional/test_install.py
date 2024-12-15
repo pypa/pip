@@ -333,6 +333,30 @@ empty = []
     script.pip("install", "--group", "empty")
 
 
+@pytest.mark.parametrize("file_exists", [True, False])
+def test_install_dependency_group_bad_filename_error(
+    script: PipTestEnvironment, file_exists: bool
+) -> None:
+    """
+    Test install exit status code is 2 (usage error) when a dependency group path is
+    specified which isn't a `pyproject.toml`
+    """
+    if file_exists:
+        script.scratch_path.joinpath("not-pyproject.toml").write_text(
+            textwrap.dedent(
+                """
+                [dependency-groups]
+                publish = ["twine"]
+                """
+            )
+        )
+    result = script.pip(
+        "install", "--group", "not-pyproject.toml:publish", expect_error=True
+    )
+    assert "group paths use 'pyproject.toml' filenames" in result.stderr
+    assert result.returncode == 2
+
+
 @pytest.mark.network
 def test_basic_install_from_pypi(script: PipTestEnvironment) -> None:
     """
