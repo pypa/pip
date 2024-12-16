@@ -4,6 +4,7 @@ Contains interface (MultiDomainBasicAuth) and associated glue code for
 providing credentials in the context of network requests.
 """
 
+import json
 import logging
 import os
 import shutil
@@ -115,23 +116,22 @@ class KeyRingCliProvider(KeyRingBaseProvider):
         self.keyring = cmd
 
     def get_auth_info(self, url: str, username: Optional[str]) -> Optional[AuthInfo]:
-        # This is the default implementation of keyring.get_credential
-        # https://github.com/jaraco/keyring/blob/97689324abcf01bd1793d49063e7ca01e03d7d07/keyring/backend.py#L134-L139
-        if username is not None:
-            password = self._get_password(url, username)
-            if password is not None:
-                return username, password
-        return None
+        return self._get_creds(url, username)
 
     def save_auth_info(self, url: str, username: str, password: str) -> None:
         return self._set_password(url, username, password)
 
-    def _get_password(self, service_name: str, username: str) -> Optional[str]:
-        """Mirror the implementation of keyring.get_password using cli"""
+    def _get_creds(
+        self, service_name: str, username: Optional[str]
+    ) -> Optional[AuthInfo]:
+        """Mirror the implementation of keyring.get_credential using cli"""
         if self.keyring is None:
             return None
 
-        cmd = [self.keyring, "get", service_name, username]
+        cmd = [self.keyring, "--mode=creds", "--output=json", "get", service_name]
+        if username is not None:
+            cmd.append(username)
+
         env = os.environ.copy()
         env["PYTHONIOENCODING"] = "utf-8"
         res = subprocess.run(
@@ -142,7 +142,9 @@ class KeyRingCliProvider(KeyRingBaseProvider):
         )
         if res.returncode:
             return None
-        return res.stdout.decode("utf-8").strip(os.linesep)
+
+        data = json.loads(res.stdout.decode("utf-8"))
+        return (data["username"], data["password"])
 
     def _set_password(self, service_name: str, username: str, password: str) -> None:
         """Mirror the implementation of keyring.set_password using cli"""
