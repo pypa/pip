@@ -1,2 +1,0 @@
-Clarified documentation for using environment variables
-instead of command line options.
