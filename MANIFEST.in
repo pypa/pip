@@ -4,6 +4,7 @@ include NEWS.rst
 include README.rst
 include SECURITY.md
 include pyproject.toml
+include build-requirements.*
 
 include src/pip/_vendor/README.rst
 include src/pip/_vendor/vendor.txt
