@@ -280,6 +280,8 @@ class BuildEnvironment:
             args.append("--pre")
         if finder.prefer_binary:
             args.append("--prefer-binary")
+        if finder.proxy is not None:
+            args.extend(["--proxy", finder.proxy])
         args.append("--")
         args.extend(requirements)
         with open_spinner(f"Installing {kind}") as spinner:
