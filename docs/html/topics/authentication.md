@@ -163,25 +163,6 @@ from the subprocess in which they run Pip. You won't know whether the keyring
 backend is waiting the user input or not in such situations.
 ```
 
-pip is conservative and does not query keyring at all when `--no-input` is used
-because the keyring might require user interaction such as prompting the user
-on the console. You can force keyring usage by passing `--force-keyring` or one
-of the following:
-
-```bash
-# possibly with --user, --global or --site
-$ pip config set global.force-keyring true
-# or
-$ export PIP_FORCE_KEYRING=1
-```
-
-```{warning}
-Be careful when doing this since it could cause tools such as pipx and Pipenv
-to appear to hang. They show their own progress indicator while hiding output
-from the subprocess in which they run Pip. You won't know whether the keyring
-backend is waiting the user input or not in such situations.
-```
-
 Note that `keyring` (the Python package) needs to be installed separately from
 pip. This can create a bootstrapping issue if you need the credentials stored in
 the keyring to download and install keyring.
