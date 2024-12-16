@@ -237,8 +237,13 @@ Use `no`, `false` or `0` instead.
 
 Consequently, boolean options prefixed with `--no-*` can be disabled by using
 truthy values, e.g. `PIP_NO_CACHE_DIR=true`.
+```
 
-Exception options are:
+```{warning}
+`PIP_NO_BUILD_ISOLATION` functions **opposite** to how it reads. For example, to
+disable build isolation, `PIP_NO_BUILD_ISOLATION` must be set to a **falsy** value,
+e.g. `PIP_NO_BUILD_ISOLATION=off`.
 
-- `PIP_NO_BUILD_ISOLATION=off`, see e.g. #5735 for details.
+This confusing behavior is known and will be addressed, please see issue {issue}`5735` for
+discussion on potential fixes.
 ```
