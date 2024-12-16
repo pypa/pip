@@ -1,0 +1,1 @@
+Output install progress when 'raw' progress_bar type is in use
