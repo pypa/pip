@@ -6,8 +6,10 @@ from typing import (
     Dict,
     Iterable,
     Iterator,
+    List,
     Mapping,
     Sequence,
+    Set,
     TypeVar,
     Union,
 )
@@ -74,6 +76,133 @@ def _get_with_identifier(
     if open_bracket and name in mapping:
         return mapping[name]
     return default
+
+
+def _extract_names_from_causes_and_parents(
+    causes: Iterable["PreferenceInformation"],
+) -> Set[str]:
+    """
+    Utility function to extract names from the causes and their parent packages
+
+    :params causes: An iterable of PreferenceInformation
+
+    Returns a set of strings, each representing the name of a requirement or
+    its parent package that was in causes
+    """
+    causes_names = set()
+    for cause in causes:
+        causes_names.add(cause.requirement.name)
+        if cause.parent:
+            causes_names.add(cause.parent.name)
+
+    return causes_names
+
+
+def _causes_with_conflicting_parent(
+    causes: Iterable["PreferenceInformation"],
+) -> List["PreferenceInformation"]:
+    """
+    Identifies causes that conflict because their parent package requirements
+    are not satisfied by another cause, or vice versa.
+
+    :params causes: An iterable  sequence of PreferenceInformation
+
+    Returns a list of PreferenceInformation objects that represent the causes
+    where their parent conflicts
+    """
+    # Avoid duplication by keeping track of already identified conflicting
+    # causes by their id
+    conflicting_causes_by_id: dict[int, "PreferenceInformation"] = {}
+    all_causes_by_id = {id(c): c for c in causes}
+
+    # Map cause IDs and parent packages by parent name for quick lookup
+    causes_ids_and_parents_by_parent_name: dict[
+        str, list[tuple[int, Candidate]]
+    ] = collections.defaultdict(list)
+    for cause_id, cause in all_causes_by_id.items():
+        if cause.parent:
+            causes_ids_and_parents_by_parent_name[cause.parent.name].append(
+                (cause_id, cause.parent)
+            )
+
+    # Identify a cause's requirement conflicts with another cause's parent
+    for cause_id, cause in all_causes_by_id.items():
+        if cause_id in conflicting_causes_by_id:
+            continue
+
+        cause_id_and_parents = causes_ids_and_parents_by_parent_name.get(
+            cause.requirement.name
+        )
+        if not cause_id_and_parents:
+            continue
+
+        for other_cause_id, parent in cause_id_and_parents:
+            if not cause.requirement.is_satisfied_by(parent):
+                conflicting_causes_by_id[cause_id] = cause
+                conflicting_causes_by_id[other_cause_id] = all_causes_by_id[
+                    other_cause_id
+                ]
+
+    return list(conflicting_causes_by_id.values())
+
+
+def _first_causes_with_no_candidates(
+    causes: Sequence["PreferenceInformation"],
+    candidates: Mapping[str, Iterator[Candidate]],
+) -> List["PreferenceInformation"]:
+    """
+    Checks for causes that have no possible candidates to satisfy their
+    requirements. Returns first causes found as iterating candidates can
+    be expensive due to downloading and building packages.
+
+    :params causes: A sequence of PreferenceInformation
+    :params candidates: A mapping of package names to iterators of their candidates
+
+    Returns a list containing the first pair of PreferenceInformation objects
+    that were found which had no satisfying candidates, else if all causes
+    had at least some satisfying candidate an empty list is returned.
+    """
+    # Group causes by package name to reduce the comparison complexity.
+    causes_by_name: dict[str, list["PreferenceInformation"]] = collections.defaultdict(
+        list
+    )
+    for cause in causes:
+        causes_by_name[cause.requirement.project_name].append(cause)
+
+    # Check for cause pairs within the same package that have incompatible specifiers.
+    for cause_name, causes_list in causes_by_name.items():
+        if len(causes_list) < 2:
+            continue
+
+        while causes_list:
+            cause = causes_list.pop()
+            candidate = cause.requirement.get_candidate_lookup()[1]
+            if candidate is None:
+                continue
+
+            for other_cause in causes_list:
+                other_candidate = other_cause.requirement.get_candidate_lookup()[1]
+                if other_candidate is None:
+                    continue
+
+                # Check if no candidate can match the combined specifier
+                combined_specifier = candidate.specifier & other_candidate.specifier
+                possible_candidates = candidates.get(cause_name)
+
+                # If no candidates have been provided then by default the
+                # causes have no candidates
+                if possible_candidates is None:
+                    return [cause, other_cause]
+
+                # Use any and contains version here instead of filter so
+                # if a version is found that matches it will short curcuit
+                # iterating through possible candidates
+                if not any(
+                    combined_specifier.contains(c.version) for c in possible_candidates
+                ):
+                    return [cause, other_cause]
+
+    return []
 
 
 class PipProvider(_ProviderBase):
@@ -256,3 +385,58 @@ class PipProvider(_ProviderBase):
             if backtrack_cause.parent and identifier == backtrack_cause.parent.name:
                 return True
         return False
+
+    def narrow_requirement_selection(
+        self,
+        identifiers: Iterable[str],
+        resolutions: Mapping[str, Candidate],
+        candidates: Mapping[str, Iterator[Candidate]],
+        information: Mapping[str, Iterable["PreferenceInformation"]],
+        backtrack_causes: Sequence["PreferenceInformation"],
+    ) -> Iterable[str]:
+        """
+        Narrows down the selection of requirements to consider for the next
+        resolution step.
+
+        This method uses principles of conflict-driven clause learning (CDCL)
+        to focus on the closest conflicts first.
+
+        :params identifiers: Iterable of requirement names currently under
+            consideration.
+        :params resolutions: Current mapping of resolved package identifiers
+            to their selected candidates.
+        :params candidates: Mapping of each package's possible candidates.
+        :params information: Mapping of requirement information for each package.
+        :params backtrack_causes: Sequence of requirements, if non-empty,
+            were the cause of the resolver backtracking
+
+        Returns:
+            An iterable of requirement names that the resolver will use to
+            limit the next step of resolution
+        """
+
+        # If there are 2 or less causes then finding conflicts between
+        # them is not required as there will always be a minumum of two
+        # conflicts
+        if len(backtrack_causes) < 3:
+            return identifiers
+
+        # First, try to resolve direct causes based on conflicting parent packages
+        direct_causes = _causes_with_conflicting_parent(backtrack_causes)
+        if not direct_causes:
+            # If no conflicting parent packages found try to find some causes
+            # that share the same requirement name but no common candidate,
+            # we take the first one of these as iterating through candidates
+            # is potentially expensive
+            direct_causes = _first_causes_with_no_candidates(
+                backtrack_causes, candidates
+            )
+        if direct_causes:
+            backtrack_causes = direct_causes
+
+        # Filter identifiers based on the narrowed down causes.
+        unsatisfied_causes_names = set(
+            identifiers
+        ) & _extract_names_from_causes_and_parents(backtrack_causes)
+
+        return unsatisfied_causes_names if unsatisfied_causes_names else identifiers
