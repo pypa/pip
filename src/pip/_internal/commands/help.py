@@ -17,6 +17,7 @@ class HelpCommand(Command):
         from pip._internal.commands import (
             commands_dict,
             create_command,
+            find_command_by_alias,
             get_similar_commands,
         )
 
@@ -27,13 +28,18 @@ class HelpCommand(Command):
             return SUCCESS
 
         if cmd_name not in commands_dict:
-            guess = get_similar_commands(cmd_name)
+            alias_command = find_command_by_alias(cmd_name)
 
-            msg = [f'unknown command "{cmd_name}"']
-            if guess:
-                msg.append(f'maybe you meant "{guess}"')
+            if not alias_command:
+                guess = get_similar_commands(cmd_name)
 
-            raise CommandError(" - ".join(msg))
+                msg = [f'unknown command "{cmd_name}"']
+                if guess:
+                    msg.append(f'maybe you meant "{guess}"')
+
+                raise CommandError(" - ".join(msg))
+            cmd_name = alias_command
+            args[0] = cmd_name
 
         command = create_command(cmd_name)
         command.parser.print_help()
