@@ -6,7 +6,14 @@ from typing import TYPE_CHECKING, List, Optional, Type, cast
 
 from pip._internal.utils.misc import strtobool
 
-from .base import BaseDistribution, BaseEnvironment, FilesystemWheel, MemoryWheel, Wheel
+from .base import (
+    BaseDistribution,
+    BaseEnvironment,
+    FilesystemWheel,
+    MemoryWheel,
+    Wheel,
+    serialize_metadata,
+)
 
 if TYPE_CHECKING:
     from typing import Literal, Protocol
@@ -23,6 +30,7 @@ __all__ = [
     "get_environment",
     "get_wheel_distribution",
     "select_backend",
+    "serialize_metadata",
 ]
 
 
