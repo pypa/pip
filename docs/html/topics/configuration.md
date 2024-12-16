@@ -3,8 +3,7 @@
 # Configuration
 
 pip allows a user to change its behaviour via 3 mechanisms.
-These mechanisms are listed in order of priority, meaning that
-command line options has [preference](config-preference):
+These mechanisms are listed in order of priority, highest to lowest:
 
 1. command line options
 2. [environment variables](env-variables)
@@ -24,17 +23,17 @@ and how they are related to pip's various command line options.
 Configuration files can change the default values for command line options.
 The files are written using standard INI format.
 
-pip has 3 "levels" of configuration files:
+pip has 3 "levels" of configuration files, in order of priority, highest to lowest:
 
-- `global`: system-wide configuration file, shared across users.
-- `user`: per-user configuration file.
 - `site`: per-environment configuration file; i.e. per-virtualenv.
+- `user`: per-user configuration file.
+- `global`: system-wide configuration file, shared across users.
 
-```{note}
+```{important}
+Values in command-specific sections override values in the global section.
+
 Options specified through environment variables or command line options
 take precedence over configuration files.
-
-See the [preference section](config-preference) for more details.
 ```
 
 ### Location
@@ -210,20 +209,24 @@ command line arguments.
 
 ## Environment Variables
 
-All pip's command line options have equivalent environment variables,
+All pip command line options have equivalent environment variables,
 they can be specified using:
 ```shell
-PIP_<UPPER_LONG_NAME>
+PIP_<UPPERCASE_LONG_NAME>
 ```
 
-Options with dashes (`-`) have to be replaced with underscores (`_`).
+Dashes (`-`) have to be replaced with underscores (`_`).
 
 Examples:
 
 ```shell
 PIP_VERBOSE=3 PIP_CACHE_DIR=/home/user/tmp pip ...
-# is equivalent to
+PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com" pip ...
+PIP_NO_DEPS=yes pip ...
+# are equivalent to
 pip ... -vvv --cache-dir=/home/user/tmp
+pip ... --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
+pip ... --no-deps
 ```
 
 All option values follows the same rules as for the [configuration files](config-file).
@@ -234,19 +237,8 @@ Use `no`, `false` or `0` instead.
 
 Consequently, boolean options prefixed with `--no-*` can be disabled by using
 truthy values, e.g. `PIP_NO_CACHE_DIR=true`.
+
+Exception options are:
+
+- `PIP_NO_BUILD_ISOLATION=off`, see e.g. #5735 for details.
 ```
-
-(config-preference)=
-
-## Precedence / Override order
-
-Command line options override environment variables, which override the
-values in a configuration file. Within the configuration file, values in
-command-specific sections override values in the global section.
-
-Examples:
-
-- `--host=foo` overrides `PIP_HOST=foo`
-- `PIP_HOST=foo` overrides a config file with `[global] host = foo`
-- A command specific section in the config file `[<command>] host = bar`
-  overrides the option with same name in the `[global]` config file section.
