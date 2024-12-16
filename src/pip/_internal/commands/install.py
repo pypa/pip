@@ -2,8 +2,8 @@ import errno
 import json
 import operator
 import os
-import shutil
 import site
+import sys
 from optparse import SUPPRESS_HELP, Values
 from typing import List, Optional
 
@@ -41,7 +41,6 @@ from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import (
     check_externally_managed,
-    ensure_dir,
     get_pip_version,
     protect_pip_from_modification_on_windows,
     warn_if_run_as_root,
@@ -101,12 +100,7 @@ class InstallCommand(RequirementCommand):
             dest="target_dir",
             metavar="dir",
             default=None,
-            help=(
-                "Install packages into <dir>. "
-                "By default this will not replace existing files/folders in "
-                "<dir>. Use --upgrade to replace existing packages in <dir> "
-                "with new versions."
-            ),
+            help=("Install packages into <dir>."),
         )
         cmdoptions.add_target_python_options(self.cmd_opts)
 
@@ -307,10 +301,8 @@ class InstallCommand(RequirementCommand):
             isolated_mode=options.isolated_mode,
         )
 
-        target_temp_dir: Optional[TempDirectory] = None
-        target_temp_dir_path: Optional[str] = None
+        target_dir = None
         if options.target_dir:
-            options.ignore_installed = True
             options.target_dir = os.path.abspath(options.target_dir)
             if (
                 # fmt: off
@@ -322,12 +314,12 @@ class InstallCommand(RequirementCommand):
                     "Target path exists but is not a directory, will not continue."
                 )
 
-            # Create a target directory for using with the target option
-            target_temp_dir = TempDirectory(kind="target")
-            target_temp_dir_path = target_temp_dir.path
-            self.enter_context(target_temp_dir)
+            target_dir = options.target_dir
 
         global_options = options.global_options or []
+
+        if options.target_dir is not None and options.target_dir not in sys.path:
+            sys.path.append(options.target_dir)
 
         session = self.get_default_session(options)
 
@@ -382,7 +374,6 @@ class InstallCommand(RequirementCommand):
             )
 
             self.trace_basic_info(finder)
-
             requirement_set = resolver.resolve(
                 reqs, check_supported_wheels=not options.target_dir
             )
@@ -459,19 +450,21 @@ class InstallCommand(RequirementCommand):
                 to_install,
                 global_options,
                 root=options.root_path,
-                home=target_temp_dir_path,
+                home=target_dir,
                 prefix=options.prefix_path,
                 warn_script_location=warn_script_location,
                 use_user_site=options.use_user_site,
                 pycompile=options.compile,
+                target=True if target_dir else False,
             )
 
             lib_locations = get_lib_location_guesses(
                 user=options.use_user_site,
-                home=target_temp_dir_path,
+                home=target_dir,
                 root=options.root_path,
                 prefix=options.prefix_path,
                 isolated=options.isolated_mode,
+                target=True if target_dir else False,
             )
             env = get_environment(lib_locations)
 
@@ -515,68 +508,10 @@ class InstallCommand(RequirementCommand):
 
             return ERROR
 
-        if options.target_dir:
-            assert target_temp_dir
-            self._handle_target_dir(
-                options.target_dir, target_temp_dir, options.upgrade
-            )
         if options.root_user_action == "warn":
             warn_if_run_as_root()
+
         return SUCCESS
-
-    def _handle_target_dir(
-        self, target_dir: str, target_temp_dir: TempDirectory, upgrade: bool
-    ) -> None:
-        ensure_dir(target_dir)
-
-        # Checking both purelib and platlib directories for installed
-        # packages to be moved to target directory
-        lib_dir_list = []
-
-        # Checking both purelib and platlib directories for installed
-        # packages to be moved to target directory
-        scheme = get_scheme("", home=target_temp_dir.path)
-        purelib_dir = scheme.purelib
-        platlib_dir = scheme.platlib
-        data_dir = scheme.data
-
-        if os.path.exists(purelib_dir):
-            lib_dir_list.append(purelib_dir)
-        if os.path.exists(platlib_dir) and platlib_dir != purelib_dir:
-            lib_dir_list.append(platlib_dir)
-        if os.path.exists(data_dir):
-            lib_dir_list.append(data_dir)
-
-        for lib_dir in lib_dir_list:
-            for item in os.listdir(lib_dir):
-                if lib_dir == data_dir:
-                    ddir = os.path.join(data_dir, item)
-                    if any(s.startswith(ddir) for s in lib_dir_list[:-1]):
-                        continue
-                target_item_dir = os.path.join(target_dir, item)
-                if os.path.exists(target_item_dir):
-                    if not upgrade:
-                        logger.warning(
-                            "Target directory %s already exists. Specify "
-                            "--upgrade to force replacement.",
-                            target_item_dir,
-                        )
-                        continue
-                    if os.path.islink(target_item_dir):
-                        logger.warning(
-                            "Target directory %s already exists and is "
-                            "a link. pip will not automatically replace "
-                            "links, please remove if replacement is "
-                            "desired.",
-                            target_item_dir,
-                        )
-                        continue
-                    if os.path.isdir(target_item_dir):
-                        shutil.rmtree(target_item_dir)
-                    else:
-                        os.remove(target_item_dir)
-
-                shutil.move(os.path.join(lib_dir, item), target_item_dir)
 
     def _determine_conflicts(
         self, to_install: List[InstallRequirement]
@@ -647,6 +582,7 @@ def get_lib_location_guesses(
     root: Optional[str] = None,
     isolated: bool = False,
     prefix: Optional[str] = None,
+    target: Optional[bool] = False,
 ) -> List[str]:
     scheme = get_scheme(
         "",
@@ -656,6 +592,9 @@ def get_lib_location_guesses(
         isolated=isolated,
         prefix=prefix,
     )
+    if target and home is not None:
+        scheme.purelib = home
+        scheme.platlib = home
     return [scheme.purelib, scheme.platlib]
 
 
