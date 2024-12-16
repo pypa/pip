@@ -93,6 +93,93 @@ def test_requirements_file(script: PipTestEnvironment) -> None:
     assert result.files_created[script.site_packages / fn].dir
 
 
+@pytest.mark.network
+@pytest.mark.parametrize(
+    "path, groupname",
+    [
+        (None, "initools"),
+        ("pyproject.toml", "initools"),
+        ("./pyproject.toml", "initools"),
+        (lambda path: path.absolute(), "initools"),
+    ],
+)
+def test_dependency_group(
+    script: PipTestEnvironment,
+    path: Any,
+    groupname: str,
+) -> None:
+    """
+    Test installing from a dependency group.
+    """
+    pyproject = script.scratch_path / "pyproject.toml"
+    pyproject.write_text(
+        textwrap.dedent(
+            """\
+            [dependency-groups]
+            initools = [
+                "INITools==0.2",
+                "peppercorn<=0.6",
+            ]
+            """
+        )
+    )
+    if path is None:
+        arg = groupname
+    else:
+        if callable(path):
+            path = path(pyproject)
+        arg = f"{path}:{groupname}"
+    result = script.pip("install", "--group", arg)
+    result.did_create(script.site_packages / "INITools-0.2.dist-info")
+    result.did_create(script.site_packages / "initools")
+    assert result.files_created[script.site_packages / "peppercorn"].dir
+    assert result.files_created[script.site_packages / "peppercorn-0.6.dist-info"].dir
+
+
+@pytest.mark.network
+def test_multiple_dependency_groups(script: PipTestEnvironment) -> None:
+    """
+    Test installing from two dependency groups simultaneously.
+
+    """
+    pyproject = script.scratch_path / "pyproject.toml"
+    pyproject.write_text(
+        textwrap.dedent(
+            """\
+            [dependency-groups]
+            initools = ["INITools==0.2"]
+            peppercorn = ["peppercorn<=0.6"]
+            """
+        )
+    )
+    result = script.pip("install", "--group", "initools", "--group", "peppercorn")
+    result.did_create(script.site_packages / "INITools-0.2.dist-info")
+    result.did_create(script.site_packages / "initools")
+    assert result.files_created[script.site_packages / "peppercorn"].dir
+    assert result.files_created[script.site_packages / "peppercorn-0.6.dist-info"].dir
+
+
+@pytest.mark.network
+def test_dependency_group_with_non_normalized_name(script: PipTestEnvironment) -> None:
+    """
+    Test installing from a dependency group with a non-normalized name, verifying that
+    the pyproject.toml content and CLI arg are normalized to match.
+
+    """
+    pyproject = script.scratch_path / "pyproject.toml"
+    pyproject.write_text(
+        textwrap.dedent(
+            """\
+            [dependency-groups]
+            INITOOLS = ["INITools==0.2"]
+            """
+        )
+    )
+    result = script.pip("install", "--group", "IniTools")
+    result.did_create(script.site_packages / "INITools-0.2.dist-info")
+    result.did_create(script.site_packages / "initools")
+
+
 def test_schema_check_in_requirements_file(script: PipTestEnvironment) -> None:
     """
     Test installing from a requirements file with an invalid vcs schema..
@@ -208,6 +295,32 @@ def test_package_in_constraints_and_dependencies(
         "-c",
         script.scratch_path / "constraints.txt",
         "TopoRequires2",
+    )
+    assert "installed TopoRequires-0.0.1" in result.stdout
+
+
+def test_constraints_apply_to_dependency_groups(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    script.scratch_path.joinpath("constraints.txt").write_text("TopoRequires==0.0.1")
+    pyproject = script.scratch_path / "pyproject.toml"
+    pyproject.write_text(
+        textwrap.dedent(
+            """\
+            [dependency-groups]
+            mylibs = ["TopoRequires2"]
+            """
+        )
+    )
+    result = script.pip(
+        "install",
+        "--no-index",
+        "-f",
+        data.find_links,
+        "-c",
+        script.scratch_path / "constraints.txt",
+        "--group",
+        "mylibs",
     )
     assert "installed TopoRequires-0.0.1" in result.stdout
 
