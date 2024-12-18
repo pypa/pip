@@ -1,6 +1,6 @@
 import importlib.metadata
 import os
-from typing import Any, Optional, Protocol, Tuple, cast
+from typing import Any, Optional, Protocol, Tuple, Union, cast
 
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 
@@ -33,7 +33,10 @@ class BasePath(Protocol):
     def parent(self) -> "BasePath":
         raise NotImplementedError()
 
-    def joinpath(self, *other) -> "BasePath":
+    def joinpath(self, *args: Union[str, os.PathLike[str]]) -> "BasePath":
+        raise NotImplementedError()
+
+    def exists(self) -> bool:
         raise NotImplementedError()
 
 
@@ -85,7 +88,7 @@ def get_dist_canonical_name(dist: importlib.metadata.Distribution) -> Normalized
     name = cast(Any, dist).name
     if not isinstance(name, str):
         info_location = get_info_location(dist)
-        if info_location and not info_location.joinpath("METADATA").exists():
+        if info_location and not info_location.joinpath("METADATA"):
             raise BadMetadata(dist, reason="missing `METADATA` file")
         raise BadMetadata(dist, reason="invalid metadata entry 'name'")
     return canonicalize_name(name)

@@ -10,7 +10,7 @@ from typing import (
     Mapping,
     Optional,
     Sequence,
-    cast,
+    Union,
 )
 
 from pip._vendor.packaging.requirements import Requirement
@@ -100,8 +100,8 @@ class Distribution(BaseDistribution):
     def __init__(
         self,
         dist: importlib.metadata.Distribution,
-        info_location: Optional[BasePath],
-        installed_location: Optional[BasePath],
+        info_location: Optional[Union[BasePath, pathlib.PurePosixPath]],
+        installed_location: Optional[Union[BasePath, pathlib.PurePosixPath]],
     ) -> None:
         self._dist = dist
         self._info_location = info_location
@@ -199,7 +199,7 @@ class Distribution(BaseDistribution):
         # a ton of fields that we need, including get() and get_payload(). We
         # rely on the implementation that the object is actually a Message now,
         # until upstream can improve the protocol. (python/cpython#94952)
-        return cast(email.message.Message, self._dist.metadata)
+        return self._dist.metadata
 
     def iter_provided_extras(self) -> Iterable[NormalizedName]:
         return [
