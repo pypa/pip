@@ -11,6 +11,7 @@ from typing import (
     Optional,
     Sequence,
     Union,
+    cast,
 )
 
 from pip._vendor.packaging.requirements import Requirement
@@ -199,7 +200,7 @@ class Distribution(BaseDistribution):
         # a ton of fields that we need, including get() and get_payload(). We
         # rely on the implementation that the object is actually a Message now,
         # until upstream can improve the protocol. (python/cpython#94952)
-        return self._dist.metadata
+        return cast(email.message.Message, self._dist.metadata)
 
     def iter_provided_extras(self) -> Iterable[NormalizedName]:
         return [
