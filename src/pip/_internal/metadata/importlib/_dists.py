@@ -10,6 +10,7 @@ from typing import (
     Mapping,
     Optional,
     Sequence,
+    Union,
     cast,
 )
 
@@ -100,8 +101,8 @@ class Distribution(BaseDistribution):
     def __init__(
         self,
         dist: importlib.metadata.Distribution,
-        info_location: Optional[BasePath],
-        installed_location: Optional[BasePath],
+        info_location: Optional[Union[BasePath, pathlib.PurePosixPath]],
+        installed_location: Optional[Union[BasePath, pathlib.PurePosixPath]],
     ) -> None:
         self._dist = dist
         self._info_location = info_location
