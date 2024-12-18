@@ -751,3 +751,19 @@ def test_list_pep610_editable(script: PipTestEnvironment) -> None:
             break
     else:
         pytest.fail("package 'testpkg' not found in pip list result")
+
+
+def test_list_missing_metadata_warning(script: PipTestEnvironment) -> None:
+    """
+    Test that a warning is shown when a dist-info directory is missing the METADATA file.
+    """
+    # Create a test package and create .dist-info dir without METADATA file
+    pkg_path = create_test_package_with_setup(script, name="testpkg", version="1.0")
+    dist_info_path = pkg_path / "testpkg-1.0.dist-info"
+    dist_info_path.mkdir()
+    dist_info_path.joinpath("RECORD").write_text("")
+
+    # List should show a warning about the missing METADATA file
+    result = script.pip("list", expect_stderr=True)
+    assert "WARNING: Skipping" in result.stderr
+    assert "due to invalid dist-info directory: missing `METADATA` file" in result.stderr
