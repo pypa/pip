@@ -33,6 +33,9 @@ class BasePath(Protocol):
     def parent(self) -> "BasePath":
         raise NotImplementedError()
 
+    def joinpath(self, *other) -> "BasePath":
+        raise NotImplementedError()
+
 
 def get_info_location(d: importlib.metadata.Distribution) -> Optional[BasePath]:
     """Find the path to the distribution's metadata directory.

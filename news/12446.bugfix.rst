@@ -1,0 +1,3 @@
+* Updated warning message for invalid dist-info directory due to missing `METADATA` file.
+* Added a check for the existence of the `METADATA` file in the `get_dist_canonical_name` function.
+* Added a test case to verify the new warning message for a missing `METADATA` file.
