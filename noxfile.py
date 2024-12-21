@@ -127,7 +127,6 @@ def test(session: nox.Session) -> None:
 
 @nox.session
 def docs(session: nox.Session) -> None:
-    session.install("-e", ".")
     session.install("-r", REQUIREMENTS["docs"])
 
     def get_sphinx_build_command(kind: str) -> List[str]:
@@ -155,7 +154,6 @@ def docs(session: nox.Session) -> None:
 
 @nox.session(name="docs-live")
 def docs_live(session: nox.Session) -> None:
-    session.install("-e", ".")
     session.install("-r", REQUIREMENTS["docs"], "sphinx-autobuild")
 
     session.run(
