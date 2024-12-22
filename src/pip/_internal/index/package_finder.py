@@ -662,6 +662,10 @@ class PackageFinder:
         return self.search_scope.index_urls
 
     @property
+    def proxy(self) -> Optional[str]:
+        return self._link_collector.session.pip_proxy
+
+    @property
     def trusted_hosts(self) -> Iterable[str]:
         for host_port in self._link_collector.session.pip_trusted_origins:
             yield build_netloc(*host_port)
