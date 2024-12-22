@@ -56,9 +56,15 @@ examples of all these forms, see {ref}`pip install Examples`.
 
 ### Encoding
 
-Requirements files are `utf-8` encoding by default and also support
-{pep}`263` style comments to change the encoding (i.e.
-`# -*- coding: <encoding name> -*-`).
+It is simplest to encode your requirements files with UTF-8.
+The process for decoding requirements files is:
+
+- Check for any Byte Order Mark at the start of the file and if found use
+  the corresponding encoding to decode the file.
+- Check for any {pep}`263` style comment (e.g. `# -*- coding: <encoding name> -*-`)
+  and if found decode with the given encoding.
+- Try and decode with UTF-8, and if that fails,
+- fallback to trying to decode using the locale defined encoding.
 
 ### Line continuations
 
