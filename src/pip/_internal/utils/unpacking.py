@@ -8,6 +8,7 @@ import stat
 import sys
 import tarfile
 import zipfile
+from pathlib import Path
 from typing import Iterable, List, Optional
 from zipfile import ZipInfo
 
@@ -19,6 +20,7 @@ from pip._internal.utils.filetypes import (
     ZIP_EXTENSIONS,
 )
 from pip._internal.utils.misc import ensure_dir
+from pip._internal.utils.plugins import plugin_pre_extract_hook
 
 logger = logging.getLogger(__name__)
 
@@ -312,6 +314,11 @@ def unpack_file(
     content_type: Optional[str] = None,
 ) -> None:
     filename = os.path.realpath(filename)
+    try:
+        plugin_pre_extract_hook(Path(filename))
+    except ValueError as e:
+        raise InstallationError(f"Could not unpack file {filename} due to plugin:\n{e}")
+
     if (
         content_type == "application/zip"
         or filename.lower().endswith(ZIP_EXTENSIONS)
