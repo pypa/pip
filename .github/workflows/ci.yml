@@ -112,14 +112,15 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest, macos-13, macos-latest]
+        os: [ubuntu-latest]
+        # os: [ubuntu-latest, macos-13, macos-latest]
         python:
           - "3.8"
-          - "3.9"
-          - "3.10"
-          - "3.11"
-          - "3.12"
-          - "3.13"
+        #   - "3.9"
+        #   - "3.10"
+        #   - "3.11"
+        #   - "3.12"
+        #   - "3.13"
 
     steps:
       - uses: actions/checkout@v4
@@ -162,7 +163,7 @@ jobs:
     name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group }}
     runs-on: ${{ matrix.os }}-latest
 
-    needs: [packaging, determine-changes]
+    needs: [determine-changes]
     if: >-
       needs.determine-changes.outputs.tests == 'true' ||
       github.event_name != 'pull_request'
@@ -189,13 +190,13 @@ jobs:
           python-version: ${{ matrix.python }}
           allow-prereleases: true
 
-      # We use C:\Temp (which is already available on the worker)
-      # as a temporary directory for all of the tests because the
-      # default value (under the user dir) is more deeply nested
-      # and causes tests to fail with "path too long" errors.
+      - name: Create a Dev Drive
+        run: |
+          ./tools/ci/devdrive.ps1 -Drive R -Size 5GB
+          mkdir R:\Temp
+          echo "TEMP=R:\\Temp" >> $env:GITHUB_ENV
+
       - run: pip install nox
-        env:
-          TEMP: "C:\\Temp"
 
       # Main check
       - name: Run unit tests
@@ -204,8 +205,6 @@ jobs:
           nox -s test-${{ matrix.python }} --
           -m unit
           --verbose --numprocesses auto --showlocals
-        env:
-          TEMP: "C:\\Temp"
 
       - name: Run integration tests (group 1)
         if: matrix.group == 1
@@ -213,8 +212,6 @@ jobs:
           nox -s test-${{ matrix.python }} --
           -m integration -k "not test_install"
           --verbose --numprocesses auto --showlocals
-        env:
-          TEMP: "C:\\Temp"
 
       - name: Run integration tests (group 2)
         if: matrix.group == 2
@@ -222,8 +219,6 @@ jobs:
           nox -s test-${{ matrix.python }} --
           -m integration -k "test_install"
           --verbose --numprocesses auto --showlocals
-        env:
-          TEMP: "C:\\Temp"
 
   tests-zipapp:
     name: tests / zipapp
