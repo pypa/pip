@@ -1,5 +1,4 @@
-"""Automation using nox.
-"""
+"""Automation using nox."""
 
 import argparse
 import glob
@@ -29,6 +28,7 @@ REQUIREMENTS = {
     "tests": "tests/requirements.txt",
     "common-wheels": "tests/requirements-common_wheels.txt",
 }
+HERE = Path(__file__).parent
 
 AUTHORS_FILE = "AUTHORS.txt"
 VERSION_FILE = "src/pip/__init__.py"
@@ -330,9 +330,6 @@ def build_release(session: nox.Session) -> None:
             "You can use `git clean -fxdi -- dist` command to do this"
         )
 
-    session.log("# Install dependencies")
-    session.install("build", "twine")
-
     with release.isolated_temporary_checkout(session, version) as build_dir:
         session.log(
             "# Start the build in an isolated, "
@@ -366,12 +363,46 @@ def build_dists(session: nox.Session) -> List[str]:
             "Remove them and try again",
         )
 
+    session.log("# Install build environment")
+    build_venv = Path(session.create_tmp()) / "build-venv"
+    session.run("python", "-m", "venv", "--without-pip", build_venv, silent=True)
+    build_python = build_venv / "bin" / "python"
+    session.run(
+        "python",
+        "-m",
+        "pip",
+        "--python",
+        build_python,
+        "install",
+        "-r",
+        HERE / "build-requirements.txt",
+        "--no-deps",
+        "--only-binary=:all:",
+        "--require-hashes",
+        silent=True,
+    )
+
     session.log("# Build distributions")
-    session.run("python", "-m", "build", silent=True)
+    session.run(
+        build_python,
+        "-m",
+        "build",
+        "--no-isolation",
+        silent=True,
+        external=True,
+    )
     produced_dists = glob.glob("dist/*")
 
     session.log(f"# Verify distributions: {', '.join(produced_dists)}")
-    session.run("twine", "check", *produced_dists, silent=True)
+    session.run(
+        build_python,
+        "-m",
+        "twine",
+        "check",
+        *produced_dists,
+        silent=True,
+        external=True,
+    )
 
     return produced_dists
 
