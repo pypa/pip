@@ -21,19 +21,19 @@ from tests.lib.requests_mocks import MockResponse
             "http://example.com/foo.tgz",
             {},
             False,
-            "Downloading http://example.com/foo.tgz",
+            "Downloading foo.tgz",
         ),
         (
             "http://example.com/foo.tgz",
             {"content-length": "2"},
             False,
-            "Downloading http://example.com/foo.tgz (2 bytes)",
+            "Downloading foo.tgz (2 bytes)",
         ),
         (
             "http://example.com/foo.tgz",
             {"content-length": "2"},
             True,
-            "Using cached http://example.com/foo.tgz (2 bytes)",
+            "Using cached foo.tgz (2 bytes)",
         ),
         ("https://files.pythonhosted.org/foo.tgz", {}, False, "Downloading foo.tgz"),
         (
