@@ -35,7 +35,7 @@ repos:
     args: ["--pretty", "--show-error-codes"]
     additional_dependencies: [
         'keyring==24.2.0',
-        'nox==2023.4.22',
+        'nox==2024.03.02',
         'pytest',
         'types-docutils==0.20.0.3',
         'types-setuptools==68.2.0.0',

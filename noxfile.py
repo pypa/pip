@@ -19,6 +19,7 @@ sys.path.pop()
 
 nox.options.reuse_existing_virtualenvs = True
 nox.options.sessions = ["lint"]
+nox.needs_version = ">=2024.03.02"  # for session.run_install()
 
 LOCATIONS = {
     "common-wheels": "tests/data/common_wheels",
@@ -44,7 +45,9 @@ def run_with_protected_pip(session: nox.Session, *arguments: str) -> None:
     env = {"VIRTUAL_ENV": session.virtualenv.location}
 
     command = ("python", LOCATIONS["protected-pip"]) + arguments
-    session.run(*command, env=env, silent=True)
+    # By using run_install(), these installation steps can be skipped when -R
+    # or --no-install is passed.
+    session.run_install(*command, env=env, silent=True)
 
 
 def should_update_common_wheels() -> bool:
@@ -84,8 +87,13 @@ def test(session: nox.Session) -> None:
         session.log(msg)
 
     # Build source distribution
+    # HACK: we want to skip building and installing pip when nox's --no-install
+    # flag is given (to save time when running tests back to back with different
+    # arguments), but unfortunately nox does not expose this configuration state
+    # yet. https://github.com/wntrblm/nox/issues/710
+    no_install = "-R" in sys.argv or "--no-install" in sys.argv
     sdist_dir = os.path.join(session.virtualenv.location, "sdist")
-    if os.path.exists(sdist_dir):
+    if not no_install and os.path.exists(sdist_dir):
         shutil.rmtree(sdist_dir, ignore_errors=True)
 
     run_with_protected_pip(session, "install", "build")
@@ -94,7 +102,7 @@ def test(session: nox.Session) -> None:
     # pip, so uninstall pip to force build to provision a known good version of pip.
     run_with_protected_pip(session, "uninstall", "pip", "-y")
     # fmt: off
-    session.run(
+    session.run_install(
         "python", "-I", "-m", "build", "--sdist", "--outdir", sdist_dir,
         silent=True,
     )
