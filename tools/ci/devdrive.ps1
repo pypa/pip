@@ -23,7 +23,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $OSVersion = [Environment]::OSVersion.Version
-$Partition = New-VHD -Path C:/pip_dev_drive.vhdx -SizeBytes $size |
+$Partition = New-VHD -Path D:/pip_dev_drive.vhdx -SizeBytes $size |
           Mount-VHD -Passthru |
           Initialize-Disk -Passthru |
           New-Partition -DriveLetter $drive -UseMaximumSize
