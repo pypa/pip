@@ -185,21 +185,24 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Create a Dev Drive
+        run: |
+          ./tools/ci/devdrive.ps1 -Drive R -Size 5GB
+          mkdir R:/Temp
+          echo "TEMP=R:\\Temp" >> $env:GITHUB_ENV
+          Copy-Item -Path ${{ github.workspace }} -Destination "R:/pip" -Recurse
+
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
           allow-prereleases: true
 
-      - name: Create a Dev Drive
-        run: |
-          ./tools/ci/devdrive.ps1 -Drive R -Size 5GB
-          mkdir R:\Temp
-          echo "TEMP=R:\\Temp" >> $env:GITHUB_ENV
-
       - run: pip install nox
 
       # Main check
       - name: Run unit tests
+        working-directory: R:/pip
         if: matrix.group == 1
         run: >-
           nox -s test-${{ matrix.python }} --
@@ -207,6 +210,7 @@ jobs:
           --verbose --numprocesses auto --showlocals
 
       - name: Run integration tests (group 1)
+        working-directory: R:/pip
         if: matrix.group == 1
         run: >-
           nox -s test-${{ matrix.python }} --
@@ -214,6 +218,7 @@ jobs:
           --verbose --numprocesses auto --showlocals
 
       - name: Run integration tests (group 2)
+        working-directory: R:/pip
         if: matrix.group == 2
         run: >-
           nox -s test-${{ matrix.python }} --
