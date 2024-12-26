@@ -26,7 +26,11 @@ from pip._internal.utils.entrypoints import (
     get_best_invocation_for_this_python,
 )
 from pip._internal.utils.filesystem import adjacent_tmp_file, check_path_owner, replace
-from pip._internal.utils.misc import ensure_dir
+from pip._internal.utils.misc import (
+    ExternallyManagedEnvironment,
+    check_externally_managed,
+    ensure_dir,
+)
 
 _WEEK = datetime.timedelta(days=7)
 
@@ -231,18 +235,18 @@ def pip_self_version_check(session: PipSession, options: optparse.Values) -> Non
     installed_dist = get_default_environment().get_distribution("pip")
     if not installed_dist:
         return
-
     try:
-        upgrade_prompt = _self_version_check_logic(
-            state=SelfCheckState(cache_dir=options.cache_dir),
-            current_time=datetime.datetime.now(datetime.timezone.utc),
-            local_version=installed_dist.version,
-            get_remote_version=functools.partial(
-                _get_current_remote_pip_version, session, options
-            ),
-        )
-        if upgrade_prompt is not None:
-            logger.warning("%s", upgrade_prompt, extra={"rich": True})
-    except Exception:
-        logger.warning("There was an error checking the latest version of pip.")
-        logger.debug("See below for error", exc_info=True)
+        check_externally_managed()
+    except ExternallyManagedEnvironment:
+        return
+
+    upgrade_prompt = _self_version_check_logic(
+        state=SelfCheckState(cache_dir=options.cache_dir),
+        current_time=datetime.datetime.now(datetime.timezone.utc),
+        local_version=installed_dist.version,
+        get_remote_version=functools.partial(
+            _get_current_remote_pip_version, session, options
+        ),
+    )
+    if upgrade_prompt is not None:
+        logger.warning("%s", upgrade_prompt, extra={"rich": True})

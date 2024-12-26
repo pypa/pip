@@ -8,6 +8,7 @@ import pytest
 
 from pip._internal.configuration import get_configuration_files, kinds
 from pip._internal.exceptions import ConfigurationError
+
 from tests.lib.configuration_helpers import ConfigurationMixin
 
 

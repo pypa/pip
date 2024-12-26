@@ -17,6 +17,7 @@ from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.utils.misc import rmtree
 from pip._internal.utils.urls import path_to_url
+
 from tests.lib import (
     CertFactory,
     PipTestEnvironment,
@@ -42,8 +43,8 @@ from tests.lib.server import (
 )
 
 
-@pytest.mark.parametrize("command", ("install", "wheel"))
-@pytest.mark.parametrize("variant", ("missing_setuptools", "bad_setuptools"))
+@pytest.mark.parametrize("command", ["install", "wheel"])
+@pytest.mark.parametrize("variant", ["missing_setuptools", "bad_setuptools"])
 def test_pep518_uses_build_env(
     script: PipTestEnvironment,
     data: TestData,
@@ -105,16 +106,13 @@ def test_pep518_refuses_conflicting_requires(
     result = script.pip_install_local(
         "-f", script.scratch_path, project_dir, expect_error=True
     )
+    assert result.returncode != 0
     assert (
-        result.returncode != 0
-        and (
-            f"Some build dependencies for {project_dir.as_uri()} conflict "
-            "with PEP 517/518 supported "
-            "requirements: setuptools==1.0 is incompatible with "
-            "setuptools>=40.8.0."
-        )
-        in result.stderr
-    ), str(result)
+        f"Some build dependencies for {project_dir.as_uri()} conflict "
+        "with PEP 517/518 supported "
+        "requirements: setuptools==1.0 is incompatible with "
+        "setuptools>=40.8.0."
+    ) in result.stderr, str(result)
 
 
 def test_pep518_refuses_invalid_requires(
@@ -243,10 +241,10 @@ def test_pep518_with_namespace_package(
     )
 
 
-@pytest.mark.parametrize("command", ("install", "wheel"))
+@pytest.mark.parametrize("command", ["install", "wheel"])
 @pytest.mark.parametrize(
     "package",
-    ("pep518_forkbomb", "pep518_twin_forkbombs_first", "pep518_twin_forkbombs_second"),
+    ["pep518_forkbomb", "pep518_twin_forkbombs_first", "pep518_twin_forkbombs_second"],
 )
 def test_pep518_forkbombs(
     script: PipTestEnvironment,
@@ -619,6 +617,18 @@ def test_hashed_install_failure(script: PipTestEnvironment, tmpdir: Path) -> Non
     ) as reqs_file:
         result = script.pip_install_local("-r", reqs_file.resolve(), expect_error=True)
     assert len(result.files_created) == 0
+
+
+def test_case_insensitive_hashed_install_success(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
+    """Test that hashes that differ only by case don't halt installation."""
+    with requirements_file(
+        "simple2==1.0 --hash=sha256:9336AF72CA661E6336EB87BC7DE3E8844D853E"
+        "3848C2B9BBD2E8BF01DB88C2C7\n",
+        tmpdir,
+    ) as reqs_file:
+        script.pip_install_local("-r", reqs_file.resolve())
 
 
 def test_link_hash_pass_require_hashes(
@@ -1183,7 +1193,7 @@ def test_install_nonlocal_compatible_wheel(
     )
     assert result.returncode == SUCCESS
 
-    distinfo = Path("scratch") / "target" / "simplewheel-2.0-1.dist-info"
+    distinfo = Path("scratch") / "target" / "simplewheel-2.0.dist-info"
     result.did_create(distinfo)
 
     # Test install without --target
@@ -1241,7 +1251,7 @@ def test_install_nonlocal_compatible_wheel_path(
     assert result.returncode == ERROR
 
 
-@pytest.mark.parametrize("opt", ("--target", "--prefix"))
+@pytest.mark.parametrize("opt", ["--target", "--prefix"])
 def test_install_with_target_or_prefix_and_scripts_no_warning(
     opt: str, script: PipTestEnvironment
 ) -> None:
@@ -1338,7 +1348,7 @@ def test_install_package_with_prefix(
 
 def _test_install_editable_with_prefix(
     script: PipTestEnvironment, files: Dict[str, str]
-) -> None:
+) -> TestPipResult:
     # make a dummy project
     pkga_path = script.scratch_path / "pkga"
     pkga_path.mkdir()
@@ -1365,6 +1375,8 @@ def _test_install_editable_with_prefix(
     # assert pkga is installed at correct location
     install_path = script.scratch / site_packages / "pkga.egg-link"
     result.did_create(install_path)
+
+    return result
 
 
 @pytest.mark.network
@@ -1415,9 +1427,10 @@ version = 0.1
 requires = ["setuptools<64", "wheel"]
 build-backend = "setuptools.build_meta"
 """
-    _test_install_editable_with_prefix(
+    result = _test_install_editable_with_prefix(
         script, {"setup.cfg": setup_cfg, "pyproject.toml": pyproject_toml}
     )
+    assert "(setup.py develop) is deprecated" in result.stderr
 
 
 def test_install_package_conflict_prefix_and_user(
@@ -2012,7 +2025,7 @@ def test_install_pep508_with_url_in_install_requires(
 
 
 @pytest.mark.network
-@pytest.mark.parametrize("index", (PyPI.simple_url, TestPyPI.simple_url))
+@pytest.mark.parametrize("index", [PyPI.simple_url, TestPyPI.simple_url])
 def test_install_from_test_pypi_with_ext_url_dep_is_blocked(
     script: PipTestEnvironment, index: str
 ) -> None:
@@ -2294,10 +2307,10 @@ def test_error_all_yanked_files_and_no_pin(
         expect_error=True,
     )
     # Make sure an error is raised
-    assert (
-        result.returncode == 1
-        and "ERROR: No matching distribution found for simple\n" in result.stderr
-    ), str(result)
+    assert result.returncode == 1
+    assert "ERROR: No matching distribution found for simple\n" in result.stderr, str(
+        result
+    )
 
 
 @pytest.mark.parametrize(
@@ -2348,6 +2361,38 @@ def test_install_sends_client_cert(
         assert environ["SSL_CLIENT_CERT"]
 
 
+def test_install_sends_certs_for_pep518_deps(
+    script: PipTestEnvironment,
+    cert_factory: CertFactory,
+    data: TestData,
+    common_wheels: Path,
+) -> None:
+    cert_path = cert_factory()
+    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    ctx.load_cert_chain(cert_path, cert_path)
+    ctx.load_verify_locations(cafile=cert_path)
+    ctx.verify_mode = ssl.CERT_REQUIRED
+
+    setuptools_pkg = next(common_wheels.glob("setuptools*")).name
+    server = make_mock_server(ssl_context=ctx)
+    server.mock.side_effect = [
+        package_page({setuptools_pkg: f"/files/{setuptools_pkg}"}),
+        file_response(common_wheels / setuptools_pkg),
+    ]
+    url = f"https://{server.host}:{server.port}/simple"
+
+    args = ["install", str(data.packages / "pep517_setup_and_pyproject")]
+    args.extend(["--index-url", url])
+    args.extend(["--cert", cert_path, "--client-cert", cert_path])
+
+    with server_running(server):
+        script.pip(*args)
+
+    for call_args in server.mock.call_args_list:
+        environ, _ = call_args.args
+        assert environ.get("SSL_CLIENT_CERT", "")
+
+
 def test_install_skip_work_dir_pkg(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test that install of a package in working directory
@@ -2377,7 +2422,7 @@ def test_install_skip_work_dir_pkg(script: PipTestEnvironment, data: TestData) -
 
 
 @pytest.mark.parametrize(
-    "package_name", ("simple-package", "simple_package", "simple.package")
+    "package_name", ["simple-package", "simple_package", "simple.package"]
 )
 def test_install_verify_package_name_normalization(
     script: PipTestEnvironment, package_name: str
@@ -2434,7 +2479,7 @@ def install_find_links(
 
 @pytest.mark.parametrize(
     "with_target_dir",
-    (True, False),
+    [True, False],
 )
 def test_install_dry_run_nothing_installed(
     script: PipTestEnvironment,
@@ -2603,7 +2648,7 @@ def test_install_pip_prints_req_chain_pypi(script: PipTestEnvironment) -> None:
     )
 
 
-@pytest.mark.parametrize("common_prefix", ("", "linktest-1.0/"))
+@pytest.mark.parametrize("common_prefix", ["", "linktest-1.0/"])
 def test_install_sdist_links(script: PipTestEnvironment, common_prefix: str) -> None:
     """
     Test installing an sdist with hard and symbolic links.

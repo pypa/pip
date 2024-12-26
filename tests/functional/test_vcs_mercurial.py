@@ -1,6 +1,7 @@
 import os
 
 from pip._internal.vcs.mercurial import Mercurial
+
 from tests.lib import PipTestEnvironment, _create_test_package, need_mercurial
 
 

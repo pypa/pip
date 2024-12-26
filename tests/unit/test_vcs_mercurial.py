@@ -8,6 +8,7 @@ from pathlib import Path
 
 from pip._internal.utils.misc import hide_url
 from pip._internal.vcs.mercurial import Mercurial
+
 from tests.lib import need_mercurial
 
 

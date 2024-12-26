@@ -12,7 +12,6 @@ from types import TracebackType
 from typing import TYPE_CHECKING, Iterable, List, Optional, Set, Tuple, Type, Union
 
 from pip._vendor.certifi import where
-from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.version import Version
 
 from pip import __file__ as pip_location
@@ -20,6 +19,7 @@ from pip._internal.cli.spinners import open_spinner
 from pip._internal.locations import get_platlib, get_purelib, get_scheme
 from pip._internal.metadata import get_default_environment, get_environment
 from pip._internal.utils.logging import VERBOSE
+from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 
@@ -184,7 +184,7 @@ class BuildEnvironment:
                 else get_default_environment()
             )
             for req_str in reqs:
-                req = Requirement(req_str)
+                req = get_requirement(req_str)
                 # We're explicitly evaluating with an empty extra value, since build
                 # environments are not provided any mechanism to select specific extras.
                 if req.marker is not None and not req.marker.evaluate({"extra": ""}):
@@ -242,6 +242,12 @@ class BuildEnvironment:
             prefix.path,
             "--no-warn-script-location",
             "--disable-pip-version-check",
+            # The prefix specified two lines above, thus
+            # target from config file or env var should be ignored
+            "--target",
+            "",
+            "--cert",
+            finder.custom_cert or where(),
         ]
         if logger.getEffectiveLevel() <= logging.DEBUG:
             args.append("-vv")
@@ -268,19 +274,19 @@ class BuildEnvironment:
 
         for host in finder.trusted_hosts:
             args.extend(["--trusted-host", host])
+        if finder.client_cert:
+            args.extend(["--client-cert", finder.client_cert])
         if finder.allow_all_prereleases:
             args.append("--pre")
         if finder.prefer_binary:
             args.append("--prefer-binary")
         args.append("--")
         args.extend(requirements)
-        extra_environ = {"_PIP_STANDALONE_CERT": where()}
         with open_spinner(f"Installing {kind}") as spinner:
             call_subprocess(
                 args,
                 command_desc=f"pip subprocess to install {kind}",
                 spinner=spinner,
-                extra_environ=extra_environ,
             )
 
 

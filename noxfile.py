@@ -88,8 +88,12 @@ def test(session: nox.Session) -> None:
     if os.path.exists(sdist_dir):
         shutil.rmtree(sdist_dir, ignore_errors=True)
 
+    run_with_protected_pip(session, "install", "build")
+    # build uses the pip present in the outer environment (aka the nox environment)
+    # as an optimization. This will crash if the last test run installed a broken
+    # pip, so uninstall pip to force build to provision a known good version of pip.
+    run_with_protected_pip(session, "uninstall", "pip", "-y")
     # fmt: off
-    session.install("build")
     session.run(
         "python", "-I", "-m", "build", "--sdist", "--outdir", sdist_dir,
         silent=True,
@@ -123,7 +127,6 @@ def test(session: nox.Session) -> None:
 
 @nox.session
 def docs(session: nox.Session) -> None:
-    session.install("-e", ".")
     session.install("-r", REQUIREMENTS["docs"])
 
     def get_sphinx_build_command(kind: str) -> List[str]:
@@ -139,6 +142,7 @@ def docs(session: nox.Session) -> None:
             "-c", "docs/html",  # see note above
             "-d", "docs/build/doctrees/" + kind,
             "-b", kind,
+            "--jobs", "auto",
             "docs/" + kind,
             "docs/build/" + kind,
         ]
@@ -150,7 +154,6 @@ def docs(session: nox.Session) -> None:
 
 @nox.session(name="docs-live")
 def docs_live(session: nox.Session) -> None:
-    session.install("-e", ".")
     session.install("-r", REQUIREMENTS["docs"], "sphinx-autobuild")
 
     session.run(
@@ -159,6 +162,7 @@ def docs_live(session: nox.Session) -> None:
         "-b=dirhtml",
         "docs/html",
         "docs/build/livehtml",
+        "--jobs=auto",
         *session.posargs,
     )
 
@@ -190,13 +194,13 @@ def vendoring(session: nox.Session) -> None:
         "python", "-c", "import sys; sys.exit(1 if sys.version_info < (3, 10) else 0)"
     )
 
-    session.install("vendoring~=1.2.0")
-
     parser = argparse.ArgumentParser(prog="nox -s vendoring")
     parser.add_argument("--upgrade-all", action="store_true")
     parser.add_argument("--upgrade", action="append", default=[])
     parser.add_argument("--skip", action="append", default=[])
     args = parser.parse_args(session.posargs)
+
+    session.install("vendoring~=1.2.0")
 
     if not (args.upgrade or args.upgrade_all):
         session.run("vendoring", "sync", "-v")

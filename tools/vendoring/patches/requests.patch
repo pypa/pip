@@ -84,26 +84,6 @@ index 8fbcd656..094e2046 100644
  
  try:
      from urllib3.contrib import pyopenssl
-diff --git a/src/pip/_vendor/requests/certs.py b/src/pip/_vendor/requests/certs.py
-index be422c3e..3daf06f6 100644
---- a/src/pip/_vendor/requests/certs.py
-+++ b/src/pip/_vendor/requests/certs.py
-@@ -11,7 +11,14 @@ If you are packaging Requests, e.g., for a Linux distribution or a managed
- environment, you can change the definition of where() to return a separately
- packaged CA bundle.
- """
--from certifi import where
-+
-+import os
-+
-+if "_PIP_STANDALONE_CERT" not in os.environ:
-+    from certifi import where
-+else:
-+    def where():
-+        return os.environ["_PIP_STANDALONE_CERT"]
- 
- if __name__ == "__main__":
-     print(where())
 diff --git a/src/pip/_vendor/requests/__init__.py b/src/pip/_vendor/requests/__init__.py
 index 9d4e72c60..04230fc8d 100644
 --- a/src/pip/_vendor/requests/__init__.py

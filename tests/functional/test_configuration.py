@@ -6,6 +6,7 @@ import textwrap
 
 from pip._internal.cli.status_codes import ERROR
 from pip._internal.configuration import CONFIG_BASENAME, get_configuration_files
+
 from tests.lib import PipTestEnvironment
 from tests.lib.configuration_helpers import ConfigurationMixin, kinds
 from tests.lib.venv import VirtualEnvironment

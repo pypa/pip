@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Tuple
 from unittest import mock
 
 import pytest
+
 from pip._vendor import requests
 from pip._vendor.packaging.requirements import Requirement
 
@@ -35,10 +36,13 @@ from pip._internal.models.link import (
     _ensure_quoted_url,
 )
 from pip._internal.network.session import PipSession
+
 from tests.lib import (
     TestData,
     make_test_link_collector,
+    skip_needs_new_pathname2url_trailing_slash_behavior_win,
     skip_needs_new_urlun_behavior_win,
+    skip_needs_old_pathname2url_trailing_slash_behavior_win,
     skip_needs_old_urlun_behavior_win,
 )
 
@@ -259,7 +263,7 @@ def test_get_simple_response_dont_log_clear_text_password(
 
 
 @pytest.mark.parametrize(
-    ("path", "expected"),
+    "path, expected",
     [
         # Test a character that needs quoting.
         ("a b", "a%20b"),
@@ -299,7 +303,7 @@ def test_clean_url_path(path: str, expected: str, is_local_path: bool) -> None:
 
 
 @pytest.mark.parametrize(
-    ("path", "expected"),
+    "path, expected",
     [
         # Test a VCS path with a Windows drive letter and revision.
         pytest.param(
@@ -322,7 +326,7 @@ def test_clean_url_path_with_local_path(path: str, expected: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("url", "clean_url"),
+    "url, clean_url",
     [
         # URL with hostname and port. Port separator should not be quoted.
         (
@@ -388,12 +392,26 @@ def test_clean_url_path_with_local_path(path: str, expected: str) -> None:
         pytest.param(
             "file:///T:/path/with spaces/",
             "file:///T:/path/with%20spaces",
-            marks=skip_needs_old_urlun_behavior_win,
+            marks=[
+                skip_needs_old_urlun_behavior_win,
+                skip_needs_old_pathname2url_trailing_slash_behavior_win,
+            ],
         ),
         pytest.param(
             "file:///T:/path/with spaces/",
             "file://///T:/path/with%20spaces",
-            marks=skip_needs_new_urlun_behavior_win,
+            marks=[
+                skip_needs_new_urlun_behavior_win,
+                skip_needs_old_pathname2url_trailing_slash_behavior_win,
+            ],
+        ),
+        pytest.param(
+            "file:///T:/path/with spaces/",
+            "file://///T:/path/with%20spaces/",
+            marks=[
+                skip_needs_new_urlun_behavior_win,
+                skip_needs_new_pathname2url_trailing_slash_behavior_win,
+            ],
         ),
         # URL with Windows drive letter, running on non-windows
         # platform. The `:` after the drive should be quoted.
@@ -880,11 +898,9 @@ def test_collect_sources__file_expand_dir(data: TestData) -> None:
         project_name="",
         candidates_from_page=None,  # type: ignore[arg-type]
     )
-    assert (
-        not sources.index_urls
-        and len(sources.find_links) == 1
-        and isinstance(sources.find_links[0], _FlatDirectorySource)
-    ), (
+    assert not sources.index_urls
+    assert len(sources.find_links) == 1
+    assert isinstance(sources.find_links[0], _FlatDirectorySource), (
         "Directory source should have been found "
         f"at find-links url: {data.find_links}"
     )
@@ -909,10 +925,10 @@ def test_collect_sources__file_not_find_link(data: TestData) -> None:
         # Shouldn't be used.
         candidates_from_page=None,  # type: ignore[arg-type]
     )
-    assert (
-        not sources.find_links
-        and len(sources.index_urls) == 1
-        and isinstance(sources.index_urls[0], _IndexDirectorySource)
+    assert not sources.find_links
+    assert len(sources.index_urls) == 1
+    assert isinstance(
+        sources.index_urls[0], _IndexDirectorySource
     ), "Directory specified as index should be treated as a page"
 
 
@@ -934,9 +950,8 @@ def test_collect_sources__non_existing_path() -> None:
         project_name=None,  # type: ignore[arg-type]
         candidates_from_page=None,  # type: ignore[arg-type]
     )
-    assert not sources.index_urls and sources.find_links == [
-        None
-    ], "Nothing should have been found"
+    assert not sources.index_urls
+    assert sources.find_links == [None], "Nothing should have been found"
 
 
 def check_links_include(links: List[Link], names: List[str]) -> None:
@@ -1208,4 +1223,5 @@ def test_metadata_file_info_parsing_html(
     page_url = "dummy_for_comes_from"
     base_url = "https://index.url/simple"
     link = Link.from_element(attribs, page_url, base_url)
-    assert link is not None and link.metadata_file_data == expected
+    assert link is not None
+    assert link.metadata_file_data == expected
