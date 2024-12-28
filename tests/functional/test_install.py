@@ -1128,7 +1128,8 @@ def test_install_package_with_target(script: PipTestEnvironment) -> None:
     result = script.pip_install_local("-t", target_dir, "simple==1.0")
     result.did_create(Path("scratch") / "target" / "simple")
 
-    # Test repeated call without --upgrade, no files should have changed
+    # When using target directory repeated call without --upgrade,
+    # no files should have changed
     result = script.pip_install_local(
         "-t",
         target_dir,
