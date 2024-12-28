@@ -10,7 +10,7 @@ from functools import partial
 from optparse import Values
 from typing import Any, List, Optional, Tuple
 
-from pip._internal.cache import WheelCache
+from pip._internal.cache import FetchResolveCache, LinkMetadataCache, WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.index_command import IndexGroupCommand
 from pip._internal.cli.index_command import SessionCommandMixin as SessionCommandMixin
@@ -127,6 +127,16 @@ class RequirementCommand(IndexGroupCommand):
                     "fast-deps has no effect when used with the legacy resolver."
                 )
 
+        if options.cache_dir and "metadata-cache" in options.features_enabled:
+            logger.warning(
+                "pip is using a local cache for metadata information. "
+                "This experimental feature is enabled through "
+                "--use-feature=metadata-cache and it is not ready for "
+                "production."
+            )
+            metadata_cache = LinkMetadataCache(options.cache_dir)
+        else:
+            metadata_cache = None
         return RequirementPreparer(
             build_dir=temp_build_dir_path,
             src_dir=options.src_dir,
@@ -142,6 +152,7 @@ class RequirementCommand(IndexGroupCommand):
             lazy_wheel=lazy_wheel,
             verbosity=verbosity,
             legacy_resolver=legacy_resolver,
+            metadata_cache=metadata_cache,
         )
 
     @classmethod
@@ -322,8 +333,13 @@ class RequirementCommand(IndexGroupCommand):
             ignore_requires_python=ignore_requires_python,
         )
 
+        if bool(options.cache_dir) and ("metadata-cache" in options.features_enabled):
+            fetch_resolve_cache = FetchResolveCache(options.cache_dir)
+        else:
+            fetch_resolve_cache = None
         return PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=selection_prefs,
             target_python=target_python,
+            fetch_resolve_cache=fetch_resolve_cache,
         )
