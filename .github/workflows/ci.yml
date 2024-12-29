@@ -185,19 +185,20 @@ jobs:
           - { number: 2, pytest-filter: "test_install" }
 
     steps:
+      # The D: drive is significantly faster than the system C: drive.
+      # https://github.com/actions/runner-images/issues/8755
+      - name: Set TEMP to D:/Temp
+        run: |
+          mkdir "D:\\Temp"
+          echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV
+
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
           allow-prereleases: true
 
-      # We use C:\Temp (which is already available on the worker)
-      # as a temporary directory for all of the tests because the
-      # default value (under the user dir) is more deeply nested
-      # and causes tests to fail with "path too long" errors.
       - run: pip install nox
-        env:
-          TEMP: "C:\\Temp"
 
       # Main check
       - name: Run unit tests (group 1)
@@ -206,16 +207,12 @@ jobs:
           nox -s test-${{ matrix.python }} --
           tests/unit
           --verbose --numprocesses auto --showlocals
-        env:
-          TEMP: "C:\\Temp"
 
       - name: Run integration tests (group ${{ matrix.group.number }})
         run: >-
           nox -s test-${{ matrix.python }} --no-install --
           tests/functional -k "${{ matrix.group.pytest-filter }}"
           --verbose --numprocesses auto --showlocals
-        env:
-          TEMP: "C:\\Temp"
 
   tests-zipapp:
     name: tests / zipapp
