@@ -28,6 +28,7 @@ from pip._internal.req.constructors import (
     install_req_from_parsed_requirement,
     install_req_from_req_string,
 )
+from pip._internal.req.req_dependency_group import parse_dependency_groups
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.resolution.base import BaseResolver
@@ -79,6 +80,7 @@ class RequirementCommand(IndexGroupCommand):
     def __init__(self, *args: Any, **kw: Any) -> None:
         super().__init__(*args, **kw)
 
+        self.cmd_opts.add_option(cmdoptions.dependency_groups())
         self.cmd_opts.add_option(cmdoptions.no_clean())
 
     @staticmethod
@@ -240,6 +242,16 @@ class RequirementCommand(IndexGroupCommand):
             )
             requirements.append(req_to_add)
 
+        if options.dependency_groups:
+            for req in parse_dependency_groups(options.dependency_groups):
+                req_to_add = install_req_from_req_string(
+                    req,
+                    isolated=options.isolated_mode,
+                    use_pep517=options.use_pep517,
+                    user_supplied=True,
+                )
+                requirements.append(req_to_add)
+
         for req in options.editables:
             req_to_add = install_req_from_editable(
                 req,
@@ -272,7 +284,12 @@ class RequirementCommand(IndexGroupCommand):
         if any(req.has_hash_options for req in requirements):
             options.require_hashes = True
 
-        if not (args or options.editables or options.requirements):
+        if not (
+            args
+            or options.editables
+            or options.requirements
+            or options.dependency_groups
+        ):
             opts = {"name": self.name}
             if options.find_links:
                 raise CommandError(
