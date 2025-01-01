@@ -124,6 +124,19 @@ class SessionCommandMixin(CommandContextMixIn):
             }
             session.trust_env = False
 
+        # Handle no proxy option
+        if options.no_proxy:
+            # Handle case of both --no-proxy being set along with --proxy=<proxy>.
+            # In this case, the proxies from the environmental variables will be
+            # ignored, but the command line proxy will be used.
+            http_proxy = options.proxy if options.proxy else None
+            https_proxy = options.proxy if options.proxy else None
+            session.proxies = {
+                "http": http_proxy,
+                "https": https_proxy,
+            }
+            session.trust_env = False
+
         # Determine if we can prompt the user for authentication or not
         session.auth.prompting = not options.no_input
         session.auth.keyring_provider = options.keyring_provider
