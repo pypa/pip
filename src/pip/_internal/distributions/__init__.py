@@ -1,4 +1,5 @@
 from pip._internal.distributions.base import AbstractDistribution
+from pip._internal.distributions.installed import InstalledDistribution
 from pip._internal.distributions.sdist import SourceDistribution
 from pip._internal.distributions.wheel import WheelDistribution
 from pip._internal.req.req_install import InstallRequirement
@@ -8,6 +9,10 @@ def make_distribution_for_install_requirement(
     install_req: InstallRequirement,
 ) -> AbstractDistribution:
     """Returns a Distribution for the given InstallRequirement"""
+    # Only pre-installed requirements will have a .satisfied_by dist.
+    if install_req.satisfied_by:
+        return InstalledDistribution(install_req)
+
     # Editable requirements will always be source distributions. They use the
     # legacy logic until we create a modern standard for them.
     if install_req.editable:
