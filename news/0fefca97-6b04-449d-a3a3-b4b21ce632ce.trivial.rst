@@ -1,0 +1,2 @@
+Run Windows CI across all supported Python versions, instead of only testing the
+boundaries.
