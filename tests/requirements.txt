@@ -4,6 +4,7 @@ installer
 pytest
 pytest-cov
 pytest-rerunfailures
+pytest-socket
 pytest-xdist
 scripttest
 setuptools
