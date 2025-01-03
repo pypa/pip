@@ -1,7 +1,7 @@
 import os
 import textwrap
 from optparse import Values
-from typing import Callable, List
+from typing import Callable, Dict, List
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
@@ -49,7 +49,7 @@ class CacheCommand(Command):
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
-    def handler_map(self) -> dict[str, Callable[[Values, list[str]], None]]:
+    def handler_map(self) -> Dict[str, Callable[[Values, List[str]], None]]:
         return {
             "dir": self.get_cache_dir,
             "info": self.get_cache_info,

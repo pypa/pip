@@ -2,7 +2,7 @@ import logging
 import os
 import subprocess
 from optparse import Values
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
@@ -93,7 +93,7 @@ class ConfigurationCommand(Command):
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
-    def handler_map(self) -> dict[str, Callable[[Values, list[str]], None]]:
+    def handler_map(self) -> Dict[str, Callable[[Values, List[str]], None]]:
         return {
             "list": self.list_values,
             "edit": self.open_in_editor,

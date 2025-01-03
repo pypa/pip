@@ -1,6 +1,6 @@
 import logging
 from optparse import Values
-from typing import Any, Callable, Iterable, List, Optional
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 from pip._vendor.packaging.version import Version
 
@@ -45,7 +45,7 @@ class IndexCommand(IndexGroupCommand):
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, self.cmd_opts)
 
-    def handler_map(self) -> dict[str, Callable[[Values, list[str]], None]]:
+    def handler_map(self) -> Dict[str, Callable[[Values, List[str]], None]]:
         return {
             "versions": self.get_available_package_versions,
         }
