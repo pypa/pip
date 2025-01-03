@@ -255,6 +255,7 @@ class TestPipSession:
         assert actual_level == "WARNING"
         assert "is not a trusted or secure host" in actual_message
 
+    @pytest.mark.enable_socket
     @pytest.mark.network
     def test_proxy(self, proxy: Optional[str]) -> None:
         session = PipSession(trusted_hosts=[])

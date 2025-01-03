@@ -50,6 +50,7 @@ def test_list_all_versions_search_with_pre(script: PipTestEnvironment) -> None:
     )
 
 
+@pytest.mark.enable_socket
 @pytest.mark.network
 def test_list_all_versions_returns_no_matches_found_when_name_not_exact() -> None:
     """
@@ -63,6 +64,7 @@ def test_list_all_versions_returns_no_matches_found_when_name_not_exact() -> Non
     assert status == ERROR
 
 
+@pytest.mark.enable_socket
 @pytest.mark.network
 def test_list_all_versions_returns_matches_found_when_name_is_exact() -> None:
     """
