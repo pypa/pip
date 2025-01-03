@@ -1,7 +1,7 @@
 import json
 import logging
 from optparse import Values
-from typing import Any, Iterable, List, Optional
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 from pip._vendor.packaging.version import Version
 
@@ -50,16 +50,19 @@ class IndexCommand(IndexGroupCommand):
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, self.cmd_opts)
 
-    def run(self, options: Values, args: List[str]) -> int:
-        handlers = {
+    def handler_map(self) -> Dict[str, Callable[[Values, List[str]], None]]:
+        return {
             "versions": self.get_available_package_versions,
         }
 
+    def run(self, options: Values, args: List[str]) -> int:
+        handler_map = self.handler_map()
+
         # Determine action
-        if not args or args[0] not in handlers:
+        if not args or args[0] not in handler_map:
             logger.error(
                 "Need an action (%s) to perform.",
-                ", ".join(sorted(handlers)),
+                ", ".join(sorted(handler_map)),
             )
             return ERROR
 
@@ -67,7 +70,7 @@ class IndexCommand(IndexGroupCommand):
 
         # Error handling happens here, not in the action-handlers.
         try:
-            handlers[action](options, args[1:])
+            handler_map[action](options, args[1:])
         except PipError as e:
             logger.error(e.args[0])
             return ERROR
