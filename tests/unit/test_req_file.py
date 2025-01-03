@@ -725,6 +725,7 @@ class TestOptionVariants:
 class TestParseRequirements:
     """tests for `parse_reqfile`"""
 
+    @pytest.mark.enable_socket
     @pytest.mark.network
     def test_remote_reqs_parse(self) -> None:
         """
