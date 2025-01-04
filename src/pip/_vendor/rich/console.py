@@ -1,7 +1,5 @@
 import inspect
-import io
 import os
-import platform
 import sys
 import threading
 import zlib
@@ -48,6 +46,7 @@ else:
 from . import errors, themes
 from ._emoji_replace import _emoji_replace
 from ._export_format import CONSOLE_HTML_FORMAT, CONSOLE_SVG_FORMAT
+from ._fileno import get_fileno
 from ._log_render import FormatTimeCallable, LogRender
 from .align import Align, AlignMethod
 from .color import ColorSystem, blend_rgb
@@ -76,7 +75,7 @@ if TYPE_CHECKING:
 
 JUPYTER_DEFAULT_COLUMNS = 115
 JUPYTER_DEFAULT_LINES = 100
-WINDOWS = platform.system() == "Windows"
+WINDOWS = sys.platform == "win32"
 
 HighlighterType = Callable[[Union[str, "Text"]], "Text"]
 JustifyMethod = Literal["default", "left", "center", "right", "full"]
@@ -90,15 +89,15 @@ class NoChange:
 NO_CHANGE = NoChange()
 
 try:
-    _STDIN_FILENO = sys.__stdin__.fileno()
+    _STDIN_FILENO = sys.__stdin__.fileno()  # type: ignore[union-attr]
 except Exception:
     _STDIN_FILENO = 0
 try:
-    _STDOUT_FILENO = sys.__stdout__.fileno()
+    _STDOUT_FILENO = sys.__stdout__.fileno()  # type: ignore[union-attr]
 except Exception:
     _STDOUT_FILENO = 1
 try:
-    _STDERR_FILENO = sys.__stderr__.fileno()
+    _STDERR_FILENO = sys.__stderr__.fileno()  # type: ignore[union-attr]
 except Exception:
     _STDERR_FILENO = 2
 
@@ -278,6 +277,7 @@ class ConsoleRenderable(Protocol):
 
 # A type that may be rendered by Console.
 RenderableType = Union[ConsoleRenderable, RichCast, str]
+"""A string or any object that may be rendered by Rich."""
 
 # The result of calling a __rich_console__ method.
 RenderResult = Iterable[Union[RenderableType, Segment]]
@@ -711,11 +711,6 @@ class Console:
         self._force_terminal = None
         if force_terminal is not None:
             self._force_terminal = force_terminal
-        else:
-            # If FORCE_COLOR env var has any value at all, we force terminal.
-            force_color = self._environ.get("FORCE_COLOR")
-            if force_color is not None:
-                self._force_terminal = True
 
         self._file = file
         self.quiet = quiet
@@ -758,7 +753,7 @@ class Console:
         self._is_alt_screen = False
 
     def __repr__(self) -> str:
-        return f"<console width={self.width} {str(self._color_system)}>"
+        return f"<console width={self.width} {self._color_system!s}>"
 
     @property
     def file(self) -> IO[str]:
@@ -949,6 +944,16 @@ class Console:
             # Return False for Idle which claims to be a tty but can't handle ansi codes
             return False
 
+        if self.is_jupyter:
+            # return False for Jupyter, which may have FORCE_COLOR set
+            return False
+
+        # If FORCE_COLOR env var has any value at all, we assume a terminal.
+        force_color = self._environ.get("FORCE_COLOR")
+        if force_color is not None:
+            self._force_terminal = True
+            return True
+
         isatty: Optional[Callable[[], bool]] = getattr(self.file, "isatty", None)
         try:
             return False if isatty is None else isatty()
@@ -1000,19 +1005,14 @@ class Console:
         width: Optional[int] = None
         height: Optional[int] = None
 
-        if WINDOWS:  # pragma: no cover
+        streams = _STD_STREAMS_OUTPUT if WINDOWS else _STD_STREAMS
+        for file_descriptor in streams:
             try:
-                width, height = os.get_terminal_size()
+                width, height = os.get_terminal_size(file_descriptor)
             except (AttributeError, ValueError, OSError):  # Probably not a terminal
                 pass
-        else:
-            for file_descriptor in _STD_STREAMS:
-                try:
-                    width, height = os.get_terminal_size(file_descriptor)
-                except (AttributeError, ValueError, OSError):
-                    pass
-                else:
-                    break
+            else:
+                break
 
         columns = self._environ.get("COLUMNS")
         if columns is not None and columns.isdigit():
@@ -1146,7 +1146,7 @@ class Console:
         status: RenderableType,
         *,
         spinner: str = "dots",
-        spinner_style: str = "status.spinner",
+        spinner_style: StyleType = "status.spinner",
         speed: float = 1.0,
         refresh_per_second: float = 12.5,
     ) -> "Status":
@@ -1303,7 +1303,7 @@ class Console:
 
         renderable = rich_cast(renderable)
         if hasattr(renderable, "__rich_console__") and not isclass(renderable):
-            render_iterable = renderable.__rich_console__(self, _options)  # type: ignore[union-attr]
+            render_iterable = renderable.__rich_console__(self, _options)
         elif isinstance(renderable, str):
             text_renderable = self.render_str(
                 renderable, highlight=_options.highlight, markup=_options.markup
@@ -1380,9 +1380,14 @@ class Console:
                 extra_lines = render_options.height - len(lines)
                 if extra_lines > 0:
                     pad_line = [
-                        [Segment(" " * render_options.max_width, style), Segment("\n")]
-                        if new_lines
-                        else [Segment(" " * render_options.max_width, style)]
+                        (
+                            [
+                                Segment(" " * render_options.max_width, style),
+                                Segment("\n"),
+                            ]
+                            if new_lines
+                            else [Segment(" " * render_options.max_width, style)]
+                        )
                     ]
                     lines.extend(pad_line * extra_lines)
 
@@ -1431,9 +1436,11 @@ class Console:
             rich_text.overflow = overflow
         else:
             rich_text = Text(
-                _emoji_replace(text, default_variant=self._emoji_variant)
-                if emoji_enabled
-                else text,
+                (
+                    _emoji_replace(text, default_variant=self._emoji_variant)
+                    if emoji_enabled
+                    else text
+                ),
                 justify=justify,
                 overflow=overflow,
                 style=style,
@@ -1523,14 +1530,18 @@ class Console:
             if text:
                 sep_text = Text(sep, justify=justify, end=end)
                 append(sep_text.join(text))
-                del text[:]
+                text.clear()
 
         for renderable in objects:
             renderable = rich_cast(renderable)
             if isinstance(renderable, str):
                 append_text(
                     self.render_str(
-                        renderable, emoji=emoji, markup=markup, highlighter=_highlighter
+                        renderable,
+                        emoji=emoji,
+                        markup=markup,
+                        highlight=highlight,
+                        highlighter=_highlighter,
                     )
                 )
             elif isinstance(renderable, Text):
@@ -1920,7 +1931,6 @@ class Console:
             end (str, optional): String to write at end of print data. Defaults to "\\\\n".
             style (Union[str, Style], optional): A style to apply to output. Defaults to None.
             justify (str, optional): One of "left", "right", "center", or "full". Defaults to ``None``.
-            overflow (str, optional): Overflow method: "crop", "fold", or "ellipsis". Defaults to None.
             emoji (Optional[bool], optional): Enable emoji code, or ``None`` to use console default. Defaults to None.
             markup (Optional[bool], optional): Enable markup, or ``None`` to use console default. Defaults to None.
             highlight (Optional[bool], optional): Enable automatic highlighting, or ``None`` to use console default. Defaults to None.
@@ -1981,6 +1991,20 @@ class Console:
             ):
                 buffer_extend(line)
 
+    def on_broken_pipe(self) -> None:
+        """This function is called when a `BrokenPipeError` is raised.
+
+        This can occur when piping Textual output in Linux and macOS.
+        The default implementation is to exit the app, but you could implement
+        this method in a subclass to change the behavior.
+
+        See https://docs.python.org/3/library/signal.html#note-on-sigpipe for details.
+        """
+        self.quiet = True
+        devnull = os.open(os.devnull, os.O_WRONLY)
+        os.dup2(devnull, sys.stdout.fileno())
+        raise SystemExit(1)
+
     def _check_buffer(self) -> None:
         """Check if the buffer may be rendered. Render it if it can (e.g. Console.quiet is False)
         Rendering is supported on Windows, Unix and Jupyter environments. For
@@ -1990,13 +2014,21 @@ class Console:
         if self.quiet:
             del self._buffer[:]
             return
+
+        try:
+            self._write_buffer()
+        except BrokenPipeError:
+            self.on_broken_pipe()
+
+    def _write_buffer(self) -> None:
+        """Write the buffer to the output file."""
+
         with self._lock:
-            if self.record:
+            if self.record and not self._buffer_index:
                 with self._record_buffer_lock:
                     self._record_buffer.extend(self._buffer[:])
 
             if self._buffer_index == 0:
-
                 if self.is_jupyter:  # pragma: no cover
                     from .jupyter import display
 
@@ -2006,12 +2038,11 @@ class Console:
                     if WINDOWS:
                         use_legacy_windows_render = False
                         if self.legacy_windows:
-                            try:
+                            fileno = get_fileno(self.file)
+                            if fileno is not None:
                                 use_legacy_windows_render = (
-                                    self.file.fileno() in _STD_STREAMS_OUTPUT
+                                    fileno in _STD_STREAMS_OUTPUT
                                 )
-                            except (ValueError, io.UnsupportedOperation):
-                                pass
 
                         if use_legacy_windows_render:
                             from pip._vendor.rich._win32_console import LegacyWindowsTerm
@@ -2026,13 +2057,31 @@ class Console:
                             # Either a non-std stream on legacy Windows, or modern Windows.
                             text = self._render_buffer(self._buffer[:])
                             # https://bugs.python.org/issue37871
+                            # https://github.com/python/cpython/issues/82052
+                            # We need to avoid writing more than 32Kb in a single write, due to the above bug
                             write = self.file.write
-                            for line in text.splitlines(True):
-                                try:
-                                    write(line)
-                                except UnicodeEncodeError as error:
-                                    error.reason = f"{error.reason}\n*** You may need to add PYTHONIOENCODING=utf-8 to your environment ***"
-                                    raise
+                            # Worse case scenario, every character is 4 bytes of utf-8
+                            MAX_WRITE = 32 * 1024 // 4
+                            try:
+                                if len(text) <= MAX_WRITE:
+                                    write(text)
+                                else:
+                                    batch: List[str] = []
+                                    batch_append = batch.append
+                                    size = 0
+                                    for line in text.splitlines(True):
+                                        if size + len(line) > MAX_WRITE and batch:
+                                            write("".join(batch))
+                                            batch.clear()
+                                            size = 0
+                                        batch_append(line)
+                                        size += len(line)
+                                    if batch:
+                                        write("".join(batch))
+                                        batch.clear()
+                            except UnicodeEncodeError as error:
+                                error.reason = f"{error.reason}\n*** You may need to add PYTHONIOENCODING=utf-8 to your environment ***"
+                                raise
                     else:
                         text = self._render_buffer(self._buffer[:])
                         try:
@@ -2145,7 +2194,7 @@ class Console:
 
         """
         text = self.export_text(clear=clear, styles=styles)
-        with open(path, "wt", encoding="utf-8") as write_file:
+        with open(path, "w", encoding="utf-8") as write_file:
             write_file.write(text)
 
     def export_html(
@@ -2251,7 +2300,7 @@ class Console:
             code_format=code_format,
             inline_styles=inline_styles,
         )
-        with open(path, "wt", encoding="utf-8") as write_file:
+        with open(path, "w", encoding="utf-8") as write_file:
             write_file.write(html)
 
     def export_svg(
@@ -2540,7 +2589,7 @@ class Console:
             font_aspect_ratio=font_aspect_ratio,
             unique_id=unique_id,
         )
-        with open(path, "wt", encoding="utf-8") as write_file:
+        with open(path, "w", encoding="utf-8") as write_file:
             write_file.write(svg)
 
 

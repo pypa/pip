@@ -10,13 +10,16 @@ from unittest.mock import ANY, Mock, patch
 
 import pytest
 from freezegun import freeze_time
+
 from pip._vendor.packaging.version import Version
 
 from pip._internal import self_outdated_check
+from pip._internal.self_outdated_check import UpgradePrompt, pip_self_version_check
+from pip._internal.utils.misc import ExternallyManagedEnvironment
 
 
 @pytest.mark.parametrize(
-    ["key", "expected"],
+    "key, expected",
     [
         (
             "/hello/world/venv",
@@ -40,7 +43,8 @@ def test_pip_self_version_check_calls_underlying_implementation(
 ) -> None:
     # GIVEN
     mock_session = Mock()
-    fake_options = Values(dict(cache_dir=str(tmpdir)))
+    fake_options = Values({"cache_dir": str(tmpdir)})
+    mocked_function.return_value = None
 
     # WHEN
     self_outdated_check.pip_self_version_check(mock_session, fake_options)
@@ -49,14 +53,16 @@ def test_pip_self_version_check_calls_underlying_implementation(
     mocked_state.assert_called_once_with(cache_dir=str(tmpdir))
     mocked_function.assert_called_once_with(
         state=mocked_state(cache_dir=str(tmpdir)),
-        current_time=datetime.datetime(1970, 1, 2, 11, 0, 0),
+        current_time=datetime.datetime(
+            1970, 1, 2, 11, 0, 0, tzinfo=datetime.timezone.utc
+        ),
         local_version=ANY,
         get_remote_version=ANY,
     )
 
 
 @pytest.mark.parametrize(
-    [
+    [  # noqa: PT006 - String representation is too long
         "installed_version",
         "remote_version",
         "stored_version",
@@ -167,7 +173,10 @@ class TestSelfCheckState:
 
         # WHEN
         state = self_outdated_check.SelfCheckState(cache_dir=str(cache_dir))
-        state.set("1.0.0", datetime.datetime(2000, 1, 1, 0, 0, 0))
+        state.set(
+            "1.0.0",
+            datetime.datetime(2000, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
+        )
 
         # THEN
         assert state._statefile_path == os.fspath(expected_path)
@@ -175,6 +184,18 @@ class TestSelfCheckState:
         contents = expected_path.read_text()
         assert json.loads(contents) == {
             "key": sys.prefix,
-            "last_check": "2000-01-01T00:00:00Z",
+            "last_check": "2000-01-01T00:00:00+00:00",
             "pypi_version": "1.0.0",
         }
+
+
+@patch("pip._internal.self_outdated_check._self_version_check_logic")
+def test_suppressed_by_externally_managed(mocked_function: Mock, tmpdir: Path) -> None:
+    mocked_function.return_value = UpgradePrompt(old="1.0", new="2.0")
+    fake_options = Values({"cache_dir": str(tmpdir)})
+    with patch(
+        "pip._internal.self_outdated_check.check_externally_managed",
+        side_effect=ExternallyManagedEnvironment("nope"),
+    ):
+        pip_self_version_check(session=Mock(), options=fake_options)
+    mocked_function.assert_not_called()

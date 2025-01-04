@@ -1,6 +1,7 @@
 import json
+import textwrap
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 import pytest
 from packaging.utils import canonicalize_name
@@ -12,7 +13,6 @@ def _install_dict(report: Dict[str, Any]) -> Dict[str, Any]:
     return {canonicalize_name(i["metadata"]["name"]): i for i in report["install"]}
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_report_basic(
     script: PipTestEnvironment, shared_data: TestData, tmp_path: Path
 ) -> None:
@@ -26,7 +26,6 @@ def test_install_report_basic(
         str(shared_data.root / "packages/"),
         "--report",
         str(report_path),
-        allow_stderr_warning=True,
     )
     report = json.loads(report_path.read_text())
     assert "install" in report
@@ -40,11 +39,10 @@ def test_install_report_basic(
     assert url.endswith("/packages/simplewheel-2.0-1-py2.py3-none-any.whl")
     assert (
         simplewheel_report["download_info"]["archive_info"]["hash"]
-        == "sha256=191d6520d0570b13580bf7642c97ddfbb46dd04da5dd2cf7bef9f32391dfe716"
+        == "sha256=71e1ca6b16ae3382a698c284013f66504f2581099b2ce4801f60e9536236ceee"
     )
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_report_dep(
     script: PipTestEnvironment, shared_data: TestData, tmp_path: Path
 ) -> None:
@@ -59,7 +57,6 @@ def test_install_report_dep(
         str(shared_data.root / "packages/"),
         "--report",
         str(report_path),
-        allow_stderr_warning=True,
     )
     report = json.loads(report_path.read_text())
     assert len(report["install"]) == 2
@@ -67,18 +64,81 @@ def test_install_report_dep(
     assert _install_dict(report)["simple"]["requested"] is False
 
 
+def test_yanked_version(
+    script: PipTestEnvironment, data: TestData, tmp_path: Path
+) -> None:
+    """
+    Test is_yanked is True when explicitly requesting a yanked package.
+    Yanked files are always ignored, unless they are the only file that
+    matches a version specifier that "pins" to an exact version (PEP 592).
+    """
+    report_path = tmp_path / "report.json"
+    script.pip(
+        "install",
+        "simple==3.0",
+        "--index-url",
+        data.index_url("yanked"),
+        "--dry-run",
+        "--report",
+        str(report_path),
+        allow_stderr_warning=True,
+    )
+    report = json.loads(report_path.read_text())
+    simple_report = _install_dict(report)["simple"]
+    assert simple_report["requested"] is True
+    assert simple_report["is_direct"] is False
+    assert simple_report["is_yanked"] is True
+    assert simple_report["metadata"]["version"] == "3.0"
+
+
+def test_skipped_yanked_version(
+    script: PipTestEnvironment, data: TestData, tmp_path: Path
+) -> None:
+    """
+    Test is_yanked is False when not explicitly requesting a yanked package.
+    Yanked files are always ignored, unless they are the only file that
+    matches a version specifier that "pins" to an exact version (PEP 592).
+    """
+    report_path = tmp_path / "report.json"
+    script.pip(
+        "install",
+        "simple",
+        "--index-url",
+        data.index_url("yanked"),
+        "--dry-run",
+        "--report",
+        str(report_path),
+    )
+    report = json.loads(report_path.read_text())
+    simple_report = _install_dict(report)["simple"]
+    assert simple_report["requested"] is True
+    assert simple_report["is_direct"] is False
+    assert simple_report["is_yanked"] is False
+    assert simple_report["metadata"]["version"] == "2.0"
+
+
+@pytest.mark.parametrize(
+    "specifiers",
+    [
+        # result should be the same regardless of the method and order in which
+        # extras are specified
+        ("Paste[openid]==1.7.5.1",),
+        ("Paste==1.7.5.1", "Paste[openid]==1.7.5.1"),
+        ("Paste[openid]==1.7.5.1", "Paste==1.7.5.1"),
+    ],
+)
 @pytest.mark.network
-@pytest.mark.usefixtures("with_wheel")
-def test_install_report_index(script: PipTestEnvironment, tmp_path: Path) -> None:
+def test_install_report_index(
+    script: PipTestEnvironment, tmp_path: Path, specifiers: Tuple[str, ...]
+) -> None:
     """Test report for sdist obtained from index."""
     report_path = tmp_path / "report.json"
     script.pip(
         "install",
         "--dry-run",
-        "Paste[openid]==1.7.5.1",
+        *specifiers,
         "--report",
         str(report_path),
-        allow_stderr_warning=True,
     )
     report = json.loads(report_path.read_text())
     assert len(report["install"]) == 2
@@ -99,7 +159,59 @@ def test_install_report_index(script: PipTestEnvironment, tmp_path: Path) -> Non
 
 
 @pytest.mark.network
-@pytest.mark.usefixtures("with_wheel")
+def test_install_report_index_multiple_extras(
+    script: PipTestEnvironment, tmp_path: Path
+) -> None:
+    """Test report for sdist obtained from index, with multiple extras requested."""
+    report_path = tmp_path / "report.json"
+    script.pip(
+        "install",
+        "--dry-run",
+        "Paste[openid]",
+        "Paste[subprocess]",
+        "--report",
+        str(report_path),
+    )
+    report = json.loads(report_path.read_text())
+    install_dict = _install_dict(report)
+    assert "paste" in install_dict
+    assert install_dict["paste"]["requested_extras"] == ["openid", "subprocess"]
+
+
+@pytest.mark.network
+def test_install_report_direct_archive(
+    script: PipTestEnvironment, tmp_path: Path, shared_data: TestData
+) -> None:
+    """Test report for direct URL archive."""
+    report_path = tmp_path / "report.json"
+    script.pip(
+        "install",
+        str(shared_data.root / "packages" / "simplewheel-1.0-py2.py3-none-any.whl"),
+        "--dry-run",
+        "--no-index",
+        "--report",
+        str(report_path),
+    )
+    report = json.loads(report_path.read_text())
+    assert "install" in report
+    assert len(report["install"]) == 1
+    simplewheel_report = _install_dict(report)["simplewheel"]
+    assert simplewheel_report["metadata"]["name"] == "simplewheel"
+    assert simplewheel_report["requested"] is True
+    assert simplewheel_report["is_direct"] is True
+    url = simplewheel_report["download_info"]["url"]
+    assert url.startswith("file://")
+    assert url.endswith("/packages/simplewheel-1.0-py2.py3-none-any.whl")
+    assert (
+        simplewheel_report["download_info"]["archive_info"]["hash"]
+        == "sha256=e63aa139caee941ec7f33f057a5b987708c2128238357cf905429846a2008718"
+    )
+    assert simplewheel_report["download_info"]["archive_info"]["hashes"] == {
+        "sha256": "e63aa139caee941ec7f33f057a5b987708c2128238357cf905429846a2008718"
+    }
+
+
+@pytest.mark.network
 def test_install_report_vcs_and_wheel_cache(
     script: PipTestEnvironment, tmp_path: Path
 ) -> None:
@@ -114,7 +226,6 @@ def test_install_report_vcs_and_wheel_cache(
         str(cache_dir),
         "--report",
         str(report_path),
-        allow_stderr_warning=True,
     )
     report = json.loads(report_path.read_text())
     assert len(report["install"]) == 1
@@ -142,7 +253,6 @@ def test_install_report_vcs_and_wheel_cache(
         str(cache_dir),
         "--report",
         str(report_path),
-        allow_stderr_warning=True,
     )
     assert "Using cached pip_test_package" in result.stdout
     report = json.loads(report_path.read_text())
@@ -162,7 +272,6 @@ def test_install_report_vcs_and_wheel_cache(
 
 
 @pytest.mark.network
-@pytest.mark.usefixtures("with_wheel")
 def test_install_report_vcs_editable(
     script: PipTestEnvironment, tmp_path: Path
 ) -> None:
@@ -176,7 +285,6 @@ def test_install_report_vcs_editable(
         "#egg=pip-test-package",
         "--report",
         str(report_path),
-        allow_stderr_warning=True,
     )
     report = json.loads(report_path.read_text())
     assert len(report["install"]) == 1
@@ -189,7 +297,97 @@ def test_install_report_vcs_editable(
     assert pip_test_package_report["download_info"]["dir_info"]["editable"] is True
 
 
-@pytest.mark.usefixtures("with_wheel")
+@pytest.mark.network
+def test_install_report_local_path_with_extras(
+    script: PipTestEnvironment, tmp_path: Path, shared_data: TestData
+) -> None:
+    """Test report remote editable."""
+    project_path = tmp_path / "pkga"
+    project_path.mkdir()
+    project_path.joinpath("pyproject.toml").write_text(
+        textwrap.dedent(
+            """\
+            [project]
+            name = "pkga"
+            version = "1.0"
+
+            [project.optional-dependencies]
+            test = ["simple"]
+            """
+        )
+    )
+    report_path = tmp_path / "report.json"
+    script.pip(
+        "install",
+        "--dry-run",
+        "--no-build-isolation",
+        "--no-index",
+        "--find-links",
+        str(shared_data.root / "packages/"),
+        "--report",
+        str(report_path),
+        str(project_path) + "[test]",
+    )
+    report = json.loads(report_path.read_text())
+    assert len(report["install"]) == 2
+    pkga_report = report["install"][0]
+    assert pkga_report["metadata"]["name"] == "pkga"
+    assert pkga_report["is_direct"] is True
+    assert pkga_report["requested"] is True
+    assert pkga_report["requested_extras"] == ["test"]
+    simple_report = report["install"][1]
+    assert simple_report["metadata"]["name"] == "simple"
+    assert simple_report["is_direct"] is False
+    assert simple_report["requested"] is False
+    assert "requested_extras" not in simple_report
+
+
+@pytest.mark.network
+def test_install_report_editable_local_path_with_extras(
+    script: PipTestEnvironment, tmp_path: Path, shared_data: TestData
+) -> None:
+    """Test report remote editable."""
+    project_path = tmp_path / "pkga"
+    project_path.mkdir()
+    project_path.joinpath("pyproject.toml").write_text(
+        textwrap.dedent(
+            """\
+            [project]
+            name = "pkga"
+            version = "1.0"
+
+            [project.optional-dependencies]
+            test = ["simple"]
+            """
+        )
+    )
+    report_path = tmp_path / "report.json"
+    script.pip(
+        "install",
+        "--dry-run",
+        "--no-build-isolation",
+        "--no-index",
+        "--find-links",
+        str(shared_data.root / "packages/"),
+        "--report",
+        str(report_path),
+        "--editable",
+        str(project_path) + "[test]",
+    )
+    report = json.loads(report_path.read_text())
+    assert len(report["install"]) == 2
+    pkga_report = report["install"][0]
+    assert pkga_report["metadata"]["name"] == "pkga"
+    assert pkga_report["is_direct"] is True
+    assert pkga_report["requested"] is True
+    assert pkga_report["requested_extras"] == ["test"]
+    simple_report = report["install"][1]
+    assert simple_report["metadata"]["name"] == "simple"
+    assert simple_report["is_direct"] is False
+    assert simple_report["requested"] is False
+    assert "requested_extras" not in simple_report
+
+
 def test_install_report_to_stdout(
     script: PipTestEnvironment, shared_data: TestData
 ) -> None:
@@ -203,11 +401,6 @@ def test_install_report_to_stdout(
         str(shared_data.root / "packages/"),
         "--report",
         "-",
-        allow_stderr_warning=True,
-    )
-    assert result.stderr == (
-        "WARNING: --report is currently an experimental option. "
-        "The output format may change in a future release without prior warning.\n"
     )
     report = json.loads(result.stdout)
     assert "install" in report

@@ -2,6 +2,7 @@
 util tests
 
 """
+
 import codecs
 import os
 import shutil
@@ -14,6 +15,8 @@ from typing import Any, Callable, Iterator, List, NoReturn, Optional, Tuple, Typ
 from unittest.mock import Mock, patch
 
 import pytest
+
+from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError
 from pip._internal.utils.deprecation import PipDeprecationWarning, deprecated
@@ -37,6 +40,7 @@ from pip._internal.utils.misc import (
     normalize_path,
     normalize_version_info,
     parse_netloc,
+    redact_auth_from_requirement,
     redact_auth_from_url,
     redact_netloc,
     remove_auth_from_url,
@@ -52,8 +56,7 @@ from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 class Tests_EgglinkPath:
     "util.egg_link_path_from_location() tests"
 
-    def setup(self) -> None:
-
+    def setup_method(self) -> None:
         project = "foo"
 
         self.mock_dist = Mock(project_name=project)
@@ -81,7 +84,7 @@ class Tests_EgglinkPath:
         self.old_isfile = path.isfile
         self.mock_isfile = path.isfile = Mock()
 
-    def teardown(self) -> None:
+    def teardown_method(self) -> None:
         from pip._internal.utils import egg_link as utils
 
         utils.site_packages = self.old_site_packages
@@ -246,10 +249,10 @@ def test_rmtree_errorhandler_reraises_error(tmpdir: Path) -> None:
     by the given unreadable directory.
     """
     # Create directory without read permission
-    subdir_path = tmpdir / "subdir"
-    subdir_path.mkdir()
-    path = str(subdir_path)
-    os.chmod(path, stat.S_IWRITE)
+    path = tmpdir / "subdir"
+    path.mkdir()
+    old_mode = path.stat().st_mode
+    path.chmod(stat.S_IWRITE)
 
     mock_func = Mock()
 
@@ -258,9 +261,16 @@ def test_rmtree_errorhandler_reraises_error(tmpdir: Path) -> None:
     except RuntimeError:
         # Make sure the handler reraises an exception
         with pytest.raises(RuntimeError, match="test message"):
-            # Argument 3 to "rmtree_errorhandler" has incompatible type "None"; expected
-            # "Tuple[Type[BaseException], BaseException, TracebackType]"
-            rmtree_errorhandler(mock_func, path, None)  # type: ignore[arg-type]
+            # Argument 3 to "rmtree_errorhandler" has incompatible type
+            # "Union[Tuple[Type[BaseException], BaseException, TracebackType],
+            # Tuple[None, None, None]]"; expected "Tuple[Type[BaseException],
+            # BaseException, TracebackType]"
+            rmtree_errorhandler(
+                mock_func, path, sys.exc_info()  # type: ignore[arg-type]
+            )
+    finally:
+        # Restore permissions to let pytest to clean up temp dirs
+        path.chmod(old_mode)
 
     mock_func.assert_not_called()
 
@@ -426,6 +436,14 @@ class TestHashes:
         cache[Hashes({"sha256": ["ab", "cd"]})] = 42
         assert cache[Hashes({"sha256": ["ab", "cd"]})] == 42
 
+    def test_has_one_of(self) -> None:
+        hashes = Hashes({"sha256": ["abcd", "efgh"], "sha384": ["ijkl"]})
+        assert hashes.has_one_of({"sha256": "abcd"})
+        assert hashes.has_one_of({"sha256": "efgh"})
+        assert not hashes.has_one_of({"sha256": "xyzt"})
+        empty_hashes = Hashes()
+        assert not empty_hashes.has_one_of({"sha256": "xyzt"})
+
 
 class TestEncoding:
     """Tests for pip._internal.utils.encoding"""
@@ -542,7 +560,7 @@ def test_normalize_version_info(
 
 class TestGetProg:
     @pytest.mark.parametrize(
-        ("argv", "executable", "expected"),
+        "argv, executable, expected",
         [
             ("/usr/bin/pip", "", "pip"),
             ("-c", "/usr/bin/python", "/usr/bin/python -m pip"),
@@ -754,6 +772,30 @@ def test_redact_auth_from_url(auth_url: str, expected_url: str) -> None:
     assert url == expected_url
 
 
+@pytest.mark.parametrize(
+    "req, expected",
+    [
+        ("pkga", "pkga"),
+        (
+            "resolvelib@ "
+            " git+https://test-user:test-pass@github.com/sarugaku/resolvelib@1.0.1",
+            "resolvelib@"
+            " git+https://test-user:****@github.com/sarugaku/resolvelib@1.0.1",
+        ),
+        (
+            "resolvelib@"
+            " git+https://test-user:test-pass@github.com/sarugaku/resolvelib@1.0.1"
+            " ; python_version>='3.6'",
+            "resolvelib@"
+            " git+https://test-user:****@github.com/sarugaku/resolvelib@1.0.1"
+            ' ; python_version >= "3.6"',
+        ),
+    ],
+)
+def test_redact_auth_from_requirement(req: str, expected: str) -> None:
+    assert redact_auth_from_requirement(Requirement(req)) == expected
+
+
 class TestHiddenText:
     def test_basic(self) -> None:
         """
@@ -819,7 +861,7 @@ def test_hide_url() -> None:
     assert hidden_url.secret == "https://user:password@example.com"
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_deprecation_check_version() -> Iterator[None]:
     # We do this, so that the deprecation tests are easier to write.
     import pip._internal.utils.deprecation as d
@@ -1020,7 +1062,7 @@ def test_format_size(size: int, expected: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("rows", "table", "sizes"),
+    "rows, table, sizes",
     [
         ([], [], []),
         (

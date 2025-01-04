@@ -3,6 +3,10 @@
 ```{versionadded} 22.2
 ```
 
+```{versionchanged} 23.0
+``version`` has been bumped to ``1`` and the format declared stable.
+```
+
 The `--report` option of the pip install command produces a detailed JSON report of what
 it did install (or what it would have installed, if used with the `--dry-run` option).
 
@@ -13,20 +17,16 @@ When considering use cases, please bear in mind that
   other use cases), this format is *not* meant to be a lock file format as such;
 - there is no plan for pip to accept an installation report as input for the `install`,
   `download` or `wheel` commands;
-- the `--report` option and this format is intended to become a supported pip feature
-  (when the format is stabilized to version 1);
-- it is however *not* a PyPA interoperability standard and as such its evolution will be
-  governed by the pip processes and not the PyPA standardization processes.
+- while the `--report` option and this format is a supported pip feature,
+  it is *not* a PyPA interoperability standard and as such its evolution is governed by
+  the pip processes and not the PyPA standardization processes.
 ```
 
 ## Specification
 
 The report is a JSON object with the following properties:
 
-- `version`: the string `0`, denoting that the installation report is an experimental
-  feature. This value will change to `1`, when the feature is deemed stable after
-  gathering user feedback (likely in pip 22.3 or 23.0). Backward incompatible changes
-  may be introduced in version `1` without notice. After that, it will change only if
+- `version`: the string `1`. It will change only if
   and when backward incompatible changes are introduced, such as removing mandatory
   fields or changing the semantics or data type of existing fields. The introduction of
   backward incompatible changes will follow the usual pip processes such as the
@@ -35,7 +35,7 @@ The report is a JSON object with the following properties:
 
 - `pip_version`: a string with the version of pip used to produce the report.
 
-- `install`: an array of [InstallationReportItem](InstallationReportItem) representing
+- `install`: an array of [`InstallationReportItem`](InstallationReportItem) representing
   the distribution packages (to be) installed.
 
 - `environment`: an object describing the environment where the installation report was
@@ -56,15 +56,19 @@ package with the following properties:
   URL reference. `false` if the requirements was provided as a name and version
   specifier.
 
+- `is_yanked`: `true` if the requirement was yanked from the index, but was still
+  selected by pip conform to [PEP 592](https://peps.python.org/pep-0592/#installers).
+
 - `download_info`: Information about the artifact (to be) downloaded for installation,
-  using the [direct
-  URL](https://packaging.python.org/en/latest/specifications/direct-url/) data
-  structure. When `is_direct` is `true`, this field is the same as the `direct_url.json`
+  using the [direct URL data
+  structure](https://packaging.python.org/en/latest/specifications/direct-url-data-structure/).
+  When `is_direct` is `true`, this field is the same as the
+  [`direct_url.json`](https://packaging.python.org/en/latest/specifications/direct-url)
   metadata, otherwise it represents the URL of the artifact obtained from the index or
   `--find-links`.
 
   ```{note}
-  For source archives, `download_info.archive_info.hash` may
+  For source archives, `download_info.archive_info.hashes` may
   be absent when the requirement was installed from the wheel cache
   and the cache entry was populated by an older pip version that did not
   record the origin URL of the downloaded artifact.
@@ -92,17 +96,20 @@ will produce an output similar to this (metadata abriged for brevity):
 
 ```json
 {
-  "version": "0",
+  "version": "1",
   "pip_version": "22.2",
   "install": [
     {
       "download_info": {
         "url": "https://files.pythonhosted.org/packages/a4/0c/fbaa7319dcb5eecd3484686eb5a5c5702a6445adb566f01aee6de3369bc4/pydantic-1.9.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
         "archive_info": {
-          "hash": "sha256=18f3e912f9ad1bdec27fb06b8198a2ccc32f201e24174cec1b3424dda605a310"
+          "hashes": {
+            "sha256": "18f3e912f9ad1bdec27fb06b8198a2ccc32f201e24174cec1b3424dda605a310"
+          }
         }
       },
       "is_direct": false,
+      "is_yanked": false,
       "requested": true,
       "metadata": {
         "name": "pydantic",
@@ -130,6 +137,7 @@ will produce an output similar to this (metadata abriged for brevity):
         }
       },
       "is_direct": true,
+      "is_yanked": false,
       "requested": true,
       "metadata": {
         "name": "packaging",
@@ -144,7 +152,9 @@ will produce an output similar to this (metadata abriged for brevity):
       "download_info": {
         "url": "https://files.pythonhosted.org/packages/6c/10/a7d0fa5baea8fe7b50f448ab742f26f52b80bfca85ac2be9d35cdd9a3246/pyparsing-3.0.9-py3-none-any.whl",
         "archive_info": {
-          "hash": "sha256=5026bae9a10eeaefb61dab2f09052b9f4307d44aee4eda64b309723d8d206bbc"
+          "hashes": {
+            "sha256": "5026bae9a10eeaefb61dab2f09052b9f4307d44aee4eda64b309723d8d206bbc"
+          }
         }
       },
       "is_direct": false,
@@ -163,7 +173,9 @@ will produce an output similar to this (metadata abriged for brevity):
       "download_info": {
         "url": "https://files.pythonhosted.org/packages/75/e1/932e06004039dd670c9d5e1df0cd606bf46e29a28e65d5bb28e894ea29c9/typing_extensions-4.2.0-py3-none-any.whl",
         "archive_info": {
-          "hash": "sha256=6657594ee297170d19f67d55c05852a874e7eb634f4f753dbd667855e07c1708"
+          "hashes": {
+            "sha256": "6657594ee297170d19f67d55c05852a874e7eb634f4f753dbd667855e07c1708"
+          }
         }
       },
       "is_direct": false,

@@ -14,6 +14,7 @@ import pytest
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.unpacking import is_within_directory, untar_file, unzip_file
+
 from tests.lib import TestData
 
 
@@ -37,12 +38,12 @@ class TestUnpackArchives:
 
     """
 
-    def setup(self) -> None:
+    def setup_method(self) -> None:
         self.tempdir = tempfile.mkdtemp()
         self.old_mask = os.umask(0o022)
         self.symlink_expected_mode = None
 
-    def teardown(self) -> None:
+    def teardown_method(self) -> None:
         os.umask(self.old_mask)
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
@@ -155,7 +156,13 @@ class TestUnpackArchives:
         test_tar = self.make_tar_file("test_tar.tar", files)
         with pytest.raises(InstallationError) as e:
             untar_file(test_tar, self.tempdir)
-        assert "trying to install outside target directory" in str(e.value)
+
+        # The error message comes from tarfile.data_filter when it is available,
+        # otherwise from pip's own check.
+        if hasattr(tarfile, "data_filter"):
+            assert "is outside the destination" in str(e.value)
+        else:
+            assert "trying to install outside target directory" in str(e.value)
 
     def test_unpack_tar_success(self) -> None:
         """
@@ -170,6 +177,67 @@ class TestUnpackArchives:
         ]
         test_tar = self.make_tar_file("test_tar.tar", files)
         untar_file(test_tar, self.tempdir)
+
+    @pytest.mark.skipif(
+        not hasattr(tarfile, "data_filter"),
+        reason="tarfile filters (PEP-721) not available",
+    )
+    def test_unpack_tar_filter(self) -> None:
+        """
+        Test that the tarfile.data_filter is used to disallow dangerous
+        behaviour (PEP-721)
+        """
+        test_tar = os.path.join(self.tempdir, "test_tar_filter.tar")
+        with tarfile.open(test_tar, "w") as mytar:
+            file_tarinfo = tarfile.TarInfo("bad-link")
+            file_tarinfo.type = tarfile.SYMTYPE
+            file_tarinfo.linkname = "../../../../pwn"
+            mytar.addfile(file_tarinfo, io.BytesIO(b""))
+        with pytest.raises(InstallationError) as e:
+            untar_file(test_tar, self.tempdir)
+
+        assert "is outside the destination" in str(e.value)
+
+    @pytest.mark.parametrize(
+        "input_prefix, unpack_prefix",
+        [
+            ("", ""),
+            ("dir/", ""),  # pip ignores a common leading directory
+            ("dir/sub/", "sub/"),  # pip ignores *one* common leading directory
+        ],
+    )
+    def test_unpack_tar_links(self, input_prefix: str, unpack_prefix: str) -> None:
+        """
+        Test unpacking a *.tar with file containing hard & soft links
+        """
+        test_tar = os.path.join(self.tempdir, "test_tar_links.tar")
+        content = b"file content"
+        with tarfile.open(test_tar, "w") as mytar:
+            file_tarinfo = tarfile.TarInfo(input_prefix + "regular_file.txt")
+            file_tarinfo.size = len(content)
+            mytar.addfile(file_tarinfo, io.BytesIO(content))
+
+            hardlink_tarinfo = tarfile.TarInfo(input_prefix + "hardlink.txt")
+            hardlink_tarinfo.type = tarfile.LNKTYPE
+            hardlink_tarinfo.linkname = input_prefix + "regular_file.txt"
+            mytar.addfile(hardlink_tarinfo)
+
+            symlink_tarinfo = tarfile.TarInfo(input_prefix + "symlink.txt")
+            symlink_tarinfo.type = tarfile.SYMTYPE
+            symlink_tarinfo.linkname = "regular_file.txt"
+            mytar.addfile(symlink_tarinfo)
+
+        untar_file(test_tar, self.tempdir)
+
+        unpack_dir = os.path.join(self.tempdir, unpack_prefix)
+        with open(os.path.join(unpack_dir, "regular_file.txt"), "rb") as f:
+            assert f.read() == content
+
+        with open(os.path.join(unpack_dir, "hardlink.txt"), "rb") as f:
+            assert f.read() == content
+
+        with open(os.path.join(unpack_dir, "symlink.txt"), "rb") as f:
+            assert f.read() == content
 
 
 def test_unpack_tar_unicode(tmpdir: Path) -> None:

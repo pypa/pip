@@ -1,8 +1,8 @@
 import logging
 import os
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, cast
-from unittest import mock
 
 import pytest
 
@@ -11,6 +11,7 @@ from pip._internal.models.link import Link
 from pip._internal.operations.build.wheel_legacy import format_command_result
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.vcs.git import Git
+
 from tests.lib import _create_test_package
 
 
@@ -32,89 +33,55 @@ def test_contains_egg_info(s: str, expected: bool) -> None:
     assert result == expected
 
 
+@dataclass
 class ReqMock:
-    def __init__(
-        self,
-        name: str = "pendulum",
-        is_wheel: bool = False,
-        editable: bool = False,
-        link: Optional[Link] = None,
-        constraint: bool = False,
-        source_dir: Optional[str] = "/tmp/pip-install-123/pendulum",
-        use_pep517: bool = True,
-        supports_pyproject_editable: bool = False,
-    ) -> None:
-        self.name = name
-        self.is_wheel = is_wheel
-        self.editable = editable
-        self.link = link
-        self.constraint = constraint
-        self.source_dir = source_dir
-        self.use_pep517 = use_pep517
-        self._supports_pyproject_editable = supports_pyproject_editable
-
-    def supports_pyproject_editable(self) -> bool:
-        return self._supports_pyproject_editable
+    name: str = "pendulum"
+    is_wheel: bool = False
+    editable: bool = False
+    link: Optional[Link] = None
+    constraint: bool = False
+    source_dir: Optional[str] = "/tmp/pip-install-123/pendulum"
+    use_pep517: bool = True
+    supports_pyproject_editable: bool = False
 
 
 @pytest.mark.parametrize(
-    "req, disallow_bdist_wheel, expected",
+    "req, expected",
     [
-        # When binaries are allowed, we build.
-        (ReqMock(use_pep517=True), False, True),
-        (ReqMock(use_pep517=False), False, True),
-        # When binaries are disallowed, we don't build, unless pep517 is
-        # enabled.
-        (ReqMock(use_pep517=True), True, True),
-        (ReqMock(use_pep517=False), True, False),
+        # We build, whether pep 517 is enabled or not.
+        (ReqMock(use_pep517=True), True),
+        (ReqMock(use_pep517=False), True),
         # We don't build constraints.
-        (ReqMock(constraint=True), False, False),
+        (ReqMock(constraint=True), False),
         # We don't build reqs that are already wheels.
-        (ReqMock(is_wheel=True), False, False),
-        (ReqMock(editable=True, use_pep517=False), False, False),
+        (ReqMock(is_wheel=True), False),
+        # We build editables if the backend supports PEP 660.
+        (ReqMock(editable=True, use_pep517=False), False),
         (
             ReqMock(editable=True, use_pep517=True, supports_pyproject_editable=True),
-            False,
             True,
         ),
         (
             ReqMock(editable=True, use_pep517=True, supports_pyproject_editable=False),
             False,
-            False,
         ),
-        (ReqMock(source_dir=None), False, False),
+        # We don't build if there is no source dir (whatever that means!).
+        (ReqMock(source_dir=None), False),
         # By default (i.e. when binaries are allowed), VCS requirements
         # should be built in install mode.
         (
             ReqMock(link=Link("git+https://g.c/org/repo"), use_pep517=True),
-            False,
-            True,
-        ),
-        (
-            ReqMock(link=Link("git+https://g.c/org/repo"), use_pep517=False),
-            False,
-            True,
-        ),
-        # Disallowing binaries, however, should cause them not to be built.
-        # unless pep517 is enabled.
-        (
-            ReqMock(link=Link("git+https://g.c/org/repo"), use_pep517=True),
-            True,
             True,
         ),
         (
             ReqMock(link=Link("git+https://g.c/org/repo"), use_pep517=False),
             True,
-            False,
         ),
     ],
 )
-def test_should_build_for_install_command(
-    req: ReqMock, disallow_bdist_wheel: bool, expected: bool
-) -> None:
+def test_should_build_for_install_command(req: ReqMock, expected: bool) -> None:
     should_build = wheel_builder.should_build_for_install_command(
         cast(InstallRequirement, req),
-        check_bdist_wheel_allowed=lambda req: not disallow_bdist_wheel,
     )
     assert should_build is expected
 
@@ -136,28 +103,6 @@ def test_should_build_for_wheel_command(req: ReqMock, expected: bool) -> None:
         cast(InstallRequirement, req)
     )
     assert should_build is expected
-
-
-@mock.patch("pip._internal.wheel_builder.is_wheel_installed")
-def test_should_build_legacy_wheel_not_installed(is_wheel_installed: mock.Mock) -> None:
-    is_wheel_installed.return_value = False
-    legacy_req = ReqMock(use_pep517=False)
-    should_build = wheel_builder.should_build_for_install_command(
-        cast(InstallRequirement, legacy_req),
-        check_bdist_wheel_allowed=lambda req: True,
-    )
-    assert not should_build
-
-
-@mock.patch("pip._internal.wheel_builder.is_wheel_installed")
-def test_should_build_legacy_wheel_installed(is_wheel_installed: mock.Mock) -> None:
-    is_wheel_installed.return_value = True
-    legacy_req = ReqMock(use_pep517=False)
-    should_build = wheel_builder.should_build_for_install_command(
-        cast(InstallRequirement, legacy_req),
-        check_bdist_wheel_allowed=lambda req: True,
-    )
-    assert should_build
 
 
 @pytest.mark.parametrize(

@@ -6,7 +6,7 @@ from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
-from pip._internal.cli.req_command import SessionCommandMixin, warn_if_run_as_root
+from pip._internal.cli.index_command import SessionCommandMixin
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.exceptions import InstallationError
 from pip._internal.req import parse_requirements
@@ -14,7 +14,11 @@ from pip._internal.req.constructors import (
     install_req_from_line,
     install_req_from_parsed_requirement,
 )
-from pip._internal.utils.misc import protect_pip_from_modification_on_windows
+from pip._internal.utils.misc import (
+    check_externally_managed,
+    protect_pip_from_modification_on_windows,
+    warn_if_run_as_root,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +59,7 @@ class UninstallCommand(Command, SessionCommandMixin):
             help="Don't ask for confirmation of uninstall deletions.",
         )
         self.cmd_opts.add_option(cmdoptions.root_user_action())
+        self.cmd_opts.add_option(cmdoptions.override_externally_managed())
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options: Values, args: List[str]) -> int:
@@ -89,6 +94,9 @@ class UninstallCommand(Command, SessionCommandMixin):
                 f"You must give at least one requirement to {self.name} (see "
                 f'"pip help {self.name}")'
             )
+
+        if not options.override_externally_managed:
+            check_externally_managed()
 
         protect_pip_from_modification_on_windows(
             modifying_pip="pip" in reqs_to_uninstall

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2012-2017 The Python Software Foundation.
+# Copyright (C) 2012-2023 The Python Software Foundation.
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
 """PEP 376 implementation."""
@@ -20,24 +20,20 @@ import zipimport
 from . import DistlibException, resources
 from .compat import StringIO
 from .version import get_scheme, UnsupportedVersionError
-from .metadata import (Metadata, METADATA_FILENAME, WHEEL_METADATA_FILENAME,
-                       LEGACY_METADATA_FILENAME)
-from .util import (parse_requirement, cached_property, parse_name_and_version,
-                   read_exports, write_exports, CSVReader, CSVWriter)
+from .metadata import (Metadata, METADATA_FILENAME, WHEEL_METADATA_FILENAME, LEGACY_METADATA_FILENAME)
+from .util import (parse_requirement, cached_property, parse_name_and_version, read_exports, write_exports, CSVReader,
+                   CSVWriter)
 
-
-__all__ = ['Distribution', 'BaseInstalledDistribution',
-           'InstalledDistribution', 'EggInfoDistribution',
-           'DistributionPath']
-
+__all__ = [
+    'Distribution', 'BaseInstalledDistribution', 'InstalledDistribution', 'EggInfoDistribution', 'DistributionPath'
+]
 
 logger = logging.getLogger(__name__)
 
 EXPORTS_FILENAME = 'pydist-exports.json'
 COMMANDS_FILENAME = 'pydist-commands.json'
 
-DIST_FILES = ('INSTALLER', METADATA_FILENAME, 'RECORD', 'REQUESTED',
-              'RESOURCES', EXPORTS_FILENAME, 'SHARED')
+DIST_FILES = ('INSTALLER', METADATA_FILENAME, 'RECORD', 'REQUESTED', 'RESOURCES', EXPORTS_FILENAME, 'SHARED')
 
 DISTINFO_EXT = '.dist-info'
 
@@ -46,6 +42,7 @@ class _Cache(object):
     """
     A simple cache mapping names and .dist-info paths to distributions
     """
+
     def __init__(self):
         """
         Initialise an instance. There is normally one for each DistributionPath.
@@ -76,6 +73,7 @@ class DistributionPath(object):
     """
     Represents a set of distributions installed on a path (typically sys.path).
     """
+
     def __init__(self, path=None, include_egg=False):
         """
         Create an instance from a path, optionally including legacy (distutils/
@@ -111,7 +109,6 @@ class DistributionPath(object):
         self._cache.clear()
         self._cache_egg.clear()
 
-
     def _yield_distributions(self):
         """
         Yield .dist-info and/or .egg(-info) distributions.
@@ -134,9 +131,7 @@ class DistributionPath(object):
                     continue
                 try:
                     if self._include_dist and entry.endswith(DISTINFO_EXT):
-                        possible_filenames = [METADATA_FILENAME,
-                                              WHEEL_METADATA_FILENAME,
-                                              LEGACY_METADATA_FILENAME]
+                        possible_filenames = [METADATA_FILENAME, WHEEL_METADATA_FILENAME, LEGACY_METADATA_FILENAME]
                         for metadata_filename in possible_filenames:
                             metadata_path = posixpath.join(entry, metadata_filename)
                             pydist = finder.find(metadata_path)
@@ -149,10 +144,8 @@ class DistributionPath(object):
                             metadata = Metadata(fileobj=stream, scheme='legacy')
                         logger.debug('Found %s', r.path)
                         seen.add(r.path)
-                        yield new_dist_class(r.path, metadata=metadata,
-                                             env=self)
-                    elif self._include_egg and entry.endswith(('.egg-info',
-                                                              '.egg')):
+                        yield new_dist_class(r.path, metadata=metadata, env=self)
+                    elif self._include_egg and entry.endswith(('.egg-info', '.egg')):
                         logger.debug('Found %s', r.path)
                         seen.add(r.path)
                         yield old_dist_class(r.path, self)
@@ -270,8 +263,7 @@ class DistributionPath(object):
             try:
                 matcher = self._scheme.matcher('%s (%s)' % (name, version))
             except ValueError:
-                raise DistlibException('invalid name or version: %r, %r' %
-                                      (name, version))
+                raise DistlibException('invalid name or version: %r, %r' % (name, version))
 
         for dist in self.get_distributions():
             # We hit a problem on Travis where enum34 was installed and doesn't
@@ -346,12 +338,12 @@ class Distribution(object):
         """
         self.metadata = metadata
         self.name = metadata.name
-        self.key = self.name.lower()    # for case-insensitive comparisons
+        self.key = self.name.lower()  # for case-insensitive comparisons
         self.version = metadata.version
         self.locator = None
         self.digest = None
-        self.extras = None      # additional features requested
-        self.context = None     # environment marker overrides
+        self.extras = None  # additional features requested
+        self.context = None  # environment marker overrides
         self.download_urls = set()
         self.digests = {}
 
@@ -362,7 +354,7 @@ class Distribution(object):
         """
         return self.metadata.source_url
 
-    download_url = source_url   # Backward compatibility
+    download_url = source_url  # Backward compatibility
 
     @property
     def name_and_version(self):
@@ -386,10 +378,8 @@ class Distribution(object):
     def _get_requirements(self, req_attr):
         md = self.metadata
         reqts = getattr(md, req_attr)
-        logger.debug('%s: got requirements %r from metadata: %r', self.name, req_attr,
-                     reqts)
-        return set(md.get_requirements(reqts, extras=self.extras,
-                                       env=self.context))
+        logger.debug('%s: got requirements %r from metadata: %r', self.name, req_attr, reqts)
+        return set(md.get_requirements(reqts, extras=self.extras, env=self.context))
 
     @property
     def run_requires(self):
@@ -426,12 +416,11 @@ class Distribution(object):
             matcher = scheme.matcher(r.requirement)
         except UnsupportedVersionError:
             # XXX compat-mode if cannot read the version
-            logger.warning('could not read version %r - using name only',
-                           req)
+            logger.warning('could not read version %r - using name only', req)
             name = req.split()[0]
             matcher = scheme.matcher(name)
 
-        name = matcher.key   # case-insensitive
+        name = matcher.key  # case-insensitive
 
         result = False
         for p in self.provides:
@@ -466,9 +455,7 @@ class Distribution(object):
         if type(other) is not type(self):
             result = False
         else:
-            result = (self.name == other.name and
-                      self.version == other.version and
-                      self.source_url == other.source_url)
+            result = (self.name == other.name and self.version == other.version and self.source_url == other.source_url)
         return result
 
     def __hash__(self):
@@ -559,8 +546,7 @@ class InstalledDistribution(BaseInstalledDistribution):
             if r is None:
                 r = finder.find(LEGACY_METADATA_FILENAME)
             if r is None:
-                raise ValueError('no %s found in %s' % (METADATA_FILENAME,
-                                                        path))
+                raise ValueError('no %s found in %s' % (METADATA_FILENAME, path))
             with contextlib.closing(r.as_stream()) as stream:
                 metadata = Metadata(fileobj=stream, scheme='legacy')
 
@@ -571,15 +557,14 @@ class InstalledDistribution(BaseInstalledDistribution):
 
         r = finder.find('REQUESTED')
         self.requested = r is not None
-        p  = os.path.join(path, 'top_level.txt')
+        p = os.path.join(path, 'top_level.txt')
         if os.path.exists(p):
             with open(p, 'rb') as f:
                 data = f.read().decode('utf-8')
             self.modules = data.splitlines()
 
     def __repr__(self):
-        return '<InstalledDistribution %r %s at %r>' % (
-            self.name, self.version, self.path)
+        return '<InstalledDistribution %r %s at %r>' % (self.name, self.version, self.path)
 
     def __str__(self):
         return "%s %s" % (self.name, self.version)
@@ -596,14 +581,14 @@ class InstalledDistribution(BaseInstalledDistribution):
         with contextlib.closing(r.as_stream()) as stream:
             with CSVReader(stream=stream) as record_reader:
                 # Base location is parent dir of .dist-info dir
-                #base_location = os.path.dirname(self.path)
-                #base_location = os.path.abspath(base_location)
+                # base_location = os.path.dirname(self.path)
+                # base_location = os.path.abspath(base_location)
                 for row in record_reader:
                     missing = [None for i in range(len(row), 3)]
                     path, checksum, size = row + missing
-                    #if not os.path.isabs(path):
-                    #    path = path.replace('/', os.sep)
-                    #    path = os.path.join(base_location, path)
+                    # if not os.path.isabs(path):
+                    #     path = path.replace('/', os.sep)
+                    #     path = os.path.join(base_location, path)
                     results.append((path, checksum, size))
         return results
 
@@ -701,8 +686,7 @@ class InstalledDistribution(BaseInstalledDistribution):
                     size = '%d' % os.path.getsize(path)
                     with open(path, 'rb') as fp:
                         hash_value = self.get_hash(fp.read())
-                if path.startswith(base) or (base_under_prefix and
-                                             path.startswith(prefix)):
+                if path.startswith(base) or (base_under_prefix and path.startswith(prefix)):
                     path = os.path.relpath(path, base)
                 writer.writerow((path, hash_value, size))
 
@@ -791,7 +775,7 @@ class InstalledDistribution(BaseInstalledDistribution):
         for key in ('prefix', 'lib', 'headers', 'scripts', 'data'):
             path = paths[key]
             if os.path.isdir(paths[key]):
-                lines.append('%s=%s' % (key,  path))
+                lines.append('%s=%s' % (key, path))
         for ns in paths.get('namespace', ()):
             lines.append('namespace=%s' % ns)
 
@@ -826,9 +810,8 @@ class InstalledDistribution(BaseInstalledDistribution):
             # it's an absolute path?
             distinfo_dirname, path = path.split(os.sep)[-2:]
             if distinfo_dirname != self.path.split(os.sep)[-1]:
-                raise DistlibException(
-                    'dist-info file %r does not belong to the %r %s '
-                    'distribution' % (path, self.name, self.version))
+                raise DistlibException('dist-info file %r does not belong to the %r %s '
+                                       'distribution' % (path, self.name, self.version))
 
         # The file must be relative
         if path not in DIST_FILES:
@@ -854,8 +837,7 @@ class InstalledDistribution(BaseInstalledDistribution):
                 yield path
 
     def __eq__(self, other):
-        return (isinstance(other, InstalledDistribution) and
-                self.path == other.path)
+        return (isinstance(other, InstalledDistribution) and self.path == other.path)
 
     # See http://docs.python.org/reference/datamodel#object.__hash__
     __hash__ = object.__hash__
@@ -867,13 +849,14 @@ class EggInfoDistribution(BaseInstalledDistribution):
     if the given path happens to be a directory, the metadata is read from the
     file ``PKG-INFO`` under that directory."""
 
-    requested = True    # as we have no way of knowing, assume it was
+    requested = True  # as we have no way of knowing, assume it was
     shared_locations = {}
 
     def __init__(self, path, env=None):
+
         def set_name_and_version(s, n, v):
             s.name = n
-            s.key = n.lower()   # for case-insensitive comparisons
+            s.key = n.lower()  # for case-insensitive comparisons
             s.version = v
 
         self.path = path
@@ -903,15 +886,17 @@ class EggInfoDistribution(BaseInstalledDistribution):
             lines = data.splitlines()
             for line in lines:
                 line = line.strip()
-                if line.startswith('['):
-                    logger.warning('Unexpected line: quitting requirement scan: %r',
-                                   line)
+                # sectioned files have bare newlines (separating sections)
+                if not line:  # pragma: no cover
+                    continue
+                if line.startswith('['):  # pragma: no cover
+                    logger.warning('Unexpected line: quitting requirement scan: %r', line)
                     break
                 r = parse_requirement(line)
-                if not r:
+                if not r:  # pragma: no cover
                     logger.warning('Not recognised as a requirement: %r', line)
                     continue
-                if r.extras:
+                if r.extras:  # pragma: no cover
                     logger.warning('extra requirements in requires.txt are '
                                    'not supported')
                 if not r.constraints:
@@ -947,8 +932,7 @@ class EggInfoDistribution(BaseInstalledDistribution):
             else:
                 # FIXME handle the case where zipfile is not available
                 zipf = zipimport.zipimporter(path)
-                fileobj = StringIO(
-                    zipf.get_data('EGG-INFO/PKG-INFO').decode('utf8'))
+                fileobj = StringIO(zipf.get_data('EGG-INFO/PKG-INFO').decode('utf8'))
                 metadata = Metadata(fileobj=fileobj, scheme='legacy')
                 try:
                     data = zipf.get_data('EGG-INFO/requires.txt')
@@ -982,8 +966,7 @@ class EggInfoDistribution(BaseInstalledDistribution):
         return metadata
 
     def __repr__(self):
-        return '<EggInfoDistribution %r %s at %r>' % (
-            self.name, self.version, self.path)
+        return '<EggInfoDistribution %r %s at %r>' % (self.name, self.version, self.path)
 
     def __str__(self):
         return "%s %s" % (self.name, self.version)
@@ -1039,7 +1022,7 @@ class EggInfoDistribution(BaseInstalledDistribution):
                         logger.warning('Non-existent file: %s', p)
                         if p.endswith(('.pyc', '.pyo')):
                             continue
-                        #otherwise fall through and fail
+                        # otherwise fall through and fail
                     if not os.path.isdir(p):
                         result.append((p, _md5(p), _size(p)))
             result.append((record_path, None, None))
@@ -1075,11 +1058,11 @@ class EggInfoDistribution(BaseInstalledDistribution):
                                 yield line
 
     def __eq__(self, other):
-        return (isinstance(other, EggInfoDistribution) and
-                self.path == other.path)
+        return (isinstance(other, EggInfoDistribution) and self.path == other.path)
 
     # See http://docs.python.org/reference/datamodel#object.__hash__
     __hash__ = object.__hash__
+
 
 new_dist_class = InstalledDistribution
 old_dist_class = EggInfoDistribution
@@ -1114,7 +1097,7 @@ class DependencyGraph(object):
         """
         self.adjacency_list[distribution] = []
         self.reverse_list[distribution] = []
-        #self.missing[distribution] = []
+        # self.missing[distribution] = []
 
     def add_edge(self, x, y, label=None):
         """Add an edge from distribution *x* to distribution *y* with the given
@@ -1174,9 +1157,8 @@ class DependencyGraph(object):
             if len(adjs) == 0 and not skip_disconnected:
                 disconnected.append(dist)
             for other, label in adjs:
-                if not label is None:
-                    f.write('"%s" -> "%s" [label="%s"]\n' %
-                            (dist.name, other.name, label))
+                if label is not None:
+                    f.write('"%s" -> "%s" [label="%s"]\n' % (dist.name, other.name, label))
                 else:
                     f.write('"%s" -> "%s"\n' % (dist.name, other.name))
         if not skip_disconnected and len(disconnected) > 0:
@@ -1216,8 +1198,7 @@ class DependencyGraph(object):
             # Remove from the adjacency list of others
             for k, v in alist.items():
                 alist[k] = [(d, r) for d, r in v if d not in to_remove]
-            logger.debug('Moving to result: %s',
-                         ['%s (%s)' % (d.name, d.version) for d in to_remove])
+            logger.debug('Moving to result: %s', ['%s (%s)' % (d.name, d.version) for d in to_remove])
             result.extend(to_remove)
         return result, list(alist.keys())
 
@@ -1252,19 +1233,17 @@ def make_graph(dists, scheme='default'):
 
     # now make the edges
     for dist in dists:
-        requires = (dist.run_requires | dist.meta_requires |
-                    dist.build_requires | dist.dev_requires)
+        requires = (dist.run_requires | dist.meta_requires | dist.build_requires | dist.dev_requires)
         for req in requires:
             try:
                 matcher = scheme.matcher(req)
             except UnsupportedVersionError:
                 # XXX compat-mode if cannot read the version
-                logger.warning('could not read version %r - using name only',
-                               req)
+                logger.warning('could not read version %r - using name only', req)
                 name = req.split()[0]
                 matcher = scheme.matcher(name)
 
-            name = matcher.key   # case-insensitive
+            name = matcher.key  # case-insensitive
 
             matched = False
             if name in provided:
@@ -1324,7 +1303,7 @@ def get_required_dists(dists, dist):
 
     req = set()  # required distributions
     todo = graph.adjacency_list[dist]  # list of nodes we should inspect
-    seen = set(t[0] for t in todo) # already added to todo
+    seen = set(t[0] for t in todo)  # already added to todo
 
     while todo:
         d = todo.pop()[0]

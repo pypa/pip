@@ -1,4 +1,5 @@
 """Tests for wheel binary packages and .dist-info."""
+
 import csv
 import logging
 import os
@@ -11,6 +12,7 @@ from typing import Dict, List, Optional, Tuple, cast
 from unittest.mock import patch
 
 import pytest
+
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import InstallationError
@@ -31,6 +33,7 @@ from pip._internal.operations.install.wheel import (
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import hash_file
 from pip._internal.utils.unpacking import unpack_file
+
 from tests.lib import DATA_DIR, TestData, assert_paths_equal
 from tests.lib.wheel import make_wheel
 
@@ -102,15 +105,13 @@ def test_get_legacy_build_wheel_path__multiple_names(
     ],
 )
 def test_get_entrypoints(tmp_path: pathlib.Path, console_scripts: str) -> None:
-    entry_points_text = """
+    entry_points_text = f"""
         [console_scripts]
-        {}
+        {console_scripts}
         [section]
         common:one = module:func
         common:two = module:other_func
-    """.format(
-        console_scripts
-    )
+    """
 
     distribution = make_wheel(
         "simple",
@@ -518,7 +519,6 @@ class TestInstallUnpackedWheel:
 
 
 class TestMessageAboutScriptsNotOnPATH:
-
     tilde_warning_msg = (
         "NOTE: The current PATH contains path(s) starting with `~`, "
         "which may not be expanded by all applications."
@@ -586,6 +586,12 @@ class TestMessageAboutScriptsNotOnPATH:
     def test_multi_script__single_dir_on_PATH(self) -> None:
         retval = self._template(
             paths=["/a/b", "/c/d/bin"], scripts=["/a/b/foo", "/a/b/bar", "/a/b/baz"]
+        )
+        assert retval is None
+
+    def test_PATH_check_path_normalization(self) -> None:
+        retval = self._template(
+            paths=["/a/./b/../b//c/", "/d/e/bin"], scripts=["/a/b/c/foo"]
         )
         assert retval is None
 

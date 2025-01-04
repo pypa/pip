@@ -67,11 +67,34 @@ $ python pip.pyz --help
 
 If run directly:
 
-```{pip-cli}
-$ pip.pyz --help
+````{tab} Linux
+```console
+$ chmod +x ./pip.pyz
+$ ./pip.pyz
 ```
 
 then the currently active Python interpreter will be used.
+````
+
+````{tab} MacOS
+```console
+$ chmod +x ./pip.pyz
+$ ./pip.pyz
+```
+
+then the currently active Python interpreter will be used.
+````
+
+````{tab} Windows
+```doscon
+C:> .\pip.pyz
+```
+
+then the currently active Python interpreter will be used.
+
+You may need to configure your system to recognise the ``.pyz`` extension
+before this will work.
+````
 
 ## Alternative Methods
 
@@ -90,7 +113,7 @@ distro community, cloud provider support channels, etc).
 
 ## Upgrading `pip`
 
-Upgrading your `pip` by running:
+Upgrade your `pip` by running:
 
 ```{pip-cli}
 $ pip install --upgrade pip
@@ -102,8 +125,8 @@ $ pip install --upgrade pip
 
 The current version of pip works on:
 
-- Windows, Linux and MacOS.
-- CPython 3.7, 3.8, 3.9, 3.10 and latest PyPy3.
+- Windows, Linux and macOS.
+- CPython 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, and latest PyPy3.
 
 pip is tested to work on the latest patch version of the Python interpreter,
 for each of the minor versions listed above. Previous patch versions are

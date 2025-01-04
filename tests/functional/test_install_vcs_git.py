@@ -3,11 +3,11 @@ from typing import Optional
 
 import pytest
 
-from tests.lib import pyversion  # noqa: F401
 from tests.lib import (
     PipTestEnvironment,
     _change_test_package_version,
     _create_test_package,
+    pyversion,  # noqa: F401
 )
 from tests.lib.git_submodule_helpers import (
     _change_test_package_submodule,
@@ -186,7 +186,6 @@ def test_install_editable_from_git_with_https(
 
 
 @pytest.mark.network
-@pytest.mark.usefixtures("with_wheel")
 def test_install_noneditable_git(script: PipTestEnvironment) -> None:
     """
     Test installing from a non-editable git URL with a given tag.
@@ -393,7 +392,7 @@ def test_git_with_non_editable_unpacking(
     )
     result = script.pip(
         "install",
-        "--global-option=--version",
+        "--global-option=--quiet",
         local_url,
         allow_stderr_warning=True,
     )
@@ -450,7 +449,7 @@ def test_git_with_ambiguous_revs(script: PipTestEnvironment) -> None:
     assert "Could not find a tag or branch" not in result.stdout
     # it is 'version-pkg' instead of 'version_pkg' because
     # egg-link name is version-pkg.egg-link because it is a single .py module
-    result.assert_installed("version-pkg", with_files=[".git"])
+    result.assert_installed("version_pkg", with_files=[".git"])
 
 
 def test_editable__no_revision(script: PipTestEnvironment) -> None:
@@ -580,7 +579,6 @@ def test_check_submodule_addition(script: PipTestEnvironment) -> None:
     update_result.did_create(script.venv / "src/version-pkg/testpkg/static/testfile2")
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_git_branch_not_cached(script: PipTestEnvironment) -> None:
     """
     Installing git urls with a branch revision does not cause wheel caching.
@@ -596,7 +594,6 @@ def test_install_git_branch_not_cached(script: PipTestEnvironment) -> None:
     assert f"Successfully built {PKG}" in result.stdout, result.stdout
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_install_git_sha_cached(script: PipTestEnvironment) -> None:
     """
     Installing git urls with a sha revision does cause wheel caching.

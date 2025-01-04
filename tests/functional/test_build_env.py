@@ -1,10 +1,12 @@
 import os
+import sys
 from textwrap import dedent
 from typing import Optional
 
 import pytest
 
 from pip._internal.build_env import BuildEnvironment, _get_system_sitepackages
+
 from tests.lib import (
     PipTestEnvironment,
     TestPipResult,
@@ -23,9 +25,10 @@ def run_with_build_env(
     test_script_contents: Optional[str] = None,
 ) -> TestPipResult:
     build_env_script = script.scratch_path / "build_env.py"
+    scratch_path = str(script.scratch_path)
     build_env_script.write_text(
         dedent(
-            """
+            f"""
             import subprocess
             import sys
 
@@ -41,7 +44,7 @@ def run_with_build_env(
 
             link_collector = LinkCollector(
                 session=PipSession(),
-                search_scope=SearchScope.create([{scratch!r}], [], False),
+                search_scope=SearchScope.create([{scratch_path!r}], [], False),
             )
             selection_prefs = SelectionPreferences(
                 allow_yanked=True,
@@ -53,9 +56,7 @@ def run_with_build_env(
 
             with global_tempdir_manager():
                 build_env = BuildEnvironment()
-            """.format(
-                scratch=str(script.scratch_path)
-            )
+            """
         )
         + indent(dedent(setup_script_contents), "    ")
         + indent(
@@ -106,7 +107,6 @@ def test_build_env_allow_only_one_install(script: PipTestEnvironment) -> None:
 
 
 def test_build_env_requirements_check(script: PipTestEnvironment) -> None:
-
     create_basic_wheel_for_package(script, "foo", "2.0")
     create_basic_wheel_for_package(script, "bar", "1.0")
     create_basic_wheel_for_package(script, "bar", "3.0")
@@ -204,9 +204,33 @@ def test_build_env_overlay_prefix_has_priority(script: PipTestEnvironment) -> No
     assert result.stdout.strip() == "2.0", str(result)
 
 
+if sys.version_info < (3, 12):
+    BUILD_ENV_ERROR_DEBUG_CODE = r"""
+            from distutils.sysconfig import get_python_lib
+            print(
+                f'imported `pkg` from `{pkg.__file__}`',
+                file=sys.stderr)
+            print('system sites:\n  ' + '\n  '.join(sorted({
+                            get_python_lib(plat_specific=0),
+                            get_python_lib(plat_specific=1),
+                    })), file=sys.stderr)
+    """
+else:
+    BUILD_ENV_ERROR_DEBUG_CODE = r"""
+            from sysconfig import get_paths
+            paths = get_paths()
+            print(
+                f'imported `pkg` from `{pkg.__file__}`',
+                file=sys.stderr)
+            print('system sites:\n  ' + '\n  '.join(sorted({
+                            paths['platlib'],
+                            paths['purelib'],
+                    })), file=sys.stderr)
+    """
+
+
 @pytest.mark.usefixtures("enable_user_site")
 def test_build_env_isolation(script: PipTestEnvironment) -> None:
-
     # Create dummy `pkg` wheel.
     pkg_whl = create_basic_wheel_for_package(script, "pkg", "1.0")
 
@@ -233,8 +257,7 @@ def test_build_env_isolation(script: PipTestEnvironment) -> None:
     run_with_build_env(
         script,
         "",
-        r"""
-        from distutils.sysconfig import get_python_lib
+        f"""
         import sys
 
         try:
@@ -242,17 +265,9 @@ def test_build_env_isolation(script: PipTestEnvironment) -> None:
         except ImportError:
             pass
         else:
-            print(
-                f'imported `pkg` from `{pkg.__file__}`',
-                file=sys.stderr)
-            print('system sites:\n  ' + '\n  '.join(sorted({
-                          get_python_lib(plat_specific=0),
-                          get_python_lib(plat_specific=1),
-                    })), file=sys.stderr)
-            print('sys.path:\n  ' + '\n  '.join(sys.path), file=sys.stderr)
+            {BUILD_ENV_ERROR_DEBUG_CODE}
+            print('sys.path:\\n  ' + '\\n  '.join(sys.path), file=sys.stderr)
             sys.exit(1)
-        """
-        f"""
         # second check: direct check of exclusion of system site packages
         import os
 

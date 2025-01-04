@@ -14,6 +14,7 @@ from pip._internal.vcs.git import Git, RemoteNotValidError, looks_like_hash
 from pip._internal.vcs.mercurial import Mercurial
 from pip._internal.vcs.subversion import Subversion
 from pip._internal.vcs.versioncontrol import RevOptions, VersionControl
+
 from tests.lib import is_svn_installed, need_svn
 
 
@@ -61,19 +62,19 @@ def test_rev_options_repr() -> None:
 
 
 @pytest.mark.parametrize(
-    ("vc_class", "expected1", "expected2", "kwargs"),
+    "vc_class, expected1, expected2, kwargs",
     [
         # First check VCS-specific RevOptions behavior.
         (Bazaar, [], ["-r", "123"], {}),
         (Git, ["HEAD"], ["123"], {}),
-        (Mercurial, [], ["123"], {}),
+        (Mercurial, [], ["--rev=123"], {}),
         (Subversion, [], ["-r", "123"], {}),
         # Test extra_args.  For this, test using a single VersionControl class.
         (
             Git,
             ["HEAD", "opt1", "opt2"],
             ["123", "opt1", "opt2"],
-            dict(extra_args=["opt1", "opt2"]),
+            {"extra_args": ["opt1", "opt2"]},
         ),
     ],
 )
@@ -291,14 +292,14 @@ def test_git_resolve_revision_not_found_warning(
 
 @pytest.mark.parametrize(
     "rev_name,result",
-    (
+    [
         ("5547fa909e83df8bd743d3978d6667497983a4b7", True),
         ("5547fa909", False),
         ("5678", False),
         ("abc123", False),
         ("foo", False),
         (None, False),
-    ),
+    ],
 )
 @mock.patch("pip._internal.vcs.git.Git.get_revision")
 def test_git_is_commit_id_equal(
@@ -444,8 +445,9 @@ def test_version_control__get_url_rev_and_auth__no_revision(url: str) -> None:
     [
         (FileNotFoundError, r"Cannot find command '{name}'"),
         (PermissionError, r"No permission to execute '{name}'"),
+        (NotADirectoryError, "Cannot find command '{name}' - invalid PATH"),
     ],
-    ids=["FileNotFoundError", "PermissionError"],
+    ids=["FileNotFoundError", "PermissionError", "NotADirectoryError"],
 )
 def test_version_control__run_command__fails(
     vcs_cls: Type[VersionControl], exc_cls: Type[Exception], msg_re: str
@@ -458,8 +460,7 @@ def test_version_control__run_command__fails(
     with mock.patch("pip._internal.vcs.versioncontrol.call_subprocess") as call:
         call.side_effect = exc_cls
         with pytest.raises(BadCommand, match=msg_re.format(name=vcs_cls.name)):
-            # https://github.com/python/mypy/issues/3283
-            vcs_cls.run_command([])  # type: ignore[arg-type]
+            vcs_cls.run_command([])
 
 
 @pytest.mark.parametrize(
@@ -596,6 +597,21 @@ def test_subversion__get_url_rev_options() -> None:
 def test_get_git_version() -> None:
     git_version = Git().get_git_version()
     assert git_version >= (1, 0, 0)
+
+
+@pytest.mark.parametrize(
+    "version, expected",
+    [
+        ("git version 2.17", (2, 17)),
+        ("git version 2.18.1", (2, 18)),
+        ("git version 2.35.GIT", (2, 35)),  # gh:12280
+        ("oh my git version 2.37.GIT", ()),  #  invalid version
+        ("git version 2.GIT", ()),  # invalid version
+    ],
+)
+def test_get_git_version_parser(version: str, expected: Tuple[int, int]) -> None:
+    with mock.patch("pip._internal.vcs.git.Git.run_command", return_value=version):
+        assert Git().get_git_version() == expected
 
 
 @pytest.mark.parametrize(
@@ -763,6 +779,22 @@ class TestSubversionArgs(TestCase):
         assert self.call_subprocess_mock.call_args[0][0] == args
 
     def test_obtain(self) -> None:
+        self.svn.obtain(self.dest, hide_url(self.url), verbosity=1)
+        self.assert_call_args(
+            [
+                "svn",
+                "checkout",
+                "--non-interactive",
+                "--username",
+                "username",
+                "--password",
+                hide_value("password"),
+                hide_url("http://svn.example.com/"),
+                "/tmp/test",
+            ]
+        )
+
+    def test_obtain_quiet(self) -> None:
         self.svn.obtain(self.dest, hide_url(self.url), verbosity=0)
         self.assert_call_args(
             [
@@ -780,6 +812,18 @@ class TestSubversionArgs(TestCase):
         )
 
     def test_fetch_new(self) -> None:
+        self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options, verbosity=1)
+        self.assert_call_args(
+            [
+                "svn",
+                "checkout",
+                "--non-interactive",
+                hide_url("svn+http://username:password@svn.example.com/"),
+                "/tmp/test",
+            ]
+        )
+
+    def test_fetch_new_quiet(self) -> None:
         self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options, verbosity=0)
         self.assert_call_args(
             [
@@ -793,6 +837,21 @@ class TestSubversionArgs(TestCase):
         )
 
     def test_fetch_new_revision(self) -> None:
+        rev_options = RevOptions(Subversion, "123")
+        self.svn.fetch_new(self.dest, hide_url(self.url), rev_options, verbosity=1)
+        self.assert_call_args(
+            [
+                "svn",
+                "checkout",
+                "--non-interactive",
+                "-r",
+                "123",
+                hide_url("svn+http://username:password@svn.example.com/"),
+                "/tmp/test",
+            ]
+        )
+
+    def test_fetch_new_revision_quiet(self) -> None:
         rev_options = RevOptions(Subversion, "123")
         self.svn.fetch_new(self.dest, hide_url(self.url), rev_options, verbosity=0)
         self.assert_call_args(

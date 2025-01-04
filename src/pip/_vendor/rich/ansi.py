@@ -9,6 +9,7 @@ from .text import Text
 
 re_ansi = re.compile(
     r"""
+(?:\x1b[0-?])|
 (?:\x1b\](.*?)\x1b\\)|
 (?:\x1b([(@-Z\\-_]|\[[0-?]*[ -/]*[@-~]))
 """,
@@ -43,6 +44,9 @@ def _ansi_tokenize(ansi_text: str) -> Iterable[_AnsiToken]:
         if start > position:
             yield _AnsiToken(ansi_text[position:start])
         if sgr:
+            if sgr == "(":
+                position = end + 1
+                continue
             if sgr.endswith("m"):
                 yield _AnsiToken("", sgr[1:-1], osc)
         else:

@@ -18,7 +18,7 @@ The supported schemes are `git+file`, `git+https`, `git+ssh`, `git+http`,
 `git+git` and `git`. Here are some of the supported forms:
 
 ```none
-MyProject @ git+ssh://git.example.com/MyProject
+MyProject @ git+ssh://git@git.example.com/MyProject
 MyProject @ git+file:///home/user/projects/MyProject
 MyProject @ git+https://git.example.com/MyProject
 ```
@@ -140,9 +140,8 @@ pip also looks at the `egg` fragment specifying the "project name". In practice 
 mode. In all other circumstances, the `egg` fragment is not necessary and its use is
 discouraged.
 
-The `egg` fragment **should** be a bare
-[PEP 508](https://peps.python.org/pep-0508/) project name. Anything else
-is not guaranteed to work.
+The `egg` fragment **should** be a bare {ref}`project name <pypug:name-normalization>`.
+Anything else is not guaranteed to work.
 
 ````{admonition} Example
 If your repository layout is:

@@ -1,2 +1,0 @@
-Clarify that the egg URL fragment is only necessary for editable VCS installs, and
-otherwise not necessary anymore.

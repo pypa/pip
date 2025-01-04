@@ -17,12 +17,15 @@ from pip._internal.utils.temp_dir import TempDirectory
 
 @pytest.fixture
 def fixed_time() -> Iterator[None]:
-    with patch("time.time", lambda: 1547704837.040001 + time.timezone):
-        yield
+    # Patch time so logs contain a constant timestamp. time.time_ns is used by
+    # logging starting with Python 3.13.
+    year2019 = 1547704837.040001 + time.timezone
+    with patch("time.time", lambda: year2019):
+        with patch("time.time_ns", lambda: int(year2019 * 1e9)):
+            yield
 
 
 class FakeCommand(Command):
-
     _name = "fake"
 
     def __init__(
@@ -94,7 +97,7 @@ class TestCommand:
         assert "Traceback (most recent call last):" in stderr
 
 
-@patch("pip._internal.cli.req_command.Command.handle_pip_version_check")
+@patch("pip._internal.cli.index_command.Command.handle_pip_version_check")
 def test_handle_pip_version_check_called(mock_handle_version_check: Mock) -> None:
     """
     Check that Command.handle_pip_version_check() is called.
@@ -152,7 +155,7 @@ def test_base_command_provides_tempdir_helpers() -> None:
 
     c = Command("fake", "fake")
     # https://github.com/python/mypy/issues/2427
-    c.run = Mock(side_effect=assert_helpers_set)  # type: ignore[assignment]
+    c.run = Mock(side_effect=assert_helpers_set)  # type: ignore[method-assign]
     assert c.main(["fake"]) == SUCCESS
     c.run.assert_called_once()
 
@@ -177,7 +180,7 @@ def test_base_command_global_tempdir_cleanup(kind: str, exists: bool) -> None:
 
     c = Command("fake", "fake")
     # https://github.com/python/mypy/issues/2427
-    c.run = Mock(side_effect=create_temp_dirs)  # type: ignore[assignment]
+    c.run = Mock(side_effect=create_temp_dirs)  # type: ignore[method-assign]
     assert c.main(["fake"]) == SUCCESS
     c.run.assert_called_once()
     assert os.path.exists(Holder.value) == exists
@@ -201,6 +204,6 @@ def test_base_command_local_tempdir_cleanup(kind: str, exists: bool) -> None:
 
     c = Command("fake", "fake")
     # https://github.com/python/mypy/issues/2427
-    c.run = Mock(side_effect=create_temp_dirs)  # type: ignore[assignment]
+    c.run = Mock(side_effect=create_temp_dirs)  # type: ignore[method-assign]
     assert c.main(["fake"]) == SUCCESS
     c.run.assert_called_once()

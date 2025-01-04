@@ -1,9 +1,9 @@
 import os.path
-import platform
 import re
 import sys
 import textwrap
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import (
     Any,
     Dict,
@@ -51,7 +51,7 @@ from .text import Text
 
 TokenType = Tuple[str, ...]
 
-WINDOWS = platform.system() == "Windows"
+WINDOWS = sys.platform == "win32"
 DEFAULT_THEME = "monokai"
 
 # The following styles are based on https://github.com/pygments/pygments/blob/master/pygments/formatters/terminal.py
@@ -221,6 +221,7 @@ class _SyntaxHighlightRange(NamedTuple):
     style: StyleType
     start: SyntaxPosition
     end: SyntaxPosition
+    style_before: bool = False
 
 
 class Syntax(JupyterMixin):
@@ -338,8 +339,7 @@ class Syntax(JupyterMixin):
         Returns:
             [Syntax]: A Syntax object that may be printed to the console
         """
-        with open(path, "rt", encoding=encoding) as code_file:
-            code = code_file.read()
+        code = Path(path).read_text(encoding=encoding)
 
         if not lexer:
             lexer = cls.guess_lexer(path, code=code)
@@ -439,6 +439,16 @@ class Syntax(JupyterMixin):
         except ClassNotFound:
             return None
 
+    @property
+    def default_lexer(self) -> Lexer:
+        """A Pygments Lexer to use if one is not specified or invalid."""
+        return get_lexer_by_name(
+            "text",
+            stripnl=False,
+            ensurenl=True,
+            tabsize=self.tab_size,
+        )
+
     def highlight(
         self,
         code: str,
@@ -467,7 +477,7 @@ class Syntax(JupyterMixin):
         )
         _get_theme_style = self._theme.get_style_for_token
 
-        lexer = self.lexer
+        lexer = self.lexer or self.default_lexer
 
         if lexer is None:
             text.append(code)
@@ -494,7 +504,10 @@ class Syntax(JupyterMixin):
 
                     # Skip over tokens until line start
                     while line_no < _line_start:
-                        _token_type, token = next(tokens)
+                        try:
+                            _token_type, token = next(tokens)
+                        except StopIteration:
+                            break
                         yield (token, None)
                         if token.endswith("\n"):
                             line_no += 1
@@ -522,7 +535,11 @@ class Syntax(JupyterMixin):
         return text
 
     def stylize_range(
-        self, style: StyleType, start: SyntaxPosition, end: SyntaxPosition
+        self,
+        style: StyleType,
+        start: SyntaxPosition,
+        end: SyntaxPosition,
+        style_before: bool = False,
     ) -> None:
         """
         Adds a custom style on a part of the code, that will be applied to the syntax display when it's rendered.
@@ -532,8 +549,11 @@ class Syntax(JupyterMixin):
             style (StyleType): The style to apply.
             start (Tuple[int, int]): The start of the range, in the form `[line number, column index]`.
             end (Tuple[int, int]): The end of the range, in the form `[line number, column index]`.
+            style_before (bool): Apply the style before any existing styles.
         """
-        self._stylized_ranges.append(_SyntaxHighlightRange(style, start, end))
+        self._stylized_ranges.append(
+            _SyntaxHighlightRange(style, start, end, style_before)
+        )
 
     def _get_line_numbers_color(self, blend: float = 0.3) -> Color:
         background_style = self._theme.get_background_style() + self.background_style
@@ -587,7 +607,6 @@ class Syntax(JupyterMixin):
     def __rich_measure__(
         self, console: "Console", options: "ConsoleOptions"
     ) -> "Measurement":
-
         _, right, _, left = Padding.unpack(self.padding)
         padding = left + right
         if self.code_width is not None:
@@ -608,9 +627,7 @@ class Syntax(JupyterMixin):
     ) -> RenderResult:
         segments = Segments(self._get_syntax(console, options))
         if self.padding:
-            yield Padding(
-                segments, style=self._theme.get_background_style(), pad=self.padding
-            )
+            yield Padding(segments, style=self._get_base_style(), pad=self.padding)
         else:
             yield segments
 
@@ -671,6 +688,8 @@ class Syntax(JupyterMixin):
             line_offset = max(0, start_line - 1)
         lines: Union[List[Text], Lines] = text.split("\n", allow_blank=ends_on_nl)
         if self.line_range:
+            if line_offset > len(lines):
+                return
             lines = lines[line_offset:end_line]
 
         if self.indent_guides and not options.ascii_only:
@@ -683,7 +702,7 @@ class Syntax(JupyterMixin):
             lines = (
                 Text("\n")
                 .join(lines)
-                .with_indent_guides(self.tab_size, style=style)
+                .with_indent_guides(self.tab_size, style=style + Style(italic=False))
                 .split("\n", allow_blank=True)
             )
 
@@ -774,7 +793,10 @@ class Syntax(JupyterMixin):
                 newlines_offsets, stylized_range.end
             )
             if start is not None and end is not None:
-                text.stylize(stylized_range.style, start, end)
+                if stylized_range.style_before:
+                    text.stylize_before(stylized_range.style, start, end)
+                else:
+                    text.stylize(stylized_range.style, start, end)
 
     def _process_code(self, code: str) -> Tuple[bool, str]:
         """
@@ -825,7 +847,6 @@ def _get_code_index_for_syntax_position(
 
 
 if __name__ == "__main__":  # pragma: no cover
-
     import argparse
     import sys
 

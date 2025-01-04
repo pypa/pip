@@ -235,7 +235,9 @@ class Retry(object):
     RETRY_AFTER_STATUS_CODES = frozenset([413, 429, 503])
 
     #: Default headers to be used for ``remove_headers_on_redirect``
-    DEFAULT_REMOVE_HEADERS_ON_REDIRECT = frozenset(["Authorization"])
+    DEFAULT_REMOVE_HEADERS_ON_REDIRECT = frozenset(
+        ["Cookie", "Authorization", "Proxy-Authorization"]
+    )
 
     #: Maximum backoff time.
     DEFAULT_BACKOFF_MAX = 120
@@ -394,7 +396,7 @@ class Retry(object):
     def get_retry_after(self, response):
         """Get the value of Retry-After in seconds."""
 
-        retry_after = response.getheader("Retry-After")
+        retry_after = response.headers.get("Retry-After")
 
         if retry_after is None:
             return None

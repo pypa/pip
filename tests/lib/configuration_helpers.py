@@ -17,7 +17,7 @@ kinds = pip._internal.configuration.kinds
 
 
 class ConfigurationMixin:
-    def setup(self) -> None:
+    def setup_method(self) -> None:
         self.configuration = pip._internal.configuration.Configuration(
             isolated=False,
         )
@@ -38,7 +38,7 @@ class ConfigurationMixin:
             old()
 
         # https://github.com/python/mypy/issues/2427
-        self.configuration._load_config_files = overridden  # type: ignore[assignment]
+        self.configuration._load_config_files = overridden  # type: ignore[method-assign]
 
     @contextlib.contextmanager
     def tmpfile(self, contents: str) -> Iterator[str]:

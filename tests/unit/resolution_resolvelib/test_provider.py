@@ -19,7 +19,7 @@ def build_requirement_information(
     install_requirement = install_req_from_req_string(name)
     # RequirementInformation is typed as a tuple, but it is a namedtupled.
     # https://github.com/sarugaku/resolvelib/blob/7bc025aa2a4e979597c438ad7b17d2e8a08a364e/src/resolvelib/resolvers.pyi#L20-L22
-    requirement_information: "PreferenceInformation" = RequirementInformation(
+    requirement_information: PreferenceInformation = RequirementInformation(
         requirement=SpecifierRequirement(install_requirement),  # type: ignore[call-arg]
         parent=parent,
     )
@@ -50,29 +50,29 @@ def test_provider_known_depths(factory: Factory) -> None:
     )
     assert provider._known_depths == {root_requirement_name: 1.0}
 
-    # Transative requirement is a dependency of root requirement
+    # Transitive requirement is a dependency of root requirement
     # theforefore has an inferred depth of 2
     root_package_candidate = InstallationCandidate(
         root_requirement_name,
         "1.0",
         Link("https://{root_requirement_name}.com"),
     )
-    transative_requirement_name = "my-transitive-package"
+    transitive_requirement_name = "my-transitive-package"
 
-    transative_package_information = build_requirement_information(
-        name=transative_requirement_name, parent=root_package_candidate
+    transitive_package_information = build_requirement_information(
+        name=transitive_requirement_name, parent=root_package_candidate
     )
     provider.get_preference(
-        identifier=transative_requirement_name,
+        identifier=transitive_requirement_name,
         resolutions={},
         candidates={},
         information={
             root_requirement_name: root_requirement_information,
-            transative_requirement_name: transative_package_information,
+            transitive_requirement_name: transitive_package_information,
         },
         backtrack_causes=[],
     )
     assert provider._known_depths == {
-        transative_requirement_name: 2.0,
+        transitive_requirement_name: 2.0,
         root_requirement_name: 1.0,
     }

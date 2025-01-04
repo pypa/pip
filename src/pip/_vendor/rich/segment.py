@@ -109,10 +109,20 @@ class Segment(NamedTuple):
     @classmethod
     @lru_cache(1024 * 16)
     def _split_cells(cls, segment: "Segment", cut: int) -> Tuple["Segment", "Segment"]:
+        """Split a segment in to two at a given cell position.
 
+        Note that splitting a double-width character, may result in that character turning
+        into two spaces.
+
+        Args:
+            segment (Segment): A segment to split.
+            cut (int): A cell position to cut on.
+
+        Returns:
+            A tuple of two segments.
+        """
         text, style, control = segment
         _Segment = Segment
-
         cell_length = segment.cell_length
         if cut >= cell_length:
             return segment, _Segment("", style, control)
@@ -121,30 +131,29 @@ class Segment(NamedTuple):
 
         pos = int((cut / cell_length) * len(text))
 
-        before = text[:pos]
-        cell_pos = cell_len(before)
-        if cell_pos == cut:
-            return (
-                _Segment(before, style, control),
-                _Segment(text[pos:], style, control),
-            )
-        while pos < len(text):
-            char = text[pos]
-            pos += 1
-            cell_pos += cell_size(char)
+        while True:
             before = text[:pos]
-            if cell_pos == cut:
+            cell_pos = cell_len(before)
+            out_by = cell_pos - cut
+            if not out_by:
                 return (
                     _Segment(before, style, control),
                     _Segment(text[pos:], style, control),
                 )
-            if cell_pos > cut:
+            if out_by == -1 and cell_size(text[pos]) == 2:
                 return (
-                    _Segment(before[: pos - 1] + " ", style, control),
+                    _Segment(text[:pos] + " ", style, control),
+                    _Segment(" " + text[pos + 1 :], style, control),
+                )
+            if out_by == +1 and cell_size(text[pos - 1]) == 2:
+                return (
+                    _Segment(text[: pos - 1] + " ", style, control),
                     _Segment(" " + text[pos:], style, control),
                 )
-
-        raise AssertionError("Will never reach here")
+            if cell_pos < cut:
+                pos += 1
+            else:
+                pos -= 1
 
     def split_cells(self, cut: int) -> Tuple["Segment", "Segment"]:
         """Split segment in to two segments at the specified column.
@@ -152,10 +161,14 @@ class Segment(NamedTuple):
         If the cut point falls in the middle of a 2-cell wide character then it is replaced
         by two spaces, to preserve the display width of the parent segment.
 
+        Args:
+            cut (int): Offset within the segment to cut.
+
         Returns:
             Tuple[Segment, Segment]: Two segments.
         """
         text, style, control = self
+        assert cut >= 0
 
         if _is_single_cell_widths(text):
             # Fast path with all 1 cell characters
@@ -303,7 +316,7 @@ class Segment(NamedTuple):
                         if include_new_lines:
                             cropped_line.append(new_line_segment)
                         yield cropped_line
-                        del line[:]
+                        line.clear()
             else:
                 append(segment)
         if line:
@@ -365,7 +378,7 @@ class Segment(NamedTuple):
             int: The length of the line.
         """
         _cell_len = cell_len
-        return sum(_cell_len(segment.text) for segment in line)
+        return sum(_cell_len(text) for text, style, control in line if not control)
 
     @classmethod
     def get_shape(cls, lines: List[List["Segment"]]) -> Tuple[int, int]:
@@ -605,7 +618,7 @@ class Segment(NamedTuple):
         while True:
             cut = next(iter_cuts, -1)
             if cut == -1:
-                return []
+                return
             if cut != 0:
                 break
             yield []
@@ -727,7 +740,7 @@ console.print(text)"""
     console.print(Syntax(code, "python", line_numbers=True))
     console.print()
     console.print(
-        "When you call [b]print()[/b], Rich [i]renders[/i] the object in to the the following:\n"
+        "When you call [b]print()[/b], Rich [i]renders[/i] the object in to the following:\n"
     )
     fragments = list(console.render(text))
     console.print(fragments)

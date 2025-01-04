@@ -7,6 +7,7 @@ import tomli_w
 
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.req import InstallRequirement
+
 from tests.lib import (
     PipTestEnvironment,
     TestData,
@@ -44,7 +45,8 @@ def test_backend(tmpdir: Path, data: TestData) -> None:
     finder = make_test_finder(find_links=[data.backends])
     env.install_requirements(finder, ["dummy_backend"], "normal", kind="Installing")
     conflicting, missing = env.check_requirements(["dummy_backend"])
-    assert not conflicting and not missing
+    assert not conflicting
+    assert not missing
     assert hasattr(req.pep517_backend, "build_wheel")
     with env:
         assert req.pep517_backend is not None
@@ -159,11 +161,12 @@ def test_conflicting_pep517_backend_requirements(
         expect_error=True,
     )
     msg = (
-        "Some build dependencies for {url} conflict with the backend "
+        f"Some build dependencies for {project_dir.as_uri()} conflict with the backend "
         "dependencies: simplewheel==1.0 is incompatible with "
-        "simplewheel==2.0.".format(url=project_dir.as_uri())
+        "simplewheel==2.0."
     )
-    assert result.returncode != 0 and msg in result.stderr, str(result)
+    assert result.returncode != 0
+    assert msg in result.stderr, str(result)
 
 
 def test_no_check_build_deps(
@@ -205,10 +208,11 @@ def test_validate_missing_pep517_backend_requirements(
         expect_error=True,
     )
     msg = (
-        "Some build dependencies for {url} are missing: "
-        "'simplewheel==1.0', 'test_backend'.".format(url=project_dir.as_uri())
+        f"Some build dependencies for {project_dir.as_uri()} are missing: "
+        "'simplewheel==1.0', 'test_backend'."
     )
-    assert result.returncode != 0 and msg in result.stderr, str(result)
+    assert result.returncode != 0
+    assert msg in result.stderr, str(result)
 
 
 def test_validate_conflicting_pep517_backend_requirements(
@@ -231,11 +235,12 @@ def test_validate_conflicting_pep517_backend_requirements(
         expect_error=True,
     )
     msg = (
-        "Some build dependencies for {url} conflict with the backend "
+        f"Some build dependencies for {project_dir.as_uri()} conflict with the backend "
         "dependencies: simplewheel==2.0 is incompatible with "
-        "simplewheel==1.0.".format(url=project_dir.as_uri())
+        "simplewheel==1.0."
     )
-    assert result.returncode != 0 and msg in result.stderr, str(result)
+    assert result.returncode != 0
+    assert msg in result.stderr, str(result)
 
 
 def test_pep517_backend_requirements_satisfied_by_prerelease(

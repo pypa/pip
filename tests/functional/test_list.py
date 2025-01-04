@@ -5,9 +5,10 @@ from pathlib import Path
 import pytest
 
 from pip._internal.models.direct_url import DirectUrl, DirInfo
-from tests.conftest import ScriptFactory
+
 from tests.lib import (
     PipTestEnvironment,
+    ScriptFactory,
     TestData,
     _create_test_package,
     create_test_package_with_setup,
@@ -273,25 +274,19 @@ def test_outdated_flag(script: PipTestEnvironment, data: TestData) -> None:
         "latest_version": "3.0",
         "latest_filetype": "sdist",
     } in json_output
-    assert (
-        dict(
-            name="simplewheel",
-            version="1.0",
-            latest_version="2.0",
-            latest_filetype="wheel",
-        )
-        in json_output
-    )
-    assert (
-        dict(
-            name="pip-test-package",
-            version="0.1",
-            latest_version="0.1.1",
-            latest_filetype="sdist",
-            editable_project_location="<location>",
-        )
-        in json_output
-    )
+    assert {
+        "name": "simplewheel",
+        "version": "1.0",
+        "latest_version": "2.0",
+        "latest_filetype": "wheel",
+    } in json_output
+    assert {
+        "name": "pip-test-package",
+        "version": "0.1",
+        "latest_version": "0.1.1",
+        "latest_filetype": "sdist",
+        "editable_project_location": "<location>",
+    } in json_output
     assert "simple2" not in {p["name"] for p in json_output}
 
 
@@ -588,7 +583,7 @@ def test_outdated_formats(script: PipTestEnvironment, data: TestData) -> None:
         expect_error=True,
     )
     assert (
-        "List format 'freeze' can not be used with the --outdated option."
+        "List format 'freeze' cannot be used with the --outdated option."
         in result.stderr
     )
 
@@ -601,8 +596,7 @@ def test_outdated_formats(script: PipTestEnvironment, data: TestData) -> None:
         "--outdated",
         "--format=json",
     )
-    data = json.loads(result.stdout)
-    assert data == [
+    assert json.loads(result.stdout) == [
         {
             "name": "simple",
             "version": "1.0",
@@ -734,7 +728,6 @@ def test_list_include_work_dir_pkg(script: PipTestEnvironment) -> None:
     assert {"name": "simple", "version": "1.0"} in json_result
 
 
-@pytest.mark.usefixtures("with_wheel")
 def test_list_pep610_editable(script: PipTestEnvironment) -> None:
     """
     Test that a package installed with a direct_url.json with editable=true
@@ -757,4 +750,4 @@ def test_list_pep610_editable(script: PipTestEnvironment) -> None:
             assert item["editable_project_location"]
             break
     else:
-        assert False, "package 'testpkg' not found in pip list result"
+        pytest.fail("package 'testpkg' not found in pip list result")

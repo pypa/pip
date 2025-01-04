@@ -3,6 +3,7 @@ import collections
 import dataclasses
 import inspect
 import os
+import reprlib
 import sys
 from array import array
 from collections import Counter, UserDict, UserList, defaultdict, deque
@@ -15,6 +16,7 @@ from typing import (
     Any,
     Callable,
     DefaultDict,
+    Deque,
     Dict,
     Iterable,
     List,
@@ -30,7 +32,7 @@ from pip._vendor.rich.repr import RichReprResult
 try:
     import attr as _attr_module
 
-    _has_attrs = True
+    _has_attrs = hasattr(_attr_module, "ib")
 except ImportError:  # pragma: no cover
     _has_attrs = False
 
@@ -55,13 +57,6 @@ if TYPE_CHECKING:
     )
 
 
-JUPYTER_CLASSES_TO_NOT_RENDER = {
-    # Matplotlib "Artists" manage their own rendering in a Jupyter notebook, and we should not try to render them too.
-    # "Typically, all [Matplotlib] visible elements in a figure are subclasses of Artist."
-    "matplotlib.artist.Artist",
-}
-
-
 def _is_attr_object(obj: Any) -> bool:
     """Check if an object was created with attrs module."""
     return _has_attrs and _attr_module.has(type(obj))
@@ -84,7 +79,10 @@ def _is_dataclass_repr(obj: object) -> bool:
     # Digging in to a lot of internals here
     # Catching all exceptions in case something is missing on a non CPython implementation
     try:
-        return obj.__repr__.__code__.co_filename == dataclasses.__file__
+        return obj.__repr__.__code__.co_filename in (
+            dataclasses.__file__,
+            reprlib.__file__,
+        )
     except Exception:  # pragma: no coverage
         return False
 
@@ -122,69 +120,42 @@ def _ipy_display_hook(
     max_string: Optional[int] = None,
     max_depth: Optional[int] = None,
     expand_all: bool = False,
-) -> None:
+) -> Union[str, None]:
     # needed here to prevent circular import:
-    from ._inspect import is_object_one_of_types
     from .console import ConsoleRenderable
 
     # always skip rich generated jupyter renderables or None values
     if _safe_isinstance(value, JupyterRenderable) or value is None:
-        return
+        return None
 
     console = console or get_console()
-    if console.is_jupyter:
-        # Delegate rendering to IPython if the object (and IPython) supports it
-        #  https://ipython.readthedocs.io/en/stable/config/integrating.html#rich-display
-        ipython_repr_methods = [
-            "_repr_html_",
-            "_repr_markdown_",
-            "_repr_json_",
-            "_repr_latex_",
-            "_repr_jpeg_",
-            "_repr_png_",
-            "_repr_svg_",
-            "_repr_mimebundle_",
-        ]
-        for repr_method in ipython_repr_methods:
-            method = getattr(value, repr_method, None)
-            if inspect.ismethod(method):
-                # Calling the method ourselves isn't ideal. The interface for the `_repr_*_` methods
-                #  specifies that if they return None, then they should not be rendered
-                #  by the notebook.
-                try:
-                    repr_result = method()
-                except Exception:
-                    continue  # If the method raises, treat it as if it doesn't exist, try any others
-                if repr_result is not None:
-                    return  # Delegate rendering to IPython
 
-        # When in a Jupyter notebook let's avoid the display of some specific classes,
-        # as they result in the rendering of useless and noisy lines such as `<Figure size 432x288 with 1 Axes>`.
-        # What does this do?
-        # --> if the class has "matplotlib.artist.Artist" in its hierarchy for example, we don't render it.
-        if is_object_one_of_types(value, JUPYTER_CLASSES_TO_NOT_RENDER):
-            return
-
-    # certain renderables should start on a new line
-    if _safe_isinstance(value, ConsoleRenderable):
-        console.line()
-
-    console.print(
-        value
-        if _safe_isinstance(value, RichRenderable)
-        else Pretty(
-            value,
-            overflow=overflow,
-            indent_guides=indent_guides,
-            max_length=max_length,
-            max_string=max_string,
-            max_depth=max_depth,
-            expand_all=expand_all,
-            margin=12,
-        ),
-        crop=crop,
-        new_line_start=True,
-    )
+    with console.capture() as capture:
+        # certain renderables should start on a new line
+        if _safe_isinstance(value, ConsoleRenderable):
+            console.line()
+        console.print(
+            (
+                value
+                if _safe_isinstance(value, RichRenderable)
+                else Pretty(
+                    value,
+                    overflow=overflow,
+                    indent_guides=indent_guides,
+                    max_length=max_length,
+                    max_string=max_string,
+                    max_depth=max_depth,
+                    expand_all=expand_all,
+                    margin=12,
+                )
+            ),
+            crop=crop,
+            new_line_start=True,
+            end="",
+        )
+    # strip trailing newline, not usually part of a text repr
+    # I'm not sure if this should be prevented at a lower level
+    return capture.get().rstrip("\n")
 
 
 def _safe_isinstance(
@@ -232,23 +203,28 @@ def install(
             assert console is not None
             builtins._ = None  # type: ignore[attr-defined]
             console.print(
-                value
-                if _safe_isinstance(value, RichRenderable)
-                else Pretty(
-                    value,
-                    overflow=overflow,
-                    indent_guides=indent_guides,
-                    max_length=max_length,
-                    max_string=max_string,
-                    max_depth=max_depth,
-                    expand_all=expand_all,
+                (
+                    value
+                    if _safe_isinstance(value, RichRenderable)
+                    else Pretty(
+                        value,
+                        overflow=overflow,
+                        indent_guides=indent_guides,
+                        max_length=max_length,
+                        max_string=max_string,
+                        max_depth=max_depth,
+                        expand_all=expand_all,
+                    )
                 ),
                 crop=crop,
             )
             builtins._ = value  # type: ignore[attr-defined]
 
-    try:  # pragma: no cover
+    try:
         ip = get_ipython()  # type: ignore[name-defined]
+    except NameError:
+        sys.displayhook = display_hook
+    else:
         from IPython.core.formatters import BaseFormatter
 
         class RichFormatter(BaseFormatter):  # type: ignore[misc]
@@ -272,8 +248,6 @@ def install(
         # replace plain text formatter with rich formatter
         rich_formatter = RichFormatter()
         ip.display_formatter.formatters["text/plain"] = rich_formatter
-    except Exception:
-        sys.displayhook = display_hook
 
 
 class Pretty(JupyterMixin):
@@ -371,6 +345,7 @@ class Pretty(JupyterMixin):
             indent_size=self.indent_size,
             max_length=self.max_length,
             max_string=self.max_string,
+            max_depth=self.max_depth,
             expand_all=self.expand_all,
         )
         text_width = (
@@ -387,6 +362,16 @@ def _get_braces_for_defaultdict(_object: DefaultDict[Any, Any]) -> Tuple[str, st
     )
 
 
+def _get_braces_for_deque(_object: Deque[Any]) -> Tuple[str, str, str]:
+    if _object.maxlen is None:
+        return ("deque([", "])", "deque()")
+    return (
+        "deque([",
+        f"], maxlen={_object.maxlen})",
+        f"deque(maxlen={_object.maxlen})",
+    )
+
+
 def _get_braces_for_array(_object: "array[Any]") -> Tuple[str, str, str]:
     return (f"array({_object.typecode!r}, [", "])", f"array({_object.typecode!r})")
 
@@ -396,7 +381,7 @@ _BRACES: Dict[type, Callable[[Any], Tuple[str, str, str]]] = {
     array: _get_braces_for_array,
     defaultdict: _get_braces_for_defaultdict,
     Counter: lambda _object: ("Counter({", "})", "Counter()"),
-    deque: lambda _object: ("deque([", "])", "deque()"),
+    deque: _get_braces_for_deque,
     dict: lambda _object: ("{", "}", "{}"),
     UserDict: lambda _object: ("{", "}", "{}"),
     frozenset: lambda _object: ("frozenset({", "})", "frozenset()"),
@@ -433,7 +418,7 @@ class Node:
     is_tuple: bool = False
     is_namedtuple: bool = False
     children: Optional[List["Node"]] = None
-    key_separator = ": "
+    key_separator: str = ": "
     separator: str = ", "
 
     def iter_tokens(self) -> Iterable[str]:
@@ -642,7 +627,6 @@ def traverse(
             return Node(value_repr="...")
 
         obj_type = type(obj)
-        py_version = (sys.version_info.major, sys.version_info.minor)
         children: List[Node]
         reached_max_depth = max_depth is not None and depth >= max_depth
 
@@ -744,9 +728,9 @@ def traverse(
                         last=root,
                     )
 
-                    def iter_attrs() -> Iterable[
-                        Tuple[str, Any, Optional[Callable[[Any], str]]]
-                    ]:
+                    def iter_attrs() -> (
+                        Iterable[Tuple[str, Any, Optional[Callable[[Any], str]]]]
+                    ):
                         """Iterate over attr fields and values."""
                         for attr in attr_fields:
                             if attr.repr:
@@ -780,7 +764,7 @@ def traverse(
             is_dataclass(obj)
             and not _safe_isinstance(obj, type)
             and not fake_attributes
-            and (_is_dataclass_repr(obj) or py_version == (3, 6))
+            and _is_dataclass_repr(obj)
         ):
             push_visited(obj_id)
             children = []
@@ -793,10 +777,13 @@ def traverse(
                     close_brace=")",
                     children=children,
                     last=root,
+                    empty=f"{obj.__class__.__name__}()",
                 )
 
                 for last, field in loop_last(
-                    field for field in fields(obj) if field.repr
+                    field
+                    for field in fields(obj)
+                    if field.repr and hasattr(obj, field.name)
                 ):
                     child_node = _traverse(getattr(obj, field.name), depth=depth + 1)
                     child_node.key_repr = field.name
@@ -880,7 +867,7 @@ def traverse(
             pop_visited(obj_id)
         else:
             node = Node(value_repr=to_repr(obj), last=root)
-        node.is_tuple = _safe_isinstance(obj, tuple)
+        node.is_tuple = type(obj) == tuple
         node.is_namedtuple = _is_namedtuple(obj)
         return node
 
@@ -1020,7 +1007,7 @@ if __name__ == "__main__":  # pragma: no cover
 
     from pip._vendor.rich import print
 
-    # print(Pretty(data, indent_guides=True, max_string=20))
+    print(Pretty(data, indent_guides=True, max_string=20))
 
     class Thing:
         def __repr__(self) -> str:

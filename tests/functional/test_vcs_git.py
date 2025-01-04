@@ -1,6 +1,7 @@
 """
 Contains functional tests of the Git class.
 """
+
 import logging
 import os
 import pathlib
@@ -12,6 +13,7 @@ import pytest
 from pip._internal.utils.misc import HiddenText
 from pip._internal.vcs import vcs
 from pip._internal.vcs.git import Git, RemoteNotFoundError
+
 from tests.lib import PipTestEnvironment, _create_test_package, _git_commit
 
 
@@ -318,11 +320,11 @@ def _initialize_clonetest_server(
 
 @pytest.mark.parametrize(
     "version_out, expected_message",
-    (
+    [
         ("git version -2.25.1", "Can't parse git version: git version -2.25.1"),
         ("git version 2.a.1", "Can't parse git version: git version 2.a.1"),
         ("git ver. 2.25.1", "Can't parse git version: git ver. 2.25.1"),
-    ),
+    ],
 )
 @patch("pip._internal.vcs.versioncontrol.VersionControl.run_command")
 def test_git_parse_fail_warning(

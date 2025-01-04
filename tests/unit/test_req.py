@@ -6,10 +6,11 @@ import sys
 import tempfile
 from functools import partial
 from pathlib import Path
-from typing import Iterator, Optional, Tuple, cast
+from typing import Iterator, Optional, Set, Tuple, cast
 from unittest import mock
 
 import pytest
+
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 
@@ -23,9 +24,7 @@ from pip._internal.exceptions import (
     PreviousBuildDirError,
 )
 from pip._internal.index.package_finder import PackageFinder
-from pip._internal.metadata import select_backend
 from pip._internal.models.direct_url import ArchiveInfo, DirectUrl, DirInfo, VcsInfo
-from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
 from pip._internal.network.session import PipSession
 from pip._internal.operations.build.build_tracker import get_build_tracker
@@ -34,6 +33,8 @@ from pip._internal.req import InstallRequirement, RequirementSet
 from pip._internal.req.constructors import (
     _get_url_from_path,
     _looks_like_path,
+    install_req_drop_extras,
+    install_req_extend_extras,
     install_req_from_editable,
     install_req_from_line,
     install_req_from_parsed_requirement,
@@ -46,6 +47,7 @@ from pip._internal.req.req_file import (
     handle_requirement_line,
 )
 from pip._internal.resolution.legacy.resolver import Resolver
+
 from tests.lib import TestData, make_test_finder, requirements_file, wheel
 
 
@@ -71,10 +73,10 @@ def get_processed_req_from_line(
 class TestRequirementSet:
     """RequirementSet tests"""
 
-    def setup(self) -> None:
+    def setup_method(self) -> None:
         self.tempdir = tempfile.mkdtemp()
 
-    def teardown(self) -> None:
+    def teardown_method(self) -> None:
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
     @contextlib.contextmanager
@@ -106,6 +108,7 @@ class TestRequirementSet:
                 use_user_site=False,
                 lazy_wheel=False,
                 verbosity=0,
+                legacy_resolver=True,
             )
             yield Resolver(
                 preparer=preparer,
@@ -234,8 +237,8 @@ class TestRequirementSet:
                     r"file \(line 1\)\)\n"
                     r"Can't verify hashes for these file:// requirements because "
                     r"they point to directories:\n"
-                    r"    file://.*{sep}data{sep}packages{sep}FSPkg "
-                    r"\(from -r file \(line 2\)\)".format(sep=sep)
+                    rf"    file://.*{sep}data{sep}packages{sep}FSPkg "
+                    r"\(from -r file \(line 2\)\)"
                 ),
             ):
                 resolver.resolve(reqset.all_requirements, True)
@@ -403,7 +406,7 @@ class TestRequirementSet:
         """Test download_info hash is not set for an archive with legacy cache entry."""
         url = shared_data.packages.joinpath("simple-1.0.tar.gz").as_uri()
         finder = make_test_finder()
-        wheel_cache = WheelCache(str(tmp_path / "cache"), FormatControl())
+        wheel_cache = WheelCache(str(tmp_path / "cache"))
         cache_entry_dir = wheel_cache.get_path_for_link(Link(url))
         Path(cache_entry_dir).mkdir(parents=True)
         wheel.make_wheel(name="simple", version="1.0").save_to_dir(cache_entry_dir)
@@ -412,7 +415,8 @@ class TestRequirementSet:
             reqset = resolver.resolve([ireq], True)
             assert len(reqset.all_requirements) == 1
             req = reqset.all_requirements[0]
-            assert req.original_link_is_in_wheel_cache
+            assert req.is_wheel_from_cache
+            assert req.cached_wheel_source_link
             assert req.download_info
             assert req.download_info.url == url
             assert isinstance(req.download_info.info, ArchiveInfo)
@@ -426,7 +430,7 @@ class TestRequirementSet:
         url = shared_data.packages.joinpath("simple-1.0.tar.gz").as_uri()
         hash = "sha256=ad977496000576e1b6c41f6449a9897087ce9da6db4f15b603fe8372af4bf3c6"
         finder = make_test_finder()
-        wheel_cache = WheelCache(str(tmp_path / "cache"), FormatControl())
+        wheel_cache = WheelCache(str(tmp_path / "cache"))
         cache_entry_dir = wheel_cache.get_path_for_link(Link(url))
         Path(cache_entry_dir).mkdir(parents=True)
         Path(cache_entry_dir).joinpath("origin.json").write_text(
@@ -438,11 +442,33 @@ class TestRequirementSet:
             reqset = resolver.resolve([ireq], True)
             assert len(reqset.all_requirements) == 1
             req = reqset.all_requirements[0]
-            assert req.original_link_is_in_wheel_cache
+            assert req.is_wheel_from_cache
+            assert req.cached_wheel_source_link
             assert req.download_info
             assert req.download_info.url == url
             assert isinstance(req.download_info.info, ArchiveInfo)
             assert req.download_info.info.hash == hash
+
+    def test_download_info_archive_cache_with_invalid_origin(
+        self, tmp_path: Path, shared_data: TestData, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test an invalid origin.json is ignored."""
+        url = shared_data.packages.joinpath("simple-1.0.tar.gz").as_uri()
+        finder = make_test_finder()
+        wheel_cache = WheelCache(str(tmp_path / "cache"))
+        cache_entry_dir = wheel_cache.get_path_for_link(Link(url))
+        Path(cache_entry_dir).mkdir(parents=True)
+        Path(cache_entry_dir).joinpath("origin.json").write_text("{")  # invalid json
+        wheel.make_wheel(name="simple", version="1.0").save_to_dir(cache_entry_dir)
+        with self._basic_resolver(finder, wheel_cache=wheel_cache) as resolver:
+            ireq = get_processed_req_from_line(f"simple @ {url}")
+            reqset = resolver.resolve([ireq], True)
+            assert len(reqset.all_requirements) == 1
+            req = reqset.all_requirements[0]
+            assert req.is_wheel_from_cache
+            assert any(
+                "Ignoring invalid cache entry origin file" in x for x in caplog.messages
+            )
 
     def test_download_info_local_wheel(self, data: TestData) -> None:
         """Test that download_info is set for requirements from a local wheel."""
@@ -507,10 +533,10 @@ class TestRequirementSet:
 
 
 class TestInstallRequirement:
-    def setup(self) -> None:
+    def setup_method(self) -> None:
         self.tempdir = tempfile.mkdtemp()
 
-    def teardown(self) -> None:
+    def teardown_method(self) -> None:
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
     def test_url_with_query(self) -> None:
@@ -578,22 +604,6 @@ class TestInstallRequirement:
         req = install_req_from_editable(url)
         assert req.link is not None
         assert req.link.url == url
-
-    @pytest.mark.parametrize(
-        "path",
-        (
-            "/path/to/foo.egg-info".replace("/", os.path.sep),
-            # Tests issue fixed by https://github.com/pypa/pip/pull/2530
-            "/path/to/foo.egg-info/".replace("/", os.path.sep),
-        ),
-    )
-    def test_get_dist(self, path: str) -> None:
-        req = install_req_from_line("foo")
-        req.metadata_directory = path
-        dist = req.get_dist()
-        assert isinstance(dist, select_backend().Distribution)
-        assert dist.raw_name == dist.canonical_name == "foo"
-        assert dist.location == "/path/to".replace("/", os.path.sep)
 
     def test_markers(self) -> None:
         for line in (
@@ -728,7 +738,7 @@ class TestInstallRequirement:
         with pytest.raises(InstallationError) as e:
             install_req_from_line(test_name)
         err_msg = e.value.args[0]
-        assert f"Invalid requirement: '{test_name}'" == err_msg
+        assert err_msg.startswith(f"Invalid requirement: '{test_name}'")
 
     def test_requirement_file(self) -> None:
         req_file_path = os.path.join(self.tempdir, "test.txt")
@@ -741,6 +751,99 @@ class TestInstallRequirement:
         assert "It looks like a path. The path does exist." in err_msg
         assert "appears to be a requirements file." in err_msg
         assert "If that is the case, use the '-r' flag to install" in err_msg
+
+    @pytest.mark.parametrize(
+        "inp, out",
+        [
+            ("pkg", "pkg"),
+            ("pkg==1.0", "pkg==1.0"),
+            ("pkg ; python_version<='3.6'", "pkg"),
+            ("pkg[ext]", "pkg"),
+            ("pkg [ ext1, ext2 ]", "pkg"),
+            ("pkg [ ext1, ext2 ] @ https://example.com/", "pkg@ https://example.com/"),
+            ("pkg [ext] == 1.0; python_version<='3.6'", "pkg==1.0"),
+            ("pkg-all.allowed_chars0 ~= 2.0", "pkg-all.allowed_chars0~=2.0"),
+            ("pkg-all.allowed_chars0 [ext] ~= 2.0", "pkg-all.allowed_chars0~=2.0"),
+        ],
+    )
+    def test_install_req_drop_extras(self, inp: str, out: str) -> None:
+        """
+        Test behavior of install_req_drop_extras
+        """
+        req = install_req_from_line(inp)
+        without_extras = install_req_drop_extras(req)
+        assert not without_extras.extras
+        assert str(without_extras.req) == out
+
+        # if there are no extras they should be the same object,
+        # otherwise they may be a copy due to cache
+        if req.extras:
+            assert req is not without_extras
+            assert req.req is not without_extras.req
+
+        # comes_from should point to original
+        assert without_extras.comes_from is req
+
+        # all else should be the same
+        assert without_extras.link == req.link
+        assert without_extras.markers == req.markers
+        assert without_extras.use_pep517 == req.use_pep517
+        assert without_extras.isolated == req.isolated
+        assert without_extras.global_options == req.global_options
+        assert without_extras.hash_options == req.hash_options
+        assert without_extras.constraint == req.constraint
+        assert without_extras.config_settings == req.config_settings
+        assert without_extras.user_supplied == req.user_supplied
+        assert without_extras.permit_editable_wheels == req.permit_editable_wheels
+
+    @pytest.mark.parametrize(
+        "inp, extras, out",
+        [
+            ("pkg", set(), "pkg"),
+            ("pkg==1.0", set(), "pkg==1.0"),
+            ("pkg[ext]", set(), "pkg[ext]"),
+            ("pkg", {"ext"}, "pkg[ext]"),
+            ("pkg==1.0", {"ext"}, "pkg[ext]==1.0"),
+            ("pkg==1.0", {"ext1", "ext2"}, "pkg[ext1,ext2]==1.0"),
+            ("pkg; python_version<='3.6'", {"ext"}, "pkg[ext]"),
+            ("pkg[ext1,ext2]==1.0", {"ext2", "ext3"}, "pkg[ext1,ext2,ext3]==1.0"),
+            (
+                "pkg-all.allowed_chars0 [ ext1 ] @ https://example.com/",
+                {"ext2"},
+                "pkg-all.allowed_chars0[ext1,ext2]@ https://example.com/",
+            ),
+        ],
+    )
+    def test_install_req_extend_extras(
+        self, inp: str, extras: Set[str], out: str
+    ) -> None:
+        """
+        Test behavior of install_req_extend_extras
+        """
+        req = install_req_from_line(inp)
+        extended = install_req_extend_extras(req, extras)
+        assert str(extended.req) == out
+        assert extended.req is not None
+        assert set(extended.extras) == set(extended.req.extras)
+
+        # if extras is not a subset of req.extras then the extended
+        # requirement object should not be the same, otherwise they
+        # might be a copy due to cache
+        if not extras.issubset(req.extras):
+            assert req is not extended
+            assert req.req is not extended.req
+
+        # all else should be the same
+        assert extended.link == req.link
+        assert extended.markers == req.markers
+        assert extended.use_pep517 == req.use_pep517
+        assert extended.isolated == req.isolated
+        assert extended.global_options == req.global_options
+        assert extended.hash_options == req.hash_options
+        assert extended.constraint == req.constraint
+        assert extended.config_settings == req.config_settings
+        assert extended.user_supplied == req.user_supplied
+        assert extended.permit_editable_wheels == req.permit_editable_wheels
 
 
 @mock.patch("pip._internal.req.req_install.os.path.abspath")

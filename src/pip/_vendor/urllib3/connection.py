@@ -68,7 +68,7 @@ port_by_scheme = {"http": 80, "https": 443}
 
 # When it comes time to update this value as a part of regular maintenance
 # (ie test_recent_date is failing) update it to ~6 months before the current date.
-RECENT_DATE = datetime.date(2022, 1, 1)
+RECENT_DATE = datetime.date(2024, 1, 1)
 
 _CONTAINS_CONTROL_CHAR_RE = re.compile(r"[^-!#$%&'*+.^_`|~0-9a-zA-Z]")
 
@@ -229,6 +229,11 @@ class HTTPConnection(_HTTPConnection, object):
             )
 
     def request(self, method, url, body=None, headers=None):
+        # Update the inner socket's timeout value to send the request.
+        # This only triggers if the connection is re-used.
+        if getattr(self, "sock", None) is not None:
+            self.sock.settimeout(self.timeout)
+
         if headers is None:
             headers = {}
         else:
@@ -432,7 +437,7 @@ class HTTPSConnection(HTTPConnection):
             and self.ssl_version is None
             and hasattr(self.sock, "version")
             and self.sock.version() in {"TLSv1", "TLSv1.1"}
-        ):
+        ):  # Defensive:
             warnings.warn(
                 "Negotiating TLSv1/TLSv1.1 by default is deprecated "
                 "and will be disabled in urllib3 v2.0.0. Connecting to "

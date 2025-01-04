@@ -34,7 +34,7 @@ Editable installs allow you to install your project without copying any files. I
 With an editable install, you only need to perform a re-installation if you change the project metadata (eg: version, what scripts need to be generated etc). You will still need to run build commands when you need to perform a compilation for non-Python code in the project (eg: C extensions).
 
 ```{caution}
-It is possible to see behaviour differences between regular installs vs editable installs. In case you distribute the project as a "distribution package", users will see the behaviour of regular installs -- thus, it is important to ensure that regular installs work correctly.
+It is possible to see behaviour differences between regular installs vs editable installs. These differences depend on the build-backend, and you should check the build-backend documentation for the details. In case you distribute the project as a "distribution package", users will see the behaviour of regular installs -- thus, it is important to ensure that regular installs work correctly.
 ```
 
 ```{note}

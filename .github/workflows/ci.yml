@@ -10,6 +10,13 @@ on:
   pull_request:
   schedule:
     - cron: 0 0 * * MON # Run every Monday at 00:00 UTC
+  workflow_dispatch:
+    # allow manual runs on branches without a PR
+
+env:
+  # The "FORCE_COLOR" variable, when set to 1,
+  # tells Nox to colorize itself.
+  FORCE_COLOR: "1"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
@@ -21,8 +28,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
       - run: pip install nox
@@ -35,7 +42,7 @@ jobs:
       vendoring: ${{ steps.filter.outputs.vendoring }}
     steps:
       # For pull requests it's not necessary to checkout the code
-      - uses: dorny/paths-filter@v2
+      - uses: dorny/paths-filter@v3
         id: filter
         with:
           filters: |
@@ -50,6 +57,9 @@ jobs:
               - "src/**"
               - "tests/**"
               - "noxfile.py"
+              # The test suite should also run when cutting a release
+              # (which is the only time this file is modified).
+              - "NEWS.rst"
         if: github.event_name == 'pull_request'
 
   packaging:
@@ -57,8 +67,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
       - name: Set up git credentials
@@ -81,8 +91,8 @@ jobs:
       github.event_name != 'pull_request'
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
 
@@ -91,8 +101,8 @@ jobs:
       - run: git diff --exit-code
 
   tests-unix:
-    name: tests / ${{ matrix.python }} / ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}-latest
+    name: tests / ${{ matrix.python.key || matrix.python }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
 
     needs: [packaging, determine-changes]
     if: >-
@@ -102,45 +112,54 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [Ubuntu, MacOS]
+        os: [ubuntu-latest, macos-13, macos-latest]
         python:
-          - "3.7"
           - "3.8"
           - "3.9"
           - "3.10"
           - "3.11"
+          - "3.12"
+          - "3.13"
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
+          allow-prereleases: true
 
       - name: Install Ubuntu dependencies
-        if: matrix.os == 'Ubuntu'
-        run: sudo apt-get install bzr
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install bzr
 
       - name: Install MacOS dependencies
-        if: matrix.os == 'MacOS'
-        run: brew install breezy
+        if: runner.os == 'macOS'
+        run: |
+          DEPS=breezy
+          if ! which svn; then
+            DEPS="${DEPS} subversion"
+          fi
+          brew install ${DEPS}
 
       - run: pip install nox
 
       # Main check
       - name: Run unit tests
         run: >-
-          nox -s test-${{ matrix.python }} --
-          -m unit
+          nox -s test-${{ matrix.python.key || matrix.python }} --
+          tests/unit
           --verbose --numprocesses auto --showlocals
       - name: Run integration tests
         run: >-
-          nox -s test-${{ matrix.python }} --
-          -m integration
+          nox -s test-${{ matrix.python.key || matrix.python }} --no-install --
+          tests/functional
           --verbose --numprocesses auto --showlocals
           --durations=5
 
   tests-windows:
-    name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group }}
+    name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group.number }}
     runs-on: ${{ matrix.os }}-latest
 
     needs: [packaging, determine-changes]
@@ -153,66 +172,47 @@ jobs:
       matrix:
         os: [Windows]
         python:
-          - "3.7"
-          # Commented out, since Windows tests are expensively slow.
-          # - "3.8"
+          - "3.8"
+          # Commented out, since Windows tests are expensively slow,
+          # only test the oldest and newest Python supported by pip
           # - "3.9"
           # - "3.10"
-          - "3.11"
-        group: [1, 2]
+          # - "3.11"
+          # - "3.12"
+          - "3.13"
+        group:
+          - { number: 1, pytest-filter: "not test_install" }
+          - { number: 2, pytest-filter: "test_install" }
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      # The D: drive is significantly faster than the system C: drive.
+      # https://github.com/actions/runner-images/issues/8755
+      - name: Set TEMP to D:/Temp
+        run: |
+          mkdir "D:\\Temp"
+          echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV
+
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-
-      # We use a RAMDisk on Windows, since filesystem IO is a big slowdown
-      # for our tests.
-      - name: Create a RAMDisk
-        run: ./tools/ci/New-RAMDisk.ps1 -Drive R -Size 1GB
-
-      - name: Setup RAMDisk permissions
-        run: |
-          mkdir R:\Temp
-          $acl = Get-Acl "R:\Temp"
-          $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
-              "Everyone", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow"
-          )
-          $acl.AddAccessRule($rule)
-          Set-Acl "R:\Temp" $acl
+          allow-prereleases: true
 
       - run: pip install nox
-        env:
-          TEMP: "R:\\Temp"
 
       # Main check
-      - name: Run unit tests
-        if: matrix.group == 1
+      - name: Run unit tests (group 1)
+        if: matrix.group.number == 1
         run: >-
           nox -s test-${{ matrix.python }} --
-          -m unit
+          tests/unit
           --verbose --numprocesses auto --showlocals
-        env:
-          TEMP: "R:\\Temp"
 
-      - name: Run integration tests (group 1)
-        if: matrix.group == 1
+      - name: Run integration tests (group ${{ matrix.group.number }})
         run: >-
-          nox -s test-${{ matrix.python }} --
-          -m integration -k "not test_install"
+          nox -s test-${{ matrix.python }} --no-install --
+          tests/functional -k "${{ matrix.group.pytest-filter }}"
           --verbose --numprocesses auto --showlocals
-        env:
-          TEMP: "R:\\Temp"
-
-      - name: Run integration tests (group 2)
-        if: matrix.group == 2
-        run: >-
-          nox -s test-${{ matrix.python }} --
-          -m integration -k "test_install"
-          --verbose --numprocesses auto --showlocals
-        env:
-          TEMP: "R:\\Temp"
 
   tests-zipapp:
     name: tests / zipapp
@@ -224,21 +224,23 @@ jobs:
       github.event_name != 'pull_request'
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
       - name: Install Ubuntu dependencies
-        run: sudo apt-get install bzr
+        run: |
+          sudo apt-get update
+          sudo apt-get install bzr
 
-      - run: pip install nox 'virtualenv<20' 'setuptools != 60.6.0'
+      - run: pip install nox
 
       # Main check
       - name: Run integration tests
         run: >-
           nox -s test-3.10 --
-          -m integration
+          tests/functional
           --verbose --numprocesses auto --showlocals
           --durations=5
           --use-zipapp
