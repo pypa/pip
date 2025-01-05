@@ -22,7 +22,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install httpx pyyaml rich
-      - run: python tools/update-rtd-redirects.py
+      - run: pipx run tools/update-rtd-redirects.py
         env:
           RTD_API_TOKEN: ${{ secrets.RTD_API_TOKEN }}
