@@ -217,6 +217,21 @@ def test_all_fields(script: PipTestEnvironment) -> None:
     """
     Test that all the fields are present
     """
+    # future-compat: once pip adopts PEP 639 in pyproject.toml and
+    # its build backend produces metadata 2.4 or greater,
+    # it will display "License-Expression" rather than License
+    verbose = script.pip("show", "--verbose", "pip").stdout
+    match = re.search(r"Metadata-Version:\s(\d+\.\d+)", verbose)
+    if match is not None:
+        metadata_version = match.group(1)
+        metadata_version_tuple = tuple(map(int, metadata_version.split(".")))
+        if metadata_version_tuple >= (2, 4) and "License-Expression" in verbose:
+            license_str = "License-Expression"
+        else:
+            license_str = "License"
+    else:
+        license_str = "License"
+
     result = script.pip("show", "pip")
     lines = result.stdout.splitlines()
     expected = {
@@ -226,7 +241,7 @@ def test_all_fields(script: PipTestEnvironment) -> None:
         "Home-page",
         "Author",
         "Author-email",
-        "License",
+        f"{license_str}",
         "Location",
         "Editable project location",
         "Requires",
@@ -410,3 +425,29 @@ def test_show_populate_homepage_from_project_urls(
     result = script.pip("show", "simple", cwd=pkg_path)
     lines = result.stdout.splitlines()
     assert "Home-page: https://example.com" in lines
+
+
+def test_show_license_expression(script: PipTestEnvironment, data: TestData) -> None:
+    """
+    Show License-Expression if present in metadata >= 2.4.
+    """
+    wheel_file = data.packages.joinpath("license.dist-0.1-py2.py3-none-any.whl")
+    script.pip("install", "--no-index", wheel_file)
+    result = script.pip("show", "license.dist")
+    lines = result.stdout.splitlines()
+    assert "License-Expression: MIT AND MIT-0" in lines
+    assert "License: The legacy license declaration" not in lines
+
+
+def test_show_license_for_metadata_24(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """
+    Show License if License-Expression is not there for metadata >= 2.4.
+    """
+    wheel_file = data.packages.joinpath("license.dist-0.2-py2.py3-none-any.whl")
+    script.pip("install", "--no-index", wheel_file)
+    result = script.pip("show", "license.dist")
+    lines = result.stdout.splitlines()
+    assert "License-Expression: " not in lines
+    assert "License: The legacy license declaration" in lines

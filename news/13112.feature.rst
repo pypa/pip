@@ -1,0 +1,1 @@
+Prefer to display ``License-Expression`` in ``pip show`` if metadata version is at least 2.4.
