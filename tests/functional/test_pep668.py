@@ -41,10 +41,9 @@ def test_fails(script: PipTestEnvironment, arguments: List[str], virtualenv: Vir
     result = script.pip(*arguments, "pip", expect_error=True)
     try:
         assert "I am externally managed" in result.stderr
-    except AssertionError:
+    finally:
         print("virtualenv.sitecustomize:")
         print(virtualenv.sitecustomize)
-        raise
 
 
 @pytest.mark.parametrize(
