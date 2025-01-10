@@ -25,7 +25,7 @@ concurrency:
 jobs:
   docs:
     name: docs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/checkout@v4
@@ -36,7 +36,7 @@ jobs:
       - run: nox -s docs
 
   determine-changes:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     outputs:
       tests: ${{ steps.filter.outputs.tests }}
       vendoring: ${{ steps.filter.outputs.vendoring }}
@@ -64,7 +64,7 @@ jobs:
 
   packaging:
     name: packaging
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/checkout@v4
@@ -83,7 +83,7 @@ jobs:
 
   vendoring:
     name: vendoring
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     needs: [determine-changes]
     if: >-
@@ -112,7 +112,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest, macos-13, macos-latest]
+        os: [ubuntu-22.04, macos-13, macos-latest]
         python:
           - "3.8"
           - "3.9"
@@ -129,7 +129,7 @@ jobs:
           allow-prereleases: true
 
       - name: Install Ubuntu dependencies
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-22.04'
         run: |
           sudo apt-get update
           sudo apt-get install bzr
@@ -216,7 +216,7 @@ jobs:
 
   tests-zipapp:
     name: tests / zipapp
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     needs: [packaging, determine-changes]
     if: >-
@@ -257,7 +257,7 @@ jobs:
       - tests-zipapp
       - vendoring
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Decide whether the needed jobs succeeded or failed
