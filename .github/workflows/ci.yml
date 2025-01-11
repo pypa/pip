@@ -216,7 +216,10 @@ jobs:
 
   tests-zipapp:
     name: tests / zipapp
-    runs-on: ubuntu-22.04
+    # The macos-latest (M1) runners are the fastest available on GHA, even
+    # beating out the ubuntu-latest runners. The zipapp tests are slow by
+    # nature, and we don't care where they run, so we pick the fastest one.
+    runs-on: macos-latest
 
     needs: [packaging, determine-changes]
     if: >-
@@ -229,10 +232,8 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Install Ubuntu dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install bzr
+      - name: Install MacOS dependencies
+        run: brew install breezy subversion
 
       - run: pip install nox
 
