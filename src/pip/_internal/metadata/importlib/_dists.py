@@ -213,6 +213,12 @@ class Distribution(BaseDistribution):
             for extra in self.metadata.get_all("Provides-Extra", [])
         ]
 
+    def iter_default_extras(self) -> Iterable[NormalizedName]:
+        return [
+            canonicalize_name(extra)
+            for extra in self.metadata.get_all("Default-Extra", [])
+        ]
+
     def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
         contexts: Sequence[Dict[str, str]] = [{"extra": e} for e in extras]
         for req_string in self.metadata.get_all("Requires-Dist", []):
