@@ -22,6 +22,7 @@ from pip._internal.utils.misc import ensure_dir
 
 logger = logging.getLogger(__name__)
 
+
 SUPPORTED_EXTENSIONS = ZIP_EXTENSIONS + TAR_EXTENSIONS
 
 try:
