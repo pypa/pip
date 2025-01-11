@@ -504,6 +504,9 @@ class Factory:
                 name=canonicalize_name(ireq.name) if ireq.name else None,
                 version=None,
             )
+
+            extras = ireq.extras or list(cand.dist.iter_default_extras())
+
             if cand is None:
                 # There's no way we can satisfy a URL requirement if the underlying
                 # candidate fails to build. An unnamed URL must be user-supplied, so
@@ -517,10 +520,10 @@ class Factory:
             else:
                 # require the base from the link
                 yield self.make_requirement_from_candidate(cand)
-                if ireq.extras:
+                if extras:
                     # require the extras on top of the base candidate
                     yield self.make_requirement_from_candidate(
-                        self._make_extras_candidate(cand, frozenset(ireq.extras))
+                        self._make_extras_candidate(cand, frozenset(extras))
                     )
 
     def collect_root_requirements(
