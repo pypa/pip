@@ -231,7 +231,7 @@ class Command(CommandContextMixIn):
 
         if options.no_python_version_warning:
             deprecated(
-                reason="--no-python-verison-warning is deprecated.",
+                reason="--no-python-version-warning is deprecated.",
                 replacement="to remove the flag as it's a no-op",
                 gone_in="25.1",
                 issue=13154,

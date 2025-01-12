@@ -466,10 +466,10 @@ class Link:
         project_name = match.group(1)
         if not self._project_name_re.match(project_name):
             deprecated(
-                reason=f"{self} contains an egg fragment with a non-PEP 508 name",
+                reason=f"{self} contains an egg fragment with a non-PEP 508 name.",
                 replacement="to use the req @ url syntax, and remove the egg fragment",
-                gone_in="25.0",
-                issue=11617,
+                gone_in="25.1",
+                issue=13157,
             )
 
         return project_name
