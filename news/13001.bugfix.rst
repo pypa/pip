@@ -1,0 +1,5 @@
+Resolvelib 1.1.0 fixes a known issue where pip would report a
+ResolutionImpossible error even though there is a valid solution.
+However, the performance of some very complex dependency resolutions
+that previously resolved may be slower or result in a ResolutionTooDeep
+error.
