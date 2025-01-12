@@ -736,6 +736,11 @@ class PackageFinder:
         return no_eggs + eggs
 
     def _log_skipped_link(self, link: Link, result: LinkType, detail: str) -> None:
+        # This is a hot method so don't waste time hashing links unless we're
+        # actually going to log 'em.
+        if not logger.isEnabledFor(logging.DEBUG):
+            return
+
         entry = (link, result, detail)
         if entry not in self._logged_links:
             # Put the link at the end so the reason is more visible and because
