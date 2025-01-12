@@ -146,11 +146,8 @@ Creating a new release
    This will update the relevant files and tag the correct commit.
 #. Submit the ``release/YY.N`` branch as a pull request and ensure CI passes.
    Merge the changes back into ``main`` and pull them back locally.
-#. Build the release artifacts using ``nox -s build-release -- YY.N``.
-   This will checkout the tag, generate the distribution files to be
-   uploaded and checkout the main branch again.
-#. Upload the release to PyPI using ``nox -s upload-release -- YY.N``.
-#. Push the tag created by ``prepare-release``.
+#. Push the tag created by ``prepare-release``. This will trigger the release
+   workflow on GitHub and publish to PyPI.
 #. Regenerate the ``get-pip.py`` script in the `get-pip repository`_ (as
    documented there) and commit the results.
 #. Submit a Pull Request to `CPython`_ adding the new version of pip
