@@ -256,7 +256,7 @@ def test_cache_purge_with_empty_cache(script: PipTestEnvironment) -> None:
     and exit without an error code."""
     result = script.pip("cache", "purge", allow_stderr_warning=True)
     assert result.stderr == "WARNING: No matching packages\n"
-    assert result.stdout == "Files removed: 0\n"
+    assert result.stdout == "Files removed: 0 (0 bytes)\n"
 
 
 @pytest.mark.usefixtures("populate_wheel_cache")
@@ -265,7 +265,7 @@ def test_cache_remove_with_bad_pattern(script: PipTestEnvironment) -> None:
     and exit without an error code."""
     result = script.pip("cache", "remove", "aaa", allow_stderr_warning=True)
     assert result.stderr == 'WARNING: No matching packages for pattern "aaa"\n'
-    assert result.stdout == "Files removed: 0\n"
+    assert result.stdout == "Files removed: 0 (0 bytes)\n"
 
 
 def test_cache_list_too_many_args(script: PipTestEnvironment) -> None:

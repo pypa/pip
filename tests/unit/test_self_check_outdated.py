@@ -14,6 +14,8 @@ from freezegun import freeze_time
 from pip._vendor.packaging.version import Version
 
 from pip._internal import self_outdated_check
+from pip._internal.self_outdated_check import UpgradePrompt, pip_self_version_check
+from pip._internal.utils.misc import ExternallyManagedEnvironment
 
 
 @pytest.mark.parametrize(
@@ -185,3 +187,15 @@ class TestSelfCheckState:
             "last_check": "2000-01-01T00:00:00+00:00",
             "pypi_version": "1.0.0",
         }
+
+
+@patch("pip._internal.self_outdated_check._self_version_check_logic")
+def test_suppressed_by_externally_managed(mocked_function: Mock, tmpdir: Path) -> None:
+    mocked_function.return_value = UpgradePrompt(old="1.0", new="2.0")
+    fake_options = Values({"cache_dir": str(tmpdir)})
+    with patch(
+        "pip._internal.self_outdated_check.check_externally_managed",
+        side_effect=ExternallyManagedEnvironment("nope"),
+    ):
+        pip_self_version_check(session=Mock(), options=fake_options)
+    mocked_function.assert_not_called()

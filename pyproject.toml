@@ -60,8 +60,6 @@ exclude = ["contrib", "docs", "tests*", "tasks"]
 "pip" = ["py.typed"]
 "pip._vendor" = ["vendor.txt"]
 "pip._vendor.certifi" = ["*.pem"]
-"pip._vendor.requests" = ["*.pem"]
-"pip._vendor.distlib._backport" = ["sysconfig.cfg"]
 "pip._vendor.distlib" = [
     "t32.exe",
     "t64.exe",
@@ -123,6 +121,9 @@ drop = [
   "bin/",
   # interpreter and OS specific msgpack libs
   "msgpack/*.so",
+  # optional accelerator extension libraries
+  "*mypyc*.so",
+  "tomli/*.so",
   # unneeded parts of setuptools
   "easy_install.py",
   "setuptools",
@@ -304,10 +305,7 @@ source0 = [
 ]
 
 [tool.coverage.report]
-exclude_lines = [
-    # We must re-state the default because the `exclude_lines` option overrides
-    # it.
-    "pragma: no cover",
+exclude_also = [
     # This excludes typing-specific code, which will be validated by mypy anyway.
     "if TYPE_CHECKING",
 ]

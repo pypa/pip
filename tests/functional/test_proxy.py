@@ -90,3 +90,19 @@ def test_proxy_does_not_override_netrc(
             "simple",
         )
         script.assert_installed(simple="3.0")
+
+
+@pytest.mark.network
+def test_build_deps_use_proxy_from_cli(
+    script: PipTestEnvironment, capfd: pytest.CaptureFixture[str], data: TestData
+) -> None:
+    args = ["wheel", "-v", str(data.packages / "pep517_setup_and_pyproject")]
+    args.extend(["--proxy", "http://127.0.0.1:9000"])
+
+    with proxy.Proxy(port=9000, num_acceptors=1, plugins=[AccessLogPlugin]):
+        result = script.pip(*args)
+
+    wheel_path = script.scratch / "pep517_setup_and_pyproject-1.0-py3-none-any.whl"
+    result.did_create(wheel_path)
+    access_log, _ = capfd.readouterr()
+    assert "CONNECT" in access_log, "setuptools was not fetched using proxy"

@@ -512,7 +512,7 @@ _Suggested content:_
 _Page purpose:_
 
 - To onboard people who want to contribute to pip's docs
-- To share previous research and recommendataions related to pip's docs
+- To share previous research and recommendations related to pip's docs
 
 _Suggested content:_
 
