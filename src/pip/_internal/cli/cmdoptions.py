@@ -983,17 +983,6 @@ list_exclude: Callable[..., Option] = partial(
     help="Exclude specified package from the output",
 )
 
-
-no_python_version_warning: Callable[..., Option] = partial(
-    Option,
-    "--no-python-version-warning",
-    dest="no_python_version_warning",
-    action="store_true",
-    default=False,
-    help="Silence deprecation warnings for upcoming unsupported Pythons.",
-)
-
-
 # Features that are now always on. A warning is printed if they are used.
 ALWAYS_ENABLED_FEATURES = [
     "truststore",  # always on since 24.2
@@ -1058,7 +1047,6 @@ general_group: Dict[str, Any] = {
         no_cache,
         disable_pip_version_check,
         no_color,
-        no_python_version_warning,
         use_new_feature,
         use_deprecated_feature,
     ],

@@ -1,0 +1,2 @@
+Remove the ``no-python-version-warning`` flag as it was a relic of the Python
+2 sunset transition.
