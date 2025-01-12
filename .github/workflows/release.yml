@@ -12,12 +12,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
       - name: Build a binary wheel and a source tarball
-        run: pipx run build
+        run: |
+          python3 -m venv build-env
+          build-env/bin/python -m pip install --no-deps --require-hashes -r build-requirements.txt
+          build-env/bin/python -m build --no-isolation
       - name: Store the distribution packages
         uses: actions/upload-artifact@v4
         with:
