@@ -122,10 +122,6 @@ class PipProvider(_ProviderBase):
           explicit URL.
         * If equal, prefer if any requirement is "pinned", i.e. contains
           operator ``===`` or ``==``.
-        * If equal, calculate an approximate "depth" and resolve requirements
-          closer to the user-specified requirements first. If the depth cannot
-          by determined (eg: due to no matching parents), it is considered
-          infinite.
         * Order user-specified requirements by the order they are specified.
         * If equal, prefers "non-free" requirements, i.e. contains at least one
           operator, such as ``>=`` or ``<``.
