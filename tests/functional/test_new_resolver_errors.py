@@ -101,32 +101,33 @@ def test_new_resolver_checks_requires_python_before_dependencies(
 ) -> None:
     incompatible_python = f"<{sys.version_info.major}.{sys.version_info.minor}"
 
-    pkg_dep = create_basic_wheel_for_package(
+    pkgdep = create_basic_wheel_for_package(
         script,
-        name="pkg-dep",
+        name="pkgdep",
         version="1",
     )
     create_basic_wheel_for_package(
         script,
-        name="pkg-root",
+        name="pkgroot",
         version="1",
-        # Refer the dependency by URL to prioritise it as much as possible,
-        # to test that Requires-Python is *still* inspected first.
-        depends=[f"pkg-dep@{pathlib.Path(pkg_dep).as_uri()}"],
+        depends=[
+            f"pkgdep@{pathlib.Path(pkgdep).as_uri()}",
+        ],
         requires_python=incompatible_python,
     )
 
-    result = script.pip(
+    r = script.pip(
         "install",
         "--no-cache-dir",
         "--no-index",
         "--find-links",
         script.scratch_path,
-        "pkg-root",
+        "pkgroot",
         expect_error=True,
     )
 
-    # Resolution should fail because of pkg-a's Requires-Python.
-    # This check should be done before pkg-b, so pkg-b should never be pulled.
-    assert incompatible_python in result.stderr, str(result)
-    assert "pkg-b" not in result.stderr, str(result)
+    # Resolution should fail because of pkgroot's Requires-Python.
+    # This is done before dependencies so pkgdep should never be pulled.
+    assert incompatible_python in r.stderr, str(r)
+    assert "pkgdep" not in r.stderr, str(r)
+    assert "pkgdep" not in r.stdout, str(r)
