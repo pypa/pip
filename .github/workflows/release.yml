@@ -11,14 +11,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Build a binary wheel and a source tarball
         run: |
           python3 -m venv build-env
-          build-env/bin/python -m pip install --no-deps --require-hashes -r build-requirements.txt
+          build-env/bin/python -m pip install --no-deps --only-binary :all: --require-hashes -r build-requirements.txt
           build-env/bin/python -m build --no-isolation
       - name: Store the distribution packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4
         with:
           name: python-package-distributions
           path: dist/
@@ -37,9 +37,9 @@ jobs:
 
     steps:
       - name: Download all the dists
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
         with:
           name: python-package-distributions
           path: dist/
       - name: Publish distribution 📦 to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@67339c736fd9354cd4f8cb0b744f2b82a74b5c70 # release/v1
