@@ -1,1 +1,3 @@
-Use PyPI trusted publisher workflow for release.
+Started releasing to PyPI from a GitHub Actions CI/CD workflow that implements trusted publishing and bundles :pep:`740` digital attestations.
+
+In addition to being signed, the released distribution packages are now reproducible through the commit timestamp.
