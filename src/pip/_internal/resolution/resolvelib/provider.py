@@ -3,6 +3,7 @@ import math
 from functools import lru_cache
 from typing import (
     TYPE_CHECKING,
+    Container,
     Dict,
     Iterable,
     Iterator,
@@ -94,10 +95,12 @@ class PipProvider(_ProviderBase):
         ignore_dependencies: bool,
         upgrade_strategy: str,
         user_requested: Dict[str, int],
+        ignore_dependencies_for: Container[str] = frozenset(),
     ) -> None:
         self._factory = factory
         self._constraints = constraints
         self._ignore_dependencies = ignore_dependencies
+        self._ignore_dependencies_for = ignore_dependencies_for
         self._upgrade_strategy = upgrade_strategy
         self._user_requested = user_requested
         self._known_depths: Dict[str, float] = collections.defaultdict(lambda: math.inf)
@@ -243,7 +246,10 @@ class PipProvider(_ProviderBase):
         return requirement.is_satisfied_by(candidate)
 
     def get_dependencies(self, candidate: Candidate) -> Sequence[Requirement]:
-        with_requires = not self._ignore_dependencies
+        ignore_dependencies = (
+            self._ignore_dependencies or candidate.name in self._ignore_dependencies_for
+        )
+        with_requires = not ignore_dependencies
         return [r for r in candidate.iter_dependencies(with_requires) if r is not None]
 
     @staticmethod

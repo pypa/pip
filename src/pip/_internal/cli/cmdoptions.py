@@ -529,6 +529,30 @@ def only_binary() -> Option:
     )
 
 
+def _handle_no_deps_for(
+    option: object,
+    opt_str: str,
+    value: str,
+    parser: OptionParser,
+) -> None:
+    # ignore_dependencies_for is a set of strings
+    values = value.split(",")
+    parser.values.ignore_dependencies_for.update(values)
+
+
+def no_deps_for() -> PipOption:
+    return PipOption(
+        "--no-deps-for",
+        dest="ignore_dependencies_for",
+        action="callback",
+        callback=_handle_no_deps_for,
+        type="package_name",
+        default=set(),
+        help="Do not install sub dependencies of the named package or packages. "
+        "Accepts comma separated list of values. Can be supplied multiple times.",
+    )
+
+
 platforms: Callable[..., Option] = partial(
     Option,
     "--platform",
