@@ -13,10 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Build a binary wheel and a source tarball
-        run: |
-          python3 -m venv build-env
-          build-env/bin/python -m pip install --no-deps --only-binary :all: --require-hashes -r build-requirements.txt
-          build-env/bin/python -m build --no-isolation
+        run: ./build-project.py
       - name: Store the distribution packages
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4
         with:
