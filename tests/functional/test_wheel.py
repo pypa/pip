@@ -286,7 +286,7 @@ def test_wheel_package_with_latin1_setup(
 
     pkg_to_wheel = data.packages.joinpath("SetupPyLatin1")
     result = script.pip("wheel", pkg_to_wheel)
-    assert "Successfully built SetupPyUTF8" in result.stdout
+    assert "Successfully built setuppyutf8" in result.stdout
 
 
 def test_pip_wheel_with_pep518_build_reqs(
