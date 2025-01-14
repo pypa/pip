@@ -1,0 +1,1 @@
+Migrate message_about_scripts_not_on_PATH to use pathlib and resolve symlinks
