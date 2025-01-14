@@ -418,10 +418,8 @@ class PipScriptMaker(ScriptMaker):
 import sys
 from %(module)s import %(import_name)s
 if __name__ == '__main__':
-    if sys.argv[0].endswith('-script.pyw'):
-        sys.argv[0] = sys.argv[0][: -11]
-    elif sys.argv[0].endswith('.exe'):
-        sys.argv[0] = sys.argv[0][: -4]
+    if sys.argv[0].endswith('.exe'):
+        sys.argv[0] = sys.argv[0][:-4]
     sys.exit(%(func)s())
 """
 
