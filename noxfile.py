@@ -339,7 +339,7 @@ def build_release(session: nox.Session) -> None:
         )
 
     session.log("# Install dependencies")
-    session.install("build", "twine")
+    session.install("twine")
 
     with release.isolated_temporary_checkout(session, version) as build_dir:
         session.log(
@@ -375,11 +375,11 @@ def build_dists(session: nox.Session) -> List[str]:
         )
 
     session.log("# Build distributions")
-    session.run("python", "-m", "build", silent=True)
+    session.run("python", "build-project.py", silent=True)
     produced_dists = glob.glob("dist/*")
 
     session.log(f"# Verify distributions: {', '.join(produced_dists)}")
-    session.run("twine", "check", *produced_dists, silent=True)
+    session.run("twine", "check", "--strict", *produced_dists, silent=True)
 
     return produced_dists
 
