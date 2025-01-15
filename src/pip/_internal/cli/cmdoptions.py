@@ -1028,6 +1028,15 @@ use_deprecated_feature: Callable[..., Option] = partial(
     help=("Enable deprecated functionality, that will be removed in the future."),
 )
 
+resume_retries: Callable[..., Option] = partial(
+    Option,
+    "--resume-retries",
+    dest="resume_retries",
+    type="int",
+    default=0,
+    help="Maximum number of resumption retries for incomplete downloads"
+    "(default %default times).",
+)
 
 ##########
 # groups #
@@ -1061,6 +1070,7 @@ general_group: Dict[str, Any] = {
         no_python_version_warning,
         use_new_feature,
         use_deprecated_feature,
+        resume_retries,
     ],
 }
 
