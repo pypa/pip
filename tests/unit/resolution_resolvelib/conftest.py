@@ -76,4 +76,5 @@ def provider(factory: Factory) -> PipProvider:
         ignore_dependencies=False,
         upgrade_strategy="to-satisfy-only",
         user_requested={},
+        ignored_constraints=[],
     )
