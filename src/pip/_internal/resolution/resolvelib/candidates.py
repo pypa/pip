@@ -1,3 +1,4 @@
+import functools
 import logging
 import sys
 from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, Optional, Tuple, Union, cast
@@ -138,7 +139,6 @@ class _InstallRequirementBackedCandidate(Candidate):
         found remote link (e.g. from pypi.org).
     """
 
-    dist: BaseDistribution
     is_installed = False
 
     def __init__(
@@ -156,7 +156,6 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._ireq = ireq
         self._name = name
         self._version = version
-        self.dist = self._prepare()
         self._hash: Optional[int] = None
 
     def __str__(self) -> str:
@@ -231,7 +230,8 @@ class _InstallRequirementBackedCandidate(Candidate):
         except InvalidRequirement as e:
             raise MetadataInvalid(self._ireq, str(e))
 
-    def _prepare(self) -> BaseDistribution:
+    @functools.cached_property
+    def dist(self) -> BaseDistribution:
         try:
             dist = self._prepare_distribution()
         except HashError as e:
@@ -249,10 +249,10 @@ class _InstallRequirementBackedCandidate(Candidate):
         return dist
 
     def iter_dependencies(self, with_requires: bool) -> Iterable[Optional[Requirement]]:
+        yield self._factory.make_requires_python_requirement(self.dist.requires_python)
         requires = self.dist.iter_dependencies() if with_requires else ()
         for r in requires:
             yield from self._factory.make_requirements_from_spec(str(r), self._ireq)
-        yield self._factory.make_requires_python_requirement(self.dist.requires_python)
 
     def get_install_requirement(self) -> Optional[InstallRequirement]:
         return self._ireq
