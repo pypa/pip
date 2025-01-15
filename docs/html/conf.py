@@ -19,7 +19,7 @@ extensions = [
 
 # 'tags' is a special object handled by sphinx
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-tags
-if "html" in tags:  # type: ignore[name-defined] # noqa: F821
+if "html" in tags or "READTHEDOCS" in os.environ:  # type: ignore[name-defined] # noqa: F821
     # html specific deps
     extensions.extend(
         (
