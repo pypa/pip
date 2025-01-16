@@ -414,8 +414,7 @@ def _raise_for_invalid_entrypoint(specification: str) -> None:
 class PipScriptMaker(ScriptMaker):
     # Override distlib's default script template with one that
     # doesn't import `re` module, allowing scripts to load faster.
-    script_template = r"""# -*- coding: utf-8 -*-
-import sys
+    script_template = r"""import sys
 from %(module)s import %(import_name)s
 if __name__ == '__main__':
     if sys.argv[0].endswith('.exe'):
