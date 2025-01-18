@@ -4,7 +4,7 @@ extend = "../pyproject.toml"
 # And extend linting to include pytest specific rules and configuration
 [lint]
 extend-select = ["PT"]
-ignore = ["PT004", "PT011"]
+ignore = ["PT011"]
 
 [lint.flake8-pytest-style]
 mark-parentheses = false

@@ -1,0 +1,4 @@
+Support :pep:`639` License-Expression and License-File metadata fields in JSON
+output. ``pip inspect`` and ``pip install --report`` now emit
+``license_expression`` and ``license_file`` fields in the ``metadata`` object,
+if the corresponding fields are present in the installed ``METADATA`` file.
