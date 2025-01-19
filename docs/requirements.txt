@@ -7,6 +7,7 @@ myst_parser
 sphinx-copybutton
 sphinx-inline-tabs
 sphinxcontrib-towncrier >= 0.2.0a0
+sphinx-issues
 
 # `docs.pipext` uses pip's internals to generate documentation. So, we install
 # the current directory to make it work.
