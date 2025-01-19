@@ -2,9 +2,22 @@
 """Build pip using pinned build requirements."""
 
 import subprocess
-import sys
 import tempfile
+import venv
+from os import PathLike
 from pathlib import Path
+from types import SimpleNamespace
+
+
+class EnvBuilder(venv.EnvBuilder):
+    """A subclass of venv.EnvBuilder that exposes the python executable command."""
+
+    def ensure_directories(
+        self, env_dir: str | bytes | PathLike[str] | PathLike[bytes]
+    ) -> SimpleNamespace:
+        context = super().ensure_directories(env_dir)
+        self.env_exec_cmd = context.env_exec_cmd
+        return context
 
 
 def get_git_head_timestamp() -> str:
@@ -22,19 +35,11 @@ def get_git_head_timestamp() -> str:
 
 def main() -> None:
     with tempfile.TemporaryDirectory() as build_env:
+        env_builder = EnvBuilder(with_pip=True)
+        env_builder.create(build_env)
         subprocess.run(
             [
-                sys.executable,
-                "-m",
-                "venv",
-                build_env,
-            ],
-            check=True,
-        )
-        build_python = Path(build_env) / "bin" / "python"
-        subprocess.run(
-            [
-                build_python,
+                env_builder.env_exec_cmd,
                 "-Im",
                 "pip",
                 "install",
@@ -48,7 +53,7 @@ def main() -> None:
         )
         subprocess.run(
             [
-                build_python,
+                env_builder.env_exec_cmd,
                 "-Im",
                 "build",
                 "--no-isolation",
