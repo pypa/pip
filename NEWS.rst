@@ -9,6 +9,45 @@
 
 .. towncrier release notes start
 
+24.3.1 (2024-10-27)
+===================
+
+Bug Fixes
+---------
+
+- Allow multiple nested inclusions of the same requirements file again. (`#13046 <https://github.com/pypa/pip/issues/13046>`_)
+
+24.3 (2024-10-27)
+=================
+
+Deprecations and Removals
+-------------------------
+
+- Deprecate wheel filenames that are not compliant with :pep:`440`. (`#12918 <https://github.com/pypa/pip/issues/12918>`_)
+
+Features
+--------
+
+- Detect recursively referencing requirements files and help users identify
+  the source. (`#12653 <https://github.com/pypa/pip/issues/12653>`_)
+- Support for :pep:`730` iOS wheels. (`#12961 <https://github.com/pypa/pip/issues/12961>`_)
+
+Bug Fixes
+---------
+
+- Display a better error message when an already installed package has an invalid requirement. (`#12953 <https://github.com/pypa/pip/issues/12953>`_)
+- Ignore ``PIP_TARGET`` and ``pip.conf`` ``global.target`` when preparing a build environment. (`#8438 <https://github.com/pypa/pip/issues/8438>`_)
+- Restore support for macOS 10.12 and older (via truststore). (`#12901 <https://github.com/pypa/pip/issues/12901>`_)
+- Allow installing pip in editable mode in a virtual environment on Windows. (`#12666 <https://github.com/pypa/pip/issues/12666>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade certifi to 2024.8.30
+- Upgrade distlib to 0.3.9
+- Upgrade truststore to 0.10.0
+- Upgrade urllib3 to 1.26.20
+
 24.2 (2024-07-28)
 =================
 
@@ -3311,7 +3350,7 @@ Improved Documentation
 - Upgrade the bundled copy of requests to 2.6.0, fixing CVE-2015-2296.
 - Display format of latest package when using ``pip list --outdated``. (#2475)
 - Don't use pywin32 as ctypes should always be available on Windows, using
-  pywin32 prevented uninstallation of pywin32 on Windows. (:pull:`2467`)
+  pywin32 prevented uninstallation of pywin32 on Windows. (:pr:`2467`)
 - Normalize the ``--wheel-dir`` option, expanding out constructs such as ``~``
   when used. (#2441)
 - Display a warning when an undefined extra has been requested. (#2142)
@@ -3602,7 +3641,7 @@ Improved Documentation
   --no-download`` are now formally deprecated.  See #906 for discussion on
   possible alternatives, or lack thereof, in future releases.
 - **DEPRECATION** ``pip zip`` and ``pip unzip`` are now formally deprecated.
-- pip will now install Mac OSX platform wheels from PyPI. (:pull:`1278`)
+- pip will now install Mac OSX platform wheels from PyPI. (:pr:`1278`)
 - pip now generates the appropriate platform-specific console scripts when
   installing wheels. (#1251)
 - pip now confirms a wheel is supported when installing directly from a path or

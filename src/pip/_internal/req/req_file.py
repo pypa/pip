@@ -8,6 +8,7 @@ import os
 import re
 import shlex
 import urllib.parse
+from dataclasses import dataclass
 from optparse import Values
 from typing import (
     TYPE_CHECKING,
@@ -84,49 +85,48 @@ SUPPORTED_OPTIONS_EDITABLE_REQ_DEST = [
 logger = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True)
 class ParsedRequirement:
-    def __init__(
-        self,
-        requirement: str,
-        is_editable: bool,
-        comes_from: str,
-        constraint: bool,
-        options: Optional[Dict[str, Any]] = None,
-        line_source: Optional[str] = None,
-    ) -> None:
-        self.requirement = requirement
-        self.is_editable = is_editable
-        self.comes_from = comes_from
-        self.options = options
-        self.constraint = constraint
-        self.line_source = line_source
+    # TODO: replace this with slots=True when dropping Python 3.9 support.
+    __slots__ = (
+        "requirement",
+        "is_editable",
+        "comes_from",
+        "constraint",
+        "options",
+        "line_source",
+    )
+
+    requirement: str
+    is_editable: bool
+    comes_from: str
+    constraint: bool
+    options: Optional[Dict[str, Any]]
+    line_source: Optional[str]
 
 
+@dataclass(frozen=True)
 class ParsedLine:
-    def __init__(
-        self,
-        filename: str,
-        lineno: int,
-        args: str,
-        opts: Values,
-        constraint: bool,
-    ) -> None:
-        self.filename = filename
-        self.lineno = lineno
-        self.opts = opts
-        self.constraint = constraint
+    __slots__ = ("filename", "lineno", "args", "opts", "constraint")
 
-        if args:
-            self.is_requirement = True
-            self.is_editable = False
-            self.requirement = args
-        elif opts.editables:
-            self.is_requirement = True
-            self.is_editable = True
+    filename: str
+    lineno: int
+    args: str
+    opts: Values
+    constraint: bool
+
+    @property
+    def is_editable(self) -> bool:
+        return bool(self.opts.editables)
+
+    @property
+    def requirement(self) -> Optional[str]:
+        if self.args:
+            return self.args
+        elif self.is_editable:
             # We don't support multiple -e on one line
-            self.requirement = opts.editables[0]
-        else:
-            self.is_requirement = False
+            return self.opts.editables[0]
+        return None
 
 
 def parse_requirements(
@@ -179,7 +179,7 @@ def handle_requirement_line(
         line.lineno,
     )
 
-    assert line.is_requirement
+    assert line.requirement is not None
 
     # get the options that apply to requirements
     if line.is_editable:
@@ -301,7 +301,7 @@ def handle_line(
     affect the finder.
     """
 
-    if line.is_requirement:
+    if line.requirement is not None:
         parsed_req = handle_requirement_line(line, options)
         return parsed_req
     else:
@@ -324,22 +324,23 @@ class RequirementsFileParser:
     ) -> None:
         self._session = session
         self._line_parser = line_parser
-        self._parsed_files: dict[str, Optional[str]] = {}
 
     def parse(
         self, filename: str, constraint: bool
     ) -> Generator[ParsedLine, None, None]:
         """Parse a given file, yielding parsed lines."""
-        self._parsed_files[os.path.abspath(filename)] = (
-            None  # The primary requirements file passed
+        yield from self._parse_and_recurse(
+            filename, constraint, [{os.path.abspath(filename): None}]
         )
-        yield from self._parse_and_recurse(filename, constraint)
 
     def _parse_and_recurse(
-        self, filename: str, constraint: bool
+        self,
+        filename: str,
+        constraint: bool,
+        parsed_files_stack: List[Dict[str, Optional[str]]],
     ) -> Generator[ParsedLine, None, None]:
         for line in self._parse_file(filename, constraint):
-            if not line.is_requirement and (
+            if line.requirement is None and (
                 line.opts.requirements or line.opts.constraints
             ):
                 # parse a nested requirements file
@@ -364,8 +365,9 @@ class RequirementsFileParser:
                             req_path,
                         )
                     )
-                if req_path in self._parsed_files:
-                    initial_file = self._parsed_files[req_path]
+                parsed_files = parsed_files_stack[0]
+                if req_path in parsed_files:
+                    initial_file = parsed_files[req_path]
                     tail = (
                         f" and again in {initial_file}"
                         if initial_file is not None
@@ -375,8 +377,11 @@ class RequirementsFileParser:
                         f"{req_path} recursively references itself in {filename}{tail}"
                     )
                 # Keeping a track where was each file first included in
-                self._parsed_files[req_path] = filename
-                yield from self._parse_and_recurse(req_path, nested_constraint)
+                new_parsed_files = parsed_files.copy()
+                new_parsed_files[req_path] = filename
+                yield from self._parse_and_recurse(
+                    req_path, nested_constraint, [new_parsed_files, *parsed_files_stack]
+                )
             else:
                 yield line
 
