@@ -310,6 +310,8 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
             version=version,
         )
 
+        template.extras = ireq.extras
+
     def _prepare_distribution(self) -> BaseDistribution:
         preparer = self._factory.preparer
         return preparer.prepare_linked_requirement(self._ireq, parallel_builds=True)

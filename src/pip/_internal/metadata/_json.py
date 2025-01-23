@@ -30,6 +30,7 @@ METADATA_FIELDS = [
     ("Requires-Python", False),
     ("Requires-External", True),
     ("Project-URL", True),
+    ("Default-Extra", True),
     ("Provides-Extra", True),
     ("Provides-Dist", True),
     ("Obsoletes-Dist", True),

@@ -3070,6 +3070,8 @@ class Distribution:
         dm = self._dep_map
         deps: list[Requirement] = []
         deps.extend(dm.get(None, ()))
+
+        extras = extras or self.default_extras_require
         for ext in extras:
             try:
                 deps.extend(dm[safe_extra(ext)])
@@ -3321,6 +3323,10 @@ class Distribution:
     @property
     def extras(self):
         return [dep for dep in self._dep_map if dep]
+
+    @property
+    def default_extras_require(self):
+        return self._parsed_pkg_info.get_all('Default-Extra') or []
 
 
 class EggInfoDistribution(Distribution):

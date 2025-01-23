@@ -1,4 +1,5 @@
 import collections
+import contextlib
 import itertools
 import operator
 
@@ -172,7 +173,11 @@ class Resolution(object):
         )
         if not criterion.candidates:
             raise RequirementsConflicted(criterion)
-        criteria[identifier] = criterion
+        
+        with contextlib.suppress(AttributeError):
+            requirement._extras = requirement._ireq.extras
+
+        criteria[requirement.name] = criterion
 
     def _remove_information_from_criteria(self, criteria, parents):
         """Remove information from parents of criteria.

@@ -187,6 +187,7 @@ class Factory:
         base: Optional[BaseCandidate] = self._make_base_candidate_from_link(
             link, template, name, version
         )
+        extras = extras if extras else template.extras
         if not extras or base is None:
             return base
         return self._make_extras_candidate(base, extras, comes_from=template)
@@ -482,6 +483,9 @@ class Factory:
                 (or link) and one with the extra. This allows centralized constraint
                 handling for the base, resulting in fewer candidate rejections.
         """
+        if ireq.comes_from is not None:
+            requested_extras = requested_extras or ireq.comes_from.extras
+
         if not ireq.match_markers(requested_extras):
             logger.info(
                 "Ignoring %s: markers '%s' don't match your environment",

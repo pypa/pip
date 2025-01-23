@@ -132,6 +132,9 @@ class RawMetadata(TypedDict, total=False):
     license_expression: str
     license_files: list[str]
 
+    # Metadata 2.5 - PEP 771
+    default_extra: list[str]
+
 
 _STRING_FIELDS = {
     "author",
@@ -463,8 +466,8 @@ _NOT_FOUND = object()
 
 
 # Keep the two values in sync.
-_VALID_METADATA_VERSIONS = ["1.0", "1.1", "1.2", "2.1", "2.2", "2.3", "2.4"]
-_MetadataVersion = Literal["1.0", "1.1", "1.2", "2.1", "2.2", "2.3", "2.4"]
+_VALID_METADATA_VERSIONS = ["1.0", "1.1", "1.2", "2.1", "2.2", "2.3", "2.4", "2.5"]
+_MetadataVersion = Literal["1.0", "1.1", "1.2", "2.1", "2.2", "2.3", "2.4", "2.5"]
 
 _REQUIRED_ATTRS = frozenset(["metadata_version", "name", "version"])
 
@@ -861,3 +864,9 @@ class Metadata:
     """``Provides`` (deprecated)"""
     obsoletes: _Validator[list[str] | None] = _Validator(added="1.1")
     """``Obsoletes`` (deprecated)"""
+    # PEP 771 lets us define a default `extras_require` if none is passed by the
+    # user.
+    default_extra: _Validator[list[utils.NormalizedName] | None] = _Validator(
+        added="2.5",
+    )
+    """:external:ref:`core-metadata-default-extra`"""
