@@ -5,6 +5,10 @@ include README.rst
 include SECURITY.md
 include pyproject.toml
 
+include build-requirements.in
+include build-requirements.txt
+include build-project.py
+
 include src/pip/_vendor/README.rst
 include src/pip/_vendor/vendor.txt
 recursive-include  src/pip/_vendor *LICENSE*
