@@ -3,7 +3,6 @@ util tests
 
 """
 
-import codecs
 import os
 import shutil
 import stat
@@ -12,7 +11,7 @@ import time
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Callable, Iterator, List, NoReturn, Optional, Tuple, Type
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import pytest
 
@@ -21,7 +20,6 @@ from pip._vendor.packaging.requirements import Requirement
 from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError
 from pip._internal.utils.deprecation import PipDeprecationWarning, deprecated
 from pip._internal.utils.egg_link import egg_link_path_from_location
-from pip._internal.utils.encoding import BOMS, auto_decode
 from pip._internal.utils.glibc import (
     glibc_version_string,
     glibc_version_string_confstr,
@@ -443,48 +441,6 @@ class TestHashes:
         assert not hashes.has_one_of({"sha256": "xyzt"})
         empty_hashes = Hashes()
         assert not empty_hashes.has_one_of({"sha256": "xyzt"})
-
-
-class TestEncoding:
-    """Tests for pip._internal.utils.encoding"""
-
-    def test_auto_decode_utf_16_le(self) -> None:
-        data = (
-            b"\xff\xfeD\x00j\x00a\x00n\x00g\x00o\x00=\x00"
-            b"=\x001\x00.\x004\x00.\x002\x00"
-        )
-        assert data.startswith(codecs.BOM_UTF16_LE)
-        assert auto_decode(data) == "Django==1.4.2"
-
-    def test_auto_decode_utf_16_be(self) -> None:
-        data = (
-            b"\xfe\xff\x00D\x00j\x00a\x00n\x00g\x00o\x00="
-            b"\x00=\x001\x00.\x004\x00.\x002"
-        )
-        assert data.startswith(codecs.BOM_UTF16_BE)
-        assert auto_decode(data) == "Django==1.4.2"
-
-    def test_auto_decode_no_bom(self) -> None:
-        assert auto_decode(b"foobar") == "foobar"
-
-    def test_auto_decode_pep263_headers(self) -> None:
-        latin1_req = "# coding=latin1\n# Pas trop de café"
-        assert auto_decode(latin1_req.encode("latin1")) == latin1_req
-
-    def test_auto_decode_no_preferred_encoding(self) -> None:
-        om, em = Mock(), Mock()
-        om.return_value = "ascii"
-        em.return_value = None
-        data = "data"
-        with patch("sys.getdefaultencoding", om):
-            with patch("locale.getpreferredencoding", em):
-                ret = auto_decode(data.encode(sys.getdefaultencoding()))
-        assert ret == data
-
-    @pytest.mark.parametrize("encoding", [encoding for bom, encoding in BOMS])
-    def test_all_encodings_are_valid(self, encoding: str) -> None:
-        # we really only care that there is no LookupError
-        assert "".encode(encoding).decode(encoding) == ""
 
 
 def raises(error: Type[Exception]) -> NoReturn:

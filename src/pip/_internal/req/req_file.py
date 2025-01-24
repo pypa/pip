@@ -2,11 +2,14 @@
 Requirements file parsing
 """
 
+import codecs
+import locale
 import logging
 import optparse
 import os
 import re
 import shlex
+import sys
 import urllib.parse
 from dataclasses import dataclass
 from optparse import Values
@@ -26,7 +29,6 @@ from typing import (
 from pip._internal.cli import cmdoptions
 from pip._internal.exceptions import InstallationError, RequirementsFileParseError
 from pip._internal.models.search_scope import SearchScope
-from pip._internal.utils.encoding import auto_decode
 
 if TYPE_CHECKING:
     from pip._internal.index.package_finder import PackageFinder
@@ -81,6 +83,21 @@ SUPPORTED_OPTIONS_REQ_DEST = [str(o().dest) for o in SUPPORTED_OPTIONS_REQ]
 SUPPORTED_OPTIONS_EDITABLE_REQ_DEST = [
     str(o().dest) for o in SUPPORTED_OPTIONS_EDITABLE_REQ
 ]
+
+# order of BOMS is important: codecs.BOM_UTF16_LE is a prefix of codecs.BOM_UTF32_LE
+# so data.startswith(BOM_UTF16_LE) would be true for UTF32_LE data
+BOMS: List[Tuple[bytes, str]] = [
+    (codecs.BOM_UTF8, "utf-8"),
+    (codecs.BOM_UTF32, "utf-32"),
+    (codecs.BOM_UTF32_BE, "utf-32-be"),
+    (codecs.BOM_UTF32_LE, "utf-32-le"),
+    (codecs.BOM_UTF16, "utf-16"),
+    (codecs.BOM_UTF16_BE, "utf-16-be"),
+    (codecs.BOM_UTF16_LE, "utf-16-le"),
+]
+
+PEP263_ENCODING_RE = re.compile(rb"coding[:=]\s*([-\w.]+)")
+DEFAULT_ENCODING = "utf-8"
 
 logger = logging.getLogger(__name__)
 
@@ -568,7 +585,39 @@ def get_file_content(url: str, session: "PipSession") -> Tuple[str, str]:
     # Assume this is a bare path.
     try:
         with open(url, "rb") as f:
-            content = auto_decode(f.read())
+            raw_content = f.read()
     except OSError as exc:
         raise InstallationError(f"Could not open requirements file: {exc}")
+
+    content = _decode_req_file(raw_content, url)
+
     return url, content
+
+
+def _decode_req_file(data: bytes, url: str) -> str:
+    for bom, encoding in BOMS:
+        if data.startswith(bom):
+            return data[len(bom) :].decode(encoding)
+
+    for line in data.split(b"\n")[:2]:
+        if line[0:1] == b"#":
+            result = PEP263_ENCODING_RE.search(line)
+            if result is not None:
+                encoding = result.groups()[0].decode("ascii")
+                return data.decode(encoding)
+
+    try:
+        return data.decode(DEFAULT_ENCODING)
+    except UnicodeDecodeError:
+        locale_encoding = locale.getpreferredencoding(False) or sys.getdefaultencoding()
+        logging.warning(
+            "unable to decode data from %s with default encoding %s, "
+            "falling back to encoding from locale: %s. "
+            "If this is intentional you should specify the encoding with a "
+            "PEP-263 style comment, e.g. '# -*- coding: %s -*-'",
+            url,
+            DEFAULT_ENCODING,
+            locale_encoding,
+            locale_encoding,
+        )
+        return data.decode(locale_encoding)
