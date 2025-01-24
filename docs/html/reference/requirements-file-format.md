@@ -60,11 +60,6 @@ The default encoding for requirement files is `UTF-8` unless a different
 encoding is specified using a {pep}`263` style comment (e.g. `# -*- coding:
 <encoding name> -*-`).
 
-```{warning}
-pip will fallback to the locale defined encoding if `UTF-8` decoding fails. This is a quirk
-of pip's parser. This behaviour is *deprecated* and should not be relied upon.
-```
-
 ### Line continuations
 
 A line ending in an unescaped `\` is treated as a line continuation
