@@ -442,12 +442,27 @@ class BaseDistribution(Protocol):
 
         For modern .dist-info distributions, this is the collection of
         "Requires-Dist:" entries in distribution metadata.
+
+        In case, no "Extra" is specified, will use "Default-Extra" as specified
+        per PEP 771.
         """
         raise NotImplementedError()
 
     def iter_raw_dependencies(self) -> Iterable[str]:
         """Raw Requires-Dist metadata."""
         return self.metadata.get_all("Requires-Dist", [])
+
+    def iter_default_extras(self) -> Iterable[NormalizedName]:
+        """Extras provided by this distribution.
+
+        For modern .dist-info distributions, this is the collection of
+        "Default-Extra:" entries in distribution metadata.
+
+        The return value of this function is expected to be normalised names,
+        per PEP 771, with the returned value being handled appropriately by
+        `iter_dependencies`.
+        """
+        raise NotImplementedError()
 
     def iter_provided_extras(self) -> Iterable[NormalizedName]:
         """Extras provided by this distribution.

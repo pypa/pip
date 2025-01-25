@@ -207,6 +207,12 @@ class Distribution(BaseDistribution):
         # until upstream can improve the protocol. (python/cpython#94952)
         return cast(email.message.Message, self._dist.metadata)
 
+    def iter_default_extras(self) -> Iterable[NormalizedName]:
+        return [
+            canonicalize_name(extra)
+            for extra in self.metadata.get_all("Default-Extra", [])
+        ]
+
     def iter_provided_extras(self) -> Iterable[NormalizedName]:
         return [
             canonicalize_name(extra)
@@ -214,6 +220,9 @@ class Distribution(BaseDistribution):
         ]
 
     def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
+        if not extras:
+            extras = list(self.iter_default_extras())
+
         contexts: Sequence[Dict[str, str]] = [{"extra": e} for e in extras]
         for req_string in self.metadata.get_all("Requires-Dist", []):
             # strip() because email.message.Message.get_all() may return a leading \n

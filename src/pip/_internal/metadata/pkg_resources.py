@@ -239,12 +239,18 @@ class Distribution(BaseDistribution):
         return feed_parser.close()
 
     def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
+        extras = extras or self._dist.default_extras_require
+
         if extras:
             relevant_extras = set(self._extra_mapping) & set(
                 map(canonicalize_name, extras)
             )
             extras = [self._extra_mapping[extra] for extra in relevant_extras]
+
         return self._dist.requires(extras)
+
+    def iter_default_extras(self) -> Iterable[NormalizedName]:
+        return self._dist.default_extras_require or []
 
     def iter_provided_extras(self) -> Iterable[NormalizedName]:
         return self._extra_mapping.keys()

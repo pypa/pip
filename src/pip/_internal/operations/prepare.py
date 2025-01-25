@@ -646,6 +646,12 @@ class RequirementPreparer:
             self.build_isolation,
             self.check_build_deps,
         )
+
+        # Setting up the default-extra if necessary
+        default_extras = frozenset(dist.metadata.get_all("Default-Extra", []))
+        req.extras = req.extras or default_extras
+        req.req.extras = req.extras or default_extras
+
         return dist
 
     def save_linked_requirement(self, req: InstallRequirement) -> None:

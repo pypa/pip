@@ -187,6 +187,7 @@ class Factory:
         base: Optional[BaseCandidate] = self._make_base_candidate_from_link(
             link, template, name, version
         )
+        extras = extras if extras else template.extras
         if not extras or base is None:
             return base
         return self._make_extras_candidate(base, extras, comes_from=template)
@@ -482,6 +483,9 @@ class Factory:
                 (or link) and one with the extra. This allows centralized constraint
                 handling for the base, resulting in fewer candidate rejections.
         """
+        if ireq.comes_from is not None:
+            requested_extras = requested_extras or ireq.comes_from.extras
+
         if not ireq.match_markers(requested_extras):
             logger.info(
                 "Ignoring %s: markers '%s' don't match your environment",
@@ -504,6 +508,9 @@ class Factory:
                 name=canonicalize_name(ireq.name) if ireq.name else None,
                 version=None,
             )
+
+            extras = ireq.extras or list(cand.dist.iter_default_extras())
+
             if cand is None:
                 # There's no way we can satisfy a URL requirement if the underlying
                 # candidate fails to build. An unnamed URL must be user-supplied, so
@@ -517,10 +524,10 @@ class Factory:
             else:
                 # require the base from the link
                 yield self.make_requirement_from_candidate(cand)
-                if ireq.extras:
+                if extras:
                     # require the extras on top of the base candidate
                     yield self.make_requirement_from_candidate(
-                        self._make_extras_candidate(cand, frozenset(ireq.extras))
+                        self._make_extras_candidate(cand, frozenset(extras))
                     )
 
     def collect_root_requirements(
