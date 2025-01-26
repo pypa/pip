@@ -1,2 +1,0 @@
-Reorder the encoding detection when decoding a requirements file, relying on
-UTF-8 over the locale encoding by default.

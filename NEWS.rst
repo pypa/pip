@@ -9,6 +9,71 @@
 
 .. towncrier release notes start
 
+25.0 (2025-01-26)
+=================
+
+Deprecations and Removals
+-------------------------
+
+- Deprecate the ``no-python-version-warning`` flag as it has long done nothing
+  since Python 2 support was removed in pip 21.0. (`#13154 <https://github.com/pypa/pip/issues/13154>`_)
+
+Features
+--------
+
+- Prefer to display :pep:`639` ``License-Expression`` in ``pip show`` if metadata version is at least 2.4. (`#13112 <https://github.com/pypa/pip/issues/13112>`_)
+- Support :pep:`639` ``License-Expression`` and ``License-File`` metadata fields in JSON
+  output. ``pip inspect`` and ``pip install --report`` now emit
+  ``license_expression`` and ``license_file`` fields in the ``metadata`` object,
+  if the corresponding fields are present in the installed ``METADATA`` file. (`#13134 <https://github.com/pypa/pip/issues/13134>`_)
+- Files in the network cache will inherit the read/write permissions of pip's cache
+  directory (in addition to the current user retaining read/write access). This
+  enables a single cache to be shared among multiple users. (`#11012 <https://github.com/pypa/pip/issues/11012>`_)
+- Return the size, along with the number, of files cleared on ``pip cache purge`` and ``pip cache remove`` (`#12176 <https://github.com/pypa/pip/issues/12176>`_)
+- Cache ``python-requires`` checks while filtering potential installation candidates. (`#13128 <https://github.com/pypa/pip/issues/13128>`_)
+- Optimize package collection by avoiding unnecessary URL parsing and other processing. (`#13132 <https://github.com/pypa/pip/issues/13132>`_)
+
+Bug Fixes
+---------
+
+- Reorder the encoding detection when decoding a requirements file, relying on
+  UTF-8 over the locale encoding by default, matching the documented behaviour.
+  (`#12771 <https://github.com/pypa/pip/issues/12771>`_)
+- The pip version self check is disabled on ``EXTERNALLY-MANAGED`` environments. (`#11820 <https://github.com/pypa/pip/issues/11820>`_)
+- Fix a security bug allowing a specially crafted wheel to execute code during
+  installation. (`#13079 <https://github.com/pypa/pip/issues/13079>`_)
+- The inclusion of ``packaging`` 24.2 changes how pre-release specifiers with ``<`` and ``>``
+  behave. Including a pre-release version with these specifiers now implies
+  accepting pre-releases (e.g., ``<2.0dev`` can include ``1.0rc1``). To avoid
+  implying pre-releases, avoid specifying them (e.g., use ``<2.0``).
+  The exception is ``!=``, which never implies pre-releases. (`#13163 <https://github.com/pypa/pip/issues/13163>`_)
+- The ``--cert`` and ``--client-cert`` command-line options are now respected while
+  installing build dependencies. Consequently, the private ``_PIP_STANDALONE_CERT``
+  environment variable is no longer used. (`#5502 <https://github.com/pypa/pip/issues/5502>`_)
+- The ``--proxy`` command-line option is now respected while installing build dependencies. (`#6018 <https://github.com/pypa/pip/issues/6018>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade CacheControl to 0.14.1
+- Upgrade idna to 3.10
+- Upgrade msgpack to 1.1.0
+- Upgrade packaging to 24.2
+- Upgrade platformdirs to 4.3.6
+- Upgrade pyproject-hooks to 1.2.0
+- Upgrade rich to 13.9.4
+- Upgrade tomli to 2.2.1
+
+Improved Documentation
+----------------------
+
+- Removed section about non-existing ``--force-keyring`` flag. (`#12455 <https://github.com/pypa/pip/issues/12455>`_)
+
+Process
+-------
+
+- Started releasing to PyPI from a GitHub Actions CI/CD workflow that implements trusted publishing and bundles :pep:`740` digital attestations.
+
 24.3.1 (2024-10-27)
 ===================
 

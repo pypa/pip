@@ -1,1 +1,0 @@
-Integrate ``sphinx-issues`` into the Sphinx config.
