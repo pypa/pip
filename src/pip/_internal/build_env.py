@@ -272,6 +272,8 @@ class BuildEnvironment:
         for link in finder.find_links:
             args.extend(["--find-links", link])
 
+        if finder.proxy:
+            args.extend(["--proxy", finder.proxy])
         for host in finder.trusted_hosts:
             args.extend(["--trusted-host", host])
         if finder.client_cert:

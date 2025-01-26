@@ -1,1 +1,2 @@
-This change fixes a security bug allowing a wheel to execute code during installation.
+Fix a security bug allowing a specially crafted wheel to execute code during
+installation.

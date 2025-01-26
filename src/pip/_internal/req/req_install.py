@@ -837,7 +837,7 @@ class InstallRequirement:
                     "try using --config-settings editable_mode=compat. "
                     "Please consult the setuptools documentation for more information"
                 ),
-                gone_in="25.0",
+                gone_in="25.1",
                 issue=11457,
             )
             if self.config_settings:

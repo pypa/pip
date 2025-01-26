@@ -2,6 +2,7 @@ import email.message
 import importlib.metadata
 import pathlib
 import zipfile
+from os import PathLike
 from typing import (
     Collection,
     Dict,
@@ -94,6 +95,11 @@ class WheelDistribution(importlib.metadata.Distribution):
             error = f"Error decoding metadata for {wheel}: {e} in {filename} file"
             raise UnsupportedWheel(error)
         return text
+
+    def locate_file(self, path: str | PathLike[str]) -> pathlib.Path:
+        # This method doesn't make sense for our in-memory wheel, but the API
+        # requires us to define it.
+        raise NotImplementedError
 
 
 class Distribution(BaseDistribution):

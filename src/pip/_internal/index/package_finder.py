@@ -662,6 +662,10 @@ class PackageFinder:
         return self.search_scope.index_urls
 
     @property
+    def proxy(self) -> Optional[str]:
+        return self._link_collector.session.pip_proxy
+
+    @property
     def trusted_hosts(self) -> Iterable[str]:
         for host_port in self._link_collector.session.pip_trusted_origins:
             yield build_netloc(*host_port)
@@ -732,6 +736,11 @@ class PackageFinder:
         return no_eggs + eggs
 
     def _log_skipped_link(self, link: Link, result: LinkType, detail: str) -> None:
+        # This is a hot method so don't waste time hashing links unless we're
+        # actually going to log 'em.
+        if not logger.isEnabledFor(logging.DEBUG):
+            return
+
         entry = (link, result, detail)
         if entry not in self._logged_links:
             # Put the link at the end so the reason is more visible and because

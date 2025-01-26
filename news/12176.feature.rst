@@ -1,1 +1,1 @@
-Pip now returns the size, along with the number, of files cleared on ``pip cache purge`` and ``pip cache remove``
+Return the size, along with the number, of files cleared on ``pip cache purge`` and ``pip cache remove``

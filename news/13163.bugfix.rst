@@ -1,0 +1,5 @@
+The inclusion of packaging 24.2 changes how pre-release specifiers with ``<`` and ``>``
+behave. Including a pre-release version with these specifiers now implies
+accepting pre-releases (e.g., ``<2.0dev`` can include ``1.0rc1``). To avoid
+implying pre-releases, avoid specifying them (e.g., use ``<2.0``).
+The exception is ``!=``, which never implies pre-releases.

@@ -4,7 +4,7 @@ distro==1.9.0
 msgpack==1.1.0
 packaging==24.2
 platformdirs==4.3.6
-pyproject-hooks==1.0.0
+pyproject-hooks==1.2.0
 requests==2.32.3
     certifi==2024.8.30
     idna==3.10
