@@ -147,7 +147,12 @@ Creating a new release
 #. Submit the ``release/YY.N`` branch as a pull request and ensure CI passes.
    Merge the changes back into ``main`` and pull them back locally.
 #. Push the tag created by ``prepare-release``. This will trigger the release
-   workflow on GitHub and publish to PyPI.
+   workflow on GitHub.
+#. Go to https://github.com/pypa/pip/actions, find the latest ``Publish Python
+   🐍 distribution 📦 to PyPI`` workflow run, open it, wait for the build step
+   to complete, then approve the PyPI environment to let the publishing step
+   run. If you desire, you have the possibility to download and inspect the
+   artifacts before approving.
 #. Regenerate the ``get-pip.py`` script in the `get-pip repository`_ (as
    documented there) and commit the results.
 #. Submit a Pull Request to `CPython`_ adding the new version of pip
