@@ -36,6 +36,9 @@ def get_git_head_timestamp() -> str:
 def main() -> None:
     with tempfile.TemporaryDirectory() as build_env:
         env_builder = EnvBuilder(with_pip=True)
+        # If this venv creation step fails, you may be hitting
+        # https://github.com/astral-sh/python-build-standalone/issues/381
+        # Try running with a another Python distribution.
         env_builder.create(build_env)
         subprocess.run(
             [
