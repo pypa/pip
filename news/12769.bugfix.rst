@@ -1,0 +1,1 @@
+Fixes `[WinError 5] Access is denied` when `mimetypes` fails to read `HKEY_CLASSES_ROOT`.
