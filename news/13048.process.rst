@@ -1,1 +1,0 @@
-Started releasing to PyPI from a GitHub Actions CI/CD workflow that implements trusted publishing and bundles :pep:`740` digital attestations.

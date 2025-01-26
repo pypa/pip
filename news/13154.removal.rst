@@ -1,2 +1,0 @@
-Deprecate the ``no-python-version-warning`` flag as it has long done nothing
-since Python 2 support was removed in pip 21.0.

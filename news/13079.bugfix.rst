@@ -1,2 +1,0 @@
-Fix a security bug allowing a specially crafted wheel to execute code during
-installation.

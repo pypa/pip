@@ -1,3 +1,0 @@
-The ``--cert`` and ``--client-cert`` command-line options are now respected while
-installing build dependencies. Consequently, the private ``_PIP_STANDALONE_CERT``
-environment variable is no longer used.
