@@ -38,6 +38,7 @@ def test_get_statefile_name_known_values(key: str, expected: str) -> None:
 @freeze_time("1970-01-02T11:00:00Z")
 @patch("pip._internal.self_outdated_check._self_version_check_logic")
 @patch("pip._internal.self_outdated_check.SelfCheckState")
+@patch("pip._internal.self_outdated_check.check_externally_managed", new=lambda: None)
 def test_pip_self_version_check_calls_underlying_implementation(
     mocked_state: Mock, mocked_function: Mock, tmpdir: Path
 ) -> None:
