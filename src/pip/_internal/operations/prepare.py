@@ -88,13 +88,11 @@ class File:
 
     def __post_init__(self) -> None:
         if self.content_type is None:
+            # Try to guess the file's MIME type. If the system MIME tables
+            # can't be loaded, give up.
             try:
                 self.content_type = mimetypes.guess_type(self.path)[0]
             except OSError:
-                # Thown when `mimetypes` can't access a key inside
-                # `HKEY_CLASSES_ROOT` on Windows. We can safely ignore
-                # this because `pip/_internal/utils/unpacking.py#L309 unpack_file()`
-                # can handle content_type being None and it is not used anywhere else.
                 pass
 
 
