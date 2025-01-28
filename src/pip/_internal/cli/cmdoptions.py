@@ -770,7 +770,7 @@ dependency_groups: Callable[..., Option] = partial(
     callback=_handle_dependency_group,
     metavar="[path:]group",
     help='Install a named dependency-group from a "pyproject.toml" file. '
-    'If a path is given, it must end in "pyproject.toml:". '
+    'If a path is given, the name of the file must be "pyproject.toml". '
     'Defaults to using "pyproject.toml" in the current directory.',
 )
 
