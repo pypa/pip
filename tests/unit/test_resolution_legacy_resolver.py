@@ -1,7 +1,7 @@
 import email.message
 import logging
 import os
-from typing import List, Optional, Type, TypeVar, cast
+from typing import Optional, TypeVar, cast
 from unittest import mock
 
 import pytest
@@ -47,7 +47,7 @@ class FakeDist(BaseDistribution):
 
 
 def make_fake_dist(
-    *, klass: Type[BaseDistribution] = FakeDist, requires_python: Optional[str] = None
+    *, klass: type[BaseDistribution] = FakeDist, requires_python: Optional[str] = None
 ) -> BaseDistribution:
     metadata = email.message.Message()
     metadata["Name"] = "my-project"
@@ -60,9 +60,9 @@ def make_fake_dist(
 
 def make_test_resolver(
     monkeypatch: pytest.MonkeyPatch,
-    mock_candidates: List[InstallationCandidate],
+    mock_candidates: list[InstallationCandidate],
 ) -> Resolver:
-    def _find_candidates(project_name: str) -> List[InstallationCandidate]:
+    def _find_candidates(project_name: str) -> list[InstallationCandidate]:
         return mock_candidates
 
     finder = make_test_finder()

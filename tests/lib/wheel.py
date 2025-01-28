@@ -5,6 +5,7 @@ import csv
 import itertools
 from base64 import urlsafe_b64encode
 from collections import namedtuple
+from collections.abc import Iterable, Sequence
 from copy import deepcopy
 from email.message import Message
 from enum import Enum
@@ -14,12 +15,7 @@ from io import BytesIO, StringIO
 from pathlib import Path
 from typing import (
     AnyStr,
-    Dict,
-    Iterable,
-    List,
     Optional,
-    Sequence,
-    Tuple,
     TypeVar,
     Union,
 )
@@ -30,7 +26,7 @@ from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._internal.metadata import BaseDistribution, MemoryWheel, get_wheel_distribution
 
 # As would be used in metadata
-HeaderValue = Union[str, List[str]]
+HeaderValue = Union[str, list[str]]
 
 
 File = namedtuple("File", ["name", "contents"])
@@ -55,7 +51,7 @@ def ensure_binary(value: Union[bytes, str]) -> bytes:
     return value.encode()
 
 
-def message_from_dict(headers: Dict[str, HeaderValue]) -> Message:
+def message_from_dict(headers: dict[str, HeaderValue]) -> Message:
     """Plain key-value pairs are set in the returned message.
 
     List values are converted into repeated headers in the result.
@@ -78,7 +74,7 @@ def make_metadata_file(
     name: str,
     version: str,
     value: Defaulted[Optional[AnyStr]],
-    updates: Defaulted[Dict[str, HeaderValue]],
+    updates: Defaulted[dict[str, HeaderValue]],
     body: Defaulted[AnyStr],
 ) -> Optional[File]:
     if value is None:
@@ -110,8 +106,8 @@ def make_wheel_metadata_file(
     name: str,
     version: str,
     value: Defaulted[Union[bytes, str, None]],
-    tags: Sequence[Tuple[str, str, str]],
-    updates: Defaulted[Dict[str, HeaderValue]],
+    tags: Sequence[tuple[str, str, str]],
+    updates: Defaulted[dict[str, HeaderValue]],
 ) -> Optional[File]:
     if value is None:
         return None
@@ -139,8 +135,8 @@ def make_wheel_metadata_file(
 def make_entry_points_file(
     name: str,
     version: str,
-    entry_points: Defaulted[Dict[str, List[str]]],
-    console_scripts: Defaulted[List[str]],
+    entry_points: Defaulted[dict[str, list[str]]],
+    console_scripts: Defaulted[list[str]],
 ) -> Optional[File]:
     if entry_points is _default and console_scripts is _default:
         return None
@@ -164,13 +160,13 @@ def make_entry_points_file(
     )
 
 
-def make_files(files: Dict[str, Union[bytes, str]]) -> List[File]:
+def make_files(files: dict[str, Union[bytes, str]]) -> list[File]:
     return [File(name, ensure_binary(contents)) for name, contents in files.items()]
 
 
 def make_metadata_files(
-    name: str, version: str, files: Dict[str, AnyStr]
-) -> List[File]:
+    name: str, version: str, files: dict[str, AnyStr]
+) -> list[File]:
     get_path = partial(dist_info_path, name, version)
     return [
         File(get_path(name), ensure_binary(contents))
@@ -178,7 +174,7 @@ def make_metadata_files(
     ]
 
 
-def make_data_files(name: str, version: str, files: Dict[str, AnyStr]) -> List[File]:
+def make_data_files(name: str, version: str, files: dict[str, AnyStr]) -> list[File]:
     data_dir = f"{name}-{version}.data"
     return [
         File(f"{data_dir}/{name}", ensure_binary(contents))
@@ -200,7 +196,7 @@ def record_file_maker_wrapper(
     files: Iterable[File],
     record: Defaulted[Optional[AnyStr]],
 ) -> Iterable[File]:
-    records: List[Record] = []
+    records: list[Record] = []
     for file in files:
         records.append(
             Record(file.name, digest(file.contents), str(len(file.contents)))
@@ -292,15 +288,15 @@ def make_wheel(
     name: str,
     version: str,
     wheel_metadata: Defaulted[Optional[AnyStr]] = _default,
-    wheel_metadata_updates: Defaulted[Dict[str, HeaderValue]] = _default,
+    wheel_metadata_updates: Defaulted[dict[str, HeaderValue]] = _default,
     metadata: Defaulted[Optional[AnyStr]] = _default,
     metadata_body: Defaulted[AnyStr] = _default,
-    metadata_updates: Defaulted[Dict[str, HeaderValue]] = _default,
-    extra_files: Defaulted[Dict[str, Union[bytes, str]]] = _default,
-    extra_metadata_files: Defaulted[Dict[str, AnyStr]] = _default,
-    extra_data_files: Defaulted[Dict[str, AnyStr]] = _default,
-    console_scripts: Defaulted[List[str]] = _default,
-    entry_points: Defaulted[Dict[str, List[str]]] = _default,
+    metadata_updates: Defaulted[dict[str, HeaderValue]] = _default,
+    extra_files: Defaulted[dict[str, Union[bytes, str]]] = _default,
+    extra_metadata_files: Defaulted[dict[str, AnyStr]] = _default,
+    extra_data_files: Defaulted[dict[str, AnyStr]] = _default,
+    console_scripts: Defaulted[list[str]] = _default,
+    entry_points: Defaulted[dict[str, list[str]]] = _default,
     record: Defaulted[Optional[AnyStr]] = _default,
 ) -> WheelBuilder:
     """

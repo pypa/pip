@@ -1,5 +1,5 @@
 import os
-from typing import Callable, List
+from typing import Callable
 from unittest import mock
 
 import pytest
@@ -17,7 +17,7 @@ from pip._internal.commands import commands_dict, create_command
 EXPECTED_INDEX_GROUP_COMMANDS = ["download", "index", "install", "list", "wheel"]
 
 
-def check_commands(pred: Callable[[Command], bool], expected: List[str]) -> None:
+def check_commands(pred: Callable[[Command], bool], expected: list[str]) -> None:
     """
     Check the commands satisfying a predicate.
     """

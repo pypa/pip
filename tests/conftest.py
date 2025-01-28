@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import sys
 import threading
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from enum import Enum
 from hashlib import sha256
@@ -19,14 +20,7 @@ from typing import (
     AnyStr,
     Callable,
     ClassVar,
-    ContextManager,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
     Optional,
-    Set,
-    Tuple,
 )
 from unittest.mock import patch
 from zipfile import ZipFile
@@ -104,7 +98,7 @@ def pytest_addoption(parser: Parser) -> None:
     )
 
 
-def pytest_collection_modifyitems(config: Config, items: List[pytest.Function]) -> None:
+def pytest_collection_modifyitems(config: Config, items: list[pytest.Function]) -> None:
     for item in items:
         if not hasattr(item, "module"):  # e.g.: DoctestTextfile
             continue
@@ -337,7 +331,9 @@ def scoped_global_tempdir_manager(request: pytest.FixtureRequest) -> Iterator[No
     temporary directories in the application.
     """
     if "no_auto_tempdir_manager" in request.keywords:
-        ctx: Callable[[], ContextManager[None]] = contextlib.nullcontext
+        ctx: Callable[[], contextlib.AbstractContextManager[None]] = (
+            contextlib.nullcontext
+        )
     else:
         ctx = global_tempdir_manager
 
@@ -347,7 +343,7 @@ def scoped_global_tempdir_manager(request: pytest.FixtureRequest) -> Iterator[No
 
 @pytest.fixture(scope="session")
 def pip_src(tmpdir_factory: pytest.TempPathFactory) -> Path:
-    def not_code_files_and_folders(path: str, names: List[str]) -> Iterable[str]:
+    def not_code_files_and_folders(path: str, names: list[str]) -> Iterable[str]:
         # In the root directory...
         if os.path.samefile(path, SRC_DIR):
             # ignore all folders except "src"
@@ -380,7 +376,7 @@ def pip_src(tmpdir_factory: pytest.TempPathFactory) -> Path:
 @pytest.fixture(scope="session")
 def pip_editable_parts(
     pip_src: Path, tmpdir_factory: pytest.TempPathFactory
-) -> Tuple[Path, ...]:
+) -> tuple[Path, ...]:
     pip_editable = tmpdir_factory.mktemp("pip") / "pip"
     shutil.copytree(pip_src, pip_editable, symlinks=True)
     # noxfile.py is Python 3 only
@@ -474,7 +470,7 @@ def virtualenv_template(
     request: pytest.FixtureRequest,
     tmpdir_factory: pytest.TempPathFactory,
     pip_src: Path,
-    pip_editable_parts: Tuple[Path, ...],
+    pip_editable_parts: tuple[Path, ...],
     setuptools_install: Path,
     wheel_install: Path,
     coverage_install: Path,
@@ -558,7 +554,7 @@ def script_factory(
     def factory(
         tmpdir: Path,
         virtualenv: Optional[VirtualEnvironment] = None,
-        environ: Optional[Dict[AnyStr, AnyStr]] = None,
+        environ: Optional[dict[AnyStr, AnyStr]] = None,
     ) -> PipTestEnvironment:
         kwargs = {}
         if environ:
@@ -746,7 +742,7 @@ class FakePackage:
     filename: str
     metadata: MetadataKind
     # This will override any dependencies specified in the actual dist's METADATA.
-    requires_dist: Tuple[str, ...] = ()
+    requires_dist: tuple[str, ...] = ()
     # This will override the Name specified in the actual dist's METADATA.
     metadata_name: Optional[str] = None
 
@@ -787,7 +783,7 @@ class FakePackage:
 
 
 @pytest.fixture(scope="session")
-def fake_packages() -> Dict[str, List[FakePackage]]:
+def fake_packages() -> dict[str, list[FakePackage]]:
     """The package database we generate for testing PEP 658 support."""
     return {
         "simple": [
@@ -880,7 +876,7 @@ def fake_packages() -> Dict[str, List[FakePackage]]:
 @pytest.fixture(scope="session")
 def html_index_for_packages(
     shared_data: TestData,
-    fake_packages: Dict[str, List[FakePackage]],
+    fake_packages: dict[str, list[FakePackage]],
     tmpdir_factory: pytest.TempPathFactory,
 ) -> Path:
     """Generate a PyPI HTML package index within a local directory pointing to
@@ -915,7 +911,7 @@ def html_index_for_packages(
         pkg_subdir = html_dir / pkg
         pkg_subdir.mkdir()
 
-        download_links: List[str] = []
+        download_links: list[str] = []
         for package_link in links:
             # (3.1) Generate the <a> tag which pip can crawl pointing to this
             # specific package version.
@@ -960,7 +956,7 @@ class OneTimeDownloadHandler(http.server.SimpleHTTPRequestHandler):
     """Serve files from the current directory, but error if a file is downloaded more
     than once."""
 
-    _seen_paths: ClassVar[Set[str]] = set()
+    _seen_paths: ClassVar[set[str]] = set()
 
     def do_GET(self) -> None:
         if self.path in self._seen_paths:
@@ -994,7 +990,7 @@ def html_index_with_onetime_server(
             )
 
     class Handler(OneTimeDownloadHandler):
-        _seen_paths: ClassVar[Set[str]] = set()
+        _seen_paths: ClassVar[set[str]] = set()
 
     with InDirectoryServer(("", 8000), Handler) as httpd:
         server_thread = threading.Thread(target=httpd.serve_forever)

@@ -3,7 +3,7 @@ import ssl
 import tempfile
 import textwrap
 from pathlib import Path
-from typing import Callable, List
+from typing import Callable
 
 import pytest
 
@@ -368,7 +368,7 @@ def flags(
     auth_needed: bool,
     keyring_provider: str,
     keyring_provider_implementation: str,
-) -> List[str]:
+) -> list[str]:
     if (
         keyring_provider not in [None, "auto"]
         and keyring_provider_implementation != keyring_provider
@@ -393,7 +393,7 @@ def test_prompt_for_keyring_if_needed(
     data: TestData,
     cert_factory: CertFactory,
     auth_needed: bool,
-    flags: List[str],
+    flags: list[str],
     keyring_provider: str,
     keyring_provider_implementation: str,
     tmpdir: Path,

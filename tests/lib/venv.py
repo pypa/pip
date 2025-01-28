@@ -7,7 +7,7 @@ import sysconfig
 import textwrap
 import venv as _venv
 from pathlib import Path
-from typing import Dict, Literal, Optional, Union
+from typing import Literal, Optional, Union
 
 import virtualenv as _virtualenv
 
@@ -196,7 +196,7 @@ class VirtualEnvironment:
         # Make sure bytecode is up-to-date too.
         assert compileall.compile_file(str(sitecustomize), quiet=1, force=True)
 
-    def _rewrite_pyvenv_cfg(self, replacements: Dict[str, str]) -> None:
+    def _rewrite_pyvenv_cfg(self, replacements: dict[str, str]) -> None:
         pyvenv_cfg = self.location.joinpath("pyvenv.cfg")
         lines = pyvenv_cfg.read_text(encoding="utf-8").splitlines()
 

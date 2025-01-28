@@ -6,7 +6,8 @@ import functools
 import os
 import tempfile
 import textwrap
-from typing import Any, Dict, Iterator
+from collections.abc import Iterator
+from typing import Any
 
 import pip._internal.configuration
 from pip._internal.utils.misc import ensure_dir
@@ -22,7 +23,7 @@ class ConfigurationMixin:
             isolated=False,
         )
 
-    def patch_configuration(self, variant: Kind, di: Dict[str, Any]) -> None:
+    def patch_configuration(self, variant: Kind, di: dict[str, Any]) -> None:
         old = self.configuration._load_config_files
 
         @functools.wraps(old)

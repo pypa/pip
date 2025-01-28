@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 from pip._vendor.resolvelib.resolvers import RequirementInformation
 
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 def build_requirement_information(
     name: str, parent: Optional[InstallationCandidate]
-) -> List["PreferenceInformation"]:
+) -> list["PreferenceInformation"]:
     install_requirement = install_req_from_req_string(name)
     # RequirementInformation is typed as a tuple, but it is a namedtupled.
     # https://github.com/sarugaku/resolvelib/blob/7bc025aa2a4e979597c438ad7b17d2e8a08a364e/src/resolvelib/resolvers.pyi#L20-L22

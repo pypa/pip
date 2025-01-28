@@ -1,6 +1,6 @@
 import ssl
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import proxy
 import pytest
@@ -17,7 +17,7 @@ from tests.lib.server import (
 
 
 class AccessLogPlugin(HttpProxyBasePlugin):
-    def on_access_log(self, context: Dict[str, Any]) -> None:
+    def on_access_log(self, context: dict[str, Any]) -> None:
         print(context)
 
 
@@ -25,10 +25,13 @@ class AccessLogPlugin(HttpProxyBasePlugin):
 def test_proxy_overrides_env(
     script: PipTestEnvironment, capfd: pytest.CaptureFixture[str]
 ) -> None:
-    with proxy.Proxy(
-        port=8899,
-        num_acceptors=1,
-    ), proxy.Proxy(plugins=[AccessLogPlugin], port=8888, num_acceptors=1):
+    with (
+        proxy.Proxy(
+            port=8899,
+            num_acceptors=1,
+        ),
+        proxy.Proxy(plugins=[AccessLogPlugin], port=8888, num_acceptors=1),
+    ):
         script.environ["http_proxy"] = "127.0.0.1:8888"
         script.environ["https_proxy"] = "127.0.0.1:8888"
         result = script.pip(

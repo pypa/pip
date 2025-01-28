@@ -2,10 +2,11 @@ import logging
 import os
 import sys
 import textwrap
+from collections.abc import Iterator
 from os.path import join, normpath
 from pathlib import Path
 from tempfile import mkdtemp
-from typing import Any, Iterator
+from typing import Any
 from unittest.mock import Mock
 
 import pytest

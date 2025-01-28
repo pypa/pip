@@ -6,7 +6,7 @@ import re
 import uuid
 from pathlib import Path
 from textwrap import dedent
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 from unittest import mock
 
 import pytest
@@ -685,7 +685,7 @@ _pkg1_requirement = Requirement("pkg1==1.0")
 def test_parse_links__metadata_file_data(
     anchor_html: str,
     expected: Optional[str],
-    hashes: Dict[str, str],
+    hashes: dict[str, str],
 ) -> None:
     link = _test_parse_links_data_attribute(anchor_html, "metadata_file_data", expected)
     assert link._hashes == hashes
@@ -954,7 +954,7 @@ def test_collect_sources__non_existing_path() -> None:
     assert sources.find_links == [None], "Nothing should have been found"
 
 
-def check_links_include(links: List[Link], names: List[str]) -> None:
+def check_links_include(links: list[Link], names: list[str]) -> None:
     """
     Assert that the given list of Link objects includes, for each of the
     given names, a link whose URL has a base name matching that name.
@@ -1099,10 +1099,10 @@ class TestLinkCollector:
     ],
 )
 def test_link_collector_create(
-    find_links: List[str],
+    find_links: list[str],
     no_index: bool,
     suppress_no_index: bool,
-    expected: Tuple[List[str], List[str]],
+    expected: tuple[list[str], list[str]],
 ) -> None:
     """
     :param expected: the expected (find_links, index_urls) values.
@@ -1216,7 +1216,7 @@ def test_link_hash_parsing(url: str, result: Optional[LinkHash]) -> None:
 def test_metadata_file_info_parsing_html(
     metadata_attrib: str, expected: Optional[MetadataFile]
 ) -> None:
-    attribs: Dict[str, Optional[str]] = {
+    attribs: dict[str, Optional[str]] = {
         "href": "something",
         "data-dist-info-metadata": metadata_attrib,
     }

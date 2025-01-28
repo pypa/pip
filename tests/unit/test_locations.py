@@ -10,7 +10,7 @@ import sys
 import sysconfig
 import tempfile
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import Mock
 
 import pytest
@@ -23,7 +23,7 @@ else:
     import pwd
 
 
-def _get_scheme_dict(*args: Any, **kwargs: Any) -> Dict[str, str]:
+def _get_scheme_dict(*args: Any, **kwargs: Any) -> dict[str, str]:
     scheme = get_scheme(*args, **kwargs)
     return {k: getattr(scheme, k) for k in SCHEME_KEYS}
 

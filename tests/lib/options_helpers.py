@@ -2,7 +2,6 @@
 """
 
 from optparse import Values
-from typing import List, Tuple
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
@@ -11,8 +10,8 @@ from pip._internal.commands import CommandInfo, commands_dict
 
 class FakeCommand(Command):
     def main(  # type: ignore[override]
-        self, args: List[str]
-    ) -> Tuple[Values, List[str]]:
+        self, args: list[str]
+    ) -> tuple[Values, list[str]]:
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
             self.parser,

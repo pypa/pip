@@ -1,9 +1,10 @@
 import logging
 import os
 import time
+from collections.abc import Iterator
 from optparse import Values
 from pathlib import Path
-from typing import Callable, Iterator, List, NoReturn, Optional
+from typing import Callable, NoReturn, Optional
 from unittest.mock import Mock, patch
 
 import pytest
@@ -39,11 +40,11 @@ class FakeCommand(Command):
         self.run_func = run_func
         super().__init__(self._name, self._name)
 
-    def main(self, args: List[str]) -> int:
+    def main(self, args: list[str]) -> int:
         args.append("--disable-pip-version-check")
         return super().main(args)
 
-    def run(self, options: Values, args: List[str]) -> int:
+    def run(self, options: Values, args: list[str]) -> int:
         logging.getLogger("pip.tests").info("fake")
         # Return SUCCESS from run if run_func is not provided
         if self.run_func:
@@ -55,14 +56,14 @@ class FakeCommand(Command):
 class FakeCommandWithUnicode(FakeCommand):
     _name = "fake_unicode"
 
-    def run(self, options: Values, args: List[str]) -> int:
+    def run(self, options: Values, args: list[str]) -> int:
         logging.getLogger("pip.tests").info(b"bytes here \xE9")
         logging.getLogger("pip.tests").info(b"unicode here \xC3\xA9".decode("utf-8"))
         return SUCCESS
 
 
 class TestCommand:
-    def call_main(self, capsys: pytest.CaptureFixture[str], args: List[str]) -> str:
+    def call_main(self, capsys: pytest.CaptureFixture[str], args: list[str]) -> str:
         """
         Call command.main(), and return the command's stderr.
         """
@@ -148,7 +149,7 @@ def test_base_command_provides_tempdir_helpers() -> None:
     assert temp_dir._tempdir_manager is None
     assert temp_dir._tempdir_registry is None
 
-    def assert_helpers_set(options: Values, args: List[str]) -> int:
+    def assert_helpers_set(options: Values, args: list[str]) -> int:
         assert temp_dir._tempdir_manager is not None
         assert temp_dir._tempdir_registry is not None
         return SUCCESS
@@ -172,7 +173,7 @@ def test_base_command_global_tempdir_cleanup(kind: str, exists: bool) -> None:
     class Holder:
         value: str
 
-    def create_temp_dirs(options: Values, args: List[str]) -> int:
+    def create_temp_dirs(options: Values, args: list[str]) -> int:
         assert c.tempdir_registry is not None
         c.tempdir_registry.set_delete(not_deleted, False)
         Holder.value = TempDirectory(kind=kind, globally_managed=True).path
@@ -192,7 +193,7 @@ def test_base_command_local_tempdir_cleanup(kind: str, exists: bool) -> None:
     assert temp_dir._tempdir_manager is None
     assert temp_dir._tempdir_registry is None
 
-    def create_temp_dirs(options: Values, args: List[str]) -> int:
+    def create_temp_dirs(options: Values, args: list[str]) -> int:
         assert c.tempdir_registry is not None
         c.tempdir_registry.set_delete(not_deleted, False)
 

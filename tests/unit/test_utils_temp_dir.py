@@ -2,8 +2,9 @@ import itertools
 import os
 import stat
 import tempfile
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Iterator, Optional, Union
+from typing import Any, Optional, Union
 from unittest import mock
 
 import pytest

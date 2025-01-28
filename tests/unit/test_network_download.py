@@ -1,6 +1,5 @@
 import logging
 import sys
-from typing import Dict
 
 import pytest
 
@@ -53,7 +52,7 @@ from tests.lib.requests_mocks import MockResponse
 def test_prepare_download__log(
     caplog: pytest.LogCaptureFixture,
     url: str,
-    headers: Dict[str, str],
+    headers: dict[str, str],
     from_cache: bool,
     expected: str,
 ) -> None:

@@ -3,7 +3,7 @@ import os
 import site
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import pytest
 
@@ -102,7 +102,7 @@ def test_virtualenv_no_global_with_regular_virtualenv(
 def test_virtualenv_no_global_with_pep_405_virtual_environment(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
-    pyvenv_cfg_lines: Optional[List[str]],
+    pyvenv_cfg_lines: Optional[list[str]],
     under_venv: bool,
     expect_no_global: bool,
     expect_warning: bool,
@@ -136,7 +136,7 @@ def test_get_pyvenv_cfg_lines_for_pep_405_virtual_environment(
     monkeypatch: pytest.MonkeyPatch,
     tmpdir: Path,
     contents: Optional[str],
-    expected: Optional[List[str]],
+    expected: Optional[list[str]],
 ) -> None:
     monkeypatch.setattr(sys, "prefix", str(tmpdir))
     if contents is not None:

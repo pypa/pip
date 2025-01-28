@@ -1,7 +1,6 @@
 import json
 import pathlib
 import textwrap
-from typing import List
 
 import pytest
 
@@ -37,7 +36,7 @@ def patch_check_externally_managed(virtualenv: VirtualEnvironment) -> None:
     ],
 )
 @pytest.mark.usefixtures("patch_check_externally_managed")
-def test_fails(script: PipTestEnvironment, arguments: List[str]) -> None:
+def test_fails(script: PipTestEnvironment, arguments: list[str]) -> None:
     result = script.pip(*arguments, "pip", expect_error=True)
     assert "I am externally managed" in result.stderr
 
@@ -52,7 +51,7 @@ def test_fails(script: PipTestEnvironment, arguments: List[str]) -> None:
 )
 @pytest.mark.usefixtures("patch_check_externally_managed")
 def test_succeeds_when_overridden(
-    script: PipTestEnvironment, arguments: List[str]
+    script: PipTestEnvironment, arguments: list[str]
 ) -> None:
     result = script.pip(*arguments, "pip", "--break-system-packages")
     assert "I am externally managed" not in result.stderr
@@ -69,7 +68,7 @@ def test_succeeds_when_overridden(
 @pytest.mark.usefixtures("patch_check_externally_managed")
 def test_allows_if_out_of_environment(
     script: PipTestEnvironment,
-    arguments: List[str],
+    arguments: list[str],
 ) -> None:
     wheel = create_basic_wheel_for_package(script, "foo", "1.0")
     result = script.pip(*arguments, script.scratch_path, wheel.as_uri())

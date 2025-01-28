@@ -1,7 +1,7 @@
 import random
 import sys
 from time import perf_counter, sleep
-from typing import List, NoReturn, Tuple, Type
+from typing import NoReturn
 from unittest.mock import Mock
 
 import pytest
@@ -50,7 +50,7 @@ def test_retry_last_error_is_reraised() -> None:
 
 
 @pytest.mark.parametrize("exc", [KeyboardInterrupt, SystemExit])
-def test_retry_ignores_base_exception(exc: Type[BaseException]) -> None:
+def test_retry_ignores_base_exception(exc: type[BaseException]) -> None:
     function = Mock(side_effect=exc())
     wrapped = retry(wait=0, stop_after_delay=0.01)(function)
     with pytest.raises(exc):
@@ -58,7 +58,7 @@ def test_retry_ignores_base_exception(exc: Type[BaseException]) -> None:
     function.assert_called_once()
 
 
-def create_timestamped_callable(sleep_per_call: float = 0) -> Tuple[Mock, List[float]]:
+def create_timestamped_callable(sleep_per_call: float = 0) -> tuple[Mock, list[float]]:
     timestamps = []
 
     def _raise_error() -> NoReturn:
