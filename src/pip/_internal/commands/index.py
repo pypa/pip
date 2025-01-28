@@ -50,12 +50,6 @@ class IndexCommand(IndexGroupCommand):
             "versions": self.get_available_package_versions,
         }
 
-        logger.warning(
-            "pip index is currently an experimental command. "
-            "It may be removed/changed in a future release "
-            "without prior warning."
-        )
-
         # Determine action
         if not args or args[0] not in handlers:
             logger.error(
