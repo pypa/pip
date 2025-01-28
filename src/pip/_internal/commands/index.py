@@ -1,7 +1,9 @@
+import json
 import logging
 from optparse import Values
 from typing import Any, Iterable, List, Optional
 
+from pip._internal.metadata import get_default_environment
 from pip._vendor.packaging.version import Version
 
 from pip._internal.cli import cmdoptions
@@ -34,6 +36,7 @@ class IndexCommand(IndexGroupCommand):
 
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
         self.cmd_opts.add_option(cmdoptions.pre())
+        self.cmd_opts.add_option(cmdoptions.json())
         self.cmd_opts.add_option(cmdoptions.no_binary())
         self.cmd_opts.add_option(cmdoptions.only_binary())
 
@@ -133,6 +136,22 @@ class IndexCommand(IndexGroupCommand):
 
             formatted_versions = [str(ver) for ver in sorted(versions, reverse=True)]
             latest = formatted_versions[0]
+
+        if options.json:
+            env = get_default_environment()
+            dist = env.get_distribution(query)
+            structured_output = {
+                    "name": query,
+                    "versions": formatted_versions,
+                    "latest": latest,
+                }
+
+            if dist is not None:
+                structured_output["installed_version"] = dist.version
+
+
+            write_output(json.dumps(structured_output))
+            return
 
         write_output(f"{query} ({latest})")
         write_output("Available versions: {}".format(", ".join(formatted_versions)))

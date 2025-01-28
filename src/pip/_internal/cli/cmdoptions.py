@@ -887,6 +887,14 @@ pre: Callable[..., Option] = partial(
     "pip only finds stable versions.",
 )
 
+json: Callable[..., Option] = partial(
+    Option,
+    "--json",
+    action="store_true",
+    default=False,
+    help="Output data in a machine-readable JSON format.",
+)
+
 disable_pip_version_check: Callable[..., Option] = partial(
     Option,
     "--disable-pip-version-check",
