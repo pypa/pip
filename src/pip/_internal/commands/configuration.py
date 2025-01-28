@@ -2,7 +2,7 @@ import logging
 import os
 import subprocess
 from optparse import Values
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
@@ -93,7 +93,7 @@ class ConfigurationCommand(Command):
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
-    def run(self, options: Values, args: List[str]) -> int:
+    def run(self, options: Values, args: list[str]) -> int:
         handlers = {
             "list": self.list_values,
             "edit": self.open_in_editor,
@@ -168,31 +168,31 @@ class ConfigurationCommand(Command):
             "(--user, --site, --global) to perform."
         )
 
-    def list_values(self, options: Values, args: List[str]) -> None:
+    def list_values(self, options: Values, args: list[str]) -> None:
         self._get_n_args(args, "list", n=0)
 
         for key, value in sorted(self.configuration.items()):
             write_output("%s=%r", key, value)
 
-    def get_name(self, options: Values, args: List[str]) -> None:
+    def get_name(self, options: Values, args: list[str]) -> None:
         key = self._get_n_args(args, "get [name]", n=1)
         value = self.configuration.get_value(key)
 
         write_output("%s", value)
 
-    def set_name_value(self, options: Values, args: List[str]) -> None:
+    def set_name_value(self, options: Values, args: list[str]) -> None:
         key, value = self._get_n_args(args, "set [name] [value]", n=2)
         self.configuration.set_value(key, value)
 
         self._save_configuration()
 
-    def unset_name(self, options: Values, args: List[str]) -> None:
+    def unset_name(self, options: Values, args: list[str]) -> None:
         key = self._get_n_args(args, "unset [name]", n=1)
         self.configuration.unset_value(key)
 
         self._save_configuration()
 
-    def list_config_values(self, options: Values, args: List[str]) -> None:
+    def list_config_values(self, options: Values, args: list[str]) -> None:
         """List config key-value pairs across different config files"""
         self._get_n_args(args, "debug", n=0)
 
@@ -222,7 +222,7 @@ class ConfigurationCommand(Command):
                 env_var = f"PIP_{key.upper()}"
                 write_output("%s=%r", env_var, value)
 
-    def open_in_editor(self, options: Values, args: List[str]) -> None:
+    def open_in_editor(self, options: Values, args: list[str]) -> None:
         editor = self._determine_editor(options)
 
         fname = self.configuration.get_file_to_edit()
@@ -244,7 +244,7 @@ class ConfigurationCommand(Command):
         except subprocess.CalledProcessError as e:
             raise PipError(f"Editor Subprocess exited with exit code {e.returncode}")
 
-    def _get_n_args(self, args: List[str], example: str, n: int) -> Any:
+    def _get_n_args(self, args: list[str], example: str, n: int) -> Any:
         """Helper to make sure the command got the right number of arguments"""
         if len(args) != n:
             msg = (

@@ -1,7 +1,8 @@
 import json
 import logging
+from collections.abc import Generator, Sequence
 from optparse import Values
-from typing import TYPE_CHECKING, Generator, List, Optional, Sequence, Tuple, cast
+from typing import TYPE_CHECKING, Optional, cast
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
@@ -161,7 +162,7 @@ class ListCommand(IndexGroupCommand):
             selection_prefs=selection_prefs,
         )
 
-    def run(self, options: Values, args: List[str]) -> int:
+    def run(self, options: Values, args: list[str]) -> int:
         if options.outdated and options.uptodate:
             raise CommandError("Options --outdated and --uptodate cannot be combined.")
 
@@ -294,7 +295,7 @@ class ListCommand(IndexGroupCommand):
             write_output(format_for_json(packages, options))
 
     def output_package_listing_columns(
-        self, data: List[List[str]], header: List[str]
+        self, data: list[list[str]], header: list[str]
     ) -> None:
         # insert the header first: we need to know the size of column names
         if len(data) > 0:
@@ -312,7 +313,7 @@ class ListCommand(IndexGroupCommand):
 
 def format_for_columns(
     pkgs: "_ProcessedDists", options: Values
-) -> Tuple[List[List[str]], List[str]]:
+) -> tuple[list[list[str]], list[str]]:
     """
     Convert the package data into something usable
     by output_package_listing_columns.

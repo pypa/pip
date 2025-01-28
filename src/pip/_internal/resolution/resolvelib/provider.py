@@ -1,13 +1,9 @@
 import collections
 import math
-from functools import lru_cache
+from collections.abc import Iterable, Iterator, Mapping, Sequence
+from functools import cache
 from typing import (
     TYPE_CHECKING,
-    Dict,
-    Iterable,
-    Iterator,
-    Mapping,
-    Sequence,
     TypeVar,
     Union,
 )
@@ -90,17 +86,17 @@ class PipProvider(_ProviderBase):
     def __init__(
         self,
         factory: Factory,
-        constraints: Dict[str, Constraint],
+        constraints: dict[str, Constraint],
         ignore_dependencies: bool,
         upgrade_strategy: str,
-        user_requested: Dict[str, int],
+        user_requested: dict[str, int],
     ) -> None:
         self._factory = factory
         self._constraints = constraints
         self._ignore_dependencies = ignore_dependencies
         self._upgrade_strategy = upgrade_strategy
         self._user_requested = user_requested
-        self._known_depths: Dict[str, float] = collections.defaultdict(lambda: math.inf)
+        self._known_depths: dict[str, float] = collections.defaultdict(lambda: math.inf)
 
     def identify(self, requirement_or_candidate: Union[Requirement, Candidate]) -> str:
         return requirement_or_candidate.name
@@ -238,7 +234,7 @@ class PipProvider(_ProviderBase):
             is_satisfied_by=self.is_satisfied_by,
         )
 
-    @lru_cache(maxsize=None)
+    @cache
     def is_satisfied_by(self, requirement: Requirement, candidate: Candidate) -> bool:
         return requirement.is_satisfied_by(candidate)
 

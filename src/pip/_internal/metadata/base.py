@@ -6,19 +6,13 @@ import logging
 import pathlib
 import re
 import zipfile
+from collections.abc import Collection, Container, Iterable, Iterator
 from typing import (
     IO,
     Any,
-    Collection,
-    Container,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
     NamedTuple,
     Optional,
     Protocol,
-    Tuple,
     Union,
 )
 
@@ -61,8 +55,8 @@ class BaseEntryPoint(Protocol):
 
 
 def _convert_installed_files_path(
-    entry: Tuple[str, ...],
-    info: Tuple[str, ...],
+    entry: tuple[str, ...],
+    info: tuple[str, ...],
 ) -> str:
     """Convert a legacy installed-files.txt path into modern RECORD path.
 
@@ -396,7 +390,7 @@ class BaseDistribution(Protocol):
         return metadata
 
     @property
-    def metadata_dict(self) -> Dict[str, Any]:
+    def metadata_dict(self) -> dict[str, Any]:
         """PEP 566 compliant JSON-serializable representation of METADATA or PKG-INFO.
 
         This should return an empty dict if the metadata file is unavailable.
@@ -587,7 +581,7 @@ class BaseEnvironment:
         raise NotImplementedError()
 
     @classmethod
-    def from_paths(cls, paths: Optional[List[str]]) -> "BaseEnvironment":
+    def from_paths(cls, paths: Optional[list[str]]) -> "BaseEnvironment":
         raise NotImplementedError()
 
     def get_distribution(self, name: str) -> Optional["BaseDistribution"]:

@@ -2,7 +2,7 @@ import importlib.util
 import os
 import sys
 from collections import namedtuple
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -166,7 +166,7 @@ def load_pyproject_toml(
 
     backend = build_system.get("build-backend")
     backend_path = build_system.get("backend-path", [])
-    check: List[str] = []
+    check: list[str] = []
     if backend is None:
         # If the user didn't specify a backend, we assume they want to use
         # the setuptools backend. But we can't be sure they have included

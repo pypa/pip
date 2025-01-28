@@ -4,8 +4,9 @@
 import optparse
 import os
 import sys
+from collections.abc import Iterable
 from itertools import chain
-from typing import Any, Iterable, List, Optional
+from typing import Any, Optional
 
 from pip._internal.cli.main_parser import create_main_parser
 from pip._internal.commands import commands_dict, create_command
@@ -122,7 +123,7 @@ def autocomplete() -> None:
 
 
 def get_path_completion_type(
-    cwords: List[str], cword: int, opts: Iterable[Any]
+    cwords: list[str], cword: int, opts: Iterable[Any]
 ) -> Optional[str]:
     """Get the type of path completion (``file``, ``dir``, ``path`` or None)
 

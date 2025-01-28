@@ -1,5 +1,6 @@
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import FrozenSet, Iterable, Optional, Tuple
+from typing import Optional
 
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName
@@ -9,10 +10,10 @@ from pip._internal.models.link import Link, links_equivalent
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.hashes import Hashes
 
-CandidateLookup = Tuple[Optional["Candidate"], Optional[InstallRequirement]]
+CandidateLookup = tuple[Optional["Candidate"], Optional[InstallRequirement]]
 
 
-def format_name(project: NormalizedName, extras: FrozenSet[NormalizedName]) -> str:
+def format_name(project: NormalizedName, extras: frozenset[NormalizedName]) -> str:
     if not extras:
         return project
     extras_expr = ",".join(sorted(extras))
@@ -23,7 +24,7 @@ def format_name(project: NormalizedName, extras: FrozenSet[NormalizedName]) -> s
 class Constraint:
     specifier: SpecifierSet
     hashes: Hashes
-    links: FrozenSet[Link]
+    links: frozenset[Link]
 
     @classmethod
     def empty(cls) -> "Constraint":

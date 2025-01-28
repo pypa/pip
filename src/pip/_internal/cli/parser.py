@@ -5,8 +5,9 @@ import optparse
 import shutil
 import sys
 import textwrap
+from collections.abc import Generator
 from contextlib import suppress
-from typing import Any, Dict, Generator, List, NoReturn, Optional, Tuple
+from typing import Any, NoReturn, Optional
 
 from pip._internal.cli.status_codes import UNKNOWN_ERROR
 from pip._internal.configuration import Configuration, ConfigurationError
@@ -142,7 +143,7 @@ class CustomOptionParser(optparse.OptionParser):
         return group
 
     @property
-    def option_list_all(self) -> List[optparse.Option]:
+    def option_list_all(self) -> list[optparse.Option]:
         """Get a list of all options, including those in option groups."""
         res = self.option_list[:]
         for i in self.option_groups:
@@ -177,12 +178,12 @@ class ConfigOptionParser(CustomOptionParser):
 
     def _get_ordered_configuration_items(
         self,
-    ) -> Generator[Tuple[str, Any], None, None]:
+    ) -> Generator[tuple[str, Any], None, None]:
         # Configuration gives keys in an unordered manner. Order them.
         override_order = ["global", self.name, ":env:"]
 
         # Pool the options into different groups
-        section_items: Dict[str, List[Tuple[str, Any]]] = {
+        section_items: dict[str, list[tuple[str, Any]]] = {
             name: [] for name in override_order
         }
         for section_key, val in self.config.items():
@@ -203,7 +204,7 @@ class ConfigOptionParser(CustomOptionParser):
             for key, val in section_items[section]:
                 yield key, val
 
-    def _update_defaults(self, defaults: Dict[str, Any]) -> Dict[str, Any]:
+    def _update_defaults(self, defaults: dict[str, Any]) -> dict[str, Any]:
         """Updates the given defaults with values from the config files and
         the environ. Does a little special handling for certain types of
         options (lists)."""

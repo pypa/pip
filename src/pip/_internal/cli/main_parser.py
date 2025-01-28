@@ -4,7 +4,7 @@
 import os
 import subprocess
 import sys
-from typing import List, Optional, Tuple
+from typing import Optional
 
 from pip._internal.build_env import get_runnable_pip
 from pip._internal.cli import cmdoptions
@@ -66,7 +66,7 @@ def identify_python_interpreter(python: str) -> Optional[str]:
     return None
 
 
-def parse_command(args: List[str]) -> Tuple[str, List[str]]:
+def parse_command(args: list[str]) -> tuple[str, list[str]]:
     parser = create_main_parser()
 
     # Note: parser calls disable_interspersed_args(), so the result of this

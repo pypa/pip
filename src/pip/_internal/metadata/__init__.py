@@ -2,7 +2,7 @@ import contextlib
 import functools
 import os
 import sys
-from typing import List, Literal, Optional, Protocol, Type, cast
+from typing import Literal, Optional, Protocol, cast
 
 from pip._internal.utils.misc import strtobool
 
@@ -46,11 +46,11 @@ def _should_use_importlib_metadata() -> bool:
 
 class Backend(Protocol):
     NAME: 'Literal["importlib", "pkg_resources"]'
-    Distribution: Type[BaseDistribution]
-    Environment: Type[BaseEnvironment]
+    Distribution: type[BaseDistribution]
+    Environment: type[BaseEnvironment]
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def select_backend() -> Backend:
     if _should_use_importlib_metadata():
         from . import importlib
@@ -71,7 +71,7 @@ def get_default_environment() -> BaseEnvironment:
     return select_backend().Environment.default()
 
 
-def get_environment(paths: Optional[List[str]]) -> BaseEnvironment:
+def get_environment(paths: Optional[list[str]]) -> BaseEnvironment:
     """Get a representation of the environment specified by ``paths``.
 
     This returns an Environment instance from the chosen backend based on the

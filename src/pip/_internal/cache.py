@@ -6,7 +6,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from pip._vendor.packaging.tags import Tag, interpreter_name, interpreter_version
 from pip._vendor.packaging.utils import canonicalize_name
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 ORIGIN_JSON_NAME = "origin.json"
 
 
-def _hash_dict(d: Dict[str, str]) -> str:
+def _hash_dict(d: dict[str, str]) -> str:
     """Return a stable sha224 of a dictionary."""
     s = json.dumps(d, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
     return hashlib.sha224(s.encode("ascii")).hexdigest()
@@ -40,7 +40,7 @@ class Cache:
         assert not cache_dir or os.path.isabs(cache_dir)
         self.cache_dir = cache_dir or None
 
-    def _get_cache_path_parts(self, link: Link) -> List[str]:
+    def _get_cache_path_parts(self, link: Link) -> list[str]:
         """Get parts of part that must be os.path.joined with cache_dir"""
 
         # We want to generate an url to use as our cache key, we don't want to
@@ -73,7 +73,7 @@ class Cache:
 
         return parts
 
-    def _get_candidates(self, link: Link, canonical_package_name: str) -> List[Any]:
+    def _get_candidates(self, link: Link, canonical_package_name: str) -> list[Any]:
         can_not_cache = not self.cache_dir or not canonical_package_name or not link
         if can_not_cache:
             return []
@@ -91,7 +91,7 @@ class Cache:
         self,
         link: Link,
         package_name: Optional[str],
-        supported_tags: List[Tag],
+        supported_tags: list[Tag],
     ) -> Link:
         """Returns a link to a cached item if it exists, otherwise returns the
         passed link.
@@ -129,7 +129,7 @@ class SimpleWheelCache(Cache):
         self,
         link: Link,
         package_name: Optional[str],
-        supported_tags: List[Tag],
+        supported_tags: list[Tag],
     ) -> Link:
         candidates = []
 
@@ -227,7 +227,7 @@ class WheelCache(Cache):
         self,
         link: Link,
         package_name: Optional[str],
-        supported_tags: List[Tag],
+        supported_tags: list[Tag],
     ) -> Link:
         cache_entry = self.get_cache_entry(link, package_name, supported_tags)
         if cache_entry is None:
@@ -238,7 +238,7 @@ class WheelCache(Cache):
         self,
         link: Link,
         package_name: Optional[str],
-        supported_tags: List[Tag],
+        supported_tags: list[Tag],
     ) -> Optional[CacheEntry]:
         """Returns a CacheEntry with a link to a cached item if it exists or
         None. The cache entry indicates if the item was found in the persistent

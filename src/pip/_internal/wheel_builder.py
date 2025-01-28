@@ -5,7 +5,8 @@ import logging
 import os.path
 import re
 import shutil
-from typing import Iterable, List, Optional, Tuple
+from collections.abc import Iterable
+from typing import Optional
 
 from pip._vendor.packaging.utils import canonicalize_name, canonicalize_version
 from pip._vendor.packaging.version import InvalidVersion, Version
@@ -31,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 _egg_info_re = re.compile(r"([a-z0-9_.]+)-([a-z0-9_.!+-]+)", re.IGNORECASE)
 
-BuildResult = Tuple[List[InstallRequirement], List[InstallRequirement]]
+BuildResult = tuple[list[InstallRequirement], list[InstallRequirement]]
 
 
 def _contains_egg_info(s: str) -> bool:
@@ -168,8 +169,8 @@ def _build_one(
     req: InstallRequirement,
     output_dir: str,
     verify: bool,
-    build_options: List[str],
-    global_options: List[str],
+    build_options: list[str],
+    global_options: list[str],
     editable: bool,
 ) -> Optional[str]:
     """Build one wheel.
@@ -205,8 +206,8 @@ def _build_one(
 def _build_one_inside_env(
     req: InstallRequirement,
     output_dir: str,
-    build_options: List[str],
-    global_options: List[str],
+    build_options: list[str],
+    global_options: list[str],
     editable: bool,
 ) -> Optional[str]:
     with TempDirectory(kind="wheel") as temp_dir:
@@ -273,7 +274,7 @@ def _build_one_inside_env(
         return None
 
 
-def _clean_one_legacy(req: InstallRequirement, global_options: List[str]) -> bool:
+def _clean_one_legacy(req: InstallRequirement, global_options: list[str]) -> bool:
     clean_args = make_setuptools_clean_args(
         req.setup_py_path,
         global_options=global_options,
@@ -294,8 +295,8 @@ def build(
     requirements: Iterable[InstallRequirement],
     wheel_cache: WheelCache,
     verify: bool,
-    build_options: List[str],
-    global_options: List[str],
+    build_options: list[str],
+    global_options: list[str],
 ) -> BuildResult:
     """Build wheels.
 

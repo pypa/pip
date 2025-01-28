@@ -1,6 +1,6 @@
 from collections import defaultdict
 from logging import getLogger
-from typing import Any, DefaultDict
+from typing import Any
 
 from pip._vendor.resolvelib.reporters import BaseReporter
 
@@ -11,7 +11,7 @@ logger = getLogger(__name__)
 
 class PipReporter(BaseReporter):
     def __init__(self) -> None:
-        self.reject_count_by_package: DefaultDict[str, int] = defaultdict(int)
+        self.reject_count_by_package: defaultdict[str, int] = defaultdict(int)
 
         self._messages_at_reject_count = {
             1: (

@@ -1,6 +1,6 @@
 import importlib.metadata
 import os
-from typing import Any, Optional, Protocol, Tuple, cast
+from typing import Any, Optional, Protocol, cast
 
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 
@@ -48,7 +48,7 @@ def get_info_location(d: importlib.metadata.Distribution) -> Optional[BasePath]:
 
 def parse_name_and_version_from_info_directory(
     dist: importlib.metadata.Distribution,
-) -> Tuple[Optional[str], Optional[str]]:
+) -> tuple[Optional[str], Optional[str]]:
     """Get a name and version from the metadata directory name.
 
     This is much faster than reading distribution metadata.

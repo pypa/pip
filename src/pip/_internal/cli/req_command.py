@@ -8,7 +8,7 @@ PackageFinder machinery and all its vendored dependencies, etc.
 import logging
 from functools import partial
 from optparse import Values
-from typing import Any, List, Optional, Tuple
+from typing import Any, Optional
 
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
@@ -57,7 +57,7 @@ def with_cleanup(func: Any) -> Any:
             registry.set_delete(t, False)
 
     def wrapper(
-        self: RequirementCommand, options: Values, args: List[Any]
+        self: RequirementCommand, options: Values, args: list[Any]
     ) -> Optional[int]:
         assert self.tempdir_registry is not None
         if options.no_clean:
@@ -157,7 +157,7 @@ class RequirementCommand(IndexGroupCommand):
         force_reinstall: bool = False,
         upgrade_strategy: str = "to-satisfy-only",
         use_pep517: Optional[bool] = None,
-        py_version_info: Optional[Tuple[int, ...]] = None,
+        py_version_info: Optional[tuple[int, ...]] = None,
     ) -> BaseResolver:
         """
         Create a Resolver instance for the given parameters.
@@ -205,15 +205,15 @@ class RequirementCommand(IndexGroupCommand):
 
     def get_requirements(
         self,
-        args: List[str],
+        args: list[str],
         options: Values,
         finder: PackageFinder,
         session: PipSession,
-    ) -> List[InstallRequirement]:
+    ) -> list[InstallRequirement]:
         """
         Parse command-line arguments into the corresponding requirements.
         """
-        requirements: List[InstallRequirement] = []
+        requirements: list[InstallRequirement] = []
         for filename in options.constraints:
             for parsed_req in parse_requirements(
                 filename,

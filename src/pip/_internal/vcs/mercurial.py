@@ -1,7 +1,7 @@
 import configparser
 import logging
 import os
-from typing import List, Optional, Tuple
+from typing import Optional
 
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import HiddenText, display_path
@@ -30,7 +30,7 @@ class Mercurial(VersionControl):
     )
 
     @staticmethod
-    def get_base_rev_args(rev: str) -> List[str]:
+    def get_base_rev_args(rev: str) -> list[str]:
         return [f"--rev={rev}"]
 
     def fetch_new(
@@ -44,7 +44,7 @@ class Mercurial(VersionControl):
             display_path(dest),
         )
         if verbosity <= 0:
-            flags: Tuple[str, ...] = ("--quiet",)
+            flags: tuple[str, ...] = ("--quiet",)
         elif verbosity == 1:
             flags = ()
         elif verbosity == 2:

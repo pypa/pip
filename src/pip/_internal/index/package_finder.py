@@ -5,8 +5,9 @@ import functools
 import itertools
 import logging
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, FrozenSet, Iterable, List, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.tags import Tag
@@ -45,13 +46,13 @@ __all__ = ["FormatControl", "BestCandidateResult", "PackageFinder"]
 
 logger = getLogger(__name__)
 
-BuildTag = Union[Tuple[()], Tuple[int, str]]
-CandidateSortingKey = Tuple[int, int, int, _BaseVersion, Optional[int], BuildTag]
+BuildTag = Union[tuple[()], tuple[int, str]]
+CandidateSortingKey = tuple[int, int, int, _BaseVersion, Optional[int], BuildTag]
 
 
 def _check_link_requires_python(
     link: Link,
-    version_info: Tuple[int, int, int],
+    version_info: tuple[int, int, int],
     ignore_requires_python: bool = False,
 ) -> bool:
     """
@@ -121,7 +122,7 @@ class LinkEvaluator:
         self,
         project_name: str,
         canonical_name: str,
-        formats: FrozenSet[str],
+        formats: frozenset[str],
         target_python: TargetPython,
         allow_yanked: bool,
         ignore_requires_python: Optional[bool] = None,
@@ -154,7 +155,7 @@ class LinkEvaluator:
 
         self.project_name = project_name
 
-    def evaluate_link(self, link: Link) -> Tuple[LinkType, str]:
+    def evaluate_link(self, link: Link) -> tuple[LinkType, str]:
         """
         Determine whether a link is a candidate for installation.
 
@@ -250,10 +251,10 @@ class LinkEvaluator:
 
 
 def filter_unallowed_hashes(
-    candidates: List[InstallationCandidate],
+    candidates: list[InstallationCandidate],
     hashes: Optional[Hashes],
     project_name: str,
-) -> List[InstallationCandidate]:
+) -> list[InstallationCandidate]:
     """
     Filter out candidates whose hashes aren't allowed, and return a new
     list of candidates.
@@ -347,8 +348,8 @@ class BestCandidateResult:
         if no applicable candidates were found.
     """
 
-    all_candidates: List[InstallationCandidate]
-    applicable_candidates: List[InstallationCandidate]
+    all_candidates: list[InstallationCandidate]
+    applicable_candidates: list[InstallationCandidate]
     best_candidate: Optional[InstallationCandidate]
 
     def __post_init__(self) -> None:
@@ -405,7 +406,7 @@ class CandidateEvaluator:
     def __init__(
         self,
         project_name: str,
-        supported_tags: List[Tag],
+        supported_tags: list[Tag],
         specifier: specifiers.BaseSpecifier,
         prefer_binary: bool = False,
         allow_all_prereleases: bool = False,
@@ -430,8 +431,8 @@ class CandidateEvaluator:
 
     def get_applicable_candidates(
         self,
-        candidates: List[InstallationCandidate],
-    ) -> List[InstallationCandidate]:
+        candidates: list[InstallationCandidate],
+    ) -> list[InstallationCandidate]:
         """
         Return the applicable candidates from a list of candidates.
         """
@@ -534,7 +535,7 @@ class CandidateEvaluator:
 
     def sort_best_candidate(
         self,
-        candidates: List[InstallationCandidate],
+        candidates: list[InstallationCandidate],
     ) -> Optional[InstallationCandidate]:
         """
         Return the best candidate per the instance's sort order, or None if
@@ -547,7 +548,7 @@ class CandidateEvaluator:
 
     def compute_best_candidate(
         self,
-        candidates: List[InstallationCandidate],
+        candidates: list[InstallationCandidate],
     ) -> BestCandidateResult:
         """
         Compute and return a `BestCandidateResult` instance.
@@ -603,7 +604,7 @@ class PackageFinder:
         self.format_control = format_control
 
         # These are boring links that have already been logged somehow.
-        self._logged_links: Set[Tuple[Link, LinkType, str]] = set()
+        self._logged_links: set[tuple[Link, LinkType, str]] = set()
 
     # Don't include an allow_yanked default value to make sure each call
     # site considers whether yanked releases are allowed. This also causes
@@ -654,11 +655,11 @@ class PackageFinder:
         self._link_collector.search_scope = search_scope
 
     @property
-    def find_links(self) -> List[str]:
+    def find_links(self) -> list[str]:
         return self._link_collector.find_links
 
     @property
-    def index_urls(self) -> List[str]:
+    def index_urls(self) -> list[str]:
         return self.search_scope.index_urls
 
     @property
@@ -698,7 +699,7 @@ class PackageFinder:
     def set_prefer_binary(self) -> None:
         self._candidate_prefs.prefer_binary = True
 
-    def requires_python_skipped_reasons(self) -> List[str]:
+    def requires_python_skipped_reasons(self) -> list[str]:
         reasons = {
             detail
             for _, result, detail in self._logged_links
@@ -719,13 +720,13 @@ class PackageFinder:
             ignore_requires_python=self._ignore_requires_python,
         )
 
-    def _sort_links(self, links: Iterable[Link]) -> List[Link]:
+    def _sort_links(self, links: Iterable[Link]) -> list[Link]:
         """
         Returns elements of links in order, non-egg links first, egg links
         second, while eliminating duplicates
         """
         eggs, no_eggs = [], []
-        seen: Set[Link] = set()
+        seen: set[Link] = set()
         for link in links:
             if link not in seen:
                 seen.add(link)
@@ -771,7 +772,7 @@ class PackageFinder:
 
     def evaluate_links(
         self, link_evaluator: LinkEvaluator, links: Iterable[Link]
-    ) -> List[InstallationCandidate]:
+    ) -> list[InstallationCandidate]:
         """
         Convert links that are candidates to InstallationCandidate objects.
         """
@@ -785,7 +786,7 @@ class PackageFinder:
 
     def process_project_url(
         self, project_url: Link, link_evaluator: LinkEvaluator
-    ) -> List[InstallationCandidate]:
+    ) -> list[InstallationCandidate]:
         logger.debug(
             "Fetching project page and analyzing links: %s",
             project_url,
@@ -804,8 +805,8 @@ class PackageFinder:
 
         return package_links
 
-    @functools.lru_cache(maxsize=None)
-    def find_all_candidates(self, project_name: str) -> List[InstallationCandidate]:
+    @functools.cache
+    def find_all_candidates(self, project_name: str) -> list[InstallationCandidate]:
         """Find all available InstallationCandidate for project_name
 
         This checks index_urls and find_links.
@@ -874,7 +875,7 @@ class PackageFinder:
             hashes=hashes,
         )
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def find_best_candidate(
         self,
         project_name: str,

@@ -12,8 +12,9 @@ import copy
 import logging
 import os
 import re
+from collections.abc import Collection
 from dataclasses import dataclass
-from typing import Collection, Dict, List, Optional, Set, Tuple, Union
+from typing import Optional, Union
 
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
@@ -41,7 +42,7 @@ logger = logging.getLogger(__name__)
 operators = Specifier._operators.keys()
 
 
-def _strip_extras(path: str) -> Tuple[str, Optional[str]]:
+def _strip_extras(path: str) -> tuple[str, Optional[str]]:
     m = re.match(r"^(.+)(\[[^\]]+\])$", path)
     extras = None
     if m:
@@ -53,13 +54,13 @@ def _strip_extras(path: str) -> Tuple[str, Optional[str]]:
     return path_no_extras, extras
 
 
-def convert_extras(extras: Optional[str]) -> Set[str]:
+def convert_extras(extras: Optional[str]) -> set[str]:
     if not extras:
         return set()
     return get_requirement("placeholder" + extras.lower()).extras
 
 
-def _set_requirement_extras(req: Requirement, new_extras: Set[str]) -> Requirement:
+def _set_requirement_extras(req: Requirement, new_extras: set[str]) -> Requirement:
     """
     Returns a new requirement based on the given one, with the supplied extras. If the
     given requirement already has extras those are replaced (or dropped if no new extras
@@ -84,7 +85,7 @@ def _set_requirement_extras(req: Requirement, new_extras: Set[str]) -> Requireme
     return get_requirement(f"{pre}{extras}{post}")
 
 
-def parse_editable(editable_req: str) -> Tuple[Optional[str], str, Set[str]]:
+def parse_editable(editable_req: str) -> tuple[Optional[str], str, set[str]]:
     """Parses an editable requirement into:
         - a requirement name
         - an URL
@@ -197,7 +198,7 @@ class RequirementParts:
     requirement: Optional[Requirement]
     link: Optional[Link]
     markers: Optional[Marker]
-    extras: Set[str]
+    extras: set[str]
 
 
 def parse_req_from_editable(editable_req: str) -> RequirementParts:
@@ -225,12 +226,12 @@ def install_req_from_editable(
     *,
     use_pep517: Optional[bool] = None,
     isolated: bool = False,
-    global_options: Optional[List[str]] = None,
-    hash_options: Optional[Dict[str, List[str]]] = None,
+    global_options: Optional[list[str]] = None,
+    hash_options: Optional[dict[str, list[str]]] = None,
     constraint: bool = False,
     user_supplied: bool = False,
     permit_editable_wheels: bool = False,
-    config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
+    config_settings: Optional[dict[str, Union[str, list[str]]]] = None,
 ) -> InstallRequirement:
     parts = parse_req_from_editable(editable_req)
 
@@ -389,12 +390,12 @@ def install_req_from_line(
     *,
     use_pep517: Optional[bool] = None,
     isolated: bool = False,
-    global_options: Optional[List[str]] = None,
-    hash_options: Optional[Dict[str, List[str]]] = None,
+    global_options: Optional[list[str]] = None,
+    hash_options: Optional[dict[str, list[str]]] = None,
     constraint: bool = False,
     line_source: Optional[str] = None,
     user_supplied: bool = False,
-    config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
+    config_settings: Optional[dict[str, Union[str, list[str]]]] = None,
 ) -> InstallRequirement:
     """Creates an InstallRequirement from a name, which might be a
     requirement, directory containing 'setup.py', filename, or URL.
@@ -463,7 +464,7 @@ def install_req_from_parsed_requirement(
     isolated: bool = False,
     use_pep517: Optional[bool] = None,
     user_supplied: bool = False,
-    config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
+    config_settings: Optional[dict[str, Union[str, list[str]]]] = None,
 ) -> InstallRequirement:
     if parsed_req.is_editable:
         req = install_req_from_editable(

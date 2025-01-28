@@ -5,7 +5,8 @@ import email.message
 import logging
 import mimetypes
 import os
-from typing import Iterable, Optional, Tuple
+from collections.abc import Iterable
+from typing import Optional
 
 from pip._vendor.requests.models import Response
 
@@ -129,7 +130,7 @@ class Downloader:
         self._session = session
         self._progress_bar = progress_bar
 
-    def __call__(self, link: Link, location: str) -> Tuple[str, str]:
+    def __call__(self, link: Link, location: str) -> tuple[str, str]:
         """Download the file given by link into location."""
         try:
             resp = _http_get_download(self._session, link)
@@ -162,7 +163,7 @@ class BatchDownloader:
 
     def __call__(
         self, links: Iterable[Link], location: str
-    ) -> Iterable[Tuple[Link, Tuple[str, str]]]:
+    ) -> Iterable[tuple[Link, tuple[str, str]]]:
         """Download the files given by links into location."""
         for link in links:
             try:

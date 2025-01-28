@@ -5,16 +5,13 @@ import os
 import posixpath
 import re
 import urllib.parse
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
-    List,
-    Mapping,
     NamedTuple,
     Optional,
-    Tuple,
     Union,
 )
 
@@ -69,7 +66,7 @@ class LinkHash:
         assert self.name in _SUPPORTED_HASHES
 
     @classmethod
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def find_hash_url_fragment(cls, url: str) -> Optional["LinkHash"]:
         """Search a string for a checksum algorithm name and encoded output value."""
         match = cls._hash_url_fragment_re.search(url)
@@ -78,7 +75,7 @@ class LinkHash:
         name, value = match.groups()
         return cls(name=name, value=value)
 
-    def as_dict(self) -> Dict[str, str]:
+    def as_dict(self) -> dict[str, str]:
         return {self.name: self.value}
 
     def as_hashes(self) -> Hashes:
@@ -98,14 +95,14 @@ class LinkHash:
 class MetadataFile:
     """Information about a core metadata file associated with a distribution."""
 
-    hashes: Optional[Dict[str, str]]
+    hashes: Optional[dict[str, str]]
 
     def __post_init__(self) -> None:
         if self.hashes is not None:
             assert all(name in _SUPPORTED_HASHES for name in self.hashes)
 
 
-def supported_hashes(hashes: Optional[Dict[str, str]]) -> Optional[Dict[str, str]]:
+def supported_hashes(hashes: Optional[dict[str, str]]) -> Optional[dict[str, str]]:
     # Remove any unsupported hash types from the mapping. If this leaves no
     # supported hashes, return None
     if hashes is None:
@@ -274,7 +271,7 @@ class Link:
     @classmethod
     def from_json(
         cls,
-        file_data: Dict[str, Any],
+        file_data: dict[str, Any],
         page_url: str,
     ) -> Optional["Link"]:
         """
@@ -325,7 +322,7 @@ class Link:
     @classmethod
     def from_element(
         cls,
-        anchor_attribs: Dict[str, Optional[str]],
+        anchor_attribs: dict[str, Optional[str]],
         page_url: str,
         base_url: str,
     ) -> Optional["Link"]:
@@ -437,7 +434,7 @@ class Link:
     def path(self) -> str:
         return self._path
 
-    def splitext(self) -> Tuple[str, str]:
+    def splitext(self) -> tuple[str, str]:
         return splitext(posixpath.basename(self.path.rstrip("/")))
 
     @property
@@ -568,9 +565,9 @@ class _CleanResult(NamedTuple):
     """
 
     parsed: urllib.parse.SplitResult
-    query: Dict[str, List[str]]
+    query: dict[str, list[str]]
     subdirectory: str
-    hashes: Dict[str, str]
+    hashes: dict[str, str]
 
 
 def _clean_link(link: Link) -> _CleanResult:
@@ -599,6 +596,6 @@ def _clean_link(link: Link) -> _CleanResult:
     )
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def links_equivalent(link1: Link, link2: Link) -> bool:
     return _clean_link(link1) == _clean_link(link2)

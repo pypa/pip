@@ -1,5 +1,6 @@
 import logging
-from typing import TYPE_CHECKING, Iterable, Optional, Set, Tuple
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Optional
 
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.distributions.base import AbstractDistribution
@@ -132,7 +133,7 @@ class SourceDistribution(AbstractDistribution):
         )
 
     def _raise_conflicts(
-        self, conflicting_with: str, conflicting_reqs: Set[Tuple[str, str]]
+        self, conflicting_with: str, conflicting_reqs: set[tuple[str, str]]
     ) -> None:
         format_string = (
             "Some build dependencies for {requirement} "
@@ -148,7 +149,7 @@ class SourceDistribution(AbstractDistribution):
         )
         raise InstallationError(error_message)
 
-    def _raise_missing_reqs(self, missing: Set[str]) -> None:
+    def _raise_missing_reqs(self, missing: set[str]) -> None:
         format_string = (
             "Some build dependencies for {requirement} are missing: {missing}."
         )

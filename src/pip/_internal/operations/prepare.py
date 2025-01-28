@@ -7,9 +7,10 @@
 import mimetypes
 import os
 import shutil
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional
+from typing import Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -268,7 +269,7 @@ class RequirementPreparer:
         self.legacy_resolver = legacy_resolver
 
         # Memoized downloaded files, as mapping of url: path.
-        self._downloaded: Dict[str, str] = {}
+        self._downloaded: dict[str, str] = {}
 
         # Previous "header" printed for a link-based InstallRequirement
         self._previous_requirement_header = ("", "")
@@ -457,7 +458,7 @@ class RequirementPreparer:
         # Map each link to the requirement that owns it. This allows us to set
         # `req.local_file_path` on the appropriate requirement after passing
         # all the links at once into BatchDownloader.
-        links_to_fully_download: Dict[Link, InstallRequirement] = {}
+        links_to_fully_download: dict[Link, InstallRequirement] = {}
         for req in partially_downloaded_reqs:
             assert req.link
             links_to_fully_download[req.link] = req
@@ -542,7 +543,7 @@ class RequirementPreparer:
 
         # Prepare requirements we found were already downloaded for some
         # reason. The other downloads will be completed separately.
-        partially_downloaded_reqs: List[InstallRequirement] = []
+        partially_downloaded_reqs: list[InstallRequirement] = []
         for req in reqs:
             if req.needs_more_preparation:
                 partially_downloaded_reqs.append(req)

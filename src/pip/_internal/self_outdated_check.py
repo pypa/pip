@@ -7,7 +7,7 @@ import optparse
 import os.path
 import sys
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Optional
 
 from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
@@ -54,7 +54,7 @@ def _convert_date(isodate: str) -> datetime.datetime:
 
 class SelfCheckState:
     def __init__(self, cache_dir: str) -> None:
-        self._state: Dict[str, Any] = {}
+        self._state: dict[str, Any] = {}
         self._statefile_path = None
 
         # Try to load the existing state

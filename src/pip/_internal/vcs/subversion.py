@@ -1,7 +1,7 @@
 import logging
 import os
 import re
-from typing import List, Optional, Tuple
+from typing import Optional
 
 from pip._internal.utils.misc import (
     HiddenText,
@@ -38,7 +38,7 @@ class Subversion(VersionControl):
         return True
 
     @staticmethod
-    def get_base_rev_args(rev: str) -> List[str]:
+    def get_base_rev_args(rev: str) -> list[str]:
         return ["-r", rev]
 
     @classmethod
@@ -73,7 +73,7 @@ class Subversion(VersionControl):
     @classmethod
     def get_netloc_and_auth(
         cls, netloc: str, scheme: str
-    ) -> Tuple[str, Tuple[Optional[str], Optional[str]]]:
+    ) -> tuple[str, tuple[Optional[str], Optional[str]]]:
         """
         This override allows the auth information to be passed to svn via the
         --username and --password options instead of via the URL.
@@ -86,7 +86,7 @@ class Subversion(VersionControl):
         return split_auth_from_netloc(netloc)
 
     @classmethod
-    def get_url_rev_and_auth(cls, url: str) -> Tuple[str, Optional[str], AuthInfo]:
+    def get_url_rev_and_auth(cls, url: str) -> tuple[str, Optional[str], AuthInfo]:
         # hotfix the URL scheme after removing svn+ from svn+ssh:// re-add it
         url, rev, user_pass = super().get_url_rev_and_auth(url)
         if url.startswith("ssh://"):
@@ -130,7 +130,7 @@ class Subversion(VersionControl):
         return url
 
     @classmethod
-    def _get_svn_url_rev(cls, location: str) -> Tuple[Optional[str], int]:
+    def _get_svn_url_rev(cls, location: str) -> tuple[Optional[str], int]:
         from pip._internal.exceptions import InstallationError
 
         entries_path = os.path.join(location, cls.dirname, "entries")
@@ -194,11 +194,11 @@ class Subversion(VersionControl):
         # Special value definitions:
         #   None: Not evaluated yet.
         #   Empty tuple: Could not parse version.
-        self._vcs_version: Optional[Tuple[int, ...]] = None
+        self._vcs_version: Optional[tuple[int, ...]] = None
 
         super().__init__()
 
-    def call_vcs_version(self) -> Tuple[int, ...]:
+    def call_vcs_version(self) -> tuple[int, ...]:
         """Query the version of the currently installed Subversion client.
 
         :return: A tuple containing the parts of the version information or
@@ -226,7 +226,7 @@ class Subversion(VersionControl):
 
         return parsed_version
 
-    def get_vcs_version(self) -> Tuple[int, ...]:
+    def get_vcs_version(self) -> tuple[int, ...]:
         """Return the version of the currently installed Subversion client.
 
         If the version of the Subversion client has already been queried,

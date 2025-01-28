@@ -1,6 +1,6 @@
 import logging
 import os.path
-from typing import List, Optional
+from typing import Optional
 
 from pip._internal.cli.spinners import open_spinner
 from pip._internal.utils.setuptools_build import make_setuptools_bdist_wheel_args
@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 def format_command_result(
-    command_args: List[str],
+    command_args: list[str],
     command_output: str,
 ) -> str:
     """Format command information for logging."""
@@ -30,10 +30,10 @@ def format_command_result(
 
 
 def get_legacy_build_wheel_path(
-    names: List[str],
+    names: list[str],
     temp_dir: str,
     name: str,
-    command_args: List[str],
+    command_args: list[str],
     command_output: str,
 ) -> Optional[str]:
     """Return the path to the wheel in the temporary build directory."""
@@ -60,8 +60,8 @@ def build_wheel_legacy(
     name: str,
     setup_py_path: str,
     source_dir: str,
-    global_options: List[str],
-    build_options: List[str],
+    global_options: list[str],
+    build_options: list[str],
     tempd: str,
 ) -> Optional[str]:
     """Build one unpacked package using the "legacy" build process.

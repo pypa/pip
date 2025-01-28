@@ -2,9 +2,10 @@
 """
 
 import os
+from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import datetime
-from typing import BinaryIO, Generator, Optional, Union
+from typing import BinaryIO, Optional, Union
 
 from pip._vendor.cachecontrol.cache import SeparateBodyBaseCache
 from pip._vendor.cachecontrol.caches import SeparateBodyFileCache

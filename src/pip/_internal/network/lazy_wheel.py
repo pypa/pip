@@ -3,9 +3,10 @@
 __all__ = ["HTTPRangeRequestUnsupported", "dist_from_wheel_url"]
 
 from bisect import bisect_left, bisect_right
+from collections.abc import Generator
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
-from typing import Any, Dict, Generator, List, Optional, Tuple
+from typing import Any, Optional
 from zipfile import BadZipFile, ZipFile
 
 from pip._vendor.packaging.utils import canonicalize_name
@@ -56,8 +57,8 @@ class LazyZipOverHTTP:
         self._length = int(head.headers["Content-Length"])
         self._file = NamedTemporaryFile()
         self.truncate(self._length)
-        self._left: List[int] = []
-        self._right: List[int] = []
+        self._left: list[int] = []
+        self._right: list[int] = []
         if "bytes" not in head.headers.get("Accept-Ranges", "none"):
             raise HTTPRangeRequestUnsupported("range request is not supported")
         self._check_zip()
@@ -166,7 +167,7 @@ class LazyZipOverHTTP:
                     break
 
     def _stream_response(
-        self, start: int, end: int, base_headers: Dict[str, str] = HEADERS
+        self, start: int, end: int, base_headers: dict[str, str] = HEADERS
     ) -> Response:
         """Return HTTP response to a range request from start to end."""
         headers = base_headers.copy()
@@ -177,7 +178,7 @@ class LazyZipOverHTTP:
 
     def _merge(
         self, start: int, end: int, left: int, right: int
-    ) -> Generator[Tuple[int, int], None, None]:
+    ) -> Generator[tuple[int, int], None, None]:
         """Return a generator of intervals to be fetched.
 
         Args:

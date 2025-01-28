@@ -1,6 +1,7 @@
 import sys
 import textwrap
-from typing import List, Optional, Sequence
+from collections.abc import Sequence
+from typing import Optional
 
 # Shim to wrap setup.py invocation with setuptools
 # Note that __file__ is handled via two {!r} *and* %r, to ensure that paths on
@@ -51,7 +52,7 @@ def make_setuptools_shim_args(
     global_options: Optional[Sequence[str]] = None,
     no_user_config: bool = False,
     unbuffered_output: bool = False,
-) -> List[str]:
+) -> list[str]:
     """
     Get setuptools command arguments with shim wrapped setup file invocation.
 
@@ -77,7 +78,7 @@ def make_setuptools_bdist_wheel_args(
     global_options: Sequence[str],
     build_options: Sequence[str],
     destination_dir: str,
-) -> List[str]:
+) -> list[str]:
     # NOTE: Eventually, we'd want to also -S to the flags here, when we're
     # isolating. Currently, it breaks Python in virtualenvs, because it
     # relies on site.py to find parts of the standard library outside the
@@ -93,7 +94,7 @@ def make_setuptools_bdist_wheel_args(
 def make_setuptools_clean_args(
     setup_py_path: str,
     global_options: Sequence[str],
-) -> List[str]:
+) -> list[str]:
     args = make_setuptools_shim_args(
         setup_py_path, global_options=global_options, unbuffered_output=True
     )
@@ -109,7 +110,7 @@ def make_setuptools_develop_args(
     prefix: Optional[str],
     home: Optional[str],
     use_user_site: bool,
-) -> List[str]:
+) -> list[str]:
     assert not (use_user_site and prefix)
 
     args = make_setuptools_shim_args(
@@ -135,7 +136,7 @@ def make_setuptools_egg_info_args(
     setup_py_path: str,
     egg_info_dir: Optional[str],
     no_user_config: bool,
-) -> List[str]:
+) -> list[str]:
     args = make_setuptools_shim_args(setup_py_path, no_user_config=no_user_config)
 
     args += ["egg_info"]

@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional, Tuple
+from typing import Optional
 
 from pip._internal.utils.misc import HiddenText, display_path
 from pip._internal.utils.subprocess import make_command
@@ -30,7 +30,7 @@ class Bazaar(VersionControl):
     )
 
     @staticmethod
-    def get_base_rev_args(rev: str) -> List[str]:
+    def get_base_rev_args(rev: str) -> list[str]:
         return ["-r", rev]
 
     def fetch_new(
@@ -71,7 +71,7 @@ class Bazaar(VersionControl):
         self.run_command(cmd_args, cwd=dest)
 
     @classmethod
-    def get_url_rev_and_auth(cls, url: str) -> Tuple[str, Optional[str], AuthInfo]:
+    def get_url_rev_and_auth(cls, url: str) -> tuple[str, Optional[str], AuthInfo]:
         # hotfix the URL scheme after removing bzr+ from bzr+ssh:// re-add it
         url, rev, user_pass = super().get_url_rev_and_auth(url)
         if url.startswith("ssh://"):

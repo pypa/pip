@@ -1,8 +1,9 @@
 import collections
 import logging
 import os
+from collections.abc import Container, Generator, Iterable
 from dataclasses import dataclass, field
-from typing import Container, Dict, Generator, Iterable, List, NamedTuple, Optional, Set
+from typing import NamedTuple, Optional
 
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.packaging.version import InvalidVersion
@@ -21,19 +22,19 @@ logger = logging.getLogger(__name__)
 
 class _EditableInfo(NamedTuple):
     requirement: str
-    comments: List[str]
+    comments: list[str]
 
 
 def freeze(
-    requirement: Optional[List[str]] = None,
+    requirement: Optional[list[str]] = None,
     local_only: bool = False,
     user_only: bool = False,
-    paths: Optional[List[str]] = None,
+    paths: Optional[list[str]] = None,
     isolated: bool = False,
     exclude_editable: bool = False,
     skip: Container[str] = (),
 ) -> Generator[str, None, None]:
-    installations: Dict[str, FrozenRequirement] = {}
+    installations: dict[str, FrozenRequirement] = {}
 
     dists = get_environment(paths).iter_installed_distributions(
         local_only=local_only,
@@ -51,10 +52,10 @@ def freeze(
         # should only be emitted once, even if the same option is in multiple
         # requirements files, so we need to keep track of what has been emitted
         # so that we don't emit it again if it's seen again
-        emitted_options: Set[str] = set()
+        emitted_options: set[str] = set()
         # keep track of which files a requirement is in so that we can
         # give an accurate warning if a requirement appears multiple times.
-        req_files: Dict[str, List[str]] = collections.defaultdict(list)
+        req_files: dict[str, list[str]] = collections.defaultdict(list)
         for req_file_path in requirement:
             with open(req_file_path) as req_file:
                 for line in req_file:

@@ -5,7 +5,7 @@ import os
 import shutil
 import site
 from optparse import SUPPRESS_HELP, Values
-from typing import List, Optional
+from typing import Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.rich import print_json
@@ -271,7 +271,7 @@ class InstallCommand(RequirementCommand):
         )
 
     @with_cleanup
-    def run(self, options: Values, args: List[str]) -> int:
+    def run(self, options: Values, args: list[str]) -> int:
         if options.use_user_site and options.target_dir is not None:
             raise CommandError("Can not combine '--user' and '--target'")
 
@@ -579,7 +579,7 @@ class InstallCommand(RequirementCommand):
                 shutil.move(os.path.join(lib_dir, item), target_item_dir)
 
     def _determine_conflicts(
-        self, to_install: List[InstallRequirement]
+        self, to_install: list[InstallRequirement]
     ) -> Optional[ConflictDetails]:
         try:
             return check_install_conflicts(to_install)
@@ -597,7 +597,7 @@ class InstallCommand(RequirementCommand):
         if not missing and not conflicting:
             return
 
-        parts: List[str] = []
+        parts: list[str] = []
         if resolver_variant == "legacy":
             parts.append(
                 "pip's legacy dependency resolver does not consider dependency "
@@ -647,7 +647,7 @@ def get_lib_location_guesses(
     root: Optional[str] = None,
     isolated: bool = False,
     prefix: Optional[str] = None,
-) -> List[str]:
+) -> list[str]:
     scheme = get_scheme(
         "",
         user=user,

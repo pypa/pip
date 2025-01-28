@@ -12,8 +12,9 @@ import logging
 import pathlib
 import re
 import sys
+from collections.abc import Iterator
 from itertools import chain, groupby, repeat
-from typing import TYPE_CHECKING, Dict, Iterator, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Literal, Optional, Union
 
 from pip._vendor.packaging.requirements import InvalidRequirement
 from pip._vendor.packaging.version import InvalidVersion
@@ -377,7 +378,7 @@ class InstallationSubprocessError(DiagnosticPipError, InstallationError):
         *,
         command_description: str,
         exit_code: int,
-        output_lines: Optional[List[str]],
+        output_lines: Optional[list[str]],
     ) -> None:
         if output_lines is None:
             output_prompt = Text("See above for output.")
@@ -431,7 +432,7 @@ class HashErrors(InstallationError):
     """Multiple HashError instances rolled into one for reporting"""
 
     def __init__(self) -> None:
-        self.errors: List[HashError] = []
+        self.errors: list[HashError] = []
 
     def append(self, error: "HashError") -> None:
         self.errors.append(error)
@@ -589,7 +590,7 @@ class HashMismatch(HashError):
         "someone may have tampered with them."
     )
 
-    def __init__(self, allowed: Dict[str, List[str]], gots: Dict[str, "_Hash"]) -> None:
+    def __init__(self, allowed: dict[str, list[str]], gots: dict[str, "_Hash"]) -> None:
         """
         :param allowed: A dict of algorithm names pointing to lists of allowed
             hex digests
@@ -619,7 +620,7 @@ class HashMismatch(HashError):
             # away with hard-coding space literals.
             return chain([hash_name], repeat("    or"))
 
-        lines: List[str] = []
+        lines: list[str] = []
         for hash_name, expecteds in self.allowed.items():
             prefix = hash_then_or(hash_name)
             lines.extend((f"        Expected {next(prefix)} {e}") for e in expecteds)

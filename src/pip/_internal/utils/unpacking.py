@@ -8,7 +8,8 @@ import stat
 import sys
 import tarfile
 import zipfile
-from typing import Iterable, List, Optional
+from collections.abc import Iterable
+from typing import Optional
 from zipfile import ZipInfo
 
 from pip._internal.exceptions import InstallationError
@@ -48,7 +49,7 @@ def current_umask() -> int:
     return mask
 
 
-def split_leading_dir(path: str) -> List[str]:
+def split_leading_dir(path: str) -> list[str]:
     path = path.lstrip("/").lstrip("\\")
     if "/" in path and (
         ("\\" in path and path.find("/") < path.find("\\")) or "\\" not in path

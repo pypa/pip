@@ -5,7 +5,6 @@ depend on something external.
 Files inside of pip._vendor should be considered immutable and should only be
 updated to versions from upstream.
 """
-from __future__ import absolute_import
 
 import glob
 import os.path
@@ -27,7 +26,7 @@ WHEEL_DIR = os.path.abspath(os.path.dirname(__file__))
 # if the vendored ones do not exist. This idea of this was taken from
 # https://github.com/kennethreitz/requests/pull/2567.
 def vendored(modulename):
-    vendored_name = "{0}.{1}".format(__name__, modulename)
+    vendored_name = f"{__name__}.{modulename}"
 
     try:
         __import__(modulename, globals(), locals(), level=0)

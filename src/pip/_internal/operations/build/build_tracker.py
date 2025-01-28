@@ -2,8 +2,9 @@ import contextlib
 import hashlib
 import logging
 import os
+from collections.abc import Generator
 from types import TracebackType
-from typing import Dict, Generator, Optional, Type, Union
+from typing import Optional, Union
 
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.temp_dir import TempDirectory
@@ -17,7 +18,7 @@ def update_env_context_manager(**changes: str) -> Generator[None, None, None]:
 
     # Save values from the target and change them.
     non_existent_marker = object()
-    saved_values: Dict[str, Union[object, str]] = {}
+    saved_values: dict[str, Union[object, str]] = {}
     for name, new_value in changes.items():
         try:
             saved_values[name] = target[name]
@@ -65,7 +66,7 @@ class BuildTracker:
 
     def __init__(self, root: str) -> None:
         self._root = root
-        self._entries: Dict[TrackerId, InstallRequirement] = {}
+        self._entries: dict[TrackerId, InstallRequirement] = {}
         logger.debug("Created build tracker: %s", self._root)
 
     def __enter__(self) -> "BuildTracker":
@@ -74,7 +75,7 @@ class BuildTracker:
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
+        exc_type: Optional[type[BaseException]],
         exc_val: Optional[BaseException],
         exc_tb: Optional[TracebackType],
     ) -> None:

@@ -1,9 +1,9 @@
-from typing import List, Optional
+from typing import Optional
 
 __version__ = "25.1.dev0"
 
 
-def main(args: Optional[List[str]] = None) -> int:
+def main(args: Optional[list[str]] = None) -> int:
     """This is an internal API only meant for use by pip's own console scripts.
 
     For additional details, see https://github.com/pypa/pip/issues/7498.

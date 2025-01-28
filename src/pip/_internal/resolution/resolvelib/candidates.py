@@ -1,6 +1,7 @@
 import logging
 import sys
-from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, Optional, Tuple, Union, cast
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 from pip._vendor.packaging.requirements import InvalidRequirement
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
@@ -438,7 +439,7 @@ class ExtrasCandidate(Candidate):
     def __init__(
         self,
         base: BaseCandidate,
-        extras: FrozenSet[str],
+        extras: frozenset[str],
         *,
         comes_from: Optional[InstallRequirement] = None,
     ) -> None:
@@ -538,7 +539,7 @@ class RequiresPythonCandidate(Candidate):
     is_installed = False
     source_link = None
 
-    def __init__(self, py_version_info: Optional[Tuple[int, ...]]) -> None:
+    def __init__(self, py_version_info: Optional[tuple[int, ...]]) -> None:
         if py_version_info is not None:
             version_info = normalize_version_info(py_version_info)
         else:

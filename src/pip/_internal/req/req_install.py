@@ -5,9 +5,10 @@ import shutil
 import sys
 import uuid
 import zipfile
+from collections.abc import Collection, Iterable, Sequence
 from optparse import Values
 from pathlib import Path
-from typing import Any, Collection, Dict, Iterable, List, Optional, Sequence, Union
+from typing import Any, Optional, Union
 
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
@@ -79,9 +80,9 @@ class InstallRequirement:
         use_pep517: Optional[bool] = None,
         isolated: bool = False,
         *,
-        global_options: Optional[List[str]] = None,
-        hash_options: Optional[Dict[str, List[str]]] = None,
-        config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
+        global_options: Optional[list[str]] = None,
+        hash_options: Optional[dict[str, list[str]]] = None,
+        config_settings: Optional[dict[str, Union[str, list[str]]]] = None,
         constraint: bool = False,
         extras: Collection[str] = (),
         user_supplied: bool = False,
@@ -166,10 +167,10 @@ class InstallRequirement:
         self.metadata_directory: Optional[str] = None
 
         # The static build requirements (from pyproject.toml)
-        self.pyproject_requires: Optional[List[str]] = None
+        self.pyproject_requires: Optional[list[str]] = None
 
         # Build requirements that we will check are available
-        self.requirements_to_check: List[str] = []
+        self.requirements_to_check: list[str] = []
 
         # The PEP 517 backend we should use to build the project
         self.pep517_backend: Optional[BuildBackendHookCaller] = None
@@ -905,7 +906,7 @@ def check_invalid_constraint_type(req: InstallRequirement) -> str:
     return problem
 
 
-def _has_option(options: Values, reqs: List[InstallRequirement], option: str) -> bool:
+def _has_option(options: Values, reqs: list[InstallRequirement], option: str) -> bool:
     if getattr(options, option, None):
         return True
     for req in reqs:
@@ -916,7 +917,7 @@ def _has_option(options: Values, reqs: List[InstallRequirement], option: str) ->
 
 def check_legacy_setup_py_options(
     options: Values,
-    reqs: List[InstallRequirement],
+    reqs: list[InstallRequirement],
 ) -> None:
     has_build_options = _has_option(options, reqs, "build_options")
     has_global_options = _has_option(options, reqs, "global_options")

@@ -3,9 +3,10 @@ import os
 import os.path
 import random
 import sys
+from collections.abc import Generator
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
-from typing import Any, BinaryIO, Generator, List, Union, cast
+from typing import Any, BinaryIO, Union, cast
 
 from pip._internal.utils.compat import get_path_uid
 from pip._internal.utils.misc import format_size
@@ -115,10 +116,10 @@ def _test_writable_dir_win(path: str) -> bool:
     raise OSError("Unexpected condition testing for writable directory")
 
 
-def find_files(path: str, pattern: str) -> List[str]:
+def find_files(path: str, pattern: str) -> list[str]:
     """Returns a list of absolute paths of files beneath path, recursively,
     with filenames which match the UNIX-style shell glob pattern."""
-    result: List[str] = []
+    result: list[str] = []
     for root, _, files in os.walk(path):
         matches = fnmatch.filter(files, pattern)
         result.extend(os.path.join(root, f) for f in matches)
