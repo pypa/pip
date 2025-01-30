@@ -1,5 +1,4 @@
-"""Tests for the config command
-"""
+"""Tests for the config command"""
 
 import re
 import textwrap

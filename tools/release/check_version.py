@@ -1,5 +1,4 @@
-"""Checks if the version is acceptable, as per this project's release process.
-"""
+"""Checks if the version is acceptable, as per this project's release process."""
 
 import sys
 from datetime import datetime

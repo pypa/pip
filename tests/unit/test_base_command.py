@@ -56,8 +56,8 @@ class FakeCommandWithUnicode(FakeCommand):
     _name = "fake_unicode"
 
     def run(self, options: Values, args: List[str]) -> int:
-        logging.getLogger("pip.tests").info(b"bytes here \xE9")
-        logging.getLogger("pip.tests").info(b"unicode here \xC3\xA9".decode("utf-8"))
+        logging.getLogger("pip.tests").info(b"bytes here \xe9")
+        logging.getLogger("pip.tests").info(b"unicode here \xc3\xa9".decode("utf-8"))
         return SUCCESS
 
 
