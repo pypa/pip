@@ -483,7 +483,7 @@ class Factory:
                 (or link) and one with the extra. This allows centralized constraint
                 handling for the base, resulting in fewer candidate rejections.
         """
-        if ireq.comes_from is not None:
+        if ireq.comes_from is not None and hasattr(ireq.comes_from, "extra"):
             requested_extras = requested_extras or ireq.comes_from.extras
 
         if not ireq.match_markers(requested_extras):
