@@ -11,6 +11,7 @@ from typing import (
     Mapping,
     Optional,
     Sequence,
+    Union,
     cast,
 )
 
@@ -96,7 +97,7 @@ class WheelDistribution(importlib.metadata.Distribution):
             raise UnsupportedWheel(error)
         return text
 
-    def locate_file(self, path: str | PathLike[str]) -> pathlib.Path:
+    def locate_file(self, path: Union[str, "PathLike[str]"]) -> pathlib.Path:
         # This method doesn't make sense for our in-memory wheel, but the API
         # requires us to define it.
         raise NotImplementedError

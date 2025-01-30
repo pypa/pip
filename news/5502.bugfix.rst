@@ -1,2 +1,0 @@
-Configured TLS server and client certificates are now used while installing build dependencies.
-Consequently, the private ``_PIP_STANDALONE_CERT`` environment variable is no longer used.

@@ -1,1 +1,0 @@
-The ``--proxy`` command-line option is now respected while installing build dependencies.

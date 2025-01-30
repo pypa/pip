@@ -1,1 +1,0 @@
-The pip version self check is disabled on ``EXTERNALLY-MANAGED`` environments.

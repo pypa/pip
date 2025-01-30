@@ -184,6 +184,7 @@ select = [
     "W",
     "RUF100",
     "UP",
+    "FA102",  # future-required-type-annotation
 ]
 
 [tool.ruff.lint.isort]
