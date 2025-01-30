@@ -11,7 +11,6 @@ from collections import OrderedDict
 from types import TracebackType
 from typing import TYPE_CHECKING, Iterable, List, Optional, Set, Tuple, Type, Union
 
-from pip._vendor.certifi import where
 from pip._vendor.packaging.version import Version
 
 from pip import __file__ as pip_location
@@ -246,8 +245,6 @@ class BuildEnvironment:
             # target from config file or env var should be ignored
             "--target",
             "",
-            "--cert",
-            finder.custom_cert or where(),
         ]
         if logger.getEffectiveLevel() <= logging.DEBUG:
             args.append("-vv")
@@ -276,6 +273,8 @@ class BuildEnvironment:
             args.extend(["--proxy", finder.proxy])
         for host in finder.trusted_hosts:
             args.extend(["--trusted-host", host])
+        if finder.custom_cert:
+            args.extend(["--cert", finder.custom_cert])
         if finder.client_cert:
             args.extend(["--client-cert", finder.client_cert])
         if finder.allow_all_prereleases:
