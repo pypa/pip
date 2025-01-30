@@ -16,9 +16,13 @@ def test_json_structured_output(script: PipTestEnvironment) -> None:
     output = script.pip("index", "versions", "pip", "--json", allow_stderr_warning=True)
     structured_output = json.loads(output.stdout)
 
+    assert isinstance(structured_output, dict)
     assert "name" in structured_output
-    assert "versions" in structured_output
+    assert structured_output["name"] == "pip"
     assert "latest" in structured_output
+    assert isinstance(structured_output["latest"], str)
+    assert "versions" in structured_output
+    assert isinstance(structured_output["versions"], list)
     assert (
         "20.2.3, 20.2.2, 20.2.1, 20.2, 20.1.1, 20.1, 20.0.2"
         ", 20.0.1, 19.3.1, 19.3, 19.2.3, 19.2.2, 19.2.1, 19.2, 19.1.1"
@@ -30,7 +34,7 @@ def test_json_structured_output(script: PipTestEnvironment) -> None:
         "1.5.2, 1.5.1, 1.5, 1.4.1, 1.4, 1.3.1, 1.3, 1.2.1, 1.2, 1.1, 1.0.2,"
         " 1.0.1, 1.0, 0.8.3, 0.8.2, 0.8.1, 0.8, 0.7.2, 0.7.1, 0.7, 0.6.3, "
         "0.6.2, 0.6.1, 0.6, 0.5.1, 0.5, 0.4, 0.3.1, "
-        "0.3, 0.2.1, 0.2" in ", ".join(structured_output.get("versions"))
+        "0.3, 0.2.1, 0.2" in ", ".join(structured_output["versions"])
     )
 
 
