@@ -3,7 +3,6 @@ import logging
 from optparse import Values
 from typing import Any, Iterable, List, Optional
 
-from pip._internal.metadata import get_default_environment
 from pip._vendor.packaging.version import Version
 
 from pip._internal.cli import cmdoptions
@@ -13,6 +12,7 @@ from pip._internal.commands.search import print_dist_installation_info
 from pip._internal.exceptions import CommandError, DistributionNotFound, PipError
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
+from pip._internal.metadata import get_default_environment
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
@@ -141,14 +141,13 @@ class IndexCommand(IndexGroupCommand):
             env = get_default_environment()
             dist = env.get_distribution(query)
             structured_output = {
-                    "name": query,
-                    "versions": formatted_versions,
-                    "latest": latest,
-                }
+                "name": query,
+                "versions": formatted_versions,
+                "latest": latest,
+            }
 
             if dist is not None:
                 structured_output["installed_version"] = str(dist.version)
-
 
             write_output(json.dumps(structured_output))
             return

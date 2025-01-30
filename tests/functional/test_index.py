@@ -1,4 +1,5 @@
 import json
+
 import pytest
 
 from pip._internal.cli.status_codes import ERROR, SUCCESS
@@ -31,6 +32,7 @@ def test_json_structured_output(script: PipTestEnvironment) -> None:
         "0.6.2, 0.6.1, 0.6, 0.5.1, 0.5, 0.4, 0.3.1, "
         "0.3, 0.2.1, 0.2" in ", ".join(structured_output.get("versions"))
     )
+
 
 @pytest.mark.network
 def test_list_all_versions_basic_search(script: PipTestEnvironment) -> None:
