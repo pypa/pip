@@ -1,1 +1,1 @@
-Add a structured `--json` output to `pip index versions`
+Add a structured ``--json`` output to ``pip index versions``
