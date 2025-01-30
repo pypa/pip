@@ -1,0 +1,1 @@
+Add a structured `--json` output to `pip index versions`
