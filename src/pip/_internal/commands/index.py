@@ -147,7 +147,7 @@ class IndexCommand(IndexGroupCommand):
                 }
 
             if dist is not None:
-                structured_output["installed_version"] = dist.version
+                structured_output["installed_version"] = str(dist.version)
 
 
             write_output(json.dumps(structured_output))
