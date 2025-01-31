@@ -7,13 +7,14 @@ import venv
 from os import PathLike
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Union
 
 
 class EnvBuilder(venv.EnvBuilder):
     """A subclass of venv.EnvBuilder that exposes the python executable command."""
 
     def ensure_directories(
-        self, env_dir: str | bytes | PathLike[str] | PathLike[bytes]
+        self, env_dir: Union[str, bytes, "PathLike[str]", "PathLike[bytes]"]
     ) -> SimpleNamespace:
         context = super().ensure_directories(env_dir)
         self.env_exec_cmd = context.env_exec_cmd
@@ -36,6 +37,9 @@ def get_git_head_timestamp() -> str:
 def main() -> None:
     with tempfile.TemporaryDirectory() as build_env:
         env_builder = EnvBuilder(with_pip=True)
+        # If this venv creation step fails, you may be hitting
+        # https://github.com/astral-sh/python-build-standalone/issues/381
+        # Try running with a another Python distribution.
         env_builder.create(build_env)
         subprocess.run(
             [

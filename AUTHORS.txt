@@ -125,6 +125,7 @@ burrows
 Bussonnier Matthias
 bwoodsend
 c22
+Caleb Brown
 Caleb Martinez
 Calvin Smith
 Carl Meyer
@@ -134,6 +135,7 @@ Carter Thayer
 Cass
 Chandrasekhar Atina
 Charlie Marsh
+charwick
 Chih-Hsuan Yen
 Chris Brinker
 Chris Hunt
@@ -403,18 +405,22 @@ Josh Cannon
 Josh Hansen
 Josh Schneier
 Joshua
+JoshuaPerdue
 Juan Luis Cano Rodríguez
 Juanjo Bazán
 Judah Rand
 Julian Berman
 Julian Gethmann
 Julien Demoor
+July Tikhonov
 Jussi Kukkonen
+Justin van Heek
 jwg4
 Jyrki Pulliainen
 Kai Chen
 Kai Mueller
 Kamal Bin Mustafa
+Karolina Surma
 kasium
 kaustav haldar
 keanemind
@@ -625,6 +631,7 @@ R. David Murray
 Rafael Caricio
 Ralf Schmitt
 Ran Benita
+Randy Döring
 Razzi Abuissa
 rdb
 Reece Dunham
