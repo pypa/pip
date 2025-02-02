@@ -1,2 +1,1 @@
-Remove `experimental` warning from `pip index versions` command and
-add json output support.
+Remove ``experimental`` warning from ``pip index versions`` command.
