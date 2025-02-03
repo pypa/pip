@@ -1,5 +1,4 @@
-"""Basic CLI functionality checks.
-"""
+"""Basic CLI functionality checks."""
 
 import subprocess
 import sys

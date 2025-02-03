@@ -1,5 +1,4 @@
-"""Helper classes as mocks for requests objects.
-"""
+"""Helper classes as mocks for requests objects."""
 
 from io import BytesIO
 from typing import Any, Callable, Dict, Iterator, List, Optional

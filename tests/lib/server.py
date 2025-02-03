@@ -48,7 +48,7 @@ class _RequestHandler(WSGIRequestHandler):
 
 
 def _mock_wsgi_adapter(
-    mock: Callable[["WSGIEnvironment", "StartResponse"], "WSGIApplication"]
+    mock: Callable[["WSGIEnvironment", "StartResponse"], "WSGIApplication"],
 ) -> "WSGIApplication":
     """Uses a mock to record function arguments and provide
     the actual function that should respond.
