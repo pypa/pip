@@ -1,0 +1,1 @@
+Show the correct path to the interpreter also when it's a symlink in a venv in the pip upgrade prompt.
