@@ -22,7 +22,7 @@ repos:
   - id: black
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.9.1
+  rev: v0.9.4
   hooks:
     - id: ruff
       args: [--fix, --exit-non-zero-on-fix]
@@ -54,7 +54,7 @@ repos:
     exclude: NEWS.rst  # The errors flagged in NEWS.rst are old.
 
 - repo: https://github.com/codespell-project/codespell
-  rev: v2.3.0
+  rev: v2.4.1
   hooks:
     - id: codespell
       exclude: AUTHORS.txt|tests/data
