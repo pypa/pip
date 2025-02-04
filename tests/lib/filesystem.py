@@ -1,5 +1,4 @@
-"""Helpers for filesystem-dependent tests.
-"""
+"""Helpers for filesystem-dependent tests."""
 
 import os
 from contextlib import contextmanager

@@ -1,5 +1,4 @@
-"""Helpers for tests that check configuration
-"""
+"""Helpers for tests that check configuration"""
 
 import contextlib
 import functools
