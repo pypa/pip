@@ -8,11 +8,13 @@ from pip._vendor.packaging.version import Version
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.req_command import IndexGroupCommand
 from pip._internal.cli.status_codes import ERROR, SUCCESS
-from pip._internal.commands.search import print_dist_installation_info
+from pip._internal.commands.search import (
+    get_installed_distribution,
+    print_dist_installation_info_if_exists,
+)
 from pip._internal.exceptions import CommandError, DistributionNotFound, PipError
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
-from pip._internal.metadata import get_default_environment
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
@@ -137,9 +139,9 @@ class IndexCommand(IndexGroupCommand):
             formatted_versions = [str(ver) for ver in sorted(versions, reverse=True)]
             latest = formatted_versions[0]
 
+        dist = get_installed_distribution(query)
+
         if options.json:
-            env = get_default_environment()
-            dist = env.get_distribution(query)
             structured_output = {
                 "name": query,
                 "versions": formatted_versions,
@@ -154,4 +156,4 @@ class IndexCommand(IndexGroupCommand):
         else:
             write_output(f"{query} ({latest})")
             write_output("Available versions: {}".format(", ".join(formatted_versions)))
-            print_dist_installation_info(query, latest)
+            print_dist_installation_info_if_exists(latest, dist)
