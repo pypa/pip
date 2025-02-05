@@ -190,9 +190,10 @@ def rmtree_errorhandler(
 def display_path(path: str) -> str:
     """Gives the display value for a given path, making it relative to cwd
     if possible."""
-    path = os.path.normcase(os.path.abspath(path))
-    if path.startswith(os.getcwd() + os.path.sep):
-        path = "." + path[len(os.getcwd()) :]
+    abs_path, cwd = os.path.abspath(path), os.getcwd()
+    common = os.path.commonpath([cwd, abs_path])
+    if len(common) == len(cwd):
+        return "." + abs_path[len(common) :]
     return path
 
 
