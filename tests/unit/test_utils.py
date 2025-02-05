@@ -14,7 +14,7 @@ from collections.abc import Iterator
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Callable, NoReturn
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -33,6 +33,7 @@ from pip._internal.utils.misc import (
     HiddenText,
     build_netloc,
     build_url_from_netloc,
+    display_path,
     format_size,
     get_prog,
     hide_url,
@@ -318,6 +319,39 @@ elif sys.byteorder == "big":
     expected_byte_string = (
         "b'\\xfe\\xff\\x00/\\x00p\\x00a\\x00t\\x00h\\x00/\\x00d\\x00\\xe9\\x00f'"
     )
+
+
+class Test_display_path:
+    on_unix = pytest.mark.skipif("sys.platform == 'win32'")
+    on_win32 = pytest.mark.skipif("sys.platform != 'win32'")
+
+    @pytest.mark.parametrize(
+        "path, fake_cwd, expected",
+        [
+            pytest.param(
+                *("/home/name/project", Path("/home/name"), "./project"),
+                marks=on_unix,
+            ),
+            pytest.param(
+                *("/home", Path("/home/name"), "/home"),
+                marks=on_unix,
+                id="not-go-up",
+            ),
+            pytest.param(
+                *("C:\\Name\\Project", Path("C:\\Name"), ".\\Project"),
+                marks=on_win32,
+            ),
+            pytest.param(
+                *("D:\\Data", Path("C:\\Name"), "D:\\Data"),
+                marks=on_win32,
+            ),
+        ],
+    )
+    def test_display(self, path: str, fake_cwd: Path, expected: str) -> None:
+        with patch("pathlib.Path.cwd") as cwd_func:
+            cwd_func.return_value = fake_cwd
+            got = display_path(path)
+            assert got == expected
 
 
 class Test_normalize_path:
