@@ -150,8 +150,8 @@ class IndexCommand(IndexGroupCommand):
                 structured_output["installed_version"] = str(dist.version)
 
             write_output(json.dumps(structured_output))
-            return
 
-        write_output(f"{query} ({latest})")
-        write_output("Available versions: {}".format(", ".join(formatted_versions)))
-        print_dist_installation_info(query, latest)
+        else:
+            write_output(f"{query} ({latest})")
+            write_output("Available versions: {}".format(", ".join(formatted_versions)))
+            print_dist_installation_info(query, latest)
