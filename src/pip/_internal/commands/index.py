@@ -10,7 +10,7 @@ from pip._internal.cli.req_command import IndexGroupCommand
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.commands.search import (
     get_installed_distribution,
-    print_dist_installation_info_if_exists,
+    print_dist_installation_info,
 )
 from pip._internal.exceptions import CommandError, DistributionNotFound, PipError
 from pip._internal.index.collector import LinkCollector
@@ -156,4 +156,4 @@ class IndexCommand(IndexGroupCommand):
         else:
             write_output(f"{query} ({latest})")
             write_output("Available versions: {}".format(", ".join(formatted_versions)))
-            print_dist_installation_info_if_exists(latest, dist)
+            print_dist_installation_info(latest, dist)

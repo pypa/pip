@@ -112,9 +112,7 @@ def transform_hits(hits: List[Dict[str, str]]) -> List["TransformedHit"]:
     return list(packages.values())
 
 
-def print_dist_installation_info_if_exists(
-    latest: str, dist: Optional[BaseDistribution]
-) -> None:
+def print_dist_installation_info(latest: str, dist: Optional[BaseDistribution]) -> None:
     if dist is not None:
         with indent_log():
             if dist.version == latest:
@@ -170,7 +168,7 @@ def print_results(
         try:
             write_output(line)
             dist = get_installed_distribution(name)
-            print_dist_installation_info_if_exists(latest, dist)
+            print_dist_installation_info(latest, dist)
         except UnicodeEncodeError:
             pass
 
