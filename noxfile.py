@@ -1,5 +1,4 @@
-"""Automation using nox.
-"""
+"""Automation using nox."""
 
 import argparse
 import glob

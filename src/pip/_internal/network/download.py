@@ -1,5 +1,4 @@
-"""Download files with progress indicators.
-"""
+"""Download files with progress indicators."""
 
 import email.message
 import logging

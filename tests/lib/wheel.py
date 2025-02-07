@@ -1,5 +1,4 @@
-"""Helper for building wheels as would be in test cases.
-"""
+"""Helper for building wheels as would be in test cases."""
 
 import csv
 import itertools

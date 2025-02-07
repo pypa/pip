@@ -35,7 +35,7 @@ def resolver(preparer: RequirementPreparer, finder: PackageFinder) -> Resolver:
 
 
 def _make_graph(
-    edges: List[Tuple[Optional[str], Optional[str]]]
+    edges: List[Tuple[Optional[str], Optional[str]]],
 ) -> "DirectedGraph[Optional[str]]":
     """Build graph from edge declarations."""
 
