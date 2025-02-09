@@ -1,4 +1,5 @@
 import dataclasses
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -10,6 +11,12 @@ from pip._internal.models.direct_url import ArchiveInfo, DirInfo, VcsInfo
 from pip._internal.models.link import Link
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.urls import url_to_path
+
+PYLOCK_FILE_NAME_RE = re.compile(r"^pylock\.([^.]+)\.toml$")
+
+
+def is_valid_pylock_file_name(path: Path) -> bool:
+    return path.name == "pylock.toml" or bool(re.match(PYLOCK_FILE_NAME_RE, path.name))
 
 
 def _toml_dict_factory(data: List[Tuple[str, Any]]) -> Dict[str, Any]:
