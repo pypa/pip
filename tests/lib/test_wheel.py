@@ -1,5 +1,4 @@
-"""Tests for wheel helper.
-"""
+"""Tests for wheel helper."""
 
 import csv
 from email import message_from_string

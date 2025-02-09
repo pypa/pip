@@ -66,7 +66,7 @@ class TestUserCacheDir:
             return
 
         def my_get_win_folder(csidl_name: str) -> str:
-            return "\u00DF\u00E4\u03B1\u20AC"
+            return "\u00df\u00e4\u03b1\u20ac"
 
         monkeypatch.setattr(
             platformdirs.windows,  # type: ignore
