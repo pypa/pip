@@ -9,6 +9,15 @@
 
 .. towncrier release notes start
 
+25.0.1 (2025-02-09)
+===================
+
+Bug Fixes
+---------
+
+- Fix an unsupported type annotation on Python 3.10 and earlier. (`#13181 <https://github.com/pypa/pip/issues/13181>`_)
+- Fix a regression where truststore would never be used while installing build dependencies. (`#13186 <https://github.com/pypa/pip/issues/13186>`_)
+
 25.0 (2025-01-26)
 =================
 
