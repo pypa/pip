@@ -11,6 +11,10 @@ from tests.lib.venv import VirtualEnvironment
 
 @pytest.fixture
 def patch_check_externally_managed(virtualenv: VirtualEnvironment) -> None:
+    # Enable user site-packages for the virtualenv to avoid '--user' install errors
+    virtualenv.user_site_packages = True
+    print("DEBUG: virtualenv.user_site_packages set to", virtualenv.user_site_packages)
+
     # Since the tests are run from a virtual environment, and we can't
     # guarantee access to the actual stdlib location (where EXTERNALLY-MANAGED
     # needs to go into), we patch the check to always raise a simple message.
