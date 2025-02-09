@@ -83,10 +83,7 @@ class Package:
         dist = ireq.get_dist()
         download_info = ireq.download_info
         assert download_info
-        package = cls(
-            name=dist.canonical_name,
-            version=str(dist.version),
-        )
+        package = cls(name=dist.canonical_name)
         package.direct = ireq.is_direct if ireq.is_direct else None
         if package.direct:
             if isinstance(download_info.info, VcsInfo):
@@ -119,6 +116,7 @@ class Package:
                 # should never happen
                 raise NotImplementedError()
         else:
+            package.version = str(dist.version)
             if isinstance(download_info.info, ArchiveInfo):
                 if not download_info.info.hashes:
                     raise NotImplementedError()
