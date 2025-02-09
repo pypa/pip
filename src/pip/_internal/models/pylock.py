@@ -1,5 +1,6 @@
 import dataclasses
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from pip._vendor import tomli_w
@@ -79,7 +80,7 @@ class Package:
     # (not supported) tool: Optional[Dict[str, Any]]
 
     @classmethod
-    def from_install_requirement(cls, ireq: InstallRequirement) -> Self:
+    def from_install_requirement(cls, ireq: InstallRequirement, base_dir: Path) -> Self:
         dist = ireq.get_dist()
         download_info = ireq.download_info
         assert download_info
@@ -96,7 +97,11 @@ class Package:
                 )
             elif isinstance(download_info.info, DirInfo):
                 package.directory = PackageDirectory(
-                    path=url_to_path(download_info.url),
+                    path=(
+                        Path(url_to_path(download_info.url))
+                        .relative_to(base_dir, walk_up=True)
+                        .as_posix()
+                    ),
                     editable=(
                         download_info.info.editable
                         if download_info.info.editable
@@ -155,12 +160,12 @@ class Pylock:
 
     @classmethod
     def from_install_requirements(
-        cls, install_requirements: Iterable[InstallRequirement]
+        cls, install_requirements: Iterable[InstallRequirement], base_dir: Path
     ) -> Self:
         return cls(
             packages=sorted(
                 (
-                    Package.from_install_requirement(ireq)
+                    Package.from_install_requirement(ireq, base_dir)
                     for ireq in install_requirements
                 ),
                 key=lambda p: p.name,

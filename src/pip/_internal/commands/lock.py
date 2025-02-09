@@ -1,5 +1,6 @@
 import sys
 from optparse import Values
+from pathlib import Path
 from typing import List
 
 from pip._internal.cache import WheelCache
@@ -131,7 +132,7 @@ class LockCommand(RequirementCommand):
         requirement_set = resolver.resolve(reqs, check_supported_wheels=True)
 
         pyproject_lock = Pylock.from_install_requirements(
-            requirement_set.requirements.values()
+            requirement_set.requirements.values(), base_dir=Path.cwd()
         )
         sys.stdout.write(pyproject_lock.as_toml())
 
