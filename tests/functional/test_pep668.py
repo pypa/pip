@@ -37,7 +37,9 @@ def patch_check_externally_managed(virtualenv: VirtualEnvironment) -> None:
     ],
 )
 @pytest.mark.usefixtures("patch_check_externally_managed")
-def test_fails(script: PipTestEnvironment, arguments: List[str], virtualenv: VirtualEnvironment) -> None:
+def test_fails(
+    script: PipTestEnvironment, arguments: List[str], virtualenv: VirtualEnvironment
+) -> None:
     result = script.pip(*arguments, "pip", expect_error=True)
     try:
         assert "I am externally managed" in result.stderr
