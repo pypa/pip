@@ -1,0 +1,2 @@
+Build environment dependencies are no longer compiled to bytecode during
+installation for a minor performance improvement.

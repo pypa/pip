@@ -630,7 +630,7 @@ User Installs
 =============
 
 With Python 2.6 came the `"user scheme" for installation
-<https://docs.python.org/3/install/index.html#alternate-installation-the-user-scheme>`_,
+<https://docs.python.org/3/library/sysconfig.html#sysconfig-user-scheme>`_,
 which means that all Python distributions support an alternative install
 location that is specific to a user.  The default location for each OS is
 explained in the python documentation for the `site.USER_BASE

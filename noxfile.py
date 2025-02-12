@@ -82,7 +82,7 @@ def test(session: nox.Session) -> None:
         )
         # fmt: on
     else:
-        msg = f"Re-using existing common-wheels at {LOCATIONS['common-wheels']}."
+        msg = f"Reusing existing common-wheels at {LOCATIONS['common-wheels']}."
         session.log(msg)
 
     # Build source distribution

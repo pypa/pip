@@ -552,6 +552,9 @@ class RequiresPythonCandidate(Candidate):
     def __str__(self) -> str:
         return f"Python {self._version}"
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self._version!r})"
+
     @property
     def project_name(self) -> NormalizedName:
         return REQUIRES_PYTHON_IDENTIFIER
