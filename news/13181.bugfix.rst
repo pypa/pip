@@ -1,2 +1,0 @@
-Restore opt-in ``importlib.metadata`` backend support on Python 3.10 and lower
-by fixing an unsupported type annotation.
