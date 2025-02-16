@@ -464,6 +464,7 @@ class InstallCommand(RequirementCommand):
                 warn_script_location=warn_script_location,
                 use_user_site=options.use_user_site,
                 pycompile=options.compile,
+                progress_bar=options.progress_bar,
             )
 
             lib_locations = get_lib_location_guesses(
