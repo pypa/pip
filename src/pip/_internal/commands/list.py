@@ -125,7 +125,7 @@ class ListCommand(IndexGroupCommand):
             "--include-editable",
             action="store_true",
             dest="include_editable",
-            help="Include editable package from output.",
+            help="Include editable package in output.",
             default=True,
         )
         self.cmd_opts.add_option(cmdoptions.list_exclude())
