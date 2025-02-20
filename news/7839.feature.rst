@@ -1,0 +1,3 @@
+Add the ``--ignore-constraint`` option to ``pip install``, ``pip download``
+and ``pip wheel`` commands to ignore an individual constraint from a
+constraints file.
