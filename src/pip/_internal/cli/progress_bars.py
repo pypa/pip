@@ -1,11 +1,12 @@
 import functools
 import sys
-from typing import Callable, Generator, Iterable, Iterator, Optional, Tuple
+from typing import Callable, Generator, Iterable, Iterator, Optional, Tuple, TypeVar
 
 from pip._vendor.rich.progress import (
     BarColumn,
     DownloadColumn,
     FileSizeColumn,
+    MofNCompleteColumn,
     Progress,
     ProgressColumn,
     SpinnerColumn,
@@ -16,12 +17,14 @@ from pip._vendor.rich.progress import (
 )
 
 from pip._internal.cli.spinners import RateLimiter
-from pip._internal.utils.logging import get_indentation
+from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.logging import get_console, get_indentation
 
-DownloadProgressRenderer = Callable[[Iterable[bytes]], Iterator[bytes]]
+T = TypeVar("T")
+ProgressRenderer = Callable[[Iterable[T]], Iterator[T]]
 
 
-def _rich_progress_bar(
+def _rich_download_progress_bar(
     iterable: Iterable[bytes],
     *,
     bar_type: str,
@@ -57,6 +60,28 @@ def _rich_progress_bar(
             progress.update(task_id, advance=len(chunk))
 
 
+def _rich_install_progress_bar(
+    iterable: Iterable[InstallRequirement], *, total: int
+) -> Iterator[InstallRequirement]:
+    columns = (
+        TextColumn("{task.fields[indent]}"),
+        BarColumn(),
+        MofNCompleteColumn(),
+        TextColumn("{task.description}"),
+    )
+    console = get_console()
+
+    bar = Progress(*columns, refresh_per_second=6, console=console, transient=True)
+    # Hiding the progress bar at initialization forces a refresh cycle to occur
+    # until the bar appears, avoiding very short flashes.
+    task = bar.add_task("", total=total, indent=" " * get_indentation(), visible=False)
+    with bar:
+        for req in iterable:
+            bar.update(task, description=rf"\[{req.name}]", visible=True)
+            yield req
+            bar.advance(task)
+
+
 def _raw_progress_bar(
     iterable: Iterable[bytes],
     *,
@@ -81,14 +106,28 @@ def _raw_progress_bar(
 
 def get_download_progress_renderer(
     *, bar_type: str, size: Optional[int] = None
-) -> DownloadProgressRenderer:
+) -> ProgressRenderer[bytes]:
     """Get an object that can be used to render the download progress.
 
     Returns a callable, that takes an iterable to "wrap".
     """
     if bar_type == "on":
-        return functools.partial(_rich_progress_bar, bar_type=bar_type, size=size)
+        return functools.partial(
+            _rich_download_progress_bar, bar_type=bar_type, size=size
+        )
     elif bar_type == "raw":
         return functools.partial(_raw_progress_bar, size=size)
     else:
         return iter  # no-op, when passed an iterator
+
+
+def get_install_progress_renderer(
+    *, bar_type: str, total: int
+) -> ProgressRenderer[InstallRequirement]:
+    """Get an object that can be used to render the install progress.
+    Returns a callable, that takes an iterable to "wrap".
+    """
+    if bar_type == "on":
+        return functools.partial(_rich_install_progress_bar, total=total)
+    else:
+        return iter
