@@ -270,6 +270,7 @@ class Git(VersionControl):
             flags = ()
         else:
             flags = ("--verbose", "--progress")
+        extra_environ = {"GIT_TERMINAL_PROMPT": str(not os.environ.get("PIP_NO_INPUT"))}
         if self.get_git_version() >= (2, 17):
             # Git added support for partial clone in 2.17
             # https://git-scm.com/docs/partial-clone
@@ -281,10 +282,10 @@ class Git(VersionControl):
                     *flags,
                     url,
                     dest,
-                )
+                ), extra_environ=extra_environ,
             )
         else:
-            self.run_command(make_command("clone", *flags, url, dest))
+            self.run_command(make_command("clone", *flags, url, dest), extra_environ=extra_environ)
 
         if rev_options.rev:
             # Then a specific revision was requested.
