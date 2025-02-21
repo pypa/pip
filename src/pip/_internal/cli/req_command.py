@@ -79,7 +79,12 @@ class RequirementCommand(IndexGroupCommand):
     def __init__(self, *args: Any, **kw: Any) -> None:
         super().__init__(*args, **kw)
 
-        self.cmd_opts.add_option(cmdoptions.no_clean())
+        self.cmd_opts.add_options(
+            [
+                cmdoptions.no_clean(),
+                cmdoptions.no_deps_for(),
+            ]
+        )
 
     @staticmethod
     def determine_resolver_variant(options: Values) -> str:
@@ -186,6 +191,7 @@ class RequirementCommand(IndexGroupCommand):
                 force_reinstall=force_reinstall,
                 upgrade_strategy=upgrade_strategy,
                 py_version_info=py_version_info,
+                ignore_dependencies_for=options.ignore_dependencies_for,
             )
         import pip._internal.resolution.legacy.resolver
 
@@ -201,6 +207,7 @@ class RequirementCommand(IndexGroupCommand):
             force_reinstall=force_reinstall,
             upgrade_strategy=upgrade_strategy,
             py_version_info=py_version_info,
+            ignore_dependencies_for=options.ignore_dependencies_for,
         )
 
     def get_requirements(

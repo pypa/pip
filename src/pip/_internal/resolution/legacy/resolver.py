@@ -14,7 +14,7 @@ import logging
 import sys
 from collections import defaultdict
 from itertools import chain
-from typing import DefaultDict, Iterable, List, Optional, Set, Tuple
+from typing import Container, DefaultDict, Iterable, List, Optional, Set, Tuple
 
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.requirements import Requirement
@@ -126,6 +126,7 @@ class Resolver(BaseResolver):
         force_reinstall: bool,
         upgrade_strategy: str,
         py_version_info: Optional[Tuple[int, ...]] = None,
+        ignore_dependencies_for: Container[str] = frozenset(),
     ) -> None:
         super().__init__()
         assert upgrade_strategy in self._allowed_strategies
@@ -136,6 +137,7 @@ class Resolver(BaseResolver):
             py_version_info = normalize_version_info(py_version_info)
 
         self._py_version_info = py_version_info
+        self.ignore_dependencies_for = ignore_dependencies_for
 
         self.preparer = preparer
         self.finder = finder
@@ -542,7 +544,11 @@ class Resolver(BaseResolver):
                     requirement_set, req_to_install, parent_req_name=None
                 )
 
-            if not self.ignore_dependencies:
+            ignore_dependencies = (
+                self.ignore_dependencies
+                or dist.canonical_name in self.ignore_dependencies_for
+            )
+            if not ignore_dependencies:
                 if req_to_install.extras:
                     logger.debug(
                         "Installing extra requirements: %r",

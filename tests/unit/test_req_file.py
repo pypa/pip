@@ -50,6 +50,8 @@ def options(session: PipSession) -> mock.Mock:
         index_url="default_url",
         format_control=FormatControl(set(), set()),
         features_enabled=[],
+        ignore_dependencies=False,
+        ignore_dependencies_for=set(),
     )
 
 
@@ -835,6 +837,43 @@ class TestParseRequirements:
         )
 
         assert finder.index_urls == ["url1", "url2"]
+
+    def test_ignore_dependencies(self, tmpdir: Path, options: mock.Mock) -> None:
+        req = tmpdir / "req1.txt"
+        req.write_text(
+            """
+            --no-deps
+            """
+        )
+
+        list(
+            parse_reqfile(
+                req,
+                session=PipSession(),
+                options=options,
+            )
+        )
+
+        assert options.ignore_dependencies
+
+    def test_ignore_dependencies_for(self, tmpdir: Path, options: mock.Mock) -> None:
+        req = tmpdir / "req1.txt"
+        req.write_text(
+            """
+            --no-deps-for=foo,bar
+            --no-deps-for=spam,eggs
+            """
+        )
+
+        list(
+            parse_reqfile(
+                req,
+                session=PipSession(),
+                options=options,
+            )
+        )
+
+        assert options.ignore_dependencies_for == {"foo", "bar", "spam", "eggs"}
 
     def test_req_file_parse_no_only_binary(
         self, data: TestData, finder: PackageFinder
