@@ -1,0 +1,1 @@
+make --no-input flag work with install git+http and git+ssh schemes
