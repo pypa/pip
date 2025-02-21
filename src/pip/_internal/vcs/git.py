@@ -274,7 +274,7 @@ class Git(VersionControl):
         if os.environ.get("PIP_NO_INPUT"):
             extra_environ = {
                 "GIT_TERMINAL_PROMPT": "0",
-                "GIT_SSH_COMMAND": "ssh -oBatchMode=yes"
+                "GIT_SSH_COMMAND": "ssh -oBatchMode=yes",
             }
         else:
             extra_environ = None
@@ -290,10 +290,13 @@ class Git(VersionControl):
                     *flags,
                     url,
                     dest,
-                ), extra_environ=extra_environ,
+                ),
+                extra_environ=extra_environ,
             )
         else:
-            self.run_command(make_command("clone", *flags, url, dest), extra_environ=extra_environ)
+            self.run_command(
+                make_command("clone", *flags, url, dest), extra_environ=extra_environ
+            )
 
         if rev_options.rev:
             # Then a specific revision was requested.
