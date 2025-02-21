@@ -270,7 +270,15 @@ class Git(VersionControl):
             flags = ()
         else:
             flags = ("--verbose", "--progress")
-        extra_environ = {"GIT_TERMINAL_PROMPT": str(not os.environ.get("PIP_NO_INPUT"))}
+
+        if os.environ.get("PIP_NO_INPUT"):
+            extra_environ = {
+                "GIT_TERMINAL_PROMPT": "0",
+                "GIT_SSH_COMMAND": "ssh -oBatchMode=yes"
+            }
+        else:
+            extra_environ = None
+
         if self.get_git_version() >= (2, 17):
             # Git added support for partial clone in 2.17
             # https://git-scm.com/docs/partial-clone
