@@ -13,6 +13,7 @@ pass on state. To be consistent, all options will follow this design.
 import importlib.util
 import logging
 import os
+import pathlib
 import textwrap
 from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup, OptionParser, Values
@@ -731,6 +732,46 @@ no_deps: Callable[..., Option] = partial(
     action="store_true",
     default=False,
     help="Don't install package dependencies.",
+)
+
+
+def _handle_dependency_group(
+    option: Option, opt: str, value: str, parser: OptionParser
+) -> None:
+    """
+    Process a value provided for the --group option.
+
+    Splits on the rightmost ":", and validates that the path (if present) ends
+    in `pyproject.toml`. Defaults the path to `pyproject.toml` when one is not given.
+
+    `:` cannot appear in dependency group names, so this is a safe and simple parse.
+
+    This is an optparse.Option callback for the dependency_groups option.
+    """
+    path, sep, groupname = value.rpartition(":")
+    if not sep:
+        path = "pyproject.toml"
+    else:
+        # check for 'pyproject.toml' filenames using pathlib
+        if pathlib.PurePath(path).name != "pyproject.toml":
+            msg = "group paths use 'pyproject.toml' filenames"
+            raise_option_error(parser, option=option, msg=msg)
+
+    parser.values.dependency_groups.append((path, groupname))
+
+
+dependency_groups: Callable[..., Option] = partial(
+    Option,
+    "--group",
+    dest="dependency_groups",
+    default=[],
+    type=str,
+    action="callback",
+    callback=_handle_dependency_group,
+    metavar="[path:]group",
+    help='Install a named dependency-group from a "pyproject.toml" file. '
+    'If a path is given, the name of the file must be "pyproject.toml". '
+    'Defaults to using "pyproject.toml" in the current directory.',
 )
 
 ignore_requires_python: Callable[..., Option] = partial(

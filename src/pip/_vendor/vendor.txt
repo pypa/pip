@@ -16,3 +16,4 @@ resolvelib==1.1.0
 setuptools==70.3.0
 tomli==2.2.1
 truststore==0.10.1
+dependency-groups==1.3.0
