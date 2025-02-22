@@ -3,7 +3,7 @@ name that have meaning.
 """
 
 import re
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, Optional
 
 from pip._vendor.packaging.tags import Tag
 from pip._vendor.packaging.utils import BuildTag, parse_wheel_filename
@@ -31,11 +31,11 @@ class Wheel:
         # To make mypy happy specify type hints that can come from either
         # parse_wheel_filename or the legacy_wheel_file_re match.
         self.name: str
-        self.build_tag: BuildTag
+        self._build_tag: Optional[BuildTag] = None
 
         try:
             wheel_info = parse_wheel_filename(filename)
-            self.name, _version, self.build_tag, self.file_tags = wheel_info
+            self.name, _version, self._build_tag, self.file_tags = wheel_info
             self.version = str(_version)
         except _PackagingInvalidWheelFilename as e:
             # Check if the wheel filename is in the legacy format
@@ -61,14 +61,7 @@ class Wheel:
             self.name = legacy_wheel_info.group("name").replace("_", "-")
             self.version = legacy_wheel_info.group("ver").replace("_", "-")
 
-            # Parse the build tag
-            build_tag = legacy_wheel_info.group("build")
-            match = re.match(r"^(\d+)(.*)$", build_tag)
-            assert match is not None, "guaranteed by filename validation"
-            build_tag_groups = match.groups()
-            self.build_tag = (int(build_tag_groups[0]), build_tag_groups[1])
-
-            # Generate the file tags
+            # Generate the file tags from the legacy wheel filename
             pyversions = legacy_wheel_info.group("pyver").split(".")
             abis = legacy_wheel_info.group("abi").split(".")
             plats = legacy_wheel_info.group("plat").split(".")
@@ -78,6 +71,22 @@ class Wheel:
                 for abi in abis
                 for plat in plats
             )
+
+    @property
+    def build_tag(self) -> BuildTag:
+        if self._build_tag is not None:
+            return self._build_tag
+
+        # Parse the build tag from the legacy wheel filename
+        legacy_wheel_info = self.legacy_wheel_file_re.match(self.filename)
+        assert legacy_wheel_info is not None, "guaranteed by filename validation"
+        build_tag = legacy_wheel_info.group("build")
+        match = re.match(r"^(\d+)(.*)$", build_tag)
+        assert match is not None, "guaranteed by filename validation"
+        build_tag_groups = match.groups()
+        self._build_tag = (int(build_tag_groups[0]), build_tag_groups[1])
+
+        return self._build_tag
 
     def get_formatted_file_tags(self) -> List[str]:
         """Return the wheel's tags as a sorted list of strings."""
