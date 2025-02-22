@@ -348,9 +348,8 @@ def test_do_not_prompt_for_authentication_git(
     from a git http url requiring authentication
     """
     server = make_mock_server()
-    script.environ["GIT_ASKPASS"] = (
-        ""  # Disable vscode user/password prompt, will make tests fail inside vscode
-    )
+    # Disable vscode user/password prompt, will make tests fail inside vscode
+    script.environ["GIT_ASKPASS"] = ""
 
     # Return 401 on all URLs
     server.mock.side_effect = lambda _, __: authorization_response(
