@@ -345,7 +345,7 @@ def test_do_not_prompt_for_authentication_git(
     script: PipTestEnvironment, data: TestData, cert_factory: CertFactory
 ) -> None:
     """Test behaviour if --no-input option is given while installing
-    from a git url requiring authentication
+    from a git http url requiring authentication
     """
     server = make_mock_server()
     script.environ["GIT_ASKPASS"] = (
