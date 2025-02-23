@@ -25,16 +25,15 @@ class AccessLogPlugin(HttpProxyBasePlugin):
 def test_proxy_overrides_env(
     script: PipTestEnvironment, capfd: pytest.CaptureFixture[str]
 ) -> None:
-    with proxy.Proxy(
-        port=8899,
-        num_acceptors=1,
-    ), proxy.Proxy(plugins=[AccessLogPlugin], port=8888, num_acceptors=1):
-        script.environ["http_proxy"] = "127.0.0.1:8888"
-        script.environ["https_proxy"] = "127.0.0.1:8888"
+    with proxy.Proxy(port=0, num_acceptors=1) as proxy1, proxy.Proxy(
+        plugins=[AccessLogPlugin], port=0, num_acceptors=1
+    ) as proxy2:
+        script.environ["http_proxy"] = f"127.0.0.1:{proxy2.flags.port}"
+        script.environ["https_proxy"] = f"127.0.0.1:{proxy2.flags.port}"
         result = script.pip(
             "download",
             "--proxy",
-            "http://127.0.0.1:8899",
+            f"http://127.0.0.1:{proxy1.flags.port}",
             "--trusted-host",
             "127.0.0.1",
             "-d",
@@ -72,12 +71,12 @@ def test_proxy_does_not_override_netrc(
 
     netrc = script.scratch_path / ".netrc"
     netrc.write_text(f"machine {server.host} login USERNAME password PASSWORD")
-    with proxy.Proxy(port=8888, num_acceptors=1), server_running(server):
+    with proxy.Proxy(port=0, num_acceptors=1) as proxy1, server_running(server):
         script.environ["NETRC"] = netrc
         script.pip(
             "install",
             "--proxy",
-            "http://127.0.0.1:8888",
+            f"http://127.0.0.1:{proxy1.flags.port}",
             "--trusted-host",
             "127.0.0.1",
             "--no-cache-dir",
@@ -96,10 +95,9 @@ def test_proxy_does_not_override_netrc(
 def test_build_deps_use_proxy_from_cli(
     script: PipTestEnvironment, capfd: pytest.CaptureFixture[str], data: TestData
 ) -> None:
-    args = ["wheel", "-v", str(data.packages / "pep517_setup_and_pyproject")]
-    args.extend(["--proxy", "http://127.0.0.1:9000"])
-
-    with proxy.Proxy(port=9000, num_acceptors=1, plugins=[AccessLogPlugin]):
+    with proxy.Proxy(port=0, num_acceptors=1, plugins=[AccessLogPlugin]) as proxy1:
+        args = ["wheel", "-v", str(data.packages / "pep517_setup_and_pyproject")]
+        args.extend(["--proxy", f"http://127.0.0.1:{proxy1.flags.port}"])
         result = script.pip(*args)
 
     wheel_path = script.scratch / "pep517_setup_and_pyproject-1.0-py3-none-any.whl"
