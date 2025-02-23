@@ -5,7 +5,7 @@ import re
 import urllib.parse
 import urllib.request
 from dataclasses import replace
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import HiddenText, display_path, hide_url
@@ -76,6 +76,15 @@ class Git(VersionControl):
     @staticmethod
     def get_base_rev_args(rev: str) -> List[str]:
         return [rev]
+
+    @classmethod
+    def run_command(cls, *args: Any, **kwargs: Any) -> str:
+        if os.environ.get("PIP_NO_INPUT"):
+            extra_environ = kwargs.get("extra_environ", {})
+            extra_environ["GIT_TERMINAL_PROMPT"] = "0"
+            extra_environ["GIT_SSH_COMMAND"] = "ssh -oBatchMode=yes"
+            kwargs["extra_environ"] = extra_environ
+        return super().run_command(*args, **kwargs)
 
     def is_immutable_rev_checkout(self, url: str, dest: str) -> bool:
         _, rev_options = self.get_url_rev_options(hide_url(url))
@@ -271,14 +280,6 @@ class Git(VersionControl):
         else:
             flags = ("--verbose", "--progress")
 
-        if os.environ.get("PIP_NO_INPUT"):
-            extra_environ = {
-                "GIT_TERMINAL_PROMPT": "0",
-                "GIT_SSH_COMMAND": "ssh -oBatchMode=yes",
-            }
-        else:
-            extra_environ = None
-
         if self.get_git_version() >= (2, 17):
             # Git added support for partial clone in 2.17
             # https://git-scm.com/docs/partial-clone
@@ -290,13 +291,10 @@ class Git(VersionControl):
                     *flags,
                     url,
                     dest,
-                ),
-                extra_environ=extra_environ,
+                )
             )
         else:
-            self.run_command(
-                make_command("clone", *flags, url, dest), extra_environ=extra_environ
-            )
+            self.run_command(make_command("clone", *flags, url, dest))
 
         if rev_options.rev:
             # Then a specific revision was requested.
