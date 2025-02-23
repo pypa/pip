@@ -437,6 +437,8 @@ class RequirementPreparer:
             )
             return None
 
+        # To reduce the number of distinct requests we make against indices, we record
+        # whether a range request failed against this domain, and avoid trying it again.
         if link.netloc in self._domains_without_http_range:
             return None
 
