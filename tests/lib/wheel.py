@@ -360,6 +360,7 @@ def make_wheel(
     :param record: if provided and None, then no RECORD file is generated;
         else if a string then sets the content of the RECORD file
     :param metadata_first: Put the .dist-info metadata at the front of the zip file.
+        This is against the wheel spec, but is seen in several uploads on PyPI.
     """
     pythons = ["py2", "py3"]
     abis = ["none"]

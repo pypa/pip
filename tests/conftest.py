@@ -858,6 +858,8 @@ def fake_packages(session_script: PipTestEnvironment) -> Dict[str, List[FakePack
         "compilewheel",
         "2.0",
         extra_files={"asdf.txt": b"a" * 10_000},
+        # Several tensorflow-gpu uploads place the .dist-info at the beginning of the
+        # wheel, which may be a relic of the way bazel generates wheels.
         metadata_first=True,
     )
     # This wheel must be larger than 10KB to trigger the lazy wheel behavior we want
