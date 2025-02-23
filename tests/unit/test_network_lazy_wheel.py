@@ -27,6 +27,8 @@ MYPY_0_782_REQS = {
 }
 
 
+# NB: both the PipSession and any MockServer need use session scope in order to avoid
+# hangs on MacOS. The reason for this isn't clear.
 @pytest.fixture(scope="session")
 def session() -> PipSession:
     return PipSession()
