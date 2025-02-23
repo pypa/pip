@@ -331,8 +331,8 @@ class InvalidWheel(InstallationError):
         self.context = context
 
     def __str__(self) -> str:
-        suffix = f" ({self.context})" if self.context else "."
-        return f"Wheel '{self.name}' located at {self.location} is invalid{suffix}"
+        suffix = f" ({self.context})" if self.context else ""
+        return f"Wheel '{self.name}' located at {self.location} is invalid{suffix}."
 
 
 class MetadataInconsistent(InstallationError):
