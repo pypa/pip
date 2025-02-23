@@ -115,7 +115,7 @@ def pytest_collection_modifyitems(config: Config, items: List[pytest.Function]) 
         if "CI" in os.environ:
             # Mark network tests as flaky
             if item.get_closest_marker("network") is not None:
-                item.add_marker(pytest.mark.flaky(reruns=3, reruns_delay=2))
+                item.add_marker(pytest.mark.flaky(reruns=5, reruns_delay=5))
 
         if (
             item.get_closest_marker("incompatible_with_venv")
