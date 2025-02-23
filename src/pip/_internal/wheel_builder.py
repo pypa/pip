@@ -73,12 +73,6 @@ def _should_build(
     return True
 
 
-def should_build_for_wheel_command(
-    req: InstallRequirement,
-) -> bool:
-    return _should_build(req, need_wheel=True)
-
-
 def should_build_for_install_command(
     req: InstallRequirement,
 ) -> bool:

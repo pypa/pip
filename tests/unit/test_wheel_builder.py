@@ -87,24 +87,6 @@ def test_should_build_for_install_command(req: ReqMock, expected: bool) -> None:
 @pytest.mark.parametrize(
     "req, expected",
     [
-        (ReqMock(), True),
-        (ReqMock(is_wheel=True), False),
-        (ReqMock(editable=True, use_pep517=False), True),
-        (ReqMock(editable=True, use_pep517=True), True),
-        (ReqMock(source_dir=None), True),
-        (ReqMock(link=Link("git+https://g.c/org/repo")), True),
-    ],
-)
-def test_should_build_for_wheel_command(req: ReqMock, expected: bool) -> None:
-    should_build = wheel_builder.should_build_for_wheel_command(
-        cast(InstallRequirement, req)
-    )
-    assert should_build is expected
-
-
-@pytest.mark.parametrize(
-    "req, expected",
-    [
         (ReqMock(editable=True, use_pep517=False), False),
         (ReqMock(editable=True, use_pep517=True), False),
         (ReqMock(source_dir=None), False),
