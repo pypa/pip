@@ -46,9 +46,8 @@ def _should_build(
     need_wheel: bool,
 ) -> bool:
     """Return whether an InstallRequirement should be built into a wheel."""
-    if req.constraint:
-        # never build requirements that are merely constraints
-        return False
+    assert not req.constraint
+
     if req.is_wheel:
         if need_wheel:
             logger.info(

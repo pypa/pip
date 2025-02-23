@@ -51,8 +51,6 @@ class ReqMock:
         # We build, whether pep 517 is enabled or not.
         (ReqMock(use_pep517=True), True),
         (ReqMock(use_pep517=False), True),
-        # We don't build constraints.
-        (ReqMock(constraint=True), False),
         # We don't build reqs that are already wheels.
         (ReqMock(is_wheel=True), False),
         # We build editables if the backend supports PEP 660.
@@ -90,7 +88,6 @@ def test_should_build_for_install_command(req: ReqMock, expected: bool) -> None:
     "req, expected",
     [
         (ReqMock(), True),
-        (ReqMock(constraint=True), False),
         (ReqMock(is_wheel=True), False),
         (ReqMock(editable=True, use_pep517=False), True),
         (ReqMock(editable=True, use_pep517=True), True),
