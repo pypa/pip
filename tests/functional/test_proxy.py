@@ -96,9 +96,13 @@ def test_build_deps_use_proxy_from_cli(
     script: PipTestEnvironment, capfd: pytest.CaptureFixture[str], data: TestData
 ) -> None:
     with proxy.Proxy(port=0, num_acceptors=1, plugins=[AccessLogPlugin]) as proxy1:
-        args = ["wheel", "-v", str(data.packages / "pep517_setup_and_pyproject")]
-        args.extend(["--proxy", f"http://127.0.0.1:{proxy1.flags.port}"])
-        result = script.pip(*args)
+        result = script.pip(
+            "wheel",
+            "-v",
+            str(data.packages / "pep517_setup_and_pyproject"),
+            "--proxy",
+            f"http://127.0.0.1:{proxy1.flags.port}",
+        )
 
     wheel_path = script.scratch / "pep517_setup_and_pyproject-1.0-py3-none-any.whl"
     result.did_create(wheel_path)
