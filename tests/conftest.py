@@ -1254,7 +1254,7 @@ class ContentRangeDownloadHandler(
             # If no range given, return the whole file.
             if range_arg is None or not self.range_handler.supports_range():
                 self._send_full_file_headers(ctype, full_file_length)
-                self.copyfile(f, self.wfile)  # type: ignore[misc]
+                self.copyfile(f, self.wfile)
                 return
             # Otherwise, return the requested contents.
             assert m is not None
@@ -1289,7 +1289,7 @@ class ContentRangeDownloadHandler(
             if was_out_of_bounds:
                 if self.range_handler.overflows_negative_range():
                     self._send_full_file_headers(ctype, full_file_length)
-                    self.copyfile(f, self.wfile)  # type: ignore[misc]
+                    self.copyfile(f, self.wfile)
                     return
                 self.send_response(http.HTTPStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
                 self._send_basic_headers(ctype)

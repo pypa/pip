@@ -411,8 +411,7 @@ class LazyHTTPFile(FixedSizeLazyResource):
 
     def fetch_content_range(self, start: int, end: int) -> Iterator[bytes]:
         """Perform a series of HTTP range requests to cover the specified byte range."""
-        for chunk in self._stream_response(start, end).iter_content(CONTENT_CHUNK_SIZE):
-            yield chunk
+        yield from self._stream_response(start, end).iter_content(CONTENT_CHUNK_SIZE)
 
     def __enter__(self) -> LazyHTTPFile:
         """Fetch the remote file length and reset the log of downloaded intervals.
