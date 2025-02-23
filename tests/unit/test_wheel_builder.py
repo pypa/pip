@@ -63,8 +63,6 @@ class ReqMock:
             ReqMock(editable=True, use_pep517=True, supports_pyproject_editable=False),
             False,
         ),
-        # We don't build if there is no source dir (whatever that means!).
-        (ReqMock(source_dir=None), False),
         # By default (i.e. when binaries are allowed), VCS requirements
         # should be built in install mode.
         (

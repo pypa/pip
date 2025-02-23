@@ -50,8 +50,7 @@ def _should_build(
     if req.is_wheel:
         return False
 
-    if not req.source_dir:
-        return False
+    assert req.source_dir
 
     if req.editable:
         # we only build PEP 660 editable requirements
