@@ -481,6 +481,7 @@ def test_install_editable_from_bazaar(script: PipTestEnvironment) -> None:
 
 
 @pytest.mark.network
+@pytest.mark.flaky(reruns=3, reruns_delay=5)  # Launchpad is flaky
 @need_bzr
 def test_vcs_url_urlquote_normalization(
     script: PipTestEnvironment, tmpdir: Path
