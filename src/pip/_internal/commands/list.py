@@ -324,10 +324,6 @@ def format_for_columns(
     if running_outdated:
         header.extend(["Latest", "Type"])
 
-    has_editables = any(x.editable for x in pkgs)
-    if has_editables:
-        header.append("Editable project location")
-
     def wheel_build_tag(dist: BaseDistribution) -> Optional[str]:
         try:
             wheel_file = dist.read_text("WHEEL")
@@ -345,6 +341,10 @@ def format_for_columns(
     if options.verbose >= 1:
         header.append("Installer")
 
+    has_editables = any(x.editable for x in pkgs)
+    if has_editables:
+        header.append("Editable project location")
+
     data = []
     for i, proj in enumerate(pkgs):
         # if we're working on the 'outdated' list, separate out the
@@ -355,11 +355,11 @@ def format_for_columns(
             row.append(str(proj.latest_version))
             row.append(proj.latest_filetype)
 
-        if has_editables:
-            row.append(proj.editable_project_location or "")
-
         if has_build_tags:
             row.append(build_tags[i] or "")
+
+        if has_editables:
+            row.append(proj.editable_project_location or "")
 
         if options.verbose >= 1:
             row.append(proj.location or "")
