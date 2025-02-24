@@ -138,7 +138,6 @@ class _InstallRequirementBackedCandidate(Candidate):
         found remote link (e.g. from pypi.org).
     """
 
-    dist: BaseDistribution
     is_installed = False
 
     def __init__(
@@ -156,8 +155,16 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._ireq = ireq
         self._name = name
         self._version = version
-        self.dist = self._prepare()
+        self._dist: Optional[BaseDistribution] = None
         self._hash: Optional[int] = None
+
+    @property
+    def dist(self) -> BaseDistribution:
+        if self._dist is not None:
+            return self._dist
+
+        self._dist = self._prepare()
+        return self._dist
 
     def __str__(self) -> str:
         return f"{self.name} {self.version}"
