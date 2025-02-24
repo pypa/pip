@@ -17,10 +17,7 @@ else:
         # valid_signals() was added in Python 3.8 (and not using it results
         # in a warning on pthread_sigmask() call)
         mask: Iterable[int]
-        try:
-            mask = signal.valid_signals()
-        except AttributeError:
-            mask = set(range(1, signal.NSIG))
+        mask = signal.valid_signals()
 
         old_mask = signal.pthread_sigmask(  # type: ignore[attr-defined]
             signal.SIG_SETMASK,  # type: ignore[attr-defined]
