@@ -172,17 +172,27 @@ jobs:
       matrix:
         os: [Windows]
         python:
+          # NOTE: don't forget to update middle versions below!
           - "3.8"
-          # Commented out, since Windows tests are expensively slow,
-          # only test the oldest and newest Python supported by pip
-          # - "3.9"
-          # - "3.10"
-          # - "3.11"
-          # - "3.12"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
           - "3.13"
         group:
           - { number: 1, pytest-filter: "not test_install" }
           - { number: 2, pytest-filter: "test_install" }
+        scheduled:
+          - ${{ github.event_name == 'schedule' }}
+        exclude:
+          # Only run Windows CI across all Python versions during a scheduled run.
+          # This is possible by smuggling whether the run is scheduled via a
+          # a dynamic matrix variable and matching against that. Don't ask me why
+          # scheduled is defined as an array.
+          - { python: "3.9", scheduled: false }
+          - { python: "3.10", scheduled: false }
+          - { python: "3.11", scheduled: false }
+          - { python: "3.12", scheduled: false }
 
     steps:
       # The D: drive is significantly faster than the system C: drive.
