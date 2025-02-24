@@ -151,6 +151,7 @@ distlib = "https://bitbucket.org/pypa/distlib/raw/master/LICENSE.txt"
 #
 
 [tool.ruff]
+# Pinned to delay pyupgrade changes (https://github.com/pypa/pip/issues/13236)
 target-version = "py38"  # Pin Ruff to Python 3.8
 src = ["src"]
 line-length = 88
