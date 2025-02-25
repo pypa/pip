@@ -304,7 +304,6 @@ def get_scheme(
             user
             and k == "platlib"
             and not WINDOWS
-            and sys.version_info >= (3, 9)
             and _PLATLIBDIR != "lib"
             and _looks_like_bpo_44860()
         )
