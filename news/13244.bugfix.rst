@@ -1,0 +1,1 @@
+Prefer if any of the known requirements is "direct", e.g. points to an explicit URL.
