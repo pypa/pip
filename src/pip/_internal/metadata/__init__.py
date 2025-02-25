@@ -2,16 +2,11 @@ import contextlib
 import functools
 import os
 import sys
-from typing import TYPE_CHECKING, List, Optional, Type, cast
+from typing import List, Literal, Optional, Protocol, Type, cast
 
 from pip._internal.utils.misc import strtobool
 
 from .base import BaseDistribution, BaseEnvironment, FilesystemWheel, MemoryWheel, Wheel
-
-if TYPE_CHECKING:
-    from typing import Literal, Protocol
-else:
-    Protocol = object
 
 __all__ = [
     "BaseDistribution",
