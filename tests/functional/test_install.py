@@ -291,7 +291,7 @@ def test_pip_second_command_line_interface_works(
     args.extend(["install", "INITools==0.2"])
     args.extend(["-f", os.fspath(data.packages)])
     result = script.run(*args)
-    dist_info_folder = script.site_packages / "INITools-0.2.dist-info"
+    dist_info_folder = script.site_packages / "initools-0.2.dist-info"
     initools_folder = script.site_packages / "initools"
     result.did_create(dist_info_folder)
     result.did_create(initools_folder)
@@ -363,7 +363,7 @@ def test_basic_install_from_pypi(script: PipTestEnvironment) -> None:
     Test installing a package from PyPI.
     """
     result = script.pip("install", "INITools==0.2")
-    dist_info_folder = script.site_packages / "INITools-0.2.dist-info"
+    dist_info_folder = script.site_packages / "initools-0.2.dist-info"
     initools_folder = script.site_packages / "initools"
     result.did_create(dist_info_folder)
     result.did_create(initools_folder)
@@ -555,7 +555,7 @@ def test_basic_install_from_local_directory(
     args.append(os.fspath(to_install))
     result = script.pip(*args)
     fspkg_folder = script.site_packages / "fspkg"
-    dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
+    dist_info_folder = script.site_packages / "fspkg-0.1.dev0.dist-info"
     result.did_create(fspkg_folder)
     result.did_create(dist_info_folder)
 
@@ -577,7 +577,7 @@ def test_basic_install_relative_directory(
     """
     Test installing a requirement using a relative path.
     """
-    dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
+    dist_info_folder = script.site_packages / "fspkg-0.1.dev0.dist-info"
     egg_link_file = script.site_packages / "FSPkg.egg-link"
     package_folder = script.site_packages / "fspkg"
 
@@ -871,7 +871,7 @@ def test_install_from_local_directory_with_in_tree_build(
     assert not in_tree_build_dir.exists()
     result = script.pip("install", to_install)
     fspkg_folder = script.site_packages / "fspkg"
-    dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
+    dist_info_folder = script.site_packages / "fspkg-0.1.dev0.dist-info"
     result.did_create(fspkg_folder)
     result.did_create(dist_info_folder)
     assert in_tree_build_dir.exists()
@@ -1025,7 +1025,7 @@ def test_install_curdir(script: PipTestEnvironment, data: TestData) -> None:
         rmtree(egg_info)
     result = script.pip("install", curdir, cwd=run_from)
     fspkg_folder = script.site_packages / "fspkg"
-    dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
+    dist_info_folder = script.site_packages / "fspkg-0.1.dev0.dist-info"
     result.did_create(fspkg_folder)
     result.did_create(dist_info_folder)
 
@@ -1037,7 +1037,7 @@ def test_install_pardir(script: PipTestEnvironment, data: TestData) -> None:
     run_from = data.packages.joinpath("FSPkg", "fspkg")
     result = script.pip("install", pardir, cwd=run_from)
     fspkg_folder = script.site_packages / "fspkg"
-    dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
+    dist_info_folder = script.site_packages / "fspkg-0.1.dev0.dist-info"
     result.did_create(fspkg_folder)
     result.did_create(dist_info_folder)
 
@@ -1550,9 +1550,9 @@ def test_url_req_case_mismatch_no_index(
     )
 
     # only Upper-1.0.tar.gz should get installed.
-    dist_info_folder = script.site_packages / "Upper-1.0.dist-info"
+    dist_info_folder = script.site_packages / "upper-1.0.dist-info"
     result.did_create(dist_info_folder)
-    dist_info_folder = script.site_packages / "Upper-2.0.dist-info"
+    dist_info_folder = script.site_packages / "upper-2.0.dist-info"
     result.did_not_create(dist_info_folder)
 
 
@@ -1578,10 +1578,10 @@ def test_url_req_case_mismatch_file_index(
         "install", "--index-url", data.find_links3, Dinner, "requiredinner"
     )
 
-    # only Upper-1.0.tar.gz should get installed.
-    dist_info_folder = script.site_packages / "Dinner-1.0.dist-info"
+    # only Dinner-1.0.tar.gz should get installed.
+    dist_info_folder = script.site_packages / "dinner-1.0.dist-info"
     result.did_create(dist_info_folder)
-    dist_info_folder = script.site_packages / "Dinner-2.0.dist-info"
+    dist_info_folder = script.site_packages / "dinner-2.0.dist-info"
     result.did_not_create(dist_info_folder)
 
 
@@ -1602,9 +1602,9 @@ def test_url_incorrect_case_no_index(
     )
 
     # only Upper-2.0.tar.gz should get installed.
-    dist_info_folder = script.site_packages / "Upper-1.0.dist-info"
+    dist_info_folder = script.site_packages / "upper-1.0.dist-info"
     result.did_not_create(dist_info_folder)
-    dist_info_folder = script.site_packages / "Upper-2.0.dist-info"
+    dist_info_folder = script.site_packages / "upper-2.0.dist-info"
     result.did_create(dist_info_folder)
 
 
@@ -1624,10 +1624,10 @@ def test_url_incorrect_case_file_index(
         expect_stderr=True,
     )
 
-    # only Upper-2.0.tar.gz should get installed.
-    dist_info_folder = script.site_packages / "Dinner-1.0.dist-info"
+    # only Dinner-2.0.tar.gz should get installed.
+    dist_info_folder = script.site_packages / "dinner-1.0.dist-info"
     result.did_not_create(dist_info_folder)
-    dist_info_folder = script.site_packages / "Dinner-2.0.dist-info"
+    dist_info_folder = script.site_packages / "dinner-2.0.dist-info"
     result.did_create(dist_info_folder)
 
     # Should show index-url location in output
@@ -1798,7 +1798,7 @@ def test_install_builds_wheels(script: PipTestEnvironment, data: TestData) -> No
     # into the cache
     assert wheels != [], str(res)
     assert wheels == [
-        f"Upper-2.0-py{sys.version_info[0]}-none-any.whl",
+        f"upper-2.0-py{sys.version_info[0]}-none-any.whl",
     ]
 
 
