@@ -1033,8 +1033,9 @@ class TestParseRequirements:
 
         # it's hard to rely on a locale definitely existing for testing
         # so patch things out for simplicity
-        with caplog.at_level(logging.WARNING), mock.patch(
-            "locale.getpreferredencoding", return_value=locale_encoding
+        with (
+            caplog.at_level(logging.WARNING),
+            mock.patch("locale.getpreferredencoding", return_value=locale_encoding),
         ):
             reqs = tuple(parse_reqfile(req_file.resolve(), session=session))
 
@@ -1065,7 +1066,8 @@ class TestParseRequirements:
         req_file = tmpdir / "requirements.txt"
         req_file.write_bytes(data)
 
-        with pytest.raises(UnicodeDecodeError), mock.patch(
-            "locale.getpreferredencoding", return_value=encoding
+        with (
+            pytest.raises(UnicodeDecodeError),
+            mock.patch("locale.getpreferredencoding", return_value=encoding),
         ):
             next(parse_reqfile(req_file.resolve(), session=session))

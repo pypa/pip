@@ -25,9 +25,10 @@ class AccessLogPlugin(HttpProxyBasePlugin):
 def test_proxy_overrides_env(
     script: PipTestEnvironment, capfd: pytest.CaptureFixture[str]
 ) -> None:
-    with proxy.Proxy(port=0, num_acceptors=1) as proxy1, proxy.Proxy(
-        plugins=[AccessLogPlugin], port=0, num_acceptors=1
-    ) as proxy2:
+    with (
+        proxy.Proxy(port=0, num_acceptors=1) as proxy1,
+        proxy.Proxy(plugins=[AccessLogPlugin], port=0, num_acceptors=1) as proxy2,
+    ):
         script.environ["http_proxy"] = f"127.0.0.1:{proxy2.flags.port}"
         script.environ["https_proxy"] = f"127.0.0.1:{proxy2.flags.port}"
         result = script.pip(
