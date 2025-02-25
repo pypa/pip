@@ -519,26 +519,15 @@ def test_install_editable_from_bazaar(script: PipTestEnvironment) -> None:
     result.assert_installed("testpackage", with_files=[".bzr"])
 
 
-@pytest.mark.network
-@need_bzr
-def test_vcs_url_urlquote_normalization(
-    script: PipTestEnvironment, tmpdir: Path
-) -> None:
+def test_vcs_url_urlquote_normalization(script: PipTestEnvironment) -> None:
     """
     Test that urlquoted characters are normalized for repo URL comparison.
     """
-    script.pip(
-        "install",
-        "-e",
-        "{url}/#egg=django-wikiapp".format(
-            url=local_checkout(
-                "bzr+http://bazaar.launchpad.net/"
-                "%7Edjango-wikiapp/django-wikiapp"
-                "/release-0.1",
-                tmpdir,
-            )
-        ),
+    pkg_path = _create_test_package(
+        script.scratch_path, name="django_wikiapp", vcs="git"
     )
+    url = f"git+{pkg_path.as_uri().replace('django_', 'django%5F')}/#egg=django_wikiapp"
+    script.pip("install", "-e", url)
 
 
 @pytest.mark.parametrize("resolver", ["", "--use-deprecated=legacy-resolver"])
