@@ -86,7 +86,7 @@ def test_requirements_file(script: PipTestEnvironment) -> None:
         )
     )
     result = script.pip("install", "-r", script.scratch_path / "initools-req.txt")
-    result.did_create(script.site_packages / "INITools-0.2.dist-info")
+    result.did_create(script.site_packages / "initools-0.2.dist-info")
     result.did_create(script.site_packages / "initools")
     assert result.files_created[script.site_packages / other_lib_name].dir
     fn = f"{other_lib_name}-{other_lib_version}.dist-info"
@@ -130,7 +130,7 @@ def test_dependency_group(
             path = path(pyproject)
         arg = f"{path}:{groupname}"
     result = script.pip("install", "--group", arg)
-    result.did_create(script.site_packages / "INITools-0.2.dist-info")
+    result.did_create(script.site_packages / "initools-0.2.dist-info")
     result.did_create(script.site_packages / "initools")
     assert result.files_created[script.site_packages / "peppercorn"].dir
     assert result.files_created[script.site_packages / "peppercorn-0.6.dist-info"].dir
@@ -153,7 +153,7 @@ def test_multiple_dependency_groups(script: PipTestEnvironment) -> None:
         )
     )
     result = script.pip("install", "--group", "initools", "--group", "peppercorn")
-    result.did_create(script.site_packages / "INITools-0.2.dist-info")
+    result.did_create(script.site_packages / "initools-0.2.dist-info")
     result.did_create(script.site_packages / "initools")
     assert result.files_created[script.site_packages / "peppercorn"].dir
     assert result.files_created[script.site_packages / "peppercorn-0.6.dist-info"].dir
@@ -176,7 +176,7 @@ def test_dependency_group_with_non_normalized_name(script: PipTestEnvironment) -
         )
     )
     result = script.pip("install", "--group", "IniTools")
-    result.did_create(script.site_packages / "INITools-0.2.dist-info")
+    result.did_create(script.site_packages / "initools-0.2.dist-info")
     result.did_create(script.site_packages / "initools")
 
 
@@ -215,7 +215,7 @@ def test_relative_requirements_file(
     URLs, use an egg= definition.
 
     """
-    dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
+    dist_info_folder = script.site_packages / "fspkg-0.1.dev0.dist-info"
     egg_link_file = script.site_packages / "FSPkg.egg-link"
     package_folder = script.site_packages / "fspkg"
 

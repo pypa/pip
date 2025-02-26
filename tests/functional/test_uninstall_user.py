@@ -79,7 +79,7 @@ class Tests_UninstallUserSite:
     @pytest.mark.xfail(
         sys.platform == "darwin"
         and platform.machine() == "arm64"
-        and sys.version_info[:2] in {(3, 8), (3, 9)},
+        and sys.version_info[:2] < (3, 10),
         reason="Unexpected egg-link install path",
     )
     def test_uninstall_editable_from_usersite(
