@@ -408,7 +408,8 @@ def test_show_deduplicate_requirements(script: PipTestEnvironment) -> None:
 
 
 @pytest.mark.parametrize(
-    "project_url", ["Home-page", "home-page", "Homepage", "homepage"]
+    "project_url",
+    ["Home-page", "home-page", "Homepage", "homepage", "home_PAGE", "home page"],
 )
 def test_show_populate_homepage_from_project_urls(
     script: PipTestEnvironment, project_url: str
