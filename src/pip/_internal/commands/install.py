@@ -397,13 +397,22 @@ class InstallCommand(RequirementCommand):
 
             if options.dry_run:
                 would_install_items = sorted(
-                    (r.metadata["name"], r.metadata["version"])
+                    (
+                        r.metadata["name"],
+                        r.metadata["version"],
+                        r.metadata["variant-hash"],
+                    )
+                    if "variant-hash" in r.metadata
+                    else (r.metadata["name"], r.metadata["version"])
                     for r in requirement_set.requirements_to_install
                 )
                 if would_install_items:
                     write_output(
                         "Would install %s",
-                        " ".join("-".join(item) for item in would_install_items),
+                        " ".join(
+                            "-".join(item[:2]) + f"~{item[2]}" if len(item) > 2 else ""
+                            for item in would_install_items
+                        ),
                     )
                 return SUCCESS
 

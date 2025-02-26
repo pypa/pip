@@ -1,5 +1,6 @@
 """Generate and work with PEP 425 Compatibility Tags."""
 
+import logging
 import re
 from typing import List, Optional, Tuple
 
@@ -15,7 +16,12 @@ from pip._vendor.packaging.tags import (
     mac_platforms,
 )
 
+from pip._internal.utils.variant import get_cached_variant_hashes_by_priority
+
 _apple_arch_pat = re.compile(r"(.+)_(\d+)_(\d+)_(.+)")
+
+
+logger = logging.getLogger(__name__)
 
 
 def version_info_to_nodot(version_info: Tuple[int, ...]) -> str:
@@ -183,5 +189,43 @@ def get_supported(
             platforms=platforms,
         )
     )
+
+    variants_by_priority = get_cached_variant_hashes_by_priority()
+
+    # NOTE: There is two choices implementation wise
+    # QUESTION: Which one should be the outer loop ?
+    #
+    # 1. Shall it iterate over all tags per `Variants`:
+    #   - cp313-cp313-manylinux_2_36_aarch64~054fcdf8
+    #   - cp313-cp313-manylinux_2_36_aarch64~39614353
+    #   - ...
+    #   - cp313-cp313-manylinux_2_35_aarch64~054fcdf8
+    #   - cp313-cp313-manylinux_2_34_aarch64~39614353
+    #   - ...
+    #   - cp313-cp313-manylinux_2_34_aarch64~054fcdf8
+    #   - cp313-cp313-manylinux_2_34_aarch64~39614353
+    #   - ...
+    #
+    # 2. Shall it iterate over all variants per `Tag`:
+    #   - cp313-cp313-manylinux_2_36_aarch64~054fcdf8
+    #   - cp313-cp313-manylinux_2_35_aarch64~054fcdf8
+    #   - cp313-cp313-manylinux_2_34_aarch64~054fcdf8
+    #   - ...
+    #   - cp313-cp313-manylinux_2_36_aarch64~39614353
+    #   - cp313-cp313-manylinux_2_35_aarch64~39614353
+    #   - cp313-cp313-manylinux_2_34_aarch64~39614353
+    #   - ...
+
+    # Current implementation is choice 1)
+    # Flip the order of `for loops` to switch to choice 2)
+
+    # Inject Variant Tags - Variants First
+    supported = [
+        Tag.create_varianttag_from_tag(tag, variant_hash=variant_desc.hexdigest)
+        for tag in supported
+        for variant_desc in variants_by_priority
+    ] + supported
+
+    logger.info(f"Total Number of Tags Generated: {len(supported):,}")  # noqa: G004
 
     return supported

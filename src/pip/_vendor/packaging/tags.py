@@ -20,6 +20,8 @@ from typing import (
     cast,
 )
 
+from typing import Self
+
 from . import _manylinux, _musllinux
 
 logger = logging.getLogger(__name__)
@@ -47,18 +49,28 @@ class Tag:
     is also supported.
     """
 
-    __slots__ = ["_abi", "_hash", "_interpreter", "_platform"]
+    __slots__ = ["_abi", "_hash", "_interpreter", "_platform", "_variant_hash"]
 
-    def __init__(self, interpreter: str, abi: str, platform: str) -> None:
+    @staticmethod
+    def create_varianttag_from_tag(tag: Self, variant_hash: str) -> Self:
+        return Tag(
+            interpreter=tag.interpreter,
+            abi=tag.abi,
+            platform=tag.platform,
+            variant_hash=variant_hash
+        )
+
+    def __init__(self, interpreter: str, abi: str, platform: str, variant_hash: str | None = None) -> None:
         self._interpreter = interpreter.lower()
         self._abi = abi.lower()
         self._platform = platform.lower()
+        self._variant_hash = variant_hash
         # The __hash__ of every single element in a Set[Tag] will be evaluated each time
         # that a set calls its `.disjoint()` method, which may be called hundreds of
         # times when scanning a page of links for packages with tags matching that
         # Set[Tag]. Pre-computing the value here produces significant speedups for
         # downstream consumers.
-        self._hash = hash((self._interpreter, self._abi, self._platform))
+        self._hash = hash((self._interpreter, self._abi, self._platform, self._variant_hash))
 
     @property
     def interpreter(self) -> str:
@@ -72,6 +84,10 @@ class Tag:
     def platform(self) -> str:
         return self._platform
 
+    @property
+    def variant_hash(self) -> str | None:
+        return self._variant_hash
+
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Tag):
             return NotImplemented
@@ -81,13 +97,17 @@ class Tag:
             and (self._platform == other._platform)
             and (self._abi == other._abi)
             and (self._interpreter == other._interpreter)
+            and (self._variant_hash == other._variant_hash)
         )
 
     def __hash__(self) -> int:
         return self._hash
 
     def __str__(self) -> str:
-        return f"{self._interpreter}-{self._abi}-{self._platform}"
+        val = f"{self._interpreter}-{self._abi}-{self._platform}"
+        if self._variant_hash is not None:
+            val += f"~{self._variant_hash}"
+        return val
 
     def __repr__(self) -> str:
         return f"<{self} @ {id(self)}>"
