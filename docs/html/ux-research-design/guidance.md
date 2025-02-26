@@ -344,6 +344,116 @@ Designing for pip includes:
 - Writing pip's _output_ - establishing how pip responds to commands and what information it provides the user. This includes writing success and error messages.
 - Providing supplemental materials - e.g. documentation that helps users understand pip's operation
 
+### Error message format and guidelines
+**Principle**
+
+A good error message should mention:
+* what the user has tried to do
+* possible next steps to try and solve the error
+  * possible steps need to go from "easiest" to "most complicated"
+* why the error has happened - see more information about the situation
+  
+In the case of `pip` error messages, they should also provide:
+* reason(s) why the error occured
+
+**Further reading**
+
+`https://uxplanet.org/how-to-write-good-error-messages-858e4551cd4`
+
+`https://www.nngroup.com/articles/error-message-guidelines/`
+
+**Error message format**
+
+We propose pip resolver error messages have 3 parts -
+* what the error is (i.e. what the user has tried to do)
+* what has caused the error
+* possible ways to solve the error
+
+**resolution:impossible**
+
+where a user wants to install packages (with 1 or more pinned version)
+with default verbose level
+
+`pip install peach=1.0 apple=2.0`
+
+"Due to conflicting dependencies pip cannot install Peach1.0 and Apple2.0:
+
+* Peach 1.0 depends on Banana 3.0
+* Apple2.0 depends on Banana2.0
+  
+There are a number of possible solutions. You can try:
+1. removing package versions from your requirements, and letting pip try to resolve the problem for you 
+2. Trying  a version of Peach that depends on Banana2.0. Try `pip-search peach —dep banana2.0`
+3. replacing Apple or Peach with a different package altogether
+4. patching Apple2.0 to use Banana3.0
+5. force installing (Be aware!)
+
+For instructions on how to do these steps visit: https://pypa.io/SomeLink"
+To debug this further you can run `pip-tree` to see all of your dependencies.
+
+**with verbose level -vv**
+
+If a user ran the same pip command with more verbosity, what would they see?
+
+**with verbose level -vvv**
+
+If a user ran the same pip command with more verbosity, what would they see?
+
+**where a user wants to install packages (with any versions)**
+NB: We are assuming this resolver behaviour gets implemented, based on [GH issues 8249](https://github.com/pypa/pip/issues/8249).
+
+**with default verbose level**
+
+`pip install apple peach`
+
+"Due to conflicting dependencies pip cannot install apple or peach. Both depend on banana, but pip can't find a version of either where they depend on the same banana version.
+
+There are a number of possible solutions. You can try:
+1. replacing apple or peach with a different package altogether
+2. patching apple or peach to use the same version of banana
+3. force installing (Be aware!)
+
+**To debug this further you can run pip-tree to see all of your dependencies.**
+
+*with default verbose level*
+
+*with verbose level -vv*
+
+If a user ran the same pip command with more verbosity, what would they see?
+
+*with verbose level -vvv*
+
+If a user ran the same pip command with more verbosity, what would they see?
+
+**What should be in the "documentation" page?**
+
+* ways to swap a package for another
+* how to patch a package to support a version (various ways) 
+
+**Recommendations**
+* Write official documentation / guide "How to resolve dependency conflicts" explaining:
+  * Why conflicts can exist
+  * How you can avoid them (pinning)
+  * How you can resolve them
+    * Use alternative package
+    * Use older version
+    * Patch package
+    * Other?
+*  Introduce new commands to pip, inspired by poetry:
+  * Tree: Show full tree of dependencies 
+  * Show `<package>` Show details of a package, including it's dependencies
+  * latest - shows latest vs installed versions
+  * outdated - shows only outdated versions
+* Expose commands / help link in output?? 
+  * when particular issue happens provide ways to move on (ala pipenv) e.g. "
+    * run this command to see X
+    * is it your internet connection?
+    * is it the pypi website?
+* Aspirational commands
+  * `pip search PackageName —dep PackageNameVersion`
+    * a command that will search for a version of a package that has a depenendency on another packageversion
+
+
 ### Design Principles / Usability Heuristics
 
 There are many interaction design principles that help designers design great experiences. Nielsen Norman's [10 Usability Heuristics for User Interface Design](https://www.nngroup.com/articles/ten-usability-heuristics) is a great place to start. Here are some of the ways these principles apply to pip:
