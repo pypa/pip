@@ -16,6 +16,7 @@ import subprocess
 import sys
 import urllib.parse
 import warnings
+from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -317,6 +318,13 @@ class InsecureCacheControlAdapter(CacheControlAdapter):
         super().cert_verify(conn=conn, url=url, verify=False, cert=cert)
 
 
+@dataclass(frozen=True)
+class MultiDomainAuthSettings:
+    prompting: bool = True
+    index_urls: Optional[List[str]] = None
+    keyring_provider: str = "auto"
+
+
 class PipSession(requests.Session):
     timeout: Optional[int] = None
 
@@ -326,8 +334,8 @@ class PipSession(requests.Session):
         retries: int = 0,
         cache: Optional[str] = None,
         trusted_hosts: Sequence[str] = (),
-        index_urls: Optional[List[str]] = None,
         ssl_context: Optional["SSLContext"] = None,
+        multi_domain_auth_settings: Optional[MultiDomainAuthSettings] = None,
         **kwargs: Any,
     ) -> None:
         """
@@ -345,7 +353,13 @@ class PipSession(requests.Session):
         self.headers["User-Agent"] = user_agent()
 
         # Attach our Authentication handler to the session
-        self.auth = MultiDomainBasicAuth(index_urls=index_urls)
+        if multi_domain_auth_settings is None:
+            multi_domain_auth_settings = MultiDomainAuthSettings()
+        self.auth = MultiDomainBasicAuth(
+            prompting=multi_domain_auth_settings.prompting,
+            index_urls=multi_domain_auth_settings.index_urls,
+            keyring_provider=multi_domain_auth_settings.keyring_provider,
+        )
 
         # Create our urllib3.Retry instance which will allow us to customize
         # how we handle retries.
