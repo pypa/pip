@@ -16,7 +16,7 @@ from pip._internal.req.req_install import (
 )
 from pip._internal.utils.misc import ensure_dir, normalize_path
 from pip._internal.utils.temp_dir import TempDirectory
-from pip._internal.wheel_builder import build, should_build_for_wheel_command
+from pip._internal.wheel_builder import build
 
 logger = logging.getLogger(__name__)
 
@@ -150,7 +150,7 @@ class WheelCommand(RequirementCommand):
         for req in requirement_set.requirements.values():
             if req.is_wheel:
                 preparer.save_linked_requirement(req)
-            elif should_build_for_wheel_command(req):
+            else:
                 reqs_to_build.append(req)
 
         preparer.prepare_linked_requirements_more(requirement_set.requirements.values())
