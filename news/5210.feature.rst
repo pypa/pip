@@ -1,0 +1,1 @@
+Display wheel build tag in ``pip list`` columns output if set.
