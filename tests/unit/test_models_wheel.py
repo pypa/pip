@@ -12,17 +12,24 @@ class TestWheelFile:
         w = Wheel("simple-1.1.1-py2-none-any.whl")
         assert w.name == "simple"
         assert w.version == "1.1.1"
-        assert w.pyversions == ["py2"]
-        assert w.abis == ["none"]
-        assert w.plats == ["any"]
+        assert w.build_tag == ()
+        assert w.file_tags == frozenset(
+            [Tag(interpreter="py2", abi="none", platform="any")]
+        )
 
     def test_wheel_pattern_multi_values(self) -> None:
         w = Wheel("simple-1.1-py2.py3-abi1.abi2-any.whl")
         assert w.name == "simple"
         assert w.version == "1.1"
-        assert w.pyversions == ["py2", "py3"]
-        assert w.abis == ["abi1", "abi2"]
-        assert w.plats == ["any"]
+        assert w.build_tag == ()
+        assert w.file_tags == frozenset(
+            [
+                Tag(interpreter="py2", abi="abi1", platform="any"),
+                Tag(interpreter="py2", abi="abi2", platform="any"),
+                Tag(interpreter="py3", abi="abi1", platform="any"),
+                Tag(interpreter="py3", abi="abi2", platform="any"),
+            ]
+        )
 
     def test_wheel_with_build_tag(self) -> None:
         # pip doesn't do anything with build tags, but theoretically, we might
@@ -30,16 +37,18 @@ class TestWheelFile:
         w = Wheel("simple-1.1-4-py2-none-any.whl")
         assert w.name == "simple"
         assert w.version == "1.1"
-        assert w.pyversions == ["py2"]
-        assert w.abis == ["none"]
-        assert w.plats == ["any"]
+        assert w.build_tag == (4, "")
+        assert w.file_tags == frozenset(
+            [Tag(interpreter="py2", abi="none", platform="any")]
+        )
 
     def test_single_digit_version(self) -> None:
         w = Wheel("simple-1-py2-none-any.whl")
         assert w.version == "1"
 
     def test_non_pep440_version(self) -> None:
-        w = Wheel("simple-_invalid_-py2-none-any.whl")
+        with pytest.warns(deprecation.PipDeprecationWarning):
+            w = Wheel("simple-_invalid_-py2-none-any.whl")
         assert w.version == "-invalid-"
 
     def test_missing_version_raises(self) -> None:
