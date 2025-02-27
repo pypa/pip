@@ -2,6 +2,7 @@
 
 import logging
 import re
+from functools import cache
 from typing import List, Optional, Tuple
 
 from pip._vendor.packaging.tags import (
@@ -137,6 +138,7 @@ def _get_custom_interpreter(
     return f"{implementation}{version}"
 
 
+@cache
 def get_supported(
     version: Optional[str] = None,
     platforms: Optional[List[str]] = None,
@@ -190,42 +192,40 @@ def get_supported(
         )
     )
 
-    variants_by_priority = get_cached_variant_hashes_by_priority()
+    if variants_by_priority := get_cached_variant_hashes_by_priority():
+        # NOTE: There is two choices implementation wise
+        # QUESTION: Which one should be the outer loop ?
+        #
+        # 1. Shall it iterate over all tags per `Variants`:
+        #   - cp313-cp313-manylinux_2_36_aarch64~054fcdf8
+        #   - cp313-cp313-manylinux_2_36_aarch64~39614353
+        #   - ...
+        #   - cp313-cp313-manylinux_2_35_aarch64~054fcdf8
+        #   - cp313-cp313-manylinux_2_34_aarch64~39614353
+        #   - ...
+        #   - cp313-cp313-manylinux_2_34_aarch64~054fcdf8
+        #   - cp313-cp313-manylinux_2_34_aarch64~39614353
+        #   - ...
+        #
+        # 2. Shall it iterate over all variants per `Tag`:
+        #   - cp313-cp313-manylinux_2_36_aarch64~054fcdf8
+        #   - cp313-cp313-manylinux_2_35_aarch64~054fcdf8
+        #   - cp313-cp313-manylinux_2_34_aarch64~054fcdf8
+        #   - ...
+        #   - cp313-cp313-manylinux_2_36_aarch64~39614353
+        #   - cp313-cp313-manylinux_2_35_aarch64~39614353
+        #   - cp313-cp313-manylinux_2_34_aarch64~39614353
+        #   - ...
 
-    # NOTE: There is two choices implementation wise
-    # QUESTION: Which one should be the outer loop ?
-    #
-    # 1. Shall it iterate over all tags per `Variants`:
-    #   - cp313-cp313-manylinux_2_36_aarch64~054fcdf8
-    #   - cp313-cp313-manylinux_2_36_aarch64~39614353
-    #   - ...
-    #   - cp313-cp313-manylinux_2_35_aarch64~054fcdf8
-    #   - cp313-cp313-manylinux_2_34_aarch64~39614353
-    #   - ...
-    #   - cp313-cp313-manylinux_2_34_aarch64~054fcdf8
-    #   - cp313-cp313-manylinux_2_34_aarch64~39614353
-    #   - ...
-    #
-    # 2. Shall it iterate over all variants per `Tag`:
-    #   - cp313-cp313-manylinux_2_36_aarch64~054fcdf8
-    #   - cp313-cp313-manylinux_2_35_aarch64~054fcdf8
-    #   - cp313-cp313-manylinux_2_34_aarch64~054fcdf8
-    #   - ...
-    #   - cp313-cp313-manylinux_2_36_aarch64~39614353
-    #   - cp313-cp313-manylinux_2_35_aarch64~39614353
-    #   - cp313-cp313-manylinux_2_34_aarch64~39614353
-    #   - ...
+        # Current implementation is choice 1)
+        # Flip the order of `for loops` to switch to choice 2)
 
-    # Current implementation is choice 1)
-    # Flip the order of `for loops` to switch to choice 2)
+        supported = [
+            Tag.create_varianttag_from_tag(tag, variant_hash=variant_hash)
+            for tag in supported
+            for variant_hash in variants_by_priority
+        ] + supported
 
-    # Inject Variant Tags - Variants First
-    supported = [
-        Tag.create_varianttag_from_tag(tag, variant_hash=variant_desc.hexdigest)
-        for tag in supported
-        for variant_desc in variants_by_priority
-    ] + supported
-
-    logger.info(f"Total Number of Tags Generated: {len(supported):,}")  # noqa: G004
+        logger.info(f"Total Number of Tags Generated: {len(supported):,}")  # noqa: G004
 
     return supported

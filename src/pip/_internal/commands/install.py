@@ -314,8 +314,8 @@ class InstallCommand(RequirementCommand):
             options.target_dir = os.path.abspath(options.target_dir)
             if (
                 # fmt: off
-                os.path.exists(options.target_dir) and
-                not os.path.isdir(options.target_dir)
+                os.path.exists(options.target_dir)
+                and not os.path.isdir(options.target_dir)
                 # fmt: on
             ):
                 raise CommandError(
@@ -406,11 +406,13 @@ class InstallCommand(RequirementCommand):
                     else (r.metadata["name"], r.metadata["version"])
                     for r in requirement_set.requirements_to_install
                 )
+
                 if would_install_items:
                     write_output(
                         "Would install %s",
                         " ".join(
-                            "-".join(item[:2]) + f"~{item[2]}" if len(item) > 2 else ""
+                            "-".join(item[:2])
+                            + (f"-~{item[2]}" if len(item) > 2 else "")
                             for item in would_install_items
                         ),
                     )
