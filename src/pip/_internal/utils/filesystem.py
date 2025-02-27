@@ -61,7 +61,6 @@ def adjacent_tmp_file(path: str, **kwargs: Any) -> Generator[BinaryIO, None, Non
             yield result
         finally:
             result.flush()
-            os.fsync(result.fileno())
 
 
 replace = retry(stop_after_delay=1, wait=0.25)(os.replace)
