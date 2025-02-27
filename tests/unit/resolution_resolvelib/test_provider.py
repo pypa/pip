@@ -176,4 +176,4 @@ def test_get_preference(
         identifier, {}, {}, preference_information_map, backtrack_causes_information
     )
 
-    assert preference == expected, f"Expected {expected}, got {preference_information}"
+    assert preference == expected, f"Expected {expected}, got {preference}"
