@@ -140,9 +140,9 @@ class PipProvider(_ProviderBase):
 
         if has_information:
             lookups = (r.get_candidate_lookup() for r, _ in information[identifier])
-            _candidate, ireqs = zip(*lookups)
+            _icandidates, ireqs = zip(*lookups)
         else:
-            _candidate, ireqs = None, ()
+            _icandidates, ireqs = (), ()
 
         operators = [
             specifier.operator
