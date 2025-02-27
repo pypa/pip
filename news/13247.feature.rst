@@ -1,0 +1,4 @@
+Bytecode compilation is parallelized to significantly speed up installation of
+large/many packages. By default, the number of workers matches the available CPUs
+(up to a hard-coded limit), but can be adjusted using the ``--install-jobs``
+option. To disable parallelization, pass ``--install-jobs 1``.

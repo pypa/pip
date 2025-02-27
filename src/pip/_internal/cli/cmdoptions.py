@@ -1070,6 +1070,39 @@ use_deprecated_feature: Callable[..., Option] = partial(
 )
 
 
+def _handle_jobs(
+    option: Option, opt_str: str, value: str, parser: OptionParser
+) -> None:
+    if value == "auto":
+        setattr(parser.values, option.dest, "auto")
+        return
+
+    try:
+        if (count := int(value)) > 0:
+            setattr(parser.values, option.dest, count)
+            return
+    except ValueError:
+        pass
+
+    msg = "should be a positive integer or 'auto'"
+    raise_option_error(parser, option=option, msg=msg)
+
+
+install_jobs: Callable[..., Option] = partial(
+    Option,
+    "--install-jobs",
+    dest="install_jobs",
+    default="auto",
+    type=str,
+    action="callback",
+    callback=_handle_jobs,
+    help=(
+        "Maximum number of workers to use while installing packages. "
+        "To disable parallelization, pass 1. (default: %default)"
+    ),
+)
+
+
 ##########
 # groups #
 ##########
