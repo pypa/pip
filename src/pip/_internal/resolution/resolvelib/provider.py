@@ -13,11 +13,10 @@ from typing import (
 
 from pip._vendor.resolvelib.providers import AbstractProvider
 
-from pip._internal.resolution.resolvelib.requirements import ExplicitRequirement
-
 from .base import Candidate, Constraint, Requirement
 from .candidates import REQUIRES_PYTHON_IDENTIFIER
 from .factory import Factory
+from .requirements import ExplicitRequirement
 
 if TYPE_CHECKING:
     from pip._vendor.resolvelib.providers import Preference
