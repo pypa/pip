@@ -103,6 +103,28 @@ class PipProvider(_ProviderBase):
     def identify(self, requirement_or_candidate: Union[Requirement, Candidate]) -> str:
         return requirement_or_candidate.name
 
+    def narrow_requirement_selection(
+        self,
+        identifiers: Iterable[str],
+        resolutions: Mapping[str, Candidate],
+        candidates: Mapping[str, Iterator[Candidate]],
+        information: Mapping[str, Iterator["PreferenceInformation"]],
+        backtrack_causes: Sequence["PreferenceInformation"],
+    ) -> Iterable[str]:
+        """Produce a subset of identifiers that should be considered before others.
+
+        Currently pip narrows the following selection:
+            * Requires-Python is always considered first.
+        """
+        for identifier in identifiers:
+            # Requires-Python has only one candidate and the check is basically
+            # free, so we always do it first to avoid needless work if it fails.
+            # This skips calling get_preference() for all other identifiers.
+            if identifier == REQUIRES_PYTHON_IDENTIFIER:
+                return [identifier]
+
+        return identifiers
+
     def get_preference(
         self,
         identifier: str,
@@ -153,17 +175,12 @@ class PipProvider(_ProviderBase):
         unfree = bool(operators)
         requested_order = self._user_requested.get(identifier, math.inf)
 
-        # Requires-Python has only one candidate and the check is basically
-        # free, so we always do it first to avoid needless work if it fails.
-        requires_python = identifier == REQUIRES_PYTHON_IDENTIFIER
-
         # Prefer the causes of backtracking on the assumption that the problem
         # resolving the dependency tree is related to the failures that caused
         # the backtracking
         backtrack_cause = self.is_backtrack_cause(identifier, backtrack_causes)
 
         return (
-            not requires_python,
             not direct,
             not pinned,
             not backtrack_cause,
