@@ -185,14 +185,14 @@ class PipProvider(_ProviderBase):
         else:
             candidate, ireqs = None, ()
 
-        operators = [
-            specifier.operator
+        operators: list[tuple[str, str]] = [
+            (specifier.operator, specifier.version)
             for specifier_set in (ireq.specifier for ireq in ireqs if ireq)
             for specifier in specifier_set
         ]
 
         direct = candidate is not None
-        pinned = any(op[:2] == "==" for op in operators)
+        pinned = any(((op[:2] == "==") and ("*" not in ver)) for op, ver in operators)
         unfree = bool(operators)
         requested_order = self._user_requested.get(identifier, math.inf)
 
