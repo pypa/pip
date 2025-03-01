@@ -122,11 +122,11 @@ class PipProvider(_ProviderBase):
               before other requirements as a resolution can't be found while
               there is a conflict.
         """
-        backtrack_idenifiers = set()
+        backtrack_identifiers = set()
         for info in backtrack_causes:
-            backtrack_idenifiers.add(info.requirement.name)
+            backtrack_identifiers.add(info.requirement.name)
             if info.parent is not None:
-                backtrack_idenifiers.add(info.parent.name)
+                backtrack_identifiers.add(info.parent.name)
 
         current_backtrack_causes = []
         for identifier in identifiers:
@@ -137,7 +137,7 @@ class PipProvider(_ProviderBase):
                 return [identifier]
 
             # Check if this identifier is a backtrack cause
-            if identifier in backtrack_idenifiers:
+            if identifier in backtrack_identifiers:
                 current_backtrack_causes.append(identifier)
                 continue
 
