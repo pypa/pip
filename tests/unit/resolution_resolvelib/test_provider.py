@@ -42,15 +42,7 @@ def build_req_info(
             {"pinned-package": [build_req_info("pinned-package==1.0")]},
             [],
             {},
-            (False, False, True, math.inf, False, "pinned-package"),
-        ),
-        # Package that caused backtracking
-        (
-            "backtrack-package",
-            {"backtrack-package": [build_req_info("backtrack-package")]},
-            [build_req_info("backtrack-package")],
-            {},
-            (False, True, False, math.inf, True, "backtrack-package"),
+            (False, False, math.inf, False, "pinned-package"),
         ),
         # Root package requested by user
         (
@@ -58,7 +50,7 @@ def build_req_info(
             {"root-package": [build_req_info("root-package")]},
             [],
             {"root-package": 1},
-            (False, True, True, 1, True, "root-package"),
+            (False, True, 1, True, "root-package"),
         ),
         # Unfree package (with specifier operator)
         (
@@ -66,7 +58,7 @@ def build_req_info(
             {"unfree-package": [build_req_info("unfree-package<1")]},
             [],
             {},
-            (False, True, True, math.inf, False, "unfree-package"),
+            (False, True, math.inf, False, "unfree-package"),
         ),
         # Free package (no operator)
         (
@@ -74,7 +66,7 @@ def build_req_info(
             {"free-package": [build_req_info("free-package")]},
             [],
             {},
-            (False, True, True, math.inf, True, "free-package"),
+            (False, True, math.inf, True, "free-package"),
         ),
     ],
 )
@@ -102,25 +94,41 @@ def test_get_preference(
 
 
 @pytest.mark.parametrize(
-    "identifiers, expected",
+    "identifiers, backtrack_causes, expected",
     [
-        # Case 1: REQUIRES_PYTHON_IDENTIFIER is present at the beginning
+        # REQUIRES_PYTHON_IDENTIFIER is present
         (
-            [REQUIRES_PYTHON_IDENTIFIER, "package1", "package2"],
+            [REQUIRES_PYTHON_IDENTIFIER, "package1", "package2", "backtrack-package"],
+            [build_req_info("backtrack-package")],
             [REQUIRES_PYTHON_IDENTIFIER],
         ),
-        # Case 2: REQUIRES_PYTHON_IDENTIFIER is present in the middle
+        # REQUIRES_PYTHON_IDENTIFIER is present after backtrack causes
         (
-            ["package1", REQUIRES_PYTHON_IDENTIFIER, "package2"],
+            ["package1", "package2", "backtrack-package", REQUIRES_PYTHON_IDENTIFIER],
+            [build_req_info("backtrack-package")],
             [REQUIRES_PYTHON_IDENTIFIER],
         ),
-        # Case 3: REQUIRES_PYTHON_IDENTIFIER is not present
+        # Backtrack causes present (direct requirement)
+        (
+            ["package1", "package2", "backtrack-package"],
+            [build_req_info("backtrack-package")],
+            ["backtrack-package"],
+        ),
+        # Multiple backtrack causes
+        (
+            ["package1", "backtrack1", "backtrack2", "package2"],
+            [build_req_info("backtrack1"), build_req_info("backtrack2")],
+            ["backtrack1", "backtrack2"],
+        ),
+        # No special identifiers - return all
         (
             ["package1", "package2"],
+            [],
             ["package1", "package2"],
         ),
-        # Case 4: Empty list of identifiers
+        # Empty list of identifiers
         (
+            [],
             [],
             [],
         ),
@@ -128,11 +136,14 @@ def test_get_preference(
 )
 def test_narrow_requirement_selection(
     identifiers: List[str],
+    backtrack_causes: Sequence["PreferenceInformation"],
     expected: List[str],
     factory: Factory,
 ) -> None:
-    """Test that narrow_requirement_selection correctly prioritizes
-    REQUIRES_PYTHON_IDENTIFIER when present in the list of identifiers.
+    """Test that narrow_requirement_selection correctly prioritizes identifiers:
+    1. REQUIRES_PYTHON_IDENTIFIER (if present)
+    2. Backtrack causes (if present)
+    3. All other identifiers (as-is)
     """
     provider = PipProvider(
         factory=factory,
@@ -142,6 +153,8 @@ def test_narrow_requirement_selection(
         user_requested={},
     )
 
-    result = provider.narrow_requirement_selection(identifiers, {}, {}, {}, [])
+    result = provider.narrow_requirement_selection(
+        identifiers, {}, {}, {}, backtrack_causes
+    )
 
     assert list(result) == expected, f"Expected {expected}, got {list(result)}"
