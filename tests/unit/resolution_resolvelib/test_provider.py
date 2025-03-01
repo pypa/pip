@@ -42,7 +42,7 @@ def build_req_info(
             {"pinned-package": [build_req_info("pinned-package==1.0")]},
             [],
             {},
-            (True, False, False, True, math.inf, False, "pinned-package"),
+            (False, False, math.inf, False, "pinned-package"),
         ),
         # Star-specified package, i.e. with "*"
         (
@@ -50,7 +50,7 @@ def build_req_info(
             {"star-specified-package": [build_req_info("star-specified-package==1.*")]},
             [],
             {},
-            (True, False, True, True, math.inf, False, "star-specified-package"),
+            (False, True, math.inf, False, "star-specified-package"),
         ),
         # Package that caused backtracking
         (
@@ -58,7 +58,7 @@ def build_req_info(
             {"backtrack-package": [build_req_info("backtrack-package")]},
             [build_req_info("backtrack-package")],
             {},
-            (True, False, True, False, math.inf, True, "backtrack-package"),
+            (False, True, math.inf, True, "backtrack-package"),
         ),
         # Root package requested by user
         (
