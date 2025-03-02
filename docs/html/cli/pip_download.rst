@@ -48,14 +48,15 @@ available as binaries, you can build them manually for your target platform
 and let pip download know where to find them using ``--find-links``.
 
 .. note::
-To determine the appropriate values for ``--python-version`` and ``--platform``, you can query the target system using the following commands:
 
-- For the Python version, use :func:`sysconfig.get_python_version() <sysconfig.get_python_version>`.
-- For the platform, use :func:`sysconfig.get_platform() <sysconfig.get_platform>`.
+   To determine the appropriate values for ``--python-version`` and ``--platform``, you can query the target system using the following commands:
 
-Refer to the official Python documentation for more details:
-- `sysconfig.get_python_version() <https://docs.python.org/3/library/sysconfig.html#sysconfig.get_python_version>`_
-- `sysconfig.get_platform() <https://docs.python.org/3/library/sysconfig.html#sysconfig.get_platform>`_
+   - For the Python version, use :func:`sysconfig.get_python_version() <sysconfig.get_python_version>`.
+   - For the platform, use :func:`sysconfig.get_platform() <sysconfig.get_platform>`.
+
+   Refer to the official Python documentation for more details:
+   - `sysconfig.get_python_version() <https://docs.python.org/3/library/sysconfig.html#sysconfig.get_python_version>`_
+   - `sysconfig.get_platform() <https://docs.python.org/3/library/sysconfig.html#sysconfig.get_platform>`_
 
 Options
 =======
