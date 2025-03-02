@@ -144,6 +144,8 @@ def get_supported(
     platforms: Optional[List[str]] = None,
     impl: Optional[str] = None,
     abis: Optional[List[str]] = None,
+    need_variants: bool = False,
+    known_variants: Optional[set] = None
 ) -> List[Tag]:
     """Return a list of supported tags for each version specified in
     `versions`.
@@ -192,7 +194,12 @@ def get_supported(
         )
     )
 
-    if variants_by_priority := get_cached_variant_hashes_by_priority():
+    if need_variants:
+        if known_variants is None:
+            variants_by_priority = get_cached_variant_hashes_by_priority()
+        else:
+            raise NotImplementedError()
+
         # NOTE: There is two choices implementation wise
         # QUESTION: Which one should be the outer loop ?
         #
