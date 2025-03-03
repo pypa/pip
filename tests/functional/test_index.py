@@ -1,9 +1,41 @@
+import json
+
 import pytest
 
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.commands import create_command
 
 from tests.lib import PipTestEnvironment
+
+
+@pytest.mark.network
+def test_json_structured_output(script: PipTestEnvironment) -> None:
+    """
+    Test that --json flag returns structured output
+    """
+    output = script.pip("index", "versions", "pip", "--json", allow_stderr_warning=True)
+    structured_output = json.loads(output.stdout)
+
+    assert isinstance(structured_output, dict)
+    assert "name" in structured_output
+    assert structured_output["name"] == "pip"
+    assert "latest" in structured_output
+    assert isinstance(structured_output["latest"], str)
+    assert "versions" in structured_output
+    assert isinstance(structured_output["versions"], list)
+    assert (
+        "20.2.3, 20.2.2, 20.2.1, 20.2, 20.1.1, 20.1, 20.0.2"
+        ", 20.0.1, 19.3.1, 19.3, 19.2.3, 19.2.2, 19.2.1, 19.2, 19.1.1"
+        ", 19.1, 19.0.3, 19.0.2, 19.0.1, 19.0, 18.1, 18.0, 10.0.1, 10.0.0, "
+        "9.0.3, 9.0.2, 9.0.1, 9.0.0, 8.1.2, 8.1.1, "
+        "8.1.0, 8.0.3, 8.0.2, 8.0.1, 8.0.0, 7.1.2, 7.1.1, 7.1.0, 7.0.3, "
+        "7.0.2, 7.0.1, 7.0.0, 6.1.1, 6.1.0, 6.0.8, 6.0.7, 6.0.6, 6.0.5, "
+        "6.0.4, 6.0.3, 6.0.2, 6.0.1, 6.0, 1.5.6, 1.5.5, 1.5.4, 1.5.3, "
+        "1.5.2, 1.5.1, 1.5, 1.4.1, 1.4, 1.3.1, 1.3, 1.2.1, 1.2, 1.1, 1.0.2,"
+        " 1.0.1, 1.0, 0.8.3, 0.8.2, 0.8.1, 0.8, 0.7.2, 0.7.1, 0.7, 0.6.3, "
+        "0.6.2, 0.6.1, 0.6, 0.5.1, 0.5, 0.4, 0.3.1, "
+        "0.3, 0.2.1, 0.2" in ", ".join(structured_output["versions"])
+    )
 
 
 @pytest.mark.network
