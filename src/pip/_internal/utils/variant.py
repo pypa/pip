@@ -43,7 +43,7 @@ class VariantJson(dict):
 def get_cached_variant_hashes_by_priority(
         variants_json: Optional[VariantJson] = None
         ) -> list[str]:
-    variants = list(get_variant_hashes_by_priority())
+    variants = list(get_variant_hashes_by_priority(variants_json=variants_json))
     if variants:
         logger.info(f"Total Number of Compatible Variants: {len(variants):,}")  # noqa: G004
     return variants
