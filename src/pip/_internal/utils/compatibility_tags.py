@@ -1,5 +1,6 @@
 """Generate and work with PEP 425 Compatibility Tags."""
 
+from functools import cache
 import logging
 import re
 from typing import List, Optional, Tuple
@@ -16,7 +17,7 @@ from pip._vendor.packaging.tags import (
     mac_platforms,
 )
 
-from pip._internal.utils.variant import get_cached_variant_hashes_by_priority
+from pip._internal.utils.variant import get_cached_variant_hashes_by_priority, VariantJson
 
 _apple_arch_pat = re.compile(r"(.+)_(\d+)_(\d+)_(.+)")
 
@@ -137,13 +138,14 @@ def _get_custom_interpreter(
     return f"{implementation}{version}"
 
 
+@cache
 def get_supported(
     version: Optional[str] = None,
     platforms: Optional[List[str]] = None,
     impl: Optional[str] = None,
     abis: Optional[List[str]] = None,
     need_variants: bool = False,
-    variants_json: Optional[dict] = None
+    variants_json: Optional[VariantJson] = None
 ) -> List[Tag]:
     """Return a list of supported tags for each version specified in
     `versions`.

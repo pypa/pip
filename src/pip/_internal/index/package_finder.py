@@ -36,6 +36,7 @@ from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import build_netloc
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.utils.unpacking import SUPPORTED_EXTENSIONS
+from pip._internal.utils.variant import VariantJson
 
 if TYPE_CHECKING:
     from pip._vendor.typing_extensions import TypeGuard
@@ -205,7 +206,7 @@ class LinkEvaluator:
                 variant_hash = wheel.variant_hash
                 supported_tags = self._target_python.get_unsorted_tags(
                     need_variants=variant_hash is not None,
-                    variants_json=self.variants_json if self.variants_json else None)
+                    variants_json=self.variants_json)
                 if not wheel.supported(supported_tags):
                     # Include the wheel's tags in the reason string to
                     # simplify troubleshooting compatibility issues.
@@ -384,7 +385,7 @@ class CandidateEvaluator:
         specifier: Optional[specifiers.BaseSpecifier] = None,
         hashes: Optional[Hashes] = None,
         need_variants: bool = False,
-        variants_json: Optional[dict] = None
+        variants_json: Optional[VariantJson] = None
     ) -> "CandidateEvaluator":
         """Create a CandidateEvaluator object.
 
@@ -787,7 +788,7 @@ class PackageFinder:
 
     @functools.cache
     def get_variants_json(self, link: Link) -> dict:
-        return self._link_collector.session.request("GET", link.url).json()
+        return VariantJson(self._link_collector.session.request("GET", link.url).json())
 
     def evaluate_links(
         self, link_evaluator: LinkEvaluator, links: Iterable[Link]
@@ -879,9 +880,8 @@ class PackageFinder:
 
             logger.debug("Local files found: %s", ", ".join(paths))
 
-        variants_json = link_evaluator.variants_json["variants"] if link_evaluator.variants_json is not None else None
         # This is an intentional priority ordering
-        return file_candidates + page_candidates, variants_json
+        return file_candidates + page_candidates, link_evaluator.variants_json
 
     def make_candidate_evaluator(
         self,
@@ -889,7 +889,7 @@ class PackageFinder:
         specifier: Optional[specifiers.BaseSpecifier] = None,
         hashes: Optional[Hashes] = None,
         need_variants: bool = False,
-        variants_json: Optional[dict] = None
+        variants_json: Optional[VariantJson] = None
     ) -> CandidateEvaluator:
         """Create a CandidateEvaluator object to use."""
         candidate_prefs = self._candidate_prefs

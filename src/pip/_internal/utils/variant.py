@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import cache
 import logging
 
 from variantlib.platform import get_variant_hashes_by_priority
@@ -33,23 +34,14 @@ def read_provider_priority_from_pip_config() -> dict[str, int]:
         return {}
 
 
-class VariantCache:
-    def __init__(self, func):
-        self._func = func
-        self._cache = {}
-
-    def __call__(self,
-                 variants_json: Optional[dict] = None
-                 ) -> list[str]:
-        cache_key = tuple((variants_json or {}).get("variants"))
-        if cache_key not in self._cache:
-            self._cache[cache_key] = self._func(variants_json)
-        return self._cache[cache_key]
+class VariantJson(dict):
+    def __hash__(self):
+        return hash(tuple(self.get("variants")))
 
 
-@VariantCache
+@cache
 def get_cached_variant_hashes_by_priority(
-        variants_json: Optional[dict] = None
+        variants_json: Optional[VariantJson] = None
         ) -> list[str]:
     variants = list(get_variant_hashes_by_priority())
     if variants:
