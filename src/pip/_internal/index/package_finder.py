@@ -205,7 +205,7 @@ class LinkEvaluator:
                 variant_hash = wheel.variant_hash
                 supported_tags = self._target_python.get_unsorted_tags(
                     need_variants=variant_hash is not None,
-                    known_variants=self.variants_json["variants"] if self.variants_json else None)
+                    variants_json=self.variants_json if self.variants_json else None)
                 if not wheel.supported(supported_tags):
                     # Include the wheel's tags in the reason string to
                     # simplify troubleshooting compatibility issues.
@@ -384,7 +384,7 @@ class CandidateEvaluator:
         specifier: Optional[specifiers.BaseSpecifier] = None,
         hashes: Optional[Hashes] = None,
         need_variants: bool = False,
-        known_variants: Optional[dict[str, dict[str, str]]] = None
+        variants_json: Optional[dict] = None
     ) -> "CandidateEvaluator":
         """Create a CandidateEvaluator object.
 
@@ -403,7 +403,7 @@ class CandidateEvaluator:
 
         supported_tags = target_python.get_sorted_tags(
             need_variants=need_variants,
-            known_variants=known_variants,
+            variants_json=variants_json,
         )
 
         return cls(
@@ -879,9 +879,9 @@ class PackageFinder:
 
             logger.debug("Local files found: %s", ", ".join(paths))
 
-        known_variants = link_evaluator.variants_json["variants"] if link_evaluator.variants_json is not None else None
+        variants_json = link_evaluator.variants_json["variants"] if link_evaluator.variants_json is not None else None
         # This is an intentional priority ordering
-        return file_candidates + page_candidates, known_variants
+        return file_candidates + page_candidates, variants_json
 
     def make_candidate_evaluator(
         self,
@@ -889,7 +889,7 @@ class PackageFinder:
         specifier: Optional[specifiers.BaseSpecifier] = None,
         hashes: Optional[Hashes] = None,
         need_variants: bool = False,
-        known_variants: Optional[dict[str, dict[str, str]]] = None
+        variants_json: Optional[dict] = None
     ) -> CandidateEvaluator:
         """Create a CandidateEvaluator object to use."""
         candidate_prefs = self._candidate_prefs
@@ -901,7 +901,7 @@ class PackageFinder:
             specifier=specifier,
             hashes=hashes,
             need_variants=need_variants,
-            known_variants=known_variants,
+            variants_json=variants_json,
         )
 
     @functools.lru_cache(maxsize=None)
@@ -919,14 +919,14 @@ class PackageFinder:
 
         :return: A `BestCandidateResult` instance.
         """
-        candidates, known_variants = self.find_all_candidates(project_name)
+        candidates, variants_json = self.find_all_candidates(project_name)
         candidate_evaluator = self.make_candidate_evaluator(
             project_name=project_name,
             specifier=specifier,
             hashes=hashes,
             need_variants=any(x.variant_hash is not None
                               for x in candidates),
-            known_variants=known_variants,
+            variants_json=variants_json,
         )
         return candidate_evaluator.compute_best_candidate(candidates)
 

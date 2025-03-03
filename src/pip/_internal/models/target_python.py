@@ -81,7 +81,7 @@ class TargetPython:
 
     def get_sorted_tags(self,
                         need_variants: bool = False,
-                        known_variants: Optional[dict[str, dict[str, str]]] = None
+                        variants_json: Optional[dict] = None
                         ) -> List[Tag]:
         """
         Return the supported PEP 425 tags to check wheel candidates against.
@@ -102,12 +102,12 @@ class TargetPython:
             abis=self.abis,
             impl=self.implementation,
             need_variants=need_variants,
-            known_variants=known_variants,
+            variants_json=variants_json,
         )
 
     def get_unsorted_tags(self,
                           need_variants: bool = False,
-                          known_variants: Optional[dict[str, dict[str, str]]] = None
+                          variants_json: Optional[dict] = None
                           ) -> Set[Tag]:
         """Exactly the same as get_sorted_tags, but returns a set.
 
@@ -115,5 +115,5 @@ class TargetPython:
         """
         return set(self.get_sorted_tags(
             need_variants=need_variants,
-            known_variants=known_variants,
+            variants_json=variants_json,
         ))

@@ -143,7 +143,7 @@ def get_supported(
     impl: Optional[str] = None,
     abis: Optional[List[str]] = None,
     need_variants: bool = False,
-    known_variants: Optional[dict[str, dict[str, str]]] = None
+    variants_json: Optional[dict] = None
 ) -> List[Tag]:
     """Return a list of supported tags for each version specified in
     `versions`.
@@ -193,11 +193,7 @@ def get_supported(
     )
 
     if need_variants:
-        if known_variants is None:
-            variants_by_priority = get_cached_variant_hashes_by_priority()
-        else:
-            # TODO: sorting
-            variants_by_priority = list(known_variants)
+        variants_by_priority = get_cached_variant_hashes_by_priority(variants_json=variants_json)
 
         # NOTE: There is two choices implementation wise
         # QUESTION: Which one should be the outer loop ?
