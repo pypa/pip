@@ -1,4 +1,4 @@
-sphinx ~= 7.0
+sphinx ~= 7.4
 # currently incompatible with sphinxcontrib-towncrier
 # https://github.com/sphinx-contrib/sphinxcontrib-towncrier/issues/92
 towncrier < 24
