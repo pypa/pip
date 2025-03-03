@@ -153,6 +153,7 @@ class LinkEvaluator:
         self._target_python = target_python
 
         self.project_name = project_name
+        self.variants_json = None
 
     def evaluate_link(self, link: Link) -> Tuple[LinkType, str, Optional[str]]:
         """
@@ -203,7 +204,8 @@ class LinkEvaluator:
 
                 variant_hash = wheel.variant_hash
                 supported_tags = self._target_python.get_unsorted_tags(
-                    need_variants=variant_hash is not None)
+                    need_variants=variant_hash is not None,
+                    known_variants=self.variants_json["variants"] if self.variants_json else None)
                 if not wheel.supported(supported_tags):
                     # Include the wheel's tags in the reason string to
                     # simplify troubleshooting compatibility issues.
@@ -382,7 +384,7 @@ class CandidateEvaluator:
         specifier: Optional[specifiers.BaseSpecifier] = None,
         hashes: Optional[Hashes] = None,
         need_variants: bool = False,
-        known_variants: Optional[set] = None
+        known_variants: Optional[dict[str, dict[str, str]]] = None
     ) -> "CandidateEvaluator":
         """Create a CandidateEvaluator object.
 
@@ -735,16 +737,18 @@ class PackageFinder:
         Returns elements of links in order, non-egg links first, egg links
         second, while eliminating duplicates
         """
-        eggs, no_eggs = [], []
+        eggs, no_eggs, variants_json = [], [], []
         seen: Set[Link] = set()
         for link in links:
             if link not in seen:
                 seen.add(link)
-                if link.egg_fragment:
+                if link.filename == "variants.json":
+                    variants_json.append(link)
+                elif link.egg_fragment:
                     eggs.append(link)
                 else:
                     no_eggs.append(link)
-        return no_eggs + eggs
+        return variants_json + no_eggs + eggs
 
     def _log_skipped_link(self, link: Link, result: LinkType, detail: str) -> None:
         # This is a hot method so don't waste time hashing links unless we're
@@ -781,6 +785,10 @@ class PackageFinder:
         except InvalidVersion:
             return None
 
+    @functools.cache
+    def get_variants_json(self, link: Link) -> dict:
+        return self._link_collector.session.request("GET", link.url).json()
+
     def evaluate_links(
         self, link_evaluator: LinkEvaluator, links: Iterable[Link]
     ) -> List[InstallationCandidate]:
@@ -788,7 +796,12 @@ class PackageFinder:
         Convert links that are candidates to InstallationCandidate objects.
         """
         candidates = []
+        variants_json = None
         for link in self._sort_links(links):
+            if link.filename == "variants.json":
+                link_evaluator.variants_json = self.get_variants_json(link)
+                continue
+
             candidate = self.get_install_candidate(link_evaluator, link)
             if candidate is not None:
                 candidates.append(candidate)
@@ -866,8 +879,9 @@ class PackageFinder:
 
             logger.debug("Local files found: %s", ", ".join(paths))
 
+        known_variants = link_evaluator.variants_json["variants"] if link_evaluator.variants_json is not None else None
         # This is an intentional priority ordering
-        return file_candidates + page_candidates
+        return file_candidates + page_candidates, known_variants
 
     def make_candidate_evaluator(
         self,
@@ -875,7 +889,7 @@ class PackageFinder:
         specifier: Optional[specifiers.BaseSpecifier] = None,
         hashes: Optional[Hashes] = None,
         need_variants: bool = False,
-        known_variants: Optional[set] = None
+        known_variants: Optional[dict[str, dict[str, str]]] = None
     ) -> CandidateEvaluator:
         """Create a CandidateEvaluator object to use."""
         candidate_prefs = self._candidate_prefs
@@ -905,13 +919,14 @@ class PackageFinder:
 
         :return: A `BestCandidateResult` instance.
         """
-        candidates = self.find_all_candidates(project_name)
+        candidates, known_variants = self.find_all_candidates(project_name)
         candidate_evaluator = self.make_candidate_evaluator(
             project_name=project_name,
             specifier=specifier,
             hashes=hashes,
             need_variants=any(x.variant_hash is not None
                               for x in candidates),
+            known_variants=known_variants,
         )
         return candidate_evaluator.compute_best_candidate(candidates)
 

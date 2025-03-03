@@ -2,7 +2,6 @@
 
 import logging
 import re
-from functools import cache
 from typing import List, Optional, Tuple
 
 from pip._vendor.packaging.tags import (
@@ -138,14 +137,13 @@ def _get_custom_interpreter(
     return f"{implementation}{version}"
 
 
-@cache
 def get_supported(
     version: Optional[str] = None,
     platforms: Optional[List[str]] = None,
     impl: Optional[str] = None,
     abis: Optional[List[str]] = None,
     need_variants: bool = False,
-    known_variants: Optional[set] = None
+    known_variants: Optional[dict[str, dict[str, str]]] = None
 ) -> List[Tag]:
     """Return a list of supported tags for each version specified in
     `versions`.
@@ -198,7 +196,8 @@ def get_supported(
         if known_variants is None:
             variants_by_priority = get_cached_variant_hashes_by_priority()
         else:
-            raise NotImplementedError()
+            # TODO: sorting
+            variants_by_priority = list(known_variants)
 
         # NOTE: There is two choices implementation wise
         # QUESTION: Which one should be the outer loop ?

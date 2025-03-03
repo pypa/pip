@@ -81,7 +81,7 @@ class TargetPython:
 
     def get_sorted_tags(self,
                         need_variants: bool = False,
-                        known_variants: Optional[set] = None,
+                        known_variants: Optional[dict[str, dict[str, str]]] = None
                         ) -> List[Tag]:
         """
         Return the supported PEP 425 tags to check wheel candidates against.
@@ -107,7 +107,7 @@ class TargetPython:
 
     def get_unsorted_tags(self,
                           need_variants: bool = False,
-                          known_variants: Optional[set] = None,
+                          known_variants: Optional[dict[str, dict[str, str]]] = None
                           ) -> Set[Tag]:
         """Exactly the same as get_sorted_tags, but returns a set.
 
