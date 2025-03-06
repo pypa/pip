@@ -5,6 +5,7 @@ from typing import Any, Iterable, List, Optional
 
 from pip._vendor.packaging.version import Version
 
+from pip._internal.metadata import get_default_environment
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.req_command import IndexGroupCommand
 from pip._internal.cli.status_codes import ERROR, SUCCESS
@@ -157,3 +158,12 @@ class IndexCommand(IndexGroupCommand):
             write_output(f"{query} ({latest})")
             write_output("Available versions: {}".format(", ".join(formatted_versions)))
             print_dist_installation_info(latest, dist)
+
+        # Display output even if '-q' is set
+        # kept write_output above to avoid affecting pip --log        
+        if self.verbosity < 0:
+            print(f"{query} ({latest})")
+            print("Available versions: {}".format(", ".join(formatted_versions)))
+            env = get_default_environment()
+            print(f"  INSTALLED: {env.get_distribution(query).version}")
+            print(f"  LATEST:    {latest}")
