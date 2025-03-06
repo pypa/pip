@@ -16,6 +16,7 @@ from pip._vendor.resolvelib.providers import AbstractProvider
 from .base import Candidate, Constraint, Requirement
 from .candidates import REQUIRES_PYTHON_IDENTIFIER
 from .factory import Factory
+from .requirements import ExplicitRequirement
 
 if TYPE_CHECKING:
     from pip._vendor.resolvelib.providers import Preference
@@ -138,9 +139,9 @@ class PipProvider(_ProviderBase):
 
         if has_information:
             lookups = (r.get_candidate_lookup() for r, _ in information[identifier])
-            candidate, ireqs = zip(*lookups)
+            _icandidates, ireqs = zip(*lookups)
         else:
-            candidate, ireqs = None, ()
+            _icandidates, ireqs = (), ()
 
         operators: list[tuple[str, str]] = [
             (specifier.operator, specifier.version)
@@ -148,7 +149,9 @@ class PipProvider(_ProviderBase):
             for specifier in specifier_set
         ]
 
-        direct = candidate is not None
+        direct = any(
+            isinstance(r, ExplicitRequirement) for r, _ in information[identifier]
+        )
         pinned = any(((op[:2] == "==") and ("*" not in ver)) for op, ver in operators)
         unfree = bool(operators)
         requested_order = self._user_requested.get(identifier, math.inf)
