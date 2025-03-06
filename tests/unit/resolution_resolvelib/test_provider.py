@@ -10,7 +10,10 @@ from pip._internal.resolution.resolvelib.base import Candidate
 from pip._internal.resolution.resolvelib.candidates import REQUIRES_PYTHON_IDENTIFIER
 from pip._internal.resolution.resolvelib.factory import Factory
 from pip._internal.resolution.resolvelib.provider import PipProvider
-from pip._internal.resolution.resolvelib.requirements import SpecifierRequirement
+from pip._internal.resolution.resolvelib.requirements import (
+    ExplicitRequirement,
+    SpecifierRequirement,
+)
 
 if TYPE_CHECKING:
     from pip._vendor.resolvelib.providers import Preference
@@ -18,6 +21,12 @@ if TYPE_CHECKING:
     from pip._internal.resolution.resolvelib.base import Candidate, Requirement
 
     PreferenceInformation = RequirementInformation[Requirement, Candidate]
+
+
+class FakeCandidate(Candidate):
+    """A minimal fake candidate for testing purposes."""
+
+    def __init__(self, *args: object, **kwargs: object) -> None: ...
 
 
 def build_req_info(
@@ -33,6 +42,14 @@ def build_req_info(
     return requirement_information
 
 
+def build_explicit_req_info(
+    url: str, parent: Optional[Candidate] = None
+) -> "PreferenceInformation":
+    """Build a direct requirement using a minimal FakeCandidate."""
+    direct_requirement = ExplicitRequirement(FakeCandidate(url))
+    return RequirementInformation(requirement=direct_requirement, parent=parent)
+
+
 @pytest.mark.parametrize(
     "identifier, information, backtrack_causes, user_requested, expected",
     [
@@ -42,7 +59,7 @@ def build_req_info(
             {REQUIRES_PYTHON_IDENTIFIER: [build_req_info("python")]},
             [],
             {},
-            (False, False, True, True, math.inf, True, REQUIRES_PYTHON_IDENTIFIER),
+            (False, True, True, True, math.inf, True, REQUIRES_PYTHON_IDENTIFIER),
         ),
         # Pinned package with "=="
         (
@@ -50,7 +67,7 @@ def build_req_info(
             {"pinned-package": [build_req_info("pinned-package==1.0")]},
             [],
             {},
-            (True, False, False, True, math.inf, False, "pinned-package"),
+            (True, True, False, True, math.inf, False, "pinned-package"),
         ),
         # Star-specified package, i.e. with "*"
         (
@@ -58,7 +75,7 @@ def build_req_info(
             {"star-specified-package": [build_req_info("star-specified-package==1.*")]},
             [],
             {},
-            (True, False, True, True, math.inf, False, "star-specified-package"),
+            (True, True, True, True, math.inf, False, "star-specified-package"),
         ),
         # Package that caused backtracking
         (
@@ -66,7 +83,7 @@ def build_req_info(
             {"backtrack-package": [build_req_info("backtrack-package")]},
             [build_req_info("backtrack-package")],
             {},
-            (True, False, True, False, math.inf, True, "backtrack-package"),
+            (True, True, True, False, math.inf, True, "backtrack-package"),
         ),
         # Root package requested by user
         (
@@ -74,7 +91,7 @@ def build_req_info(
             {"root-package": [build_req_info("root-package")]},
             [],
             {"root-package": 1},
-            (True, False, True, True, 1, True, "root-package"),
+            (True, True, True, True, 1, True, "root-package"),
         ),
         # Unfree package (with specifier operator)
         (
@@ -82,7 +99,7 @@ def build_req_info(
             {"unfree-package": [build_req_info("unfree-package<1")]},
             [],
             {},
-            (True, False, True, True, math.inf, False, "unfree-package"),
+            (True, True, True, True, math.inf, False, "unfree-package"),
         ),
         # Free package (no operator)
         (
@@ -90,7 +107,15 @@ def build_req_info(
             {"free-package": [build_req_info("free-package")]},
             [],
             {},
-            (True, False, True, True, math.inf, True, "free-package"),
+            (True, True, True, True, math.inf, True, "free-package"),
+        ),
+        # Test case for "direct" preference (explicit URL)
+        (
+            "direct-package",
+            {"direct-package": [build_explicit_req_info("direct-package")]},
+            [],
+            {},
+            (True, False, True, True, math.inf, True, "direct-package"),
         ),
     ],
 )
