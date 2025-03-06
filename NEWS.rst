@@ -9,6 +9,13 @@
 
 .. towncrier release notes start
 
+25.0.2 (2025-03-07)
+===================
+
+Bug Fixes
+---------
+
+- Allow output for index command output to be displayed even if the -q (quiet) flag exists (`#13018 <https://github.com/pypa/pip/issues/13018>`_)
 25.0.1 (2025-02-09)
 ===================
 

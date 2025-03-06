@@ -1,0 +1,1 @@
+Allow output for index command output to be displayed even if the -q (quiet) flag exists
