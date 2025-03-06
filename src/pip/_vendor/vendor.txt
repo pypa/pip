@@ -1,4 +1,4 @@
-CacheControl==0.14.1
+CacheControl==0.14.2
 distlib==0.3.9
 distro==1.9.0
 msgpack==1.1.0
