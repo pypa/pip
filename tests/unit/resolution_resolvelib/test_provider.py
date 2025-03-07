@@ -99,7 +99,7 @@ def build_explicit_req_info(
             {"free-package": [build_req_info("free-package")]},
             [],
             {},
-            (True, True, True, True, math.inf, True, "free-package"),
+            (True, True, math.inf, True, "free-package"),
         ),
         # Test case for "direct" preference (explicit URL)
         (
