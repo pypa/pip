@@ -341,6 +341,34 @@ def test_do_not_prompt_for_authentication(
     assert "ERROR: HTTP error 401" in result.stderr
 
 
+def test_do_not_prompt_for_authentication_git(
+    script: PipTestEnvironment, data: TestData, cert_factory: CertFactory
+) -> None:
+    """Test behaviour if --no-input option is given while installing
+    from a git http url requiring authentication
+    """
+    server = make_mock_server()
+    # Disable vscode user/password prompt, will make tests fail inside vscode
+    script.environ["GIT_ASKPASS"] = ""
+
+    # Return 401 on all URLs
+    server.mock.side_effect = lambda _, __: authorization_response(
+        data.packages / "simple-3.0.tar.gz"
+    )
+
+    url = f"git+http://{server.host}:{server.port}/simple"
+
+    with server_running(server):
+        result = script.pip(
+            "install",
+            url,
+            "--no-input",
+            expect_error=True,
+        )
+
+    assert "terminal prompts disabled" in result.stderr
+
+
 @pytest.fixture(params=(True, False), ids=("interactive", "noninteractive"))
 def interactive(request: pytest.FixtureRequest) -> bool:
     return request.param

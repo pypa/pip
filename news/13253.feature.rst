@@ -1,0 +1,2 @@
+Speed up resolution by first only considering the preference of
+candidates that must be required to complete the resolution.

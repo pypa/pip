@@ -103,6 +103,49 @@ class PipProvider(_ProviderBase):
     def identify(self, requirement_or_candidate: Union[Requirement, Candidate]) -> str:
         return requirement_or_candidate.name
 
+    def narrow_requirement_selection(
+        self,
+        identifiers: Iterable[str],
+        resolutions: Mapping[str, Candidate],
+        candidates: Mapping[str, Iterator[Candidate]],
+        information: Mapping[str, Iterator["PreferenceInformation"]],
+        backtrack_causes: Sequence["PreferenceInformation"],
+    ) -> Iterable[str]:
+        """Produce a subset of identifiers that should be considered before others.
+
+        Currently pip narrows the following selection:
+            * Requires-Python, if present is always returned by itself
+            * Backtrack causes are considered next because they can be identified
+              in linear time here, whereas because get_preference() is called
+              for each identifier, it would be quadratic to check for them there.
+              Further, the current backtrack causes likely need to be resolved
+              before other requirements as a resolution can't be found while
+              there is a conflict.
+        """
+        backtrack_identifiers = set()
+        for info in backtrack_causes:
+            backtrack_identifiers.add(info.requirement.name)
+            if info.parent is not None:
+                backtrack_identifiers.add(info.parent.name)
+
+        current_backtrack_causes = []
+        for identifier in identifiers:
+            # Requires-Python has only one candidate and the check is basically
+            # free, so we always do it first to avoid needless work if it fails.
+            # This skips calling get_preference() for all other identifiers.
+            if identifier == REQUIRES_PYTHON_IDENTIFIER:
+                return [identifier]
+
+            # Check if this identifier is a backtrack cause
+            if identifier in backtrack_identifiers:
+                current_backtrack_causes.append(identifier)
+                continue
+
+        if current_backtrack_causes:
+            return current_backtrack_causes
+
+        return identifiers
+
     def get_preference(
         self,
         identifier: str,
@@ -153,20 +196,9 @@ class PipProvider(_ProviderBase):
         unfree = bool(operators)
         requested_order = self._user_requested.get(identifier, math.inf)
 
-        # Requires-Python has only one candidate and the check is basically
-        # free, so we always do it first to avoid needless work if it fails.
-        requires_python = identifier == REQUIRES_PYTHON_IDENTIFIER
-
-        # Prefer the causes of backtracking on the assumption that the problem
-        # resolving the dependency tree is related to the failures that caused
-        # the backtracking
-        backtrack_cause = self.is_backtrack_cause(identifier, backtrack_causes)
-
         return (
-            not requires_python,
             not direct,
             not pinned,
-            not backtrack_cause,
             requested_order,
             not unfree,
             identifier,
@@ -221,14 +253,3 @@ class PipProvider(_ProviderBase):
     def get_dependencies(self, candidate: Candidate) -> Sequence[Requirement]:
         with_requires = not self._ignore_dependencies
         return [r for r in candidate.iter_dependencies(with_requires) if r is not None]
-
-    @staticmethod
-    def is_backtrack_cause(
-        identifier: str, backtrack_causes: Sequence["PreferenceInformation"]
-    ) -> bool:
-        for backtrack_cause in backtrack_causes:
-            if identifier == backtrack_cause.requirement.name:
-                return True
-            if backtrack_cause.parent and identifier == backtrack_cause.parent.name:
-                return True
-        return False

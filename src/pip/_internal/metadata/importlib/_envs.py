@@ -8,10 +8,14 @@ import zipfile
 import zipimport
 from typing import Iterator, List, Optional, Sequence, Set, Tuple
 
-from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
+from pip._vendor.packaging.utils import (
+    InvalidWheelFilename,
+    NormalizedName,
+    canonicalize_name,
+    parse_wheel_filename,
+)
 
 from pip._internal.metadata.base import BaseDistribution, BaseEnvironment
-from pip._internal.models.wheel import Wheel
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
 
@@ -26,7 +30,9 @@ def _looks_like_wheel(location: str) -> bool:
         return False
     if not os.path.isfile(location):
         return False
-    if not Wheel.wheel_file_re.match(os.path.basename(location)):
+    try:
+        parse_wheel_filename(os.path.basename(location))
+    except InvalidWheelFilename:
         return False
     return zipfile.is_zipfile(location)
 
