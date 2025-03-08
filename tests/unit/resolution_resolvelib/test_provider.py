@@ -42,7 +42,7 @@ def build_req_info(
             {"pinned-package": [build_req_info("pinned-package==1.0")]},
             [],
             {},
-            (False, False, math.inf, False, "pinned-package"),
+            (False, False, True, math.inf, False, "pinned-package"),
         ),
         # Star-specified package, i.e. with "*"
         (
@@ -50,7 +50,7 @@ def build_req_info(
             {"star-specified-package": [build_req_info("star-specified-package==1.*")]},
             [],
             {},
-            (False, True, math.inf, False, "star-specified-package"),
+            (False, True, False, math.inf, False, "star-specified-package"),
         ),
         # Package that caused backtracking
         (
@@ -58,7 +58,7 @@ def build_req_info(
             {"backtrack-package": [build_req_info("backtrack-package")]},
             [build_req_info("backtrack-package")],
             {},
-            (False, True, math.inf, True, "backtrack-package"),
+            (False, True, True, math.inf, True, "backtrack-package"),
         ),
         # Root package requested by user
         (
@@ -66,15 +66,15 @@ def build_req_info(
             {"root-package": [build_req_info("root-package")]},
             [],
             {"root-package": 1},
-            (False, True, 1, True, "root-package"),
+            (False, True, True, 1, True, "root-package"),
         ),
         # Unfree package (with specifier operator)
         (
             "unfree-package",
-            {"unfree-package": [build_req_info("unfree-package<1")]},
+            {"unfree-package": [build_req_info("unfree-package!=1")]},
             [],
             {},
-            (False, True, math.inf, False, "unfree-package"),
+            (False, True, True, math.inf, False, "unfree-package"),
         ),
         # Free package (no operator)
         (
@@ -82,7 +82,39 @@ def build_req_info(
             {"free-package": [build_req_info("free-package")]},
             [],
             {},
-            (False, True, math.inf, True, "free-package"),
+            (False, True, True, math.inf, True, "free-package"),
+        ),
+        # Upper bounded with <= operator
+        (
+            "upper-bound-lte-package",
+            {
+                "upper-bound-lte-package": [
+                    build_req_info("upper-bound-lte-package<=2.0")
+                ]
+            },
+            [],
+            {},
+            (False, True, False, math.inf, False, "upper-bound-lte-package"),
+        ),
+        # Upper bounded with ~= operator
+        (
+            "upper-bound-compatible-package",
+            {
+                "upper-bound-compatible-package": [
+                    build_req_info("upper-bound-compatible-package~=1.0")
+                ]
+            },
+            [],
+            {},
+            (False, True, False, math.inf, False, "upper-bound-compatible-package"),
+        ),
+        # Not upper bounded, using only >= operator
+        (
+            "lower-bound-package",
+            {"lower-bound-package": [build_req_info("lower-bound-package>=1.0")]},
+            [],
+            {},
+            (False, True, True, math.inf, False, "lower-bound-package"),
         ),
     ],
 )

@@ -168,8 +168,11 @@ follows:
 * Prefer if any of the known requirements is "direct", e.g. points to an
     explicit URL.
 * If equal, prefer if any requirement is "pinned", i.e. contains
-    operator ``===`` or ``==``.
+    operator ``===`` or ``==`` without a wildcard.
+* Prefer requirements that are "upper-bounded" using operators that do
+    not allow all future versions, i.e. ``<``, ``<=``, ``~=``, and ``==``
+    with a wildcard.
 * Order user-specified requirements by the order they are specified.
 * If equal, prefers "non-free" requirements, i.e. contains at least one
-    operator, such as ``>=`` or ``<``.
+    operator, such as ``>=`` or ``!=``.
 * If equal, order alphabetically for consistency (helps debuggability).
