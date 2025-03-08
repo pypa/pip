@@ -43,37 +43,12 @@ def _contains_egg_info(s: str) -> bool:
     return bool(_egg_info_re.search(s))
 
 
-def _should_build(
-    req: InstallRequirement,
-) -> bool:
-    """Return whether an InstallRequirement should be built into a wheel."""
-    assert not req.constraint
-
-    if req.is_wheel:
-        return False
-
-    assert req.source_dir
-
-    if req.editable:
-        # we only build PEP 660 editable requirements
-        return req.supports_pyproject_editable
-
-    return True
-
-
-def should_build_for_install_command(
-    req: InstallRequirement,
-) -> bool:
-    return _should_build(req)
-
-
 def _should_cache(
     req: InstallRequirement,
 ) -> bool | None:
     """
     Return whether a built InstallRequirement can be stored in the persistent
-    wheel cache, assuming the wheel cache is available, and _should_build()
-    has determined a wheel needs to be built.
+    wheel cache, assuming the wheel cache is available.
     """
     if req.editable or not req.source_dir:
         # never cache editable requirements

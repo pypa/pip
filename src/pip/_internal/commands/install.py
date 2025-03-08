@@ -59,7 +59,7 @@ from pip._internal.utils.virtualenv import (
     running_under_virtualenv,
     virtualenv_no_global,
 )
-from pip._internal.wheel_builder import build, should_build_for_install_command
+from pip._internal.wheel_builder import build
 
 logger = getLogger(__name__)
 
@@ -425,9 +425,7 @@ class InstallCommand(RequirementCommand):
             protect_pip_from_modification_on_windows(modifying_pip=modifying_pip)
 
             reqs_to_build = [
-                r
-                for r in requirement_set.requirements_to_install
-                if should_build_for_install_command(r)
+                r for r in requirement_set.requirements_to_install if not r.is_wheel
             ]
 
             _, build_failures = build(
