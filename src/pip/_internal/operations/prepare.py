@@ -1,5 +1,4 @@
-"""Prepares a distribution for installation
-"""
+"""Prepares a distribution for installation"""
 
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
@@ -88,7 +87,12 @@ class File:
 
     def __post_init__(self) -> None:
         if self.content_type is None:
-            self.content_type = mimetypes.guess_type(self.path)[0]
+            # Try to guess the file's MIME type. If the system MIME tables
+            # can't be loaded, give up.
+            try:
+                self.content_type = mimetypes.guess_type(self.path)[0]
+            except OSError:
+                pass
 
 
 def get_http_url(

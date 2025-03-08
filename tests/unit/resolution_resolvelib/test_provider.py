@@ -1,78 +1,176 @@
-from typing import TYPE_CHECKING, List, Optional
+import math
+from typing import TYPE_CHECKING, Dict, Iterable, List, Optional, Sequence
+
+import pytest
 
 from pip._vendor.resolvelib.resolvers import RequirementInformation
 
-from pip._internal.models.candidate import InstallationCandidate
-from pip._internal.models.link import Link
 from pip._internal.req.constructors import install_req_from_req_string
+from pip._internal.resolution.resolvelib.base import Candidate
+from pip._internal.resolution.resolvelib.candidates import REQUIRES_PYTHON_IDENTIFIER
 from pip._internal.resolution.resolvelib.factory import Factory
 from pip._internal.resolution.resolvelib.provider import PipProvider
 from pip._internal.resolution.resolvelib.requirements import SpecifierRequirement
 
 if TYPE_CHECKING:
-    from pip._internal.resolution.resolvelib.provider import PreferenceInformation
+    from pip._vendor.resolvelib.providers import Preference
+
+    from pip._internal.resolution.resolvelib.base import Candidate, Requirement
+
+    PreferenceInformation = RequirementInformation[Requirement, Candidate]
 
 
-def build_requirement_information(
-    name: str, parent: Optional[InstallationCandidate]
-) -> List["PreferenceInformation"]:
+def build_req_info(
+    name: str, parent: Optional[Candidate] = None
+) -> "PreferenceInformation":
     install_requirement = install_req_from_req_string(name)
-    # RequirementInformation is typed as a tuple, but it is a namedtupled.
-    # https://github.com/sarugaku/resolvelib/blob/7bc025aa2a4e979597c438ad7b17d2e8a08a364e/src/resolvelib/resolvers.pyi#L20-L22
+
     requirement_information: PreferenceInformation = RequirementInformation(
-        requirement=SpecifierRequirement(install_requirement),  # type: ignore[call-arg]
+        requirement=SpecifierRequirement(install_requirement),
         parent=parent,
     )
-    return [requirement_information]
+
+    return requirement_information
 
 
-def test_provider_known_depths(factory: Factory) -> None:
-    # Root requirement is specified by the user
-    # therefore has an inferred depth of 1
-    root_requirement_name = "my-package"
+@pytest.mark.parametrize(
+    "identifier, information, backtrack_causes, user_requested, expected",
+    [
+        # Pinned package with "=="
+        (
+            "pinned-package",
+            {"pinned-package": [build_req_info("pinned-package==1.0")]},
+            [],
+            {},
+            (False, False, math.inf, False, "pinned-package"),
+        ),
+        # Star-specified package, i.e. with "*"
+        (
+            "star-specified-package",
+            {"star-specified-package": [build_req_info("star-specified-package==1.*")]},
+            [],
+            {},
+            (False, True, math.inf, False, "star-specified-package"),
+        ),
+        # Package that caused backtracking
+        (
+            "backtrack-package",
+            {"backtrack-package": [build_req_info("backtrack-package")]},
+            [build_req_info("backtrack-package")],
+            {},
+            (False, True, math.inf, True, "backtrack-package"),
+        ),
+        # Root package requested by user
+        (
+            "root-package",
+            {"root-package": [build_req_info("root-package")]},
+            [],
+            {"root-package": 1},
+            (False, True, 1, True, "root-package"),
+        ),
+        # Unfree package (with specifier operator)
+        (
+            "unfree-package",
+            {"unfree-package": [build_req_info("unfree-package<1")]},
+            [],
+            {},
+            (False, True, math.inf, False, "unfree-package"),
+        ),
+        # Free package (no operator)
+        (
+            "free-package",
+            {"free-package": [build_req_info("free-package")]},
+            [],
+            {},
+            (False, True, math.inf, True, "free-package"),
+        ),
+    ],
+)
+def test_get_preference(
+    identifier: str,
+    information: Dict[str, Iterable["PreferenceInformation"]],
+    backtrack_causes: Sequence["PreferenceInformation"],
+    user_requested: Dict[str, int],
+    expected: "Preference",
+    factory: Factory,
+) -> None:
     provider = PipProvider(
         factory=factory,
         constraints={},
         ignore_dependencies=False,
         upgrade_strategy="to-satisfy-only",
-        user_requested={root_requirement_name: 0},
+        user_requested=user_requested,
     )
 
-    root_requirement_information = build_requirement_information(
-        name=root_requirement_name, parent=None
+    preference = provider.get_preference(
+        identifier, {}, {}, information, backtrack_causes
     )
-    provider.get_preference(
-        identifier=root_requirement_name,
-        resolutions={},
-        candidates={},
-        information={root_requirement_name: root_requirement_information},
-        backtrack_causes=[],
-    )
-    assert provider._known_depths == {root_requirement_name: 1.0}
 
-    # Transitive requirement is a dependency of root requirement
-    # theforefore has an inferred depth of 2
-    root_package_candidate = InstallationCandidate(
-        root_requirement_name,
-        "1.0",
-        Link("https://{root_requirement_name}.com"),
-    )
-    transitive_requirement_name = "my-transitive-package"
+    assert preference == expected, f"Expected {expected}, got {preference}"
 
-    transitive_package_information = build_requirement_information(
-        name=transitive_requirement_name, parent=root_package_candidate
+
+@pytest.mark.parametrize(
+    "identifiers, backtrack_causes, expected",
+    [
+        # REQUIRES_PYTHON_IDENTIFIER is present
+        (
+            [REQUIRES_PYTHON_IDENTIFIER, "package1", "package2", "backtrack-package"],
+            [build_req_info("backtrack-package")],
+            [REQUIRES_PYTHON_IDENTIFIER],
+        ),
+        # REQUIRES_PYTHON_IDENTIFIER is present after backtrack causes
+        (
+            ["package1", "package2", "backtrack-package", REQUIRES_PYTHON_IDENTIFIER],
+            [build_req_info("backtrack-package")],
+            [REQUIRES_PYTHON_IDENTIFIER],
+        ),
+        # Backtrack causes present (direct requirement)
+        (
+            ["package1", "package2", "backtrack-package"],
+            [build_req_info("backtrack-package")],
+            ["backtrack-package"],
+        ),
+        # Multiple backtrack causes
+        (
+            ["package1", "backtrack1", "backtrack2", "package2"],
+            [build_req_info("backtrack1"), build_req_info("backtrack2")],
+            ["backtrack1", "backtrack2"],
+        ),
+        # No special identifiers - return all
+        (
+            ["package1", "package2"],
+            [],
+            ["package1", "package2"],
+        ),
+        # Empty list of identifiers
+        (
+            [],
+            [],
+            [],
+        ),
+    ],
+)
+def test_narrow_requirement_selection(
+    identifiers: List[str],
+    backtrack_causes: Sequence["PreferenceInformation"],
+    expected: List[str],
+    factory: Factory,
+) -> None:
+    """Test that narrow_requirement_selection correctly prioritizes identifiers:
+    1. REQUIRES_PYTHON_IDENTIFIER (if present)
+    2. Backtrack causes (if present)
+    3. All other identifiers (as-is)
+    """
+    provider = PipProvider(
+        factory=factory,
+        constraints={},
+        ignore_dependencies=False,
+        upgrade_strategy="to-satisfy-only",
+        user_requested={},
     )
-    provider.get_preference(
-        identifier=transitive_requirement_name,
-        resolutions={},
-        candidates={},
-        information={
-            root_requirement_name: root_requirement_information,
-            transitive_requirement_name: transitive_package_information,
-        },
-        backtrack_causes=[],
+
+    result = provider.narrow_requirement_selection(
+        identifiers, {}, {}, {}, backtrack_causes
     )
-    assert provider._known_depths == {
-        transitive_requirement_name: 2.0,
-        root_requirement_name: 1.0,
-    }
+
+    assert list(result) == expected, f"Expected {expected}, got {list(result)}"

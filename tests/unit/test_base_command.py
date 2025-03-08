@@ -56,8 +56,8 @@ class FakeCommandWithUnicode(FakeCommand):
     _name = "fake_unicode"
 
     def run(self, options: Values, args: List[str]) -> int:
-        logging.getLogger("pip.tests").info(b"bytes here \xE9")
-        logging.getLogger("pip.tests").info(b"unicode here \xC3\xA9".decode("utf-8"))
+        logging.getLogger("pip.tests").info(b"bytes here \xe9")
+        logging.getLogger("pip.tests").info(b"unicode here \xc3\xa9".decode("utf-8"))
         return SUCCESS
 
 
@@ -105,6 +105,12 @@ def test_handle_pip_version_check_called(mock_handle_version_check: Mock) -> Non
     cmd = FakeCommand()
     cmd.main([])
     mock_handle_version_check.assert_called_once()
+
+
+def test_debug_enables_verbose_logs() -> None:
+    cmd = FakeCommand()
+    cmd.main(["fake", "--debug"])
+    assert cmd.verbosity >= 2
 
 
 def test_log_command_success(fixed_time: None, tmpdir: Path) -> None:

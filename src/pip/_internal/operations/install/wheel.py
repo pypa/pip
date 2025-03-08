@@ -1,5 +1,4 @@
-"""Support for installing and building the "wheel" binary package format.
-"""
+"""Support for installing and building the "wheel" binary package format."""
 
 import collections
 import compileall
@@ -14,10 +13,10 @@ import sys
 import warnings
 from base64 import urlsafe_b64encode
 from email.message import Message
+from io import StringIO
 from itertools import chain, filterfalse, starmap
 from typing import (
     IO,
-    TYPE_CHECKING,
     Any,
     BinaryIO,
     Callable,
@@ -51,7 +50,7 @@ from pip._internal.metadata import (
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
-from pip._internal.utils.misc import StreamWrapper, ensure_dir, hash_file, partition
+from pip._internal.utils.misc import ensure_dir, hash_file, partition
 from pip._internal.utils.unpacking import (
     current_umask,
     is_within_directory,
@@ -60,15 +59,14 @@ from pip._internal.utils.unpacking import (
 )
 from pip._internal.utils.wheel import parse_wheel
 
-if TYPE_CHECKING:
 
-    class File(Protocol):
-        src_record_path: "RecordPath"
-        dest_path: str
-        changed: bool
+class File(Protocol):
+    src_record_path: "RecordPath"
+    dest_path: str
+    changed: bool
 
-        def save(self) -> None:
-            pass
+    def save(self) -> None:
+        pass
 
 
 logger = logging.getLogger(__name__)
@@ -609,9 +607,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
 
     # Compile all of the pyc files for the installed files
     if pycompile:
-        with contextlib.redirect_stdout(
-            StreamWrapper.from_stream(sys.stdout)
-        ) as stdout:
+        with contextlib.redirect_stdout(StringIO()) as stdout:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
                 for path in pyc_source_file_paths():

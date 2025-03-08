@@ -1,5 +1,4 @@
-"""Automation using nox.
-"""
+"""Automation using nox."""
 
 import argparse
 import glob
@@ -70,7 +69,7 @@ def should_update_common_wheels() -> bool:
 # -----------------------------------------------------------------------------
 # Development Commands
 # -----------------------------------------------------------------------------
-@nox.session(python=["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "pypy3"])
+@nox.session(python=["3.9", "3.10", "3.11", "3.12", "3.13", "pypy3"])
 def test(session: nox.Session) -> None:
     # Get the common wheels.
     if should_update_common_wheels():
@@ -83,7 +82,7 @@ def test(session: nox.Session) -> None:
         )
         # fmt: on
     else:
-        msg = f"Re-using existing common-wheels at {LOCATIONS['common-wheels']}."
+        msg = f"Reusing existing common-wheels at {LOCATIONS['common-wheels']}."
         session.log(msg)
 
     # Build source distribution
