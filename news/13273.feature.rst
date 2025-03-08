@@ -1,0 +1,3 @@
+When resolving dependencies, prefer requirements that are "upper-bounded" using
+operators that do not allow all future versions, i.e. ``<``, ``<=``, ``~=``,
+and ``==`` with a wildcard.
