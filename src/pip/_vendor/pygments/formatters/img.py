@@ -4,7 +4,7 @@
 
     Formatter for Pixmap output.
 
-    :copyright: Copyright 2006-2024 by the Pygments team, see AUTHORS.
+    :copyright: Copyright 2006-2025 by the Pygments team, see AUTHORS.
     :license: BSD, see LICENSE for details.
 """
 import os
@@ -132,7 +132,8 @@ class FontManager:
                          '/Library/Fonts/', '/System/Library/Fonts/'):
             font_map.update(
                 (os.path.splitext(f)[0].lower(), os.path.join(font_dir, f))
-                for f in os.listdir(font_dir)
+                for _, _, files in os.walk(font_dir)
+                for f in files
                 if f.lower().endswith(('ttf', 'ttc')))
 
         for name in STYLES['NORMAL']:
