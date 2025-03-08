@@ -250,6 +250,7 @@ class PipProvider(_ProviderBase):
     def is_satisfied_by(self, requirement: Requirement, candidate: Candidate) -> bool:
         return requirement.is_satisfied_by(candidate)
 
-    def get_dependencies(self, candidate: Candidate) -> Sequence[Requirement]:
+    def get_dependencies(self, candidate: Candidate) -> Iterable[Requirement]:
         with_requires = not self._ignore_dependencies
-        return [r for r in candidate.iter_dependencies(with_requires) if r is not None]
+        # iter_dependencies() can perform nontrivial work so delay until needed.
+        return (r for r in candidate.iter_dependencies(with_requires) if r is not None)
