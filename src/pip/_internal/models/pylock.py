@@ -45,6 +45,7 @@ class PackageArchive:
     url: Optional[str]
     # (not supported) path: Optional[str]
     # (not supported) size: Optional[int]
+    # (not supported) upload_time: Optional[datetime]
     hashes: Dict[str, str]
     subdirectory: Optional[str]
 
@@ -76,7 +77,6 @@ class Package:
     # (not supported) marker: Optional[str]
     # (not supported) requires_python: Optional[str]
     # (not supported) dependencies
-    direct: Optional[bool] = None
     vcs: Optional[PackageVcs] = None
     directory: Optional[PackageDirectory] = None
     archive: Optional[PackageArchive] = None
@@ -92,8 +92,7 @@ class Package:
         download_info = ireq.download_info
         assert download_info
         package = cls(name=dist.canonical_name)
-        package.direct = ireq.is_direct if ireq.is_direct else None
-        if package.direct:
+        if ireq.is_direct:
             if isinstance(download_info.info, VcsInfo):
                 package.vcs = PackageVcs(
                     type=download_info.info.vcs,
@@ -158,6 +157,8 @@ class Pylock:
     lock_version: str = "1.0"
     # (not supported) environments: Optional[List[str]]
     # (not supported) requires_python: Optional[str]
+    # (not supported) extras: List[str] = []
+    # (not supported) dependency_groups: List[str] = []
     created_by: str = "pip"
     packages: List[Package] = dataclasses.field(default_factory=list)
     # (not supported) tool: Optional[Dict[str, Any]]
