@@ -1443,28 +1443,6 @@ setup(name='pkga', version='0.1')
     _test_install_editable_with_prefix(script, {"setup.py": setup_py})
 
 
-@pytest.mark.skipif(
-    sys.version_info >= (3, 12),
-    reason="Setuptools<64 does not support Python 3.12+",
-)
-@pytest.mark.network
-def test_install_editable_legacy_with_prefix_setup_cfg(
-    script: PipTestEnvironment,
-) -> None:
-    setup_cfg = """[metadata]
-name = pkga
-version = 0.1
-"""
-    pyproject_toml = """[build-system]
-requires = ["setuptools<64", "wheel"]
-build-backend = "setuptools.build_meta"
-"""
-    result = _test_install_editable_with_prefix(
-        script, {"setup.cfg": setup_cfg, "pyproject.toml": pyproject_toml}
-    )
-    assert "(setup.py develop) is deprecated" in result.stderr
-
-
 def test_install_package_conflict_prefix_and_user(
     script: PipTestEnvironment, data: TestData
 ) -> None:

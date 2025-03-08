@@ -37,9 +37,6 @@ from pip._internal.operations.build.metadata_editable import generate_editable_m
 from pip._internal.operations.build.metadata_legacy import (
     generate_metadata as generate_metadata_legacy,
 )
-from pip._internal.operations.install.editable_legacy import (
-    install_editable as install_editable_legacy,
-)
 from pip._internal.operations.install.wheel import install_wheel
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
@@ -826,43 +823,6 @@ class InstallRequirement:
             isolated=self.isolated,
             prefix=prefix,
         )
-
-        if self.editable and not self.is_wheel:
-            deprecated(
-                reason=(
-                    f"Legacy editable install of {self} (setup.py develop) "
-                    "is deprecated."
-                ),
-                replacement=(
-                    "to add a pyproject.toml or enable --use-pep517, "
-                    "and use setuptools >= 64. "
-                    "If the resulting installation is not behaving as expected, "
-                    "try using --config-settings editable_mode=compat. "
-                    "Please consult the setuptools documentation for more information"
-                ),
-                gone_in="25.3",
-                issue=11457,
-            )
-            if self.config_settings:
-                logger.warning(
-                    "--config-settings ignored for legacy editable install of %s. "
-                    "Consider upgrading to a version of setuptools "
-                    "that supports PEP 660 (>= 64).",
-                    self,
-                )
-            install_editable_legacy(
-                global_options=global_options if global_options is not None else [],
-                prefix=prefix,
-                home=home,
-                use_user_site=use_user_site,
-                name=self.req.name,
-                setup_py_path=self.setup_py_path,
-                isolated=self.isolated,
-                build_env=self.build_env,
-                unpacked_source_directory=self.unpacked_source_directory,
-            )
-            self.install_succeeded = True
-            return
 
         assert self.is_wheel
         assert self.local_file_path
