@@ -161,14 +161,20 @@ class PipProvider(_ProviderBase):
 
         Currently pip considers the following in order:
 
-        * Prefer if any of the known requirements is "direct", e.g. points to an
-          explicit URL.
-        * If equal, prefer if any requirement is "pinned", i.e. contains
-          operator ``===`` or ``==``.
-        * Order user-specified requirements by the order they are specified.
-        * If equal, prefers "non-free" requirements, i.e. contains at least one
-          operator, such as ``>=`` or ``<``.
-        * If equal, order alphabetically for consistency (helps debuggability).
+        * Any requirement that is "direct", e.g., points to an explicit URL.
+        * Any requirement that is "pinned", i.e., contains the operator ``===``
+          or ``==`` without a wildcard.
+        * Any requirement that imposes an upper version limit, i.e., contains the
+          operator ``<``, ``<=``, ``~=``, or ``==`` with a wildcard. Because
+          pip prioritizes the latest version, preferring explicit upper bounds
+          can rule out infeasible candidates sooner. This does not imply that
+          upper bounds are good practice; they can make dependency management
+          and resolution harder.
+        * Order user-specified requirements as they are specified, placing
+          other requirements afterward.
+        * Any "non-free" requirement, i.e., one that contains at least one
+          operator, such as ``>=`` or ``!=``.
+        * Alphabetical order for consistency (aids debuggability).
         """
         try:
             next(iter(information[identifier]))
@@ -193,12 +199,17 @@ class PipProvider(_ProviderBase):
 
         direct = candidate is not None
         pinned = any(((op[:2] == "==") and ("*" not in ver)) for op, ver in operators)
+        upper_bounded = any(
+            ((op in ("<", "<=", "~=")) or (op == "==" and "*" in ver))
+            for op, ver in operators
+        )
         unfree = bool(operators)
         requested_order = self._user_requested.get(identifier, math.inf)
 
         return (
             not direct,
             not pinned,
+            not upper_bounded,
             requested_order,
             not unfree,
             identifier,
