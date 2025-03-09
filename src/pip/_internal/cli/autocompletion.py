@@ -100,6 +100,10 @@ def autocomplete() -> None:
             if option[1] and option[0][:2] == "--":
                 opt_label += "="
             print(opt_label)
+
+        for handler_name in subcommand.handler_map():
+            if handler_name.startswith(current):
+                print(handler_name)
     else:
         # show main parser options only when necessary
 
