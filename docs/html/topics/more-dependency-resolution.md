@@ -163,7 +163,7 @@ Pip's current implementation of the provider implements
     only consider them until there are no longer any resolution conflicts
 
 Pip's current implementation of the provider implements `get_preference`
-for known requirements with the following preferences in following order:
+for known requirements with the following preferences in the following order:
 
 * Any requirement that is "direct", e.g., points to an explicit URL.
 * Any requirement that is "pinned", i.e., contains the operator ``===``
