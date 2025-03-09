@@ -3,6 +3,9 @@ name: Update documentation redirects
 on:
   push:
     branches: [main]
+    paths:
+      - ".readthedocs-custom-redirects.yml"
+      - ".readthedocs.yml"
   schedule:
     - cron: 0 0 * * MON # Run every Monday at 00:00 UTC
 
