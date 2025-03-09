@@ -96,6 +96,14 @@ def build_req_info(
             {},
             (False, True, False, math.inf, False, "upper-bound-lte-package"),
         ),
+        # Upper bounded with < operator
+        (
+            "upper-bound-lt-package",
+            {"upper-bound-lt-package": [build_req_info("upper-bound-lt-package<2.0")]},
+            [],
+            {},
+            (False, True, False, math.inf, False, "upper-bound-lt-package"),
+        ),
         # Upper bounded with ~= operator
         (
             "upper-bound-compatible-package",
