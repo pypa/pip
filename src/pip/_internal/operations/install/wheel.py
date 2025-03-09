@@ -1,19 +1,15 @@
 """Support for installing and building the "wheel" binary package format."""
 
 import collections
-import compileall
 import contextlib
 import csv
-import importlib
 import logging
 import os.path
 import re
 import shutil
 import sys
-import warnings
 from base64 import urlsafe_b64encode
 from email.message import Message
-from io import StringIO
 from itertools import chain, filterfalse, starmap
 from typing import (
     IO,
@@ -51,6 +47,7 @@ from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
 from pip._internal.utils.misc import ensure_dir, hash_file, partition
+from pip._internal.utils.pyc_compile import BytecodeCompiler
 from pip._internal.utils.unpacking import (
     current_umask,
     is_within_directory,
@@ -417,12 +414,12 @@ class PipScriptMaker(ScriptMaker):
         return super().make(specification, options)
 
 
-def _install_wheel(  # noqa: C901, PLR0915 function is too long
+def _install_wheel(  # noqa: C901 function is too long
     name: str,
     wheel_zip: ZipFile,
     wheel_path: str,
     scheme: Scheme,
-    pycompile: bool = True,
+    pycompiler: Optional[BytecodeCompiler],
     warn_script_location: bool = True,
     direct_url: Optional[DirectUrl] = None,
     requested: bool = False,
@@ -601,25 +598,14 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
                 continue
             yield full_installed_path
 
-    def pyc_output_path(path: str) -> str:
-        """Return the path the pyc file would have been written to."""
-        return importlib.util.cache_from_source(path)
-
     # Compile all of the pyc files for the installed files
-    if pycompile:
-        with contextlib.redirect_stdout(StringIO()) as stdout:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore")
-                for path in pyc_source_file_paths():
-                    success = compileall.compile_file(path, force=True, quiet=True)
-                    if success:
-                        pyc_path = pyc_output_path(path)
-                        assert os.path.exists(pyc_path)
-                        pyc_record_path = cast(
-                            "RecordPath", pyc_path.replace(os.path.sep, "/")
-                        )
-                        record_installed(pyc_record_path, pyc_path)
-        logger.debug(stdout.getvalue())
+    if pycompiler is not None:
+        for module in pycompiler(pyc_source_file_paths()):
+            if module.is_success:
+                pyc_record_path = module.pyc_path.replace(os.path.sep, "/")
+                record_installed(RecordPath(pyc_record_path), module.pyc_path)
+            if output := module.compile_output:
+                logger.debug(output)
 
     maker = PipScriptMaker(None, scheme.scripts)
 
@@ -718,7 +704,7 @@ def install_wheel(
     wheel_path: str,
     scheme: Scheme,
     req_description: str,
-    pycompile: bool = True,
+    pycompiler: Optional[BytecodeCompiler] = None,
     warn_script_location: bool = True,
     direct_url: Optional[DirectUrl] = None,
     requested: bool = False,
@@ -730,7 +716,7 @@ def install_wheel(
                 wheel_zip=z,
                 wheel_path=wheel_path,
                 scheme=scheme,
-                pycompile=pycompile,
+                pycompiler=pycompiler,
                 warn_script_location=warn_script_location,
                 direct_url=direct_url,
                 requested=requested,
