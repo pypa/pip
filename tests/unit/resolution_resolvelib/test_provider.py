@@ -59,7 +59,7 @@ def build_explicit_req_info(
             {"pinned-package": [build_req_info("pinned-package==1.0")]},
             [],
             {},
-            (True, False, math.inf, False, "pinned-package"),
+            (False, False, True, math.inf, False, "pinned-package"),
         ),
         # Star-specified package, i.e. with "*"
         (
@@ -67,7 +67,7 @@ def build_explicit_req_info(
             {"star-specified-package": [build_req_info("star-specified-package==1.*")]},
             [],
             {},
-            (True, True, math.inf, False, "star-specified-package"),
+            (False, True, False, math.inf, False, "star-specified-package"),
         ),
         # Package that caused backtracking
         (
@@ -75,7 +75,7 @@ def build_explicit_req_info(
             {"backtrack-package": [build_req_info("backtrack-package")]},
             [build_req_info("backtrack-package")],
             {},
-            (True, True, math.inf, True, "backtrack-package"),
+            (False, True, True, math.inf, True, "backtrack-package"),
         ),
         # Root package requested by user
         (
@@ -83,15 +83,15 @@ def build_explicit_req_info(
             {"root-package": [build_req_info("root-package")]},
             [],
             {"root-package": 1},
-            (True, True, 1, True, "root-package"),
+            (False, True, True, 1, True, "root-package"),
         ),
         # Unfree package (with specifier operator)
         (
             "unfree-package",
-            {"unfree-package": [build_req_info("unfree-package<1")]},
+            {"unfree-package": [build_req_info("unfree-package!=1")]},
             [],
             {},
-            (True, True, math.inf, False, "unfree-package"),
+            (False, True, True, math.inf, False, "unfree-package"),
         ),
         # Free package (no operator)
         (
