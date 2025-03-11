@@ -1,5 +1,4 @@
 import pytest
-
 from pip._internal.models.direct_url import (
     ArchiveInfo,
     DirectUrl,

@@ -2,10 +2,9 @@ from typing import Any, Dict, Optional, Tuple
 from unittest import mock
 
 import pytest
+from pip._internal.models.target_python import TargetPython
 
 from pip._vendor.packaging.tags import Tag
-
-from pip._internal.models.target_python import TargetPython
 
 from tests.lib import CURRENT_PY_VERSION_INFO, pyversion
 

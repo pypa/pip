@@ -10,10 +10,6 @@ from typing import Dict, List, Optional, Tuple
 from unittest import mock
 
 import pytest
-
-from pip._vendor import requests
-from pip._vendor.packaging.requirements import Requirement
-
 from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.index.collector import (
     IndexContent,
@@ -36,6 +32,9 @@ from pip._internal.models.link import (
     _ensure_quoted_url,
 )
 from pip._internal.network.session import PipSession
+
+from pip._vendor import requests
+from pip._vendor.packaging.requirements import Requirement
 
 from tests.lib import (
     TestData,

@@ -2,7 +2,6 @@ import errno
 from unittest import mock
 
 import pytest
-
 from pip._internal.commands import install
 from pip._internal.commands.install import create_os_error_message, decide_user_install
 

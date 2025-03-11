@@ -3,12 +3,11 @@ from pathlib import Path
 from typing import List, Tuple
 
 import pytest
-
-from pip._vendor.resolvelib import BaseReporter, Resolver
-
 from pip._internal.resolution.resolvelib.base import Candidate, Constraint, Requirement
 from pip._internal.resolution.resolvelib.factory import Factory
 from pip._internal.resolution.resolvelib.provider import PipProvider
+
+from pip._vendor.resolvelib import BaseReporter, Resolver
 
 from tests.lib import TestData
 

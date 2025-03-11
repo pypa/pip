@@ -1,15 +1,14 @@
 from typing import Iterator
 
 import pytest
-
-from pip._vendor.packaging.version import Version
-
 from pip._internal.exceptions import InvalidWheel
 from pip._internal.network.lazy_wheel import (
     HTTPRangeRequestUnsupported,
     dist_from_wheel_url,
 )
 from pip._internal.network.session import PipSession
+
+from pip._vendor.packaging.version import Version
 
 from tests.lib import TestData
 from tests.lib.server import MockServer, file_response

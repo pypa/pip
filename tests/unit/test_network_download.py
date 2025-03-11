@@ -3,7 +3,6 @@ import sys
 from typing import Dict
 
 import pytest
-
 from pip._internal.models.link import Link
 from pip._internal.network.download import (
     _prepare_download,

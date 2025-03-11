@@ -2,9 +2,6 @@ import math
 from typing import TYPE_CHECKING, Dict, Iterable, List, Optional, Sequence
 
 import pytest
-
-from pip._vendor.resolvelib.resolvers import RequirementInformation
-
 from pip._internal.req.constructors import install_req_from_req_string
 from pip._internal.resolution.resolvelib.base import Candidate
 from pip._internal.resolution.resolvelib.candidates import REQUIRES_PYTHON_IDENTIFIER
@@ -12,10 +9,12 @@ from pip._internal.resolution.resolvelib.factory import Factory
 from pip._internal.resolution.resolvelib.provider import PipProvider
 from pip._internal.resolution.resolvelib.requirements import SpecifierRequirement
 
-if TYPE_CHECKING:
-    from pip._vendor.resolvelib.providers import Preference
+from pip._vendor.resolvelib.resolvers import RequirementInformation
 
+if TYPE_CHECKING:
     from pip._internal.resolution.resolvelib.base import Candidate, Requirement
+
+    from pip._vendor.resolvelib.providers import Preference
 
     PreferenceInformation = RequirementInformation[Requirement, Candidate]
 

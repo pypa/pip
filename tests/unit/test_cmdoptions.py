@@ -4,7 +4,6 @@ from typing import Optional, Tuple
 from venv import EnvBuilder
 
 import pytest
-
 from pip._internal.cli.cmdoptions import _convert_python_version
 from pip._internal.cli.main_parser import identify_python_interpreter
 

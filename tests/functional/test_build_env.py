@@ -4,7 +4,6 @@ from textwrap import dedent
 from typing import Optional
 
 import pytest
-
 from pip._internal.build_env import BuildEnvironment, _get_system_sitepackages
 
 from tests.lib import (

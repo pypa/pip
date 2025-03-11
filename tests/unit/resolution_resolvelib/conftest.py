@@ -1,7 +1,6 @@
 from typing import Iterator
 
 import pytest
-
 from pip._internal.cli.req_command import RequirementCommand
 from pip._internal.commands.install import InstallCommand
 from pip._internal.index.collector import LinkCollector

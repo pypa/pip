@@ -4,7 +4,6 @@ from textwrap import dedent
 from typing import Tuple
 
 import pytest
-
 from pip._internal.exceptions import InstallationError, InvalidPyProjectBuildRequires
 from pip._internal.req import InstallRequirement
 

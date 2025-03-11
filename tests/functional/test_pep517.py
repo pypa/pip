@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pytest
 import tomli_w
-
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.req import InstallRequirement
 

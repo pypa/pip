@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Optional, cast
 
 import pytest
-
 from pip._internal import wheel_builder
 from pip._internal.models.link import Link
 from pip._internal.operations.build.wheel_legacy import format_command_result

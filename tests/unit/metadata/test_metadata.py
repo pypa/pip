@@ -5,9 +5,6 @@ from typing import cast
 from unittest import mock
 
 import pytest
-
-from pip._vendor.packaging.utils import NormalizedName
-
 from pip._internal.metadata import (
     BaseDistribution,
     get_directory_distribution,
@@ -16,6 +13,8 @@ from pip._internal.metadata import (
 )
 from pip._internal.metadata.base import FilesystemWheel
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, ArchiveInfo
+
+from pip._vendor.packaging.utils import NormalizedName
 
 from tests.lib.wheel import make_wheel
 

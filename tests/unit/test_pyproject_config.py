@@ -1,7 +1,6 @@
 from typing import Dict, List
 
 import pytest
-
 from pip._internal.commands import create_command
 
 
