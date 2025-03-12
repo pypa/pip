@@ -7,7 +7,7 @@ from pip._internal.cli.status_codes import ERROR
 from pip._internal.configuration import CONFIG_BASENAME, get_configuration_files
 
 from tests.lib import PipTestEnvironment
-from tests.lib.configuration_helpers import ConfigurationMixin, kinds
+from tests.lib.configuration_helpers import ConfigurationMixin, Kind
 from tests.lib.venv import VirtualEnvironment
 
 
@@ -100,7 +100,7 @@ class TestBasicLoading(ConfigurationMixin):
         """
 
         # Use new config file
-        new_config_file = get_configuration_files()[kinds.USER][1]
+        new_config_file = get_configuration_files()[Kind.USER][1]
 
         script.pip("config", "--user", "set", "global.timeout", "60")
         script.pip("config", "--user", "set", "freeze.timeout", "10")
@@ -138,7 +138,7 @@ class TestBasicLoading(ConfigurationMixin):
         # locations. Additionally we cannot patch those paths since pip config
         # commands runs inside a subprocess.
         # So we just check if the file can be identified
-        global_config_file = get_configuration_files()[kinds.GLOBAL][0]
+        global_config_file = get_configuration_files()[Kind.GLOBAL][0]
         result = script.pip("config", "debug")
         assert f"{global_config_file}, exists:" in result.stdout
 

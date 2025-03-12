@@ -15,7 +15,8 @@ import configparser
 import locale
 import os
 import sys
-from typing import Any, Dict, Iterable, List, NewType, Optional, Tuple
+from enum import StrEnum
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from pip._internal.exceptions import (
     ConfigurationError,
@@ -24,24 +25,24 @@ from pip._internal.exceptions import (
 from pip._internal.utils import appdirs
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.logging import getLogger
-from pip._internal.utils.misc import ensure_dir, enum
+from pip._internal.utils.misc import ensure_dir
 
 RawConfigParser = configparser.RawConfigParser  # Shorthand
-Kind = NewType("Kind", str)
-
 CONFIG_BASENAME = "pip.ini" if WINDOWS else "pip.conf"
 ENV_NAMES_IGNORED = "version", "help"
 
+
 # The kinds of configurations there are.
-kinds = enum(
-    USER="user",  # User Specific
-    GLOBAL="global",  # System Wide
-    SITE="site",  # [Virtual] Environment Specific
-    ENV="env",  # from PIP_CONFIG_FILE
-    ENV_VAR="env-var",  # from Environment Variables
-)
-OVERRIDE_ORDER = kinds.GLOBAL, kinds.USER, kinds.SITE, kinds.ENV, kinds.ENV_VAR
-VALID_LOAD_ONLY = kinds.USER, kinds.GLOBAL, kinds.SITE
+class Kind(StrEnum):
+    USER = "user"  # User Specific
+    GLOBAL = "global"  # System Wide
+    SITE = "site"  # [Virtual] Environment Specific
+    ENV = "env"  # from PIP_CONFIG_FILE
+    ENV_VAR = "env-var"  # from Environment Variables
+
+
+OVERRIDE_ORDER = Kind.GLOBAL, Kind.USER, Kind.SITE, Kind.ENV, Kind.ENV_VAR
+VALID_LOAD_ONLY = Kind.USER, Kind.GLOBAL, Kind.SITE
 
 logger = getLogger(__name__)
 
@@ -78,9 +79,9 @@ def get_configuration_files() -> Dict[Kind, List[str]]:
     )
     new_config_file = os.path.join(appdirs.user_config_dir("pip"), CONFIG_BASENAME)
     return {
-        kinds.GLOBAL: global_config_files,
-        kinds.SITE: [site_config_file],
-        kinds.USER: [legacy_config_file, new_config_file],
+        Kind.GLOBAL: global_config_files,
+        Kind.SITE: [site_config_file],
+        Kind.USER: [legacy_config_file, new_config_file],
     }
 
 
@@ -244,7 +245,7 @@ class Configuration:
     def _load_config_files(self) -> None:
         """Loads configuration from configuration files"""
         config_files = dict(self.iter_config_files())
-        if config_files[kinds.ENV][0:1] == [os.devnull]:
+        if config_files[Kind.ENV][0:1] == [os.devnull]:
             logger.debug(
                 "Skipping loading configuration files due to "
                 "environment's PIP_CONFIG_FILE being os.devnull"
@@ -297,7 +298,7 @@ class Configuration:
 
     def _load_environment_vars(self) -> None:
         """Loads configuration from environment variables"""
-        self._config[kinds.ENV_VAR].update(
+        self._config[Kind.ENV_VAR].update(
             self._normalized_keys(":env:", self.get_environ_vars())
         )
 
@@ -338,7 +339,7 @@ class Configuration:
         env_config_file = os.environ.get("PIP_CONFIG_FILE", None)
         config_files = get_configuration_files()
 
-        yield kinds.GLOBAL, config_files[kinds.GLOBAL]
+        yield Kind.GLOBAL, config_files[Kind.GLOBAL]
 
         # per-user config is not loaded when env_config_file exists
         should_load_user_config = not self.isolated and not (
@@ -346,15 +347,15 @@ class Configuration:
         )
         if should_load_user_config:
             # The legacy config file is overridden by the new config file
-            yield kinds.USER, config_files[kinds.USER]
+            yield Kind.USER, config_files[Kind.USER]
 
         # virtualenv config
-        yield kinds.SITE, config_files[kinds.SITE]
+        yield Kind.SITE, config_files[Kind.SITE]
 
         if env_config_file is not None:
-            yield kinds.ENV, [env_config_file]
+            yield Kind.ENV, [env_config_file]
         else:
-            yield kinds.ENV, []
+            yield Kind.ENV, []
 
     def get_values_in_config(self, variant: Kind) -> Dict[str, Any]:
         """Get values present in a config file"""

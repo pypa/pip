@@ -373,14 +373,6 @@ def write_output(msg: Any, *args: Any) -> None:
     logger.info(msg, *args)
 
 
-# Simulates an enum
-def enum(*sequential: Any, **named: Any) -> Type[Any]:
-    enums = dict(zip(sequential, range(len(sequential))), **named)
-    reverse = {value: key for key, value in enums.items()}
-    enums["reverse_mapping"] = reverse
-    return type("Enum", (), enums)
-
-
 def build_netloc(host: str, port: Optional[int]) -> str:
     """
     Build a netloc from a host-port pair

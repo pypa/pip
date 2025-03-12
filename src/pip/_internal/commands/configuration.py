@@ -10,7 +10,6 @@ from pip._internal.configuration import (
     Configuration,
     Kind,
     get_configuration_files,
-    kinds,
 )
 from pip._internal.exceptions import PipError
 from pip._internal.utils.logging import indent_log
@@ -142,9 +141,9 @@ class ConfigurationCommand(Command):
         file_options = [
             key
             for key, value in (
-                (kinds.USER, options.user_file),
-                (kinds.GLOBAL, options.global_file),
-                (kinds.SITE, options.site_file),
+                (Kind.USER, options.user_file),
+                (Kind.GLOBAL, options.global_file),
+                (Kind.SITE, options.site_file),
             )
             if value
         ]
@@ -155,11 +154,11 @@ class ConfigurationCommand(Command):
             # Default to user, unless there's a site file.
             elif any(
                 os.path.exists(site_config_file)
-                for site_config_file in get_configuration_files()[kinds.SITE]
+                for site_config_file in get_configuration_files()[Kind.SITE]
             ):
-                return kinds.SITE
+                return Kind.SITE
             else:
-                return kinds.USER
+                return Kind.USER
         elif len(file_options) == 1:
             return file_options[0]
 

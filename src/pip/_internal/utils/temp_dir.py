@@ -5,6 +5,7 @@ import os.path
 import tempfile
 import traceback
 from contextlib import ExitStack, contextmanager
+from enum import StrEnum
 from pathlib import Path
 from typing import (
     Any,
@@ -17,7 +18,7 @@ from typing import (
     Union,
 )
 
-from pip._internal.utils.misc import enum, rmtree
+from pip._internal.utils.misc import rmtree
 
 logger = logging.getLogger(__name__)
 
@@ -26,11 +27,10 @@ _T = TypeVar("_T", bound="TempDirectory")
 
 # Kinds of temporary directories. Only needed for ones that are
 # globally-managed.
-tempdir_kinds = enum(
-    BUILD_ENV="build-env",
-    EPHEM_WHEEL_CACHE="ephem-wheel-cache",
-    REQ_BUILD="req-build",
-)
+class tempdir_kinds(StrEnum):
+    BUILD_ENV = "build-env"
+    EPHEM_WHEEL_CACHE = "ephem-wheel-cache"
+    REQ_BUILD = "req-build"
 
 
 _tempdir_manager: Optional[ExitStack] = None
