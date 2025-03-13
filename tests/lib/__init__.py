@@ -33,10 +33,6 @@ from urllib.request import pathname2url
 from zipfile import ZipFile
 
 import pytest
-from scripttest import FoundDir, FoundFile, ProcResult, TestFileEnvironment
-
-from pip._vendor.packaging.utils import canonicalize_name
-
 from pip._internal.cli.main import main as pip_entry_point
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
@@ -46,6 +42,9 @@ from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
 from pip._internal.utils.egg_link import _egg_link_names
+from scripttest import FoundDir, FoundFile, ProcResult, TestFileEnvironment
+
+from pip._vendor.packaging.utils import canonicalize_name
 
 from tests.lib.venv import VirtualEnvironment
 from tests.lib.wheel import make_wheel

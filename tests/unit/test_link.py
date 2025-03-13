@@ -1,7 +1,6 @@
 from typing import Optional
 
 import pytest
-
 from pip._internal.models.link import Link, links_equivalent
 from pip._internal.utils.hashes import Hashes
 

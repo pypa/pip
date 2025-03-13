@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
 import pytest
-
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.utils.misc import rmtree

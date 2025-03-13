@@ -4,7 +4,6 @@ from logging import DEBUG, ERROR, INFO, WARNING
 from typing import List, Optional, Tuple, Type
 
 import pytest
-
 from pip._internal.cli.spinners import SpinnerInterface
 from pip._internal.exceptions import InstallationSubprocessError
 from pip._internal.utils.logging import VERBOSE

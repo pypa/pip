@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-
 from pip._internal.exceptions import InstallationError
 from pip._internal.req.req_dependency_group import parse_dependency_groups
 

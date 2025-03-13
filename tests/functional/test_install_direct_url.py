@@ -1,5 +1,4 @@
 import pytest
-
 from pip._internal.models.direct_url import VcsInfo
 
 from tests.lib import PipTestEnvironment, TestData, _create_test_package

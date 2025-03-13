@@ -7,7 +7,6 @@ from typing import Any, Iterator, Optional, Union
 from unittest import mock
 
 import pytest
-
 from pip._internal.utils import temp_dir
 from pip._internal.utils.misc import ensure_dir
 from pip._internal.utils.temp_dir import (

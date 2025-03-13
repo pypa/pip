@@ -3,7 +3,6 @@ import sys
 import urllib.request
 
 import pytest
-
 from pip._internal.utils.urls import path_to_url, url_to_path
 
 

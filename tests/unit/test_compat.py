@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 
 import pytest
-
 from pip._internal.utils.compat import get_path_uid
 
 

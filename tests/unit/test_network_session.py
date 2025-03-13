@@ -6,9 +6,6 @@ from urllib.parse import urlparse
 from urllib.request import getproxies
 
 import pytest
-
-from pip._vendor import requests
-
 from pip import __version__
 from pip._internal.models.link import Link
 from pip._internal.network.session import (
@@ -16,6 +13,8 @@ from pip._internal.network.session import (
     PipSession,
     user_agent,
 )
+
+from pip._vendor import requests
 
 
 def get_user_agent() -> str:

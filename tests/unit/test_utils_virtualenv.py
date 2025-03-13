@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import List, Optional
 
 import pytest
-
 from pip._internal.utils import virtualenv
 
 

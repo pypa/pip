@@ -3,7 +3,6 @@ from typing import Any, Callable, Dict, List, Tuple
 from unittest.mock import patch
 
 import pytest
-
 from pip._internal.utils import compatibility_tags
 
 

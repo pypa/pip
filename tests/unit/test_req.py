@@ -10,10 +10,6 @@ from typing import Iterator, Optional, Set, Tuple, cast
 from unittest import mock
 
 import pytest
-
-from pip._vendor.packaging.markers import Marker
-from pip._vendor.packaging.requirements import Requirement
-
 from pip._internal.cache import WheelCache
 from pip._internal.commands import create_command
 from pip._internal.commands.install import InstallCommand
@@ -47,6 +43,9 @@ from pip._internal.req.req_file import (
     handle_requirement_line,
 )
 from pip._internal.resolution.legacy.resolver import Resolver
+
+from pip._vendor.packaging.markers import Marker
+from pip._vendor.packaging.requirements import Requirement
 
 from tests.lib import TestData, make_test_finder, requirements_file, wheel
 

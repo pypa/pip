@@ -5,7 +5,6 @@ from typing import List, NoReturn, Tuple, Type
 from unittest.mock import Mock
 
 import pytest
-
 from pip._internal.utils.retry import retry
 
 

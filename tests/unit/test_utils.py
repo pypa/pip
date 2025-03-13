@@ -14,9 +14,6 @@ from typing import Any, Callable, Iterator, List, NoReturn, Optional, Tuple, Typ
 from unittest.mock import Mock
 
 import pytest
-
-from pip._vendor.packaging.requirements import Requirement
-
 from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError
 from pip._internal.utils.deprecation import PipDeprecationWarning, deprecated
 from pip._internal.utils.egg_link import egg_link_path_from_location
@@ -49,6 +46,8 @@ from pip._internal.utils.misc import (
     tabulate,
 )
 from pip._internal.utils.setuptools_build import make_setuptools_shim_args
+
+from pip._vendor.packaging.requirements import Requirement
 
 
 class Tests_EgglinkPath:

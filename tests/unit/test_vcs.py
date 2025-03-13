@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Optional, Tuple, Type
 from unittest import TestCase, mock
 
 import pytest
-
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import HiddenText, hide_url, hide_value
 from pip._internal.utils.subprocess import CommandArgs

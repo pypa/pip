@@ -4,9 +4,8 @@ from optparse import Values
 from tempfile import NamedTemporaryFile
 from typing import Any, Dict, Iterator, List, Tuple, Type, Union, cast
 
-import pytest
-
 import pip._internal.configuration
+import pytest
 from pip._internal.cli.main import main
 from pip._internal.commands import create_command
 from pip._internal.commands.configuration import ConfigurationCommand

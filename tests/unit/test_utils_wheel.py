@@ -7,7 +7,6 @@ from typing import Callable, Iterator
 from zipfile import ZipFile
 
 import pytest
-
 from pip._internal.exceptions import UnsupportedWheel
 from pip._internal.utils import wheel
 

@@ -6,7 +6,6 @@ from pathlib import Path
 from textwrap import dedent
 
 import pytest
-
 from pip._internal.commands import commands_dict
 
 from tests.lib import PipTestEnvironment

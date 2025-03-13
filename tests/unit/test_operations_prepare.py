@@ -7,7 +7,6 @@ from typing import Any, Dict
 from unittest.mock import Mock, patch
 
 import pytest
-
 from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
 from pip._internal.network.download import Downloader

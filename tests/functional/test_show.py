@@ -4,7 +4,6 @@ import re
 import textwrap
 
 import pytest
-
 from pip import __version__
 from pip._internal.commands.show import search_packages_info
 from pip._internal.utils.unpacking import untar_file

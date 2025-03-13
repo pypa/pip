@@ -7,7 +7,6 @@ import sys
 from pathlib import Path
 
 import pytest
-
 from pip._internal.vcs.bazaar import Bazaar
 from pip._internal.vcs.versioncontrol import RemoteNotFoundError
 

@@ -3,7 +3,6 @@ from typing import Callable, List
 from unittest import mock
 
 import pytest
-
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.req_command import (
     IndexGroupCommand,

@@ -2,7 +2,6 @@ from pathlib import Path
 from typing import Callable, Optional
 
 import pytest
-
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 
 from tests.lib import PipTestEnvironment

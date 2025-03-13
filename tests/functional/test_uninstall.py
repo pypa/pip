@@ -9,7 +9,6 @@ from typing import Any, Iterator
 from unittest.mock import Mock
 
 import pytest
-
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.utils.misc import rmtree
 

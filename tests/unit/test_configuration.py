@@ -4,7 +4,6 @@ import re
 from unittest.mock import MagicMock
 
 import pytest
-
 from pip._internal.configuration import get_configuration_files, kinds
 from pip._internal.exceptions import ConfigurationError
 

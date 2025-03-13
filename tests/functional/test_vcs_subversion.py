@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-
 from pip._internal.vcs.subversion import Subversion
 from pip._internal.vcs.versioncontrol import RemoteNotFoundError
 

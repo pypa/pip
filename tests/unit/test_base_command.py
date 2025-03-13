@@ -7,7 +7,6 @@ from typing import Callable, Iterator, List, NoReturn, Optional
 from unittest.mock import Mock, patch
 
 import pytest
-
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.utils import temp_dir

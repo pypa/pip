@@ -3,10 +3,9 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
+from pip._internal.network.cache import SafeFileCache
 
 from pip._vendor.cachecontrol.caches import FileCache
-
-from pip._internal.network.cache import SafeFileCache
 
 from tests.lib.filesystem import chmod
 

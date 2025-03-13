@@ -1,7 +1,6 @@
 import zipfile
 
 import pytest
-
 from pip._internal.metadata import select_backend
 
 from tests.lib import PipTestEnvironment, TestData

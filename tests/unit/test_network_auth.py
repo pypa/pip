@@ -4,9 +4,8 @@ import subprocess
 import sys
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-import pytest
-
 import pip._internal.network.auth
+import pytest
 from pip._internal.network.auth import MultiDomainBasicAuth
 
 from tests.lib.requests_mocks import MockConnection, MockRequest, MockResponse
