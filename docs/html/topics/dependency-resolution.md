@@ -245,7 +245,7 @@ To find a version of both `package_coffee` and `package_tea` that depend on
 the same version of `package_water`, you might consider:
 
 - Loosening the range of packages that you are prepared to install
-  (e.g. `pip install "package_coffee>0.44.*" "package_tea>4.0.0"`)
+  (e.g. `pip install "package_coffee>0.44" "package_tea>4.0.0"`)
 - Asking pip to install _any_ version of `package_coffee` and `package_tea`
   by removing the version specifiers altogether (e.g.
   `pip install package_coffee package_tea`)
