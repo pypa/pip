@@ -1,0 +1,1 @@
+Handle multiple paths in ``appdirs.site_config_dirs`` on MacOS.
