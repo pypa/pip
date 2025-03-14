@@ -1,0 +1,1 @@
+Validate VCS urls in hash-checking mode using their commit hashes.
