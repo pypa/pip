@@ -1,0 +1,1 @@
+Cache computed metadata from sdists and lazy wheels in ``~/.cache/pip/link-metadata`` when ``--use-feature=metadata-cache`` is enabled.
