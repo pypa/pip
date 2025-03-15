@@ -271,6 +271,8 @@ class InstallCommand(RequirementCommand):
             ),
         )
 
+        self.cmd_opts.add_option(cmdoptions.install_jobs())
+
     @with_cleanup
     def run(self, options: Values, args: List[str]) -> int:
         if options.use_user_site and options.target_dir is not None:
@@ -417,6 +419,10 @@ class InstallCommand(RequirementCommand):
                 # we're not modifying it.
                 modifying_pip = pip_req.satisfied_by is None
             protect_pip_from_modification_on_windows(modifying_pip=modifying_pip)
+            if modifying_pip:
+                # Parallelization will re-import pip when starting new workers
+                # during installation which is unsafe if pip is being modified.
+                options.install_jobs = 1
 
             reqs_to_build = [
                 r
@@ -466,6 +472,7 @@ class InstallCommand(RequirementCommand):
                 use_user_site=options.use_user_site,
                 pycompile=options.compile,
                 progress_bar=options.progress_bar,
+                workers=options.install_jobs,
             )
 
             lib_locations = get_lib_location_guesses(

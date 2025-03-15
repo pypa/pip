@@ -53,6 +53,7 @@ from pip._internal.utils.misc import (
     redact_auth_from_url,
 )
 from pip._internal.utils.packaging import get_requirement
+from pip._internal.utils.pyc_compile import BytecodeCompiler
 from pip._internal.utils.subprocess import runner_with_spinner_message
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 from pip._internal.utils.unpacking import unpack_file
@@ -812,7 +813,7 @@ class InstallRequirement:
         prefix: Optional[str] = None,
         warn_script_location: bool = True,
         use_user_site: bool = False,
-        pycompile: bool = True,
+        pycompiler: Optional[BytecodeCompiler] = None,
     ) -> None:
         assert self.req is not None
         scheme = get_scheme(
@@ -869,7 +870,7 @@ class InstallRequirement:
             self.local_file_path,
             scheme=scheme,
             req_description=str(self.req),
-            pycompile=pycompile,
+            pycompiler=pycompiler,
             warn_script_location=warn_script_location,
             direct_url=self.download_info if self.is_direct else None,
             requested=self.user_supplied,
