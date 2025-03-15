@@ -13,7 +13,6 @@ import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from html.parser import HTMLParser
-from optparse import Values
 from typing import (
     Callable,
     Dict,
@@ -407,7 +406,7 @@ class LinkCollector:
     def create(
         cls,
         session: PipSession,
-        options: Values,
+        index_group: "IndexGroup",
         suppress_no_index: bool = False,
     ) -> "LinkCollector":
         """
@@ -415,22 +414,8 @@ class LinkCollector:
         :param suppress_no_index: Whether to ignore the --no-index option
             when constructing the SearchScope object.
         """
-        index_urls = [options.index_url] + options.extra_index_urls
-        if options.no_index and not suppress_no_index:
-            logger.debug(
-                "Ignoring indexes: %s",
-                ",".join(redact_auth_from_url(url) for url in index_urls),
-            )
-            index_urls = []
 
-        # Make sure find_links is a list before passing to create().
-        find_links = options.find_links or []
-
-        search_scope = SearchScope.create(
-            find_links=find_links,
-            index_urls=index_urls,
-            no_index=options.no_index,
-        )
+        search_scope = index_group.create_search_scope(suppress_no_index=suppress_no_index)
         link_collector = LinkCollector(
             session=session,
             search_scope=search_scope,
