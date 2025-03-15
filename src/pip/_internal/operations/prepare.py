@@ -235,6 +235,7 @@ class RequirementPreparer:
         lazy_wheel: bool,
         verbosity: int,
         legacy_resolver: bool,
+        resume_retries: int,
     ) -> None:
         super().__init__()
 
@@ -242,8 +243,8 @@ class RequirementPreparer:
         self.build_dir = build_dir
         self.build_tracker = build_tracker
         self._session = session
-        self._download = Downloader(session, progress_bar)
-        self._batch_download = BatchDownloader(session, progress_bar)
+        self._download = Downloader(session, progress_bar, resume_retries)
+        self._batch_download = BatchDownloader(session, progress_bar, resume_retries)
         self.finder = finder
 
         # Where still-packed archives should be written to. If None, they are
