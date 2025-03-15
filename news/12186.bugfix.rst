@@ -1,0 +1,1 @@
+Avoid downloading any dists in ``install --dry-run`` if PEP 658 ``.metadata`` files or lazy wheels are available.
