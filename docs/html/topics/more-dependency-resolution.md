@@ -132,6 +132,8 @@ operations:
 * `get_preference` - this provides information to the resolver to help it choose
   which requirement to look at "next" when working through the resolution
   process.
+* `narrow_requirement_selection` - this provides a way to limit the number of
+  identifiers passed to `get_preference`.
 * `find_matches` - given a set of constraints, determine what candidates exist
   that satisfy them. This is essentially where the finder interacts with the
   resolver.
@@ -140,12 +142,12 @@ operations:
 * `get_dependencies` - get the dependency metadata for a candidate. This is
   the implementation of the process of getting and reading package metadata.
 
-Of these methods, the only non-trivial one is the `get_preference` method. This
-implements the heuristics used to guide the resolution, telling it which
-requirement to try to satisfy next. It's this method that is responsible for
-trying to guess which route through the dependency tree will be most productive.
-As noted above, it's doing this with limited information. See the following
-diagram
+Of these methods, the only non-trivial ones are the `get_preference` and
+`narrow_requirement_selection` methods. These implement heuristics used
+to guide the resolution, telling it which requirement to try to satisfy next.
+It's these methods that are responsible for trying to guess which route through
+the dependency tree will be most productive. As noted above, it's doing this
+with limited information. See the following diagram:
 
 ![](deps.png)
 
@@ -153,14 +155,27 @@ When the provider is asked to choose between the red requirements (A->B and
 A->C) it doesn't know anything about the dependencies of B or C (i.e., the
 grey parts of the graph).
 
-Pip's current implementation of the provider implements `get_preference` as
-follows:
+Pip's current implementation of the provider implements
+`narrow_requirement_selection` as follows:
 
-* Prefer if any of the known requirements is "direct", e.g. points to an
-    explicit URL.
-* If equal, prefer if any requirement is "pinned", i.e. contains
-    operator ``===`` or ``==``.
-* Order user-specified requirements by the order they are specified.
-* If equal, prefers "non-free" requirements, i.e. contains at least one
-    operator, such as ``>=`` or ``<``.
-* If equal, order alphabetically for consistency (helps debuggability).
+* If Requires-Python is present only consider that
+* If there are causes of resolution conflict (backtrack causes) then
+    only consider them until there are no longer any resolution conflicts
+
+Pip's current implementation of the provider implements `get_preference`
+for known requirements with the following preferences in the following order:
+
+* Any requirement that is "direct", e.g., points to an explicit URL.
+* Any requirement that is "pinned", i.e., contains the operator ``===``
+    or ``==`` without a wildcard.
+* Any requirement that imposes an upper version limit, i.e., contains the
+    operator ``<``, ``<=``, ``~=``, or ``==`` with a wildcard. Because
+    pip prioritizes the latest version, preferring explicit upper bounds
+    can rule out infeasible candidates sooner. This does not imply that
+    upper bounds are good practice; they can make dependency management
+    and resolution harder.
+* Order user-specified requirements as they are specified, placing
+    other requirements afterward.
+* Any "non-free" requirement, i.e., one that contains at least one
+    operator, such as ``>=`` or ``!=``.
+* Alphabetical order for consistency (aids debuggability).

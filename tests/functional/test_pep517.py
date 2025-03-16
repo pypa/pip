@@ -252,7 +252,7 @@ def test_pep517_backend_requirements_satisfied_by_prerelease(
     script.pip("install", "test_backend", "--no-index", "-f", data.backends)
 
     project_dir = make_project(
-        script.temp_path,
+        script.scratch_path,
         requires=["test_backend", "myreq"],
         backend="test_backend",
     )

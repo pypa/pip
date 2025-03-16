@@ -3,6 +3,8 @@ from unittest import mock
 
 import pytest
 
+from pip._vendor.requests.exceptions import InvalidProxyURL
+
 from pip._internal.commands import install
 from pip._internal.commands.install import create_os_error_message, decide_user_install
 
@@ -107,6 +109,16 @@ class TestDecideUserInstall:
             "Could not install packages due to an OSError: [Errno 13] No"
             " file permission\nConsider using the `--user` option or check the"
             " permissions.\n",
+        ),
+        # Testing custom InvalidProxyURL with help message
+        #  show_traceback = True, using_user_site = True
+        (
+            InvalidProxyURL(),
+            True,
+            True,
+            "Could not install packages due to an OSError.\n"
+            "Consider checking your local proxy configuration"
+            ' with "pip config debug".\n',
         ),
     ],
 )
