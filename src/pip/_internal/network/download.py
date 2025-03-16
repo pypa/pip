@@ -138,7 +138,7 @@ def _http_get_download(
     if_range: Optional[str] = None,
 ) -> Response:
     target_url = link.url.split("#", 1)[0]
-    headers = {**HEADERS}
+    headers = HEADERS.copy()
     # request a partial download
     if range_start:
         headers["Range"] = f"bytes={range_start}-"
