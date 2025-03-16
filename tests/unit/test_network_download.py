@@ -271,12 +271,12 @@ def test_parse_content_disposition(
             5,
             [
                 (
-                    {"content-length": "36", "date": "Wed, 21 Oct 2015 07:28:00 GMT"},
+                    {"content-length": "36", "last-modified": "Wed, 21 Oct 2015 07:28:00 GMT"},
                     200,
                     b"0cfa7e9d-1868-4dd7-9fb3-",
                 ),
                 (
-                    {"content-length": "12", "date": "Wed, 21 Oct 2015 07:54:00 GMT"},
+                    {"content-length": "12", "last-modified": "Wed, 21 Oct 2015 07:54:00 GMT"},
                     206,
                     b"f2561d5dfd89",
                 ),
@@ -284,14 +284,14 @@ def test_parse_content_disposition(
             [(24, "Wed, 21 Oct 2015 07:28:00 GMT")],
             b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89",
         ),
-        # ETag is preferred over Date for the If-Range condition.
+        # ETag is preferred over Last-Modified for the If-Range condition.
         (
             5,
             [
                 (
                     {
                         "content-length": "36",
-                        "date": "Wed, 21 Oct 2015 07:28:00 GMT",
+                        "last-modified": "Wed, 21 Oct 2015 07:28:00 GMT",
                         "etag": '"33a64df551425fcc55e4d42a148795d9f25f89d4"',
                     },
                     200,
@@ -300,7 +300,7 @@ def test_parse_content_disposition(
                 (
                     {
                         "content-length": "12",
-                        "date": "Wed, 21 Oct 2015 07:54:00 GMT",
+                        "last-modified": "Wed, 21 Oct 2015 07:54:00 GMT",
                         "etag": '"33a64df551425fcc55e4d42a148795d9f25f89d4"',
                     },
                     206,

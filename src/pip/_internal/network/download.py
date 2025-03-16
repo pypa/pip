@@ -29,12 +29,12 @@ def _get_http_response_size(resp: Response) -> Optional[int]:
         return None
 
 
-def _get_http_response_etag_or_date(resp: Response) -> Optional[str]:
+def _get_http_response_etag_or_last_modified(resp: Response) -> Optional[str]:
     """
-    Return either the ETag or Date header (or None if neither exists).
+    Return either the ETag or Last-Modified header (or None if neither exists).
     The return value can be used in an If-Range header.
     """
-    return resp.headers.get("etag", resp.headers.get("date"))
+    return resp.headers.get("etag", resp.headers.get("last-modified"))
 
 
 def _prepare_download(
@@ -250,7 +250,7 @@ class Downloader:
         filepath: str,
     ) -> None:
         """Attempt to resume the download if connection was dropped."""
-        etag_or_date = _get_http_response_etag_or_date(resp)
+        etag_or_last_modified = _get_http_response_etag_or_last_modified(resp)
 
         attempts_left = self._resume_retries
         while attempts_left and total_length and bytes_received < total_length:
@@ -267,7 +267,7 @@ class Downloader:
                     self._session,
                     link,
                     range_start=bytes_received,
-                    if_range=etag_or_date,
+                    if_range=etag_or_last_modified,
                 )
 
                 # If the server responded with 200 (e.g. when the file has been
@@ -275,7 +275,7 @@ class Downloader:
                 # the server), reset the download to start from the beginning.
                 restart = resume_resp.status_code != HTTPStatus.PARTIAL_CONTENT
                 if restart:
-                    bytes_received, total_length, etag_or_date = (
+                    bytes_received, total_length, etag_or_last_modified = (
                         self._reset_download_state(resume_resp, content_file)
                     )
 
@@ -308,9 +308,9 @@ class Downloader:
         content_file.truncate()
         bytes_received = 0
         total_length = _get_http_response_size(resp)
-        etag_or_date = _get_http_response_etag_or_date(resp)
+        etag_or_last_modified = _get_http_response_etag_or_last_modified(resp)
 
-        return bytes_received, total_length, etag_or_date
+        return bytes_received, total_length, etag_or_last_modified
 
 
 class BatchDownloader:
