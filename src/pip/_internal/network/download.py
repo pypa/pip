@@ -139,12 +139,10 @@ def _http_get_download(
 ) -> Response:
     target_url = link.url.split("#", 1)[0]
     headers = HEADERS.copy()
-    # request a partial download
-    if range_start:
-        headers["Range"] = f"bytes={range_start}-"
-    # make sure the file hasn't changed
+    # request a partial download make sure the file hasn't changed
     if if_range:
         headers["If-Range"] = if_range
+        headers["Range"] = f"bytes={range_start}-"
     try:
         resp = session.get(target_url, headers=headers, stream=True)
         raise_for_status(resp)
