@@ -815,10 +815,10 @@ class IncompleteDownloadError(DiagnosticPipError):
 
     reference = "incomplete-download-error"
 
-    def __init__(self, link: str, resume_retries: int) -> None:
+    def __init__(self, link: str, resume_retries: int, download_status: str) -> None:
         message = (
             f"Download failed after {resume_retries} attempts because not enough"
-            " bytes were received. The incomplete file has been cleaned up."
+            f" bytes were received ({download_status}). The incomplete file has been cleaned up."
         )
         hint = "Use --resume-retries to configure resume retry limit."
 

@@ -286,12 +286,17 @@ class Downloader:
                     bytes_received,
                     total_length,
                 )
-            except (ConnectionError, ReadTimeoutError):
+            except (ConnectionError, ReadTimeoutError, OSError):
                 continue
 
         if total_length and bytes_received < total_length:
             os.remove(filepath)
-            raise IncompleteDownloadError(str(link), self._resume_retries)
+            download_status = (
+                f"{format_size(bytes_received)}/{format_size(total_length)}"
+            )
+            raise IncompleteDownloadError(
+                str(link), self._resume_retries, download_status
+            )
 
         return bytes_received
 
