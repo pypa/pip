@@ -248,7 +248,7 @@ class Downloader:
         total_length: Optional[int],
         bytes_received: int,
         filepath: str,
-    ) -> int:
+    ) -> None:
         """Attempt to resume the download if connection was dropped."""
         etag_or_date = _get_http_response_etag_or_date(resp)
 
@@ -297,8 +297,6 @@ class Downloader:
             raise IncompleteDownloadError(
                 str(link), self._resume_retries, download_status
             )
-
-        return bytes_received
 
     def _reset_download_state(
         self,
