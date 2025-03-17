@@ -52,11 +52,11 @@ and let pip download know where to find them using ``--find-links``.
    To determine the appropriate values for ``--python-version`` and ``--platform``, you can query the target system using the following commands:
 
    - For the Python version, use :func:`sysconfig.get_python_version() <sysconfig.get_python_version>`.
-   - For the platform, use :func:`sysconfig.get_platform() <sysconfig.get_platform>`.
+   - For the platform, use :func:`packaging.tags.sys_tags() <packaging.tags.sys_tags>`.
 
    Refer to the official Python documentation for more details:
    - `sysconfig.get_python_version() <https://docs.python.org/3/library/sysconfig.html#sysconfig.get_python_version>`_
-   - `sysconfig.get_platform() <https://docs.python.org/3/library/sysconfig.html#sysconfig.get_platform>`_
+   - `packaging.tags.sys_tags() <https://packaging.pypa.io/en/latest/tags.html>`_
 
 Options
 =======
