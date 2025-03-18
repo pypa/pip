@@ -20,8 +20,8 @@ class Wheel:
 
     wheel_file_re = re.compile(
         r"""^(?P<namever>(?P<name>[^\s-]+?)-(?P<ver>[^\s-]*?))
-        ((-(?P<build>\d[^-]*?))?(-~(?P<variant_hash>[0-9a-f]{8})~)?
-        -(?P<pyver>[^\s-]+?)-(?P<abi>[^\s-]+?)-(?P<plat>[^\s-]+?)
+        ((-(?P<build>\d[^-]*?))?-(?P<pyver>[^\s-]+?)-(?P<abi>[^\s-]+?)-(?P<plat>[^\s-]+?)
+        (-(?P<variant_hash>[0-9a-f]{8})([+][^\s-]*)?)?
         \.whl|\.dist-info)$""",
         re.VERBOSE,
     )
