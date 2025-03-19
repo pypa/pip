@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import logging
 from functools import cache
+import logging
 
 from variantlib.platform import get_variant_hashes_by_priority
 
@@ -34,9 +34,16 @@ def read_provider_priority_from_pip_config() -> dict[str, int]:
         return {}
 
 
+class VariantJson(dict):
+    def __hash__(self):
+        return hash(tuple(self.get("variants")))
+
+
 @cache
-def get_cached_variant_hashes_by_priority() -> list[str]:
-    variants = list(get_variant_hashes_by_priority())
+def get_cached_variant_hashes_by_priority(
+        variants_json: Optional[VariantJson] = None
+        ) -> list[str]:
+    variants = list(get_variant_hashes_by_priority(variants_json=variants_json))
     if variants:
         logger.info(f"Total Number of Compatible Variants: {len(variants):,}")  # noqa: G004
     return variants

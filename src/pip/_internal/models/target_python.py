@@ -5,6 +5,7 @@ from pip._vendor.packaging.tags import Tag
 
 from pip._internal.utils.compatibility_tags import get_supported, version_info_to_nodot
 from pip._internal.utils.misc import normalize_version_info
+from pip._internal.utils.variant import VariantJson
 
 
 class TargetPython:
@@ -20,8 +21,6 @@ class TargetPython:
         "platforms",
         "py_version",
         "py_version_info",
-        "_valid_tags",
-        "_valid_tags_set",
     ]
 
     def __init__(
@@ -61,10 +60,6 @@ class TargetPython:
         self.py_version = py_version
         self.py_version_info = py_version_info
 
-        # This is used to cache the return value of get_(un)sorted_tags.
-        self._valid_tags: Optional[List[Tag]] = None
-        self._valid_tags_set: Optional[Set[Tag]] = None
-
     def format_given(self) -> str:
         """
         Format the given, non-None attributes for display.
@@ -85,37 +80,41 @@ class TargetPython:
             f"{key}={value!r}" for key, value in key_values if value is not None
         )
 
-    def get_sorted_tags(self) -> List[Tag]:
+    def get_sorted_tags(self,
+                        need_variants: bool = False,
+                        variants_json: Optional[VariantJson] = None
+                        ) -> List[Tag]:
         """
         Return the supported PEP 425 tags to check wheel candidates against.
 
         The tags are returned in order of preference (most preferred first).
         """
-        if self._valid_tags is None:
-            # Pass versions=None if no py_version_info was given since
-            # versions=None uses special default logic.
-            py_version_info = self._given_py_version_info
-            if py_version_info is None:
-                version = None
-            else:
-                version = version_info_to_nodot(py_version_info)
+        # Pass versions=None if no py_version_info was given since
+        # versions=None uses special default logic.
+        py_version_info = self._given_py_version_info
+        if py_version_info is None:
+            version = None
+        else:
+            version = version_info_to_nodot(py_version_info)
 
-            tags = get_supported(
-                version=version,
-                platforms=self.platforms,
-                abis=self.abis,
-                impl=self.implementation,
-            )
-            self._valid_tags = tags
+        return get_supported(
+            version=version,
+            platforms=self.platforms,
+            abis=self.abis,
+            impl=self.implementation,
+            need_variants=need_variants,
+            variants_json=variants_json,
+        )
 
-        return self._valid_tags
-
-    def get_unsorted_tags(self) -> Set[Tag]:
+    def get_unsorted_tags(self,
+                          need_variants: bool = False,
+                          variants_json: Optional[VariantJson] = None
+                          ) -> Set[Tag]:
         """Exactly the same as get_sorted_tags, but returns a set.
 
         This is important for performance.
         """
-        if self._valid_tags_set is None:
-            self._valid_tags_set = set(self.get_sorted_tags())
-
-        return self._valid_tags_set
+        return set(self.get_sorted_tags(
+            need_variants=need_variants,
+            variants_json=variants_json,
+        ))
