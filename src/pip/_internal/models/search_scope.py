@@ -21,11 +21,12 @@ class SearchScope:
     Encapsulates the locations that pip is configured to search.
     """
 
-    __slots__ = ["find_links", "index_urls", "no_index"]
+    __slots__ = ["find_links", "index_urls", "no_index", "index_priority"]
 
     find_links: List[str]
     index_urls: List[str]
     no_index: bool
+    index_priority: bool
 
     @classmethod
     def create(
@@ -33,6 +34,7 @@ class SearchScope:
         find_links: List[str],
         index_urls: List[str],
         no_index: bool,
+        index_priority: bool = False,
     ) -> "SearchScope":
         """
         Create a SearchScope object after normalizing the `find_links`.
@@ -67,6 +69,7 @@ class SearchScope:
             find_links=built_find_links,
             index_urls=index_urls,
             no_index=no_index,
+            index_priority=index_priority,
         )
 
     def get_formatted_locations(self) -> str:

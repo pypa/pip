@@ -32,7 +32,7 @@ from pip._vendor import requests
 from pip._vendor.requests import Response
 from pip._vendor.requests.exceptions import RetryError, SSLError
 
-from pip._internal.exceptions import NetworkConnectionError
+from pip._internal.exceptions import NetworkConnectionError, CommandError
 from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.network.session import PipSession
@@ -416,6 +416,12 @@ class LinkCollector:
             when constructing the SearchScope object.
         """
         index_urls = [options.index_url] + options.extra_index_urls
+        index_priority = False
+        if (options.index_groups is not None and len(options.index_groups) > 0):
+            print(options.index_groups[0])
+            index_urls = options.index_groups[0].split(",")
+            index_priority = True
+            
         if options.no_index and not suppress_no_index:
             logger.debug(
                 "Ignoring indexes: %s",
@@ -430,6 +436,7 @@ class LinkCollector:
             find_links=find_links,
             index_urls=index_urls,
             no_index=options.no_index,
+            index_priority=index_priority,
         )
         link_collector = LinkCollector(
             session=session,

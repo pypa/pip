@@ -52,6 +52,7 @@ ENV_VAR_RE = re.compile(r"(?P<var>\$\{(?P<name>[A-Z0-9_]+)\})")
 SUPPORTED_OPTIONS: List[Callable[..., optparse.Option]] = [
     cmdoptions.index_url,
     cmdoptions.extra_index_url,
+    cmdoptions.index_groups,
     cmdoptions.no_index,
     cmdoptions.constraints,
     cmdoptions.requirements,

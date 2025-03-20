@@ -364,6 +364,17 @@ def extra_index_url() -> Option:
         "--index-url.",
     )
 
+def index_groups() -> Option:
+    return Option(
+        "--index-groups",
+        dest="index_groups",
+        metavar="URL",
+        action="append",
+        default=[],
+        help="Index Groups of package indexes to use in addition to "
+        "--index-url. Should follow the similar rules as but applies for groups."
+        "--index-url.",
+    )
 
 no_index: Callable[..., Option] = partial(
     Option,
@@ -1118,6 +1129,7 @@ index_group: Dict[str, Any] = {
     "options": [
         index_url,
         extra_index_url,
+        index_groups,
         no_index,
         find_links,
     ],

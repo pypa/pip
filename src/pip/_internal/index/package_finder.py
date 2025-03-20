@@ -125,6 +125,8 @@ class LinkEvaluator:
         target_python: TargetPython,
         allow_yanked: bool,
         ignore_requires_python: Optional[bool] = None,
+        index_priority: bool = False,
+        index_urls: Optional[List[str]] = None,
     ) -> None:
         """
         :param project_name: The user supplied package name.
@@ -151,6 +153,8 @@ class LinkEvaluator:
         self._ignore_requires_python = ignore_requires_python
         self._formats = formats
         self._target_python = target_python
+        self._index_priority = index_priority
+        self._index_urls = index_urls
 
         self.project_name = project_name
 
@@ -375,6 +379,8 @@ class CandidateEvaluator:
         allow_all_prereleases: bool = False,
         specifier: Optional[specifiers.BaseSpecifier] = None,
         hashes: Optional[Hashes] = None,
+        index_priority: bool = False,
+        index_urls: Optional[List[str]] = None,
     ) -> "CandidateEvaluator":
         """Create a CandidateEvaluator object.
 
@@ -400,6 +406,8 @@ class CandidateEvaluator:
             prefer_binary=prefer_binary,
             allow_all_prereleases=allow_all_prereleases,
             hashes=hashes,
+            index_priority=index_priority,
+            index_urls=index_urls,
         )
 
     def __init__(
@@ -410,6 +418,8 @@ class CandidateEvaluator:
         prefer_binary: bool = False,
         allow_all_prereleases: bool = False,
         hashes: Optional[Hashes] = None,
+        index_priority: bool = False,
+        index_urls: Optional[List[str]] = None,
     ) -> None:
         """
         :param supported_tags: The PEP 425 tags supported by the target
@@ -421,6 +431,8 @@ class CandidateEvaluator:
         self._project_name = project_name
         self._specifier = specifier
         self._supported_tags = supported_tags
+        self._index_priority = index_priority
+        self._index_urls = index_urls
         # Since the index of the tag in the _supported_tags list is used
         # as a priority, precompute a map from tag to index/priority to be
         # used in wheel.find_most_preferred_tag.
@@ -548,10 +560,31 @@ class CandidateEvaluator:
         """
         Compute and return a `BestCandidateResult` instance.
         """
-        applicable_candidates = self.get_applicable_candidates(candidates)
 
-        best_candidate = self.sort_best_candidate(applicable_candidates)
+        # Apply priority filtering to the list of candidates
+        found_candidate = False
+        if(self._index_priority and self._index_urls is not None):
+            for index_url in self._index_urls:
+                index_priority_candidates = list()
+                for candidate in candidates:
+                    # filter out candidates by current priority index
+                    if candidate.link.comes_from.startswith(index_url):
+                        index_priority_candidates.append(candidate)
 
+                if(len(index_priority_candidates) > 0):
+                    applicable_candidates = self.get_applicable_candidates(index_priority_candidates)
+                    best_candidate = self.sort_best_candidate(applicable_candidates)
+                    found_candidate = True
+                    break
+
+
+        # fall back on default behavior
+        if not found_candidate:
+            applicable_candidates = self.get_applicable_candidates(candidates)
+            best_candidate = self.sort_best_candidate(applicable_candidates)
+
+        logger.debug(f"compute_best_candidate: {best_candidate}")
+        logger.debug(f"out of: {candidates}")
         return BestCandidateResult(
             candidates,
             applicable_candidates=applicable_candidates,
@@ -658,6 +691,10 @@ class PackageFinder:
         return self.search_scope.index_urls
 
     @property
+    def index_priority(self) -> bool:
+        return self.search_scope.index_priority
+
+    @property
     def proxy(self) -> Optional[str]:
         return self._link_collector.session.pip_proxy
 
@@ -713,6 +750,8 @@ class PackageFinder:
             target_python=self._target_python,
             allow_yanked=self._allow_yanked,
             ignore_requires_python=self._ignore_requires_python,
+            index_priority=self.index_priority,
+            index_urls=self.index_urls,
         )
 
     def _sort_links(self, links: Iterable[Link]) -> List[Link]:
@@ -868,6 +907,8 @@ class PackageFinder:
             allow_all_prereleases=candidate_prefs.allow_all_prereleases,
             specifier=specifier,
             hashes=hashes,
+            index_priority=self.index_priority,
+            index_urls=self.index_urls,
         )
 
     @functools.lru_cache(maxsize=None)
@@ -909,6 +950,7 @@ class PackageFinder:
             hashes=hashes,
         )
         best_candidate = best_candidate_result.best_candidate
+        logger.debug(f"***best_candidate: {best_candidate}")
 
         installed_version: Optional[_BaseVersion] = None
         if req.satisfied_by is not None:
