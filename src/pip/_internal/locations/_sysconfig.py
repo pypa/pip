@@ -161,9 +161,9 @@ def get_scheme(
         scheme_name = "posix_prefix"
 
     if home is not None:
-        variables = dict.fromkeys(_HOME_KEYS, home)
+        variables = {k: home for k in _HOME_KEYS}
     elif prefix is not None:
-        variables = dict.fromkeys(_HOME_KEYS, prefix)
+        variables = {k: prefix for k in _HOME_KEYS}
     else:
         variables = {}
 
