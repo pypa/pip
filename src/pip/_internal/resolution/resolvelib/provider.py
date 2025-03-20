@@ -6,16 +6,21 @@ from typing import (
     Iterable,
     Iterator,
     Mapping,
+    Optional,
     Sequence,
+    Tuple,
     TypeVar,
     Union,
 )
 
 from pip._vendor.resolvelib.providers import AbstractProvider
 
+from pip._internal.req.req_install import InstallRequirement
+
 from .base import Candidate, Constraint, Requirement
 from .candidates import REQUIRES_PYTHON_IDENTIFIER
 from .factory import Factory
+from .requirements import ExplicitRequirement
 
 if TYPE_CHECKING:
     from pip._vendor.resolvelib.providers import Preference
@@ -185,11 +190,20 @@ class PipProvider(_ProviderBase):
         else:
             has_information = True
 
-        if has_information:
-            lookups = (r.get_candidate_lookup() for r, _ in information[identifier])
-            candidate, ireqs = zip(*lookups)
+        if not has_information:
+            direct = False
+            ireqs: Tuple[Optional[InstallRequirement], ...] = ()
         else:
-            candidate, ireqs = None, ()
+            # Go through the information and for each requirement,
+            # check if it's explicit (e.g., a direct link) and get the
+            # InstallRequirement (the second element) from get_candidate_lookup()
+            directs, ireqs = zip(
+                *(
+                    (isinstance(r, ExplicitRequirement), r.get_candidate_lookup()[1])
+                    for r, _ in information[identifier]
+                )
+            )
+            direct = any(directs)
 
         operators: list[tuple[str, str]] = [
             (specifier.operator, specifier.version)
@@ -197,7 +211,6 @@ class PipProvider(_ProviderBase):
             for specifier in specifier_set
         ]
 
-        direct = candidate is not None
         pinned = any(((op[:2] == "==") and ("*" not in ver)) for op, ver in operators)
         upper_bounded = any(
             ((op in ("<", "<=", "~=")) or (op == "==" and "*" in ver))

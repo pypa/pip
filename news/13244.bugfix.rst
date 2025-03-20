@@ -1,0 +1,2 @@
+While resolving dependencies prefer if any of the known requirements are
+"direct", e.g. points to an explicit URL.
