@@ -931,6 +931,6 @@ def test_nonpep517_setuptools_import_failure(script: PipTestEnvironment) -> None
         "ERROR: Can not execute `setup.py`"
         " since setuptools failed to import in the build environment"
     )
-    exc_message = "this 'setuptools' was intentionally poisoned"
+    exc_message = "ImportError: this 'setuptools' was intentionally poisoned"
     assert nice_message in result.stderr
     assert exc_message in result.stderr

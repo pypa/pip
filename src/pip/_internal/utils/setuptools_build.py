@@ -21,13 +21,13 @@ _SETUPTOOLS_SHIM = textwrap.dedent(
 
     try:
         import setuptools
-    except ImportError as error:
+    except ImportError:
         print(
             "ERROR: Can not execute `setup.py` since setuptools failed to import in "
             "the build environment with exception:",
             file=sys.stderr,
         )
-        traceback.print_tb(error.__traceback__, file=sys.stderr)
+        traceback.print_exc()
         sys.exit(1)
 
     __file__ = %r
