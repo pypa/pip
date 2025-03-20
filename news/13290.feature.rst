@@ -1,0 +1,1 @@
+Include traceback on failure to import ``setuptools`` during legacy metadata gathering.
