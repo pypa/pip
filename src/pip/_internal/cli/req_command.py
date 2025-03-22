@@ -144,6 +144,7 @@ class RequirementCommand(IndexGroupCommand):
             lazy_wheel=lazy_wheel,
             verbosity=verbosity,
             legacy_resolver=legacy_resolver,
+            resume_retries=options.resume_retries,
         )
 
     @classmethod
