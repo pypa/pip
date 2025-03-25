@@ -205,7 +205,6 @@ class LinkEvaluator:
 
                 variant_hash = wheel.variant_hash
                 supported_tags = self._target_python.get_unsorted_tags(
-                    need_variants=variant_hash is not None,
                     variants_json=self.variants_json)
                 if not wheel.supported(supported_tags):
                     # Include the wheel's tags in the reason string to
@@ -384,7 +383,6 @@ class CandidateEvaluator:
         allow_all_prereleases: bool = False,
         specifier: Optional[specifiers.BaseSpecifier] = None,
         hashes: Optional[Hashes] = None,
-        need_variants: bool = False,
         variants_json: Optional[VariantJson] = None
     ) -> "CandidateEvaluator":
         """Create a CandidateEvaluator object.
@@ -403,7 +401,6 @@ class CandidateEvaluator:
             specifier = specifiers.SpecifierSet()
 
         supported_tags = target_python.get_sorted_tags(
-            need_variants=need_variants,
             variants_json=variants_json,
         )
 
@@ -888,7 +885,6 @@ class PackageFinder:
         project_name: str,
         specifier: Optional[specifiers.BaseSpecifier] = None,
         hashes: Optional[Hashes] = None,
-        need_variants: bool = False,
         variants_json: Optional[VariantJson] = None
     ) -> CandidateEvaluator:
         """Create a CandidateEvaluator object to use."""
@@ -900,7 +896,6 @@ class PackageFinder:
             allow_all_prereleases=candidate_prefs.allow_all_prereleases,
             specifier=specifier,
             hashes=hashes,
-            need_variants=need_variants,
             variants_json=variants_json,
         )
 
@@ -924,8 +919,6 @@ class PackageFinder:
             project_name=project_name,
             specifier=specifier,
             hashes=hashes,
-            need_variants=any(x.variant_hash is not None
-                              for x in candidates),
             variants_json=variants_json,
         )
         return candidate_evaluator.compute_best_candidate(candidates)

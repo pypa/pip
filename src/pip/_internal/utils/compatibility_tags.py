@@ -144,7 +144,6 @@ def get_supported(
     platforms: Optional[List[str]] = None,
     impl: Optional[str] = None,
     abis: Optional[List[str]] = None,
-    need_variants: bool = False,
     variants_json: Optional[VariantJson] = None
 ) -> List[Tag]:
     """Return a list of supported tags for each version specified in
@@ -194,7 +193,7 @@ def get_supported(
         )
     )
 
-    if need_variants:
+    if variants_json is not None:
         variants_by_priority = get_cached_variant_hashes_by_priority(variants_json=variants_json)
 
         # NOTE: There is two choices implementation wise
