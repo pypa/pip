@@ -36,6 +36,7 @@ from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import build_netloc
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.utils.unpacking import SUPPORTED_EXTENSIONS
+from pip._internal.utils.variant import VariantJson
 
 if TYPE_CHECKING:
     from pip._vendor.typing_extensions import TypeGuard
@@ -153,8 +154,9 @@ class LinkEvaluator:
         self._target_python = target_python
 
         self.project_name = project_name
+        self.variants_json = None
 
-    def evaluate_link(self, link: Link) -> Tuple[LinkType, str]:
+    def evaluate_link(self, link: Link) -> Tuple[LinkType, str, Optional[str]]:
         """
         Determine whether a link is a candidate for installation.
 
@@ -167,25 +169,27 @@ class LinkEvaluator:
         version = None
         if link.is_yanked and not self._allow_yanked:
             reason = link.yanked_reason or "<none given>"
-            return (LinkType.yanked, f"yanked for reason: {reason}")
+            return (LinkType.yanked, f"yanked for reason: {reason}", None)
 
+        variant_hash = None
         if link.egg_fragment:
             egg_info = link.egg_fragment
             ext = link.ext
         else:
             egg_info, ext = link.splitext()
             if not ext:
-                return (LinkType.format_unsupported, "not a file")
+                return (LinkType.format_unsupported, "not a file", None)
             if ext not in SUPPORTED_EXTENSIONS:
                 return (
                     LinkType.format_unsupported,
                     f"unsupported archive format: {ext}",
+                    None,
                 )
             if "binary" not in self._formats and ext == WHEEL_EXTENSION:
                 reason = f"No binaries permitted for {self.project_name}"
-                return (LinkType.format_unsupported, reason)
+                return (LinkType.format_unsupported, reason, None)
             if "macosx10" in link.path and ext == ".zip":
-                return (LinkType.format_unsupported, "macosx10 one")
+                return (LinkType.format_unsupported, "macosx10 one", None)
             if ext == WHEEL_EXTENSION:
                 try:
                     wheel = Wheel(link.filename)
@@ -193,12 +197,16 @@ class LinkEvaluator:
                     return (
                         LinkType.format_invalid,
                         "invalid wheel filename",
+                        None,
                     )
                 if canonicalize_name(wheel.name) != self._canonical_name:
                     reason = f"wrong project name (not {self.project_name})"
-                    return (LinkType.different_project, reason)
+                    return (LinkType.different_project, reason, None)
 
-                supported_tags = self._target_python.get_unsorted_tags()
+                variant_hash = wheel.variant_hash
+                supported_tags = self._target_python.get_unsorted_tags(
+                    need_variants=variant_hash is not None,
+                    variants_json=self.variants_json)
                 if not wheel.supported(supported_tags):
                     # Include the wheel's tags in the reason string to
                     # simplify troubleshooting compatibility issues.
@@ -207,14 +215,14 @@ class LinkEvaluator:
                         f"none of the wheel's tags ({file_tags}) are compatible "
                         f"(run pip debug --verbose to show compatible tags)"
                     )
-                    return (LinkType.platform_mismatch, reason)
+                    return (LinkType.platform_mismatch, reason, None)
 
                 version = wheel.version
 
         # This should be up by the self.ok_binary check, but see issue 2700.
         if "source" not in self._formats and ext != WHEEL_EXTENSION:
             reason = f"No sources permitted for {self.project_name}"
-            return (LinkType.format_unsupported, reason)
+            return (LinkType.format_unsupported, reason, None)
 
         if not version:
             version = _extract_version_from_fragment(
@@ -223,7 +231,7 @@ class LinkEvaluator:
             )
         if not version:
             reason = f"Missing project version for {self.project_name}"
-            return (LinkType.format_invalid, reason)
+            return (LinkType.format_invalid, reason, None)
 
         match = self._py_version_re.search(version)
         if match:
@@ -233,6 +241,7 @@ class LinkEvaluator:
                 return (
                     LinkType.platform_mismatch,
                     "Python version is incorrect",
+                    None,
                 )
 
         supports_python = _check_link_requires_python(
@@ -242,11 +251,11 @@ class LinkEvaluator:
         )
         if not supports_python:
             reason = f"{version} Requires-Python {link.requires_python}"
-            return (LinkType.requires_python_mismatch, reason)
+            return (LinkType.requires_python_mismatch, reason, None)
 
         logger.debug("Found link %s, version: %s", link, version)
 
-        return (LinkType.candidate, version)
+        return (LinkType.candidate, version, variant_hash)
 
 
 def filter_unallowed_hashes(
@@ -375,6 +384,8 @@ class CandidateEvaluator:
         allow_all_prereleases: bool = False,
         specifier: Optional[specifiers.BaseSpecifier] = None,
         hashes: Optional[Hashes] = None,
+        need_variants: bool = False,
+        variants_json: Optional[VariantJson] = None
     ) -> "CandidateEvaluator":
         """Create a CandidateEvaluator object.
 
@@ -391,7 +402,10 @@ class CandidateEvaluator:
         if specifier is None:
             specifier = specifiers.SpecifierSet()
 
-        supported_tags = target_python.get_sorted_tags()
+        supported_tags = target_python.get_sorted_tags(
+            need_variants=need_variants,
+            variants_json=variants_json,
+        )
 
         return cls(
             project_name=project_name,
@@ -724,16 +738,18 @@ class PackageFinder:
         Returns elements of links in order, non-egg links first, egg links
         second, while eliminating duplicates
         """
-        eggs, no_eggs = [], []
+        eggs, no_eggs, variants_json = [], [], []
         seen: Set[Link] = set()
         for link in links:
             if link not in seen:
                 seen.add(link)
-                if link.egg_fragment:
+                if link.filename == "variants.json":
+                    variants_json.append(link)
+                elif link.egg_fragment:
                     eggs.append(link)
                 else:
                     no_eggs.append(link)
-        return no_eggs + eggs
+        return variants_json + no_eggs + eggs
 
     def _log_skipped_link(self, link: Link, result: LinkType, detail: str) -> None:
         # This is a hot method so don't waste time hashing links unless we're
@@ -755,7 +771,7 @@ class PackageFinder:
         If the link is a candidate for install, convert it to an
         InstallationCandidate and return it. Otherwise, return None.
         """
-        result, detail = link_evaluator.evaluate_link(link)
+        result, detail, variant_hash = link_evaluator.evaluate_link(link)
         if result != LinkType.candidate:
             self._log_skipped_link(link, result, detail)
             return None
@@ -765,9 +781,14 @@ class PackageFinder:
                 name=link_evaluator.project_name,
                 link=link,
                 version=detail,
+                variant_hash=variant_hash,
             )
         except InvalidVersion:
             return None
+
+    @functools.cache
+    def get_variants_json(self, link: Link) -> dict:
+        return VariantJson(self._link_collector.session.request("GET", link.url).json())
 
     def evaluate_links(
         self, link_evaluator: LinkEvaluator, links: Iterable[Link]
@@ -776,7 +797,12 @@ class PackageFinder:
         Convert links that are candidates to InstallationCandidate objects.
         """
         candidates = []
+        variants_json = None
         for link in self._sort_links(links):
+            if link.filename == "variants.json":
+                link_evaluator.variants_json = self.get_variants_json(link)
+                continue
+
             candidate = self.get_install_candidate(link_evaluator, link)
             if candidate is not None:
                 candidates.append(candidate)
@@ -855,13 +881,15 @@ class PackageFinder:
             logger.debug("Local files found: %s", ", ".join(paths))
 
         # This is an intentional priority ordering
-        return file_candidates + page_candidates
+        return file_candidates + page_candidates, link_evaluator.variants_json
 
     def make_candidate_evaluator(
         self,
         project_name: str,
         specifier: Optional[specifiers.BaseSpecifier] = None,
         hashes: Optional[Hashes] = None,
+        need_variants: bool = False,
+        variants_json: Optional[VariantJson] = None
     ) -> CandidateEvaluator:
         """Create a CandidateEvaluator object to use."""
         candidate_prefs = self._candidate_prefs
@@ -872,6 +900,8 @@ class PackageFinder:
             allow_all_prereleases=candidate_prefs.allow_all_prereleases,
             specifier=specifier,
             hashes=hashes,
+            need_variants=need_variants,
+            variants_json=variants_json,
         )
 
     @functools.lru_cache(maxsize=None)
@@ -889,11 +919,14 @@ class PackageFinder:
 
         :return: A `BestCandidateResult` instance.
         """
-        candidates = self.find_all_candidates(project_name)
+        candidates, variants_json = self.find_all_candidates(project_name)
         candidate_evaluator = self.make_candidate_evaluator(
             project_name=project_name,
             specifier=specifier,
             hashes=hashes,
+            need_variants=any(x.variant_hash is not None
+                              for x in candidates),
+            variants_json=variants_json,
         )
         return candidate_evaluator.compute_best_candidate(candidates)
 

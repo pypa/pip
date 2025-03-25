@@ -1,8 +1,8 @@
 """Generate and work with PEP 425 Compatibility Tags."""
 
+from functools import cache
 import logging
 import re
-from functools import cache
 from typing import List, Optional, Tuple
 
 from pip._vendor.packaging.tags import (
@@ -17,7 +17,7 @@ from pip._vendor.packaging.tags import (
     mac_platforms,
 )
 
-from pip._internal.utils.variant import get_cached_variant_hashes_by_priority
+from pip._internal.utils.variant import get_cached_variant_hashes_by_priority, VariantJson
 
 _apple_arch_pat = re.compile(r"(.+)_(\d+)_(\d+)_(.+)")
 
@@ -144,6 +144,8 @@ def get_supported(
     platforms: Optional[List[str]] = None,
     impl: Optional[str] = None,
     abis: Optional[List[str]] = None,
+    need_variants: bool = False,
+    variants_json: Optional[VariantJson] = None
 ) -> List[Tag]:
     """Return a list of supported tags for each version specified in
     `versions`.
@@ -192,7 +194,9 @@ def get_supported(
         )
     )
 
-    if variants_by_priority := get_cached_variant_hashes_by_priority():
+    if need_variants:
+        variants_by_priority = get_cached_variant_hashes_by_priority(variants_json=variants_json)
+
         # NOTE: There is two choices implementation wise
         # QUESTION: Which one should be the outer loop ?
         #
