@@ -1,8 +1,10 @@
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from pip._internal.distributions.base import AbstractDistribution
-from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution
+
+if TYPE_CHECKING:
+    from pip._internal.index.package_finder import PackageFinder
 
 
 class InstalledDistribution(AbstractDistribution):
@@ -17,12 +19,14 @@ class InstalledDistribution(AbstractDistribution):
         return None
 
     def get_metadata_distribution(self) -> BaseDistribution:
-        assert self.req.satisfied_by is not None, "not actually installed"
-        return self.req.satisfied_by
+        dist = self.req.satisfied_by
+        assert dist is not None, "not actually installed"
+        self.req.cache_concrete_dist(dist)
+        return dist
 
     def prepare_distribution_metadata(
         self,
-        finder: PackageFinder,
+        finder: "PackageFinder",
         build_isolation: bool,
         check_build_deps: bool,
     ) -> None:
