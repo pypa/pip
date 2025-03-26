@@ -5,11 +5,12 @@ import os
 from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple, cast
 
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible
+from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible, ResolutionTooDeep
 from pip._vendor.resolvelib import Resolver as RLResolver
 from pip._vendor.resolvelib.structs import DirectedGraph
 
 from pip._internal.cache import WheelCache
+from pip._internal.exceptions import ResolutionTooDeepError
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.constructors import install_req_extend_extras
@@ -102,6 +103,8 @@ class Resolver(BaseResolver):
                 collected.constraints,
             )
             raise error from e
+        except ResolutionTooDeep:
+            raise ResolutionTooDeepError from None
 
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)
         # process candidates with extras last to ensure their base equivalent is
