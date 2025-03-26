@@ -1,0 +1,1 @@
+Support multiple global configuration paths returned by ``platformdirs`` on MacOS.
