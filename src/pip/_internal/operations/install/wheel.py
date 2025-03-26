@@ -410,6 +410,9 @@ def _raise_for_invalid_entrypoint(specification: str) -> None:
 
 
 class PipScriptMaker(ScriptMaker):
+    def __init__(self, executable, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.executable = executable
     def make(
         self, specification: str, options: Optional[Dict[str, Any]] = None
     ) -> List[str]:
@@ -422,6 +425,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     wheel_zip: ZipFile,
     wheel_path: str,
     scheme: Scheme,
+    executable: Optional[str] = None,
     pycompile: bool = True,
     warn_script_location: bool = True,
     direct_url: Optional[DirectUrl] = None,
@@ -621,7 +625,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
                         record_installed(pyc_record_path, pyc_path)
         logger.debug(stdout.getvalue())
 
-    maker = PipScriptMaker(None, scheme.scripts)
+    maker = PipScriptMaker(executable, None, scheme.scripts)
 
     # Ensure old scripts are overwritten.
     # See https://github.com/pypa/pip/issues/1800
@@ -718,6 +722,7 @@ def install_wheel(
     wheel_path: str,
     scheme: Scheme,
     req_description: str,
+    executable: Optional[str] = None,
     pycompile: bool = True,
     warn_script_location: bool = True,
     direct_url: Optional[DirectUrl] = None,
@@ -730,6 +735,7 @@ def install_wheel(
                 wheel_zip=z,
                 wheel_path=wheel_path,
                 scheme=scheme,
+                executable=executable,
                 pycompile=pycompile,
                 warn_script_location=warn_script_location,
                 direct_url=direct_url,
