@@ -6,7 +6,17 @@ import itertools
 import logging
 import re
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, FrozenSet, Iterable, List, Optional, Set, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    FrozenSet,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.tags import Tag
@@ -601,6 +611,13 @@ class PackageFinder:
         # These are boring links that have already been logged somehow.
         self._logged_links: Set[Tuple[Link, LinkType, str]] = set()
 
+        # Cache of the result of finding candidates
+        self._all_candidates: Dict[str, List[InstallationCandidate]] = {}
+        self._best_candidates: Dict[
+            Tuple[str, Optional[specifiers.BaseSpecifier], Optional[Hashes]],
+            BestCandidateResult,
+        ] = {}
+
     # Don't include an allow_yanked default value to make sure each call
     # site considers whether yanked releases are allowed. This also causes
     # that decision to be made explicit in the calling code, which helps
@@ -800,7 +817,6 @@ class PackageFinder:
 
         return package_links
 
-    @functools.lru_cache(maxsize=None)
     def find_all_candidates(self, project_name: str) -> List[InstallationCandidate]:
         """Find all available InstallationCandidate for project_name
 
@@ -810,6 +826,9 @@ class PackageFinder:
         See LinkEvaluator.evaluate_link() for details on which files
         are accepted.
         """
+        if project_name in self._all_candidates:
+            return self._all_candidates[project_name]
+
         link_evaluator = self.make_link_evaluator(project_name)
 
         collected_sources = self._link_collector.collect_sources(
@@ -851,7 +870,9 @@ class PackageFinder:
             logger.debug("Local files found: %s", ", ".join(paths))
 
         # This is an intentional priority ordering
-        return file_candidates + page_candidates
+        self._all_candidates[project_name] = file_candidates + page_candidates
+
+        return self._all_candidates[project_name]
 
     def make_candidate_evaluator(
         self,
@@ -870,7 +891,6 @@ class PackageFinder:
             hashes=hashes,
         )
 
-    @functools.lru_cache(maxsize=None)
     def find_best_candidate(
         self,
         project_name: str,
@@ -885,13 +905,20 @@ class PackageFinder:
 
         :return: A `BestCandidateResult` instance.
         """
+        if (project_name, specifier, hashes) in self._best_candidates:
+            return self._best_candidates[project_name, specifier, hashes]
+
         candidates = self.find_all_candidates(project_name)
         candidate_evaluator = self.make_candidate_evaluator(
             project_name=project_name,
             specifier=specifier,
             hashes=hashes,
         )
-        return candidate_evaluator.compute_best_candidate(candidates)
+        self._best_candidates[project_name, specifier, hashes] = (
+            candidate_evaluator.compute_best_candidate(candidates)
+        )
+
+        return self._best_candidates[project_name, specifier, hashes]
 
     def find_requirement(
         self, req: InstallRequirement, upgrade: bool

@@ -257,11 +257,17 @@ class PipProvider(_ProviderBase):
             is_satisfied_by=self.is_satisfied_by,
         )
 
-    @lru_cache(maxsize=None)
     def is_satisfied_by(self, requirement: Requirement, candidate: Candidate) -> bool:
-        return requirement.is_satisfied_by(candidate)
+        return _pip_provider_is_satisfied_by(requirement, candidate)
 
     def get_dependencies(self, candidate: Candidate) -> Iterable[Requirement]:
         with_requires = not self._ignore_dependencies
         # iter_dependencies() can perform nontrivial work so delay until needed.
         return (r for r in candidate.iter_dependencies(with_requires) if r is not None)
+
+
+@lru_cache(maxsize=None)
+def _pip_provider_is_satisfied_by(
+    requirement: Requirement, candidate: Candidate
+) -> bool:
+    return requirement.is_satisfied_by(candidate)
