@@ -929,9 +929,12 @@ class PackageFinder:
         Returns a InstallationCandidate if found,
         Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
         """
+        name = req.name
+        assert name is not None, "find_requirement() called with no name"
+
         hashes = req.hashes(trust_internet=False)
         best_candidate_result = self.find_best_candidate(
-            req.name,
+            name,
             specifier=req.specifier,
             hashes=hashes,
         )
