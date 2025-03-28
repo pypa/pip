@@ -809,6 +809,28 @@ class InvalidInstalledPackage(DiagnosticPipError):
         )
 
 
+class IncompleteDownloadError(DiagnosticPipError):
+    """Raised when the downloader receives fewer bytes than advertised
+    in the Content-Length header."""
+
+    reference = "incomplete-download-error"
+
+    def __init__(self, link: str, resume_retries: int, download_status: str) -> None:
+        message = (
+            f"Download failed after {resume_retries} attempts because not enough"
+            f" bytes were received ({download_status}). "
+            "The incomplete file has been cleaned up."
+        )
+        hint = "Use --resume-retries to configure resume retry limit."
+
+        super().__init__(
+            message=message,
+            context=f"File: {link}\nResume retry limit: {resume_retries}",
+            hint_stmt=hint,
+            note_stmt="This is an issue with network connectivity, not pip.",
+        )
+
+
 class ResolutionTooDeepError(DiagnosticPipError):
     """Raised when the dependency resolver exceeds the maximum recursion depth."""
 

@@ -29,6 +29,7 @@ def _rich_download_progress_bar(
     *,
     bar_type: str,
     size: Optional[int],
+    initial_progress: Optional[int] = None,
 ) -> Generator[bytes, None, None]:
     assert bar_type == "on", "This should only be used in the default mode."
 
@@ -54,6 +55,8 @@ def _rich_download_progress_bar(
 
     progress = Progress(*columns, refresh_per_second=5)
     task_id = progress.add_task(" " * (get_indentation() + 2), total=total)
+    if initial_progress is not None:
+        progress.update(task_id, advance=initial_progress)
     with progress:
         for chunk in iterable:
             yield chunk
@@ -86,12 +89,13 @@ def _raw_progress_bar(
     iterable: Iterable[bytes],
     *,
     size: Optional[int],
+    initial_progress: Optional[int] = None,
 ) -> Generator[bytes, None, None]:
     def write_progress(current: int, total: int) -> None:
         sys.stdout.write(f"Progress {current} of {total}\n")
         sys.stdout.flush()
 
-    current = 0
+    current = initial_progress or 0
     total = size or 0
     rate_limiter = RateLimiter(0.25)
 
@@ -105,7 +109,7 @@ def _raw_progress_bar(
 
 
 def get_download_progress_renderer(
-    *, bar_type: str, size: Optional[int] = None
+    *, bar_type: str, size: Optional[int] = None, initial_progress: Optional[int] = None
 ) -> ProgressRenderer[bytes]:
     """Get an object that can be used to render the download progress.
 
@@ -113,10 +117,17 @@ def get_download_progress_renderer(
     """
     if bar_type == "on":
         return functools.partial(
-            _rich_download_progress_bar, bar_type=bar_type, size=size
+            _rich_download_progress_bar,
+            bar_type=bar_type,
+            size=size,
+            initial_progress=initial_progress,
         )
     elif bar_type == "raw":
-        return functools.partial(_raw_progress_bar, size=size)
+        return functools.partial(
+            _raw_progress_bar,
+            size=size,
+            initial_progress=initial_progress,
+        )
     else:
         return iter  # no-op, when passed an iterator
 
