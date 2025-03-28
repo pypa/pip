@@ -1,0 +1,3 @@
+Remove documentation and tests for ``no-python-version-warning`` flag
+as it's unused since Python 2 support was removed. Despite being
+deprecated, the flag will remain as a no-op to avoid breakage.
