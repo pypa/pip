@@ -78,11 +78,6 @@ simple[2]-[123].0.tar.gz
 ------------------------
 contains "simple[2]" package; good for basic testing and version logic.
 
-setuptools_poisoned-1.0.0-py3-none-any.whl
-------------------------------------------
-A poisoned package purporting to be 'setuptools' that raises an ``ImportError``
-immediately on use.  For testing failure paths related to setuptools.
-
 wheelbroken-0.1.tar.gz
 ----------------------
 fails for "setup.py bdist_wheel"
