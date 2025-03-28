@@ -8,7 +8,6 @@ absolutely need, and not "download the world" when we only need one version of
 something.
 """
 
-import functools
 import logging
 from collections.abc import Sequence
 from typing import Any, Callable, Iterator, Optional, Set, Tuple
@@ -129,6 +128,7 @@ class FoundCandidates(Sequence[Candidate]):
         self._installed = installed
         self._prefers_installed = prefers_installed
         self._incompatible_ids = incompatible_ids
+        self._bool: Optional[bool] = None
 
     def __getitem__(self, index: Any) -> Any:
         # Implemented to satisfy the ABC check. This is not needed by the
@@ -152,8 +152,13 @@ class FoundCandidates(Sequence[Candidate]):
         # performance reasons).
         raise NotImplementedError("don't do this")
 
-    @functools.lru_cache(maxsize=1)
     def __bool__(self) -> bool:
+        if self._bool is not None:
+            return self._bool
+
         if self._prefers_installed and self._installed:
+            self._bool = True
             return True
-        return any(self)
+
+        self._bool = any(self)
+        return self._bool

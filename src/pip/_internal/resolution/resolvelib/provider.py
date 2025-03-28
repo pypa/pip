@@ -270,8 +270,9 @@ class PipProvider(_ProviderBase):
             is_satisfied_by=self.is_satisfied_by,
         )
 
+    @staticmethod
     @lru_cache(maxsize=None)
-    def is_satisfied_by(self, requirement: Requirement, candidate: Candidate) -> bool:
+    def is_satisfied_by(requirement: Requirement, candidate: Candidate) -> bool:
         return requirement.is_satisfied_by(candidate)
 
     def get_dependencies(self, candidate: Candidate) -> Iterable[Requirement]:
