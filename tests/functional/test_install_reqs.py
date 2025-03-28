@@ -920,9 +920,7 @@ def test_config_settings_local_to_package(
     assert "--verbose" not in simple2_args
 
 
-def test_nonpep517_setuptools_import_failure(
-    script: PipTestEnvironment, tmpdir: Path
-) -> None:
+def test_nonpep517_setuptools_import_failure(script: PipTestEnvironment) -> None:
     """Any import failures of `setuptools` should inform the user both that it's
     not pip's fault, but also exactly what went wrong in the import."""
     # Install a poisoned version of 'setuptools' that fails to import.
@@ -931,9 +929,8 @@ def test_nonpep517_setuptools_import_failure(
 raise ImportError("this 'setuptools' was intentionally poisoned")
 """
     path = make_wheel(name, "0.1.0", extra_files={"setuptools.py": module}).save_to_dir(
-        tmpdir
+        script.scratch_path
     )
-    script.pip("uninstall", "-y", "setuptools")
     script.pip("install", "--no-index", path)
 
     result = script.pip_install_local("--no-use-pep517", "simple", expect_error=True)
