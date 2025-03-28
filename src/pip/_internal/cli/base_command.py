@@ -7,7 +7,7 @@ import os
 import sys
 import traceback
 from optparse import Values
-from typing import List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 from pip._vendor.rich import reconfigure
 from pip._vendor.rich import traceback as rich_traceback
@@ -240,3 +240,9 @@ class Command(CommandContextMixIn):
             )
 
         return self._run_wrapper(level_number, options, args)
+
+    def handler_map(self) -> Dict[str, Callable[[Values, List[str]], None]]:
+        """
+        map of names to handler actions for commands with sub-actions
+        """
+        return {}
