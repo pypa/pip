@@ -468,7 +468,7 @@ class Link:
             deprecated(
                 reason=f"{self} contains an egg fragment with a non-PEP 508 name.",
                 replacement="to use the req @ url syntax, and remove the egg fragment",
-                gone_in="25.1",
+                gone_in="25.2",
                 issue=13157,
             )
 
