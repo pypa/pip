@@ -109,6 +109,17 @@ class TestSiteConfigDirs:
             "/Library/Application Support/pip",
         ]
 
+    @pytest.mark.skipif(sys.platform != "darwin", reason="MacOS-only test")
+    def test_site_config_dirs_osx_homebrew(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(sys, "prefix", "/opt/homebrew/")
+
+        assert appdirs.site_config_dirs("pip") == [
+            "/opt/homebrew/share/pip",
+            "/Library/Application Support/pip",
+        ]
+
     @pytest.mark.skipif(sys.platform != "linux", reason="Linux-only test")
     def test_site_config_dirs_linux(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("XDG_CONFIG_DIRS", raising=False)

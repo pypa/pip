@@ -6,16 +6,21 @@ from typing import (
     Iterable,
     Iterator,
     Mapping,
+    Optional,
     Sequence,
+    Tuple,
     TypeVar,
     Union,
 )
 
 from pip._vendor.resolvelib.providers import AbstractProvider
 
+from pip._internal.req.req_install import InstallRequirement
+
 from .base import Candidate, Constraint, Requirement
 from .candidates import REQUIRES_PYTHON_IDENTIFIER
 from .factory import Factory
+from .requirements import ExplicitRequirement
 
 if TYPE_CHECKING:
     from pip._vendor.resolvelib.providers import Preference
@@ -161,14 +166,20 @@ class PipProvider(_ProviderBase):
 
         Currently pip considers the following in order:
 
-        * Prefer if any of the known requirements is "direct", e.g. points to an
-          explicit URL.
-        * If equal, prefer if any requirement is "pinned", i.e. contains
-          operator ``===`` or ``==``.
-        * Order user-specified requirements by the order they are specified.
-        * If equal, prefers "non-free" requirements, i.e. contains at least one
-          operator, such as ``>=`` or ``<``.
-        * If equal, order alphabetically for consistency (helps debuggability).
+        * Any requirement that is "direct", e.g., points to an explicit URL.
+        * Any requirement that is "pinned", i.e., contains the operator ``===``
+          or ``==`` without a wildcard.
+        * Any requirement that imposes an upper version limit, i.e., contains the
+          operator ``<``, ``<=``, ``~=``, or ``==`` with a wildcard. Because
+          pip prioritizes the latest version, preferring explicit upper bounds
+          can rule out infeasible candidates sooner. This does not imply that
+          upper bounds are good practice; they can make dependency management
+          and resolution harder.
+        * Order user-specified requirements as they are specified, placing
+          other requirements afterward.
+        * Any "non-free" requirement, i.e., one that contains at least one
+          operator, such as ``>=`` or ``!=``.
+        * Alphabetical order for consistency (aids debuggability).
         """
         try:
             next(iter(information[identifier]))
@@ -179,11 +190,20 @@ class PipProvider(_ProviderBase):
         else:
             has_information = True
 
-        if has_information:
-            lookups = (r.get_candidate_lookup() for r, _ in information[identifier])
-            candidate, ireqs = zip(*lookups)
+        if not has_information:
+            direct = False
+            ireqs: Tuple[Optional[InstallRequirement], ...] = ()
         else:
-            candidate, ireqs = None, ()
+            # Go through the information and for each requirement,
+            # check if it's explicit (e.g., a direct link) and get the
+            # InstallRequirement (the second element) from get_candidate_lookup()
+            directs, ireqs = zip(
+                *(
+                    (isinstance(r, ExplicitRequirement), r.get_candidate_lookup()[1])
+                    for r, _ in information[identifier]
+                )
+            )
+            direct = any(directs)
 
         operators: list[tuple[str, str]] = [
             (specifier.operator, specifier.version)
@@ -191,14 +211,18 @@ class PipProvider(_ProviderBase):
             for specifier in specifier_set
         ]
 
-        direct = candidate is not None
         pinned = any(((op[:2] == "==") and ("*" not in ver)) for op, ver in operators)
+        upper_bounded = any(
+            ((op in ("<", "<=", "~=")) or (op == "==" and "*" in ver))
+            for op, ver in operators
+        )
         unfree = bool(operators)
         requested_order = self._user_requested.get(identifier, math.inf)
 
         return (
             not direct,
             not pinned,
+            not upper_bounded,
             requested_order,
             not unfree,
             identifier,

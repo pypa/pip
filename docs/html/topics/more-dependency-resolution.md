@@ -160,16 +160,22 @@ Pip's current implementation of the provider implements
 
 * If Requires-Python is present only consider that
 * If there are causes of resolution conflict (backtrack causes) then
-  only consider them until there are no longer any resolution conflicts
+    only consider them until there are no longer any resolution conflicts
 
-Pip's current implementation of the provider implements `get_preference` as
-follows:
+Pip's current implementation of the provider implements `get_preference`
+for known requirements with the following preferences in the following order:
 
-* Prefer if any of the known requirements is "direct", e.g. points to an
-    explicit URL.
-* If equal, prefer if any requirement is "pinned", i.e. contains
-    operator ``===`` or ``==``.
-* Order user-specified requirements by the order they are specified.
-* If equal, prefers "non-free" requirements, i.e. contains at least one
-    operator, such as ``>=`` or ``<``.
-* If equal, order alphabetically for consistency (helps debuggability).
+* Any requirement that is "direct", e.g., points to an explicit URL.
+* Any requirement that is "pinned", i.e., contains the operator ``===``
+    or ``==`` without a wildcard.
+* Any requirement that imposes an upper version limit, i.e., contains the
+    operator ``<``, ``<=``, ``~=``, or ``==`` with a wildcard. Because
+    pip prioritizes the latest version, preferring explicit upper bounds
+    can rule out infeasible candidates sooner. This does not imply that
+    upper bounds are good practice; they can make dependency management
+    and resolution harder.
+* Order user-specified requirements as they are specified, placing
+    other requirements afterward.
+* Any "non-free" requirement, i.e., one that contains at least one
+    operator, such as ``>=`` or ``!=``.
+* Alphabetical order for consistency (aids debuggability).
