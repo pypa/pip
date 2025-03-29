@@ -88,7 +88,7 @@ class SessionCommandMixin(CommandContextMixIn):
         retries: Optional[int] = None,
         timeout: Optional[int] = None,
     ) -> "PipSession":
-        from pip._internal.network.session import PipSession
+        from pip._internal.network.session import MultiDomainAuthSettings, PipSession
 
         cache_dir = options.cache_dir
         assert not cache_dir or os.path.isabs(cache_dir)
@@ -102,8 +102,13 @@ class SessionCommandMixin(CommandContextMixIn):
             cache=os.path.join(cache_dir, "http-v2") if cache_dir else None,
             retries=retries if retries is not None else options.retries,
             trusted_hosts=options.trusted_hosts,
-            index_urls=self._get_index_urls(options),
             ssl_context=ssl_context,
+            multi_domain_auth_settings=MultiDomainAuthSettings(
+                index_urls=self._get_index_urls(options),
+                # Determine if we can prompt the user for authentication or not
+                prompting=not options.no_input,
+                keyring_provider=options.keyring_provider,
+            ),
         )
 
         # Handle custom ca-bundles from the user
@@ -126,10 +131,6 @@ class SessionCommandMixin(CommandContextMixIn):
             }
             session.trust_env = False
             session.pip_proxy = options.proxy
-
-        # Determine if we can prompt the user for authentication or not
-        session.auth.prompting = not options.no_input
-        session.auth.keyring_provider = options.keyring_provider
 
         return session
 
