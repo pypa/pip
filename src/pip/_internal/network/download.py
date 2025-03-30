@@ -171,26 +171,21 @@ class Downloader:
         """Download the file given by link into location."""
         resp = _http_get_download(self._session, link)
         total_length = _get_http_response_size(resp)
+        content_type = resp.headers.get("Content-Type", "")
 
         filename = _get_http_response_filename(resp, link)
         filepath = os.path.join(location, filename)
 
-        bytes_received = 0
         with open(filepath, "wb") as content_file:
             bytes_received = self._process_response(
-                resp, link, content_file, bytes_received, total_length
+                resp, link, content_file, 0, total_length
             )
-
-            if not total_length:
-                content_type = resp.headers.get("Content-Type", "")
-                return filepath, content_type
-
-            if bytes_received < total_length:
+            # If possible, check for an incomplete download and attempt resuming.
+            if total_length and bytes_received < total_length:
                 self._attempt_resume(
-                    resp, link, content_file, total_length, bytes_received, filepath
+                    resp, link, content_file, total_length, bytes_received
                 )
 
-        content_type = resp.headers.get("Content-Type", "")
         return filepath, content_type
 
     def _process_response(
@@ -205,32 +200,22 @@ class Downloader:
         chunks = _prepare_download(
             resp, link, self._progress_bar, total_length, range_start=bytes_received
         )
-
-        bytes_received = self._write_chunks_to_file(
-            chunks,
-            content_file,
-            bytes_received,
-            total_length,
+        return self._write_chunks_to_file(
+            chunks, content_file, allow_partial=bool(total_length)
         )
 
-        return bytes_received
-
     def _write_chunks_to_file(
-        self,
-        chunks: Iterable[bytes],
-        content_file: BinaryIO,
-        bytes_received: int,
-        total_length: Optional[int],
+        self, chunks: Iterable[bytes], content_file: BinaryIO, *, allow_partial: bool
     ) -> int:
         """Write the chunks to the file and return the number of bytes received."""
+        bytes_received = 0
         try:
             for chunk in chunks:
                 bytes_received += len(chunk)
                 content_file.write(chunk)
         except ReadTimeoutError as e:
-            if not total_length:
-                # Raise exception if the Content-Length header is not provided
-                # and the connection times out.
+            # If partial downloads are OK (the download will be retried), don't bail.
+            if not allow_partial:
                 raise e
 
             # Ensuring bytes_received is returned to attempt resume
@@ -245,13 +230,12 @@ class Downloader:
         content_file: BinaryIO,
         total_length: Optional[int],
         bytes_received: int,
-        filepath: str,
     ) -> None:
         """Attempt to resume the download if connection was dropped."""
         etag_or_last_modified = _get_http_response_etag_or_last_modified(resp)
 
         attempts_left = self._resume_retries
-        while attempts_left and total_length and bytes_received < total_length:
+        while total_length and attempts_left and bytes_received < total_length:
             attempts_left -= 1
 
             logger.warning(
@@ -277,18 +261,14 @@ class Downloader:
                         self._reset_download_state(resume_resp, content_file)
                     )
 
-                bytes_received = self._process_response(
-                    resume_resp,
-                    link,
-                    content_file,
-                    bytes_received,
-                    total_length,
+                bytes_received += self._process_response(
+                    resume_resp, link, content_file, bytes_received, total_length
                 )
             except (ConnectionError, ReadTimeoutError, OSError):
                 continue
 
         if total_length and bytes_received < total_length:
-            os.remove(filepath)
+            os.remove(content_file.name)
             download_status = (
                 f"{format_size(bytes_received)}/{format_size(total_length)}"
             )
