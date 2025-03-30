@@ -239,9 +239,10 @@ class Downloader:
             attempts_left -= 1
 
             logger.warning(
-                "Attempting to resume download with bytes received: %s/%s",
+                "Attempting to resume incomplete download (%s/%s, attempt %d)",
                 format_size(bytes_received),
                 format_size(total_length),
+                (self._resume_retries - attempts_left),
             )
 
             try:

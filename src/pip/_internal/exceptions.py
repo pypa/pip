@@ -824,8 +824,8 @@ class IncompleteDownloadError(DiagnosticPipError):
 
         download_status = f"{format_size(received)}/{format_size(expected)}"
         if retries:
-            retry_status = f"after {retries} retries "
-            hint = "Use --resume-retries to configure resume retry limit."
+            retry_status = f"after {retries} attempts "
+            hint = "Use --resume-retries to configure resume attempt limit."
         else:
             retry_status = ""
             hint = "Consider using --resume-retries to enable download resumption."

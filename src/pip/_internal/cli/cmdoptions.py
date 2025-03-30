@@ -1083,7 +1083,7 @@ resume_retries: Callable[..., Option] = partial(
     dest="resume_retries",
     type="int",
     default=0,
-    help="Maximum number of resumption retries for incomplete downloads"
+    help="Maximum number of resumption attempts for incomplete downloads"
     "(default %default times).",
 )
 
