@@ -269,11 +269,8 @@ class Downloader:
 
         if total_length and bytes_received < total_length:
             os.remove(content_file.name)
-            download_status = (
-                f"{format_size(bytes_received)}/{format_size(total_length)}"
-            )
             raise IncompleteDownloadError(
-                str(link), self._resume_retries, download_status
+                link, bytes_received, total_length, retries=self._resume_retries
             )
 
     def _reset_download_state(
