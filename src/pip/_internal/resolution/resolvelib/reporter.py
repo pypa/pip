@@ -52,7 +52,7 @@ class PipReporter(BaseReporter[Requirement, Candidate, str]):
             else:
                 msg += "The user requested "
             msg += req.format_for_error()
-        logger.debug(msg)
+        logger.info(msg)
 
 
 class PipDebuggingReporter(BaseReporter[Requirement, Candidate, str]):
