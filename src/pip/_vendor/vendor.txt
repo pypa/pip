@@ -3,7 +3,7 @@ distlib==0.3.9
 distro==1.9.0
 msgpack==1.1.0
 packaging==24.2
-platformdirs==4.3.6
+platformdirs==4.3.7
 pyproject-hooks==1.2.0
 requests==2.32.3
     certifi==2025.1.31
