@@ -1,0 +1,4 @@
+Hide ``--no-python-version-warning`` from CLI help and documentation
+as it's useless since Python 2 support was removed. Despite being
+formerly slated for removal, the flag will remain as a no-op to
+avoid breakage.
