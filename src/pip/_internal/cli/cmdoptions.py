@@ -281,8 +281,17 @@ retries: Callable[..., Option] = partial(
     dest="retries",
     type="int",
     default=5,
-    help="Maximum number of retries each connection should attempt "
-    "(default %default times).",
+    help="Maximum attempts to establish a new HTTP connection. (default: %default)",
+)
+
+resume_retries: Callable[..., Option] = partial(
+    Option,
+    "--resume-retries",
+    dest="resume_retries",
+    type="int",
+    default=0,
+    help="Maximum attempts to resume or restart an incomplete download. "
+    "(default: %default)",
 )
 
 timeout: Callable[..., Option] = partial(
@@ -1075,16 +1084,6 @@ use_deprecated_feature: Callable[..., Option] = partial(
         "legacy-certs",
     ],
     help=("Enable deprecated functionality, that will be removed in the future."),
-)
-
-resume_retries: Callable[..., Option] = partial(
-    Option,
-    "--resume-retries",
-    dest="resume_retries",
-    type="int",
-    default=0,
-    help="Maximum number of resumption attempts for incomplete downloads"
-    "(default %default times).",
 )
 
 ##########
