@@ -91,6 +91,12 @@ class LockCommand(RequirementCommand):
     def run(self, options: Values, args: List[str]) -> int:
         logger.verbose("Using %s", get_pip_version())
 
+        logger.warning(
+            "pip lock is currently an experimental command. "
+            "It may be removed/changed in a future release "
+            "without prior warning."
+        )
+
         session = self.get_default_session(options)
 
         finder = self._build_package_finder(
