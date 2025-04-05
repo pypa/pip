@@ -268,12 +268,18 @@ def test_parse_content_disposition(
             5,
             [
                 (
-                    {"content-length": "36", "last-modified": "Wed, 21 Oct 2015 07:28:00 GMT"},
+                    {
+                        "content-length": "36",
+                        "last-modified": "Wed, 21 Oct 2015 07:28:00 GMT",
+                    },
                     200,
                     b"0cfa7e9d-1868-4dd7-9fb3-",
                 ),
                 (
-                    {"content-length": "12", "last-modified": "Wed, 21 Oct 2015 07:54:00 GMT"},
+                    {
+                        "content-length": "12",
+                        "last-modified": "Wed, 21 Oct 2015 07:54:00 GMT",
+                    },
                     206,
                     b"f2561d5dfd89",
                 ),
