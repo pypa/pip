@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from pip._vendor.requests.models import Request, Response
 
     from pip._internal.metadata import BaseDistribution
+    from pip._internal.models.link import Link
     from pip._internal.req.req_install import InstallRequirement
 
 logger = logging.getLogger(__name__)
@@ -806,6 +807,38 @@ class InvalidInstalledPackage(DiagnosticPipError):
                 f"{invalid_type}s can not be processed."
             ),
             hint_stmt="To proceed this package must be uninstalled.",
+        )
+
+
+class IncompleteDownloadError(DiagnosticPipError):
+    """Raised when the downloader receives fewer bytes than advertised
+    in the Content-Length header."""
+
+    reference = "incomplete-download"
+
+    def __init__(
+        self, link: "Link", received: int, expected: int, *, retries: int
+    ) -> None:
+        # Dodge circular import.
+        from pip._internal.utils.misc import format_size
+
+        download_status = f"{format_size(received)}/{format_size(expected)}"
+        if retries:
+            retry_status = f"after {retries} attempts "
+            hint = "Use --resume-retries to configure resume attempt limit."
+        else:
+            retry_status = ""
+            hint = "Consider using --resume-retries to enable download resumption."
+        message = Text(
+            f"Download failed {retry_status}because not enough bytes "
+            f"were received ({download_status})"
+        )
+
+        super().__init__(
+            message=message,
+            context=f"URL: {link.redacted_url}",
+            hint_stmt=hint,
+            note_stmt="This is an issue with network connectivity, not pip.",
         )
 
 

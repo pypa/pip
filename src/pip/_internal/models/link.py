@@ -380,9 +380,9 @@ class Link:
         else:
             rp = ""
         if self.comes_from:
-            return f"{redact_auth_from_url(self._url)} (from {self.comes_from}){rp}"
+            return f"{self.redacted_url} (from {self.comes_from}){rp}"
         else:
-            return redact_auth_from_url(str(self._url))
+            return self.redacted_url
 
     def __repr__(self) -> str:
         return f"<Link {self}>"
@@ -403,6 +403,10 @@ class Link:
     @property
     def url(self) -> str:
         return self._url
+
+    @property
+    def redacted_url(self) -> str:
+        return redact_auth_from_url(self.url)
 
     @property
     def filename(self) -> str:
