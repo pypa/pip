@@ -4,6 +4,7 @@ import os
 import sys
 from typing import List, Literal, Optional, Protocol, Type, cast
 
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.misc import strtobool
 
 from .base import BaseDistribution, BaseEnvironment, FilesystemWheel, MemoryWheel, Wheel
@@ -54,6 +55,31 @@ def _should_use_importlib_metadata() -> bool:
     return bool(getattr(importlib.metadata, "_PIP_USE_IMPORTLIB_METADATA", True))
 
 
+def _emit_pkg_resources_deprecation_if_needed() -> None:
+    if sys.version_info < (3, 11):
+        # All pip versions supporting Python<=3.11 will support pkg_resources,
+        # and pkg_resources is the default for these, so let's not bother users.
+        return
+
+    import importlib.metadata
+
+    if hasattr(importlib.metadata, "_PIP_USE_IMPORTLIB_METADATA"):
+        # The Python distributor has set the global constant, so we don't
+        # warn, since it is not a user decision.
+        return
+
+    # The user has decided to use pkg_resources, so we warn.
+    deprecated(
+        reason="Using the pkg_resources metadata backend is deprecated.",
+        replacement=(
+            "to use the default importlib.metadata backend, "
+            "by unsetting the _PIP_USE_IMPORTLIB_METADATA environment variable"
+        ),
+        gone_in="26.3",
+        issue=13317,
+    )
+
+
 class Backend(Protocol):
     NAME: 'Literal["importlib", "pkg_resources"]'
     Distribution: Type[BaseDistribution]
@@ -66,6 +92,9 @@ def select_backend() -> Backend:
         from . import importlib
 
         return cast(Backend, importlib)
+
+    _emit_pkg_resources_deprecation_if_needed()
+
     from . import pkg_resources
 
     return cast(Backend, pkg_resources)
