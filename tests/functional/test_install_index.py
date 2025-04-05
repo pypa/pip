@@ -27,6 +27,8 @@ def test_find_links_no_doctype(script: PipTestEnvironment, data: TestData) -> No
     result = script.pip(
         "install",
         "simple==1.0",
+        "--use-pep517",
+        "--no-build-isolation",
         "--no-index",
         "--find-links",
         script.scratch_path,
