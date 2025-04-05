@@ -34,6 +34,9 @@ pip-uninstall(1)
 pip-freeze(1)
     Output installed packages in requirements format.
 
+pip-lock(1)
+    Generate a lock file for requirements and their dependencies.
+
 pip-list(1)
     List installed packages.
 

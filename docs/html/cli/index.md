@@ -25,6 +25,13 @@ pip_check
 
 ```{toctree}
 :maxdepth: 1
+:caption: Resolving dependencies
+
+pip_lock
+```
+
+```{toctree}
+:maxdepth: 1
 :caption: Handling Distribution Files
 
 pip_download
