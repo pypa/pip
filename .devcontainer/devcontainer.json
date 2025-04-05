@@ -1,0 +1,28 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/anaconda
+{
+	"name": "pip-devcontainer",
+	"build": { 
+		"context": "..",
+		"dockerfile": "Dockerfile"
+	},
+
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	"features": {
+		"ghcr.io/devcontainers/features/git:1": {}
+	},
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"python.defaultInterpreterPath": "/workspaces/pip/.venv/bin/python"
+			},
+			"extensions": [
+				"ms-python.python",
+				"donjayamanne.python-environment-manager",
+				"ms-azuretools.vscode-docker"
+			]
+		}
+	},
+
+	"postCreateCommand": "python3 -m venv .venv && .venv/bin/activate && pip install nox"
+}
