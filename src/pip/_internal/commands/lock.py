@@ -26,7 +26,7 @@ logger = getLogger(__name__)
 
 class LockCommand(RequirementCommand):
     """
-    Lock packages from:
+    EXPERIMENTAL - Lock packages and their dependencies from:
 
     - PyPI (and other indexes) using requirement specifiers.
     - VCS project urls.
@@ -38,10 +38,9 @@ class LockCommand(RequirementCommand):
     """
 
     usage = """
+      %prog [options] [-e] <local project path> ...
       %prog [options] <requirement specifier> [package-index-options] ...
       %prog [options] -r <requirements file> [package-index-options] ...
-      %prog [options] [-e] <vcs project url> ...
-      %prog [options] [-e] <local project path> ...
       %prog [options] <archive url/path> ..."""
 
     def add_options(self) -> None:
