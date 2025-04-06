@@ -85,7 +85,7 @@ class _DistributionFinder:
                 installed_location = info_location.parent
             yield Distribution(dist, info_location, installed_location)
 
-    def find_linked(self, location: str) -> Iterator[BaseDistribution]:
+    def find_legacy_editables(self, location: str) -> Iterator[BaseDistribution]:
         """Read location in egg-link files and return distributions in there.
 
         The path should be a directory; otherwise this returns nothing. This
@@ -128,7 +128,7 @@ class Environment(BaseEnvironment):
         finder = _DistributionFinder()
         for location in self._paths:
             yield from finder.find(location)
-            yield from finder.find_linked(location)
+            yield from finder.find_legacy_editables(location)
 
     def get_distribution(self, name: str) -> Optional[BaseDistribution]:
         canonical_name = canonicalize_name(name)
