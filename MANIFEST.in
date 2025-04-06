@@ -8,6 +8,7 @@ include pyproject.toml
 include build-project/build-requirements.in
 include build-project/build-requirements.txt
 include build-project/build-project.py
+include build-project/.python-version
 
 include src/pip/_vendor/README.rst
 include src/pip/_vendor/vendor.txt
