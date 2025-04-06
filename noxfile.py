@@ -374,7 +374,7 @@ def build_dists(session: nox.Session) -> List[str]:
         )
 
     session.log("# Build distributions")
-    session.run("python", "build-project.py", silent=True)
+    session.run("python", "build-project/build-project.py", silent=True)
     produced_dists = glob.glob("dist/*")
 
     session.log(f"# Verify distributions: {', '.join(produced_dists)}")
