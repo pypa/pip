@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import cache
 import logging
 
-from variantlib.platform import get_variant_hashes_by_priority
+from variantlib.api import get_variant_hashes_by_priority
 
 from pip._internal.configuration import Configuration
 from pip._internal.exceptions import ConfigurationError, PipError
