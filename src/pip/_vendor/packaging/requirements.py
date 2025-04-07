@@ -3,6 +3,7 @@
 # for complete details.
 from __future__ import annotations
 
+from functools import cached_property
 from typing import Any, Iterator
 
 from ._parser import parse_requirement as _parse_requirement
@@ -40,11 +41,15 @@ class Requirement:
         self.name: str = parsed.name
         self.url: str | None = parsed.url or None
         self.extras: set[str] = set(parsed.extras or [])
-        self.specifier: SpecifierSet = SpecifierSet(parsed.specifier)
+        self._raw_specifier = parsed.specifier
         self.marker: Marker | None = None
         if parsed.marker is not None:
             self.marker = Marker.__new__(Marker)
             self.marker._markers = _normalize_extra_values(parsed.marker)
+
+    @cached_property
+    def specifier(self) -> SpecifierSet:
+        return SpecifierSet(self._raw_specifier)
 
     def _iter_parts(self, name: str) -> Iterator[str]:
         yield name
