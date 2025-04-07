@@ -1,0 +1,1 @@
+Store HTTP caching headers in ``~/.cache/pip/fetch-resolve`` to reduce bandwidth usage when ``--use-feature=metadata-cache`` is enabled.
