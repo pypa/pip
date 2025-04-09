@@ -64,6 +64,7 @@ def main() -> None:
             ],
             check=True,
             env={"SOURCE_DATE_EPOCH": get_git_head_timestamp()},
+            cwd=Path(__file__).parent.parent,
         )
 
 
