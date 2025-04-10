@@ -37,6 +37,7 @@ pip_hash
 :caption: Package Index information
 
 pip_search
+pip_index
 ```
 
 ```{toctree}
