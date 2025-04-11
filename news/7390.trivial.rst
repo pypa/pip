@@ -1,0 +1,1 @@
+Standardize ``Link`` representation in logs.

@@ -10,7 +10,6 @@ from pip._vendor.requests.models import Response
 
 from pip._internal.cli.progress_bars import get_download_progress_renderer
 from pip._internal.exceptions import NetworkConnectionError
-from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
 from pip._internal.network.cache import is_from_cache
 from pip._internal.network.session import PipSession
@@ -34,11 +33,7 @@ def _prepare_download(
 ) -> Iterable[bytes]:
     total_length = _get_http_response_size(resp)
 
-    if link.netloc == PyPI.file_storage_domain:
-        url = link.show_url
-    else:
-        url = link.url_without_fragment
-
+    url = link.show_url
     logged_url = redact_auth_from_url(url)
 
     if total_length:
@@ -171,7 +166,7 @@ class BatchDownloader:
                 logger.critical(
                     "HTTP error %s while getting %s",
                     e.response.status_code,
-                    link,
+                    link.show_url,
                 )
                 raise
 
