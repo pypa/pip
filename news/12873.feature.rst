@@ -1,0 +1,2 @@
+Minor performance improvement when installing packages with a large number
+of dependencies by increasing the requirement string cache size.

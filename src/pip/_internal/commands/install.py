@@ -8,6 +8,7 @@ from optparse import SUPPRESS_HELP, Values
 from typing import List, Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.requests.exceptions import InvalidProxyURL
 from pip._vendor.rich import print_json
 
 # Eagerly import self_outdated_check to avoid crashes. Otherwise,
@@ -764,6 +765,13 @@ def create_os_error_message(
             )
         else:
             parts.append(permissions_part)
+        parts.append(".\n")
+
+    # Suggest to check "pip config debug" in case of invalid proxy
+    if type(error) is InvalidProxyURL:
+        parts.append(
+            'Consider checking your local proxy configuration with "pip config debug"'
+        )
         parts.append(".\n")
 
     # Suggest the user to enable Long Paths if path length is

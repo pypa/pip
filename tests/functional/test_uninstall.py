@@ -628,6 +628,10 @@ def test_uninstall_with_symlink(
     assert symlink_target.stat().st_mode == st_mode
 
 
+@pytest.mark.skipif(
+    "sys.version_info >= (3, 14)",
+    reason="Uninstall of .egg distributions not supported in Python 3.14+",
+)
 def test_uninstall_setuptools_develop_install(
     script: PipTestEnvironment, data: TestData
 ) -> None:
