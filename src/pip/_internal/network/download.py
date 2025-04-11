@@ -41,10 +41,9 @@ def _prepare_download(
     resp: Response,
     link: Link,
     progress_bar: str,
+    total_length: Optional[int],
     range_start: Optional[int] = 0,
 ) -> Iterable[bytes]:
-    total_length = _get_http_response_size(resp)
-
     if link.netloc == PyPI.file_storage_domain:
         url = link.show_url
     else:
@@ -173,14 +172,21 @@ class Downloader:
     def __call__(self, link: Link, location: str) -> Tuple[str, str]:
         """Download the file given by link into location."""
         resp = _http_get_download(self._session, link)
+        total_length = _get_http_response_size(resp)
         content_type = resp.headers.get("Content-Type", "")
 
         filename = _get_http_response_filename(resp, link)
         filepath = os.path.join(location, filename)
 
         with open(filepath, "wb") as content_file:
-            bytes_received = self._process_response(resp, link, content_file, 0)
-            self._attempt_resume_if_needed(resp, link, content_file, bytes_received)
+            bytes_received = self._process_response(
+                resp, link, content_file, 0, total_length
+            )
+            # If possible, check for an incomplete download and attempt resuming.
+            if total_length and bytes_received < total_length:
+                self._attempt_resume(
+                    resp, link, content_file, total_length, bytes_received
+                )
 
         return filepath, content_type
 
@@ -190,11 +196,11 @@ class Downloader:
         link: Link,
         content_file: BinaryIO,
         bytes_received: int,
+        total_length: Optional[int],
     ) -> int:
         """Process the response and write the chunks to the file."""
-        total_length = _get_http_response_size(resp)
         chunks = _prepare_download(
-            resp, link, self._progress_bar, range_start=bytes_received
+            resp, link, self._progress_bar, total_length, range_start=bytes_received
         )
         return self._write_chunks_to_file(
             chunks, content_file, allow_partial=bool(total_length)
@@ -219,15 +225,15 @@ class Downloader:
 
         return bytes_received
 
-    def _attempt_resume_if_needed(
+    def _attempt_resume(
         self,
         resp: Response,
         link: Link,
         content_file: BinaryIO,
+        total_length: Optional[int],
         bytes_received: int,
     ) -> None:
-        """Attempt to resume/retry the download if connection was dropped."""
-        total_length = _get_http_response_size(resp)
+        """Attempt to resume the download if connection was dropped."""
         etag_or_last_modified = _get_http_response_etag_or_last_modified(resp)
 
         attempts_left = self._resume_retries
@@ -260,7 +266,7 @@ class Downloader:
                     )
 
                 bytes_received += self._process_response(
-                    resume_resp, link, content_file, bytes_received
+                    resume_resp, link, content_file, bytes_received, total_length
                 )
             except (ConnectionError, ReadTimeoutError, OSError):
                 continue

@@ -10,6 +10,7 @@ from pip._internal.exceptions import IncompleteDownloadError
 from pip._internal.models.link import Link
 from pip._internal.network.download import (
     Downloader,
+    _get_http_response_size,
     _http_get_download,
     _prepare_download,
     parse_content_disposition,
@@ -90,10 +91,12 @@ def test_prepare_download__log(
     if from_cache:
         resp.from_cache = from_cache
     link = Link(url)
+    total_length = _get_http_response_size(resp)
     _prepare_download(
         resp,
         link,
         progress_bar="on",
+        total_length=total_length,
         range_start=range_start,
     )
 
