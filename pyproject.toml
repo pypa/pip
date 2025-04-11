@@ -167,6 +167,7 @@ ignore = [
     "B020",
     "B904", # Ruff enables opinionated warnings by default
     "B905", # Ruff enables opinionated warnings by default
+    "C420", # unnecessary-dict-comprehension-for-iterable (worsens readability)
 ]
 select = [
     "ASYNC",

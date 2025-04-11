@@ -824,9 +824,9 @@ def _handle_no_use_pep517(
         """
         raise_option_error(parser, option=option, msg=msg)
 
-    # If user doesn't wish to use pep517, we check if setuptools and wheel are installed
+    # If user doesn't wish to use pep517, we check if setuptools is installed
     # and raise error if it is not.
-    packages = ("setuptools", "wheel")
+    packages = ("setuptools",)
     if not all(importlib.util.find_spec(package) for package in packages):
         msg = (
             f"It is not possible to use --no-use-pep517 "
@@ -1039,7 +1039,7 @@ no_python_version_warning: Callable[..., Option] = partial(
     dest="no_python_version_warning",
     action="store_true",
     default=False,
-    help="Silence deprecation warnings for upcoming unsupported Pythons.",
+    help=SUPPRESS_HELP,  # No-op, a hold-over from the Python 2->3 transition.
 )
 
 
