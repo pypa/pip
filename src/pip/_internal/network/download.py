@@ -172,6 +172,9 @@ class Downloader:
     def __call__(self, link: Link, location: str) -> Tuple[str, str]:
         """Download the file given by link into location."""
         resp = _http_get_download(self._session, link)
+        # NOTE: The original download size needs to be passed down everywhere
+        # so if the download is resumed (with a HTTP Range request) the progress
+        # bar will report the right size.
         total_length = _get_http_response_size(resp)
         content_type = resp.headers.get("Content-Type", "")
 
