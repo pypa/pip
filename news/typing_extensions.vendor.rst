@@ -1,1 +1,1 @@
-Upgrade typing_extensions to 4.13.0
+Upgrade typing_extensions to 4.13.2

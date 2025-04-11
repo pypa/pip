@@ -2072,7 +2072,7 @@ def _create_concatenate_alias(origin, parameters):
     if parameters[-1] is ... and sys.version_info < (3, 9, 2):
         # Hack: Arguments must be types, replace it with one.
         parameters = (*parameters[:-1], _EllipsisDummy)
-    if sys.version_info >= (3, 10, 2):
+    if sys.version_info >= (3, 10, 3):
         concatenate = _ConcatenateGenericAlias(origin, parameters,
                                         _typevar_types=(TypeVar, ParamSpec),
                                         _paramspec_tvars=True)
@@ -3123,7 +3123,8 @@ else:  # <=3.11
         return arg
 
 
-if hasattr(warnings, "deprecated"):
+# Python 3.13.3+ contains a fix for the wrapped __new__
+if sys.version_info >= (3, 13, 3):
     deprecated = warnings.deprecated
 else:
     _T = typing.TypeVar("_T")
@@ -3203,7 +3204,7 @@ else:
                 original_new = arg.__new__
 
                 @functools.wraps(original_new)
-                def __new__(cls, *args, **kwargs):
+                def __new__(cls, /, *args, **kwargs):
                     if cls is arg:
                         warnings.warn(msg, category=category, stacklevel=stacklevel + 1)
                     if original_new is not object.__new__:
@@ -3827,14 +3828,27 @@ if sys.version_info >= (3, 14):
     TypeAliasType = typing.TypeAliasType
 # 3.8-3.13
 else:
-    def _is_unionable(obj):
-        """Corresponds to is_unionable() in unionobject.c in CPython."""
-        return obj is None or isinstance(obj, (
-            type,
-            _types.GenericAlias,
-            _types.UnionType,
-            TypeAliasType,
-        ))
+    if sys.version_info >= (3, 12):
+        # 3.12-3.14
+        def _is_unionable(obj):
+            """Corresponds to is_unionable() in unionobject.c in CPython."""
+            return obj is None or isinstance(obj, (
+                type,
+                _types.GenericAlias,
+                _types.UnionType,
+                typing.TypeAliasType,
+                TypeAliasType,
+            ))
+    else:
+        # 3.8-3.11
+        def _is_unionable(obj):
+            """Corresponds to is_unionable() in unionobject.c in CPython."""
+            return obj is None or isinstance(obj, (
+                type,
+                _types.GenericAlias,
+                _types.UnionType,
+                TypeAliasType,
+            ))
 
     if sys.version_info < (3, 10):
         # Copied and pasted from https://github.com/python/cpython/blob/986a4e1b6fcae7fe7a1d0a26aea446107dd58dd2/Objects/genericaliasobject.c#L568-L582,
@@ -4371,7 +4385,11 @@ else:
         A lax Python 3.11+ like version of typing._type_check
         """
         if hasattr(typing, "_type_convert"):
-            if _FORWARD_REF_HAS_CLASS:
+            if (
+                sys.version_info >= (3, 10, 3)
+                or (3, 9, 10) < sys.version_info[:3] < (3, 10)
+            ):
+                # allow_special_forms introduced later cpython/#30926 (bpo-46539)
                 type_ = typing._type_convert(
                     value,
                     module=module,
