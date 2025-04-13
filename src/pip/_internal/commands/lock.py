@@ -159,7 +159,7 @@ class LockCommand(RequirementCommand):
                     "%s is not a valid lock file name.",
                     output_file_path,
                 )
-            base_dir = output_file_path.parent.absolute()
+            base_dir = output_file_path.parent
         pylock_toml = Pylock.from_install_requirements(
             requirement_set.requirements.values(), base_dir=base_dir
         ).as_toml()

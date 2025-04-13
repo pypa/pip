@@ -88,6 +88,7 @@ class Package:
 
     @classmethod
     def from_install_requirement(cls, ireq: InstallRequirement, base_dir: Path) -> Self:
+        base_dir = base_dir.resolve()
         dist = ireq.get_dist()
         download_info = ireq.download_info
         assert download_info
@@ -105,6 +106,7 @@ class Package:
                 package.directory = PackageDirectory(
                     path=(
                         Path(url_to_path(download_info.url))
+                        .resolve()
                         .relative_to(base_dir)
                         .as_posix()
                     ),
