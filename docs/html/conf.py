@@ -69,6 +69,7 @@ smartquotes_action = "qe"
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "pypug": ("https://packaging.python.org", None),
+    "packaging": ("https://packaging.pypa.io/en/stable/", None),
 }
 
 # -- Options for towncrier_draft extension --------------------------------------------
