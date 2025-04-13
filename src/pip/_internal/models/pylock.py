@@ -105,7 +105,7 @@ class Package:
                 package.directory = PackageDirectory(
                     path=(
                         Path(url_to_path(download_info.url))
-                        .relative_to(base_dir, walk_up=True)
+                        .relative_to(base_dir)
                         .as_posix()
                     ),
                     editable=(
