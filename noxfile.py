@@ -145,8 +145,7 @@ def docs(session: nox.Session) -> None:
         return [
             "sphinx-build",
             "--keep-going",
-            "--tag",
-            kind,
+            "--tag", kind,
             "-W",
             "-c", "docs/html",  # see note above
             "-d", "docs/build/doctrees/" + kind,

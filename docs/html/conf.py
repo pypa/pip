@@ -12,6 +12,7 @@ docs_dir = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, docs_dir)
 
 # -- General configuration ------------------------------------------------------------
+
 extensions = [
     # extensions common to all builds
     "pip_sphinxext",
