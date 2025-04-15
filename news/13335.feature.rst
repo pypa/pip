@@ -1,0 +1,2 @@
+pip's own licensing metadata now follows PEP 639 and includes information on
+vendored dependencies.

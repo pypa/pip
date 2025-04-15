@@ -9,6 +9,8 @@ Vendoring Policy
 * Vendored libraries **MUST** be available under a license that allows
   them to be integrated into ``pip``, which is released under the MIT license.
 * Vendored libraries **MUST** be accompanied with LICENSE files.
+* The licenses of vendored libraries **MUST** be added to the value of
+  the `license` key in `pyproject.toml`.
 * The versions of libraries vendored in pip **MUST** be reflected in
   ``pip/_vendor/vendor.txt``.
 * Vendored libraries **MUST** function without any build steps such as ``2to3``
