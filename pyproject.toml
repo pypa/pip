@@ -130,9 +130,11 @@ drop = [
   "_distutils_hack",
   "distutils-precedence.pth",
   "pkg_resources/extern/",
-  # trim vendored pygments styles and lexers
+  # trim vendored pygments styles, lexers, formatters, and CLI
   "pygments/styles/[!_]*.py",
   '^pygments/lexers/(?!python|__init__|_mapping).*\.py$',
+  '^pygments/formatters/(?!__init__|_mapping).*\.py$',
+  '^pygments/cmdline\.py$',
   # trim rich's markdown support
   "rich/markdown.py",
 ]
