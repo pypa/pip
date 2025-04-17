@@ -164,7 +164,7 @@ jobs:
     name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group.number }}
     runs-on: ${{ matrix.os }}-latest
 
-    needs: [packaging, determine-changes]
+    needs: [determine-changes]
     if: >-
       needs.determine-changes.outputs.tests == 'true' ||
       github.event_name != 'pull_request'
