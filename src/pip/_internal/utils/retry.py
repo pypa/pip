@@ -1,8 +1,15 @@
 import functools
 from time import perf_counter, sleep
-from typing import Callable, TypeVar
+from typing import TYPE_CHECKING, Callable, TypeVar
 
-from pip._vendor.typing_extensions import ParamSpec
+if TYPE_CHECKING:
+    # TODO: import from typing once Python 3.10 is dropped.
+    from pip._vendor.typing_extensions import ParamSpec
+else:
+
+    def ParamSpec(name: str) -> None:
+        return None
+
 
 T = TypeVar("T")
 P = ParamSpec("P")
@@ -25,7 +32,7 @@ def retry(
     def wrapper(func: Callable[P, T]) -> Callable[P, T]:
 
         @functools.wraps(func)
-        def retry_wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
+        def retry_wrapped(*args: "P.args", **kwargs: "P.kwargs") -> T:
             # The performance counter is monotonic on all platforms we care
             # about and has much better resolution than time.monotonic().
             start_time = perf_counter()
