@@ -9,10 +9,8 @@ import os
 import shutil
 import subprocess
 import sysconfig
-import typing
 import urllib.parse
 from abc import ABC, abstractmethod
-from functools import lru_cache
 from os.path import commonprefix
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple
@@ -32,8 +30,6 @@ from pip._internal.utils.misc import (
 from pip._internal.vcs.versioncontrol import AuthInfo
 
 logger = getLogger(__name__)
-
-KEYRING_DISABLED = False
 
 
 class Credentials(NamedTuple):
@@ -159,13 +155,52 @@ class KeyRingCliProvider(KeyRingBaseProvider):
         return None
 
 
-@lru_cache(maxsize=None)
+def which_skip_scripts(command: str) -> Optional[str]:
+    """
+    Find the given command, but skip past the "scripts" directory. This is useful
+    if you want to find a system install of some command, and not have it shadowed
+    by a virtualenv that happens to provide that very command.
+    """
+    path = shutil.which(command)
+    if path and path.startswith(sysconfig.get_path("scripts")):
+        # all code within this function is stolen from shutil.which implementation
+        def PATH_as_shutil_which_determines_it() -> str:
+            path = os.environ.get("PATH", None)
+            if path is None:
+                try:
+                    path = os.confstr("CS_PATH")
+                except (AttributeError, ValueError):
+                    # os.confstr() or CS_PATH is not available
+                    path = None
+
+                if path is None:
+                    path = os.defpath
+            # bpo-35755: Don't use os.defpath if the PATH environment variable is
+            # set to an empty string
+
+            return path
+
+        scripts = Path(sysconfig.get_path("scripts"))
+
+        paths = []
+        for path in PATH_as_shutil_which_determines_it().split(os.pathsep):
+            p = Path(path)
+            try:
+                if not p.samefile(scripts):
+                    paths.append(path)
+            except FileNotFoundError:
+                pass
+
+        path = os.pathsep.join(paths)
+
+        path = shutil.which(command, path=path)
+
+    return path
+
+
 def get_keyring_provider(provider: str) -> KeyRingBaseProvider:
     logger.verbose("Keyring provider requested: %s", provider)
 
-    # keyring has previously failed and been disabled
-    if KEYRING_DISABLED:
-        provider = "disabled"
     if provider in ["import", "auto"]:
         try:
             impl = KeyRingPythonProvider()
@@ -181,38 +216,7 @@ def get_keyring_provider(provider: str) -> KeyRingBaseProvider:
                 msg = msg + ", trying to find a keyring executable as a fallback"
             logger.warning(msg, exc, exc_info=logger.isEnabledFor(logging.DEBUG))
     if provider in ["subprocess", "auto"]:
-        cli = shutil.which("keyring")
-        if cli and cli.startswith(sysconfig.get_path("scripts")):
-            # all code within this function is stolen from shutil.which implementation
-            @typing.no_type_check
-            def PATH_as_shutil_which_determines_it() -> str:
-                path = os.environ.get("PATH", None)
-                if path is None:
-                    try:
-                        path = os.confstr("CS_PATH")
-                    except (AttributeError, ValueError):
-                        # os.confstr() or CS_PATH is not available
-                        path = os.defpath
-                # bpo-35755: Don't use os.defpath if the PATH environment variable is
-                # set to an empty string
-
-                return path
-
-            scripts = Path(sysconfig.get_path("scripts"))
-
-            paths = []
-            for path in PATH_as_shutil_which_determines_it().split(os.pathsep):
-                p = Path(path)
-                try:
-                    if not p.samefile(scripts):
-                        paths.append(path)
-                except FileNotFoundError:
-                    pass
-
-            path = os.pathsep.join(paths)
-
-            cli = shutil.which("keyring", path=path)
-
+        cli = which_skip_scripts("keyring")
         if cli:
             logger.verbose("Keyring provider set: subprocess with executable %s", cli)
             return KeyRingCliProvider(cli)
@@ -228,10 +232,11 @@ class MultiDomainBasicAuth(AuthBase):
         index_urls: Optional[List[str]] = None,
         keyring_provider: str = "auto",
     ) -> None:
-        self.prompting = prompting
-        self.index_urls = index_urls
-        self.keyring_provider = keyring_provider  # type: ignore[assignment]
-        self.passwords: Dict[str, AuthInfo] = {}
+        self._prompting = prompting
+        self._index_urls = index_urls
+        self._keyring_provider_name = keyring_provider
+        self._keyring_provider = get_keyring_provider(self._keyring_provider_name)
+        self._passwords: Dict[str, AuthInfo] = {}
         # When the user is prompted to enter credentials and keyring is
         # available, we will offer to save them. If the user accepts,
         # this value is set to the credentials they entered. After the
@@ -240,23 +245,14 @@ class MultiDomainBasicAuth(AuthBase):
         self._credentials_to_save: Optional[Credentials] = None
 
     @property
-    def keyring_provider(self) -> KeyRingBaseProvider:
-        return get_keyring_provider(self._keyring_provider)
-
-    @keyring_provider.setter
-    def keyring_provider(self, provider: str) -> None:
-        # The free function get_keyring_provider has been decorated with
-        # functools.cache. If an exception occurs in get_keyring_auth that
-        # cache will be cleared and keyring disabled, take that into account
-        # if you want to remove this indirection.
-        self._keyring_provider = provider
-
-    @property
     def use_keyring(self) -> bool:
         # We won't use keyring when --no-input is passed unless
         # a specific provider is requested because it might require
         # user interaction
-        return self.prompting or self._keyring_provider not in ["auto", "disabled"]
+        return self._prompting or self._keyring_provider_name not in [
+            "auto",
+            "disabled",
+        ]
 
     def _get_keyring_auth(
         self,
@@ -269,7 +265,7 @@ class MultiDomainBasicAuth(AuthBase):
             return None
 
         try:
-            return self.keyring_provider.get_auth_info(url, username)
+            return self._keyring_provider.get_auth_info(url, username)
         except Exception as exc:
             # Log the full exception (with stacktrace) at debug, so it'll only
             # show up when running in verbose mode.
@@ -279,9 +275,9 @@ class MultiDomainBasicAuth(AuthBase):
                 "Keyring is skipped due to an exception: %s",
                 str(exc),
             )
-            global KEYRING_DISABLED
-            KEYRING_DISABLED = True
-            get_keyring_provider.cache_clear()
+            # Disable keyring.
+            self._keyring_provider_name = "disabled"
+            self._keyring_provider = get_keyring_provider(self._keyring_provider_name)
             return None
 
     def _get_index_url(self, url: str) -> Optional[str]:
@@ -297,7 +293,7 @@ class MultiDomainBasicAuth(AuthBase):
         Returns None if no matching index was found, or if --no-index
         was specified by the user.
         """
-        if not url or not self.index_urls:
+        if not url or not self._index_urls:
             return None
 
         url = remove_auth_from_url(url).rstrip("/") + "/"
@@ -305,7 +301,7 @@ class MultiDomainBasicAuth(AuthBase):
 
         candidates = []
 
-        for index in self.index_urls:
+        for index in self._index_urls:
             index = index.rstrip("/") + "/"
             parsed_index = urllib.parse.urlsplit(remove_auth_from_url(index))
             if parsed_url == parsed_index:
@@ -410,8 +406,8 @@ class MultiDomainBasicAuth(AuthBase):
         # Do this if either the username or the password is missing.
         # This accounts for the situation in which the user has specified
         # the username in the index url, but the password comes from keyring.
-        if (username is None or password is None) and netloc in self.passwords:
-            un, pw = self.passwords[netloc]
+        if (username is None or password is None) and netloc in self._passwords:
+            un, pw = self._passwords[netloc]
             # It is possible that the cached credentials are for a different username,
             # in which case the cache should be ignored.
             if username is None or username == un:
@@ -426,7 +422,7 @@ class MultiDomainBasicAuth(AuthBase):
             password = password or ""
 
             # Store any acquired credentials.
-            self.passwords[netloc] = (username, password)
+            self._passwords[netloc] = (username, password)
 
         assert (
             # Credentials were found
@@ -457,7 +453,7 @@ class MultiDomainBasicAuth(AuthBase):
     def _prompt_for_password(
         self, netloc: str
     ) -> Tuple[Optional[str], Optional[str], bool]:
-        username = ask_input(f"User for {netloc}: ") if self.prompting else None
+        username = ask_input(f"User for {netloc}: ") if self._prompting else None
         if not username:
             return None, None, False
         if self.use_keyring:
@@ -470,9 +466,9 @@ class MultiDomainBasicAuth(AuthBase):
     # Factored out to allow for easy patching in tests
     def _should_save_password_to_keyring(self) -> bool:
         if (
-            not self.prompting
+            not self._prompting
             or not self.use_keyring
-            or not self.keyring_provider.has_keyring
+            or not self._keyring_provider.has_keyring
         ):
             return False
         return ask("Save credentials to keyring [y/N]: ", ["y", "n"]) == "y"
@@ -494,7 +490,7 @@ class MultiDomainBasicAuth(AuthBase):
             )
 
         # We are not able to prompt the user so simply return the response
-        if not self.prompting and not username and not password:
+        if not self._prompting and not username and not password:
             return resp
 
         parsed = urllib.parse.urlparse(resp.url)
@@ -507,7 +503,7 @@ class MultiDomainBasicAuth(AuthBase):
         # Store the new username and password to use for future requests
         self._credentials_to_save = None
         if username is not None and password is not None:
-            self.passwords[parsed.netloc] = (username, password)
+            self._passwords[parsed.netloc] = (username, password)
 
             # Prompt to save the password to keyring
             if save and self._should_save_password_to_keyring():
@@ -551,7 +547,7 @@ class MultiDomainBasicAuth(AuthBase):
     def save_credentials(self, resp: Response, **kwargs: Any) -> None:
         """Response callback to save credentials on success."""
         assert (
-            self.keyring_provider.has_keyring
+            self._keyring_provider.has_keyring
         ), "should never reach here without keyring"
 
         creds = self._credentials_to_save
@@ -559,7 +555,7 @@ class MultiDomainBasicAuth(AuthBase):
         if creds and resp.status_code < 400:
             try:
                 logger.info("Saving credentials to keyring")
-                self.keyring_provider.save_auth_info(
+                self._keyring_provider.save_auth_info(
                     creds.url, creds.username, creds.password
                 )
             except Exception:
