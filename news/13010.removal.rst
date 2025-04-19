@@ -1,2 +1,1 @@
-On python 3.14+, the ``pkg_resources`` metadata backend is not used anymore,
-and pip does not attempt to detect installed ``.egg`` distributions.
+On python 3.14+, the ``pkg_resources`` metadata backend cannot be used anymore.
