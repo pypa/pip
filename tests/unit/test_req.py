@@ -366,6 +366,7 @@ class TestRequirementSet:
             assert isinstance(req.download_info.info, ArchiveInfo)
             assert req.download_info.info.hash
 
+    @pytest.mark.enable_socket
     @pytest.mark.network
     def test_download_info_index_url(self) -> None:
         """Test that download_info is set for requirements via index."""
@@ -378,6 +379,7 @@ class TestRequirementSet:
             assert req.download_info
             assert isinstance(req.download_info.info, ArchiveInfo)
 
+    @pytest.mark.enable_socket
     @pytest.mark.network
     def test_download_info_web_archive(self) -> None:
         """Test that download_info is set for requirements from a web archive."""
