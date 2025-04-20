@@ -14,19 +14,28 @@ sys.path.insert(0, docs_dir)
 # -- General configuration ------------------------------------------------------------
 
 extensions = [
-    # first-party extensions
-    "sphinx.ext.autodoc",
-    "sphinx.ext.todo",
-    "sphinx.ext.intersphinx",
-    # our extensions
+    # extensions common to all builds
     "pip_sphinxext",
-    # third-party extensions
-    "myst_parser",
-    "sphinx_copybutton",
-    "sphinx_inline_tabs",
-    "sphinxcontrib.towncrier",
-    "sphinx_issues",
 ]
+
+# 'tags' is a injected by sphinx
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-tags
+if "man" not in tags:  # type: ignore[name-defined] # noqa: F821
+    # extensions not needed for building man pages
+    extensions.extend(
+        (
+            # first-party extensions
+            "sphinx.ext.autodoc",
+            "sphinx.ext.todo",
+            "sphinx.ext.intersphinx",
+            # third-party extensions
+            "myst_parser",
+            "sphinx_copybutton",
+            "sphinx_inline_tabs",
+            "sphinxcontrib.towncrier",
+            "sphinx_issues",
+        ),
+    )
 
 # General information about the project.
 project = "pip"
@@ -69,6 +78,7 @@ smartquotes_action = "qe"
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "pypug": ("https://packaging.python.org", None),
+    "packaging": ("https://packaging.pypa.io/en/stable/", None),
 }
 
 # -- Options for towncrier_draft extension --------------------------------------------

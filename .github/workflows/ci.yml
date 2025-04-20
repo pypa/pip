@@ -63,8 +63,11 @@ jobs:
         if: github.event_name == 'pull_request'
 
   packaging:
-    name: packaging
-    runs-on: ubuntu-22.04
+    name: packaging / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, windows-latest]
 
     steps:
       - uses: actions/checkout@v4
@@ -104,7 +107,7 @@ jobs:
     name: tests / ${{ matrix.python.key || matrix.python }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
 
-    needs: [packaging, determine-changes]
+    needs: [determine-changes]
     if: >-
       needs.determine-changes.outputs.tests == 'true' ||
       github.event_name != 'pull_request'
@@ -161,7 +164,7 @@ jobs:
     name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group.number }}
     runs-on: ${{ matrix.os }}-latest
 
-    needs: [packaging, determine-changes]
+    needs: [determine-changes]
     if: >-
       needs.determine-changes.outputs.tests == 'true' ||
       github.event_name != 'pull_request'

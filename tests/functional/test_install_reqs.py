@@ -13,6 +13,7 @@ from tests.lib import (
     _create_test_package_with_subdirectory,
     create_basic_sdist_for_package,
     create_basic_wheel_for_package,
+    make_wheel,
     need_svn,
     requirements_file,
 )
@@ -917,3 +918,26 @@ def test_config_settings_local_to_package(
     assert "--verbose" not in simple3_args
     simple2_args = simple2_sdist.args()
     assert "--verbose" not in simple2_args
+
+
+def test_nonpep517_setuptools_import_failure(script: PipTestEnvironment) -> None:
+    """Any import failures of `setuptools` should inform the user both that it's
+    not pip's fault, but also exactly what went wrong in the import."""
+    # Install a poisoned version of 'setuptools' that fails to import.
+    name = "setuptools_poisoned"
+    module = """\
+raise ImportError("this 'setuptools' was intentionally poisoned")
+"""
+    path = make_wheel(name, "0.1.0", extra_files={"setuptools.py": module}).save_to_dir(
+        script.scratch_path
+    )
+    script.pip("install", "--no-index", path)
+
+    result = script.pip_install_local("--no-use-pep517", "simple", expect_error=True)
+    nice_message = (
+        "ERROR: Can not execute `setup.py`"
+        " since setuptools failed to import in the build environment"
+    )
+    exc_message = "ImportError: this 'setuptools' was intentionally poisoned"
+    assert nice_message in result.stderr
+    assert exc_message in result.stderr

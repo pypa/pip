@@ -57,7 +57,7 @@ def test_entrypoints_work(entrypoint: str, script: PipTestEnvironment) -> None:
     sorted(
         set(commands_dict).symmetric_difference(
             # Exclude commands that are expected to use the network.
-            {"install", "download", "search", "index", "wheel"}
+            {"install", "download", "search", "index", "lock", "wheel"}
         )
     ),
 )

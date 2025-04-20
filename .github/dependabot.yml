@@ -9,6 +9,6 @@ updates:
         patterns:
           - "*"
   - package-ecosystem: "pip"
-    directory: "/"
+    directory: "/build-project"
     schedule:
       interval: "weekly"

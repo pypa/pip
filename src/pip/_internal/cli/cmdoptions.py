@@ -281,8 +281,17 @@ retries: Callable[..., Option] = partial(
     dest="retries",
     type="int",
     default=5,
-    help="Maximum number of retries each connection should attempt "
-    "(default %default times).",
+    help="Maximum attempts to establish a new HTTP connection. (default: %default)",
+)
+
+resume_retries: Callable[..., Option] = partial(
+    Option,
+    "--resume-retries",
+    dest="resume_retries",
+    type="int",
+    default=0,
+    help="Maximum attempts to resume or restart an incomplete download. "
+    "(default: %default)",
 )
 
 timeout: Callable[..., Option] = partial(
@@ -824,9 +833,9 @@ def _handle_no_use_pep517(
         """
         raise_option_error(parser, option=option, msg=msg)
 
-    # If user doesn't wish to use pep517, we check if setuptools and wheel are installed
+    # If user doesn't wish to use pep517, we check if setuptools is installed
     # and raise error if it is not.
-    packages = ("setuptools", "wheel")
+    packages = ("setuptools",)
     if not all(importlib.util.find_spec(package) for package in packages):
         msg = (
             f"It is not possible to use --no-use-pep517 "
@@ -1039,7 +1048,7 @@ no_python_version_warning: Callable[..., Option] = partial(
     dest="no_python_version_warning",
     action="store_true",
     default=False,
-    help="Silence deprecation warnings for upcoming unsupported Pythons.",
+    help=SUPPRESS_HELP,  # No-op, a hold-over from the Python 2->3 transition.
 )
 
 
@@ -1077,7 +1086,6 @@ use_deprecated_feature: Callable[..., Option] = partial(
     help=("Enable deprecated functionality, that will be removed in the future."),
 )
 
-
 ##########
 # groups #
 ##########
@@ -1110,6 +1118,7 @@ general_group: Dict[str, Any] = {
         no_python_version_warning,
         use_new_feature,
         use_deprecated_feature,
+        resume_retries,
     ],
 }
 

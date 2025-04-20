@@ -179,9 +179,10 @@ class Environment(BaseEnvironment):
         finder = _DistributionFinder()
         for location in self._paths:
             yield from finder.find(location)
-            for dist in finder.find_eggs(location):
-                _emit_egg_deprecation(dist.location)
-                yield dist
+            if sys.version_info < (3, 14):
+                for dist in finder.find_eggs(location):
+                    _emit_egg_deprecation(dist.location)
+                    yield dist
             # This must go last because that's how pkg_resources tie-breaks.
             yield from finder.find_linked(location)
 
